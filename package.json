@@ -2,14 +2,14 @@
   "dependencies": {
     "express": "^5.1.0",
     "node-fetch": "^3.3.2",
-    "cors": "^2.8.5"  <-- ✅ AJOUTÉ
+    "cors": "^2.8.5" 
   },
   "name": "valen",
   "version": "1.0.0",
   "description": "API pour streamer Twitch aléatoire.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js", <-- ✅ AJOUTÉ ET CORRIGÉ
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
