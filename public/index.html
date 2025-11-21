@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Découverte de Streamers Aléatoires (AutoPlay)</title>
+    
+    <script src="https://player.twitch.tv/js/embed/v1.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            text-align: center;
+            background-color: #f8f8f8;
+            padding: 20px;
+        }
+        h2 {
+            color: #6441a5;
+            margin-bottom: 25px;
+        }
+        /* Conteneur pour le lecteur (Twitch Player JS l'intégrera ici) */
+        #twitch-player-container {
+            width: 90%;
+            max-width: 800px; 
+            margin: 0 auto;
+            aspect-ratio: 16 / 9; 
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 2px solid #6441a5;
+        }
+        #info-message {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #333;
+        }
+        #info-message a {
+            color: #6441a5;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+
+</head>
+<body>
+
+    <h2>Twitch : Streamer Aléatoire à Découvrir 🔎</h2>
+
+    <div id="twitch-player-container">
+        </div>
+    
+    <p id="info-message">Démarrage du chargement du streamer...</p>
+
+    <script>
+        // L'URL de votre API Express (accessible via le serveur qui sert cette page)
+        const API_URL = 'http://localhost:3000/random-streamer';
+        
+        // Nous ciblons le conteneur DIV
+        const infoMessage = document.getElementById('info-message');
+
+        // Durée de rafraîchissement : 5 minutes en millisecondes
+        const REFRESH_INTERVAL = 5 * 60 * 1000; 
+        
+        // PARENT_DOMAIN est crucial : il prend l'adresse de la page (ex: "localhost:3000")
+        const PARENT_DOMAIN = window.location.host; 
+        
+        // Variable globale pour stocker l'objet joueur Twitch
+        let TwitchPlayer = null; 
+
+        /**
+         * Fonction pour créer ou mettre à jour le lecteur Twitch
+         */
+        function updateTwitchPlayer(streamerLogin) {
+            if (TwitchPlayer) {
+                // Si le lecteur existe, changez simplement le canal
+                TwitchPlayer.setChannel(streamerLogin);
+                TwitchPlayer.setVolume(0.2);
+            } else {
+                // S'il n'existe pas, créez-le (il prendra l'autoplay et le mute en compte)
+                const options = {
+                    width: '100%',
+                    height: '100%',
+                    channel: streamerLogin,
+                    parent: [PARENT_DOMAIN], // Doit être un tableau
+                    autoplay: true,         // ESSENTIEL pour l'Autoplay
+                    muted: true,            // ESSENTIEL pour que l'Autoplay fonctionne dans les navigateurs
+                    volume: 0.2
+                };
+                
+                // Crée le nouveau lecteur dans le conteneur DIV
+                TwitchPlayer = new Twitch.Player('twitch-player-container', options);
+                
+                TwitchPlayer.addEventListener(Twitch.Player.READY, () => {
+                     // Tente de jouer après que le lecteur est prêt
+                     TwitchPlayer.play(); 
+                     TwitchPlayer.setVolume(0.2); 
+                });
+            }
+            
+            // Met à jour le message après que le changement est initié
+            infoMessage.innerHTML = `Nouveau Streamer : <a href="https://twitch.tv/${streamerLogin}" target="_blank">${streamerLogin}</a>. Changement automatique dans 5 minutes.`;
+        }
+
+        /**
+         * Appelle l'API pour obtenir un nouvel ID de streamer
+         */
+        async function loadNewStreamer() {
+            try {
+                infoMessage.textContent = "Recherche d'un nouveau streamer sur l'API...";
+                
+                const response = await fetch(API_URL);
+                const data = await response.json();
+
+                if (data.streamer_id) {
+                    const streamerLogin = data.streamer_id;
+                    
+                    // Met à jour le lecteur via la fonction de contrôle
+                    updateTwitchPlayer(streamerLogin); 
+                    
+                } else {
+                    infoMessage.textContent = "Erreur: L'API n'a pas retourné d'ID de streamer.";
+                }
+
+            } catch (error) {
+                console.error("Erreur critique lors de la mise à jour du streamer:", error);
+                infoMessage.textContent = "Impossible de se connecter à l'API. Assurez-vous que le serveur Node est en cours d'exécution.";
+            }
+        }
+
+        // 1. Lance la fonction immédiatement au chargement de la page
+        loadNewStreamer();
+
+        // 2. Répète la fonction toutes les 5 minutes
+        setInterval(loadNewStreamer, REFRESH_INTERVAL);
+    </script>
+
+</body>
+</html>
