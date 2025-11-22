@@ -1,59 +1,68 @@
+// index.js
 import express from 'express';
 import cors from 'cors';
 import admin from 'firebase-admin';
-import fs from 'fs';
-import path from 'path';
 
-// Initialisation Firebase Admin
-const serviceAccount = JSON.parse(
-  fs.readFileSync(path.join(process.cwd(), 'serviceAccountKey.json'), 'utf8')
-);
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// --- Firebase Admin ---
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch (err) {
+  console.error("❌ FIREBASE_SERVICE_ACCOUNT invalide ou manquant !");
+  process.exit(1);
+}
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert(serviceAccount)
 });
 
 const db = admin.firestore();
 
-// Express
-const app = express();
-app.use(cors());
-app.use(express.json());
-const PORT = process.env.PORT || 10000;
-
-// Test
-app.get('/', (req, res) => res.send('⚡ Twitch Scanner Backend OK'));
-
-// Endpoint pour streamer aléatoire
+// --- Routes Twitch & API ---
+// Exemple simple : renvoie un streamer "au hasard"
 app.get('/random', async (req, res) => {
   try {
-    const snapshot = await db.collection('submitted_streamers').get();
-    const streamers = snapshot.docs.map(doc => doc.data());
-    const randomStreamer = streamers[Math.floor(Math.random() * streamers.length)] || null;
-    res.json({ streamer: randomStreamer });
+    // Ici tu peux faire un fetch depuis Firestore ou Twitch API
+    res.json({
+      streamer: {
+        username: 'gotaga',
+        viewer_count: 1234,
+        title: 'Streamer de test',
+        avg_score: 4.5
+      }
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Erreur /random:", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// Endpoint boost
+// Exemple : route pour soumettre un boost
 app.post('/boost', async (req, res) => {
-  const { username, userId } = req.body;
-  if (!username || !userId) return res.status(400).json({ error: 'username et userId requis' });
+  const { channelName, userId } = req.body;
+  if (!channelName || !userId) return res.status(400).json({ error: "Paramètres manquants" });
 
   try {
-    await db.collection('submitted_streamers').doc(username.toLowerCase()).set({
-      username: username.toLowerCase(),
+    const path = `artifacts/GOODSTREAM-twitch-prod/public/data/submitted_streamers/${channelName.toLowerCase()}`;
+    await db.doc(path).set({
+      username: channelName.toLowerCase(),
       userId,
       timestamp: admin.firestore.Timestamp.now(),
       avg_score: 3.0,
       draw_count: 0
     }, { merge: true });
 
-    res.json({ success: true, message: '✅ Boost activé !' });
+    res.json({ success: true, message: "✅ Boost activé !" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Erreur /boost:", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
+// --- Démarrage du serveur ---
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`⚡ Backend Twitch Scanner running on port ${PORT}`));
