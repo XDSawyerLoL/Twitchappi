@@ -1,19 +1,16 @@
 {
-  "dependencies": {
-    "express": "^5.1.0",
-    "node-fetch": "^3.3.2",
-    "cors": "^2.8.5" 
-  },
-  "name": "valen",
+  "name": "twitch-random-api",
   "version": "1.0.0",
-  "description": "API pour streamer Twitch aléatoire.",
-  "main": "index.js",
+  "description": "API pour trouver un streamer Twitch entre 0 et 150 viewers.",
+  "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module"
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2"
+  }
 }
