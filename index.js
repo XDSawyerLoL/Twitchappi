@@ -1,10 +1,10 @@
 // --- IMPORTATIONS NÉCESSAIRES ---
 // Assurez-vous d'avoir les dépendances 'express', 'node-fetch', 'firebase-admin' installées.
-const express = require('express');
-const fetch = require('node-fetch');
+import express from 'express';
+import fetch from 'node-fetch';
 
 // Firebase Admin SDK est requis pour les opérations de backend (Node.js)
-const admin = require('firebase-admin');
+import * as admin from 'firebase-admin';
 
 // --- CONFIGURATION FIREBASE ADMIN ---
 // Les identifiants de configuration sont fournis par l'environnement
@@ -26,11 +26,11 @@ const port = process.env.PORT || 3000;
 // Middleware pour analyser le corps JSON
 app.use(express.json());
 
-// --- CONFIGURATION TWITCH (CRITIQUE) ---
-// ⚠️ CLÉS MISES À JOUR AVEC VOS VALEURS
-const TWITCH_CLIENT_ID = 'ifypidjkytqzoktdyljgktqsczrv4j'; 
-const TWITCH_CLIENT_SECRET = '3cxzcj23fcrczbe5n37ajzcb4y7u9q';
-let TWITCH_ACCESS_TOKEN = null;
+// --- CONFIGURATION TWITCH SÉCURISÉE (CRITIQUE) ---
+// ⚠️ Les clés sont LUES depuis les variables d'environnement (Render)
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID; 
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+let TWITCH_ACCESS_TOKEN = null; // Le jeton sera stocké temporairement en mémoire
 
 // Chemin de la collection Firestore pour les streamers soumis (Collection Publique)
 const SUBMISSION_COLLECTION_PATH = `artifacts/${appId}/public/data/submitted_streamers`;
@@ -42,6 +42,11 @@ const SUBMISSION_COLLECTION_PATH = `artifacts/${appId}/public/data/submitted_str
  * Récupère le jeton d'accès Twitch (nécessaire pour appeler l'API Helix).
  */
 async function getTwitchAccessToken() {
+    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+        console.error("ERREUR DE SÉCURITÉ : Les variables d'environnement TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET sont manquantes.");
+        return null;
+    }
+    
     if (TWITCH_ACCESS_TOKEN) return TWITCH_ACCESS_TOKEN;
     const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     
@@ -117,9 +122,9 @@ async function updateStreamerDrawMetrics(username) {
  */
 app.get('/random', async (req, res) => {
     
-    // Vérification initiale des clés Twitch (Maintenant avec les vraies clés, la vérification est moins critique)
-    if (TWITCH_CLIENT_ID === 'VOTRE_CLIENT_ID_TWITCH') {
-        return res.status(500).json({ error: "Veuillez configurer vos identifiants Twitch dans index.js." });
+    // Vérification de sécurité des clés d'environnement
+    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+        return res.status(500).json({ error: "Configuration manquante : Clés Twitch non définies dans les variables d'environnement." });
     }
 
     try {
