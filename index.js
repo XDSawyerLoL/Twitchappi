@@ -1,59 +1,64 @@
-// index.js
+
+
+
 import express from 'express';
 import cors from 'cors';
 import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-// --- 1️⃣ Initialisation Firebase Admin ---
-if (!process.env.FIREBASE_SA_KEY) {
-  console.error("⚠️ FIREBASE_SA_KEY manquant dans les variables d'environnement !");
-  process.exit(1);
-}
-
-const firebaseKey = JSON.parse(process.env.FIREBASE_SA_KEY);
-
-const appAdmin = initializeApp({
-  credential: cert(firebaseKey),
-});
-
-const db = getFirestore(appAdmin);
-
-// --- 2️⃣ Configuration Express ---
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 10000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// --- 3️⃣ Routes ---
+// --- Initialisation Firebase Admin ---
+import serviceAccount from './serviceAccountKey.json' assert { type: 'json' };
+initializeApp({ credential: cert(serviceAccount) });
+const db = getFirestore();
+
+// --- Routes ---
 app.get('/', (req, res) => {
-  res.send('⚡ Backend Twitch Scanner OK!');
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-/**
- * Endpoint pour récupérer un streamer aléatoire
- * Exemple simplifié, tu peux remplacer par Firestore ou ton IA
- */
+// Exemple de route /random pour le scanner
 app.get('/random', async (req, res) => {
   try {
-    // Ici tu peux récupérer depuis Firestore
-    // Exemple factice :
-    const streamer = {
-      username: 'gotaga',
-      title: 'Test Stream',
-      viewer_count: 123,
-      avg_score: 4.5
-    };
+    const snapshot = await db.collection('streamers').limit(1).get();
+    const streamer = snapshot.docs[0]?.data() || null;
     res.json({ streamer });
   } catch (err) {
-    console.error("Erreur /random :", err);
+    console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-// --- 4️⃣ Démarrage serveur ---
-app.listen(PORT, () => {
-  console.log(`⚡ Backend Twitch Scanner running on port ${PORT}`);
+// Exemple de route /boost pour le formulaire Boost
+app.post('/boost', async (req, res) => {
+  const { username, userId } = req.body;
+  if (!username || !userId) return res.status(400).json({ error: 'Paramètres manquants' });
+
+  try {
+    await db.collection('streamers').doc(username).set({
+      username,
+      userId,
+      timestamp: Timestamp.now(),
+      avg_score: 3.0,
+      draw_count: 0
+    }, { merge: true });
+
+    res.json({ message: '✅ Boost activé !' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Échec du boost' });
+  }
 });
 
-
+// --- Démarrage du serveur ---
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`⚡ Backend Twitch Scanner running on port ${PORT}`));
