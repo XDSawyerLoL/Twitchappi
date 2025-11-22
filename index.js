@@ -1,66 +1,59 @@
-import express from "express";
-import fetch from "node-fetch";
-import cors from "cors";
+// index.js
+import express from 'express';
+import cors from 'cors';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
-
-const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-
-if (!CLIENT_ID || !CLIENT_SECRET) {
-  console.error("⚠️ TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET manquants !");
+// --- 1️⃣ Initialisation Firebase Admin ---
+if (!process.env.FIREBASE_SA_KEY) {
+  console.error("⚠️ FIREBASE_SA_KEY manquant dans les variables d'environnement !");
   process.exit(1);
 }
 
-let twitchToken = null;
-let tokenExpiry = null;
+const firebaseKey = JSON.parse(process.env.FIREBASE_SA_KEY);
 
-async function getTwitchToken() {
-  if (twitchToken && tokenExpiry && Date.now() < tokenExpiry - 60 * 1000) return twitchToken;
+const appAdmin = initializeApp({
+  credential: cert(firebaseKey),
+});
 
-  const url = `https://id.twitch.tv/oauth2/token?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&grant_type=client_credentials`;
-  const res = await fetch(url, { method: "POST" });
-  const data = await res.json();
-  if (!data.access_token) throw new Error("Impossible de récupérer le token Twitch");
+const db = getFirestore(appAdmin);
 
-  twitchToken = data.access_token;
-  tokenExpiry = Date.now() + data.expires_in * 1000;
-  return twitchToken;
-}
+// --- 2️⃣ Configuration Express ---
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-app.get("/random", async (req, res) => {
+const PORT = process.env.PORT || 10000;
+
+// --- 3️⃣ Routes ---
+app.get('/', (req, res) => {
+  res.send('⚡ Backend Twitch Scanner OK!');
+});
+
+/**
+ * Endpoint pour récupérer un streamer aléatoire
+ * Exemple simplifié, tu peux remplacer par Firestore ou ton IA
+ */
+app.get('/random', async (req, res) => {
   try {
-    const token = await getTwitchToken();
-
-    const url = `https://api.twitch.tv/helix/streams?first=50`;
-    const response = await fetch(url, {
-      headers: {
-        "Client-ID": CLIENT_ID,
-        "Authorization": `Bearer ${token}`
-      }
-    });
-    const data = await response.json();
-
-    if (!data.data || data.data.length === 0) {
-      return res.json({ streamer: null, message: "Aucun streamer trouvé." });
-    }
-
-    const filtered = data.data.filter(s => s.viewer_count <= 5);
-    if (filtered.length === 0) return res.json({ streamer: null, message: "Aucun streamer < 5 viewers." });
-
-    const randomStreamer = filtered[Math.floor(Math.random() * filtered.length)];
-    res.json({ streamer: randomStreamer });
-
+    // Ici tu peux récupérer depuis Firestore
+    // Exemple factice :
+    const streamer = {
+      username: 'gotaga',
+      title: 'Test Stream',
+      viewer_count: 123,
+      avg_score: 4.5
+    };
+    res.json({ streamer });
   } catch (err) {
     console.error("Erreur /random :", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-app.get("/", (req, res) => res.send("Backend Streamer Hub OK ✅"));
+// --- 4️⃣ Démarrage serveur ---
+app.listen(PORT, () => {
+  console.log(`⚡ Backend Twitch Scanner running on port ${PORT}`);
+});
 
-app.listen(PORT, () => console.log(`⚡ Backend Twitch Scanner running on port ${PORT}`));
+
