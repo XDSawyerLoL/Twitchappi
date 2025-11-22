@@ -4,19 +4,148 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Streamer Hub V2</title>
+
+<!-- Polices Cyberpunk -->
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://embed.twitch.tv/embed/v1.js"></script>
+
+<!-- CSS Cyberpunk -->
 <style>
-  /* Ton CSS Cyberpunk ici */
+  body, html { margin:0; padding:0; font-family:'Inter', sans-serif; background:#121212; color:#f0f0f0; }
+  .neon-border { border:1px solid rgba(255,0,153,0.4); box-shadow:0 0 8px rgba(255,0,153,0.4); transition:all 0.3s; }
+  .neon-border:hover { border-color:#22c7ef; box-shadow:0 0 15px rgba(34,199,239,0.6); }
+  .btn-primary { background-color:#FF0099; color:white; box-shadow:0 0 10px #FF0099; transition:transform 0.2s; }
+  .btn-primary:hover:not(:disabled) { transform:scale(1.02); background-color:#E6008A; }
+  .btn-secondary { background-color:#22c7ef; color:#121212; box-shadow:0 0 10px #22c7ef; transition:transform 0.2s; }
+  .btn-secondary:hover:not(:disabled) { transform:scale(1.02); background-color:#1AC; }
+  .btn-secondary:disabled, .btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
+  .animate-spin-slow { animation: spin 3s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .twitch-embed-container { position:relative; width:100%; padding-top:56.25%; overflow:hidden; border-radius:8px; }
+  .twitch-embed-container iframe { position:absolute; top:0; left:0; width:100%; height:100%; }
 </style>
 </head>
-<body>
-<div id="app-root"></div>
 
+<body>
+<div id="app-root" class="p-4 md:p-8 max-w-7xl mx-auto">
+  <div class="flex h-screen items-center justify-center text-[#FF0099] font-bold p-10 text-xl">
+    <span class="animate-spin-slow mr-3 text-4xl">◎</span> Connexion au Nexus de données...
+  </div>
+</div>
+
+<script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script type="module">
-  // Ton code front-end ici
-  // Avec Firebase JS via CDN, fetch('/random') pour le scanner, fetch('/boost') pour le boost
+const ROOT = document.getElementById('app-root');
+let state = { currentChannel:'twitch', boostLoading:false, scannerLoading:false, scannerResult:null };
+
+// --- Icônes SVG ---
+const IconZap = () => '<svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+const IconSearch = () => '<svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+const IconSend = () => '<svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+const IconVideo = () => '<svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></svg>';
+const ExternalLinkIcon = () => '<svg class="w-5 h-5 ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+
+// --- Rendu principal ---
+function render() {
+  ROOT.innerHTML = `
+  <header class="text-center mb-8 md:mb-12">
+    <h1 class="text-4xl md:text-6xl font-extrabold text-[#FF0099]" style="font-family:'Orbitron'">STREAMER HUB V2.0</h1>
+    <p class="text-[#22c7ef] text-lg">Lecteur Intégré, Boost Actif & Scanner IA</p>
+  </header>
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+
+    <!-- Colonne 1: Lecteur Twitch -->
+    <div class="xl:col-span-2 space-y-4">
+      <h2 class="text-2xl font-bold text-[#22c7ef] flex items-center" style="font-family:'Orbitron'">${IconVideo()} FLUX VIDÉO</h2>
+      <div class="bg-gray-900 p-4 rounded-xl neon-border shadow-lg">
+        <form id="streamer-form" class="flex flex-col sm:flex-row gap-2">
+          <input id="channel-input" class="flex-grow p-3 bg-gray-800 border border-[#22c7ef]/60 rounded text-white" value="${state.currentChannel}" required placeholder="Nom de la chaîne Twitch"/>
+          <button type="submit" class="btn-secondary px-6 py-3 rounded font-bold flex items-center justify-center min-w-[120px]">${IconVideo()} LANCER</button>
+        </form>
+      </div>
+      <div class="twitch-embed-container bg-gray-900 neon-border"><div id="twitch-embed" class="w-full h-full"></div></div>
+    </div>
+
+    <!-- Colonne 2: Boost & Scanner -->
+    <div class="xl:col-span-1 space-y-8">
+      <!-- Boost -->
+      <div class="p-6 rounded-xl neon-border bg-[#1a1a1a]">
+        <h2 class="text-2xl font-bold text-[#FF0099] mb-4 flex items-center" style="font-family:'Orbitron'">${IconZap()} BOOST ACTIVATION</h2>
+        <form id="boost-form" class="space-y-4">
+          <input id="boost-input" class="w-full p-3 bg-gray-900 border border-[#FF0099]/60 rounded text-white" placeholder="Ex: MonStreamer" required/>
+          <button type="submit" id="boost-btn" class="w-full btn-primary py-3 rounded font-bold">${IconSend()} SOUMETTRE</button>
+        </form>
+      </div>
+      <!-- Scanner -->
+      <div class="p-6 rounded-xl neon-border bg-[#1a1a1a]">
+        <h2 class="text-2xl font-bold text-[#22c7ef] mb-4 flex items-center" style="font-family:'Orbitron'">${IconSearch()} SCANNER IA</h2>
+        <button id="scanner-btn" class="w-full btn-secondary py-3 rounded font-bold">LANCER LE SCAN</button>
+        <div id="scanner-result" class="mt-4"></div>
+      </div>
+    </div>
+  </div>
+  `;
+
+  initTwitchPlayer();
+  attachEvents();
+}
+
+// --- Twitch Embed ---
+let twitchPlayer = null;
+function initTwitchPlayer() {
+  const embedDiv = document.getElementById('twitch-embed');
+  if (!embedDiv) return;
+
+  if (twitchPlayer) {
+    twitchPlayer.setChannel(state.currentChannel);
+  } else {
+    twitchPlayer = new Twitch.Embed('twitch-embed', {
+      width: '100%',
+      height: '100%',
+      channel: state.currentChannel,
+      layout: 'video',
+      autoplay: true,
+      parent: [window.location.hostname]
+    });
+  }
+}
+
+// --- Événements ---
+function attachEvents() {
+  document.getElementById('streamer-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    const ch = document.getElementById('channel-input').value.trim().toLowerCase();
+    state.currentChannel = ch;
+    initTwitchPlayer();
+  });
+
+  document.getElementById('boost-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const username = document.getElementById('boost-input').value.trim();
+    if (!username) return;
+    const res = await fetch('/boost', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,userId:'anonymous'}) });
+    const data = await res.json();
+    alert(data.message || data.error);
+    document.getElementById('boost-input').value = '';
+  });
+
+  document.getElementById('scanner-btn')?.addEventListener('click', async () => {
+    const resultDiv = document.getElementById('scanner-result');
+    resultDiv.innerHTML = 'Recherche en cours...';
+    try {
+      const res = await fetch('/random');
+      const data = await res.json();
+      if (data.streamer) {
+        const s = data.streamer;
+        resultDiv.innerHTML = `<p>${s.username} - Score: ${s.avg_score || 0} - Viewers: ${s.draw_count || 0}</p>`;
+      } else resultDiv.innerHTML = 'Aucun streamer trouvé.';
+    } catch (err) { resultDiv.innerHTML = 'Erreur du scanner'; }
+  });
+}
+
+window.onload = render;
 </script>
 </body>
 </html>
