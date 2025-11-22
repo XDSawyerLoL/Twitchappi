@@ -30,7 +30,7 @@ if (!admin.apps.length) {
         }
     } else {
         // Mode Environnement Google Cloud (Canvas, GCE) - Fallback
-        // Attention: Pour Render, cette partie est ignorée si FIREBASE_SA_KEY est bien configuré.
+        // ATTENTION: Pour Render, cette partie est ignorée si FIREBASE_SA_KEY est bien configuré.
         admin.initializeApp({
             credential: admin.credential.applicationDefault()
         });
@@ -48,14 +48,12 @@ app.use(express.json());
 
 // --- CONFIGURATION TWITCH (CRITIQUE) ---
 // ⚠️ Lecture des clés depuis process.env (variables d'environnement) pour la sécurité sur Render
-// Mettez ces variables (TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET) dans les réglages Render
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'ifypidjkytqzoktdyljgktqsczrv4j'; 
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '3cxzcj23fcrczbe5n37ajzcb4y7u9q';
+// NOTE: Il est critique que ces variables soient définies sur Render.
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID; 
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 let TWITCH_ACCESS_TOKEN = null;
 
-// Les constantes __app_id et __firebase_config sont spécifiques à l'environnement Canvas
-// Pour Render, nous devons utiliser un chemin plus simple ou gérer l'appId différemment,
-// mais nous conservons la structure pour la compatibilité avec votre code existant.
+// L'App ID que nous avons convenu (doit correspondre à la variable d'environnement sur Render)
 const appId = process.env.APP_ID || 'GOODSTREAM-twitch-prod'; 
 
 // Chemin de la collection Firestore pour les streamers soumis (Collection Publique)
@@ -77,6 +75,12 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
  */
 async function getTwitchAccessToken() {
     if (TWITCH_ACCESS_TOKEN) return TWITCH_ACCESS_TOKEN;
+    
+    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+        console.error("ERREUR CRITIQUE: TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET non configuré.");
+        return null;
+    }
+
     const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     
     try {
@@ -237,9 +241,9 @@ async function callGeminiApi(payload) {
  */
 app.get('/random', async (req, res) => {
     
-    // Vérification initiale des clés Twitch (Maintenant avec les vraies clés, la vérification est moins critique)
-    if (TWITCH_CLIENT_ID === 'VOTRE_CLIENT_ID_TWITCH') {
-        return res.status(500).json({ error: "Veuillez configurer vos identifiants Twitch dans index.js." });
+    // Vérification critique des clés
+    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+        return res.status(500).json({ error: "Les identifiants Twitch (TWITCH_CLIENT_ID/SECRET) sont manquants dans les variables d'environnement." });
     }
 
     try {
@@ -329,6 +333,7 @@ app.get('/random', async (req, res) => {
             const topQuality = targetPool.slice(0, Math.ceil(targetPool.length / 2)); 
 
             // 3. Combinaison (pour inclure les streamers qui excellent dans au moins une catégorie)
+            // On utilise un Set pour s'assurer que les objets streamer sont uniques
             const combinedPool = [...new Set([...topEquity, ...topQuality])];
             finalSelectionPool = combinedPool.length > 0 ? combinedPool : targetPool;
             
@@ -458,8 +463,13 @@ app.post('/review-streamer', async (req, res) => {
     if (!username) {
         return res.status(400).json({ error: "Le nom d'utilisateur est requis pour la critique IA." });
     }
+    
+    // 1. Vérification de la clé Gemini
+    if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: "La clé API Gemini (GEMINI_API_KEY) est manquante dans les variables d'environnement." });
+    }
 
-    // 1. Définir le prompt et l'instruction système
+    // 2. Définir le prompt et l'instruction système
     const systemPrompt = "Vous êtes un critique de streaming Twitch. Fournissez une critique concise, positive et engageante en un seul paragraphe sur le streamer demandé. Concentrez-vous sur le style, le contenu et la communauté. Répondez en français.";
     const userQuery = `Générer une critique du streamer Twitch : ${username}.`;
     
@@ -475,10 +485,10 @@ app.post('/review-streamer', async (req, res) => {
     };
     
     try {
-        // 2. Appeler l'API Gemini avec gestion du backoff
+        // 3. Appeler l'API Gemini avec gestion du backoff
         const reviewText = await callGeminiApi(payload);
         
-        // 3. Répondre au client
+        // 4. Répondre au client
         res.status(200).json({ 
             status: "success", 
             username: username,
@@ -495,6 +505,7 @@ app.post('/review-streamer', async (req, res) => {
 // Démarrage du serveur
 app.listen(port, () => {
     console.log(`Le serveur d'API écoute sur le port : ${port}`);
+    console.log(`Application ID (APP_ID): ${appId}`);
     console.log(`Endpoint de Tirage : http://localhost:${port}/random`);
     console.log(`Endpoint de Soumission : http://localhost:${port}/submit`);
     console.log(`Endpoint de Notation : http://localhost:${port}/rate`);
