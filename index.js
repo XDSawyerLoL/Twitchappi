@@ -1,107 +1,258 @@
-import path from 'path'; 
-import { fileURLToPath } from 'url'; 
-import express from 'express';
-import fetch from 'node-fetch';
-import cors from 'cors'; 
+// --- IMPORTATIONS NÉCESSAIRES ---
+// Assurez-vous d'avoir les dépendances 'express', 'node-fetch', 'firebase-admin' installées.
+const express = require('express');
+const fetch = require('node-fetch');
 
+// Firebase Admin SDK est requis pour les opérations de backend (Node.js)
+const admin = require('firebase-admin');
+
+// --- CONFIGURATION FIREBASE ADMIN ---
+// Les identifiants de configuration sont fournis par l'environnement
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// Initialisation de Firebase Admin
+if (!admin.apps.length) {
+    admin.initializeApp({
+        // Utilisation du compte de service par défaut pour l'authentification
+        credential: admin.credential.applicationDefault() 
+    });
+}
+const db = admin.firestore();
 const app = express();
-// Nous allons aussi lire le PORT depuis l'environnement pour une meilleure compatibilité Render
-// Render fournit un port via process.env.PORT, s'il n'est pas là, nous utilisons 3000 par défaut.
-const PORT = process.env.PORT || 3000;
+// Lecture du port depuis l'environnement
+const port = process.env.PORT || 3000; 
 
-app.use(cors()); 
+// Middleware pour analyser le corps JSON
+app.use(express.json());
 
-// --- CONFIGURATION TWITCH SÉCURISÉE ---
-// ✅ MODIFICATION CLÉ : Les identifiants sont lus depuis les variables d'environnement de Render
-const CLIENT_ID = process.env.TWITCH_CLIENT_ID; 
-const ACCESS_TOKEN = process.env.TWITCH_ACCESS_TOKEN; 
+// --- CONFIGURATION TWITCH (CRITIQUE) ---
+// ⚠️ CLÉS MISES À JOUR AVEC VOS VALEURS
+const TWITCH_CLIENT_ID = 'ifypidjkytqzoktdyljgktqsczrv4j'; 
+const TWITCH_CLIENT_SECRET = '3cxzcj23fcrczbe5n37ajzcb4y7u9q';
+let TWITCH_ACCESS_TOKEN = null;
 
-const API_BASE_URL = 'https://api.twitch.tv/helix/streams';
+// Chemin de la collection Firestore pour les streamers soumis (Collection Publique)
+const SUBMISSION_COLLECTION_PATH = `artifacts/${appId}/public/data/submitted_streamers`;
 
-const MIN_VIEWERS = 0;
-const MAX_VIEWERS = 150;
-const MAX_PAGES = 20;
 
-const HEADERS = {
-    'Client-Id': CLIENT_ID,
-    'Authorization': `Bearer ${ACCESS_TOKEN}`
-};
+// --- FONCTIONS UTILITAIRES ---
 
-// Logique de recherche
-async function findRandomSmallStreamer() {
-    // Vérification de sécurité rapide : si les identifiants ne sont pas chargés, on arrête ici.
-    if (!CLIENT_ID || !ACCESS_TOKEN) {
-        console.error("ERREUR DE SÉCURITÉ : CLIENT_ID ou ACCESS_TOKEN manquant. Vérifiez les variables d'environnement.");
-        return { user_login: 'twitch' }; 
+/**
+ * Récupère le jeton d'accès Twitch (nécessaire pour appeler l'API Helix).
+ */
+async function getTwitchAccessToken() {
+    if (TWITCH_ACCESS_TOKEN) return TWITCH_ACCESS_TOKEN;
+    const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
+    
+    try {
+        // Implémentation de la fonction fetch avec backoff exponentiel non affichée ici pour la concision
+        const response = await fetch(tokenUrl, { method: 'POST' });
+        const data = await response.json();
+        TWITCH_ACCESS_TOKEN = data.access_token;
+        console.log("Jeton Twitch récupéré.");
+        return TWITCH_ACCESS_TOKEN;
+    } catch (error) {
+        console.error("Erreur lors de la récupération du jeton Twitch:", error);
+        return null;
     }
-
-    let streamersPool = [];
-    let paginationCursor = null;
-    let requestsCount = 0;
-
-    while (requestsCount < MAX_PAGES) {
-        let url = API_BASE_URL + `?first=100`; 
-        url += `&language=fr`; 
-
-        if (paginationCursor) {
-            url += `&after=${paginationCursor}`;
-        }
-        
-        try {
-            const response = await fetch(url, { headers: HEADERS });
-            const data = await response.json();
-
-            if (data.error) {
-                console.error("ERREUR API TWITCH:", data.message);
-                return null;
-            }
-
-            const filteredStreams = data.data.filter(stream => {
-                const viewerCount = stream.viewer_count;
-                return viewerCount >= MIN_VIEWERS && viewerCount <= MAX_VIEWERS;
-            });
-
-            streamersPool.push(...filteredStreams);
-
-            paginationCursor = data.pagination.cursor;
-            requestsCount++;
-
-            if (!paginationCursor || requestsCount >= MAX_PAGES) {
-                break;
-            }
-
-        } catch (error) {
-            console.error("Erreur lors de la requête API :", error.message);
-            break;
-        }
-    }
-
-    if (streamersPool.length === 0) {
-        // En cas d'échec de recherche, retourne un streamer par défaut
-        return { user_login: 'twitch' }; 
-    }
-
-    // Sélection aléatoire
-    const randomIndex = Math.floor(Math.random() * streamersPool.length);
-    return streamersPool[randomIndex];
 }
 
-// ----------------------------------------------------
-// DÉFINITION DE L'ENDPOINT API
-// ----------------------------------------------------
-app.get('/random-streamer', async (req, res) => {
-    const streamer = await findRandomSmallStreamer();
+/**
+ * Récupère l'état en direct (viewers) pour une liste de streamers Twitch.
+ */
+async function getLiveStreamsData(usernames) {
+    const token = await getTwitchAccessToken();
+    if (!token || usernames.length === 0) return [];
     
-    if (streamer) {
-        // Renvoie l'ID du streamer que le frontend utilisera
-        res.json({ streamer_id: streamer.user_login });
-    } else {
-        res.status(500).json({ error: "Impossible de trouver un streamer." });
+    // Limite à 100 utilisateurs par requête API Twitch
+    const limitedUsernames = usernames.slice(0, 100); 
+
+    const userQueries = limitedUsernames.map(u => `user_login=${u}`).join('&');
+    const streamsUrl = `https://api.twitch.tv/helix/streams?${userQueries}`;
+
+    try {
+        const response = await fetch(streamsUrl, {
+            headers: {
+                'Client-ID': TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.status === 401) {
+             console.error("Jeton Twitch expiré. Réinitialisation.");
+             TWITCH_ACCESS_TOKEN = null; 
+             return [];
+        }
+
+        const data = await response.json();
+        return data.data || [];
+        
+    } catch (error) {
+        console.error("Erreur lors de la récupération des données de flux Twitch:", error);
+        return [];
+    }
+}
+
+/**
+ * Met à jour les métriques de tirage du streamer dans Firestore après qu'il ait été sélectionné.
+ */
+async function updateStreamerDrawMetrics(username) {
+    try {
+        const docRef = db.collection(SUBMISSION_COLLECTION_PATH).doc(username.toLowerCase());
+        // Met à jour la date du dernier tirage et incrémente le compteur de tirages
+        await docRef.update({
+            last_draw_date: admin.firestore.Timestamp.now(),
+            draw_count: admin.firestore.FieldValue.increment(1)
+        });
+    } catch (error) {
+        console.error(`Erreur lors de la mise à jour des métriques pour ${username}:`, error);
+    }
+}
+
+// --- ENDPOINT PRINCIPAL : /random ---
+
+/**
+ * Endpoint qui exécute le Tirage Pondéré basé sur la budgétisation 20%/80%.
+ */
+app.get('/random', async (req, res) => {
+    
+    // Vérification initiale des clés Twitch (Maintenant avec les vraies clés, la vérification est moins critique)
+    if (TWITCH_CLIENT_ID === 'VOTRE_CLIENT_ID_TWITCH') {
+        return res.status(500).json({ error: "Veuillez configurer vos identifiants Twitch dans index.js." });
+    }
+
+    try {
+        // 1. Récupérer tous les streamers du pool
+        const snapshot = await db.collection(SUBMISSION_COLLECTION_PATH).get();
+        if (snapshot.empty) {
+            return res.status(404).json({ message: "Aucun streamer trouvé dans le pool de soumission." });
+        }
+        
+        // Mapper les données Firestore (y compris les métriques de pondération)
+        const allStreamers = snapshot.docs.map(doc => ({ 
+            username: doc.data().username, 
+            last_draw_date: doc.data().last_draw_date,
+            avg_score: doc.data().avg_score || 3.0 // Par défaut, note neutre si aucune
+        }));
+
+        const allUsernames = allStreamers.map(s => s.username);
+
+        // 2. Vérification des statuts en direct via Twitch API
+        const liveStreamsData = await getLiveStreamsData(allUsernames);
+        const liveStreamMap = new Map(liveStreamsData.map(stream => [stream.user_login.toLowerCase(), stream]));
+        
+        // Filtrer les streamers qui sont Live et sous le seuil de 151 spectateurs
+        let availableStreamers = allStreamers
+            .map(s => {
+                const liveData = liveStreamMap.get(s.username.toLowerCase());
+                return {
+                    ...s,
+                    viewer_count: liveData ? liveData.viewer_count : null,
+                    is_available: !!liveData && liveData.viewer_count < 151 
+                };
+            })
+            .filter(s => s.is_available);
+            
+        if (availableStreamers.length === 0) {
+            return res.status(404).json({ message: "Aucun streamer soumis n'est en live ou disponible." });
+        }
+
+
+        // --- LOGIQUE CRITIQUE DE BUDGÉTISATION DU TIRAGE (20% Urgence / 80% Croissance) ---
+
+        // Séparer les pools
+        const poolUrgence = availableStreamers.filter(s => s.viewer_count <= 1); // 0 ou 1 viewer
+        const poolCroissance = availableStreamers.filter(s => s.viewer_count > 1); // 2 à 150 viewers
+        
+        let targetPool;
+        let poolUsedName;
+        
+        // Décision : 20% de chance pour le Pool Urgence (si disponible)
+        if (poolUrgence.length > 0 && Math.random() < 0.2) { 
+            targetPool = poolUrgence;
+            poolUsedName = "Urgence (0-1 Spectateur) - 20% Budget";
+        } else {
+            // 80% des cas ou Pool Urgence est vide
+            if (poolCroissance.length === 0) {
+                // Fallback : S'il n'y a pas de streamers "Croissance", on utilise l'Urgence restante
+                targetPool = poolUrgence; 
+                poolUsedName = "Urgence (0-1 Spectateur) - Fallback";
+            } else {
+                // Cas standard (80%) : Utiliser la pool Croissance
+                targetPool = poolCroissance;
+                poolUsedName = "Croissance (2-150 Spectateurs) - 80% Budget";
+            }
+        }
+        
+        if (targetPool.length === 0) {
+            return res.status(404).json({ message: "Aucun streamer disponible pour le tirage final." });
+        }
+        
+        
+        // --- LOGIQUE DE PONDÉRATION (Appliquée si le Pool Croissance est utilisé) ---
+        
+        let finalSelectionPool;
+        
+        if (poolUsedName.startsWith("Croissance")) {
+            
+            // 1. Pondération Équité (Attente) : Sélectionne la moitié qui attend depuis le plus longtemps
+            targetPool.sort((a, b) => {
+                const dateA = a.last_draw_date ? a.last_draw_date.toDate().getTime() : 0;
+                const dateB = b.last_draw_date ? b.last_draw_date.toDate().getTime() : 0;
+                return dateA - dateB; // Tri ascendant par date (les plus anciennes sont les premières)
+            });
+            const topEquity = targetPool.slice(0, Math.ceil(targetPool.length / 2)); 
+
+            // 2. Pondération Qualité (Mérite) : Sélectionne la moitié avec le meilleur score
+            targetPool.sort((a, b) => b.avg_score - a.avg_score); // Tri descendant par score
+            const topQuality = targetPool.slice(0, Math.ceil(targetPool.length / 2)); 
+
+            // 3. Combinaison (pour inclure les streamers qui excellent dans au moins une catégorie)
+            const combinedPool = [...new Set([...topEquity, ...topQuality])];
+            finalSelectionPool = combinedPool.length > 0 ? combinedPool : targetPool;
+            
+        } else {
+            // Pool Urgence : tirage aléatoire simple car la priorité est déjà établie par le viewer_count
+            finalSelectionPool = targetPool;
+        }
+
+        // 4. Tirage final aléatoire dans le pool sélectionné
+        const winner = finalSelectionPool[Math.floor(Math.random() * finalSelectionPool.length)];
+
+        // 5. Mettre à jour les métriques du gagnant
+        await updateStreamerDrawMetrics(winner.username);
+
+        // 6. Réponse de l'API (avec l'information sur le pool utilisé)
+        const streamData = liveStreamMap.get(winner.username.toLowerCase());
+        const streamTitle = streamData ? streamData.title : "Titre non disponible";
+
+        // ID pour le suivi du vote post-découverte (Label de Qualité)
+        const submissionId = admin.firestore.Timestamp.now().toMillis() + '-' + Math.random().toString(36).substring(2, 9);
+        
+        res.json({
+            status: "success",
+            pool_used: poolUsedName, 
+            submission_id: submissionId, 
+            streamer: {
+                username: winner.username,
+                viewer_count: winner.viewer_count,
+                title: streamTitle,
+                avg_score: winner.avg_score,
+                last_draw: winner.last_draw_date ? winner.last_draw_date.toDate().toISOString() : "Jamais"
+            },
+            redirect_url: `https://www.twitch.tv/${winner.username}?ref=votre_api_decouverte` 
+        });
+
+    } catch (error) {
+        console.error("Erreur générale dans l'API /random:", error);
+        res.status(500).json({ error: "Erreur interne du serveur lors du tirage au sort." });
     }
 });
 
+
 // Démarrage du serveur
-app.listen(PORT, () => {
-    console.log(`Serveur API démarré sur le port : ${PORT}`);
-    console.log(`Endpoint de test : http://localhost:${PORT}/random-streamer`);
+app.listen(port, () => {
+    console.log(`Le serveur d'API écoute sur le port : ${port}`);
+    console.log(`Endpoint de Tirage : http://localhost:${port}/random`);
 });
