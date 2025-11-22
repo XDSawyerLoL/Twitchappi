@@ -1,17 +1,21 @@
-import path from 'path'; // <-- NOUVELLE LIGNE
-import { fileURLToPath } from 'url'; // <-- NOUVELLE LIGNE
+import path from 'path'; 
+import { fileURLToPath } from 'url'; 
 import express from 'express';
 import fetch from 'node-fetch';
-import cors from 'cors'; // <-- Ajout de l'importation CORS
+import cors from 'cors'; 
 
 const app = express();
-const PORT = 3000;
+// Nous allons aussi lire le PORT depuis l'environnement pour une meilleure compatibilité Render
+// Render fournit un port via process.env.PORT, s'il n'est pas là, nous utilisons 3000 par défaut.
+const PORT = process.env.PORT || 3000;
 
-app.use(cors()); // <-- Activation de CORS : Autorise les requêtes depuis la page web
+app.use(cors()); 
 
-// --- CONFIGURATION TWITCH ---
-const CLIENT_ID = '3cxzcj23fcrczbe5n37ajzcb4y7u9q'; 
-const ACCESS_TOKEN = 'ifypidjkytqzoktdyljgktqsczrv4j'; 
+// --- CONFIGURATION TWITCH SÉCURISÉE ---
+// ✅ MODIFICATION CLÉ : Les identifiants sont lus depuis les variables d'environnement de Render
+const CLIENT_ID = process.env.TWITCH_CLIENT_ID; 
+const ACCESS_TOKEN = process.env.TWITCH_ACCESS_TOKEN; 
+
 const API_BASE_URL = 'https://api.twitch.tv/helix/streams';
 
 const MIN_VIEWERS = 0;
@@ -23,8 +27,14 @@ const HEADERS = {
     'Authorization': `Bearer ${ACCESS_TOKEN}`
 };
 
-// Logique de recherche (tirée de find_streamer.js)
+// Logique de recherche
 async function findRandomSmallStreamer() {
+    // Vérification de sécurité rapide : si les identifiants ne sont pas chargés, on arrête ici.
+    if (!CLIENT_ID || !ACCESS_TOKEN) {
+        console.error("ERREUR DE SÉCURITÉ : CLIENT_ID ou ACCESS_TOKEN manquant. Vérifiez les variables d'environnement.");
+        return { user_login: 'twitch' }; 
+    }
+
     let streamersPool = [];
     let paginationCursor = null;
     let requestsCount = 0;
@@ -67,7 +77,7 @@ async function findRandomSmallStreamer() {
     }
 
     if (streamersPool.length === 0) {
-        // En cas d'échec, retourne un streamer par défaut
+        // En cas d'échec de recherche, retourne un streamer par défaut
         return { user_login: 'twitch' }; 
     }
 
@@ -92,6 +102,6 @@ app.get('/random-streamer', async (req, res) => {
 
 // Démarrage du serveur
 app.listen(PORT, () => {
-    console.log(`Serveur API démarré sur http://localhost:${PORT}`);
+    console.log(`Serveur API démarré sur le port : ${PORT}`);
     console.log(`Endpoint de test : http://localhost:${PORT}/random-streamer`);
 });
