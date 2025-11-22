@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer Hub - Mode Nuit (Charte Graphique)</title>
+    
+    <!-- 1. CHARGEMENT DE TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- CSS Personnalisé (Thème Sombre et Effets de Lueur) -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212; /* Fond très sombre */
+            color: #f0f0f0;
+        }
+        #root {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Styles pour le mode "Gamer/Néon" avec les couleurs personnalisées */
+        .neon-border {
+            border: 1px solid #FF0099; /* Rose néon */
+            box-shadow: 0 0 10px #FF0099, 0 0 20px rgba(255, 0, 153, 0.5); /* Lueur rose néon */
+        }
+        .neon-text {
+            color: #22c7ef; /* Bleu vif */
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 5px #22c7ef;
+        }
+        .bg-card {
+            background-color: #1f2937; /* Gris foncé pour les cartes */
+        }
+        .btn-primary-neon {
+            background-color: #FF0099; /* Rose néon primaire */
+            box-shadow: 0 0 10px #FF0099;
+            transition: all 0.3s ease-in-out;
+        }
+        .btn-primary-neon:hover {
+            background-color: #E6008A; /* Rose néon légèrement plus foncé au survol */
+            box-shadow: 0 0 15px #FF0099;
+            transform: scale(1.02);
+        }
+        .btn-secondary-neon {
+            background-color: #22c7ef; /* Bleu vif secondaire */
+            box-shadow: 0 0 10px #22c7ef;
+            transition: all 0.3s ease-in-out;
+        }
+        .btn-secondary-neon:hover {
+            background-color: #1AA9D0; /* Bleu vif légèrement plus foncé au survol */
+            box-shadow: 0 0 15px #22c7ef;
+            transform: scale(1.02);
+        }
+        .input-neon {
+            background-color: #1f2937;
+            border-color: #4b5563;
+            color: #f3f4f6;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-neon:focus {
+            border-color: #FF0099; /* Rose néon au focus */
+            box-shadow: 0 0 0 2px #FF0099;
+        }
+        /* Couleurs spécifiques pour les messages de statut */
+        .message-success {
+            background-color: rgba(34, 197, 94, 0.3); /* Vert de Tailwind 500 */
+            color: #4ade80;
+            border-color: #16a34a;
+        }
+        .message-error {
+            background-color: rgba(239, 68, 68, 0.3); /* Rouge de Tailwind 500 */
+            color: #f87171;
+            border-color: #dc2626;
+        }
+        .message-info {
+            background-color: rgba(59, 130, 246, 0.3); /* Bleu de Tailwind 500 */
+            color: #60a5fa;
+            border-color: #2563eb;
+        }
+    </style>
+    
+    <!-- 2. CHARGEMENT DES BIBLIOTHÈQUES ESSENTIELLES -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Inclure le renderer pour les messages HTML -->
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom-server.browser.development.js" crossorigin></script> 
+    
+    <!-- 3. CHARGEMENT DES BIBLIOTHÈQUES FIREBASE (Module UMD) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // Expose critical modules into the global scope for Babel script access
+        window.FirebaseServices = {
+            initializeApp, 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged,
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            Timestamp,
+        };
+        
+        // Signal that services are loaded
+        window.isFirebaseLoaded = true;
+    </script>
+</head>
+<body>
+
+    <!-- Root Container -->
+    <div id="root">
+        <div class="text-gray-400 p-8">
+            <svg class="animate-spin h-5 w-5 text-[#FF0099] inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            Chargement de l'unité centrale...
+        </div>
+    </div>
+
+    <!-- 4. REACT (JSX) CODE COMPILED BY BABEL -->
+    <script type="text/babel">
+        // Wait for Firebase services to be loaded into the global scope
+        function waitForFirebase(callback) {
+            if (window.isFirebaseLoaded) {
+                // Ensure ReactDOMServer is available for static rendering of messages
+                if (typeof ReactDOMServer === 'undefined' && window.ReactDOMServer) {
+                    window.ReactDOMServer = window.ReactDOMServer;
+                }
+                callback();
+            } else {
+                setTimeout(() => waitForFirebase(callback), 100);
+            }
+        }
+        
+        // Extract services from the global scope
+        const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, setDoc, getDoc, Timestamp } = window.FirebaseServices || {};
+
+        const { useState, useEffect, useCallback, useMemo } = React;
+        const ReactDOMServer = window.ReactDOMServer;
+
+
+        // --- INLINE SVG ICONS (Replaces lucide-react) ---
+        const Loader2Icon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>);
+        const SendIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>);
+        const ClockIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>);
+        const UserIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
+        const CheckCircleIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>);
+        const AlertTriangleIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-9-15.59L3 18z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>);
+        const ZapIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>);
+        const TrendingUpIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>);
+        const SearchIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>);
+        // FIX: La balise </path> en trop a été supprimée
+        const ExternalLinkIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>);
+        const StarIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>);
+        const LightbulbIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6"/><path d="M10 12H8l4-8 4 8h-2"/><path d="M15 17h1a3 3 0 0 0 0-6H9a3 3 0 0 0 0 6h1"/></svg>);
+        const MessageSquareIcon = (props) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>);
+
+
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const COOLDOWN_HOURS = 12;
+        const COOLDOWN_MS = COOLDOWN_HOURS * 60 * 60 * 1000;
+        
+        // Initialize Firebase instances
+        const appInstance = initializeApp(firebaseConfig);
+        const dbInstance = getFirestore(appInstance);
+        const authInstance = getAuth(appInstance);
+
+        // Public collection path 
+        const getStreamerDocPath = (username) => {
+          return `artifacts/${appId}/public/data/submitted_streamers/${username.toLowerCase()}`;
+        };
+
+        // --- GEMINI API HELPERS ---
+        const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+        const API_KEY = ""; // Canvas provides this dynamically
+
+        async function fetchGeminiContent(userQuery, systemPrompt = "") {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            let response;
+            for (let i = 0; i < 3; i++) { // Max 3 retries
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status !== 429) { // Not a rate limit error, break retry loop
+                        break; 
+                    }
+                    // Wait with exponential backoff before retrying
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+                } catch (e) {
+                    console.warn(`Gemini API fetch attempt ${i + 1} failed.`);
+                    // Wait with exponential backoff before retrying
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+                }
+            }
+
+            if (!response || !response.ok) {
+                const errorText = response ? await response.text() : 'Network error';
+                throw new Error(`Gemini API failed: ${response?.status || 'N/A'} - ${errorText.substring(0, 100)}...`);
+            }
+
+            const result = await response.json();
+            return result.candidates?.[0]?.content?.parts?.[0]?.text || "Erreur : Contenu de l'IA introuvable.";
+        }
+
+        const App = () => {
+          // --- STATES FOR SUBMISSION ---
+          const [username, setUsername] = useState('');
+          const [userId, setUserId] = useState(null);
+          const [loading, setLoading] = useState(true);
+          const [message, setMessage] = useState('');
+          const [isSubmitting, setIsSubmitting] = useState(false);
+          const [canSubmit, setCanSubmit] = useState(true);
+          const [lastSubmissionTime, setLastSubmissionTime] = useState(null);
+
+          // --- STATES FOR DISCOVERY ---
+          const [discoveredStreamer, setDiscoveredStreamer] = useState(null);
+          const [isDiscovering, setIsDiscovering] = useState(false);
+          const [discoveryMessage, setDiscoveryMessage] = useState('Prêt pour la chasse aux étoiles montantes.');
+
+          // --- STATES FOR GEMINI FEATURES ---
+          const [analysisText, setAnalysisText] = useState('');
+          const [isAnalyzing, setIsAnalyzing] = useState(false);
+          const [sloganText, setSloganText] = useState('');
+          const [isGeneratingSlogan, setIsGeneratingSlogan] = useState(false);
+          const [streamerTitle, setStreamerTitle] = useState(''); // Titre de la chaîne pour l'analyse
+
+          // 1. Firebase Initialization and Authentication
+          useEffect(() => {
+            const initializeAuth = async () => {
+              try {
+                if (initialAuthToken) {
+                  await signInWithCustomToken(authInstance, initialAuthToken);
+                } else {
+                  await signInAnonymously(authInstance);
+                }
+              } catch (error) {
+                console.error("Firebase Auth Error:", error);
+              }
+            };
+
+            const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+              if (user) {
+                setUserId(user.uid);
+              } else {
+                setUserId(null);
+              }
+              setLoading(false);
+            });
+
+            initializeAuth();
+            return () => unsubscribe();
+          }, []);
+
+          // 2. Cooldown Check (Submission)
+          const checkCooldown = useCallback(async (currentUsername) => {
+            if (!currentUsername || !userId) return;
+            
+            const docRef = doc(dbInstance, getStreamerDocPath(currentUsername));
+
+            try {
+              const docSnap = await getDoc(docRef);
+              if (docSnap.exists()) {
+                const data = docSnap.data();
+                const lastSubmitted = data.last_submitted.toDate().getTime();
+                const now = Date.now();
+                
+                if (now - lastSubmitted < COOLDOWN_MS) {
+                  setCanSubmit(false);
+                  setLastSubmissionTime(lastSubmitted);
+                  const remainingTime = new Date(lastSubmitted + COOLDOWN_MS);
+                  setMessage(
+                    <div className="message-error flex items-center p-3 rounded-lg border">
+                        <AlertTriangleIcon className="inline w-5 h-5 mr-2" />
+                        [BLOCAGE] **{currentUsername}** est déjà en file d'attente. Prochaine resoumission : {remainingTime.toLocaleTimeString()} le {remainingTime.toLocaleDateString()}.
+                    </div>
+                  );
+                } else {
+                  setCanSubmit(true);
+                  setLastSubmissionTime(null);
+                  setMessage(
+                    <div className="message-info flex items-center p-3 rounded-lg border">
+                        <CheckCircleIcon className="inline w-5 h-5 mr-2" />
+                        [GO] Votre chaîne peut être soumise à nouveau.
+                    </div>
+                  );
+                }
+              } else {
+                setCanSubmit(true);
+                setLastSubmissionTime(null);
+                setMessage(
+                    <div className="message-info flex items-center p-3 rounded-lg border">
+                        <CheckCircleIcon className="inline w-5 h-5 mr-2" />
+                        [GO] Première soumission pour ce nom d'utilisateur.
+                    </div>
+                );
+              }
+            } catch (error) {
+              console.error("Cooldown Check Error:", error);
+              setMessage(
+                <div className="message-error flex items-center p-3 rounded-lg border">
+                    <AlertTriangleIcon className="inline w-5 h-5 mr-2" />
+                    [ERREUR FATALE] Impossible de vérifier le statut. Réessayez.
+                </div>
+              );
+              setCanSubmit(false);
+            }
+          }, [userId]);
+
+          useEffect(() => {
+            const handler = setTimeout(() => {
+              if (username.trim()) {
+                checkCooldown(username.trim());
+              } else {
+                setMessage('');
+                setCanSubmit(true);
+                setLastSubmissionTime(null);
+              }
+            }, 500); // Debounce
+            return () => clearTimeout(handler);
+          }, [username, checkCooldown]);
+
+          // 3. Submission Logic (Firestore Update)
+          const handleSubmit = async (e) => {
+            e.preventDefault();
+            const streamerName = username.trim().toLowerCase();
+            if (!userId || isSubmitting || !canSubmit || streamerName === '') return;
+
+            setIsSubmitting(true);
+            setMessage(
+                <div className="message-info flex items-center p-3 rounded-lg border">
+                    <Loader2Icon className="inline w-5 h-5 mr-2 animate-spin" />
+                    📡 Envoi des coordonnées au serveur...
+                </div>
+            );
+
+            const nowTimestamp = Timestamp.now();
+            
+            const streamerData = {
+              username: streamerName,
+              submitter_uid: userId, 
+              last_submitted: nowTimestamp, 
+              last_draw_date: new Timestamp(0, 0), 
+              draw_count: 0,
+              avg_score: 3.0, 
+              total_votes: 0, 
+            };
+
+            const docRef = doc(dbInstance, getStreamerDocPath(streamerName));
+            
+            try {
+              await setDoc(docRef, streamerData, { merge: true });
+              
+              setMessage(
+                <div className="message-success flex items-center p-3 rounded-lg border">
+                    <CheckCircleIcon className="inline w-5 h-5 mr-2" />
+                    [MISSION ACCOMPLIE] **{username}** est dans le système. Rendez-vous dans {COOLDOWN_HOURS}h pour un re-boost !
+                </div>
+              );
+              setLastSubmissionTime(nowTimestamp.toDate().getTime());
+              setCanSubmit(false);
+              
+            } catch (error) {
+              console.error("Firestore Add Error:", error);
+              setMessage(
+                <div className="message-error flex items-center p-3 rounded-lg border">
+                    <AlertTriangleIcon className="inline w-5 h-5 mr-2" />
+                    [ÉCHEC DE L'ENVOI] Erreur de communication. Vérifiez la console.
+                </div>
+              );
+            } finally {
+              setIsSubmitting(false);
+            }
+          };
+
+          // --- 4. Gemini Feature 1: Analyse de Contenu ---
+          const handleAnalyzeContent = async () => {
+            if (streamerTitle.trim() === '') {
+                setAnalysisText('Veuillez entrer un titre de chaîne pour l\'analyse.');
+                return;
+            }
+
+            setIsAnalyzing(true);
+            setAnalysisText('Analyse en cours par l\'IA...');
+
+            const userQuery = `Analyser le potentiel de streaming du titre de chaîne Twitch suivant : "${streamerTitle}". Fournir un retour sur le public ciblé, la clarté et le potentiel de viralité. Suggérer une amélioration concise en gras. Limiter l'analyse à un seul paragraphe de 4 phrases maximum.`;
+            const systemPrompt = "Vous êtes un consultant expert en branding de streaming. Votre ton est professionnel, concis et orienté vers l'action.";
+
+            try {
+                const response = await fetchGeminiContent(userQuery, systemPrompt);
+                setAnalysisText(response);
+            } catch (error) {
+                console.error("Gemini Analysis Error:", error);
+                setAnalysisText(`[ERREUR IA] Échec de l'analyse : ${error.message}`);
+            } finally {
+                setIsAnalyzing(false);
+            }
+          };
+
+          // --- 5. Gemini Feature 2: Génération de Slogan ---
+          const handleGenerateSlogan = async () => {
+            if (streamerTitle.trim() === '') {
+                setSloganText('Veuillez entrer un titre de chaîne pour générer un slogan.');
+                return;
+            }
+
+            setIsGeneratingSlogan(true);
+            setSloganText('Génération du Slogan par l\'IA...');
+
+            const userQuery = `Créer un slogan court, percutant et mémorable pour une chaîne Twitch dont le thème principal est : "${streamerTitle}". Ne donner que le slogan, sans explication ni préface.`;
+            const systemPrompt = "Vous êtes un expert en marketing de marque, spécialisé dans les accroches courtes et efficaces pour le divertissement en ligne. Le slogan doit être prêt à l'emploi et en français.";
+
+            try {
+                const response = await fetchGeminiContent(userQuery, systemPrompt);
+                setSloganText(response.trim().replace(/^['"]|['"]$/g, '')); // Enlever les guillemets superflus
+            } catch (error) {
+                console.error("Gemini Slogan Error:", error);
+                setSloganText(`[ERREUR IA] Échec de la génération : ${error.message}`);
+            } finally {
+                setIsGeneratingSlogan(false);
+            }
+          };
+
+          // 6. Discovery Logic (API Call to Backend /random)
+          const handleDiscoverStreamer = async () => {
+            setIsDiscovering(true);
+            setDiscoveryMessage(
+                <div className="message-info flex items-center p-3 rounded-lg border">
+                    <Loader2Icon className="inline w-5 h-5 mr-2 animate-spin" />
+                    ⚡ Recherche du prochain objectif... Évaluation des stats en cours...
+                </div>
+            );
+            setDiscoveredStreamer(null);
+
+            try {
+                // Cette URL est un placeholder pour le backend.
+                // Vous DEVEZ la remplacer par l'URL de votre service Render réel.
+                const response = await fetch('/random'); 
+                const data = await response.json();
+
+                if (response.ok && data.status === "success") {
+                    setDiscoveredStreamer(data.streamer);
+                    setDiscoveryMessage(
+                        <div className="message-success flex items-center p-3 rounded-lg border">
+                            <CheckCircleIcon className="inline w-5 h-5 mr-2" />
+                            [TARGET ACQUIRED] Streamer trouvé dans le Pool **{data.pool_used}** : 
+                            <span className='font-bold text-[#FF0099] ml-1'>{data.streamer.username}</span> !
+                        </div>
+                    );
+                } else {
+                    setDiscoveryMessage(
+                        <div className="message-error flex items-center p-3 rounded-lg border">
+                            <AlertTriangleIcon className="inline w-5 h-5 mr-2" />
+                            ❌ [TARGET FAILED] Échec : <span className='font-semibold'>{data.message || data.error || 'Erreur inconnue.'}</span>
+                        </div>
+                    );
+                }
+            } catch (error) {
+                console.error("API Call Error /random:", error);
+                setDiscoveryMessage(
+                    <div className="message-error flex items-center p-3 rounded-lg border">
+                        <AlertTriangleIcon className="inline w-5 h-5 mr-2" />
+                        [ERREUR CRITIQUE] Problème de connexion au serveur Backend. Vérifiez l'URL.
+                    </div>
+                );
+            } finally {
+                setIsDiscovering(false);
+            }
+          };
+
+          // 7. Display Components and Logic
+
+          if (loading) {
+            return (
+              <div className="flex items-center justify-center min-h-screen">
+                <Loader2Icon className="w-8 h-8 text-[#FF0099] animate-spin" />
+                <span className="ml-3 text-lg font-semibold text-gray-300">Initialisation du système...</span>
+              </div>
+            );
+          }
+
+          const isInvalidUsername = username.trim() === '';
+          const isInvalidTitle = streamerTitle.trim() === '';
+
+          const getRemainingTimeText = () => {
+            if (!lastSubmissionTime || canSubmit) return null;
+            const now = Date.now();
+            const expiry = lastSubmissionTime + COOLDOWN_MS;
+            const remaining = expiry - now;
+            
+            const h = Math.floor(remaining / (1000 * 60 * 60));
+            const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((remaining % (1000 * 60)) / 1000);
+
+            return `Recharge du Boost dans : ${h}h ${m}m ${s}s`;
+          };
+
+          // Pool Status Component
+          const PoolStatus = ({ type }) => {
+            if (type === 'urgence') {
+              return (
+                <div className="flex items-center text-sm font-medium text-red-400 bg-red-900 bg-opacity-30 p-3 rounded-lg border border-red-700">
+                  <ZapIcon className="w-5 h-5 mr-2 text-red-400" />
+                  **POOL URGENCE (0-1 Spect.)** : Sécurité maximale. Votre chance est de 20% au tirage.
+                </div>
+              );
+            }
+            return (
+              <div className="flex items-center text-sm font-medium text-green-400 bg-green-900 bg-opacity-30 p-3 rounded-lg border border-green-700">
+                <TrendingUpIcon className="w-5 h-5 mr-2 text-green-400" />
+                **POOL CROISSANCE (2-150 Spect.)** : Priorité haute. 80% des tirages basés sur l'Équité et la Qualité.
+              </div>
+            );
+          };
+
+          // Discovery Section Component
+          const DiscoverySection = () => (
+            <div className="bg-card p-6 rounded-xl shadow-2xl space-y-4 neon-border">
+                <h2 className="text-2xl font-bold text-[#FF0099] flex items-center border-b border-gray-700 pb-2 neon-text">
+                    <SearchIcon className="w-6 h-6 mr-3 text-[#22c7ef]"/>
+                    MODULE | SCANNER D'OPPORTUNITÉS
+                </h2>
+                
+                {/* Discovery message with dynamic classes */}
+                <div 
+                  className={`p-3 text-sm rounded-lg transition duration-300 border`}
+                >
+                  {/* On utilise innerHTML car le message peut contenir du JSX/React généré (avec ReactDOMServer) */}
+                  <div dangerouslySetInnerHTML={{ __html: typeof discoveryMessage === 'string' ? discoveryMessage : ReactDOMServer.renderToStaticMarkup(discoveryMessage) }}></div>
+                </div>
+
+                <button
+                  onClick={handleDiscoverStreamer}
+                  className={`w-full flex items-center justify-center px-6 py-3 text-base font-bold uppercase rounded-lg shadow-xl transition duration-300 transform 
+                    ${isDiscovering
+                      ? 'bg-gray-600 cursor-not-allowed text-gray-300'
+                      : 'btn-secondary-neon text-white focus:outline-none focus:ring-4 focus:ring-[#22c7ef]'
+                    }`
+                  }
+                  disabled={isDiscovering}
+                >
+                  {isDiscovering ? (
+                    <>
+                      <Loader2Icon className="w-5 h-5 mr-2 animate-spin" />
+                      ANALYSE... VEUILLEZ PATIENTER
+                    </>
+                  ) : (
+                    <>
+                      <ZapIcon className="w-5 h-5 mr-2" />
+                      LANCER LE SCAN (Trouver un Streamer)
+                    </>
+                  )}
+                </button>
+
+                {discoveredStreamer && (
+                    <div className='mt-6 p-4 bg-gray-700 border border-gray-500 rounded-lg space-y-3'>
+                        <h3 className='text-xl font-extrabold text-[#22c7ef]'>
+                            TARGET ACQUIRED : {discoveredStreamer.username}
+                        </h3>
+                        <p className='text-gray-300'>**STATUS STREAM:** {discoveredStreamer.title}</p>
+                        <p className='text-gray-300'>**SPECTATEURS ACTUELS:** <span className='font-bold text-xl text-[#FF0099]'>{discoveredStreamer.viewer_count}</span></p>
+                        <p className='text-gray-300 flex items-center'>
+                            **QUALITÉ RATING:** <span className='ml-2 text-[#22c7ef] font-bold'>
+                                {discoveredStreamer.avg_score.toFixed(1)} / 5 
+                                <StarIcon className="w-4 h-4 ml-1 inline text-[#FF0099] fill-current"/>
+                            </span>
+                        </p>
+                        <a
+                            href={discoveredStreamer.redirect_url || `https://www.twitch.tv/${discoveredStreamer.username}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center px-4 py-2 text-sm font-bold rounded-lg shadow-lg text-white bg-[#FF0099] hover:bg-[#E6008A] transition duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF0099]"
+                        >
+                            <ExternalLinkIcon className="w-4 h-4 mr-2" />
+                            ACTIVER LE LIEN (TWITCH)
+                        </a>
+                    </div>
+                )}
+            </div>
+          );
+
+          // Gemini Analysis Section Component
+          const GeminiAnalysisSection = () => (
+              <div className="space-y-4 bg-gray-900 p-5 rounded-xl border border-gray-700 shadow-inner">
+                  <h2 className="text-xl font-bold text-[#FF0099] border-b border-gray-700 pb-2 flex items-center">
+                    <LightbulbIcon className="w-5 h-5 mr-2 text-[#22c7ef]"/>
+                    MODULE | ANALYSE IA <span className="text-xs ml-2 text-gray-400">(Titre Requis)</span>
+                  </h2>
+                  
+                  <p className="text-sm text-gray-400">
+                    Entrez le thème ou le titre de votre chaîne pour un retour immédiat par Gemini.
+                  </p>
+
+                  <div>
+                      <input
+                          type="text"
+                          value={streamerTitle}
+                          onChange={(e) => {
+                            setStreamerTitle(e.target.value);
+                            setAnalysisText(''); // Clear analysis on new input
+                            setSloganText(''); // Clear slogan on new input
+                          }}
+                          placeholder="Ex: Chill gaming et speedruns de Mario 64"
+                          className="w-full px-4 py-3 border rounded-lg focus:ring-[#22c7ef] focus:border-[#22c7ef] input-neon mb-3"
+                          disabled={isAnalyzing || isGeneratingSlogan}
+                      />
+
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          onClick={handleAnalyzeContent}
+                          className={`flex-1 flex items-center justify-center px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition duration-300 transform 
+                            ${isAnalyzing || isInvalidTitle
+                              ? 'bg-gray-600 cursor-not-allowed text-gray-300'
+                              : 'btn-secondary-neon text-white focus:outline-none focus:ring-4 focus:ring-[#22c7ef]'
+                            }`
+                          }
+                          disabled={isAnalyzing || isInvalidTitle}
+                        >
+                          {isAnalyzing ? (
+                            <Loader2Icon className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <TrendingUpIcon className="w-4 h-4 mr-2" />
+                          )}
+                          Analyse de Contenu ✨
+                        </button>
+                        
+                        <button
+                          onClick={handleGenerateSlogan}
+                          className={`flex-1 flex items-center justify-center px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition duration-300 transform 
+                            ${isGeneratingSlogan || isInvalidTitle
+                              ? 'bg-gray-600 cursor-not-allowed text-gray-300'
+                              : 'btn-primary-neon text-white focus:outline-none focus:ring-4 focus:ring-[#FF0099]'
+                            }`
+                          }
+                          disabled={isGeneratingSlogan || isInvalidTitle}
+                        >
+                          {isGeneratingSlogan ? (
+                            <Loader2Icon className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <MessageSquareIcon className="w-4 h-4 mr-2" />
+                          )}
+                          Générer Slogan ✨
+                        </button>
+                      </div>
+                  </div>
+
+                  {(analysisText || sloganText) && (
+                      <div className="p-4 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm mt-3 space-y-2">
+                        {sloganText && <p className="font-orbitron text-lg text-[#FF0099] font-bold border-b border-gray-700 pb-1 mb-2">SLOGAN IA : {sloganText}</p>}
+                        {analysisText && <p className="whitespace-pre-wrap">{analysisText}</p>}
+                      </div>
+                  )}
+              </div>
+          );
+
+
+          return (
+            <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-8 p-8 bg-card rounded-xl shadow-2xl neon-border border-t-4 border-[#FF0099]">
+              
+              {/* Submission Column */}
+              <div className="space-y-6">
+                  <h1 className="text-3xl font-extrabold text-[#FF0099] flex items-center justify-center lg:justify-start neon-text">
+                      <ClockIcon className="w-8 h-8 mr-3 text-[#22c7ef]"/> 
+                      BOOSTER | ZONE D'ENREGISTREMENT
+                  </h1>
+                  <p className="text-sm text-gray-400">
+                      Entrez votre nom d'utilisateur Twitch pour vous enregistrer dans la base de données. 
+                      Chaînes de **0 à 150 SPECTATEURS** seulement.
+                  </p>
+
+                  <div className="flex items-center text-sm text-gray-400 bg-gray-700 p-3 rounded-lg border border-gray-600">
+                      <UserIcon className="w-4 h-4 mr-2 text-[#FF0099]" />
+                      ID de Session [HÔTE] : <code className="ml-2 font-mono text-xs text-[#22c7ef] select-all">{userId}</code>
+                  </div>
+
+                  {/* FORMULAIRE DE SOUMISSION */}
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                        NOM D'UTILISATEUR TWITCH (Streamer)
+                      </label>
+                      <input
+                        id="username"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Ex: xdsawyerlol"
+                        className="w-full px-4 py-3 border rounded-lg focus:ring-[#FF0099] focus:border-[#FF0099] input-neon"
+                        disabled={isSubmitting}
+                        required
+                      />
+                    </div>
+
+                    {/* Message de statut de soumission */}
+                    {message && (
+                        <div dangerouslySetInnerHTML={{ __html: typeof message === 'string' ? message : ReactDOMServer.renderToStaticMarkup(message) }}></div>
+                    )}
+                    
+                    {!canSubmit && lastSubmissionTime && (
+                        <div className="mt-1 font-bold text-sm text-gray-400">
+                            {getRemainingTimeText()}
+                        </div>
+                    )}
+                    
+                    <button
+                      type="submit"
+                      className={`w-full flex items-center justify-center px-6 py-3 border border-transparent text-base font-bold rounded-lg shadow-lg uppercase transition duration-300
+                        ${isSubmitting || !canSubmit || isInvalidUsername
+                          ? 'bg-gray-600 cursor-not-allowed text-gray-300'
+                          : 'btn-primary-neon text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF0099]'
+                        }`
+                      }
+                      disabled={isSubmitting || !canSubmit || isInvalidUsername}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2Icon className="w-5 h-5 mr-2 animate-spin" />
+                          BOOST ACTIVÉ... ENVOI
+                        </>
+                      ) : (
+                        <>
+                          <SendIcon className="w-5 h-5 mr-2" />
+                          ACTIVER LE BOOST D'ENREGISTREMENT
+                        </>
+                      )}
+                    </button>
+                  </form>
+                  
+                  <hr className="my-6 border-gray-700"/>
+                  
+                  {/* NOUVEAU: Section d'Analyse IA */}
+                  <GeminiAnalysisSection /> 
+                  
+                  <hr className="my-6 border-gray-700"/>
+
+                  <div className="space-y-4">
+                      <h2 className="text-xl font-bold text-gray-300 border-b border-gray-700 pb-2">STRATÉGIE | TIRAGE PONDÉRÉ</h2>
+                      <PoolStatus type="croissance" />
+                      <PoolStatus type="urgence" />
+                      <p className="text-sm text-gray-500">
+                          Le système priorise les chaînes selon l'équité (temps depuis le dernier tirage) et la qualité (score attribué par les utilisateurs).
+                      </p>
+                  </div>
+              </div>
+              
+              {/* Discovery Column */}
+              <DiscoverySection />
+            </div>
+          );
+        };
+        
+        // 5. START THE REACT APPLICATION
+        waitForFirebase(() => {
+            const container = document.getElementById('root');
+            const root = ReactDOM.createRoot(container);
+            root.render(<App />);
+        });
+
+    </script>
+</body>
+</html>
