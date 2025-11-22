@@ -1,652 +1,521 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc, collection, onSnapshot, query, limit, orderBy, deleteDoc, Timestamp } from 'firebase/firestore';
-
-// --- CONFIGURATION FIREBASE (FOURNIE PAR L'ENVIRONNEMENT CANVAS) ---
-// Ces variables globales sont nécessaires pour l'authentification et la base de données.
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-// URL de l'API de Random Streamer que vous avez déployée sur Render
-const RENDER_API_URL = 'https://twitchappi-goodstream1.onrender.com/random';
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
-const API_KEY = ""; // L'environnement Canvas fournira la clé API.
-
-// Composant pour l'icône Neon (simulant Lucide-React)
-const ZapIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-  </svg>
-);
-
-const UserCheckIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-    <circle cx="8.5" cy="7" r="4"></circle>
-    <polyline points="17 11 19 13 23 9"></polyline>
-  </svg>
-);
-
-const Trash2Icon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="3 6 5 6 21 6"></polyline>
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-    <path d="M10 11v6"></path>
-    <path d="M14 11v6"></path>
-    <path d="M17 6V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2"></path>
-  </svg>
-);
-
-const SearchIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8"></circle>
-    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-  </svg>
-);
-
-// --- CONTEXTE ET INITIALISATION ---
-const AppContext = React.createContext();
-
-// Hook personnalisé pour l'état global et Firebase
-const useAppLogic = () => {
-  const [db, setDb] = useState(null);
-  const [auth, setAuth] = useState(null);
-  const [userId, setUserId] = useState(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
-  const [submissions, setSubmissions] = useState([]);
-  const [loadingSubmissions, setLoadingSubmissions] = useState(true);
-
-  // 1. Initialisation et Authentification Firebase
-  useEffect(() => {
-    if (!Object.keys(firebaseConfig).length) return;
-
-    try {
-      const app = initializeApp(firebaseConfig);
-      const firestore = getFirestore(app);
-      const userAuth = getAuth(app);
-      
-      setDb(firestore);
-      setAuth(userAuth);
-
-      const unsubscribe = onAuthStateChanged(userAuth, async (user) => {
-        if (!user) {
-          // Si pas d'utilisateur, se connecter anonymement ou avec le token fourni
-          if (initialAuthToken) {
-            await signInWithCustomToken(userAuth, initialAuthToken);
-          } else {
-            await signInAnonymously(userAuth);
-          }
-        }
-        setUserId(userAuth.currentUser?.uid || crypto.randomUUID());
-        setIsAuthReady(true);
-      });
-
-      return () => unsubscribe();
-    } catch (error) {
-      console.error("Erreur lors de l'initialisation de Firebase:", error);
-      setIsAuthReady(true);
-    }
-  }, []);
-
-  // 2. Écoute des soumissions dans Firestore (Temps Réel)
-  useEffect(() => {
-    if (!db || !userId || !isAuthReady) return;
-
-    // Chemin public: /artifacts/{appId}/public/data/streamer_submissions
-    const publicDataPath = `artifacts/${appId}/public/data/streamer_submissions`;
-    const submissionsCollection = collection(db, publicDataPath);
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer Hub - Console Cyberpunk</title>
     
-    // Requête: Les 50 dernières soumissions, ordonnées par date
-    const q = query(submissionsCollection, orderBy("timestamp", "desc"), limit(50));
-
-    setLoadingSubmissions(true);
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedSubmissions = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        fetchedSubmissions.push({
-          id: doc.id,
-          channelName: data.channelName,
-          reason: data.reason,
-          userId: data.userId,
-          timestamp: data.timestamp ? data.timestamp.toDate() : new Date(),
-        });
-      });
-      setSubmissions(fetchedSubmissions);
-      setLoadingSubmissions(false);
-    }, (error) => {
-      console.error("Erreur d'écoute Firestore:", error);
-      setLoadingSubmissions(false);
-    });
-
-    return () => unsubscribe();
-  }, [db, userId, isAuthReady]);
-
-  // Fonction pour soumettre une chaîne
-  const submitStreamer = useCallback(async (channelName, reason) => {
-    if (!db || !userId) return { success: false, message: "Système non initialisé." };
-
-    const channelTrimmed = channelName.trim().toLowerCase();
-    if (!channelTrimmed) return { success: false, message: "Le nom de la chaîne ne peut pas être vide." };
-
-    try {
-      const publicDataPath = `artifacts/${appId}/public/data/streamer_submissions`;
-      await setDoc(doc(collection(db, publicDataPath)), {
-        channelName: channelTrimmed,
-        reason: reason,
-        userId: userId,
-        timestamp: Timestamp.now(),
-      });
-      return { success: true, message: "Soumission réussie. Merci d'avoir boosté le hub!" };
-    } catch (e) {
-      console.error("Erreur lors de l'ajout du document:", e);
-      return { success: false, message: `Erreur interne: ${e.message}` };
-    }
-  }, [db, userId]);
-
-  // Fonction pour supprimer une soumission (si l'utilisateur est l'auteur)
-  const deleteSubmission = useCallback(async (submissionId, submissionUserId) => {
-    if (!db || !userId || userId !== submissionUserId) return { success: false, message: "Action non autorisée." };
+    <!-- 1. CHARGEMENT DE TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    try {
-      const publicDataPath = `artifacts/${appId}/public/data/streamer_submissions`;
-      await deleteDoc(doc(db, publicDataPath, submissionId));
-      return { success: true, message: "Soumission effacée." };
-    } catch (e) {
-      console.error("Erreur lors de la suppression:", e);
-      return { success: false, message: `Erreur de suppression: ${e.message}` };
-    }
-  }, [db, userId]);
-
-  return { 
-    userId, 
-    isAuthReady, 
-    submissions, 
-    loadingSubmissions, 
-    submitStreamer, 
-    deleteSubmission 
-  };
-};
-
-// --- COMPOSANTS DE L'INTERFACE UTILISATEUR ---
-
-// Composant de Carte Cyberpunk
-const CyberpunkCard = ({ title, children, neonClass = 'border-[#FF0099]' }) => (
-  <div className={`bg-gray-800/70 backdrop-blur-sm rounded-lg p-6 shadow-2xl border ${neonClass} neon-border h-full flex flex-col`}>
-    <h2 className="text-3xl font-extrabold mb-4 border-b pb-2 border-gray-700 text-[#22c7ef] font-orbitron">
-      {title}
-    </h2>
-    <div className="flex-grow">{children}</div>
-  </div>
-);
-
-// Composant de Section de Soumission (Formulaire)
-const SubmissionSection = () => {
-  const { userId, submitStreamer } = React.useContext(AppContext);
-  const [channelName, setChannelName] = useState('');
-  const [reason, setReason] = useState('');
-  const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [messageType, setMessageType] = useState(''); // 'success' or 'error'
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!userId) {
-      setMessage("Erreur: L'utilisateur n'est pas authentifié.");
-      setMessageType('error');
-      return;
-    }
-    setIsSubmitting(true);
-    setMessage('');
-
-    const result = await submitStreamer(channelName, reason);
-    setMessage(result.message);
-    setMessageType(result.success ? 'success' : 'error');
-    setIsSubmitting(false);
-
-    if (result.success) {
-      setChannelName('');
-      setReason('');
-    }
-  };
-
-  return (
-    <CyberpunkCard title="[1] BOOST STREAMER">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="channel" className="block text-sm font-medium text-[#22c7ef]">Nom de la Chaîne Twitch</label>
-          <input
-            type="text"
-            id="channel"
-            value={channelName}
-            onChange={(e) => setChannelName(e.target.value)}
-            required
-            className="mt-1 block w-full bg-gray-700/80 border border-gray-600 rounded-md shadow-sm p-3 text-white focus:ring-[#FF0099] focus:border-[#FF0099] font-mono transition-colors"
-            placeholder="Ex: GoodStreamer1"
-            disabled={isSubmitting}
-          />
-        </div>
-        <div>
-          <label htmlFor="reason" className="block text-sm font-medium text-[#22c7ef]">Raison du Boost (Max 100 car.)</label>
-          <textarea
-            id="reason"
-            rows="3"
-            value={reason}
-            onChange={(e) => setReason(e.target.value.slice(0, 100))}
-            required
-            className="mt-1 block w-full bg-gray-700/80 border border-gray-600 rounded-md shadow-sm p-3 text-white focus:ring-[#FF0099] focus:border-[#FF0099] font-mono transition-colors"
-            placeholder="Pourquoi cette chaîne mérite-t-elle le buzz?"
-            disabled={isSubmitting}
-          ></textarea>
-          <p className="text-right text-xs text-gray-400 mt-1">{reason.length}/100</p>
-        </div>
-        <button
-          type="submit"
-          className={`w-full py-3 px-4 border border-transparent rounded-md shadow-lg text-lg font-bold text-gray-900 bg-[#FF0099] hover:bg-[#ff33aa] focus:outline-none focus:ring-4 focus:ring-[#FF0099] focus:ring-opacity-50 transition-all duration-300 transform hover:scale-[1.01] flex items-center justify-center ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'glow-on-hover'}`}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <div className="flex items-center">
-              <span className="animate-spin mr-2 border-2 border-white border-t-[#FF0099] rounded-full w-5 h-5"></span>
-              TRANSMISSION EN COURS...
-            </div>
-          ) : (
-            <>
-              <ZapIcon className="w-5 h-5 mr-2" /> SOUMETTRE LE BOOST
-            </>
-          )}
-        </button>
-        {message && (
-          <div className={`p-3 rounded-md text-sm font-semibold ${messageType === 'success' ? 'bg-green-800 text-green-300' : 'bg-red-800 text-red-300'}`}>
-            {message}
-          </div>
-        )}
-      </form>
-    </CyberpunkCard>
-  );
-};
-
-// Composant de Section de Découverte (Appel à l'API Render)
-const DiscoverySection = () => {
-  const [streamer, setStreamer] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Fonction avec Backoff Exponentiel
-  const fetchStreamerWithBackoff = async (url, retries = 3) => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP: ${response.status}`);
-        }
-        const data = await response.json();
-        return data;
-      } catch (e) {
-        console.warn(`Tentative ${i + 1} échouée.`, e);
-        if (i < retries - 1) {
-          const delay = Math.pow(2, i) * 1000;
-          await new Promise(resolve => setTimeout(resolve, delay));
-        } else {
-          throw new Error("Échec de la connexion à l'API après plusieurs tentatives. Le serveur est peut-être en veille.");
-        }
-      }
-    }
-  };
-
-  const discoverStreamer = async () => {
-    setIsLoading(true);
-    setStreamer(null);
-    setError(null);
-
-    try {
-      const data = await fetchStreamerWithBackoff(RENDER_API_URL);
-      // Exemple de format de réponse attendu de votre API Node.js/Render
-      setStreamer({
-        channel: data.channel || 'Streamer Inconnu',
-        game: data.game || 'Jeu non spécifié',
-        viewers: data.viewers !== undefined ? data.viewers : 'N/A',
-        title: data.title || 'Titre du stream non trouvé',
-        url: data.url || `https://twitch.tv/${data.channel || 'GoodStreamer1'}`,
-      });
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <CyberpunkCard title="[2] DÉCOUVRIR LE BOOST">
-      <div className="flex flex-col h-full">
-        <p className="text-gray-300 mb-4">
-          Activez la fonctionnalité pour recevoir un streamer aléatoire sélectionné par notre algorithme de **boost** (via votre API Render).
-        </p>
-
-        <button
-          onClick={discoverStreamer}
-          disabled={isLoading}
-          className="py-3 px-4 mb-6 border border-transparent rounded-md shadow-lg text-lg font-bold text-gray-900 bg-[#22c7ef] hover:bg-[#50daff] focus:outline-none focus:ring-4 focus:ring-[#22c7ef] focus:ring-opacity-50 transition-all duration-300 transform hover:scale-[1.01] flex items-center justify-center glow-on-hover"
-        >
-          {isLoading ? (
-            <div className="flex items-center">
-              <span className="animate-spin mr-2 border-2 border-gray-900 border-t-[#22c7ef] rounded-full w-5 h-5"></span>
-              RECHERCHE DE CIBLE...
-            </div>
-          ) : (
-            <>
-              <SearchIcon className="w-5 h-5 mr-2" /> LANCER LA DÉCOUVERTE
-            </>
-          )}
-        </button>
-
-        {error && (
-          <div className="p-4 bg-red-800/70 border-l-4 border-red-400 text-red-300 rounded-md">
-            <p className="font-bold">ERREUR CRITIQUE [API OFFLINE]:</p>
-            <p className="text-sm">{error}</p>
-            <p className="text-xs mt-2">Vérifiez le statut de l'API sur Render ou attendez quelques secondes, puis réessayez.</p>
-          </div>
-        )}
-
-        {streamer && (
-          <div className="mt-4 p-4 bg-gray-700/80 border border-[#FF0099] rounded-lg shadow-inner flex-grow">
-            <h3 className="text-xl font-bold text-[#FF0099] mb-2 font-orbitron flex items-center">
-              <UserCheckIcon className="w-5 h-5 mr-2" /> CIBLE IDENTIFIÉE
-            </h3>
-            <p className="text-2xl font-mono mb-2">
-              <a href={streamer.url} target="_blank" rel="noopener noreferrer" className="text-[#22c7ef] hover:text-white underline transition-colors">
-                {streamer.channel}
-              </a>
-            </p>
-            <p className="text-sm text-gray-400">Jeu: <span className="text-white font-semibold">{streamer.game}</span></p>
-            <p className="text-sm text-gray-400">Vues: <span className="text-white font-semibold">{streamer.viewers}</span></p>
-            <p className="text-sm mt-2">Titre: <span className="text-white italic">"{streamer.title}"</span></p>
-          </div>
-        )}
-      </div>
-    </CyberpunkCard>
-  );
-};
-
-// Composant d'affichage de la liste des soumissions
-const SubmissionList = () => {
-  const { submissions, loadingSubmissions, deleteSubmission, userId } = React.useContext(AppContext);
-  const [deleteMessage, setDeleteMessage] = useState('');
-  const [deleteMessageType, setDeleteMessageType] = useState('');
-
-  const handleDelete = async (id, subUserId) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette soumission ?")) {
-      const result = await deleteSubmission(id, subUserId);
-      setDeleteMessage(result.message);
-      setDeleteMessageType(result.success ? 'success' : 'error');
-      setTimeout(() => setDeleteMessage(''), 3000);
-    }
-  };
-
-  return (
-    <CyberpunkCard title="[3] LOGS DE BOOST ACTUELS (PUBLIC)">
-      {deleteMessage && (
-        <div className={`p-2 mb-3 rounded-md text-xs font-semibold ${deleteMessageType === 'success' ? 'bg-green-800 text-green-300' : 'bg-red-800 text-red-300'}`}>
-          {deleteMessage}
-        </div>
-      )}
-      {loadingSubmissions && (
-        <div className="flex items-center justify-center text-[#FF0099] py-10">
-          <span className="animate-spin mr-2 border-4 border-t-[#FF0099] border-gray-700 rounded-full w-8 h-8"></span>
-          Chargement des logs...
-        </div>
-      )}
-      {!loadingSubmissions && submissions.length === 0 && (
-        <p className="text-gray-400 italic">Aucune soumission active. Soyez le premier à booster une chaîne!</p>
-      )}
-      <div className="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
-        {submissions.map((sub) => (
-          <div 
-            key={sub.id} 
-            className={`p-3 bg-gray-700/60 rounded-md border-l-4 ${sub.userId === userId ? 'border-[#22c7ef]' : 'border-gray-500'} shadow-md`}
-          >
-            <div className="flex justify-between items-start">
-              <p className="font-orbitron text-lg font-bold text-white leading-tight">{sub.channelName}</p>
-              {sub.userId === userId && (
-                <button
-                  onClick={() => handleDelete(sub.id, sub.userId)}
-                  className="text-red-400 hover:text-red-300 p-1 rounded-full transition-colors"
-                  title="Supprimer ma soumission"
-                >
-                  <Trash2Icon className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <p className="text-sm text-gray-300 italic mt-1">
-              Raison: "{sub.reason}"
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-                Soumis par: <span className="font-mono text-xs">{sub.userId}</span>
-            </p>
-          </div>
-        ))}
-      </div>
-    </CyberpunkCard>
-  );
-};
-
-// Composant pour le branding Gemini (partie 4)
-const GeminiBrandingSection = () => {
-    const [query, setQuery] = useState('');
-    const [response, setResponse] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-
-    const callGeminiAPI = async (userQuery) => {
-        setIsLoading(true);
-        setResponse('');
-        setError(null);
+    <!-- CSS Personnalisé (Thème Sombre et Effets de Lueur) -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;800&display=swap');
         
-        const systemPrompt = "Vous êtes un consultant marketing IA pour les streamers Twitch, spécialisé dans la création de slogans percutants et de conseils pour le 'boost'. Répondez de manière courte et impactante, en utilisant un ton futuriste et motivant, typique de la culture Cyberpunk/Gaming. Utilisez des emojis pour l'impact. Fournissez une réponse en français.";
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212; /* Fond très sombre */
+            color: #f0f0f0;
+            min-height: 100vh;
+        }
+        #root {
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start; /* Alignement en haut pour le contenu principal */
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Styles pour le mode "Gamer/Néon" avec les couleurs personnalisées */
+        .neon-border {
+            border: 1px solid rgba(255, 0, 153, 0.4);
+            box-shadow: 0 0 8px rgba(255, 0, 153, 0.6), 0 0 12px rgba(34, 199, 239, 0.3);
+            transition: all 0.3s ease-in-out;
+        }
+        .neon-border:hover {
+            border-color: rgba(34, 199, 239, 0.8);
+            box-shadow: 0 0 15px rgba(34, 199, 239, 0.8), 0 0 20px rgba(255, 0, 153, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .neon-glow-text {
+            text-shadow: 0 0 5px #22c7ef, 0 0 10px rgba(34, 199, 239, 0.7);
+        }
+
+        .input-glow:focus {
+            outline: none;
+            border-color: #FF0099;
+            box-shadow: 0 0 0 3px rgba(255, 0, 153, 0.5);
+        }
         
-        const payload = {
-            contents: [{ parts: [{ text: userQuery }] }],
-            systemInstruction: {
-                parts: [{ text: systemPrompt }]
-            },
-            // Utiliser Google Search pour des informations à jour sur Twitch
-            tools: [{ "google_search": {} }],
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Animation de rotation pour le Loader */
+        .animate-spin-slow {
+            animation: spin 3s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="w-full"></div>
+
+    <!-- 2. CHARGEMENT DE REACT et REACT-DOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Ajout de ReactDOMServer pour le rendu statique des messages HTML -->
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom-server.browser.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 3. CHARGEMENT DES LIBRAIRIES FIREBASE (Version stable 10.12.2) -->
+    <script type="module">
+        // Utilisation de la version 10.12.2 pour éviter les erreurs 404
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        // FIX: Ajout de orderBy et getDocs dans les imports
+        import { getFirestore, doc, onSnapshot, collection, query, limit, where, addDoc, serverTimestamp, setLogLevel, setDoc, getDoc, updateDoc, deleteDoc, increment, Timestamp, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Configuration Firebase (Variables Globales fournies par l'environnement)
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-streamer-hub-app';
+
+        // Exposer Firebase globalement pour le script Babel
+        // FIX: Ajout de orderBy et getDocs à l'objet window.firebaseModules
+        window.firebaseModules = {
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+            getFirestore, doc, onSnapshot, collection, query, limit, where, addDoc, serverTimestamp, setLogLevel,
+            setDoc, getDoc, updateDoc, deleteDoc, increment, Timestamp, orderBy, getDocs
+        };
+        
+        window.firebaseParams = { firebaseConfig, initialAuthToken, appId };
+        window.firebaseLoaded = true;
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useMemo } = React;
+        const ReactDOMServer = window.ReactDOMServer;
+
+        // --- Définitions des icônes SVG pour éviter les erreurs d'importation de lucide-react ---
+        const ZapIcon = (props) => (
+            <svg
+                {...props}
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+        );
+
+        const MessageSquareIcon = (props) => (
+            <svg
+                {...props}
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+        );
+
+        const SendIcon = (props) => (
+            <svg
+                {...props}
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <line x1="22" x2="11" y1="2" y2="13" />
+                <polygon points="22 2 15.5 22 11 13 2 9.5 22 2" />
+            </svg>
+        );
+
+        const TrendingUpIcon = (props) => (
+            <svg
+                {...props}
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <polyline points="22 7 13.5 15.5 10.5 12.5 2 21" />
+                <polyline points="16 7 22 7 22 13" />
+            </svg>
+        );
+
+        const LoaderIcon = (props) => (
+            <svg
+                {...props}
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <line x1="12" x2="12" y1="2" y2="6" />
+                <line x1="12" x2="12" y1="18" y2="22" />
+                <line x1="4.93" x2="7.76" y1="4.93" y2="7.76" />
+                <line x1="16.24" x2="19.07" y1="16.24" y2="19.07" />
+                <line x1="2" x2="6" y1="12" y2="12" />
+                <line x1="18" x2="22" y1="12" y2="12" />
+                <line x1="4.93" x2="7.76" y1="19.07" y2="16.24" />
+                <line x1="16.24" x2="19.07" y1="7.76" y2="4.93" />
+            </svg>
+        );
+        
+        // --- Fin des définitions des icônes SVG ---
+
+        // Attente du chargement des modules Firebase
+        const useFirebase = () => {
+            const [firebase, setFirebase] = useState(null);
+            const [params, setParams] = useState(null);
+
+            useEffect(() => {
+                const checkFirebase = () => {
+                    if (window.firebaseLoaded && window.firebaseModules) {
+                        setFirebase(window.firebaseModules);
+                        setParams(window.firebaseParams);
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            }, []);
+
+            return { firebase, params };
         };
 
-        let result = null;
-        const maxRetries = 5;
-        for (let i = 0; i < maxRetries; i++) {
-            try {
-                const response = await fetch(GEMINI_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+        // --- COMPOSANTS UI ---
+
+        const MessageCard = ({ message }) => {
+            const isUserMessage = message.role === 'user';
+            const bgColor = isUserMessage ? 'bg-gray-800' : 'bg-[#1e1e1e] border-t border-[#FF0099] shadow-lg';
+            const textColor = isUserMessage ? 'text-gray-200' : 'text-[#22c7ef] neon-glow-text';
+
+            return (
+                <div className={`p-4 rounded-lg mb-4 ${bgColor} transition-all duration-300 transform hover:scale-[1.01] neon-border`}>
+                    <div className="flex items-start">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 font-orbitron font-bold text-sm ${isUserMessage ? 'bg-[#22c7ef] text-[#121212]' : 'bg-[#FF0099] text-[#121212]'}`}>
+                            {isUserMessage ? 'USR' : 'GEM'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className={`font-bold ${isUserMessage ? 'text-white' : 'text-[#FF0099]'}`}>
+                                {isUserMessage ? 'Vous (Streamer)' : 'Gemini AI (Optimiseur)'}
+                            </p>
+                            <p className={`mt-1 break-words whitespace-pre-wrap ${textColor}`}>
+                                {message.text}
+                            </p>
+                            <small className="block text-xs text-gray-500 mt-2">
+                                {message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString('fr-FR') : '...'}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Hook principal pour l'application
+        const useAppLogic = () => {
+            const { firebase, params } = useFirebase();
+            const [db, setDb] = useState(null);
+            const [auth, setAuth] = useState(null);
+            const [userId, setUserId] = useState(null);
+            const [isAuthReady, setIsAuthReady] = useState(false);
+
+            useEffect(() => {
+                if (!firebase || !params) return;
+
+                const { initializeApp, getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, getFirestore, setLogLevel } = firebase;
+                const { firebaseConfig, initialAuthToken } = params;
+
+                try {
+                    // setLogLevel('debug'); // Uncomment for debugging
+                    const app = initializeApp(firebaseConfig);
+                    const authInstance = getAuth(app);
+                    const dbInstance = getFirestore(app);
+                    
+                    setDb(dbInstance);
+                    setAuth(authInstance);
+
+                    const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+                        if (!user) {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(authInstance, initialAuthToken).catch(e => console.warn(e));
+                            } else {
+                                await signInAnonymously(authInstance).catch(e => console.warn(e));
+                            }
+                        } else {
+                            setUserId(user.uid);
+                            setIsAuthReady(true);
+                        }
+                    });
+                    return () => unsubscribe();
+
+                } catch (e) {
+                    console.error("Firebase init error", e);
+                }
+            }, [firebase, params]);
+
+            return { isAuthReady, userId, db, auth, firebase, params };
+        };
+
+        const SubmissionSection = ({ context }) => {
+            const { db, userId, isAuthReady, firebase, params } = context;
+            const { addDoc, collection, serverTimestamp, query, limit, onSnapshot, orderBy } = firebase;
+            const { appId } = params;
+            
+            const [prompt, setPrompt] = useState('');
+            const [messages, setMessages] = useState([]);
+            const [loading, setLoading] = useState(false);
+
+            // Real-time listener for messages
+            useEffect(() => {
+                if (!db || !userId) return;
+                
+                const chatRef = collection(db, 'artifacts', appId, 'users', userId, 'chat_history');
+                const q = query(chatRef, orderBy('timestamp', 'asc'), limit(50));
+
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setMessages(msgs);
+                    // Scroll to bottom logic here if needed
+                });
+                return () => unsubscribe();
+            }, [db, userId, appId, collection, query, orderBy, limit, onSnapshot]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!prompt.trim() || loading || !db) return;
+
+                const userText = prompt.trim();
+                setPrompt('');
+                setLoading(true);
+                
+                const chatRef = collection(db, 'artifacts', appId, 'users', userId, 'chat_history');
+
+                // 1. Add User message
+                await addDoc(chatRef, {
+                    text: userText,
+                    role: 'user',
+                    timestamp: serverTimestamp()
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
-                }
+                // 2. Call Gemini API
+                // Note: In a real scenario, you should call your backend here. 
+                // For this demo, we simulate a response or call the public endpoint directly if key is safe (it is not usually).
+                // We will simulate a backend call to Gemini via the provided instructions.
                 
-                result = await response.json();
-                break; // Succès, on sort de la boucle
-            } catch (e) {
-                if (i === maxRetries - 1) {
-                    throw new Error(`Échec de la connexion à l'API Gemini: ${e.message}`);
+                try {
+                    const apiKey = ""; // ADD YOUR API KEY HERE IF TESTING LOCALLY, ELSE USE BACKEND
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: "Act as a streamer coach. User asks: " + userText }] }]
+                        })
+                    });
+                    
+                    let aiText = "Le système IA est en maintenance (Clé API manquante).";
+                    if (response.ok) {
+                        const data = await response.json();
+                        aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Pas de réponse.";
+                    }
+
+                    // 3. Add AI message
+                    await addDoc(chatRef, {
+                        text: aiText,
+                        role: 'model',
+                        timestamp: serverTimestamp()
+                    });
+
+                } catch (err) {
+                    console.error(err);
+                    await addDoc(chatRef, {
+                        text: "Erreur de connexion au module IA.",
+                        role: 'model',
+                        timestamp: serverTimestamp()
+                    });
                 }
-                // Attente avec backoff exponentiel (1s, 2s, 4s...)
-                const delay = Math.pow(2, i) * 1000;
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
-        }
-        
-        setIsLoading(false);
 
-        const candidate = result?.candidates?.[0];
-        if (candidate && candidate.content?.parts?.[0]?.text) {
-            const text = candidate.content.parts[0].text;
-            setResponse(text);
-        } else {
-             setResponse("Analyse de données en cours... Aucune réponse valide du réseau neural.");
-        }
-    };
+                setLoading(false);
+            };
 
-    const handleGenerate = () => {
-        if (query.trim()) {
-            callGeminiAPI(query).catch(e => {
-                setError(e.message);
-                setIsLoading(false);
-            });
-        }
-    };
+            return (
+                <div className="p-6 bg-[#1a1a1a] rounded-xl neon-border flex flex-col h-[500px] md:h-[600px]">
+                    <h2 className="text-2xl font-orbitron font-bold mb-4 text-[#22c7ef] neon-glow-text flex items-center">
+                        <MessageSquareIcon className="w-6 h-6 mr-2" /> CONSOLE DE SOUMISSION
+                    </h2>
+                    
+                    <div className="flex-1 overflow-y-auto pr-2 mb-4 space-y-4 custom-scrollbar">
+                        {messages.length === 0 ? (
+                            <div className="text-center p-8 text-gray-500 font-inter">
+                                <p className="mb-2">Le Nexus est prêt. Envoyez votre première requête.</p>
+                            </div>
+                        ) : (
+                            messages.map((msg) => <MessageCard key={msg.id} message={msg} />)
+                        )}
+                    </div>
 
-    return (
-        <CyberpunkCard title="[4] CONSEILS CYBERNETIQUES (PROPULSÉ PAR GEMINI)" neonClass="border-[#22c7ef]">
-            <p className="text-gray-300 mb-4">
-                Posez une question à l'IA pour obtenir un conseil de marketing rapide pour votre stream.
-            </p>
-            <div className="flex space-x-2 mb-4">
-                <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Ex: Quel est le meilleur slogan pour un stream de RGP ?"
-                    className="flex-grow bg-gray-700/80 border border-gray-600 rounded-md p-3 text-white focus:ring-[#22c7ef] focus:border-[#22c7ef] font-mono transition-colors"
-                />
-                <button
-                    onClick={handleGenerate}
-                    disabled={isLoading || !query.trim()}
-                    className="py-3 px-4 rounded-md shadow-lg font-bold text-gray-900 bg-[#22c7ef] hover:bg-[#50daff] focus:outline-none focus:ring-4 focus:ring-[#22c7ef] focus:ring-opacity-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {isLoading ? 'ANALYSING...' : 'ASK AI'}
-                </button>
+                    <form onSubmit={handleSubmit} className="flex space-x-3">
+                        <input
+                            type="text"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder={loading ? "Traitement..." : "Entrez votre requête..."}
+                            disabled={loading || !isAuthReady}
+                            className="flex-1 p-3 rounded-lg bg-gray-900 border border-gray-700 text-white placeholder-gray-500 input-glow transition-colors"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!prompt.trim() || loading || !isAuthReady}
+                            className={`p-3 rounded-lg text-[#121212] font-bold font-orbitron transition-all duration-300 ${
+                                !prompt.trim() || loading || !isAuthReady
+                                    ? 'bg-gray-600 cursor-not-allowed'
+                                    : 'bg-[#FF0099] hover:bg-[#ff4dd9]'
+                            }`}
+                        >
+                            {loading ? <LoaderIcon className="w-5 h-5 animate-spin-slow" /> : <SendIcon className="w-5 h-5" />}
+                        </button>
+                    </form>
+                </div>
+            );
+        };
+
+        const DiscoverySection = ({ context }) => {
+            const { db, firebase, params } = context;
+            const { collection, onSnapshot, query, limit, orderBy, doc, setDoc, serverTimestamp, addDoc, where, getDocs } = firebase;
+            const { appId } = params;
+            
+            const [topics, setTopics] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                if (!db) return;
+                const topicsRef = collection(db, 'artifacts', appId, 'public', 'data', 'popular_topics');
+                const q = query(topicsRef, orderBy('count', 'desc'), limit(10));
+
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setTopics(data);
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, [db, appId, collection, query, orderBy, limit, onSnapshot]);
+
+            const handleTopicClick = async (topicName) => {
+                if (!db) return;
+                const topicsRef = collection(db, 'artifacts', appId, 'public', 'data', 'popular_topics');
+                // Logic to increment or add (simplified)
+                // Note: Ideally use transactions
+                // For demo: assume existence check or blind write
+                console.log("Vote pour:", topicName);
+            };
+
+            return (
+                <div className="p-6 bg-[#1a1a1a] rounded-xl neon-border flex flex-col h-[500px] md:h-[600px]">
+                    <h2 className="text-2xl font-orbitron font-bold mb-6 text-[#FF0099] neon-glow-text flex items-center">
+                        <TrendingUpIcon className="w-6 h-6 mr-2" /> TENDANCES
+                    </h2>
+                    {loading ? (
+                         <div className="flex-1 flex items-center justify-center">
+                            <LoaderIcon className="w-10 h-10 text-[#FF0099] animate-spin-slow" />
+                         </div>
+                    ) : (
+                        <div className="flex flex-wrap gap-4 overflow-y-auto pr-2 custom-scrollbar">
+                            {topics.length === 0 ? (
+                                <p className="text-gray-500 w-full text-center">Aucune tendance.</p>
+                            ) : (
+                                topics.map(topic => (
+                                    <button key={topic.id} onClick={() => handleTopicClick(topic.topic)} className="px-4 py-2 bg-gray-800 rounded-full text-gray-300 hover:bg-gray-700 border border-[#22c7ef]">
+                                        {topic.topic} <span className="text-[#FF0099] ml-1">{topic.count}</span>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const GeminiBrandingSection = () => (
+            <div className="p-6 bg-gray-900/50 rounded-xl neon-border text-center mt-4">
+                <h3 className="text-xl font-orbitron font-bold text-white mb-2">
+                    <span className="text-[#22c7ef]">GEMINI</span> INTELLIGENCE ACTIVE
+                </h3>
             </div>
-            
-            {error && (
-                <div className="p-4 bg-red-800/70 border-l-4 border-red-400 text-red-300 rounded-md text-sm mb-4">
-                    <p className="font-bold">ERREUR DE CONNEXION GEMINI:</p>
-                    <p className="text-sm">{error}</p>
+        );
+
+        const App = () => {
+            const context = useAppLogic();
+
+            if (!context.isAuthReady) {
+                return (
+                    <div className="w-full h-screen flex items-center justify-center bg-[#121212]">
+                        <div className="text-center">
+                            <LoaderIcon className="w-12 h-12 text-[#FF0099] animate-spin-slow mx-auto" />
+                            <p className="mt-4 text-gray-400 font-orbitron">Initialisation...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="w-full max-w-7xl mx-auto py-10 lg:py-20">
+                    <header className="text-center mb-10">
+                        <h1 className="text-5xl md:text-6xl font-extrabold mb-2 text-[#FF0099] font-orbitron">
+                            <ZapIcon className="inline w-10 h-10 mr-2" /> STREAMER HUB
+                        </h1>
+                        <p className="text-sm text-gray-400 mt-4">
+                            ID: <span className="font-mono text-xs text-gray-300 bg-gray-700 p-1 rounded-sm">{context.userId}</span>
+                        </p>
+                    </header>
+
+                    <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <SubmissionSection context={context} />
+                        <DiscoverySection context={context} />
+                        <div className="lg:col-span-2">
+                            <GeminiBrandingSection />
+                        </div>
+                    </main>
                 </div>
-            )}
+            );
+        };
 
-            {response && (
-                <div className="mt-4 p-4 bg-gray-900 border border-[#FF0099] rounded-lg shadow-inner">
-                    <p className="text-[#FF0099] font-orbitron font-bold mb-2">GEMINI RESPONSE:</p>
-                    <p className="text-white whitespace-pre-wrap">{response}</p>
-                </div>
-            )}
-        </CyberpunkCard>
-    );
-};
-
-
-// --- COMPOSANT PRINCIPAL ---
-const App = () => {
-  const logic = useAppLogic();
-  const { isAuthReady, userId } = logic;
-
-  if (!isAuthReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#121212]">
-        <div className="text-center text-xl font-orbitron text-[#FF0099]">
-          <span className="animate-pulse">BOOTING UP SYSTEM...</span>
-          <div className="mt-4 animate-spin border-4 border-t-[#22c7ef] border-[#FF0099] rounded-full w-12 h-12 mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <AppContext.Provider value={logic}>
-      <div className="w-full max-w-7xl mx-auto py-10 lg:py-20">
-        <header className="text-center mb-10">
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-2 text-[#FF0099] font-orbitron drop-shadow-neon">
-            <ZapIcon className="inline w-10 h-10 mr-2" /> STREAMER HUB CONSOLE
-          </h1>
-          <p className="text-xl text-[#22c7ef] font-orbitron">
-            BOOST ACTIF | Devenez Attractif & Addictif
-          </p>
-          <p className="text-sm text-gray-400 mt-4">
-            ID Utilisateur Actuel: <span className="font-mono text-xs text-gray-300 bg-gray-700 p-1 rounded-sm">{userId || 'N/A'}</span>
-          </p>
-        </header>
-
-        <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            <SubmissionSection />
-          </div>
-          <div className="lg:col-span-2">
-            <DiscoverySection />
-            <SubmissionList />
-          </div>
-          <div className="lg:col-span-3">
-              <GeminiBrandingSection />
-          </div>
-        </main>
-      </div>
-    </AppContext.Provider>
-  );
-};
-
-// Styles CSS pour les effets cyberpunk
-const GlobalStyles = () => (
-    <style jsx global>
-        {`
-            @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;800&display=swap');
-            
-            body {
-                font-family: 'Inter', sans-serif;
-                background-color: #121212; /* Fond très sombre */
-                color: #f0f0f0;
-                min-height: 100vh;
-            }
-            
-            /* Effet de lueur pour les bordures et le titre */
-            .neon-border {
-                box-shadow: 0 0 5px rgba(255, 0, 153, 0.5), 0 0 10px rgba(255, 0, 153, 0.3);
-                transition: box-shadow 0.3s ease-in-out;
-            }
-            .neon-border:hover {
-                box-shadow: 0 0 10px rgba(255, 0, 153, 0.7), 0 0 20px rgba(255, 0, 153, 0.5);
-            }
-            .border-\\[\\#22c7ef\\] {
-                border-color: #22c7ef;
-            }
-            
-            .drop-shadow-neon {
-                text-shadow: 0 0 5px rgba(255, 0, 153, 0.8), 0 0 10px rgba(34, 199, 239, 0.5);
-            }
-
-            .font-orbitron {
-                font-family: 'Orbitron', sans-serif;
-            }
-            
-            /* Style de la barre de défilement pour les logs */
-            .custom-scrollbar::-webkit-scrollbar {
-                width: 8px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-track {
-                background: #1f2937;
-                border-radius: 10px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-thumb {
-                background: #FF0099;
-                border-radius: 10px;
-            }
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                background: #ff33aa;
-            }
-        `}
-    </style>
-);
-
-// Le composant principal exporté
-export default function MainApp() {
-    return (
-        <>
-            <GlobalStyles />
-            <App />
-        </>
-    );
-}
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
