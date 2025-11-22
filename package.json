@@ -1,22 +1,13 @@
 {
-  "name": "goodstream-twitch-api",
+  "name": "twitch-scanner-backend",
   "version": "1.0.0",
-  "description": "API backend for weighted random Twitch streamer selection, built with Express, Firestore, and Gemini.",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "keywords": [
-    "twitch",
-    "firebase",
-    "gemini",
-    "api"
-  ],
-  "author": "",
-  "license": "ISC",
+  "scripts": { "start": "node index.js" },
   "dependencies": {
     "express": "^4.18.2",
-    "firebase-admin": "^11.11.0",
-    "node-fetch": "^2.6.9"
-  }
+    "node-fetch": "^3.3.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "type": "module"
 }
