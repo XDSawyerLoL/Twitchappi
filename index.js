@@ -56,7 +56,7 @@ let TWITCH_ACCESS_TOKEN = null;
 // Les constantes __app_id et __firebase_config sont spécifiques à l'environnement Canvas
 // Pour Render, nous devons utiliser un chemin plus simple ou gérer l'appId différemment,
 // mais nous conservons la structure pour la compatibilité avec votre code existant.
-const appId = process.env.APP_ID || 'render-twitch-app'; 
+const appId = process.env.APP_ID || 'GOODSTREAM-twitch-prod'; 
 
 // Chemin de la collection Firestore pour les streamers soumis (Collection Publique)
 const SUBMISSION_COLLECTION_PATH = `artifacts/${appId}/public/data/submitted_streamers`;
