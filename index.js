@@ -6,21 +6,39 @@ const fetch = require('node-fetch');
 // Firebase Admin SDK est requis pour les opérations de backend (Node.js)
 const admin = require('firebase-admin');
 
-// --- CONFIGURATION FIREBASE ADMIN ---
-// Les identifiants de configuration sont fournis par l'environnement
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+// --- CONFIGURATION FIREBASE ADMIN POUR ENVIRONNEMENT EXTERNE (ex: Render) ---
+
+// 1. Définir une variable d'environnement pour stocker la clé de service JSON complète.
+const serviceAccountKey = process.env.FIREBASE_SA_KEY;
+
+let db; // Déclaration de l'instance de base de données
 
 // Initialisation de Firebase Admin
 if (!admin.apps.length) {
-    // Si vous utilisez cet environnement (Canvas), le service account est géré automatiquement
-    // Si vous le déployez ailleurs, vous devez fournir la clé du service account
-    admin.initializeApp({
-        // Utilisation du compte de service par défaut pour l'authentification
-        credential: admin.credential.applicationDefault() 
-    });
+    if (serviceAccountKey) {
+        // Mode Déploiement Externe (Render, Heroku, etc.)
+        try {
+            const serviceAccount = JSON.parse(serviceAccountKey);
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+            console.log("Firebase Admin SDK initialisé via clé de service (pour Render).");
+        } catch (e) {
+            console.error("ERREUR CRITIQUE: Échec du parsing ou de l'initialisation de la clé de service Firebase. Vérifiez la variable FIREBASE_SA_KEY.", e);
+            // Arrêter l'application si l'initialisation Firebase échoue
+            process.exit(1); 
+        }
+    } else {
+        // Mode Environnement Google Cloud (Canvas, GCE) - Fallback
+        // Attention: Pour Render, cette partie est ignorée si FIREBASE_SA_KEY est bien configuré.
+        admin.initializeApp({
+            credential: admin.credential.applicationDefault()
+        });
+        console.log("Firebase Admin SDK initialisé via Default Application Credentials (pour Canvas/GCP).");
+    }
 }
-const db = admin.firestore(); // db est l'instance de la base de données Firestore !
+
+db = admin.firestore(); // db est l'instance de la base de données Firestore !
 const app = express();
 // Lecture du port depuis l'environnement
 const port = process.env.PORT || 3000; 
@@ -29,11 +47,16 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 // --- CONFIGURATION TWITCH (CRITIQUE) ---
-// ⚠️ CLÉS MISES À JOUR AVEC VOS VALEURS
-// NOTE : Il est préférable de les lire depuis process.env (variables d'environnement) pour la sécurité
-const TWITCH_CLIENT_ID = 'ifypidjkytqzoktdyljgktqsczrv4j'; 
-const TWITCH_CLIENT_SECRET = '3cxzcj23fcrczbe5n37ajzcb4y7u9q';
+// ⚠️ Lecture des clés depuis process.env (variables d'environnement) pour la sécurité sur Render
+// Mettez ces variables (TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET) dans les réglages Render
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'ifypidjkytqzoktdyljgktqsczrv4j'; 
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '3cxzcj23fcrczbe5n37ajzcb4y7u9q';
 let TWITCH_ACCESS_TOKEN = null;
+
+// Les constantes __app_id et __firebase_config sont spécifiques à l'environnement Canvas
+// Pour Render, nous devons utiliser un chemin plus simple ou gérer l'appId différemment,
+// mais nous conservons la structure pour la compatibilité avec votre code existant.
+const appId = process.env.APP_ID || 'render-twitch-app'; 
 
 // Chemin de la collection Firestore pour les streamers soumis (Collection Publique)
 const SUBMISSION_COLLECTION_PATH = `artifacts/${appId}/public/data/submitted_streamers`;
@@ -41,8 +64,8 @@ const SUBMISSION_COLLECTION_PATH = `artifacts/${appId}/public/data/submitted_str
 const RATING_COLLECTION_PATH = `artifacts/${appId}/public/data/streamer_ratings`;
 
 // --- CONFIGURATION GEMINI API ---
-// L'API Key est fournie par l'environnement Canvas
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''; // Récupération de la clé depuis l'environnement ou utilisation d'une chaîne vide
+// L'API Key sera lue depuis l'environnement (Render)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = 'gemini-2.5-flash-preview-09-2025';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 

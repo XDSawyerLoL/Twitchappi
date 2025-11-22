@@ -1,15 +1,16 @@
 {
-  "name": "twitch-random-api",
+  "name": "votre-app-backend",
   "version": "1.0.0",
-  "description": "API pour trouver un streamer Twitch entre 0 et 150 viewers.",
+  "description": "Votre application Node.js",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "cors": "^2.8.5",
     "express": "^4.19.2",
-    "node-fetch": "^3.3.2"
+    "firebase-admin": "^12.3.0",
+    "cors": "^2.8.5"
+    // Ajoutez ici toutes les autres dépendances nécessaires
   }
 }
