@@ -1,10 +1,10 @@
 // --- IMPORTATIONS NÉCESSAIRES ---
 // Assurez-vous d'avoir les dépendances 'express', 'node-fetch', 'firebase-admin' installées.
-import express from 'express';
-import fetch from 'node-fetch';
+const express = require('express');
+const fetch = require('node-fetch');
 
 // Firebase Admin SDK est requis pour les opérations de backend (Node.js)
-import * as admin from 'firebase-admin';
+const admin = require('firebase-admin');
 
 // --- CONFIGURATION FIREBASE ADMIN ---
 // Les identifiants de configuration sont fournis par l'environnement
@@ -13,12 +13,14 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // Initialisation de Firebase Admin
 if (!admin.apps.length) {
+    // Si vous utilisez cet environnement (Canvas), le service account est géré automatiquement
+    // Si vous le déployez ailleurs, vous devez fournir la clé du service account
     admin.initializeApp({
         // Utilisation du compte de service par défaut pour l'authentification
         credential: admin.credential.applicationDefault() 
     });
 }
-const db = admin.firestore();
+const db = admin.firestore(); // db est l'instance de la base de données Firestore !
 const app = express();
 // Lecture du port depuis l'environnement
 const port = process.env.PORT || 3000; 
@@ -26,14 +28,23 @@ const port = process.env.PORT || 3000;
 // Middleware pour analyser le corps JSON
 app.use(express.json());
 
-// --- CONFIGURATION TWITCH SÉCURISÉE (CRITIQUE) ---
-// ⚠️ Les clés sont LUES depuis les variables d'environnement (Render)
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID; 
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-let TWITCH_ACCESS_TOKEN = null; // Le jeton sera stocké temporairement en mémoire
+// --- CONFIGURATION TWITCH (CRITIQUE) ---
+// ⚠️ CLÉS MISES À JOUR AVEC VOS VALEURS
+// NOTE : Il est préférable de les lire depuis process.env (variables d'environnement) pour la sécurité
+const TWITCH_CLIENT_ID = 'ifypidjkytqzoktdyljgktqsczrv4j'; 
+const TWITCH_CLIENT_SECRET = '3cxzcj23fcrczbe5n37ajzcb4y7u9q';
+let TWITCH_ACCESS_TOKEN = null;
 
 // Chemin de la collection Firestore pour les streamers soumis (Collection Publique)
 const SUBMISSION_COLLECTION_PATH = `artifacts/${appId}/public/data/submitted_streamers`;
+// Chemin de la collection Firestore pour les votes
+const RATING_COLLECTION_PATH = `artifacts/${appId}/public/data/streamer_ratings`;
+
+// --- CONFIGURATION GEMINI API ---
+// L'API Key est fournie par l'environnement Canvas
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''; // Récupération de la clé depuis l'environnement ou utilisation d'une chaîne vide
+const GEMINI_MODEL = 'gemini-2.5-flash-preview-09-2025';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 
 // --- FONCTIONS UTILITAIRES ---
@@ -42,16 +53,11 @@ const SUBMISSION_COLLECTION_PATH = `artifacts/${appId}/public/data/submitted_str
  * Récupère le jeton d'accès Twitch (nécessaire pour appeler l'API Helix).
  */
 async function getTwitchAccessToken() {
-    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
-        console.error("ERREUR DE SÉCURITÉ : Les variables d'environnement TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET sont manquantes.");
-        return null;
-    }
-    
     if (TWITCH_ACCESS_TOKEN) return TWITCH_ACCESS_TOKEN;
     const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     
     try {
-        // Implémentation de la fonction fetch avec backoff exponentiel non affichée ici pour la concision
+        // En environnement réel, assurez-vous que 'fetch' supporte l'implémentation de backoff exponentiel.
         const response = await fetch(tokenUrl, { method: 'POST' });
         const data = await response.json();
         TWITCH_ACCESS_TOKEN = data.access_token;
@@ -100,12 +106,12 @@ async function getLiveStreamsData(usernames) {
 }
 
 /**
- * Met à jour les métriques de tirage du streamer dans Firestore après qu'il ait été sélectionné.
+ * Met à jour les métriques de tirage du streamer dans Firestore (Firebase) après qu'il ait été sélectionné.
  */
 async function updateStreamerDrawMetrics(username) {
     try {
         const docRef = db.collection(SUBMISSION_COLLECTION_PATH).doc(username.toLowerCase());
-        // Met à jour la date du dernier tirage et incrémente le compteur de tirages
+        // Met à jour la date du dernier tirage et incrémente le compteur de tirages dans Firebase
         await docRef.update({
             last_draw_date: admin.firestore.Timestamp.now(),
             draw_count: admin.firestore.FieldValue.increment(1)
@@ -115,20 +121,106 @@ async function updateStreamerDrawMetrics(username) {
     }
 }
 
-// --- ENDPOINT PRINCIPAL : /random ---
+/**
+ * Met à jour le score moyen d'un streamer après un nouveau vote dans Firestore (Firebase).
+ * @param {string} username Le nom d'utilisateur du streamer.
+ */
+async function recalculateAverageScore(username) {
+    const streamerRef = db.collection(SUBMISSION_COLLECTION_PATH).doc(username.toLowerCase());
+    
+    // On doit lire tous les votes pour cet utilisateur dans Firebase
+    const ratingsSnapshot = await db.collection(RATING_COLLECTION_PATH)
+        .where('username', '==', username.toLowerCase())
+        .get();
+        
+    if (ratingsSnapshot.empty) {
+        // S'il n'y a pas de votes, on revient au score par défaut
+        await streamerRef.update({
+            avg_score: 3.0,
+            rating_count: 0
+        });
+        return;
+    }
+
+    let totalScore = 0;
+    ratingsSnapshot.forEach(doc => {
+        totalScore += doc.data().rating;
+    });
+
+    const ratingCount = ratingsSnapshot.size;
+    const newAvgScore = totalScore / ratingCount;
+
+    // Mise à jour de la note moyenne du streamer dans Firebase
+    await streamerRef.update({
+        avg_score: newAvgScore,
+        rating_count: ratingCount
+    });
+}
+
+/**
+ * Fonction utilitaire pour appeler l'API Gemini avec backoff exponentiel.
+ * @param {object} payload Le corps de la requête API Gemini.
+ * @returns {Promise<string>} Le texte généré ou un message d'erreur.
+ */
+async function callGeminiApi(payload) {
+    let resultText = "Désolé, impossible d'obtenir une critique par l'IA pour le moment.";
+    const maxRetries = 5;
+    let delay = 1000; // 1 seconde de délai initial
+
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(GEMINI_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    resultText = candidate.content.parts[0].text;
+                    return resultText; // Succès, on sort de la boucle
+                }
+            } else if (response.status === 429) {
+                // Trop de requêtes (Rate limit), on tente le backoff
+                console.warn(`Tentative ${i + 1}: Rate limit atteint. Réessai dans ${delay / 1000}s.`);
+            } else {
+                // Autres erreurs HTTP (400, 500, etc.)
+                console.error(`Erreur API Gemini: Statut ${response.status}`);
+                break; // Erreur non-recoverable, on sort
+            }
+
+        } catch (error) {
+            console.error(`Erreur lors de l'appel à Gemini (tentative ${i + 1}):`, error.message);
+        }
+
+        // Attendre avant la prochaine tentative (Backoff Exponentiel)
+        if (i < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2; // Doubler le délai
+        }
+    }
+    return resultText;
+}
+
+
+// -------------------------------------------------------------------------
+// ENDPOINT 1 : Tirage Aléatoire Pondéré (Cœur de l'application)
+// -------------------------------------------------------------------------
 
 /**
  * Endpoint qui exécute le Tirage Pondéré basé sur la budgétisation 20%/80%.
  */
 app.get('/random', async (req, res) => {
     
-    // Vérification de sécurité des clés d'environnement
-    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
-        return res.status(500).json({ error: "Configuration manquante : Clés Twitch non définies dans les variables d'environnement." });
+    // Vérification initiale des clés Twitch (Maintenant avec les vraies clés, la vérification est moins critique)
+    if (TWITCH_CLIENT_ID === 'VOTRE_CLIENT_ID_TWITCH') {
+        return res.status(500).json({ error: "Veuillez configurer vos identifiants Twitch dans index.js." });
     }
 
     try {
-        // 1. Récupérer tous les streamers du pool
+        // 1. Récupérer tous les streamers du pool (LECTURE FIREBASE)
         const snapshot = await db.collection(SUBMISSION_COLLECTION_PATH).get();
         if (snapshot.empty) {
             return res.status(404).json({ message: "Aucun streamer trouvé dans le pool de soumission." });
@@ -143,7 +235,7 @@ app.get('/random', async (req, res) => {
 
         const allUsernames = allStreamers.map(s => s.username);
 
-        // 2. Vérification des statuts en direct via Twitch API
+        // 2. Vérification des statuts en direct via Twitch API (PAS FIREBASE)
         const liveStreamsData = await getLiveStreamsData(allUsernames);
         const liveStreamMap = new Map(liveStreamsData.map(stream => [stream.user_login.toLowerCase(), stream]));
         
@@ -225,7 +317,7 @@ app.get('/random', async (req, res) => {
         // 4. Tirage final aléatoire dans le pool sélectionné
         const winner = finalSelectionPool[Math.floor(Math.random() * finalSelectionPool.length)];
 
-        // 5. Mettre à jour les métriques du gagnant
+        // 5. Mettre à jour les métriques du gagnant (ÉCRITURE FIREBASE)
         await updateStreamerDrawMetrics(winner.username);
 
         // 6. Réponse de l'API (avec l'information sur le pool utilisé)
@@ -255,9 +347,133 @@ app.get('/random', async (req, res) => {
     }
 });
 
+// -------------------------------------------------------------------------
+// ENDPOINT 2 : Soumission d'un nouveau streamer (/submit)
+// -------------------------------------------------------------------------
+
+app.post('/submit', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ error: "Le nom d'utilisateur (username) est requis." });
+    }
+
+    const lowerUsername = username.toLowerCase().trim();
+    const docRef = db.collection(SUBMISSION_COLLECTION_PATH).doc(lowerUsername);
+
+    try {
+        // Vérification d'existence dans Firebase (LECTURE FIREBASE)
+        const doc = await docRef.get();
+
+        if (doc.exists) {
+            return res.status(409).json({ message: `Le streamer ${lowerUsername} est déjà dans le pool.` });
+        }
+
+        // Ajout du nouveau streamer avec des métriques initiales (ÉCRITURE FIREBASE)
+        await docRef.set({
+            username: lowerUsername,
+            created_at: admin.firestore.Timestamp.now(),
+            last_draw_date: null,
+            draw_count: 0,
+            avg_score: 3.0, // Score de départ neutre
+            rating_count: 0
+        });
+
+        res.status(201).json({ status: "success", message: `Streamer ${lowerUsername} ajouté au pool.` });
+
+    } catch (error) {
+        console.error("Erreur lors de la soumission du streamer:", error);
+        res.status(500).json({ error: "Erreur interne du serveur lors de la soumission." });
+    }
+});
+
+
+// -------------------------------------------------------------------------
+// ENDPOINT 3 : Noter un streamer (/rate)
+// -------------------------------------------------------------------------
+
+app.post('/rate', async (req, res) => {
+    // Le `submission_id` permet de lier le vote à la session de découverte (non utilisé ici)
+    const { username, rating } = req.body;
+    // Idéalement, on utiliserait le userId de l'utilisateur authentifié pour éviter le spam de votes
+    const userId = req.body.userId || 'anonymous_user'; 
+
+    if (!username || rating === undefined || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "Le nom d'utilisateur et une note valide (1-5) sont requis." });
+    }
+
+    const lowerUsername = username.toLowerCase().trim();
+    
+    try {
+        // Enregistrer le vote dans la collection de votes (ÉCRITURE FIREBASE)
+        await db.collection(RATING_COLLECTION_PATH).add({
+            username: lowerUsername,
+            rating: parseInt(rating, 10),
+            user_id: userId, 
+            timestamp: admin.firestore.Timestamp.now()
+        });
+        
+        // Recalculer la moyenne et mettre à jour le document du streamer (LECTURE/ÉCRITURE FIREBASE)
+        await recalculateAverageScore(lowerUsername);
+
+        res.status(200).json({ status: "success", message: `Note de ${rating}/5 enregistrée pour ${lowerUsername}.` });
+
+    } catch (error) {
+        console.error("Erreur lors de l'enregistrement de la note:", error);
+        res.status(500).json({ error: "Erreur interne du serveur lors de l'enregistrement de la note." });
+    }
+});
+
+
+// -------------------------------------------------------------------------
+// ENDPOINT 4 : Demander une critique IA du streamer (/review-streamer)
+// -------------------------------------------------------------------------
+
+app.post('/review-streamer', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ error: "Le nom d'utilisateur est requis pour la critique IA." });
+    }
+
+    // 1. Définir le prompt et l'instruction système
+    const systemPrompt = "Vous êtes un critique de streaming Twitch. Fournissez une critique concise, positive et engageante en un seul paragraphe sur le streamer demandé. Concentrez-vous sur le style, le contenu et la communauté. Répondez en français.";
+    const userQuery = `Générer une critique du streamer Twitch : ${username}.`;
+    
+    const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        
+        // Utilisation de l'ancrage Google Search pour des informations actualisées
+        tools: [{ "google_search": {} }], 
+        
+        systemInstruction: {
+            parts: [{ text: systemPrompt }]
+        },
+    };
+    
+    try {
+        // 2. Appeler l'API Gemini avec gestion du backoff
+        const reviewText = await callGeminiApi(payload);
+        
+        // 3. Répondre au client
+        res.status(200).json({ 
+            status: "success", 
+            username: username,
+            review: reviewText
+        });
+        
+    } catch (error) {
+        console.error("Erreur lors de l'appel à l'API Gemini:", error);
+        res.status(500).json({ error: "Erreur interne du serveur lors de la génération de la critique IA." });
+    }
+});
+
 
 // Démarrage du serveur
 app.listen(port, () => {
     console.log(`Le serveur d'API écoute sur le port : ${port}`);
     console.log(`Endpoint de Tirage : http://localhost:${port}/random`);
+    console.log(`Endpoint de Soumission : http://localhost:${port}/submit`);
+    console.log(`Endpoint de Notation : http://localhost:${port}/rate`);
+    console.log(`Endpoint de Critique IA : http://localhost:${port}/review-streamer`);
 });
