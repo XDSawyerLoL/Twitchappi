@@ -1,13 +1,29 @@
 {
-  "name": "twitch-scanner-backend",
+  "name": "twitchappi-goodstream",
   "version": "1.0.0",
+  "description": "Backend pour le lecteur Twitch Hub avec scanner IA et boost",
   "main": "index.js",
-  "scripts": { "start": "node index.js" },
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "build": "npm ci"
+  },
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "express": "^4.18.2",
-    "node-fetch": "^3.3.1",
     "cors": "^2.8.5",
+    "node-fetch": "^3.3.1",
     "dotenv": "^16.3.1"
   },
-  "type": "module"
+  "keywords": [
+    "twitch",
+    "streamer",
+    "firebase",
+    "ai",
+    "scanner"
+  ],
+  "author": "Sansa",
+  "license": "MIT"
 }
