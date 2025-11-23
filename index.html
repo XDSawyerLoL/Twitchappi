@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Streamer Hub</title>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<!-- Tailwind CSS (dev only) -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { font-family: 'Inter', sans-serif; background-color: #121212; color: #f0f0f0; min-height:100vh; }
+  .btn-primary { background-color:#FF0099; color:white; padding:0.75rem 1.5rem; border-radius:0.5rem; }
+  .btn-primary:hover { background-color:#E6008A; }
+  .btn-secondary { background-color:#22c7ef; color:#121212; padding:0.75rem 1.5rem; border-radius:0.5rem; }
+  .btn-secondary:hover { background-color:#1AC; }
+  .twitch-embed-container { position:relative; width:100%; padding-top:56.25%; overflow:hidden; border-radius:8px; }
+  .twitch-embed-container iframe { position:absolute; top:0; left:0; width:100%; height:100%; }
+</style>
+</head>
+<body>
+
+<div class="p-4 max-w-6xl mx-auto">
+
+  <h1 class="text-4xl font-extrabold text-[#FF0099] mb-6">Streamer Hub V2.0</h1>
+
+  <!-- Boost Form -->
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold text-[#FF0099] mb-2">BOOST ACTIVATION</h2>
+    <form id="boost-form" class="flex gap-2">
+      <input type="text" id="boost-input" placeholder="Ex: MonStreamer" class="flex-grow p-2 rounded bg-gray-800 text-white" required>
+      <button type="submit" class="btn-primary">SOUMETTRE</button>
+    </form>
+    <p id="boost-msg" class="mt-2"></p>
+  </div>
+
+  <!-- Scanner IA -->
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold text-[#22c7ef] mb-2">SCANNER (IA)</h2>
+    <button id="scanner-btn" class="btn-secondary mb-2">LANCER LE SCAN</button>
+    <div id="scanner-result"></div>
+  </div>
+
+  <!-- Twitch Player -->
+  <div class="twitch-embed-container mb-8">
+    <div id="twitch-embed"></div>
+  </div>
+
+</div>
+
+<script src="https://embed.twitch.tv/embed/v1.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
