@@ -2,7 +2,7 @@
   "name": "twitchappi",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
+  "main": "index.cjs",
   "scripts": {
     "start": "node index.cjs"
   },
@@ -12,4 +12,5 @@
     "firebase-admin": "^11.10.0"
   }
 }
+
 
