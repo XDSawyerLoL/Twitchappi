@@ -40,6 +40,14 @@ async function getTwitchAccessToken() {
 
     try {
         const response = await fetch(url, { method: 'POST' });
+        
+        // 🚨 CORRECTION 1: Vérifie si la réponse est JSON et OK avant de la parser
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Erreur HTTP ${response.status} lors de l'obtention du token:`, errorText);
+            return null;
+        }
+
         const data = await response.json();
         
         if (data.access_token) {
@@ -49,11 +57,12 @@ async function getTwitchAccessToken() {
             console.log("Token Twitch obtenu avec succès.");
             return TWITCH_ACCESS_TOKEN;
         } else {
-            console.error("Erreur lors de l'obtention du token:", data);
+            console.error("Erreur lors de l'obtention du token (pas d'access_token dans la réponse):", data);
             return null;
         }
     } catch (error) {
-        console.error("Erreur réseau lors de la requête du token:", error);
+        // Gère les erreurs réseau (ex: DNS, Timeout)
+        console.error("Erreur réseau ou parsing lors de la requête du token:", error.message);
         return null;
     }
 }
@@ -67,7 +76,8 @@ app.get('/random', async (req, res) => {
 
     const token = await getTwitchAccessToken();
     if (!token) {
-        return res.status(500).json({ message: "Erreur: Impossible d'obtenir le token d'accès Twitch." });
+        // 🚨 Message plus précis pour le client
+        return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu). Vérifiez TWITCH_CLIENT_ID/SECRET sur Render." });
     }
 
     try {
@@ -80,9 +90,15 @@ app.get('/random', async (req, res) => {
         });
 
         if (!streamsResponse.ok) {
-            const errorBody = await streamsResponse.json();
-            console.error("Erreur API Twitch (Status " + streamsResponse.status + "):", errorBody);
-            return res.status(500).json({ message: "Échec de l'appel à l'API Twitch ou mauvaise clé." });
+            // 🚨 CORRECTION 2: Renvoie l'erreur 401/400 de Twitch directement
+            if (streamsResponse.status === 401 || streamsResponse.status === 400) {
+                 // Si c'est 401, le token est probablement invalide/expiré immédiatement
+                 return res.status(500).json({ message: "Erreur Twitch 401/400. Token invalide (re-déploiement nécessaire pour renouveler)." });
+            }
+
+            const errorBody = await streamsResponse.text(); // Lit le texte brut en cas d'erreur
+            console.error(`Erreur API Twitch (Status ${streamsResponse.status}):`, errorBody);
+            return res.status(500).json({ message: `Erreur interne (${streamsResponse.status}) lors du scan Twitch.` });
         }
 
         const streamsData = await streamsResponse.json();
@@ -114,8 +130,8 @@ app.get('/random', async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Erreur lors du processus de scan:", error);
-        res.status(500).json({ message: "Erreur interne du serveur lors du scan." });
+        console.error("Erreur lors du processus de scan (exception non gérée):", error);
+        res.status(500).json({ message: "Erreur interne du serveur lors du scan (vérifiez les logs Render)." });
     }
 });
 
@@ -131,7 +147,6 @@ app.post('/boost', (req, res) => {
     }
 
     // --- C'est ici que vous inséreriez la VRAIE logique Boost ---
-    // (ex: enregistrement dans une base de données, notification d'un autre service, etc.)
     
     console.log(`[BOOST LOG] Channel: ${channelName}, UserID: ${userId}`);
 
@@ -152,3 +167,4 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`Serveur API en cours d'exécution sur le port ${PORT}`);
 });
+
