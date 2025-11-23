@@ -30,7 +30,7 @@ if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
 // =========================================================
 // Configuration des Clés Gemini (pour le Proxy IA)
 // =========================================================
-// Nous supposons que cette clé est définie sur le serveur Render
+// Cette clé DOIT être définie comme variable d'environnement sur le service Render (GEMINI_API_KEY)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
 
@@ -86,7 +86,7 @@ async function getTwitchAccessToken() {
     }
 }
 
-// --- Fonction pour obtenir l'ID d'un jeu (sera utilisée dans la prochaine étape) ---
+// --- Fonction pour obtenir l'ID d'un jeu ---
 async function getGameId(gameName, token) {
     if (!gameName || !token) return null;
     
@@ -114,7 +114,7 @@ async function getGameId(gameName, token) {
     }
 }
 
-// --- Fonction pour obtenir le nombre de followers d'un utilisateur (MAINTENU pour l'IA) ---
+// --- Fonction pour obtenir le nombre de followers d'un utilisateur ---
 async function getFollowerCount(userId, token) {
     if (!userId || !token) return null;
     
@@ -140,16 +140,76 @@ async function getFollowerCount(userId, token) {
 }
 
 
+// --- NOUVELLE FONCTION: Obtenir les détails complets d'un streamer par login ---
+async function getStreamerDetails(userLogin, token) {
+    if (!userLogin || !token) return null;
+
+    // 1. Obtenir les données de l'utilisateur (ID)
+    const usersUrl = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(userLogin)}`;
+    let userResponse;
+    try {
+        userResponse = await fetch(usersUrl, {
+            headers: {
+                'Client-ID': TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const userData = await userResponse.json();
+
+        if (!userResponse.ok || userData.data.length === 0) {
+            console.log(`Utilisateur non trouvé: ${userLogin}`);
+            return null;
+        }
+
+        const user = userData.data[0];
+        const userId = user.id;
+
+        // 2. Obtenir les données du stream (live status, title, viewer_count)
+        const streamsUrl = `https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(userLogin)}`;
+        const streamsResponse = await fetch(streamsUrl, {
+            headers: {
+                'Client-ID': TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const streamsData = await streamsResponse.json();
+
+        const isLive = streamsData.data.length > 0;
+        const stream = isLive ? streamsData.data[0] : null;
+
+        // 3. Obtenir le nombre de followers
+        const followerCount = await getFollowerCount(userId, token) || 0;
+
+        // 4. Formater la réponse
+        return {
+            username: user.login,
+            user_id: userId,
+            is_live: isLive,
+            title: stream ? stream.title : 'Hors ligne',
+            game_name: stream ? stream.game_name : 'Non spécifié',
+            viewer_count: stream ? stream.viewer_count : 0,
+            follower_count: followerCount,
+            avg_score: (Math.random() * (5.0 - 3.5) + 3.5).toFixed(1) // Score IA simulé
+        };
+
+    } catch (error) {
+        console.error(`Erreur lors de l'obtention des détails de ${userLogin}:`, error.message);
+        return null;
+    }
+}
+
+
 // =========================================================
 // ROUTE 0: Accueil (GET /)
 // =========================================================
 
 app.get('/', (req, res) => {
-    res.send({ status: "OK", message: "Twitch API Scanner est opérationnel. Utilisez les routes /random, /boost ou /critique_ia." });
+    res.send({ status: "OK", message: "Twitch API Scanner est opérationnel. Utilisez les routes /random, /boost, /critique_ia, ou /details." });
 });
 
 // =========================================================
 // ROUTE 1.1: Recherche de Game ID (pour le client)
+// La logique ne change pas pour la recherche de jeu.
 // =========================================================
 app.get('/gameid', async (req, res) => {
     const gameName = req.query.name;
@@ -167,14 +227,15 @@ app.get('/gameid', async (req, res) => {
     if (gameId) {
         res.json({ game_id: gameId, name: gameName });
     } else {
+        // Si ce n'est pas un jeu, laissons le client gérer la tentative de recherche par pseudo
         res.status(404).json({ message: `Jeu non trouvé pour le nom: ${gameName}` });
     }
 });
 
 
 // =========================================================
-// ROUTE 1.2: Scanner (GET /random) - LOGIQUE TWITCH
-// Le filtre sur le nombre de spectateurs est ENTIÈREMENT supprimé (Trouve TOUTES les tailles).
+// ROUTE 1.2: Scan Aléatoire (GET /random) - LOGIQUE TWITCH
+// Pas de changement de la logique de scan existante.
 // =========================================================
 
 app.get('/random', async (req, res) => {
@@ -185,8 +246,6 @@ app.get('/random', async (req, res) => {
         return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu). Vérifiez TWITCH_CLIENT_ID/SECRET sur Render." });
     }
     
-    // Construction de l'URL de base pour les streams, fixée à la langue française
-    // On demande 100 streams, qui sont triés par Twitch par nombre de viewers (du plus grand au plus petit)
     let twitchUrl = `https://api.twitch.tv/helix/streams?first=100&language=fr`;
     
     if (gameId) {
@@ -219,7 +278,6 @@ app.get('/random', async (req, res) => {
         const streamsData = await streamsResponse.json();
         
         // 2. Filtrer uniquement par l'état 'live' et au moins 1 spectateur
-        // Puisque Twitch trie les 100 premiers par viewers, cette liste inclura les plus gros streamers.
         let activeStreams = streamsData.data.filter(s => 
             s.type === 'live' && 
             s.viewer_count > 0 
@@ -240,6 +298,7 @@ app.get('/random', async (req, res) => {
             message: 'Streamer trouvé',
             streamer: {
                 username: randomStream.user_login,
+                user_id: randomStream.user_id,
                 title: randomStream.title,
                 game_name: randomStream.game_name, 
                 viewer_count: randomStream.viewer_count,
@@ -253,6 +312,41 @@ app.get('/random', async (req, res) => {
         res.status(500).json({ message: "Erreur interne du serveur lors du scan (vérifiez les logs Render)." });
     }
 });
+
+
+// =========================================================
+// ROUTE 1.3: Détails du Streamer (GET /details) - NOUVEAU
+// Recherche un streamer spécifique par son login pour l'analyse IA.
+// =========================================================
+
+app.get('/details', async (req, res) => {
+    const userLogin = req.query.login;
+
+    const token = await getTwitchAccessToken();
+    if (!token) {
+        return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu)." });
+    }
+    if (!userLogin) {
+        return res.status(400).json({ message: "Paramètre 'login' manquant." });
+    }
+
+    try {
+        const streamerDetails = await getStreamerDetails(userLogin, token);
+
+        if (streamerDetails) {
+            res.json({ 
+                message: 'Détails du Streamer trouvés',
+                streamer: streamerDetails
+            });
+        } else {
+            res.status(404).json({ message: `❌ Streamer '${userLogin}' introuvable ou erreur API.` });
+        }
+    } catch (error) {
+        console.error(`Erreur lors de la recherche des détails pour ${userLogin}:`, error);
+        res.status(500).json({ message: "Erreur interne lors de la récupération des détails." });
+    }
+});
+
 
 // =========================================================
 // ROUTE 2: Boost (POST /boost) - Simulation
@@ -278,12 +372,14 @@ app.post('/boost', (req, res) => {
 
 // =========================================================
 // ROUTE 3: Critique IA (POST /critique_ia) - PROXY GEMINI
+// Pas de changement de la logique IA existante.
 // =========================================================
 
 app.post('/critique_ia', async (req, res) => {
     // La clé API est désormais un prérequis pour cette fonction
     if (!GEMINI_API_KEY) {
-        return res.status(503).json({ critique: "Le service IA est désactivé (Clé API manquante sur le serveur)." });
+        // Renvoie l'erreur explicite demandée
+        return res.status(503).json({ critique: "Le service IA est désactivé (Clé API manquante sur le serveur). Vous devez la configurer." });
     }
 
     // Les données du streamer contiennent maintenant les vrais comptes pour l'analyse IA
