@@ -32,6 +32,8 @@ async function getTwitchAccessToken() {
     if (TWITCH_ACCESS_TOKEN) return TWITCH_ACCESS_TOKEN;
 
     if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+        // Renvoie une erreur explicite si les clés manquent
+        console.error("ERREUR D'AUTH: TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET non définis.");
         return null;
     }
     
@@ -41,28 +43,34 @@ async function getTwitchAccessToken() {
     try {
         const response = await fetch(url, { method: 'POST' });
         
-        // 🚨 CORRECTION 1: Vérifie si la réponse est JSON et OK avant de la parser
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Erreur HTTP ${response.status} lors de l'obtention du token:`, errorText);
+        const responseText = await response.text();
+        
+        // Tentative de parsing JSON
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error("ERREUR DE PARSING JSON (Auth): La réponse de Twitch n'est pas un JSON valide. Corps de la réponse:", responseText);
+            // Si le parsing échoue, on affiche le statut HTTP pour le diagnostic
+            console.error(`Statut HTTP lors de l'obtention du token: ${response.status}`);
             return null;
         }
 
-        const data = await response.json();
-        
-        if (data.access_token) {
+
+        if (response.ok && data.access_token) {
             TWITCH_ACCESS_TOKEN = data.access_token;
             // Réinitialiser le token juste avant son expiration (5 minutes de moins)
             setTimeout(() => TWITCH_ACCESS_TOKEN = null, (data.expires_in - 300) * 1000); 
             console.log("Token Twitch obtenu avec succès.");
             return TWITCH_ACCESS_TOKEN;
         } else {
-            console.error("Erreur lors de l'obtention du token (pas d'access_token dans la réponse):", data);
+            // Gère les erreurs renvoyées par Twitch (ex: Invalid client secret)
+            console.error(`Erreur d'obtention du token (Statut: ${response.status}):`, data.message || data.error || "Réponse inattendue.");
             return null;
         }
     } catch (error) {
         // Gère les erreurs réseau (ex: DNS, Timeout)
-        console.error("Erreur réseau ou parsing lors de la requête du token:", error.message);
+        console.error("ERREUR RÉSEAU/CONNEXION (Auth): Impossible de contacter le serveur d'authentification Twitch:", error.message);
         return null;
     }
 }
@@ -76,7 +84,7 @@ app.get('/random', async (req, res) => {
 
     const token = await getTwitchAccessToken();
     if (!token) {
-        // 🚨 Message plus précis pour le client
+        // Le message le plus probable en cas d'échec d'authentification
         return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu). Vérifiez TWITCH_CLIENT_ID/SECRET sur Render." });
     }
 
@@ -90,15 +98,15 @@ app.get('/random', async (req, res) => {
         });
 
         if (!streamsResponse.ok) {
-            // 🚨 CORRECTION 2: Renvoie l'erreur 401/400 de Twitch directement
+            const errorText = await streamsResponse.text();
+
+            // 🚨 S'il y a un problème de token (même si initialement il a marché, il a pu expirer)
             if (streamsResponse.status === 401 || streamsResponse.status === 400) {
-                 // Si c'est 401, le token est probablement invalide/expiré immédiatement
-                 return res.status(500).json({ message: "Erreur Twitch 401/400. Token invalide (re-déploiement nécessaire pour renouveler)." });
+                 return res.status(500).json({ message: `Erreur Twitch ${streamsResponse.status}. Token invalide ou expiré (re-déploiement nécessaire).` });
             }
 
-            const errorBody = await streamsResponse.text(); // Lit le texte brut en cas d'erreur
-            console.error(`Erreur API Twitch (Status ${streamsResponse.status}):`, errorBody);
-            return res.status(500).json({ message: `Erreur interne (${streamsResponse.status}) lors du scan Twitch.` });
+            console.error(`Erreur API Twitch (Status ${streamsResponse.status}):`, errorText);
+            return res.status(500).json({ message: `Erreur interne (${streamsResponse.status}) lors du scan Twitch. Détails dans les logs Render.` });
         }
 
         const streamsData = await streamsResponse.json();
