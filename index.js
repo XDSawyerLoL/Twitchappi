@@ -1,78 +1,60 @@
-// index.js - Backend Twitchappi prêt pour Render avec Firebase Admin
-
 import express from 'express';
 import cors from 'cors';
 import admin from 'firebase-admin';
-
-// Récupération de la config Firebase depuis la variable d'environnement
-if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-  throw new Error("FIREBASE_SERVICE_ACCOUNT n'est pas défini !");
-}
-
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-const db = admin.firestore();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- Routes --- //
+// Vérifie que la variable FIREBASE_SERVICE_ACCOUNT est définie
+if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+  throw new Error("FIREBASE_SERVICE_ACCOUNT n'est pas défini !");
+}
 
-/**
- * Route de test basique
- */
+// Parse la variable d'environnement JSON
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+
+// Initialise Firebase Admin
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+// Exemple de collection Firestore pour stocker les streamers validés
+const db = admin.firestore();
+const streamersCol = db.collection('streamers');
+
+// Route d'accueil
 app.get('/', (req, res) => {
-  res.json({ message: 'Twitchappi Backend actif !' });
+  res.send('⚡ Backend Twitch Scanner running !');
 });
 
-/**
- * Boost - soumission d'un streamer
- */
-app.post('/boost', async (req, res) => {
+// Route Boost / Scanner IA
+app.get('/boost', async (req, res) => {
   try {
-    const { username, userId } = req.body;
-    if (!username || !userId) return res.status(400).json({ error: 'username et userId requis' });
+    // Récupère un streamer aléatoire validé
+    const snapshot = await streamersCol.get();
+    if (snapshot.empty) {
+      return res.json({ message: "Aucun streamer validé trouvé." });
+    }
 
-    const path = `artifacts/${username}/public/data/submitted_streamers/${username}`;
-    await db.doc(path).set({
-      username,
-      userId,
-      timestamp: admin.firestore.Timestamp.now(),
-      avg_score: 3.0, // valeur initiale
-      draw_count: 0
-    }, { merge: true });
+    const streamers = snapshot.docs.map(doc => doc.data());
+    const randomStreamer = streamers[Math.floor(Math.random() * streamers.length)];
 
-    res.json({ success: true, message: 'Boost Activé ! L’IA analysera cette chaîne.' });
+    res.json({ streamer: randomStreamer });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Erreur lors de la soumission du boost.' });
+    res.status(500).json({ error: "Erreur serveur lors du scan." });
   }
 });
 
-/**
- * Scanner IA - renvoie un streamer aléatoire
- */
-app.get('/random', async (req, res) => {
-  try {
-    // Exemple simple : récupère une chaîne aléatoire parmi les soumises
-    const snapshot = await db.collectionGroup('submitted_streamers').limit(50).get();
-    const docs = snapshot.docs.map(d => d.data());
-
-    if (!docs.length) return res.status(404).json({ error: 'Aucun streamer trouvé.' });
-
-    const random = docs[Math.floor(Math.random() * docs.length)];
-    res.json({ streamer: random });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur lors de la récupération du streamer.' });
-  }
+// Exemple de route Twitch
+app.get('/twitch', (req, res) => {
+  res.json({ message: "Route Twitch OK" });
 });
 
-// --- Démarrage du serveur --- //
+// Démarre le serveur
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`⚡ Backend Twitch Scanner running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`⚡ Backend Twitch Scanner running on port ${PORT}`);
+});
+
