@@ -1,91 +1,52 @@
-// server.js (ou index.js) - Fichier principal de votre API sur Render.com
+// Début du fichier server.js (ou index.js)
 
-// 🛑 MODIFICATION NÉCESSAIRE SI VOUS UTILISEZ LA SYNTAXE IMPORT :
-// Remplacez 'const express = require('express');'
-// par la ligne suivante :
-import express from 'express'; 
-// Assurez-vous que tous les autres 'require' sont aussi transformés en 'import' si vous utilisez ES Modules.
-
-
+const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000; 
 
-// Middleware pour parser le JSON (nécessaire pour le Boost)
-app.use(express.json());
+// S'assurer que vous utilisez le module 'fetch' approprié si vous êtes en CommonJS
+// Si vous utilisez 'import' (ESM), vous n'avez probablement pas besoin de cette ligne.
+const fetch = require('node-fetch'); 
+
+// 🛑 CLÉS TWITCH : LECTURE DIRECTE DE L'ENVIRONNEMENT RENDER
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+let TWITCH_ACCESS_TOKEN = null; // Sera stocké ici
+
+// VÉRIFICATION DE SÉCURITÉ (Optionnel mais recommandé)
+if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+    console.error("ERREUR DE CONFIGURATION: Les variables TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET ne sont pas définies dans l'environnement Render.");
+}
 
 
-/* =================================================================
-    🛑 BLOC CRUCIAL : CORRECTION CORS
-================================================================== */
-app.use((req, res, next) => {
-    // Ceci autorise votre widget sur justplayer.fr à communiquer avec l'API.
-    res.setHeader('Access-Control-Allow-Origin', '*'); 
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // Gère la requête de vérification (preflight)
-    if (req.method === 'OPTIONS') {
-        return res.status(200).send();
+// --- Fonction pour obtenir le Token d'accès ---
+async function getTwitchAccessToken() {
+    if (TWITCH_ACCESS_TOKEN) return TWITCH_ACCESS_TOKEN;
+
+    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+        return null; // Évite d'appeler l'API avec des clés manquantes
     }
     
-    next(); 
-});
+    console.log("Obtention d'un nouveau Token Twitch...");
+    const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
 
-
-/* =================================================================
-    LOGIQUE DES ROUTES API
-================================================================== */
-
-// ⚡ ROUTE BOOST (POST /boost)
-app.post('/boost', (req, res) => {
-    const { channelName, userId } = req.body;
-    
-    if (!channelName) {
-        return res.status(400).json({ message: "Le nom de la chaîne est requis." });
+    try {
+        const response = await fetch(url, { method: 'POST' });
+        const data = await response.json();
+        if (data.access_token) {
+            TWITCH_ACCESS_TOKEN = data.access_token;
+            // Définir le renouvellement avant l'expiration
+            setTimeout(() => TWITCH_ACCESS_TOKEN = null, (data.expires_in - 300) * 1000); 
+            console.log("Token Twitch obtenu avec succès.");
+            return TWITCH_ACCESS_TOKEN;
+        } else {
+            console.error("Erreur lors de l'obtention du token:", data);
+            return null;
+        }
+    } catch (error) {
+        console.error("Erreur réseau lors de la requête du token:", error);
+        return null;
     }
+}
 
-    console.log(`Boost reçu pour : ${channelName} par utilisateur : ${userId}`);
-    
-    // Ajoutez ici votre logique réelle de Boost
-    
-    res.json({ 
-        message: `✅ Boost appliqué à la chaîne ${channelName} !`,
-        status: 'success' 
-    });
-});
-
-
-// 🔍 ROUTE SCANNER (GET /random)
-app.get('/random', (req, res) => {
-    const maxViewers = parseInt(req.query.max_viewers) || 30;
-
-    // Simulation de la recherche de streamer
-    const mockStreams = [
-        { username: 'smallstreamer_1', title: 'Test de jeu indé', viewer_count: 12, avg_score: '4.5' },
-        { username: 'cyber_tester', title: 'Démonstration de code', viewer_count: 28, avg_score: '3.8' },
-        { username: 'lucky_find', title: 'Nouvelle pépite !', viewer_count: 5, avg_score: '4.9' },
-        { username: 'twitch_test_channel', title: 'Simulations et Tests', viewer_count: 15, avg_score: '4.0' }
-    ];
-    
-    const filteredStreams = mockStreams.filter(s => s.viewer_count <= maxViewers);
-
-    if (filteredStreams.length === 0) {
-        return res.status(404).json({ message: "Aucun streamer trouvé correspondant aux critères." });
-    }
-    
-    const randomStream = filteredStreams[Math.floor(Math.random() * filteredStreams.length)];
-
-    res.json({ 
-        message: 'Streamer trouvé',
-        streamer: randomStream
-    });
-});
-
-
-/* =================================================================
-    DÉMARRAGE DU SERVEUR
-================================================================== */
-app.listen(PORT, () => {
-    console.log(`Serveur API en cours d'exécution sur le port ${PORT}`);
-});
+// ... Continuer avec le code de l'API (body-parser, CORS, etc.) ...
 
