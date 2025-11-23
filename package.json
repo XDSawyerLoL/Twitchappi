@@ -1,7 +1,6 @@
 {
   "name": "twitchappi",
   "version": "1.0.0",
-  "type": "module",
   "main": "index.cjs",
   "scripts": {
     "start": "node index.cjs"
