@@ -1,186 +1,44 @@
-<!-- Polices et Tailwind CSS -->
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+let state = {
+  currentChannel: "gotaga",
+  boostLoading: false,
+  scannerResult: null
+};
 
-<style>
-  .streamer-hub-root {
-    font-family: 'Inter', sans-serif;
-    background-color: #121212;
-    color: #f0f0f0;
-    min-height: 100vh;
-    padding-bottom: 2rem;
-    overflow: auto;
-  }
-  .neon-border {
-    border: 1px solid rgba(255, 0, 153, 0.4);
-    box-shadow: 0 0 8px rgba(255, 0, 153, 0.4);
-    transition: all 0.3s ease;
-  }
-  .neon-border:hover {
-    border-color: #22c7ef;
-    box-shadow: 0 0 15px rgba(34, 199, 239, 0.6);
-  }
-  .btn-primary {
-    background-color: #FF0099; color: white;
-    box-shadow: 0 0 10px #FF0099;
-    transition: transform 0.2s;
-  }
-  .btn-primary:hover:not(:disabled) { transform: scale(1.02); background-color: #E6008A; }
-  .btn-secondary {
-    background-color: #22c7ef; color: #121212;
-    box-shadow: 0 0 10px #22c7ef;
-    transition: transform 0.2s;
-  }
-  .btn-secondary:hover:not(:disabled) { transform: scale(1.02); background-color: #1AC; }
-  .btn-secondary:disabled, .btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  .animate-spin-slow { animation: spin 3s linear infinite; }
-  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+// Init Twitch Player
+let twitchPlayer = new Twitch.Embed("twitch-embed", {
+  width: "100%",
+  height: "100%",
+  channel: state.currentChannel,
+  parent: [window.location.hostname]
+});
 
-  .twitch-embed-container {
-    position: relative;
-    width: 100%;
-    padding-top: 56.25%;
-    overflow: hidden;
-    border-radius: 8px;
-  }
-  .twitch-embed-container iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
-</style>
+// Boost Form
+document.getElementById('boost-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const channelName = document.getElementById('boost-input').value.trim();
+  if (!channelName) return;
 
-<div id="app-root" class="p-4 md:p-8 max-w-7xl mx-auto streamer-hub-root">
-  <div class="flex h-screen items-center justify-center text-[#FF0099] font-bold p-10 text-xl">
-    <span class="animate-spin-slow mr-3 text-4xl">◎</span> Connexion au Nexus de données...
-  </div>
-</div>
+  const res = await fetch('/boost', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channelName, userId: crypto.randomUUID() })
+  });
+  const data = await res.json();
+  document.getElementById('boost-msg').textContent = data.message;
+});
 
-<script src="https://embed.twitch.tv/embed/v1.js"></script>
+// Scanner IA
+document.getElementById('scanner-btn').addEventListener('click', async () => {
+  const res = await fetch('/random');
+  const data = await res.json();
+  state.scannerResult = data.streamer;
 
-<script type="module">
-  const ROOT_ELEMENT = document.getElementById('app-root');
-  let state = {
-    currentChannel: 'twitch',
-    scannerLoading: false,
-    scannerResult: null,
-    scannerMessage: "Appuyez sur SCANNER pour trouver un streamer validé."
-  };
-
-  const IconSearch = () => `<svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-  const IconVideo = () => `<svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"></path><line x1="12" y1="9" x2="12" y2="15"></line><line x1="9" y1="12" x2="15" y2="12"></line></svg>`;
-
-  function updateState(newState) {
-    state = { ...state, ...newState };
-    renderApp();
-  }
-
-  let twitchPlayer = null;
-  function initTwitchPlayer() {
-    const embedDiv = document.getElementById('twitch-embed');
-    if (!embedDiv) return;
-
-    if (typeof Twitch === 'undefined' || !Twitch.Embed) {
-      embedDiv.innerHTML = `<div class="text-center pt-20 text-[#22c7ef] text-lg font-bold">Chargement de l'API Twitch...</div>`;
-      return;
-    }
-
-    if (twitchPlayer) {
-      twitchPlayer.setChannel(state.currentChannel);
-    } else {
-      twitchPlayer = new Twitch.Embed('twitch-embed', {
-        width: '100%',
-        height: '100%',
-        channel: state.currentChannel,
-        layout: 'video',
-        autoplay: true,
-        parent: [window.location.hostname]
-      });
-    }
-  }
-
-  function renderApp() {
-    ROOT_ELEMENT.innerHTML = `
-      <header class="text-center mb-8 md:mb-12">
-        <h1 class="text-4xl md:text-6xl font-extrabold text-[#FF0099] mb-2" style="font-family: 'Orbitron'">
-          STREAMER HUB V2.0
-        </h1>
-        <p class="text-[#22c7ef] text-lg">Lecteur Intégré & Scanner IA</p>
-      </header>
-
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <div class="xl:col-span-2 space-y-4">
-          <div class="twitch-embed-container bg-gray-900 neon-border">
-            <div id="twitch-embed" class="w-full h-full">
-              <div class="text-center pt-20 text-[#22c7ef] text-lg font-bold">
-                ${state.currentChannel ? `Chargement de ${state.currentChannel}...` : "Entrez une chaîne ci-dessous."}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="xl:col-span-1 space-y-8">
-          <div class="p-6 rounded-xl neon-border bg-[#1a1a1a]">
-            <h2 class="text-2xl font-bold text-[#22c7ef] mb-4 flex items-center" style="font-family: 'Orbitron'">
-              ${IconSearch()} SCANNER (IA)
-            </h2>
-            ${state.scannerResult ? `
-              <div class="mb-6 p-4 bg-gray-800 border border-[#FF0099] rounded">
-                <h3 class="text-xl font-bold text-[#22c7ef]">${state.scannerResult.username}</h3>
-                <p class="text-sm text-gray-300 truncate">${state.scannerResult.title || "Titre non disponible."}</p>
-                <div class="flex justify-between mt-2 text-xs font-bold">
-                  <span class="text-[#FF0099]">${state.scannerResult.viewer_count || 0} Viewers</span>
-                </div>
-                <div class="flex gap-2 mt-3">
-                  <button id="scanner-watch-btn" data-channel="${state.scannerResult.username}" 
-                    class="flex-1 flex items-center justify-center bg-[#FF0099] text-white py-2 rounded font-bold text-sm">
-                    REGARDER ICI
-                  </button>
-                </div>
-              </div>
-            ` : `<p class="text-center text-sm text-gray-500 my-4">${state.scannerMessage}</p>`}
-            <button id="scanner-button" class="mt-auto w-full btn-secondary py-3 rounded font-bold" ${state.scannerLoading ? 'disabled' : ''}>
-              ${state.scannerLoading ? "⟳ ANALYSE..." : "LANCER LE SCAN"}
-            </button>
-          </div>
-        </div>
-      </div>
+  if (state.scannerResult) {
+    document.getElementById('scanner-result').innerHTML = `
+      <p><strong>${state.scannerResult.username}</strong> (${state.scannerResult.viewer_count} viewers)</p>
+      <p>${state.scannerResult.title || "Titre non disponible."}</p>
     `;
-
-    document.getElementById('scanner-button')?.addEventListener('click', runScanner);
-    document.getElementById('scanner-watch-btn')?.addEventListener('click', (e) => {
-      const channel = e.currentTarget.getAttribute('data-channel');
-      if (channel) {
-        state.currentChannel = channel;
-        initTwitchPlayer();
-      }
-    });
-
-    initTwitchPlayer();
+    // Met à jour Twitch Player
+    twitchPlayer.setChannel(state.scannerResult.username);
   }
-
-  async function runScanner() {
-    updateState({ scannerLoading: true, scannerResult: null, scannerMessage: "Recherche en cours..." });
-    try {
-      const res = await fetch('/random');
-      const data = await res.json();
-      if (data.streamer && data.streamer.username) {
-        updateState({ scannerResult: data.streamer, scannerLoading: false, scannerMessage: "Pépite détectée !" });
-      } else {
-        updateState({ scannerMessage: "❌ Aucun streamer trouvé", scannerLoading: false });
-      }
-    } catch (err) {
-      console.error(err);
-      updateState({ scannerMessage: "❌ Échec de l'API", scannerLoading: false });
-    }
-  }
-
-  window.onload = renderApp;
-</script>
-
-
+});
