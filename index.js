@@ -1,42 +1,39 @@
 // server.js (ou index.js) - Fichier principal de votre API sur Render.com
 
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000; // Utilise le port fourni par Render
+// 🛑 MODIFICATION NÉCESSAIRE SI VOUS UTILISEZ LA SYNTAXE IMPORT :
+// Remplacez 'const express = require('express');'
+// par la ligne suivante :
+import express from 'express'; 
+// Assurez-vous que tous les autres 'require' sont aussi transformés en 'import' si vous utilisez ES Modules.
 
-// Middleware pour parser le JSON du corps des requêtes (nécessaire pour le Boost)
+
+const app = express();
+const PORT = process.env.PORT || 3000; 
+
+// Middleware pour parser le JSON (nécessaire pour le Boost)
 app.use(express.json());
 
 
 /* =================================================================
-    🛑 BLOC CRUCIAL : CORRECTION CORS (Access-Control-Allow-Origin)
-    
-    Ce bloc autorise votre widget (sur justplayer.fr) à communiquer 
-    avec cette API (sur render.com).
+    🛑 BLOC CRUCIAL : CORRECTION CORS
 ================================================================== */
 app.use((req, res, next) => {
-    // ⚠️ Configurez ceci pour autoriser votre domaine.
-    // L'utilisation de '*' est la plus simple, mais 'https://justplayer.fr' est plus sécurisé.
+    // Ceci autorise votre widget sur justplayer.fr à communiquer avec l'API.
     res.setHeader('Access-Control-Allow-Origin', '*'); 
-    
-    // Autorise les méthodes GET et POST (et OPTIONS pour le 'preflight')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    
-    // Autorise l'en-tête de contenu (Content-Type)
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     
-    // Gère les requêtes 'preflight' (requêtes automatiques du navigateur)
+    // Gère la requête de vérification (preflight)
     if (req.method === 'OPTIONS') {
         return res.status(200).send();
     }
     
-    next(); // Passe à la route suivante
+    next(); 
 });
 
 
 /* =================================================================
     LOGIQUE DES ROUTES API
-    (Ceci est la logique simulée ou simplifiée de votre backend)
 ================================================================== */
 
 // ⚡ ROUTE BOOST (POST /boost)
@@ -48,8 +45,8 @@ app.post('/boost', (req, res) => {
     }
 
     console.log(`Boost reçu pour : ${channelName} par utilisateur : ${userId}`);
-
-    // --- Ajoutez ici votre VRAIE logique d'API (requête Twitch, BDD, etc.) ---
+    
+    // Ajoutez ici votre logique réelle de Boost
     
     res.json({ 
         message: `✅ Boost appliqué à la chaîne ${channelName} !`,
@@ -60,10 +57,9 @@ app.post('/boost', (req, res) => {
 
 // 🔍 ROUTE SCANNER (GET /random)
 app.get('/random', (req, res) => {
-    // Le paramètre max_viewers vient du frontend (app.js)
     const maxViewers = parseInt(req.query.max_viewers) || 30;
 
-    // --- Simulation de la recherche de streamer (à remplacer par votre logique réelle) ---
+    // Simulation de la recherche de streamer
     const mockStreams = [
         { username: 'smallstreamer_1', title: 'Test de jeu indé', viewer_count: 12, avg_score: '4.5' },
         { username: 'cyber_tester', title: 'Démonstration de code', viewer_count: 28, avg_score: '3.8' },
@@ -71,7 +67,6 @@ app.get('/random', (req, res) => {
         { username: 'twitch_test_channel', title: 'Simulations et Tests', viewer_count: 15, avg_score: '4.0' }
     ];
     
-    // Filtrer ou simuler le filtre
     const filteredStreams = mockStreams.filter(s => s.viewer_count <= maxViewers);
 
     if (filteredStreams.length === 0) {
