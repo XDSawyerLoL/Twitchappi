@@ -114,11 +114,10 @@ async function getGameId(gameName, token) {
     }
 }
 
-// --- Fonction pour obtenir le nombre de followers d'un utilisateur ---
+// --- Fonction pour obtenir le nombre de followers d'un utilisateur (MAINTENU pour l'IA) ---
 async function getFollowerCount(userId, token) {
     if (!userId || !token) return null;
     
-    // Utiliser l'endpoint "Get Channel Followers" pour obtenir le total
     const searchUrl = `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}`;
     
     try {
@@ -174,13 +173,11 @@ app.get('/gameid', async (req, res) => {
 
 
 // =========================================================
-// ROUTE 1.2: Scanner (GET /random) - LOGIQUE RÉELLE TWITCH
+// ROUTE 1.2: Scanner (GET /random) - LOGIQUE TWITCH
+// Le filtre sur le nombre de spectateurs est ENTIÈREMENT supprimé (Trouve TOUTES les tailles).
 // =========================================================
 
 app.get('/random', async (req, res) => {
-    // Critères fixés ou par défaut
-    const maxViewers = parseInt(req.query.max_viewers) || 30;
-    const maxFollowers = 2000; // Fixé à 2000 comme demandé par l'utilisateur
     const gameId = req.query.game_id; 
 
     const token = await getTwitchAccessToken();
@@ -188,14 +185,15 @@ app.get('/random', async (req, res) => {
         return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu). Vérifiez TWITCH_CLIENT_ID/SECRET sur Render." });
     }
     
-    // Construction de l'URL de base pour les streams
+    // Construction de l'URL de base pour les streams, fixée à la langue française
+    // On demande 100 streams, qui sont triés par Twitch par nombre de viewers (du plus grand au plus petit)
     let twitchUrl = `https://api.twitch.tv/helix/streams?first=100&language=fr`;
     
     if (gameId) {
         twitchUrl += `&game_id=${gameId}`;
         console.log(`Scan ciblé par Game ID: ${gameId}`);
     } else {
-        console.log("Scan général (risque élevé de ne rien trouver sans filtre de jeu)");
+        console.log("Scan général FR");
     }
 
     try {
@@ -220,37 +218,22 @@ app.get('/random', async (req, res) => {
 
         const streamsData = await streamsResponse.json();
         
-        // 2. Filtrer d'abord par le nombre de viewers
-        let potentialStreams = streamsData.data.filter(s => 
+        // 2. Filtrer uniquement par l'état 'live' et au moins 1 spectateur
+        // Puisque Twitch trie les 100 premiers par viewers, cette liste inclura les plus gros streamers.
+        let activeStreams = streamsData.data.filter(s => 
             s.type === 'live' && 
-            s.viewer_count > 0 && 
-            s.viewer_count <= maxViewers
+            s.viewer_count > 0 
         );
-
-        // 3. Si des streams sont trouvés, filtrer par le nombre de followers (Nécessite des appels API individuels)
-        let finalSmallStreams = [];
         
-        for (const stream of potentialStreams) {
-            // Remarque : On utilise ici une approche séquentielle simple. Pour des milliers de streams,
-            // il faudrait utiliser Promise.all pour optimiser la vitesse, mais c'est suffisant pour 100.
-            const followerCount = await getFollowerCount(stream.user_id, token);
-            
-            // Si on obtient un nombre de followers et qu'il est <= maxFollowers, on l'ajoute
-            if (followerCount !== null && followerCount <= maxFollowers) {
-                // Ajout de la propriété follower_count à l'objet stream pour la réponse finale
-                stream.follower_count = followerCount;
-                finalSmallStreams.push(stream);
-            }
-            // Si le nombre de followers est inconnu ou > maxFollowers, le stream est ignoré.
+        if (activeStreams.length === 0) {
+            return res.status(404).json({ message: `🔍 Aucun streamer FR en direct trouvé. Veuillez réessayer ou ajuster le filtre de jeu.` });
         }
         
-        if (finalSmallStreams.length === 0) {
-            // Message 404 mis à jour pour refléter les critères fixes
-            return res.status(404).json({ message: `🔍 Aucun streamer trouvé correspondant aux critères (< ${maxViewers} viewers ET < ${maxFollowers} abonnés). Utilisez le FILTRE PAR JEU pour cibler plus de résultats.` });
-        }
+        // 3. Sélectionner un streamer aléatoire parmi les 100 trouvés
+        const randomStream = activeStreams[Math.floor(Math.random() * activeStreams.length)];
         
-        // 4. Sélectionner un streamer aléatoire
-        const randomStream = finalSmallStreams[Math.floor(Math.random() * finalSmallStreams.length)];
+        // 4. Obtenir le nombre de followers pour l'analyse IA
+        const followerCount = await getFollowerCount(randomStream.user_id, token) || 'N/A';
         
         // 5. Formater la réponse pour le client
         res.json({ 
@@ -258,11 +241,10 @@ app.get('/random', async (req, res) => {
             streamer: {
                 username: randomStream.user_login,
                 title: randomStream.title,
-                viewer_count: randomStream.viewer_count,
                 game_name: randomStream.game_name, 
-                follower_count: randomStream.follower_count, // Ajout du nombre de followers
-                // Score généré aléatoirement pour le client
-                avg_score: (Math.random() * (5.0 - 3.5) + 3.5).toFixed(1) 
+                viewer_count: randomStream.viewer_count,
+                follower_count: followerCount,
+                avg_score: (Math.random() * (5.0 - 3.5) + 3.5).toFixed(1) // Score d'exemple pour l'IA
             }
         });
 
@@ -299,10 +281,12 @@ app.post('/boost', (req, res) => {
 // =========================================================
 
 app.post('/critique_ia', async (req, res) => {
+    // La clé API est désormais un prérequis pour cette fonction
     if (!GEMINI_API_KEY) {
         return res.status(503).json({ critique: "Le service IA est désactivé (Clé API manquante sur le serveur)." });
     }
 
+    // Les données du streamer contiennent maintenant les vrais comptes pour l'analyse IA
     const { username, game_name, title, viewer_count, follower_count } = req.body;
 
     if (!username || !game_name || !title) {
