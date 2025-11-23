@@ -6,7 +6,7 @@
     CONFIGURATION API (FIXÉE)
 ============================================================ */
 // Ces URLs utilisent l'adresse complète pour garantir l'appel
-const API_BASE = "https://twitchappi-goodstream1.onrender.com";
+const API_BASE = "https://twitch-random-api.onrender.com";
 const BOOST_URL = API_BASE + "/boost";
 const SCAN_URL = API_BASE + "/random?max_viewers=30"; // Ajout du filtre pour petits streamers
 
@@ -219,3 +219,4 @@ function initTwitchPlayer() {
 ============================================================ */
 // S'assurer que le DOM est prêt avant de démarrer le rendu initial
 document.addEventListener('DOMContentLoaded', render);
+
