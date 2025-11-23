@@ -90,7 +90,8 @@ app.get('/random', async (req, res) => {
 
     try {
         // 1. Appel à l'API Twitch pour obtenir les streams (max 100 streams)
-        const streamsResponse = await fetch(`https://api.twitch.tv/helix/streams?first=100`, {
+        // 🚨 CORRECTION: Ajout du filtre language=fr pour cibler les streamers francophones
+        const streamsResponse = await fetch(`https://api.twitch.tv/helix/streams?first=100&language=fr`, {
             headers: {
                 'Client-ID': TWITCH_CLIENT_ID,
                 'Authorization': `Bearer ${token}`
@@ -119,7 +120,7 @@ app.get('/random', async (req, res) => {
         );
 
         if (smallStreams.length === 0) {
-            return res.status(404).json({ message: "🔍 Aucun streamer trouvé correspondant aux critères actuels." });
+            return res.status(404).json({ message: "🔍 Aucun streamer trouvé correspondant aux critères actuels. Tentez plus tard ou augmentez la limite de viewers." });
         }
         
         // 3. Sélectionner un streamer aléatoire
@@ -175,4 +176,3 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`Serveur API en cours d'exécution sur le port ${PORT}`);
 });
-
