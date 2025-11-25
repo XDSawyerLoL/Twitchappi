@@ -1,0 +1,435 @@
+<div id="niche-optimizer-main" style="all:initial;display:block;max-width:550px;margin:20px auto;padding:10px;">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap');
+        /* Styles de base pour le conteneur principal */
+        #niche-optimizer-main {
+            font-family: 'Inter', Arial, sans-serif;
+            color: #fff;
+        }
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #2e2e2e;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,.4);
+        }
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: #ff9900;
+            margin: 0 0 10px;
+            text-align: center;
+        }
+        h2 {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 15px 0 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #333;
+            color: #22c7ef;
+        }
+        button {
+            cursor: pointer;
+            border: 0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 700;
+            transition: all .2s ease;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+            font-size: 13px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-analyze {
+            background: #ff9900;
+            color: #000;
+            box-shadow: 0 0 8px rgba(255,153,0,.6);
+        }
+        .btn-analyze:not(:disabled):hover {
+            background: #e68a00;
+            transform: translateY(-2px);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #0d0d0d;
+            color: #fff;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            border-color: #ff9900;
+            outline: none;
+        }
+        .flex-gap-8 {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .report-wrapper {
+            background: #0d0d0d;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #333;
+            margin-top: 20px;
+        }
+        .critique-loading {
+            text-align: center;
+            color: #ff9900;
+            font-weight: 600;
+            padding: 10px 0;
+        }
+        .error { color: #e34a64; font-weight: 700; }
+        .success { color: #59d682; font-weight: 700; }
+        .info-chip {
+            font-size: 11px;
+            margin-bottom: 10px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #f90;
+            display: block;
+        }
+    </style>
+
+    <div class="card">
+        <h1><span style="font-size:1.2em; vertical-align:middle;">📈</span> OPTIMISATION DE NICHE</h1>
+        <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Analyse de Concurrence basée sur l'IA (Gemini)</div>
+
+        <div id="gemini-key-diagnostic" class="info-chip">
+            Statut Clé API Gemini: <span id="key-status" style="font-weight:700;">Diagnostic en cours...</span>
+        </div>
+
+        <form id="form-niche-game" style="margin-top: 20px;">
+            <h2>DÉFINIR LE JEU CIBLE</h2>
+            <div class="flex-gap-8">
+                <input id="input-niche-game" type="text" placeholder="Entrez le jeu (ex: Elden Ring ou Baldur's Gate 3)">
+                <button type="submit" id="btn-niche-set" class="btn-analyze" style="min-width: 100px;">DÉFINIR</button>
+            </div>
+        </form>
+
+        <div id="optimizer-controls" style="margin-top: 20px;">
+            <button id="btn-niche-analyze-snippet" class="btn-analyze" disabled>
+                Veuillez DÉFINIR UN JEU pour l'analyse
+            </button>
+        </div>
+        
+        <div id="optimizer-result" style="margin-top: 15px;" class="hidden">
+            <div class="report-wrapper">
+                <h3 style="font-size:18px;color:#ff9900;font-family:'Orbitron',sans-serif;margin-top:0; border-bottom: none;">
+                    🎮 Rapport de Niche pour <span id="optimized-game-name" style="color:#fff;">[Jeu Cible]</span>
+                </h3>
+                <div id="optimizer-content" style="color:#fff; font-size: 13px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+(async function(){
+
+/* ============================ 1. CONFIG ============================ */
+const MAX_RETRIES = 3; // Pour les appels Gemini
+let nicheGameName = null;
+
+/* ============================ 2. UTILS POUR SHADOW DOM ============================ */
+// Pas de Shadow DOM nécessaire puisque c'est un fichier unique et simple, on utilise le DOM normal.
+const $ = sel => document.querySelector(sel);
+
+
+/* ============================ 3. GEMINI API HANDLERS (Niche Optimization) ============================ */
+
+const btnNicheAnalyze = $("#btn-niche-analyze-snippet");
+const inputNicheGame = $("#input-niche-game");
+const btnNicheSet = $("#btn-niche-set"); 
+const optimizerResult = $("#optimizer-result");
+const optimizedGameName = $("#optimized-game-name");
+const optimizerContent = $("#optimizer-content");
+const keyStatusDisplay = $("#key-status");
+
+// 3.1 Diagnostic de clé API (avec trim pour éviter les espaces)
+function diagnoseApiKey() {
+    // 
+    // --- 🚨 IMPORTANT : CLÉ API MANUELLE POUR DÉPLOIEMENT EXTERNE 🚨 ---
+    // Si vous déployez ce fichier HTML sur un serveur personnel (Render, Netlify, etc.),
+    // les variables automatiques du canvas ne seront pas disponibles.
+    // 
+    // POUR VOTRE DÉPLOIEMENT CUSTOM: DÉCOMMENTEZ la ligne ci-dessous et COLLEZ votre clé API Gemini.
+    // **Elle prendra TOUJOURS la priorité.**
+    const CUSTOM_API_KEY = "AIzaSyDncKSWKFCYufZOfGZ_ELQS_ICRKE0lDXE"; // <--- CLÉ ACTUELLEMENT UTILISÉE
+    //
+    // ------------------------------------------------------------------
+
+    let finalApiKey = ""; 
+    
+    // Priorité 1: Clé manuelle (la plus fiable pour le déploiement)
+    if (CUSTOM_API_KEY && CUSTOM_API_KEY.trim().length > 5) {
+        finalApiKey = CUSTOM_API_KEY.trim();
+    } 
+    // Priorité 2: Clés Canvas (pour environnement de dev)
+    else if (typeof __api_key !== 'undefined' && String(__api_key).trim().length > 0) {
+        finalApiKey = String(__api_key).trim();
+    } else if (typeof __initial_auth_token !== 'undefined' && String(__initial_auth_token).trim().length > 0) {
+         finalApiKey = String(__initial_auth_token).trim();
+    } 
+    // Priorité 3: Variable globale "apyKey" (si injectée par Render)
+    else if (typeof apyKey !== 'undefined' && typeof apyKey === 'string' && apyKey.trim().length > 5) {
+        finalApiKey = apyKey.trim();
+    }
+
+
+    if (finalApiKey && finalApiKey.length > 5) {
+        keyStatusDisplay.textContent = `OK (Clé détectée. Longueur: ${finalApiKey.length})`;
+        keyStatusDisplay.style.color = '#59d682'; // Vert
+        return finalApiKey;
+    } else {
+        keyStatusDisplay.textContent = `ABSENTE (⚠️ Clé introuvable ou trop courte)`;
+        keyStatusDisplay.style.color = '#e34a64'; // Rouge
+        return null;
+    }
+}
+const apiKey = diagnoseApiKey();
+
+
+// 3.2 Fonction pour définir le jeu cible de niche
+btnNicheSet.addEventListener('click', (e) => {
+    e.preventDefault();
+    const name = inputNicheGame.value.trim();
+    if (name) {
+        nicheGameName = name;
+        
+        // Activation du bouton d'analyse
+        btnNicheAnalyze.disabled = false;
+        btnNicheAnalyze.style.backgroundColor = '#ff9900';
+        btnNicheAnalyze.style.color = '#000';
+        btnNicheAnalyze.textContent = `Analyser la Niche pour ${nicheGameName}`;
+        
+        optimizedGameName.textContent = nicheGameName;
+        optimizerResult.classList.add('hidden');
+    }
+});
+
+
+// 3.3 Simule une réponse analytique structurée en cas d'échec de l'API
+function generateMockReport(game) {
+    console.log("Utilisation de la réponse simulée (MOCK) en raison de l'erreur d'API persistante.");
+    return {
+        competition_pressure: "Très Faible",
+        optimal_time_slots: [
+            { 
+                time: "20h00 - 23h00 CET", 
+                day: "Mardi", 
+                reason: `Peu de streamers majeurs actifs pour ${game} durant cette plage horaire en Europe.`
+            },
+            { 
+                time: "14h00 - 17h00 CET", 
+                day: "Samedi", 
+                reason: "Idéal pour capter les audiences américaines en début de journée et les retardataires européens."
+            }
+        ],
+        recommended_days: [
+            { 
+                day: "Mardi", 
+                topic: `Stream à thème 'Nouveau Joueur' : Tutoriels de base ou guides pour débutants sur ${game}.`
+            },
+            { 
+                day: "Vendredi", 
+                topic: `Challenge 'Perdu en 10 Minutes' : Tenter des défis absurdes ou très difficiles dans ${game} pour le côté divertissant.`
+            }
+        ],
+        key_recommendation: `Concentrez-vous sur des tutoriels vidéo concis (YouTube Shorts, TikTok) pour capitaliser sur la recherche organique avant le stream, en utilisant des titres très précis liés à des mécaniques spécifiques du jeu.`
+    };
+}
+
+
+// 3.4 Fonction pour lancer l'analyse de Niche (via Gemini API ou Mock)
+async function runNicheOptimization() {
+    if (!nicheGameName) {
+        optimizerContent.innerHTML = `<div class="error">Veuillez définir un jeu cible en premier.</div>`;
+        return;
+    }
+    if (!apiKey) {
+         optimizerContent.innerHTML = `<div class="error">❌ ERREUR FATALE: Clé API Gemini non détectée. L'analyse ne peut pas démarrer.</div>`;
+         return;
+    }
+
+
+    optimizerResult.classList.remove("hidden");
+    optimizerContent.innerHTML = `<div class="critique-loading">⟳ Analyse de la concurrence pour ${nicheGameName} via l'API Gemini...</div>`;
+    btnNicheAnalyze.disabled = true;
+    btnNicheAnalyze.textContent = `ANALYSE EN COURS...`;
+
+    let report = null;
+    let rawError = "Inconnu. Aucune réponse reçue.";
+    // L'URL de l'API utilise la clé détectée dans la fonction diagnoseApiKey
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    try {
+        let reportJsonText = null;
+        let response = null;
+
+        // 1. Définition du schéma JSON
+        const responseSchema = {
+            type: "OBJECT",
+            properties: {
+                "competition_pressure": { "type": "STRING", "description": "Niveau de pression (ex: 'Très faible', 'Moyenne', 'Extrêmement Élevée')"},
+                "optimal_time_slots": {
+                    "type": "ARRAY",
+                    "description": "2-3 meilleurs créneaux horaires et jours pour le streaming.",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "time": { "type": "STRING", "description": "Plage horaire (ex: '21h00 - 00h00')"},
+                            "day": { "type": "STRING", "description": "Jour de la semaine (ex: 'Mardi')"},
+                            "reason": { "type": "STRING", "description": "Raison de la recommandation."}
+                        },
+                        "required": ["time", "day", "reason"]
+                    }
+                },
+                "recommended_days": {
+                    "type": "ARRAY",
+                    "description": "2-3 jours spécifiques et sujets de contenu correspondants.",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "day": { "type": "STRING", "description": "Jour de la semaine (ex: 'Jeudi')"},
+                            "topic": { "type": "STRING", "description": "Idée de contenu spécifique."}
+                        },
+                        "required": ["day", "topic"]
+                    }
+                },
+                "key_recommendation": { "type": "STRING", "description": "Une stratégie clé concise et de haut niveau."}
+            },
+            "required": ["competition_pressure", "optimal_time_slots", "recommended_days", "key_recommendation"]
+        };
+
+        const systemPrompt = "Tu es un analyste de streaming et d'Esports de classe mondiale. En utilisant les données web les plus récentes, tu dois fournir un rapport d'optimisation de niche pour la diffusion en direct d'un jeu vidéo spécifique, en te concentrant sur la réduction de la concurrence pour un nouveau créateur de contenu. La réponse doit être strictement en JSON, en utilisant la structure fournie.";
+        const userQuery = `Génère le rapport d'optimisation de niche pour le jeu : "${nicheGameName}". Assure-toi que toutes les réponses dans le JSON sont en Français.`;
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            tools: [{ "google_search": {} }], 
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema
+            }
+        };
+        
+        // 2. Appel API avec Backoff Exponentiel
+        let apiSuccess = false;
+        for (let i = 0; i < MAX_RETRIES; i++) {
+            try {
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    reportJsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (reportJsonText) {
+                        apiSuccess = true;
+                        break;
+                    }
+                } else if (response) {
+                    // Tente d'obtenir plus de détails sur l'erreur
+                    try { rawError = JSON.stringify(await response.json(), null, 2); } catch (e) { rawError = `Erreur HTTP ${response.status} sans corps JSON.`; }
+                }
+                
+                if (i < MAX_RETRIES - 1) {
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    apiSuccess = false; 
+                    break;
+                }
+
+            } catch (e) {
+                rawError = e.message;
+                if (i === MAX_RETRIES - 1) throw e;
+                const delay = Math.pow(2, i) * 1000;
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+        
+        // 3. Déterminer le rapport à utiliser (API ou Mock)
+        let simulationUsed = false;
+        if (apiSuccess && reportJsonText) {
+            report = JSON.parse(reportJsonText);
+        } else if (!apiSuccess && response && response.status === 403) {
+            // Utilisation du rapport Mock en cas d'échec d'authentification 403 (Clé valide, mais permissions refusées)
+            report = generateMockReport(nicheGameName);
+            simulationUsed = true;
+        } else {
+            // Échec non 403 ou erreur de format
+            throw new Error("Le rapport JSON est vide, manquant ou l'API a renvoyé une erreur irrécupérable.");
+        }
+
+        // 4. Validation du rapport (Mock ou API)
+        if (!report.competition_pressure || !report.optimal_time_slots || !report.recommended_days) {
+             throw new Error("Structure de rapport JSON invalide ou incomplète.");
+        }
+
+        // 5. Affichage des résultats
+        optimizerContent.innerHTML = `
+            ${apiSuccess ? '<p class="success" style="margin-bottom: 10px;">✅ Données en temps réel (Gemini API)</p>' : 
+               `<p class="error" style="margin-bottom: 10px;">
+                  (SIMULATION: ÉCHEC ${simulationUsed ? '403 PERSISTANT' : 'IRRÉCUPÉRABLE'}. Affichage du rapport simulé.)
+                  <span style="font-size:10px; display:block; margin-top:5px;">Détail de l'Erreur Brute (pour débogage):</span>
+                  <pre style="white-space:pre-wrap; font-size:9px; background:#333; padding:5px; border-radius:4px; max-height:100px; overflow-y:auto;">${rawError}</pre>
+               </p>`
+            }
+            <hr style="border-color:#444; margin: 10px 0;">
+            
+            <p style="font-weight:700; color:#22c7ef; font-size:16px; margin-bottom:5px;">Pression Compétitive Globale:</p>
+            <p style="font-size:20px; font-family:'Orbitron',sans-serif; color:#ff9900; margin-top:0;">${report.competition_pressure}</p>
+            <hr style="border-color:#444; margin: 10px 0;">
+
+            <div style="margin-bottom: 12px;">
+                <p style="font-weight:700; color:#ff9900; margin-bottom: 8px;">⏰ Heures de Live Propices (Faible Concurrence / Haut Potentiel):</p>
+                <ul style="list-style:none; padding-left:0; margin:0; font-size:13px;">
+                    ${report.optimal_time_slots.map(slot => 
+                        `<li style="margin-bottom:8px; background:#222; padding:10px; border-radius:6px;">
+                            <span style="color:#59d682; font-weight:700;">${slot.time} (${slot.day})</span><br> 
+                            <span style="color:#ccc; font-style:italic; font-size:12px;">${slot.reason}</span>
+                        </li>`).join('')}
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <p style="font-weight:700; color:#ff9900; margin-bottom: 8px;">🗓️ Jours & Approches Recommandées:</p>
+                <ul style="list-style:none; padding-left:0; margin:0; font-size:13px;">
+                    ${report.recommended_days.map(item => 
+                        `<li style="margin-bottom:8px; background:#222; padding:10px; border-radius:6px;">
+                            <span style="color:#ff0099; font-weight:700;">${item.day}</span><br>
+                            <span style="color:#ccc; font-style:italic; font-size:12px;">Idée de Contenu: ${item.topic}</span>
+                        </li>`).join('')}
+                </ul>
+            </div>
+
+            <p style="margin-top: 15px; font-size:13px; padding:10px; border-radius:6px; background:#0a0a0a; border-left: 4px solid #ff9900;">
+                <span style="font-weight:700; color:#ff9900;">🔥 Stratégie Clé:</span> ${report.key_recommendation}
+            </p>
+        `;
+        
+    } catch (e) {
+        optimizerContent.innerHTML = `<div class="error">❌ Échec Critique de l'Analyse : ${e.message}. Vérifiez la console pour plus de détails sur la réponse API.</div>
+            <pre style="white-space:pre-wrap; font-size:9px; background:#333; padding:5px; border-radius:4px; max-height:100px; overflow-y:auto; margin-top:5px;">${rawError}</pre>
+        `;
+    } finally {
+        btnNicheAnalyze.disabled = false;
+        btnNicheAnalyze.textContent = `Analyser la Niche pour ${nicheGameName}`;
+    }
+}
+
+// 3.5 Écouteur d'événement pour le bouton d'analyse
+btnNicheAnalyze.addEventListener("click", runNicheOptimization);
+
+})();
+});
+</script>
