@@ -1,3 +1,4 @@
+
 // =========================================================
 // Configuration des Modules et Initialisation du Serveur
 // =========================================================
@@ -6,12 +7,45 @@ const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
+const path = require('path'); // NOUVEAU: Nécessaire pour gérer les chemins de fichiers
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// =========================================================
+// NOUVEAU: Configuration des Routes Statiques pour les Fichiers HTML
+// =========================================================
+
+// Ces routes permettent d'accéder à vos fichiers HTML directement.
+// Assurez-vous que tous vos fichiers HTML sont dans le même dossier que index.cjs.
+
+// 1. Servir NicheOptimizer.html à la racine (URL principale)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+// 2. Servir NicheOptimizer.html par son nom
+app.get('/NicheOptimizer.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+// 3. Servir lucky_streamer_picker.html
+app.get('/lucky_streamer_picker.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
+});
+
+// 4. Servir sniper_tool.html (Si vous l'ajoutez plus tard)
+app.get('/sniper_tool.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
+});
+
+// IMPORTANT: Si vous avez des fichiers CSS, JS, ou images externes pour vos HTML,
+// vous devez utiliser un middleware pour servir un dossier statique, par exemple:
+// app.use(express.static(path.join(__dirname, 'public')));
+// Pour l'instant, nous nous concentrons uniquement sur les fichiers HTML eux-mêmes.
 
 // =========================================================
 // Configuration des Clés
@@ -27,7 +61,7 @@ if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // Mise à jour pour le modèle Flash recommandé
-const GEMINI_MODEL = "gemini-2.5-flash"; 
+const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 if (!GEMINI_API_KEY) {
     console.warn("ATTENTION: GEMINI_API_KEY n'est pas défini. Les routes IA seront désactivées.");
@@ -41,16 +75,16 @@ async function getTwitchAccessToken() {
         console.error("ERREUR D'AUTH: TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET non définis.");
         return null;
     }
-    
+     
     console.log("Obtention d'un nouveau Token Twitch...");
     const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
 
     try {
         const response = await fetch(url, { method: 'POST' });
         const responseText = await response.text();
-        
+         
         let data;
-        try { data = JSON.parse(responseText); } 
+        try { data = JSON.parse(responseText); } 
         catch (e) {
             console.error("ERREUR DE PARSING JSON (Auth): La réponse de Twitch n'est pas un JSON valide. Corps de la réponse:", responseText);
             console.error(`Statut HTTP lors de l'obtention du token: ${response.status}`);
@@ -59,7 +93,7 @@ async function getTwitchAccessToken() {
 
         if (response.ok && data.access_token) {
             TWITCH_ACCESS_TOKEN = data.access_token;
-            setTimeout(() => TWITCH_ACCESS_TOKEN = null, (data.expires_in - 300) * 1000); 
+            setTimeout(() => TWITCH_ACCESS_TOKEN = null, (data.expires_in - 300) * 1000); 
             console.log("Token Twitch obtenu avec succès.");
             return TWITCH_ACCESS_TOKEN;
         } else {
@@ -76,13 +110,13 @@ async function getTwitchAccessToken() {
 async function getGameId(gameName, token) {
     if (!gameName || !token) return null;
     const searchUrl = `https://api.twitch.tv/helix/games?name=${encodeURIComponent(gameName)}`;
-    
+     
     try {
         const response = await fetch(searchUrl, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        
+         
         if (response.ok && data.data.length > 0) {
             console.log(`ID trouvé pour le jeu '${gameName}': ${data.data[0].id}`);
             return data.data[0].id;
@@ -99,13 +133,13 @@ async function getGameId(gameName, token) {
 async function getFollowerCount(userId, token) {
     if (!userId || !token) return null;
     const searchUrl = `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}`;
-    
+     
     try {
         const response = await fetch(searchUrl, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        
+         
         if (response.ok && typeof data.total === 'number') {
             return data.total;
         }
@@ -119,16 +153,16 @@ async function getFollowerCount(userId, token) {
 // --- NOUVELLE FONCTION: Obtenir les tags du streamer (nécessaire pour le diagnostic) ---
 async function getStreamerTags(userLogin, token) {
     if (!userLogin || !token) return [];
-    
+     
     // L'API /search/channels permet d'obtenir les tags du stream le plus récent
     const searchUrl = `https://api.twitch.tv/helix/search/channels?query=${encodeURIComponent(userLogin)}&first=1`;
-    
+     
     try {
         const response = await fetch(searchUrl, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        
+         
         if (response.ok && data.data.length > 0) {
             // On vérifie que le login correspond pour éviter les faux positifs de recherche
             const channel = data.data.find(c => c.broadcaster_login === userLogin);
@@ -176,7 +210,7 @@ async function getStreamerDetails(userLogin, token) {
 
         // 3. Obtenir le nombre de followers
         const followerCount = await getFollowerCount(userId, token) || 0;
-        
+         
         // 4. Obtenir les tags (NOUVEAU)
         const tags = await getStreamerTags(userLogin, token);
 
@@ -201,12 +235,13 @@ async function getStreamerDetails(userLogin, token) {
 
 
 // =========================================================
-// ROUTE 0: Accueil (GET /)
+// ROUTE 0: Message de Bienvenue (API /) - ANCIENNE ROUTE
+// Remplace par la route statique ci-dessus, mais laissé pour /api/status.
 // =========================================================
 
-app.get('/', (req, res) => {
-    res.send({ status: "OK", message: "Twitch API Scanner est opérationnel. Utilisez les routes /random, /boost, /critique_ia, ou /details." });
-});
+// app.get('/', (req, res) => {
+//     res.send({ status: "OK", message: "Twitch API Scanner est opérationnel. Utilisez les routes /random, /boost, /critique_ia, ou /details." });
+// });
 
 // =========================================================
 // ROUTE 1.1: Recherche de Game ID (GET /gameid)
@@ -233,15 +268,15 @@ app.get('/gameid', async (req, res) => {
 // =========================================================
 
 app.get('/random', async (req, res) => {
-    const gameId = req.query.game_id; 
+    const gameId = req.query.game_id; 
     const token = await getTwitchAccessToken();
-    
+     
     if (!token) {
         return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu). Vérifiez TWITCH_CLIENT_ID/SECRET sur Render." });
     }
-    
+     
     let twitchUrl = `https://api.twitch.tv/helix/streams?first=100&language=fr`;
-    if (gameId) { twitchUrl += `&game_id=${gameId}`; console.log(`Scan ciblé par Game ID: ${gameId}`); } 
+    if (gameId) { twitchUrl += `&game_id=${gameId}`; console.log(`Scan ciblé par Game ID: ${gameId}`); } 
     else { console.log("Scan général FR"); }
 
     try {
@@ -261,26 +296,26 @@ app.get('/random', async (req, res) => {
         }
 
         const streamsData = await streamsResponse.json();
-        
+         
         // 2. Filtrer par 'live' et au moins 1 spectateur
         let activeStreams = streamsData.data.filter(s => s.type === 'live' && s.viewer_count > 0);
-        
+         
         if (activeStreams.length === 0) {
             return res.status(404).json({ message: `🔍 Aucun streamer FR en direct trouvé. Veuillez réessayer ou ajuster le filtre de jeu.` });
         }
-        
+         
         // 3. Sélectionner un streamer aléatoire
         const randomStream = activeStreams[Math.floor(Math.random() * activeStreams.length)];
-        
+         
         // 4. Obtenir les détails supplémentaires (followers, tags)
         const streamerDetails = await getStreamerDetails(randomStream.user_login, token);
-        
+         
         if (!streamerDetails) {
             return res.status(404).json({ message: "Détails du streamer non récupérables." });
         }
 
         // 5. Formater la réponse pour le client
-        res.json({ 
+        res.json({ 
             message: 'Streamer trouvé',
             streamer: {
                 ...streamerDetails,
@@ -302,7 +337,7 @@ app.get('/random', async (req, res) => {
 app.get('/details', async (req, res) => {
     const userLogin = req.query.login;
     const token = await getTwitchAccessToken();
-    
+     
     if (!token) return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu)." });
     if (!userLogin) return res.status(400).json({ message: "Paramètre 'login' manquant." });
 
@@ -310,7 +345,7 @@ app.get('/details', async (req, res) => {
         const streamerDetails = await getStreamerDetails(userLogin, token);
 
         if (streamerDetails) {
-            res.json({ 
+            res.json({ 
                 message: 'Détails du Streamer trouvés',
                 streamer: streamerDetails
             });
@@ -330,18 +365,18 @@ app.get('/details', async (req, res) => {
 
 app.post('/boost', (req, res) => {
     const { channelName, userId } = req.body;
-    
+     
     if (!channelName) {
         return res.status(400).json({ message: "Nom de chaîne manquant." });
     }
 
     // --- C'est ici que vous inséreriez la VRAIE logique Boost ---
-    
+     
     console.log(`[BOOST LOG] Channel: ${channelName}, UserID: ${userId}`);
 
-    res.json({ 
+    res.json({ 
         message: `Boost enregistré pour la chaîne '${channelName}'. Merci.`,
-        status: 'ok' 
+        status: 'ok' 
     });
 });
 
@@ -360,7 +395,7 @@ app.post('/critique_ia', async (req, res) => {
     if (!username || !game_name || !title) {
         return res.status(400).json({ critique: "Données du streamer incomplètes pour l'analyse IA." });
     }
-    
+     
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
     const systemPrompt = "Agis comme un consultant en marketing Twitch expérimenté. Ta tâche est de fournir une critique constructive et professionnelle d'un seul paragraphe (environ 3-4 phrases) pour aider ce 'petit' streamer à progresser. Concentre-toi sur le titre, le choix du jeu (s'il est trop saturé ou non), et donne un conseil de croissance concret. Écris en français. N'utilise AUCUN formatage Markdown (pas de *, #, ou **), retourne juste du texte simple.";
 
@@ -377,7 +412,7 @@ app.post('/critique_ia', async (req, res) => {
     let finalCritique = null;
     let lastError = null;
     const MAX_RETRIES = 4;
-    
+     
     // Implémentation de l'Exponential Backoff pour l'API Gemini
     for (let i = 0; i < MAX_RETRIES; i++) {
         const delay = Math.pow(2, i) * 1000;
@@ -394,15 +429,15 @@ app.post('/critique_ia', async (req, res) => {
             });
 
             const responseText = await response.text();
-            
+             
             if (!response.ok) {
                 lastError = new Error(`Erreur API Gemini (Status: ${response.status}) - ${responseText.substring(0, 100)}...`);
-                continue; 
+                continue; 
             }
 
             const result = JSON.parse(responseText);
             const candidate = result.candidates?.[0];
-            
+             
             if (candidate && candidate.content?.parts?.[0]?.text) {
                 finalCritique = candidate.content.parts[0].text.trim();
                 lastError = null;
@@ -444,7 +479,7 @@ app.post('/diagnostic_titre', async (req, res) => {
     if (!title) {
         return res.status(400).json({ diagnostic: "Le titre du stream est manquant pour l'analyse." });
     }
-    
+     
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
     // Instruction Système: Guide le modèle sur son rôle (Diagnostic d'optimisation)
@@ -464,7 +499,7 @@ app.post('/diagnostic_titre', async (req, res) => {
     let finalDiagnostic = null;
     let lastError = null;
     const MAX_RETRIES = 4;
-    
+     
     // Implémentation de l'Exponential Backoff pour l'API Gemini
     for (let i = 0; i < MAX_RETRIES; i++) {
         const delay = Math.pow(2, i) * 1000;
@@ -480,15 +515,15 @@ app.post('/diagnostic_titre', async (req, res) => {
             });
 
             const responseText = await response.text();
-            
+             
             if (!response.ok) {
                 lastError = new Error(`Erreur API Gemini (Status: ${response.status}) - ${responseText.substring(0, 100)}...`);
-                continue; 
+                continue; 
             }
 
             const result = JSON.parse(responseText);
             const candidate = result.candidates?.[0];
-            
+             
             if (candidate && candidate.content?.parts?.[0]?.text) {
                 finalDiagnostic = candidate.content.parts[0].text.trim();
                 lastError = null;
@@ -519,9 +554,11 @@ app.post('/diagnostic_titre', async (req, res) => {
 // Démarrage du Serveur
 // =========================================================
 
-const PORT = process.env.PORT || 10000; 
+const PORT = process.env.PORT || 10000; 
 
 app.listen(PORT, () => {
     console.log(`Serveur API en cours d'exécution sur le port ${PORT}`);
-    getTwitchAccessToken(); 
+    // NOUVEAU: Vous pouvez conserver cette ligne pour un message de confirmation
+    console.log("==> Vos routes HTML statiques sont actives : /, /NicheOptimizer.html, /lucky_streamer_picker.html, /sniper_tool.html");
+    getTwitchAccessToken(); 
 });
