@@ -136,7 +136,6 @@ const MAX_RETRIES = 3; // Pour les appels Gemini
 let nicheGameName = null;
 
 /* ============================ 2. UTILS POUR SHADOW DOM ============================ */
-// Pas de Shadow DOM nécessaire puisque c'est un fichier unique et simple, on utilise le DOM normal.
 const $ = sel => document.querySelector(sel);
 
 
@@ -150,36 +149,22 @@ const optimizedGameName = $("#optimized-game-name");
 const optimizerContent = $("#optimizer-content");
 const keyStatusDisplay = $("#key-status");
 
-// 3.1 Diagnostic de clé API (avec trim pour éviter les espaces)
+// 3.1 Diagnostic de clé API (utilise uniquement les variables d'environnement sécurisées)
 function diagnoseApiKey() {
-    // 
-    // --- 🚨 IMPORTANT : CLÉ API MANUELLE POUR DÉPLOIEMENT EXTERNE 🚨 ---
-    // Si vous déployez ce fichier HTML sur un serveur personnel (Render, Netlify, etc.),
-    // les variables automatiques du canvas ne seront pas disponibles.
-    // 
-    // POUR VOTRE DÉPLOIEMENT CUSTOM: DÉCOMMENTEZ la ligne ci-dessous et COLLEZ votre clé API Gemini.
-    // **Elle prendra TOUJOURS la priorité.**
-    const CUSTOM_API_KEY = "AIzaSyDncKSWKFCYufZOfGZ_ELQS_ICRKE0lDXE"; // <--- CLÉ ACTUELLEMENT UTILISÉE
-    //
-    // ------------------------------------------------------------------
-
-    let finalApiKey = ""; 
+    let finalApiKey = "";
     
-    // Priorité 1: Clé manuelle (la plus fiable pour le déploiement)
-    if (CUSTOM_API_KEY && CUSTOM_API_KEY.trim().length > 5) {
-        finalApiKey = CUSTOM_API_KEY.trim();
-    } 
-    // Priorité 2: Clés Canvas (pour environnement de dev)
-    else if (typeof __api_key !== 'undefined' && String(__api_key).trim().length > 0) {
+    // Priorité 1: Clé d'API injectée (standard pour Gemini)
+    if (typeof __api_key !== 'undefined' && String(__api_key).trim().length > 0) {
         finalApiKey = String(__api_key).trim();
-    } else if (typeof __initial_auth_token !== 'undefined' && String(__initial_auth_token).trim().length > 0) {
-         finalApiKey = String(__initial_auth_token).trim();
     } 
-    // Priorité 3: Variable globale "apyKey" (si injectée par Render)
+    // Priorité 2: Clé d'authentification (fallback si __api_key n'est pas utilisé)
+    else if (typeof __initial_auth_token !== 'undefined' && String(__initial_auth_token).trim().length > 0) {
+        finalApiKey = String(__initial_auth_token).trim();
+    } 
+    // Priorité 3: Variable globale "apyKey" (si injectée par Render ou autre)
     else if (typeof apyKey !== 'undefined' && typeof apyKey === 'string' && apyKey.trim().length > 5) {
         finalApiKey = apyKey.trim();
     }
-
 
     if (finalApiKey && finalApiKey.length > 5) {
         keyStatusDisplay.textContent = `OK (Clé détectée. Longueur: ${finalApiKey.length})`;
@@ -215,32 +200,32 @@ btnNicheSet.addEventListener('click', (e) => {
 
 // 3.3 Simule une réponse analytique structurée en cas d'échec de l'API
 function generateMockReport(game) {
-    console.log("Utilisation de la réponse simulée (MOCK) en raison de l'erreur d'API persistante.");
+    console.warn("Utilisation de la réponse simulée (MOCK) en raison de l'échec de l'API.");
     return {
-        competition_pressure: "Très Faible",
+        competition_pressure: "Moyenne (basée sur une estimation de popularité récente)",
         optimal_time_slots: [
             { 
                 time: "20h00 - 23h00 CET", 
                 day: "Mardi", 
-                reason: `Peu de streamers majeurs actifs pour ${game} durant cette plage horaire en Europe.`
+                reason: `Peu de streamers majeurs actifs pour ce type de jeu durant cette plage horaire en Europe, créneau idéal pour se faire remarquer.`
             },
             { 
                 time: "14h00 - 17h00 CET", 
                 day: "Samedi", 
-                reason: "Idéal pour capter les audiences américaines en début de journée et les retardataires européens."
+                reason: "Période de 'faible' pointe pour l'Europe et de 'forte' pointe pour les États-Unis. Un bon compromis."
             }
         ],
         recommended_days: [
             { 
-                day: "Mardi", 
-                topic: `Stream à thème 'Nouveau Joueur' : Tutoriels de base ou guides pour débutants sur ${game}.`
+                day: "Mercredi", 
+                topic: `Stream 'Découverte et Tutoriels' : Focus sur une mécanique de jeu complexe ou une zone cachée de ${game}.`
             },
             { 
-                day: "Vendredi", 
-                topic: `Challenge 'Perdu en 10 Minutes' : Tenter des défis absurdes ou très difficiles dans ${game} pour le côté divertissant.`
+                day: "Samedi", 
+                topic: `Challenge '10 heures, 1 Vie' : Tenter une performance de longue durée ou un défi 'Hardcore' dans ${game} pour le divertissement.`
             }
         ],
-        key_recommendation: `Concentrez-vous sur des tutoriels vidéo concis (YouTube Shorts, TikTok) pour capitaliser sur la recherche organique avant le stream, en utilisant des titres très précis liés à des mécaniques spécifiques du jeu.`
+        key_recommendation: `Adoptez une approche de type 'guide de niche' sur YouTube et TikTok (vidéos concises et ultra-spécifiques) pour générer du trafic qualifié vers vos streams sur ${game}.`
     };
 }
 
@@ -252,8 +237,8 @@ async function runNicheOptimization() {
         return;
     }
     if (!apiKey) {
-         optimizerContent.innerHTML = `<div class="error">❌ ERREUR FATALE: Clé API Gemini non détectée. L'analyse ne peut pas démarrer.</div>`;
-         return;
+        optimizerContent.innerHTML = `<div class="error">❌ ERREUR FATALE: Clé API Gemini non détectée. L'analyse ne peut pas démarrer. Assurez-vous que la clé est correctement configurée dans votre environnement de déploiement (Render).</div>`;
+        return;
     }
 
 
@@ -264,7 +249,6 @@ async function runNicheOptimization() {
 
     let report = null;
     let rawError = "Inconnu. Aucune réponse reçue.";
-    // L'URL de l'API utilise la clé détectée dans la fonction diagnoseApiKey
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
     try {
@@ -339,6 +323,13 @@ async function runNicheOptimization() {
                 } else if (response) {
                     // Tente d'obtenir plus de détails sur l'erreur
                     try { rawError = JSON.stringify(await response.json(), null, 2); } catch (e) { rawError = `Erreur HTTP ${response.status} sans corps JSON.`; }
+                    
+                    // Si c'est un 403, on arrête immédiatement car c'est une erreur de clé non récupérable
+                    if (response.status === 403) {
+                         console.error("Erreur 403 fatale (clé révoquée ou invalide). Arrêt des tentatives.", rawError);
+                         apiSuccess = false;
+                         break;
+                    }
                 }
                 
                 if (i < MAX_RETRIES - 1) {
@@ -362,7 +353,7 @@ async function runNicheOptimization() {
         if (apiSuccess && reportJsonText) {
             report = JSON.parse(reportJsonText);
         } else if (!apiSuccess && response && response.status === 403) {
-            // Utilisation du rapport Mock en cas d'échec d'authentification 403 (Clé valide, mais permissions refusées)
+            // Utilisation du rapport Mock en cas d'échec d'authentification 403
             report = generateMockReport(nicheGameName);
             simulationUsed = true;
         } else {
@@ -372,16 +363,16 @@ async function runNicheOptimization() {
 
         // 4. Validation du rapport (Mock ou API)
         if (!report.competition_pressure || !report.optimal_time_slots || !report.recommended_days) {
-             throw new Error("Structure de rapport JSON invalide ou incomplète.");
+              throw new Error("Structure de rapport JSON invalide ou incomplète.");
         }
 
         // 5. Affichage des résultats
         optimizerContent.innerHTML = `
             ${apiSuccess ? '<p class="success" style="margin-bottom: 10px;">✅ Données en temps réel (Gemini API)</p>' : 
                `<p class="error" style="margin-bottom: 10px;">
-                  (SIMULATION: ÉCHEC ${simulationUsed ? '403 PERSISTANT' : 'IRRÉCUPÉRABLE'}. Affichage du rapport simulé.)
-                  <span style="font-size:10px; display:block; margin-top:5px;">Détail de l'Erreur Brute (pour débogage):</span>
-                  <pre style="white-space:pre-wrap; font-size:9px; background:#333; padding:5px; border-radius:4px; max-height:100px; overflow-y:auto;">${rawError}</pre>
+                     (SIMULATION: ÉCHEC ${simulationUsed ? '403 PERSISTANT' : 'IRRÉCUPÉRABLE'}. Affichage du rapport simulé.)
+                     <span style="font-size:10px; display:block; margin-top:5px;">Détail de l'Erreur Brute (pour débogage):</span>
+                     <pre style="white-space:pre-wrap; font-size:9px; background:#333; padding:5px; border-radius:4px; max-height:100px; overflow-y:auto;">${rawError}</pre>
                </p>`
             }
             <hr style="border-color:#444; margin: 10px 0;">
