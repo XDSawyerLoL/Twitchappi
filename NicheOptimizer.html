@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -413,7 +414,7 @@ function diagnoseApiKey() {
 const apiKey = diagnoseApiKey();
 
 
-/* ============================ 6. Niche Optimizer Logic (Gemini API) ============================ */
+/* ============================ 6. NICHE OPTIMIZER LOGIC (Gemini API) ============================ */
 
 const btnNicheAnalyze = $("#btn-niche-analyze-snippet");
 const inputNicheGame = $("#input-niche-game");
@@ -541,7 +542,7 @@ btnNicheAnalyze.addEventListener('click', async () => {
 async function fetchCritiqueIA(streamerData, url, msg) {
     const critiqueContainer = $("#critique-container");
     const [btnCritique, btnDiagnostic] = [$("#btn-critique-ia"), $("#btn-critique-diag")];
-    if (!critiqueContainer) return;
+    if (!critiqueContainer || !btnCritique || !btnDiagnostic) return;
 
     critiqueContainer.innerHTML = `<div class="critique-loading">⟳ ${msg} en cours...</div>`;
     btnCritique.disabled = btnDiagnostic.disabled = true;
@@ -565,7 +566,7 @@ async function fetchCritiqueIA(streamerData, url, msg) {
 
         if (res.ok && (data.critique || data.diagnostic)) {
             const resultText = data.critique || data.diagnostic;
-            const title = isDiagnostic ? `💡 Diagnostic Optimisation` : `Score IA: ${streamerData.avg_score}/5.0`;
+            const title = isDiagnostic ? `💡 Diagnostic Optimisation` : `Score IA: ${streamerData.avg_score || 'N/A'}/5.0`;
             const color = isDiagnostic ? '#22c7ef' : '#ff0099';
 
             critiqueContainer.innerHTML = `<div class="critique" style="border-left-color:${color};">
@@ -706,9 +707,10 @@ $("#btn-scan-random").addEventListener("click", async ()=>{
                  <button id="btn-critique-diag" class="btn-secondary" style="flex:1; background: #9933ff;">📝 DIAGNOSTIC TITRE/TAGS</button>
              </div>
              <div id="critique-container"></div>
-         `;
+           `;
         box.classList.remove("hidden");
 
+        // Ajout des écouteurs d'événements pour les boutons générés
         box.querySelector("#scan-watch").addEventListener("click",()=>{
             document.getElementById("input-channel").value = s.username; loadPlayer(s.username);
             document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -719,21 +721,14 @@ $("#btn-scan-random").addEventListener("click", async ()=>{
         box.querySelector("#btn-critique-diag").addEventListener("click",()=>{
             fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre/Tags');
         });
-    }
-    catch(e){
-        msg.textContent = `❌ Échec du Scan: ${e.message || "Erreur inconnue"}`; msg.className = "error";
-        box.innerHTML = `<div style="font-weight:700;color:#22c7ef;font-size:16px;">🚨 Nom non trouvé (Simulé)</div>
-            <div style="color:#ff78b3;font-weight:700;margin-top:5px;font-size:13px;">Impossible de trouver une chaîne.</div>
-            <button id="scan-fallback" class="btn-secondary" style="margin-top:8px;width:100%;">REGARDER EXEMPLE</button>`;
-        box.classList.remove("hidden");
-        box.querySelector("#scan-fallback").addEventListener("click",()=>{
-            document.getElementById("input-channel").value = "twitch_example_channel"; loadPlayer("twitch_example_channel");
-            document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
-        });
-    }
-    btn.disabled = false;
-});
 
+    } catch (e) {
+        msg.className = "error"; msg.textContent = `❌ Erreur du Scan : ${e.message}`;
+    } finally {
+        btn.disabled = false;
+    }
+});
+// Fin du bloc de script auto-exécutant
 })();
 });
 </script>
