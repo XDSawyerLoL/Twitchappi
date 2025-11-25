@@ -709,7 +709,7 @@ $("#btn-scan-random").addEventListener("click", async ()=>{
            `;
         box.classList.remove("hidden");
 
-        // Ajout des écouteurs d'événements pour les boutons générés
+        // Ajout des écouteurs d'événements pour les boutons générés APRES le scan
         box.querySelector("#scan-watch").addEventListener("click",()=>{
             document.getElementById("input-channel").value = s.username; loadPlayer(s.username);
             document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -722,12 +722,12 @@ $("#btn-scan-random").addEventListener("click", async ()=>{
         });
 
     } catch (e) {
-        msg.className = "error"; msg.textContent = `❌ Erreur du Scan : ${e.message}`;
+        msg.className = "error"; msg.textContent = `❌ Échec du scan: ${e.message}`;
     } finally {
         btn.disabled = false;
     }
 });
-// Fin du bloc de script auto-exécutant
+// 7.6 Fin du Script
 })();
 });
 </script>
