@@ -3,355 +3,739 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STREAMER HUB V4.8</title>
+    <title>Streamer & Niche AI Hub V4.9</title>
+    <!-- Chargement des polices nécessaires -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Pour un design dark-mode moderne et adaptatif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Styles Globaux */
+        body {
+            background-color: #0d0d0d;
+            color: #fff;
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        #twitch-lucky-main {
+            all: initial;
+            display: block;
+            max-width: 1100px;
+            margin: 20px auto;
+            padding: 10px;
+        }
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            color: #ff0099;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .player-wrapper {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            border: 1px solid #2e2e2e;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .player-wrapper h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            color: #22c7ef;
+            margin: 0 0 10px;
+        }
+        #twitch-embed {
+            width: 100%;
+            height: 450px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(34, 199, 239, 0.3);
+            overflow: hidden; /* Important pour les bords arrondis */
+        }
+        #form-channel-player {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        #input-channel {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #0d0d0d;
+            color: #fff;
+            font-size: 14px;
+        }
+        #btn-player-launch {
+            cursor: pointer;
+            border: 0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            font-size: 13px;
+            background: #22c7ef;
+            color: #00161d;
+            min-width: 100px;
+            box-shadow: 0 2px 5px rgba(34, 199, 239, 0.4);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #twitch-lucky-main {
+                padding: 5px;
+            }
+            #twitch-embed {
+                height: 300px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
 </head>
-<body style="background:#0a0a0a; margin:0; padding:0;">
+<body>
 
-    <!-- Conteneur principal de l'application -->
-    <div id="twitch-lucky-main" style="all:initial;display:block;max-width:1100px;margin:20px auto;padding:10px;">
-        <style>
-            /* Importation des polices pour le corps du document principal */
-            @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap');
-        </style>
+<div id="twitch-lucky-main">
+    <h1 class="text-3xl"><span class="text-pink-500">STREAMER</span> HUB V4.9</h1>
+    <div class="text-gray-400 text-xs mb-4 text-center">Lecteur Vidéo + Chat • Boost • Scanner IA Avancé • Optimisation de Niche Gemini</div>
 
-        <h1 style="font-family:Orbitron;font-size:26px;color:#ff0099;margin-bottom:2px;text-align:center;">
-            STREAMER HUB V4.8
-        </h1>
-        <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur Vidéo + Chat • Boost • Scanner IA Avancé</div>
+    <!-- Section Lecteur Vidéo/Chat -->
+    <div class="player-wrapper">
+        <h2><span style="margin-right:6px;">🎬</span> LECTEUR</h2>
 
-        <!-- Section Lecteur Twitch -->
-        <div class="player-wrapper" style="margin-bottom:20px;padding:15px;background:#1a1a1a;border-radius:10px;border:1px solid #2e2e2e;box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
-            <h2 style="font-family:Orbitron;font-size:18px;color:#22c7ef;margin:0 0 10px;"><span style="margin-right:6px;">🎬</span> LECTEUR</h2>
-            
-            <form id="form-channel-player" style="display:flex;gap:8px;margin-bottom:15px;">
-                <input id="input-channel" type="text" value="gotaga" placeholder="Nom de la chaîne Twitch (ex: gotaga)" style="flex-grow:1;padding:10px;border-radius:6px;border:1px solid #333;background:#0d0d0d;color:#fff;font-size:13px;">
-                <button type="submit" id="btn-player-launch" style="cursor:pointer;border:0;padding:8px 12px;border-radius:6px;font-weight:600;transition:all 0.2s ease;letter-spacing:0.3px;text-transform:uppercase;font-size:12px;background:#22c7ef;color:#00161d;min-width:100px;">
-                    ▶️ LANCER
-                </button>
-            </form>
+        <form id="form-channel-player">
+            <input id="input-channel" type="text" value="gotaga" placeholder="Nom de la chaîne Twitch (ex: gotaga)">
+            <button type="submit" id="btn-player-launch">
+                ▶️ LANCER
+            </button>
+        </form>
 
-            <div id="twitch-embed" style="width:100%;height:450px;border-radius:8px;box-shadow: 0 0 10px rgba(34, 199, 239, 0.2);"></div>
-        </div>
-        
-        <!-- Host pour l'interface Shadow DOM (Actions Hub) -->
-        <div id="ui-host"></div>
+        <div id="twitch-embed"></div>
     </div>
 
-    <script>
-        // Le code JavaScript complet de votre application
-        document.addEventListener('DOMContentLoaded', function() {
-        (async function(){
+    <!-- Host pour le Shadow DOM de l'Action/Niche Hub -->
+    <div id="ui-host" class="grid lg:grid-cols-2 gap-4"></div>
+</div>
 
-        /* ============================ 1. CONFIG ============================ */
-        const API_BASE = "https://twitch-random-api.onrender.com"; 
-        const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL] = [
-            API_BASE + "/boost", API_BASE + "/gameid", API_BASE + "/critique_ia", API_BASE + "/details", API_BASE + "/diagnostic_titre"
-        ];
-        const TARGET_HISTORY_KEY = 'twitch_target_history';
-        let player = null, currentGameId = null, currentGameName = null, lastStreamerData = null, currentTargetName = null;
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+(async function(){
 
-        /* ============================ 2. HELPERS & HISTORY ============================ */
-        // NOTE: J'ai remplacé localStorage par un simulateur pour la démo, mais vous devez utiliser Firestore pour la persistance si cette app était hébergée ici.
-        // Puisque vous allez l'héberger vous-même sur Render, on garde localStorage comme dans votre version originale.
-        function getHistory() {
-            try {
-                const history = JSON.parse(localStorage.getItem(TARGET_HISTORY_KEY) || '[]');
-                return Array.isArray(history) ? history : [];
-            } catch {
-                return [];
-            }
+/* ============================ 1. CONFIG & API ============================ */
+const API_BASE = "https://twitch-random-api.onrender.com";
+const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL] = [
+    API_BASE + "/boost", API_BASE + "/gameid", API_BASE + "/critique_ia", API_BASE + "/details", API_BASE + "/diagnostic_titre"
+];
+const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+const TARGET_HISTORY_KEY = 'twitch_target_history';
+let player = null, currentGameId = null, currentGameName = null, lastStreamerData = null, currentTargetName = null;
+let nicheGameName = null;
+
+/* ============================ 2. SHADOW DOM SETUP & SELECTORS ============================ */
+const host = document.getElementById("ui-host");
+const shadow = host.attachShadow({mode:"open"});
+const $ = sel => shadow.querySelector(sel); // Sélecteur pour les éléments DANS le Shadow DOM
+
+// Styles unifiés pour le Shadow DOM (CSS déminifié et combiné)
+const css = document.createElement("style");
+css.textContent = `
+:host{font-family:'Inter',Arial,sans-serif;color:#fff;display:grid; grid-template-columns: 1fr; gap: 1rem; /* Layout pour mobile */ }
+.main-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 1024px) { /* Layout pour desktop */
+    :host { grid-template-columns: 1fr 1fr; }
+}
+
+.card{
+    background:#1a1a1a;
+    border:1px solid #2e2e2e;
+    padding:15px;
+    border-radius:10px;
+    margin-bottom:15px;
+    box-shadow:0 3px 10px rgba(0,0,0,.3);
+    height: 100%;
+}
+h2{
+    font-family:'Orbitron',sans-serif;
+    font-size:20px;
+    margin:0 0 10px;
+    display:flex;
+    align-items:center;
+}
+h3{
+    font-size:14px;
+    font-weight:700;
+    margin:12px 0 8px;
+    padding-bottom:3px;
+    border-bottom:1px dashed #333;
+}
+.h2-pink{color:#ff0099}
+.h2-orange{color:#ff9900}
+button{
+    cursor:pointer;
+    border:0;
+    padding:8px 12px;
+    border-radius:6px;
+    font-weight:600;
+    transition:all .2s ease;
+    letter-spacing:.3px;
+    text-transform:uppercase;
+    font-size:12px;
+}
+.btn-primary{background:#ff0099;color:#fff;box-shadow:0 0 6px rgba(255,0,153,.4)}
+.btn-primary:hover:not(:disabled){background:#E6008A;transform:translateY(-1px)}
+.btn-secondary{background:#22c7ef;color:#00161d;box-shadow:0 0 6px rgba(34,199,239,.4)}
+.btn-secondary:hover:not(:disabled){background:#1AC;transform:translateY(-1px)}
+.btn-analyze{background:#ff9900;color:#000;box-shadow:0 0 8px rgba(255,153,0,.6);}
+.btn-analyze:hover:not(:disabled){background:#e68a00;transform:translateY(-2px)}
+button:disabled {opacity: 0.5; cursor: not-allowed;}
+
+input,select{
+    width:100%;
+    padding:10px;
+    border-radius:6px;
+    border:1px solid #333;
+    background:#0d0d0d;
+    color:#fff;
+    flex-grow:1;
+    font-size:13px
+}
+input:focus,select:focus{border-color:#ff0099;outline:none}
+.result{margin-top:10px;padding:10px;border-radius:6px;background:#0a0a0a;border:1px solid #444}
+.hidden{display:none}
+.muted{color:#9aa3a8;font-size:11px}
+.success{color:#59d682}
+.error{color:#e34a64}
+.info{color:#22c7ef}
+.flex-gap-8{display:flex;gap:8px;align-items:center}
+.critique{margin-top:10px;padding:10px;border-left:3px solid #ff0099;background:#111;font-size:12px;white-space:pre-wrap}
+.critique-loading{text-align:center;color:#ff0099;font-weight:600;padding:8px 0}
+.icon{margin-right:6px;font-size:18px}
+.streamer-status-live{color:#59d682;font-weight:700}
+.streamer-status-offline{color:#e34a64;font-weight:700}
+.stat-chip{
+    display:inline-block;
+    background:#333;
+    color:#fff;
+    padding:4px 8px;
+    border-radius:4px;
+    font-size:11px;
+    font-weight:600;
+    margin-right:5px;
+    margin-bottom:5px
+}
+.report-wrapper {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #333;
+    margin-top: 20px;
+}
+.info-chip {
+    font-size: 11px;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #f90;
+    display: block;
+}
+`;
+shadow.appendChild(css);
+
+// HTML combiné de l'Action Hub et de l'Optimisation de Niche
+const ui = document.createElement("div");
+ui.innerHTML = `
+    <!-- COLONNE 1: ACTIONS HUB -->
+    <div class="card">
+        <h2 class="h2-pink"><span class="icon">⚡</span> ACTIONS HUB</h2>
+        <h3 class="h2-pink"><span class="icon" style="margin-right:0;">⬆️</span> Boost Visibilité</h3>
+        <form id="form-boost">
+            <div class="flex-gap-8">
+                <input id="input-boost" type="text" placeholder="Chaîne à promouvoir">
+                <button type="submit" class="btn-primary" style="min-width:80px;">📤 BOOST</button>
+            </div>
+        </form>
+        <div id="boost-msg" class="muted" style="margin-top:5px;">Nom de chaîne requis pour l'activation.</div>
+        <hr style="border-color:#333;margin:15px 0;">
+
+        <h3 class="info"><span class="icon" style="margin-right:0;">🔭</span> Cible / Analyse IA</h3>
+        <div id="target-selection-container" style="margin-bottom:10px;">
+            <select id="select-history" style="margin-bottom: 10px;"><option value="">-- Charger une cible récente --</option></select>
+            <form id="form-target" class="flex-gap-8">
+                <input id="input-target" type="text" placeholder="Jeu (ex: Elden Ring) ou Pseudo">
+                <button type="submit" id="btn-target" class="btn-secondary" style="min-width:80px;">🎯 CIBLER</button>
+            </form>
+        </div>
+        <div id="target-status" class="muted" style="margin-top:5px;">Statut: Entrez un jeu ou un pseudo ci-dessus.</div>
+        <div id="scan-ia-actions" class="hidden" style="margin-top:10px; padding: 10px; background: #0a0a0a; border-radius: 6px; border: 1px solid #222;">
+            <h4 style="color: #ff0099; font-size: 13px; margin: 0 0 8px;">Cible: <span id="current-target-name" style="color: #fff;"></span></h4>
+            <div class="flex-gap-8">
+                <button id="btn-scan-random" class="btn-secondary" style="flex:1;"><span id="scan-label">SCANNER LA CATÉGORIE</span></button>
+            </div>
+        </div>
+        <div id="scan-result" class="result hidden"></div>
+    </div>
+
+    <!-- COLONNE 2: OPTIMISATION DE NICHE -->
+    <div class="card">
+        <h2 class="h2-orange"><span class="icon">📈</span> OPTIMISATION DE NICHE</h2>
+        <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Analyse de Concurrence basée sur l'IA (Gemini)</div>
+
+        <div id="gemini-key-diagnostic" class="info-chip" style="border-color:#ff9900;">
+            Statut Clé API Gemini: <span id="key-status" style="font-weight:700;">Diagnostic en cours...</span>
+        </div>
+
+        <form id="form-niche-game" style="margin-top: 20px;">
+            <h3 style="color:#22c7ef;">DÉFINIR LE JEU CIBLE</h3>
+            <div class="flex-gap-8">
+                <input id="input-niche-game" type="text" placeholder="Entrez le jeu (ex: Elden Ring)">
+                <button type="submit" id="btn-niche-set" class="btn-analyze" style="min-width: 100px;">DÉFINIR</button>
+            </div>
+        </form>
+
+        <div id="optimizer-controls" style="margin-top: 20px;">
+            <button id="btn-niche-analyze-snippet" class="btn-analyze" disabled>
+                Veuillez DÉFINIR UN JEU pour l'analyse
+            </button>
+        </div>
+
+        <div id="optimizer-result" style="margin-top: 15px;" class="hidden">
+            <div class="report-wrapper">
+                <h3 style="font-size:18px;color:#ff9900;font-family:'Orbitron',sans-serif;margin-top:0; border-bottom: none;">
+                    🎮 Rapport de Niche pour <span id="optimized-game-name" style="color:#fff;">[Jeu Cible]</span>
+                </h3>
+                <div id="optimizer-content" style="color:#fff; font-size: 13px;"></div>
+            </div>
+        </div>
+    </div>
+`;
+shadow.appendChild(ui);
+
+
+/* ============================ 3. HELPERS & HISTORY ============================ */
+function getHistory() {
+    try {
+        const history = JSON.parse(localStorage.getItem(TARGET_HISTORY_KEY) || '[]');
+        return Array.isArray(history) ? history : [];
+    } catch {
+        return [];
+    }
+}
+function addTargetToHistory(name, type) {
+    const history = getHistory();
+    const newItem = { name: name, type: type, key: `${type}:${name}` };
+    const newHistory = history.filter(item => item.key !== newItem.key);
+    newHistory.unshift(newItem);
+    localStorage.setItem(TARGET_HISTORY_KEY, JSON.stringify(newHistory.slice(0, 5)));
+}
+function initHistory() {
+    const historySelect = $("#select-history");
+    if (!historySelect) return;
+    historySelect.innerHTML = '<option value="">-- Charger une cible récente --</option>';
+    getHistory().forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.name;
+        option.textContent = `[${item.type.toUpperCase()}] ${item.name}`;
+        historySelect.appendChild(option);
+    });
+    historySelect.addEventListener('change', (e) => {
+        const selectedName = e.target.value;
+        if (selectedName) {
+            $("#input-target").value = selectedName;
+            $("#form-target").dispatchEvent(new Event('submit', { cancelable: true }));
         }
-        function addTargetToHistory(name, type) {
-            const history = getHistory();
-            const newItem = { name: name, type: type, key: `${type}:${name}` };
-            const newHistory = history.filter(item => item.key !== newItem.key);
-            newHistory.unshift(newItem);
-            localStorage.setItem(TARGET_HISTORY_KEY, JSON.stringify(newHistory.slice(0, 5)));
+    });
+}
+initHistory();
+
+
+/* ============================ 4. LECTEUR TWITCH (Main DOM) ============================ */
+async function loadTwitchSDK(){
+    if (window.Twitch && window.Twitch.Embed) return;
+    return new Promise(resolve=>{
+        const s = document.createElement("script");
+        s.src = "https://embed.twitch.tv/embed/v1.js";
+        s.onload = ()=>resolve(); s.onerror = ()=>resolve();
+        document.head.appendChild(s);
+    });
+}
+async function loadPlayer(channel){
+    await loadTwitchSDK();
+    const embedContainer = document.getElementById("twitch-embed");
+    if (!window.Twitch || !window.Twitch.Embed){
+        embedContainer.innerHTML = "<div style='color:#fff;padding:20px;background:#000;text-align:center;'>⚠️ Erreur: SDK Twitch introuvable ou bloqué.</div>"; return;
+    }
+    if (!player){
+        // Utiliser window.location.hostname comme parent
+        const parentHost = window.location.hostname;
+        player = new Twitch.Embed("twitch-embed", {
+            width:"100%", height:"100%", channel, layout:"video-with-chat", autoplay:true, parent:[parentHost]
+        });
+    } else { try { player.setChannel(channel); } catch(e){} }
+}
+
+// Lancement initial et écouteur de formulaire du lecteur
+loadPlayer(document.getElementById("input-channel").value.trim()); // Charge Gotaga par défaut
+document.getElementById("form-channel-player").addEventListener("submit", e=>{
+    e.preventDefault();
+    const channelName = document.getElementById("input-channel").value.trim();
+    if(channelName) loadPlayer(channelName);
+});
+
+
+/* ============================ 5. API KEY DIAGNOSTICS (Niche) ============================ */
+function diagnoseApiKey() {
+    // Clé API prioritaire si définie manuellement (utile pour déploiement externe)
+    const CUSTOM_API_KEY = ""; // <--- Votre clé Gemini ici si vous ne passez pas par le canvas
+
+    let finalApiKey = "";
+    if (CUSTOM_API_KEY.length > 5) {
+        finalApiKey = CUSTOM_API_KEY;
+    } else if (typeof __api_key !== 'undefined' && __api_key.length > 0) {
+        finalApiKey = __api_key;
+    } else if (typeof apyKey !== 'undefined' && apyKey.length > 0) {
+        finalApiKey = apyKey;
+    }
+
+    const keyStatusDisplay = $("#key-status");
+    if (finalApiKey && finalApiKey.length > 5) {
+        keyStatusDisplay.textContent = `OK (Terminaison: ...${finalApiKey.slice(-4)})`;
+        keyStatusDisplay.style.color = '#59d682'; // Vert
+        return finalApiKey;
+    } else {
+        keyStatusDisplay.textContent = `ABSENTE (⚠️ API Key manquante)`;
+        keyStatusDisplay.style.color = '#e34a64'; // Rouge
+        return null;
+    }
+}
+const apiKey = diagnoseApiKey();
+
+
+/* ============================ 6. Niche Optimizer Logic (Gemini API) ============================ */
+
+const btnNicheAnalyze = $("#btn-niche-analyze-snippet");
+const inputNicheGame = $("#input-niche-game");
+const btnNicheSet = $("#btn-niche-set");
+const optimizerResult = $("#optimizer-result");
+const optimizedGameName = $("#optimized-game-name");
+const optimizerContent = $("#optimizer-content");
+
+// 6.1 Fonction pour définir le jeu cible de niche
+btnNicheSet.addEventListener('click', (e) => {
+    e.preventDefault();
+    const name = inputNicheGame.value.trim();
+    if (name) {
+        nicheGameName = name;
+        optimizedGameName.textContent = nicheGameName;
+        // Activation du bouton d'analyse
+        btnNicheAnalyze.disabled = false;
+        btnNicheAnalyze.textContent = `🧠 ANALYSE DE NICHE pour "${nicheGameName}"`;
+    }
+});
+
+// 6.2 Fonction pour appeler Gemini
+async function callGeminiApi(gameName) {
+    if (!apiKey) {
+        optimizerContent.innerHTML = `<p class="error">Erreur: Clé API Gemini manquante. Veuillez insérer une clé.</p>`;
+        return;
+    }
+
+    const systemPrompt = "Vous êtes un consultant expert en stratégie de contenu Twitch. Vous fournissez une analyse concise, structurée et actionable en français, basée sur le web (Google Search). Utilisez des titres en gras, des listes, et des emojis pour la clarté. Ne dépassez pas 400 mots.";
+
+    const userQuery = `En utilisant la recherche Google pour obtenir des données en temps réel sur Twitch, fournissez une analyse de niche pour le jeu "${gameName}". Votre rapport doit inclure :
+1. Évaluation rapide de la saturation (nombre de streamers populaires et de viewers totaux).
+2. Suggestions d'angles de contenu uniques pour se démarquer (niche tactique).
+3. 3-5 tags Twitch/YouTube recommandés.`;
+
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+    const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        tools: [{ "google_search": {} }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+    };
+
+    let response = null;
+    let retries = 0;
+
+    // Implémentation de l'Exponential Backoff
+    while (retries < 3) {
+        try {
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.status !== 429) { // 429 is Too Many Requests
+                break;
+            }
+
+            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
+            console.warn(`Rate limit hit. Retrying in ${Math.round(delay / 1000)}s...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            retries++;
+
+        } catch (e) {
+            console.error("Network error during API call:", e);
+            break;
         }
-        function initHistory() {
-            const historySelect = $("#select-history");
-            if (!historySelect) return;
-            historySelect.innerHTML = '<option value="">-- Charger une cible récente --</option>';
-            getHistory().forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.name;
-                option.textContent = `[${item.type.toUpperCase()}] ${item.name}`;
-                historySelect.appendChild(option);
-            });
-            historySelect.addEventListener('change', (e) => {
-                const selectedName = e.target.value;
-                if (selectedName) {
-                    $("#input-target").value = selectedName;
-                    $("#form-target").dispatchEvent(new Event('submit', { cancelable: true }));
-                }
-            });
+    }
+
+    if (!response || !response.ok) {
+        const errorText = response ? await response.text() : "Erreur de connexion réseau ou Timeout.";
+        optimizerContent.innerHTML = `<p class="error">❌ Échec de l'appel Gemini : ${errorText.slice(0, 200)}</p>`;
+        return;
+    }
+
+    const result = await response.json();
+    const candidate = result.candidates?.[0];
+
+    if (candidate && candidate.content?.parts?.[0]?.text) {
+        const text = candidate.content.parts[0].text;
+        let sourcesHtml = '';
+
+        const groundingMetadata = candidate.groundingMetadata;
+        if (groundingMetadata && groundingMetadata.groundingAttributions) {
+            const sources = groundingMetadata.groundingAttributions.map(attribution => ({
+                uri: attribution.web?.uri,
+                title: attribution.web?.title,
+            })).filter(source => source.uri && source.title);
+
+            if (sources.length > 0) {
+                sourcesHtml = '<h4 style="font-size: 11px; margin-top: 10px; color: #aaa;">Sources de l\'information:</h4><ul style="list-style-type: disc; margin-left: 20px; font-size: 10px; color: #9aa3a8;">';
+                sources.forEach((s, index) => {
+                    sourcesHtml += `<li><a href="${s.uri}" target="_blank" style="color: #22c7ef; text-decoration: none;">${s.title.slice(0, 80)}...</a></li>`;
+                });
+                sourcesHtml += '</ul>';
+            }
         }
 
-        /* ============================ 3. SHADOW DOM SETUP ============================ */
-        const host = document.getElementById("ui-host");
-        const shadow = host.attachShadow({mode:"open"});
-        const $ = sel => shadow.querySelector(sel);
+        optimizerContent.innerHTML = text.replace(/\n/g, '<br>') + sourcesHtml; // Remplacement des sauts de ligne
+    } else {
+        optimizerContent.innerHTML = `<p class="error">⚠️ Réponse Gemini invalide. (Peut-être une erreur d'API Key ou un filtre de sécurité activé)</p>`;
+    }
+}
 
-        // Minification et compression du CSS (votre CSS original)
-        const css = document.createElement("style");
-        css.textContent = `
-        :host{font-family:'Inter',Arial,sans-serif;color:#fff;display:block}.grid{display:block}.card{background:#1a1a1a;border:1px solid #2e2e2e;padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 3px 10px rgba(0,0,0,.3)}h2{font-family:'Orbitron',sans-serif;font-size:20px;margin:0 0 10px;display:flex;align-items:center;justify-content:center}h3{font-size:14px;font-weight:700;margin:12px 0 8px;padding-bottom:3px;border-bottom:1px dashed #333}.h2-pink{color:#ff0099}button{cursor:pointer;border:0;padding:8px 12px;border-radius:6px;font-weight:600;transition:all .2s ease;letter-spacing:.3px;text-transform:uppercase;font-size:12px}.btn-primary{background:#ff0099;color:#fff;box-shadow:0 0 6px rgba(255,0,153,.4)}.btn-primary:hover{background:#E6008A;transform:translateY(-1px)}.btn-secondary{background:#22c7ef;color:#00161d;box-shadow:0 0 6px rgba(34,199,239,.4)}.btn-secondary:hover{background:#1AC;transform:translateY(-1px)}input,select{width:100%;padding:10px;border-radius:6px;border:1px solid #333;background:#0d0d0d;color:#fff;flex-grow:1;font-size:13px}input:focus,select:focus{border-color:#ff0099;outline:none}.result{margin-top:10px;padding:10px;border-radius:6px;background:#0a0a0a;border:1px solid #444}.hidden{display:none}.muted{color:#9aa3a8;font-size:11px}.success{color:#59d682}.error{color:#e34a64}.info{color:#22c7ef}.flex-gap-8{display:flex;gap:8px;align-items:stretch}.critique{margin-top:10px;padding:10px;border-left:3px solid #ff0099;background:#111;font-size:12px;white-space:pre-wrap}.critique-loading{text-align:center;color:#ff0099;font-weight:600;padding:8px 0}.icon{margin-right:6px;font-size:18px}.streamer-status-live{color:#59d682;font-weight:700}.streamer-status-offline{color:#e34a64;font-weight:700}.stat-chip{display:inline-block;background:#333;color:#fff;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:5px;margin-bottom:5px}
+// 6.3 Événement de lancement de l'analyse de niche
+btnNicheAnalyze.addEventListener('click', async () => {
+    if (!nicheGameName || btnNicheAnalyze.disabled) return;
+
+    optimizerResult.classList.remove("hidden");
+    optimizerContent.innerHTML = '<div class="critique-loading" style="color:#ff9900;">⟳ Lancement de l\'analyse Gemini (via Google Search)...</div>';
+
+    btnNicheAnalyze.disabled = true;
+    btnNicheAnalyze.textContent = "ANALYSE EN COURS...";
+
+    await callGeminiApi(nicheGameName);
+
+    btnNicheAnalyze.disabled = false;
+    btnNicheAnalyze.textContent = `🧠 ANALYSE DE NICHE pour "${nicheGameName}"`;
+});
+
+
+/* ============================ 7. TWITCH API HANDLERS ============================ */
+// 7.1 Critiques IA (Fonction unique pour Complète et Diagnostic)
+async function fetchCritiqueIA(streamerData, url, msg) {
+    const critiqueContainer = $("#critique-container");
+    const [btnCritique, btnDiagnostic] = [$("#btn-critique-ia"), $("#btn-critique-diag")];
+    if (!critiqueContainer) return;
+
+    critiqueContainer.innerHTML = `<div class="critique-loading">⟳ ${msg} en cours...</div>`;
+    btnCritique.disabled = btnDiagnostic.disabled = true;
+
+    try {
+        const isDiagnostic = (url === DIAGNOSTIC_URL);
+        // Préparation du payload
+        const payload = isDiagnostic ? {
+            title: streamerData.title || '',
+            tags: streamerData.tags ? streamerData.tags.join(', ') : '',
+            game_name: streamerData.game_name || ''
+        } : streamerData;
+
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && (data.critique || data.diagnostic)) {
+            const resultText = data.critique || data.diagnostic;
+            const title = isDiagnostic ? `💡 Diagnostic Optimisation` : `Score IA: ${streamerData.avg_score}/5.0`;
+            const color = isDiagnostic ? '#22c7ef' : '#ff0099';
+
+            critiqueContainer.innerHTML = `<div class="critique" style="border-left-color:${color};">
+                <strong>${title}:</strong><br>${resultText}
+            </div>`;
+        } else {
+            let apiError = data.message || data.error || data.critique || data.diagnostic;
+            let errorMessage = apiError || `Erreur HTTP ${res.status}. Le serveur API (Render) est-il en veille ou la route API est-elle incorrecte ?`;
+            critiqueContainer.innerHTML = `<div class="critique error"><strong>${msg} :</strong> ${errorMessage}</div>`;
+        }
+    } catch (e) {
+        critiqueContainer.innerHTML = `<div class="critique error"><strong>${msg} :</strong> ❌ Échec de la connexion réseau. (Serveur Render inaccessible ou route ${url} introuvable).</div>`;
+    } finally {
+        btnCritique.disabled = btnDiagnostic.disabled = false;
+    }
+}
+// 7.2 Boost
+$("#form-boost").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const name = $("#input-boost").value.trim();
+    const boostMsg = $("#boost-msg");
+    if (!name) return boostMsg.textContent = "Nom requis";
+    boostMsg.textContent = "⟳ Envoi du Boost..."; $("#input-boost").disabled = true;
+    try {
+        const res = await fetch(BOOST_URL,{method:"POST", headers:{ "Content-Type":"application/json"}, body:JSON.stringify({channelName:name,userId:crypto.randomUUID()})});
+        const data = res.ok ? await res.json().catch(()=>({message:"✅ Succès"})) : {message:"❌ Erreur Serveur"};
+        boostMsg.className = "success";
+        boostMsg.textContent = data.message || `✅ Boost appliqué à ${name}`;
+    }
+    catch { boostMsg.className = "error"; boostMsg.textContent = "⚠️ Échec de la connexion à l'API Boost."; }
+    $("#input-boost").disabled = false; $("#input-boost").value = "";
+});
+// 7.3 Ciblage (Jeu ou Pseudo)
+$("#form-target").addEventListener("submit", async e => {
+    e.preventDefault();
+    const targetInput = $("#input-target").value.trim();
+    const [targetStatus, actionsBox, scanLabel, btnTarget] = [$("#target-status"), $("#scan-ia-actions"), $("#scan-label"), $("#btn-target")];
+    currentGameId = currentGameName = currentTargetName = null;
+    actionsBox.classList.add("hidden"); $("#scan-result").classList.add("hidden");
+    targetStatus.className = "muted"; targetStatus.textContent = "Statut: Entrez un jeu ou un pseudo ci-dessus.";
+    if (!targetInput) return;
+    targetStatus.textContent = `⟳ Recherche de '${targetInput}'...`; btnTarget.disabled = true;
+
+    try {
+        const res = await fetch(`${GAME_ID_URL}?name=${encodeURIComponent(targetInput)}`);
+        if (res.ok) { // JEU
+            const data = await res.json();
+            [currentGameId, currentGameName] = [data.game_id, data.name];
+            targetStatus.className = "success"; targetStatus.textContent = `✅ Cible définie: JEU '${currentGameName}'`;
+            $("#current-target-name").textContent = `Jeu: ${currentGameName}`; scanLabel.textContent = "SCANNER LA CATÉGORIE";
+            actionsBox.classList.remove("hidden"); addTargetToHistory(currentGameName, 'jeu');
+        } else if (res.status === 404) { // PSEUDO
+            currentTargetName = targetInput;
+            targetStatus.className = "info"; targetStatus.textContent = `⚠️ Jeu non trouvé. Cible définie: PSEUDO '${currentTargetName}'`;
+            $("#current-target-name").textContent = `Streamer: ${currentTargetName}`; scanLabel.textContent = "SCAN GENERAL (TROUVER UN PARTENAIRE)";
+            actionsBox.classList.remove("hidden"); await fetchTargetDetails(currentTargetName);
+            addTargetToHistory(currentTargetName, 'pseudo');
+        } else {
+            targetStatus.className = "error"; targetStatus.textContent = `❌ Erreur API: HTTP ${res.status}.`;
+        }
+    } catch (e) { targetStatus.className = "error"; targetStatus.textContent = "⚠️ Erreur réseau lors du ciblage.";
+    } finally { btnTarget.disabled = false; initHistory(); }
+});
+
+// 7.4 Analyse Ciblée (détails + render)
+async function fetchTargetDetails(targetName) {
+    const box = $("#scan-result"); box.classList.remove("hidden");
+    box.innerHTML = `<div class="critique-loading">⟳ Récupération des données de ${targetName}...</div>`;
+    try {
+        const res = await fetch(`${DETAILS_URL}?login=${encodeURIComponent(targetName)}`, {cache:'no-store'});
+        if (!res.ok) throw new Error(`Streamer introuvable sur Twitch.`);
+        const s = (await res.json()).streamer; lastStreamerData = s;
+        box.innerHTML = `
+            <div style="background:#111;padding:12px;border-radius:6px;margin-bottom:10px;">
+                <div style="font-weight:700;color:#ff0099;font-size:16px;margin-bottom:4px;">${s.username}
+                    <span class="${s.is_live ? 'streamer-status-live' : 'streamer-status-offline'}" style="font-size:11px;">(${s.is_live ? 'EN DIRECT' : 'HORS LIGNE'})</span>
+                </div>
+                <div style="font-size:13px;color:#cdd5da;font-style:italic;">"${s.title || "Titre non disponible."}"</div>
+                <div style="margin-top:10px;">
+                    <span class="stat-chip" style="background:#22c7ef;">JEU: ${s.game_name || 'Non Défini'}</span>
+                    <span class="stat-chip">FOLLOWERS: ${s.follower_count}</span>
+                    <span class="stat-chip">VIEWERS: ${s.viewer_count}</span>
+                </div>
+            </div>
+            <div class="flex-gap-8" style="margin-top:10px;"><button id="scan-watch" class="btn-secondary" style="flex:1;">▶️ REGARDER</button></div>
+            <div class="flex-gap-8" style="margin-top:8px;">
+                <button id="btn-critique-ia" class="btn-primary" style="flex:1;">🧠 CRITIQUE IA (Complète)</button>
+                <button id="btn-critique-diag" class="btn-secondary" style="flex:1; background: #9933ff;">📝 DIAGNOSTIC TITRE/TAGS</button>
+            </div>
+            <div id="critique-container"></div>
         `;
-        shadow.appendChild(css);
-
-        // HTML de l'Action Hub compressé (votre HTML original)
-        const ui = document.createElement("div");
-        ui.innerHTML = `
-            <div class="grid"><div class="card"><h2 style="color:#ff0099;"><span class="icon">⚡</span> ACTIONS HUB</h2>
-            <h3 style="color:#ff0099;"><span class="icon" style="margin-right:0;">⬆️</span> Boost Visibilité</h3>
-            <form id="form-boost"><div class="flex-gap-8"><input id="input-boost" type="text" placeholder="Chaîne à promouvoir">
-            <button type="submit" class="btn-primary" style="min-width:80px;">📤 BOOST</button></div></form>
-            <div id="boost-msg" class="muted" style="margin-top:5px;">Nom de chaîne requis pour l'activation.</div>
-            <hr style="border-color:#333;margin:15px 0;">
-            <h3 style="color:#22c7ef;"><span class="icon" style="margin-right:0;">🔭</span> Cible / Analyse IA</h3>
-            <div id="target-selection-container" style="margin-bottom:10px;"><select id="select-history" style="margin-bottom: 10px;"><option value="">-- Charger une cible récente --</option></select>
-            <form id="form-target" class="flex-gap-8"><input id="input-target" type="text" placeholder="Jeu (ex: Elden Ring) ou Pseudo">
-            <button type="submit" id="btn-target" class="btn-secondary" style="min-width:80px;">🎯 CIBLER</button></form></div>
-            <div id="target-status" class="muted" style="margin-top:5px;">Statut: Entrez un jeu ou un pseudo ci-dessus.</div>
-            <div id="scan-ia-actions" class="hidden" style="margin-top:10px; padding: 10px; background: #0a0a0a; border-radius: 6px; border: 1px solid #222;">
-            <h4 style="color: #ff0099; font-size: 13px; margin: 0 0 8px;">Cible: <span id="current-target-name" style="color: #fff;"></span></h4>
-            <div class="flex-gap-8"><button id="btn-scan-random" class="btn-secondary" style="flex:1;"><span id="scan-label">SCANNER LA CATÉGORIE</span></button></div></div>
-            <div id="scan-result" class="result hidden"></div></div></div>
-        `;
-        shadow.appendChild(ui);
-        initHistory();
-
-
-        /* ============================ 4. LECTEUR TWITCH ============================ */
-        async function loadTwitchSDK(){
-            if (window.Twitch && window.Twitch.Embed) return;
-            return new Promise(resolve=>{
-                const s = document.createElement("script");
-                s.src = "https://embed.twitch.tv/embed/v1.js";
-                s.onload = ()=>resolve(); s.onerror = ()=>resolve();
-                document.head.appendChild(s);
-            });
-        }
-        async function loadPlayer(channel){
-            await loadTwitchSDK();
-            const embedContainer = document.getElementById("twitch-embed");
-            if (!window.Twitch || !window.Twitch.Embed){
-                embedContainer.innerHTML = "<div style='color:#fff;padding:20px;background:#000;text-align:center;'>⚠️ Erreur: SDK Twitch introuvable ou bloqué.</div>"; return;
-            }
-            if (!player){
-                player = new Twitch.Embed("twitch-embed", {
-                    width:"100%", height:"100%", channel, layout:"video-with-chat", autoplay:true, parent:[window.location.hostname]
-                });
-            } else { try { player.setChannel(channel); } catch(e){} }
-        }
-        loadPlayer("gotaga");
-        document.getElementById("form-channel-player").addEventListener("submit", e=>{
-            e.preventDefault();
-            const channelName = document.getElementById("input-channel").value.trim();
-            if(channelName) loadPlayer(channelName);
+        box.querySelector("#scan-watch").addEventListener("click",()=>{
+            document.getElementById("input-channel").value = s.username; loadPlayer(s.username);
+            document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
         });
-
-
-        /* ============================ 5. API HANDLERS (CORRECTED) ============================ */
-        // 5.1 Critiques IA (Fonction unique pour Complète et Diagnostic)
-        async function fetchCritiqueIA(streamerData, url, msg) {
-            const critiqueContainer = $("#critique-container");
-            const [btnCritique, btnDiagnostic] = [$("#btn-critique-ia"), $("#btn-critique-diag")];
-            critiqueContainer.innerHTML = `<div class="critique-loading">⟳ ${msg} en cours...</div>`;
-            btnCritique.disabled = btnDiagnostic.disabled = true;
-
-            try {
-                const isDiagnostic = (url === DIAGNOSTIC_URL);
-                // Préparation du payload pour le Diagnostic Titre/Tags
-                const payload = isDiagnostic ? { 
-                    title: streamerData.title || '', 
-                    tags: streamerData.tags ? streamerData.tags.join(', ') : '', 
-                    game_name: streamerData.game_name || '' 
-                } : streamerData;
-
-                const res = await fetch(url, { 
-                    method: "POST", 
-                    headers: { "Content-Type": "application/json" }, 
-                    body: JSON.stringify(payload) 
-                });
-
-                const data = await res.json();
-                
-                if (res.ok && (data.critique || data.diagnostic)) {
-                    const resultText = data.critique || data.diagnostic;
-                    const title = isDiagnostic ? `💡 Diagnostic Optimisation` : `Score IA: ${streamerData.avg_score}/5.0`;
-                    const color = isDiagnostic ? '#22c7ef' : '#ff0099';
-
-                    critiqueContainer.innerHTML = `<div class="critique" style="border-left-color:${color};">
-                        <strong>${title}:</strong><br>${resultText}
-                    </div>`;
-                } else {
-                    // Tentative de récupérer un message d'erreur du corps de la réponse JSON
-                    let apiError = data.message || data.error || data.critique || data.diagnostic;
-                    let errorMessage = apiError || `Erreur HTTP ${res.status}. Le serveur API (Render) est-il en veille ou la route API est-elle incorrecte ?`;
-                    
-                    critiqueContainer.innerHTML = `<div class="critique error"><strong>${msg} :</strong> ${errorMessage}</div>`;
-                }
-            } catch (e) {
-                // Erreur de connexion réseau pure (DNS, CORS, Timeout)
-                critiqueContainer.innerHTML = `<div class="critique error"><strong>${msg} :</strong> ❌ Échec de la connexion réseau. (Serveur Render inaccessible ou route ${url} introuvable).</div>`;
-            } finally {
-                btnCritique.disabled = btnDiagnostic.disabled = false;
-            }
-        }
-        // 5.2 Boost
-        $("#form-boost").addEventListener("submit", async e=>{
-            e.preventDefault();
-            const name = $("#input-boost").value.trim();
-            const boostMsg = $("#boost-msg");
-            if (!name) return boostMsg.textContent = "Nom requis";
-            boostMsg.textContent = "⟳ Envoi du Boost..."; $("#input-boost").disabled = true;
-            try {
-                const res = await fetch(BOOST_URL,{method:"POST", headers:{ "Content-Type":"application/json"}, body:JSON.stringify({channelName:name,userId:crypto.randomUUID()})});
-                const data = res.ok ? await res.json().catch(()=>({message:"✅ Succès"})) : {message:"❌ Erreur Serveur"};
-                boostMsg.className = "success";
-                boostMsg.textContent = data.message || `✅ Boost appliqué à ${name}`;
-            }
-            catch { boostMsg.className = "error"; boostMsg.textContent = "⚠️ Échec de la connexion à l'API Boost."; }
-            $("#input-boost").disabled = false; $("#input-boost").value = "";
+        box.querySelector("#btn-critique-ia").addEventListener("click",()=>{
+            fetchCritiqueIA(lastStreamerData, CRITIQUE_URL, 'Analyse IA Complète');
         });
-        // 5.3 Ciblage (Jeu ou Pseudo)
-        $("#form-target").addEventListener("submit", async e => {
-            e.preventDefault();
-            const targetInput = $("#input-target").value.trim();
-            const [targetStatus, actionsBox, scanLabel, btnTarget] = [$("#target-status"), $("#scan-ia-actions"), $("#scan-label"), $("#btn-target")];
-            currentGameId = currentGameName = currentTargetName = null;
-            actionsBox.classList.add("hidden"); $("#scan-result").classList.add("hidden");
-            targetStatus.className = "muted"; targetStatus.textContent = "Statut: Entrez un jeu ou un pseudo ci-dessus.";
-            if (!targetInput) return;
-            targetStatus.textContent = `⟳ Recherche de '${targetInput}'...`; btnTarget.disabled = true;
-
-            try {
-                const res = await fetch(`${GAME_ID_URL}?name=${encodeURIComponent(targetInput)}`);
-                if (res.ok) { // JEU
-                    const data = await res.json();
-                    [currentGameId, currentGameName] = [data.game_id, data.name];
-                    targetStatus.className = "success"; targetStatus.textContent = `✅ Cible définie: JEU '${currentGameName}'`;
-                    $("#current-target-name").textContent = `Jeu: ${currentGameName}`; scanLabel.textContent = "SCANNER LA CATÉGORIE";
-                    actionsBox.classList.remove("hidden"); addTargetToHistory(currentGameName, 'jeu');
-                } else if (res.status === 404) { // PSEUDO
-                    currentTargetName = targetInput;
-                    targetStatus.className = "info"; targetStatus.textContent = `⚠️ Jeu non trouvé. Cible définie: PSEUDO '${currentTargetName}'`;
-                    $("#current-target-name").textContent = `Streamer: ${currentTargetName}`; scanLabel.textContent = "SCAN GENERAL (TROUVER UN PARTENAIRE)";
-                    actionsBox.classList.remove("hidden"); await fetchTargetDetails(currentTargetName);
-                    addTargetToHistory(currentTargetName, 'pseudo');
-                } else {
-                    targetStatus.className = "error"; targetStatus.textContent = `❌ Erreur API: HTTP ${res.status}.`;
-                }
-            } catch (e) { targetStatus.className = "error"; targetStatus.textContent = "⚠️ Erreur réseau lors du ciblage.";
-            } finally { btnTarget.disabled = false; initHistory(); }
+        box.querySelector("#btn-critique-diag").addEventListener("click",()=>{
+            fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre/Tags');
         });
+    } catch (e) { box.innerHTML = `<div class="critique error"><strong>Analyse Ciblée :</strong> ${e.message}</div>`; }
+}
 
-        // 5.4 Analyse Ciblée (détails + render)
-        async function fetchTargetDetails(targetName) {
-            const box = $("#scan-result"); box.classList.remove("hidden");
-            box.innerHTML = `<div class="critique-loading">⟳ Récupération des données de ${targetName}...</div>`;
-            try {
-                const res = await fetch(`${DETAILS_URL}?login=${encodeURIComponent(targetName)}`, {cache:'no-store'});
-                if (!res.ok) throw new Error(`Streamer introuvable sur Twitch.`);
-                const s = (await res.json()).streamer; lastStreamerData = s; 
-                box.innerHTML = `
-                    <div style="background:#111;padding:12px;border-radius:6px;margin-bottom:10px;">
-                        <div style="font-weight:700;color:#ff0099;font-size:16px;margin-bottom:4px;">${s.username} 
-                            <span class="${s.is_live ? 'streamer-status-live' : 'streamer-status-offline'}" style="font-size:11px;">(${s.is_live ? 'EN DIRECT' : 'HORS LIGNE'})</span>
-                        </div>
-                        <div style="font-size:13px;color:#cdd5da;font-style:italic;">"${s.title || "Titre non disponible."}"</div>
-                        <div style="margin-top:10px;">
-                            <span class="stat-chip" style="background:#22c7ef;">JEU: ${s.game_name || 'Non Défini'}</span>
-                            <span class="stat-chip">FOLLOWERS: ${s.follower_count}</span>
-                            <span class="stat-chip">VIEWERS: ${s.viewer_count}</span>
-                        </div>
-                    </div>
-                    <div class="flex-gap-8" style="margin-top:10px;"><button id="scan-watch" class="btn-secondary" style="flex:1;">▶️ REGARDER</button></div>
-                    <div class="flex-gap-8" style="margin-top:8px;">
-                        <button id="btn-critique-ia" class="btn-primary" style="flex:1;">🧠 CRITIQUE IA (Complète)</button>
-                        <button id="btn-critique-diag" class="btn-secondary" style="flex:1; background: #9933ff;">📝 DIAGNOSTIC TITRE/TAGS</button>
-                    </div>
-                    <div id="critique-container"></div>
-                `;
-                box.querySelector("#scan-watch").addEventListener("click",()=>{
-                    document.getElementById("input-channel").value = s.username; loadPlayer(s.username);
-                    document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
-                });
-                box.querySelector("#btn-critique-ia").addEventListener("click",()=>{
-                    fetchCritiqueIA(lastStreamerData, CRITIQUE_URL, 'Analyse IA Complète');
-                });
-                box.querySelector("#btn-critique-diag").addEventListener("click",()=>{
-                    fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre/Tags');
-                });
-            } catch (e) { box.innerHTML = `<div class="critique error"><strong>Analyse Ciblée :</strong> ${e.message}</div>`; }
-        }
+// 7.5 Scanner (Random ou par Jeu)
+$("#btn-scan-random").addEventListener("click", async ()=>{
+    const [btn, msg, box] = [$("#btn-scan-random"), $("#target-status"), $("#scan-result")];
+    let [scanUrl, criteriaText] = [`${API_BASE}/random`, `Streamers FR en direct, toutes tailles`];
+    if (currentGameId) { scanUrl += `?game_id=${currentGameId}`; criteriaText = `Streamers FR en direct sur ${currentGameName}`; }
+    msg.className = "info"; msg.textContent = `⟳ Scan en cours... (Critères: ${criteriaText})`;
+    btn.disabled = true; box.classList.add("hidden"); box.innerHTML = "";
 
-        // 5.5 Scanner (Random ou par Jeu)
-        $("#btn-scan-random").addEventListener("click", async ()=>{
-            const [btn, msg, box] = [$("#btn-scan-random"), $("#target-status"), $("#scan-result")];
-            let [scanUrl, criteriaText] = [`${API_BASE}/random`, `Streamers FR en direct, toutes tailles`];
-            if (currentGameId) { scanUrl += `?game_id=${currentGameId}`; criteriaText = `Streamers FR en direct sur ${currentGameName}`; }
-            msg.className = "info"; msg.textContent = `⟳ Scan en cours... (Critères: ${criteriaText})`;
-            btn.disabled = true; box.classList.add("hidden"); box.innerHTML = "";
+    try {
+        const res = await fetch(scanUrl,{cache:'no-store'});
+        if (!res.ok) throw new Error(`Erreur de connexion (HTTP ${res.status}). Le serveur API externe est en veille.`);
+        const s = (await res.json()).streamer || (await res.json());
+        if (!s.username) throw new Error("Pas de streamer trouvé avec les critères.");
+        lastStreamerData = s;
 
-            try {
-                const res = await fetch(scanUrl,{cache:'no-store'});
-                if (!res.ok) throw new Error(`Erreur de connexion (HTTP ${res.status}). Le serveur API externe est en veille.`);
-                const s = (await res.json()).streamer || (await res.json()); 
-                if (!s.username) throw new Error("Pas de streamer trouvé avec les critères.");
-                lastStreamerData = s; 
-                msg.textContent = `✅ Streamer FR trouvé ! (Jeu: ${s.game_name || 'Non spécifié'})`; msg.className = "success";
-                
-                // Rendu des résultats du scan (identique au ciblé)
-                box.innerHTML = `
-                     <div style="background:#111;padding:12px;border-radius:6px;margin-bottom:10px;">
-                        <div style="font-weight:700;color:#ff0099;font-size:16px;margin-bottom:4px;">${s.username} 
-                            <span class="streamer-status-live" style="font-size:11px;">(EN DIRECT)</span>
-                        </div>
-                        <div style="font-size:13px;color:#cdd5da;font-style:italic;">"${s.title || "Titre non disponible."}"</div>
-                        <div style="margin-top:10px;">
-                            <span class="stat-chip" style="background:#22c7ef;">JEU: ${s.game_name || 'Non Défini'}</span>
-                            <span class="stat-chip">FOLLOWERS: ${s.follower_count}</span>
-                            <span class="stat-chip">VIEWERS: ${s.viewer_count}</span>
-                        </div>
-                    </div>
-                    <div class="flex-gap-8" style="margin-top:10px;"><button id="scan-watch" class="btn-secondary" style="flex:1;">▶️ REGARDER</button></div>
-                    <div class="flex-gap-8" style="margin-top:8px;">
-                        <button id="btn-critique-ia" class="btn-primary" style="flex:1;">🧠 CRITIQUE IA (Complète)</button>
-                        <button id="btn-critique-diag" class="btn-secondary" style="flex:1; background: #9933ff;">📝 DIAGNOSTIC TITRE/TAGS</button>
-                    </div>
-                    <div id="critique-container"></div>
-                `;
-                box.classList.remove("hidden");
+        msg.textContent = `✅ Streamer FR trouvé ! (Jeu: ${s.game_name || 'Non spécifié'})`; msg.className = "success";
 
-                box.querySelector("#scan-watch").addEventListener("click",()=>{
-                    document.getElementById("input-channel").value = s.username; loadPlayer(s.username);
-                    document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
-                });
-                box.querySelector("#btn-critique-ia").addEventListener("click",()=>{
-                    fetchCritiqueIA(lastStreamerData, CRITIQUE_URL, 'Analyse IA Complète');
-                });
-                box.querySelector("#btn-critique-diag").addEventListener("click",()=>{
-                    fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre/Tags');
-                });
-            }
-            catch(e){
-                msg.textContent = `❌ Échec du Scan: ${e.message || "Erreur inconnue"}`; msg.className = "error";
-                box.innerHTML = `<div style="font-weight:700;color:#22c7ef;font-size:16px;">🚨 Nom non trouvé (Simulé)</div>
-                    <div style="color:#ff78b3;font-weight:700;margin-top:5px;font-size:13px;">Impossible de trouver une chaîne.</div>
-                    <button id="scan-fallback" class="btn-secondary" style="margin-top:8px;width:100%;">REGARDER EXEMPLE</button>`;
-                box.classList.remove("hidden");
-                box.querySelector("#scan-fallback").addEventListener("click",()=>{
-                    document.getElementById("input-channel").value = "twitch_example_channel"; loadPlayer("twitch_example_channel");
-                    document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
-                });
-            }
-            btn.disabled = false;
+        // Rendu des résultats du scan (identique au ciblé)
+        box.innerHTML = `
+             <div style="background:#111;padding:12px;border-radius:6px;margin-bottom:10px;">
+                 <div style="font-weight:700;color:#ff0099;font-size:16px;margin-bottom:4px;">${s.username}
+                     <span class="streamer-status-live" style="font-size:11px;">(EN DIRECT)</span>
+                 </div>
+                 <div style="font-size:13px;color:#cdd5da;font-style:italic;">"${s.title || "Titre non disponible."}"</div>
+                 <div style="margin-top:10px;">
+                     <span class="stat-chip" style="background:#22c7ef;">JEU: ${s.game_name || 'Non Défini'}</span>
+                     <span class="stat-chip">FOLLOWERS: ${s.follower_count}</span>
+                     <span class="stat-chip">VIEWERS: ${s.viewer_count}</span>
+                 </div>
+             </div>
+             <div class="flex-gap-8" style="margin-top:10px;"><button id="scan-watch" class="btn-secondary" style="flex:1;">▶️ REGARDER</button></div>
+             <div class="flex-gap-8" style="margin-top:8px;">
+                 <button id="btn-critique-ia" class="btn-primary" style="flex:1;">🧠 CRITIQUE IA (Complète)</button>
+                 <button id="btn-critique-diag" class="btn-secondary" style="flex:1; background: #9933ff;">📝 DIAGNOSTIC TITRE/TAGS</button>
+             </div>
+             <div id="critique-container"></div>
+         `;
+        box.classList.remove("hidden");
+
+        box.querySelector("#scan-watch").addEventListener("click",()=>{
+            document.getElementById("input-channel").value = s.username; loadPlayer(s.username);
+            document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
         });
-
-        })();
+        box.querySelector("#btn-critique-ia").addEventListener("click",()=>{
+            fetchCritiqueIA(lastStreamerData, CRITIQUE_URL, 'Analyse IA Complète');
         });
-    </script>
+        box.querySelector("#btn-critique-diag").addEventListener("click",()=>{
+            fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre/Tags');
+        });
+    }
+    catch(e){
+        msg.textContent = `❌ Échec du Scan: ${e.message || "Erreur inconnue"}`; msg.className = "error";
+        box.innerHTML = `<div style="font-weight:700;color:#22c7ef;font-size:16px;">🚨 Nom non trouvé (Simulé)</div>
+            <div style="color:#ff78b3;font-weight:700;margin-top:5px;font-size:13px;">Impossible de trouver une chaîne.</div>
+            <button id="scan-fallback" class="btn-secondary" style="margin-top:8px;width:100%;">REGARDER EXEMPLE</button>`;
+        box.classList.remove("hidden");
+        box.querySelector("#scan-fallback").addEventListener("click",()=>{
+            document.getElementById("input-channel").value = "twitch_example_channel"; loadPlayer("twitch_example_channel");
+            document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
+        });
+    }
+    btn.disabled = false;
+});
+
+})();
+});
+</script>
 </body>
 </html>
