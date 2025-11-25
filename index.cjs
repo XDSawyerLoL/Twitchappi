@@ -25,6 +25,16 @@ app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
+// Ajout des deux routes statiques manquantes pour la complétude
+app.get('/lucky_streamer_picker.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
+});
+
+app.get('/sniper_tool.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
+});
+
+
 // =========================================================
 // Configuration des Clés & Auth Twitch
 // =========================================================
@@ -67,12 +77,13 @@ async function getTwitchAccessToken() {
         if (response.ok && data.access_token) {
             TWITCH_ACCESS_TOKEN = data.access_token;
             // Calcule la date d'expiration exacte (Actuel + Durée - 5 minutes de sécurité)
-            // Cela évite d'utiliser setTimeout avec des nombres trop grands
+            // Cela évite d'utiliser setTimeout avec des nombres trop grands qui causent le warning
             TWITCH_TOKEN_EXPIRY = Date.now() + (data.expires_in * 1000) - 300000;
             console.log("Token Twitch obtenu et stocké avec succès.");
             return TWITCH_ACCESS_TOKEN;
         } else {
-            console.error(`Erreur Token Twitch:`, data);
+             // LOGGING AMELIORE POUR DIAGNOSTIC
+            console.error(`Erreur Token Twitch (HTTP ${response.status}):`, data.message || "Réponse non OK de l'API d'authentification Twitch. Vérifiez Client ID/Secret.");
             return null;
         }
     } catch (error) {
@@ -89,10 +100,23 @@ async function getGameId(gameName, token) {
         const response = await fetch(searchUrl, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
+        
+        // --- NOUVEAU LOGGING POUR DEBUG API HELIX ---
+        if (response.status !== 200) {
+            console.error(`Erreur Twitch Helix dans getGameId (HTTP ${response.status}). Le token est peut-être périmé ou l'ID client est rejeté pour cette requête.`);
+            const errorBody = await response.text();
+            console.error("Corps de l'erreur Twitch:", errorBody.substring(0, 200)); 
+            return null;
+        }
+        // --- FIN DU NOUVEAU LOGGING ---
+
         const data = await response.json();
         if (response.ok && data.data.length > 0) return data.data[0].id;
         return null;
-    } catch (e) { return null; }
+    } catch (e) { 
+        console.error("Erreur critique inattendue dans getGameId:", e.message);
+        return null; 
+    }
 }
 
 async function getStreamerDetails(userLogin, token) {
@@ -102,6 +126,12 @@ async function getStreamerDetails(userLogin, token) {
         const userRes = await fetch(`https://api.twitch.tv/helix/users?login=${encodeURIComponent(userLogin)}`, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
+        
+        if (userRes.status !== 200) {
+            console.error(`Erreur Twitch Helix dans getStreamerDetails/User (HTTP ${userRes.status}).`);
+            return null;
+        }
+
         const userData = await userRes.json();
         if (!userData.data || userData.data.length === 0) return null;
         const user = userData.data[0];
@@ -110,6 +140,12 @@ async function getStreamerDetails(userLogin, token) {
         const streamRes = await fetch(`https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(userLogin)}`, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
+        
+        if (streamRes.status !== 200) {
+            console.warn(`Erreur Twitch Helix dans getStreamerDetails/Stream (HTTP ${streamRes.status}).`);
+            // Continuer car le streamer peut être hors ligne, mais le 400/500 est une alerte
+        }
+
         const streamData = await streamRes.json();
         const stream = streamData.data && streamData.data.length > 0 ? streamData.data[0] : null;
 
@@ -117,6 +153,11 @@ async function getStreamerDetails(userLogin, token) {
         const followRes = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${user.id}`, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
+        
+        if (followRes.status !== 200) {
+            console.error(`Erreur Twitch Helix dans getStreamerDetails/Followers (HTTP ${followRes.status}).`);
+        }
+        
         const followData = await followRes.json();
 
         // Tags
@@ -146,11 +187,22 @@ async function getStreamerDetails(userLogin, token) {
 
 // 1. GAME ID
 app.get('/gameid', async (req, res) => {
+    // Si le log a dit "succès", ce bloc doit réussir
     const token = await getTwitchAccessToken();
-    if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
-    const id = await getGameId(req.query.name, token);
-    if (id) res.json({ game_id: id, name: req.query.name });
-    else res.status(404).json({ message: "Jeu non trouvé" });
+    if (!token) {
+        // Ce cas ne devrait JAMAIS se produire si le log de démarrage était correct
+        return res.status(500).json({ message: "Erreur Auth Twitch (Token introuvable après l'obtention)." });
+    }
+
+    try {
+        const id = await getGameId(req.query.name, token);
+        if (id) res.json({ game_id: id, name: req.query.name });
+        else res.status(404).json({ message: "Jeu non trouvé" });
+    } catch (e) {
+        // Ce catch est le plus probable d'être la cause du 500
+        console.error("Erreur critique et inattendue dans /gameid:", e);
+        res.status(500).json({ message: "Erreur serveur interne dans la recherche de jeu. Vérifiez le log Render." });
+    }
 });
 
 // 2. RANDOM SCAN
@@ -186,9 +238,14 @@ app.get('/random', async (req, res) => {
 app.get('/details', async (req, res) => {
     const token = await getTwitchAccessToken();
     if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
-    const details = await getStreamerDetails(req.query.login, token);
-    if (details) res.json({ streamer: details });
-    else res.status(404).json({ message: "Streamer introuvable" });
+    try {
+        const details = await getStreamerDetails(req.query.login, token);
+        if (details) res.json({ streamer: details });
+        else res.status(404).json({ message: "Streamer introuvable" });
+    } catch (e) {
+        console.error("Erreur non gérée dans /details:", e);
+        res.status(500).json({ message: "Erreur serveur interne dans la recherche de streamer." });
+    }
 });
 
 // 4. BOOST
