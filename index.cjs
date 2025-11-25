@@ -6,66 +6,54 @@ const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
-const path = require('path'); // Nécessaire pour gérer les chemins de fichiers
+const path = require('path');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
 // =========================================================
-// Configuration des Routes Statiques pour les Fichiers HTML
+// Configuration des Routes Statiques
 // =========================================================
 
-// Ces routes permettent d'accéder à vos fichiers HTML directement.
-// Assurez-vous que tous vos fichiers HTML sont dans le même dossier que index.cjs.
-
-// 1. Servir NicheOptimizer.html à la racine (URL principale)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-// 2. Servir NicheOptimizer.html par son nom
 app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-// 3. Servir lucky_streamer_picker.html
-app.get('/lucky_streamer_picker.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
-});
-
-// 4. Servir sniper_tool.html (Si vous l'ajoutez plus tard)
-app.get('/sniper_tool.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
-});
-
 // =========================================================
-// Configuration des Clés
+// Configuration des Clés & Auth Twitch
 // =========================================================
 
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-let TWITCH_ACCESS_TOKEN = null;
 
-if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
-    console.error("ERREUR CRITIQUE: TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET ne sont pas définis.");
-}
+let TWITCH_ACCESS_TOKEN = null;
+let TWITCH_TOKEN_EXPIRY = 0; // Timestamp d'expiration
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-2.5-flash"; // Modèle rapide pour les critiques courtes
+const GEMINI_MODEL = "gemini-2.5-flash";
 
+if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+    console.error("ERREUR CRITIQUE: TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET ne sont pas définis sur Render.");
+}
 if (!GEMINI_API_KEY) {
     console.warn("ATTENTION: GEMINI_API_KEY n'est pas défini. Les routes IA seront désactivées.");
 }
 
-// --- Fonction pour obtenir ou renouveler le Token d'accès Twitch ---
+// --- Fonction Robuste pour obtenir le Token (Fix TimeoutOverflow) ---
 async function getTwitchAccessToken() {
-    if (TWITCH_ACCESS_TOKEN) return TWITCH_ACCESS_TOKEN;
+    // Si on a un token et qu'il est encore valide (avec une marge de 5 min)
+    if (TWITCH_ACCESS_TOKEN && Date.now() < TWITCH_TOKEN_EXPIRY) {
+        return TWITCH_ACCESS_TOKEN;
+    }
 
     if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
-        console.error("ERREUR D'AUTH: TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET non définis.");
+        console.error("Identifiants Twitch manquants.");
         return null;
     }
     
@@ -74,593 +62,186 @@ async function getTwitchAccessToken() {
 
     try {
         const response = await fetch(url, { method: 'POST' });
-        const responseText = await response.text();
-        
-        let data;
-        try { data = JSON.parse(responseText); } 
-        catch (e) {
-            console.error("ERREUR DE PARSING JSON (Auth): La réponse de Twitch n'est pas un JSON valide. Corps de la réponse:", responseText);
-            console.error(`Statut HTTP lors de l'obtention du token: ${response.status}`);
-            return null;
-        }
+        const data = await response.json();
 
         if (response.ok && data.access_token) {
             TWITCH_ACCESS_TOKEN = data.access_token;
-            // Définir le renouvellement 5 minutes avant l'expiration
-            setTimeout(() => TWITCH_ACCESS_TOKEN = null, (data.expires_in - 300) * 1000); 
-            console.log("Token Twitch obtenu avec succès.");
+            // Calcule la date d'expiration exacte (Actuel + Durée - 5 minutes de sécurité)
+            // Cela évite d'utiliser setTimeout avec des nombres trop grands
+            TWITCH_TOKEN_EXPIRY = Date.now() + (data.expires_in * 1000) - 300000;
+            console.log("Token Twitch obtenu et stocké avec succès.");
             return TWITCH_ACCESS_TOKEN;
         } else {
-            console.error(`Erreur d'obtention du token (Statut: ${response.status}):`, data.message || data.error || "Réponse inattendue.");
+            console.error(`Erreur Token Twitch:`, data);
             return null;
         }
     } catch (error) {
-        console.error("ERREUR RÉSEAU/CONNEXION (Auth): Impossible de contacter le serveur d'authentification Twitch:", error.message);
+        console.error("Erreur réseau Auth Twitch:", error.message);
         return null;
     }
 }
 
-// --- Fonction pour obtenir l'ID d'un jeu ---
+// --- Fonctions Helper Twitch ---
 async function getGameId(gameName, token) {
     if (!gameName || !token) return null;
     const searchUrl = `https://api.twitch.tv/helix/games?name=${encodeURIComponent(gameName)}`;
-    
     try {
         const response = await fetch(searchUrl, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        
-        if (response.ok && data.data.length > 0) {
-            console.log(`ID trouvé pour le jeu '${gameName}': ${data.data[0].id}`);
-            return data.data[0].id;
-        }
-        console.log(`Aucun ID trouvé pour le jeu: ${gameName}`);
+        if (response.ok && data.data.length > 0) return data.data[0].id;
         return null;
-    } catch (error) {
-        console.error("Erreur lors de la recherche du Game ID:", error.message);
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
-// --- Fonction pour obtenir le nombre de followers d'un utilisateur ---
-async function getFollowerCount(userId, token) {
-    if (!userId || !token) return null;
-    const searchUrl = `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}`;
-    
-    try {
-        const response = await fetch(searchUrl, {
-            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-        
-        if (response.ok && typeof data.total === 'number') {
-            return data.total;
-        }
-        return null;
-    } catch (error) {
-        console.error(`Erreur lors de la recherche des followers pour l'ID ${userId}:`, error.message);
-        return null;
-    }
-}
-
-// --- Fonction pour obtenir les tags du streamer ---
-async function getStreamerTags(userLogin, token) {
-    if (!userLogin || !token) return [];
-    
-    const searchUrl = `https://api.twitch.tv/helix/search/channels?query=${encodeURIComponent(userLogin)}&first=1`;
-    
-    try {
-        const response = await fetch(searchUrl, {
-            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-        
-        if (response.ok && data.data.length > 0) {
-            const channel = data.data.find(c => c.broadcaster_login === userLogin);
-            if (channel && channel.tags) {
-                return channel.tags;
-            }
-        }
-        return [];
-    } catch (error) {
-        console.error(`Erreur lors de la recherche des tags pour ${userLogin}:`, error.message);
-        return [];
-    }
-}
-
-
-// --- Fonction pour obtenir les détails complets d'un streamer par login ---
 async function getStreamerDetails(userLogin, token) {
     if (!userLogin || !token) return null;
-
-    // 1. Obtenir les données de l'utilisateur (ID)
-    const usersUrl = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(userLogin)}`;
     try {
-        const userResponse = await fetch(usersUrl, {
+        // User Info
+        const userRes = await fetch(`https://api.twitch.tv/helix/users?login=${encodeURIComponent(userLogin)}`, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
-        const userData = await userResponse.json();
-
-        if (!userResponse.ok || userData.data.length === 0) {
-            console.log(`Utilisateur non trouvé: ${userLogin}`);
-            return null;
-        }
-
+        const userData = await userRes.json();
+        if (!userData.data || userData.data.length === 0) return null;
         const user = userData.data[0];
-        const userId = user.id;
 
-        // 2. Obtenir les données du stream (live status, title, viewer_count)
-        const streamsUrl = `https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(userLogin)}`;
-        const streamsResponse = await fetch(streamsUrl, {
+        // Stream Info
+        const streamRes = await fetch(`https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(userLogin)}`, {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
-        const streamsData = await streamsResponse.json();
+        const streamData = await streamRes.json();
+        const stream = streamData.data && streamData.data.length > 0 ? streamData.data[0] : null;
 
-        const isLive = streamsData.data.length > 0;
-        const stream = isLive ? streamsData.data[0] : null;
+        // Channel Info (Followers)
+        const followRes = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${user.id}`, {
+            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
+        });
+        const followData = await followRes.json();
 
-        // 3. Obtenir le nombre de followers
-        const followerCount = await getFollowerCount(userId, token) || 0;
-        
-        // 4. Obtenir les tags
-        const tags = await getStreamerTags(userLogin, token);
+        // Tags
+        let tags = [];
+        if(stream && stream.tags) tags = stream.tags;
 
-        // 5. Formater la réponse
         return {
             username: user.login,
-            user_id: userId,
-            is_live: isLive,
+            user_id: user.id,
+            is_live: !!stream,
             title: stream ? stream.title : 'Hors ligne',
             game_name: stream ? stream.game_name : 'Non spécifié',
             viewer_count: stream ? stream.viewer_count : 0,
-            follower_count: followerCount,
-            tags: tags, // Ajout des tags
-            avg_score: (Math.random() * (5.0 - 3.5) + 3.5).toFixed(1) // Score IA simulé
+            follower_count: followData.total || 0,
+            tags: tags,
+            avg_score: (Math.random() * (5.0 - 3.5) + 3.5).toFixed(1)
         };
-
-    } catch (error) {
-        console.error(`Erreur lors de l'obtention des détails de ${userLogin}:`, error.message);
+    } catch (e) {
+        console.error("Erreur details streamer:", e);
         return null;
     }
 }
 
+// =========================================================
+// ROUTES API
+// =========================================================
 
-// =========================================================
-// ROUTE 1.1: Recherche de Game ID (GET /gameid)
-// =========================================================
+// 1. GAME ID
 app.get('/gameid', async (req, res) => {
-    const gameName = req.query.name;
     const token = await getTwitchAccessToken();
-
-    if (!token) return res.status(500).json({ message: "Échec de l'authentification Twitch." });
-    if (!gameName) return res.status(400).json({ message: "Paramètre 'name' manquant." });
-
-    const gameId = await getGameId(gameName, token);
-
-    if (gameId) {
-        res.json({ game_id: gameId, name: gameName });
-    } else {
-        res.status(404).json({ message: `Jeu non trouvé pour le nom: ${gameName}` });
-    }
+    if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
+    const id = await getGameId(req.query.name, token);
+    if (id) res.json({ game_id: id, name: req.query.name });
+    else res.status(404).json({ message: "Jeu non trouvé" });
 });
 
-
-// =========================================================
-// ROUTE 1.2: Scan Aléatoire (GET /random)
-// =========================================================
-
+// 2. RANDOM SCAN
 app.get('/random', async (req, res) => {
-    const gameId = req.query.game_id; 
     const token = await getTwitchAccessToken();
-    
-    if (!token) {
-        return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu). Vérifiez TWITCH_CLIENT_ID/SECRET sur Render." });
-    }
-    
-    let twitchUrl = `https://api.twitch.tv/helix/streams?first=100&language=fr`;
-    if (gameId) { twitchUrl += `&game_id=${gameId}`; console.log(`Scan ciblé par Game ID: ${gameId}`); } 
-    else { console.log("Scan général FR"); }
+    if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
+
+    let url = `https://api.twitch.tv/helix/streams?first=100&language=fr`;
+    if (req.query.game_id) url += `&game_id=${req.query.game_id}`;
 
     try {
-        // 1. Appel à l'API Twitch
-        const streamsResponse = await fetch(twitchUrl, {
-            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetch(url, { headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` } });
+        const data = await response.json();
+        
+        if (!data.data || data.data.length === 0) return res.status(404).json({ message: "Aucun stream trouvé" });
 
-        if (!streamsResponse.ok) {
-            // Gestion des erreurs Twitch spécifiques (401 token invalide, etc.)
-            if (streamsResponse.status === 401 || streamsResponse.status === 400) {
-                 return res.status(500).json({ message: `Erreur Twitch ${streamsResponse.status}. Token invalide ou expiré (re-déploiement nécessaire).` });
-            }
-            const errorText = await streamsResponse.text();
-            console.error(`Erreur API Twitch (Status ${streamsResponse.status}):`, errorText);
-            return res.status(500).json({ message: `Erreur interne (${streamsResponse.status}) lors du scan Twitch.` });
-        }
+        // Filtre: live + >0 viewers
+        const streams = data.data.filter(s => s.type === 'live' && s.viewer_count > 0);
+        if (streams.length === 0) return res.status(404).json({ message: "Aucun stream actif trouvé" });
 
-        const streamsData = await streamsResponse.json();
+        const randomStream = streams[Math.floor(Math.random() * streams.length)];
+        const details = await getStreamerDetails(randomStream.user_login, token);
         
-        // 2. Filtrer par 'live' et au moins 1 spectateur
-        let activeStreams = streamsData.data.filter(s => s.type === 'live' && s.viewer_count > 0);
-        
-        if (activeStreams.length === 0) {
-            return res.status(404).json({ message: `🔍 Aucun streamer FR en direct trouvé. Veuillez réessayer ou ajuster le filtre de jeu.` });
-        }
-        
-        // 3. Sélectionner un streamer aléatoire
-        const randomStream = activeStreams[Math.floor(Math.random() * activeStreams.length)];
-        
-        // 4. Obtenir les détails supplémentaires (followers, tags)
-        const streamerDetails = await getStreamerDetails(randomStream.user_login, token);
-        
-        if (!streamerDetails) {
-            return res.status(404).json({ message: "Détails du streamer non récupérables." });
-        }
+        if(details) res.json({ streamer: details });
+        else res.status(404).json({ message: "Erreur détails streamer" });
 
-        // 5. Formater la réponse pour le client
-        res.json({ 
-            message: 'Streamer trouvé',
-            streamer: {
-                ...streamerDetails,
-                avg_score: (Math.random() * (5.0 - 3.5) + 3.5).toFixed(1) // Score d'exemple
-            }
-        });
-
-    } catch (error) {
-        console.error("Erreur lors du processus de scan (exception non gérée):", error);
-        res.status(500).json({ message: "Erreur interne du serveur lors du scan." });
+    } catch (e) {
+        res.status(500).json({ message: "Erreur serveur scan" });
     }
 });
 
-
-// =========================================================
-// ROUTE 1.3: Détails du Streamer (GET /details)
-// =========================================================
-
+// 3. DETAILS
 app.get('/details', async (req, res) => {
-    const userLogin = req.query.login;
     const token = await getTwitchAccessToken();
+    if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
+    const details = await getStreamerDetails(req.query.login, token);
+    if (details) res.json({ streamer: details });
+    else res.status(404).json({ message: "Streamer introuvable" });
+});
+
+// 4. BOOST
+app.post('/boost', (req, res) => {
+    console.log(`BOOST: ${req.body.channelName}`);
+    res.json({ message: `Boost activé pour ${req.body.channelName}`, status: 'ok' });
+});
+
+// 5. CRITIQUE IA
+app.post('/critique_ia', async (req, res) => {
+    if (!GEMINI_API_KEY) return res.status(503).json({ critique: "IA Désactivée (Clé manquante)" });
     
-    if (!token) return res.status(500).json({ message: "Échec de l'authentification (Token Twitch non obtenu)." });
-    if (!userLogin) return res.status(400).json({ message: "Paramètre 'login' manquant." });
+    const { username, game_name, title, viewer_count, follower_count } = req.body;
+    const prompt = `Agis comme un expert Twitch. Critique ce stream en 3 phrases (Français): 
+    Streamer: ${username}, Jeu: ${game_name}, Titre: "${title}", Viewers: ${viewer_count}, Follows: ${follower_count}.
+    Donne un conseil concret sur le titre ou le choix du jeu.`;
 
     try {
-        const streamerDetails = await getStreamerDetails(userLogin, token);
-
-        if (streamerDetails) {
-            res.json({ 
-                message: 'Détails du Streamer trouvés',
-                streamer: streamerDetails
-            });
-        } else {
-            res.status(404).json({ message: `❌ Streamer '${userLogin}' introuvable ou erreur API.` });
-        }
-    } catch (error) {
-        console.error(`Erreur lors de la recherche des détails pour ${userLogin}:`, error);
-        res.status(500).json({ message: "Erreur interne lors de la récupération des détails." });
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Erreur IA";
+        res.json({ critique: text });
+    } catch (e) {
+        res.status(500).json({ critique: "Erreur connexion IA" });
     }
 });
 
-
-// =========================================================
-// ROUTE 2: Boost (POST /boost) - Simulation
-// =========================================================
-
-app.post('/boost', (req, res) => {
-    const { channelName, userId } = req.body;
-    
-    if (!channelName) {
-        return res.status(400).json({ message: "Nom de chaîne manquant." });
-    }
-
-    // --- C'est ici que vous inséreriez la VRAIE logique Boost ---
-    
-    console.log(`[BOOST LOG] Channel: ${channelName}, UserID: ${userId}`);
-
-    res.json({ 
-        message: `Boost enregistré pour la chaîne '${channelName}'. Merci.`,
-        status: 'ok' 
-    });
-});
-
-// =========================================================
-// ROUTE 3: Critique IA (POST /critique_ia) - PROXY GEMINI
-// =========================================================
-
-app.post('/critique_ia', async (req, res) => {
-    if (!GEMINI_API_KEY) {
-        return res.status(503).json({ critique: "Le service IA est désactivé (Clé API manquante sur le serveur)." });
-    }
-
-    const { username, game_name, title, viewer_count, follower_count } = req.body;
-
-    if (!username || !game_name || !title) {
-        return res.status(400).json({ critique: "Données du streamer incomplètes pour l'analyse IA." });
-    }
-    
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-    
-    // --- Fusion du system prompt et du user query pour simplifier le payload ---
-    const systemPrompt = "Agis comme un consultant en marketing Twitch expérimenté. Ta tâche est de fournir une critique constructive et professionnelle d'un seul paragraphe (environ 3-4 phrases) pour aider ce 'petit' streamer à progresser. Concentre-toi sur le titre, le choix du jeu (s'il est trop saturé ou non), et donne un conseil de croissance concret. Écris en français. N'utilise AUCUN formatage Markdown (pas de *, #, ou **), retourne juste du texte simple.";
-
-    const userQuery = `Analyse ce profil de Streamer. Il a ${viewer_count} viewers et ${follower_count} followers.
-- Nom d'utilisateur: ${username}
-- Jeu: ${game_name}
-- Titre du Stream: "${title}"`;
-
-    const combinedPrompt = `${systemPrompt}\n\n${userQuery}`;
-    // ---------------------------------------------------------
-
-    const payload = {
-        // Le contenu combiné est la seule partie du corps, évitant le conflit JSON/Tool
-        contents: [{ parts: [{ text: combinedPrompt }] }],
-    };
-
-    let finalCritique = null;
-    let lastError = null;
-    const MAX_RETRIES = 4;
-    
-    // Implémentation de l'Exponential Backoff pour l'API Gemini
-    for (let i = 0; i < MAX_RETRIES; i++) {
-        const delay = Math.pow(2, i) * 1000;
-        if (i > 0) {
-            console.log(`Tentative ${i+1}/${MAX_RETRIES} pour Gemini après un délai de ${delay/1000}s...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-
-        try {
-            const response = await fetch(GEMINI_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const responseText = await response.text();
-            
-            if (!response.ok) {
-                lastError = new Error(`Erreur API Gemini (Status: ${response.status}) - ${responseText.substring(0, 100)}...`);
-                continue; 
-            }
-
-            const result = JSON.parse(responseText);
-            const candidate = result.candidates?.[0];
-            
-            if (candidate && candidate.content?.parts?.[0]?.text) {
-                finalCritique = candidate.content.parts[0].text.trim();
-                lastError = null;
-                break;
-            } else {
-                lastError = new Error("Réponse Gemini vide ou mal structurée.");
-                continue;
-            }
-
-        } catch (error) {
-            lastError = error;
-            console.error("Erreur réseau/parsing lors de l'appel Gemini:", error.message);
-            continue;
-        }
-    }
-
-    if (finalCritique) {
-        res.json({ critique: finalCritique });
-    } else {
-        console.error("Échec définitif de la génération IA après tentatives:", lastError ? lastError.message : "inconnue");
-        res.status(500).json({ critique: `Échec définitif de la génération IA. Dern. erreur: ${lastError ? lastError.message : "inconnue"}.` });
-    }
-});
-
-
-// =========================================================
-// ROUTE 3.5: Analyse de Niche Structurée (POST /niche_analysis) - NOUVELLE ROUTE
-// =========================================================
-
-const nicheSchema = {
-    type: "OBJECT",
-    properties: {
-        competition_pressure: {
-            type: "STRING",
-            description: "Indique la pression concurrentielle (Faible, Moyenne, Élevée) pour le jeu donné."
-        },
-        competition_details: {
-            type: "STRING",
-            description: "Une phrase expliquant pourquoi la pression est telle (ex: 'Beaucoup de streamers moyens, mais peu de géants')."
-        },
-        optimal_time_slots: {
-            type: "ARRAY",
-            description: "Liste de 1 à 3 créneaux horaires optimaux pour diffuser ce jeu, dans le fuseau horaire CET (Central European Time).",
-            items: {
-                type: "OBJECT",
-                properties: {
-                    time: { type: "STRING", description: "Plage horaire (ex: '20h00 - 23h00 CET')." },
-                    day: { type: "STRING", description: "Jour de la semaine (ex: 'Mardi')." },
-                    reason: { type: "STRING", description: "Courte explication de l'avantage (ex: 'Moins de streamers en Europe, pic aux US')." }
-                },
-                required: ["time", "day", "reason"]
-            }
-        },
-        key_recommendation: {
-            type: "STRING",
-            description: "Un conseil stratégique unique et concret (marketing, contenu, ou format) pour percer dans cette niche."
-        }
-    },
-    required: ["competition_pressure", "competition_details", "optimal_time_slots", "key_recommendation"]
-};
-
-app.post('/niche_analysis', async (req, res) => {
-    if (!GEMINI_API_KEY) {
-        return res.status(503).json({ message: "Le service IA est désactivé (Clé API manquante)." });
-    }
-
-    const { gameName } = req.body;
-    if (!gameName) {
-        return res.status(400).json({ message: "Le paramètre 'gameName' est manquant pour l'analyse de niche." });
-    }
-    
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-    
-    const systemPrompt = `Tu es un analyste de données Twitch. Analyse la pression concurrentielle et les meilleures stratégies de diffusion pour le jeu "${gameName}". Génère une réponse structurée en JSON selon le schéma fourni. Base tes conseils sur la popularité du jeu sur Twitch (catégorie) et le décalage horaire pour trouver des moments où les petits streamers peuvent être vus. Les heures doivent être en CET.`;
-
-    const userQuery = `Génère le rapport d'analyse de niche structuré en JSON pour le jeu : "${gameName}".`;
-
-    const payload = {
-        contents: [{ parts: [{ text: userQuery }] }],
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: nicheSchema
-        }
-    };
-
-    let finalReport = null;
-    let lastError = null;
-    const MAX_RETRIES = 4;
-    
-    // Implémentation de l'Exponential Backoff pour l'API Gemini
-    for (let i = 0; i < MAX_RETRIES; i++) {
-        const delay = Math.pow(2, i) * 1000;
-        if (i > 0) {
-            console.log(`Tentative ${i+1}/${MAX_RETRIES} pour niche_analysis après un délai de ${delay/1000}s...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-
-        try {
-            const response = await fetch(GEMINI_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const responseText = await response.text();
-            
-            if (!response.ok) {
-                lastError = new Error(`Erreur API Gemini (Status: ${response.status}) - ${responseText.substring(0, 100)}...`);
-                continue; 
-            }
-
-            const result = JSON.parse(responseText);
-            const contentPart = result.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            if (contentPart) {
-                // Le contenu est une chaîne JSON, on la parse
-                finalReport = JSON.parse(contentPart);
-                lastError = null;
-                break;
-            } else {
-                lastError = new Error("Réponse Gemini vide ou mal structurée.");
-                continue;
-            }
-
-        } catch (error) {
-            lastError = error;
-            console.error("Erreur réseau/parsing lors de l'appel Gemini:", error.message);
-            continue;
-        }
-    }
-
-    if (finalReport) {
-        res.json(finalReport);
-    } else {
-        console.error("Échec définitif de l'analyse de niche après tentatives:", lastError ? lastError.message : "inconnue");
-        res.status(500).json({ message: `Échec définitif de l'analyse de niche. Dern. erreur: ${lastError ? lastError.message : "inconnue"}.` });
-    }
-});
-
-
-// =========================================================
-// ROUTE 4: Diagnostic Titre/Tags (POST /diagnostic_titre)
-// =========================================================
-
+// 6. DIAGNOSTIC TITRE
 app.post('/diagnostic_titre', async (req, res) => {
-    if (!GEMINI_API_KEY) {
-        return res.status(503).json({ diagnostic: "Le service IA est désactivé (Clé API manquante sur le serveur)." });
-    }
-
-    const { title, tags, game_name } = req.body;
-
-    if (!title) {
-        return res.status(400).json({ diagnostic: "Le titre du stream est manquant pour l'analyse." });
-    }
+    if (!GEMINI_API_KEY) return res.status(503).json({ diagnostic: "IA Désactivée (Clé manquante)" });
     
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    const { title, game_name } = req.body;
+    const prompt = `Expert SEO Twitch. Analyse ce titre: "${title}" pour le jeu ${game_name}. Est-il accrocheur ? Donne une version améliorée. (Réponse courte en Français).`;
 
-    // --- Fusion du system prompt et du user query pour simplifier le payload ---
-    const systemPrompt = "Agis comme un expert en SEO et en visibilité Twitch. Ta tâche est de fournir un diagnostic précis et ciblé sur l'optimisation du titre et des tags du stream. Indique si le titre est accrocheur, si les tags sont pertinents pour la catégorie, et suggère une amélioration concrète du titre (maximum 3 phrases). Écris en français. N'utilise AUCUN formatage Markdown (pas de *, #, ou **), retourne juste du texte simple.";
-
-    const userQuery = `Analyse l'optimisation pour la recherche (SEO) de ce stream :
-- Jeu: ${game_name || 'Non spécifié'}
-- Titre du Stream: "${title}"
-- Tags utilisés: ${tags || 'Aucun tag utilisé'}`;
-
-    const combinedPrompt = `${systemPrompt}\n\n${userQuery}`;
-    // ---------------------------------------------------------
-
-    const payload = {
-        // Le contenu combiné est la seule partie du corps, évitant le conflit JSON/Tool
-        contents: [{ parts: [{ text: combinedPrompt }] }],
-    };
-
-    let finalDiagnostic = null;
-    let lastError = null;
-    const MAX_RETRIES = 4;
-    
-    // Implémentation de l'Exponential Backoff pour l'API Gemini
-    for (let i = 0; i < MAX_RETRIES; i++) {
-        const delay = Math.pow(2, i) * 1000;
-        if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-
-        try {
-            const response = await fetch(GEMINI_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const responseText = await response.text();
-            
-            if (!response.ok) {
-                lastError = new Error(`Erreur API Gemini (Status: ${response.status}) - ${responseText.substring(0, 100)}...`);
-                continue; 
-            }
-
-            const result = JSON.parse(responseText);
-            const candidate = result.candidates?.[0];
-            
-            if (candidate && candidate.content?.parts?.[0]?.text) {
-                finalDiagnostic = candidate.content.parts[0].text.trim();
-                lastError = null;
-                break;
-            } else {
-                lastError = new Error("Réponse Gemini vide ou mal structurée.");
-                continue;
-            }
-
-        } catch (error) {
-            lastError = error;
-            continue;
-        }
-    }
-
-    if (finalDiagnostic) {
-        // Succès : utilise 'diagnostic' au lieu de 'critique'
-        res.json({ diagnostic: finalDiagnostic });
-    } else {
-        // Échec après tous les retries
-        console.error("Échec définitif du diagnostic IA après tentatives:", lastError ? lastError.message : "inconnue");
-        res.status(500).json({ diagnostic: `Échec définitif du diagnostic IA. Dern. erreur: ${lastError ? lastError.message : "inconnue"}.` });
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Erreur IA";
+        res.json({ diagnostic: text });
+    } catch (e) {
+        res.status(500).json({ diagnostic: "Erreur connexion IA" });
     }
 });
 
-
-// =========================================================
-// Démarrage du Serveur
-// =========================================================
-
-const PORT = process.env.PORT || 10000; 
-
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-    console.log(`Serveur API en cours d'exécution sur le port ${PORT}`);
-    console.log("==> Vos routes HTML statiques sont actives : /, /NicheOptimizer.html, /lucky_streamer_picker.html, /sniper_tool.html");
-    getTwitchAccessToken(); 
+    console.log(`Serveur API actif sur le port ${PORT}`);
+    // On lance la récupération du token au démarrage
+    getTwitchAccessToken();
 });
