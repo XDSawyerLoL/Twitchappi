@@ -365,7 +365,6 @@ app.post('/boost', (req, res) => {
 
 // =========================================================
 // ROUTE 3: Critique IA (POST /critique_ia) - PROXY GEMINI
-// MISE À JOUR: Fusion du System Prompt dans le User Query pour éviter le conflit JSON/Tool (code 400).
 // =========================================================
 
 app.post('/critique_ia', async (req, res) => {
@@ -452,8 +451,123 @@ app.post('/critique_ia', async (req, res) => {
 
 
 // =========================================================
+// ROUTE 3.5: Analyse de Niche Structurée (POST /niche_analysis) - NOUVELLE ROUTE
+// =========================================================
+
+const nicheSchema = {
+    type: "OBJECT",
+    properties: {
+        competition_pressure: {
+            type: "STRING",
+            description: "Indique la pression concurrentielle (Faible, Moyenne, Élevée) pour le jeu donné."
+        },
+        competition_details: {
+            type: "STRING",
+            description: "Une phrase expliquant pourquoi la pression est telle (ex: 'Beaucoup de streamers moyens, mais peu de géants')."
+        },
+        optimal_time_slots: {
+            type: "ARRAY",
+            description: "Liste de 1 à 3 créneaux horaires optimaux pour diffuser ce jeu, dans le fuseau horaire CET (Central European Time).",
+            items: {
+                type: "OBJECT",
+                properties: {
+                    time: { type: "STRING", description: "Plage horaire (ex: '20h00 - 23h00 CET')." },
+                    day: { type: "STRING", description: "Jour de la semaine (ex: 'Mardi')." },
+                    reason: { type: "STRING", description: "Courte explication de l'avantage (ex: 'Moins de streamers en Europe, pic aux US')." }
+                },
+                required: ["time", "day", "reason"]
+            }
+        },
+        key_recommendation: {
+            type: "STRING",
+            description: "Un conseil stratégique unique et concret (marketing, contenu, ou format) pour percer dans cette niche."
+        }
+    },
+    required: ["competition_pressure", "competition_details", "optimal_time_slots", "key_recommendation"]
+};
+
+app.post('/niche_analysis', async (req, res) => {
+    if (!GEMINI_API_KEY) {
+        return res.status(503).json({ message: "Le service IA est désactivé (Clé API manquante)." });
+    }
+
+    const { gameName } = req.body;
+    if (!gameName) {
+        return res.status(400).json({ message: "Le paramètre 'gameName' est manquant pour l'analyse de niche." });
+    }
+    
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    const systemPrompt = `Tu es un analyste de données Twitch. Analyse la pression concurrentielle et les meilleures stratégies de diffusion pour le jeu "${gameName}". Génère une réponse structurée en JSON selon le schéma fourni. Base tes conseils sur la popularité du jeu sur Twitch (catégorie) et le décalage horaire pour trouver des moments où les petits streamers peuvent être vus. Les heures doivent être en CET.`;
+
+    const userQuery = `Génère le rapport d'analyse de niche structuré en JSON pour le jeu : "${gameName}".`;
+
+    const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: nicheSchema
+        }
+    };
+
+    let finalReport = null;
+    let lastError = null;
+    const MAX_RETRIES = 4;
+    
+    // Implémentation de l'Exponential Backoff pour l'API Gemini
+    for (let i = 0; i < MAX_RETRIES; i++) {
+        const delay = Math.pow(2, i) * 1000;
+        if (i > 0) {
+            console.log(`Tentative ${i+1}/${MAX_RETRIES} pour niche_analysis après un délai de ${delay/1000}s...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        try {
+            const response = await fetch(GEMINI_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const responseText = await response.text();
+            
+            if (!response.ok) {
+                lastError = new Error(`Erreur API Gemini (Status: ${response.status}) - ${responseText.substring(0, 100)}...`);
+                continue; 
+            }
+
+            const result = JSON.parse(responseText);
+            const contentPart = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if (contentPart) {
+                // Le contenu est une chaîne JSON, on la parse
+                finalReport = JSON.parse(contentPart);
+                lastError = null;
+                break;
+            } else {
+                lastError = new Error("Réponse Gemini vide ou mal structurée.");
+                continue;
+            }
+
+        } catch (error) {
+            lastError = error;
+            console.error("Erreur réseau/parsing lors de l'appel Gemini:", error.message);
+            continue;
+        }
+    }
+
+    if (finalReport) {
+        res.json(finalReport);
+    } else {
+        console.error("Échec définitif de l'analyse de niche après tentatives:", lastError ? lastError.message : "inconnue");
+        res.status(500).json({ message: `Échec définitif de l'analyse de niche. Dern. erreur: ${lastError ? lastError.message : "inconnue"}.` });
+    }
+});
+
+
+// =========================================================
 // ROUTE 4: Diagnostic Titre/Tags (POST /diagnostic_titre)
-// MISE À JOUR: Fusion du System Prompt dans le User Query pour éviter le conflit JSON/Tool (code 400).
 // =========================================================
 
 app.post('/diagnostic_titre', async (req, res) => {
