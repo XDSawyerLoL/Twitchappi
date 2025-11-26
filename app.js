@@ -1,222 +1,309 @@
+// =========================================================
+// Configuration des Endpoints API
+// =========================================================
+// L'URL de base pour toutes les API qui s'exécutent sur ce même serveur (justplayerstreamhubpro.onrender.com).
+// Utiliser un chemin relatif ("/") permet d'éviter les erreurs CORS pour ces routes.
+const INTERNAL_API_BASE = ''; 
+
+// L'URL pour les routes IA/critiques
+const CRITIQUE_API_URL = `${INTERNAL_API_BASE}/critique_ia`;
+const DIAGNOSTIC_API_URL = `${INTERNAL_API_BASE}/diagnostic_titre`;
+const GAME_ID_API_URL = `${INTERNAL_API_BASE}/gameid`;
+
+// 🚨 CORRECTION CORS 🚨
+// Nous appelons maintenant nos propres routes /random et /boost sur le serveur principal, 
+// au lieu de l'API externe (twitch-random-api.onrender.com) qui posait problème.
+const RANDOM_API_URL = `${INTERNAL_API_BASE}/random`; 
+const BOOST_API_URL = `${INTERNAL_API_BASE}/boost`; 
+// =========================================================
 
 
-// app.js
+let currentStreamer = null;
+const resultsContainer = document.getElementById('random-streamer-results');
+const boostButton = document.getElementById('boost-button');
+const critiqueButton = document.getElementById('critique-button');
+const titleDiagnosticButton = document.getElementById('title-diagnostic-button');
+const loadingSpinner = document.getElementById('loading-spinner');
+const errorDisplay = document.getElementById('error-message');
 
-/* ============================================================
-    CONFIGURATION API (FIXÉE)
-============================================================ */
-// Ces URLs utilisent l'adresse complète pour garantir l'appel
-const API_BASE = "https://twitch-random-api.onrender.com";
-const BOOST_URL = API_BASE + "/boost";
-const SCAN_URL = API_BASE + "/random?max_viewers=30"; // Ajout du filtre pour petits streamers
 
-/* ============================================================
-    ÉTAT GLOBAL
-============================================================ */
-const ROOT = document.getElementById('app-root');
-let state = {
-  currentChannel: 'gotaga',
-  boostLoading: false,
-  boostMessage: '',
-  scannerLoading: false,
-  scannerResult: null,
-  scannerMessage: "Appuyez sur SCANNER pour trouver un streamer validé."
-};
+/**
+ * @typedef {object} StreamerDetails
+ * @property {string} username
+ * @property {string} title
+ * @property {string} game_name
+ * @property {number} viewer_count
+ * @property {number} follower_count
+ * @property {number} avg_score
+ */
 
-let twitchPlayer = null;
 
-// Icônes SVG (Le code des icônes est correct, il est conservé ici)
-const IconZap = () => `<svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`;
-const IconSearch = () => `<svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-const IconSend = () => `<svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-const IconVideo = () => `<svg class="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"></path><line x1="12" y1="9" x2="12" y2="15"></line><line x1="9" y1="12" x2="15" y2="12"></line></svg>`;
-const ExternalLinkIcon = () => `<svg class="w-5 h-5 ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`;
+// --- Affichage des messages et état de chargement ---
 
-/* ============================================================
-    RENDU PRINCIPAL
-============================================================ */
-function render() {
-  ROOT.innerHTML = `
-    <header class="text-center mb-8 md:mb-12">
-      <h1 class="text-4xl md:text-6xl font-extrabold text-[#FF0099] mb-2" style="font-family: 'Orbitron'">STREAMER HUB V2.0</h1>
-      <p class="text-[#22c7ef] text-lg">Lecteur Intégré, Boost Actif & Scanner IA</p>
-    </header>
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-      <div class="xl:col-span-2 space-y-4">
-        <h2 class="text-2xl font-bold text-[#22c7ef] flex items-center" style="font-family: 'Orbitron'">${IconVideo()} FLUX VIDÉO CYBER</h2>
-        <div class="bg-gray-900 p-4 rounded-xl shadow-lg border border-gray-700/50">
-          <form id="streamer-input-form" class="flex flex-col sm:flex-row gap-2">
-            <input id="channel-input" class="flex-grow p-3 bg-gray-800 border border-[#22c7ef]/60 rounded text-white focus:outline-none focus:border-[#FF0099]" value="${state.currentChannel}" required placeholder="Nom de la chaîne Twitch" />
-            <button type="submit" class="btn-secondary px-6 py-3 rounded font-bold flex items-center justify-center min-w-[120px]">${IconVideo()} LANCER</button>
-          </form>
-        </div>
-        <div class="twitch-embed-container bg-gray-900 neon-border">
-          <div id="twitch-embed"></div>
-        </div>
-      </div>
-      <div class="xl:col-span-1 space-y-8">
-        <div class="p-6 rounded-xl neon-border bg-[#1a1a1a]">
-          <h2 class="text-2xl font-bold text-[#FF0099] mb-4 flex items-center" style="font-family: 'Orbitron'">${IconZap()} BOOST ACTIVATION</h2>
-          <form id="boost-form" class="space-y-4">
-            <input id="boost-input" class="w-full p-3 bg-gray-900 border border-[#FF0099]/60 rounded text-white focus:outline-none focus:border-[#22c7ef]" required placeholder="Ex: MonStreamer" />
-            <button type="submit" class="w-full btn-primary py-3 rounded font-bold flex justify-center items-center" ${state.boostLoading ? 'disabled' : ''}>${state.boostLoading ? '⟳ Transmission...' : `${IconSend()} SOUMETTRE`}</button>
-            ${state.boostMessage ? `<p class="text-center font-bold mt-2 ${state.boostMessage.startsWith('✅') ? 'text-green-400' : 'text-red-400'}">${state.boostMessage}</p>` : ''}
-          </form>
-        </div>
-        <div class="p-6 rounded-xl neon-border bg-[#1a1a1a]">
-          <h2 class="text-2xl font-bold text-[#22c7ef] mb-4 flex items-center" style="font-family: 'Orbitron'">${IconSearch()} SCANNER (IA)</h2>
-          <p class="text-gray-400 mb-6">Trouvez une pépite parmi les streamers validés par le système IA.</p>
-          ${state.scannerResult ? `
-            <div class="mb-6 p-4 bg-gray-800 border border-[#FF0099] rounded">
-              <h3 class="text-xl font-bold text-[#22c7ef]">${state.scannerResult.username}</h3>
-              <p class="text-sm text-gray-300 truncate">${state.scannerResult.title || "Titre non disponible."}</p>
-              <div class="flex justify-between mt-2 text-xs font-bold">
-                <span class="text-[#FF0099]">${state.scannerResult.viewer_count || 0} Viewers</span>
-                <span class="text-green-400">Score: ${state.scannerResult.avg_score?.toFixed(1) || 'N/A'}</span>
-              </div>
-              <div class="flex gap-2 mt-3">
-                <a href="https://twitch.tv/${state.scannerResult.username}" target="_blank" class="flex-1 flex items-center justify-center text-center bg-[#22c7ef] text-black font-bold py-2 rounded hover:bg-white text-sm">OUVRIR EXT ${ExternalLinkIcon()}</a>
-                <button id="scanner-watch-btn" data-channel="${state.scannerResult.username}" class="flex-1 flex items-center justify-center text-center bg-[#FF0099] text-white font-bold py-2 rounded hover:bg-white/90 hover:text-black text-sm">REGARDER ICI</button>
-              </div>
-            </div>
-          ` : `<p class="text-center text-sm text-gray-500 my-4">${state.scannerMessage}</p>`}
-          <button id="scanner-button" class="mt-auto w-full btn-secondary py-3 rounded font-bold" ${state.scannerLoading ? 'disabled' : ''}>${state.scannerLoading ? '⟳ ANALYSE...' : "LANCER LE SCAN"}</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  initTwitchPlayer();
-  addEventListeners();
+function showLoading(isLoading) {
+    loadingSpinner.classList.toggle('hidden', !isLoading);
+    boostButton.disabled = isLoading || !currentStreamer;
+    critiqueButton.disabled = isLoading || !currentStreamer;
+    titleDiagnosticButton.disabled = isLoading || !currentStreamer;
 }
 
-/* ============================================================
-    LISTENERS & LOGIQUE API
-============================================================ */
-function addEventListeners() {
-  document.getElementById('streamer-input-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    state.currentChannel = document.getElementById('channel-input').value.trim().toLowerCase();
-    document.getElementById('channel-input').value = state.currentChannel; // Normaliser l'affichage
-    initTwitchPlayer();
-  });
-
-  // --- BOOST ---
-  document.getElementById('boost-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const channelName = document.getElementById('boost-input').value.trim().toLowerCase();
-    if (!channelName) return;
-
-    state.boostLoading = true;
-    render();
-
-    try {
-      const res = await fetch(BOOST_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelName, userId: crypto.randomUUID() })
-      });
-
-      // Si la requête échoue au niveau réseau ou CORS (avant même d'atteindre le serveur)
-      if (!res.ok && res.status === 0) throw new Error('CORS_ERROR');
-      
-      // Tente de lire la réponse JSON
-      const data = res.ok 
-        ? await res.json().catch(() => ({ message: "✅ Succès (pas de message serveur)" })) 
-        : { message: "❌ Erreur Serveur" };
-
-      state.boostMessage = data.message || `✅ Boost appliqué à ${channelName}`;
-    } catch (e) {
-      // Gestion spécifique du blocage CORS ou d'une erreur réseau/timeout
-      if (e.message === 'CORS_ERROR' || e.message.includes('Failed to fetch')) {
-        state.boostMessage = '❌ Échec Boost: CORS bloqué. Corrigez le serveur API!';
-      } else {
-        state.boostMessage = '❌ Erreur inattendue de l\'API Boost.';
-      }
-    }
-
-    state.boostLoading = false;
-    document.getElementById('boost-input').value = '';
-    render();
-  });
-
-  // --- SCANNER ---
-  document.getElementById('scanner-button')?.addEventListener('click', async () => {
-    state.scannerLoading = true;
-    state.scannerMessage = "Recherche en cours...";
-    render();
-
-    try {
-      const res = await fetch(SCAN_URL);
-      
-      // Si la requête échoue au niveau réseau ou CORS
-      if (!res.ok && res.status === 0) throw new Error('CORS_ERROR');
-      if (!res.ok) throw new Error('SERVER_ERROR');
-
-      const data = await res.json();
-      const streamerData = data.streamer || data;
-
-      if (streamerData && streamerData.username) {
-        state.scannerResult = {
-          username: streamerData.username,
-          title: streamerData.title,
-          viewer_count: streamerData.viewer_count,
-          avg_score: streamerData.avg_score ? parseFloat(streamerData.avg_score) : null
-        };
-        state.scannerMessage = `Streamer trouvé: ${streamerData.username}`;
-      } else {
-        state.scannerMessage = "🔍 Aucun streamer trouvé avec les critères.";
-        state.scannerResult = null;
-      }
-    } catch (e) {
-      if (e.message === 'CORS_ERROR' || e.message.includes('Failed to fetch')) {
-        state.scannerMessage = "❌ Échec Scan: CORS bloqué. Corrigez le serveur API!";
-      } else {
-        state.scannerMessage = "❌ Erreur de l'API Scan.";
-        state.scannerResult = null;
-      }
-    }
-
-    state.scannerLoading = false;
-    render();
-  });
-
-  // --- Watch Scanned Channel ---
-  document.getElementById('scanner-watch-btn')?.addEventListener('click', (e) => {
-    const channel = e.currentTarget.dataset.channel;
-    if (channel) {
-      state.currentChannel = channel;
-      document.getElementById('channel-input').value = channel;
-      initTwitchPlayer();
-    }
-  });
+function displayMessage(message, isError = false) {
+    errorDisplay.textContent = message;
+    errorDisplay.classList.toggle('text-red-500', isError);
+    errorDisplay.classList.toggle('text-green-500', !isError);
+    errorDisplay.classList.remove('hidden');
+    // Cacher après 5 secondes si ce n'est pas une erreur critique
+    if (!isError) {
+        setTimeout(() => errorDisplay.classList.add('hidden'), 5000);
+    }
 }
 
-/* ============================================================
-    TWITCH PLAYER
-============================================================ */
-function initTwitchPlayer() {
-  // Nous supposons que le script Twitch est chargé dans index.html
-  if (typeof Twitch === 'undefined' || !Twitch.Embed) {
-    setTimeout(initTwitchPlayer, 200);
-    return;
-  }
+// --- Fonctions d'appel API ---
 
-  if (!twitchPlayer) {
-    twitchPlayer = new Twitch.Embed("twitch-embed", {
-      width: "100%",
-      height: "100%",
-      channel: state.currentChannel,
-      parent: [window.location.hostname]
-    });
-  } else {
-    twitchPlayer.setChannel(state.currentChannel);
-  }
+/**
+ * Récupère un ID de jeu Twitch à partir de son nom.
+ * @param {string} gameName 
+ * @returns {Promise<string|null>} L'ID du jeu ou null.
+ */
+async function getGameId(gameName) {
+    try {
+        const response = await fetch(`${GAME_ID_API_URL}?name=${encodeURIComponent(gameName)}`);
+        if (!response.ok) {
+            console.error("Erreur Game ID API:", response.status);
+            return null;
+        }
+        const data = await response.json();
+        return data.game_id || null;
+    } catch (error) {
+        console.error("Erreur réseau Game ID:", error);
+        return null;
+    }
 }
 
-/* ============================================================
-    DÉMARRAGE
-============================================================ */
-// S'assurer que le DOM est prêt avant de démarrer le rendu initial
-document.addEventListener('DOMContentLoaded', render);
 
+/**
+ * Effectue un appel API vers l'endpoint /random pour trouver un streamer.
+ * @returns {Promise<StreamerDetails|null>} Les détails du streamer.
+ */
+async function fetchRandomStreamer() {
+    showLoading(true);
+    resultsContainer.innerHTML = '';
+    currentStreamer = null;
+    errorDisplay.classList.add('hidden');
+    
+    // Le filtre max_viewers de 30 est géré côté serveur par index.cjs
+
+    try {
+        // 🚨 Utilisation du nouvel endpoint local
+        const response = await fetch(`${RANDOM_API_URL}?max_viewers=30`); 
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            displayMessage(`Erreur de scan: ${errorData.message || response.statusText}`, true);
+            showLoading(false);
+            return null;
+        }
+
+        const data = await response.json();
+        const streamer = data.streamer;
+        
+        // Stocker pour les autres fonctions
+        currentStreamer = streamer; 
+        
+        renderStreamerDetails(streamer);
+
+    } catch (error) {
+        displayMessage('Erreur de connexion serveur. Vérifiez que le serveur est actif.', true);
+        console.error("Erreur Fetch Random Streamer:", error);
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * Envoie une demande de boost au serveur.
+ */
+async function sendBoostRequest() {
+    if (!currentStreamer) {
+        displayMessage("Aucun streamer sélectionné à booster.", true);
+        return;
+    }
+    
+    showLoading(true);
+    errorDisplay.classList.add('hidden');
+
+    try {
+        // 🚨 Utilisation du nouvel endpoint local
+        const response = await fetch(BOOST_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                channelName: currentStreamer.username,
+                // Si vous aviez un user ID dans votre app, vous le mettriez ici
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'ok') {
+            displayMessage(`🚀 ${data.message}`);
+        } else {
+            displayMessage(`Échec du boost: ${data.message || 'Erreur inconnue'}`, true);
+        }
+
+    } catch (error) {
+        displayMessage('Erreur réseau lors de l\'envoi de la requête Boost.', true);
+        console.error("Erreur Fetch Boost:", error);
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * Demande une critique IA du streamer.
+ */
+async function fetchAICritique() {
+    if (!currentStreamer) return;
+    showLoading(true);
+    
+    // Afficher un message d'attente
+    const critiqueOutput = document.getElementById('ia-critique-output');
+    critiqueOutput.innerHTML = '<p class="text-indigo-400">🤖 L\'IA est en cours d\'analyse...</p>';
+
+    const payload = {
+        username: currentStreamer.username,
+        game_name: currentStreamer.game_name,
+        title: currentStreamer.title,
+        viewer_count: currentStreamer.viewer_count,
+        follower_count: currentStreamer.follower_count 
+    };
+
+    try {
+        const response = await fetch(CRITIQUE_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.critique) {
+            critiqueOutput.innerHTML = `<div class="p-3 bg-gray-700 rounded-lg whitespace-pre-line">${data.critique}</div>`;
+        } else {
+            critiqueOutput.innerHTML = `<p class="text-red-400">Erreur IA: ${data.critique || 'Service non disponible'}</p>`;
+        }
+
+    } catch (error) {
+        critiqueOutput.innerHTML = '<p class="text-red-400">Erreur de connexion avec l\'API IA.</p>';
+        console.error("Erreur Fetch IA Critique:", error);
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * Demande un diagnostic IA du titre du stream.
+ */
+async function fetchAITitleDiagnostic() {
+    if (!currentStreamer) return;
+    showLoading(true);
+    
+    const diagnosticOutput = document.getElementById('ia-diagnostic-output');
+    diagnosticOutput.innerHTML = '<p class="text-indigo-400">🧠 Diagnostic en cours...</p>';
+
+    const payload = {
+        title: currentStreamer.title,
+        game_name: currentStreamer.game_name
+    };
+
+    try {
+        const response = await fetch(DIAGNOSTIC_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.diagnostic) {
+            diagnosticOutput.innerHTML = `<div class="p-3 bg-gray-700 rounded-lg whitespace-pre-line">${data.diagnostic}</div>`;
+        } else {
+            diagnosticOutput.innerHTML = `<p class="text-red-400">Erreur IA: ${data.diagnostic || 'Service non disponible'}</p>`;
+        }
+
+    } catch (error) {
+        diagnosticOutput.innerHTML = '<p class="text-red-400">Erreur de connexion avec l\'API IA.</p>';
+        console.error("Erreur Fetch IA Diagnostic:", error);
+    } finally {
+        showLoading(false);
+    }
+}
+
+
+// --- Fonctions de rendu ---
+
+/**
+ * Affiche les détails d'un streamer dans l'interface.
+ * @param {StreamerDetails} streamer 
+ */
+function renderStreamerDetails(streamer) {
+    if (!streamer) return;
+
+    // Reset l'état des critiques IA
+    document.getElementById('ia-critique-output').innerHTML = '';
+    document.getElementById('ia-diagnostic-output').innerHTML = '';
+
+    const tagsHtml = (streamer.tags || []).map(tag => 
+        `<span class="inline-block bg-indigo-900 text-indigo-200 text-xs px-2 py-1 rounded-full">${tag}</span>`
+    ).join('');
+
+    resultsContainer.innerHTML = `
+        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-indigo-600 space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-3xl font-bold text-white truncate">${streamer.username}</h2>
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg font-semibold text-yellow-400">${streamer.avg_score} / 5.0</span>
+                    <span class="text-yellow-500">⭐</span>
+                </div>
+            </div>
+
+            <p class="text-indigo-400 text-sm italic">Jeu: ${streamer.game_name}</p>
+            <p class="text-gray-300 text-lg">${streamer.title}</p>
+            
+            <div class="grid grid-cols-2 gap-4 text-sm text-gray-400">
+                <p>Spectateurs: <span class="text-white font-semibold">${streamer.viewer_count.toLocaleString()}</span></p>
+                <p>Followers: <span class="text-white font-semibold">${streamer.follower_count.toLocaleString()}</span></p>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 pt-2">
+                ${tagsHtml || '<span class="text-gray-500 text-sm">Aucun tag</span>'}
+            </div>
+            
+            <div class="pt-4 border-t border-gray-700">
+                <a href="https://twitch.tv/${streamer.user_login}" target="_blank" class="text-indigo-400 hover:text-indigo-300 font-semibold transition duration-150">
+                    ➡️ Voir le stream sur Twitch
+                </a>
+            </div>
+        </div>
+    `;
+}
+
+// --- Initialisation ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Boutons de navigation/scan
+    document.getElementById('scan-button').addEventListener('click', fetchRandomStreamer);
+    
+    // Boutons d'action (doivent être initialement désactivés)
+    boostButton.addEventListener('click', sendBoostRequest);
+    critiqueButton.addEventListener('click', fetchAICritique);
+    titleDiagnosticButton.addEventListener('click', fetchAITitleDiagnostic);
+
+    // Initialisation de l'état
+    boostButton.disabled = true;
+    critiqueButton.disabled = true;
+    titleDiagnosticButton.disabled = true;
+    
+    // Lancement du premier scan au chargement
+    fetchRandomStreamer();
+});
