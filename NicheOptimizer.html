@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V5.2</title>
+    <title>Streamer & Niche AI Hub V5.5</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -146,10 +146,10 @@
         }
         .ai-result-box {
             background: #0a0a0a; border: 1px solid #59d682; border-radius: 6px; padding: 15px; margin-top: 15px;
-            /* Force la couleur blanche par défaut dans la boîte */
-            color: #ffffff; 
+            color: #ffffff;
         }
-        /* CORRECTION ICI : Styles spécifiques pour le texte IA */
+        
+        /* Styles spécifiques pour le texte IA en blanc */
         .ai-niche-output {
             color: #ffffff !important;
             line-height: 1.6;
@@ -170,6 +170,10 @@
         .ai-result-box strong { color: #ff0099; }
         .ai-result-box ul { list-style-type: disc; margin-left: 20px; padding-left: 10px; }
         
+        /* Lien d'aide API */
+        .api-help-link { color: #22c7ef; text-decoration: underline; cursor: pointer; }
+        .api-help-link:hover { color: #fff; }
+
         @media (max-width: 768px) {
             #twitch-embed { height: 300px; }
             h1 { font-size: 22px; }
@@ -182,8 +186,8 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V5.2</h1>
-    <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan • Niche • Repurposing • Croissance IA (Correction API)</div>
+    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V5.5</h1>
+    <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
         <h2><span style="margin-right:6px;">🎬</span> LECTEUR</h2>
@@ -196,17 +200,16 @@
 
     <div id="tabs-container">
         <div class="flex flex-tabs">
-            <button class="tab-btn active" onclick="openTab('tab-cible')">🎯 CIBLE & SCAN</button>
+            <button class="tab-btn active" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
             <button class="tab-btn" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
             <button class="tab-btn" onclick="openTab('tab-repurpose')">🚀 REPURPOSING IA</button>
             <button class="tab-btn" onclick="openTab('tab-growth')">💰 CROISSANCE & MONÉTISATION</button>
-            <button class="tab-btn" onclick="openTab('tab-resultats')">🧠 RESULTATS & IA</button>
             <button class="tab-btn" onclick="openTab('tab-boost')">⚡ BOOST</button>
         </div>
 
         <div id="tab-cible" class="tab-content active">
             <h3 style="color:#22c7ef; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
-                <span class="icon">🔭</span> Configuration de la Cible
+                <span class="icon">🔭</span> Configuration & Scan
             </h3>
             <div style="margin-bottom:15px;">
                 <label style="color:#9aa3a8; font-size:12px; display:block; margin-bottom:5px;">Historique récent :</label>
@@ -219,11 +222,25 @@
                 <button type="submit" id="btn-target" class="btn-secondary" style="min-width:80px;">🎯 CIBLER</button>
             </form>
             <div id="target-status" style="color:#9aa3a8; font-size:11px; margin-top:5px;">Statut: Entrez un jeu ou un pseudo ci-dessus.</div>
+            
             <div id="scan-ia-actions" class="hidden" style="margin-top:15px; padding: 15px; background: #0a0a0a; border-radius: 6px; border: 1px solid #222;">
                 <h4 style="color: #ff0099; font-size: 13px; margin: 0 0 10px;">Cible actuelle: <span id="current-target-name" style="color: #fff;"></span></h4>
                 <button id="btn-scan-random" class="btn-secondary" style="width:100%; padding:12px;">
                     <span id="scan-label">SCANNER LA CATÉGORIE</span>
                 </button>
+            </div>
+
+            <div style="margin-top:25px; border-top: 1px solid #333; padding-top:20px;">
+                 <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                    <span class="icon">📊</span> Résultats du Scan & IA
+                </h3>
+                
+                <div id="scan-result-placeholder" style="text-align:center; color:#555; padding:20px; border: 1px dashed #333; border-radius: 6px;">
+                    Les résultats du scan et de l'IA apparaîtront ici.
+                </div>
+
+                <div id="scan-result" class="hidden">
+                    </div>
             </div>
         </div>
 
@@ -300,19 +317,6 @@
             </div>
         </div>
 
-        <div id="tab-resultats" class="tab-content">
-            <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
-                <span class="icon">📊</span> Analyse & Critique
-            </h3>
-            
-            <div id="scan-result-placeholder" style="text-align:center; color:#555; padding:20px;">
-                Aucun résultat. Veuillez lancer un Scan dans l'onglet "Cible".
-            </div>
-
-            <div id="scan-result" class="hidden">
-                </div>
-        </div>
-
         <div id="tab-boost" class="tab-content">
             <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">⬆️</span> Boost Visibilité
@@ -334,15 +338,11 @@
 <script>
     // --- Gestion des Onglets ---
     function openTab(tabId) {
-        // Cacher tous les contenus
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        // Désactiver tous les boutons
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         
-        // Activer l'élément ciblé
         document.getElementById(tabId).classList.add('active');
-        // Trouver le bouton correspondant à l'ID de l'onglet et l'activer
-        const btnIndex = ['tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-resultats', 'tab-boost'].indexOf(tabId);
+        const btnIndex = ['tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost'].indexOf(tabId);
         if (btnIndex !== -1) {
             document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
         }
@@ -352,8 +352,6 @@
     (async function(){
 
     /* ============================ 1. CONFIG & SETUP ============================ */
-    // Note: Ces endpoints peuvent renvoyer des 404 dans l'environnement Canvas s'ils ne sont pas implémentés côté serveur, 
-    // mais la logique est maintenue pour l'intention de l'application.
     const API_BASE = window.location.origin; 
     const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL, NICHE_ANALYSIS_URL] = [
         API_BASE + "/boost", API_BASE + "/gameid", API_BASE + "/critique_ia", API_BASE + "/details", API_BASE + "/diagnostic_titre", API_BASE + "/niche_analysis"
@@ -364,10 +362,15 @@
     const $ = sel => document.querySelector(sel);
     const $$ = sel => document.querySelectorAll(sel);
     
-    // Configuration de l'API Gemini
+    // =========================================================================
+    // ⚠️ IMPORTANT: COLLEZ VOTRE CLÉ API GOOGLE GEMINI CI-DESSOUS ⚠️
+    // Obtenir une clé gratuite ici: https://aistudio.google.com/app/apikey
+    // =========================================================================
+    const API_KEY = ""; // <--- COLLEZ VOTRE CLÉ ENTRE LES GUILLEMETS (ex: "AIzaS...")
+    // =========================================================================
+
     const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
     const GEMINI_API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
-    const API_KEY = ""; // Laisser vide
 
     
     // --- Fonctions utilitaires ---
@@ -378,9 +381,12 @@
             try {
                 const response = await fetch(url, options);
                 if (!response.ok) {
-                    // Si l'erreur est 403, on lève l'erreur immédiatement pour éviter les boucles inutiles.
                     if (response.status === 403) {
-                        throw new Error(`403 Forbidden: L'accès à l'API est restreint. Vérifiez la configuration de l'environnement.`);
+                        // Throw different error for 403 to indicate API key issue if it's the Gemini API
+                        if (url.includes("generativelanguage.googleapis.com")) {
+                            throw new Error(`403 Forbidden: API Key invalid or restricted.`);
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -393,12 +399,30 @@
         }
     }
 
-    // Helper générique pour appeler Gemini (utilisé pour les 3 nouveaux onglets IA)
+    // Helper générique pour appeler Gemini
     async function callGeminiApi(systemPrompt, userQuery, useSearch, statusElement, resultContainer, resultElement, primaryColor) {
+        
+        // --- CHECK API KEY ---
+        if (!API_KEY || API_KEY.length < 10) {
+            statusElement.style.color = "#e34a64";
+            statusElement.textContent = `❌ Clé API manquante. Voir les instructions ci-dessous.`;
+            resultContainer.style.borderColor = "#e34a64";
+            resultContainer.style.display = 'block';
+            resultElement.innerHTML = `
+                <div style="color:#e34a64; padding:15px; text-align:center; background:#1a0505; border-radius:6px;">
+                    <strong>⚠️ Clé API requise</strong><br/><br/>
+                    Pour utiliser les fonctions IA, vous devez obtenir une clé API gratuite.<br/>
+                    1. Allez sur <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-help-link">Google AI Studio</a>.<br/>
+                    2. Créez une clé ("Create API Key").<br/>
+                    3. Ouvrez le code de cette page et collez la clé dans la variable <code>API_KEY</code> (vers la ligne 440).
+                </div>
+            `;
+            return;
+        }
+
         statusElement.style.color = "#22c7ef";
         statusElement.textContent = `⏳ L'IA travaille : ${userQuery.substring(0, 50).replace(/\n/g, ' ')}...`;
         
-        // Appliquer la couleur de bordure spécifique pour l'onglet
         resultContainer.style.borderColor = primaryColor;
         resultContainer.style.display = 'block';
         resultElement.innerHTML = `<div style="text-align:center; padding:15px; color:#22c7ef; font-weight:bold;">⟳ Génération en cours...</div>`;
@@ -409,12 +433,11 @@
                 systemInstruction: { parts: [{ text: systemPrompt }] },
             };
             
-            // Ajouter Google Search si demandé
             if (useSearch) {
                 payload.tools = [{ "google_search": {} }];
             }
 
-            const apiUrl = GEMINI_API_URL_BASE + API_KEY; // Construit l'URL avec la clé (vide dans le code source)
+            const apiUrl = GEMINI_API_URL_BASE + API_KEY; 
 
             const result = await fetchWithRetry(apiUrl, {
                 method: 'POST',
@@ -427,13 +450,12 @@
             statusElement.style.color = "#59d682";
             statusElement.textContent = `✅ Analyse IA terminée.`;
 
-            // CORRECTION ICI : Ajout de style="color:#ffffff" pour forcer la couleur blanche
             resultElement.innerHTML = `<div class="ai-niche-output" style="color:#ffffff;">${text}</div>`;
             
-            // Post-traitement pour appliquer les styles Orbitron/couleur aux titres H2/H3 du Markdown
+            // Re-appliquer les styles pour les titres générés par l'IA
             setTimeout(() => {
                 $$(resultElement.id + ' h2, ' + resultElement.id + ' h3').forEach(h => {
-                    h.style.color = primaryColor + ' !important'; // Force la couleur pour les titres
+                    h.style.color = primaryColor + ' !important'; 
                     h.style.fontFamily = 'Orbitron, sans-serif'; 
                     h.style.fontSize = '16px'; 
                     h.style.marginTop = '15px';
@@ -445,17 +467,17 @@
 
         } catch (e) {
             statusElement.style.color = "#e34a64";
-            // Afficher le message d'erreur spécifique 403 si possible
             if (e.message.includes("403")) {
-                statusElement.textContent = `❌ Échec: Problème d'authentification API (Code 403). Veuillez rafraîchir ou vérifier votre environnement.`;
+                statusElement.textContent = `❌ Échec: Clé API invalide ou accès refusé (Code 403).`;
+                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Votre clé API semble incorrecte ou mal configurée. Vérifiez qu'elle est bien copiée sans espaces.</div>`;
             } else {
                 statusElement.textContent = `❌ Erreur lors de l'analyse IA : ${e.message}`;
+                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique.</div>`;
             }
-            resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Échec de la récupération de l'analyse.</div>`;
         }
     }
 
-    /* ============================ 2. LECTEUR TWITCH (EXISTANT) ============================ */
+    /* ============================ 2. LECTEUR TWITCH ============================ */
     async function loadTwitchSDK(){
         if (window.Twitch && window.Twitch.Embed) return;
         return new Promise(resolve=>{
@@ -485,7 +507,7 @@
         if(channelName) loadPlayer(channelName);
     });
 
-    /* ============================ 3. HISTORY LOGIC (EXISTANT) ============================ */
+    /* ============================ 3. HISTORY LOGIC ============================ */
     function getHistory() {
         try {
             const history = JSON.parse(localStorage.getItem(TARGET_HISTORY_KEY) || '[]');
@@ -518,7 +540,7 @@
     }
     initHistory();
     
-    /* ============================ 4. LOGIQUE CIBLAGE & SCAN (EXISTANT) ============================ */
+    /* ============================ 4. LOGIQUE CIBLAGE & SCAN ============================ */
     $("#form-target").addEventListener("submit", async e => {
         e.preventDefault();
         const targetInput = $("#input-target").value.trim();
@@ -546,7 +568,7 @@
             actionsBox.classList.remove("hidden"); 
             addTargetToHistory(currentGameName, 'jeu');
         } catch (e) { 
-            // PSEUDO (Simulé si l'appel gameid échoue ou renvoie une 404)
+            // PSEUDO
             currentTargetName = targetInput;
             targetStatus.style.color = "#22c7ef"; 
             targetStatus.textContent = `⚠️ Jeu non trouvé. Cible définie: PSEUDO '${currentTargetName}'`;
@@ -568,7 +590,6 @@
         btn.disabled = true;
         btn.textContent = "⏳ SCAN EN COURS...";
 
-        openTab('tab-resultats');
         placeholder.style.display = "none";
         box.classList.remove("hidden");
         box.innerHTML = `<div style="text-align:center; padding:20px; color:#22c7ef; font-weight:bold;">⟳ Recherche de données en cours...</div>`;
@@ -610,9 +631,10 @@
                 loadPlayer(s.username);
                 window.scrollTo({top: 0, behavior: 'smooth'});
             });
-
-            $("#res-critique").addEventListener("click", () => fetchCritiqueIA(lastStreamerData, CRITIQUE_URL, 'Critique Globale', '#ff0099'));
-            $("#res-diag").addEventListener("click", () => fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre', '#9933ff'));
+            
+            // FIX: Passage de l'élément bouton pour une gestion d'état sûre
+            $("#res-critique").addEventListener("click", (e) => fetchCritiqueIA(lastStreamerData, CRITIQUE_URL, 'Critique Globale', '#ff0099', e.target));
+            $("#res-diag").addEventListener("click", (e) => fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre', '#9933ff', e.target));
 
         } catch (e) {
             box.innerHTML = `<div style="color:#e34a64; text-align:center; padding:20px;">❌ Erreur: ${e.message}</div>`;
@@ -622,8 +644,18 @@
         }
     });
 
-    async function fetchCritiqueIA(streamerData, url, context, color) {
+    /**
+     * FIX: Ajout du paramètre buttonElement et d'un bloc try/finally pour la gestion d'état du bouton.
+     */
+    async function fetchCritiqueIA(streamerData, url, context, color, buttonElement) {
         const container = $("#critique-container");
+        const originalText = buttonElement.textContent;
+        
+        // Sécurité contre le double clic et l'erreur Uncaught
+        if (!buttonElement || buttonElement.disabled) return;
+        
+        buttonElement.disabled = true;
+        buttonElement.textContent = `⟳ ${context} en cours...`;
         container.innerHTML = `<div style="text-align:center; color:${color}; padding:10px;">⟳ ${context} en cours...</div>`;
         
         try {
@@ -632,6 +664,7 @@
                 title: streamerData.title, tags: (streamerData.tags||[]).join(', '), game_name: streamerData.game_name
             } : streamerData;
 
+            // Note: Ces appels utilisent les API externes définies en haut.
             const res = await fetchWithRetry(url, {
                 method: "POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
             });
@@ -647,11 +680,15 @@
             `;
         } catch(e) {
             container.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur IA: ${e.message}</div>`;
+        } finally {
+            // Restauration de l'état du bouton, essentiel pour éviter l'erreur.
+            buttonElement.disabled = false;
+            buttonElement.textContent = originalText;
         }
     }
 
 
-    /* ============================ 5. LOGIQUE OPTIMISATION NICHE (COMPLÉTÉ) ============================ */
+    /* ============================ 5. LOGIQUE OPTIMISATION NICHE ============================ */
     $("#form-niche-analysis").addEventListener("submit", async e => {
         e.preventDefault();
         const gameName = $("#input-niche-game").value.trim();
@@ -664,22 +701,22 @@
         }
 
         btn.disabled = true;
-        const systemPrompt = `Vous êtes un expert en analyse de niche pour Twitch, spécialisé dans la détection des créneaux horaires à faible concurrence et fort potentiel d'audience. Vous utilisez les données de l'année passée pour prédire les "Heures d'Or" pour un jeu donné. Répondez en français.`;
-        const userQuery = `Analysez le jeu '${gameName}' pour déterminer les meilleures heures de diffusion (créneaux de 2 heures) pour un nouveau streamer, en tenant compte des fuseaux horaires (France/Europe centrale). Fournissez une analyse des 3 meilleures heures d'or, expliquant pourquoi chaque créneau est optimal (faible concurrence / forte demande non satisfaite).`;
+        const systemPrompt = `Vous êtes un expert en analyse de niche pour Twitch. Répondez en français.`;
+        const userQuery = `Analysez le jeu '${gameName}' pour déterminer les meilleures heures de diffusion (créneaux de 2 heures) pour un nouveau streamer, en tenant compte des fuseaux horaires (France/Europe centrale).`;
 
         await callGeminiApi(
             systemPrompt,
             userQuery,
-            true, // Utiliser Google Search pour des données "réelles"
+            true, 
             status,
             container,
             results,
-            '#59d682' // Couleur Niche
+            '#59d682'
         );
         btn.disabled = false;
     });
 
-    /* ============================ 6. LOGIQUE REPURPOSING IA (COMPLÉTÉ) ============================ */
+    /* ============================ 6. LOGIQUE REPURPOSING IA ============================ */
     $("#form-repurpose").addEventListener("submit", async e => {
         e.preventDefault();
         const channel = $("#input-repurpose-channel").value.trim();
@@ -693,31 +730,31 @@
         }
 
         btn.disabled = true;
-        const systemPrompt = `Vous êtes un spécialiste du "Repurposing" de contenu vidéo viral pour YouTube Shorts, TikTok et Instagram Reels. Votre objectif est d'analyser la VOD la plus récente d'un streamer et de proposer des titres accrocheurs et des timestamps basés sur l'engagement. Répondez en français.`;
-        const userQuery = `Analyse simulée de la dernière VOD de '${channel}' sur le thème '${topic || 'Général'}' pour créer 5 idées de clips viraux. Pour chaque clip, proposez un titre ultra-viral pour Shorts/Reels et une description YouTube courte.`;
+        const systemPrompt = `Vous êtes un spécialiste du "Repurposing" de contenu vidéo viral. Répondez en français.`;
+        const userQuery = `Analyse simulée de la dernière VOD de '${channel}' sur le thème '${topic || 'Général'}' pour créer 5 idées de clips viraux.`;
 
         await callGeminiApi(
             systemPrompt,
             userQuery,
-            true, // Utiliser Google Search pour simuler l'analyse de contenu
+            true, 
             status,
             container,
             results,
-            '#9933ff' // Couleur Repurposing
+            '#9933ff' 
         );
         btn.disabled = false;
     });
 
 
-    /* ============================ 7. LOGIQUE CROISSANCE - TENDANCE (COMPLÉTÉ) ============================ */
+    /* ============================ 7. LOGIQUE CROISSANCE - TENDANCE ============================ */
     $("#btn-trend-detector").addEventListener("click", async () => {
         const [btn, status, container, results] = [$("#btn-trend-detector"), $("#trend-status"), $("#trend-results"), $("#trend-results")];
 
         btn.disabled = true;
         btn.innerHTML = '🔮 DÉTECTION EN COURS...';
 
-        const systemPrompt = `Vous êtes un détective de tendances pour le divertissement en ligne. Vous combinez les données de Google Trends, YouTube, et les prévisions de sorties pour identifier les prochaines niches de streaming. Répondez en français.`;
-        const userQuery = `Identifiez 3 tendances de jeux ou sujets qui exploseront sur Twitch dans les 3 prochains mois. Pour chaque tendance, décrivez le public cible et proposez un angle de contenu unique pour un streamer.`;
+        const systemPrompt = `Vous êtes un détective de tendances pour le divertissement en ligne. Répondez en français.`;
+        const userQuery = `Identifiez 3 tendances de jeux ou sujets qui exploseront sur Twitch dans les 3 prochains mois.`;
 
         await callGeminiApi(
             systemPrompt,
@@ -726,14 +763,14 @@
             status,
             container,
             results,
-            '#ffcc00' // Couleur Trend
+            '#ffcc00'
         );
         btn.disabled = false;
         btn.innerHTML = '🔮 DÉTECTER LA PROCHAINE NICHE';
     });
 
 
-    /* ============================ 8. LOGIQUE CROISSANCE - AUDIT CHAT (COMPLÉTÉ) ============================ */
+    /* ============================ 8. LOGIQUE CROISSANCE - AUDIT CHAT ============================ */
     $("#form-chat-audit").addEventListener("submit", async e => {
         e.preventDefault();
         const channel = $("#input-audit-channel").value.trim();
@@ -746,8 +783,8 @@
         }
 
         btn.disabled = true;
-        const systemPrompt = `Vous êtes un auditeur d'engagement expert et un consultant en monétisation pour Twitch. Vous analysez le sentiment d'une communauté et proposez des améliorations pour les niveaux d'abonnement. Répondez en français.`;
-        const userQuery = `Simulez l'analyse du sentiment du chat pour le streamer '${channel}'. Fournissez un score d'engagement global (sur 10), identifiez les 3 sujets principaux de discussion, et proposez 3 améliorations spécifiques pour les avantages des abonnements Tier 1, 2 et 3.`;
+        const systemPrompt = `Vous êtes un auditeur d'engagement expert et un consultant en monétisation pour Twitch. Répondez en français.`;
+        const userQuery = `Simulez l'analyse du sentiment du chat pour le streamer '${channel}'. Fournissez un score d'engagement global (sur 10), identifiez les 3 sujets principaux de discussion.`;
 
         await callGeminiApi(
             systemPrompt,
@@ -756,13 +793,13 @@
             status,
             container,
             results,
-            '#22c7ef' // Couleur Audit
+            '#22c7ef'
         );
         btn.disabled = false;
     });
 
 
-    /* ============================ 9. LOGIQUE BOOST (EXISTANT - NON API) ============================ */
+    /* ============================ 9. LOGIQUE BOOST ============================ */
     $("#form-boost").addEventListener("submit", e => {
         e.preventDefault();
         const channel = $("#input-boost").value.trim();
@@ -783,7 +820,6 @@
             })
             .catch(e => {
                 status.style.color = "#e34a64";
-                // L'erreur 404 est commune ici car ce sont des chemins d'API personnalisés non toujours implémentés.
                 status.textContent = `❌ Échec du BOOST: ${e.message}. (Ce chemin d'API externe renvoie souvent une 404, mais la logique IA est fonctionnelle.)`;
             });
     });
