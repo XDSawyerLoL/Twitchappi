@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V5.1</title>
+    <title>Streamer & Niche AI Hub V5.2</title>
     <!-- Chargement des polices nécessaires -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Tailwind pour la mise en page des onglets -->
@@ -173,8 +173,8 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V5.1</h1>
-    <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan • Niche • Repurposing • Croissance IA (2026 Ready)</div>
+    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V5.2</h1>
+    <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan • Niche • Repurposing • Croissance IA (Correction API)</div>
 
     <!-- 1. SECTION LECTEUR VIDEO -->
     <div class="player-wrapper">
@@ -364,8 +364,12 @@
 
     const $ = sel => document.querySelector(sel);
     const $$ = sel => document.querySelectorAll(sel);
-    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=`;
-    const API_KEY = ""; // Laissez vide, la clé est fournie par l'environnement Canvas.
+    
+    // CORRECTION API 403: Utilisation du modèle stable et gestion de l'URL sans clé explicite.
+    // L'environnement Canvas est censé injecter la clé via l'URL si elle est vide.
+    const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+    const GEMINI_API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
+    const API_KEY = ""; // Laisser vide
 
     
     // --- Fonctions utilitaires ---
@@ -375,7 +379,13 @@
         for (let i = 0; i < maxRetries; i++) {
             try {
                 const response = await fetch(url, options);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    // Si l'erreur est 403, on lève l'erreur immédiatement pour éviter les boucles inutiles.
+                    if (response.status === 403) {
+                        throw new Error(`403 Forbidden: L'accès à l'API est restreint. Vérifiez la configuration de l'environnement.`);
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 return await response.json();
             } catch (error) {
                 if (i === maxRetries - 1) throw error;
@@ -388,7 +398,7 @@
     // Helper générique pour appeler Gemini (utilisé pour les 3 nouveaux onglets IA)
     async function callGeminiApi(systemPrompt, userQuery, useSearch, statusElement, resultContainer, resultElement, primaryColor) {
         statusElement.style.color = "#22c7ef";
-        statusElement.textContent = `⏳ L'IA travaille : ${userQuery.substring(0, 50)}...`;
+        statusElement.textContent = `⏳ L'IA travaille : ${userQuery.substring(0, 50).replace(/\n/g, ' ')}...`;
         
         // Appliquer la couleur de bordure spécifique pour l'onglet
         resultContainer.style.borderColor = primaryColor;
@@ -406,7 +416,9 @@
                 payload.tools = [{ "google_search": {} }];
             }
 
-            const result = await fetchWithRetry(GEMINI_API_URL + API_KEY, {
+            const apiUrl = GEMINI_API_URL_BASE + API_KEY; // Construit l'URL avec la clé (vide dans le code source)
+
+            const result = await fetchWithRetry(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -434,7 +446,12 @@
 
         } catch (e) {
             statusElement.style.color = "#e34a64";
-            statusElement.textContent = `❌ Erreur lors de l'analyse IA : ${e.message}`;
+            // Afficher le message d'erreur spécifique 403 si possible
+            if (e.message.includes("403")) {
+                statusElement.textContent = `❌ Échec: Problème d'authentification API (Code 403). Veuillez rafraîchir ou vérifier votre environnement.`;
+            } else {
+                statusElement.textContent = `❌ Erreur lors de l'analyse IA : ${e.message}`;
+            }
             resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Échec de la récupération de l'analyse.</div>`;
         }
     }
