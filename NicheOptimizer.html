@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamer & Niche AI Hub V5.2</title>
-    <!-- Chargement des polices nécessaires -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Tailwind pour la mise en page des onglets -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Styles Globaux */
@@ -148,7 +146,18 @@
         }
         .ai-result-box {
             background: #0a0a0a; border: 1px solid #59d682; border-radius: 6px; padding: 15px; margin-top: 15px;
+            /* Force la couleur blanche par défaut dans la boîte */
+            color: #ffffff; 
         }
+        /* CORRECTION ICI : Styles spécifiques pour le texte IA */
+        .ai-niche-output {
+            color: #ffffff !important;
+            line-height: 1.6;
+        }
+        .ai-niche-output p, .ai-niche-output li, .ai-niche-output div {
+            color: #ffffff !important;
+        }
+
         .ai-result-box h2, .ai-result-box h3 {
             color: #59d682 !important; 
             font-size: 16px; 
@@ -176,7 +185,6 @@
     <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V5.2</h1>
     <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan • Niche • Repurposing • Croissance IA (Correction API)</div>
 
-    <!-- 1. SECTION LECTEUR VIDEO -->
     <div class="player-wrapper">
         <h2><span style="margin-right:6px;">🎬</span> LECTEUR</h2>
         <form id="form-channel-player">
@@ -186,9 +194,7 @@
         <div id="twitch-embed"></div>
     </div>
 
-    <!-- 2. SYSTEME D'ONGLETS -->
     <div id="tabs-container">
-        <!-- En-têtes des onglets -->
         <div class="flex flex-tabs">
             <button class="tab-btn active" onclick="openTab('tab-cible')">🎯 CIBLE & SCAN</button>
             <button class="tab-btn" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
@@ -198,7 +204,6 @@
             <button class="tab-btn" onclick="openTab('tab-boost')">⚡ BOOST</button>
         </div>
 
-        <!-- ONGLET 1: CIBLE & SCAN (EXISTANT) -->
         <div id="tab-cible" class="tab-content active">
             <h3 style="color:#22c7ef; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">🔭</span> Configuration de la Cible
@@ -222,7 +227,6 @@
             </div>
         </div>
 
-        <!-- ONGLET 2: OPTIMISATION NICHE (EXISTANT) -->
         <div id="tab-niche" class="tab-content">
             <h3 style="color:#59d682; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">📈</span> Analyse de Niche & Heure d'Or (2026 Ready)
@@ -241,7 +245,6 @@
             </div>
         </div>
         
-        <!-- ONGLET 3: REPURPOSING IA (NOUVEAU) -->
         <div id="tab-repurpose" class="tab-content">
             <h3 style="color:#9933ff; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">✂️</span> Repurposing IA - Clips Viraux
@@ -264,13 +267,11 @@
             </div>
         </div>
 
-        <!-- ONGLET 4: CROISSANCE & MONÉTISATION (NOUVEAU) -->
         <div id="tab-growth" class="tab-content">
             <h3 style="color:#ffcc00; font-family:'Orbitron',sans-serif; margin-bottom:20px; font-size:16px;">
                 <span class="icon">💰</span> Tableau de Bord Croissance 2026
             </h3>
             
-            <!-- SECTION 1: Tendance Prédictive -->
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
                 <h4 style="color: #ffcc00; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Détection de Tendances Prédictives</h4>
                 <div style="display:flex; gap:8px;">
@@ -284,7 +285,6 @@
                 <div id="trend-results" class="ai-result-box" style="border-color: #ffcc00; display:none;"></div>
             </div>
 
-            <!-- SECTION 2: Audit d'Engagement -->
             <div style="padding:15px; background:#111; border-radius:8px; border: 1px solid #444;">
                 <h4 style="color: #ffcc00; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Audit d'Engagement & Monétisation</h4>
                 <form id="form-chat-audit" style="display:flex; gap:8px;">
@@ -300,7 +300,6 @@
             </div>
         </div>
 
-        <!-- ONGLET 5: RESULTATS & IA (EXISTANT) -->
         <div id="tab-resultats" class="tab-content">
             <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">📊</span> Analyse & Critique
@@ -311,11 +310,9 @@
             </div>
 
             <div id="scan-result" class="hidden">
-                <!-- Les résultats du scan seront injectés ici par JS -->
-            </div>
+                </div>
         </div>
 
-        <!-- ONGLET 6: BOOST (EXISTANT) -->
         <div id="tab-boost" class="tab-content">
             <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">⬆️</span> Boost Visibilité
@@ -430,12 +427,13 @@
             statusElement.style.color = "#59d682";
             statusElement.textContent = `✅ Analyse IA terminée.`;
 
-            resultElement.innerHTML = `<div class="ai-niche-output">${text}</div>`;
+            // CORRECTION ICI : Ajout de style="color:#ffffff" pour forcer la couleur blanche
+            resultElement.innerHTML = `<div class="ai-niche-output" style="color:#ffffff;">${text}</div>`;
             
             // Post-traitement pour appliquer les styles Orbitron/couleur aux titres H2/H3 du Markdown
             setTimeout(() => {
                 $$(resultElement.id + ' h2, ' + resultElement.id + ' h3').forEach(h => {
-                    h.style.color = primaryColor; 
+                    h.style.color = primaryColor + ' !important'; // Force la couleur pour les titres
                     h.style.fontFamily = 'Orbitron, sans-serif'; 
                     h.style.fontSize = '16px'; 
                     h.style.marginTop = '15px';
@@ -642,9 +640,9 @@
             const text = data.critique || data.diagnostic || data.message || "Pas de réponse IA.";
 
             container.innerHTML = `
-                <div class="critique-box" style="border-left-color: ${color};">
+                <div class="critique-box" style="border-left-color: ${color}; color: #ffffff !important;">
                     <strong style="color:${color};">${context}:</strong><br/>
-                    ${text}
+                    <span style="color:#ffffff;">${text}</span>
                 </div>
             `;
         } catch(e) {
