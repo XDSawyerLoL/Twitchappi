@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub Pro V5.0 - Onglets</title>
+    <title>Streamer Hub Pro V5.1 - Fix Clé API</title>
     <!-- Polices: Orbitron pour les titres, Inter pour le corps -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS pour les classes utilitaires modernes -->
@@ -292,6 +292,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let lastStreamerData = null;
     let currentTargetName = null;
     let nicheGameName = null;
+
+    // Déclaration de la variable de clé API au niveau du scope de l'IIFE
+    let geminiApiKey = "";
     
     // Conteneurs pour les éléments DOM de la Niche (maintenant dans le DOM principal)
     const btnNicheAnalyze = document.getElementById("btn-niche-analyze-snippet");
@@ -473,30 +476,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Diagnostic et récupération de la clé Gemini
     function diagnoseApiKey() {
-        const CUSTOM_API_KEY = ""; // Peut être définie manuellement ici si besoin
-        
-        let finalApiKey = "";
-        if (CUSTOM_API_KEY.length > 5) {
-            finalApiKey = CUSTOM_API_KEY;
-        } else if (typeof __api_key !== 'undefined' && __api_key.length > 0) {
-            finalApiKey = __api_key;
-        } else if (typeof apyKey !== 'undefined' && apyKey.length > 0) { // Support pour l'ancienne variable
-            finalApiKey = apyKey;
+        // Tente de récupérer la clé de l'environnement Canvas
+        if (typeof __api_key !== 'undefined' && __api_key.length > 0) {
+            return __api_key;
         }
-
-        if (keyStatusDisplay) { // Dans le DOM principal
-            if (finalApiKey && finalApiKey.length > 5) {
-                keyStatusDisplay.textContent = `OK (Terminaison: ...${finalApiKey.slice(-4)})`;
-                keyStatusDisplay.style.color = '#59d682'; // Vert
-            } else {
-                keyStatusDisplay.textContent = `ABSENTE (⚠️ API Key manquante)`;
-                keyStatusDisplay.style.color = '#e34a64'; // Rouge
-            }
+        // Fallback (si la clé est définie sous un ancien nom)
+        if (typeof apyKey !== 'undefined' && apyKey.length > 0) {
+            return apyKey;
         }
-        return finalApiKey;
+        // Sinon, retourne une chaîne vide
+        return "";
     }
-    // Déclare la variable de clé API renommée ici pour éviter les conflits
-    const geminiApiKey = diagnoseApiKey();
+
+    // Assignation de la clé API au scope de l'IIFE
+    geminiApiKey = diagnoseApiKey();
+
+    // Affichage du statut
+    if (keyStatusDisplay) { // Dans le DOM principal
+        if (geminiApiKey && geminiApiKey.length > 5) {
+            keyStatusDisplay.textContent = `OK (Terminaison: ...${geminiApiKey.slice(-4)})`;
+            keyStatusDisplay.style.color = '#59d682'; // Vert
+        } else {
+            keyStatusDisplay.textContent = `ABSENTE (⚠️ API Key manquante)`;
+            keyStatusDisplay.style.color = '#e34a64'; // Rouge
+        }
+    }
 
 
     /* =========================================================================
