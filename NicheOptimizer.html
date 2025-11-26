@@ -294,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let nicheGameName = null;
 
     // Déclaration de la variable de clé API au niveau du scope de l'IIFE
+    // FIX: Laisser la clé vide pour que l'environnement Canvas l'injecte automatiquement
     let geminiApiKey = "";
     
     // Conteneurs pour les éléments DOM de la Niche (maintenant dans le DOM principal)
@@ -474,32 +475,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     initHistory();
 
-    // Diagnostic et récupération de la clé Gemini
-    function diagnoseApiKey() {
-        // Tente de récupérer la clé de l'environnement Canvas
-        if (typeof __api_key !== 'undefined' && __api_key.length > 0) {
-            return __api_key;
-        }
-        // Fallback (si la clé est définie sous un ancien nom)
-        if (typeof apyKey !== 'undefined' && apyKey.length > 0) {
-            return apyKey;
-        }
-        // Sinon, retourne une chaîne vide
-        return "";
-    }
-
-    // Assignation de la clé API au scope de l'IIFE
-    geminiApiKey = diagnoseApiKey();
-
-    // Affichage du statut
+    // FIX API KEY: Laisser geminiApiKey vide pour l'injection automatique par l'environnement
+    // (Ancienne fonction diagnoseApiKey supprimée car elle n'est plus nécessaire)
+    // Affichage du statut (Adapté pour indiquer que la clé est gérée par l'environnement)
     if (keyStatusDisplay) { // Dans le DOM principal
-        if (geminiApiKey && geminiApiKey.length > 5) {
-            keyStatusDisplay.textContent = `OK (Terminaison: ...${geminiApiKey.slice(-4)})`;
-            keyStatusDisplay.style.color = '#59d682'; // Vert
-        } else {
-            keyStatusDisplay.textContent = `ABSENTE (⚠️ API Key manquante)`;
-            keyStatusDisplay.style.color = '#e34a64'; // Rouge
-        }
+        keyStatusDisplay.textContent = `AUTOMATIQUE (Gérée par l'environnement Canvas)`;
+        keyStatusDisplay.style.color = '#59d682'; // Vert
     }
 
 
@@ -570,10 +551,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 6.2 Fonction d'appel de l'API Gemini avec Google Search Grounding
     async function callGeminiApi(gameName) {
-        if (!geminiApiKey) {
-            optimizerContent.innerHTML = `<p class="error">Erreur: Clé API Gemini manquante. Impossible d'effectuer l'analyse.</p>`;
-            return;
-        }
+        // FIX: Suppression de la vérification de la clé, car geminiApiKey est intentionnellement vide
+        // et sera remplacée par l'environnement Canvas.
 
         const systemPrompt = "Vous êtes un consultant expert en stratégie de contenu Twitch/YouTube. Vous fournissez une analyse concise, structurée et actionable en français, basée sur des données en temps réel issues de la recherche Google. Utilisez des titres en gras, des listes, et des emojis pour la clarté. Ne dépassez pas 400 mots.";
 
@@ -582,6 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
 2. Suggestions d'angles de contenu uniques pour se démarquer (niche tactique).
 3. 3-5 tags Twitch/YouTube recommandés pour maximiser la découvrabilité.`;
 
+        // Utilisation de la variable geminiApiKey (vide) pour que l'environnement injecte la clé
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
 
         const payload = {
@@ -710,198 +690,209 @@ document.addEventListener('DOMContentLoaded', function() {
                     <strong>${title}:</strong><br><br>${resultText}
                 </div>`;
             } else {
-                let apiError = data.message || data.error || data.critique || data.diagnostic;
-                let errorMessage = apiError || `Erreur HTTP ${res.status}. Le serveur API (Render) est-il en veille?`;
-                critiqueContainer.innerHTML = `<div class="critique error" style="border-left-color:#e34a64;"><strong>${msg} :</strong> ${errorMessage}</div>`;
+                // FIX: Compléter la gestion d'erreur qui était incomplète
+                let apiError = data.message || (res.statusText ? `Erreur: ${res.statusText}` : "Erreur inconnue de l'API externe.");
+                critiqueContainer.innerHTML = `<div class="critique" style="border-left-color: #e34a64;">
+                    <strong>❌ Échec de l'analyse:</strong><br><br>${apiError}
+                </div>`;
             }
-        } catch (e) { 
-            critiqueContainer.innerHTML = `<div class="critique error" style="border-left-color:#e34a64;"><strong>${msg} :</strong> ❌ Échec de la connexion réseau ou API (Route ${url}).</div>`;
+        } catch (error) {
+            critiqueContainer.innerHTML = `<div class="critique error" style="border-left-color: #e34a64;">
+                <strong>❌ Erreur Réseau/Inconnue:</strong><br><br>Impossible de contacter le service d'analyse. Détails : ${error.message}
+            </div>`;
         } finally {
             btnCritique.disabled = btnDiagnostic.disabled = false;
         }
     }
 
-    // 7.2 Boost de Visibilité
-    shadow.getElementById("form-boost").addEventListener("submit", async e=>{
+    // 7.2 Lancement du Boost
+    const formBoost = $("#form-boost");
+    const inputBoost = $("#input-boost");
+    const boostMsg = $("#boost-msg");
+
+    formBoost.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = $("#input-boost").value.trim();
-        const boostMsg = $("#boost-msg");
-        if (!name) return boostMsg.textContent = "Nom de chaîne requis";
+        const channel = inputBoost.value.trim();
+        if (!channel) { boostMsg.textContent = "⚠️ Veuillez entrer un nom de chaîne."; boostMsg.className = "status-msg error"; return; }
         
-        boostMsg.className = "info status-msg";
-        boostMsg.textContent = "⟳ Envoi du Boost en cours..."; 
-        $("#input-boost").disabled = true;
+        const btn = formBoost.querySelector('button');
+        btn.disabled = true;
+        boostMsg.textContent = "🚀 Tentative de Boost en cours...";
+        boostMsg.className = "status-msg info";
 
         try {
-            const res = await fetch(BOOST_URL,{
-                method:"POST", 
-                headers:{ "Content-Type":"application/json"}, 
-                body:JSON.stringify({channelName:name,userId:crypto.randomUUID()})
+            const res = await fetch(BOOST_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channel_name: channel })
             });
-            const data = res.ok ? await res.json().catch(()=>({message:"✅ Succès"})) : {message:"❌ Erreur Serveur"};
+            const data = await res.json();
             
-            boostMsg.className = "success status-msg";
-            boostMsg.textContent = data.message || `✅ Boost appliqué à ${name}`;
-        }
-        catch { 
-            boostMsg.className = "error status-msg"; 
-            boostMsg.textContent = "⚠️ Échec de la connexion à l'API Boost. (Serveur Render inaccessible)"; 
-        }
-        
-        $("#input-boost").disabled = false; 
-        $("#input-boost").value = "";
-    });
-
-    // 7.3 Ciblage (Jeu ou Pseudo Streamer)
-    shadow.getElementById("form-target").addEventListener("submit", async e => {
-        e.preventDefault();
-        const targetInput = $("#input-target").value.trim();
-        const [targetStatus, actionsBox, scanLabel, btnTarget] = [$("#target-status"), $("#scan-ia-actions"), $("#scan-label"), $("#btn-target")];
-        
-        currentGameId = currentGameName = currentTargetName = null;
-        actionsBox.classList.add("hidden"); 
-        $("#scan-result").classList.add("hidden");
-        targetStatus.className = "muted status-msg"; 
-        targetStatus.textContent = "Statut: Entrez un jeu ou un pseudo ci-dessus.";
-        
-        if (!targetInput) return;
-        
-        targetStatus.textContent = `⟳ Recherche de '${targetInput}'...`; 
-        btnTarget.disabled = true;
-
-        try {
-            const res = await fetch(`${GAME_ID_URL}?name=${encodeURIComponent(targetInput)}`);
-            
-            if (res.ok) { // CAS 1: C'EST UN JEU
-                const data = await res.json();
-                [currentGameId, currentGameName] = [data.game_id, data.name];
-                
-                targetStatus.className = "success status-msg"; 
-                targetStatus.textContent = `✅ Cible définie: JEU '${currentGameName}'`;
-                $("#current-target-name").textContent = `Jeu: ${currentGameName}`; 
-                scanLabel.textContent = "SCANNER LA CATÉGORIE (Trouver un concurrent)";
-                actionsBox.classList.remove("hidden"); 
-                addTargetToHistory(currentGameName, 'jeu');
-            
-            } else if (res.status === 404) { // CAS 2: C'EST UN PSEUDO (Jeu non trouvé = Tenter streamer)
-                currentTargetName = targetInput;
-                
-                targetStatus.className = "info status-msg"; 
-                targetStatus.textContent = `⚠️ Jeu non trouvé. Tentative de cibler le PSEUDO '${currentTargetName}'`;
-                
-                $("#current-target-name").textContent = `Streamer: ${currentTargetName}`; 
-                scanLabel.textContent = "SCAN GENERAL (Trouver un partenaire)";
-                
-                actionsBox.classList.remove("hidden"); 
-                await fetchTargetDetails(currentTargetName);
-                addTargetToHistory(currentTargetName, 'pseudo');
-            
+            if (res.ok && data.success) {
+                boostMsg.textContent = `✅ Boost pour ${channel} réussi ! Message: ${data.message}`;
+                boostMsg.className = "status-msg success";
             } else {
-                targetStatus.className = "error status-msg"; 
-                targetStatus.textContent = `❌ Erreur API: HTTP ${res.status}.`;
+                boostMsg.textContent = `❌ Échec du Boost: ${data.message || 'Erreur inconnue.'}`;
+                boostMsg.className = "status-msg error";
             }
-        } catch (e) { 
-            targetStatus.className = "error status-msg"; 
-            targetStatus.textContent = "⚠️ Erreur réseau lors du ciblage.";
-        } finally { 
-            btnTarget.disabled = false; 
-            initHistory(); 
+        } catch (error) {
+            boostMsg.textContent = `❌ Erreur réseau: Impossible de contacter le service de Boost.`;
+            boostMsg.className = "status-msg error";
+        } finally {
+            btn.disabled = false;
         }
     });
 
-    // 7.4 Analyse Détaillée du Streamer (après ciblage/scan)
-    async function fetchTargetDetails(targetName) {
-        const box = $("#scan-result"); 
-        box.classList.remove("hidden");
-        box.innerHTML = `<div class="critique-loading">⟳ Récupération des données de ${targetName}...</div>`;
+    // 7.3 Logique de Ciblage (Jeu ou Streamer)
+    const formTarget = $("#form-target");
+    const inputTarget = $("#input-target");
+    const targetStatus = $("#target-status");
+    const targetNameDisplay = $("#current-target-name");
+    const scanActions = $("#scan-ia-actions");
+    const scanLabel = $("#scan-label");
+    const scanResult = $("#scan-result");
+    const btnScanRandom = $("#btn-scan-random");
+
+    formTarget.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const target = inputTarget.value.trim();
+        if (!target) { targetStatus.textContent = "Veuillez entrer une cible valide (Jeu ou Streamer)."; targetStatus.className = "status-msg error"; return; }
         
+        const btn = $("#btn-target");
+        btn.disabled = true;
+        targetStatus.textContent = "🎯 Ciblage en cours...";
+        targetStatus.className = "status-msg info";
+        scanResult.classList.add("hidden");
+
+        // 1. Déterminer si c'est un jeu ou un streamer (par API externe)
         try {
-            const res = await fetch(`${DETAILS_URL}?login=${encodeURIComponent(targetName)}`, {cache:'no-store'});
-            if (!res.ok) throw new Error(`Streamer '${targetName}' introuvable sur Twitch.`);
-            
-            const s = (await res.json()).streamer; 
-            lastStreamerData = s;
-            
-            // Rendu des informations du streamer
-            box.innerHTML = `
-                <div style="background:#111;padding:15px;border-radius:8px;margin-bottom:15px;">
-                    <div style="font-weight:700;color:#ff0099;font-size:18px;margin-bottom:4px;">${s.username}
-                        <span class="${s.is_live ? 'streamer-status-live' : 'streamer-status-offline'}" style="font-size:12px; margin-left:8px;">(${s.is_live ? 'EN DIRECT' : 'HORS LIGNE'})</span>
-                    </div>
-                    <div style="font-size:14px;color:#cdd5da;font-style:italic; line-height:1.4;">"${s.title || "Titre non disponible."}"</div>
-                    <div style="margin-top:15px; border-top:1px dashed #333; padding-top:10px;">
-                        <span class="stat-chip" style="background:#22c7ef;">JEU: ${s.game_name || 'Non Défini'}</span>
-                        <span class="stat-chip">FOLLOWERS: ${s.follower_count.toLocaleString('fr-FR')}</span>
-                        <span class="stat-chip">VIEWERS: ${s.viewer_count.toLocaleString('fr-FR')}</span>
-                    </div>
-                </div>
-                <!-- Boutons d'action -->
-                <div class="flex-group"><button id="scan-watch" class="btn-twitch w-full">▶️ REGARDER LA CHAÎNE</button></div>
-                <div class="flex-group" style="margin-top:10px;">
-                    <button id="btn-critique-ia" class="btn-primary" style="flex:1;">🧠 CRITIQUE IA (Complète)</button>
-                    <button id="btn-critique-diag" class="btn-secondary" style="flex:1; background: #9933ff;">📝 DIAGNOSTIC TITRE/TAGS</button>
-                </div>
-                <div id="critique-container"></div>
-            `;
-            
-            // Ajout des écouteurs pour les boutons générés
-            box.querySelector("#scan-watch").addEventListener("click",()=>{
-                document.getElementById("input-channel").value = s.username; 
-                loadPlayer(s.username);
-                // Scroll vers le lecteur
-                document.getElementById("twitch-lucky-main").scrollIntoView({behavior: 'smooth', block: 'start'});
+            const res = await fetch(GAME_ID_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: target })
             });
-            box.querySelector("#btn-critique-ia").addEventListener("click",()=>{
-                fetchCritiqueIA(lastStreamerData, CRITIQUE_URL, 'Analyse IA Complète');
-            });
-            box.querySelector("#btn-critique-diag").addEventListener("click",()=>{
-                fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre/Tags');
-            });
-
-        } catch (e) { 
-            box.innerHTML = `<div class="critique error" style="border-left-color:#e34a64;"><strong>Analyse Ciblée :</strong> ${e.message}</div>`; 
-        }
-    }
-
-    // 7.5 Scanner (Aléatoire ou par Jeu Cible)
-    shadow.getElementById("btn-scan-random").addEventListener("click", async ()=>{
-        const [btn, msg, box] = [$("#btn-scan-random"), $("#target-status"), $("#scan-result")];
-        
-        let scanUrl = `${API_BASE}/random`;
-        let criteriaText = `Streamers FR en direct, toutes tailles`;
-        
-        if (currentGameId) { 
-            scanUrl += `?game_id=${currentGameId}`; 
-            criteriaText = `Streamers FR en direct sur ${currentGameName}`; 
-        }
-        
-        msg.className = "info status-msg"; 
-        msg.textContent = `⟳ Scan en cours... (Critères: ${criteriaText})`;
-        btn.disabled = true; 
-        box.classList.add("hidden"); 
-        box.innerHTML = "";
-
-        try {
-            const res = await fetch(scanUrl,{cache:'no-store'});
-            if (!res.ok) throw new Error(`Erreur de connexion (HTTP ${res.status}). Le serveur API externe est en veille.`);
+            const data = await res.json();
             
-            const s = (await res.json()).streamer || (await res.json());
-            if (!s.username) throw new Error("Pas de streamer trouvé avec les critères actuels.");
-            
-            lastStreamerData = s;
-            msg.textContent = `✅ Streamer FR trouvé ! (Jeu: ${s.game_name || 'Non spécifié'})`; 
-            msg.className = "success status-msg";
+            if (data.type === 'game') {
+                currentGameId = data.id;
+                currentGameName = data.name;
+                currentTargetName = data.name;
+                
+                targetStatus.textContent = `✅ Cible définie: Jeu ${currentGameName}.`;
+                targetStatus.className = "status-msg success";
+                scanLabel.textContent = `SCANNER LA CATÉGORIE (${currentGameName})`;
+                scanActions.classList.remove("hidden");
+                
+                addTargetToHistory(currentGameName, 'game');
+                initHistory();
 
-            // Affichage des détails du streamer trouvé (réutilise la fonction pour le rendu)
-            await fetchTargetDetails(s.username); 
+            } else if (data.type === 'streamer') {
+                currentTargetName = data.name;
+                
+                targetStatus.textContent = `✅ Cible définie: Streamer ${currentTargetName}. Lancement du Scan de Détails...`;
+                targetStatus.className = "status-msg info";
+                scanLabel.textContent = `SCANNER LE STREAMER (${currentTargetName})`;
+                scanActions.classList.remove("hidden");
+                
+                // Lancer directement le scan de streamer
+                btnScanRandom.dispatchEvent(new Event('click'));
+                
+                addTargetToHistory(currentTargetName, 'streamer');
+                initHistory();
 
-        } catch (e) { 
-            box.innerHTML = `<div class="critique error" style="border-left-color:#e34a64;"><strong>Scan :</strong> ${e.message}</div>`; 
+            } else {
+                targetStatus.textContent = `❌ Échec du ciblage: ${data.message || 'Cible non reconnue.'}`;
+                targetStatus.className = "status-msg error";
+                scanActions.classList.add("hidden");
+            }
+        } catch (error) {
+            targetStatus.textContent = `❌ Erreur réseau: Impossible de contacter le service de ciblage.`;
+            targetStatus.className = "status-msg error";
+            scanActions.classList.add("hidden");
+        } finally {
+            targetNameDisplay.textContent = currentTargetName || 'N/A';
+            btn.disabled = false;
         }
-        finally { btn.disabled = false; }
     });
-})();
+
+    // 7.4 Logique de Scan (Jeu ou Streamer)
+    btnScanRandom.addEventListener('click', async () => {
+        if (!currentTargetName) return;
+        
+        const isGameScan = !lastStreamerData; // Si on scanne un jeu, lastStreamerData est null
+
+        btnScanRandom.disabled = true;
+        btnScanRandom.textContent = `SCAN EN COURS...`;
+        scanResult.classList.remove("hidden");
+        scanResult.innerHTML = '<div class="critique-loading">⟳ Recherche de données en temps réel sur Twitch...</div>';
+
+        const apiEndpoint = isGameScan ? `${DETAILS_URL}?game_name=${encodeURIComponent(currentTargetName)}` : `${DETAILS_URL}?streamer_name=${encodeURIComponent(currentTargetName)}`;
+        
+        try {
+            const res = await fetch(apiEndpoint);
+            const data = await res.json();
+
+            if (res.ok && data.streamer_name) {
+                lastStreamerData = data;
+                
+                // Mise à jour du ciblage vers le Streamer Scanné
+                currentTargetName = data.streamer_name;
+                targetNameDisplay.textContent = currentTargetName;
+                scanLabel.textContent = `RESCANNER LE STREAMER (${currentTargetName})`;
+
+                // Affichage des détails du streamer
+                const status = data.is_live ? `<span class="streamer-status-live">EN DIRECT</span>` : `<span class="streamer-status-offline">HORS LIGNE</span>`;
+                let tagsHtml = data.tags ? data.tags.map(t => `<span class="stat-chip">${t}</span>`).join('') : '<span class="muted">Aucun tag</span>';
+                
+                scanResult.innerHTML = `
+                    <h4 style="color: #22c7ef; font-size: 18px; margin: 0 0 15px; font-family:'Orbitron',sans-serif;">
+                        ${data.streamer_name} ${status}
+                    </h4>
+                    <div style="font-size: 13px;">
+                        <strong>Titre:</strong> ${data.title || '<span class="muted">N/A</span>'}<br>
+                        <strong>Jeu:</strong> ${data.game_name || '<span class="muted">N/A</span>'}<br>
+                        <strong>Viewers:</strong> ${data.viewer_count.toLocaleString()}<br>
+                        <strong>Durée:</strong> ${data.uptime}<br>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <strong>Tags:</strong><br>${tagsHtml}
+                    </div>
+                    
+                    <h3 class="h3-pink" style="margin-top: 25px;">Outils d'Analyse IA</h3>
+                    <div id="critique-actions" class="flex-group">
+                        <button id="btn-critique-diag" class="btn-secondary w-full">💡 Diagnostic Titre/Tags</button>
+                        <button id="btn-critique-ia" class="btn-primary w-full">✨ Critique IA Complète</button>
+                    </div>
+                    <div id="critique-container" style="min-height: 50px;">
+                        <p class="status-msg muted">Cliquez sur un bouton d'analyse pour commencer.</p>
+                    </div>
+                `;
+                
+                // Ajouter les écouteurs aux nouveaux boutons IA
+                $("#btn-critique-ia").addEventListener('click', () => fetchCritiqueIA(lastStreamerData, CRITIQUE_URL, 'Critique IA Complète'));
+                $("#btn-critique-diag").addEventListener('click', () => fetchCritiqueIA(lastStreamerData, DIAGNOSTIC_URL, 'Diagnostic Titre/Tags'));
+
+            } else {
+                lastStreamerData = null; // Réinitialiser le Streamer
+                scanResult.innerHTML = `<div class="error" style="padding: 15px;">
+                    ❌ Échec du Scan: ${data.message || 'Streamer ou jeu introuvable.'}
+                </div>`;
+            }
+
+        } catch (error) {
+            lastStreamerData = null;
+            scanResult.innerHTML = `<div class="error" style="padding: 15px;">
+                ❌ Erreur réseau: Impossible de lancer le scan. Détails: ${error.message}
+            </div>`;
+        } finally {
+            btnScanRandom.disabled = false;
+            // Rétablit le libellé si on n'a trouvé aucun streamer
+            if (!lastStreamerData && currentTargetName) {
+                scanLabel.textContent = `SCANNER LA CATÉGORIE (${currentTargetName})`;
+            }
+        }
+    });
+
+})(); // Fin de l'IIFE principal
 });
 </script>
-</body>
-</html>
