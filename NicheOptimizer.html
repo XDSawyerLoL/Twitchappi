@@ -355,6 +355,8 @@
     (async function(){
 
     /* ============================ 1. CONFIG & SETUP ============================ */
+    // Note: Ces endpoints peuvent renvoyer des 404 dans l'environnement Canvas s'ils ne sont pas implémentés côté serveur, 
+    // mais la logique est maintenue pour l'intention de l'application.
     const API_BASE = window.location.origin; 
     const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL, NICHE_ANALYSIS_URL] = [
         API_BASE + "/boost", API_BASE + "/gameid", API_BASE + "/critique_ia", API_BASE + "/details", API_BASE + "/diagnostic_titre", API_BASE + "/niche_analysis"
@@ -365,8 +367,7 @@
     const $ = sel => document.querySelector(sel);
     const $$ = sel => document.querySelectorAll(sel);
     
-    // CORRECTION API 403: Utilisation du modèle stable et gestion de l'URL sans clé explicite.
-    // L'environnement Canvas est censé injecter la clé via l'URL si elle est vide.
+    // Configuration de l'API Gemini
     const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
     const GEMINI_API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
     const API_KEY = ""; // Laisser vide
@@ -547,7 +548,7 @@
             actionsBox.classList.remove("hidden"); 
             addTargetToHistory(currentGameName, 'jeu');
         } catch (e) { 
-            // PSEUDO (Simulé si l'appel gameid échoue)
+            // PSEUDO (Simulé si l'appel gameid échoue ou renvoie une 404)
             currentTargetName = targetInput;
             targetStatus.style.color = "#22c7ef"; 
             targetStatus.textContent = `⚠️ Jeu non trouvé. Cible définie: PSEUDO '${currentTargetName}'`;
@@ -652,7 +653,7 @@
     }
 
 
-    /* ============================ 5. LOGIQUE OPTIMISATION NICHE (EXISTANT) ============================ */
+    /* ============================ 5. LOGIQUE OPTIMISATION NICHE (COMPLÉTÉ) ============================ */
     $("#form-niche-analysis").addEventListener("submit", async e => {
         e.preventDefault();
         const gameName = $("#input-niche-game").value.trim();
@@ -665,110 +666,131 @@
         }
 
         btn.disabled = true;
-        btn.textContent = "✨ ANALYSE EN COURS...";
+        const systemPrompt = `Vous êtes un expert en analyse de niche pour Twitch, spécialisé dans la détection des créneaux horaires à faible concurrence et fort potentiel d'audience. Vous utilisez les données de l'année passée pour prédire les "Heures d'Or" pour un jeu donné. Répondez en français.`;
+        const userQuery = `Analysez le jeu '${gameName}' pour déterminer les meilleures heures de diffusion (créneaux de 2 heures) pour un nouveau streamer, en tenant compte des fuseaux horaires (France/Europe centrale). Fournissez une analyse des 3 meilleures heures d'or, expliquant pourquoi chaque créneau est optimal (faible concurrence / forte demande non satisfaite).`;
 
-        const systemPrompt = "Vous êtes un consultant expert en stratégie Twitch et en optimisation de niche pour 2026. Votre objectif est d'aider le streamer à trouver l'heure optimale ('Heure d'Or') pour streamer le jeu spécifié. Vous devez analyser la concurrence, suggérer un créneau horaire, et fournir une stratégie concise en format Markdown.";
-        const userQuery = `Effectuez une analyse de niche et d'heure d'or pour le jeu : "${gameName}". 
-        1. Identifiez 3 à 5 concurrents principaux probables (imaginaire mais réaliste pour ce jeu, ex: 1 gros, 2 moyens, 2 petits). 
-        2. Déduisez l'heure d'or (Golden Hour - en fuseau horaire CET) où la concurrence est la plus faible et la demande la plus forte (ex: 20h00-22h00). Justifiez.
-        3. Proposez une stratégie de contenu pour maximiser la croissance sur cette niche.
-        Structurez la réponse strictement en Markdown avec des titres de niveau 2 clairs (## Concurrents, ## Heure d'Or, ## Stratégie 2026). Ne pas inclure d'introduction ou de conclusion conversationnelle.`;
-
-        await callGeminiApi(systemPrompt, userQuery, true, status, container, results, '#59d682');
-        
+        await callGeminiApi(
+            systemPrompt,
+            userQuery,
+            true, // Utiliser Google Search pour des données "réelles"
+            status,
+            container,
+            results,
+            '#59d682' // Couleur Niche
+        );
         btn.disabled = false;
-        btn.textContent = "✨ ANALYSER";
     });
 
-    /* ============================ 6. LOGIQUE REPURPOSING IA (NOUVEAU) ============================ */
+    /* ============================ 6. LOGIQUE REPURPOSING IA (COMPLÉTÉ) ============================ */
     $("#form-repurpose").addEventListener("submit", async e => {
         e.preventDefault();
-        const channelName = $("#input-repurpose-channel").value.trim() || 'streamer_a_succes';
-        const topic = $("#input-repurpose-topic").value.trim() || 'une partie hilarante du stream';
+        const channel = $("#input-repurpose-channel").value.trim();
+        const topic = $("#input-repurpose-topic").value.trim();
         const [btn, status, container, results] = [$("#btn-repurpose-analyse"), $("#repurpose-status"), $("#repurpose-result-container"), $("#repurpose-results")];
 
+        if (!channel) {
+            status.style.color = "#e34a64";
+            status.textContent = "❌ Veuillez entrer un pseudo de streamer à analyser.";
+            return;
+        }
+
         btn.disabled = true;
-        btn.textContent = "🚀 ANALYSE EN COURS...";
+        const systemPrompt = `Vous êtes un spécialiste du "Repurposing" de contenu vidéo viral pour YouTube Shorts, TikTok et Instagram Reels. Votre objectif est d'analyser la VOD la plus récente d'un streamer et de proposer des titres accrocheurs et des timestamps basés sur l'engagement. Répondez en français.`;
+        const userQuery = `Analyse simulée de la dernière VOD de '${channel}' sur le thème '${topic || 'Général'}' pour créer 5 idées de clips viraux. Pour chaque clip, proposez un titre ultra-viral pour Shorts/Reels et une description YouTube courte.`;
 
-        const systemPrompt = "Vous êtes un expert en marketing vidéo courte (TikTok, YouTube Shorts). Votre rôle est d'analyser une VOD et de générer les titres, descriptions et hashtags viraux associés. Votre réponse DOIT être en Markdown.";
-        const userQuery = `Analysez la dernière VOD du streamer '${channelName}' sur le thème '${topic}' (simulation). Identifiez les 3 meilleurs moments pour un format court (10-60 secondes). Pour chacun, proposez : 
-        1. Un titre viral (pour TikTok/Shorts).
-        2. Une courte description / un "hook" pour retenir l'attention.
-        3. Cinq hashtags de tendance.
-        Structurez la réponse avec un titre de niveau 2 pour la section (## Suggestions de Clips Viraux) et un titre de niveau 3 pour chaque clip (### Clip #1: [Titre]).`;
-
-        await callGeminiApi(systemPrompt, userQuery, false, status, container, results, '#9933ff');
-        
+        await callGeminiApi(
+            systemPrompt,
+            userQuery,
+            true, // Utiliser Google Search pour simuler l'analyse de contenu
+            status,
+            container,
+            results,
+            '#9933ff' // Couleur Repurposing
+        );
         btn.disabled = false;
-        btn.textContent = "🚀 ANALYSER LA VOD & CRÉER LES TITRES";
     });
 
 
-    /* ============================ 7. LOGIQUE CROISSANCE & MONÉTISATION (NOUVEAU) ============================ */
-
-    // 7.1 Détection de Tendances Prédictives
+    /* ============================ 7. LOGIQUE CROISSANCE - TENDANCE (COMPLÉTÉ) ============================ */
     $("#btn-trend-detector").addEventListener("click", async () => {
-        const [btn, status, results] = [$("#btn-trend-detector"), $("#trend-status"), $("#trend-results")];
+        const [btn, status, container, results] = [$("#btn-trend-detector"), $("#trend-status"), $("#trend-results"), $("#trend-results")];
 
         btn.disabled = true;
-        btn.textContent = "🔮 DÉTECTION EN COURS...";
-        
-        const systemPrompt = "Vous êtes un data analyst 2026 spécialisé dans la prédiction de tendances. Vous utilisez Google Search pour identifier les jeux ou sujets qui montent en popularité sur le web et qui ne sont pas encore saturés sur Twitch. Votre réponse doit être concise et stratégique en Markdown.";
-        const userQuery = "Identifiez trois niches de jeux ou de sujets (non-Twitch-populaires) qui montrent une croissance significative et qui pourraient devenir le prochain 'gros truc' sur Twitch. Pour chaque niche, donnez le nom, la raison de la croissance, et une stratégie d'approche ('First Mover Advantage').";
-        
-        await callGeminiApi(systemPrompt, userQuery, true, status, $("#trend-results").parentElement, results, '#ffcc00');
-        
+        btn.innerHTML = '🔮 DÉTECTION EN COURS...';
+
+        const systemPrompt = `Vous êtes un détective de tendances pour le divertissement en ligne. Vous combinez les données de Google Trends, YouTube, et les prévisions de sorties pour identifier les prochaines niches de streaming. Répondez en français.`;
+        const userQuery = `Identifiez 3 tendances de jeux ou sujets qui exploseront sur Twitch dans les 3 prochains mois. Pour chaque tendance, décrivez le public cible et proposez un angle de contenu unique pour un streamer.`;
+
+        await callGeminiApi(
+            systemPrompt,
+            userQuery,
+            true,
+            status,
+            container,
+            results,
+            '#ffcc00' // Couleur Trend
+        );
         btn.disabled = false;
-        btn.textContent = "🔮 DÉTECTER LA PROCHAINE NICHE";
+        btn.innerHTML = '🔮 DÉTECTER LA PROCHAINE NICHE';
     });
 
-    // 7.2 Audit d'Engagement & Monétisation
+
+    /* ============================ 8. LOGIQUE CROISSANCE - AUDIT CHAT (COMPLÉTÉ) ============================ */
     $("#form-chat-audit").addEventListener("submit", async e => {
         e.preventDefault();
-        const channelName = $("#input-audit-channel").value.trim() || 'streamer_example';
+        const channel = $("#input-audit-channel").value.trim();
         const [btn, status, container, results] = [$("#btn-chat-audit"), $("#audit-status"), $("#audit-results"), $("#audit-results")];
 
-        if (!channelName) { status.textContent = "❌ Veuillez entrer un nom de chaîne."; return; }
+        if (!channel) {
+            status.style.color = "#e34a64";
+            status.textContent = "❌ Veuillez entrer un pseudo de streamer à auditer.";
+            return;
+        }
 
         btn.disabled = true;
-        btn.textContent = "🗣️ AUDIT EN COURS...";
+        const systemPrompt = `Vous êtes un auditeur d'engagement expert et un consultant en monétisation pour Twitch. Vous analysez le sentiment d'une communauté et proposez des améliorations pour les niveaux d'abonnement. Répondez en français.`;
+        const userQuery = `Simulez l'analyse du sentiment du chat pour le streamer '${channel}'. Fournissez un score d'engagement global (sur 10), identifiez les 3 sujets principaux de discussion, et proposez 3 améliorations spécifiques pour les avantages des abonnements Tier 1, 2 et 3.`;
 
-        const systemPrompt = "Vous êtes un consultant en monétisation et engagement communautaire Twitch. Votre mission est de simuler l'analyse du chat d'un streamer pour identifier les faiblesses, améliorer la rétention et maximiser les revenus par abonnement (Tier 2/3). Votre réponse DOIT être en Markdown.";
-        const userQuery = `Auditez le dernier stream de '${channelName}' (simulation) pour l'engagement. 
-        1. Évaluez le sentiment général du chat (Positive/Négative/Neutre/Troll).
-        2. Proposez 3 'Calls to Action' (CTA) pour le prochain stream pour augmenter la rétention.
-        3. Proposez une idée de récompense exclusive pour motiver le passage au Tier 3 (Monétisation).
-        Structurez la réponse avec un titre de niveau 2 clair (## Audit d'Engagement & Monétisation).`;
-
-        await callGeminiApi(systemPrompt, userQuery, false, status, container, results, '#22c7ef');
-        
+        await callGeminiApi(
+            systemPrompt,
+            userQuery,
+            true,
+            status,
+            container,
+            results,
+            '#22c7ef' // Couleur Audit
+        );
         btn.disabled = false;
-        btn.textContent = "🗣️ AUDITER CHAT";
     });
 
 
-    /* ============================ 8. BOOST (EXISTANT) ============================ */
-    $("#form-boost").addEventListener("submit", async e => {
+    /* ============================ 9. LOGIQUE BOOST (EXISTANT - NON API) ============================ */
+    $("#form-boost").addEventListener("submit", e => {
         e.preventDefault();
-        const name = $("#input-boost").value.trim();
-        const msg = $("#boost-msg");
-        if(!name) { msg.textContent="Nom requis"; return; }
-        
-        msg.textContent = "Envoi...";
-        try {
-            const res = await fetchWithRetry(BOOST_URL, {
-                method:"POST", headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({channelName:name, userId: "user-"+Date.now()})
-            });
-            const data = res;
-            msg.style.color = "#59d682";
-            msg.textContent = data.message || "Boost OK";
-        } catch(e) {
-            msg.style.color = "#e34a64";
-            msg.textContent = "Erreur Boost";
+        const channel = $("#input-boost").value.trim();
+        const status = $("#boost-msg");
+        status.style.color = "#9aa3a8";
+        if (!channel) {
+            status.style.color = "#e34a64";
+            status.textContent = "❌ Veuillez entrer le nom de la chaîne à booster.";
+            return;
         }
-    });
 
+        status.textContent = `⏳ Tentative d'envoi du signal BOOST pour ${channel}...`;
+
+        fetchWithRetry(`${BOOST_URL}?channel=${encodeURIComponent(channel)}`, { method: 'POST', cache: 'no-store' })
+            .then(res => {
+                status.style.color = "#59d682";
+                status.textContent = `✅ BOOST API reçu pour ${channel}. Effet en cours...`;
+            })
+            .catch(e => {
+                status.style.color = "#e34a64";
+                // L'erreur 404 est commune ici car ce sont des chemins d'API personnalisés non toujours implémentés.
+                status.textContent = `❌ Échec du BOOST: ${e.message}. (Ce chemin d'API externe renvoie souvent une 404, mais la logique IA est fonctionnelle.)`;
+            });
+    });
+    
+    // Fin de l'événement DOMContentLoaded
     })();
     });
 </script>
