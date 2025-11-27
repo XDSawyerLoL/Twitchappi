@@ -1,130 +1,143 @@
-# Fichier : app.py (Version sécurisée et fonctionnelle - CORRIGÉ)
-
+from flask import Flask, request, redirect, jsonify
+import requests
 import os
-from flask import Flask, render_template, jsonify, request
 import random
-from google import genai
-# Note: Si vous rencontrez un 500 après cette correction, installez python-dotenv
-# dans votre environnement local si vous testez en local.
 
-# ===============================================
-# 1. LECTURE SÉCURISÉE DE LA CLÉ
-# ===============================================
+app = Flask(__name__)
 
-# Cette ligne lit la variable d'environnement (le secret) de Render.
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'CLE_ABSENTE_OU_NON_SECURISEE')
+# ============================ CONFIGURATION TWITCH ============================
+# Ces variables DOIVENT être définies dans les variables d'environnement (Env Vars) de votre service Render !
+TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID", "VOTRE_CLIENT_ID_ICI")
+TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET", "VOTRE_SECRET_ICI")
+# L'URI de redirection doit correspondre à l'URL de votre serveur Render ET à celle enregistrée sur Twitch.
+TWITCH_REDIRECT_URI = os.environ.get("TWITCH_REDIRECT_URI", "https://votre-domaine-render.com/twitch_callback") 
 
-# 💡 LIGNES DE DÉBOGAGE (pour vérifier dans les logs de Render)
-if GEMINI_API_KEY.startswith('CLE_ABSENTE'):
-    print("⚠️ DÉBOGAGE: La clé GEMINI_API_KEY n'a PAS été trouvée.")
-else:
-    print("✅ DÉBOGAGE: La clé GEMINI_API_KEY a été trouvée et le client est initialisé.")
-# 💡 FIN DES LIGNES DE DÉBOGAGE 💡
+# Stockage simple (pour les tests)
+user_access_token = None
+user_username = None 
 
-# 2. INITIALISATION DU CLIENT GEMINI
-# client est créé même avec une clé absente, c'est pour ça qu'il ne faut pas vérifier client.api_key.
-client = genai.Client(api_key=GEMINI_API_KEY)
+# ============================ 1. TWITCH OAUTH FLOW (pour /twitch_auth_start et /followed_streams) ============================
+
+@app.route("/twitch_auth_start")
+def twitch_auth_start():
+    """Démarre le flux OAuth en redirigeant l'utilisateur vers Twitch."""
+    scope = "user:read:follows user:read:email"
+    url = (
+        f"https://id.twitch.tv/oauth2/authorize?client_id={TWITCH_CLIENT_ID}"
+        f"&redirect_uri={TWITCH_REDIRECT_URI}&response_type=code&scope={scope}"
+    )
+    return redirect(url)
+
+@app.route("/twitch_callback")
+def twitch_callback():
+    """Route de rappel après l'authentification Twitch."""
+    global user_access_token, user_username
+    code = request.args.get('code')
+
+    if not code:
+        return "Erreur d'authentification: code manquant", 400
+
+    # Étape 2: Échange du code contre un jeton d'accès
+    token_url = "https://id.twitch.tv/oauth2/token"
+    data = {
+        'client_id': TWITCH_CLIENT_ID,
+        'client_secret': TWITCH_CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code',
+        'redirect_uri': TWITCH_REDIRECT_URI
+    }
+    
+    try:
+        response = requests.post(token_url, data=data)
+        response.raise_for_status()
+        token_info = response.json()
+        user_access_token = token_info.get('access_token')
+        
+        # Récupérer le nom d'utilisateur pour le statut
+        user_info = get_user_info(user_access_token)
+        user_username = user_info.get('login', 'Utilisateur Inconnu')
+
+        # Redirection vers la page principale du frontend
+        return redirect("/") 
+
+    except requests.exceptions.RequestException as e:
+        return f"Erreur lors de l'échange du jeton: {e}", 500
+
+def get_user_info(access_token):
+    """Récupère les informations de l'utilisateur authentifié."""
+    headers = {
+        'Client-ID': TWITCH_CLIENT_ID,
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.get("https://api.twitch.tv/helix/users", headers=headers)
+    response.raise_for_status()
+    return response.json()['data'][0]
 
 
-# 3. Configuration de l'application Flask
-app = Flask(__name__, 
-            static_folder='static', 
-            template_folder='.') 
+@app.route("/followed_streams")
+def followed_streams():
+    """Retourne les streams LIVE suivis par l'utilisateur."""
+    if not user_access_token:
+        # Le frontend gère ce message d'erreur spécifique
+        return jsonify({"error": "NOT_AUTHENTICATED"}), 401 
 
-
-# ===============================================
-# A. ROUTES DE BASE
-# ===============================================
-
-@app.route('/')
-def index():
-    """
-    Route principale : NE DOIT PLUS INJECTER LA CLÉ.
-    """
-    return render_template('NicheOptimizer.html') 
-
-
-# ===============================================
-# B. ROUTE PROXY SÉCURISÉE POUR GEMINI (CORRECTION ICI)
-# ===============================================
-
-@app.route('/critique_ia', methods=['POST'])
-def critique_ia_proxy():
-    """
-    Route API qui sert de proxy pour l'appel sécurisé à Gemini.
-    """
-    # 🛑 CORRECTION DE L'AttributeError : Utiliser la variable globale GEMINI_API_KEY.
-    if GEMINI_API_KEY.startswith('CLE_ABSENTE'):
-         return jsonify({"error": "Clé API Gemini non configurée sur le serveur (variable d'environnement manquante)."}), 500
+    headers = {
+        'Client-ID': TWITCH_CLIENT_ID,
+        'Authorization': f'Bearer {user_access_token}'
+    }
 
     try:
-        data = request.get_json()
-        prompt = data.get('prompt')
+        user_info = get_user_info(user_access_token)
+        user_id = user_info['id']
+        
+        streams_url = f"https://api.twitch.tv/helix/streams/followed?user_id={user_id}"
+        streams_response = requests.get(streams_url, headers=headers)
+        streams_response.raise_for_status()
+        streams_data = streams_response.json()['data']
+        
+        formatted_streams = [
+            {
+                'user_name': stream['user_name'],
+                'title': stream['title'],
+                'game_name': stream['game_name'],
+                'viewer_count': stream['viewer_count']
+            }
+            for stream in streams_data
+        ]
+        
+        return jsonify({"streams": formatted_streams, "username": user_username})
 
-        if not prompt:
-            return jsonify({"error": "Prompt manquant."}), 400
-
-        # L'instruction système et les outils sont inclus dans le prompt complet envoyé par le JS
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt
-        )
-
-        # Renvoyer la réponse de l'IA (le texte)
-        return jsonify({"result": response.text})
-
-    except Exception as e:
-        # Gérer les erreurs de l'API Gemini (ex: AuthenticationError si la clé est présente mais invalide)
-        print(f"Erreur Gemini: {e}")
-        # Affiner la réponse d'erreur
-        if "API_KEY" in str(e) or "Authentication" in str(e):
-             return jsonify({"error": "Erreur d'authentification Gemini. La clé lue est peut-être invalide."}), 500
-
-        return jsonify({"error": f"Erreur lors de l'appel à Gemini: {e}"}), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": "TWITCH_API_ERROR", "details": str(e)}), 500
 
 
-# ===============================================
-# C. ROUTES API SIMULÉES
-# ===============================================
+# ============================ 2. TWITCH API ENDPOINTS PUBLIC SIMULÉS ============================
 
-@app.route('/random_small_streamer', methods=['GET'])
-def get_initial_channel():
-    streamers = ["little_dev_fr", "growth_niche_bot", "tech_streamer_26", "mini_geek_tv"]
-    return jsonify({"username": random.choice(streamers), "viewer_count": random.randint(5, 100)})
+@app.route("/twitch_is_live")
+def twitch_is_live():
+    """Vérifie si une chaîne spécifique est en direct (Simulation simple)."""
+    channel = request.args.get('channel')
+    # Pour les tests frontend, nous simulons que 'aleknms' et 'gotaga' sont LIVE
+    is_live_status = channel.lower() in ["aleknms", "gotaga"] 
+    return jsonify({"channel": channel, "is_live": is_live_status})
 
-@app.route('/gameid', methods=['GET'])
-def get_game_id():
-    name = request.args.get('name', '').lower()
-    if 'elden ring' in name or 'starfield' in name:
-        return jsonify({"game_id": "12345", "name": name.title()})
-    return jsonify({"error": "Game not found"}), 404
 
-@app.route('/random', methods=['GET'])
-@app.route('/details', methods=['GET'])
-def get_streamer_data():
-    login = request.args.get('login')
-    data = {
-        "title": "Je stream pour la croissance : défis et analyses IA !",
-        "viewer_count": random.randint(50, 500),
-        "follower_count": random.randint(1000, 10000),
-        "is_live": True,
-        "tags": ["français", "croissance", "gaming", "niche-finding"]
-    }
-    if login:
-        data["username"] = login
-        data["game_name"] = "Just Chatting"
-    return jsonify({"streamer": data})
+@app.route("/random_small_streamer")
+def random_small_streamer():
+    """Retourne un streamer aléatoire avec moins de 100 viewers (Simulation Niche)."""
+    small_streamers = ["pauvreetgamer", "le_niche_streamer", "streamer_omega"] 
+    niche_channel = random.choice(small_streamers)
+    # Le frontend utilise ce résultat si l'API ne retourne pas un 404
+    return jsonify({"channel": niche_channel, "viewer_count": random.randint(10, 99)})
 
-# Route factice pour éviter les 404 pour les appels non-Gemini
-@app.route('/boost', methods=['POST'])
-@app.route('/diagnostic_titre', methods=['GET', 'POST'])
-@app.route('/niche_analysis', methods=['GET', 'POST'])
-def placeholder_route():
-    return jsonify({"status": "OK", "message": "API route found."}), 200
+# ============================ 3. PLACEHOLDERS (Les autres routes de votre logique IA) ============================
+# Vous devez insérer ici les implémentations pour /critique_ia, /gameid, /boost, etc., 
+# qui communiquent avec l'API Gemini ou effectuent d'autres recherches.
+# Si vous n'avez pas de backend IA, ces routes renverront un 404/500 par défaut (sauf si vous les définissez).
 
-# ===============================================
-# D. LANCEMENT DU SERVEUR
-# ===============================================
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+
+# ============================ 4. Lancement du serveur ============================
+if __name__ == "__main__":
+    # Utilisation du port d'environnement pour Render
+    port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
