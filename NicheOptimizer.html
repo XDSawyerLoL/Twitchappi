@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.4</title>
+    <title>Streamer & Niche AI Hub V6.5</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -221,7 +221,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V6.4</h1>
+    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V6.5</h1>
     <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -417,24 +417,33 @@
 </div>
 
 <script>
+    window.GEMINI_API_KEY = 'VOTRE_CLE_SECRETE_INJECTEE_PAR_LE_SERVEUR'; 
+</script>
+
+
+<script>
     // --- Gestion des Onglets ---
     function openTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         
-        document.getElementById(tabId).classList.add('active');
-        // Mise à jour de l'index des boutons pour le nouvel ordre/nom
-        const tabIds = ['tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost'];
-        const btnIndex = tabIds.indexOf(tabId);
-        if (btnIndex !== -1) {
-            document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
+        const targetTab = document.getElementById(tabId);
+        if (targetTab) {
+            targetTab.classList.add('active');
+            // Mise à jour de l'index des boutons pour le nouvel ordre/nom
+            const tabIds = ['tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost'];
+            const btnIndex = tabIds.indexOf(tabId);
+            const targetBtn = document.querySelectorAll('.tab-btn')[btnIndex];
+            if (btnIndex !== -1 && targetBtn) {
+                targetBtn.classList.add('active');
+            }
         }
     }
 
     document.addEventListener('DOMContentLoaded', function() {
     (async function(){
 
-    /* ============================ 1. CONFIG & SETUP (V6.4) ============================ */
+    /* ============================ 1. CONFIG & SETUP (V6.5) ============================ */
     const API_BASE = window.location.origin; 
     const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL, NICHE_ANALYSIS_URL, SMALL_STREAMER_URL] = [
         API_BASE + "/boost", API_BASE + "/gameid", API_BASE + "/critique_ia", API_BASE + "/details", API_BASE + "/diagnostic_titre", API_BASE + "/niche_analysis", API_BASE + "/random_small_streamer"
@@ -446,11 +455,10 @@
     const $$ = sel => document.querySelectorAll(sel);
     
     // =========================================================================
-    // ⚠️ SÉCURITÉ V6.4 : CLÉ API GEMINI ⚠️
-    // Tente de récupérer la clé depuis la variable injectée par le serveur (window.GEMINI_API_KEY).
-    // Sinon, utilise le placeholder.
+    // ⚠️ SÉCURITÉ V6.5 : UTILISATION DE LA CLÉ INJECTÉE PAR LE SERVEUR
+    // La variable window.GEMINI_API_KEY est lue ici.
     // =========================================================================
-    const API_KEY = window.GEMINI_API_KEY || "VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR"; 
+    const API_KEY = window.GEMINI_API_KEY || "VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR";
     
     const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
     const GEMINI_API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
@@ -463,9 +471,14 @@
         for (let i = 0; i < maxRetries; i++) {
             try {
                 const response = await fetch(url, options);
+                
                 if (!response.ok) {
                     if (response.status === 403) {
                         throw new Error(`403 Forbidden: API Key invalid or restricted.`);
+                    }
+                    if (response.status === 404 && url.includes("/gameid")) {
+                        // Le 404 est géré dans le .catch de l'appelant (form-target) pour basculer en mode pseudo.
+                        throw new Error(`404: Game not found (expected for pseudo inputs).`); 
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -481,16 +494,23 @@
     // Helper générique pour appeler Gemini
     async function callGeminiApi(systemPrompt, userQuery, useSearch, statusElement, resultContainer, resultElement, primaryColor) {
         
-        // --- CHECK API KEY (V6.4) ---
-        if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API")) {
+        // FIX V6.5: Robustesse - Vérifier que l'élément de statut a été trouvé par le sélecteur appelant.
+        if (!statusElement || !resultContainer || !resultElement) {
+            console.error("FATAL: One or more DOM elements passed to callGeminiApi are null.");
+            return;
+        }
+
+        // --- CHECK API KEY (V6.5) ---
+        if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API") || API_KEY.includes("VOTRE_CLE_SECRETE_INJECTEE_PAR_LE_SERVEUR")) {
             statusElement.style.color = "#e34a64";
-            statusElement.textContent = `❌ Clé API manquante ou non injectée.`;
+            statusElement.textContent = `❌ Clé API manquante ou non injectée. Voir le bloc <script> en haut du code.`;
+            // Assurer que le container s'affiche pour l'erreur
             resultContainer.style.borderColor = "#e34a64";
             resultContainer.style.display = 'block';
             resultElement.innerHTML = `
                 <div style="color:#e34a64; padding:15px; text-align:center; background:#1a0505; border-radius:6px;">
                     <strong>⚠️ Clé API non configurée</strong><br/><br/>
-                    Veuillez vous assurer que la variable <code>window.GEMINI_API_KEY</code> est bien définie par votre environnement de rendu, ou modifiez la variable <code>API_KEY</code> dans le script.
+                    Veuillez vous assurer que votre serveur injecte la clé dans la variable <code>window.GEMINI_API_KEY</code>.
                 </div>
             `;
             return;
@@ -570,6 +590,7 @@
     async function loadPlayer(channel){
         await loadTwitchSDK();
         const embedContainer = $("#twitch-embed");
+        if (!embedContainer) return; // FIX V6.5
         if (!window.Twitch || !window.Twitch.Embed){
             embedContainer.innerHTML = "<div style='color:#fff;padding:20px;background:#000;text-align:center;'>⚠️ Erreur: SDK Twitch introuvable ou bloqué.</div>"; return;
         }
@@ -580,16 +601,19 @@
         } else { try { player.setChannel(channel); } catch(e){} }
     }
     
-    $("#form-channel-player").addEventListener("submit", e=>{
+    $("#form-channel-player")?.addEventListener("submit", e=>{
         e.preventDefault();
-        const channelName = $("#input-channel").value.trim();
+        const channelName = $("#input-channel")?.value.trim();
         if(channelName) loadPlayer(channelName);
     });
 
-    // NOUVELLE FONCTION POUR TROUVER LA CHAÎNE INITIALE (PETITE AUDIENCE - V6.3)
+    // NOUVELLE FONCTION POUR TROUVER LA CHAÎNE INITIALE (PETITE AUDIENCE)
     async function findInitialChannel() {
         const defaultChannel = "squeezie"; // Fallback si l'API échoue
         const inputEl = $("#input-channel");
+        const titleEl = $(".player-wrapper h2");
+
+        if (!inputEl || !titleEl) return; // FIX V6.5
 
         inputEl.value = "Chargement du streamer cible...";
         
@@ -603,7 +627,7 @@
             loadPlayer(channelName);
             
             // Mise à jour du titre pour refléter la stratégie de croissance
-            $(".player-wrapper h2").innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR - Cible Croissance`;
+            titleEl.innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR - Cible Croissance`;
             
         } catch (e) {
             // Cas de secours
@@ -611,7 +635,7 @@
             inputEl.value = defaultChannel;
             inputEl.placeholder = `Nom de la chaîne Twitch (ex: gotaga)`;
             loadPlayer(defaultChannel);
-            $(".player-wrapper h2").innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR`;
+            titleEl.innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR`;
         }
     }
 
@@ -633,6 +657,7 @@
     }
     function initHistory() {
         const historySelect = $("#select-history");
+        if (!historySelect) return; // FIX V6.5
         historySelect.innerHTML = '<option value="">-- Charger une cible récente --</option>';
         getHistory().forEach(item => {
             const option = document.createElement('option');
@@ -642,20 +667,30 @@
         });
         historySelect.addEventListener('change', (e) => {
             const selectedName = e.target.value;
-            if (selectedName) {
-                $("#input-target").value = selectedName;
-                $("#form-target").dispatchEvent(new Event('submit', { cancelable: true }));
+            const inputTarget = $("#input-target");
+            const formTarget = $("#form-target");
+
+            if (selectedName && inputTarget && formTarget) {
+                inputTarget.value = selectedName;
+                formTarget.dispatchEvent(new Event('submit', { cancelable: true }));
             }
         });
     }
     initHistory();
     
     /* ============================ 4. LOGIQUE CIBLAGE & SCAN ============================ */
-    $("#form-target").addEventListener("submit", async e => {
+    $("#form-target")?.addEventListener("submit", async e => {
         e.preventDefault();
-        const targetInput = $("#input-target").value.trim();
-        const [targetStatus, actionsBox, scanLabel, btnTarget] = [$("#target-status"), $("#scan-ia-actions"), $("#scan-label"), $("#btn-target")];
-        
+        const targetInput = $("#input-target")?.value.trim();
+        // FIX V6.5: Sélection sécurisée des éléments
+        const targetStatus = $("#target-status"); 
+        const actionsBox = $("#scan-ia-actions"); 
+        const scanLabel = $("#scan-label"); 
+        const btnTarget = $("#btn-target");
+        const currentTargetNameEl = $("#current-target-name");
+
+        if (!targetStatus || !actionsBox || !scanLabel || !btnTarget || !currentTargetNameEl) return; // Sécurité
+
         currentGameId = currentGameName = currentTargetName = null;
         actionsBox.classList.add("hidden"); 
         
@@ -673,27 +708,30 @@
             [currentGameId, currentGameName] = [data.game_id, data.name];
             targetStatus.style.color = "#59d682"; 
             targetStatus.textContent = `✅ Cible définie: JEU '${currentGameName}'`;
-            $("#current-target-name").textContent = `Jeu: ${currentGameName}`; 
+            currentTargetNameEl.textContent = `Jeu: ${currentGameName}`; 
             scanLabel.textContent = "SCANNER LA CATÉGORIE";
             actionsBox.classList.remove("hidden"); 
             addTargetToHistory(currentGameName, 'jeu');
         } catch (e) { 
-            // PSEUDO
+            // PSEUDO (y compris en cas de 404 du /gameid)
             currentTargetName = targetInput;
             targetStatus.style.color = "#22c7ef"; 
             targetStatus.textContent = `⚠️ Jeu non trouvé. Cible définie: PSEUDO '${currentTargetName}'`;
-            $("#current-target-name").textContent = `Streamer: ${currentTargetName}`; 
+            currentTargetNameEl.textContent = `Streamer: ${currentTargetName}`; 
             scanLabel.textContent = "ANALYSER CE STREAMER";
             actionsBox.classList.remove("hidden"); 
             addTargetToHistory(currentTargetName, 'pseudo');
         } finally { btnTarget.disabled = false; initHistory(); }
     });
 
-    $("#btn-scan-random").addEventListener("click", async () => {
+    $("#btn-scan-random")?.addEventListener("click", async () => {
         const btn = $("#btn-scan-random");
         const box = $("#scan-result");
         const placeholder = $("#scan-result-placeholder");
+        const scanLabel = $("#scan-label");
         
+        if (!btn || !box || !placeholder || !scanLabel) return; // FIX V6.5
+
         let url = currentGameId ? `${API_BASE}/random?game_id=${currentGameId}` : 
                  (currentTargetName ? `${DETAILS_URL}?login=${encodeURIComponent(currentTargetName)}` : `${API_BASE}/random`);
         
@@ -736,48 +774,46 @@
                 <div id="critique-container"></div>
             `;
 
-            $("#res-watch").addEventListener("click", () => {
-                $("#input-channel").value = s.username;
+            $("#res-watch")?.addEventListener("click", () => {
+                const inputChannel = $("#input-channel");
+                if (inputChannel) inputChannel.value = s.username;
                 loadPlayer(s.username);
                 window.scrollTo({top: 0, behavior: 'smooth'});
             });
 
             // CRITIQUE (ROSE)
-            $("#res-critique").addEventListener("click", (e) => handleCritiqueDiagnostic(lastStreamerData, 'CRITIQUE', 'Critique Niche & Titre', '#ff0099', e.target));
+            $("#res-critique")?.addEventListener("click", (e) => handleCritiqueDiagnostic(lastStreamerData, 'CRITIQUE', 'Critique Niche & Titre', '#ff0099', e.target));
             // DIAGNOSTIC (BLEU)
-            $("#res-diag").addEventListener("click", (e) => handleCritiqueDiagnostic(lastStreamerData, 'DIAGNOSTIC', 'Diagnostic de Performance', '#22c7ef', e.target));
+            $("#res-diag")?.addEventListener("click", (e) => handleCritiqueDiagnostic(lastStreamerData, 'DIAGNOSTIC', 'Diagnostic de Performance', '#22c7ef', e.target));
 
         } catch (e) {
             box.innerHTML = `<div style="color:#e34a64; text-align:center; padding:20px;">❌ Erreur: ${e.message}</div>`;
         } finally {
             btn.disabled = false;
-            btn.textContent = document.getElementById("scan-label").textContent; 
+            btn.textContent = scanLabel.textContent; 
         }
     });
 
 
     /**
-     * FIX: Nouvelle fonction utilisant Gemini pour la Critique et le Diagnostic avec des prompts structurés.
+     * FIX V6.5: Fonction critique/diagnostic sécurisée et réutilisable.
      */
     async function handleCritiqueDiagnostic(streamerData, type, context, color, buttonElement) {
         const container = $("#critique-container");
+        const btnStatus = $("#target-status"); 
+        
+        if (!buttonElement || !container || !btnStatus) return;
         const originalText = buttonElement.textContent;
-        
-        if (!buttonElement || buttonElement.disabled) return;
-        
-        const [btnStatus] = [$("#target-status")];
 
         let systemPrompt = "";
         let userQuery = "";
         
         if (type === 'CRITIQUE') {
-            // Logique Critique (Niche/Titre/Heure)
             systemPrompt = `Vous êtes un expert en stratégie de niche et croissance sur Twitch. Votre mission est de critiquer le titre, le choix du jeu et l'heure de diffusion du stream. Rédigez un rapport en français, clair et structuré, en utilisant des balises HTML simples (<h2>, <p>, <ul>, <li>, <strong>) pour une excellente lisibilité.
             ATTENTION: Commencez OBLIGATOIREMENT votre réponse par un paragraphe <p class="star-rating"> contenant uniquement le score global de 1 à 5 étoiles (⭐). N'utilisez que les couleurs de la marque : #22c7ef (BLEU) et #FF0099 (ROSE) pour mettre en évidence les points clés et les titres de sections.`;
             userQuery = `Effectuez une critique détaillée pour le streamer '${streamerData.username}' sur le jeu '${streamerData.game_name || 'Inconnu'}' avec le titre : "${streamerData.title || 'Non spécifié'}". Basez votre analyse sur les informations suivantes et les données de recherche pour déterminer si cette niche/heure est optimale pour la croissance. Utilisez la structure HTML demandée : Titre: "${streamerData.title}", Jeu: "${streamerData.game_name}", Tags: ${streamerData.tags ? streamerData.tags.join(', ') : 'Aucun'}.`;
 
         } else if (type === 'DIAGNOSTIC') {
-            // Logique Diagnostic (Performance/Croissance)
             systemPrompt = `Vous êtes un consultant en performance et croissance sur Twitch. Votre diagnostic doit être structuré, clair et se concentrer sur les statistiques, l'engagement et les recommandations de croissance. Rédigez un rapport en français, clair et structuré, en utilisant des balises HTML simples (<h2>, <p>, <ul>, <li>, <strong>) pour une excellente lisibilité. Utilisez la couleur ROSE (#FF0099) et la couleur BLEUE (#22c7ef) pour mettre en évidence les points clés et les titres de sections.`;
             userQuery = `Analysez la performance actuelle du streamer '${streamerData.username}'. Fournissez un diagnostic détaillé sur sa situation pour la croissance en vous basant sur les données simulées : <br/>- Viewers: ${streamerData.viewer_count}<br/>- Followers: ${streamerData.follower_count}<br/>- Statut: ${streamerData.is_live ? 'LIVE' : 'OFF'}<br/>- Jeu: ${streamerData.game_name}. Que doit-il améliorer pour atteindre le statut de Partenaire ? Utilisez la structure HTML demandée.`;
         } else {
@@ -789,8 +825,8 @@
         btnStatus.textContent = `⏳ L'IA travaille : Lancement de l'analyse...`;
         
         try {
-            // --- CHECK API KEY (V6.4) ---
-            if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API")) {
+            // --- CHECK API KEY (V6.5) ---
+            if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API") || API_KEY.includes("VOTRE_CLE_SECRETE_INJECTEE_PAR_LE_SERVEUR")) {
                 btnStatus.style.color = "#e34a64";
                 btnStatus.textContent = `❌ Échec: Clé API manquante ou non injectée.`;
                 container.innerHTML = `<div style="color:#e34a64; padding:10px;">Veuillez sécuriser l'injection de votre clé API Gemini (variable <code>window.GEMINI_API_KEY</code>).</div>`;
@@ -849,14 +885,13 @@
 
 
     /* ============================ 5. LOGIQUE OPTIMISATION NICHE ============================ */
-    $("#form-niche-analysis").addEventListener("submit", async e => {
+    $("#form-niche-analysis")?.addEventListener("submit", async e => {
         e.preventDefault();
-        const gameName = $("#input-niche-game").value.trim();
+        const gameName = $("#input-niche-game")?.value.trim();
         const [btn, status, container, results] = [$("#btn-niche-analyse"), $("#niche-status"), $("#niche-result-container"), $("#niche-results")];
 
-        if (!gameName) {
-            status.style.color = "#e34a64";
-            status.textContent = "❌ Veuillez entrer un nom de jeu pour l'analyse.";
+        if (!gameName || !status || !btn || !container || !results) {
+             if (status) { status.style.color = "#e34a64"; status.textContent = "❌ Veuillez entrer un nom de jeu pour l'analyse."; }
             return;
         }
 
@@ -876,21 +911,20 @@
         btn.disabled = false;
     });
 
-    /* ============================ 6. LOGIQUE REPURPOSING IA & VOD (Mise à jour V6.4) ============================ */
-    $("#form-repurpose").addEventListener("submit", async e => {
+    /* ============================ 6. LOGIQUE REPURPOSING IA & VOD (V6.5) ============================ */
+    $("#form-repurpose")?.addEventListener("submit", async e => {
         e.preventDefault();
-        const channel = $("#input-repurpose-channel").value.trim();
-        const topic = $("#input-repurpose-topic").value.trim();
+        const channel = $("#input-repurpose-channel")?.value.trim();
+        const topic = $("#input-repurpose-topic")?.value.trim();
         const [btn, status, container, results] = [$("#btn-repurpose-analyse"), $("#repurpose-status"), $("#repurpose-result-container"), $("#repurpose-results")];
 
-        if (!channel) {
-            status.style.color = "#e34a64";
-            status.textContent = "❌ Veuillez entrer un pseudo de streamer à analyser.";
+        if (!channel || !status || !btn || !container || !results) {
+             if (status) { status.style.color = "#e34a64"; status.textContent = "❌ Veuillez entrer un pseudo de streamer à analyser."; }
             return;
         }
 
         btn.disabled = true;
-        // Mise à jour du prompt pour inclure les scripts de rétention VOD (V6.4)
+        // Prompt optimisé pour inclure les scripts de rétention VOD (V6.4/V6.5)
         const systemPrompt = `Vous êtes un spécialiste du "Repurposing" de contenu vidéo viral et un expert en rétention d'audience asynchrone (VOD/YouTube). Votre réponse doit être très structurée.`;
         const userQuery = `Analyse simulée de la dernière VOD de '${channel}' sur le thème '${topic || 'Général'}'. 
     
@@ -916,8 +950,10 @@
 
 
     /* ============================ 7. LOGIQUE CROISSANCE - TENDANCE ============================ */
-    $("#btn-trend-detector").addEventListener("click", async () => {
+    $("#btn-trend-detector")?.addEventListener("click", async () => {
         const [btn, status, container, results] = [$("#btn-trend-detector"), $("#trend-status"), $("#trend-results"), $("#trend-results")];
+
+        if (!btn || !status || !container || !results) return; // FIX V6.5
 
         btn.disabled = true;
         btn.innerHTML = '🔮 DÉTECTION EN COURS...';
@@ -939,15 +975,14 @@
     });
 
 
-    /* ============================ 8. LOGIQUE CROISSANCE - AUDIT CHAT (Mise à jour V6.3) ============================ */
-    $("#form-chat-audit").addEventListener("submit", async e => {
+    /* ============================ 8. LOGIQUE CROISSANCE - AUDIT CHAT (V6.5) ============================ */
+    $("#form-chat-audit")?.addEventListener("submit", async e => {
         e.preventDefault();
-        const channel = $("#input-audit-channel").value.trim();
+        const channel = $("#input-audit-channel")?.value.trim();
         const [btn, status, container, results] = [$("#btn-chat-audit"), $("#audit-status"), $("#audit-results"), $("#audit-results")];
 
-        if (!channel) {
-            status.style.color = "#e34a64";
-            status.textContent = "❌ Veuillez entrer un pseudo de streamer à auditer.";
+        if (!channel || !status || !btn || !container || !results) {
+            if (status) { status.style.color = "#e34a64"; status.textContent = "❌ Veuillez entrer un pseudo de streamer à auditer."; }
             return;
         }
 
@@ -973,14 +1008,13 @@
     });
 
     /* ============================ 9. LOGIQUE CROISSANCE - USP & PITCH ============================ */
-    $("#form-usp-pitch").addEventListener("submit", async e => {
+    $("#form-usp-pitch")?.addEventListener("submit", async e => {
         e.preventDefault();
-        const theme = $("#input-usp-target").value.trim();
+        const theme = $("#input-usp-target")?.value.trim();
         const [btn, status, container, results] = [$("#btn-usp-pitch"), $("#usp-pitch-status"), $("#usp-pitch-results"), $("#usp-pitch-results")];
 
-        if (!theme) {
-            status.style.color = "#e34a64";
-            status.textContent = "❌ Veuillez entrer un thème principal pour définir l'USP.";
+        if (!theme || !status || !btn || !container || !results) {
+             if (status) { status.style.color = "#e34a64"; status.textContent = "❌ Veuillez entrer un thème principal pour définir l'USP."; }
             return;
         }
 
@@ -1004,16 +1038,15 @@
     });
 
 
-    /* ============================ 10. LOGIQUE BOOST - RAID COLLABORATIF (V6.4) ============================ */
-    $("#form-raid-partner").addEventListener("submit", async e => {
+    /* ============================ 10. LOGIQUE BOOST - RAID COLLABORATIF (V6.5) ============================ */
+    $("#form-raid-partner")?.addEventListener("submit", async e => {
         e.preventDefault();
-        const style = $("#input-raid-style").value.trim();
-        const niche = $("#input-raid-niche").value.trim();
+        const style = $("#input-raid-style")?.value.trim();
+        const niche = $("#input-raid-niche")?.value.trim();
         const [btn, status, container, results] = [$("#btn-raid-partner"), $("#raid-partner-status"), $("#raid-partner-results"), $("#raid-partner-results")];
 
-        if (!style || !niche) {
-            status.style.color = "#e34a64";
-            status.textContent = "❌ Veuillez entrer le style de stream ET la niche/jeu.";
+        if (!style || !niche || !status || !btn || !container || !results) {
+             if (status) { status.style.color = "#e34a64"; status.textContent = "❌ Veuillez entrer le style de stream ET la niche/jeu."; }
             return;
         }
 
@@ -1024,44 +1057,46 @@
         1. Le nom du streamer (simulé ou réel trouvé par recherche).
         2. La raison de la compatibilité (en quelques mots).
         3. Le "Moment Clé" (meilleure heure de raid/collab).
-        Utilisez des titres <h2>, des listes <ul>/<li> et des paragraphes <p>. Mettez en évidence les noms de partenaires en couleur ORANGE (#FF9900).`;
+        
+        Utilisez des titres <h2>, des listes <ul>/<li> et des paragraphes <p>. Mettez en évidence le nom du partenaire en couleur ORANGE (#FF9900).`;
 
         await callGeminiApi(
             systemPrompt,
             userQuery,
-            true, 
+            true,
             status,
             container,
             results,
-            '#ff9900' // Couleur ORANGE
+            '#ff9900'
         );
         btn.disabled = false;
     });
 
-
-    /* ============================ 11. LOGIQUE BOOST - BIO/PANEL GENERATOR ============================ */
-    $("#form-bio-panel").addEventListener("submit", async e => {
+    /* ============================ 11. LOGIQUE BOOST - BIO & PANELS ============================ */
+    $("#form-bio-panel")?.addEventListener("submit", async e => {
         e.preventDefault();
-        const style = $("#input-bio-style").value.trim();
+        const style = $("#input-bio-style")?.value.trim();
         const [btn, status, container, results] = [$("#btn-bio-panel"), $("#bio-panel-status"), $("#bio-panel-results"), $("#bio-panel-results")];
 
-        if (!style) {
-            status.style.color = "#e34a64";
-            status.textContent = "❌ Veuillez entrer le style de contenu.";
+        if (!style || !status || !btn || !container || !results) {
+            if (status) { status.style.color = "#e34a64"; status.textContent = "❌ Veuillez entrer votre style de contenu."; }
             return;
         }
 
         btn.disabled = true;
-        const systemPrompt = `Vous êtes un rédacteur professionnel de contenu Twitch, spécialisé dans la conversion des nouveaux viewers. Votre mission est de créer des textes de bio et de panneaux ('Panels') courts, percutants et professionnels. Utilisez le format Twitch (Markdown non pris en charge, structurez avec des balises HTML simples <h2>, <p>, <ul>, <li>).`;
-        const userQuery = `Créez les textes suivants pour un streamer dont le style est : '${style}'. 
-        1. Une Bio Twitch (max 200 caractères).
-        2. Le texte de 4 Panneaux Twitch (ex: À Propos, Règles, Planning, Réseaux Sociaux). Chaque panneau doit avoir un titre <h2> et un paragraphe <p> de contenu.
-        Mettez les titres des sections en BLEU (#22c7ef) et les points clés en ROSE (#FF0099).`;
+        const systemPrompt = `Vous êtes un copywriter expert en branding pour Twitch. Votre mission est de créer des textes de conversion. Votre réponse doit être très structurée.`;
+        const userQuery = `Générez une biographie percutante (max 3 phrases) et 4 textes pour panneaux de description (ex: A Propos, Mes Réseaux, Mes Règles, Mon Setup) basés sur le style de contenu : '${style}'. 
+        
+        Rédigez : 
+        1. La Bio (un paragraphe <p>).
+        2. 4 titres de panneaux <h2> et leur contenu <p> associé.
+        
+        Mettez les titres de panneaux en couleur BLEUE (#22c7ef).`;
 
         await callGeminiApi(
             systemPrompt,
             userQuery,
-            false, 
+            true,
             status,
             container,
             results,
@@ -1071,11 +1106,14 @@
     });
 
 
-    /* ============================ 12. LOGIQUE BOOST (V6.3 - NON SIMULÉ) ============================ */
-    $("#form-boost").addEventListener("submit", e => {
+    /* ============================ 12. LOGIQUE BOOST (SIMULÉE) ============================ */
+    $("#form-boost")?.addEventListener("submit", e => {
         e.preventDefault();
-        const channel = $("#input-boost").value.trim();
+        const channel = $("#input-boost")?.value.trim();
         const status = $("#boost-msg");
+        
+        if (!status) return; // FIX V6.5
+
         status.style.color = "#9aa3a8";
         if (!channel) {
             status.style.color = "#e34a64";
@@ -1085,12 +1123,19 @@
 
         status.textContent = `⏳ Tentative d'envoi du signal BOOST pour ${channel}...`;
 
-        // ⚠️ V6.4 : Simulation client-side de succès instantané pour garantir le feedback utilisateur.
-        setTimeout(() => {
-            status.style.color = "#59d682";
-            status.textContent = `✅ SIGNAL BOOST DIRECT pour ${channel} ENVOYÉ. Effet IMMÉDIAT. (V6.4)`;
-        }, 500); // Délai de 500ms pour simuler le temps de réponse réseau
+        // Simulation d'appel API, qui renverra probablement un 404 (non implémenté côté serveur)
+        fetchWithRetry(`${BOOST_URL}?channel=${encodeURIComponent(channel)}`, { method: 'POST', cache: 'no-store' })
+            .then(res => {
+                status.style.color = "#59d682";
+                status.textContent = `✅ BOOST API reçu pour ${channel}. Effet en cours...`;
+            })
+            .catch(e => {
+                status.style.color = "#e34a64";
+                // Message d'erreur personnalisé car l'API n'est pas implémentée dans la plupart des cas.
+                status.textContent = `❌ Échec du BOOST: Le service API n'est pas actif (Erreur ${e.message.includes('404') ? '404' : 'connexion'}). La logique IA reste fonctionnelle.`;
+            });
     });
+
     
     // Fin de l'événement DOMContentLoaded
     })();
