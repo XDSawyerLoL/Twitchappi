@@ -454,15 +454,7 @@
     const $ = sel => document.querySelector(sel);
     const $$ = sel => document.querySelectorAll(sel);
     
-    // =========================================================================
-    // ⚠️ SÉCURITÉ V6.5 : UTILISATION DE LA CLÉ INJECTÉE PAR LE SERVEUR
-    // Le code récupère ici la variable injectée '{{ GEMINI_API_KEY }}'
-    // =========================================================================
-    const API_KEY = window.GEMINI_API_KEY || "VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR";
-    
-    const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
-    const GEMINI_API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
-
+  
     
     // --- Fonctions utilitaires ---
 
