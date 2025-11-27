@@ -1,24 +1,28 @@
+# Fichier : app.py (Version sécurisée et fonctionnelle - CORRIGÉ)
+
 import os
 from flask import Flask, render_template, jsonify, request
 import random
 from google import genai
+# Note: Si vous rencontrez un 500 après cette correction, installez python-dotenv
+# dans votre environnement local si vous testez en local.
 
 # ===============================================
-# 1. LECTURE SÉCURISÉE DE LA CLÉ (DOIT VENIR EN PREMIER)
+# 1. LECTURE SÉCURISÉE DE LA CLÉ
 # ===============================================
 
 # Cette ligne lit la variable d'environnement (le secret) de Render.
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'CLE_ABSENTE_OU_NON_SECURISEE')
 
-# 💡 LIGNES DE DÉBOGAGE AJOUTÉES 💡
+# 💡 LIGNES DE DÉBOGAGE (pour vérifier dans les logs de Render)
 if GEMINI_API_KEY.startswith('CLE_ABSENTE'):
-    print("⚠️ DÉBOGAGE: La clé GEMINI_API_KEY n'a PAS été trouvée dans les variables d'environnement de Render.")
+    print("⚠️ DÉBOGAGE: La clé GEMINI_API_KEY n'a PAS été trouvée.")
 else:
     print("✅ DÉBOGAGE: La clé GEMINI_API_KEY a été trouvée et le client est initialisé.")
 # 💡 FIN DES LIGNES DE DÉBOGAGE 💡
 
 # 2. INITIALISATION DU CLIENT GEMINI
-# client est désormais disponible pour toutes les fonctions de l'API.
+# client est créé même avec une clé absente, c'est pour ça qu'il ne faut pas vérifier client.api_key.
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 
@@ -29,7 +33,7 @@ app = Flask(__name__,
 
 
 # ===============================================
-# A. ROUTES DE BASE (Injection sécurisée)
+# A. ROUTES DE BASE
 # ===============================================
 
 @app.route('/')
@@ -37,28 +41,24 @@ def index():
     """
     Route principale : NE DOIT PLUS INJECTER LA CLÉ.
     """
-    # L'injection a été supprimée pour la sécurité (la clé reste côté serveur)
     return render_template('NicheOptimizer.html') 
 
 
 # ===============================================
-# B. ROUTE PROXY SÉCURISÉE POUR GEMINI
-# Le JavaScript appellera TOUJOURS cette route pour l'IA
+# B. ROUTE PROXY SÉCURISÉE POUR GEMINI (CORRECTION ICI)
 # ===============================================
 
 @app.route('/critique_ia', methods=['POST'])
 def critique_ia_proxy():
     """
     Route API qui sert de proxy pour l'appel sécurisé à Gemini.
-    Le client JS envoie le prompt, le serveur fait l'appel.
     """
-    # Vérification du secret
-    if client.api_key.startswith('CLE_ABSENTE'):
+    # 🛑 CORRECTION DE L'AttributeError : Utiliser la variable globale GEMINI_API_KEY.
+    if GEMINI_API_KEY.startswith('CLE_ABSENTE'):
          return jsonify({"error": "Clé API Gemini non configurée sur le serveur (variable d'environnement manquante)."}), 500
 
     try:
         data = request.get_json()
-        # Le JS envoie le prompt complet sous la clé 'prompt'
         prompt = data.get('prompt')
 
         if not prompt:
@@ -68,24 +68,23 @@ def critique_ia_proxy():
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
-            # Note : Le search tool est inclus ici, car le JS a concaténé les instructions.
         )
 
         # Renvoyer la réponse de l'IA (le texte)
         return jsonify({"result": response.text})
 
     except Exception as e:
-        # Gérer les erreurs de l'API Gemini
+        # Gérer les erreurs de l'API Gemini (ex: AuthenticationError si la clé est présente mais invalide)
         print(f"Erreur Gemini: {e}")
-        # Affiner la réponse d'erreur au cas où ce serait une erreur d'authentification
+        # Affiner la réponse d'erreur
         if "API_KEY" in str(e) or "Authentication" in str(e):
-             return jsonify({"error": "Erreur d'authentification Gemini. Clé invalide ou manquante."}), 500
+             return jsonify({"error": "Erreur d'authentification Gemini. La clé lue est peut-être invalide."}), 500
 
         return jsonify({"error": f"Erreur lors de l'appel à Gemini: {e}"}), 500
 
 
 # ===============================================
-# C. ROUTES API SIMULÉES (Pour fixer le 404)
+# C. ROUTES API SIMULÉES
 # ===============================================
 
 @app.route('/random_small_streamer', methods=['GET'])
