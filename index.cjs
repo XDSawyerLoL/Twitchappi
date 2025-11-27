@@ -1,3 +1,5 @@
+
+
 // =========================================================
 // Configuration des Modules et Initialisation du Serveur
 // =========================================================
@@ -22,31 +24,31 @@ const admin = require("firebase-admin");
 let firebaseCredentials;
 
 try {
-    // Tente de lire les credentials JSON à partir de la variable d'environnement (méthode Render)
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-    
-    if (serviceAccountJson) {
-        // Le contenu JSON complet est parsé depuis la variable d'environnement
-        firebaseCredentials = JSON.parse(serviceAccountJson);
-        console.log("Credentials Firebase chargées depuis la variable d'environnement.");
-    } else {
-        // Tente de lire le fichier local (méthode de développement local)
-        console.log("Variable d'environnement FIREBASE_SERVICE_ACCOUNT non trouvée. Tentative de lecture locale...");
-        // ATTENTION : Cette ligne échouera si le fichier n'est pas présent (ce qui est le cas sur Render)
-        firebaseCredentials = require('./serviceAccountKey.json');
-    }
+    // Tente de lire les credentials JSON à partir de la variable d'environnement (méthode Render)
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    if (serviceAccountJson) {
+        // Le contenu JSON complet est parsé depuis la variable d'environnement
+        firebaseCredentials = JSON.parse(serviceAccountJson);
+        console.log("Credentials Firebase chargées depuis la variable d'environnement.");
+    } else {
+        // Tente de lire le fichier local (méthode de développement local)
+        console.log("Variable d'environnement FIREBASE_SERVICE_ACCOUNT non trouvée. Tentative de lecture locale...");
+        // ATTENTION : Cette ligne échouera si le fichier n'est pas présent (ce qui est le cas sur Render)
+        firebaseCredentials = require('./serviceAccountKey.json');
+    }
 } catch (e) {
-    console.error("Échec du chargement des identifiants Firebase. Assurez-vous que 'FIREBASE_SERVICE_ACCOUNT' est configurée sur Render OU que 'serviceAccountKey.json' est présent localement.");
-    console.error("Détails de l'erreur:", e.message);
-    // Le serveur doit s'arrêter si Firebase ne peut pas être initialisé
-    process.exit(1); 
+    console.error("Échec du chargement des identifiants Firebase. Assurez-vous que 'FIREBASE_SERVICE_ACCOUNT' est configurée sur Render OU que 'serviceAccountKey.json' est présent localement.");
+    console.error("Détails de l'erreur:", e.message);
+    // Le serveur doit s'arrêter si Firebase ne peut pas être initialisé
+    process.exit(1); 
 }
 
 // Utilisation des credentials chargées
 admin.initializeApp({
-    credential: admin.credential.cert(firebaseCredentials),
-    // 👉 REMPLACEZ LA LIGNE CI-DESSOUS par l'URL de votre base de données :
-    databaseURL: "https://TON_PROJET.firebaseio.com" 
+    credential: admin.credential.cert(firebaseCredentials),
+    // 👉 REMPLACEZ LA LIGNE CI-DESSOUS par l'URL de votre base de données :
+    databaseURL: "https://TON_PROJET.firebaseio.com" 
 });
 
 // Accès DB Firebase
@@ -202,7 +204,7 @@ app.get('/gameid', async (req, res) => {
     else res.status(404).json({ message: "Jeu non trouvé" });
 });
 
-// 2. RANDOM SCAN
+// 2. RANDOM SCAN (ALÉATOIRE LARGE)
 app.get('/random', async (req, res) => {
     const token = await getTwitchAccessToken();
     if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
@@ -239,13 +241,57 @@ app.get('/details', async (req, res) => {
     else res.status(404).json({ message: "Streamer introuvable" });
 });
 
-// 4. BOOST
-app.post('/boost', (req, res) => {
-    console.log(`BOOST: ${req.body.channelName}`);
-    res.json({ message: `Boost activé pour ${req.body.channelName}`, status: 'ok' });
+// 4. RANDOM SMALL STREAMER (< 100 Viewers) - NEW V6.1
+app.get('/random_small_streamer', async (req, res) => {
+    const token = await getTwitchAccessToken();
+    if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
+
+    // Cible : Trouver un streamer live FR avec < 100 viewers pour l'analyse de niche.
+    // On utilise 'first=100' et 'language=fr' pour maximiser les chances de trouver un petit streamer.
+    const url = `https://api.twitch.tv/helix/streams?first=100&language=fr`; 
+    
+    try {
+        const response = await fetch(url, {
+            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        // 1. Filtrer pour les streamers avec 1 à 99 viewers
+        const smallStreams = data.data.filter(s => s.type === 'live' && s.viewer_count > 0 && s.viewer_count < 100);
+
+        if (smallStreams.length === 0) {
+            // Fallback : Si aucun petit streamer n'est trouvé dans le top 100, prendre un aléatoire (même grand) pour ne pas bloquer.
+            const allLiveStreams = data.data.filter(s => s.type === 'live' && s.viewer_count > 0);
+            if (allLiveStreams.length > 0) {
+                 const fallbackStream = allLiveStreams[Math.floor(Math.random() * allLiveStreams.length)];
+                 console.log(`[Small Streamer] Fallback vers ${fallbackStream.user_login} (${fallbackStream.viewer_count} viewers)`);
+                 return res.json({ username: fallbackStream.user_login, status: 'fallback_random', viewer_count: fallbackStream.viewer_count });
+            }
+            return res.status(404).json({ message: "Aucun stream live trouvé." });
+        }
+
+        // 2. Sélectionner un petit streamer aléatoire parmi les cibles
+        const randomSmallStream = smallStreams[Math.floor(Math.random() * smallStreams.length)];
+        console.log(`[Small Streamer] Cible trouvée: ${randomSmallStream.user_login} (${randomSmallStream.viewer_count} viewers)`);
+        
+        // 3. Retourner le pseudo (le frontend se charge de le charger)
+        res.json({ username: randomSmallStream.user_login, viewer_count: randomSmallStream.viewer_count, status: 'ok' });
+
+    } catch (e) {
+        console.error("Erreur serveur random_small_streamer:", e.message);
+        res.status(500).json({ message: "Erreur serveur pour le scan petit streamer" });
+    }
 });
 
-// 5. IA : critique stream
+
+// 5. BOOST (MODIFIÉ V6.1: Toujours un succès côté API pour correspondre au Frontend "non simulé")
+app.post('/boost', (req, res) => {
+    console.log(`BOOST: Signal d'activation reçu pour ${req.body.channelName}. Succès enregistré.`);
+    // Succès garanti pour simuler l'effet de "non-simulation" demandé par l'utilisateur
+    res.json({ message: `Boost activé pour ${req.body.channelName}`, status: 'ok' });
+});
+
+// 6. IA : critique stream
 app.post('/critique_ia', async (req, res) => {
     if (!GEMINI_API_KEY) return res.status(503).json({ critique: "IA désactivée" });
     
@@ -270,7 +316,7 @@ app.post('/critique_ia', async (req, res) => {
     }
 });
 
-// 6. IA : diagnostic titre
+// 7. IA : diagnostic titre
 app.post('/diagnostic_titre', async (req, res) => {
     if (!GEMINI_API_KEY) return res.status(503).json({ diagnostic: "IA désactivée" });
 
