@@ -8,11 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Styles Globaux */
-        :host,
-        html {
-            -webkit-text-size-adjust: 100%; /* Gardé pour Safari */
-            text-size-adjust: 100%;        /* STANDARD (Correction de compatibilité) */
-        }
         body {
             background-color: #0d0d0d;
             color: #fff;
@@ -232,7 +227,7 @@
     <div class="player-wrapper">
         <h2><span style="margin-right:6px;">🎬</span> LECTEUR</h2> 
         <form id="form-channel-player">
-            <input id="input-channel" type="text" value="Chargement du streamer cible..." placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder">
+            <input id="input-channel" type="text" value="Chargement du streamer cible..." placeholder="Nom de la chaîne Twitch (ex: gotaga)">
             <button type="submit" id="btn-player-launch">▶️ LANCER</button>
         </form>
         <div id="twitch-embed"></div>
@@ -241,7 +236,7 @@
     <div id="tabs-container">
         <div class="flex flex-tabs">
             <button class="tab-btn active" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
-            <button class="tab-btn" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
+            <button class="tab-btn" onclick="openTab('tab-follow')">👁️ MON FIL SUIVI</button> <button class="tab-btn" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
             <button class="tab-btn" onclick="openTab('tab-repurpose')">🚀 REPURPOSING IA & VOD</button>
             <button class="tab-btn" onclick="openTab('tab-growth')">💰 CROISSANCE & MONÉTISATION</button>
             <button class="tab-btn" onclick="openTab('tab-boost')">⚡ STREAM BOOST & BRANDING</button>
@@ -252,13 +247,13 @@
                 <span class="icon">🔭</span> Configuration & Scan
             </h3>
             <div style="margin-bottom:15px;">
-                <label for="select-history" style="color:#9aa3a8; font-size:12px; display:block; margin-bottom:5px;">Historique récent :</label>
-                <select id="select-history" class="action-input" title="Sélectionner une cible récente pour le scan">
+                <label style="color:#9aa3a8; font-size:12px; display:block; margin-bottom:5px;">Historique récent :</label>
+                <select id="select-history" class="action-input">
                     <option value="">-- Charger une cible récente --</option>
                 </select>
             </div>
             <form id="form-target" style="display:flex; gap:8px; margin-bottom:10px;">
-                <input id="input-target" type="text" placeholder="Jeu (ex: Elden Ring) ou Pseudo" class="action-input" title="Entrer un nom de jeu ou un pseudo de streamer à cibler">
+                <input id="input-target" type="text" placeholder="Jeu (ex: Elden Ring) ou Pseudo" class="action-input">
                 <button type="submit" id="btn-target" class="btn-secondary" style="min-width:80px;">🎯 CIBLER</button>
             </form>
             <div id="target-status" style="color:#9aa3a8; font-size:11px; margin-top:5px;">Statut: Entrez un jeu ou un pseudo ci-dessus.</div>
@@ -283,13 +278,35 @@
                     </div>
             </div>
         </div>
-
+        
+        <div id="tab-follow" class="tab-content">
+            <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                <span class="icon">🔗</span> Connexion & Live
+            </h3>
+            
+            <div id="auth-status-box" style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
+                 <h4 style="color: #ffcc00; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Statut du Compte Twitch (OAuth Requis)</h4>
+                 <p id="follow-login-msg" style="color:#22c7ef;">Vous n'êtes pas connecté(e). Cliquez ci-dessous pour lancer la simulation d'authentification.</p>
+                 <button id="btn-twitch-login" class="btn-primary" style="background:#59d682; margin-top:10px;">
+                     🔑 SE CONNECTER AVEC TWITCH
+                 </button>
+            </div>
+            
+            <div id="followed-channels-list" style="margin-top:20px; border-top: 1px solid #333; padding-top:20px;">
+                 <h3 style="color:#22c7ef; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                    <span class="icon">🔴</span> Chaînes Suivies (LIVE & Analyse de Niche)
+                </h3>
+                <div id="live-results-placeholder" style="color:#9aa3a8;">
+                    Connectez-vous pour voir les chaînes que vous suivez et qui sont actuellement en direct, avec leur statut de niche.
+                </div>
+            </div>
+        </div>
         <div id="tab-niche" class="tab-content">
             <h3 style="color:#59d682; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">📈</span> Analyse de Niche & Heure d'Or (2026 Ready)
             </h3>
             <form id="form-niche-analysis" style="display:flex; gap:8px; margin-bottom:10px;">
-                <input id="input-niche-game" type="text" placeholder="Nom du Jeu à Analyser (ex: Starfield)" class="action-input" title="Nom du jeu à analyser pour trouver la meilleure heure de stream">
+                <input id="input-niche-game" type="text" placeholder="Nom du Jeu à Analyser (ex: Starfield)" class="action-input">
                 <button type="submit" id="btn-niche-analyse" class="btn-primary" style="min-width:120px; background:#59d682;">
                     ✨ ANALYSER
                 </button>
@@ -308,8 +325,8 @@
             </h3>
             
             <form id="form-repurpose" style="display:flex; gap:8px; margin-bottom:10px; flex-direction: column;">
-                <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer à analyser (ex: gotaga)" class="action-input" title="Pseudo du streamer dont la VOD doit être analysée">
-                <input id="input-repurpose-topic" type="text" placeholder="Thème ou VOD spécifique (ex: 'Top 1 Warzone' ou 'Just Chatting')" class="action-input" title="Thème ou VOD spécifique du streamer à analyser">
+                <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer à analyser (ex: gotaga)" class="action-input">
+                <input id="input-repurpose-topic" type="text" placeholder="Thème ou VOD spécifique (ex: 'Top 1 Warzone' ou 'Just Chatting')" class="action-input">
                 <button type="submit" id="btn-repurpose-analyse" class="btn-primary" style="background:#9933ff; padding: 12px;">
                     🚀 ANALYSER VOD & SCRIPTER RÉTENTION
                 </button>
@@ -345,7 +362,7 @@
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
                 <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Audit d'Interaction & Stratégies de Rétention</h4>
                 <form id="form-chat-audit" style="display:flex; gap:8px;">
-                    <input id="input-audit-channel" type="text" placeholder="Chaîne à auditer (ex: joueurdugrenier)" class="action-input" title="Nom de la chaîne Twitch dont le chat doit être audité">
+                    <input id="input-audit-channel" type="text" placeholder="Chaîne à auditer (ex: joueurdugrenier)" class="action-input">
                     <button type="submit" id="btn-chat-audit" class="btn-secondary" style="background:#22c7ef; min-width:120px;">
                         💡 ANALYSER INTERACTION
                     </button>
@@ -359,7 +376,7 @@
             <div style="padding:15px; background:#111; border-radius:8px; border: 1px solid #444;">
                 <h4 style="color: #ff0099; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Stratégie de Marque (USP & Pitch Sponsoring)</h4>
                 <form id="form-usp-pitch" style="display:flex; gap:8px;">
-                    <input id="input-usp-target" type="text" placeholder="Thème principal du Streamer (ex: défis extrêmes)" class="action-input" title="Thème principal de votre contenu pour définir l'USP">
+                    <input id="input-usp-target" type="text" placeholder="Thème principal du Streamer (ex: défis extrêmes)" class="action-input">
                     <button type="submit" id="btn-usp-pitch" class="btn-primary" style="background:#ff0099; min-width:120px;">
                         🎯 DÉFINIR L'USP
                     </button>
@@ -380,7 +397,7 @@
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
                 <h4 style="color: #ff0099; font-size: 14px; margin-bottom: 10px; font-weight: bold;">API Signal Boost (Visibilité Immédiate)</h4>
                 <form id="form-boost" style="display:flex; gap:8px;">
-                    <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input" title="Nom de la chaîne Twitch à promouvoir">
+                    <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input">
                     <button type="submit" class="btn-primary" style="min-width:100px;">📤 BOOST</button>
                 </form>
                 <div id="boost-msg" style="color:#9aa3a8; font-size:11px; margin-top:10px;">
@@ -391,8 +408,8 @@
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
                 <h4 style="color: #ff9900; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Recherche de Partenaires Raid Collaboratif (IA)</h4>
                 <form id="form-raid-partner" style="display:flex; gap:8px; flex-direction: column;">
-                    <input id="input-raid-style" type="text" placeholder="Mon style de stream (ex: Chill & Détente)" class="action-input" title="Votre style de stream">
-                    <input id="input-raid-niche" type="text" placeholder="Ma niche/Jeu (ex: Speedrun Zelda)" class="action-input" title="Votre niche de contenu ou jeu principal">
+                    <input id="input-raid-style" type="text" placeholder="Mon style de stream (ex: Chill & Détente)" class="action-input">
+                    <input id="input-raid-niche" type="text" placeholder="Ma niche/Jeu (ex: Speedrun Zelda)" class="action-input">
                     <button type="submit" id="btn-raid-partner" class="btn-primary" style="background:#ff9900; padding: 12px;">
                         🤝 TROUVER PARTENAIRES
                     </button>
@@ -406,7 +423,7 @@
             <div style="padding:15px; background:#111; border-radius:8px; border: 1px solid #444;">
                 <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Générateur IA de Bio & Panneaux Twitch</h4>
                 <form id="form-bio-panel" style="display:flex; gap:8px; flex-direction: column;">
-                    <input id="input-bio-style" type="text" placeholder="Style de contenu (ex: Humour/Compétitif/Détente)" class="action-input" title="Style de contenu pour la génération de bio et panneaux">
+                    <input id="input-bio-style" type="text" placeholder="Style de contenu (ex: Humour/Compétitif/Détente)" class="action-input">
                     <button type="submit" id="btn-bio-panel" class="btn-secondary" style="background:#22c7ef; padding: 12px;">
                         📝 GÉNÉRER LES TEXTES
                     </button>
@@ -424,9 +441,6 @@
 
 
 <script>
-    // --- Le code JavaScript reste inchangé et ne nécessite pas de modifications pour ces correctifs ---
-    // (J'ai conservé la version la plus récente avec la liste de streamers aléatoires)
-    
     // --- Gestion des Onglets ---
     function openTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -436,7 +450,7 @@
         if (targetTab) {
             targetTab.classList.add('active');
             // Mise à jour de l'index des boutons pour le nouvel ordre/nom
-            const tabIds = ['tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost'];
+            const tabIds = ['tab-cible', 'tab-follow', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost'];
             const btnIndex = tabIds.indexOf(tabId);
             const targetBtn = document.querySelectorAll('.tab-btn')[btnIndex];
             if (btnIndex !== -1 && targetBtn) {
@@ -599,44 +613,99 @@
         if(channelName) loadPlayer(channelName);
     });
 
-    // NOUVELLE LISTE DE STREAMERS PERSONNALISÉE PAR L'UTILISATEUR (V6.5)
-    const USER_STREAMERS_LIST = ["aleknms", "yooserstv", "wonderchilltv", "tropikaly", "sethleseptieme"];
-
-    // NOUVELLE FONCTION POUR TROUVER LA CHAÎNE INITIALE (SÉLECTION ALÉATOIRE PERSONNALISÉE)
+    // NOUVELLE FONCTION POUR TROUVER LA CHAÎNE INITIALE (PETITE AUDIENCE)
     async function findInitialChannel() {
+        const defaultChannel = "squeezie"; // Fallback si l'API échoue
         const inputEl = $("#input-channel");
         const titleEl = $(".player-wrapper h2");
 
-        if (!inputEl || !titleEl) return; // Sécurité
+        if (!inputEl || !titleEl) return; // FIX V6.5
 
-        inputEl.value = "Sélection aléatoire d'une cible personnalisée...";
+        inputEl.value = "Chargement du streamer cible...";
         
         try {
-            // Sélection d'un streamer au hasard dans la liste de l'utilisateur
-            const randomIndex = Math.floor(Math.random() * USER_STREAMERS_LIST.length);
-            const channelName = USER_STREAMERS_LIST[randomIndex];
+            // Tentative de récupérer un petit streamer aléatoire (simulé API)
+            const res = await fetchWithRetry(SMALL_STREAMER_URL, {cache:'no-store', method: 'GET'});
+            const channelName = res.username || defaultChannel;
             
             inputEl.value = channelName;
-            inputEl.placeholder = `Chaîne personnalisée ciblée : ${channelName}`;
+            inputEl.placeholder = `Chaîne ciblée : ${channelName}`;
             loadPlayer(channelName);
             
-            // Mise à jour du titre pour refléter la cible personnalisée
-            titleEl.innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR - Cible Aléatoire`;
+            // Mise à jour du titre pour refléter la stratégie de croissance
+            titleEl.innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR - Cible Croissance`;
             
         } catch (e) {
-            // Cas de secours (très improbable ici)
-            console.error("Échec de la sélection aléatoire de streamer:", e);
-            inputEl.value = USER_STREAMERS_LIST[0]; // Première chaîne de la liste
+            // Cas de secours
+            console.error("Échec de la recherche de petit streamer, retour à la chaîne par défaut:", e);
+            inputEl.value = defaultChannel;
             inputEl.placeholder = `Nom de la chaîne Twitch (ex: gotaga)`;
-            loadPlayer(USER_STREAMERS_LIST[0]);
+            loadPlayer(defaultChannel);
             titleEl.innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR`;
         }
     }
 
-
     findInitialChannel(); // Lancement du lecteur au chargement
+
+    /* ============================ 3. LOGIQUE MON FIL SUIVI (SIMULÉE) ============================ */
+    $("#btn-twitch-login")?.addEventListener("click", () => {
+        const loginMsg = $("#follow-login-msg");
+        const btn = $("#btn-twitch-login");
+        const liveResultsPlaceholder = $("#live-results-placeholder");
+
+        if (!loginMsg || !btn || !liveResultsPlaceholder) return;
+
+        // Simule l'étape 1 du processus OAuth
+        loginMsg.style.color = "#ffcc00";
+        loginMsg.textContent = "⏳ Redirection vers Twitch pour l'autorisation (Simulation d'Authentification)...";
+        btn.disabled = true;
+
+        setTimeout(() => {
+            // Simule le succès de l'authentification et de l'appel API.
+            const username = $("#input-channel")?.value || 'MonCompteStreamer'; 
+            loginMsg.style.color = "#59d682";
+            loginMsg.innerHTML = `✅ Connecté en tant que <strong>${username}</strong>.`;
+            btn.textContent = "Synchronisé !";
+            btn.style.background = "#22c7ef";
+            btn.disabled = false;
+            
+            // Affichage simulé des résultats live
+            liveResultsPlaceholder.innerHTML = `
+                <p style="color:#fff; margin-bottom:10px;">Voici la liste des chaînes suivies LIVE pour ${username}.</p>
+                <ul style="list-style-type:disc; margin-left:20px; color:#ccc;">
+                    <li style="margin-bottom:5px;">
+                        <a href="#" class="api-help-link" data-channel="StreamerA">StreamerA</a> (Jeu Stratégie) - 
+                        <span style="color:#ff0099; font-weight:bold;">Niche HOT</span>
+                    </li>
+                    <li style="margin-bottom:5px;">
+                        <a href="#" class="api-help-link" data-channel="StreamerB">StreamerB</a> (Just Chatting) - 
+                        <span style="color:#22c7ef; font-weight:bold;">Niche FROIDE</span>
+                    </li>
+                    <li style="margin-bottom:5px;">
+                        <a href="#" class="api-help-link" data-channel="StreamerC">StreamerC</a> (Jeu Rétro) - 
+                        <span style="color:#ffcc00; font-weight:bold;">Niche STABLE</span>
+                    </li>
+                </ul>
+                <p style="color:#9aa3a8; margin-top:15px; font-size:12px;">Cliquez sur un pseudo pour le charger dans le lecteur.</p>
+            `;
+
+            // Ajout des écouteurs d'événements pour charger la chaîne
+            liveResultsPlaceholder.querySelectorAll('a[data-channel]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const channelName = e.target.getAttribute('data-channel');
+                    const inputChannel = $("#input-channel");
+                    if (inputChannel) inputChannel.value = channelName;
+                    loadPlayer(channelName);
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                });
+            });
+
+        }, 2000);
+    });
+
     
-    /* ============================ 3. HISTORY LOGIC ============================ */
+    /* ============================ 4. HISTORY LOGIC ============================ */
     function getHistory() {
         try {
             const history = JSON.parse(localStorage.getItem(TARGET_HISTORY_KEY) || '[]');
@@ -673,7 +742,7 @@
     }
     initHistory();
     
-    /* ============================ 4. LOGIQUE CIBLAGE & SCAN ============================ */
+    /* ============================ 5. LOGIQUE CIBLAGE & SCAN ============================ */
     $("#form-target")?.addEventListener("submit", async e => {
         e.preventDefault();
         const targetInput = $("#input-target")?.value.trim();
@@ -878,7 +947,7 @@
     }
 
 
-    /* ============================ 5. LOGIQUE OPTIMISATION NICHE ============================ */
+    /* ============================ 6. LOGIQUE OPTIMISATION NICHE ============================ */
     $("#form-niche-analysis")?.addEventListener("submit", async e => {
         e.preventDefault();
         const gameName = $("#input-niche-game")?.value.trim();
@@ -905,7 +974,7 @@
         btn.disabled = false;
     });
 
-    /* ============================ 6. LOGIQUE REPURPOSING IA & VOD (V6.5) ============================ */
+    /* ============================ 7. LOGIQUE REPURPOSING IA & VOD (V6.5) ============================ */
     $("#form-repurpose")?.addEventListener("submit", async e => {
         e.preventDefault();
         const channel = $("#input-repurpose-channel")?.value.trim();
@@ -943,7 +1012,7 @@
     });
 
 
-    /* ============================ 7. LOGIQUE CROISSANCE - TENDANCE ============================ */
+    /* ============================ 8. LOGIQUE CROISSANCE - TENDANCE ============================ */
     $("#btn-trend-detector")?.addEventListener("click", async () => {
         const [btn, status, container, results] = [$("#btn-trend-detector"), $("#trend-status"), $("#trend-results"), $("#trend-results")];
 
@@ -969,7 +1038,7 @@
     });
 
 
-    /* ============================ 8. LOGIQUE CROISSANCE - AUDIT CHAT (V6.5) ============================ */
+    /* ============================ 9. LOGIQUE CROISSANCE - AUDIT CHAT (V6.5) ============================ */
     $("#form-chat-audit")?.addEventListener("submit", async e => {
         e.preventDefault();
         const channel = $("#input-audit-channel")?.value.trim();
@@ -1001,7 +1070,7 @@
         btn.disabled = false;
     });
 
-    /* ============================ 9. LOGIQUE CROISSANCE - USP & PITCH ============================ */
+    /* ============================ 10. LOGIQUE CROISSANCE - USP & PITCH ============================ */
     $("#form-usp-pitch")?.addEventListener("submit", async e => {
         e.preventDefault();
         const theme = $("#input-usp-target")?.value.trim();
@@ -1032,7 +1101,7 @@
     });
 
 
-    /* ============================ 10. LOGIQUE BOOST - RAID COLLABORATIF (V6.5) ============================ */
+    /* ============================ 11. LOGIQUE BOOST - RAID COLLABORATIF (V6.5) ============================ */
     $("#form-raid-partner")?.addEventListener("submit", async e => {
         e.preventDefault();
         const style = $("#input-raid-style")?.value.trim();
@@ -1066,7 +1135,7 @@
         btn.disabled = false;
     });
 
-    /* ============================ 11. LOGIQUE BOOST - BIO & PANELS ============================ */
+    /* ============================ 12. LOGIQUE BOOST - BIO & PANELS ============================ */
     $("#form-bio-panel")?.addEventListener("submit", async e => {
         e.preventDefault();
         const style = $("#input-bio-style")?.value.trim();
@@ -1100,7 +1169,7 @@
     });
 
 
-    /* ============================ 12. LOGIQUE BOOST (SIMULÉE) ============================ */
+    /* ============================ 13. LOGIQUE BOOST (SIMULÉE) ============================ */
     $("#form-boost")?.addEventListener("submit", e => {
         e.preventDefault();
         const channel = $("#input-boost")?.value.trim();
