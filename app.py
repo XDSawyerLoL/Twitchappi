@@ -9,14 +9,15 @@ import sys
 app = Flask(__name__)
 
 # ============================ 1. CONFIGURATION TWITCH & DOMAINE ============================
+# Ces variables doivent être définies dans les variables d'environnement de Render !
 TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET")
-TWITCH_REDIRECT_URI = os.environ.get("TWITCH_REDIRECT_URI", "https://justplayerstreamhubpro.onrender.com/twitch_callback") 
+TWITCH_REDIRECT_URI = os.environ.get("TWITCH_REDIRECT_URI", "https://justplayerstreamhubpro.onrender.com/twitch_callback")
 FRONTEND_URL = "https://justplayerstreamhubpro.onrender.com"
 
 # Stockage simple (pour les tests)
 user_access_token = None
-user_username = None 
+user_username = None
 user_id = None
 
 
@@ -42,6 +43,7 @@ def get_user_info(access_token):
 
 @app.route("/twitch_auth_start")
 def twitch_auth_start():
+    """Démarre le flux OAuth en redirigeant l'utilisateur vers Twitch. (La route manquante)."""
     if not TWITCH_CLIENT_ID or not TWITCH_REDIRECT_URI:
         return f"Erreur de configuration: TWITCH_CLIENT_ID ou REDIRECT_URI manquant sur le serveur.", 500
 
@@ -69,18 +71,18 @@ def twitch_callback():
         'grant_type': 'authorization_code',
         'redirect_uri': TWITCH_REDIRECT_URI
     }
-    
+
     try:
         response = requests.post(token_url, data=data)
         response.raise_for_status()
         token_info = response.json()
         user_access_token = token_info.get('access_token')
-        
+
         user_info = get_user_info(user_access_token)
         user_username = user_info.get('login', 'Utilisateur Inconnu')
         user_id = user_info.get('id')
 
-        return redirect(FRONTEND_URL) 
+        return redirect(FRONTEND_URL)
 
     except requests.exceptions.RequestException as e:
         return f"Erreur lors de l'échange du jeton: {e}", 500
@@ -89,8 +91,7 @@ def twitch_callback():
 @app.route("/followed_streams")
 def followed_streams():
     if not user_access_token or not user_id:
-        # Ceci est la cause du 401 vu dans vos logs
-        return jsonify({"error": "NOT_AUTHENTICATED"}), 401 
+        return jsonify({"error": "NOT_AUTHENTICATED"}), 401
 
     headers = {
         'Client-ID': TWITCH_CLIENT_ID,
@@ -102,7 +103,7 @@ def followed_streams():
         streams_response = requests.get(streams_url, headers=headers)
         streams_response.raise_for_status()
         streams_data = streams_response.json()['data']
-        
+
         formatted_streams = [
             {
                 'user_name': stream['user_name'],
@@ -112,7 +113,7 @@ def followed_streams():
             }
             for stream in streams_data
         ]
-        
+
         return jsonify({"streams": formatted_streams, "username": user_username})
 
     except requests.exceptions.RequestException as e:
@@ -124,17 +125,16 @@ def followed_streams():
 @app.route("/twitch_is_live")
 def twitch_is_live():
     channel = request.args.get('channel')
-    is_live_status = channel.lower() in ["aleknms", "yooserstv"] 
+    is_live_status = channel.lower() in ["aleknms", "yooserstv"]
     return jsonify({"channel": channel, "is_live": is_live_status})
 
 
 @app.route("/random_small_streamer")
 def random_small_streamer():
-    small_streamers = ["pauvreetgamer", "le_niche_streamer", "streamer_omega"] 
+    small_streamers = ["pauvreetgamer", "le_niche_streamer", "streamer_omega"]
     niche_channel = random.choice(small_streamers)
     return jsonify({"channel": niche_channel, "viewer_count": random.randint(10, 99)})
 
-# FIX 404: Ajout de la route /random qui appelle la simulation de niche
 @app.route("/random")
 def random_streamer_alias():
     """Alias pour /random_small_streamer (corrige le 404 du frontend)."""
@@ -147,7 +147,7 @@ def random_streamer_alias():
 def critique_ia():
     data = request.json
     prompt = data.get('prompt', 'Analyse par défaut')
-    
+
     if "critiquer le titre" in prompt.lower():
         simulated_result = """
         <p class="star-rating">⭐⭐⭐⭐</p>
@@ -160,14 +160,13 @@ def critique_ia():
         </ul>
         """
         return jsonify({"result": simulated_result})
-    
+
     return jsonify({"result": "Analyse IA Simulée - Implémentez la connexion à Gemini ici."})
 
 
 @app.route("/boost", methods=["POST"])
 def boost():
     channel = request.args.get('channel')
-    # Ceci renverra un 404 si le frontend n'envoie pas le paramètre 'channel' ou si le serveur n'est pas bien configuré
     return jsonify({"success": True, "message": f"Boost signal sent for {channel}"})
 
 
@@ -183,8 +182,8 @@ def gameid():
 def details():
     login = request.args.get('login', 'streamer_scan')
     return jsonify({
-        "username": login, 
-        "is_live": True, 
+        "username": login,
+        "is_live": True,
         "title": f"Live chill sur {login} : La nouvelle aventure !",
         "game_name": "Just Chatting" if "chill" in login else "Simulation Game",
         "viewer_count": random.randint(150, 400),
