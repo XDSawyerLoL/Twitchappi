@@ -9,17 +9,10 @@ import sys
 app = Flask(__name__)
 
 # ============================ 1. CONFIGURATION TWITCH & DOMAINE ============================
-# Assurez-vous que ces variables sont bien définies dans les variables d'environnement de Render !
 TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET")
 TWITCH_REDIRECT_URI = os.environ.get("TWITCH_REDIRECT_URI", "https://justplayerstreamhubpro.onrender.com/twitch_callback") 
 FRONTEND_URL = "https://justplayerstreamhubpro.onrender.com"
-
-# >>> VÉRIFICATION DE SÉCURITÉ <<<
-if not TWITCH_CLIENT_ID or not TWITCH_CLIENT_SECRET:
-    # Affiche une erreur dans les logs Render si les IDs Twitch sont manquants
-    # Attention: cette vérification peut être ignorée si vous voulez tester uniquement les routes simulées.
-    pass # Permet au serveur de démarrer même sans les IDs pour tester les autres routes
 
 # Stockage simple (pour les tests)
 user_access_token = None
@@ -27,19 +20,17 @@ user_username = None
 user_id = None
 
 
-# ============================ 2. ROUTE PRINCIPALE (FIX du 500) ============================
+# ============================ 2. ROUTE PRINCIPALE ============================
 
 @app.route("/")
 def index():
     """Charge le fichier HTML principal NicheOptimizer.html depuis le dossier 'templates'."""
-    # CHANGEMENT CRITIQUE: Le nom du fichier est maintenant NicheOptimizer.html
     return render_template('NicheOptimizer.html')
 
 
 # ============================ 3. TWITCH OAUTH FLOW ET FOLLOWED_STREAMS ============================
 
 def get_user_info(access_token):
-    """Récupère les informations de l'utilisateur authentifié (nécessaire pour obtenir user_id)."""
     headers = {
         'Client-ID': TWITCH_CLIENT_ID,
         'Authorization': f'Bearer {access_token}'
@@ -51,9 +42,8 @@ def get_user_info(access_token):
 
 @app.route("/twitch_auth_start")
 def twitch_auth_start():
-    """Démarre le flux OAuth en redirigeant l'utilisateur vers Twitch."""
-    if not TWITCH_CLIENT_ID:
-        return f"Erreur de configuration: TWITCH_CLIENT_ID manquant sur le serveur.", 500
+    if not TWITCH_CLIENT_ID or not TWITCH_REDIRECT_URI:
+        return f"Erreur de configuration: TWITCH_CLIENT_ID ou REDIRECT_URI manquant sur le serveur.", 500
 
     scope = "user:read:follows user:read:email"
     url = (
@@ -65,7 +55,6 @@ def twitch_auth_start():
 
 @app.route("/twitch_callback")
 def twitch_callback():
-    """Route de rappel après l'authentification Twitch."""
     global user_access_token, user_username, user_id
     code = request.args.get('code')
 
@@ -99,8 +88,8 @@ def twitch_callback():
 
 @app.route("/followed_streams")
 def followed_streams():
-    """Retourne les streams LIVE suivis par l'utilisateur."""
     if not user_access_token or not user_id:
+        # Ceci est la cause du 401 vu dans vos logs
         return jsonify({"error": "NOT_AUTHENTICATED"}), 401 
 
     headers = {
@@ -145,6 +134,12 @@ def random_small_streamer():
     niche_channel = random.choice(small_streamers)
     return jsonify({"channel": niche_channel, "viewer_count": random.randint(10, 99)})
 
+# FIX 404: Ajout de la route /random qui appelle la simulation de niche
+@app.route("/random")
+def random_streamer_alias():
+    """Alias pour /random_small_streamer (corrige le 404 du frontend)."""
+    return random_small_streamer()
+
 
 # ============================ 5. PLACEHOLDERS IA & SCAN ============================
 
@@ -172,6 +167,7 @@ def critique_ia():
 @app.route("/boost", methods=["POST"])
 def boost():
     channel = request.args.get('channel')
+    # Ceci renverra un 404 si le frontend n'envoie pas le paramètre 'channel' ou si le serveur n'est pas bien configuré
     return jsonify({"success": True, "message": f"Boost signal sent for {channel}"})
 
 
