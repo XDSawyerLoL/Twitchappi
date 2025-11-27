@@ -442,9 +442,11 @@
 
     /* ============================ 1. CONFIG & SETUP (V6.5) ============================ */
     const API_BASE = window.location.origin; 
+    // CRITIQUE_URL est la NOUVELLE ROUTE PROXY sécurisée vers Flask
     const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL, NICHE_ANALYSIS_URL, SMALL_STREAMER_URL] = [
         API_BASE + "/boost", API_BASE + "/gameid", API_BASE + "/critique_ia", API_BASE + "/details", API_BASE + "/diagnostic_titre", API_BASE + "/niche_analysis", API_BASE + "/random_small_streamer"
     ];
+    // Suppression des variables globales de clé API (GEMINI_API_KEY et GEMINI_API_URL_BASE)
     const TARGET_HISTORY_KEY = 'twitch_target_history';
     let player = null, currentGameId = null, currentGameName = null, lastStreamerData = null, currentTargetName = null;
 
@@ -461,6 +463,7 @@
             try {
                 const response = await fetch(url, options);
                 
+                // Si la réponse n'est pas OK, mais que c'est une 404 sur /gameid, elle est gérée par l'appelant
                 if (!response.ok) {
                     if (response.status === 403) {
                         throw new Error(`403 Forbidden: API Key invalid or restricted.`);
@@ -468,6 +471,11 @@
                     if (response.status === 404 && url.includes("/gameid")) {
                         // Le 404 est géré dans le .catch de l'appelant (form-target) pour basculer en mode pseudo.
                         throw new Error(`404: Game not found (expected for pseudo inputs).`); 
+                    }
+                    if (response.status === 500) {
+                        // Tenter de lire le corps JSON pour une erreur serveur
+                        const errorBody = await response.json().catch(() => ({ error: `Server error ${response.status}` }));
+                        throw new Error(errorBody.error || `HTTP error! status: ${response.status}`);
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -480,14 +488,15 @@
         }
     }
 
-    // Helper générique pour appeler Gemini
+    // Helper générique pour appeler Gemini via le proxy sécurisé (CRITIQUE_URL)
+    // Cette fonction REMPLACE l'ancien appel direct à l'API Google.
     async function callGeminiApi(systemPrompt, userQuery, useSearch, statusElement, resultContainer, resultElement, primaryColor) {
         
         // FIX V6.5: Robustesse - Vérifier que l'élément de statut a été trouvé par le sélecteur appelant.
         if (!statusElement || !resultContainer || !resultElement) {
             console.error("FATAL: One or more DOM elements passed to callGeminiApi are null.");
             return;
-
+        }
 
         statusElement.style.color = "#22c7ef";
         statusElement.textContent = `⏳ L'IA travaille : ${userQuery.substring(0, 50).replace(/\n/g, ' ')}...`;
@@ -497,27 +506,29 @@
         resultElement.innerHTML = `<div style="text-align:center; padding:15px; color:#22c7ef; font-weight:bold;">⟳ Génération en cours...</div>`;
         
         try {
-            // FIX: Demander à l'IA d'utiliser des balises HTML pour garantir la mise en forme.
-            const finalSystemPrompt = systemPrompt + " Rédigez votre réponse en utilisant des balises HTML simples pour structurer le texte (comme <h2>, <p>, <ul>, <li>, <strong>). Ne pas utiliser de Markdown. Utilisez la couleur ROSE (#FF0099), la couleur BLEUE (#22c7ef) et la couleur ORANGE (#FF9900) pour mettre en évidence les points importants.";
-
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: finalSystemPrompt }] },
-            };
+            // CONVERSION POUR PROXY FLASK :
+            // 1. Le proxy (app.py) attend un prompt simple. Nous devons inclure toutes les instructions.
+            const searchInstruction = useSearch ? " [UTILISER GOOGLE SEARCH pour les données externes] " : "";
+            const finalSystemPrompt = systemPrompt + searchInstruction + " Rédigez votre réponse en utilisant des balises HTML simples pour structurer le texte (comme <h2>, <p>, <ul>, <li>, <strong>). Ne pas utiliser de Markdown. Utilisez la couleur ROSE (#FF0099), la couleur BLEUE (#22c7ef) et la couleur ORANGE (#FF9900) pour mettre en évidence les points importants.";
             
-            if (useSearch) {
-                payload.tools = [{ "google_search": {} }];
-            }
+            const finalPrompt = `[INSTRUCTIONS SYSTEME]: ${finalSystemPrompt}\n\n[REQUÊTE UTILISATEUR]: ${userQuery}`;
 
-            const apiUrl = GEMINI_API_URL_BASE + API_KEY; 
-
-            const result = await fetchWithRetry(apiUrl, {
+            // 2. Appel au proxy Flask /critique_ia (CRITIQUE_URL)
+            const result = await fetchWithRetry(CRITIQUE_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                // Le proxy Flask attend un objet JSON avec la clé 'prompt'
+                body: JSON.stringify({ prompt: finalPrompt })
             });
-
-            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Analyse IA non disponible.";
+            
+            // 3. Traitement de la réponse du proxy Flask
+            if (result.error) {
+                // Si le proxy Flask a retourné une erreur (ex: clé manquante)
+                throw new Error(result.error);
+            }
+            
+            // Le proxy Flask renvoie l'objet {"result": "texte_html"}
+            const text = result.result || "Analyse IA non disponible.";
 
             statusElement.style.color = "#59d682";
             statusElement.textContent = `✅ Analyse IA terminée.`;
@@ -540,9 +551,9 @@
 
         } catch (e) {
             statusElement.style.color = "#e34a64";
-            if (e.message.includes("403")) {
-                statusElement.textContent = `❌ Échec: Clé API invalide ou accès refusé (Code 403).`;
-                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Votre clé API semble incorrecte ou mal configurée.</div>`;
+            if (e.message.includes("Clé API Gemini non configurée")) {
+                statusElement.textContent = `❌ Échec : Le serveur n'a pas trouvé la clé API Gemini dans la variable d'environnement.`;
+                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Votre serveur ne trouve pas la clé API Gemini. Vérifiez vos variables d'environnement sur Render.</div>`;
             } else {
                 statusElement.textContent = `❌ Erreur lors de l'analyse IA : ${e.message}`;
                 resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique.</div>`;
@@ -770,6 +781,7 @@
 
     /**
      * FIX V6.5: Fonction critique/diagnostic sécurisée et réutilisable.
+     * Utilise le proxy Flask /critique_ia
      */
     async function handleCritiqueDiagnostic(streamerData, type, context, color, buttonElement) {
         const container = $("#critique-container");
@@ -798,31 +810,29 @@
         btnStatus.textContent = `⏳ L'IA travaille : Lancement de l'analyse...`;
         
         try {
-            // --- CHECK API KEY (V6.5) ---
-            if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API") || API_KEY.includes("{{ GEMINI_API_KEY }}")) {
-                btnStatus.style.color = "#e34a64";
-                btnStatus.textContent = `❌ Échec: Clé API manquante ou non injectée.`;
-                container.innerHTML = `<div style="color:#e34a64; padding:10px;">Veuillez sécuriser l'injection de votre clé API Gemini (variable <code>window.GEMINI_API_KEY</code>).</div>`;
-                return;
-            }
+            // L'ancienne vérification de clé API (non sécurisée) a été supprimée !
 
             container.innerHTML = `<div style="text-align:center; color:${color}; padding:10px;">⟳ ${context} en cours...</div>`;
             
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                tools: [{ "google_search": {} }]
-            };
+            // 1. Concaténation des prompts pour le proxy Flask
+            const finalSystemPrompt = systemPrompt + " [UTILISER GOOGLE SEARCH pour les données externes] Rédigez votre réponse en utilisant des balises HTML simples pour structurer le texte (comme <h2>, <p>, <ul>, <li>, <strong>). Ne pas utiliser de Markdown. Utilisez la couleur ROSE (#FF0099), la couleur BLEUE (#22c7ef) et la couleur ORANGE (#FF9900) pour mettre en évidence les points importants.";
+            
+            const finalPrompt = `[INSTRUCTIONS SYSTEME]: ${finalSystemPrompt}\n\n[REQUÊTE UTILISATEUR]: ${userQuery}`;
 
-            const apiUrl = GEMINI_API_URL_BASE + API_KEY; 
-
-            const result = await fetchWithRetry(apiUrl, {
+            // 2. Appel au proxy Flask /critique_ia (CRITIQUE_URL)
+            const result = await fetchWithRetry(CRITIQUE_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ prompt: finalPrompt })
             });
 
-            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Analyse IA non disponible.";
+            // 3. Traitement de la réponse du proxy Flask
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            
+            // Le proxy Flask renvoie l'objet {"result": "texte_html"}
+            const text = result.result || "Analyse IA non disponible.";
 
             btnStatus.style.color = "#59d682";
             btnStatus.textContent = `✅ Analyse IA terminée pour ${streamerData.username}.`;
@@ -1096,7 +1106,7 @@
 
         status.textContent = `⏳ Tentative d'envoi du signal BOOST pour ${channel}...`;
 
-        // Simulation d'appel API, qui renverra probablement un 404 (non implémenté côté serveur)
+        // Simulation d'appel API
         fetchWithRetry(`${BOOST_URL}?channel=${encodeURIComponent(channel)}`, { method: 'POST', cache: 'no-store' })
             .then(res => {
                 status.style.color = "#59d682";
@@ -1104,7 +1114,7 @@
             })
             .catch(e => {
                 status.style.color = "#e34a64";
-                // Message d'erreur personnalisé car l'API n'est pas implémentée dans la plupart des cas.
+                // L'erreur 404 est commune ici car ces chemins d'API sont simulés ou non implémentés
                 status.textContent = `❌ Échec du BOOST: Le service API n'est pas actif (Erreur ${e.message.includes('404') ? '404' : 'connexion'}). La logique IA reste fonctionnelle.`;
             });
     });
