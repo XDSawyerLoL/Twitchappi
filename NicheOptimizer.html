@@ -715,7 +715,6 @@
         iconEl.innerHTML = `⏳`;
         
         let channelToLoad = null;
-        let isApiWorking = true; 
 
         // 1. LOGIQUE DE PRIORITÉ RÉELLE: Tente de trouver une chaîne LIVE dans la liste
         try {
@@ -732,16 +731,16 @@
             }
         } catch (e) {
             if (e.message.includes("404: API endpoint not implemented")) {
-                 console.warn("API /twitch_is_live non implémentée, passant au fallback.");
-                 isApiWorking = false;
+                 console.warn("API /twitch_is_live non implémentée, passant au fallback Niche.");
+                 // L'API est manquante, on continue sans rien faire car channelToLoad est null
             } else {
                  console.error("Échec de la vérification des chaînes prioritaires (Erreur critique):", e.message);
-                 isApiWorking = false;
+                 // Erreur critique, on continue sans rien faire
             }
         }
         
-        // 2. Fallback: Petit streamer aléatoire (Niche) - UNIQUEMENT si l'API semble fonctionner
-        if (!channelToLoad && isApiWorking) {
+        // 2. Fallback: Petit streamer aléatoire (Niche) - Tente si aucune priorité trouvée
+        if (!channelToLoad) {
             try {
                 statusEl.textContent = `(Recherche de Niche <100 viewers)...`;
                 
@@ -754,15 +753,21 @@
                     iconEl.innerHTML = `📈`;
                 }
             } catch (e) {
-                 if (e.message.includes("404: API endpoint not implemented")) {
-                     console.warn("API /random_small_streamer non implémentée, utilisant le défaut.");
+                 // *** FIX V6.5: Simulation si l'API Niche n'est pas implémentée ou ne répond pas ***
+                 if (e.message.includes("404: API endpoint not implemented") || e.name === 'AbortError' || e.message.includes("Failed to fetch")) {
+                     console.warn("API /random_small_streamer non implémentée (404/Connexion), simulation d'un streamer de Niche.");
+                     
+                     channelToLoad = "sethleseptieme"; // Nom de streamer simulé pour tester la logique
+                     statusEl.textContent = `(SIMULATION Niche: ${channelToLoad} - API OFF)`;
+                     iconEl.innerHTML = `📈`;
+                     
                  } else {
                      console.error("Échec de la récupération du petit streamer (Erreur critique):", e.message);
                  }
             }
         }
         
-        // 3. Fallback final (si aucun des deux n'a pu charger un canal)
+        // 3. Fallback final (si rien n'a pu charger un canal, même la simulation)
         if (!channelToLoad) {
             channelToLoad = defaultChannel;
             statusEl.textContent = `(Défaut: ${channelToLoad})`;
