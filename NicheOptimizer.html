@@ -561,7 +561,7 @@
         }
     }
 
-    /* ============================ 2. LECTEUR TWITCH (CORRECTION ICI) ============================ */
+    /* ============================ 2. LECTEUR TWITCH ============================ */
     async function loadTwitchSDK(){
         if (window.Twitch && window.Twitch.Embed) return;
         return new Promise(resolve=>{
@@ -571,7 +571,6 @@
             document.head.appendChild(s);
         });
     }
-    
     async function loadPlayer(channel){
         await loadTwitchSDK();
         const embedContainer = $("#twitch-embed");
@@ -579,17 +578,9 @@
         if (!window.Twitch || !window.Twitch.Embed){
             embedContainer.innerHTML = "<div style='color:#fff;padding:20px;background:#000;text-align:center;'>⚠️ Erreur: SDK Twitch introuvable ou bloqué.</div>"; return;
         }
-
-        // 🛑 CORRECTION: Définir la liste des parents autorisés (CORS)
-        const allowedParents = [
-            window.location.hostname, // Le hostname actuel
-            "justplayerstreamhubpro.onrender.com", // Votre domaine de production
-            "localhost" // Pour les tests locaux
-        ].filter(Boolean); // Filtrer les valeurs nulles/vides
-        
         if (!player){
             player = new Twitch.Embed("twitch-embed", {
-                width:"100%", height:"100%", channel, layout:"video-with-chat", autoplay:true, parent:allowedParents
+                width:"100%", height:"100%", channel, layout:"video-with-chat", autoplay:true, parent:[window.location.hostname]
             });
         } else { try { player.setChannel(channel); } catch(e){} }
     }
@@ -600,37 +591,40 @@
         if(channelName) loadPlayer(channelName);
     });
 
-    // NOUVELLE FONCTION POUR TROUVER LA CHAÎNE INITIALE (PETITE AUDIENCE)
+    // NOUVELLE LISTE DE STREAMERS PERSONNALISÉE PAR L'UTILISATEUR (V6.5)
+    const USER_STREAMERS_LIST = ["aleknms", "yooserstv", "wonderchilltv", "tropikaly", "sethleseptieme"];
+
+    // NOUVELLE FONCTION POUR TROUVER LA CHAÎNE INITIALE (SÉLECTION ALÉATOIRE PERSONNALISÉE)
     async function findInitialChannel() {
-        const defaultChannel = "squeezie"; // Fallback si l'API échoue
         const inputEl = $("#input-channel");
         const titleEl = $(".player-wrapper h2");
 
-        if (!inputEl || !titleEl) return; // FIX V6.5
+        if (!inputEl || !titleEl) return; // Sécurité
 
-        inputEl.value = "Chargement du streamer cible...";
+        inputEl.value = "Sélection aléatoire d'une cible personnalisée...";
         
         try {
-            // Tentative de récupérer un petit streamer aléatoire (simulé API)
-            const res = await fetchWithRetry(SMALL_STREAMER_URL, {cache:'no-store', method: 'GET'});
-            const channelName = res.username || defaultChannel;
+            // Sélection d'un streamer au hasard dans la liste de l'utilisateur
+            const randomIndex = Math.floor(Math.random() * USER_STREAMERS_LIST.length);
+            const channelName = USER_STREAMERS_LIST[randomIndex];
             
             inputEl.value = channelName;
-            inputEl.placeholder = `Chaîne ciblée : ${channelName}`;
+            inputEl.placeholder = `Chaîne personnalisée ciblée : ${channelName}`;
             loadPlayer(channelName);
             
-            // Mise à jour du titre pour refléter la stratégie de croissance
-            titleEl.innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR - Cible Croissance`;
+            // Mise à jour du titre pour refléter la cible personnalisée
+            titleEl.innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR - Cible Aléatoire`;
             
         } catch (e) {
-            // Cas de secours
-            console.error("Échec de la recherche de petit streamer, retour à la chaîne par défaut:", e);
-            inputEl.value = defaultChannel;
+            // Cas de secours (très improbable ici)
+            console.error("Échec de la sélection aléatoire de streamer:", e);
+            inputEl.value = USER_STREAMERS_LIST[0]; // Première chaîne de la liste
             inputEl.placeholder = `Nom de la chaîne Twitch (ex: gotaga)`;
-            loadPlayer(defaultChannel);
+            loadPlayer(USER_STREAMERS_LIST[0]);
             titleEl.innerHTML = `<span style="margin-right:6px;">🎬</span> LECTEUR`;
         }
     }
+
 
     findInitialChannel(); // Lancement du lecteur au chargement
     
@@ -948,7 +942,7 @@
         if (!btn || !status || !container || !results) return; // FIX V6.5
 
         btn.disabled = true;
-        btn.innerHTML = '🔮 DÉTECTER EN COURS...';
+        btn.innerHTML = '🔮 DÉTECTION EN COURS...';
 
         const systemPrompt = `Vous êtes un détective de tendances pour le divertissement en ligne. Votre réponse doit être très structurée.`;
         const userQuery = `Identifiez 3 tendances de jeux ou sujets qui exploseront sur Twitch dans les 3 prochains mois. Pour chaque tendance, fournissez un <h2>Titre</h2>, un paragraphe <p>d'explication</p> et <ul>une action à mener</ul>.`;
