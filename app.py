@@ -1,5 +1,3 @@
-# Fichier : app.py (Version sécurisée et fonctionnelle)
-
 import os
 from flask import Flask, render_template, jsonify, request
 import random
@@ -11,6 +9,13 @@ from google import genai
 
 # Cette ligne lit la variable d'environnement (le secret) de Render.
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'CLE_ABSENTE_OU_NON_SECURISEE')
+
+# 💡 LIGNES DE DÉBOGAGE AJOUTÉES 💡
+if GEMINI_API_KEY.startswith('CLE_ABSENTE'):
+    print("⚠️ DÉBOGAGE: La clé GEMINI_API_KEY n'a PAS été trouvée dans les variables d'environnement de Render.")
+else:
+    print("✅ DÉBOGAGE: La clé GEMINI_API_KEY a été trouvée et le client est initialisé.")
+# 💡 FIN DES LIGNES DE DÉBOGAGE 💡
 
 # 2. INITIALISATION DU CLIENT GEMINI
 # client est désormais disponible pour toutes les fonctions de l'API.
@@ -48,8 +53,8 @@ def critique_ia_proxy():
     Le client JS envoie le prompt, le serveur fait l'appel.
     """
     # Vérification du secret
-    if not client.api_key or client.api_key.startswith('CLE_ABSENTE'):
-        return jsonify({"error": "Clé API Gemini non configurée sur le serveur (variable d'environnement manquante)."}), 500
+    if client.api_key.startswith('CLE_ABSENTE'):
+         return jsonify({"error": "Clé API Gemini non configurée sur le serveur (variable d'environnement manquante)."}), 500
 
     try:
         data = request.get_json()
@@ -72,6 +77,10 @@ def critique_ia_proxy():
     except Exception as e:
         # Gérer les erreurs de l'API Gemini
         print(f"Erreur Gemini: {e}")
+        # Affiner la réponse d'erreur au cas où ce serait une erreur d'authentification
+        if "API_KEY" in str(e) or "Authentication" in str(e):
+             return jsonify({"error": "Erreur d'authentification Gemini. Clé invalide ou manquante."}), 500
+
         return jsonify({"error": f"Erreur lors de l'appel à Gemini: {e}"}), 500
 
 
