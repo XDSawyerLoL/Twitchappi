@@ -1,20 +1,25 @@
-from flask import Flask, request, redirect, jsonify, render_template # <-- AJOUTER render_template
+from flask import Flask, request, redirect, jsonify, render_template
 import requests
 import os
 import random
 from datetime import datetime
+import sys
 
 # ============================ 0. SETUP FLASK ============================
 app = Flask(__name__)
 
 # ============================ 1. CONFIGURATION TWITCH & DOMAINE ============================
-# Ces variables DOIVENT être définies dans les variables d'environnement (Env Vars) de votre service Render !
-TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID", "VOTRE_CLIENT_ID_ICI")
-TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET", "VOTRE_SECRET_ICI")
-
-# URI DE REDIRECTION CORRIGÉE
+# Assurez-vous que ces variables sont bien définies dans les variables d'environnement de Render !
+TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID")
+TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET")
 TWITCH_REDIRECT_URI = os.environ.get("TWITCH_REDIRECT_URI", "https://justplayerstreamhubpro.onrender.com/twitch_callback") 
 FRONTEND_URL = "https://justplayerstreamhubpro.onrender.com"
+
+# >>> VÉRIFICATION DE SÉCURITÉ <<<
+if not TWITCH_CLIENT_ID or not TWITCH_CLIENT_SECRET:
+    # Affiche une erreur dans les logs Render si les IDs Twitch sont manquants
+    # Attention: cette vérification peut être ignorée si vous voulez tester uniquement les routes simulées.
+    pass # Permet au serveur de démarrer même sans les IDs pour tester les autres routes
 
 # Stockage simple (pour les tests)
 user_access_token = None
@@ -22,13 +27,13 @@ user_username = None
 user_id = None
 
 
-# ============================ 2. ROUTE PRINCIPALE (FIX du 404) ============================
+# ============================ 2. ROUTE PRINCIPALE (FIX du 500) ============================
 
 @app.route("/")
 def index():
-    """Charge le fichier HTML principal (index.html) depuis le dossier 'templates'."""
-    # Votre fichier HTML/JS doit être dans un sous-dossier nommé 'templates'
-    return render_template('index.html')
+    """Charge le fichier HTML principal NicheOptimizer.html depuis le dossier 'templates'."""
+    # CHANGEMENT CRITIQUE: Le nom du fichier est maintenant NicheOptimizer.html
+    return render_template('NicheOptimizer.html')
 
 
 # ============================ 3. TWITCH OAUTH FLOW ET FOLLOWED_STREAMS ============================
@@ -47,6 +52,9 @@ def get_user_info(access_token):
 @app.route("/twitch_auth_start")
 def twitch_auth_start():
     """Démarre le flux OAuth en redirigeant l'utilisateur vers Twitch."""
+    if not TWITCH_CLIENT_ID:
+        return f"Erreur de configuration: TWITCH_CLIENT_ID manquant sur le serveur.", 500
+
     scope = "user:read:follows user:read:email"
     url = (
         f"https://id.twitch.tv/oauth2/authorize?client_id={TWITCH_CLIENT_ID}"
@@ -62,7 +70,6 @@ def twitch_callback():
     code = request.args.get('code')
 
     if not code:
-        # Gère le cas où l'utilisateur refuse l'autorisation
         return f"Erreur d'authentification: code manquant ou refusé. Détails: {request.args.get('error_description')}", 400
 
     token_url = "https://id.twitch.tv/oauth2/token"
@@ -80,12 +87,10 @@ def twitch_callback():
         token_info = response.json()
         user_access_token = token_info.get('access_token')
         
-        # Récupérer le nom et l'ID d'utilisateur
         user_info = get_user_info(user_access_token)
         user_username = user_info.get('login', 'Utilisateur Inconnu')
         user_id = user_info.get('id')
 
-        # Redirection vers la page principale du frontend après succès
         return redirect(FRONTEND_URL) 
 
     except requests.exceptions.RequestException as e:
@@ -129,34 +134,25 @@ def followed_streams():
 
 @app.route("/twitch_is_live")
 def twitch_is_live():
-    """Vérifie si une chaîne spécifique est en direct (Simulation simple)."""
     channel = request.args.get('channel')
-    # Les chaînes prioritaires définies dans le JS : "aleknms", "yooserstv", "wonderchilltv", "sethleseptieme", "tropikaly"
-    # On simule que 'aleknms' et 'yooserstv' sont LIVE
     is_live_status = channel.lower() in ["aleknms", "yooserstv"] 
     return jsonify({"channel": channel, "is_live": is_live_status})
 
 
 @app.route("/random_small_streamer")
 def random_small_streamer():
-    """Retourne un streamer aléatoire avec moins de 100 viewers (Simulation Niche)."""
     small_streamers = ["pauvreetgamer", "le_niche_streamer", "streamer_omega"] 
     niche_channel = random.choice(small_streamers)
-    # Ceci ne devrait être atteint que si la logique prioritaire ne trouve rien de LIVE
     return jsonify({"channel": niche_channel, "viewer_count": random.randint(10, 99)})
 
 
 # ============================ 5. PLACEHOLDERS IA & SCAN ============================
-# Ces routes sont des placeholders pour éviter les 404 côté client et simuler une réponse IA basique.
-# Vous devez remplacer ces corps de fonctions par votre logique d'appel Gemini.
 
 @app.route("/critique_ia", methods=["POST"])
 def critique_ia():
-    """Simulation de l'endpoint IA Gemini (Critique/Diagnostic)."""
     data = request.json
     prompt = data.get('prompt', 'Analyse par défaut')
     
-    # Réponse de simulation
     if "critiquer le titre" in prompt.lower():
         simulated_result = """
         <p class="star-rating">⭐⭐⭐⭐</p>
@@ -175,23 +171,20 @@ def critique_ia():
 
 @app.route("/boost", methods=["POST"])
 def boost():
-    """Simulation de l'endpoint Boost."""
     channel = request.args.get('channel')
     return jsonify({"success": True, "message": f"Boost signal sent for {channel}"})
 
 
 @app.route("/gameid")
 def gameid():
-    """Simulation de l'endpoint GameID (recherche de jeu)."""
     name = request.args.get('name')
     if name and name.lower() != "inconnu":
         return jsonify({"game_id": "12345", "name": name})
-    return jsonify({"error": "Game not found"}), 404 # 404 pour que le frontend fallback sur une recherche de pseudo
+    return jsonify({"error": "Game not found"}), 404
 
 
 @app.route("/details")
 def details():
-    """Simulation de l'endpoint de détails du streamer (pour le Scan)."""
     login = request.args.get('login', 'streamer_scan')
     return jsonify({
         "username": login, 
