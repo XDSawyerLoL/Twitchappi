@@ -1,68 +1,9 @@
-Je comprends mieux : l'IA fonctionne, mais les éléments liés à Twitch (lecteur, priorité, connexion) doivent passer de la simulation à la réalité. C'est l'étape la plus complexe car elle nécessite de lier le frontend à une vraie API Twitch via votre backend.
-
-Puisque je ne peux pas créer les endpoints sur votre serveur, je vais modifier le code HTML/JavaScript (basé sur NicheOptimizer (13).html) pour retirer toutes les traces de simulation côté client et assumer que votre serveur backend est désormais configuré pour répondre réellement aux appels API nécessaires.
-
-Voici les modifications appliquées pour rendre les fonctionnalités "réelles" et fonctionnelles sur le plan de la logique :
-
-🛠️ Mise à Jour du Code pour un Fonctionnement Réel
-J'ai mis à jour le code de votre fichier pour :
-
-Priorité et Fallback du Lecteur (Non Simulé)
-
-Gestion de la Connexion Twitch (Non Simulé)
-
-Logique BOOST (Cooldown & Player Switch)
-
-1. 🎬 Lecteur Twitch : Logique de Priorité & Fallback Réelle
-L'ancienne logique simulait le statut LIVE. La nouvelle logique va tenter de récupérer un streamer prioritaire via un nouvel appel API (/twitch_is_live). Si aucune priorité n'est LIVE, elle utilise l'API du petit streamer (/random_small_streamer).
-
-Changement dans findInitialChannel() :
-
-La vérification des chaînes prioritaires (PRIORITY_CHANNELS) est désormais une boucle d'appels API (simulés par un fetch vers un endpoint que vous devez implémenter sur votre serveur) pour trouver le premier LIVE.
-
-Si un streamer prioritaire est trouvé, on le charge.
-
-Sinon, on appelle l'API pour un petit streamer aléatoire.
-
-L'ancienne simulation // SIMULATION DE VÉRIFICATION LIVE a été supprimée.
-
-2. 🔑 Connexion Twitch (Onglet "Mon Fil Suivi")
-La connexion doit être réelle. Étant donné que le flux Twitch OAuth ne peut pas être implémenté côté client seul (il nécessite des secrets serveur), j'ai supprimé la simulation de succès et j'ai orienté le bouton vers la première étape d'un flux OAuth réel qui est l'appel à votre backend.
-
-Changement dans l'événement click de #btn-twitch-login :
-
-Le setTimeout et les messages de simulation sont supprimés.
-
-Le bouton tentera maintenant de faire un appel à votre serveur (API_BASE + "/twitch_auth_start") qui doit rediriger l'utilisateur vers la page d'autorisation de Twitch.
-
-Action requise : Vous devez créer le point de terminaison /twitch_auth_start sur votre serveur pour initier l'OAuth.
-
-3. ⚡ Logique BOOST : Cooldown & Application du Flux
-Le BOOST doit forcer la chaîne à jouer pendant 10 minutes et s'appliquer toutes les 6 heures.
-
-Implémentation du Cooldown : La logique de cooldown (vérification et enregistrement dans localStorage) est désormais active et réelle. Si l'utilisateur clique avant les 6 heures, il recevra le message d'attente.
-
-Application du Player : J'ai inséré l'appel à la fonction startBoostPlayback(channel, 10) après la vérification du cooldown pour garantir l'effet immédiat sur le lecteur.
-
-Changement dans l'événement submit de #form-boost :
-
-Les messages d'erreur de simulation (❌ Échec du BOOST... Erreur 404) sont retirés et remplacés par des messages de succès, partant du principe que vous avez implémenté l'endpoint /boost pour les actions serveur (si nécessaire).
-
-La fonction vérifie et applique le cooldown avant d'appeler startBoostPlayback.
-
-💾 Code Final Mis à Jour
-Veuillez remplacer le contenu de votre fichier HTML par le code ci-dessous.
-
-Note : Pour que ces fonctionnalités marchent complètement, vous devez vous assurer que votre serveur backend (Flask/Python) est correctement configuré pour gérer les appels /twitch_is_live, /random_small_streamer, /twitch_auth_start et /boost en utilisant une vraie Clé API Twitch.
-
-HTML
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.5 - Réel</title>
+    <title>Streamer & Niche AI Hub V6.5 - Corrigé</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -165,7 +106,7 @@ HTML
         }
         
         /* Résultats IA */
-        #result-critique, #result-niche {
+        #result-critique, #result-niche, #result-repurpose {
             margin-top: 20px;
             padding: 15px;
             background-color: #2a2a2a;
@@ -173,7 +114,7 @@ HTML
             white-space: pre-wrap;
             overflow-x: auto;
         }
-        #result-critique h3, #result-niche h3 {
+        #result-critique h3, #result-niche h3, #result-repurpose h3 {
             color: #ff0099;
             font-family: 'Orbitron', sans-serif;
             margin-top: 0;
@@ -372,9 +313,8 @@ HTML
             
             if (!playerContainer || !playerChannelNameEl) return;
             
-            // Détruire l'ancien lecteur si il existe
             if (twitchPlayer) {
-                // Pas de méthode destroy publique, on remplace l'élément DOM
+                // Détruire l'ancien lecteur si il existe en remplaçant l'élément DOM
                 playerContainer.innerHTML = '';
             }
             
@@ -390,12 +330,6 @@ HTML
                 autoplay: true
             });
             
-            twitchPlayer.addEventListener(Twitch.Player.OFFLINE, () => {
-                 // Gère le cas où la chaîne est hors ligne
-                 // Le lecteur Twitch affiche l'image d'aperçu hors ligne.
-                 console.log(`${channel} est hors ligne.`);
-            });
-
             twitchPlayer.addEventListener(Twitch.Player.READY, () => {
                 console.log(`Lecteur Twitch prêt pour ${channel}`);
             });
@@ -403,35 +337,33 @@ HTML
         
         async function findInitialChannel() {
             const defaultChannel = "squeezie"; 
-            const inputEl = $("#input-channel");
             const titleEl = $(".player-wrapper h2");
 
             if (!titleEl) return;
 
-            // Mise à jour de l'affichage initial
             titleEl.innerHTML = `<span style="margin-right:6px;">⏳</span> LECTEUR - Recherche de la cible...`;
             
             let channelToLoad = null;
 
-            // 1. LOGIQUE DE PRIORITÉ RÉELLE: Chaînes suivies (aleknms, yooserstv, wonderchilltv)
-            // Cette partie REQUIERT que votre serveur implémente un endpoint /twitch_is_live
-            // qui interroge l'API Twitch pour le statut live de la chaîne donnée.
+            // 1. LOGIQUE DE PRIORITÉ RÉELLE: Tente de trouver une chaîne LIVE dans la liste
+            // Cette partie REQUIERT l'implémentation de /twitch_is_live sur votre serveur.
             try {
                 for (const channel of PRIORITY_CHANNELS) {
-                    const res = await fetchWithRetry(`${API_BASE}/twitch_is_live?channel=${channel}`, { cache: 'no-store', method: 'GET', timeout: 3000, retries: 0 });
+                    // Appelle le proxy /twitch_is_live pour vérifier le statut réel
+                    const res = await fetchWithRetry(`${API_BASE}/twitch_is_live?channel=${channel}`, { cache: 'no-store', method: 'GET', timeout: 2000, retries: 0 });
                     
                     if (res && res.is_live === true) {
                         channelToLoad = channel;
                         titleEl.innerHTML = `<span style="margin-right:6px;">⭐</span> LECTEUR - Cible Priorité LIVE (${channelToLoad})`;
-                        break; // Première chaîne LIVE trouvée, on s'arrête
+                        break; 
                     }
                 }
             } catch (e) {
-                console.warn("Erreur lors de la vérification des chaînes prioritaires (endpoint /twitch_is_live requis):", e.message);
-                // On continue au fallback si l'API est manquante ou en échec
+                console.warn("Échec de la vérification des chaînes prioritaires. Le endpoint /twitch_is_live est probablement absent ou en erreur.", e.message);
+                // On passe au fallback si l'API est manquante ou en échec
             }
             
-            // 2. Fallback: Petit streamer aléatoire (Si aucune priorité n'est live ou si la vérification échoue)
+            // 2. Fallback: Petit streamer aléatoire
             if (!channelToLoad) {
                 try {
                     titleEl.innerHTML = `<span style="margin-right:6px;">🔍</span> LECTEUR - Recherche de Niche (Petit Streamer)...`;
@@ -504,7 +436,6 @@ HTML
                 const result = await fetchWithRetry(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // Le proxy Flask attend un objet JSON avec la clé 'prompt'
                     body: JSON.stringify({ prompt: prompt })
                 });
 
@@ -514,8 +445,8 @@ HTML
                 let htmlContent = result.response || "❌ Aucune réponse structurée de l'API. (Vérifiez votre prompt)";
                 
                 // Formater le texte brut en Markdown simple
-                htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<h3>$1</h3>') // Titres en gras
-                                         .replace(/\*(.*?)\*/g, '<strong>$1</strong>') // Mots en gras
+                htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<h3>$1</h3>') 
+                                         .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
                                          .replace(/\n\n/g, '<br><br>')
                                          .replace(/\n/g, '<br>');
                 
@@ -538,7 +469,7 @@ HTML
             }
         }
 
-        // Gestion Critique
+        // Gestion Critique (Restauration du fonctionnement original)
         $("#form-critique")?.addEventListener("submit", e => {
             e.preventDefault();
             const channel = $("#input-critique")?.value.trim();
@@ -547,10 +478,10 @@ HTML
             if (!channel || !resultEl) return;
             
             const prompt = `Fais une critique approfondie, structurée et professionnelle du contenu Twitch de la chaîne ${channel}. Analyse son titre, sa niche, son audience potentielle, et donne des recommandations concrètes pour améliorer son contenu, son branding et sa croissance. Le diagnostic doit être très détaillé et utiliser des titres **en gras** pour structurer les sections.`;
-            callGeminiApi(CRITIQUE_URL, prompt, $("#result-critique").parentElement.querySelector('button[type="submit"]').parentElement.querySelector('.text-gray-400') || document.createElement('div'), resultEl);
+            callGeminiApi(CRITIQUE_URL, prompt, $("#btn-critique").parentElement.querySelector('.text-gray-400') || document.createElement('div'), resultEl);
         });
         
-        // Gestion Niche
+        // Gestion Niche (Restauration du fonctionnement original)
         $("#form-niche")?.addEventListener("submit", e => {
             e.preventDefault();
             const sujet = $("#input-niche")?.value.trim();
@@ -559,10 +490,10 @@ HTML
             if (!sujet || !resultEl) return;
             
             const prompt = `Génère une stratégie d'optimisation de niche pour le sujet/jeu/concept : "${sujet}". Identifie une sous-niche peu saturée, propose 5 idées de contenu originales pour Twitch et TikTok, et décris le profil idéal de l'audience cible. Utilise des titres **en gras** pour structurer les sections.`;
-            callGeminiApi(NICHE_ANALYSIS_URL, prompt, $("#result-niche").parentElement.querySelector('button[type="submit"]').parentElement.querySelector('.text-gray-400') || document.createElement('div'), resultEl);
+            callGeminiApi(NICHE_ANALYSIS_URL, prompt, $("#btn-niche").parentElement.querySelector('.text-gray-400') || document.createElement('div'), resultEl);
         });
 
-        // Gestion Repurpose
+        // Gestion Repurpose (Restauration du fonctionnement original)
         $("#form-repurpose")?.addEventListener("submit", e => {
             e.preventDefault();
             const titre = $("#input-repurpose-titre")?.value.trim();
@@ -572,8 +503,9 @@ HTML
             if (!titre || !concept || !resultEl) return;
             
             const prompt = `À partir du contenu suivant: Titre: "${titre}" et Concept: "${concept}", propose 5 idées de repurposing pour YouTube Shorts et TikTok. Pour chaque idée, donne un titre accrocheur, une description SEO optimisée et les trois meilleurs hashtags. Structure la réponse avec des titres **en gras**.`;
-            callGeminiApi(REPURPOSE_URL, prompt, $("#result-repurpose").parentElement.querySelector('button[type="submit"]').parentElement.querySelector('.text-gray-400') || document.createElement('div'), resultEl);
+            callGeminiApi(REPURPOSE_URL, prompt, $("#btn-repurpose").parentElement.querySelector('.text-gray-400') || document.createElement('div'), resultEl);
         });
+
 
         // ============================ 5. LOGIQUE TWITCH CONNECT (RÉELLE) ============================
         $("#btn-twitch-login")?.addEventListener("click", () => {
@@ -581,14 +513,12 @@ HTML
             status.style.color = "#ffc107";
             status.textContent = `⏳ Envoi de la demande d'authentification à votre serveur...`;
 
-            // L'utilisateur doit implémenter une API sur son serveur (Flask) 
-            // qui redirigera vers le point de terminaison d'autorisation de Twitch.
+            // Cet appel DOIT rediriger l'utilisateur vers la page d'autorisation de Twitch via votre backend.
             fetchWithRetry(API_BASE + "/twitch_auth_start", { method: 'GET', timeout: 5000, retries: 0 })
                 .then(res => {
-                    // Si le serveur répond avec l'URL de redirection Twitch
                     if (res && res.redirect_url) {
                          status.textContent = "✅ Redirection vers Twitch. Veuillez autoriser l'application...";
-                         // Ceci doit initier la redirection OAuth
+                         // Initiation de la redirection OAuth
                          window.location.href = res.redirect_url;
                     } else {
                         status.style.color = "#e34a64";
@@ -641,9 +571,8 @@ HTML
             e.preventDefault();
             const channel = $("#input-boost")?.value.trim();
             const status = $("#boost-msg");
-            const btn = $("#btn-boost");
             
-            if (!status || !btn) return;
+            if (!status) return;
 
             status.style.color = "#9aa3a8";
             if (!channel) {
@@ -665,15 +594,13 @@ HTML
             // 2. Enregistrer le cooldown (logique réelle)
             localStorage.setItem('lastBoostTime', Date.now());
             
-            // 3. Appel à l'API serveur (facultatif, pour log ou action serveur)
+            // 3. Appel à l'API serveur (facultatif)
             status.textContent = `⏳ BOOST ACTIF. Tentative d'envoi du signal serveur pour ${channel}...`;
 
-            // L'API est désormais considérée comme réelle et non simulée
             fetchWithRetry(`${BOOST_URL}?channel=${encodeURIComponent(channel)}`, { method: 'POST', cache: 'no-store' })
                 .then(res => {
-                    // Message final après l'appel API et le lancement du boost
                     status.style.color = "#59d682";
-                    status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel} ! Prochain BOOST dans 6 heures.`;
+                    status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel}. Prochain BOOST dans 6 heures.`;
                 })
                 .catch(e => {
                     // Si l'API serveur BOOST échoue, l'effet local sur le lecteur est tout de même appliqué
