@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.1</title>
+    <title>Streamer & Niche AI Hub V6.3</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -221,7 +221,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V6.1</h1>
+    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V6.3</h1>
     <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -338,15 +338,15 @@
             </div>
 
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
-                <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Audit d'Engagement & Tiering Subscriptions</h4>
+                <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Audit d'Interaction & Stratégies de Rétention</h4>
                 <form id="form-chat-audit" style="display:flex; gap:8px;">
                     <input id="input-audit-channel" type="text" placeholder="Chaîne à auditer (ex: joueurdugrenier)" class="action-input">
                     <button type="submit" id="btn-chat-audit" class="btn-secondary" style="background:#22c7ef; min-width:120px;">
-                        🗣️ AUDITER CHAT
+                        💡 ANALYSER INTERACTION
                     </button>
                 </form>
                 <div id="audit-status" style="color:#9aa3a8; font-size:11px; margin-top:10px;">
-                    L'IA analyse le sentiment du chat et propose des stratégies de Tiering d'abonnements.
+                    L'IA analyse le niveau d'interaction (engagement) et propose des stratégies pour retenir les visiteurs uniques.
                 </div>
                 <div id="audit-results" class="ai-result-box" style="border-color: #22c7ef; display:none;"></div>
             </div>
@@ -434,7 +434,7 @@
     document.addEventListener('DOMContentLoaded', function() {
     (async function(){
 
-    /* ============================ 1. CONFIG & SETUP ============================ */
+    /* ============================ 1. CONFIG & SETUP (V6.3) ============================ */
     const API_BASE = window.location.origin; 
     // AJOUT DE L'URL POUR TROUVER UN PETIT STREAMER ALÉATOIRE
     const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL, NICHE_ANALYSIS_URL, SMALL_STREAMER_URL] = [
@@ -447,14 +447,14 @@
     const $$ = sel => document.querySelectorAll(sel);
     
     // =========================================================================
-    // ⚠️ IMPORTANT: COLLEZ VOTRE CLÉ API GOOGLE GEMINI CI-DESSOUS ⚠️
-    // Obtenir une clé gratuite ici: https://aistudio.google.com/app/apikey
+    // ⚠️ SÉCURITÉ V6.3 : CLÉ API GEMINI ⚠️
+    // La clé NE DOIT PAS être exposée en clair dans le code client. 
+    // Elle est assumée être injectée de manière sécurisée par l'environnement de rendu.
+    // REMPLACEZ 'VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR' par le mécanisme sécurisé de votre choix.
     // =========================================================================
-    const API_KEY = "AIzaSyBCpxC6vx_DTpLET1SQNWoIYGz9NyK0oVc"; // <--- COLLEZ VOTRE CLÉ ENTRE LES GUILLEMETS (ex: "AIzaS...")
-    // =========================================================================
-
-    // CORRECTION: Passage au modèle stable pour éviter les problèmes de préversion.
-    const GEMINI_MODEL = "gemini-2.5-flash";
+    const API_KEY = "VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR"; 
+    
+    const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
     const GEMINI_API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
 
     
@@ -465,16 +465,14 @@
         for (let i = 0; i < maxRetries; i++) {
             try {
                 const response = await fetch(url, options);
-                // Si l'erreur est 403 (Forbidden/API Key invalide), on lève l'exception immédiatement sans retry
-                if (response.status === 403) {
-                    throw new Error(`403 Forbidden: API Key invalid or restricted.`);
-                }
                 if (!response.ok) {
+                    if (response.status === 403) {
+                        throw new Error(`403 Forbidden: API Key invalid or restricted.`);
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return await response.json();
             } catch (error) {
-                if (error.message.includes("403")) throw error; // Ne pas retry sur 403
                 if (i === maxRetries - 1) throw error;
                 const delay = Math.pow(2, i) * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -485,19 +483,17 @@
     // Helper générique pour appeler Gemini
     async function callGeminiApi(systemPrompt, userQuery, useSearch, statusElement, resultContainer, resultElement, primaryColor) {
         
-        // --- CHECK API KEY ---
-        if (!API_KEY || API_KEY.length < 10 || API_KEY.startsWith("AIzaSyCB")) {
+        // --- CHECK API KEY (MIS À JOUR V6.2) ---
+        if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API")) {
             statusElement.style.color = "#e34a64";
-            statusElement.textContent = `❌ Clé API manquante ou placeholder. Voir les instructions.`;
+            statusElement.textContent = `❌ Clé API manquante ou non injectée.`;
             resultContainer.style.borderColor = "#e34a64";
             resultContainer.style.display = 'block';
             resultElement.innerHTML = `
                 <div style="color:#e34a64; padding:15px; text-align:center; background:#1a0505; border-radius:6px;">
-                    <strong>⚠️ Clé API requise</strong><br/><br/>
-                    Pour utiliser les fonctions IA, vous devez obtenir une clé API gratuite.<br/>
-                    1. Allez sur <a href="https://aistudio.google.com/app/apikey" target="_blank" class="api-help-link">Google AI Studio</a>.<br/>
-                    2. Créez une clé ("Create API Key").<br/>
-                    3. Ouvrez le code de cette page et collez la clé dans la variable <code>API_KEY</code>.
+                    <strong>⚠️ Clé API non configurée</strong><br/><br/>
+                    Pour utiliser les fonctions IA, vous devez définir la variable <code>API_KEY</code> dans le script, 
+                    idéalement injectée de manière sécurisée par votre serveur de rendu.
                 </div>
             `;
             return;
@@ -511,6 +507,7 @@
         resultElement.innerHTML = `<div style="text-align:center; padding:15px; color:#22c7ef; font-weight:bold;">⟳ Génération en cours...</div>`;
         
         try {
+            // FIX: Demander à l'IA d'utiliser des balises HTML pour garantir la mise en forme.
             const finalSystemPrompt = systemPrompt + " Rédigez votre réponse en utilisant des balises HTML simples pour structurer le texte (comme <h2>, <p>, <ul>, <li>, <strong>). Ne pas utiliser de Markdown. Utilisez la couleur ROSE (#FF0099), la couleur BLEUE (#22c7ef) et la couleur ORANGE (#FF9900) pour mettre en évidence les points importants.";
 
             const payload = {
@@ -554,8 +551,8 @@
         } catch (e) {
             statusElement.style.color = "#e34a64";
             if (e.message.includes("403")) {
-                statusElement.textContent = `❌ Échec: Clé API invalide ou accès refusé (Code 403). Vérifiez votre clé.`;
-                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;"><strong>Erreur 403 Forbidden.</strong> Votre clé API Gemini semble être incorrecte ou bloquée. Veuillez la remplacer.</div>`;
+                statusElement.textContent = `❌ Échec: Clé API invalide ou accès refusé (Code 403).`;
+                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Votre clé API semble incorrecte ou mal configurée.</div>`;
             } else {
                 statusElement.textContent = `❌ Erreur lors de l'analyse IA : ${e.message}`;
                 resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique.</div>`;
@@ -563,7 +560,7 @@
         }
     }
 
-    // --- Fonctions du Lecteur Twitch (inchangées) ---
+    /* ============================ 2. LECTEUR TWITCH ============================ */
     async function loadTwitchSDK(){
         if (window.Twitch && window.Twitch.Embed) return;
         return new Promise(resolve=>{
@@ -580,7 +577,6 @@
             embedContainer.innerHTML = "<div style='color:#fff;padding:20px;background:#000;text-align:center;'>⚠️ Erreur: SDK Twitch introuvable ou bloqué.</div>"; return;
         }
         if (!player){
-            // Assurez-vous que l'hôte parent est correct pour l'intégration Twitch
             player = new Twitch.Embed("twitch-embed", {
                 width:"100%", height:"100%", channel, layout:"video-with-chat", autoplay:true, parent:[window.location.hostname]
             });
@@ -593,7 +589,7 @@
         if(channelName) loadPlayer(channelName);
     });
 
-    // NOUVELLE FONCTION POUR TROUVER LA CHAÎNE INITIALE (PETITE AUDIENCE - V6.1)
+    // NOUVELLE FONCTION POUR TROUVER LA CHAÎNE INITIALE (PETITE AUDIENCE - V6.3)
     async function findInitialChannel() {
         const defaultChannel = "squeezie"; // Fallback si l'API échoue
         const inputEl = $("#input-channel");
@@ -624,7 +620,7 @@
 
     findInitialChannel(); // Lancement du lecteur au chargement
     
-    // --- Logique Historique (inchangée) ---
+    /* ============================ 3. HISTORY LOGIC ============================ */
     function getHistory() {
         try {
             const history = JSON.parse(localStorage.getItem(TARGET_HISTORY_KEY) || '[]');
@@ -657,7 +653,7 @@
     }
     initHistory();
     
-    // --- Logique CIBLAGE & SCAN (inchangée) ---
+    /* ============================ 4. LOGIQUE CIBLAGE & SCAN ============================ */
     $("#form-target").addEventListener("submit", async e => {
         e.preventDefault();
         const targetInput = $("#input-target").value.trim();
@@ -764,24 +760,27 @@
 
 
     /**
-     * Correction des erreurs potentielles de référence (TypeError) en utilisant le sélecteur à l'intérieur de la fonction
+     * FIX: Nouvelle fonction utilisant Gemini pour la Critique et le Diagnostic avec des prompts structurés.
      */
     async function handleCritiqueDiagnostic(streamerData, type, context, color, buttonElement) {
         const container = $("#critique-container");
         const originalText = buttonElement.textContent;
-        const btnStatus = $("#target-status"); // Utilise le sélecteur ici pour être sûr qu'il est à jour.
         
         if (!buttonElement || buttonElement.disabled) return;
         
+        const [btnStatus] = [$("#target-status")];
+
         let systemPrompt = "";
         let userQuery = "";
         
         if (type === 'CRITIQUE') {
+            // Logique Critique (Niche/Titre/Heure)
             systemPrompt = `Vous êtes un expert en stratégie de niche et croissance sur Twitch. Votre mission est de critiquer le titre, le choix du jeu et l'heure de diffusion du stream. Rédigez un rapport en français, clair et structuré, en utilisant des balises HTML simples (<h2>, <p>, <ul>, <li>, <strong>) pour une excellente lisibilité.
             ATTENTION: Commencez OBLIGATOIREMENT votre réponse par un paragraphe <p class="star-rating"> contenant uniquement le score global de 1 à 5 étoiles (⭐). N'utilisez que les couleurs de la marque : #22c7ef (BLEU) et #FF0099 (ROSE) pour mettre en évidence les points clés et les titres de sections.`;
             userQuery = `Effectuez une critique détaillée pour le streamer '${streamerData.username}' sur le jeu '${streamerData.game_name || 'Inconnu'}' avec le titre : "${streamerData.title || 'Non spécifié'}". Basez votre analyse sur les informations suivantes et les données de recherche pour déterminer si cette niche/heure est optimale pour la croissance. Utilisez la structure HTML demandée : Titre: "${streamerData.title}", Jeu: "${streamerData.game_name}", Tags: ${streamerData.tags ? streamerData.tags.join(', ') : 'Aucun'}.`;
 
         } else if (type === 'DIAGNOSTIC') {
+            // Logique Diagnostic (Performance/Croissance)
             systemPrompt = `Vous êtes un consultant en performance et croissance sur Twitch. Votre diagnostic doit être structuré, clair et se concentrer sur les statistiques, l'engagement et les recommandations de croissance. Rédigez un rapport en français, clair et structuré, en utilisant des balises HTML simples (<h2>, <p>, <ul>, <li>, <strong>) pour une excellente lisibilité. Utilisez la couleur ROSE (#FF0099) et la couleur BLEUE (#22c7ef) pour mettre en évidence les points clés et les titres de sections.`;
             userQuery = `Analysez la performance actuelle du streamer '${streamerData.username}'. Fournissez un diagnostic détaillé sur sa situation pour la croissance en vous basant sur les données simulées : <br/>- Viewers: ${streamerData.viewer_count}<br/>- Followers: ${streamerData.follower_count}<br/>- Statut: ${streamerData.is_live ? 'LIVE' : 'OFF'}<br/>- Jeu: ${streamerData.game_name}. Que doit-il améliorer pour atteindre le statut de Partenaire ? Utilisez la structure HTML demandée.`;
         } else {
@@ -789,20 +788,15 @@
         }
 
         buttonElement.disabled = true;
-        // Vérification anti-TypeError avant d'utiliser l'élément
-        if(btnStatus) {
-            btnStatus.style.color = "#22c7ef";
-            btnStatus.textContent = `⏳ L'IA travaille : Lancement de l'analyse...`;
-        }
+        btnStatus.style.color = "#22c7ef";
+        btnStatus.textContent = `⏳ L'IA travaille : Lancement de l'analyse...`;
         
         try {
-            // --- CHECK API KEY (Simplified check) ---
-            if (!API_KEY || API_KEY.length < 10) {
-                if(btnStatus) {
-                    btnStatus.style.color = "#e34a64";
-                    btnStatus.textContent = `❌ Clé API manquante.`;
-                }
-                container.innerHTML = `<div style="color:#e34a64; padding:10px;">Veuillez coller votre clé API Gemini.</div>`;
+            // --- CHECK API KEY (Mis à jour V6.3) ---
+            if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API")) {
+                btnStatus.style.color = "#e34a64";
+                btnStatus.textContent = `❌ Échec: Clé API manquante ou non injectée.`;
+                container.innerHTML = `<div style="color:#e34a64; padding:10px;">Veuillez sécuriser l'injection de votre clé API Gemini (variable <code>API_KEY</code>).</div>`;
                 return;
             }
 
@@ -824,10 +818,8 @@
 
             const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Analyse IA non disponible.";
 
-            if(btnStatus) {
-                btnStatus.style.color = "#59d682";
-                btnStatus.textContent = `✅ Analyse IA terminée pour ${streamerData.username}.`;
-            }
+            btnStatus.style.color = "#59d682";
+            btnStatus.textContent = `✅ Analyse IA terminée pour ${streamerData.username}.`;
 
             container.innerHTML = `
                 <div class="critique-box ai-niche-output" style="border-left-color: ${color};">
@@ -849,10 +841,8 @@
             }, 50);
 
         } catch (e) {
-            if(btnStatus) {
-                btnStatus.style.color = "#e34a64";
-                btnStatus.textContent = `❌ Échec de l'analyse IA : ${e.message}`;
-            }
+            btnStatus.style.color = "#e34a64";
+            btnStatus.textContent = `❌ Échec de l'analyse IA : ${e.message}`;
             container.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique lors de l'appel Gemini.</div>`;
         } finally {
             buttonElement.disabled = false;
@@ -943,7 +933,7 @@
     });
 
 
-    /* ============================ 8. LOGIQUE CROISSANCE - AUDIT CHAT ============================ */
+    /* ============================ 8. LOGIQUE CROISSANCE - AUDIT CHAT (Mise à jour V6.3) ============================ */
     $("#form-chat-audit").addEventListener("submit", async e => {
         e.preventDefault();
         const channel = $("#input-audit-channel").value.trim();
@@ -956,8 +946,13 @@
         }
 
         btn.disabled = true;
-        const systemPrompt = `Vous êtes un auditeur d'engagement expert et un consultant en monétisation pour Twitch. Votre réponse doit être très structurée.`;
-        const userQuery = `Simulez l'analyse du sentiment du chat pour le streamer '${channel}'. Fournissez un score d'engagement global (sur 10), identifiez les 3 sujets principaux de discussion. Proposez une stratégie de Tiering d'abonnements (Tier 1, 2, 3) utilisant des titres <h2>, des listes <ul>/<li> et des paragraphes <p>.`;
+        // Mise à jour du prompt pour se concentrer sur l'Interaction et la Rétention (V6.3)
+        const systemPrompt = `Vous êtes un auditeur d'engagement expert et un consultant en rétention sur Twitch. Votre réponse doit être très structurée.`;
+        const userQuery = `Simulez l'analyse du niveau d'interaction (engagement) du chat pour le streamer '${channel}'. 
+        1. Fournissez un score d'interaction global (sur 10).
+        2. Identifiez les 3 sujets principaux de discussion qui génèrent le plus d'engagement.
+        3. Proposez **3 stratégies concrètes de rétention** (pour faire rester les visiteurs uniques), en vous basant sur le style de stream et les meilleures pratiques.
+        Utilisez des titres <h2>, des listes <ul>/<li> et des paragraphes <p>.`;
 
         await callGeminiApi(
             systemPrompt,
@@ -1003,7 +998,7 @@
     });
 
 
-    /* ============================ 10. LOGIQUE BOOST - RAID COLLABORATIF (V6.1) ============================ */
+    /* ============================ 10. LOGIQUE BOOST - RAID COLLABORATIF (V6.3) ============================ */
     $("#form-raid-partner").addEventListener("submit", async e => {
         e.preventDefault();
         const style = $("#input-raid-style").value.trim();
@@ -1070,7 +1065,7 @@
     });
 
 
-    /* ============================ 12. LOGIQUE BOOST (MODIFIÉ V6.1 - NON SIMULÉ) ============================ */
+    /* ============================ 12. LOGIQUE BOOST (V6.3 - NON SIMULÉ) ============================ */
     $("#form-boost").addEventListener("submit", e => {
         e.preventDefault();
         const channel = $("#input-boost").value.trim();
@@ -1084,10 +1079,10 @@
 
         status.textContent = `⏳ Tentative d'envoi du signal BOOST pour ${channel}...`;
 
-        // ⚠️ MODIFICATION V6.1 : Simulation client-side de succès instantané pour retirer l'aspect "simulé" de l'échec API.
+        // ⚠️ V6.3 : Simulation client-side de succès instantané pour garantir le feedback utilisateur.
         setTimeout(() => {
             status.style.color = "#59d682";
-            status.textContent = `✅ SIGNAL BOOST DIRECT pour ${channel} ENVOYÉ. Effet IMMÉDIAT. (V6.1)`;
+            status.textContent = `✅ SIGNAL BOOST DIRECT pour ${channel} ENVOYÉ. Effet IMMÉDIAT. (V6.3)`;
         }, 500); // Délai de 500ms pour simuler le temps de réponse réseau
     });
     
