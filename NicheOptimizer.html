@@ -417,7 +417,7 @@
 </div>
 
 <script>
-    window.GEMINI_API_KEY = 'VOTRE_CLE_SECRETE_INJECTEE_PAR_LE_SERVEUR'; 
+    window.GEMINI_API_KEY = '{{ GEMINI_API_KEY }}'; 
 </script>
 
 
@@ -456,7 +456,7 @@
     
     // =========================================================================
     // ⚠️ SÉCURITÉ V6.5 : UTILISATION DE LA CLÉ INJECTÉE PAR LE SERVEUR
-    // La variable window.GEMINI_API_KEY est lue ici.
+    // Le code récupère ici la variable injectée '{{ GEMINI_API_KEY }}'
     // =========================================================================
     const API_KEY = window.GEMINI_API_KEY || "VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR";
     
@@ -501,16 +501,17 @@
         }
 
         // --- CHECK API KEY (V6.5) ---
-        if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API") || API_KEY.includes("VOTRE_CLE_SECRETE_INJECTEE_PAR_LE_SERVEUR")) {
+        // Vérifie si la clé est toujours le placeholder de secours (elle devrait être '{{ GEMINI_API_KEY }}' si le templating a échoué)
+        if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API") || API_KEY.includes("{{ GEMINI_API_KEY }}")) {
             statusElement.style.color = "#e34a64";
-            statusElement.textContent = `❌ Clé API manquante ou non injectée. Voir le bloc <script> en haut du code.`;
+            statusElement.textContent = `❌ Clé API manquante ou non injectée. Assurez-vous que le serveur injecte la variable '{{ GEMINI_API_KEY }}'.`;
             // Assurer que le container s'affiche pour l'erreur
             resultContainer.style.borderColor = "#e34a64";
             resultContainer.style.display = 'block';
             resultElement.innerHTML = `
                 <div style="color:#e34a64; padding:15px; text-align:center; background:#1a0505; border-radius:6px;">
                     <strong>⚠️ Clé API non configurée</strong><br/><br/>
-                    Veuillez vous assurer que votre serveur injecte la clé dans la variable <code>window.GEMINI_API_KEY</code>.
+                    Votre serveur n'a pas réussi à injecter la clé depuis votre variable d'environnement (Render/Docker).
                 </div>
             `;
             return;
@@ -826,7 +827,7 @@
         
         try {
             // --- CHECK API KEY (V6.5) ---
-            if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API") || API_KEY.includes("VOTRE_CLE_SECRETE_INJECTEE_PAR_LE_SERVEUR")) {
+            if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API") || API_KEY.includes("{{ GEMINI_API_KEY }}")) {
                 btnStatus.style.color = "#e34a64";
                 btnStatus.textContent = `❌ Échec: Clé API manquante ou non injectée.`;
                 container.innerHTML = `<div style="color:#e34a64; padding:10px;">Veuillez sécuriser l'injection de votre clé API Gemini (variable <code>window.GEMINI_API_KEY</code>).</div>`;
