@@ -306,8 +306,8 @@
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
                 <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Connexion Utilisateur Twitch (OAuth)</h4>
                 
-                <p id="login-status" style="color:#9aa3a8; font-size:12px; margin-bottom:15px;">
-                    Statut: Déconnecté. Connectez-vous pour voir vos chaînes suivies LIVE.
+                <p id="login-status" style="color:#ff9900; font-size:12px; margin-bottom:15px;">
+                    Statut: Déconnecté. **ATTENTION : Implémentation du service API requise pour cette section.**
                 </p>
 
                 <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">
@@ -567,12 +567,11 @@
 
                 if (!response.ok) {
                     // Gestion douce des erreurs 404/500 si c'est une API Twitch non implémentée
-                    if (url.includes("/twitch_is_live") || url.includes("/random_small_streamer") || url.includes("/boost") || url.includes("/followed_streams")) {
-                        console.warn(`API non implémentée (ou erreur): ${url}. Simulation ou Fallback activé.`);
-                        throw new Error(`API_NOT_IMPLEMENTED`); 
+                    if (url.includes("/twitch_is_live") || url.includes("/random_small_streamer") || url.includes("/boost") || url.includes("/followed_streams") || url.includes("/gameid") || url.includes("/details")) {
+                        // Pour les API non essentielles/non implémentées, on lance une erreur douce
+                        if (response.status === 404) throw new Error(`404: API endpoint not implemented (${url.substring(API_BASE.length)})`);
                     }
                     if (response.status === 403) throw new Error(`403 Forbidden: API Key invalid or restricted.`);
-                    if (response.status === 404 && url.includes("/gameid")) throw new Error(`404: Game not found (expected for pseudo inputs).`); 
                     if (response.status === 500) {
                         const errorBody = await response.json().catch(() => ({ error: `Server error ${response.status}` }));
                         // Erreur 500 pour Gemini capturée ici !
@@ -583,7 +582,7 @@
                 }
                 return await response.json();
             } catch (error) {
-                if (error.message === "API_NOT_IMPLEMENTED" || error.message === "GEMINI_INTERNAL_ERROR") throw error; 
+                if (error.message === "GEMINI_INTERNAL_ERROR" || error.message.includes("404: API endpoint not implemented")) throw error; 
                 if (i === maxRetries - 1 || error.name === 'AbortError') throw error;
                 const delay = Math.pow(2, i) * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -732,12 +731,13 @@
                 }
             }
         } catch (e) {
-            if (e.message === "API_NOT_IMPLEMENTED" || e.message.includes('connexion') || e.message.includes('404')) {
+            if (e.message.includes("404: API endpoint not implemented")) {
                  console.warn("API /twitch_is_live non implémentée, passant au fallback.");
+                 isApiWorking = false;
             } else {
                  console.error("Échec de la vérification des chaînes prioritaires (Erreur critique):", e.message);
+                 isApiWorking = false;
             }
-            isApiWorking = false; 
         }
         
         // 2. Fallback: Petit streamer aléatoire (Niche) - UNIQUEMENT si l'API semble fonctionner
@@ -754,12 +754,11 @@
                     iconEl.innerHTML = `📈`;
                 }
             } catch (e) {
-                 if (e.message === "API_NOT_IMPLEMENTED" || e.message.includes('connexion') || e.message.includes('404')) {
+                 if (e.message.includes("404: API endpoint not implemented")) {
                      console.warn("API /random_small_streamer non implémentée, utilisant le défaut.");
                  } else {
                      console.error("Échec de la récupération du petit streamer (Erreur critique):", e.message);
                  }
-                // isApiWorking reste false
             }
         }
         
@@ -868,7 +867,11 @@
             // PSEUDO (y compris en cas de 404 du /gameid ou d'erreur de connexion)
             currentTargetName = targetInput;
             targetStatus.style.color = "#22c7ef"; 
-            targetStatus.textContent = `⚠️ Jeu non trouvé (Erreur API: ${e.message.includes('API_NOT_IMPLEMENTED') || e.message.includes('404') ? '404' : e.message}). Cible définie: PSEUDO '${currentTargetName}'`;
+            if (e.message.includes("404: API endpoint not implemented")) {
+                 targetStatus.textContent = `⚠️ API GameID non implémentée (404). Cible définie: PSEUDO '${currentTargetName}'`;
+            } else {
+                 targetStatus.textContent = `⚠️ Jeu non trouvé (Erreur API: ${e.message}). Cible définie: PSEUDO '${currentTargetName}'`;
+            }
             currentTargetNameEl.textContent = `Streamer: ${currentTargetName}`; 
             scanLabel.textContent = "ANALYSER CE STREAMER";
             actionsBox.classList.remove("hidden"); 
@@ -939,7 +942,7 @@
             $("#res-diag")?.addEventListener("click", (e) => handleCritiqueDiagnostic(lastStreamerData, 'DIAGNOSTIC', 'Diagnostic de Performance', '#22c7ef', e.target));
 
         } catch (e) {
-            let errorMsg = e.message.includes("API_NOT_IMPLEMENTED") ? "❌ Erreur: Le service API (détails du streamer) n'est pas implémenté sur le serveur." : `❌ Erreur: ${e.message}`;
+            let errorMsg = e.message.includes("404: API endpoint not implemented") ? "❌ Erreur: Le service API (détails du streamer ou Random Streamer) n'est pas implémenté sur le serveur." : `❌ Erreur: ${e.message}`;
             box.innerHTML = `<div style="color:#e34a64; text-align:center; padding:20px;">${errorMsg}</div>`;
         } finally {
             btn.disabled = false;
@@ -1020,6 +1023,8 @@
             }, 50);
 
         } catch (e) {
+            buttonElement.disabled = false; // Réactiver le bouton immédiatement sur échec pour le client
+            buttonElement.textContent = originalText;
             btnStatus.style.color = "#e34a64";
             if (e.message === "GEMINI_INTERNAL_ERROR" || e.message.includes("500")) {
                 btnStatus.textContent = `❌ Échec IA : Erreur Serveur (500) lors de l'appel Gemini. Veuillez vérifier les logs Render.`;
@@ -1334,8 +1339,8 @@
             .catch(e => {
                 // Gère l'échec de l'API tout en confirmant l'action locale et le cooldown.
                 status.style.color = "#59d682";
-                status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel} (Action locale). ⚠️ API serveur non atteinte (Erreur ${e.message.includes('API_NOT_IMPLEMENTED') || e.message.includes('404') ? '404' : e.message}). Prochain BOOST dans 6 heures.`;
-                console.warn(`Avertissement: L'appel API BOOST serveur a échoué (${e.message.includes('API_NOT_IMPLEMENTED') ? 'non implémenté' : e.message}), mais l'effet local (lecteur et cooldown) est actif.`);
+                status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel} (Action locale). ⚠️ API serveur non atteinte (Erreur ${e.message.includes('404') ? '404' : e.message}). Prochain BOOST dans 6 heures.`;
+                console.warn(`Avertissement: L'appel API BOOST serveur a échoué (${e.message.includes('404') ? 'non implémenté' : e.message}), mais l'effet local (lecteur et cooldown) est actif.`);
             })
             .finally(() => {
                 // Met en place le timer pour réactiver le bouton après le cooldown
@@ -1375,17 +1380,20 @@
         listEl.innerHTML = html;
     }
 
-    // 13.2 Déclencheur du flux OAuth
+    // 13.2 Déclencheur du flux OAuth (MODIFIÉ POUR GÉRER L'ERREUR 404 CÔTÉ SERVEUR)
     $("#btn-twitch-login")?.addEventListener("click", () => {
         const statusEl = $("#login-status");
         if (!statusEl) return;
 
-        statusEl.style.color = "#ff9900";
-        statusEl.textContent = "⏳ Redirection vers Twitch pour autorisation (via /twitch_auth_start)...";
+        // Message d'erreur clair au lieu d'une redirection vers le 404
+        statusEl.style.color = "#e34a64";
+        statusEl.innerHTML = `
+            ❌ **Erreur d'Implémentation Serveur.**
+            <br/>L'endpoint <code>${TWITCH_AUTH_START_URL.substring(API_BASE.length)}</code> n'est pas actif (404).
+            <br/>**Action :** Veuillez implémenter cette route sur votre serveur Render pour activer la connexion Twitch OAuth.
+        `;
 
-        // Redirection vers le backend pour initier le flux OAuth
-        // NOTE: Cette action dépend de l'implémentation de l'endpoint /twitch_auth_start sur votre serveur.
-        window.location.href = TWITCH_AUTH_START_URL;
+        // Si la route était active, on aurait fait : window.location.href = TWITCH_AUTH_START_URL;
     });
 
     // 13.3 Récupération et affichage des streams suivis
@@ -1395,7 +1403,7 @@
         const loginBtn = $("#btn-twitch-login");
         if (!listEl || !statusEl || !loginBtn) return;
 
-        listEl.innerHTML = `<div style="text-align:center; padding:10px; color:#9aa3a8;">Chargement de votre fil...</div>`;
+        listEl.innerHTML = `<div style="text-align:center; padding:10px; color:#9aa3a8;">Chargement de votre fil... (nécessite la connexion Twitch)...</div>`;
 
         try {
             // Tente de récupérer les streams suivis. NÉCESSITE un jeton d'accès Twitch côté serveur.
@@ -1431,13 +1439,18 @@
             });
 
         } catch (e) {
-            if (e.message === 'NOT_AUTHENTICATED' || e.message.includes("API_NOT_IMPLEMENTED") || e.message.includes("404")) {
-                // Non connecté ou l'API serveur /followed_streams n'est pas implémentée/fonctionnelle
+            if (e.message === 'NOT_AUTHENTICATED') {
                 twitchUserConnected = false;
                 statusEl.style.color = "#ff9900";
-                statusEl.textContent = `❌ Déconnecté ou service API ('/followed_streams') non disponible. Veuillez vous connecter.`;
+                statusEl.textContent = `❌ Déconnecté. Veuillez vous connecter.`;
                 loginBtn.style.display = 'block';
                 listEl.innerHTML = `<p style="color:#555; text-align:center; padding:10px;">Veuillez vous connecter à Twitch pour charger votre fil.</p>`;
+            } else if (e.message.includes("404: API endpoint not implemented")) {
+                twitchUserConnected = false;
+                statusEl.style.color = "#ff9900";
+                statusEl.innerHTML = `❌ Service API <code>/followed_streams</code> non implémenté. La section "Mon Fil Suivi" fonctionne en mode manuel (Priorité/Défaut).`;
+                loginBtn.style.display = 'block';
+                listEl.innerHTML = `<p style="color:#555; text-align:center; padding:10px;">Implémentez <code>/followed_streams</code> sur votre serveur Render pour accéder à votre fil Twitch.</p>`;
             } else {
                 console.error("Erreur de chargement du fil:", e);
                 statusEl.style.color = "#e34a64";
