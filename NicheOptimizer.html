@@ -8,6 +8,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Styles Globaux */
+        :host,
+        html {
+            -webkit-text-size-adjust: 100%; /* Gardé pour Safari */
+            text-size-adjust: 100%;        /* STANDARD (Correction de compatibilité) */
+        }
         body {
             background-color: #0d0d0d;
             color: #fff;
@@ -227,7 +232,7 @@
     <div class="player-wrapper">
         <h2><span style="margin-right:6px;">🎬</span> LECTEUR</h2> 
         <form id="form-channel-player">
-            <input id="input-channel" type="text" value="Chargement du streamer cible..." placeholder="Nom de la chaîne Twitch (ex: gotaga)">
+            <input id="input-channel" type="text" value="Chargement du streamer cible..." placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder">
             <button type="submit" id="btn-player-launch">▶️ LANCER</button>
         </form>
         <div id="twitch-embed"></div>
@@ -247,13 +252,13 @@
                 <span class="icon">🔭</span> Configuration & Scan
             </h3>
             <div style="margin-bottom:15px;">
-                <label style="color:#9aa3a8; font-size:12px; display:block; margin-bottom:5px;">Historique récent :</label>
-                <select id="select-history" class="action-input">
+                <label for="select-history" style="color:#9aa3a8; font-size:12px; display:block; margin-bottom:5px;">Historique récent :</label>
+                <select id="select-history" class="action-input" title="Sélectionner une cible récente pour le scan">
                     <option value="">-- Charger une cible récente --</option>
                 </select>
             </div>
             <form id="form-target" style="display:flex; gap:8px; margin-bottom:10px;">
-                <input id="input-target" type="text" placeholder="Jeu (ex: Elden Ring) ou Pseudo" class="action-input">
+                <input id="input-target" type="text" placeholder="Jeu (ex: Elden Ring) ou Pseudo" class="action-input" title="Entrer un nom de jeu ou un pseudo de streamer à cibler">
                 <button type="submit" id="btn-target" class="btn-secondary" style="min-width:80px;">🎯 CIBLER</button>
             </form>
             <div id="target-status" style="color:#9aa3a8; font-size:11px; margin-top:5px;">Statut: Entrez un jeu ou un pseudo ci-dessus.</div>
@@ -284,7 +289,7 @@
                 <span class="icon">📈</span> Analyse de Niche & Heure d'Or (2026 Ready)
             </h3>
             <form id="form-niche-analysis" style="display:flex; gap:8px; margin-bottom:10px;">
-                <input id="input-niche-game" type="text" placeholder="Nom du Jeu à Analyser (ex: Starfield)" class="action-input">
+                <input id="input-niche-game" type="text" placeholder="Nom du Jeu à Analyser (ex: Starfield)" class="action-input" title="Nom du jeu à analyser pour trouver la meilleure heure de stream">
                 <button type="submit" id="btn-niche-analyse" class="btn-primary" style="min-width:120px; background:#59d682;">
                     ✨ ANALYSER
                 </button>
@@ -303,8 +308,8 @@
             </h3>
             
             <form id="form-repurpose" style="display:flex; gap:8px; margin-bottom:10px; flex-direction: column;">
-                <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer à analyser (ex: gotaga)" class="action-input">
-                <input id="input-repurpose-topic" type="text" placeholder="Thème ou VOD spécifique (ex: 'Top 1 Warzone' ou 'Just Chatting')" class="action-input">
+                <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer à analyser (ex: gotaga)" class="action-input" title="Pseudo du streamer dont la VOD doit être analysée">
+                <input id="input-repurpose-topic" type="text" placeholder="Thème ou VOD spécifique (ex: 'Top 1 Warzone' ou 'Just Chatting')" class="action-input" title="Thème ou VOD spécifique du streamer à analyser">
                 <button type="submit" id="btn-repurpose-analyse" class="btn-primary" style="background:#9933ff; padding: 12px;">
                     🚀 ANALYSER VOD & SCRIPTER RÉTENTION
                 </button>
@@ -340,7 +345,7 @@
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
                 <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Audit d'Interaction & Stratégies de Rétention</h4>
                 <form id="form-chat-audit" style="display:flex; gap:8px;">
-                    <input id="input-audit-channel" type="text" placeholder="Chaîne à auditer (ex: joueurdugrenier)" class="action-input">
+                    <input id="input-audit-channel" type="text" placeholder="Chaîne à auditer (ex: joueurdugrenier)" class="action-input" title="Nom de la chaîne Twitch dont le chat doit être audité">
                     <button type="submit" id="btn-chat-audit" class="btn-secondary" style="background:#22c7ef; min-width:120px;">
                         💡 ANALYSER INTERACTION
                     </button>
@@ -354,7 +359,7 @@
             <div style="padding:15px; background:#111; border-radius:8px; border: 1px solid #444;">
                 <h4 style="color: #ff0099; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Stratégie de Marque (USP & Pitch Sponsoring)</h4>
                 <form id="form-usp-pitch" style="display:flex; gap:8px;">
-                    <input id="input-usp-target" type="text" placeholder="Thème principal du Streamer (ex: défis extrêmes)" class="action-input">
+                    <input id="input-usp-target" type="text" placeholder="Thème principal du Streamer (ex: défis extrêmes)" class="action-input" title="Thème principal de votre contenu pour définir l'USP">
                     <button type="submit" id="btn-usp-pitch" class="btn-primary" style="background:#ff0099; min-width:120px;">
                         🎯 DÉFINIR L'USP
                     </button>
@@ -375,7 +380,7 @@
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
                 <h4 style="color: #ff0099; font-size: 14px; margin-bottom: 10px; font-weight: bold;">API Signal Boost (Visibilité Immédiate)</h4>
                 <form id="form-boost" style="display:flex; gap:8px;">
-                    <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input">
+                    <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input" title="Nom de la chaîne Twitch à promouvoir">
                     <button type="submit" class="btn-primary" style="min-width:100px;">📤 BOOST</button>
                 </form>
                 <div id="boost-msg" style="color:#9aa3a8; font-size:11px; margin-top:10px;">
@@ -386,8 +391,8 @@
             <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
                 <h4 style="color: #ff9900; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Recherche de Partenaires Raid Collaboratif (IA)</h4>
                 <form id="form-raid-partner" style="display:flex; gap:8px; flex-direction: column;">
-                    <input id="input-raid-style" type="text" placeholder="Mon style de stream (ex: Chill & Détente)" class="action-input">
-                    <input id="input-raid-niche" type="text" placeholder="Ma niche/Jeu (ex: Speedrun Zelda)" class="action-input">
+                    <input id="input-raid-style" type="text" placeholder="Mon style de stream (ex: Chill & Détente)" class="action-input" title="Votre style de stream">
+                    <input id="input-raid-niche" type="text" placeholder="Ma niche/Jeu (ex: Speedrun Zelda)" class="action-input" title="Votre niche de contenu ou jeu principal">
                     <button type="submit" id="btn-raid-partner" class="btn-primary" style="background:#ff9900; padding: 12px;">
                         🤝 TROUVER PARTENAIRES
                     </button>
@@ -401,7 +406,7 @@
             <div style="padding:15px; background:#111; border-radius:8px; border: 1px solid #444;">
                 <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Générateur IA de Bio & Panneaux Twitch</h4>
                 <form id="form-bio-panel" style="display:flex; gap:8px; flex-direction: column;">
-                    <input id="input-bio-style" type="text" placeholder="Style de contenu (ex: Humour/Compétitif/Détente)" class="action-input">
+                    <input id="input-bio-style" type="text" placeholder="Style de contenu (ex: Humour/Compétitif/Détente)" class="action-input" title="Style de contenu pour la génération de bio et panneaux">
                     <button type="submit" id="btn-bio-panel" class="btn-secondary" style="background:#22c7ef; padding: 12px;">
                         📝 GÉNÉRER LES TEXTES
                     </button>
@@ -419,6 +424,9 @@
 
 
 <script>
+    // --- Le code JavaScript reste inchangé et ne nécessite pas de modifications pour ces correctifs ---
+    // (J'ai conservé la version la plus récente avec la liste de streamers aléatoires)
+    
     // --- Gestion des Onglets ---
     function openTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
