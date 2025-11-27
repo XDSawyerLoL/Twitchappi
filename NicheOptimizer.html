@@ -487,24 +487,7 @@
         if (!statusElement || !resultContainer || !resultElement) {
             console.error("FATAL: One or more DOM elements passed to callGeminiApi are null.");
             return;
-        }
 
-        // --- CHECK API KEY (V6.5) ---
-        // Vérifie si la clé est toujours le placeholder de secours (elle devrait être '{{ GEMINI_API_KEY }}' si le templating a échoué)
-        if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API") || API_KEY.includes("{{ GEMINI_API_KEY }}")) {
-            statusElement.style.color = "#e34a64";
-            statusElement.textContent = `❌ Clé API manquante ou non injectée. Assurez-vous que le serveur injecte la variable '{{ GEMINI_API_KEY }}'.`;
-            // Assurer que le container s'affiche pour l'erreur
-            resultContainer.style.borderColor = "#e34a64";
-            resultContainer.style.display = 'block';
-            resultElement.innerHTML = `
-                <div style="color:#e34a64; padding:15px; text-align:center; background:#1a0505; border-radius:6px;">
-                    <strong>⚠️ Clé API non configurée</strong><br/><br/>
-                    Votre serveur n'a pas réussi à injecter la clé depuis votre variable d'environnement (Render/Docker).
-                </div>
-            `;
-            return;
-        }
 
         statusElement.style.color = "#22c7ef";
         statusElement.textContent = `⏳ L'IA travaille : ${userQuery.substring(0, 50).replace(/\n/g, ' ')}...`;
