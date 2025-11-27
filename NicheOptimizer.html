@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.5 - Corrigé</title>
+    <title>Streamer & Niche AI Hub V6.5 - Robuste</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -235,12 +235,39 @@
         .api-help-link { color: #22c7ef; text-decoration: underline; cursor: pointer; }
         .api-help-link:hover { color: #fff; }
 
+        .followed-stream-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: #0d0d0d;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid #2e2e2e;
+        }
+        .followed-stream-item:hover {
+            background: #111;
+        }
+        .followed-stream-item strong {
+            color: #ff0099;
+            margin-right: 10px;
+        }
+        .followed-stream-item span {
+            font-size: 12px;
+            color: #9aa3a8;
+            margin-left: auto;
+        }
+
+
         @media (max-width: 768px) {
             #twitch-embed { height: 300px; }
             h1 { font-size: 22px; }
             .tab-btn { padding: 8px 10px; font-size: 10px; }
             .flex-tabs { flex-wrap: wrap; }
-            .tab-btn { width: 50%; border-radius: 6px 6px 0 0; }
+            /* Ajustement pour 5 tabs */
+            .tab-btn { flex-basis: 50%; max-width: 50%; border-radius: 6px 6px 0 0; }
+            .tab-btn:nth-child(5) { flex-basis: 100%; max-width: 100%; } /* Le 5ème prend toute la ligne */
         }
     </style>
 </head>
@@ -263,13 +290,13 @@
     </div>
 
     <div id="tabs-container">
-        <div class="flex flex-tabs">
+        <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn active" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
             <button class="tab-btn" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
             <button class="tab-btn" onclick="openTab('tab-repurpose')">🚀 REPURPOSING IA & VOD</button>
             <button class="tab-btn" onclick="openTab('tab-growth')">💰 CROISSANCE & MONÉTISATION</button>
             <button class="tab-btn" onclick="openTab('tab-boost')">⚡ STREAM BOOST & BRANDING</button>
-        </div>
+            <button class="tab-btn" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> </div>
 
         <div id="tab-cible" class="tab-content active">
             <h3 style="color:#22c7ef; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
@@ -441,8 +468,42 @@
                 <div id="bio-panel-results" class="ai-result-box" style="border-color: #22c7ef; display:none;"></div>
             </div>
         </div>
+        
+        <div id="tab-followed" class="tab-content">
+            <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                <span class="icon">🔑</span> Connexion & Mon Fil Suivi
+            </h3>
+            
+            <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
+                <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Connexion Utilisateur Twitch (OAuth)</h4>
+                
+                <p id="login-status" style="color:#9aa3a8; font-size:12px; margin-bottom:15px;">
+                    Statut: Déconnecté. Connectez-vous pour voir vos chaînes suivies LIVE.
+                </p>
 
-    </div>
+                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">
+                    🔒 SE CONNECTER VIA TWITCH
+                </button>
+            </div>
+            
+            <div style="margin-top:25px; border-top: 1px solid #333; padding-top:20px;">
+                <h4 style="color: #ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                    <span class="icon">🔴</span> Vos Chaînes Suivies LIVE
+                </h4>
+                <div id="followed-streams-list">
+                    <p style="color:#555; text-align:center; padding:10px;">Veuillez vous connecter à Twitch pour charger votre fil.</p>
+                </div>
+            </div>
+
+            <div style="margin-top:25px; border-top: 1px solid #333; padding-top:20px;">
+                <h4 style="color: #59d682; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                    <span class="icon">🛠️</span> Liste des Streamers Prioritaires / Défaut
+                </h4>
+                <div id="priority-streams-list">
+                    </div>
+            </div>
+        </div>
+        </div>
 </div>
 
 
@@ -457,7 +518,7 @@
         if (targetTab) {
             targetTab.classList.add('active');
             // Mise à jour de l'index des boutons pour le nouvel ordre/nom
-            const tabIds = ['tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost'];
+            const tabIds = ['tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost', 'tab-followed']; // AJOUTÉ
             const btnIndex = tabIds.indexOf(tabId);
             const targetBtn = document.querySelectorAll('.tab-btn')[btnIndex];
             if (btnIndex !== -1 && targetBtn) {
@@ -474,22 +535,26 @@
     const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL, NICHE_ANALYSIS_URL, SMALL_STREAMER_URL] = [
         API_BASE + "/boost", API_BASE + "/gameid", API_BASE + "/critique_ia", API_BASE + "/details", API_BASE + "/diagnostic_titre", API_BASE + "/niche_analysis", API_BASE + "/random_small_streamer"
     ];
-    // NOUVELLE ROUTE POUR VÉRIFIER LE STATUT LIVE DES PRIORITÉS
+    // NOUVELLES ROUTES TWITCH
     const IS_LIVE_URL = API_BASE + "/twitch_is_live"; 
+    const TWITCH_AUTH_START_URL = API_BASE + "/twitch_auth_start"; // NOUVEAU: Point de départ de l'OAuth
+    const FOLLOWED_STREAMS_URL = API_BASE + "/followed_streams";   // NOUVEAU: Pour récupérer le fil de l'utilisateur
 
     const TARGET_HISTORY_KEY = 'twitch_target_history';
     let player = null, currentGameId = null, currentGameName = null, lastStreamerData = null, currentTargetName = null;
+    let twitchUserConnected = false; // NOUVEAU: État de connexion
 
     const $ = sel => document.querySelector(sel);
     const $$ = sel => document.querySelectorAll(sel);
     
-    // NOUVEAU: Liste de chaînes prioritaires à vérifier en premier pour le lecteur
+    // NOUVEAU: Liste de chaînes prioritaires (maintenue) et chaîne par défaut
     const PRIORITY_CHANNELS = ["aleknms", "yooserstv", "wonderchilltv", "sethleseptieme", "tropikaly"];
+    const DEFAULT_CHANNEL = "gotaga";
 
     
     // --- Fonctions utilitaires ---
 
-    // Helper pour les appels API avec Backoff
+    // Helper pour les appels API avec Backoff (Mise à jour pour être moins agressif sur les timeouts)
     async function fetchWithRetry(url, options, maxRetries = 3) {
         options.timeout = options.timeout || 10000;
         for (let i = 0; i < maxRetries; i++) {
@@ -501,10 +566,13 @@
                 clearTimeout(timeoutId);
 
                 if (!response.ok) {
+                    // Gestion douce des erreurs 404/500 si c'est une API Twitch non implémentée
+                    if (url.includes("/twitch_is_live") || url.includes("/random_small_streamer") || url.includes("/boost") || url.includes("/followed_streams")) {
+                        console.warn(`API non implémentée (ou erreur): ${url}. Simulation ou Fallback activé.`);
+                        throw new Error(`API_NOT_IMPLEMENTED`); 
+                    }
                     if (response.status === 403) throw new Error(`403 Forbidden: API Key invalid or restricted.`);
                     if (response.status === 404 && url.includes("/gameid")) throw new Error(`404: Game not found (expected for pseudo inputs).`); 
-                    if (response.status === 404 && url.includes("/twitch_is_live")) throw new Error(`404: Live check not implemented.`); 
-                    if (response.status === 404 && url.includes("/random_small_streamer")) throw new Error(`404: Small streamer search not implemented.`); 
                     if (response.status === 500) {
                         const errorBody = await response.json().catch(() => ({ error: `Server error ${response.status}` }));
                         throw new Error(errorBody.error || `HTTP error! status: ${response.status}`);
@@ -513,6 +581,7 @@
                 }
                 return await response.json();
             } catch (error) {
+                if (error.message === "API_NOT_IMPLEMENTED") throw error; // Passe à l'étape douce
                 if (i === maxRetries - 1 || error.name === 'AbortError') throw error;
                 const delay = Math.pow(2, i) * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -584,7 +653,7 @@
     }
 
 
-    /* ============================ 2. LECTEUR TWITCH (LOGIQUE PRIORITY/NICHE) ============================ */
+    /* ============================ 2. LECTEUR TWITCH (LOGIQUE PRIORITY/NICHE) - ROBUSTE ============================ */
     async function loadTwitchSDK(){
         if (window.Twitch && window.Twitch.Embed) return;
         return new Promise(resolve=>{
@@ -630,11 +699,11 @@
         if(channelName) loadPlayer(channelName);
     });
 
-    let currentInitialChannel = "gotaga"; // Garder en mémoire la chaîne initiale
+    let currentInitialChannel = DEFAULT_CHANNEL; 
 
-    // NOUVELLE LOGIQUE DE DÉMARRAGE DU LECTEUR (PRIORITÉ > NICHE > DEFAUT)
+    // LOGIQUE DE DÉMARRAGE DU LECTEUR (PRIORITÉ > NICHE > DEFAUT) - MAINTENANT ROBUSTE AUX ERREURS API
     async function findInitialChannel() {
-        const defaultChannel = "gotaga"; 
+        const defaultChannel = DEFAULT_CHANNEL; 
         const statusEl = $("#player-channel-status");
         const iconEl = $("#player-icon");
         const inputEl = $("#input-channel");
@@ -645,6 +714,7 @@
         iconEl.innerHTML = `⏳`;
         
         let channelToLoad = null;
+        let isApiWorking = true; 
 
         // 1. LOGIQUE DE PRIORITÉ RÉELLE: Tente de trouver une chaîne LIVE dans la liste
         try {
@@ -660,15 +730,16 @@
                 }
             }
         } catch (e) {
-            if (e.message.includes("Live check not implemented")) {
+            if (e.message === "API_NOT_IMPLEMENTED" || e.message.includes('connexion')) {
                  console.warn("API /twitch_is_live non implémentée, passant au fallback.");
             } else {
-                 console.error("Échec de la vérification des chaînes prioritaires:", e.message);
+                 console.error("Échec de la vérification des chaînes prioritaires (Erreur critique):", e.message);
             }
+            isApiWorking = false; 
         }
         
-        // 2. Fallback: Petit streamer aléatoire (Niche)
-        if (!channelToLoad) {
+        // 2. Fallback: Petit streamer aléatoire (Niche) - UNIQUEMENT si l'API semble fonctionner
+        if (!channelToLoad && isApiWorking) {
             try {
                 statusEl.textContent = `(Recherche de Niche <100 viewers)...`;
                 
@@ -681,18 +752,23 @@
                     iconEl.innerHTML = `📈`;
                 }
             } catch (e) {
-                 if (e.message.includes("Small streamer search not implemented")) {
+                 if (e.message === "API_NOT_IMPLEMENTED" || e.message.includes('connexion')) {
                      console.warn("API /random_small_streamer non implémentée, utilisant le défaut.");
                  } else {
-                     console.error("Échec de la récupération du petit streamer:", e.message);
+                     console.error("Échec de la récupération du petit streamer (Erreur critique):", e.message);
                  }
-                channelToLoad = defaultChannel;
-                statusEl.textContent = `(Défaut: ${channelToLoad})`;
-                iconEl.innerHTML = `🎬`;
+                // isApiWorking reste false
             }
         }
         
-        currentInitialChannel = channelToLoad || defaultChannel;
+        // 3. Fallback final (si aucun des deux n'a pu charger un canal)
+        if (!channelToLoad) {
+            channelToLoad = defaultChannel;
+            statusEl.textContent = `(Défaut: ${channelToLoad})`;
+            iconEl.innerHTML = `🎬`;
+        }
+
+        currentInitialChannel = channelToLoad;
         loadPlayer(currentInitialChannel);
     }
 
@@ -787,7 +863,7 @@
             actionsBox.classList.remove("hidden"); 
             addTargetToHistory(currentGameName, 'jeu');
         } catch (e) { 
-            // PSEUDO (y compris en cas de 404 du /gameid)
+            // PSEUDO (y compris en cas de 404 du /gameid ou d'erreur de connexion)
             currentTargetName = targetInput;
             targetStatus.style.color = "#22c7ef"; 
             targetStatus.textContent = `⚠️ Jeu non trouvé. Cible définie: PSEUDO '${currentTargetName}'`;
@@ -1088,7 +1164,7 @@
         const userQuery = `En vous basant sur le thème de contenu principal suivant : '${theme}', vous devez réaliser deux choses :
         1. Créer une Proposition de Valeur Unique (USP) en une phrase.
         2. Rédiger un "Pitch d'Approche" pour une marque de gaming/lifestyle potentielle. 
-        Utilisez des titres <h2>, des listes <ul>/<li> et des paragraphes <p>. Mettez en évidence l'USP et le Titre du Pitch en couleur ROSE (#FF0099).`;
+        Utilisez des titres <h2>, des listes <ul>/<li> et des paragraphes <p>. Mettez en évidence l'USP et le Titre du Pitch en couleur ROSE (#ff0099).`;
 
         await callGeminiApi(
             systemPrompt,
@@ -1123,7 +1199,7 @@
         2. La raison de la compatibilité (en quelques mots).
         3. Le "Moment Clé" (meilleure heure de raid/collab).
         
-        Utilisez des titres <h2>, des listes <ul>/<li> et des paragraphes <p>. Mettez en évidence le nom du partenaire en couleur ORANGE (#FF9900).`;
+        Utilisez des titres <h2>, des listes <ul>/<li> et des paragraphes <p>. Mettez en évidence le nom du partenaire en couleur ORANGE (#ff9900).`;
 
         await callGeminiApi(
             systemPrompt,
@@ -1171,7 +1247,7 @@
     });
 
 
-    /* ============================ 12. LOGIQUE BOOST (RÉELLE AVEC COOLDOWN CLIENT) ============================ */
+    /* ============================ 12. LOGIQUE BOOST (RÉELLE AVEC COOLDOWN CLIENT) - ROBUSTE ============================ */
     
     const BOOST_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 heures en millisecondes
 
@@ -1232,40 +1308,140 @@
             return;
         }
 
-        // 1. Démarrer le BOOST sur le lecteur
+        // 1. Démarrer le BOOST sur le lecteur (Action locale garantie)
         startBoostPlayback(channel, 10);
         
         // 2. Enregistrer le cooldown (logique réelle)
         localStorage.setItem('lastBoostTime', Date.now());
         btn.disabled = true;
 
-        // 3. Appel à l'API serveur (facultatif)
-        status.textContent = `⏳ BOOST ACTIF. Tentative d'envoi du signal serveur pour ${channel}...`;
+        // 3. Appel à l'API serveur (pour le signal externe - géré avec robustesse)
+        status.textContent = `⏳ BOOST de 10 minutes ACTIVÉ pour ${channel} (Action locale). Tentative d'envoi du signal serveur...`;
 
         fetchWithRetry(`${BOOST_URL}?channel=${encodeURIComponent(channel)}`, { method: 'POST', cache: 'no-store' })
             .then(res => {
                 status.style.color = "#59d682";
-                status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel}. Prochain BOOST dans 6 heures.`;
+                status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel}. Le signal API a été envoyé. Prochain BOOST dans 6 heures.`;
             })
             .catch(e => {
+                // Gère l'échec de l'API tout en confirmant l'action locale et le cooldown.
                 status.style.color = "#59d682";
-                status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel} (Action locale). Prochain BOOST dans 6 heures.`;
-                console.warn(`Avertissement: L'appel API BOOST serveur a échoué (${e.message.includes('404') ? '404 non implémenté' : e.message}), mais l'effet local est actif.`);
+                status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel} (Action locale). ⚠️ API serveur non atteinte. Prochain BOOST dans 6 heures.`;
+                console.warn(`Avertissement: L'appel API BOOST serveur a échoué (${e.message.includes('API_NOT_IMPLEMENTED') ? 'non implémenté' : e.message}), mais l'effet local (lecteur et cooldown) est actif.`);
             })
             .finally(() => {
-                // Réactiver le bouton après le cooldown (pour ne pas bloquer l'interface, on ne le fait pas ici)
-                // Pour une expérience utilisateur complète, un timer JS devrait être mis en place
-                // pour réactiver le bouton dans 6 heures.
+                // Met en place le timer pour réactiver le bouton après le cooldown
                 setTimeout(() => {
                     if(getBoostCooldown() <= 0) {
                         btn.disabled = false;
                         status.style.color = "#59d682";
                         status.textContent = "✅ BOOST disponible. Entrez une chaîne à promouvoir.";
                     }
-                }, BOOST_COOLDOWN_MS); // Rétablit l'état après le temps total
+                }, BOOST_COOLDOWN_MS); 
             });
     });
+    
+    /* ============================ 13. LOGIQUE MON FIL SUIVI (TWITCH OAUTH) - V6.5 ============================ */
 
+    // 13.1 Affichage des streamers prioritaires / par défaut
+    function displayPriorityStreams() {
+        const listEl = $("#priority-streams-list");
+        if (!listEl) return;
+        
+        let html = '<p style="font-size:12px; color:#9aa3a8; margin-bottom:10px;">Ces chaînes sont vérifiées en priorité au lancement :</p>';
+        
+        // Chaînes prioritaires
+        PRIORITY_CHANNELS.forEach(channel => {
+            html += `<div class="followed-stream-item" onclick="loadPlayer('${channel}')">
+                <strong>⭐ ${channel}</strong>
+                <span>(Chaîne Prioritaire)</span>
+            </div>`;
+        });
+
+        // Chaîne par défaut
+         html += `<div class="followed-stream-item" onclick="loadPlayer('${DEFAULT_CHANNEL}')">
+            <strong>🎬 ${DEFAULT_CHANNEL}</strong>
+            <span>(Chaîne par Défaut)</span>
+        </div>`;
+
+        listEl.innerHTML = html;
+    }
+
+    // 13.2 Déclencheur du flux OAuth
+    $("#btn-twitch-login")?.addEventListener("click", () => {
+        const statusEl = $("#login-status");
+        if (!statusEl) return;
+
+        statusEl.style.color = "#ff9900";
+        statusEl.textContent = "⏳ Redirection vers Twitch pour autorisation...";
+
+        // Redirection vers le backend pour initier le flux OAuth
+        // NOTE: Cette action dépend de l'implémentation de l'endpoint /twitch_auth_start sur votre serveur.
+        window.location.href = TWITCH_AUTH_START_URL;
+    });
+
+    // 13.3 Récupération et affichage des streams suivis
+    async function loadFollowedStreams() {
+        const listEl = $("#followed-streams-list");
+        const statusEl = $("#login-status");
+        const loginBtn = $("#btn-twitch-login");
+        if (!listEl || !statusEl || !loginBtn) return;
+
+        listEl.innerHTML = `<div style="text-align:center; padding:10px; color:#9aa3a8;">Chargement de votre fil...</div>`;
+
+        try {
+            // Tente de récupérer les streams suivis. NÉCESSITE un jeton d'accès Twitch côté serveur.
+            const res = await fetchWithRetry(FOLLOWED_STREAMS_URL, { cache: 'no-store', method: 'GET', timeout: 3000 });
+            
+            if (res.error && res.error === 'NOT_AUTHENTICATED') {
+                throw new Error('NOT_AUTHENTICATED');
+            }
+
+            // Si le serveur renvoie une liste de streams (simulée ou réelle)
+            const streams = res.streams || [];
+            
+            twitchUserConnected = true; // Simule une connexion réussie
+            statusEl.style.color = "#59d682";
+            statusEl.textContent = `✅ Connecté (Pseudo: ${res.username || 'Utilisateur Twitch'}). Votre fil LIVE:`;
+            loginBtn.style.display = 'none';
+
+            if (streams.length === 0) {
+                 listEl.innerHTML = `<p style="color:#ff9900; text-align:center; padding:10px;">Aucune chaîne suivie n'est LIVE pour le moment. Votre fil est vide.</p>`;
+                 return;
+            }
+
+            listEl.innerHTML = '';
+            streams.forEach(stream => {
+                const item = document.createElement('div');
+                item.className = 'followed-stream-item';
+                item.innerHTML = `
+                    <strong>🔴 ${stream.user_name}</strong>
+                    <span title="Titre: ${stream.title}">🎮 ${stream.game_name} | 👥 ${stream.viewer_count}</span>
+                `;
+                item.onclick = () => loadPlayer(stream.user_name);
+                listEl.appendChild(item);
+            });
+
+        } catch (e) {
+            if (e.message === 'NOT_AUTHENTICATED' || e.message.includes("API_NOT_IMPLEMENTED")) {
+                // Non connecté ou l'API serveur /followed_streams n'est pas implémentée/fonctionnelle
+                twitchUserConnected = false;
+                statusEl.style.color = "#e34a64";
+                statusEl.textContent = `❌ Déconnecté ou service API non disponible. Veuillez vous connecter.`;
+                loginBtn.style.display = 'block';
+                listEl.innerHTML = `<p style="color:#555; text-align:center; padding:10px;">Veuillez vous connecter à Twitch pour charger votre fil.</p>`;
+            } else {
+                console.error("Erreur de chargement du fil:", e);
+                statusEl.style.color = "#e34a64";
+                statusEl.textContent = `❌ Erreur technique: ${e.message}`;
+            }
+        }
+    }
+
+
+    // Lancement des fonctions spécifiques à l'onglet "Mon Fil Suivi"
+    displayPriorityStreams();
+    loadFollowedStreams(); // Tente de charger le fil immédiatement au cas où le token serait déjà en session.
     
     // Fin de l'événement DOMContentLoaded
     })();
