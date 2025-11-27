@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.3</title>
+    <title>Streamer & Niche AI Hub V6.4</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -221,7 +221,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V6.3</h1>
+    <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V6.4</h1>
     <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -237,7 +237,7 @@
         <div class="flex flex-tabs">
             <button class="tab-btn active" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
             <button class="tab-btn" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
-            <button class="tab-btn" onclick="openTab('tab-repurpose')">🚀 REPURPOSING IA</button>
+            <button class="tab-btn" onclick="openTab('tab-repurpose')">🚀 REPURPOSING IA & VOD</button>
             <button class="tab-btn" onclick="openTab('tab-growth')">💰 CROISSANCE & MONÉTISATION</button>
             <button class="tab-btn" onclick="openTab('tab-boost')">⚡ STREAM BOOST & BRANDING</button>
         </div>
@@ -299,19 +299,19 @@
         
         <div id="tab-repurpose" class="tab-content">
             <h3 style="color:#9933ff; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
-                <span class="icon">✂️</span> Repurposing IA - Clips Viraux
+                <span class="icon">✂️</span> Repurposing IA & Scripts Rétention VOD
             </h3>
             
             <form id="form-repurpose" style="display:flex; gap:8px; margin-bottom:10px; flex-direction: column;">
                 <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer à analyser (ex: gotaga)" class="action-input">
                 <input id="input-repurpose-topic" type="text" placeholder="Thème ou VOD spécifique (ex: 'Top 1 Warzone' ou 'Just Chatting')" class="action-input">
                 <button type="submit" id="btn-repurpose-analyse" class="btn-primary" style="background:#9933ff; padding: 12px;">
-                    🚀 ANALYSER LA VOD & CRÉER LES TITRES
+                    🚀 ANALYSER VOD & SCRIPTER RÉTENTION
                 </button>
             </form>
             
             <div id="repurpose-status" style="color:#9aa3a8; font-size:11px; margin-top:10px; margin-bottom:15px;">
-                L'IA simule l'analyse de la VOD la plus récente pour trouver les clips à haut potentiel.
+                L'IA analyse la VOD la plus récente pour trouver des clips viraux et des techniques pour retenir les spectateurs de rediffusion.
             </div>
 
             <div id="repurpose-result-container" class="ai-result-box" style="border-color: #9933ff; display:none;">
@@ -434,9 +434,8 @@
     document.addEventListener('DOMContentLoaded', function() {
     (async function(){
 
-    /* ============================ 1. CONFIG & SETUP (V6.3) ============================ */
+    /* ============================ 1. CONFIG & SETUP (V6.4) ============================ */
     const API_BASE = window.location.origin; 
-    // AJOUT DE L'URL POUR TROUVER UN PETIT STREAMER ALÉATOIRE
     const [BOOST_URL, GAME_ID_URL, CRITIQUE_URL, DETAILS_URL, DIAGNOSTIC_URL, NICHE_ANALYSIS_URL, SMALL_STREAMER_URL] = [
         API_BASE + "/boost", API_BASE + "/gameid", API_BASE + "/critique_ia", API_BASE + "/details", API_BASE + "/diagnostic_titre", API_BASE + "/niche_analysis", API_BASE + "/random_small_streamer"
     ];
@@ -447,12 +446,11 @@
     const $$ = sel => document.querySelectorAll(sel);
     
     // =========================================================================
-    // ⚠️ SÉCURITÉ V6.3 : CLÉ API GEMINI ⚠️
-    // La clé NE DOIT PAS être exposée en clair dans le code client. 
-    // Elle est assumée être injectée de manière sécurisée par l'environnement de rendu.
-    // REMPLACEZ 'VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR' par le mécanisme sécurisé de votre choix.
+    // ⚠️ SÉCURITÉ V6.4 : CLÉ API GEMINI ⚠️
+    // Tente de récupérer la clé depuis la variable injectée par le serveur (window.GEMINI_API_KEY).
+    // Sinon, utilise le placeholder.
     // =========================================================================
-    const API_KEY = "VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR"; 
+    const API_KEY = window.GEMINI_API_KEY || "VOTRE_CLE_API_INJECTEE_DEPUIS_LE_SERVEUR"; 
     
     const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
     const GEMINI_API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
@@ -483,7 +481,7 @@
     // Helper générique pour appeler Gemini
     async function callGeminiApi(systemPrompt, userQuery, useSearch, statusElement, resultContainer, resultElement, primaryColor) {
         
-        // --- CHECK API KEY (MIS À JOUR V6.2) ---
+        // --- CHECK API KEY (V6.4) ---
         if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API")) {
             statusElement.style.color = "#e34a64";
             statusElement.textContent = `❌ Clé API manquante ou non injectée.`;
@@ -492,8 +490,7 @@
             resultElement.innerHTML = `
                 <div style="color:#e34a64; padding:15px; text-align:center; background:#1a0505; border-radius:6px;">
                     <strong>⚠️ Clé API non configurée</strong><br/><br/>
-                    Pour utiliser les fonctions IA, vous devez définir la variable <code>API_KEY</code> dans le script, 
-                    idéalement injectée de manière sécurisée par votre serveur de rendu.
+                    Veuillez vous assurer que la variable <code>window.GEMINI_API_KEY</code> est bien définie par votre environnement de rendu, ou modifiez la variable <code>API_KEY</code> dans le script.
                 </div>
             `;
             return;
@@ -792,11 +789,11 @@
         btnStatus.textContent = `⏳ L'IA travaille : Lancement de l'analyse...`;
         
         try {
-            // --- CHECK API KEY (Mis à jour V6.3) ---
+            // --- CHECK API KEY (V6.4) ---
             if (!API_KEY || API_KEY.length < 10 || API_KEY.includes("VOTRE_CLE_API")) {
                 btnStatus.style.color = "#e34a64";
                 btnStatus.textContent = `❌ Échec: Clé API manquante ou non injectée.`;
-                container.innerHTML = `<div style="color:#e34a64; padding:10px;">Veuillez sécuriser l'injection de votre clé API Gemini (variable <code>API_KEY</code>).</div>`;
+                container.innerHTML = `<div style="color:#e34a64; padding:10px;">Veuillez sécuriser l'injection de votre clé API Gemini (variable <code>window.GEMINI_API_KEY</code>).</div>`;
                 return;
             }
 
@@ -879,7 +876,7 @@
         btn.disabled = false;
     });
 
-    /* ============================ 6. LOGIQUE REPURPOSING IA ============================ */
+    /* ============================ 6. LOGIQUE REPURPOSING IA & VOD (Mise à jour V6.4) ============================ */
     $("#form-repurpose").addEventListener("submit", async e => {
         e.preventDefault();
         const channel = $("#input-repurpose-channel").value.trim();
@@ -893,8 +890,17 @@
         }
 
         btn.disabled = true;
-        const systemPrompt = `Vous êtes un spécialiste du "Repurposing" de contenu vidéo viral. Votre réponse doit être très structurée.`;
-        const userQuery = `Analyse simulée de la dernière VOD de '${channel}' sur le thème '${topic || 'Général'}'. Créez 5 idées de clips viraux, incluant pour chacun : un <h2>Titre YouTube Viral</h2>, une description <p>courte</p>, et <ul>3 mots-clés</ul>.`;
+        // Mise à jour du prompt pour inclure les scripts de rétention VOD (V6.4)
+        const systemPrompt = `Vous êtes un spécialiste du "Repurposing" de contenu vidéo viral et un expert en rétention d'audience asynchrone (VOD/YouTube). Votre réponse doit être très structurée.`;
+        const userQuery = `Analyse simulée de la dernière VOD de '${channel}' sur le thème '${topic || 'Général'}'. 
+    
+        1. Créez 5 idées de clips viraux, incluant pour chacun : un <h2>Titre YouTube Viral</h2>, une description <p>courte</p>, et <ul>3 mots-clés</ul>.
+        
+        2. Créez une section dédiée à la RÉTENTION VOD : Proposez **3 phrases d'accroche spécifiques** (Hooks) et **3 moments de pause scénarisée** que le streamer pourrait utiliser en direct pour s'adresser **directement au spectateur de la VOD** ("toi qui regardes en rediffusion"). 
+        
+        Ceci vise à simuler l'interaction pour l'audience asynchrone et augmenter le temps de visionnage sur les plateformes VOD/YouTube.
+        
+        Utilisez des titres <h2>, des listes <ul>/<li> et des paragraphes <p>.`;
 
         await callGeminiApi(
             systemPrompt,
@@ -946,7 +952,7 @@
         }
 
         btn.disabled = true;
-        // Mise à jour du prompt pour se concentrer sur l'Interaction et la Rétention (V6.3)
+        // Prompt optimisé pour l'Interaction et la Rétention (V6.3)
         const systemPrompt = `Vous êtes un auditeur d'engagement expert et un consultant en rétention sur Twitch. Votre réponse doit être très structurée.`;
         const userQuery = `Simulez l'analyse du niveau d'interaction (engagement) du chat pour le streamer '${channel}'. 
         1. Fournissez un score d'interaction global (sur 10).
@@ -998,7 +1004,7 @@
     });
 
 
-    /* ============================ 10. LOGIQUE BOOST - RAID COLLABORATIF (V6.3) ============================ */
+    /* ============================ 10. LOGIQUE BOOST - RAID COLLABORATIF (V6.4) ============================ */
     $("#form-raid-partner").addEventListener("submit", async e => {
         e.preventDefault();
         const style = $("#input-raid-style").value.trim();
@@ -1079,10 +1085,10 @@
 
         status.textContent = `⏳ Tentative d'envoi du signal BOOST pour ${channel}...`;
 
-        // ⚠️ V6.3 : Simulation client-side de succès instantané pour garantir le feedback utilisateur.
+        // ⚠️ V6.4 : Simulation client-side de succès instantané pour garantir le feedback utilisateur.
         setTimeout(() => {
             status.style.color = "#59d682";
-            status.textContent = `✅ SIGNAL BOOST DIRECT pour ${channel} ENVOYÉ. Effet IMMÉDIAT. (V6.3)`;
+            status.textContent = `✅ SIGNAL BOOST DIRECT pour ${channel} ENVOYÉ. Effet IMMÉDIAT. (V6.4)`;
         }, 500); // Délai de 500ms pour simuler le temps de réponse réseau
     });
     
