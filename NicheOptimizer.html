@@ -265,9 +265,8 @@
             h1 { font-size: 22px; }
             .tab-btn { padding: 8px 10px; font-size: 10px; }
             .flex-tabs { flex-wrap: wrap; }
-            /* Ajustement pour 5 tabs */
+            /* Les 6 boutons s'aligneront en 2 rangées de 3 ou 3 rangées de 2. */
             .tab-btn { flex-basis: 50%; max-width: 50%; border-radius: 6px 6px 0 0; }
-            .tab-btn:nth-child(5) { flex-basis: 100%; max-width: 100%; } /* Le 5ème prend toute la ligne */
         }
     </style>
 </head>
@@ -291,14 +290,49 @@
 
     <div id="tabs-container">
         <div class="flex flex-wrap flex-tabs">
-            <button class="tab-btn active" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
+            <button class="tab-btn active" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
+            <button class="tab-btn" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
             <button class="tab-btn" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
             <button class="tab-btn" onclick="openTab('tab-repurpose')">🚀 REPURPOSING IA & VOD</button>
             <button class="tab-btn" onclick="openTab('tab-growth')">💰 CROISSANCE & MONÉTISATION</button>
             <button class="tab-btn" onclick="openTab('tab-boost')">⚡ STREAM BOOST & BRANDING</button>
-            <button class="tab-btn" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> </div>
+        </div>
 
-        <div id="tab-cible" class="tab-content active">
+        <div id="tab-followed" class="tab-content active">
+            <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                <span class="icon">🔑</span> Connexion & Mon Fil Suivi
+            </h3>
+            
+            <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
+                <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Connexion Utilisateur Twitch (OAuth)</h4>
+                
+                <p id="login-status" style="color:#9aa3a8; font-size:12px; margin-bottom:15px;">
+                    Statut: Déconnecté. Connectez-vous pour voir vos chaînes suivies LIVE.
+                </p>
+
+                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">
+                    🔒 SE CONNECTER VIA TWITCH
+                </button>
+            </div>
+            
+            <div style="margin-top:25px; border-top: 1px solid #333; padding-top:20px;">
+                <h4 style="color: #ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                    <span class="icon">🔴</span> Vos Chaînes Suivies LIVE
+                </h4>
+                <div id="followed-streams-list">
+                    <p style="color:#555; text-align:center; padding:10px;">Veuillez vous connecter à Twitch pour charger votre fil.</p>
+                </div>
+            </div>
+
+            <div style="margin-top:25px; border-top: 1px solid #333; padding-top:20px;">
+                <h4 style="color: #59d682; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                    <span class="icon">🛠️</span> Liste des Streamers Prioritaires / Défaut
+                </h4>
+                <div id="priority-streams-list">
+                    </div>
+            </div>
+        </div>
+        <div id="tab-cible" class="tab-content">
             <h3 style="color:#22c7ef; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">🔭</span> Configuration & Scan
             </h3>
@@ -469,40 +503,6 @@
             </div>
         </div>
         
-        <div id="tab-followed" class="tab-content">
-            <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
-                <span class="icon">🔑</span> Connexion & Mon Fil Suivi
-            </h3>
-            
-            <div style="padding:15px; background:#111; border-radius:8px; margin-bottom:20px; border: 1px solid #444;">
-                <h4 style="color: #22c7ef; font-size: 14px; margin-bottom: 10px; font-weight: bold;">Connexion Utilisateur Twitch (OAuth)</h4>
-                
-                <p id="login-status" style="color:#9aa3a8; font-size:12px; margin-bottom:15px;">
-                    Statut: Déconnecté. Connectez-vous pour voir vos chaînes suivies LIVE.
-                </p>
-
-                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">
-                    🔒 SE CONNECTER VIA TWITCH
-                </button>
-            </div>
-            
-            <div style="margin-top:25px; border-top: 1px solid #333; padding-top:20px;">
-                <h4 style="color: #ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
-                    <span class="icon">🔴</span> Vos Chaînes Suivies LIVE
-                </h4>
-                <div id="followed-streams-list">
-                    <p style="color:#555; text-align:center; padding:10px;">Veuillez vous connecter à Twitch pour charger votre fil.</p>
-                </div>
-            </div>
-
-            <div style="margin-top:25px; border-top: 1px solid #333; padding-top:20px;">
-                <h4 style="color: #59d682; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
-                    <span class="icon">🛠️</span> Liste des Streamers Prioritaires / Défaut
-                </h4>
-                <div id="priority-streams-list">
-                    </div>
-            </div>
-        </div>
         </div>
 </div>
 
@@ -518,7 +518,7 @@
         if (targetTab) {
             targetTab.classList.add('active');
             // Mise à jour de l'index des boutons pour le nouvel ordre/nom
-            const tabIds = ['tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost', 'tab-followed']; // AJOUTÉ
+            const tabIds = ['tab-followed', 'tab-cible', 'tab-niche', 'tab-repurpose', 'tab-growth', 'tab-boost']; // ORDRE MIS À JOUR
             const btnIndex = tabIds.indexOf(tabId);
             const targetBtn = document.querySelectorAll('.tab-btn')[btnIndex];
             if (btnIndex !== -1 && targetBtn) {
@@ -537,12 +537,12 @@
     ];
     // NOUVELLES ROUTES TWITCH
     const IS_LIVE_URL = API_BASE + "/twitch_is_live"; 
-    const TWITCH_AUTH_START_URL = API_BASE + "/twitch_auth_start"; // NOUVEAU: Point de départ de l'OAuth
-    const FOLLOWED_STREAMS_URL = API_BASE + "/followed_streams";   // NOUVEAU: Pour récupérer le fil de l'utilisateur
+    const TWITCH_AUTH_START_URL = API_BASE + "/twitch_auth_start"; 
+    const FOLLOWED_STREAMS_URL = API_BASE + "/followed_streams";   
 
     const TARGET_HISTORY_KEY = 'twitch_target_history';
     let player = null, currentGameId = null, currentGameName = null, lastStreamerData = null, currentTargetName = null;
-    let twitchUserConnected = false; // NOUVEAU: État de connexion
+    let twitchUserConnected = false; 
 
     const $ = sel => document.querySelector(sel);
     const $$ = sel => document.querySelectorAll(sel);
@@ -575,13 +575,15 @@
                     if (response.status === 404 && url.includes("/gameid")) throw new Error(`404: Game not found (expected for pseudo inputs).`); 
                     if (response.status === 500) {
                         const errorBody = await response.json().catch(() => ({ error: `Server error ${response.status}` }));
+                        // Erreur 500 pour Gemini capturée ici !
+                        if (url.includes("/critique_ia")) throw new Error(`GEMINI_INTERNAL_ERROR`); 
                         throw new Error(errorBody.error || `HTTP error! status: ${response.status}`);
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return await response.json();
             } catch (error) {
-                if (error.message === "API_NOT_IMPLEMENTED") throw error; // Passe à l'étape douce
+                if (error.message === "API_NOT_IMPLEMENTED" || error.message === "GEMINI_INTERNAL_ERROR") throw error; 
                 if (i === maxRetries - 1 || error.name === 'AbortError') throw error;
                 const delay = Math.pow(2, i) * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -642,8 +644,8 @@
 
         } catch (e) {
             statusElement.style.color = "#e34a64";
-            if (e.message.includes("Clé API Gemini non configurée") || e.message.includes("500")) {
-                statusElement.textContent = `❌ Échec : Erreur Serveur (500) ou Clé API Gemini non configurée sur le backend.`;
+            if (e.message === "GEMINI_INTERNAL_ERROR" || e.message.includes("500")) {
+                statusElement.textContent = `❌ Échec : Erreur Serveur (500) lors de l'appel Gemini. Veuillez vérifier les logs Render.`;
                 resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Votre serveur rencontre un problème avec l'API Gemini (Erreur 500).</div>`;
             } else {
                 statusElement.textContent = `❌ Erreur lors de l'analyse IA : ${e.message}`;
@@ -1019,8 +1021,8 @@
 
         } catch (e) {
             btnStatus.style.color = "#e34a64";
-            if (e.message.includes("Clé API Gemini non configurée") || e.message.includes("500")) {
-                btnStatus.textContent = `❌ Échec IA : Erreur Serveur (500) ou Clé API Gemini manquante.`;
+            if (e.message === "GEMINI_INTERNAL_ERROR" || e.message.includes("500")) {
+                btnStatus.textContent = `❌ Échec IA : Erreur Serveur (500) lors de l'appel Gemini. Veuillez vérifier les logs Render.`;
                 container.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique. Le serveur a retourné un 500 (API IA non fonctionnelle).</div>`;
             } else {
                 btnStatus.textContent = `❌ Échec de l'analyse IA : ${e.message}`;
