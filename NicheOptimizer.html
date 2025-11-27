@@ -453,7 +453,7 @@
     const API_KEY = "AIzaSyBCpxC6vx_DTpLET1SQNWoIYGz9NyK0oVc"; // <--- COLLEZ VOTRE CLÉ ENTRE LES GUILLEMETS (ex: "AIzaS...")
     // =========================================================================
 
-    // CORRECTION APPLIQUÉE : Passage au modèle stable pour éviter les problèmes de préversion.
+    // CORRECTION: Passage au modèle stable pour éviter les problèmes de préversion.
     const GEMINI_MODEL = "gemini-2.5-flash";
     const GEMINI_API_URL_BASE = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=`;
 
@@ -465,14 +465,16 @@
         for (let i = 0; i < maxRetries; i++) {
             try {
                 const response = await fetch(url, options);
+                // Si l'erreur est 403 (Forbidden/API Key invalide), on lève l'exception immédiatement sans retry
+                if (response.status === 403) {
+                    throw new Error(`403 Forbidden: API Key invalid or restricted.`);
+                }
                 if (!response.ok) {
-                    if (response.status === 403) {
-                        throw new Error(`403 Forbidden: API Key invalid or restricted.`);
-                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return await response.json();
             } catch (error) {
+                if (error.message.includes("403")) throw error; // Ne pas retry sur 403
                 if (i === maxRetries - 1) throw error;
                 const delay = Math.pow(2, i) * 1000;
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -484,9 +486,9 @@
     async function callGeminiApi(systemPrompt, userQuery, useSearch, statusElement, resultContainer, resultElement, primaryColor) {
         
         // --- CHECK API KEY ---
-        if (!API_KEY || API_KEY.length < 10) {
+        if (!API_KEY || API_KEY.length < 10 || API_KEY.startsWith("AIzaSyCB")) {
             statusElement.style.color = "#e34a64";
-            statusElement.textContent = `❌ Clé API manquante. Voir les instructions ci-dessous.`;
+            statusElement.textContent = `❌ Clé API manquante ou placeholder. Voir les instructions.`;
             resultContainer.style.borderColor = "#e34a64";
             resultContainer.style.display = 'block';
             resultElement.innerHTML = `
@@ -509,7 +511,6 @@
         resultElement.innerHTML = `<div style="text-align:center; padding:15px; color:#22c7ef; font-weight:bold;">⟳ Génération en cours...</div>`;
         
         try {
-            // FIX: Demander à l'IA d'utiliser des balises HTML pour garantir la mise en forme.
             const finalSystemPrompt = systemPrompt + " Rédigez votre réponse en utilisant des balises HTML simples pour structurer le texte (comme <h2>, <p>, <ul>, <li>, <strong>). Ne pas utiliser de Markdown. Utilisez la couleur ROSE (#FF0099), la couleur BLEUE (#22c7ef) et la couleur ORANGE (#FF9900) pour mettre en évidence les points importants.";
 
             const payload = {
@@ -553,8 +554,8 @@
         } catch (e) {
             statusElement.style.color = "#e34a64";
             if (e.message.includes("403")) {
-                statusElement.textContent = `❌ Échec: Clé API invalide ou accès refusé (Code 403).`;
-                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Votre clé API semble incorrecte ou mal configurée. Vérifiez qu'elle est bien copiée sans espaces.</div>`;
+                statusElement.textContent = `❌ Échec: Clé API invalide ou accès refusé (Code 403). Vérifiez votre clé.`;
+                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;"><strong>Erreur 403 Forbidden.</strong> Votre clé API Gemini semble être incorrecte ou bloquée. Veuillez la remplacer.</div>`;
             } else {
                 statusElement.textContent = `❌ Erreur lors de l'analyse IA : ${e.message}`;
                 resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique.</div>`;
@@ -562,7 +563,7 @@
         }
     }
 
-    /* ============================ 2. LECTEUR TWITCH ============================ */
+    // --- Fonctions du Lecteur Twitch (inchangées) ---
     async function loadTwitchSDK(){
         if (window.Twitch && window.Twitch.Embed) return;
         return new Promise(resolve=>{
@@ -579,6 +580,7 @@
             embedContainer.innerHTML = "<div style='color:#fff;padding:20px;background:#000;text-align:center;'>⚠️ Erreur: SDK Twitch introuvable ou bloqué.</div>"; return;
         }
         if (!player){
+            // Assurez-vous que l'hôte parent est correct pour l'intégration Twitch
             player = new Twitch.Embed("twitch-embed", {
                 width:"100%", height:"100%", channel, layout:"video-with-chat", autoplay:true, parent:[window.location.hostname]
             });
@@ -622,7 +624,7 @@
 
     findInitialChannel(); // Lancement du lecteur au chargement
     
-    /* ============================ 3. HISTORY LOGIC ============================ */
+    // --- Logique Historique (inchangée) ---
     function getHistory() {
         try {
             const history = JSON.parse(localStorage.getItem(TARGET_HISTORY_KEY) || '[]');
@@ -655,7 +657,7 @@
     }
     initHistory();
     
-    /* ============================ 4. LOGIQUE CIBLAGE & SCAN ============================ */
+    // --- Logique CIBLAGE & SCAN (inchangée) ---
     $("#form-target").addEventListener("submit", async e => {
         e.preventDefault();
         const targetInput = $("#input-target").value.trim();
@@ -762,27 +764,24 @@
 
 
     /**
-     * FIX: Nouvelle fonction utilisant Gemini pour la Critique et le Diagnostic avec des prompts structurés.
+     * Correction des erreurs potentielles de référence (TypeError) en utilisant le sélecteur à l'intérieur de la fonction
      */
     async function handleCritiqueDiagnostic(streamerData, type, context, color, buttonElement) {
         const container = $("#critique-container");
         const originalText = buttonElement.textContent;
+        const btnStatus = $("#target-status"); // Utilise le sélecteur ici pour être sûr qu'il est à jour.
         
         if (!buttonElement || buttonElement.disabled) return;
         
-        const [btnStatus] = [$("#target-status")];
-
         let systemPrompt = "";
         let userQuery = "";
         
         if (type === 'CRITIQUE') {
-            // Logique Critique (Niche/Titre/Heure)
             systemPrompt = `Vous êtes un expert en stratégie de niche et croissance sur Twitch. Votre mission est de critiquer le titre, le choix du jeu et l'heure de diffusion du stream. Rédigez un rapport en français, clair et structuré, en utilisant des balises HTML simples (<h2>, <p>, <ul>, <li>, <strong>) pour une excellente lisibilité.
             ATTENTION: Commencez OBLIGATOIREMENT votre réponse par un paragraphe <p class="star-rating"> contenant uniquement le score global de 1 à 5 étoiles (⭐). N'utilisez que les couleurs de la marque : #22c7ef (BLEU) et #FF0099 (ROSE) pour mettre en évidence les points clés et les titres de sections.`;
             userQuery = `Effectuez une critique détaillée pour le streamer '${streamerData.username}' sur le jeu '${streamerData.game_name || 'Inconnu'}' avec le titre : "${streamerData.title || 'Non spécifié'}". Basez votre analyse sur les informations suivantes et les données de recherche pour déterminer si cette niche/heure est optimale pour la croissance. Utilisez la structure HTML demandée : Titre: "${streamerData.title}", Jeu: "${streamerData.game_name}", Tags: ${streamerData.tags ? streamerData.tags.join(', ') : 'Aucun'}.`;
 
         } else if (type === 'DIAGNOSTIC') {
-            // Logique Diagnostic (Performance/Croissance)
             systemPrompt = `Vous êtes un consultant en performance et croissance sur Twitch. Votre diagnostic doit être structuré, clair et se concentrer sur les statistiques, l'engagement et les recommandations de croissance. Rédigez un rapport en français, clair et structuré, en utilisant des balises HTML simples (<h2>, <p>, <ul>, <li>, <strong>) pour une excellente lisibilité. Utilisez la couleur ROSE (#FF0099) et la couleur BLEUE (#22c7ef) pour mettre en évidence les points clés et les titres de sections.`;
             userQuery = `Analysez la performance actuelle du streamer '${streamerData.username}'. Fournissez un diagnostic détaillé sur sa situation pour la croissance en vous basant sur les données simulées : <br/>- Viewers: ${streamerData.viewer_count}<br/>- Followers: ${streamerData.follower_count}<br/>- Statut: ${streamerData.is_live ? 'LIVE' : 'OFF'}<br/>- Jeu: ${streamerData.game_name}. Que doit-il améliorer pour atteindre le statut de Partenaire ? Utilisez la structure HTML demandée.`;
         } else {
@@ -790,14 +789,19 @@
         }
 
         buttonElement.disabled = true;
-        btnStatus.style.color = "#22c7ef";
-        btnStatus.textContent = `⏳ L'IA travaille : Lancement de l'analyse...`;
+        // Vérification anti-TypeError avant d'utiliser l'élément
+        if(btnStatus) {
+            btnStatus.style.color = "#22c7ef";
+            btnStatus.textContent = `⏳ L'IA travaille : Lancement de l'analyse...`;
+        }
         
         try {
             // --- CHECK API KEY (Simplified check) ---
             if (!API_KEY || API_KEY.length < 10) {
-                btnStatus.style.color = "#e34a64";
-                btnStatus.textContent = `❌ Clé API manquante.`;
+                if(btnStatus) {
+                    btnStatus.style.color = "#e34a64";
+                    btnStatus.textContent = `❌ Clé API manquante.`;
+                }
                 container.innerHTML = `<div style="color:#e34a64; padding:10px;">Veuillez coller votre clé API Gemini.</div>`;
                 return;
             }
@@ -820,8 +824,10 @@
 
             const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Analyse IA non disponible.";
 
-            btnStatus.style.color = "#59d682";
-            btnStatus.textContent = `✅ Analyse IA terminée pour ${streamerData.username}.`;
+            if(btnStatus) {
+                btnStatus.style.color = "#59d682";
+                btnStatus.textContent = `✅ Analyse IA terminée pour ${streamerData.username}.`;
+            }
 
             container.innerHTML = `
                 <div class="critique-box ai-niche-output" style="border-left-color: ${color};">
@@ -843,8 +849,10 @@
             }, 50);
 
         } catch (e) {
-            btnStatus.style.color = "#e34a64";
-            btnStatus.textContent = `❌ Échec de l'analyse IA : ${e.message}`;
+            if(btnStatus) {
+                btnStatus.style.color = "#e34a64";
+                btnStatus.textContent = `❌ Échec de l'analyse IA : ${e.message}`;
+            }
             container.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique lors de l'appel Gemini.</div>`;
         } finally {
             buttonElement.disabled = false;
