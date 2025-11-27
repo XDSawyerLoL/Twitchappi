@@ -642,9 +642,9 @@
 
         } catch (e) {
             statusElement.style.color = "#e34a64";
-            if (e.message.includes("Clé API Gemini non configurée")) {
-                statusElement.textContent = `❌ Échec : Le serveur n'a pas trouvé la clé API Gemini.`;
-                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Votre serveur ne trouve pas la clé API Gemini.</div>`;
+            if (e.message.includes("Clé API Gemini non configurée") || e.message.includes("500")) {
+                statusElement.textContent = `❌ Échec : Erreur Serveur (500) ou Clé API Gemini non configurée sur le backend.`;
+                resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Votre serveur rencontre un problème avec l'API Gemini (Erreur 500).</div>`;
             } else {
                 statusElement.textContent = `❌ Erreur lors de l'analyse IA : ${e.message}`;
                 resultElement.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique.</div>`;
@@ -730,7 +730,7 @@
                 }
             }
         } catch (e) {
-            if (e.message === "API_NOT_IMPLEMENTED" || e.message.includes('connexion')) {
+            if (e.message === "API_NOT_IMPLEMENTED" || e.message.includes('connexion') || e.message.includes('404')) {
                  console.warn("API /twitch_is_live non implémentée, passant au fallback.");
             } else {
                  console.error("Échec de la vérification des chaînes prioritaires (Erreur critique):", e.message);
@@ -752,7 +752,7 @@
                     iconEl.innerHTML = `📈`;
                 }
             } catch (e) {
-                 if (e.message === "API_NOT_IMPLEMENTED" || e.message.includes('connexion')) {
+                 if (e.message === "API_NOT_IMPLEMENTED" || e.message.includes('connexion') || e.message.includes('404')) {
                      console.warn("API /random_small_streamer non implémentée, utilisant le défaut.");
                  } else {
                      console.error("Échec de la récupération du petit streamer (Erreur critique):", e.message);
@@ -866,7 +866,7 @@
             // PSEUDO (y compris en cas de 404 du /gameid ou d'erreur de connexion)
             currentTargetName = targetInput;
             targetStatus.style.color = "#22c7ef"; 
-            targetStatus.textContent = `⚠️ Jeu non trouvé. Cible définie: PSEUDO '${currentTargetName}'`;
+            targetStatus.textContent = `⚠️ Jeu non trouvé (Erreur API: ${e.message.includes('API_NOT_IMPLEMENTED') || e.message.includes('404') ? '404' : e.message}). Cible définie: PSEUDO '${currentTargetName}'`;
             currentTargetNameEl.textContent = `Streamer: ${currentTargetName}`; 
             scanLabel.textContent = "ANALYSER CE STREAMER";
             actionsBox.classList.remove("hidden"); 
@@ -937,7 +937,8 @@
             $("#res-diag")?.addEventListener("click", (e) => handleCritiqueDiagnostic(lastStreamerData, 'DIAGNOSTIC', 'Diagnostic de Performance', '#22c7ef', e.target));
 
         } catch (e) {
-            box.innerHTML = `<div style="color:#e34a64; text-align:center; padding:20px;">❌ Erreur: ${e.message}</div>`;
+            let errorMsg = e.message.includes("API_NOT_IMPLEMENTED") ? "❌ Erreur: Le service API (détails du streamer) n'est pas implémenté sur le serveur." : `❌ Erreur: ${e.message}`;
+            box.innerHTML = `<div style="color:#e34a64; text-align:center; padding:20px;">${errorMsg}</div>`;
         } finally {
             btn.disabled = false;
             btn.textContent = scanLabel.textContent; 
@@ -1018,8 +1019,13 @@
 
         } catch (e) {
             btnStatus.style.color = "#e34a64";
-            btnStatus.textContent = `❌ Échec de l'analyse IA : ${e.message}`;
-            container.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique lors de l'appel Gemini.</div>`;
+            if (e.message.includes("Clé API Gemini non configurée") || e.message.includes("500")) {
+                btnStatus.textContent = `❌ Échec IA : Erreur Serveur (500) ou Clé API Gemini manquante.`;
+                container.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique. Le serveur a retourné un 500 (API IA non fonctionnelle).</div>`;
+            } else {
+                btnStatus.textContent = `❌ Échec de l'analyse IA : ${e.message}`;
+                container.innerHTML = `<div style="color:#e34a64; padding:10px;">Erreur technique lors de l'appel Gemini.</div>`;
+            }
         } finally {
             buttonElement.disabled = false;
             buttonElement.textContent = originalText;
@@ -1326,7 +1332,7 @@
             .catch(e => {
                 // Gère l'échec de l'API tout en confirmant l'action locale et le cooldown.
                 status.style.color = "#59d682";
-                status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel} (Action locale). ⚠️ API serveur non atteinte. Prochain BOOST dans 6 heures.`;
+                status.textContent = `✅ BOOST de 10 minutes ACTIVÉ pour ${channel} (Action locale). ⚠️ API serveur non atteinte (Erreur ${e.message.includes('API_NOT_IMPLEMENTED') || e.message.includes('404') ? '404' : e.message}). Prochain BOOST dans 6 heures.`;
                 console.warn(`Avertissement: L'appel API BOOST serveur a échoué (${e.message.includes('API_NOT_IMPLEMENTED') ? 'non implémenté' : e.message}), mais l'effet local (lecteur et cooldown) est actif.`);
             })
             .finally(() => {
@@ -1373,7 +1379,7 @@
         if (!statusEl) return;
 
         statusEl.style.color = "#ff9900";
-        statusEl.textContent = "⏳ Redirection vers Twitch pour autorisation...";
+        statusEl.textContent = "⏳ Redirection vers Twitch pour autorisation (via /twitch_auth_start)...";
 
         // Redirection vers le backend pour initier le flux OAuth
         // NOTE: Cette action dépend de l'implémentation de l'endpoint /twitch_auth_start sur votre serveur.
@@ -1423,11 +1429,11 @@
             });
 
         } catch (e) {
-            if (e.message === 'NOT_AUTHENTICATED' || e.message.includes("API_NOT_IMPLEMENTED")) {
+            if (e.message === 'NOT_AUTHENTICATED' || e.message.includes("API_NOT_IMPLEMENTED") || e.message.includes("404")) {
                 // Non connecté ou l'API serveur /followed_streams n'est pas implémentée/fonctionnelle
                 twitchUserConnected = false;
-                statusEl.style.color = "#e34a64";
-                statusEl.textContent = `❌ Déconnecté ou service API non disponible. Veuillez vous connecter.`;
+                statusEl.style.color = "#ff9900";
+                statusEl.textContent = `❌ Déconnecté ou service API ('/followed_streams') non disponible. Veuillez vous connecter.`;
                 loginBtn.style.display = 'block';
                 listEl.innerHTML = `<p style="color:#555; text-align:center; padding:10px;">Veuillez vous connecter à Twitch pour charger votre fil.</p>`;
             } else {
