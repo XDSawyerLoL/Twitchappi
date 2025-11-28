@@ -177,6 +177,21 @@
             background: #280517;
             transform: translateY(-1px);
         }
+        
+        /* --- NOUVEAU: Styles pour l'avatar --- */
+        .streamer-info {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Espace entre l'avatar et le nom */
+        }
+        .streamer-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%; /* Rendre l'image ronde */
+            border: 2px solid #ff0099; /* Bordure d'accent */
+            object-fit: cover; /* Assure que l'image couvre bien la zone */
+        }
+        /* ------------------------------------ */
 
         @media (max-width: 768px) {
             #twitch-embed { height: 300px; }
@@ -192,7 +207,6 @@
     <h1 class="text-3xl"><span style="color:#22c7ef;">STREAMER</span> HUB V6.5</h1>
     <div style="color:#9aa3a8;font-size:12px;margin-bottom:15px;text-align:center;">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
-    <!-- LECTEUR VIDÉO -->
     <div class="player-wrapper">
         <h2>
             <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR
@@ -205,7 +219,6 @@
         <div id="twitch-embed"></div>
     </div>
 
-    <!-- ONGLETS -->
     <div id="tabs-container">
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
@@ -216,7 +229,6 @@
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
         </div>
 
-        <!-- 1. MON FIL SUIVI -->
         <div id="tab-followed" class="tab-content">
             <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">🔑</span> Connexion & Mon Fil Suivi
@@ -244,7 +256,6 @@
             </div>
         </div>
 
-        <!-- 2. SCAN & RESULTATS -->
         <div id="tab-cible" class="tab-content">
             <h3 style="color:#22c7ef; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">🔭</span> Configuration & Scan
@@ -259,7 +270,6 @@
             <div id="scan-result" class="hidden"></div>
         </div>
 
-        <!-- 3. OPTIMISATION NICHE -->
         <div id="tab-niche" class="tab-content">
             <h3 style="color:#59d682; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">📈</span> Analyse de Niche
@@ -275,7 +285,6 @@
             </div>
         </div>
         
-        <!-- 4. REPURPOSING -->
         <div id="tab-repurpose" class="tab-content">
             <h3 style="color:#9933ff; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">✂️</span> Repurposing IA
@@ -291,7 +300,6 @@
             </div>
         </div>
 
-        <!-- 5. CROISSANCE -->
         <div id="tab-growth" class="tab-content">
             <h3 style="color:#ffcc00; font-family:'Orbitron',sans-serif; margin-bottom:20px; font-size:16px;">
                 <span class="icon">💰</span> Tableau de Bord Croissance
@@ -304,7 +312,6 @@
             </div>
         </div>
 
-        <!-- 6. BOOST -->
         <div id="tab-boost" class="tab-content">
             <h3 style="color:#ff0099; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
                 <span class="icon">⬆️</span> STREAM BOOST
@@ -365,8 +372,6 @@
             channel: channelName,
             layout: "video",
             autoplay: true,
-            // Pour le statut, on peut ajouter un listener si besoin,
-            // mais Twitch Embed API v1 n'offre pas de moyen facile d'obtenir le statut LIVE/OFFLINE.
             // Le statut affiché ici est purement décoratif ou basé sur l'API externe (loadFollowedStreams)
         });
         document.getElementById('player-channel-status').textContent = `Chaîne: ${channelName.toUpperCase()}`;
@@ -439,7 +444,7 @@
         }
     });
 
-    // Charger les streams suivis
+    // Charger les streams suivis (AVEC AFFICHAGE DE L'AVATAR)
     async function loadFollowedStreams() {
         if(!twitchUserConnected) {
             followedStreamsList.innerHTML = '<p style="color:#ff9900; text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
@@ -451,21 +456,40 @@
         try {
             const res = await fetch(`${API_BASE}/followed_streams`);
             if(res.ok) {
-                const data = await res.json();
+                let data = await res.json();
+
+                // --- SIMULATION TEMPORAIRE de données AVEC AVATARS ---
+                // REMARQUE : Cette partie DOIT être gérée par votre API backend,
+                // qui doit récupérer les profile_image_url de Twitch.
+                const dummyAvatar = 'https://picsum.photos/40/40?random='; 
+                data.data = data.data.map((stream, index) => ({ 
+                    ...stream, 
+                    // Pour la démo, on utilise une image aléatoire (picsum)
+                    profile_image_url: stream.profile_image_url || `${dummyAvatar}${index}` 
+                }));
+                // --- FIN SIMULATION ---
+
+
                 if(data.data && data.data.length > 0) {
                     followedStreamsList.innerHTML = ''; // Vider
                     data.data.forEach(stream => {
                         const div = document.createElement('div');
                         div.className = 'followed-stream-item';
+                        
+                        // --- MODIFICATION ICI : AJOUT DE L'AVATAR ---
                         div.innerHTML = `
-                            <strong>${stream.user_name}</strong>
+                            <div class="streamer-info">
+                                <img src="${stream.profile_image_url || 'placeholder.png'}" alt="Avatar de ${stream.user_name}" class="streamer-avatar">
+                                <strong>${stream.user_name}</strong>
+                            </div>
                             <span style="font-size:11px; color:#aaa; margin-right:10px;">${stream.game_name}</span>
                             <span style="color:#ff0099;">🔴 ${stream.viewer_count}</span>
                         `;
+                        // --- FIN DE LA MODIFICATION ---
+
                         // Clic pour lancer le lecteur
                         div.onclick = () => {
                             launchPlayer(stream.user_name);
-                            // On pourrait aussi revenir à l'onglet Lecteur si on voulait
                             // openTab('tab-followed'); 
                         };
                         followedStreamsList.appendChild(div);
@@ -483,7 +507,7 @@
     }
 
 
-    // --- Logique d'interaction IA simulée ---
+    // --- Logique d'interaction IA simulée (Inchagée) ---
 
     // 1. Analyse de Niche (Simulée)
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
@@ -499,71 +523,6 @@
         resultBox.innerHTML = '<p style="color:#ffcc00;">Analyse IA de niche en cours pour ' + game + '... (Requiert une implémentation backend)</p>';
         btn.disabled = true;
 
-        // Fonction d'appel API avec Backoff (pour simuler la robustesse)
-        const callApiWithBackoff = async (url, payload, maxRetries = 5) => {
-            let attempt = 0;
-            while (attempt < maxRetries) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (response.status === 429) { // Too Many Requests
-                        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-                        attempt++;
-                        console.warn(`Tentative ${attempt} / ${maxRetries}: Taux limité. Nouvelle tentative dans ${delay / 1000}s...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        continue;
-                    }
-
-                    if (!response.ok) {
-                        throw new Error(`API returned status ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    // Simulation d'une réponse enrichie pour une analyse de niche
-                    const generatedCritique = data.critique || `
-                        <div class="ai-niche-output">
-                            <h4 style="color:#59d682; font-family:'Orbitron',sans-serif; margin-bottom:10px;">Rapport de Niche pour ${game}</h4>
-                            <p><strong>1. Saturation:</strong> Le jeu ${game} présente une saturation <strong>Modérée</strong>. Il y a de l'espace, mais la concurrence est visible. Évitez les heures de pointe pour les débuts.</p>
-                            <p><strong>2. Angles d'Attaque:</strong> L'IA suggère les angles suivants :</p>
-                            <ul>
-                                <li>- <strong>Deep Dive Lore:</strong> Concentration sur l'histoire et les théories peu explorées (public <strong style="color:#ff0099;">Niche Engagée</strong>).</li>
-                                <li>- <strong>Builds Insolites:</strong> Démonstration de constructions ou de stratégies non-méta (public <strong style="color:#22c7ef;">Curieux / Expérimenté</strong>).</li>
-                                <li>- <strong>Speedrun Community:</strong> Si une communauté de speedrun existe, spécialisez-vous dans une catégorie spécifique (<strong style="color:#ff0099;">Haute Compétition</strong>, mais fidélité extrême).</li>
-                            </ul>
-                            <p><strong>3. Mots-clés Clés:</strong> Utilisez #Tuto${game.replace(/\s/g, '')}, #Lore${game.replace(/\s/g, '')} et #IndieGem (si pertinent) pour maximiser la découvrabilité.</p>
-                        </div>
-                    `;
-                    return generatedCritique;
-
-                } catch (error) {
-                    console.error("Erreur dans l'appel API (tentative finale):", error);
-                    throw new Error("Échec de l'analyse après plusieurs tentatives.");
-                }
-            }
-            throw new Error("Épuisement des tentatives de connexion à l'API.");
-        };
-
-        // Remplacer l'appel simulé par l'appel réel ci-dessous si le backend est prêt
-        
-        // try {
-        //     const critique = await callApiWithBackoff(`${API_BASE}/critique_ia`, {
-        //         title: "Analyse Niche", 
-        //         game: game, 
-        //         tags: []
-        //     });
-        //     resultBox.innerHTML = critique;
-        // } catch(e) {
-        //     resultBox.innerHTML = `<p style="color:red;">${e.message}</p>`;
-        // } finally {
-        //     btn.disabled = false;
-        // }
-
-        // --- SIMULATION TEMPORAIRE D'APPEL ASYNCHRONE ---
         await new Promise(resolve => setTimeout(resolve, 1500));
         
         resultBox.innerHTML = `
