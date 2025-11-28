@@ -214,9 +214,9 @@
             margin-bottom: 8px;
             background: var(--color-bg-light);
             border-radius: 6px;
-            /* Utilisation des variables CSS pour la bordure */
+            /* Utilisation des variables CSS pour la bordure de couleur d'accent */
             border-left: 4px solid var(--color-primary-pink); 
-            cursor: pointer;
+            cursor: pointer; /* Indique la cliquabilité */
             transition: background 0.2s, transform 0.1s;
         }
         .followed-stream-item:hover {
@@ -234,8 +234,8 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            /* Utilisation des variables CSS pour la bordure de l'avatar */
-            border: 2px solid var(--color-secondary-blue); 
+            /* Réajustement de la bordure de l'avatar pour le rose primaire (cohérence) */
+            border: 2px solid var(--color-primary-pink); 
             object-fit: cover;
         }
 
@@ -442,7 +442,7 @@
                 const data = await res.json();
                 if(data.is_connected) {
                     twitchUserConnected = true;
-                    // **CORRECTION JS pour utiliser la variable CSS**
+                    // Utilisation de la variable CSS
                     loginStatus.innerHTML = `✅ Connecté en tant que <strong style="color:var(--color-secondary-blue)">${data.username}</strong>`;
                     btnLogin.textContent = "🔒 DÉCONNEXION";
                     btnLogin.style.background = "#e34a64"; 
@@ -452,7 +452,7 @@
                     loginStatus.textContent = "Statut: Déconnecté.";
                     btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
                     btnLogin.style.background = "#6441a5"; 
-                    // **CORRECTION JS pour utiliser la variable CSS**
+                    // Utilisation de la variable CSS
                     followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
                 }
             } else {
@@ -476,7 +476,7 @@
         }
     });
 
-    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (AVEC AVATAR CORRIGÉ) ---
+    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (CORRIGÉE) ---
     async function loadFollowedStreams() {
         if(!twitchUserConnected) {
             // Utilisation de la variable CSS
@@ -498,9 +498,9 @@
                         const div = document.createElement('div');
                         div.className = 'followed-stream-item';
                         
-                        const avatarUrl = stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; // Fallback Twitch par défaut
+                        const avatarUrl = stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
 
-                        // **CORRECTION HTML/JS** : Utilisation des classes CSS pour l'avatar et les couleurs.
+                        // Correction : La classe 'text-pink' est utilisée pour la cohérence des couleurs d'accent
                         div.innerHTML = `
                             <div class="streamer-info">
                                 <img src="${avatarUrl}" alt="Avatar de ${stream.user_name}" class="streamer-avatar">
@@ -510,6 +510,7 @@
                             <span class="text-pink">🔴 ${stream.viewer_count}</span>
                         `;
 
+                        // Le bloc entier est cliquable et appelle la fonction launchPlayer
                         div.onclick = () => {
                             launchPlayer(stream.user_name);
                         };
