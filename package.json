@@ -11,13 +11,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^0.15.0",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "firebase-admin": "^12.1.0",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.7.0"
   }
 }
+
 
 
