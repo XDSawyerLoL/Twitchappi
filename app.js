@@ -232,40 +232,6 @@ app.get('/twitch_user_status', (req, res) => {
 // FONCTIONS HELPER TWITCH (Utilisent le token Applicatif)
 // =========================================================
 
-async function getTwitchAccessToken() {
-    // ... (unchanged logic for app token) ...
-    if (TWITCH_ACCESS_TOKEN && Date.now() < TWITCH_TOKEN_EXPIRY) {
-        return TWITCH_ACCESS_TOKEN;
-    }
-
-    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
-        console.error("FATAL: Impossible d'obtenir le Token Applicatif. Client ID ou Secret est manquant.");
-        return null;
-    }
-
-    console.log("Obtention d'un nouveau Token Applicatif Twitch...");
-    const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
-
-    try {
-        const response = await fetch(url, { method: 'POST' });
-        const data = await response.json();
-
-        if (response.ok && data.access_token) {
-            TWITCH_ACCESS_TOKEN = data.access_token;
-            // Expiration 5 minutes avant l'heure réelle
-            TWITCH_TOKEN_EXPIRY = Date.now() + (data.expires_in * 1000) - 300000; 
-            console.log("Token Applicatif Twitch obtenu avec succès.");
-            return TWITCH_ACCESS_TOKEN;
-        } else {
-            console.error("Erreur Token Applicatif Twitch:", data);
-            return null;
-        }
-    } catch (error) {
-        console.error("Erreur réseau Auth Twitch (Applicatif):", error.message);
-        return null;
-    }
-}
-
 async function getTwitchUsersDetails(userIds, token) {
     if (!userIds || userIds.length === 0 || !token) return {};
     
@@ -352,7 +318,6 @@ async function getStreamerDetails(userLogin, token) {
             viewer_count: stream ? stream.viewer_count : 0,
             follower_count: followData.total || 0,
             tags: stream?.tags || [],
-            // SIMULATION SUPPRIMÉE : plus de avg_score aléatoire
         };
     } catch (e) {
         console.error("Erreur details streamer:", e);
@@ -474,6 +439,7 @@ app.post('/critique_ia', async (req, res) => {
 
     let systemPrompt, userQuery;
     let tools = []; // Active Google Search Grounding uniquement pour les besoins de recherche
+    let maxTokens = 500; // Par défaut pour les analyses détaillées
 
     // --- Configuration des prompts en fonction du type ---
     if (type === 'niche') {
@@ -489,9 +455,10 @@ app.post('/critique_ia', async (req, res) => {
         systemPrompt = "Tu es un Détecteur de Tendances Twitch. Sur la base des données de recherche disponibles, identifie la prochaine niche/jeu émergent et explique pourquoi en 4-5 phrases max. Ta réponse doit être en Markdown gras et se concentrer uniquement sur les tendances de streaming/jeux vidéo.";
         userQuery = "Détecte et analyse la prochaine grande tendance (jeu, catégorie, type de contenu) sur Twitch pour les prochains mois. Base ta réponse sur la recherche web.";
         tools = [{ "google_search": {} }]; // Nécessite des données à jour
-    } else if (title && game) { // Type de critique de stream par défaut
+    } else if (title && game) { // Type de critique de stream par défaut (inclut l'ancien diagnostic titre)
         systemPrompt = "Tu es un expert en marketing et en croissance de chaînes Twitch. Ton objectif est de fournir une analyse critique, constructive et très concise (max 3 phrases) sur le potentiel de croissance d'un stream basé sur son titre, son jeu et ses tags. Ton ton doit être professionnel et encourageant.";
         userQuery = `Analyse le stream avec ces informations : Titre : "${title}". Jeu : "${game}". Tags : "${tags?.join(', ') || 'aucun'}".`;
+        maxTokens = 100; // Réponse plus courte pour ce type de critique
     } else {
         return res.status(400).json({ error: "Type d'analyse IA ou données d'entrée manquantes invalides." });
     }
@@ -499,12 +466,13 @@ app.post('/critique_ia', async (req, res) => {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
     
     try {
+        // CORRECTION CLÉ: Utilisation de 'generationConfig' à la place de 'config'
         const payload = {
             contents: [{ parts: [{ text: userQuery }] }],
             systemInstruction: { parts: [{ text: systemPrompt }] },
-            // Limiter la taille pour un affichage rapide dans l'interface
-            config: { maxOutputTokens: 500 }, 
-            tools: tools // Ajoute l'outil de recherche si nécessaire
+            generationConfig: { maxOutputTokens: maxTokens }, 
+            // Ajoute l'outil de recherche uniquement si la liste n'est pas vide
+            ...(tools.length > 0 && { tools: tools })
         };
 
         const response = await fetch(apiUrl, {
@@ -515,12 +483,28 @@ app.post('/critique_ia', async (req, res) => {
 
         const result = await response.json();
         
-        // Extraction du texte et conversion Markdown -> HTML simple pour le frontend
-        const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || 
-                              "Erreur lors de la génération de la critique par l'IA. (Réponse API Gemini vide)";
-
-        // IMPORTANT : Utilise html_critique, comme attendu par le frontend
-        res.json({ html_critique: generatedText });
+        // GESTION D'ERREUR AMÉLIORÉE
+        const candidate = result.candidates?.[0];
+        
+        if (candidate && candidate.content?.parts?.[0]?.text) {
+            // Succès
+            const generatedText = candidate.content.parts[0].text;
+            res.json({ html_critique: generatedText });
+        } else if (result.promptFeedback?.blockReason) {
+            // Blocage de sécurité
+            console.error("Gemini API Blocked:", result.promptFeedback);
+            res.status(400).json({ 
+                error: `Le contenu a été bloqué par les filtres de sécurité de l'IA. Raison: ${result.promptFeedback.blockReason}`, 
+                html_critique: "Désolé, l'IA ne peut pas traiter cette requête en raison de restrictions de sécurité ou de contenu." 
+            });
+        } else {
+            // Autre erreur inattendue ou réponse vide
+            console.error("Gemini API Unexpected Response:", JSON.stringify(result));
+            res.status(500).json({ 
+                error: "Erreur lors de la génération de la critique par l'IA. (Réponse API Gemini vide ou inattendue)", 
+                html_critique: "Une erreur interne s'est produite lors de l'analyse par l'IA." 
+            });
+        }
 
     } catch (error) {
         console.error("Erreur Gemini API /critique_ia:", error);
@@ -582,7 +566,6 @@ app.get('/followed_streams', async (req, res) => {
     }
 });
 
-// Ancien route 7 (/diagnostic_titre) RETIRÉE : Logique intégrée dans /critique_ia (route 6)
 
 // 8. IS LIVE CHECK
 app.get('/twitch_is_live', async (req, res) => {
