@@ -368,19 +368,30 @@ app.post('/critique_ia', async (req, res) => {
 
 
 // =========================================================
-// Configuration des Routes Statiques (CORRIGÉES)
+// Configuration des Routes Statiques
 // =========================================================
+
+// Servir tous les fichiers statiques de la racine (JS, CSS, autres HTML si besoin)
+app.use(express.static(__dirname));
 
 // Servir NicheOptimizer.html lorsque l'utilisateur accède à la racine /
 app.get('/', (req, res) => {
-    // __dirname est le répertoire où se trouve server.js. On sert le fichier à l'intérieur.
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-// Si vous avez d'autres fichiers (comme lucky_streamer_picker.html), vous devez également les servir explicitement.
-// Cependant, pour l'instant, seul NicheOptimizer.html est requis à la racine.
-// Si vous souhaitez charger des assets supplémentaires (CSS, JS, images), utilisez :
-// app.use(express.static(__dirname)); 
+
+// =========================================================
+// Dernier Middleware : Gestion des 404
+// =========================================================
+
+app.use((req, res, next) => {
+    // Si la requête arrive ici, aucune route (API ou Statique) ne l'a gérée.
+    res.status(404).send({
+        error: "404 Not Found",
+        message: "L'URL demandée n'a pas pu être trouvée. Veuillez vérifier l'orthographe de la route API ou l'existence du fichier statique.",
+        path: req.originalUrl
+    });
+});
 
 
 // =========================================================
