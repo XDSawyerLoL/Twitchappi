@@ -83,9 +83,10 @@
             font-weight: normal;
             font-family: 'Inter', sans-serif;
         }
+        /* Ajusté pour la place du chat */
         #twitch-embed {
             width: 100%;
-            height: 450px;
+            height: 550px; /* Augmentation de la hauteur pour intégrer le chat */
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(34, 199, 239, 0.3);
             overflow: hidden;
@@ -201,11 +202,45 @@
             border: 1px solid #444;
         }
 
-        /* --- STYLES CORRIGÉS POUR AFFICHAGE EN CARTE/LECTEUR --- */
+        /* --- STYLES POUR STRUCTURER LE TEXTE IA DANS LES RESULT BOX (Résout le problème de 'bloc de texte') --- */
+        .ai-result-box p {
+            margin-bottom: 12px;
+            line-height: 1.6;
+            font-size: 13px;
+        }
+        .ai-result-box h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--color-border-medium);
+            padding-bottom: 4px;
+            color: var(--color-secondary-blue); /* Couleur par défaut, sera surchargée par les styles d'onglet si besoin */
+        }
+        .ai-result-box strong {
+            color: var(--color-primary-pink);
+            font-weight: 700;
+        }
+        .ai-result-box ul, .ai-result-box ol {
+            margin-left: 20px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        .ai-result-box li {
+            margin-bottom: 6px;
+        }
+        /* Surcharge de couleur pour les onglets spécifiques */
+        #niche-result-container strong { color: var(--color-ai-niche); }
+        #repurpose-result-container strong { color: var(--color-ai-repurpose); }
+        #trend-results strong { color: var(--color-ai-growth); }
+        /* FIN DES STYLES IA */
+
+
+        /* --- STYLES CARTE/LECTEUR (Vérifiés et Confirmés) --- */
         #followed-streams-list {
             display: flex;
-            flex-wrap: wrap; /* Grille */
-            gap: 15px; /* Espacement entre les cartes */
+            flex-wrap: wrap; 
+            gap: 15px; 
             padding: 0;
             margin: 0;
         }
@@ -213,30 +248,28 @@
         .followed-stream-item {
             display: flex;
             flex-direction: column; 
-            /* 3 colonnes sur desktop, ajusté pour le gap */
             width: calc(33.333% - 10px); 
             min-width: 180px; 
             padding: 10px;
             background: var(--color-bg-light);
             border-radius: 8px;
             border: 1px solid var(--color-border-dark);
-            cursor: pointer; /* Indique la cliquabilité */
+            cursor: pointer; 
             transition: all 0.2s;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
         .followed-stream-item:hover {
             background: #280517;
-            border-color: var(--color-primary-pink); /* Bordure rose au survol */
+            border-color: var(--color-primary-pink); 
             transform: translateY(-2px);
         }
 
         .streamer-avatar {
             width: 100%; 
             height: auto;
-            /* Format de lecteur vidéo / miniature */
             aspect-ratio: 16 / 9; 
             border-radius: 4px;
-            border: 1px solid var(--color-primary-pink); /* Bordure autour de la miniature */
+            border: 1px solid var(--color-primary-pink); 
             object-fit: cover;
             flex-shrink: 0;
         }
@@ -269,7 +302,7 @@
         }
 
         .stream-viewers {
-            color: var(--color-primary-pink); /* Rose pour le "LIVE" */
+            color: var(--color-primary-pink); 
             font-weight: 600;
         }
 
@@ -284,10 +317,10 @@
         /* Responsive pour Mobile */
         @media (max-width: 768px) {
             .followed-stream-item {
-                width: 100%; /* Une seule colonne pour les petits écrans */
+                width: 100%; 
                 min-width: unset;
             }
-            #twitch-embed { height: 300px; }
+            #twitch-embed { height: 350px; } /* Ajusté pour l'espace sur mobile */
             h1 { font-size: 22px; }
             .tab-btn { padding: 8px 10px; font-size: 10px; flex-basis: 50%; max-width: 50%; }
             .flex-tabs { flex-wrap: wrap; }
@@ -302,7 +335,7 @@
 
     <div class="player-wrapper">
         <h2>
-            <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR
+            <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR & CHAT
             <span id="player-channel-status"></span>
         </h2> 
         <form id="form-channel-player">
@@ -374,7 +407,7 @@
                 </button>
             </form>
             <div id="niche-result-container" class="ai-result-box" style="border-color: var(--color-ai-niche); display:none;">
-                <div id="niche-results"></div>
+                <div id="niche-results" class="ai-content"></div>
             </div>
         </div>
         
@@ -389,7 +422,7 @@
                 </button>
             </form>
             <div id="repurpose-result-container" class="ai-result-box" style="border-color: var(--color-ai-repurpose); display:none;">
-                <div id="repurpose-results"></div>
+                <div id="repurpose-results" class="ai-content"></div>
             </div>
         </div>
 
@@ -440,7 +473,7 @@
         }
     }
 
-    // --- Lecteur Twitch ---
+    // --- Lecteur Twitch (MIS À JOUR AVEC CHAT ET PARENT) ---
     let embed = null;
     const twitchEmbedContainer = document.getElementById('twitch-embed');
     const inputChannel = document.getElementById('input-channel');
@@ -454,10 +487,15 @@
         twitchEmbedContainer.innerHTML = '';
         embed = new Twitch.Embed("twitch-embed", {
             width: "100%",
-            height: 450,
+            height: 550, // Nouvelle hauteur
             channel: channelName,
-            layout: "video",
+            // layout: "video-and-chat" est la valeur par défaut pour un lecteur avec chat.
+            // On peut omettre 'layout' ou utiliser 'default' si la dimension permet un split.
+            // On utilise "video-and-chat" explicitement.
+            layout: "video-and-chat", 
             autoplay: true,
+            // Le domaine parent est obligatoire pour l'embed Twitch
+            parent: [window.location.hostname] 
         });
         document.getElementById('player-channel-status').textContent = `Chaîne: ${channelName.toUpperCase()}`;
     }
@@ -476,7 +514,7 @@
         }
     });
 
-    // --- Authentification Twitch et Fil Suivi ---
+    // --- Authentification Twitch et Fil Suivi (Pas de changement) ---
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
@@ -521,7 +559,6 @@
         }
     });
 
-    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (FORMAT CARTE/LECTEUR) ---
     async function loadFollowedStreams() {
         if(!twitchUserConnected) {
             followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
@@ -531,20 +568,17 @@
         followedStreamsList.innerHTML = '<p style="text-align:center; color:#555;">Chargement des streams en direct...</p>';
         
         try {
-            // NOTE: Ceci est une simulation car l'environnement ne peut pas faire un appel API réel.
-            // Dans un environnement de production, cette ligne ferait la requête réelle.
             const res = await fetch(`${API_BASE}/followed_streams`);
             
             if(res.ok) {
                 const data = await res.json();
                 
                 if(data.data && data.data.length > 0) {
-                    followedStreamsList.innerHTML = ''; // Vider
+                    followedStreamsList.innerHTML = ''; 
                     data.data.forEach(stream => {
                         const div = document.createElement('div');
                         div.className = 'followed-stream-item';
                         
-                        // Utilise thumbnail_url pour simuler l'image de preview
                         const imageUrl = stream.thumbnail_url 
                                         ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') 
                                         : stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
@@ -560,7 +594,6 @@
                             </div>
                         `;
 
-                        // Le bloc entier est cliquable et appelle la fonction launchPlayer
                         div.onclick = () => {
                             launchPlayer(stream.user_name);
                         };
@@ -578,7 +611,7 @@
     }
 
 
-    // --- 4. Logique de Scan Cible (PRODUCTION) ---
+    // --- Logique de Scan Cible (GÈRE MIEUX L'ERREUR 404 CÔTÉ CLIENT) ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -616,7 +649,12 @@
                      resultBox.innerHTML = `<p style="color:red; text-align:center;">Format de réponse API inattendu.</p>`;
                 }
             } else {
-                resultBox.innerHTML = `<p style="color:red; text-align:center;">Erreur lors de l'appel au service de Scan (Statut: ${res.status}).</p>`;
+                // Gestion spécifique de l'erreur 404 pour l'utilisateur
+                let errorMsg = `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`;
+                if (res.status === 404) {
+                    errorMsg = `❌ Erreur 404: Le service Scan (${API_BASE}/scan_target) est introuvable sur le serveur backend. Veuillez vérifier son déploiement.`;
+                }
+                resultBox.innerHTML = `<p style="color:red; text-align:center; font-weight: bold;">${errorMsg}</p>`;
             }
         } catch(e) {
             resultBox.innerHTML = `<p style="color:red; text-align:center;">Erreur de connexion au service de Scan: ${e.message}</p>`;
@@ -626,9 +664,9 @@
     });
 
 
-    // --- Logique d'interaction IA ---
-
-    // 1. Analyse de Niche (Code de production)
+    // --- Logique d'interaction IA (Pas de changement, bénéficie du nouveau CSS) ---
+    
+    // 1. Analyse de Niche
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -651,6 +689,7 @@
 
             if(res.ok) {
                 const data = await res.json();
+                // Assurez-vous que le backend retourne bien du HTML structuré (p, ul, strong, h4...) pour bénéficier du CSS
                 resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
                 resultBox.innerHTML = `<p style="color:red;">Erreur de l'API IA: ${res.status}.</p>`;
@@ -662,7 +701,7 @@
         }
     });
 
-    // 2. Repurposing (Code de production)
+    // 2. Repurposing
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -696,7 +735,7 @@
         }
     });
 
-    // 3. Trend Detector (Code de production)
+    // 3. Trend Detector
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const container = document.getElementById('trend-results');
