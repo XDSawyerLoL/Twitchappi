@@ -240,8 +240,8 @@
         /* Responsive pour Mobile (une seule colonne) */
         @media (max-width: 768px) {
             .followed-stream-item {
-                width: 100%; /* Une seule colonne pour les petits écrans */
-                min-width: unset;
+                width: 100% !important; /* Une seule colonne pour les petits écrans */
+                min-width: unset !important;
             }
             #twitch-embed { height: 300px; }
             h1 { font-size: 22px; }
@@ -315,7 +315,7 @@
                 <button type="submit" id="btn-target" class="btn-secondary" style="min-width:80px;">🎯 CIBLER</button>
             </form>
             <div id="scan-result-placeholder" style="text-align:center; color:#555; padding:20px; border: 1px dashed #333; border-radius: 6px;">
-                Les résultats du scan apparaîtront ici. (Résultats réels de l'API)
+                Les résultats du scan apparaîtront ici. Entrez un nom de jeu (ex: League of Legends) ou un pseudo.
             </div>
             <div id="scan-result" class="hidden"></div>
         </div>
@@ -478,7 +478,7 @@
         }
     });
 
-    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (CORRIGÉE POUR AFFICHAGE HORIZONTAL) ---
+    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (FIL SUIVI) ---
     async function loadFollowedStreams() {
         if(!twitchUserConnected) {
             followedStreamsList.innerHTML = '<p style="color:#ff9900; text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
@@ -499,9 +499,6 @@
                         const div = document.createElement('div');
                         div.className = 'followed-stream-item';
                         
-                        // Utilise stream.thumbnail_url pour une meilleure simulation de preview de stream
-                        // Note : Twitch fournit souvent une thumbnail_url (image de preview) pour les streams LIVE.
-                        // On utilise profile_image_url comme fallback au cas où.
                         const imageUrl = stream.thumbnail_url ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') : 
                                          stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
 
@@ -530,6 +527,94 @@
         } catch(e) {
             followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur API: ${e.message}</p>`;
         }
+    }
+
+    // --- 4. Logique de Scan Cible (NOUVEAU) ---
+    document.getElementById('form-target').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const query = document.getElementById('input-target').value.trim();
+        const resultBox = document.getElementById('scan-result-placeholder');
+        const btn = document.getElementById('btn-target');
+
+        if (!query) return;
+
+        resultBox.innerHTML = `<p style="text-align:center; color:#ff0099;">Analyse de la cible '${query}' en cours...</p>`;
+        btn.disabled = true;
+
+        try {
+            // Remplacez par votre appel API réel. Ici, on simule l'appel.
+            const res = await fetch(`${API_BASE}/scan_results?query=${encodeURIComponent(query)}`);
+            
+            if(res.ok) {
+                const data = await res.json();
+                
+                if (data.type === 'game' && data.streams && data.streams.length > 0) {
+                    // C'est un JEU -> Afficher la grille de Top Streams
+                    displayScanResults(data.streams, `TOP 10 Streams en direct pour ${query}`);
+                } else if (data.type === 'user' && data.user_data) {
+                    // C'est un PSEUDO -> Afficher les stats détaillées
+                    displayUserStats(data.user_data);
+                } else {
+                    resultBox.innerHTML = `<p style="text-align:center; padding: 20px;">Aucun résultat trouvé pour '${query}'.</p>`;
+                }
+
+            } else {
+                resultBox.innerHTML = `<p style="color:red; text-align:center; padding: 20px;">Erreur de l'API Scan: ${res.status}.</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:red; text-align:center; padding: 20px;">Erreur de connexion au service Scan: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    function displayScanResults(streams, title) {
+        const resultBox = document.getElementById('scan-result-placeholder');
+        resultBox.style.padding = '0'; // Retirer le padding pour la grille
+
+        let html = `<h4 style="color: #22c7ef; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px; padding:20px 20px 10px 20px; border-bottom: 1px solid #333;">${title}</h4>`;
+        // Réutilise le conteneur de liste et les classes CSS existantes
+        html += '<div id="scan-streams-grid" style="display: flex; flex-wrap: wrap; gap: 15px; padding: 15px 20px 20px 20px;">';
+
+        streams.forEach(stream => {
+            const imageUrl = stream.thumbnail_url ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') : 
+                             stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
+
+            html += `
+                <div class="followed-stream-item" style="width: calc(33.333% - 10px); min-width: 180px;" onclick="launchPlayer('${stream.user_name}')">
+                    <img src="${imageUrl}" alt="Preview de ${stream.user_name}" class="streamer-avatar">
+                    <div class="stream-details">
+                        <span class="stream-name" title="${stream.user_name}">${stream.user_name}</span>
+                        <div class="stream-meta">
+                            <span class="stream-viewers">🔴 ${stream.viewer_count} spectateurs</span>
+                            <span class="stream-game" title="${stream.game_name}">${stream.game_name}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        resultBox.innerHTML = html;
+    }
+
+    function displayUserStats(userData) {
+        const resultBox = document.getElementById('scan-result-placeholder');
+        resultBox.style.padding = '20px'; // Réappliquer le padding pour l'affichage de texte
+
+        resultBox.innerHTML = `
+            <h4 style="color: #22c7ef; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px;">
+                Statistiques de ${userData.display_name}
+            </h4>
+            <div style="display:flex; align-items:center; gap: 20px; margin-bottom: 20px;">
+                <img src="${userData.profile_image_url}" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #22c7ef;">
+                <div>
+                    <p style="font-size: 16px; font-weight: bold; margin: 0;">Followers: <span style="color:#59d682;">${(userData.followers || 'N/A')}</span></p>
+                    <p style="font-size: 16px; font-weight: bold; margin: 5px 0;">Vues Totales: <span style="color:#ffcc00;">${(userData.total_views || 'N/A')}</span></p>
+                    <p style="font-size: 13px; color: #9aa3a8;">Description: ${userData.description || 'Non fournie.'}</p>
+                </div>
+            </div>
+            <button class="btn-primary" style="background:#22c7ef; color:#000;" onclick="launchPlayer('${userData.login}')">Regarder le Stream</button>
+        `;
     }
 
 
