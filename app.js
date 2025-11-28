@@ -16,7 +16,8 @@ const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 // Utilisation du modèle Flash pour les analyses, incluant la recherche (grounding)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025"; 
+// CORRIGÉ: Remplacé le nom du modèle preview par le nom stable
+const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 // --- DEBUG : Vérification des clés ---
 if (GEMINI_API_KEY) {
@@ -734,11 +735,15 @@ app.get('/twitch_is_live', async (req, res) => {
 });
 
 // 9. ✨ NOUVELLE ROUTE: SCAN ET RÉSULTATS (GESTION DU 404 ANTÉCÉDENT)
-app.get('/scan_results', async (req, res) => {
-    const query = req.query.query ? req.query.query.trim() : '';
+// CORRIGÉ: Renommé de /scan_results à /scan_target et méthode changée de GET à POST
+// pour correspondre au code client et corriger l'erreur 404.
+app.post('/scan_target', async (req, res) => {
+    // CORRIGÉ: Changé de req.query.query à req.body.target
+    const query = req.body.target ? req.body.target.trim() : '';
 
     if (!query) {
-        return res.status(400).json({ error: "Paramètre 'query' manquant." });
+        // CORRIGÉ: Changé le message d'erreur pour refléter la nouvelle clé 'target'
+        return res.status(400).json({ error: "Paramètre 'target' manquant." });
     }
 
     const token = await getTwitchAccessToken();
