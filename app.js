@@ -325,6 +325,55 @@ async function getStreamerDetails(userLogin, token) {
     }
 }
 
+// =========================================================
+// FONCTION DE REPRISE POUR L'API GEMINI
+// =========================================================
+
+/**
+ * Appelle l'API Gemini avec une stratégie de reprise exponentielle en cas d'échec réseau ou serveur.
+ * @param {string} apiUrl L'URL complète de l'API.
+ * @param {object} payload Le corps de la requête.
+ * @param {number} maxRetries Le nombre maximum de tentatives.
+ * @returns {Promise<object>} Le JSON de la réponse de l'API.
+ */
+async function callGeminiApiWithRetry(apiUrl, payload, maxRetries = 5) {
+    let lastError = null;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            // Si la réponse est successful (200-299), on la retourne
+            if (response.ok) {
+                return response.json();
+            } else if (response.status === 429 || response.status >= 500) {
+                // Erreurs de serveur (5xx) ou Too Many Requests (429): on retente
+                lastError = new Error(`HTTP ${response.status} sur tentative ${i + 1}`);
+                // On continue la boucle pour le backoff
+            } else {
+                // Erreurs non retryable (400, 401, etc.): on lève une erreur immédiatement
+                const errorJson = await response.json();
+                console.error(`Gemini API Error (HTTP ${response.status}):`, JSON.stringify(errorJson));
+                throw new Error(`Gemini API returned status ${response.status}: ${JSON.stringify(errorJson)}`);
+            }
+        } catch (error) {
+            // Erreur réseau: on retente
+            lastError = error;
+        }
+
+        // Logique de backoff exponentiel: 1s, 2s, 4s, 8s, ...
+        const delay = Math.pow(2, i) * 1000;
+        if (i < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    // Si la boucle se termine sans succès, on lève l'erreur finale
+    throw new Error(`Failed to call Gemini API after ${maxRetries} attempts. Last error: ${lastError?.message || 'Unknown'}`);
+}
+
 
 // =========================================================
 // ROUTES API (Production Ready)
@@ -466,22 +515,15 @@ app.post('/critique_ia', async (req, res) => {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
     
     try {
-        // CORRECTION CLÉ: Utilisation de 'generationConfig' à la place de 'config'
         const payload = {
             contents: [{ parts: [{ text: userQuery }] }],
             systemInstruction: { parts: [{ text: systemPrompt }] },
             generationConfig: { maxOutputTokens: maxTokens }, 
-            // Ajoute l'outil de recherche uniquement si la liste n'est pas vide
             ...(tools.length > 0 && { tools: tools })
         };
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
+        // Utilisation de la fonction de reprise pour l'appel API
+        const result = await callGeminiApiWithRetry(apiUrl, payload);
         
         // GESTION D'ERREUR AMÉLIORÉE
         const candidate = result.candidates?.[0];
@@ -508,7 +550,11 @@ app.post('/critique_ia', async (req, res) => {
 
     } catch (error) {
         console.error("Erreur Gemini API /critique_ia:", error);
-        res.status(500).json({ error: "Erreur interne lors de l'appel à l'IA.", html_critique: "Une erreur de connexion interne est survenue." });
+        // Retourne l'erreur du backoff s'il y a lieu
+        res.status(500).json({ 
+            error: `Erreur interne lors de l'appel à l'IA: ${error.message}`, 
+            html_critique: "Une erreur de connexion interne est survenue après plusieurs tentatives." 
+        });
     }
 });
 
@@ -628,6 +674,7 @@ app.listen(PORT, () => {
     console.log(`Serveur API actif sur le port ${PORT}`);
     getTwitchAccessToken();
 });
+
 
 
 
