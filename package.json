@@ -2,10 +2,9 @@
   "name": "twitchappi",
   "version": "1.0.0",
   "description": "",
-  "main": "app.cjs",  <-- MODIFIEZ CECI
+  "main": "app.cjs", 
   "scripts": {
-    "start": "node app.cjs"  <-- MODIFIEZ CECI
-    // La ligne "type": "commonjs" a été retirée
+    "start": "node app.cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -21,4 +20,3 @@
     "node-fetch": "^2.7.0"
   }
 }
-
