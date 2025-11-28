@@ -1,0 +1,44 @@
+let state = {
+  currentChannel: "gotaga",
+  boostLoading: false,
+  scannerResult: null
+};
+
+// Init Twitch Player
+let twitchPlayer = new Twitch.Embed("twitch-embed", {
+  width: "100%",
+  height: "100%",
+  channel: state.currentChannel,
+  parent: [window.location.hostname]
+});
+
+// Boost Form
+document.getElementById('boost-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const channelName = document.getElementById('boost-input').value.trim();
+  if (!channelName) return;
+
+  const res = await fetch('/boost', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channelName, userId: crypto.randomUUID() })
+  });
+  const data = await res.json();
+  document.getElementById('boost-msg').textContent = data.message;
+});
+
+// Scanner IA
+document.getElementById('scanner-btn').addEventListener('click', async () => {
+  const res = await fetch('/random');
+  const data = await res.json();
+  state.scannerResult = data.streamer;
+
+  if (state.scannerResult) {
+    document.getElementById('scanner-result').innerHTML = `
+      <p><strong>${state.scannerResult.username}</strong> (${state.scannerResult.viewer_count} viewers)</p>
+      <p>${state.scannerResult.title || "Titre non disponible."}</p>
+    `;
+    // Met à jour Twitch Player
+    twitchPlayer.setChannel(state.scannerResult.username);
+  }
+});
