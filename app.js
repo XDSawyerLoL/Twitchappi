@@ -18,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; // Maintenant utilisé pour l'OAuth
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; // Utilisé pour l'OAuth
 
 // Clé IA et modèle optimisé
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -285,20 +285,57 @@ app.use((req, res, next) => {
 });
 
 
-// --- CORRECTION DU CANNOT GET /twitch_auth_start ---
-// Route pour lancer l'authentification utilisateur (OAuth) - Réintroduite pour la compatibilité
+// --- ROUTE 1: Démarrage de l'authentification utilisateur (OAuth) ---
 app.get('/twitch_auth_start', (req, res) => {
-    // Génération d'un état aléatoire pour la sécurité (prévention CSRF)
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('twitch_oauth_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
 
-    // Les scopes 'user:read:follows' et 'user:read:email' sont des exemples courants
+    // Scopes demandées à l'utilisateur
     const scopes = 'user:read:follows+user:read:email+channel:read:subscriptions';
 
     const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${scopes}&state=${state}`;
     
     // Redirection de l'utilisateur vers Twitch
     res.redirect(authUrl);
+});
+
+// --- ROUTE 2: Callback de l'authentification utilisateur (Twitch renvoie ici) ---
+app.get('/twitch_auth_callback', async (req, res) => {
+    const { code, state } = req.query;
+    const storedState = req.cookies.twitch_oauth_state;
+
+    // 1. Vérification de l'état (Sécurité CSRF)
+    if (!storedState || state !== storedState) {
+        console.error("❌ Erreur CSRF: L'état de la requête ne correspond pas à l'état stocké.");
+        return res.status(403).send('Erreur de sécurité : État OAuth invalide.');
+    }
+    
+    // 2. Échange du code contre le jeton d'accès utilisateur
+    const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`;
+
+    try {
+        const response = await fetch(tokenUrl, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.access_token) {
+            // Ici, vous avez le jeton d'accès utilisateur (data.access_token)
+            // Normalement, vous le stockeriez en base de données ou en session.
+            console.log("✅ Token utilisateur Twitch obtenu avec succès. Redirection vers l'application.");
+
+            // Redirection vers la page principale de l'application, en passant le jeton dans les cookies/session si nécessaire.
+            // Pour cet exemple, nous redirigeons simplement vers la page principale.
+            res.clearCookie('twitch_oauth_state'); 
+            // NOTE: Si vous voulez que le frontend utilise ce token, vous devez le lui transmettre (ex: via un cookie sécurisé ou un hash dans l'URL).
+            return res.redirect('/NicheOptimizer.html?auth=success');
+
+        } else {
+            console.error("❌ Échec de l'échange de code OAuth Twitch:", data.message || "Réponse inconnue.");
+            return res.status(500).send(`Erreur lors de l'authentification: ${data.message || 'Échec de l\'obtention du token.'}`);
+        }
+    } catch (error) {
+        console.error("❌ Erreur lors de l'appel à l'API d'échange de token:", error.message);
+        return res.status(500).send('Erreur interne du serveur lors de l\'authentification.');
+    }
 });
 // --- FIN DE LA CORRECTION ---
 
