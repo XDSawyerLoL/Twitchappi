@@ -5,6 +5,13 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config'; // Charge immédiatement les variables .env
 import crypto from 'crypto';
+import path from 'path'; // Ajouté: Nécessaire pour les chemins de fichiers
+import { fileURLToPath } from 'url'; // Ajouté: Nécessaire pour __dirname en ES Modules
+
+// Configuration pour __dirname en environnement ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 
 // =========================================================
 // Configuration des Variables d'Environnement
@@ -358,6 +365,22 @@ app.post('/critique_ia', async (req, res) => {
          return res.status(400).json({ error: "Paramètres de requête (query ou type) manquants ou incorrects." });
     }
 });
+
+
+// =========================================================
+// Configuration des Routes Statiques (CORRIGÉES)
+// =========================================================
+
+// Servir NicheOptimizer.html lorsque l'utilisateur accède à la racine /
+app.get('/', (req, res) => {
+    // __dirname est le répertoire où se trouve server.js. On sert le fichier à l'intérieur.
+    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+// Si vous avez d'autres fichiers (comme lucky_streamer_picker.html), vous devez également les servir explicitement.
+// Cependant, pour l'instant, seul NicheOptimizer.html est requis à la racine.
+// Si vous souhaitez charger des assets supplémentaires (CSS, JS, images), utilisez :
+// app.use(express.static(__dirname)); 
 
 
 // =========================================================
