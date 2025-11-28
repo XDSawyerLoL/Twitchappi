@@ -462,6 +462,7 @@ app.post('/diagnostic_titre', async (req, res) => {
 // 8. FOLLOWED STREAMS (Utilise le token UTILISATEUR)
 app.get('/followed_streams', async (req, res) => {
     if (!currentUserToken || !currentTwitchUserId) { 
+        // 401: Unauthorized - L'utilisateur n'est pas connecté
         return res.status(401).json({ message: "Utilisateur non connecté via Twitch.", code: 'NO_AUTH' });
     }
 
@@ -475,6 +476,7 @@ app.get('/followed_streams', async (req, res) => {
 
         if (!response.ok) {
             console.error("Erreur API Twitch Followed Streams:", response.status, await response.text());
+            // Si Twitch renvoie un 401 ou 403, le token a peut-être expiré
             return res.status(response.status).json({ message: "Erreur lors de l'appel Twitch API.", status: response.status });
         }
 
@@ -483,6 +485,40 @@ app.get('/followed_streams', async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: "Erreur serveur interne." });
+    }
+});
+
+// 9. IS LIVE CHECK
+app.get('/twitch_is_live', async (req, res) => {
+    const channelName = req.query.channel;
+
+    if (!channelName) {
+        return res.status(400).json({ is_live: false, message: "Nom de chaîne manquant." });
+    }
+
+    const token = await getTwitchAccessToken(); 
+    if (!token) return res.status(500).json({ is_live: false, message: "Erreur Auth Twitch (Token Applicatif)" });
+    
+    try {
+        const url = `https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(channelName)}`;
+        const response = await fetch(url, {
+            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+
+        const isLive = data.data && data.data.length > 0;
+        
+        res.json({ 
+            is_live: isLive, 
+            viewer_count: isLive ? data.data[0].viewer_count : 0,
+            title: isLive ? data.data[0].title : '',
+            game_name: isLive ? data.data[0].game_name : ''
+        });
+
+    } catch (e) {
+        console.error("Erreur check is live:", e);
+        res.status(500).json({ is_live: false, message: "Erreur serveur vérification live." });
     }
 });
 
@@ -513,4 +549,5 @@ app.listen(PORT, () => {
     console.log(`Serveur API actif sur le port ${PORT}`);
     getTwitchAccessToken();
 });
+
 
