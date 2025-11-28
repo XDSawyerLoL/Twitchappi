@@ -506,8 +506,8 @@ app.post('/critique_ia', async (req, res) => {
 
     let systemPrompt, userQuery;
     let tools = []; 
-    let maxTokens = 500; 
-
+    let maxTokens = 1500; // AUGMENTÉ de 500 à 1500 pour plus de robustesse sur les longues analyses
+    
     // --- Configuration des prompts en fonction du type ---
     if (type === 'niche') {
         const nicheGame = game || req.body.nicheGame;
@@ -527,7 +527,7 @@ app.post('/critique_ia', async (req, res) => {
     } else if (title && game) { 
         systemPrompt = "Tu es un expert en marketing et en croissance de chaînes Twitch. Ton objectif est de fournir une analyse critique, constructive et très concise (max 3 phrases) sur le potentiel de croissance d'un stream basé sur son titre, son jeu et ses tags. Ton ton doit être professionnel et encourageant.";
         userQuery = `Analyse le stream avec ces informations : Titre : "${title}". Jeu : "${game}". Tags : "${tags?.join(', ') || 'aucun'}".`;
-        maxTokens = 100; 
+        maxTokens = 250; // AUGMENTÉ de 100 à 250 pour la critique courte
     } else {
         return res.status(400).json({ error: "Type d'analyse IA ou données d'entrée manquantes invalides." });
     }
@@ -556,6 +556,7 @@ app.post('/critique_ia', async (req, res) => {
                 html_critique: "Désolé, l'IA ne peut pas traiter cette requête en raison de restrictions de sécurité ou de contenu." 
             });
         } else {
+            // Log la réponse inattendue pour le debug
             console.error("Gemini API Unexpected Response:", JSON.stringify(result));
             res.status(500).json({ 
                 error: "Erreur lors de la génération de la critique par l'IA. (Réponse API Gemini vide ou inattendue)", 
@@ -703,6 +704,7 @@ app.listen(PORT, () => {
     console.log(`Serveur API actif sur le port ${PORT}`);
     getTwitchAccessToken();
 });
+
 
 
 
