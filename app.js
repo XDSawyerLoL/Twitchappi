@@ -1,4 +1,3 @@
-
 // --- IMPORTS ESM ---
 import express from 'express';
 import cors from 'cors';
@@ -28,6 +27,13 @@ const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 // Configuration de l'API Gemini
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025"; 
+
+// --- DEBUG : Vérification des clés ---
+if (GEMINI_API_KEY) {
+    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
+} else {
+    console.error("FATAL DEBUG: GEMINI_API_KEY est ABSENTE. L'IA est INACTIVE et pourrait causer des erreurs 503.");
+}
 
 // --- Stockage d'État pour la Connexion Utilisateur (OAuth) ---
 let currentUserToken = null; 
@@ -297,20 +303,6 @@ async function fetchUserDetailsForScan(userLogin, token) {
     }
 }
 
-async function getStreamerDetails(userLogin, token) {
-    // Fonction simplifiée (non critique pour le bug actuel)
-    // Elle est laissée vide pour les autres routes qui pourraient en avoir besoin.
-    // Votre front-end utilise principalement fetchUserDetailsForScan et is_live.
-    return {
-        username: userLogin,
-        is_live: false,
-        title: 'Hors ligne',
-        game_name: 'N/A',
-        viewer_count: 0,
-        follower_count: 0,
-        tags: [],
-    };
-}
 
 // =========================================================
 // FONCTION DE REPRISE POUR L'API GEMINI (Optimisée)
@@ -331,11 +323,14 @@ async function callGeminiApiWithRetry(apiUrl, payload, maxRetries = 5) {
             } else if (response.status === 429 || response.status >= 500) {
                 lastError = new Error(`HTTP ${response.status} sur tentative ${i + 1}`);
             } else {
+                // Tentative d'extraire l'erreur pour un meilleur débogage
                 const errorText = await response.text();
                 try {
                     const errorJson = JSON.parse(errorText);
+                    // Renvoyer l'erreur de l'API si elle est formatée
                     throw new Error(`Gemini API returned status ${response.status}: ${JSON.stringify(errorJson)}`);
                 } catch {
+                     // Renvoyer l'erreur brute si ce n'est pas du JSON
                      throw new Error(`Gemini API returned status ${response.status}: ${errorText.substring(0, 100)}...`);
                 }
             }
@@ -457,12 +452,17 @@ app.post('/boost', (req, res) => {
 
 // 6. IA : Gère tous les diagnostics (Stream, Niche, Repurpose, Trend)
 app.post('/critique_ia', async (req, res) => {
-    const { type, title, game, tags, channel } = req.body;
-    
+    // CORRECTION CRITIQUE: Vérifier la clé API Gemini en premier.
     if (!GEMINI_API_KEY) {
-        return res.status(503).json({ error: "IA désactivée. Clé manquante.", html_critique: "Service IA indisponible (Clé manquante)." });
+        // Retourne un JSON explicite si la clé manque pour éviter que le client reçoive du HTML.
+        return res.status(503).json({ 
+            error: "Service IA désactivé.", 
+            html_critique: "<p style='color:#ff5555;font-weight:bold;'>Service IA indisponible: La clé API Gemini est manquante sur le serveur.</p>"
+        });
     }
 
+    const { type, title, game, tags, channel } = req.body;
+    
     let systemPrompt, userQuery;
     let tools = []; 
     let maxTokens = 1500; 
@@ -515,8 +515,10 @@ app.post('/critique_ia', async (req, res) => {
         console.error("Erreur critique catch /critique_ia:", error.message);
         let userErrorMessage = "Une erreur de connexion interne est survenue. Le service IA est temporairement indisponible.";
 
-        if (error.message.includes("API returned status 40") || error.message.includes("API returned status 401")) {
-            userErrorMessage = "Erreur de configuration de l'API. La clé Gemini est probablement invalide ou manquante.";
+        if (error.message.includes("API returned status 401")) {
+            userErrorMessage = "Erreur de configuration de l'API. La clé Gemini est invalide.";
+        } else if (error.message.includes("API returned status 429")) {
+            userErrorMessage = "Quota API dépassé. Veuillez réessayer plus tard.";
         }
 
         res.status(500).json({ error: `Erreur interne lors de l'appel à l'IA: ${error.message}`, html_critique: userErrorMessage });
@@ -593,7 +595,9 @@ app.get('/twitch_is_live', async (req, res) => {
             is_live: isLive, 
             viewer_count: isLive ? data.data[0].viewer_count : 0,
             title: isLive ? data.data[0].title : '',
-            game_name: isLive ? data.data[0].game_name : ''
+            game_name: isLive ? data.data[0].game_name : '',
+            user_name: isLive ? data.data[0].user_login : channelName, // Renvoyer le login si live
+            display_name: isLive ? data.data[0].user_name : channelName // Renvoyer le display name si live
         });
 
     } catch (e) {
@@ -651,7 +655,7 @@ app.get('/scan_results', async (req, res) => {
 
 
 // =========================================================
-// Configuration des Routes Statiques (CORRECTION CRITIQUE ici)
+// Configuration des Routes Statiques
 // =========================================================
 
 app.get('/', (req, res) => {
