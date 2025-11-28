@@ -178,7 +178,7 @@
             transform: translateY(-1px);
         }
         
-        /* --- NOUVEAU: Styles pour l'avatar --- */
+        /* --- Styles pour l'avatar --- */
         .streamer-info {
             display: flex;
             align-items: center;
@@ -265,7 +265,7 @@
                 <button type="submit" id="btn-target" class="btn-secondary" style="min-width:80px;">🎯 CIBLER</button>
             </form>
             <div id="scan-result-placeholder" style="text-align:center; color:#555; padding:20px; border: 1px dashed #333; border-radius: 6px;">
-                Les résultats du scan apparaîtront ici.
+                Les résultats du scan apparaîtront ici. (Résultats réels de l'API)
             </div>
             <div id="scan-result" class="hidden"></div>
         </div>
@@ -331,22 +331,17 @@
 <script>
     // --- Configuration Globale ---
     const API_BASE = window.location.origin;
-    const DEFAULT_CHANNEL = 'twitch'; // Chaîne par défaut si rien n'est stocké
+    const DEFAULT_CHANNEL = 'twitch'; 
 
     // --- Gestion des Onglets ---
     function openTab(tabId) {
-        // Sauvegarder l'onglet dans localStorage
         localStorage.setItem('activeTab', tabId);
-
-        // Désactiver tous les contenus d'onglet et les boutons
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         
-        // Activer l'onglet cible
         const targetTab = document.getElementById(tabId);
         if (targetTab) {
             targetTab.classList.add('active');
-            // Trouver et activer le bouton correspondant
             const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
             if (targetBtn) targetBtn.classList.add('active');
         }
@@ -360,11 +355,9 @@
     function launchPlayer(channelName) {
         if (!channelName) return;
 
-        // Stocker la chaîne active
         localStorage.setItem('activeChannel', channelName);
         inputChannel.value = channelName;
 
-        // Vider le conteneur et créer le nouvel embed
         twitchEmbedContainer.innerHTML = '';
         embed = new Twitch.Embed("twitch-embed", {
             width: "100%",
@@ -372,19 +365,16 @@
             channel: channelName,
             layout: "video",
             autoplay: true,
-            // Le statut affiché ici est purement décoratif ou basé sur l'API externe (loadFollowedStreams)
         });
         document.getElementById('player-channel-status').textContent = `Chaîne: ${channelName.toUpperCase()}`;
     }
 
-    // Initialisation du lecteur au chargement
     function initializePlayer() {
         const storedChannel = localStorage.getItem('activeChannel');
         const channelToLoad = storedChannel || DEFAULT_CHANNEL;
         launchPlayer(channelToLoad);
     }
     
-    // Gestion du lancement manuel
     document.getElementById('form-channel-player').addEventListener('submit', (e) => {
         e.preventDefault();
         const channel = inputChannel.value.trim().toLowerCase();
@@ -397,10 +387,8 @@
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
-    let isConnected = false;
-    let twitchUserConnected = false; // État de connexion spécifique à Twitch
+    let twitchUserConnected = false; 
 
-    // Fonction pour vérifier le statut auprès du serveur
     async function checkAuth() {
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
@@ -410,17 +398,16 @@
                     twitchUserConnected = true;
                     loginStatus.innerHTML = `✅ Connecté en tant que <strong style="color:#22c7ef">${data.username}</strong>`;
                     btnLogin.textContent = "🔒 DÉCONNEXION";
-                    btnLogin.style.background = "#e34a64"; // Rouge pour déconnexion
-                    loadFollowedStreams(); // Charger le fil automatiquement
+                    btnLogin.style.background = "#e34a64"; 
+                    loadFollowedStreams(); 
                 } else {
                     twitchUserConnected = false;
                     loginStatus.textContent = "Statut: Déconnecté.";
                     btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
-                    btnLogin.style.background = "#6441a5"; // Violet Twitch
+                    btnLogin.style.background = "#6441a5"; 
                     followedStreamsList.innerHTML = '<p style="color:#ff9900; text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
                 }
             } else {
-                // Si le statut HTTP n'est pas OK (ex: 404, 500)
                 twitchUserConnected = false;
                 loginStatus.innerHTML = `❌ Erreur API (${res.status}). Veuillez vérifier le serveur backend.`;
                 followedStreamsList.innerHTML = '<p style="color:red; text-align:center;">Erreur de connexion au service Twitch.</p>';
@@ -433,18 +420,15 @@
         }
     }
 
-    // Gestion du clic bouton (Connexion/Déconnexion)
     btnLogin.addEventListener('click', () => {
         if(twitchUserConnected) {
-            // Logique de Déconnexion (supposer une route /twitch_logout)
             window.location.href = `${API_BASE}/twitch_logout`;
         } else {
-            // Logique de Connexion (supposer une route /twitch_auth_start)
             window.location.href = `${API_BASE}/twitch_auth_start`;
         }
     });
 
-    // Charger les streams suivis (AVEC AFFICHAGE DE L'AVATAR)
+    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (SANS SIMULATION) ---
     async function loadFollowedStreams() {
         if(!twitchUserConnected) {
             followedStreamsList.innerHTML = '<p style="color:#ff9900; text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
@@ -455,20 +439,13 @@
         
         try {
             const res = await fetch(`${API_BASE}/followed_streams`);
+            
             if(res.ok) {
-                let data = await res.json();
-
-                // --- SIMULATION TEMPORAIRE de données AVEC AVATARS ---
-                // REMARQUE : Cette partie DOIT être gérée par votre API backend,
-                // qui doit récupérer les profile_image_url de Twitch.
-                const dummyAvatar = 'https://picsum.photos/40/40?random='; 
-                data.data = data.data.map((stream, index) => ({ 
-                    ...stream, 
-                    // Pour la démo, on utilise une image aléatoire (picsum)
-                    profile_image_url: stream.profile_image_url || `${dummyAvatar}${index}` 
-                }));
-                // --- FIN SIMULATION ---
-
+                const data = await res.json();
+                
+                // IMPORTANT: data.data doit contenir 'user_name', 'game_name', 'viewer_count', 
+                // et surtout 'profile_image_url' fourni par votre backend.
+                // AUCUNE MODIFICATION DE DONNÉES EN FRONT-END ICI.
 
                 if(data.data && data.data.length > 0) {
                     followedStreamsList.innerHTML = ''; // Vider
@@ -476,21 +453,21 @@
                         const div = document.createElement('div');
                         div.className = 'followed-stream-item';
                         
-                        // --- MODIFICATION ICI : AJOUT DE L'AVATAR ---
+                        // Utilise stream.profile_image_url qui est censé venir du backend
+                        // Si l'URL n'existe pas, l'image n'apparaîtra pas, ce qui est le comportement de production attendu.
+                        const avatarUrl = stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; // Fallback Twitch par défaut
+
                         div.innerHTML = `
                             <div class="streamer-info">
-                                <img src="${stream.profile_image_url || 'placeholder.png'}" alt="Avatar de ${stream.user_name}" class="streamer-avatar">
+                                <img src="${avatarUrl}" alt="Avatar de ${stream.user_name}" class="streamer-avatar">
                                 <strong>${stream.user_name}</strong>
                             </div>
                             <span style="font-size:11px; color:#aaa; margin-right:10px;">${stream.game_name}</span>
                             <span style="color:#ff0099;">🔴 ${stream.viewer_count}</span>
                         `;
-                        // --- FIN DE LA MODIFICATION ---
 
-                        // Clic pour lancer le lecteur
                         div.onclick = () => {
                             launchPlayer(stream.user_name);
-                            // openTab('tab-followed'); 
                         };
                         followedStreamsList.appendChild(div);
                     });
@@ -498,8 +475,7 @@
                     followedStreamsList.innerHTML = '<p style="text-align:center;">Aucun stream en direct parmi vos chaînes suivies.</p>';
                 }
             } else {
-                // Gérer les erreurs de token ou d'accès
-                followedStreamsList.innerHTML = '<p style="color:red; text-align:center;">Erreur chargement du fil (Token expiré ?).</p>';
+                followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur chargement du fil (Statut: ${res.status}).</p>`;
             }
         } catch(e) {
             followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur API: ${e.message}</p>`;
@@ -507,9 +483,9 @@
     }
 
 
-    // --- Logique d'interaction IA simulée (Inchagée) ---
+    // --- Logique d'interaction IA (Suppression de la simulation asynchrone) ---
 
-    // 1. Analyse de Niche (Simulée)
+    // 1. Analyse de Niche (Code de production)
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -520,31 +496,31 @@
         if (!game) return;
 
         container.style.display = 'block';
-        resultBox.innerHTML = '<p style="color:#ffcc00;">Analyse IA de niche en cours pour ' + game + '... (Requiert une implémentation backend)</p>';
+        resultBox.innerHTML = '<p style="color:#ffcc00;">Analyse IA de niche en cours pour ' + game + '... (Appel API réel)</p>';
         btn.disabled = true;
 
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        resultBox.innerHTML = `
-            <div class="ai-niche-output">
-                <h4 style="color:#59d682; font-family:'Orbitron',sans-serif; margin-bottom:10px;">Rapport de Niche pour ${game.toUpperCase()}</h4>
-                <p><strong>1. Saturation:</strong> Le jeu <strong>${game.toUpperCase()}</strong> présente une saturation <strong>Modérée</strong>. Il y a de l'espace, mais la concurrence est visible. Évitez les heures de pointe (18h-22h CET) pour vous lancer.</p>
-                <p><strong>2. Angles d'Attaque Uniques:</strong> L'IA suggère les angles suivants :</p>
-                <ul style="list-style-type: disc; margin-left: 20px;">
-                    <li>- <strong>Builds Extrêmes:</strong> Concentration sur des défis en jeu (ex: "No-Damage Run") pour attirer les spectateurs de haut niveau.</li>
-                    <li>- <strong>Rôle Inconnu:</strong> Démarrez le stream en vous concentrant sur une classe ou une fonction rarement jouée (ex: "Le soigneur solitaire").</li>
-                    <li>- <strong>Collaborations Niche:</strong> Cherchez des streamers qui jouent à des jeux similaires mais moins populaires (Synergie Niche).</li>
-                </ul>
-                <p><strong>3. Mots-clés Clés:</strong> Utilisez #${game.replace(/\s/g, '')}Challenge, #NewMeta et #GamingFr pour maximiser la découvrabilité.</p>
-            </div>
-        `;
-        btn.disabled = false;
-        // --- FIN SIMULATION ---
-        
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ game: game, type: 'niche' })
+            });
+
+            if(res.ok) {
+                const data = await res.json();
+                // Assurez-vous que le backend renvoie du HTML ou Markdown pour affichage direct
+                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+            } else {
+                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API IA: ${res.status}.</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:red;">Erreur de connexion au service IA: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
     });
 
-    // 2. Repurposing & Croissance (Exemples de Placeholders)
-
+    // 2. Repurposing (Code de production)
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -555,55 +531,65 @@
         if (!channel) return;
 
         container.style.display = 'block';
-        resultBox.innerHTML = `<p style="color:#ffcc00;">Analyse de VOD en cours pour ${channel}... (Simulation)</p>`;
+        resultBox.innerHTML = `<p style="color:#ffcc00;">Analyse de VOD pour ${channel} en cours... (Appel API réel)</p>`;
         btn.disabled = true;
-        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        resultBox.innerHTML = `
-            <div class="ai-niche-output">
-                <h4 style="color:#9933ff; font-family:'Orbitron',sans-serif; margin-bottom:10px;">Idées de Repurposing pour ${channel.toUpperCase()}</h4>
-                <p><strong>Clip:</strong> Top 3 des moments de rage sur la VOD la plus récente (format 9:16 pour TikTok/Shorts).</p>
-                <p><strong>Titre Suggestion:</strong> "J'AI CRU QUE J'ALLAIS CASSER MA SOURIS (BEST OF RAGE)"</p>
-                <p><strong>Idée Long-Form:</strong> Un montage de 5 minutes compilant les meilleures interactions avec les abonnés lors du dernier stream de chill (Format YouTube).</p>
-            </div>
-        `;
-        btn.disabled = false;
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ channel: channel, type: 'repurpose' })
+            });
+
+            if(res.ok) {
+                const data = await res.json();
+                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+            } else {
+                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Repurposing: ${res.status}.</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:red;">Erreur de connexion au service Repurposing: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
     });
 
+    // 3. Trend Detector (Code de production)
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const container = document.getElementById('trend-results');
         const btn = document.getElementById('btn-trend-detector');
 
         container.style.display = 'block';
-        resultBox.innerHTML = `<p style="color:#ffcc00;">Détection des tendances en cours... (Simulation de recherche de niche)</p>`;
+        resultBox.innerHTML = `<p style="color:#ffcc00;">Détection des tendances en cours... (Appel API réel)</p>`;
         btn.disabled = true;
-        await new Promise(resolve => setTimeout(resolve, 2500));
 
-        resultBox.innerHTML = `
-            <div class="ai-niche-output" style="border-color:#ffcc00;">
-                <h4 style="color:#ffcc00; font-family:'Orbitron',sans-serif; margin-bottom:10px;">🔮 Prochaines Niches (Analyse IA)</h4>
-                <ul style="list-style-type: disc; margin-left: 20px;">
-                    <li>- <strong>Micro-Niche:</strong> Jeux de construction de villes post-apocalyptiques. Faible concurrence, public très engagé.</li>
-                    <li>- <strong>Thème d'Actu:</strong> La création de contenu IA (musique, images) en direct sur Twitch. Tendance en forte croissance.</li>
-                    <li>- <strong>Jeu à Surveiller:</strong> "Astral Chain 2" (Hypothétique) - Le buzz commence. Soyez prêt à streamer dès le lancement !</li>
-                </ul>
-            </div>
-        `;
-        btn.disabled = false;
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type: 'trend' })
+            });
+
+            if(res.ok) {
+                const data = await res.json();
+                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+            } else {
+                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Trend: ${res.status}.</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:red;">Erreur de connexion au service Trend: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
     });
 
 
     // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
-        // 1. Initialiser le lecteur Twitch avec la dernière chaîne ou la chaîne par défaut
         initializePlayer();
-
-        // 2. Récupérer l'onglet actif et l'ouvrir
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
-        
-        // 3. Vérifier le statut d'authentification Twitch
         checkAuth();
     });
 </script>
