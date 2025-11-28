@@ -354,7 +354,7 @@ async function callGeminiApiWithRetry(apiUrl, payload, maxRetries = 5) {
                 lastError = new Error(`HTTP ${response.status} sur tentative ${i + 1}`);
                 // On continue la boucle pour le backoff
             } else {
-                // Erreurs non retryable (400, 401, etc.): on lève une erreur immédiatement
+                // Erreurs non retryable (400, 401, 403, etc.): on lève une erreur immédiatement
                 const errorJson = await response.json();
                 console.error(`Gemini API Error (HTTP ${response.status}):`, JSON.stringify(errorJson));
                 throw new Error(`Gemini API returned status ${response.status}: ${JSON.stringify(errorJson)}`);
@@ -550,10 +550,21 @@ app.post('/critique_ia', async (req, res) => {
 
     } catch (error) {
         console.error("Erreur Gemini API /critique_ia:", error);
+        
+        let userErrorMessage = "Une erreur de connexion interne est survenue après plusieurs tentatives. Le service est peut-être temporairement indisponible.";
+
+        // Détection d'une erreur API non-retryable (400, 401, 403) qui pourrait indiquer un problème de clé ou de configuration.
+        if (error.message.includes("API returned status 400") || error.message.includes("API returned status 401") || error.message.includes("API returned status 403")) {
+            userErrorMessage = "Erreur de configuration de l'API. La clé Gemini est probablement invalide ou manquante. (Vérifiez votre clé API)";
+        } else if (error.message.includes("Failed to call Gemini API after")) {
+            // Erreur après les retries
+            userErrorMessage = "L'appel à l'API de l'IA a échoué après plusieurs tentatives. Le service est peut-être temporairement indisponible ou en surcharge.";
+        }
+
         // Retourne l'erreur du backoff s'il y a lieu
         res.status(500).json({ 
             error: `Erreur interne lors de l'appel à l'IA: ${error.message}`, 
-            html_critique: "Une erreur de connexion interne est survenue après plusieurs tentatives." 
+            html_critique: userErrorMessage 
         });
     }
 });
@@ -674,6 +685,7 @@ app.listen(PORT, () => {
     console.log(`Serveur API actif sur le port ${PORT}`);
     getTwitchAccessToken();
 });
+
 
 
 
