@@ -160,41 +160,51 @@
         .ai-niche-output { color: #ffffff !important; line-height: 1.6; font-size: 13px; }
         .ai-niche-output strong { color: #ff0099; }
         
-        /* --- Styles pour l'avatar et la liste des streams suivis (CORRIGÉS) --- */
+        /* --- Styles pour la liste des streams suivis (AFFICHAGE HORIZONTAL) --- */
+        #followed-streams-list {
+            display: flex;
+            flex-wrap: wrap; /* Permet aux éléments de passer à la ligne */
+            gap: 15px; /* Espacement entre les tuiles */
+            padding: 0;
+            margin: 0;
+        }
+
         .followed-stream-item {
             display: flex;
-            align-items: center; /* Aligner les éléments verticalement */
-            justify-content: flex-start; /* Alignement de base */
-            padding: 10px 15px;
-            margin-bottom: 8px;
+            flex-direction: column; /* Organise Avatar/Détails verticalement dans la tuile */
+            width: calc(33.333% - 10px); /* 3 colonnes sur desktop, ajusté pour le gap */
+            min-width: 180px; /* Largeur minimale pour les mobiles */
+            padding: 10px;
             background: #111;
-            border-radius: 6px;
-            border-left: 4px solid #ff0099;
+            border-radius: 8px;
+            border: 1px solid #2e2e2e;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
         .followed-stream-item:hover {
-            background: #280517;
-            transform: translateY(-1px);
+            background: #181818;
+            border-color: #ff0099;
+            transform: translateY(-2px);
         }
 
         .streamer-avatar {
-            width: 45px; /* Taille de l'avatar */
-            height: 45px;
-            border-radius: 50%; /* Rendre l'image ronde */
-            border: 2px solid #ff0099; /* Bordure d'accent */
-            object-fit: cover; /* Assure que l'image couvre bien la zone */
-            flex-shrink: 0; /* Empêche l'avatar de se rétrécir */
+            width: 100%; /* L'image prend toute la largeur de la tuile */
+            height: auto;
+            aspect-ratio: 16 / 9; /* Format vidéo (pour simuler la preview) */
+            border-radius: 4px;
+            border: 1px solid #ff0099;
+            object-fit: cover;
+            flex-shrink: 0;
         }
 
-        /* NOUVEAUX STYLES POUR LA DISPOSITION VERTICALE DES INFOS */
         .stream-details {
             display: flex;
-            flex-direction: column; /* Nom, viewers, jeu empilés */
+            flex-direction: column; 
             justify-content: center;
-            flex-grow: 1; /* Permet aux détails de prendre l'espace */
-            margin-left: 15px; /* Espace entre l'avatar et les infos */
-            min-width: 0; /* Important pour que l'overflow ellipsis fonctionne */
+            flex-grow: 1; 
+            margin-top: 8px; /* Espace sous l'image */
+            min-width: 0; 
         }
 
         .stream-name {
@@ -205,35 +215,40 @@
             overflow: hidden;
             text-overflow: ellipsis;
             line-height: 1.2;
+            margin-bottom: 3px;
         }
 
         .stream-meta {
             font-size: 11px;
             display: flex;
-            flex-direction: column; /* Spectateurs et jeu empilés */
+            flex-direction: column; 
             line-height: 1.4;
-            margin-top: 2px;
         }
 
         .stream-viewers {
-            color: #ff0099; /* Rouge Twitch pour les viewers */
+            color: #ff0099; 
             font-weight: 600;
         }
 
         .stream-game {
-            color: #aaa; /* Gris pour le jeu */
+            color: #aaa; 
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        /* FIN DES NOUVEAUX STYLES CORRIGÉS */
 
+        /* Responsive pour Mobile (une seule colonne) */
         @media (max-width: 768px) {
+            .followed-stream-item {
+                width: 100%; /* Une seule colonne pour les petits écrans */
+                min-width: unset;
+            }
             #twitch-embed { height: 300px; }
             h1 { font-size: 22px; }
             .tab-btn { padding: 8px 10px; font-size: 10px; flex-basis: 50%; max-width: 50%; }
             .flex-tabs { flex-wrap: wrap; }
         }
+        /* FIN DES NOUVEAUX STYLES CORRIGÉS */
     </style>
 </head>
 <body>
@@ -463,7 +478,7 @@
         }
     });
 
-    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (CORRIGÉE) ---
+    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (CORRIGÉE POUR AFFICHAGE HORIZONTAL) ---
     async function loadFollowedStreams() {
         if(!twitchUserConnected) {
             followedStreamsList.innerHTML = '<p style="color:#ff9900; text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
@@ -484,11 +499,14 @@
                         const div = document.createElement('div');
                         div.className = 'followed-stream-item';
                         
-                        // Utilise stream.profile_image_url du backend pour l'avatar
-                        const avatarUrl = stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
+                        // Utilise stream.thumbnail_url pour une meilleure simulation de preview de stream
+                        // Note : Twitch fournit souvent une thumbnail_url (image de preview) pour les streams LIVE.
+                        // On utilise profile_image_url comme fallback au cas où.
+                        const imageUrl = stream.thumbnail_url ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') : 
+                                         stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
 
                         div.innerHTML = `
-                            <img src="${avatarUrl}" alt="Avatar de ${stream.user_name}" class="streamer-avatar">
+                            <img src="${imageUrl}" alt="Preview de ${stream.user_name}" class="streamer-avatar">
                             <div class="stream-details">
                                 <span class="stream-name" title="${stream.user_name}">${stream.user_name}</span>
                                 <div class="stream-meta">
