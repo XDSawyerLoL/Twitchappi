@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // NOTE: Ceci doit être présent pour Node < 18
 const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
+const admin = require("firebase-admin"); // Assurons-nous que cette dépendance est au top
 
 const app = express();
 
@@ -21,7 +22,8 @@ const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
 if (GEMINI_API_KEY) {
     console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
 } else {
-    console.log("DEBUG: GEMINI_API_KEY est absente ou vide. L'IA est DÉSACTIVÉE.");
+    // Avertissement critique si la clé IA manque
+    console.error("FATAL DEBUG: GEMINI_API_KEY est absente ou vide. L'IA est DÉSACTIVÉE et les routes /critique_ia peuvent échouer avec 503.");
 }
 console.log(`DEBUG CONFIG TWITCH: Client ID: ${TWITCH_CLIENT_ID ? 'OK' : 'MANQUANT'}, Secret: ${TWITCH_CLIENT_SECRET ? 'OK' : 'MANQUANT'}, Redirect URI: ${REDIRECT_URI ? 'OK' : 'MANQUANT'}`);
 
@@ -40,12 +42,15 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Gère l'erreur cosmétique du favicon
+app.get('/favicon.ico', (req, res) => res.status(204).end()); 
+
 // =========================================================
 // Firebase Admin SDK (Laissé tel quel)
 // =========================================================
-const admin = require("firebase-admin");
 
 let firebaseCredentials;
+var rtdb, firestore;
 
 try {
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -63,8 +68,8 @@ try {
             // 👉 REMPLACEZ LA LIGNE CI-DESSOUS par l'URL de votre base de données :
             databaseURL: "https://TON_PROJET.firebaseio.com"
         });
-        var rtdb = admin.database();
-        var firestore = admin.firestore();
+        rtdb = admin.database();
+        firestore = admin.firestore();
     }
 } catch (e) {
     console.error("Erreur critique lors de l'initialisation Firebase. Le serveur continue sans DB:", e.message);
@@ -355,9 +360,16 @@ async function callGeminiApiWithRetry(apiUrl, payload, maxRetries = 5) {
                 // On continue la boucle pour le backoff
             } else {
                 // Erreurs non retryable (400, 401, 403, etc.): on lève une erreur immédiatement
-                const errorJson = await response.json();
-                console.error(`Gemini API Error (HTTP ${response.status}):`, JSON.stringify(errorJson));
-                throw new Error(`Gemini API returned status ${response.status}: ${JSON.stringify(errorJson)}`);
+                const errorText = await response.text();
+                // Tente d'analyser le JSON, sinon utilise le texte brut
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    console.error(`Gemini API Error (HTTP ${response.status}):`, JSON.stringify(errorJson));
+                    throw new Error(`Gemini API returned status ${response.status}: ${JSON.stringify(errorJson)}`);
+                } catch {
+                     console.error(`Gemini API Error (HTTP ${response.status}):`, errorText);
+                     throw new Error(`Gemini API returned status ${response.status}: ${errorText.substring(0, 100)}...`);
+                }
             }
         } catch (error) {
             // Erreur réseau: on retente
@@ -480,34 +492,42 @@ app.post('/boost', (req, res) => {
 
 // 6. IA : Gère tous les diagnostics (Stream, Niche, Repurpose, Trend)
 app.post('/critique_ia', async (req, res) => {
+    // --- LOGGING DE DEBUG ---
+    console.log("CRITIQUE_IA: Requête reçue.");
+    console.log("CRITIQUE_IA: Body:", req.body);
+    // -------------------------
+
     const { type, title, game, tags, channel } = req.body;
     
     if (!GEMINI_API_KEY) {
-        return res.status(503).json({ error: "IA désactivée. Veuillez configurer GEMINI_API_KEY." });
+        // Retourne une erreur 503 Service indisponible, et NON 500 Interne
+        return res.status(503).json({ error: "IA désactivée. Veuillez configurer GEMINI_API_KEY.", html_critique: "Service IA indisponible (Clé manquante)." });
     }
 
     let systemPrompt, userQuery;
-    let tools = []; // Active Google Search Grounding uniquement pour les besoins de recherche
-    let maxTokens = 500; // Par défaut pour les analyses détaillées
+    let tools = []; 
+    let maxTokens = 500; 
 
     // --- Configuration des prompts en fonction du type ---
     if (type === 'niche') {
         const nicheGame = game || req.body.nicheGame;
+        if (!nicheGame) { return res.status(400).json({ error: "Jeu ou Niche manquant pour l'analyse." }); }
         systemPrompt = "Tu es un analyste de marché Twitch spécialisé. Fournis une analyse détaillée des opportunités et des menaces (SWOT simplifié) pour streamer sur le jeu/niche donné. Utilise des listes à puces et des titres en Markdown pour formater la réponse. Sois professionnel et factuel.";
         userQuery = `Analyse de niche pour le jeu : "${nicheGame}". Quels sont les angles uniques et les mots-clés de niche à cibler pour la croissance?`;
-        tools = [{ "google_search": {} }]; // Nécessite des données à jour
+        tools = [{ "google_search": {} }]; 
     } else if (type === 'repurpose') {
         const repurposeChannel = channel;
+         if (!repurposeChannel) { return res.status(400).json({ error: "Nom de chaîne manquant pour l'analyse de Repurposing." }); }
         systemPrompt = "Tu es un expert en Repurposing de contenu. Basé sur le nom du streamer, propose 3 idées de courts-métrages (Shorts, TikTok) et 1 idée de vidéo YouTube plus longue pour le contenu de ce streamer. Utilise des titres en Markdown pour chaque idée. Fais des suggestions concrètes (par exemple, 'Clip du moment où il a raté le tir').";
         userQuery = `Propose des idées de Repurposing de contenu pour le streamer (hypotthétique) : "${repurposeChannel}".`;
     } else if (type === 'trend') {
         systemPrompt = "Tu es un Détecteur de Tendances Twitch. Sur la base des données de recherche disponibles, identifie la prochaine niche/jeu émergent et explique pourquoi en 4-5 phrases max. Ta réponse doit être en Markdown gras et se concentrer uniquement sur les tendances de streaming/jeux vidéo.";
         userQuery = "Détecte et analyse la prochaine grande tendance (jeu, catégorie, type de contenu) sur Twitch pour les prochains mois. Base ta réponse sur la recherche web.";
-        tools = [{ "google_search": {} }]; // Nécessite des données à jour
-    } else if (title && game) { // Type de critique de stream par défaut (inclut l'ancien diagnostic titre)
+        tools = [{ "google_search": {} }]; 
+    } else if (title && game) { 
         systemPrompt = "Tu es un expert en marketing et en croissance de chaînes Twitch. Ton objectif est de fournir une analyse critique, constructive et très concise (max 3 phrases) sur le potentiel de croissance d'un stream basé sur son titre, son jeu et ses tags. Ton ton doit être professionnel et encourageant.";
         userQuery = `Analyse le stream avec ces informations : Titre : "${title}". Jeu : "${game}". Tags : "${tags?.join(', ') || 'aucun'}".`;
-        maxTokens = 100; // Réponse plus courte pour ce type de critique
+        maxTokens = 100; 
     } else {
         return res.status(400).json({ error: "Type d'analyse IA ou données d'entrée manquantes invalides." });
     }
@@ -522,46 +542,44 @@ app.post('/critique_ia', async (req, res) => {
             ...(tools.length > 0 && { tools: tools })
         };
 
-        // Utilisation de la fonction de reprise pour l'appel API
         const result = await callGeminiApiWithRetry(apiUrl, payload);
         
-        // GESTION D'ERREUR AMÉLIORÉE
         const candidate = result.candidates?.[0];
         
         if (candidate && candidate.content?.parts?.[0]?.text) {
-            // Succès
             const generatedText = candidate.content.parts[0].text;
             res.json({ html_critique: generatedText });
         } else if (result.promptFeedback?.blockReason) {
-            // Blocage de sécurité
             console.error("Gemini API Blocked:", result.promptFeedback);
             res.status(400).json({ 
                 error: `Le contenu a été bloqué par les filtres de sécurité de l'IA. Raison: ${result.promptFeedback.blockReason}`, 
                 html_critique: "Désolé, l'IA ne peut pas traiter cette requête en raison de restrictions de sécurité ou de contenu." 
             });
         } else {
-            // Autre erreur inattendue ou réponse vide
             console.error("Gemini API Unexpected Response:", JSON.stringify(result));
             res.status(500).json({ 
                 error: "Erreur lors de la génération de la critique par l'IA. (Réponse API Gemini vide ou inattendue)", 
-                html_critique: "Une erreur interne s'est produite lors de l'analyse par l'IA." 
+                html_critique: "Une erreur interne s'est produite lors de l'analyse par l'IA. (Réponse vide)" 
             });
         }
 
     } catch (error) {
-        console.error("Erreur Gemini API /critique_ia:", error);
+        console.error("Erreur critique catch /critique_ia:", error.message);
+        
+        // --- NOUVEAU LOGGING DE STACK TRACE ---
+        if (error.stack) {
+            console.error("CRITIQUE_IA: Stack Trace:", error.stack);
+        }
+        // ------------------------------------
         
         let userErrorMessage = "Une erreur de connexion interne est survenue après plusieurs tentatives. Le service est peut-être temporairement indisponible.";
 
-        // Détection d'une erreur API non-retryable (400, 401, 403) qui pourrait indiquer un problème de clé ou de configuration.
         if (error.message.includes("API returned status 400") || error.message.includes("API returned status 401") || error.message.includes("API returned status 403")) {
             userErrorMessage = "Erreur de configuration de l'API. La clé Gemini est probablement invalide ou manquante. (Vérifiez votre clé API)";
         } else if (error.message.includes("Failed to call Gemini API after")) {
-            // Erreur après les retries
             userErrorMessage = "L'appel à l'API de l'IA a échoué après plusieurs tentatives. Le service est peut-être temporairement indisponible ou en surcharge.";
         }
 
-        // Retourne l'erreur du backoff s'il y a lieu
         res.status(500).json({ 
             error: `Erreur interne lors de l'appel à l'IA: ${error.message}`, 
             html_critique: userErrorMessage 
@@ -685,6 +703,7 @@ app.listen(PORT, () => {
     console.log(`Serveur API actif sur le port ${PORT}`);
     getTwitchAccessToken();
 });
+
 
 
 
