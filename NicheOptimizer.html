@@ -156,9 +156,14 @@
             color: #ffffff;
         }
         
-        /* Styles IA */
-        .ai-niche-output { color: #ffffff !important; line-height: 1.6; font-size: 13px; }
-        .ai-niche-output strong { color: #ff0099; }
+        /* Styles IA - Pour une belle présentation */
+        .ai-niche-output { 
+            color: #ffffff !important; line-height: 1.8; font-size: 14px; 
+        }
+        .ai-niche-output strong { color: #ff0099; font-weight: 700; }
+        .ai-niche-output h4 { font-family:'Orbitron',sans-serif; color: #22c7ef; font-size: 1.2em; margin-top: 15px; border-bottom: 1px solid #2e2e2e; padding-bottom: 5px;}
+        .ai-niche-output ul { list-style: disc; margin-left: 20px; padding-left: 0; }
+        .ai-niche-output li { margin-bottom: 5px; }
         
         /* Liste des streams suivis */
         .followed-stream-item {
@@ -280,7 +285,7 @@
                 </button>
             </form>
             <div id="niche-result-container" class="ai-result-box" style="border-color: #59d682; display:none;">
-                <div id="niche-results"></div>
+                <div id="niche-results" class="ai-niche-output"></div>
             </div>
         </div>
         
@@ -295,7 +300,7 @@
                 </button>
             </form>
             <div id="repurpose-result-container" class="ai-result-box" style="border-color: #9933ff; display:none;">
-                <div id="repurpose-results"></div>
+                <div id="repurpose-results" class="ai-niche-output"></div>
             </div>
         </div>
 
@@ -307,7 +312,9 @@
                 <button id="btn-trend-detector" class="btn-primary" style="background:#ffcc00; color: #111; width:100%; padding: 12px;">
                     🔮 DÉTECTER LA PROCHAINE NICHE
                 </button>
-                <div id="trend-results" class="ai-result-box" style="border-color: #ffcc00; display:none;"></div>
+                <div id="trend-results" class="ai-result-box" style="border-color: #ffcc00; display:none;">
+                    <div class="ai-niche-output"></div>
+                </div>
             </div>
         </div>
 
@@ -320,6 +327,9 @@
                     <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input">
                     <button type="submit" id="btn-boost" class="btn-primary" style="min-width:100px;">📤 BOOST</button>
                 </form>
+                <div id="boost-status" style="margin-top:15px; font-size:12px; color:#ff9900;">
+                    Statut : Prêt.
+                </div>
             </div>
         </div>
         
@@ -331,6 +341,27 @@
     // --- Configuration Globale ---
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
+    
+    // --- Utilitaire Markdown pour une meilleure présentation IA ---
+    // Cette fonction simple convertit les **mots**, les #titres et les *listes* en HTML basique.
+    function renderMarkdown(markdown) {
+        if (!markdown) return '';
+        // Convertir les **gras**
+        let html = markdown.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Convertir les # Titres (ici, en <h4> pour l'esthétique)
+        html = html.replace(/^#\s*(.*)$/gm, '<h4>$1</h4>');
+        // Convertir les listes (* ou -)
+        html = html.replace(/^(?:\*|\-)\s+(.*)$/gm, '<li>$1</li>');
+        if (html.includes('<li>')) {
+            html = `<ul>${html}</ul>`;
+            // Correction pour ne pas avoir <ul>...<ul>
+            html = html.replace(/<\/ul><ul>/g, ''); 
+        }
+        // Conversion des retours à la ligne en <br> (sauf dans les listes/titres)
+        html = html.replace(/(?<!<\/li>)\n/g, '<br>');
+        return html;
+    }
+
 
     // --- Gestion des Onglets ---
     function openTab(tabId) {
@@ -442,20 +473,15 @@
             if(res.ok) {
                 const data = await res.json();
                 
-                // IMPORTANT: data.data doit contenir 'user_name', 'game_name', 'viewer_count', 
-                // et surtout 'profile_image_url' fourni par votre backend.
-                // AUCUNE MODIFICATION DE DONNÉES EN FRONT-END ICI.
-
                 if(data.data && data.data.length > 0) {
                     followedStreamsList.innerHTML = ''; // Vider
                     data.data.forEach(stream => {
                         const div = document.createElement('div');
                         div.className = 'followed-stream-item';
                         
-                        // Utilise stream.profile_image_url qui est censé venir du backend
-                        // Si l'URL n'existe pas, l'image n'apparaîtra pas, ce qui est le comportement de production attendu.
-                        const avatarUrl = stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; // Fallback Twitch par défaut
+                        const avatarUrl = stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
 
+                        // Rétablissement de la structure pour le lecteur
                         div.innerHTML = `
                             <div class="streamer-info">
                                 <img src="${avatarUrl}" alt="Avatar de ${stream.user_name}" class="streamer-avatar">
@@ -466,7 +492,7 @@
                         `;
 
                         div.onclick = () => {
-                            // CORRECTION APPLIQUÉE ICI : Utiliser user_login (nom en minuscules) pour le lecteur.
+                            // CORRECTION: Utiliser user_login (nom en minuscules) pour le lecteur.
                             launchPlayer(stream.user_login);
                         };
                         followedStreamsList.appendChild(div);
@@ -475,9 +501,8 @@
                     followedStreamsList.innerHTML = '<p style="text-align:center;">Aucun stream en direct parmi vos chaînes suivies.</p>';
                 }
             } else {
-                // Gère les erreurs 401 (Non autorisé) ou 500
-                const errorText = await res.json();
-                const errorMessage = errorText.message || `Statut: ${res.status}`;
+                const errorData = await res.json();
+                const errorMessage = errorData.message || `Statut: ${res.status}`;
                 followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur chargement du fil (${errorMessage}).</p>`;
             }
         } catch(e) {
@@ -486,9 +511,9 @@
     }
 
 
-    // --- Logique d'interaction IA (Suppression de la simulation asynchrone) ---
+    // --- Logique d'interaction IA ---
 
-    // 1. Analyse de Niche (Code de production)
+    // 1. Analyse de Niche (Code de production avec gestion Markdown)
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -511,8 +536,8 @@
 
             if(res.ok) {
                 const data = await res.json();
-                // Assurez-vous que le backend renvoie du HTML ou Markdown pour affichage direct
-                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+                // Utilisation du Markdown pour la présentation
+                resultBox.innerHTML = renderMarkdown(data.markdown_critique) || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
                 const errorData = await res.json();
                 resultBox.innerHTML = `<p style="color:red;">Erreur de l'API IA: ${res.status} - ${errorData.error || res.statusText}.</p>`;
@@ -524,7 +549,7 @@
         }
     });
 
-    // 2. Repurposing (Code de production)
+    // 2. Repurposing (Code de production avec gestion Markdown)
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -547,7 +572,8 @@
 
             if(res.ok) {
                 const data = await res.json();
-                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+                 // Utilisation du Markdown pour la présentation
+                resultBox.innerHTML = renderMarkdown(data.markdown_critique) || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
                 const errorData = await res.json();
                 resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Repurposing: ${res.status} - ${errorData.error || res.statusText}.</p>`;
@@ -559,9 +585,9 @@
         }
     });
 
-    // 3. Trend Detector (Code de production)
+    // 3. Trend Detector (Code de production avec gestion Markdown)
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
-        const resultBox = document.getElementById('trend-results');
+        const resultBox = document.querySelector('#trend-results .ai-niche-output');
         const container = document.getElementById('trend-results');
         const btn = document.getElementById('btn-trend-detector');
 
@@ -578,7 +604,8 @@
 
             if(res.ok) {
                 const data = await res.json();
-                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+                // Utilisation du Markdown pour la présentation
+                resultBox.innerHTML = renderMarkdown(data.markdown_critique) || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
                 const errorData = await res.json();
                 resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Trend: ${res.status} - ${errorData.error || res.statusText}.</p>`;
@@ -591,7 +618,7 @@
     });
 
 
-    // 4. Scan Cible (Ajout du traitement des résultats du scan)
+    // 4. Scan Cible (Lecteur ajouté)
     const scanForm = document.getElementById('form-target');
     const scanInput = document.getElementById('input-target');
     const scanResultPlaceholder = document.getElementById('scan-result-placeholder');
@@ -624,7 +651,7 @@
                     if (data.streams.length > 0) {
                         let html = `<h4 style="color:#59d682; font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:14px;">Streams LIVE pour le jeu ${target}:</h4><div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;">`;
                         data.streams.forEach(s => {
-                            // On utilise le 'user_name' pour l'affichage, mais 'user_name' ou 'user_login' pour le lecteur
+                            // Assurer qu'on utilise le login (s.user_name dans ce cas, défini dans app.js) pour le lancement
                             const loginName = s.user_name || s.user_login;
                             html += `
                                 <div class="followed-stream-item" onclick="launchPlayer('${loginName}')" style="border-left-color:#22c7ef; padding:10px; flex-direction:column; align-items:flex-start; height:auto;">
@@ -672,17 +699,47 @@
         }
     });
 
-    // 5. Boost (Code de production - Placeholder)
+    // 5. Boost (Cooldown et Statut ajoutés)
+    const COOLDOWN_MINUTES = 10;
+    const cooldownKey = 'boostCooldown';
+    const boostBtn = document.getElementById('btn-boost');
+    const boostStatusDiv = document.getElementById('boost-status');
+    const boostInput = document.getElementById('input-boost');
+
+    function updateBoostStatus() {
+        const lastBoostTime = localStorage.getItem(cooldownKey);
+        const now = Date.now();
+        const cooldownEndTime = parseInt(lastBoostTime) + (COOLDOWN_MINUTES * 60 * 1000);
+
+        if (!lastBoostTime || now >= cooldownEndTime) {
+            boostStatusDiv.innerHTML = 'Statut : <strong style="color:#59d682;">Prêt.</strong>';
+            boostBtn.disabled = false;
+            boostBtn.textContent = '📤 BOOST';
+        } else {
+            const remainingMs = cooldownEndTime - now;
+            const remainingSec = Math.ceil(remainingMs / 1000);
+            const remainingMin = Math.floor(remainingSec / 60);
+            const sec = remainingSec % 60;
+
+            boostStatusDiv.innerHTML = `Statut : <strong style="color:#ffcc00;">Cooldown actif.</strong> Attendre ${remainingMin}m ${sec}s.`;
+            boostBtn.disabled = true;
+            boostBtn.textContent = '⏱️ COOLDOWN';
+            
+            // Mise à jour toutes les secondes
+            setTimeout(updateBoostStatus, 1000);
+        }
+    }
+
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const channelName = document.getElementById('input-boost').value.trim();
-        const btn = document.getElementById('btn-boost');
-        const originalText = btn.textContent;
+        const channelName = boostInput.value.trim();
         
-        if (!channelName) return;
+        if (!channelName || boostBtn.disabled) return;
 
-        btn.disabled = true;
-        btn.textContent = 'Envoi...';
+        // Démarrage du processus de boost
+        boostBtn.disabled = true;
+        boostBtn.textContent = '🔄 AJOUT À LA FILE...';
+        boostStatusDiv.innerHTML = '<strong style="color:#22c7ef;">Envoi à la file d\'attente...</strong>';
 
         try {
             const res = await fetch(`${API_BASE}/boost`, {
@@ -692,20 +749,24 @@
             });
 
             if(res.ok) {
-                btn.textContent = '✅ BOOST ACTIF !';
-                setTimeout(() => { btn.textContent = originalText; }, 2000);
+                localStorage.setItem(cooldownKey, Date.now());
+                boostBtn.textContent = '✅ BOOST ACTIF / EN FILE !';
+                boostStatusDiv.innerHTML = `<strong style="color:#59d682;">Boost de ${channelName} en cours ou en file d'attente.</strong>`;
+                // Lance le cooldown après un succès
+                updateBoostStatus(); 
+
             } else {
-                btn.textContent = '❌ ÉCHEC BOOST';
-                setTimeout(() => { btn.textContent = originalText; }, 2000);
+                const errorData = await res.json();
+                boostBtn.textContent = '❌ ÉCHEC BOOST';
+                boostStatusDiv.innerHTML = `<strong style="color:red;">Échec : ${errorData.error || res.statusText}.</strong>`;
+                setTimeout(() => { updateBoostStatus(); }, 2000); // Réactive après 2s d'erreur
             }
         } catch(e) {
-            btn.textContent = '❌ Erreur Connexion';
-            setTimeout(() => { btn.textContent = originalText; }, 2000);
-        } finally {
-            setTimeout(() => { btn.disabled = false; }, 2000);
+            boostBtn.textContent = '❌ Erreur Connexion';
+            boostStatusDiv.innerHTML = `<strong style="color:red;">Erreur de connexion : ${e.message}.</strong>`;
+            setTimeout(() => { updateBoostStatus(); }, 2000); // Réactive après 2s d'erreur
         }
     });
-
 
     // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
@@ -713,6 +774,7 @@
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         checkAuth();
+        updateBoostStatus(); // Initialise la vérification du cooldown
     });
 </script>
 </body>
