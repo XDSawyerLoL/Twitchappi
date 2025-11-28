@@ -1,11 +1,16 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch'); // NOTE: Ceci doit être présent pour Node < 18
-const bodyParser = require('body-parser');
-const path = require('path');
-const crypto = require('crypto');
-const cookieParser = require('cookie-parser');
-const admin = require("firebase-admin"); 
+import express from 'express';
+import cors from 'cors';
+import fetch from 'node-fetch'; // Maintenu pour la compatibilité avec certains environnements Node.js
+import bodyParser from 'body-parser';
+import path from 'path';
+import crypto from 'crypto';
+import cookieParser from 'cookie-parser';
+import admin from 'firebase-admin';
+import { fileURLToPath } from 'url'; // Nécessaire pour obtenir __dirname en mode ES Module
+import 'dotenv/config'; // Charge immédiatement les variables .env pour process.env
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -17,7 +22,7 @@ const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 // Utilisation du modèle Flash pour les analyses, incluant la recherche (grounding)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // IMPORTANT : Utilisation du modèle précis pour garantir le Google Search Grounding
-const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025"; 
+const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
 
 // --- DEBUG : Vérification des clés ---
 if (GEMINI_API_KEY) {
@@ -194,7 +199,7 @@ app.post('/critique_ia', async (req, res) => {
                 type: "user",
                 user_data: userData,
                 html_critique: `<h4 style="color:#59d682;">Analyse de Streamer: ${userData.display_name}</h4><p>Le streamer <b>${userData.display_name}</b> (Suiveurs: ${userData.followers}) a été trouvé. Il streamait récemment sur <b>${userData.latest_game}</b>. L'IA analyserait les forces/faiblesses et le contenu optimal ici. (TODO: Implémenter l'analyse IA détaillée du streamer.)</p>`
-            });
+        });
         } else {
             // Aucun résultat trouvé ni comme jeu, ni comme utilisateur
             return res.json({ 
@@ -233,3 +238,4 @@ app.get('/sniper_tool.html', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
 });
+
