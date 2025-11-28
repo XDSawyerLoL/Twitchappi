@@ -12,18 +12,24 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+// ⚠️ ASSUREZ-VOUS QUE C'EST BIEN VOTRE URL DE REDIRECTION TWITCH !
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash";
 
+// --- DEBUG : Vérification de la clé Gemini ---
+if (GEMINI_API_KEY) {
+    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
+} else {
+    console.log("DEBUG: GEMINI_API_KEY est absente ou vide. L'IA est DÉSACTIVÉE.");
+}
+
 // --- Stockage d'État pour la Connexion Utilisateur (OAuth) ---
-// Ces variables stockent l'état de l'utilisateur connecté via OAuth
-let currentUserToken = null; // Token d'Accès Utilisateur (pour /followed_streams)
+let currentUserToken = null; // Token d'Accès Utilisateur
 let currentUsername = null; 
 let currentTwitchUserId = null; 
 
 // --- Stockage d'État pour le Token Applicatif (Client Credentials) ---
-// Ce token sert aux appels génériques (comme /random)
 let TWITCH_ACCESS_TOKEN = null;
 let TWITCH_TOKEN_EXPIRY = 0;
 
@@ -31,8 +37,7 @@ let TWITCH_TOKEN_EXPIRY = 0;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser()); // Ajout essentiel pour la sécurité OAuth
-// Nous n'utilisons PAS express.static() car vos routes ci-dessous pointent directement vers la racine.
+app.use(cookieParser()); // ESSENTIEL pour gérer le 'state' OAuth
 
 // =========================================================
 // Firebase Admin SDK
@@ -48,11 +53,7 @@ try {
         firebaseCredentials = JSON.parse(serviceAccountJson);
         console.log("Credentials Firebase chargées depuis la variable d'environnement.");
     } else {
-        console.log("Variable d'environnement FIREBASE_SERVICE_ACCOUNT non trouvée. Tentative de lecture locale...");
-        // Vous devez vous assurer que require('./serviceAccountKey.json') existe en local
-        // firebaseCredentials = require('./serviceAccountKey.json');
-        console.log("Firebase non initialisé - utilisez FIREBASE_SERVICE_ACCOUNT sur Render.");
-        // Nous continuons sans Firebase pour ne pas bloquer le serveur si les credentials manquent.
+        console.log("Variable d'environnement FIREBASE_SERVICE_ACCOUNT non trouvée. Le serveur continue sans DB...");
     }
     
     if (firebaseCredentials) {
@@ -101,8 +102,7 @@ async function getTwitchAccessToken() {
 }
 
 // =========================================================
-// FLUX D'AUTHENTIFICATION TWITCH (OAuth - UTILISATEUR)
-// CORRIGE LE 404
+// FLUX D'AUTHENTIFICATION TWITCH (OAuth - UTILISATEUR) - CORRECTION 404
 // =========================================================
 
 /**
@@ -113,6 +113,7 @@ app.get('/twitch_auth_start', (req, res) => {
         return res.status(500).send("Configuration Twitch manquante.");
     }
     
+    // Scopes nécessaires pour l'application
     const scopes = 'user:read:follows viewing_activity_read';
     const state = crypto.randomBytes(16).toString('hex');
     
@@ -132,10 +133,11 @@ app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error, error_description } = req.query;
 
     const expectedState = req.cookies.oauth_state;
-    // if (state !== expectedState) {
-    //     return res.redirect(`/?error=${encodeURIComponent('Erreur de sécurité (CSRF).')}`);
-    // }
-    res.clearCookie('oauth_state');
+    if (state !== expectedState) {
+        // En cas de mismatch de 'state' (attaque CSRF), on redirige avec erreur.
+        return res.redirect(`/?error=${encodeURIComponent('Erreur de sécurité (CSRF).')}`);
+    }
+    res.clearCookie('oauth_state'); // Nettoyer le cookie après vérification
 
     if (error) {
         console.error(`Erreur d'autorisation Twitch: ${error_description}`);
@@ -182,6 +184,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
             currentTwitchUserId = userData.data[0].id;
         }
 
+        // Redirection vers la page d'accueil après succès
         return res.redirect('/'); 
 
     } catch (error) {
@@ -212,7 +215,7 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 // =========================================================
-// FONCTIONS HELPER TWITCH
+// FONCTIONS HELPER TWITCH (Utilisent le token Applicatif)
 // =========================================================
 
 async function getGameId(gameName, token) {
@@ -221,7 +224,6 @@ async function getGameId(gameName, token) {
     const response = await fetch(searchUrl, {
         headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
     });
-    // ... (Logique getGameId complète) ...
     if (response.status !== 200) {
         console.error(`Erreur Twitch Helix getGameId (HTTP ${response.status})`);
         return null;
@@ -278,17 +280,14 @@ async function getStreamerDetails(userLogin, token) {
 
 
 // =========================================================
-// ROUTES API (Fusion des deux versions)
+// ROUTES API
 // =========================================================
 
 // Route Firebase Test (si Firebase est initialisé)
 app.get('/firebase_test', async (req, res) => {
     if (!rtdb) return res.status(503).json({ message: "Firebase non initialisé." });
     try {
-        await rtdb.ref("server_status").set({
-            online: true,
-            timestamp: Date.now()
-        });
+        await rtdb.ref("server_status").set({ online: true, timestamp: Date.now() });
         res.json({ message: "Firebase fonctionne ✔" });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -298,7 +297,7 @@ app.get('/firebase_test', async (req, res) => {
 
 // 1. GAME ID
 app.get('/gameid', async (req, res) => {
-    const token = await getTwitchAccessToken(); // Utilise le token Applicatif
+    const token = await getTwitchAccessToken(); 
     if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
 
     const id = await getGameId(req.query.name, token);
@@ -308,7 +307,7 @@ app.get('/gameid', async (req, res) => {
 
 // 2. RANDOM SCAN (ALÉATOIRE LARGE)
 app.get('/random', async (req, res) => {
-    const token = await getTwitchAccessToken(); // Utilise le token Applicatif
+    const token = await getTwitchAccessToken(); 
     if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
 
     let url = `https://api.twitch.tv/helix/streams?first=100&language=fr`;
@@ -335,7 +334,7 @@ app.get('/random', async (req, res) => {
 
 // 3. DETAILS
 app.get('/details', async (req, res) => {
-    const token = await getTwitchAccessToken(); // Utilise le token Applicatif
+    const token = await getTwitchAccessToken(); 
     if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
 
     const details = await getStreamerDetails(req.query.login, token);
@@ -345,7 +344,7 @@ app.get('/details', async (req, res) => {
 
 // 4. RANDOM SMALL STREAMER (< 100 Viewers)
 app.get('/random_small_streamer', async (req, res) => {
-    const token = await getTwitchAccessToken(); // Utilise le token Applicatif
+    const token = await getTwitchAccessToken(); 
     if (!token) return res.status(500).json({ message: "Erreur Auth Twitch" });
 
     const url = `https://api.twitch.tv/helix/streams?first=100&language=fr`;
@@ -356,15 +355,12 @@ app.get('/random_small_streamer', async (req, res) => {
         });
         const data = await response.json();
 
-        // Filtrer pour les streamers avec 1 à 99 viewers
         const smallStreams = data.data.filter(s => s.type === 'live' && s.viewer_count > 0 && s.viewer_count < 100);
 
         if (smallStreams.length === 0) {
-            // Fallback si aucun petit streamer n'est trouvé
             const allLiveStreams = data.data.filter(s => s.type === 'live' && s.viewer_count > 0);
             if (allLiveStreams.length > 0) {
                  const fallbackStream = allLiveStreams[Math.floor(Math.random() * allLiveStreams.length)];
-                 console.log(`[Small Streamer] Fallback vers ${fallbackStream.user_login}`);
                  return res.json({ username: fallbackStream.user_login, status: 'fallback_random', viewer_count: fallbackStream.viewer_count });
             }
             return res.status(404).json({ message: "Aucun stream live trouvé." });
@@ -381,33 +377,90 @@ app.get('/random_small_streamer', async (req, res) => {
 
 // 5. BOOST
 app.post('/boost', (req, res) => {
-    // ⚠️ Logique de boost à implémenter ici
     console.log(`BOOST: Signal d'activation reçu pour ${req.body.channelName}. Succès enregistré.`);
     res.json({ message: `Boost activé pour ${req.body.channelName}`, status: 'ok' });
 });
 
 // 6. IA : critique stream
 app.post('/critique_ia', async (req, res) => {
-    // ⚠️ Logique d'appel Gemini à implémenter ici
-    if (!GEMINI_API_KEY) return res.status(503).json({ critique: "IA désactivée" });
-    const mockCritique = "Analyse IA Simulée : Titre très efficace, mais l'image de profil pourrait être plus percutante.";
-    await new Promise(resolve => setTimeout(resolve, 1500)); 
-    res.json({ critique: mockCritique });
+    const { title, game, tags } = req.body;
+    
+    if (!GEMINI_API_KEY) {
+        return res.status(503).json({ critique: "IA désactivée. Veuillez configurer GEMINI_API_KEY." });
+    }
+
+    const systemPrompt = "Tu es un expert en marketing et en croissance de chaînes Twitch. Ton objectif est de fournir une analyse critique, constructive et très concise (max 3 phrases) sur le potentiel de croissance d'un stream basé sur son titre, son jeu et ses tags. Ton ton doit être professionnel et encourageant.";
+    const userQuery = `Analyse le stream avec ces informations : Titre : "${title}". Jeu : "${game}". Tags : "${tags.join(', ')}".`;
+
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    try {
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            // Ajouter un max de tokens pour garantir une réponse courte (max 3 phrases)
+            config: { maxOutputTokens: 100 } 
+        };
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erreur lors de la génération de la critique par l'IA.";
+
+        res.json({ critique: generatedText });
+
+    } catch (error) {
+        console.error("Erreur Gemini API /critique_ia:", error);
+        res.status(500).json({ critique: "Erreur interne lors de l'appel à l'IA." });
+    }
 });
 
-// 7. IA : diagnostic titre
+
+// 7. IA : diagnostic titre (Maintenant avec un appel réel à l'API Gemini)
 app.post('/diagnostic_titre', async (req, res) => {
-    // ⚠️ Logique d'appel Gemini à implémenter ici
-    if (!GEMINI_API_KEY) return res.status(503).json({ diagnostic: "IA désactivée" });
-    const mockDiagnostic = "Diagnostic Simulé : Score 4/5. Le titre est clair mais pourrait être plus axé sur l'émotion.";
-    await new Promise(resolve => setTimeout(resolve, 1500)); 
-    res.json({ diagnostic: mockDiagnostic });
+    const { title } = req.body;
+
+    if (!GEMINI_API_KEY) {
+        return res.status(503).json({ diagnostic: "IA désactivée. Veuillez configurer GEMINI_API_KEY." });
+    }
+
+    const systemPrompt = "Tu es un expert en référencement et en click-through rate (CTR) pour Twitch. Donne un score de 1 à 5 au titre fourni et explique en une seule phrase pourquoi ce titre est efficace ou ce qu'il lui manque.";
+    const userQuery = `Diagnostic du titre Twitch : "${title}".`;
+
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    try {
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            // Limité à 50 tokens pour un diagnostic très concis
+            config: { maxOutputTokens: 50 } 
+        };
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erreur lors de la génération du diagnostic par l'IA.";
+
+        res.json({ diagnostic: generatedText });
+
+    } catch (error) {
+        console.error("Erreur Gemini API /diagnostic_titre:", error);
+        res.status(500).json({ diagnostic: "Erreur interne lors de l'appel à l'IA." });
+    }
 });
 
 
 // 8. FOLLOWED STREAMS (Utilise le token UTILISATEUR)
 app.get('/followed_streams', async (req, res) => {
-    // Vérifie le token utilisateur, non le token applicatif
     if (!currentUserToken || !currentTwitchUserId) { 
         return res.status(401).json({ message: "Utilisateur non connecté via Twitch.", code: 'NO_AUTH' });
     }
@@ -435,7 +488,7 @@ app.get('/followed_streams', async (req, res) => {
 
 
 // =========================================================
-// Configuration des Routes Statiques (selon votre version)
+// Configuration des Routes Statiques
 // =========================================================
 
 app.get('/', (req, res) => {
@@ -458,6 +511,6 @@ app.get('/sniper_tool.html', (req, res) => {
 // --- Démarrage du Serveur ---
 app.listen(PORT, () => {
     console.log(`Serveur API actif sur le port ${PORT}`);
-    // Tente d'obtenir le token applicatif au démarrage
     getTwitchAccessToken();
 });
+
