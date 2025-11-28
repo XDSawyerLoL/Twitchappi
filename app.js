@@ -1,309 +1,265 @@
-// =========================================================
-// Configuration des Endpoints API
-// =========================================================
-// L'URL de base pour toutes les API qui s'exécutent sur ce même serveur (justplayerstreamhubpro.onrender.com).
-// Utiliser un chemin relatif ("/") permet d'éviter les erreurs CORS pour ces routes.
-const INTERNAL_API_BASE = ''; 
+const express = require('express');
+const fetch = require('node-fetch'); // Pour les requêtes HTTP externes (API Twitch)
+const crypto = require('crypto');
+const path = require('path');
+const cookieParser = require('cookie-parser');
 
-// L'URL pour les routes IA/critiques
-const CRITIQUE_API_URL = `${INTERNAL_API_BASE}/critique_ia`;
-const DIAGNOSTIC_API_URL = `${INTERNAL_API_BASE}/diagnostic_titre`;
-const GAME_ID_API_URL = `${INTERNAL_API_BASE}/gameid`;
+const app = express();
 
-// 🚨 CORRECTION CORS 🚨
-// Nous appelons maintenant nos propres routes /random et /boost sur le serveur principal, 
-// au lieu de l'API externe (twitch-random-api.onrender.com) qui posait problème.
-const RANDOM_API_URL = `${INTERNAL_API_BASE}/random`; 
-const BOOST_API_URL = `${INTERNAL_API_BASE}/boost`; 
-// =========================================================
+// --- Configuration des Variables d'Environnement ---
+// Render fournit le port via process.env.PORT
+const PORT = process.env.PORT || 3000; 
 
+// Variables d'environnement critiques (DOIVENT être définies sur Render)
+const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; 
+// Ex: https://justplayerstreamhubpro.onrender.com/twitch_auth_callback
 
-let currentStreamer = null;
-const resultsContainer = document.getElementById('random-streamer-results');
-const boostButton = document.getElementById('boost-button');
-const critiqueButton = document.getElementById('critique-button');
-const titleDiagnosticButton = document.getElementById('title-diagnostic-button');
-const loadingSpinner = document.getElementById('loading-spinner');
-const errorDisplay = document.getElementById('error-message');
+// --- Stockage d'État (Simplifié pour Démo) ---
+// En production, cette information doit être stockée dans une session sécurisée ou une DB.
+let currentUserToken = null;
+let currentUsername = null; 
+let currentTwitchUserId = null; 
+// ------------------------------------------------
 
+// --- Middleware ---
+app.use(cookieParser()); // Pour gérer les cookies
+app.use(express.json()); // Pour analyser les corps de requête JSON (pour les routes POST IA/Boost)
 
-/**
- * @typedef {object} StreamerDetails
- * @property {string} username
- * @property {string} title
- * @property {string} game_name
- * @property {number} viewer_count
- * @property {number} follower_count
- * @property {number} avg_score
- */
+// Servir les fichiers statiques (votre index.html, script.js, style.css doivent être dans 'public')
+app.use(express.static(path.join(__dirname, 'public'))); 
 
-
-// --- Affichage des messages et état de chargement ---
-
-function showLoading(isLoading) {
-    loadingSpinner.classList.toggle('hidden', !isLoading);
-    boostButton.disabled = isLoading || !currentStreamer;
-    critiqueButton.disabled = isLoading || !currentStreamer;
-    titleDiagnosticButton.disabled = isLoading || !currentStreamer;
-}
-
-function displayMessage(message, isError = false) {
-    errorDisplay.textContent = message;
-    errorDisplay.classList.toggle('text-red-500', isError);
-    errorDisplay.classList.toggle('text-green-500', !isError);
-    errorDisplay.classList.remove('hidden');
-    // Cacher après 5 secondes si ce n'est pas une erreur critique
-    if (!isError) {
-        setTimeout(() => errorDisplay.classList.add('hidden'), 5000);
-    }
-}
-
-// --- Fonctions d'appel API ---
+// --- ROUTES D'AUTHENTIFICATION TWITCH (CORRECTION du 404) ---
 
 /**
- * Récupère un ID de jeu Twitch à partir de son nom.
- * @param {string} gameName 
- * @returns {Promise<string|null>} L'ID du jeu ou null.
+ * 🔑 Étape 1: Démarrage de l'Authentification (GET /twitch_auth_start)
+ * Redirige l'utilisateur vers le formulaire de connexion de Twitch.
  */
-async function getGameId(gameName) {
-    try {
-        const response = await fetch(`${GAME_ID_API_URL}?name=${encodeURIComponent(gameName)}`);
-        if (!response.ok) {
-            console.error("Erreur Game ID API:", response.status);
-            return null;
-        }
-        const data = await response.json();
-        return data.game_id || null;
-    } catch (error) {
-        console.error("Erreur réseau Game ID:", error);
-        return null;
-    }
-}
-
-
-/**
- * Effectue un appel API vers l'endpoint /random pour trouver un streamer.
- * @returns {Promise<StreamerDetails|null>} Les détails du streamer.
- */
-async function fetchRandomStreamer() {
-    showLoading(true);
-    resultsContainer.innerHTML = '';
-    currentStreamer = null;
-    errorDisplay.classList.add('hidden');
-    
-    // Le filtre max_viewers de 30 est géré côté serveur par index.cjs
-
-    try {
-        // 🚨 Utilisation du nouvel endpoint local
-        const response = await fetch(`${RANDOM_API_URL}?max_viewers=30`); 
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            displayMessage(`Erreur de scan: ${errorData.message || response.statusText}`, true);
-            showLoading(false);
-            return null;
-        }
-
-        const data = await response.json();
-        const streamer = data.streamer;
-        
-        // Stocker pour les autres fonctions
-        currentStreamer = streamer; 
-        
-        renderStreamerDetails(streamer);
-
-    } catch (error) {
-        displayMessage('Erreur de connexion serveur. Vérifiez que le serveur est actif.', true);
-        console.error("Erreur Fetch Random Streamer:", error);
-    } finally {
-        showLoading(false);
-    }
-}
-
-/**
- * Envoie une demande de boost au serveur.
- */
-async function sendBoostRequest() {
-    if (!currentStreamer) {
-        displayMessage("Aucun streamer sélectionné à booster.", true);
-        return;
+app.get('/twitch_auth_start', (req, res) => {
+    if (!CLIENT_ID || !REDIRECT_URI) {
+        return res.status(500).send("Configuration du service Twitch manquante sur le serveur.");
     }
     
-    showLoading(true);
-    errorDisplay.classList.add('hidden');
+    // Scopes (permissions) requises : lire les abonnements (read:follows) est essentiel
+    const scopes = 'user:read:follows viewing_activity_read';
+    const state = crypto.randomBytes(16).toString('hex');
+    
+    // Stocker le 'state' dans un cookie pour la vérification de sécurité au retour
+    res.cookie('oauth_state', state, { httpOnly: true, maxAge: 600000 }); // 10 minutes
+
+    const twitchAuthURL = `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`;
+    
+    console.log("Démarrage OAuth, redirection vers Twitch...");
+    res.redirect(twitchAuthURL);
+});
+
+/**
+ * 🔑 Étape 2: Callback de Twitch et Échange de Code contre Token (GET /twitch_auth_callback)
+ * Twitch renvoie l'utilisateur ici après l'autorisation.
+ */
+app.get('/twitch_auth_callback', async (req, res) => {
+    const { code, state, error, error_description } = req.query;
+
+    // 1. Vérification du 'state' pour la sécurité CSRF
+    // const expectedState = req.cookies.oauth_state;
+    // if (state !== expectedState) {
+    //     return res.redirect(`/?error=${encodeURIComponent('Erreur de sécurité (CSRF).')}`);
+    // }
+    // res.clearCookie('oauth_state'); // Supprimer le cookie de state
+
+    if (error) {
+        console.error(`Erreur d'autorisation Twitch: ${error_description}`);
+        return res.redirect(`/?error=${encodeURIComponent('Connexion Twitch refusée.')}`);
+    }
+
+    if (!code) {
+        return res.redirect(`/?error=${encodeURIComponent('Code d\'autorisation manquant.')}`);
+    }
 
     try {
-        // 🚨 Utilisation du nouvel endpoint local
-        const response = await fetch(BOOST_API_URL, {
+        // 2. Appel POST pour échanger le code contre un Access Token
+        const tokenResponse = await fetch('https://id.twitch.tv/oauth2/token', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                channelName: currentStreamer.username,
-                // Si vous aviez un user ID dans votre app, vous le mettriez ici
-            })
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                code: code,
+                grant_type: 'authorization_code',
+                redirect_uri: REDIRECT_URI 
+            }).toString()
         });
 
-        const data = await response.json();
+        const tokenData = await tokenResponse.json();
 
-        if (response.ok && data.status === 'ok') {
-            displayMessage(`🚀 ${data.message}`);
-        } else {
-            displayMessage(`Échec du boost: ${data.message || 'Erreur inconnue'}`, true);
+        if (!tokenData.access_token) {
+            console.error("Échec de l'échange de code:", tokenData);
+            return res.redirect(`/?error=${encodeURIComponent('Échec de l\'obtention du token d\'accès.')}`);
         }
 
+        // 3. Token récupéré : Stockage temporaire et récupération des infos utilisateur
+        currentUserToken = tokenData.access_token;
+
+        // 🌟 Étape supplémentaire : Récupérer l'ID et le nom de l'utilisateur
+        const userResponse = await fetch('https://api.twitch.tv/helix/users', {
+            headers: {
+                'Authorization': `Bearer ${currentUserToken}`,
+                'Client-Id': CLIENT_ID
+            }
+        });
+        const userData = await userResponse.json();
+        
+        if (userData.data && userData.data.length > 0) {
+            currentUsername = userData.data[0].display_name;
+            currentTwitchUserId = userData.data[0].id;
+            console.log(`Utilisateur connecté: ${currentUsername} (ID: ${currentTwitchUserId})`);
+        }
+
+        // 4. Redirection vers la page principale
+        return res.redirect('/'); 
+
     } catch (error) {
-        displayMessage('Erreur réseau lors de l\'envoi de la requête Boost.', true);
-        console.error("Erreur Fetch Boost:", error);
-    } finally {
-        showLoading(false);
+        console.error("Erreur critique lors du callback Twitch:", error);
+        return res.redirect(`/?error=${encodeURIComponent('Erreur serveur lors de la connexion Twitch.')}`);
     }
-}
+});
 
 /**
- * Demande une critique IA du streamer.
+ * 🔑 Route de Déconnexion (GET /twitch_logout)
+ * Nettoie le token stocké et réinitialise l'état.
  */
-async function fetchAICritique() {
-    if (!currentStreamer) return;
-    showLoading(true);
-    
-    // Afficher un message d'attente
-    const critiqueOutput = document.getElementById('ia-critique-output');
-    critiqueOutput.innerHTML = '<p class="text-indigo-400">🤖 L\'IA est en cours d\'analyse...</p>';
+app.get('/twitch_logout', (req, res) => {
+    currentUserToken = null;
+    currentUsername = null;
+    currentTwitchUserId = null;
+    res.redirect('/');
+});
 
-    const payload = {
-        username: currentStreamer.username,
-        game_name: currentStreamer.game_name,
-        title: currentStreamer.title,
-        viewer_count: currentStreamer.viewer_count,
-        follower_count: currentStreamer.follower_count 
+
+/**
+ * 🔑 Route pour vérifier le statut de connexion (GET /twitch_user_status)
+ * Utilisé par le frontend pour mettre à jour l'UI au chargement.
+ */
+app.get('/twitch_user_status', (req, res) => {
+    res.json({
+        is_connected: !!currentUserToken,
+        username: currentUsername
+    });
+});
+
+
+/**
+ * 🔴 Route /followed_streams (CORRECTION du 401)
+ * Exemple d'utilisation du token pour appeler l'API Twitch Helix.
+ */
+app.get('/followed_streams', async (req, res) => {
+    if (!currentUserToken || !currentTwitchUserId) {
+        // Si aucun token n'est disponible, on renvoie une 401
+        return res.status(401).json({ message: "Utilisateur non connecté ou token manquant.", code: 'NO_AUTH' });
+    }
+
+    try {
+        const response = await fetch(`https://api.twitch.tv/helix/streams/followed?user_id=${currentTwitchUserId}`, {
+            headers: {
+                'Client-Id': CLIENT_ID,
+                'Authorization': `Bearer ${currentUserToken}` // Le token utilisateur est ici
+            }
+        });
+
+        if (!response.ok) {
+            console.error("Erreur API Twitch Followed Streams:", response.status, await response.text());
+            return res.status(response.status).json({ message: "Erreur lors de l'appel Twitch API.", status: response.status });
+        }
+
+        const data = await response.json();
+        return res.json(data);
+
+    } catch (error) {
+        console.error("Erreur réseau /followed_streams:", error);
+        res.status(500).json({ message: "Erreur serveur interne." });
+    }
+});
+
+
+// --- VOS AUTRES ROUTES (Exemples pour /random et /critique_ia) ---
+
+// *********** NOTE IMPORTANTE ************
+// Ces routes sont des simulacres (placeholders) et dépendent de votre logique
+// métier pour le scan, le boost et les appels IA. Vous devez les implémenter
+// pour qu'elles fonctionnent réellement. Elles renvoient juste des succès pour l'instant.
+// ****************************************
+
+/**
+ * GET /random: Simule la recherche d'un streamer avec un filtre de 30 viewers max.
+ */
+app.get('/random', (req, res) => {
+    // ⚠️ Remplacez ceci par votre vraie logique de recherche de streamer sur Twitch
+    const maxViewers = req.query.max_viewers || 30; 
+    console.log(`Recherche d'un streamer avec max_viewers=${maxViewers}`);
+
+    // Retourne des données simulées
+    const mockStreamer = {
+        username: 'JustPlayerStream',
+        user_login: 'justplayerstream',
+        title: 'Je teste un nouvel outil de boost IA pour petit streamer !',
+        game_name: 'Elden Ring',
+        viewer_count: Math.floor(Math.random() * 25) + 5,
+        follower_count: 1500,
+        avg_score: (Math.random() * 1.5 + 3.5).toFixed(1),
+        tags: ['FR', 'SmallStreamer', 'Chill']
     };
 
-    try {
-        const response = await fetch(CRITIQUE_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-        
-        if (response.ok && data.critique) {
-            critiqueOutput.innerHTML = `<div class="p-3 bg-gray-700 rounded-lg whitespace-pre-line">${data.critique}</div>`;
-        } else {
-            critiqueOutput.innerHTML = `<p class="text-red-400">Erreur IA: ${data.critique || 'Service non disponible'}</p>`;
-        }
-
-    } catch (error) {
-        critiqueOutput.innerHTML = '<p class="text-red-400">Erreur de connexion avec l\'API IA.</p>';
-        console.error("Erreur Fetch IA Critique:", error);
-    } finally {
-        showLoading(false);
-    }
-}
+    res.json({ streamer: mockStreamer });
+});
 
 /**
- * Demande un diagnostic IA du titre du stream.
+ * POST /boost: Simule l'envoi d'une requête de boost.
  */
-async function fetchAITitleDiagnostic() {
-    if (!currentStreamer) return;
-    showLoading(true);
+app.post('/boost', (req, res) => {
+    const { channelName } = req.body;
+    // ⚠️ Remplacez ceci par votre vraie logique de boost (ex: envoi à un service tiers)
+    console.log(`Requête de boost reçue pour: ${channelName}`);
+    res.json({ status: 'ok', message: `Le boost a été initié pour ${channelName}. Vous devriez recevoir un spectateur dans les 60 secondes.` });
+});
+
+/**
+ * POST /critique_ia: Simule l'appel à l'API Gemini pour la critique.
+ */
+app.post('/critique_ia', async (req, res) => {
+    const { username, game_name, title } = req.body;
     
-    const diagnosticOutput = document.getElementById('ia-diagnostic-output');
-    diagnosticOutput.innerHTML = '<p class="text-indigo-400">🧠 Diagnostic en cours...</p>';
-
-    const payload = {
-        title: currentStreamer.title,
-        game_name: currentStreamer.game_name
-    };
-
-    try {
-        const response = await fetch(DIAGNOSTIC_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.diagnostic) {
-            diagnosticOutput.innerHTML = `<div class="p-3 bg-gray-700 rounded-lg whitespace-pre-line">${data.diagnostic}</div>`;
-        } else {
-            diagnosticOutput.innerHTML = `<p class="text-red-400">Erreur IA: ${data.diagnostic || 'Service non disponible'}</p>`;
-        }
-
-    } catch (error) {
-        diagnosticOutput.innerHTML = '<p class="text-red-400">Erreur de connexion avec l\'API IA.</p>';
-        console.error("Erreur Fetch IA Diagnostic:", error);
-    } finally {
-        showLoading(false);
-    }
-}
-
-
-// --- Fonctions de rendu ---
-
-/**
- * Affiche les détails d'un streamer dans l'interface.
- * @param {StreamerDetails} streamer 
- */
-function renderStreamerDetails(streamer) {
-    if (!streamer) return;
-
-    // Reset l'état des critiques IA
-    document.getElementById('ia-critique-output').innerHTML = '';
-    document.getElementById('ia-diagnostic-output').innerHTML = '';
-
-    const tagsHtml = (streamer.tags || []).map(tag => 
-        `<span class="inline-block bg-indigo-900 text-indigo-200 text-xs px-2 py-1 rounded-full">${tag}</span>`
-    ).join('');
-
-    resultsContainer.innerHTML = `
-        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-indigo-600 space-y-4">
-            <div class="flex justify-between items-center">
-                <h2 class="text-3xl font-bold text-white truncate">${streamer.username}</h2>
-                <div class="flex items-center space-x-2">
-                    <span class="text-lg font-semibold text-yellow-400">${streamer.avg_score} / 5.0</span>
-                    <span class="text-yellow-500">⭐</span>
-                </div>
-            </div>
-
-            <p class="text-indigo-400 text-sm italic">Jeu: ${streamer.game_name}</p>
-            <p class="text-gray-300 text-lg">${streamer.title}</p>
-            
-            <div class="grid grid-cols-2 gap-4 text-sm text-gray-400">
-                <p>Spectateurs: <span class="text-white font-semibold">${streamer.viewer_count.toLocaleString()}</span></p>
-                <p>Followers: <span class="text-white font-semibold">${streamer.follower_count.toLocaleString()}</span></p>
-            </div>
-            
-            <div class="flex flex-wrap gap-2 pt-2">
-                ${tagsHtml || '<span class="text-gray-500 text-sm">Aucun tag</span>'}
-            </div>
-            
-            <div class="pt-4 border-t border-gray-700">
-                <a href="https://twitch.tv/${streamer.user_login}" target="_blank" class="text-indigo-400 hover:text-indigo-300 font-semibold transition duration-150">
-                    ➡️ Voir le stream sur Twitch
-                </a>
-            </div>
-        </div>
+    // ⚠️ REMPLACER PAR VOTRE LOGIQUE D'APPEL À L'API GEMINI
+    const mockCritique = `
+    **Analyse IA pour ${username} :**
+    
+    **Points Positifs :**
+    * Le titre "${title}" est engageant et crée de la curiosité.
+    * Le choix du jeu (${game_name}) est populaire, mais la niche des "petits streamers" est concurrentielle.
+    
+    **Suggestions d'Amélioration :**
+    * Ajoutez une webcam ou une interaction vocale claire.
+    * Utilisez plus de tags spécifiques au gameplay pour améliorer le référencement.
+    * Essayez d'utiliser des couleurs plus vibrantes sur votre overlay.
     `;
-}
-
-// --- Initialisation ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Boutons de navigation/scan
-    document.getElementById('scan-button').addEventListener('click', fetchRandomStreamer);
     
-    // Boutons d'action (doivent être initialement désactivés)
-    boostButton.addEventListener('click', sendBoostRequest);
-    critiqueButton.addEventListener('click', fetchAICritique);
-    titleDiagnosticButton.addEventListener('click', fetchAITitleDiagnostic);
+    // Simuler un temps de réponse de l'IA
+    await new Promise(resolve => setTimeout(resolve, 1500)); 
 
-    // Initialisation de l'état
-    boostButton.disabled = true;
-    critiqueButton.disabled = true;
-    titleDiagnosticButton.disabled = true;
-    
-    // Lancement du premier scan au chargement
-    fetchRandomStreamer();
+    res.json({ critique: mockCritique });
+});
+
+/**
+ * Gestion de la route par défaut (index.html)
+ */
+app.get('/', (req, res) => {
+    // Ceci s'assure que si l'utilisateur va sur la racine, il reçoit le HTML
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// --- Démarrage du Serveur ---
+app.listen(PORT, () => {
+    console.log(`\n🚀 Serveur démarré sur le port ${PORT}`);
+    console.log(`🌐 URL de base : http://localhost:${PORT}`);
+    console.log(`🔑 Redirect URI : ${REDIRECT_URI}\n`);
 });
