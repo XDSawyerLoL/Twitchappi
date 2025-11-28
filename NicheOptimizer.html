@@ -176,7 +176,7 @@
         .btn-secondary:hover:not(:disabled) { background: #1eafdd; }
         
         .ai-result-box {
-            background: #0a0a0a; border: 1px solid var(--color-ai-niche); border-radius: 6px; padding: 15px; margin-top: 15px;
+            background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; margin-top: 15px;
             color: #ffffff;
         }
         
@@ -214,7 +214,8 @@
             margin-bottom: 8px;
             background: var(--color-bg-light);
             border-radius: 6px;
-            border-left: 4px solid var(--color-primary-pink);
+            /* Utilisation des variables CSS pour la bordure */
+            border-left: 4px solid var(--color-primary-pink); 
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
         }
@@ -233,7 +234,8 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            border: 2px solid var(--color-primary-pink);
+            /* Utilisation des variables CSS pour la bordure de l'avatar */
+            border: 2px solid var(--color-secondary-blue); 
             object-fit: cover;
         }
 
@@ -440,7 +442,7 @@
                 const data = await res.json();
                 if(data.is_connected) {
                     twitchUserConnected = true;
-                    // Utilisation de la variable CSS
+                    // **CORRECTION JS pour utiliser la variable CSS**
                     loginStatus.innerHTML = `✅ Connecté en tant que <strong style="color:var(--color-secondary-blue)">${data.username}</strong>`;
                     btnLogin.textContent = "🔒 DÉCONNEXION";
                     btnLogin.style.background = "#e34a64"; 
@@ -450,7 +452,7 @@
                     loginStatus.textContent = "Statut: Déconnecté.";
                     btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
                     btnLogin.style.background = "#6441a5"; 
-                    // Utilisation de la variable CSS
+                    // **CORRECTION JS pour utiliser la variable CSS**
                     followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
                 }
             } else {
@@ -474,7 +476,7 @@
         }
     });
 
-    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS ---
+    // --- FONCTION DE PRODUCTION POUR CHARGER LES STREAMS (AVEC AVATAR CORRIGÉ) ---
     async function loadFollowedStreams() {
         if(!twitchUserConnected) {
             // Utilisation de la variable CSS
@@ -490,26 +492,22 @@
             if(res.ok) {
                 const data = await res.json();
                 
-                // IMPORTANT: data.data doit contenir 'user_name', 'game_name', 'viewer_count', 
-                // et surtout 'profile_image_url' fourni par votre backend.
-                
                 if(data.data && data.data.length > 0) {
                     followedStreamsList.innerHTML = ''; // Vider
                     data.data.forEach(stream => {
                         const div = document.createElement('div');
                         div.className = 'followed-stream-item';
                         
-                        // Utilise stream.profile_image_url qui est censé venir du backend
                         const avatarUrl = stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; // Fallback Twitch par défaut
 
-                        // Utilisation de la variable CSS
+                        // **CORRECTION HTML/JS** : Utilisation des classes CSS pour l'avatar et les couleurs.
                         div.innerHTML = `
                             <div class="streamer-info">
                                 <img src="${avatarUrl}" alt="Avatar de ${stream.user_name}" class="streamer-avatar">
                                 <strong>${stream.user_name}</strong>
                             </div>
                             <span style="font-size:11px; color:#aaa; margin-right:10px;">${stream.game_name}</span>
-                            <span style="color:var(--color-primary-pink);">🔴 ${stream.viewer_count}</span>
+                            <span class="text-pink">🔴 ${stream.viewer_count}</span>
                         `;
 
                         div.onclick = () => {
