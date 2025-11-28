@@ -7,7 +7,6 @@ const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const { GoogleGenAI } = require('@google/genai');
 
-// NOTE: Le code initial utilise 'firebase-admin', on le garde pour compatibilité.
 const admin = require("firebase-admin"); 
 
 const app = express();
@@ -19,11 +18,11 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; // Non utilisé pour le token App, mais gardé
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; // Maintenant utilisé pour l'OAuth
 
-// Clé IA et modèle optimisé pour la vitesse et le coût
+// Clé IA et modèle optimisé
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-2.5-flash"; // Rapide et efficace pour les tâches d'analyse
+const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 // Initialisation de l'IA
 let ai = null;
@@ -35,7 +34,7 @@ if (GEMINI_API_KEY) {
 }
 
 // =========================================================
-// --- CACHING STRATÉGIQUE (Zéro Coût & Ultra-Performance) ---
+// --- CACHING STRATÉGIQUE ---
 // =========================================================
 
 const CACHE = {
@@ -46,7 +45,6 @@ const CACHE = {
     nicheOpportunities: {
         data: null,
         timestamp: 0,
-        // On garde le cache pendant 20 minutes (1200000 ms)
         lifetime: 1000 * 60 * 20 
     }
 };
@@ -55,7 +53,7 @@ const CACHE = {
 // --- MIDDLEWARES & CONFIG EXPRESS ---
 // =========================================================
 
-app.use(cors({ origin: '*' })); // Attention à l'origine en production
+app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
@@ -65,7 +63,6 @@ app.use(cookieParser());
 
 /**
  * Récupère ou met à jour le jeton d'accès d'application Twitch.
- * Utilise le cache pour éviter les appels API inutiles.
  */
 async function getAppAccessToken() {
     const now = Date.now();
@@ -88,7 +85,6 @@ async function getAppAccessToken() {
         
         // 3. Mettre à jour le cache
         CACHE.appAccessToken.token = newToken;
-        // On met l'expiration à 5 minutes de moins que la durée réelle pour être sûr
         CACHE.appAccessToken.expiry = now + (data.expires_in * 1000) - (5 * 60 * 1000); 
         
         console.log("✅ Nouveau Token Twitch généré et mis en cache.");
@@ -100,7 +96,6 @@ async function getAppAccessToken() {
     }
 }
 
-// Fonction pour récupérer les détails d'un jeu via son nom
 async function fetchGameDetails(query, token) {
     const url = `https://api.twitch.tv/helix/games?name=${encodeURIComponent(query)}`;
     const HEADERS = {
@@ -118,7 +113,6 @@ async function fetchGameDetails(query, token) {
     }
 }
 
-// Fonction pour récupérer les streams actifs pour un jeu donné
 async function fetchStreamsForGame(gameId, token) {
     const url = `https://api.twitch.tv/helix/streams?game_id=${gameId}&first=100`;
     const HEADERS = {
@@ -136,7 +130,6 @@ async function fetchStreamsForGame(gameId, token) {
     }
 }
 
-// Fonction pour récupérer les détails d'un utilisateur, y compris son statut live
 async function fetchUserDetailsForScan(query, token) {
     const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
     const HEADERS = {
@@ -150,7 +143,6 @@ async function fetchUserDetailsForScan(query, token) {
 
         if (data.data.length > 0) {
             const user = data.data[0];
-            // Trouver si l'utilisateur est actuellement en direct
             const streamUrl = `https://api.twitch.tv/helix/streams?user_id=${user.id}`;
             const streamResponse = await fetch(streamUrl, { headers: HEADERS });
             const streamData = await streamResponse.json();
@@ -175,17 +167,14 @@ async function fetchUserDetailsForScan(query, token) {
     }
 }
 
+
 // =========================================================
 // --- FONCTION CLÉ : CALCUL DU RATIO V/S & OPPORTUNITÉS ---
 // =========================================================
 
-const MAX_PAGES = 20; // 20 pages * 100 streams/page = 2000 streams analysés max.
-const MAX_VIEWERS_LIMIT = 500; // Seuil pour filtrer les "petits" ou moyens streamers
+const MAX_PAGES = 20; 
+const MAX_VIEWERS_LIMIT = 500; 
 
-/**
- * Scan Twitch pour calculer le Ratio V/S (Spectateurs par Streamer) pour les petits canaux.
- * Les données sont mises en cache pour 20 minutes.
- */
 async function fetchNicheOpportunities(token) {
     const now = Date.now();
     // 1. Vérifier le cache des niches
@@ -215,7 +204,6 @@ async function fetchNicheOpportunities(token) {
         try {
             const response = await fetch(url, { headers: HEADERS });
             if (!response.ok) {
-                // Si l'API renvoie un 429 (Rate Limit), on arrête la recherche
                 if (response.status === 429) {
                     console.warn("⚠️ Rate Limit Twitch atteint. Arrêt du scan.");
                     break;
@@ -225,11 +213,9 @@ async function fetchNicheOpportunities(token) {
 
             const data = await response.json();
 
-            // 2. Traitement des données et calcul du V/S Ratio
             data.data.forEach(stream => {
                 const viewers = stream.viewer_count;
                 
-                // On ne prend que les streams avec une audience limitée
                 if (viewers <= MAX_VIEWERS_LIMIT) { 
                     const gameId = stream.game_id;
                     const gameName = stream.game_name;
@@ -260,18 +246,15 @@ async function fetchNicheOpportunities(token) {
         }
     }
 
-    // 3. Finalisation : Calcul des ratios et tri
     const nicheOpportunities = [];
     for (const gameId in gameStats) {
         const stats = gameStats[gameId];
         
-        // On veut au moins 5 streamers pour que la statistique soit fiable
         if (stats.totalStreamers >= 5) {
             const ratio = stats.totalViewers / stats.totalStreamers;
 
             nicheOpportunities.push({
                 game_name: stats.game_name,
-                // Le ratio est l'indicateur clé de la niche
                 ratio_v_s: parseFloat(ratio.toFixed(2)), 
                 total_streamers: stats.totalStreamers,
                 total_viewers: stats.totalViewers,
@@ -279,12 +262,10 @@ async function fetchNicheOpportunities(token) {
         }
     }
 
-    // Trier par le meilleur ratio (du plus grand au plus petit)
     nicheOpportunities.sort((a, b) => b.ratio_v_s - a.ratio_v_s);
     
     const topNiches = nicheOpportunities.slice(0, 10);
 
-    // 4. Mettre à jour le cache
     CACHE.nicheOpportunities.data = topNiches;
     CACHE.nicheOpportunities.timestamp = now;
 
@@ -295,7 +276,7 @@ async function fetchNicheOpportunities(token) {
 // --- ROUTES DE L'APPLICATION (API) ---
 // =========================================================
 
-// Middleware pour vérifier la disponibilité de l'IA (pour la route /critique_ia)
+// Middleware pour vérifier la disponibilité de l'IA
 app.use((req, res, next) => {
     if (req.originalUrl === '/critique_ia' && !ai) {
         return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
@@ -303,9 +284,27 @@ app.use((req, res, next) => {
     next();
 });
 
+
+// --- CORRECTION DU CANNOT GET /twitch_auth_start ---
+// Route pour lancer l'authentification utilisateur (OAuth) - Réintroduite pour la compatibilité
+app.get('/twitch_auth_start', (req, res) => {
+    // Génération d'un état aléatoire pour la sécurité (prévention CSRF)
+    const state = crypto.randomBytes(16).toString('hex');
+    res.cookie('twitch_oauth_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+
+    // Les scopes 'user:read:follows' et 'user:read:email' sont des exemples courants
+    const scopes = 'user:read:follows+user:read:email+channel:read:subscriptions';
+
+    const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${scopes}&state=${state}`;
+    
+    // Redirection de l'utilisateur vers Twitch
+    res.redirect(authUrl);
+});
+// --- FIN DE LA CORRECTION ---
+
+
 // Route principale pour l'analyse IA des niches
 app.post('/critique_ia', async (req, res) => {
-    // Si 'type: trend' est demandé (comme dans NicheOptimizer.html)
     if (req.body.type !== 'trend') {
         return res.status(400).json({ error: "Type de critique IA non supporté." });
     }
@@ -316,7 +315,6 @@ app.post('/critique_ia', async (req, res) => {
             return res.status(500).json({ error: "Impossible d'obtenir le jeton d'accès Twitch." });
         }
 
-        // 1. Récupérer les données V/S (utilisera le cache si disponible)
         const nicheOpportunities = await fetchNicheOpportunities(token);
 
         if (!nicheOpportunities || nicheOpportunities.length === 0) {
@@ -325,7 +323,6 @@ app.post('/critique_ia', async (req, res) => {
             });
         }
 
-        // 2. Préparer le prompt ultra-intelligent pour Gemini 2.5 Flash
         const promptData = JSON.stringify(nicheOpportunities, null, 2);
         
         const iaPrompt = `
@@ -350,7 +347,6 @@ app.post('/critique_ia', async (req, res) => {
             - Donne un plan d'action concret en 3 étapes (un objectif par étape) pour les 7 premiers jours de streaming sur cette niche.
         `;
 
-        // 3. Appel à l'IA
         const result = await ai.models.generateContent({
             model: GEMINI_MODEL,
             contents: iaPrompt,
@@ -358,7 +354,6 @@ app.post('/critique_ia', async (req, res) => {
 
         const iaResponse = result.text;
 
-        // 4. Renvoi du résultat au frontend
         return res.json({
             html_critique: iaResponse 
         });
@@ -371,9 +366,9 @@ app.post('/critique_ia', async (req, res) => {
     }
 });
 
-// Route pour le scan de jeu ou d'utilisateur (Réintégrée)
+// Route pour le scan de jeu ou d'utilisateur
 app.post('/api/scan_query', async (req, res) => {
-    const { query } = req.body; // 'query' est le nom du jeu ou de l'utilisateur
+    const { query } = req.body; 
     if (!query) {
         return res.status(400).json({ error: "Le paramètre 'query' est manquant." });
     }
@@ -390,7 +385,6 @@ app.post('/api/scan_query', async (req, res) => {
         if (gameData) {
             const streams = await fetchStreamsForGame(gameData.id, token);
             
-            // Calculer des statistiques simples pour le jeu
             const totalViewers = streams.reduce((sum, stream) => sum + stream.viewer_count, 0);
             const totalStreamers = streams.length;
             const avgViewers = totalStreamers > 0 ? (totalViewers / totalStreamers).toFixed(2) : 0;
@@ -403,22 +397,20 @@ app.post('/api/scan_query', async (req, res) => {
                     total_viewers: totalViewers,
                     total_streamers: totalStreamers,
                     avg_viewers_per_streamer: avgViewers,
-                    streams: streams.slice(0, 10) // Limiter à 10 streams pour le frontend
+                    streams: streams.slice(0, 10) 
                 }
             });
 
         } else {
-            // --- ÉTAPE 2: Si aucun jeu trouvé, tenter un scan d'UTILISATEUR ---
+            // --- ÉTAPE 2: Tenter un scan d'UTILISATEUR ---
             const userData = await fetchUserDetailsForScan(query, token);
             
             if (userData) {
-                // Si l'utilisateur est trouvé
                 return res.json({
                     type: "user",
                     user_data: userData
                 });
             } else {
-                // Aucun résultat trouvé ni comme jeu, ni comme utilisateur
                 return res.json({ 
                     type: "none", 
                     message: `Aucun résultat trouvé pour la requête '${query}' comme jeu ou utilisateur.` 
@@ -445,9 +437,17 @@ app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
+// Ajout de toutes les routes statiques manquantes pour une compatibilité maximale
+app.get('/lucky_streamer_picker.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
+});
+
+app.get('/sniper_tool.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
+});
+
 // Lancement du serveur
 app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
-    // Tenter de générer un token au démarrage pour pré-charger le cache
     getAppAccessToken(); 
 });
