@@ -3,21 +3,20 @@
   "version": "1.0.0",
   "description": "",
   "main": "app.js", 
+  "type": "module", 
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "type": "module",  <-- AJOUTEZ CETTE LIGNE
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@google/genai": "^0.15.0",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "firebase-admin": "^12.1.0",
-    "node-fetch": "^3.3.2" <-- Changement de la version 2.7.0 à 3.3.2 (node-fetch v3 supporte mieux ESM)
+    "node-fetch": "^3.3.2" 
   }
 }
-
