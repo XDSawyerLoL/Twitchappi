@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.9 - UX Focus</title>
+    <title>Streamer & Niche AI Hub V6.9 - Stabilité Max</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -24,7 +24,7 @@
 
         /* Styles Globaux */
         body {
-            background-color: var(--color-bg-dark);
+            background-color: var(--color-bg-dark) !important; /* FIX: Force le fond noir globalement */
             color: #fff;
             font-family: 'Inter', Arial, sans-serif;
             margin: 0;
@@ -96,7 +96,7 @@
         .action-input {
             width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium);
             background: var(--color-bg-dark); color: #fff; font-size: 13px;
-            transition: border-color 0.3s; /* UX: subtile transition */
+            transition: border-color 0.3s;
         }
         .action-input:focus {
             border-color: var(--color-primary-pink);
@@ -129,16 +129,22 @@
         
         /* CONSISTENCE VISUELLE : Style de base pour tous les blocs de résultats */
         .ai-result-box {
-            background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; margin-top: 15px;
-            color: #ffffff; 
+            background: #0a0a0a; 
+            border: 1px solid var(--color-border-dark); 
+            border-radius: 6px; 
+            padding: 15px; 
+            margin-top: 15px;
+            color: #ffffff; /* Texte en blanc par défaut */
             transition: border-color 0.3s;
         }
         
-        /* Amélioration de la lisibilité du contenu de l'IA */
-        .ai-result-box p {
+        /* Amélioration de la lisibilité du contenu de l'IA (Force l'héritage) */
+        .ai-result-box p, .ai-result-box li {
             margin-bottom: 12px;
             line-height: 1.6;
             font-size: 13px;
+            background-color: transparent !important; /* FIX: Empêche l'IA de mettre un fond blanc sur un paragraphe */
+            color: inherit !important; /* FIX: Assure que le texte reste blanc */
         }
         .ai-result-box h4 {
             font-family: 'Orbitron', sans-serif;
@@ -147,13 +153,9 @@
             margin-bottom: 10px;
             border-bottom: 2px solid var(--color-primary-pink);
             padding-bottom: 5px;
-            /* Couleur de titre par défaut (sera surchargée) */
-            color: var(--color-secondary-blue);
         }
         .ai-result-box strong {
             font-weight: 700;
-            /* Couleur forte par défaut (sera surchargée) */
-            color: #fff;
         }
         .ai-result-box ul, .ai-result-box ol {
             margin-left: 25px;
@@ -161,15 +163,9 @@
             font-size: 13px;
             line-height: 1.5;
         }
-        .ai-result-box ul {
-            list-style-type: disc; 
-        }
-        .ai-result-box ol {
-            list-style-type: decimal;
-        }
-        .ai-result-box li {
-            margin-bottom: 8px; 
-        }
+        .ai-result-box ul { list-style-type: disc; }
+        .ai-result-box ol { list-style-type: decimal; }
+        .ai-result-box li { margin-bottom: 8px; }
 
         /* --- CORRECTION COLORIMÉTRIQUE UNIFORME : Surcharge spécifique --- */
         /* Scan (Bleu) */
@@ -344,11 +340,9 @@
                 </button>
             </form>
             <div id="niche-result-container" class="ai-result-box">
-                <div id="niche-results" class="ai-content">
-                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                        Les résultats de l'analyse de niche IA apparaîtront ici.
-                    </p>
-                </div>
+                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                    Les résultats de l'analyse de niche IA apparaîtront ici.
+                </p>
             </div>
         </div>
         
@@ -363,11 +357,9 @@
                 </button>
             </form>
             <div id="repurpose-result-container" class="ai-result-box">
-                <div id="repurpose-results" class="ai-content">
-                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                        Les suggestions de contenu court pour le Repurposing apparaîtront ici.
-                    </p>
-                </div>
+                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                    Les suggestions de contenu court pour le Repurposing apparaîtront ici.
+                </p>
             </div>
         </div>
 
@@ -397,8 +389,13 @@
                     <button type="submit" id="btn-boost" class="btn-primary min-w-[100px]">📤 BOOST</button>
                 </form>
                 <div id="boost-results" class="ai-result-box" style="border-color: var(--color-primary-pink); margin-top: 15px;">
+                    <h4 style="color:var(--color-primary-pink); border-color:var(--color-primary-pink); margin-top:0;">Statut du Boost</h4>
                     <p style="text-align:center; color: var(--color-text-dimmed);">
-                        Entrez le nom de la chaîne et cliquez sur BOOST. (Cooldown de 3 heures)
+                        <strong style="color:var(--color-primary-pink);">Objectif :</strong> Augmenter la visibilité d'un stream.
+                        <br>
+                        <strong style="color:var(--color-primary-pink);">Règles :</strong> 1 Boost toutes les 3 heures (cooldown).
+                        <br>
+                        Entrez le nom de la chaîne et cliquez sur BOOST.
                     </p>
                 </div>
             </div>
@@ -533,7 +530,7 @@
                         
                         const imageUrl = stream.thumbnail_url 
                                         ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') 
-                                        : stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
+                                        : stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv-user_pictures/404_user.png'; 
 
                         div.innerHTML = `
                             <img src="${imageUrl}" alt="Preview de ${stream.user_name}" class="streamer-avatar">
@@ -563,7 +560,7 @@
     }
 
 
-    // --- Logique de Scan Cible (AJOUT FEEDBACK VISUEL : Avatar/Box Art) ---
+    // --- Logique de Scan Cible ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -642,13 +639,14 @@
     });
 
 
-    // --- Logique d'interaction IA (inchangée, mais profite des nouvelles règles CSS) ---
+    // --- Logique d'interaction IA ---
     
-    // 1. Analyse de Niche 
+    // 1. Analyse de Niche (SELECTEUR MIS À JOUR)
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
-        const resultBox = document.getElementById('niche-results');
+        // Cible le conteneur principal qui a la classe .ai-result-box
+        const resultBox = document.getElementById('niche-result-container'); 
         const btn = document.getElementById('btn-niche-analyse');
 
         if (!game) return;
@@ -677,11 +675,12 @@
         }
     });
 
-    // 2. Repurposing
+    // 2. Repurposing (SELECTEUR MIS À JOUR)
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
-        const resultBox = document.getElementById('repurpose-results');
+        // Cible le conteneur principal qui a la classe .ai-result-box
+        const resultBox = document.getElementById('repurpose-result-container');
         const btn = document.getElementById('btn-repurpose-analyse');
 
         if (!channel) return;
@@ -710,7 +709,7 @@
         }
     });
 
-    // 3. Trend Detector
+    // 3. Trend Detector (Fonctionne déjà bien avec le conteneur principal)
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const btn = document.getElementById('btn-trend-detector');
@@ -739,7 +738,7 @@
         }
     });
 
-    // --- Logique STREAM BOOST (CLARTÉ AMÉLIORÉE : gestion Cooldown/Temps) ---
+    // --- Logique STREAM BOOST (Amélioration UX) ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim();
@@ -748,7 +747,7 @@
 
         if (!channel) return;
         
-        resultBox.innerHTML = `<p style="color:var(--color-primary-pink); text-align:center;">📤 Envoi du boost pour <strong>${channel}</strong>...</p>`;
+        resultBox.innerHTML = `<h4 style="color:var(--color-primary-pink); border-color:var(--color-primary-pink); margin-top:0;">Statut du Boost</h4><p style="color:var(--color-primary-pink); text-align:center;">📤 Envoi du boost pour <strong>${channel}</strong>...</p>`;
         btn.disabled = true;
         btn.textContent = 'CHARGEMENT...';
 
@@ -763,33 +762,36 @@
 
             if (res.ok) {
                 // Succès du Boost
-                resultBox.innerHTML = `<p style="color:var(--color-ai-niche); font-weight:bold; text-align:center; font-size: 1.1em;">
-                                        ✅ BOOST ACTIVÉ ! Chaîne de ${channel} lancée dans le lecteur.
-                                    </p>`;
+                resultBox.innerHTML = `<h4 style="color:var(--color-ai-niche); border-color:var(--color-ai-niche); margin-top:0;">Boost Activé</h4>
+                                    <p style="color:var(--color-ai-niche); font-weight:bold; text-align:center; font-size: 1.1em;">
+                                        ✅ BOOST ACTIVÉ !
+                                    </p>
+                                    <p style="text-align:center; color:#fff;">La chaîne de <strong style="color:var(--color-primary-pink);">${channel}</strong> est lancée dans le lecteur pour confirmation.</p>`;
                 launchPlayer(channel);
                 btn.textContent = 'SUCCÈS!';
             } else if (res.status === 429) {
-                // Cooldown actif (message plus UX-friendly)
+                // Cooldown actif
                 const timeLeft = data.time_left ? formatTime(data.time_left) : 'plusieurs heures';
 
-                resultBox.innerHTML = `<p style="color:var(--color-primary-pink); font-weight:bold; text-align:center; font-size: 1.1em;">
+                resultBox.innerHTML = `<h4 style="color:var(--color-primary-pink); border-color:var(--color-primary-pink); margin-top:0;">Cooldown Actif</h4>
+                                    <p style="color:var(--color-primary-pink); font-weight:bold; text-align:center; font-size: 1.1em;">
                                         ⏳ COOLDOWN ACTIF
                                     </p>
                                     <p style="text-align:center; color: var(--color-text-dimmed);">
                                         Vous devez attendre <strong style="color:var(--color-primary-pink);">${timeLeft}</strong> avant le prochain Boost.
                                     </p>`;
                 btn.textContent = 'COOLDOWN';
-                btn.disabled = true; // Reste désactivé pendant le cooldown
+                btn.disabled = true; 
             } else {
                 // Autres erreurs
-                resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Échec API (${res.status}): ${data.error || "Erreur inconnue."}</p>`;
+                resultBox.innerHTML = `<h4 style="color:#e34a64; border-color:#e34a64; margin-top:0;">Échec du Boost</h4><p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Échec API (${res.status}): ${data.error || "Erreur inconnue."}</p>`;
                 btn.textContent = 'ÉCHEC';
             }
         } catch(e) {
-            resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur de connexion au serveur: ${e.message}</p>`;
+            resultBox.innerHTML = `<h4 style="color:#e34a64; border-color:#e34a64; margin-top:0;">Erreur Serveur</h4><p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur de connexion au serveur: ${e.message}</p>`;
             btn.textContent = 'ERREUR';
         } finally {
-            if (res.status !== 429) { // Réactive le bouton s'il n'y a pas de cooldown
+            if (res.status !== 429) { 
                 setTimeout(() => { btn.textContent = '📤 BOOST'; btn.disabled = false; }, 3000);
             }
         }
