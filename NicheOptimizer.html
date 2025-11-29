@@ -575,7 +575,12 @@
             channel: channelName,
             layout: "video-and-chat", 
             autoplay: true,
-            parent: [window.location.hostname] 
+            // ATTENTION : MISE À JOUR CRITIQUE DU DOMAINE PARENT POUR justplayer.fr
+            parent: [
+                window.location.hostname,
+                "justplayer.fr", // NOUVEAU DOMAINE HÔTE CORRECT
+                "www.justplayer.fr" // Version avec www
+            ] 
         });
         document.getElementById('player-channel-status').textContent = `Chaîne: ${channelName.toUpperCase()}`;
     }
@@ -792,8 +797,7 @@
                     html += `<img src="${gameData.box_art_url}" alt="${gameData.name}" class="w-[100px] h-[135px] rounded-lg border-2 border-blue">`;
                     html += `<div><h4 class="text-2xl font-bold text-blue">${gameData.name}</h4>`;
                     html += `<p class="text-sm text-pink">Total Viewers: ${gameData.total_viewers.toLocaleString('fr-FR')}</p>`;
-                    html += `<p class="text-sm" style="color:var(--color-text-dimmed);">Total Streamers: ${gameData.total_streamers.toLocaleString('fr-FR')}</p>`;
-                    html += `<p class="text-sm" style="color:var(--color-text-dimmed);">Moyenne V/S: ${gameData.avg_viewers_per_streamer}</p></div></div>`;
+                    html += `<p class="text-sm" style="color:var(--color-text-dimmed);">Total Streamers: ${gameData.total_streamers.toLocaleString('fr-FR')}</p></div></div>`;
                     
                     html += `<h4 class="text-lg font-semibold text-pink mb-3 mt-4">Top 10 Streams Actuels</h4>`;
                     gameData.streams.forEach(stream => {
