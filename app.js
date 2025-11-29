@@ -20,8 +20,7 @@ const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID';
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'VOTRE_SECRET';
 
-// 🛑 CORRECTION DÉFINITIVE DE L'URI (Utilise l'URL enregistrée chez Twitch)
-// LA LIGNE SUIVANTE EST CORRIGÉE
+// 🛑 REDIRECT_URI DOIT ÊTRE L'URL EXACTE ENREGISTRÉE CHEZ TWITCH
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://justplayer.fr/en-eur/pages/streamerhub/twitch_auth_callback'; 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
