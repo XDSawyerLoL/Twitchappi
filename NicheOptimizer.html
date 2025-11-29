@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.6 - Fonctionnel</title>
+    <title>Streamer & Niche AI Hub V6.6 - Stable</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -86,7 +86,7 @@
         /* Ajusté pour la place du chat */
         #twitch-embed {
             width: 100%;
-            height: 550px; /* Augmentation de la hauteur pour intégrer le chat */
+            height: 550px; 
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(34, 199, 239, 0.3);
             overflow: hidden;
@@ -215,7 +215,7 @@
             margin-bottom: 8px;
             border-bottom: 1px solid var(--color-border-medium);
             padding-bottom: 4px;
-            color: var(--color-secondary-blue); /* Couleur par défaut, sera surchargée par les styles d'onglet si besoin */
+            color: var(--color-secondary-blue); 
         }
         .ai-result-box strong {
             color: var(--color-primary-pink);
@@ -320,7 +320,7 @@
                 width: 100%; 
                 min-width: unset;
             }
-            #twitch-embed { height: 350px; } /* Ajusté pour l'espace sur mobile */
+            #twitch-embed { height: 350px; } 
             h1 { font-size: 22px; }
             .tab-btn { padding: 8px 10px; font-size: 10px; flex-basis: 50%; max-width: 50%; }
             .flex-tabs { flex-wrap: wrap; }
@@ -518,6 +518,7 @@
     const followedStreamsList = document.getElementById('followed-streams-list');
     let twitchUserConnected = false; 
 
+    // CORRECTION STABILITÉ AUTH: Logique propre de check et de gestion des erreurs
     async function checkAuth() {
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
@@ -538,7 +539,7 @@
                 }
             } else {
                 twitchUserConnected = false;
-                loginStatus.innerHTML = `❌ Erreur API (${res.status}). Veuillez vérifier le serveur backend.`;
+                loginStatus.innerHTML = `❌ Erreur API (${res.status}). Veuillez vérifier la connectivité du backend.`;
                 followedStreamsList.innerHTML = '<p style="color:red; text-align:center;">Erreur de connexion au service Twitch.</p>';
             }
         } catch(e) {
@@ -549,13 +550,15 @@
         }
     }
 
+    // CORRECTION STABILITÉ AUTH: Si la boucle persiste, c'est que le backend ne gère pas la fin de la redirection OAuth correctement, forçant le frontend à reload de manière inopportune. Ici, nous nous assurons que le frontend ne reload que pour la déconnexion.
     btnLogin.addEventListener('click', () => {
         if(twitchUserConnected) {
-            // Utilise la route POST pour la déconnexion
+            // Déconnexion: on reload après la requête pour nettoyer la session
             fetch(`${API_BASE}/twitch_logout`, { method: 'POST' }).then(() => {
                 window.location.reload(); 
             });
         } else {
+            // Connexion: le backend gère la redirection et la page se recharge via l'URL de retour
             window.location.href = `${API_BASE}/twitch_auth_start`;
         }
     });
@@ -612,7 +615,7 @@
     }
 
 
-    // --- Logique de Scan Cible (CORRIGÉ: ENVOI DE 'QUERY' au lieu de 'target') ---
+    // --- Logique de Scan Cible (FIXED: Uses 'query') ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -636,18 +639,16 @@
             const res = await fetch(`${API_BASE}/scan_target`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ query: target }) // <-- CORRECTION CLÉ JSON
+                body: JSON.stringify({ query: target }) 
             });
 
             if(res.ok) {
                 const data = await res.json();
                 
-                // Le backend renvoie maintenant un objet structuré, ou html_results si c'est l'ancienne version
+                let htmlResult = '';
                 if (data.html_results) {
-                    resultBox.innerHTML = data.html_results;
+                    htmlResult = data.html_results;
                 } else if (data.type === 'game' || data.type === 'user') {
-                    // Logique d'affichage si le backend retourne le format structuré de la v6.6
-                    let htmlResult = '';
                     if (data.type === 'game') {
                         const gameData = data.game_data;
                         let streamsList = (gameData.streams || []).map(s => `
@@ -686,17 +687,17 @@
                             </div>
                         `;
                     }
-                    resultBox.innerHTML = htmlResult;
-
                 } else if (data.error) {
-                    resultBox.innerHTML = `<p style="color:red; text-align:center;">Erreur de l'API: ${data.error}</p>`;
+                    htmlResult = `<p style="color:red; text-align:center;">Erreur de l'API: ${data.error}</p>`;
                 } else {
-                     resultBox.innerHTML = `<p style="color:red; text-align:center;">Format de réponse API inattendu. Le backend ne renvoie pas un type connu.</p>`;
+                     htmlResult = `<p style="color:red; text-align:center;">Format de réponse API inattendu. Le backend ne renvoie pas un type connu.</p>`;
                 }
+
+                resultBox.innerHTML = htmlResult;
 
             } else {
                 let errorMsg = `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`;
-                const errorData = await res.json();
+                const errorData = await res.json().catch(() => ({ error: 'Réponse non-JSON.' }));
                  if (errorData && errorData.error) {
                     errorMsg = `Erreur Backend: ${errorData.error}`;
                 }
@@ -712,7 +713,7 @@
 
     // --- Logique d'interaction IA ---
     
-    // 1. Analyse de Niche (CORRIGÉ: ENVOI DE 'QUERY' au lieu de 'game')
+    // 1. Analyse de Niche (FIXED: Uses 'query')
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -730,14 +731,14 @@
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ query: game, type: 'niche' }) // <-- CORRECTION CLÉ JSON
+                body: JSON.stringify({ query: game, type: 'niche' }) 
             });
 
             if(res.ok) {
                 const data = await res.json();
                 resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
-                const errorData = await res.json();
+                const errorData = await res.json().catch(() => ({ error: 'Réponse non-JSON.' }));
                 resultBox.innerHTML = `<p style="color:red;">Erreur de l'API IA: ${res.status}. ${errorData.error || ''}</p>`;
             }
         } catch(e) {
@@ -747,7 +748,7 @@
         }
     });
 
-    // 2. Repurposing (CORRIGÉ: ENVOI DE 'QUERY' au lieu de 'channel')
+    // 2. Repurposing (FIXED: Uses 'query')
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -765,14 +766,14 @@
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ query: channel, type: 'repurpose' }) // <-- CORRECTION CLÉ JSON
+                body: JSON.stringify({ query: channel, type: 'repurpose' }) 
             });
 
             if(res.ok) {
                 const data = await res.json();
                 resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
-                const errorData = await res.json();
+                const errorData = await res.json().catch(() => ({ error: 'Réponse non-JSON.' }));
                 resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Repurposing: ${res.status}. ${errorData.error || ''}</p>`;
             }
         } catch(e) {
@@ -803,7 +804,7 @@
                 const data = await res.json();
                 resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
-                const errorData = await res.json();
+                const errorData = await res.json().catch(() => ({ error: 'Réponse non-JSON.' }));
                 resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Trend: ${res.status}. ${errorData.error || ''}</p>`;
             }
         } catch(e) {
@@ -813,26 +814,22 @@
         }
     });
 
-    // --- NOUVELLE LOGIQUE : Stream Boost (Avec Cooldown) ---
+    // --- LOGIQUE STREAM BOOST (STABILISÉE) ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim();
-        const resultContainer = document.getElementById('tab-boost');
+        // Cible le conteneur de message statique pour éviter le saut de page
+        const messagePlaceholder = document.getElementById('boost-message'); 
         const btn = document.getElementById('btn-boost');
 
         if (!channel) {
              alert("Veuillez entrer une chaîne à booster.");
              return;
         }
-
-        let messagePlaceholder = resultContainer.querySelector('#boost-message');
+        
         if (!messagePlaceholder) {
-            // Si le placeholder n'existe pas dans le HTML, on le crée dynamiquement
-            messagePlaceholder = document.createElement('div');
-            messagePlaceholder.id = 'boost-message';
-            messagePlaceholder.style.marginTop = '15px';
-            // On l'ajoute juste après le formulaire pour qu'il soit visible
-            document.getElementById('form-boost').insertAdjacentElement('afterend', messagePlaceholder);
+            console.error("Erreur: Le conteneur #boost-message est manquant dans le HTML.");
+            return; 
         }
 
         messagePlaceholder.innerHTML = `<p style="color:var(--color-ai-growth);">📤 Boost en cours de vérification pour ${channel}...</p>`;
@@ -845,13 +842,11 @@
                 body: JSON.stringify({ channel: channel })
             });
 
-            const data = await res.json();
+            const data = await res.json().catch(() => ({ error: 'Réponse non-JSON du Boost.' }));
             
             if (res.ok) {
-                // Succès : le backend envoie la réponse en HTML
                 messagePlaceholder.innerHTML = data.html_response;
             } else {
-                // Échec (Cooldown 429 ou 400)
                 messagePlaceholder.innerHTML = `<p style="color:red; font-weight:bold;">${data.error || 'Erreur inconnue du Boost.'}</p>`;
             }
         } catch(e) {
