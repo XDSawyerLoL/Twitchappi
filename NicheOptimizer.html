@@ -599,7 +599,7 @@
         }
     });
 
-    // --- Authentification Twitch et Fil Suivi (CORRIGÉ POUR UTILISER POP-UP) ---
+    // --- Authentification Twitch et Fil Suivi (CORRIGÉ pour REDIRECTION Complète) ---
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
@@ -636,29 +636,21 @@
         }
     }
 
+    // 🛑 CORRECTION ICI : Redirection de la fenêtre principale pour éviter le bloqueur de pop-up
     btnLogin.addEventListener('click', () => {
         if(twitchUserConnected) {
+            // Déconnexion se fait toujours dans la fenêtre actuelle
             window.location.href = `${API_BASE}/twitch_logout`;
         } else {
-            // ✅ CORRECTION CRITIQUE : Utiliser window.open() pour contourner l'erreur X-Frame-Options
-            const authWindow = window.open(
-                `${API_BASE}/twitch_auth_start`, 
-                'TwitchAuth', 
-                'width=500,height=600,noopener'
-            );
-            
-            // Attendre la fermeture de la fenêtre pop-up, puis vérifier l'authentification
-            if (authWindow) {
-                const checkPopup = setInterval(() => {
-                    if (authWindow.closed) {
-                        clearInterval(checkPopup);
-                        // On attend une seconde pour laisser le temps au backend de finir l'échange de jeton
-                        setTimeout(checkAuth, 1000); 
-                    }
-                }, 500);
+            // Forcer la fenêtre de NIVEAU SUPÉRIEUR à rediriger
+            // Ceci est la seule méthode fiable pour contourner les bloqueurs de pop-up dans un contexte d'iframe.
+            if (window.top) {
+                 window.top.location.href = `${API_BASE}/twitch_auth_start`;
             } else {
-                alert("Le bloqueur de pop-up a empêché l'ouverture de la fenêtre de connexion Twitch. Veuillez l'autoriser.");
+                 // Fallback si on n'est pas dans un iframe
+                 window.location.href = `${API_BASE}/twitch_auth_start`;
             }
+            // NOTE : Le checkAuth sera appelé automatiquement au rechargement de la page après le callback Twitch.
         }
     });
 
@@ -714,7 +706,7 @@
     }
 
 
-    // --- NOUVELLE FONCTION DE RENDU POUR LES RÉSULTATS UTILISATEUR (VODs et Suggestions) ---
+    // --- NOUVELLE FONCTION DE RENDU POUR LES RÉSULTATS UTILISATEUR (VODs et Sug.) ---
     function renderUserScanResults(userData) {
         let html = '';
 
@@ -959,7 +951,8 @@
         initializePlayer();
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
-        checkAuth();
+        // Lance la vérification au chargement, y compris après un retour de Twitch OAuth
+        checkAuth(); 
     });
 </script>
 </body>
