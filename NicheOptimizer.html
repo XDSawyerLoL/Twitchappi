@@ -610,7 +610,7 @@
     }
 
 
-    // --- Logique de Scan Cible (CORRIGÉE POUR LE FORMAT STRUCTURÉ ET LA COULEUR) ---
+    // --- Logique de Scan Cible (CORRIGÉE POUR LA COULEUR DU TEXTE) ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -658,11 +658,11 @@
                             <div class="flex-grow">
                                 <h4 class="text-xl font-bold text-blue">${userData.display_name}</h4>
                                 <p class="text-sm text-gray-400 mb-2">${userData.description || 'Pas de description.'}</p>
-                                <div class="text-xs space-y-1 **text-white**"> 
-                                    <p><strong class="text-pink">Statut:</strong> ${liveStatus}</p>
-                                    <p><strong class="text-pink">Followers:</strong> ${userData.followers.toLocaleString('fr-FR')}</p>
-                                    <p><strong class="text-pink">Ancienneté du Compte:</strong> ${userData.anciennete}</p>
-                                    <p><strong class="text-pink">Derniers Jeux:</strong> ${gamesList}</p>
+                                <div class="text-xs space-y-1"> 
+                                    <p class="text-white"><strong class="text-pink">Statut:</strong> ${liveStatus}</p>
+                                    <p class="text-white"><strong class="text-pink">Followers:</strong> <span>${userData.followers.toLocaleString('fr-FR')}</span></p>
+                                    <p class="text-white"><strong class="text-pink">Ancienneté du Compte:</strong> <span>${userData.anciennete}</span></p>
+                                    <p class="text-white"><strong class="text-pink">Derniers Jeux:</strong> <span>${gamesList}</span></p>
                                     <button class="btn-primary mt-2" onclick="launchPlayer('${userData.login}')">Regarder sur le Lecteur</button>
                                 </div>
                             </div>
@@ -677,10 +677,10 @@
                             <h4 class="text-xl font-bold text-blue mb-2">${gameData.name} - Analyse Concurrence</h4>
                             <div class="flex gap-4 mb-3 items-center">
                                 <img src="${gameData.box_art_url}" alt="${gameData.name} box art" class="w-16 h-auto rounded">
-                                <div class="text-sm text-white">
-                                    <p><strong class="text-pink">Streams Totaux:</strong> ${gameData.total_streamers}</p>
-                                    <p><strong class="text-pink">Spectateurs Totaux:</strong> ${gameData.total_viewers.toLocaleString('fr-FR')}</p>
-                                    <p><strong class="text-pink">Ratio V/S (Moyenne):</strong> ${gameData.avg_viewers_per_streamer}</p>
+                                <div class="text-sm">
+                                    <p class="text-white"><strong class="text-pink">Streams Totaux:</strong> <span>${gameData.total_streamers}</span></p>
+                                    <p class="text-white"><strong class="text-pink">Spectateurs Totaux:</strong> <span>${gameData.total_viewers.toLocaleString('fr-FR')}</span></p>
+                                    <p class="text-white"><strong class="text-pink">Ratio V/S (Moyenne):</strong> <span>${gameData.avg_viewers_per_streamer}</span></p>
                                 </div>
                             </div>
                             <h5 class="text-sm font-bold text-pink mb-1">Top 10 Streams Actuels:</h5>
@@ -809,6 +809,57 @@
         } catch(e) {
             resultBox.innerHTML = `<p style="color:red;">Erreur de connexion au service Trend: ${e.message}</p>`;
         } finally {
+            btn.disabled = false;
+        }
+    });
+    
+    // 4. Stream Boost
+    document.getElementById('form-boost').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const channel = document.getElementById('input-boost').value.trim();
+        const btn = document.getElementById('btn-boost');
+        const boostTab = document.getElementById('tab-boost');
+        
+        if (!channel) return;
+
+        btn.disabled = true;
+        const initialText = btn.textContent;
+        btn.textContent = 'Traitement...';
+
+        try {
+            const res = await fetch(`${API_BASE}/stream_boost`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ channel: channel })
+            });
+
+            const data = await res.json();
+
+            // Retirer tout message précédent de boost
+            const oldMessage = boostTab.querySelector('.boost-response');
+            if (oldMessage) oldMessage.remove();
+            
+            const divMessage = document.createElement('div');
+            divMessage.className = 'boost-response ai-result-box mt-4';
+            divMessage.style.borderColor = res.ok ? 'var(--color-primary-pink)' : '#e34a64';
+            
+            divMessage.innerHTML = data.html_response || `<p style="color:red;">${data.error || 'Erreur inconnue.'}</p>`;
+            
+            boostTab.appendChild(divMessage);
+
+
+        } catch(e) {
+            const divMessage = document.createElement('div');
+            divMessage.className = 'boost-response ai-result-box mt-4';
+            divMessage.style.borderColor = '#e34a64';
+            divMessage.innerHTML = `<p style="color:red;">Erreur de connexion au service Boost: ${e.message}</p>`;
+            
+            const oldMessage = boostTab.querySelector('.boost-response');
+            if (oldMessage) oldMessage.remove();
+            boostTab.appendChild(divMessage);
+            
+        } finally {
+            btn.textContent = initialText;
             btn.disabled = false;
         }
     });
