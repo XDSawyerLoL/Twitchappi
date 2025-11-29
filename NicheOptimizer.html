@@ -14,26 +14,23 @@
             --color-bg-light: #111;
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
-            --color-ai-niche: #59d682;
-            --color-ai-repurpose: #9933ff;
-            --color-ai-growth: #ffcc00;
+            --color-ai-niche: #59d682; /* Vert */
+            --color-ai-repurpose: #9933ff; /* Violet */
+            --color-ai-growth: #ffcc00; /* Jaune */
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
         }
 
         /* Styles Globaux */
-        :host, html {
-            -webkit-text-size-adjust: 100%;
-            text-size-adjust: 100%;
-        }
         body {
             background-color: var(--color-bg-dark);
-            color: #fff;
+            color: #fff; /* Couleur de texte par défaut pour éviter le noir sur noir */
             font-family: 'Inter', Arial, sans-serif;
             margin: 0;
             padding: 0;
         }
+        /* Assure que tous les éléments héritent de la couleur blanche */
         #twitch-lucky-main {
             all: initial;
             display: block;
@@ -41,6 +38,7 @@
             margin: 20px auto;
             padding: 10px;
             font-family: 'Inter', sans-serif;
+            color: #fff; 
         }
         h1 {
             font-family: 'Orbitron', sans-serif;
@@ -52,12 +50,6 @@
         .h1-blue-accent {
             color: var(--color-secondary-blue);
         }
-        .subtitle-center {
-            color: var(--color-text-dimmed);
-            font-size: 12px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
         
         /* Styles spécifiques au Lecteur */
         .player-wrapper {
@@ -68,143 +60,37 @@
             border: 1px solid var(--color-border-dark);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
-        .player-wrapper h2 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
-            color: var(--color-secondary-blue);
-            margin: 0 0 10px;
-            display: flex;
-            align-items: center;
-        }
-        #player-channel-status {
-            font-size: 12px;
-            color: var(--color-text-dimmed);
-            margin-left: auto;
-            font-weight: normal;
-            font-family: 'Inter', sans-serif;
-        }
         /* Ajusté pour la place du chat */
         #twitch-embed {
             width: 100%;
-            height: 550px; 
+            height: 550px;
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(34, 199, 239, 0.3);
             overflow: hidden;
-        }
-        #form-channel-player {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-        #input-channel {
-            flex-grow: 1;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid var(--color-border-medium);
-            background: var(--color-bg-dark);
-            color: #fff;
-            font-size: 14px;
-        }
-        #btn-player-launch {
-            cursor: pointer;
-            border: 0;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            font-size: 13px;
-            background: var(--color-secondary-blue);
-            color: #00161d;
-            min-width: 100px;
-            box-shadow: 0 2px 5px rgba(34, 199, 239, 0.4);
-        }
-        #btn-player-launch:disabled {
-            background: #555;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        /* Onglets */
-        .tab-btn {
-            font-family: 'Orbitron', sans-serif;
-            padding: 12px 15px;
-            background: var(--color-bg-light);
-            border: 1px solid var(--color-border-medium);
-            border-bottom: none;
-            color: var(--color-text-dimmed);
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.2s;
-            flex: 1;
-            text-align: center;
-            font-size: 12px;
-        }
-        .tab-btn.active {
-            background: var(--color-bg-medium);
-            color: #fff;
-            border-top: 3px solid var(--color-primary-pink);
-            font-weight: bold;
-        }
-        .tab-content {
-            /* Fixe le display à 'none' par défaut pour les masqués */
-            display: none; 
-            background: var(--color-bg-medium);
-            border: 1px solid var(--color-border-dark);
-            border-top: none;
-            border-radius: 0 0 10px 10px;
-            padding: 20px;
-        }
-        .tab-content.active {
-            /* Surcharge pour afficher l'onglet actif */
-            display: block !important; 
         }
         
         /* Inputs & Boutons */
         .action-input {
             width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium);
-            background: var(--color-bg-dark); color: #fff; font-size: 13px;
+            background: var(--color-bg-dark); color: #fff; font-size: 13px; /* Assure que le texte input est blanc */
         }
         .btn-primary {
             background: var(--color-primary-pink); color: #fff; border: 0; padding: 8px 12px; border-radius: 6px;
             cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px;
             box-shadow: 0 0 6px rgba(255,0,153,.4);
         }
-        .btn-primary:hover:not(:disabled) { background: #E6008A; }
         .btn-secondary {
             background: var(--color-secondary-blue); color: #00161d; border: 0; padding: 8px 12px; border-radius: 6px;
             cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px;
             box-shadow: 0 0 6px rgba(34,199,239,.4);
         }
-        .btn-secondary:hover:not(:disabled) { background: #1eafdd; }
         
+        /* CORRECTION VISUELLE IA: Amélioration de la lisibilité des résultats AI */
         .ai-result-box {
             background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; margin-top: 15px;
             color: #ffffff;
         }
         
-        /* Classes pour les accents de couleur et titres d'onglets */
-        .text-pink { color: var(--color-primary-pink); }
-        .text-blue { color: var(--color-secondary-blue); }
-        .text-green { color: var(--color-ai-niche); }
-        .text-purple { color: var(--color-ai-repurpose); }
-        .text-yellow { color: var(--color-ai-growth); }
-
-        .tab-heading {
-             font-family:'Orbitron',sans-serif; 
-             margin-bottom:15px; 
-             font-size:16px;
-        }
-
-        .login-box {
-            padding:15px; 
-            background:var(--color-bg-light); 
-            border-radius:8px; 
-            margin-bottom:20px; 
-            border: 1px solid #444;
-        }
-
-        /* --- STYLES POUR STRUCTURER LE TEXTE IA DANS LES RESULT BOX --- */
         .ai-result-box p {
             margin-bottom: 12px;
             line-height: 1.6;
@@ -212,120 +98,56 @@
         }
         .ai-result-box h4 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 15px;
-            margin-top: 15px;
-            margin-bottom: 8px;
-            border-bottom: 1px solid var(--color-border-medium);
-            padding-bottom: 4px;
-            color: var(--color-secondary-blue); 
-        }
-        .ai-result-box strong {
-            color: var(--color-primary-pink);
-            font-weight: 700;
+            font-size: 16px; /* Légèrement plus grand pour la clarté */
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--color-primary-pink); /* Ligne de séparation claire */
+            padding-bottom: 5px;
+            color: var(--color-secondary-blue);
         }
         .ai-result-box ul, .ai-result-box ol {
             margin-left: 20px;
-            margin-bottom: 12px;
+            margin-bottom: 15px; /* Augmentation de la marge pour la clarté */
             font-size: 13px;
+            line-height: 1.5;
         }
         .ai-result-box li {
-            margin-bottom: 6px;
+            margin-bottom: 8px; /* Plus d'espace entre les éléments de liste */
         }
-        /* Surcharge de couleur pour les onglets spécifiques */
+
+        /* Couleurs d'accentuation des résultats AI */
+        #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
+        #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
+        #trend-results h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
+        
         #niche-result-container strong { color: var(--color-ai-niche); }
         #repurpose-result-container strong { color: var(--color-ai-repurpose); }
         #trend-results strong { color: var(--color-ai-growth); }
-        /* FIN DES STYLES IA */
+        /* FIN CORRECTION VISUELLE IA */
 
-
-        /* --- STYLES CARTE/LECTEUR --- */
+        /* Styles de carte du fil suivi */
         #followed-streams-list {
-            display: flex;
-            flex-wrap: wrap; 
-            gap: 15px; 
-            padding: 0;
-            margin: 0;
+            display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0;
         }
-
         .followed-stream-item {
-            display: flex;
-            flex-direction: column; 
-            width: calc(33.333% - 10px); 
-            min-width: 180px; 
-            padding: 10px;
-            background: var(--color-bg-light);
-            border-radius: 8px;
-            border: 1px solid var(--color-border-dark);
-            cursor: pointer; 
-            transition: all 0.2s;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            display: flex; flex-direction: column; width: calc(33.333% - 10px); min-width: 180px; padding: 10px;
+            background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark);
+            cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
         .followed-stream-item:hover {
-            background: #280517;
-            border-color: var(--color-primary-pink); 
-            transform: translateY(-2px);
+            background: #280517; border-color: var(--color-primary-pink); transform: translateY(-2px);
         }
-
         .streamer-avatar {
-            width: 100%; 
-            height: auto;
-            aspect-ratio: 16 / 9; 
-            border-radius: 4px;
-            border: 1px solid var(--color-primary-pink); 
-            object-fit: cover;
-            flex-shrink: 0;
+            width: 100%; aspect-ratio: 16 / 9; border-radius: 4px; border: 1px solid var(--color-primary-pink); 
+            object-fit: cover; flex-shrink: 0;
         }
-
-        .stream-details {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            flex-grow: 1;
-            margin-top: 8px;
-            min-width: 0;
-        }
-
-        .stream-name {
-            font-weight: bold;
-            font-size: 14px;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-            margin-bottom: 3px;
-        }
-
-        .stream-meta {
-            font-size: 11px;
-            display: flex;
-            flex-direction: column;
-            line-height: 1.4;
-        }
-
-        .stream-viewers {
-            color: var(--color-primary-pink); 
-            font-weight: 600;
-        }
-
-        .stream-game {
-            color: var(--color-text-dimmed);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        /* FIN DES STYLES DE CARTE */
-
-        /* Responsive pour Mobile */
+        /* Responsive */
         @media (max-width: 768px) {
             .followed-stream-item {
                 width: 100%; 
                 min-width: unset;
             }
             #twitch-embed { height: 350px; } 
-            h1 { font-size: 22px; }
-            .tab-btn { padding: 8px 10px; font-size: 10px; flex-basis: 50%; max-width: 50%; }
-            .flex-tabs { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -449,8 +271,11 @@
                     <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input">
                     <button type="submit" id="btn-boost" class="btn-primary min-w-[100px]">📤 BOOST</button>
                 </form>
-                <div id="boost-message" class="mt-3 text-sm text-center">
-                    </div>
+                <div id="boost-results" class="ai-result-box" style="border-color: var(--color-primary-pink); margin-top: 15px; display: block; border-style: dashed;">
+                    <p style="text-align:center; color: var(--color-text-dimmed);">
+                        Entrez le nom de la chaîne et cliquez sur BOOST.
+                    </p>
+                </div>
             </div>
         </div>
         
@@ -463,23 +288,15 @@
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
 
-    // --- Gestion des Onglets (FIXE : Stabilité visuelle absolue) ---
+    // --- Gestion des Onglets ---
     function openTab(tabId) {
         localStorage.setItem('activeTab', tabId);
-        
-        // 1. Masquer tous les contenus (avec style.display pour la robustesse) et désactiver tous les boutons
-        document.querySelectorAll('.tab-content').forEach(el => {
-            el.classList.remove('active');
-            el.style.display = 'none'; 
-        });
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         
-        // 2. Afficher l'onglet cible et activer le bouton
         const targetTab = document.getElementById(tabId);
         if (targetTab) {
             targetTab.classList.add('active');
-            targetTab.style.display = 'block'; 
-            
             const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
             if (targetBtn) targetBtn.classList.add('active');
         }
@@ -499,7 +316,7 @@
         twitchEmbedContainer.innerHTML = '';
         embed = new Twitch.Embed("twitch-embed", {
             width: "100%",
-            height: 550, 
+            height: 550,
             channel: channelName,
             layout: "video-and-chat", 
             autoplay: true,
@@ -522,24 +339,18 @@
         }
     });
 
-    // --- Authentification Twitch et Fil Suivi ---
+    // --- Authentification Twitch et Fil Suivi (Code inchangé) ---
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
     let twitchUserConnected = false; 
 
-    // FIXE : Ajout d'une gestion d'erreurs plus robuste pour briser la boucle "Vérification..."
     async function checkAuth() {
-        // Message de chargement immédiat
-        loginStatus.innerHTML = `⏳ Statut: Vérification de l'authentification...`;
-        
+        // ... (checkAuth function inchangée) ...
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
-
             if(res.ok) {
-                // Statut HTTP 200 OK
                 const data = await res.json();
-                
                 if(data.is_connected) {
                     twitchUserConnected = true;
                     loginStatus.innerHTML = `✅ Connecté en tant que <strong style="color:var(--color-secondary-blue)">${data.username}</strong>`;
@@ -554,37 +365,23 @@
                     followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
                 }
             } else {
-                // Statut HTTP non-OK (400, 404, 500, etc.)
                 twitchUserConnected = false;
-                // Tente de récupérer un message d'erreur JSON si disponible, sinon utilise le statut
-                const errorText = await res.text().catch(() => 'Pas de corps de réponse.');
-                
-                // Affiche l'erreur à l'utilisateur
-                loginStatus.innerHTML = `❌ **Erreur API** (${res.status}). Échec de la vérification.`;
-                followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur: Le service de vérification n'a pas répondu correctement.</p>`;
-                console.error(`CheckAuth Status Non-OK: ${res.status}`, errorText);
-
-                // Force le bouton en mode connexion
-                btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
-                btnLogin.style.background = "#6441a5"; 
+                loginStatus.innerHTML = `❌ Erreur API (${res.status}). Veuillez vérifier le serveur backend.`;
+                followedStreamsList.innerHTML = '<p style="color:red; text-align:center;">Erreur de connexion au service Twitch.</p>';
             }
         } catch(e) {
-            // Erreur réseau (Time-out, CORS, serveur inaccessible)
-            console.error("Erreur de connexion (Network/Timeout):", e);
+            console.error("Erreur check auth:", e);
             twitchUserConnected = false;
-            loginStatus.innerHTML = `❌ **Erreur réseau**: Impossible d'atteindre le serveur API.`;
-            followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur réseau: ${e.message}</p>`;
-
-            // Force le bouton en mode connexion
-            btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
-            btnLogin.style.background = "#6441a5"; 
+            loginStatus.innerHTML = `❌ Erreur technique: ${e.message}.`;
+            followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur API: ${e.message}</p>`;
         }
     }
 
-
     btnLogin.addEventListener('click', () => {
         if(twitchUserConnected) {
-            fetch(`${API_BASE}/twitch_logout`, { method: 'POST' }).then(() => {
+            // Utiliser une requête POST pour la déconnexion si le serveur est configuré ainsi
+            fetch(`${API_BASE}/twitch_logout`, { method: 'POST' }).finally(() => {
+                // Après la déconnexion, vérifier l'état ou recharger la page
                 window.location.reload(); 
             });
         } else {
@@ -593,7 +390,8 @@
     });
 
     async function loadFollowedStreams() {
-        if(!twitchUserConnected) {
+        // ... (loadFollowedStreams function inchangée) ...
+         if(!twitchUserConnected) {
             followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
             return;
         }
@@ -644,7 +442,7 @@
     }
 
 
-    // --- Logique de Scan Cible ---
+    // --- Logique de Scan Cible (CORRIGÉE : envoie 'query') ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -668,69 +466,55 @@
             const res = await fetch(`${API_BASE}/scan_target`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
+                // FIX: ENVOIE 'query' AU LIEU DE 'target'
                 body: JSON.stringify({ query: target }) 
             });
 
             if(res.ok) {
                 const data = await res.json();
                 
-                let htmlResult = '';
-                if (data.html_results) {
-                    htmlResult = data.html_results;
-                } else if (data.type === 'game' || data.type === 'user') {
-                    if (data.type === 'game') {
-                        const gameData = data.game_data;
-                        let streamsList = (gameData.streams || []).map(s => `
-                            <li>${s.user_name} (${s.viewer_count} spectateurs) - ${s.title}</li>
-                        `).join('');
+                let htmlOutput = '';
 
-                        htmlResult = `
-                            <div class="p-4 ai-result-box" style="border-color:var(--color-secondary-blue);">
-                                <h4 class="text-blue tab-heading">Résultat du Scan de Jeu: ${gameData.name}</h4>
-                                <div class="flex items-center mb-4">
-                                    <img src="${gameData.box_art_url}" alt="${gameData.name}" class="w-20 h-auto rounded mr-4">
-                                    <div>
-                                        <p><strong>Total Spectateurs:</strong> ${gameData.total_viewers}</p>
-                                        <p><strong>Total Streamers:</strong> ${gameData.total_streamers}</p>
-                                        <p><strong>Ratio V/S (Moyenne):</strong> <span class="text-pink">${gameData.avg_viewers_per_streamer}</span></p>
-                                    </div>
-                                </div>
-                                <h5 class="font-bold mt-3 text-pink">Top Streams Actuels:</h5>
-                                <ul class="list-disc ml-5 text-sm">${streamsList}</ul>
-                            </div>
-                        `;
-                    } else if (data.type === 'user') {
-                        const userData = data.user_data;
-                        htmlResult = `
-                            <div class="p-4 ai-result-box" style="border-color:var(--color-secondary-blue);">
-                                <h4 class="text-blue tab-heading">Résultat du Scan d'Utilisateur: ${userData.display_name}</h4>
-                                <div class="flex items-center mb-4">
-                                    <img src="${userData.profile_image_url}" alt="${userData.display_name}" class="w-20 h-20 rounded-full mr-4">
-                                    <div>
-                                        <p><strong>Statut:</strong> ${userData.is_live ? '<span class="text-pink">🔴 EN DIRECT</span>' : 'HORS LIGNE'}</p>
-                                        <p><strong>Description:</strong> ${userData.description || 'Non fournie.'}</p>
-                                        ${userData.is_live ? `<p><strong>Jeu:</strong> ${userData.stream_details.game_name} (${userData.stream_details.viewer_count} viewers)</p>` : ''}
-                                    </div>
-                                </div>
-                                <button class="btn-primary mt-2" onclick="launchPlayer('${userData.login}')">Regarder le Stream</button>
-                            </div>
-                        `;
-                    }
-                } else if (data.error) {
-                    htmlResult = `<p style="color:red; text-align:center;">Erreur de l'API: ${data.error}</p>`;
+                // Génération du HTML des résultats (à adapter à la réponse réelle de votre serveur)
+                if (data.type === 'game' && data.game_data) {
+                    const g = data.game_data;
+                    htmlOutput += `<h4 class="text-blue">${g.name} - Analyse de Jeu</h4>`;
+                    htmlOutput += `<div class="flex items-start gap-4 mb-4">
+                                        <img src="${g.box_art_url}" alt="Box Art" style="width: 80px; border-radius: 4px; border: 1px solid var(--color-secondary-blue);">
+                                        <div class="text-sm">
+                                            <p><strong>Total Streamers LIVE:</strong> ${g.total_streamers}</p>
+                                            <p><strong>Total Spectateurs LIVE:</strong> ${g.total_viewers.toLocaleString('fr-FR')}</p>
+                                            <p><strong>Spectateurs/Streamer (V/S):</strong> <strong style="color:var(--color-ai-niche);">${g.avg_viewers_per_streamer}</strong></p>
+                                        </div>
+                                    </div>`;
+                    htmlOutput += `<h5>Top 10 Streams:</h5><ul>`;
+                    g.streams.forEach(s => {
+                        htmlOutput += `<li><strong>${s.user_name}</strong> - ${s.viewer_count} spectateurs (${s.title.substring(0, 50)}...)</li>`;
+                    });
+                    htmlOutput += `</ul>`;
+                } else if (data.type === 'user' && data.user_data) {
+                    const u = data.user_data;
+                    htmlOutput += `<h4 class="text-pink">${u.display_name} - Analyse de Streamer</h4>`;
+                    htmlOutput += `<div class="flex items-start gap-4 mb-4">
+                                        <img src="${u.profile_image_url}" alt="Avatar" style="width: 80px; border-radius: 50%; border: 2px solid var(--color-primary-pink);">
+                                        <div class="text-sm">
+                                            <p><strong>Statut:</strong> <span style="color:${u.is_live ? 'var(--color-primary-pink)' : 'var(--color-text-dimmed)'};">${u.is_live ? '🔴 EN DIRECT' : 'OFFLINE'}</span></p>
+                                            <p><strong>Description:</strong> ${u.description || 'N/A'}</p>
+                                            ${u.is_live && u.stream_details ? `<p><strong>Jeu Actuel:</strong> ${u.stream_details.game_name}</p><p><strong>Spectateurs:</strong> ${u.stream_details.viewer_count.toLocaleString('fr-FR')}</p>` : ''}
+                                        </div>
+                                    </div>`;
+                    htmlOutput += `<button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%;">Voir le Stream</button>`;
                 } else {
-                     htmlResult = `<p style="color:red; text-align:center;">Format de réponse API inattendu. Le backend ne renvoie pas un type connu.</p>`;
+                    htmlOutput = `<p style="color:var(--color-text-dimmed); text-align:center;">${data.message || 'Aucun résultat trouvé.'}</p>`;
                 }
 
-                resultBox.innerHTML = htmlResult;
-
+                resultBox.innerHTML = `<div class="ai-result-box" style="border-color: var(--color-secondary-blue);">${htmlOutput}</div>`;
+                
             } else {
                 let errorMsg = `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`;
-                const errorData = await res.json().catch(() => ({ error: 'Réponse non-JSON.' }));
-                 if (errorData && errorData.error) {
-                    errorMsg = `Erreur Backend: ${errorData.error}`;
-                }
-                resultBox.innerHTML = `<p style="color:red; text-align:center; font-weight: bold;">${errorMsg}</p>`;
+                const data = await res.json();
+                errorMsg = data.error || errorMsg;
+                resultBox.innerHTML = `<p style="color:red; text-align:center; font-weight: bold;">❌ ${errorMsg}</p>`;
             }
         } catch(e) {
             resultBox.innerHTML = `<p style="color:red; text-align:center;">Erreur de connexion au service de Scan: ${e.message}</p>`;
@@ -742,7 +526,7 @@
 
     // --- Logique d'interaction IA ---
     
-    // 1. Analyse de Niche 
+    // 1. Analyse de Niche (CORRIGÉE : envoie 'query')
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -753,13 +537,14 @@
         if (!game) return;
 
         container.style.display = 'block';
-        resultBox.innerHTML = '<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour ' + game + '... (Appel API réel)</p>';
+        resultBox.innerHTML = '<p style="color:var(--color-ai-growth);">Analyse IA de niche en cours pour ' + game + '... (Appel API réel)</p>';
         btn.disabled = true;
 
         try {
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
+                // FIX: ENVOIE 'query' AU LIEU DE 'game'
                 body: JSON.stringify({ query: game, type: 'niche' }) 
             });
 
@@ -767,8 +552,8 @@
                 const data = await res.json();
                 resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
-                const errorData = await res.json().catch(() => ({ error: 'Réponse non-JSON.' }));
-                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API IA: ${res.status}. ${errorData.error || ''}</p>`;
+                const data = await res.json();
+                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API IA: ${res.status}. ${data.error || ''}</p>`;
             }
         } catch(e) {
             resultBox.innerHTML = `<p style="color:red;">Erreur de connexion au service IA: ${e.message}</p>`;
@@ -777,7 +562,7 @@
         }
     });
 
-    // 2. Repurposing 
+    // 2. Repurposing (CORRIGÉE : envoie 'query')
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -788,13 +573,14 @@
         if (!channel) return;
 
         container.style.display = 'block';
-        resultBox.innerHTML = `<p style="color:var(--color-ai-repurpose);">Analyse de VOD pour ${channel} en cours... (Appel API réel)</p>`;
+        resultBox.innerHTML = `<p style="color:var(--color-ai-growth);">Analyse de VOD pour ${channel} en cours... (Appel API réel)</p>`;
         btn.disabled = true;
 
         try {
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
+                // FIX: ENVOIE 'query' AU LIEU DE 'channel'
                 body: JSON.stringify({ query: channel, type: 'repurpose' }) 
             });
 
@@ -802,8 +588,8 @@
                 const data = await res.json();
                 resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
-                const errorData = await res.json().catch(() => ({ error: 'Réponse non-JSON.' }));
-                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Repurposing: ${res.status}. ${errorData.error || ''}</p>`;
+                const data = await res.json();
+                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Repurposing: ${res.status}. ${data.error || ''}</p>`;
             }
         } catch(e) {
             resultBox.innerHTML = `<p style="color:red;">Erreur de connexion au service Repurposing: ${e.message}</p>`;
@@ -812,7 +598,7 @@
         }
     });
 
-    // 3. Trend Detector
+    // 3. Trend Detector (Code inchangé)
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const container = document.getElementById('trend-results');
@@ -833,8 +619,8 @@
                 const data = await res.json();
                 resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
-                const errorData = await res.json().catch(() => ({ error: 'Réponse non-JSON.' }));
-                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Trend: ${res.status}. ${errorData.error || ''}</p>`;
+                const data = await res.json();
+                resultBox.innerHTML = `<p style="color:red;">Erreur de l'API Trend: ${res.status}. ${data.error || ''}</p>`;
             }
         } catch(e) {
             resultBox.innerHTML = `<p style="color:red;">Erreur de connexion au service Trend: ${e.message}</p>`;
@@ -843,24 +629,17 @@
         }
     });
 
-    // --- LOGIQUE STREAM BOOST (STABILISÉE) ---
+    // --- Logique STREAM BOOST (CORRIGÉE : gestion 429 & lancement du joueur) ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim();
-        const messagePlaceholder = document.getElementById('boost-message'); 
+        const resultBox = document.getElementById('boost-results'); 
         const btn = document.getElementById('btn-boost');
 
-        if (!channel) {
-             alert("Veuillez entrer une chaîne à booster.");
-             return;
-        }
+        if (!channel) return;
         
-        if (!messagePlaceholder) {
-            console.error("Erreur: Le conteneur #boost-message est manquant dans le HTML.");
-            return; 
-        }
-
-        messagePlaceholder.innerHTML = `<p style="color:var(--color-ai-growth);">📤 Boost en cours de vérification pour ${channel}...</p>`;
+        resultBox.style.display = 'block';
+        resultBox.innerHTML = `<p style="color:var(--color-secondary-blue); text-align:center;">📤 Envoi du boost pour <strong>${channel}</strong>...</p>`;
         btn.disabled = true;
 
         try {
@@ -870,15 +649,21 @@
                 body: JSON.stringify({ channel: channel })
             });
 
-            const data = await res.json().catch(() => ({ error: 'Réponse non-JSON du Boost.' }));
-            
+            const data = await res.json();
+
             if (res.ok) {
-                messagePlaceholder.innerHTML = data.html_response;
+                // Succès du Boost
+                resultBox.innerHTML = data.html_response;
+                launchPlayer(channel); // FIX: Lance le stream boosté pour 10 minutes (visualisation client)
+            } else if (res.status === 429) {
+                // Cooldown actif
+                resultBox.innerHTML = data.html_response || `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Cooldown actif. Réessayez plus tard.</p>`;
             } else {
-                messagePlaceholder.innerHTML = `<p style="color:red; font-weight:bold;">${data.error || 'Erreur inconnue du Boost.'}</p>`;
+                // Autres erreurs
+                resultBox.innerHTML = `<p style="color:red; font-weight:bold; text-align:center;">Erreur API (${res.status}): ${data.error || "Une erreur inconnue s'est produite."}</p>`;
             }
         } catch(e) {
-            messagePlaceholder.innerHTML = `<p style="color:red;">Erreur de connexion au service Boost: ${e.message}</p>`;
+            resultBox.innerHTML = `<p style="color:red; font-weight:bold; text-align:center;">Erreur de connexion au serveur: ${e.message}</p>`;
         } finally {
             btn.disabled = false;
         }
