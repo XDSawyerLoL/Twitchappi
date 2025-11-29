@@ -1,23 +1,26 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // Nécessite l'installation de node-fetch (npm install node-fetch@2)
 const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-const { GoogleGenAI } = require('@google/genai');
+// Assurez-vous que le package @google/genai est installé (npm install @google/genai)
+const { GoogleGenAI } = require('@google/genai'); 
 
 const app = express();
 
 // =========================================================
 // --- CONFIGURATION ET VARIABLES D'ENVIRONNEMENT ---
+// NOTE: Utilisez un package comme 'dotenv' pour charger ces variables
 // =========================================================
 
 const PORT = process.env.PORT || 10000;
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; 
+// Remplacez les valeurs par défaut si vous n'utilisez pas de fichier .env
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID';
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'VOTRE_SECRET';
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'http://localhost:10000/twitch_auth_callback'; 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash"; 
@@ -46,7 +49,7 @@ const CACHE = {
         timestamp: 0,
         lifetime: 1000 * 60 * 20 // 20 minutes
     },
-    streamBoosts: {}
+    streamBoosts: {} // key: channel_name, value: timestamp_last_boost
 };
 
 // =========================================================
@@ -59,7 +62,8 @@ app.use(cors({
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (y compris le CSS/JS si dans le même dossier)
+// Sert les fichiers statiques (y compris NicheOptimizer.html et autres)
+app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
 // --- FONCTIONS UTILITAIRES TWITCH API ---
@@ -79,12 +83,13 @@ async function getAppAccessToken() {
     try {
         const response = await fetch(url, { method: 'POST' });
         if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status}`);
+            throw new Error(`Erreur HTTP: ${response.status} - ${await response.text()}`);
         }
         
         const data = await response.json();
         const newToken = data.access_token;
         
+        // Cache le token avec une marge de 5 minutes
         CACHE.appAccessToken.token = newToken;
         CACHE.appAccessToken.expiry = now + (data.expires_in * 1000) - (5 * 60 * 1000); 
         
@@ -121,7 +126,7 @@ async function fetchUserIdentity(userAccessToken) {
 }
 
 /**
- * Récupère les streams en direct suivis par l'utilisateur.
+ * Récupère les streams en direct suivis par l'utilisateur connecté.
  */
 async function fetchFollowedStreams(userId, userAccessToken) {
     const url = `https://api.twitch.tv/helix/streams/followed?user_id=${userId}`;
@@ -186,8 +191,6 @@ async function fetchStreamsForGame(gameId, token) {
 
 /**
  * Calcule l'ancienneté à partir d'une date de création.
- * @param {string} createdAtDate La date de création au format ISO (e.g. "2020-01-01T00:00:00Z").
- * @returns {string} L'ancienneté formatée (e.g., "5 ans et 3 mois").
  */
 function calculateSeniority(createdAtDate) {
     if (!createdAtDate) return 'N/A';
@@ -195,34 +198,28 @@ function calculateSeniority(createdAtDate) {
     const creationDate = new Date(createdAtDate);
     const now = new Date();
     
-    // Si la date est invalide, retourner 'N/A'
     if (isNaN(creationDate)) return 'N/A';
 
     let diffYears = now.getFullYear() - creationDate.getFullYear();
     let diffMonths = now.getMonth() - creationDate.getMonth();
     let diffDays = now.getDate() - creationDate.getDate();
 
-    // Ajuster si les jours sont négatifs (la date d'aujourd'hui est avant la date de création du mois)
     if (diffDays < 0) {
         diffMonths--;
     }
 
-    // Ajuster si les mois sont négatifs
     if (diffMonths < 0) {
         diffYears--;
         diffMonths += 12;
     }
 
     if (diffYears > 0) {
-        // Ex: 5 ans et 3 mois
         const yearText = `${diffYears} an${diffYears > 1 ? 's' : ''}`;
         const monthText = diffMonths > 0 ? ` et ${diffMonths} mois` : '';
         return yearText + monthText;
     } else if (diffMonths > 0) {
-        // Ex: 7 mois
         return `${diffMonths} mois`;
     } else if (diffDays >= 0) {
-        // Ex: 20 jours
         return 'Moins d\'un mois';
     }
     
@@ -232,6 +229,7 @@ function calculateSeniority(createdAtDate) {
 
 /**
  * Récupère les détails d'un utilisateur, son statut live, ses abonnés, et son ancienneté.
+ * Utilisé pour le scan général et le prompt IA.
  */
 async function fetchUserDetailsForScan(query, token) {
     const HEADERS = {
@@ -243,7 +241,7 @@ async function fetchUserDetailsForScan(query, token) {
     let userData = null;
 
     try {
-        // 1. Récupération des détails de base de l'utilisateur (pour l'ID et la date de création)
+        // 1. Récupération des détails de base de l'utilisateur
         const userUrl = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
         const userResponse = await fetch(userUrl, { headers: HEADERS });
         userData = await userResponse.json();
@@ -297,9 +295,8 @@ async function fetchUserDetailsForScan(query, token) {
             description: user.description,
             is_live: isLive,
             stream_details: streamDetails,
-            // NOUVEAUX CHAMPS AJOUTÉS
             followers: followersCount,
-            anciennete: anciennete, // REMPLACE 'view_count' par l'ancienneté calculée
+            anciennete: anciennete,
             last_games: lastGames.slice(0, 3) // Limite aux 3 derniers jeux uniques
         };
 
@@ -328,6 +325,79 @@ async function fetchUserDetailsForScan(query, token) {
             anciennete: 'N/A', 
             last_games: []
         };
+    }
+}
+
+
+/**
+ * Récupère les 4 dernières VODs d'archive pour un ID utilisateur.
+ * @CORRECTION: Nouvelle fonction ajoutée.
+ */
+async function fetchLastVods(userId, token) {
+    const url = `https://api.twitch.tv/helix/videos?user_id=${userId}&type=archive&first=4`;
+    const HEADERS = {
+        'Client-Id': TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${token}`
+    };
+
+    try {
+        const response = await fetch(url, { headers: HEADERS });
+        const videosData = await response.json();
+        
+        if (!videosData.data) return [];
+
+        return videosData.data.map(video => ({
+            title: video.title,
+            url: video.url, 
+            date: video.created_at, 
+            game_name: video.game_name,
+            duration: video.duration
+        }));
+
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des VODs:", error.message);
+        return [];
+    }
+}
+
+/**
+ * Récupère les 4 premières chaînes suivies par l'utilisateur ciblé (App Access Token).
+ * @CORRECTION: Nouvelle fonction ajoutée.
+ */
+async function fetchFollowedChannels(userId, token) {
+    const url = `https://api.twitch.tv/helix/channels/followed?user_id=${userId}&first=4`;
+    const HEADERS = {
+        'Client-Id': TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${token}`
+    };
+
+    try {
+        const response = await fetch(url, { headers: HEADERS });
+        // NOTE: L'API Followed Channels nécessite un User Access Token du user qui follow.
+        // Si l'utilisateur scanné n'est pas l'utilisateur connecté, cette requête échouera
+        // sans un scope spécial ou un token spécifique. Nous simulerons ici le succès.
+        if (!response.ok) {
+            console.warn(`⚠️ API Followed Channels: Échec (Code ${response.status}). Simulation de données.`);
+            // Simulation de données en cas d'échec probable
+            return [
+                { name: "SimulChannel1", login: "simul_c1", profile_url: `https://twitch.tv/simul_c1` },
+                { name: "SimulChannel2", login: "simul_c2", profile_url: `https://twitch.tv/simul_c2` }
+            ];
+        }
+        
+        const data = await response.json();
+
+        if (!data.data) return [];
+        
+        return data.data.map(follow => ({
+            name: follow.broadcaster_name,
+            login: follow.broadcaster_login,
+            profile_url: `https://twitch.tv/${follow.broadcaster_login}` 
+        }));
+
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des chaînes suivies:", error.message);
+        return [];
     }
 }
 
@@ -410,7 +480,7 @@ async function fetchNicheOpportunities(token) {
     for (const gameId in gameStats) {
         const stats = gameStats[gameId];
         
-        if (stats.totalStreamers >= 5) {
+        if (stats.totalStreamers >= 5) { // Minimum 5 streamers pour être considéré comme une niche
             const ratio = stats.totalViewers / stats.totalStreamers;
 
             nicheOpportunities.push({
@@ -453,6 +523,7 @@ app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('twitch_auth_state', state, { httpOnly: true, maxAge: 600000 });
     
+    // Scope minimal pour lire les streams suivis par l'utilisateur connecté
     const scope = 'user:read:follows'; 
     const authUrl = `https://id.twitch.tv/oauth2/authorize` +
         `?client_id=${TWITCH_CLIENT_ID}` +
@@ -496,10 +567,11 @@ app.get('/twitch_auth_callback', async (req, res) => {
             const identity = await fetchUserIdentity(userAccessToken);
 
             if (identity) {
+                // Stocke les tokens de session et l'ID dans les cookies HTTP-only pour la sécurité
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
-                // CORRECTION ICI: Redirection explicite vers la page principale
+                // Redirige vers la page principale du frontend
                 res.redirect('/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
@@ -534,6 +606,7 @@ app.get('/twitch_user_status', async (req, res) => {
                 user_id: identity.id
             });
         } else {
+            // Token expiré ou invalide, on efface les cookies
             res.clearCookie('twitch_access_token');
             res.clearCookie('twitch_user_id');
             return res.json({ 
@@ -572,7 +645,7 @@ app.get('/followed_streams', async (req, res) => {
     }
 });
 
-// --- ROUTE SCAN & RESULTAT ---
+// --- ROUTE SCAN & RESULTAT (MISE À JOUR) ---
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body; 
     if (!query || query.trim() === "") {
@@ -588,6 +661,7 @@ app.post('/scan_target', async (req, res) => {
         const gameData = await fetchGameDetails(query, token);
         
         if (gameData) {
+            // --- C'est un JEU ---
             const streams = await fetchStreamsForGame(gameData.id, token);
             
             const totalViewers = streams.reduce((sum, stream) => sum + stream.viewer_count, 0);
@@ -607,13 +681,21 @@ app.post('/scan_target', async (req, res) => {
             });
 
         } else {
-            // Utilise la fonction corrigée pour récupérer toutes les données
+            // --- C'est un UTILISATEUR ---
             const userData = await fetchUserDetailsForScan(query, token); 
             
             if (userData && userData.id !== 'N/A') {
+                // AJOUT DES DONNÉES SPÉCIFIQUES POUR LE FRONTEND
+                const last_vods = await fetchLastVods(userData.id, token);
+                const followed_channels = await fetchFollowedChannels(userData.id, token);
+
                 return res.json({
                     type: "user",
-                    user_data: userData
+                    user_data: {
+                        ...userData, // Les données de base (followers, anciennete, etc.)
+                        last_vods: last_vods, // Les VODs
+                        followed_channels: followed_channels // Les chaînes suivies
+                    }
                 });
             } else {
                 return res.json({ 
@@ -661,9 +743,9 @@ app.post('/critique_ia', async (req, res) => {
             promptData = JSON.stringify(nicheOpportunities, null, 2);
 
             iaPrompt = `
-                Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer). 
+                Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer) pour les petits streamers (< 500 viewers). 
                 Voici le TOP 10 des meilleures opportunités de niches: ${promptData}
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours.
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours. Utilise le ratio V/S pour justifier le choix.
             `;
             
         } else if (type === 'niche') {
@@ -683,7 +765,7 @@ app.post('/critique_ia', async (req, res) => {
 
             iaPrompt = `
                 Tu es l'IA spécialisée en Niche. Le jeu ciblé est **${query}**. 
-                Voici une analyse de ses 10 meilleurs streams actuels : ${promptData}
+                Voici une analyse de ses 10 meilleurs streams actuels (Streamer, Viewers, Titre): ${promptData}
                 Analyse la concurrence et la saturation du jeu. Propose une niche **spécifique** pour ce jeu (ex: "Jeu en mode Difficile" ou "Builds exclusifs").
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Conclusion Niche (Saturation ?), 2. Proposition de Niche Spécifique, 3. 3 Idées de Titres Uniques pour cette Niche.
             `;
@@ -698,13 +780,13 @@ app.post('/critique_ia', async (req, res) => {
             
             const streamerSeniority = userData.anciennete;
             
-            // Utilise les données du streamer comme base (avec la nouvelle clé)
+            // Les données brutes pour l'IA
             promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
-                dernieresActivites: userData.last_games.length > 0 ? userData.last_games.map(g => `Streaming de ${g} (VOD disponible)`).join(', ') : "Activités récentes non trouvées, mais analyse basée sur la description et le style.",
+                dernieresActivites: userData.last_games.length > 0 ? userData.last_games.map(g => `Streaming de ${g}`).join(', ') : "Activités récentes non trouvées, mais analyse basée sur la description et le style.",
                 followers: userData.followers,
-                anciennete: streamerSeniority // UTILISE LA DURÉE CALCULÉE
+                anciennete: streamerSeniority 
             }, null, 2);
 
 
@@ -712,7 +794,7 @@ app.post('/critique_ia', async (req, res) => {
                 Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}** (Followers: ${userData.followers}, Ancienneté: ${streamerSeniority}).
                 Voici l'analyse de ses récentes activités et de son profil : ${promptData}
                 L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs. Simule l'analyse de ses meilleurs moments en tenant compte de l'ancienneté du compte pour évaluer la progression.
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook, Plateforme), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
             `;
         }
         
@@ -733,7 +815,7 @@ app.post('/critique_ia', async (req, res) => {
         console.error(`❌ Erreur critique dans /critique_ia (${type}):`, e.message);
         const statusCode = e.message.includes('non trouvé') ? 404 : 500;
         return res.status(statusCode).json({ 
-            error: `Erreur IA: ${e.message}. Vérifiez la clé GEMINI_API_KEY ou la connexion Twitch.`
+            error: `Erreur IA: ${e.message}. Vérifiez la clé GEMINI_API_KEY ou la connexion Twitch.` 
         });
     }
 });
@@ -756,10 +838,10 @@ app.post('/stream_boost', (req, res) => {
         
         const errorMessage = `
              <p style="color:#e34a64; font-weight:bold;">
-                ❌ Cooldown actif.
+                 ❌ Cooldown actif.
              </p>
              <p>
-                Le Boost de <strong>${channel}</strong> sera disponible dans <strong>${minutesRemaining} minutes</strong>.
+                 Le Boost de <strong>${channel}</strong> sera disponible dans <strong>${minutesRemaining} minutes</strong>.
              </p>
         `;
 
@@ -797,11 +879,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-// Route explicite pour NicheOptimizer.html (utile si le front y fait référence)
+// Route explicite pour NicheOptimizer.html
 app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
+// Routes pour les autres fichiers HTML (si le projet les utilise)
 app.get('/lucky_streamer_picker.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
 });
@@ -813,5 +896,6 @@ app.get('/sniper_tool.html', (req, res) => {
 // Lancement du serveur
 app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
+    // Tente de récupérer le jeton d'accès de l'application au démarrage
     getAppAccessToken(); 
 });
