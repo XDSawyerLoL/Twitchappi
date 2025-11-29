@@ -185,8 +185,53 @@ async function fetchStreamsForGame(gameId, token) {
 }
 
 /**
- * Récupère les détails d'un utilisateur, son statut live, ses abonnés, ses vues totales, et ses derniers jeux.
- * CORRECTION V7.3: Ajout des appels pour followers, view_count, et last_games (VODs).
+ * Calcule l'ancienneté à partir d'une date de création.
+ * @param {string} createdAtDate La date de création au format ISO (e.g. "2020-01-01T00:00:00Z").
+ * @returns {string} L'ancienneté formatée (e.g., "5 ans et 3 mois").
+ */
+function calculateSeniority(createdAtDate) {
+    if (!createdAtDate) return 'N/A';
+
+    const creationDate = new Date(createdAtDate);
+    const now = new Date();
+    
+    // Si la date est invalide, retourner 'N/A'
+    if (isNaN(creationDate)) return 'N/A';
+
+    let diffYears = now.getFullYear() - creationDate.getFullYear();
+    let diffMonths = now.getMonth() - creationDate.getMonth();
+    let diffDays = now.getDate() - creationDate.getDate();
+
+    // Ajuster si les jours sont négatifs (la date d'aujourd'hui est avant la date de création du mois)
+    if (diffDays < 0) {
+        diffMonths--;
+    }
+
+    // Ajuster si les mois sont négatifs
+    if (diffMonths < 0) {
+        diffYears--;
+        diffMonths += 12;
+    }
+
+    if (diffYears > 0) {
+        // Ex: 5 ans et 3 mois
+        const yearText = `${diffYears} an${diffYears > 1 ? 's' : ''}`;
+        const monthText = diffMonths > 0 ? ` et ${diffMonths} mois` : '';
+        return yearText + monthText;
+    } else if (diffMonths > 0) {
+        // Ex: 7 mois
+        return `${diffMonths} mois`;
+    } else if (diffDays >= 0) {
+        // Ex: 20 jours
+        return 'Moins d\'un mois';
+    }
+    
+    return 'N/A';
+}
+
+
+/**
+ * Récupère les détails d'un utilisateur, son statut live, ses abonnés, et son ancienneté.
  */
 async function fetchUserDetailsForScan(query, token) {
     const HEADERS = {
@@ -198,7 +243,7 @@ async function fetchUserDetailsForScan(query, token) {
     let userData = null;
 
     try {
-        // 1. Récupération des détails de base de l'utilisateur (pour l'ID et les vues totales)
+        // 1. Récupération des détails de base de l'utilisateur (pour l'ID et la date de création)
         const userUrl = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
         const userResponse = await fetch(userUrl, { headers: HEADERS });
         userData = await userResponse.json();
@@ -210,20 +255,23 @@ async function fetchUserDetailsForScan(query, token) {
         user = userData.data[0];
         const userId = user.id;
 
-        // 2. Récupération du statut Live
+        // 2. Calcul de l'ancienneté du compte
+        const anciennete = calculateSeniority(user.created_at);
+
+        // 3. Récupération du statut Live
         const streamUrl = `https://api.twitch.tv/helix/streams?user_id=${userId}`;
         const streamResponse = await fetch(streamUrl, { headers: HEADERS });
         const streamData = await streamResponse.json();
         const isLive = streamData.data.length > 0;
         const streamDetails = isLive ? streamData.data[0] : null;
 
-        // 3. Récupération du nombre d'abonnés (Followers)
+        // 4. Récupération du nombre d'abonnés (Followers)
         const followersUrl = `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}`;
         const followersResponse = await fetch(followersUrl, { headers: HEADERS });
         const followersData = await followersResponse.json();
         const followersCount = followersData.total || 0;
 
-        // 4. Récupération des 3 derniers jeux streamés (via les VODs)
+        // 5. Récupération des 3 derniers jeux streamés (via les VODs)
         const videosUrl = `https://api.twitch.tv/helix/videos?user_id=${userId}&type=archive&first=3`;
         const videosResponse = await fetch(videosUrl, { headers: HEADERS });
         const videosData = await videosResponse.json();
@@ -251,7 +299,7 @@ async function fetchUserDetailsForScan(query, token) {
             stream_details: streamDetails,
             // NOUVEAUX CHAMPS AJOUTÉS
             followers: followersCount,
-            view_count: user.view_count || 0, // 'view_count' est généralement fourni ici
+            anciennete: anciennete, // REMPLACE 'view_count' par l'ancienneté calculée
             last_games: lastGames.slice(0, 3) // Limite aux 3 derniers jeux uniques
         };
 
@@ -265,7 +313,6 @@ async function fetchUserDetailsForScan(query, token) {
             login: query,
             profile_image_url: '',
             description: '',
-            view_count: 0
         };
         
         // Retourne les données partielles avec des valeurs de repli pour éviter le crash
@@ -278,7 +325,7 @@ async function fetchUserDetailsForScan(query, token) {
             is_live: false,
             stream_details: null,
             followers: 0,
-            view_count: fallbackUser.view_count,
+            anciennete: 'N/A', 
             last_games: []
         };
     }
@@ -644,25 +691,27 @@ app.post('/critique_ia', async (req, res) => {
         } else if (type === 'repurpose') {
             promptTitle = `Analyse de Repurposing pour le Streamer: ${query}`;
             
-            // Utilise la fonction corrigée pour récupérer plus de détails
             const userData = await fetchUserDetailsForScan(query, token);
             if (!userData || userData.id === 'N/A') {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
-            // Utilise les données du streamer comme base
+            
+            const streamerSeniority = userData.anciennete;
+            
+            // Utilise les données du streamer comme base (avec la nouvelle clé)
             promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
                 dernieresActivites: userData.last_games.length > 0 ? userData.last_games.map(g => `Streaming de ${g} (VOD disponible)`).join(', ') : "Activités récentes non trouvées, mais analyse basée sur la description et le style.",
                 followers: userData.followers,
-                total_views: userData.view_count
+                anciennete: streamerSeniority // UTILISE LA DURÉE CALCULÉE
             }, null, 2);
 
 
             iaPrompt = `
-                Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}** (Followers: ${userData.followers}, Vues Totales: ${userData.view_count}).
-                Voici l'analyse de ses récentes activités : ${promptData}
-                L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs. Simule l'analyse de ses meilleurs moments.
+                Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}** (Followers: ${userData.followers}, Ancienneté: ${streamerSeniority}).
+                Voici l'analyse de ses récentes activités et de son profil : ${promptData}
+                L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs. Simule l'analyse de ses meilleurs moments en tenant compte de l'ancienneté du compte pour évaluer la progression.
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
             `;
         }
