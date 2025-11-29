@@ -1,12 +1,12 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch'); // Assurez-vous que node-fetch est bien installé: npm install node-fetch
+const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const path = require('path');
-const crypto = require('crypto'); // Utilisé pour générer un état sécurisé
-const cookieParser = require('cookie-parser'); // Utilisé pour gérer les jetons utilisateur
+const crypto = require('crypto');
+const cookieParser = require('cookie-parser');
 
-const { GoogleGenAI } = require('@google/genai'); // Assurez-vous que @google/genai est installé: npm install @google/genai
+const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
 
@@ -17,7 +17,6 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-// Assurez-vous que REDIRECT_URI pointe vers l'URL de votre serveur, par exemple: http://localhost:10000/twitch_auth_callback
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -54,14 +53,13 @@ const CACHE = {
 // --- MIDDLEWARES & CONFIG EXPRESS ---
 // =========================================================
 
-// Le client est sur le même hôte, le CORS * peut être remplacé par l'origine spécifique en production
 app.use(cors({ 
     origin: '*',
-    credentials: true // Important pour les cookies
+    credentials: true
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (comme NicheOptimizer.html)
+app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (y compris le CSS/JS si dans le même dossier)
 
 // =========================================================
 // --- FONCTIONS UTILITAIRES TWITCH API ---
@@ -88,7 +86,6 @@ async function getAppAccessToken() {
         const newToken = data.access_token;
         
         CACHE.appAccessToken.token = newToken;
-        // Expire 5 minutes avant l'heure réelle
         CACHE.appAccessToken.expiry = now + (data.expires_in * 1000) - (5 * 60 * 1000); 
         
         console.log("✅ Nouveau Token Twitch généré et mis en cache.");
@@ -112,9 +109,7 @@ async function fetchUserIdentity(userAccessToken) {
                 'Authorization': `Bearer ${userAccessToken}`
             }
         });
-        // Si le token est invalide ou expiré, Twitch retourne 401 ou 403, ce qui sera détecté par response.ok
         if (!response.ok) {
-            console.log(`Token utilisateur invalide ou expiré (Statut: ${response.status}).`);
             return null;
         }
         const data = await response.json();
@@ -240,8 +235,8 @@ async function fetchNicheOpportunities(token) {
     }
 
     console.log("🚀 Lancement du nouveau scan V/S...");
-    const MAX_PAGES = 20; // Limite le nombre de requêtes pour éviter le Rate Limit
-    const MAX_VIEWERS_LIMIT = 500; // Cible uniquement les petits et moyens streams
+    const MAX_PAGES = 20;
+    const MAX_VIEWERS_LIMIT = 500;
     const API_BASE_URL = 'https://api.twitch.tv/helix/streams';
     let paginationCursor = null;
     let requestsCount = 0;
@@ -307,7 +302,6 @@ async function fetchNicheOpportunities(token) {
     for (const gameId in gameStats) {
         const stats = gameStats[gameId];
         
-        // On ne considère que les jeux streamés par au moins 5 petits streamers
         if (stats.totalStreamers >= 5) {
             const ratio = stats.totalViewers / stats.totalStreamers;
 
@@ -342,16 +336,15 @@ app.use((req, res, next) => {
     next();
 });
 
-// --- Routes OAuth (COMPLÉTÉES ET CORRIGÉES) ---
+// --- Routes OAuth ---
 
 app.get('/twitch_auth_start', (req, res) => {
     if (!TWITCH_CLIENT_ID || !REDIRECT_URI) {
         return res.status(500).send("Erreur de configuration côté serveur (CLIENT_ID ou REDIRECT_URI manquant).");
     }
     const state = crypto.randomBytes(16).toString('hex');
-    res.cookie('twitch_auth_state', state, { httpOnly: true, maxAge: 600000 }); // 10 minutes
+    res.cookie('twitch_auth_state', state, { httpOnly: true, maxAge: 600000 });
     
-    // Scope minimum requis pour lire le fil suivi
     const scope = 'user:read:follows'; 
     const authUrl = `https://id.twitch.tv/oauth2/authorize` +
         `?client_id=${TWITCH_CLIENT_ID}` +
@@ -395,11 +388,11 @@ app.get('/twitch_auth_callback', async (req, res) => {
             const identity = await fetchUserIdentity(userAccessToken);
 
             if (identity) {
-                // maxAge basé sur l'expiration du token (souvent 4h)
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
-                res.redirect('/');
+                // CORRECTION ICI: Redirection explicite vers la page principale
+                res.redirect('/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
             }
@@ -414,31 +407,25 @@ app.get('/twitch_auth_callback', async (req, res) => {
 });
 
 
-// ROUTE CLÉ: Vérification de l'état de connexion utilisateur (CORRIGÉE)
 app.get('/twitch_user_status', async (req, res) => {
     const userAccessToken = req.cookies.twitch_access_token;
     
     if (!userAccessToken) {
-        // L'utilisateur n'a pas de cookie, il est déconnecté. (Réponse immédiate)
         return res.json({ 
             is_connected: false 
         });
     }
 
     try {
-        // Tente de valider le token auprès de Twitch
         const identity = await fetchUserIdentity(userAccessToken); 
 
         if (identity) {
-            // Token valide
             return res.json({ 
                 is_connected: true, 
                 username: identity.display_name,
                 user_id: identity.id
             });
         } else {
-            // Token invalide ou expiré (Twitch n'a pas renvoyé d'identité)
-            // Nettoyer les cookies et renvoyer 'déconnecté'
             res.clearCookie('twitch_access_token');
             res.clearCookie('twitch_user_id');
             return res.json({ 
@@ -447,7 +434,6 @@ app.get('/twitch_user_status', async (req, res) => {
         }
     } catch (error) {
         console.error("Erreur critique dans /twitch_user_status (catch):", error.message);
-        // Réponse en cas d'erreur serveur/réseau pour briser la boucle client
         return res.json({ 
             is_connected: false, 
             error: "Vérification interne échouée." 
@@ -471,8 +457,6 @@ app.get('/followed_streams', async (req, res) => {
 
     try {
         const streams = await fetchFollowedStreams(userId, userAccessToken);
-        // Si le token est expiré, fetchFollowedStreams peut renvoyer un tableau vide, 
-        // ou l'erreur est attrapée dans fetchFollowedStreams. On renvoie le résultat.
         return res.json({ data: streams });
     } catch (e) {
         console.error("Erreur lors de la récupération des streams suivis:", e.message);
@@ -506,12 +490,11 @@ app.post('/scan_target', async (req, res) => {
                 type: "game",
                 game_data: {
                     name: gameData.name,
-                    // Remplacement pour obtenir une image de taille correcte (exemple: 285x380)
                     box_art_url: gameData.box_art_url.replace('-{width}x{height}', '-285x380'), 
                     total_viewers: totalViewers,
                     total_streamers: totalStreamers,
                     avg_viewers_per_streamer: avgViewers,
-                    streams: streams.slice(0, 10) // Top 10 streams
+                    streams: streams.slice(0, 10) 
                 }
             });
 
@@ -560,8 +543,6 @@ app.post('/critique_ia', async (req, res) => {
         let promptData = "";
         let promptTitle = "";
 
-        // --- Logique Spécifique à chaque Type ---
-
         if (type === 'trend') {
             promptTitle = "Détection de la Prochaine Niche";
             const nicheOpportunities = await fetchNicheOpportunities(token);
@@ -605,7 +586,6 @@ app.post('/critique_ia', async (req, res) => {
             if (!userData) {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
-            // Simulation de données de VOD/Clips (car l'API Twitch ne le permet pas sans OAuth complexe)
             promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
@@ -659,7 +639,6 @@ app.post('/stream_boost', (req, res) => {
     const now = Date.now();
     const lastBoost = CACHE.streamBoosts[channel];
 
-    // 1. Vérification du Cooldown (3H)
     if (lastBoost && (now - lastBoost) < BOOST_COOLDOWN_MS) {
         const timeRemaining = BOOST_COOLDOWN_MS - (now - lastBoost);
         const minutesRemaining = Math.ceil(timeRemaining / (1000 * 60));
@@ -679,12 +658,8 @@ app.post('/stream_boost', (req, res) => {
         });
     }
 
-    // 2. Exécution du Boost (Simulation 10 minutes)
-    
-    // Mettre à jour le cache de cooldown
     CACHE.streamBoosts[channel] = now;
 
-    // Réponse au Frontend
     const successMessage = `
         <p style="color:var(--color-primary-pink); font-weight:bold;">
             ✅ Boost de Stream Activé !
@@ -706,19 +681,26 @@ app.post('/stream_boost', (req, res) => {
 // Configuration des Routes Statiques
 // =========================================================
 
+// Route racine - sert le NicheOptimizer
 app.get('/', (req, res) => {
-    // Supposons que NicheOptimizer.html est le fichier principal
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-// Les autres routes statiques pour le débogage si besoin
+// Route explicite pour NicheOptimizer.html (utile si le front y fait référence)
 app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+app.get('/lucky_streamer_picker.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
+});
+
+app.get('/sniper_tool.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
 });
 
 // Lancement du serveur
 app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
-    // Tente de récupérer le token d'application au démarrage
     getAppAccessToken(); 
 });
