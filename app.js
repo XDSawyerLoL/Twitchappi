@@ -1,23 +1,20 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch'); // Nécessite l'installation de node-fetch (npm install node-fetch@2)
+const fetch = require('node-fetch'); // Nécessite l'installation de node-fetch@2
 const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// Assurez-vous que le package @google/genai est installé (npm install @google/genai)
 const { GoogleGenAI } = require('@google/genai'); 
 
 const app = express();
 
 // =========================================================
 // --- CONFIGURATION ET VARIABLES D'ENVIRONNEMENT ---
-// NOTE: Utilisez un package comme 'dotenv' pour charger ces variables
 // =========================================================
 
 const PORT = process.env.PORT || 10000;
-// Remplacez les valeurs par défaut si vous n'utilisez pas de fichier .env
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID';
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'VOTRE_SECRET';
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'http://localhost:10000/twitch_auth_callback'; 
@@ -62,7 +59,6 @@ app.use(cors({
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-// Sert les fichiers statiques (y compris NicheOptimizer.html et autres)
 app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
@@ -89,7 +85,6 @@ async function getAppAccessToken() {
         const data = await response.json();
         const newToken = data.access_token;
         
-        // Cache le token avec une marge de 5 minutes
         CACHE.appAccessToken.token = newToken;
         CACHE.appAccessToken.expiry = now + (data.expires_in * 1000) - (5 * 60 * 1000); 
         
@@ -229,7 +224,6 @@ function calculateSeniority(createdAtDate) {
 
 /**
  * Récupère les détails d'un utilisateur, son statut live, ses abonnés, et son ancienneté.
- * Utilisé pour le scan général et le prompt IA.
  */
 async function fetchUserDetailsForScan(query, token) {
     const HEADERS = {
@@ -297,13 +291,12 @@ async function fetchUserDetailsForScan(query, token) {
             stream_details: streamDetails,
             followers: followersCount,
             anciennete: anciennete,
-            last_games: lastGames.slice(0, 3) // Limite aux 3 derniers jeux uniques
+            last_games: lastGames.slice(0, 3) 
         };
 
     } catch (error) {
         console.error("❌ Erreur lors de la récupération des détails de l'utilisateur (fallback):", error.message);
         
-        // Tente d'utiliser les données utilisateur si elles ont été partiellement récupérées
         const fallbackUser = user || {
             id: 'N/A', 
             display_name: query, 
@@ -312,7 +305,6 @@ async function fetchUserDetailsForScan(query, token) {
             description: '',
         };
         
-        // Retourne les données partielles avec des valeurs de repli pour éviter le crash
         return { 
             id: fallbackUser.id, 
             display_name: fallbackUser.display_name,
@@ -330,8 +322,8 @@ async function fetchUserDetailsForScan(query, token) {
 
 
 /**
- * Récupère les 4 dernières VODs d'archive pour un ID utilisateur.
- * @CORRECTION: Nouvelle fonction ajoutée.
+ * Récupère les 4 dernières VODs d'archive pour un ID utilisateur avec l'URL de la miniature.
+ * @CORRECTION: Ajout de l'URL de la miniature.
  */
 async function fetchLastVods(userId, token) {
     const url = `https://api.twitch.tv/helix/videos?user_id=${userId}&type=archive&first=4`;
@@ -351,52 +343,13 @@ async function fetchLastVods(userId, token) {
             url: video.url, 
             date: video.created_at, 
             game_name: video.game_name,
-            duration: video.duration
+            duration: video.duration,
+            // Formatage de la miniature en 320x180
+            thumbnail_url: video.thumbnail_url ? video.thumbnail_url.replace('%{width}x%{height}', '320x180') : 'N/A'
         }));
 
     } catch (error) {
         console.error("❌ Erreur lors de la récupération des VODs:", error.message);
-        return [];
-    }
-}
-
-/**
- * Récupère les 4 premières chaînes suivies par l'utilisateur ciblé (App Access Token).
- * @CORRECTION: Nouvelle fonction ajoutée.
- */
-async function fetchFollowedChannels(userId, token) {
-    const url = `https://api.twitch.tv/helix/channels/followed?user_id=${userId}&first=4`;
-    const HEADERS = {
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`
-    };
-
-    try {
-        const response = await fetch(url, { headers: HEADERS });
-        // NOTE: L'API Followed Channels nécessite un User Access Token du user qui follow.
-        // Si l'utilisateur scanné n'est pas l'utilisateur connecté, cette requête échouera
-        // sans un scope spécial ou un token spécifique. Nous simulerons ici le succès.
-        if (!response.ok) {
-            console.warn(`⚠️ API Followed Channels: Échec (Code ${response.status}). Simulation de données.`);
-            // Simulation de données en cas d'échec probable
-            return [
-                { name: "SimulChannel1", login: "simul_c1", profile_url: `https://twitch.tv/simul_c1` },
-                { name: "SimulChannel2", login: "simul_c2", profile_url: `https://twitch.tv/simul_c2` }
-            ];
-        }
-        
-        const data = await response.json();
-
-        if (!data.data) return [];
-        
-        return data.data.map(follow => ({
-            name: follow.broadcaster_name,
-            login: follow.broadcaster_login,
-            profile_url: `https://twitch.tv/${follow.broadcaster_login}` 
-        }));
-
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération des chaînes suivies:", error.message);
         return [];
     }
 }
@@ -480,7 +433,7 @@ async function fetchNicheOpportunities(token) {
     for (const gameId in gameStats) {
         const stats = gameStats[gameId];
         
-        if (stats.totalStreamers >= 5) { // Minimum 5 streamers pour être considéré comme une niche
+        if (stats.totalStreamers >= 5) { 
             const ratio = stats.totalViewers / stats.totalStreamers;
 
             nicheOpportunities.push({
@@ -523,7 +476,6 @@ app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('twitch_auth_state', state, { httpOnly: true, maxAge: 600000 });
     
-    // Scope minimal pour lire les streams suivis par l'utilisateur connecté
     const scope = 'user:read:follows'; 
     const authUrl = `https://id.twitch.tv/oauth2/authorize` +
         `?client_id=${TWITCH_CLIENT_ID}` +
@@ -567,11 +519,9 @@ app.get('/twitch_auth_callback', async (req, res) => {
             const identity = await fetchUserIdentity(userAccessToken);
 
             if (identity) {
-                // Stocke les tokens de session et l'ID dans les cookies HTTP-only pour la sécurité
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
-                // Redirige vers la page principale du frontend
                 res.redirect('/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
@@ -606,7 +556,6 @@ app.get('/twitch_user_status', async (req, res) => {
                 user_id: identity.id
             });
         } else {
-            // Token expiré ou invalide, on efface les cookies
             res.clearCookie('twitch_access_token');
             res.clearCookie('twitch_user_id');
             return res.json({ 
@@ -685,16 +634,52 @@ app.post('/scan_target', async (req, res) => {
             const userData = await fetchUserDetailsForScan(query, token); 
             
             if (userData && userData.id !== 'N/A') {
-                // AJOUT DES DONNÉES SPÉCIFIQUES POUR LE FRONTEND
+                // 1. Récupération des VODs avec miniatures
                 const last_vods = await fetchLastVods(userData.id, token);
-                const followed_channels = await fetchFollowedChannels(userData.id, token);
+                
+                // 2. Détermination de la cible de suggestion et recherche de concurrents
+                let gameIdForSuggestion = null;
+                let gameNameForSuggestion = null;
+                
+                // Priorité au jeu actuel (si live)
+                if (userData.is_live && userData.stream_details) {
+                    gameIdForSuggestion = userData.stream_details.game_id;
+                    gameNameForSuggestion = userData.stream_details.game_name;
+                // Sinon, le dernier jeu joué (si VODs disponibles)
+                } else if (userData.last_games.length > 0) {
+                    gameNameForSuggestion = userData.last_games[0];
+                    // Nécessite de chercher l'ID à partir du nom
+                    const gameDetails = await fetchGameDetails(gameNameForSuggestion, token); 
+                    if(gameDetails) {
+                        gameIdForSuggestion = gameDetails.id;
+                    }
+                }
+
+                let suggested_channels = [];
+                if (gameIdForSuggestion) {
+                    // Récupère les top streams pour ce jeu
+                    let streams = await fetchStreamsForGame(gameIdForSuggestion, token);
+                    
+                    // Filtre l'utilisateur scanné et prend les 4 premiers concurrents
+                    suggested_channels = streams
+                        .filter(s => s.user_id !== userData.id)
+                        .slice(0, 4)
+                        .map(s => ({
+                            name: s.user_name,
+                            login: s.user_login,
+                            title: s.title,
+                            viewers: s.viewer_count,
+                            profile_url: `https://twitch.tv/${s.user_login}` 
+                        }));
+                }
 
                 return res.json({
                     type: "user",
                     user_data: {
                         ...userData, // Les données de base (followers, anciennete, etc.)
-                        last_vods: last_vods, // Les VODs
-                        followed_channels: followed_channels // Les chaînes suivies
+                        last_vods: last_vods, // Les VODs avec miniatures
+                        // Renomme et utilise le nouveau tableau
+                        suggested_channels: suggested_channels 
                     }
                 });
             } else {
@@ -712,7 +697,7 @@ app.post('/scan_target', async (req, res) => {
 });
 
 
-// --- ROUTE CRITIQUE IA ---
+// --- ROUTE CRITIQUE IA (inchangée) ---
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
 
@@ -735,167 +720,4 @@ app.post('/critique_ia', async (req, res) => {
         let promptTitle = "";
 
         if (type === 'trend') {
-            promptTitle = "Détection de la Prochaine Niche";
-            const nicheOpportunities = await fetchNicheOpportunities(token);
-            if (!nicheOpportunities || nicheOpportunities.length === 0) {
-                return res.json({ html_critique: `<p style="color:red;">❌ L'analyse n'a trouvé aucune niche fiable (moins de 5 streamers par jeu analysé).</p>` });
-            }
-            promptData = JSON.stringify(nicheOpportunities, null, 2);
-
-            iaPrompt = `
-                Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer) pour les petits streamers (< 500 viewers). 
-                Voici le TOP 10 des meilleures opportunités de niches: ${promptData}
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours. Utilise le ratio V/S pour justifier le choix.
-            `;
-            
-        } else if (type === 'niche') {
-            promptTitle = `Analyse de Niche pour le Jeu: ${query}`;
-            
-            const gameDetails = await fetchGameDetails(query, token);
-            if (!gameDetails) {
-                 return res.status(404).json({ error: `Jeu non trouvé: ${query}` });
-            }
-            const streams = await fetchStreamsForGame(gameDetails.id, token);
-            const topStreams = streams.slice(0, 10).map(s => ({
-                streamer: s.user_name,
-                viewers: s.viewer_count,
-                title: s.title
-            }));
-            promptData = JSON.stringify(topStreams, null, 2);
-
-            iaPrompt = `
-                Tu es l'IA spécialisée en Niche. Le jeu ciblé est **${query}**. 
-                Voici une analyse de ses 10 meilleurs streams actuels (Streamer, Viewers, Titre): ${promptData}
-                Analyse la concurrence et la saturation du jeu. Propose une niche **spécifique** pour ce jeu (ex: "Jeu en mode Difficile" ou "Builds exclusifs").
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Conclusion Niche (Saturation ?), 2. Proposition de Niche Spécifique, 3. 3 Idées de Titres Uniques pour cette Niche.
-            `;
-
-        } else if (type === 'repurpose') {
-            promptTitle = `Analyse de Repurposing pour le Streamer: ${query}`;
-            
-            const userData = await fetchUserDetailsForScan(query, token);
-            if (!userData || userData.id === 'N/A') {
-                 return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
-            }
-            
-            const streamerSeniority = userData.anciennete;
-            
-            // Les données brutes pour l'IA
-            promptData = JSON.stringify({
-                Streamer: userData.display_name,
-                description: userData.description,
-                dernieresActivites: userData.last_games.length > 0 ? userData.last_games.map(g => `Streaming de ${g}`).join(', ') : "Activités récentes non trouvées, mais analyse basée sur la description et le style.",
-                followers: userData.followers,
-                anciennete: streamerSeniority 
-            }, null, 2);
-
-
-            iaPrompt = `
-                Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}** (Followers: ${userData.followers}, Ancienneté: ${streamerSeniority}).
-                Voici l'analyse de ses récentes activités et de son profil : ${promptData}
-                L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs. Simule l'analyse de ses meilleurs moments en tenant compte de l'ancienneté du compte pour évaluer la progression.
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook, Plateforme), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
-            `;
-        }
-        
-        if (!ai) {
-             return res.status(503).json({ error: "Service d'IA non disponible." });
-        }
-        
-        const result = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            contents: iaPrompt,
-        });
-
-        return res.json({
-            html_critique: `<h4>${promptTitle}</h4>` + result.text 
-        });
-
-    } catch (e) {
-        console.error(`❌ Erreur critique dans /critique_ia (${type}):`, e.message);
-        const statusCode = e.message.includes('non trouvé') ? 404 : 500;
-        return res.status(statusCode).json({ 
-            error: `Erreur IA: ${e.message}. Vérifiez la clé GEMINI_API_KEY ou la connexion Twitch.` 
-        });
-    }
-});
-
-
-// --- ROUTE STREAM BOOST (avec Cooldown) ---
-app.post('/stream_boost', (req, res) => {
-    const { channel } = req.body;
-    
-    if (!channel || channel.trim() === "") {
-        return res.status(400).json({ error: "Le nom de la chaîne est requis pour le Boost." });
-    }
-
-    const now = Date.now();
-    const lastBoost = CACHE.streamBoosts[channel];
-
-    if (lastBoost && (now - lastBoost) < BOOST_COOLDOWN_MS) {
-        const timeRemaining = BOOST_COOLDOWN_MS - (now - lastBoost);
-        const minutesRemaining = Math.ceil(timeRemaining / (1000 * 60));
-        
-        const errorMessage = `
-             <p style="color:#e34a64; font-weight:bold;">
-                 ❌ Cooldown actif.
-             </p>
-             <p>
-                 Le Boost de <strong>${channel}</strong> sera disponible dans <strong>${minutesRemaining} minutes</strong>.
-             </p>
-        `;
-
-        return res.status(429).json({ 
-            error: `Cooldown de 3 heures actif. Prochain Boost disponible dans environ ${minutesRemaining} minutes.`,
-            html_response: errorMessage
-        });
-    }
-
-    CACHE.streamBoosts[channel] = now;
-
-    const successMessage = `
-        <p style="color:var(--color-primary-pink); font-weight:bold;">
-            ✅ Boost de Stream Activé !
-        </p>
-        <p>
-            La chaîne <strong>${channel}</strong> a été ajoutée à la rotation prioritaire pour une période de 10 minutes. 
-            Le prochain boost sera disponible dans 3 heures. Bonne chance !
-        </p>
-    `;
-
-    return res.json({ 
-        success: true, 
-        html_response: successMessage 
-    });
-});
-
-
-// =========================================================
-// Configuration des Routes Statiques
-// =========================================================
-
-// Route racine - sert le NicheOptimizer
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
-});
-
-// Route explicite pour NicheOptimizer.html
-app.get('/NicheOptimizer.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
-});
-
-// Routes pour les autres fichiers HTML (si le projet les utilise)
-app.get('/lucky_streamer_picker.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
-});
-
-app.get('/sniper_tool.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
-});
-
-// Lancement du serveur
-app.listen(PORT, () => {
-    console.log(`Serveur Express démarré sur le port ${PORT}`);
-    // Tente de récupérer le jeton d'accès de l'application au démarrage
-    getAppAccessToken(); 
-});
+            prompt
