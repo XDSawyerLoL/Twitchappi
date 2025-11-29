@@ -490,7 +490,6 @@
             height: 550, // Nouvelle hauteur
             channel: channelName,
             // layout: "video-and-chat" est la valeur par défaut pour un lecteur avec chat.
-            // On peut omettre 'layout' ou utiliser 'default' si la dimension permet un split.
             // On utilise "video-and-chat" explicitement.
             layout: "video-and-chat", 
             autoplay: true,
@@ -611,7 +610,7 @@
     }
 
 
-    // --- Logique de Scan Cible (MIS À JOUR POUR GÉRER LE JSON STRUCTURÉ ET L'ANCIENNETÉ) ---
+    // --- Logique de Scan Cible (CORRIGÉE POUR LE FORMAT STRUCTURÉ ET LA COULEUR) ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -635,7 +634,8 @@
             const res = await fetch(`${API_BASE}/scan_target`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ query: target }) // Note: The body key is 'query', not 'target' as per backend
+                // Clé 'query' utilisée pour la cohérence de l'API
+                body: JSON.stringify({ query: target }) 
             });
 
             if(res.ok) {
@@ -643,11 +643,12 @@
                 
                 if (data.type === "user") {
                     const userData = data.user_data;
+                    
                     const liveStatus = userData.is_live 
                         ? `<span style="color:var(--color-primary-pink); font-weight:bold;">🔴 EN DIRECT</span> (Titre: ${userData.stream_details.title.substring(0, 50)}...)`
                         : `<span style="color:var(--color-text-dimmed);">Hors Ligne</span>`;
                     
-                    const gamesList = userData.last_games.length > 0
+                    const gamesList = userData.last_games && userData.last_games.length > 0
                         ? userData.last_games.map(g => `<span class="bg-gray-700 text-xs px-2 py-1 rounded">${g}</span>`).join(' ')
                         : 'Aucun jeu récent trouvé.';
 
@@ -657,7 +658,7 @@
                             <div class="flex-grow">
                                 <h4 class="text-xl font-bold text-blue">${userData.display_name}</h4>
                                 <p class="text-sm text-gray-400 mb-2">${userData.description || 'Pas de description.'}</p>
-                                <div class="text-xs space-y-1">
+                                <div class="text-xs space-y-1 **text-white**"> 
                                     <p><strong class="text-pink">Statut:</strong> ${liveStatus}</p>
                                     <p><strong class="text-pink">Followers:</strong> ${userData.followers.toLocaleString('fr-FR')}</p>
                                     <p><strong class="text-pink">Ancienneté du Compte:</strong> ${userData.anciennete}</p>
@@ -676,7 +677,7 @@
                             <h4 class="text-xl font-bold text-blue mb-2">${gameData.name} - Analyse Concurrence</h4>
                             <div class="flex gap-4 mb-3 items-center">
                                 <img src="${gameData.box_art_url}" alt="${gameData.name} box art" class="w-16 h-auto rounded">
-                                <div class="text-sm">
+                                <div class="text-sm text-white">
                                     <p><strong class="text-pink">Streams Totaux:</strong> ${gameData.total_streamers}</p>
                                     <p><strong class="text-pink">Spectateurs Totaux:</strong> ${gameData.total_viewers.toLocaleString('fr-FR')}</p>
                                     <p><strong class="text-pink">Ratio V/S (Moyenne):</strong> ${gameData.avg_viewers_per_streamer}</p>
@@ -689,10 +690,14 @@
                 } else if (data.type === "none") {
                     resultBox.innerHTML = `<p style="color:var(--color-ai-growth); text-align:center; font-weight:bold;">${data.message}</p>`;
                 } else {
-                     resultBox.innerHTML = `<p style="color:red; text-align:center;">Format de réponse API inattendu.</p>`;
+                     // Fallback for raw HTML if the backend still sends it
+                     if (data.html_results) {
+                        resultBox.innerHTML = data.html_results;
+                     } else {
+                         resultBox.innerHTML = `<p style="color:red; text-align:center;">Format de réponse API inattendu.</p>`;
+                     }
                 }
             } else {
-                // Gestion spécifique de l'erreur 404 pour l'utilisateur
                 let errorMsg = `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`;
                 if (res.status === 404) {
                     errorMsg = `❌ Erreur 404: Le service Scan (${API_BASE}/scan_target) est introuvable sur le serveur backend. Veuillez vérifier son déploiement.`;
@@ -707,7 +712,7 @@
     });
 
 
-    // --- Logique d'interaction IA ---
+    // --- Logique d'interaction IA (Pas de changement) ---
     
     // 1. Analyse de Niche
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
@@ -804,57 +809,6 @@
         } catch(e) {
             resultBox.innerHTML = `<p style="color:red;">Erreur de connexion au service Trend: ${e.message}</p>`;
         } finally {
-            btn.disabled = false;
-        }
-    });
-
-    // 4. Stream Boost
-    document.getElementById('form-boost').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const channel = document.getElementById('input-boost').value.trim();
-        const btn = document.getElementById('btn-boost');
-        const boostTab = document.getElementById('tab-boost');
-        
-        if (!channel) return;
-
-        btn.disabled = true;
-        const initialText = btn.textContent;
-        btn.textContent = 'Traitement...';
-
-        try {
-            const res = await fetch(`${API_BASE}/stream_boost`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ channel: channel })
-            });
-
-            const data = await res.json();
-
-            // Retirer tout message précédent de boost
-            const oldMessage = boostTab.querySelector('.boost-response');
-            if (oldMessage) oldMessage.remove();
-            
-            const divMessage = document.createElement('div');
-            divMessage.className = 'boost-response ai-result-box mt-4';
-            divMessage.style.borderColor = res.ok ? 'var(--color-primary-pink)' : '#e34a64';
-            
-            divMessage.innerHTML = data.html_response || `<p style="color:red;">${data.error || 'Erreur inconnue.'}</p>`;
-            
-            boostTab.appendChild(divMessage);
-
-
-        } catch(e) {
-            const divMessage = document.createElement('div');
-            divMessage.className = 'boost-response ai-result-box mt-4';
-            divMessage.style.borderColor = '#e34a64';
-            divMessage.innerHTML = `<p style="color:red;">Erreur de connexion au service Boost: ${e.message}</p>`;
-            
-            const oldMessage = boostTab.querySelector('.boost-response');
-            if (oldMessage) oldMessage.remove();
-            boostTab.appendChild(divMessage);
-            
-        } finally {
-            btn.textContent = initialText;
             btn.disabled = false;
         }
     });
