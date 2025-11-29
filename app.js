@@ -6,6 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
+// Assurez-vous que le package @google/genai est installé (npm install @google/genai)
 const { GoogleGenAI } = require('@google/genai'); 
 
 const app = express();
@@ -15,6 +16,7 @@ const app = express();
 // =========================================================
 
 const PORT = process.env.PORT || 10000;
+// Remplacez les valeurs par défaut si vous n'utilisez pas de fichier .env
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID';
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'VOTRE_SECRET';
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'http://localhost:10000/twitch_auth_callback'; 
@@ -323,7 +325,6 @@ async function fetchUserDetailsForScan(query, token) {
 
 /**
  * Récupère les 4 dernières VODs d'archive pour un ID utilisateur avec l'URL de la miniature.
- * @CORRECTION: Ajout de l'URL de la miniature.
  */
 async function fetchLastVods(userId, token) {
     const url = `https://api.twitch.tv/helix/videos?user_id=${userId}&type=archive&first=4`;
@@ -594,14 +595,14 @@ app.get('/followed_streams', async (req, res) => {
     }
 });
 
-// --- ROUTE SCAN & RESULTAT (MISE À JOUR) ---
+// --- ROUTE SCAN & RESULTAT (FIXED) ---
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body; 
     if (!query || query.trim() === "") {
         return res.status(400).json({ error: "Le paramètre 'query' est manquant ou vide. Veuillez entrer un nom de jeu ou un pseudo." });
     }
 
-    try {
+    try { // <-- START TRY BLOCK
         const token = await getAppAccessToken();
         if (!token) {
             return res.status(500).json({ error: "Impossible d'obtenir le jeton d'accès App Twitch." });
@@ -641,14 +642,11 @@ app.post('/scan_target', async (req, res) => {
                 let gameIdForSuggestion = null;
                 let gameNameForSuggestion = null;
                 
-                // Priorité au jeu actuel (si live)
                 if (userData.is_live && userData.stream_details) {
                     gameIdForSuggestion = userData.stream_details.game_id;
                     gameNameForSuggestion = userData.stream_details.game_name;
-                // Sinon, le dernier jeu joué (si VODs disponibles)
                 } else if (userData.last_games.length > 0) {
                     gameNameForSuggestion = userData.last_games[0];
-                    // Nécessite de chercher l'ID à partir du nom
                     const gameDetails = await fetchGameDetails(gameNameForSuggestion, token); 
                     if(gameDetails) {
                         gameIdForSuggestion = gameDetails.id;
@@ -657,10 +655,8 @@ app.post('/scan_target', async (req, res) => {
 
                 let suggested_channels = [];
                 if (gameIdForSuggestion) {
-                    // Récupère les top streams pour ce jeu
                     let streams = await fetchStreamsForGame(gameIdForSuggestion, token);
                     
-                    // Filtre l'utilisateur scanné et prend les 4 premiers concurrents
                     suggested_channels = streams
                         .filter(s => s.user_id !== userData.id)
                         .slice(0, 4)
@@ -676,9 +672,8 @@ app.post('/scan_target', async (req, res) => {
                 return res.json({
                     type: "user",
                     user_data: {
-                        ...userData, // Les données de base (followers, anciennete, etc.)
-                        last_vods: last_vods, // Les VODs avec miniatures
-                        // Renomme et utilise le nouveau tableau
+                        ...userData, 
+                        last_vods: last_vods, 
                         suggested_channels: suggested_channels 
                     }
                 });
@@ -688,16 +683,16 @@ app.post('/scan_target', async (req, res) => {
                     message: `Aucun résultat trouvé pour la requête '${query}' comme jeu ou utilisateur.` 
                 });
             }
-        }
+        } // <--- Fermeture du bloc 'else' (utilisateur)
 
-    } catch (e) {
+    } // <--- FIX: Fermeture du bloc 'try'
+    catch (e) {
         console.error("❌ Erreur critique dans /scan_target:", e.message);
         return res.status(500).json({ error: `Erreur interne du serveur lors du scan: ${e.message}` });
     }
-});
+}); // <-- Fermeture de la route
 
-
-// --- ROUTE CRITIQUE IA (inchangée) ---
+// --- ROUTE CRITIQUE IA ---
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
 
