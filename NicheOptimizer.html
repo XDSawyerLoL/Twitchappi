@@ -646,7 +646,8 @@
                     
                     const liveStatus = userData.is_live 
                         ? `<span style="color:var(--color-primary-pink); font-weight:bold;">🔴 EN DIRECT</span> (Titre: ${userData.stream_details.title.substring(0, 50)}...)`
-                        : `<span style="color:var(--color-text-dimmed);">Hors Ligne</span>`;
+                        : `<span class="text-white">Hors Ligne</span>`; // Le statut est géré ici
+
                     
                     const gamesList = userData.last_games && userData.last_games.length > 0
                         ? userData.last_games.map(g => `<span class="bg-gray-700 text-xs px-2 py-1 rounded">${g}</span>`).join(' ')
