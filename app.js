@@ -720,4 +720,165 @@ app.post('/critique_ia', async (req, res) => {
         let promptTitle = "";
 
         if (type === 'trend') {
-            prompt
+            promptTitle = "Détection de la Prochaine Niche";
+            const nicheOpportunities = await fetchNicheOpportunities(token);
+            if (!nicheOpportunities || nicheOpportunities.length === 0) {
+                return res.json({ html_critique: `<p style="color:red;">❌ L'analyse n'a trouvé aucune niche fiable (moins de 5 streamers par jeu analysé).</p>` });
+            }
+            promptData = JSON.stringify(nicheOpportunities, null, 2);
+
+            iaPrompt = `
+                Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer) pour les petits streamers (< 500 viewers). 
+                Voici le TOP 10 des meilleures opportunités de niches: ${promptData}
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours. Utilise le ratio V/S pour justifier le choix.
+            `;
+            
+        } else if (type === 'niche') {
+            promptTitle = `Analyse de Niche pour le Jeu: ${query}`;
+            
+            const gameDetails = await fetchGameDetails(query, token);
+            if (!gameDetails) {
+                 return res.status(404).json({ error: `Jeu non trouvé: ${query}` });
+            }
+            const streams = await fetchStreamsForGame(gameDetails.id, token);
+            const topStreams = streams.slice(0, 10).map(s => ({
+                streamer: s.user_name,
+                viewers: s.viewer_count,
+                title: s.title
+            }));
+            promptData = JSON.stringify(topStreams, null, 2);
+
+            iaPrompt = `
+                Tu es l'IA spécialisée en Niche. Le jeu ciblé est **${query}**. 
+                Voici une analyse de ses 10 meilleurs streams actuels (Streamer, Viewers, Titre): ${promptData}
+                Analyse la concurrence et la saturation du jeu. Propose une niche **spécifique** pour ce jeu (ex: "Jeu en mode Difficile" ou "Builds exclusifs").
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Conclusion Niche (Saturation ?), 2. Proposition de Niche Spécifique, 3. 3 Idées de Titres Uniques pour cette Niche.
+            `;
+
+        } else if (type === 'repurpose') {
+            promptTitle = `Analyse de Repurposing pour le Streamer: ${query}`;
+            
+            const userData = await fetchUserDetailsForScan(query, token);
+            if (!userData || userData.id === 'N/A') {
+                 return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
+            }
+            
+            const streamerSeniority = userData.anciennete;
+            
+            promptData = JSON.stringify({
+                Streamer: userData.display_name,
+                description: userData.description,
+                dernieresActivites: userData.last_games.length > 0 ? userData.last_games.map(g => `Streaming de ${g}`).join(', ') : "Activités récentes non trouvées, mais analyse basée sur la description et le style.",
+                followers: userData.followers,
+                anciennete: streamerSeniority 
+            }, null, 2);
+
+
+            iaPrompt = `
+                Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}** (Followers: ${userData.followers}, Ancienneté: ${streamerSeniority}).
+                Voici l'analyse de ses récentes activités et de son profil : ${promptData}
+                L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs. Simule l'analyse de ses meilleurs moments en tenant compte de l'ancienneté du compte pour évaluer la progression.
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook, Plateforme), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
+            `;
+        }
+        
+        if (!ai) {
+             return res.status(503).json({ error: "Service d'IA non disponible." });
+        }
+        
+        const result = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: iaPrompt,
+        });
+
+        return res.json({
+            html_critique: `<h4>${promptTitle}</h4>` + result.text 
+        });
+
+    } catch (e) {
+        console.error(`❌ Erreur critique dans /critique_ia (${type}):`, e.message);
+        const statusCode = e.message.includes('non trouvé') ? 404 : 500;
+        return res.status(statusCode).json({ 
+            error: `Erreur IA: ${e.message}. Vérifiez la clé GEMINI_API_KEY ou la connexion Twitch.` 
+        });
+    }
+});
+
+
+// --- ROUTE STREAM BOOST (avec Cooldown) ---
+app.post('/stream_boost', (req, res) => {
+    const { channel } = req.body;
+    
+    if (!channel || channel.trim() === "") {
+        return res.status(400).json({ error: "Le nom de la chaîne est requis pour le Boost." });
+    }
+
+    const now = Date.now();
+    const lastBoost = CACHE.streamBoosts[channel];
+
+    if (lastBoost && (now - lastBoost) < BOOST_COOLDOWN_MS) {
+        const timeRemaining = BOOST_COOLDOWN_MS - (now - lastBoost);
+        const minutesRemaining = Math.ceil(timeRemaining / (1000 * 60));
+        
+        const errorMessage = `
+             <p style="color:#e34a64; font-weight:bold;">
+                 ❌ Cooldown actif.
+             </p>
+             <p>
+                 Le Boost de <strong>${channel}</strong> sera disponible dans <strong>${minutesRemaining} minutes</strong>.
+             </p>
+        `;
+
+        return res.status(429).json({ 
+            error: `Cooldown de 3 heures actif. Prochain Boost disponible dans environ ${minutesRemaining} minutes.`,
+            html_response: errorMessage
+        });
+    }
+
+    CACHE.streamBoosts[channel] = now;
+
+    const successMessage = `
+        <p style="color:var(--color-primary-pink); font-weight:bold;">
+            ✅ Boost de Stream Activé !
+        </p>
+        <p>
+            La chaîne <strong>${channel}</strong> a été ajoutée à la rotation prioritaire pour une période de 10 minutes. 
+            Le prochain boost sera disponible dans 3 heures. Bonne chance !
+        </p>
+    `;
+
+    return res.json({ 
+        success: true, 
+        html_response: successMessage 
+    });
+});
+
+
+// =========================================================
+// Configuration des Routes Statiques
+// =========================================================
+
+// Route racine - sert le NicheOptimizer
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+// Route explicite pour NicheOptimizer.html
+app.get('/NicheOptimizer.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+// Routes pour les autres fichiers HTML (si le projet les utilise)
+app.get('/lucky_streamer_picker.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
+});
+
+app.get('/sniper_tool.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
+});
+
+// Lancement du serveur
+app.listen(PORT, () => {
+    console.log(`Serveur Express démarré sur le port ${PORT}`);
+    getAppAccessToken(); 
+});
