@@ -377,7 +377,7 @@
                     <span class="icon">🔴</span> Vos Chaînes Suivies LIVE
                 </h4>
                 <div id="followed-streams-list">
-                    <p style="color:#555; text-align:center; padding:10px;">Chargement du fil...</p>
+                    <p style="color:#555; text-align:center; padding:10px;">Chargement des streams en direct...</p>
                 </div>
             </div>
         </div>
@@ -610,7 +610,7 @@
     }
 
 
-    // --- Logique de Scan Cible (CORRIGÉE POUR LA COULEUR DU TEXTE) ---
+    // --- Logique de Scan Cible (CORRIGÉE POUR AJOUTER VODs ET FOLLOWED CHANNELS) ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -649,24 +649,58 @@
                         : `<span class="text-white">Hors Ligne</span>`; // Le statut est géré ici
 
                     
+                    // --- 1. Derniers Jeux (Games List) ---
                     const gamesList = userData.last_games && userData.last_games.length > 0
-                        ? userData.last_games.map(g => `<span class="bg-gray-700 text-xs px-2 py-1 rounded">${g}</span>`).join(' ')
-                        : 'Aucun jeu récent trouvé.';
+                        ? userData.last_games.map(g => `<span class="bg-gray-700 text-xs px-2 py-1 rounded text-white">${g}</span>`).join(' ')
+                        : '<span class="text-gray-500 italic">(Scan terminé : aucune donnée de jeu récente)</span>';
+
+                    // --- 2. 4 Dernières VODs (VODs List) ---
+                    const vodsList = userData.last_vods && userData.last_vods.length > 0
+                        ? userData.last_vods.slice(0, 4).map(vod => `
+                            <li class="text-xs text-white truncate" title="${vod.title}">
+                                <a href="${vod.url || '#'}" target="_blank" class="text-gray-400 hover:text-pink-500 transition-colors">
+                                    🎬 ${vod.title} (${new Date(vod.date).toLocaleDateString('fr-FR')})
+                                </a>
+                            </li>
+                        `).join('')
+                        : '<li class="text-gray-500 italic">Aucune VOD récente trouvée (max 4).</li>';
+
+                    // --- 3. Streamers Suivis (Followed Channels List) ---
+                    const followedChannelsList = userData.followed_channels && userData.followed_channels.length > 0
+                        ? userData.followed_channels.slice(0, 5).map(channel => `
+                            <span onclick="launchPlayer('${channel.login}')" class="bg-blue-900 text-xs px-2 py-1 rounded cursor-pointer text-white hover:bg-blue-700 transition-colors">
+                                ${channel.name}
+                            </span>
+                        `).join(' ')
+                        : '<span class="text-gray-500 italic">Le streamer ne suit pas de chaînes publiques.</span>';
+
 
                     resultBox.innerHTML = `
                         <div class="p-4 flex flex-col md:flex-row items-start gap-4" style="background:var(--color-bg-light); border-radius:8px;">
                             <img src="${userData.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'}" alt="Avatar" class="w-20 h-20 rounded-full border-2 border-pink-500">
                             <div class="flex-grow">
-                                <h4 class="text-xl font-bold text-blue">${userData.display_name}</h4>
-                                <p class="text-sm text-gray-400 mb-2">${userData.description || 'Pas de description.'}</p>
-                                <div class="text-xs space-y-1"> 
+                                <h4 class="text-xl font-bold text-blue mb-2">${userData.display_name}</h4>
+                                <p class="text-sm text-gray-400 mb-4">${userData.description || 'Pas de description.'}</p>
+                                
+                                <div class="text-xs space-y-2"> 
                                     <p class="text-white"><strong class="text-pink">Statut:</strong> ${liveStatus}</p>
                                     <p class="text-white"><strong class="text-pink">Followers:</strong> <span>${userData.followers.toLocaleString('fr-FR')}</span></p>
                                     <p class="text-white"><strong class="text-pink">Ancienneté du Compte:</strong> <span>${userData.anciennete}</span></p>
-                                    <p class="text-white"><strong class="text-pink">Derniers Jeux:</strong> <span>${gamesList}</span></p>
+                                    
+                                    <p class="text-white"><strong class="text-pink">Derniers Jeux:</strong> <div class="flex flex-wrap gap-1 mt-1">${gamesList}</div></p>
+
+                                    <p class="text-white"><strong class="text-pink">Streamers Suivis:</strong> <div class="flex flex-wrap gap-1 mt-1">${followedChannelsList}</div></p>
+
                                     <button class="btn-primary mt-2" onclick="launchPlayer('${userData.login}')">Regarder sur le Lecteur</button>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <div class="mt-4 p-3" style="background:var(--color-bg-dark); border-radius:6px; border: 1px solid var(--color-border-medium);">
+                            <h5 class="text-sm font-bold text-pink mb-2">Historique des 4 Dernières VODs:</h5>
+                            <ul class="list-none space-y-1 pl-0">
+                                ${vodsList}
+                            </ul>
                         </div>
                     `;
                 } else if (data.type === "game") {
