@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.7 - Stable</title>
+    <title>Streamer & Niche AI Hub V6.8 - Stable</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -332,7 +332,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.7</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.8</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -463,14 +463,14 @@
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
 
-    // --- Gestion des Onglets (CORRIGÉE: Plus robuste contre les sauts visuels) ---
+    // --- Gestion des Onglets (FIXE : Stabilité visuelle absolue) ---
     function openTab(tabId) {
         localStorage.setItem('activeTab', tabId);
         
-        // 1. Masquer tous les contenus et désactiver tous les boutons
+        // 1. Masquer tous les contenus (avec style.display pour la robustesse) et désactiver tous les boutons
         document.querySelectorAll('.tab-content').forEach(el => {
             el.classList.remove('active');
-            el.style.display = 'none'; // Assure que c'est bien masqué
+            el.style.display = 'none'; 
         });
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         
@@ -478,7 +478,7 @@
         const targetTab = document.getElementById(tabId);
         if (targetTab) {
             targetTab.classList.add('active');
-            targetTab.style.display = 'block'; // Assure que c'est bien affiché
+            targetTab.style.display = 'block'; 
             
             const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
             if (targetBtn) targetBtn.classList.add('active');
@@ -528,11 +528,18 @@
     const followedStreamsList = document.getElementById('followed-streams-list');
     let twitchUserConnected = false; 
 
+    // FIXE : Ajout d'une gestion d'erreurs plus robuste pour briser la boucle "Vérification..."
     async function checkAuth() {
+        // Message de chargement immédiat
+        loginStatus.innerHTML = `⏳ Statut: Vérification de l'authentification...`;
+        
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
+
             if(res.ok) {
+                // Statut HTTP 200 OK
                 const data = await res.json();
+                
                 if(data.is_connected) {
                     twitchUserConnected = true;
                     loginStatus.innerHTML = `✅ Connecté en tant que <strong style="color:var(--color-secondary-blue)">${data.username}</strong>`;
@@ -547,17 +554,33 @@
                     followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
                 }
             } else {
+                // Statut HTTP non-OK (400, 404, 500, etc.)
                 twitchUserConnected = false;
-                loginStatus.innerHTML = `❌ Erreur API (${res.status}). Veuillez vérifier la connectivité du backend.`;
-                followedStreamsList.innerHTML = '<p style="color:red; text-align:center;">Erreur de connexion au service Twitch.</p>';
+                // Tente de récupérer un message d'erreur JSON si disponible, sinon utilise le statut
+                const errorText = await res.text().catch(() => 'Pas de corps de réponse.');
+                
+                // Affiche l'erreur à l'utilisateur
+                loginStatus.innerHTML = `❌ **Erreur API** (${res.status}). Échec de la vérification.`;
+                followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur: Le service de vérification n'a pas répondu correctement.</p>`;
+                console.error(`CheckAuth Status Non-OK: ${res.status}`, errorText);
+
+                // Force le bouton en mode connexion
+                btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
+                btnLogin.style.background = "#6441a5"; 
             }
         } catch(e) {
-            console.error("Erreur check auth:", e);
+            // Erreur réseau (Time-out, CORS, serveur inaccessible)
+            console.error("Erreur de connexion (Network/Timeout):", e);
             twitchUserConnected = false;
-            loginStatus.innerHTML = `❌ Erreur technique: ${e.message}.`;
-            followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur API: ${e.message}</p>`;
+            loginStatus.innerHTML = `❌ **Erreur réseau**: Impossible d'atteindre le serveur API.`;
+            followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur réseau: ${e.message}</p>`;
+
+            // Force le bouton en mode connexion
+            btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
+            btnLogin.style.background = "#6441a5"; 
         }
     }
+
 
     btnLogin.addEventListener('click', () => {
         if(twitchUserConnected) {
