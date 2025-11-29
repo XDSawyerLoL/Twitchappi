@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V7.0 - Stabilité & Scan Amélioré</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Streamer & Niche AI Hub V7.1 - Richesse des Données & Clean Up</title>
+    <link href="[https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap](https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap)" rel="stylesheet">
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <style>
         /* --- VARIABLES CSS POUR FACILITER LA MAINTENANCE DES COULEURS --- */
         :root {
@@ -259,12 +259,30 @@
             #twitch-embed { height: 350px; } 
             .tab-btn { flex-basis: 50%; max-width: 50%; }
         }
+        
+        /* Style pour les graphiques dans l'analyse de niche */
+        .niche-visuals {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background: var(--color-bg-dark);
+            border: 1px dashed var(--color-ai-niche);
+            text-align: center;
+            color: var(--color-text-dimmed);
+            font-size: 12px;
+        }
+        .niche-visuals img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.0</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.1</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -345,6 +363,12 @@
                 <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
                     Les résultats de l'analyse de niche IA apparaîtront ici.
                 </p>
+                <div class="niche-visuals" id="niche-visuals-placeholder" style="display:none;">
+                    <p>
+                        <strong style="color:var(--color-ai-niche);">Zone Visuels de l'IA (Graphiques/Images)</strong><br>
+                        Le contenu graphique enrichi apparaîtra ici si l'API le fournit.
+                    </p>
+                </div>
             </div>
         </div>
         
@@ -406,11 +430,21 @@
     </div>
 </div>
 
-<script src="https://embed.twitch.tv/embed/v1.js"></script>
+<script src="[https://embed.twitch.tv/embed/v1.js](https://embed.twitch.tv/embed/v1.js)"></script>
 <script>
     // --- Configuration Globale ---
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
+
+    // --- Fonction de Nettoyage de l'Output IA (FIX 2) ---
+    function cleanAiOutput(htmlContent) {
+        if (!htmlContent) return '';
+        // Supprime les triples backticks Markdown (```html ou ```) au début et à la fin.
+        // Utilisation de .trim() et d'une expression régulière non gourmande.
+        let cleaned = htmlContent.trim();
+        cleaned = cleaned.replace(/^```html\s*|```\s*$/gi, '').trim();
+        return cleaned;
+    }
 
     // --- Gestion des Onglets ---
     function openTab(tabId) {
@@ -532,7 +566,7 @@
                         
                         const imageUrl = stream.thumbnail_url 
                                         ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') 
-                                        : stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv-user_pictures/404_user.png'; 
+                                        : stream.profile_image_url || '[https://static-cdn.jtvnw.net/jtv-user_pictures/404_user.png](https://static-cdn.jtvnw.net/jtv-user_pictures/404_user.png)'; 
 
                         div.innerHTML = `
                             <img src="${imageUrl}" alt="Preview de ${stream.user_name}" class="streamer-avatar">
@@ -562,7 +596,7 @@
     }
 
 
-    // --- Logique de Scan Cible (AMÉLIORÉE POUR LE STREAMER) ---
+    // --- Logique de Scan Cible (FIX 1: RETRAIT DE LA SIMULATION) ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -594,7 +628,7 @@
                     const g = data.game_data;
                     const imageUrl = g.box_art_url 
                                      ? g.box_art_url.replace('{width}', '100').replace('{height}', '130') 
-                                     : 'https://static-cdn.jtvnw.net/ttv-static/404_boxart.jpg';
+                                     : '[https://static-cdn.jtvnw.net/ttv-static/404_boxart.jpg](https://static-cdn.jtvnw.net/ttv-static/404_boxart.jpg)';
 
                     htmlOutput += `<h4 class="text-blue">Analyse de Jeu: ${g.name}</h4>`;
                     htmlOutput += `<div class="flex items-start gap-4 mb-4 text-sm">
@@ -622,10 +656,10 @@
                     const u = data.user_data;
                     const isLive = u.is_live && u.stream_details;
                     
-                    // Données enrichies simulées ou dérivées
-                    const followers = u.followers ? u.followers.toLocaleString('fr-FR') : '5,420'; // Simulation si l'API ne le fournit pas
-                    const totalViews = u.view_count ? u.view_count.toLocaleString('fr-FR') : '105,800'; // Simulation si l'API ne le fournit pas
-                    const lastGames = u.last_games || ['Just Chatting', 'Elden Ring', 'Valorant']; // Simulation
+                    // RETRAIT DE LA SIMULATION - Affichage des vraies données ou N/A
+                    const followers = u.followers ? u.followers.toLocaleString('fr-FR') : 'N/A (Donnée non fournie par l\'API)'; 
+                    const totalViews = u.view_count ? u.view_count.toLocaleString('fr-FR') : 'N/A (Donnée non fournie par l\'API)';
+                    const lastGames = u.last_games || ['N/A', 'N/A', 'N/A']; // S'appuie sur l'API ou affiche N/A
 
                     htmlOutput += `<h4 class="text-pink">Analyse Streamer: ${u.display_name}</h4>`;
                     htmlOutput += `<div class="flex items-start gap-4 mb-4">
@@ -640,8 +674,8 @@
                                             <p style="color:var(--color-text-dimmed); font-size:12px; margin-bottom: 8px;">
                                                 Bio: ${u.description.substring(0, 150) || 'Description non disponible.'}${u.description.length > 150 ? '...' : ''}
                                             </p>
-                                            <p><strong>Abonnés (Sim.):</strong> ${followers}</p>
-                                            <p><strong>Vues Totales (Sim.):</strong> ${totalViews}</p>
+                                            <p><strong>Abonnés :</strong> ${followers}</p>
+                                            <p><strong>Vues Totales :</strong> ${totalViews}</p>
                                         </div>
                                     </div>`;
 
@@ -681,16 +715,19 @@
 
     // --- Logique d'interaction IA ---
     
-    // 1. Analyse de Niche
+    // 1. Analyse de Niche (avec support visuel)
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
         const resultBox = document.getElementById('niche-result-container'); 
+        const visualPlaceholder = document.getElementById('niche-visuals-placeholder');
         const btn = document.getElementById('btn-niche-analyse');
 
         if (!game) return;
 
-        resultBox.innerHTML = `<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour <strong>${game}</strong>...</p>`;
+        resultBox.querySelector('p').style.display = 'block'; // Réinitialiser le message d'attente
+        resultBox.querySelector('p').innerHTML = `<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour <strong>${game}</strong>...</p>`;
+        visualPlaceholder.style.display = 'none'; // Cacher la zone visuelle pendant le chargement
         btn.disabled = true;
 
         try {
@@ -702,8 +739,19 @@
 
             if(res.ok) {
                 const data = await res.json();
-                // Utilisation directe du conteneur principal qui a la classe .ai-result-box et les styles de couleur
-                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+                
+                // Nettoyage de l'output et séparation potentiel du visuel (Hypothèse de backend)
+                const cleanedHtml = cleanAiOutput(data.html_critique);
+                const visualContent = data.html_visuals || ''; // Supposons que l'API envoie le graphique séparément
+
+                resultBox.innerHTML = cleanedHtml || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+
+                // Injecter le visuel s'il existe et l'afficher
+                if (visualContent) {
+                    visualPlaceholder.innerHTML = visualContent;
+                    visualPlaceholder.style.display = 'block';
+                }
+
             } else {
                 const data = await res.json();
                 resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de l'API IA: ${res.status}. ${data.error || ''}</p>`;
@@ -736,8 +784,8 @@
 
             if(res.ok) {
                 const data = await res.json();
-                // Utilisation directe du conteneur principal qui a la classe .ai-result-box et les styles de couleur
-                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+                const cleanedHtml = cleanAiOutput(data.html_critique);
+                resultBox.innerHTML = cleanedHtml || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
                 const data = await res.json();
                 resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de l'API Repurposing: ${res.status}. ${data.error || ''}</p>`;
@@ -766,8 +814,8 @@
 
             if(res.ok) {
                 const data = await res.json();
-                // Utilisation directe du conteneur principal qui a la classe .ai-result-box et les styles de couleur
-                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+                const cleanedHtml = cleanAiOutput(data.html_critique);
+                resultBox.innerHTML = cleanedHtml || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
             } else {
                 const data = await res.json();
                 resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de l'API Trend: ${res.status}. ${data.error || ''}</p>`;
