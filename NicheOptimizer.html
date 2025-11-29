@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V7.2 - Correction Embed Twitch</title>
+    <title>Streamer & Niche AI Hub V7.3 - Correction Affichage des Données Manquantes</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -283,7 +283,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.2</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.3</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -656,10 +656,11 @@
                     const u = data.user_data;
                     const isLive = u.is_live && u.stream_details;
                     
-                    // Utilisation des vraies données ou N/A
-                    const followers = u.followers ? u.followers.toLocaleString('fr-FR') : 'N/A (Donnée non fournie par l\'API)'; 
-                    const totalViews = u.view_count ? u.view_count.toLocaleString('fr-FR') : 'N/A (Donnée non fournie par l\'API)';
-                    const lastGames = u.last_games || ['N/A', 'N/A', 'N/A']; 
+                    // NOUVEAU FIX V7.3: Messages d'erreur plus courts et clairs
+                    const NA_MESSAGE = 'Non disponible (API)'; 
+                    const followers = u.followers ? u.followers.toLocaleString('fr-FR') : NA_MESSAGE; 
+                    const totalViews = u.view_count ? u.view_count.toLocaleString('fr-FR') : NA_MESSAGE;
+                    const lastGames = u.last_games && u.last_games.length > 0 ? u.last_games : null; // Utilise null si pas de jeux
 
                     htmlOutput += `<h4 class="text-pink">Analyse Streamer: ${u.display_name}</h4>`;
                     htmlOutput += `<div class="flex items-start gap-4 mb-4">
@@ -688,7 +689,12 @@
                                        </div>`;
                     } else {
                          htmlOutput += `<h5 style="font-weight: 600; margin-top: 10px; margin-bottom: 5px;">Dernières Catégories Streamées:</h5>`;
-                         htmlOutput += `<p style="font-size: 13px; color: var(--color-text-dimmed);">${lastGames.join(', ')}</p>`;
+                         // NOUVEAU FIX V7.3: Affichage d'un seul message si l'historique est indisponible
+                         if (lastGames) {
+                            htmlOutput += `<p style="font-size: 13px; color: var(--color-text-dimmed);">${lastGames.join(', ')}</p>`;
+                         } else {
+                            htmlOutput += `<p style="font-size: 13px; color: var(--color-text-dimmed); font-style: italic;">Historique non disponible (API VOD non accessible).</p>`;
+                         }
                     }
                     
                     htmlOutput += `<button onclick="launchPlayer('${u.login}')" class="btn-primary mt-3" style="width:100%; padding: 10px;">Voir le Stream et le Chat</button>`;
