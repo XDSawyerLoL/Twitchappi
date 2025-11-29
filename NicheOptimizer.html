@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.8 - Stable</title>
+    <title>Streamer & Niche AI Hub V6.9 - UX Focus</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -25,12 +25,11 @@
         /* Styles Globaux */
         body {
             background-color: var(--color-bg-dark);
-            color: #fff; /* Couleur de texte par défaut pour éviter le noir sur noir */
+            color: #fff;
             font-family: 'Inter', Arial, sans-serif;
             margin: 0;
             padding: 0;
         }
-        /* Assure que tous les éléments héritent de la couleur blanche */
         #twitch-lucky-main {
             all: initial;
             display: block;
@@ -81,7 +80,6 @@
             font-weight: normal;
             font-family: 'Inter', sans-serif;
         }
-        /* Ajusté pour la place du chat */
         #twitch-embed {
             width: 100%;
             height: 550px;
@@ -97,25 +95,43 @@
         /* Inputs & Boutons Génériques */
         .action-input {
             width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium);
-            background: var(--color-bg-dark); color: #fff; font-size: 13px; /* Texte Input en blanc */
+            background: var(--color-bg-dark); color: #fff; font-size: 13px;
+            transition: border-color 0.3s; /* UX: subtile transition */
+        }
+        .action-input:focus {
+            border-color: var(--color-primary-pink);
+            outline: none;
         }
         .btn-primary {
             background: var(--color-primary-pink); color: #fff; border: 0; padding: 8px 12px; border-radius: 6px;
             cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px;
             box-shadow: 0 0 6px rgba(255,0,153,.4);
+            transition: background 0.2s, box-shadow 0.2s;
         }
         .btn-primary:hover:not(:disabled) { background: #E6008A; }
+        .btn-primary:disabled {
+            background: #555 !important;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
         .btn-secondary {
             background: var(--color-secondary-blue); color: #00161d; border: 0; padding: 8px 12px; border-radius: 6px;
             cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px;
             box-shadow: 0 0 6px rgba(34,199,239,.4);
         }
         .btn-secondary:hover:not(:disabled) { background: #1eafdd; }
+        .btn-secondary:disabled {
+            background: #555 !important;
+            color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
         
-        /* CONSISTENCE VISUELLE : Style de base pour tous les blocs de résultats (IA, Scan, Boost) */
+        /* CONSISTENCE VISUELLE : Style de base pour tous les blocs de résultats */
         .ai-result-box {
             background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; margin-top: 15px;
             color: #ffffff; 
+            transition: border-color 0.3s;
         }
         
         /* Amélioration de la lisibilité du contenu de l'IA */
@@ -131,17 +147,22 @@
             margin-bottom: 10px;
             border-bottom: 2px solid var(--color-primary-pink);
             padding-bottom: 5px;
+            /* Couleur de titre par défaut (sera surchargée) */
             color: var(--color-secondary-blue);
         }
         .ai-result-box strong {
             font-weight: 700;
+            /* Couleur forte par défaut (sera surchargée) */
+            color: #fff;
         }
         .ai-result-box ul, .ai-result-box ol {
             margin-left: 25px;
             margin-bottom: 15px; 
             font-size: 13px;
             line-height: 1.5;
-            list-style-type: disc; /* Force les listes visibles */
+        }
+        .ai-result-box ul {
+            list-style-type: disc; 
         }
         .ai-result-box ol {
             list-style-type: decimal;
@@ -150,21 +171,24 @@
             margin-bottom: 8px; 
         }
 
-        /* Couleurs d'accentuation des résultats AI */
-        #scan-result { border-color: var(--color-secondary-blue); }
-        #niche-result-container { border-color: var(--color-ai-niche); }
-        #repurpose-result-container { border-color: var(--color-ai-repurpose); }
-        #trend-results { border-color: var(--color-ai-growth); }
-        #boost-results { border-color: var(--color-primary-pink); }
-
+        /* --- CORRECTION COLORIMÉTRIQUE UNIFORME : Surcharge spécifique --- */
+        /* Scan (Bleu) */
+        #scan-result h4 { color: var(--color-secondary-blue); border-color: var(--color-secondary-blue); }
+        #scan-result strong { color: var(--color-secondary-blue); }
+        /* Niche (Vert) */
         #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
-        #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
-        #trend-results h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
-        
         #niche-result-container strong { color: var(--color-ai-niche); }
+        /* Repurpose (Violet) */
+        #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
         #repurpose-result-container strong { color: var(--color-ai-repurpose); }
+        /* Trend (Jaune) */
+        #trend-results h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
         #trend-results strong { color: var(--color-ai-growth); }
-        /* FIN CORRECTION VISUELLE IA */
+        /* Boost (Rose) */
+        #boost-results h4 { color: var(--color-primary-pink); border-color: var(--color-primary-pink); }
+        #boost-results strong { color: var(--color-primary-pink); }
+        /* FIN CORRECTION COLORIMÉTRIQUE */
+
 
         /* Styles d'onglets et de connexion */
         .tab-btn {
@@ -242,7 +266,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.8</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -440,7 +464,7 @@
         }
     });
 
-    // --- Authentification Twitch et Fil Suivi ---
+    // --- Authentification Twitch et Fil Suivi (Logique inchangée) ---
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
@@ -539,11 +563,11 @@
     }
 
 
-    // --- Logique de Scan Cible (VISUEL CORRIGÉ + FIX DE PARAMÈTRE) ---
+    // --- Logique de Scan Cible (AJOUT FEEDBACK VISUEL : Avatar/Box Art) ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
-        const resultBox = document.getElementById('scan-result'); // Conteneur toujours visible
+        const resultBox = document.getElementById('scan-result');
         const btn = document.getElementById('btn-target');
 
         if (!target) {
@@ -551,15 +575,13 @@
             return;
         }
 
-        // FIX VISUEL: Message de chargement cohérent
-        resultBox.innerHTML = `<p style="text-align:center; color:var(--color-secondary-blue);">🚀 Scan de la cible en cours pour <strong>${target}</strong>... (Appel API réel)</p>`;
+        resultBox.innerHTML = `<p style="text-align:center; color:var(--color-secondary-blue);">🚀 Scan de la cible en cours pour <strong>${target}</strong>...</p>`;
         btn.disabled = true;
 
         try {
             const res = await fetch(`${API_BASE}/scan_target`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                // FIX: ENVOIE 'query'
                 body: JSON.stringify({ query: target }) 
             });
 
@@ -570,13 +592,17 @@
 
                 if (data.type === 'game' && data.game_data) {
                     const g = data.game_data;
-                    htmlOutput += `<h4 style="color:var(--color-secondary-blue); border-color:var(--color-secondary-blue);">Analyse de Jeu: ${g.name}</h4>`;
+                    const imageUrl = g.box_art_url 
+                                     ? g.box_art_url.replace('{width}', '100').replace('{height}', '130') 
+                                     : 'https://static-cdn.jtvnw.net/ttv-static/404_boxart.jpg';
+
+                    htmlOutput += `<h4 class="text-blue">Analyse de Jeu: ${g.name}</h4>`;
                     htmlOutput += `<div class="flex items-start gap-4 mb-4">
-                                        <img src="${g.box_art_url}" alt="Box Art" style="width: 80px; border-radius: 4px; border: 1px solid var(--color-secondary-blue);">
+                                        <img src="${imageUrl}" alt="Box Art" style="width: 80px; height: 106px; border-radius: 4px; border: 1px solid var(--color-secondary-blue); object-fit: cover; flex-shrink: 0;">
                                         <div class="text-sm">
                                             <p><strong>Total Streamers LIVE:</strong> ${g.total_streamers}</p>
                                             <p><strong>Total Spectateurs LIVE:</strong> ${g.total_viewers.toLocaleString('fr-FR')}</p>
-                                            <p><strong>Spectateurs/Streamer (V/S):</strong> <strong style="color:var(--color-ai-niche);">${g.avg_viewers_per_streamer}</strong></p>
+                                            <p><strong>Ratio V/S (Spectateurs/Streamer):</strong> <strong style="color:var(--color-ai-niche);">${g.avg_viewers_per_streamer}</strong></p>
                                         </div>
                                     </div>`;
                     htmlOutput += `<h5>Top 10 Streams:</h5><ul>`;
@@ -586,12 +612,12 @@
                     htmlOutput += `</ul>`;
                 } else if (data.type === 'user' && data.user_data) {
                     const u = data.user_data;
-                    htmlOutput += `<h4 style="color:var(--color-primary-pink); border-color:var(--color-primary-pink);">Analyse de Streamer: ${u.display_name}</h4>`;
+                    htmlOutput += `<h4 class="text-pink">Analyse de Streamer: ${u.display_name}</h4>`;
                     htmlOutput += `<div class="flex items-start gap-4 mb-4">
-                                        <img src="${u.profile_image_url}" alt="Avatar" style="width: 80px; border-radius: 50%; border: 2px solid var(--color-primary-pink);">
+                                        <img src="${u.profile_image_url}" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--color-primary-pink); object-fit: cover; flex-shrink: 0;">
                                         <div class="text-sm">
                                             <p><strong>Statut:</strong> <span style="color:${u.is_live ? 'var(--color-primary-pink)' : 'var(--color-text-dimmed)'};">${u.is_live ? '🔴 EN DIRECT' : 'OFFLINE'}</span></p>
-                                            <p><strong>Description:</strong> ${u.description || 'N/A'}</p>
+                                            <p><strong>Description:</strong> ${u.description.substring(0, 100) || 'N/A'}...</p>
                                             ${u.is_live && u.stream_details ? `<p><strong>Jeu Actuel:</strong> ${u.stream_details.game_name}</p><p><strong>Spectateurs:</strong> ${u.stream_details.viewer_count.toLocaleString('fr-FR')}</p>` : ''}
                                         </div>
                                     </div>`;
@@ -616,9 +642,9 @@
     });
 
 
-    // --- Logique d'interaction IA ---
+    // --- Logique d'interaction IA (inchangée, mais profite des nouvelles règles CSS) ---
     
-    // 1. Analyse de Niche (VISUEL CORRIGÉ + FIX DE PARAMÈTRE)
+    // 1. Analyse de Niche 
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -627,15 +653,13 @@
 
         if (!game) return;
 
-        // FIX VISUEL: Message de chargement cohérent
-        resultBox.innerHTML = `<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour <strong>${game}</strong>... (Appel API réel)</p>`;
+        resultBox.innerHTML = `<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour <strong>${game}</strong>...</p>`;
         btn.disabled = true;
 
         try {
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                // FIX: ENVOIE 'query'
                 body: JSON.stringify({ query: game, type: 'niche' }) 
             });
 
@@ -653,7 +677,7 @@
         }
     });
 
-    // 2. Repurposing (VISUEL CORRIGÉ + FIX DE PARAMÈTRE)
+    // 2. Repurposing
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -662,15 +686,13 @@
 
         if (!channel) return;
 
-        // FIX VISUEL: Message de chargement cohérent
-        resultBox.innerHTML = `<p style="color:var(--color-ai-repurpose);">Analyse de VOD pour <strong>${channel}</strong> en cours... (Appel API réel)</p>`;
+        resultBox.innerHTML = `<p style="color:var(--color-ai-repurpose);">Analyse de VOD pour <strong>${channel}</strong> en cours...</p>`;
         btn.disabled = true;
 
         try {
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                // FIX: ENVOIE 'query'
                 body: JSON.stringify({ query: channel, type: 'repurpose' }) 
             });
 
@@ -688,13 +710,12 @@
         }
     });
 
-    // 3. Trend Detector (VISUEL CORRIGÉ)
+    // 3. Trend Detector
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const btn = document.getElementById('btn-trend-detector');
 
-        // FIX VISUEL: Message de chargement cohérent
-        resultBox.innerHTML = `<p style="color:var(--color-ai-growth);">Détection des tendances en cours... (Appel API réel)</p>`;
+        resultBox.innerHTML = `<p style="color:var(--color-ai-growth);">Détection des tendances en cours...</p>`;
         btn.disabled = true;
 
         try {
@@ -718,7 +739,7 @@
         }
     });
 
-    // --- Logique STREAM BOOST (VISUEL CORRIGÉ + FIX LECTEUR) ---
+    // --- Logique STREAM BOOST (CLARTÉ AMÉLIORÉE : gestion Cooldown/Temps) ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim();
@@ -727,9 +748,9 @@
 
         if (!channel) return;
         
-        // FIX VISUEL: Message de chargement cohérent
         resultBox.innerHTML = `<p style="color:var(--color-primary-pink); text-align:center;">📤 Envoi du boost pour <strong>${channel}</strong>...</p>`;
         btn.disabled = true;
+        btn.textContent = 'CHARGEMENT...';
 
         try {
             const res = await fetch(`${API_BASE}/stream_boost`, {
@@ -742,21 +763,50 @@
 
             if (res.ok) {
                 // Succès du Boost
-                resultBox.innerHTML = data.html_response;
-                launchPlayer(channel); // FIX: Lance le stream boosté
+                resultBox.innerHTML = `<p style="color:var(--color-ai-niche); font-weight:bold; text-align:center; font-size: 1.1em;">
+                                        ✅ BOOST ACTIVÉ ! Chaîne de ${channel} lancée dans le lecteur.
+                                    </p>`;
+                launchPlayer(channel);
+                btn.textContent = 'SUCCÈS!';
             } else if (res.status === 429) {
-                // Cooldown actif (géré par le serveur backend)
-                resultBox.innerHTML = data.html_response || `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Cooldown actif. Réessayez plus tard.</p>`;
+                // Cooldown actif (message plus UX-friendly)
+                const timeLeft = data.time_left ? formatTime(data.time_left) : 'plusieurs heures';
+
+                resultBox.innerHTML = `<p style="color:var(--color-primary-pink); font-weight:bold; text-align:center; font-size: 1.1em;">
+                                        ⏳ COOLDOWN ACTIF
+                                    </p>
+                                    <p style="text-align:center; color: var(--color-text-dimmed);">
+                                        Vous devez attendre <strong style="color:var(--color-primary-pink);">${timeLeft}</strong> avant le prochain Boost.
+                                    </p>`;
+                btn.textContent = 'COOLDOWN';
+                btn.disabled = true; // Reste désactivé pendant le cooldown
             } else {
                 // Autres erreurs
-                resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur API (${res.status}): ${data.error || "Une erreur inconnue s'est produite."}</p>`;
+                resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Échec API (${res.status}): ${data.error || "Erreur inconnue."}</p>`;
+                btn.textContent = 'ÉCHEC';
             }
         } catch(e) {
-            resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur de connexion au serveur: ${e.message}</p>`;
+            resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur de connexion au serveur: ${e.message}</p>`;
+            btn.textContent = 'ERREUR';
         } finally {
-            btn.disabled = false;
+            if (res.status !== 429) { // Réactive le bouton s'il n'y a pas de cooldown
+                setTimeout(() => { btn.textContent = '📤 BOOST'; btn.disabled = false; }, 3000);
+            }
         }
     });
+
+    // Fonction d'aide pour formater le temps (pour le cooldown)
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        let output = '';
+        if (h > 0) output += `${h}h `;
+        if (m > 0) output += `${m}m `;
+        if (s > 0 && h === 0) output += `${s}s`;
+        return output.trim() || 'quelques secondes';
+    }
+
 
     // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
