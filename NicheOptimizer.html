@@ -599,7 +599,7 @@
         }
     });
 
-    // --- Authentification Twitch et Fil Suivi (Pas de changement) ---
+    // --- Authentification Twitch et Fil Suivi (CORRIGÉ POUR UTILISER POP-UP) ---
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
@@ -640,8 +640,25 @@
         if(twitchUserConnected) {
             window.location.href = `${API_BASE}/twitch_logout`;
         } else {
-            // Cette route va utiliser la TWITCH_REDIRECT_URI configurée sur Render
-            window.location.href = `${API_BASE}/twitch_auth_start`;
+            // ✅ CORRECTION CRITIQUE : Utiliser window.open() pour contourner l'erreur X-Frame-Options
+            const authWindow = window.open(
+                `${API_BASE}/twitch_auth_start`, 
+                'TwitchAuth', 
+                'width=500,height=600,noopener'
+            );
+            
+            // Attendre la fermeture de la fenêtre pop-up, puis vérifier l'authentification
+            if (authWindow) {
+                const checkPopup = setInterval(() => {
+                    if (authWindow.closed) {
+                        clearInterval(checkPopup);
+                        // On attend une seconde pour laisser le temps au backend de finir l'échange de jeton
+                        setTimeout(checkAuth, 1000); 
+                    }
+                }, 500);
+            } else {
+                alert("Le bloqueur de pop-up a empêché l'ouverture de la fenêtre de connexion Twitch. Veuillez l'autoriser.");
+            }
         }
     });
 
@@ -947,4 +964,3 @@
 </script>
 </body>
 </html>
-```
