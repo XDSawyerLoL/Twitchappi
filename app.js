@@ -242,6 +242,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
 
             // Fermer la fenêtre pop-up pour le Frontend
             // Ce script est injecté et exécuté dans la fenêtre pop-up de callback
+            // (Même si nous utilisons la redirection de la fenêtre parente, ce script sera exécuté au retour)
             return res.send('<script>window.close();</script>');
             
         } else {
