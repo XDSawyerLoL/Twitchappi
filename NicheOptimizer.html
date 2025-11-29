@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.6 - Stable</title>
+    <title>Streamer & Niche AI Hub V6.7 - Stable</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -147,7 +147,8 @@
             font-weight: bold;
         }
         .tab-content {
-            display: none;
+            /* Fixe le display à 'none' par défaut pour les masqués */
+            display: none; 
             background: var(--color-bg-medium);
             border: 1px solid var(--color-border-dark);
             border-top: none;
@@ -155,7 +156,8 @@
             padding: 20px;
         }
         .tab-content.active {
-            display: block;
+            /* Surcharge pour afficher l'onglet actif */
+            display: block !important; 
         }
         
         /* Inputs & Boutons */
@@ -330,7 +332,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.6</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.7</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -461,15 +463,23 @@
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
 
-    // --- Gestion des Onglets ---
+    // --- Gestion des Onglets (CORRIGÉE: Plus robuste contre les sauts visuels) ---
     function openTab(tabId) {
         localStorage.setItem('activeTab', tabId);
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        
+        // 1. Masquer tous les contenus et désactiver tous les boutons
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.remove('active');
+            el.style.display = 'none'; // Assure que c'est bien masqué
+        });
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         
+        // 2. Afficher l'onglet cible et activer le bouton
         const targetTab = document.getElementById(tabId);
         if (targetTab) {
             targetTab.classList.add('active');
+            targetTab.style.display = 'block'; // Assure que c'est bien affiché
+            
             const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
             if (targetBtn) targetBtn.classList.add('active');
         }
@@ -518,7 +528,6 @@
     const followedStreamsList = document.getElementById('followed-streams-list');
     let twitchUserConnected = false; 
 
-    // CORRECTION STABILITÉ AUTH: Logique propre de check et de gestion des erreurs
     async function checkAuth() {
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
@@ -550,15 +559,12 @@
         }
     }
 
-    // CORRECTION STABILITÉ AUTH: Si la boucle persiste, c'est que le backend ne gère pas la fin de la redirection OAuth correctement, forçant le frontend à reload de manière inopportune. Ici, nous nous assurons que le frontend ne reload que pour la déconnexion.
     btnLogin.addEventListener('click', () => {
         if(twitchUserConnected) {
-            // Déconnexion: on reload après la requête pour nettoyer la session
             fetch(`${API_BASE}/twitch_logout`, { method: 'POST' }).then(() => {
                 window.location.reload(); 
             });
         } else {
-            // Connexion: le backend gère la redirection et la page se recharge via l'URL de retour
             window.location.href = `${API_BASE}/twitch_auth_start`;
         }
     });
@@ -615,7 +621,7 @@
     }
 
 
-    // --- Logique de Scan Cible (FIXED: Uses 'query') ---
+    // --- Logique de Scan Cible ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -713,7 +719,7 @@
 
     // --- Logique d'interaction IA ---
     
-    // 1. Analyse de Niche (FIXED: Uses 'query')
+    // 1. Analyse de Niche 
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -748,7 +754,7 @@
         }
     });
 
-    // 2. Repurposing (FIXED: Uses 'query')
+    // 2. Repurposing 
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -818,7 +824,6 @@
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim();
-        // Cible le conteneur de message statique pour éviter le saut de page
         const messagePlaceholder = document.getElementById('boost-message'); 
         const btn = document.getElementById('btn-boost');
 
