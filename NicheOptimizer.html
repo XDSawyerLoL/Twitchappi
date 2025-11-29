@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V7.1 - Richesse des Données & Clean Up</title>
-    <link href="[https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap](https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap)" rel="stylesheet">
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <title>Streamer & Niche AI Hub V7.2 - Correction Embed Twitch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* --- VARIABLES CSS POUR FACILITER LA MAINTENANCE DES COULEURS --- */
         :root {
@@ -31,8 +31,9 @@
             margin: 0;
             padding: 0;
         }
+        
+        /* CORRECTION V7.2: Retrait de all: initial; qui cassait l'embed Twitch */
         #twitch-lucky-main {
-            all: initial;
             display: block;
             max-width: 1200px;
             margin: 20px auto;
@@ -282,7 +283,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.1</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.2</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -430,17 +431,16 @@
     </div>
 </div>
 
-<script src="[https://embed.twitch.tv/embed/v1.js](https://embed.twitch.tv/embed/v1.js)"></script>
+<script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     // --- Configuration Globale ---
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
 
-    // --- Fonction de Nettoyage de l'Output IA (FIX 2) ---
+    // --- Fonction de Nettoyage de l'Output IA (Suppression des ```html) ---
     function cleanAiOutput(htmlContent) {
         if (!htmlContent) return '';
         // Supprime les triples backticks Markdown (```html ou ```) au début et à la fin.
-        // Utilisation de .trim() et d'une expression régulière non gourmande.
         let cleaned = htmlContent.trim();
         cleaned = cleaned.replace(/^```html\s*|```\s*$/gi, '').trim();
         return cleaned;
@@ -596,7 +596,7 @@
     }
 
 
-    // --- Logique de Scan Cible (FIX 1: RETRAIT DE LA SIMULATION) ---
+    // --- Logique de Scan Cible ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -651,15 +651,15 @@
                     }
                     htmlOutput += `</ul>`;
                     
-                // Vérifie si la réponse est un STREAMER (AMÉLIORATION)
+                // Vérifie si la réponse est un STREAMER
                 } else if (data.type === 'user' && data.user_data) {
                     const u = data.user_data;
                     const isLive = u.is_live && u.stream_details;
                     
-                    // RETRAIT DE LA SIMULATION - Affichage des vraies données ou N/A
+                    // Utilisation des vraies données ou N/A
                     const followers = u.followers ? u.followers.toLocaleString('fr-FR') : 'N/A (Donnée non fournie par l\'API)'; 
                     const totalViews = u.view_count ? u.view_count.toLocaleString('fr-FR') : 'N/A (Donnée non fournie par l\'API)';
-                    const lastGames = u.last_games || ['N/A', 'N/A', 'N/A']; // S'appuie sur l'API ou affiche N/A
+                    const lastGames = u.last_games || ['N/A', 'N/A', 'N/A']; 
 
                     htmlOutput += `<h4 class="text-pink">Analyse Streamer: ${u.display_name}</h4>`;
                     htmlOutput += `<div class="flex items-start gap-4 mb-4">
@@ -713,7 +713,7 @@
     });
 
 
-    // --- Logique d'interaction IA ---
+    // --- Logique d'interaction IA (Utilise cleanAiOutput) ---
     
     // 1. Analyse de Niche (avec support visuel)
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
