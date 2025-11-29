@@ -185,44 +185,105 @@ async function fetchStreamsForGame(gameId, token) {
 }
 
 /**
- * Récupère les détails d'un utilisateur et vérifie s'il est en direct.
+ * Récupère les détails d'un utilisateur, son statut live, ses abonnés, ses vues totales, et ses derniers jeux.
+ * CORRECTION V7.3: Ajout des appels pour followers, view_count, et last_games (VODs).
  */
 async function fetchUserDetailsForScan(query, token) {
-    const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
     const HEADERS = {
         'Client-Id': TWITCH_CLIENT_ID,
         'Authorization': `Bearer ${token}`
     };
 
+    let user = null;
+    let userData = null;
+
     try {
-        const response = await fetch(url, { headers: HEADERS });
-        const data = await response.json();
+        // 1. Récupération des détails de base de l'utilisateur (pour l'ID et les vues totales)
+        const userUrl = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
+        const userResponse = await fetch(userUrl, { headers: HEADERS });
+        userData = await userResponse.json();
 
-        if (data.data.length > 0) {
-            const user = data.data[0];
-            const streamUrl = `https://api.twitch.tv/helix/streams?user_id=${user.id}`;
-            const streamResponse = await fetch(streamUrl, { headers: HEADERS });
-            const streamData = await streamResponse.json();
-            const isLive = streamData.data.length > 0;
-            const streamDetails = isLive ? streamData.data[0] : null;
-
-            return {
-                id: user.id,
-                display_name: user.display_name,
-                login: user.login,
-                profile_image_url: user.profile_image_url,
-                description: user.description,
-                is_live: isLive,
-                stream_details: streamDetails
-            };
+        if (userData.data.length === 0) {
+            return null;
         }
-        return null;
+        
+        user = userData.data[0];
+        const userId = user.id;
+
+        // 2. Récupération du statut Live
+        const streamUrl = `https://api.twitch.tv/helix/streams?user_id=${userId}`;
+        const streamResponse = await fetch(streamUrl, { headers: HEADERS });
+        const streamData = await streamResponse.json();
+        const isLive = streamData.data.length > 0;
+        const streamDetails = isLive ? streamData.data[0] : null;
+
+        // 3. Récupération du nombre d'abonnés (Followers)
+        const followersUrl = `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}`;
+        const followersResponse = await fetch(followersUrl, { headers: HEADERS });
+        const followersData = await followersResponse.json();
+        const followersCount = followersData.total || 0;
+
+        // 4. Récupération des 3 derniers jeux streamés (via les VODs)
+        const videosUrl = `https://api.twitch.tv/helix/videos?user_id=${userId}&type=archive&first=3`;
+        const videosResponse = await fetch(videosUrl, { headers: HEADERS });
+        const videosData = await videosResponse.json();
+        
+        // Extrait les noms des jeux, en évitant les doublons consécutifs
+        const lastGames = [];
+        let lastGameName = null;
+        if(videosData.data) {
+             videosData.data.forEach(video => {
+                if (video.game_name && video.game_name !== lastGameName) {
+                    lastGames.push(video.game_name);
+                    lastGameName = video.game_name;
+                }
+            });
+        }
+
+
+        return {
+            id: userId,
+            display_name: user.display_name,
+            login: user.login,
+            profile_image_url: user.profile_image_url,
+            description: user.description,
+            is_live: isLive,
+            stream_details: streamDetails,
+            // NOUVEAUX CHAMPS AJOUTÉS
+            followers: followersCount,
+            view_count: user.view_count || 0, // 'view_count' est généralement fourni ici
+            last_games: lastGames.slice(0, 3) // Limite aux 3 derniers jeux uniques
+        };
 
     } catch (error) {
-        console.error("❌ Erreur lors de la récupération des détails de l'utilisateur:", error.message);
-        return null;
+        console.error("❌ Erreur lors de la récupération des détails de l'utilisateur (fallback):", error.message);
+        
+        // Tente d'utiliser les données utilisateur si elles ont été partiellement récupérées
+        const fallbackUser = user || {
+            id: 'N/A', 
+            display_name: query, 
+            login: query,
+            profile_image_url: '',
+            description: '',
+            view_count: 0
+        };
+        
+        // Retourne les données partielles avec des valeurs de repli pour éviter le crash
+        return { 
+            id: fallbackUser.id, 
+            display_name: fallbackUser.display_name,
+            login: fallbackUser.login,
+            profile_image_url: fallbackUser.profile_image_url,
+            description: fallbackUser.description,
+            is_live: false,
+            stream_details: null,
+            followers: 0,
+            view_count: fallbackUser.view_count,
+            last_games: []
+        };
     }
 }
+
 
 /**
  * Effectue un scan V/S (Viewers/Streamer) sur les petits streams pour trouver des niches.
@@ -499,9 +560,10 @@ app.post('/scan_target', async (req, res) => {
             });
 
         } else {
-            const userData = await fetchUserDetailsForScan(query, token);
+            // Utilise la fonction corrigée pour récupérer toutes les données
+            const userData = await fetchUserDetailsForScan(query, token); 
             
-            if (userData) {
+            if (userData && userData.id !== 'N/A') {
                 return res.json({
                     type: "user",
                     user_data: userData
@@ -582,25 +644,25 @@ app.post('/critique_ia', async (req, res) => {
         } else if (type === 'repurpose') {
             promptTitle = `Analyse de Repurposing pour le Streamer: ${query}`;
             
+            // Utilise la fonction corrigée pour récupérer plus de détails
             const userData = await fetchUserDetailsForScan(query, token);
-            if (!userData) {
+            if (!userData || userData.id === 'N/A') {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
+            // Utilise les données du streamer comme base
             promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
-                dernieresActivites: [
-                    "Streaming sur Valorant (3 heures, 1v5 clutch)",
-                    "Streaming sur League of Legends (2 heures, moment drôle avec un bug)",
-                    "Streaming de Just Chatting (1 heure, discussion sur le setup)"
-                ]
+                dernieresActivites: userData.last_games.length > 0 ? userData.last_games.map(g => `Streaming de ${g} (VOD disponible)`).join(', ') : "Activités récentes non trouvées, mais analyse basée sur la description et le style.",
+                followers: userData.followers,
+                total_views: userData.view_count
             }, null, 2);
 
 
             iaPrompt = `
-                Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}**.
+                Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}** (Followers: ${userData.followers}, Vues Totales: ${userData.view_count}).
                 Voici l'analyse de ses récentes activités : ${promptData}
-                L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs.
+                L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs. Simule l'analyse de ses meilleurs moments.
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
             `;
         }
