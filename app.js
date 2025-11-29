@@ -20,8 +20,8 @@ const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID';
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'VOTRE_SECRET';
 
-// 🛑 CORRECTION 1 : Mise à jour de l'URI de redirection par défaut
-// Ceci garantit que si la variable d'environnement Render échoue, l'URL est correcte
+// 🛑 CORRECTION DÉFINITIVE DE L'URI (Utilise l'URL enregistrée chez Twitch)
+// Le backend doit générer l'URL de redirection que Twitch connaît.
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://justplayer.fr/en-eur/pages/streamerhub/twitch_auth_callback'; 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -165,7 +165,6 @@ async function ensureUserToken(req, res, next) {
 // --- ROUTES TWITCH AUTHENTIFICATION ---
 // =========================================================
 
-// 🛑 CORRECTION 2 : Ajout de la route '/twitch_auth_start' pour corriger le 404
 // =========================================================
 // Route 1/3: Démarrer l'authentification
 // =========================================================
@@ -179,7 +178,7 @@ app.get('/twitch_auth_start', (req, res) => {
     // Construire l'URL d'autorisation Twitch
     const authUrl = `https://id.twitch.tv/oauth2/authorize` +
         `?client_id=${TWITCH_CLIENT_ID}` +
-        `&redirect_uri=${REDIRECT_URI}` + // Utilise l'URL que nous avons corrigée plus haut
+        `&redirect_uri=${REDIRECT_URI}` + // Utilise l'URL justplayer.fr que nous avons définie
         `&response_type=code` +
         `&scope=user:read:follows+channel:read:subscriptions` + // Scopes requis pour le fil suivi
         `&state=${state}`;
@@ -192,12 +191,15 @@ app.get('/twitch_auth_start', (req, res) => {
 // =========================================================
 // Route 2/3: Callback Twitch (après connexion/autorisation)
 // =========================================================
+// ATTENTION: CETTE ROUTE DOIT ÊTRE DÉPLACÉE SUR LE SERVEUR justplayer.fr
+// SI VOUS NE POUVEZ PAS CHANGER L'URI DE REDIRECTION CHEZ TWITCH.
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error, error_description } = req.query;
     const storedState = req.cookies.twitch_oauth_state;
 
     // 1. Gestion des erreurs et vérification CSRF
     if (error) {
+        // Rediriger l'utilisateur vers une page d'erreur sur justplayer.fr
         return res.status(400).send(`Erreur d'authentification: ${error_description || error}`);
     }
     if (!state || state !== storedState) {
@@ -241,8 +243,8 @@ app.get('/twitch_auth_callback', async (req, res) => {
             }
 
             // Fermer la fenêtre pop-up pour le Frontend
-            // Ce script est injecté et exécuté dans la fenêtre pop-up de callback
-            // (Même si nous utilisons la redirection de la fenêtre parente, ce script sera exécuté au retour)
+            // window.close() devrait fonctionner car la fenêtre parent est désormais justplayer.fr
+            // et le callback revient sur justplayer.fr
             return res.send('<script>window.close();</script>');
             
         } else {
