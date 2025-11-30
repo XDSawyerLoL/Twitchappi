@@ -110,26 +110,28 @@ async function getAppAccessToken() {
 
     try {
         const url = 'https://id.twitch.tv/oauth2/token';
+        
+        // CORRECTION / MEILLEURE PRATIQUE: Utilisation directe de URLSearchParams pour construire le corps
         const body = new URLSearchParams({
             client_id: TWITCH_CLIENT_ID,
             client_secret: TWITCH_CLIENT_SECRET,
             grant_type: 'client_credentials'
-        }).toString();
+        });
         
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body
+            // IMPORTANT: Assurer l'en-tête correct pour URLSearchParams.toString()
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
+            body: body.toString()
         });
         
-        // CORRECTION MAJEURE: Si la réponse n'est pas OK, on tente de lire le corps en texte
+        // Gestion détaillée de l'erreur pour identifier la source de l'erreur '<'
         if (!response.ok) {
-            // Tente de lire le corps pour obtenir plus de détails sur l'erreur
             const errorText = await response.text();
             
-            // Si le corps est du HTML, c'est ce qui cause l'erreur '<'
             if (errorText.startsWith('<')) {
-                console.error(`Erreur Twitch (HTTP ${response.status}): Réponse HTML/Inattendue. Vérifiez CLIENT_ID/SECRET/URI.`);
+                // L'erreur FATALE: Une réponse HTML au lieu de JSON
+                console.error(`Erreur FATALE Twitch (HTTP ${response.status}): Réponse HTML (démarrant par '<'). Ceci indique une mauvaise configuration critique (Client ID, Secret ou un problème de service).`);
             } else {
                 // Tente de parser en JSON si ce n'est pas du HTML, sinon affiche le texte brut
                 try {
@@ -147,7 +149,8 @@ async function getAppAccessToken() {
         const data = await response.json();
 
         appToken.accessToken = data.access_token;
-        appToken.expiresAt = Date.now() + (data.expires_in * 1000);
+        // On retire 5 minutes (300 000 ms) pour rafraîchir préventivement
+        appToken.expiresAt = Date.now() + (data.expires_in * 1000) - 300000; 
         console.log("Nouveau Token d'Application Twitch récupéré avec succès.");
         return appToken.accessToken;
 
@@ -326,7 +329,7 @@ async function callGeminiApi(prompt, useGrounding = false, systemInstruction = "
     if (!GEMINI_API_KEY) {
         return { 
             error: "Clé API Gemini manquante. Fonctionnalité IA désactivée.",
-            html_critique: `<p style="color:red;">Erreur: Clé API Gemini manquante. Les analyses IA sont indisponibles.</p>` 
+            html_critique: `<p style="color:var(--color-primary-pink);">Erreur: Clé API Gemini manquante. Les analyses IA sont indisponibles.</p>` 
         };
     }
 
@@ -399,21 +402,21 @@ async function callGeminiApi(prompt, useGrounding = false, systemInstruction = "
                
                 return { 
                     error: `Erreur API Gemini (HTTP ${response.status}).`,
-                    html_critique: `<p style="color:red;">Erreur de l'API IA: ${response.status}. ${errorText.length < 200 ? errorText : 'Détails en console.'}</p>` 
+                    html_critique: `<p style="color:var(--color-primary-pink);">Erreur de l'API IA: ${response.status}. ${errorText.length < 200 ? errorText : 'Détails en console.'}</p>` 
                 };
             }
         } catch (error) {
             console.error(`Erreur réseau/générale lors de l'appel Gemini:`, error.message);
             return { 
                 error: `Erreur de connexion au service IA: ${error.message}`,
-                html_critique: `<p style="color:red;">Erreur de connexion au service IA: ${error.message}</p>` 
+                html_critique: `<p style="color:var(--color-primary-pink);">Erreur de connexion au service IA: ${error.message}</p>` 
             };
         }
     }
     // Si la boucle se termine sans succès
     return {
         error: "Échec de l'appel Gemini après toutes les tentatives.",
-        html_critique: `<p style="color:red;">Échec de l'appel IA après plusieurs tentatives.</p>`
+        html_critique: `<p style="color:var(--color-primary-pink);">Échec de l'appel IA après plusieurs tentatives.</p>`
     };
 }
 
@@ -501,6 +504,7 @@ app.get('/auth/twitch/callback', async (req, res) => {
             });
 
             // Redirige l'utilisateur avec son token d'accès Twitch et son token Firebase
+            // NOTE: On utilise l'expiration du token Twitch pour le cookie
             res.cookie('twitch_access_token', userToken, { secure: true, maxAge: tokenData.expires_in * 1000 });
             res.cookie('firebase_custom_token', firebaseToken, { secure: true, maxAge: 3600000 }); // Token Firebase valide pour 1h
             
@@ -671,7 +675,7 @@ app.post('/critique_ia', async (req, res) => {
         console.error("Erreur serveur dans /critique_ia:", e);
         return res.status(500).json({ 
             error: `Erreur interne du serveur lors de la critique IA: ${e.message}`,
-            html_critique: `<p style="color:red;">Erreur interne du serveur: ${e.message}</p>`
+            html_critique: `<p style="color:var(--color-primary-pink);">Erreur interne du serveur: ${e.message}</p>`
         });
     }
 });
