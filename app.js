@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-const admin = require("firebase-admin"); // Assurons-nous que cette dépendance est au top
+const admin = require("firebase-admin"); 
 
 const app = express();
 
@@ -14,16 +14,13 @@ const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
-// Utilisation du modèle Flash pour les analyses, incluant la recherche (grounding)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// CORRIGÉ: Remplacé le nom du modèle preview par le nom stable
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 // --- DEBUG : Vérification des clés ---
 if (GEMINI_API_KEY) {
     console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
 } else {
-    // Avertissement critique si la clé IA manque
     console.error("FATAL DEBUG: GEMINI_API_KEY n'est pas configurée. L'IA sera désactivée.");
 }
 
@@ -35,13 +32,10 @@ if (TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET && REDIRECT_URI) {
 
 
 // --- Middleware ---
-// Permet de lire les cookies
 app.use(cookieParser());
-// Configuration CORS pour autoriser les requêtes cross-origin
-// Important si le site hôte et l'API sont sur des domaines différents
 app.use(cors({
-    origin: '*', // Vous devriez le restreindre au domaine de votre site hôte en production
-    credentials: true // Permet l'envoi des cookies
+    origin: '*', 
+    credentials: true 
 }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname)));
@@ -51,9 +45,6 @@ app.use(express.static(path.join(__dirname)));
 // Configuration Firebase Admin (Simulée)
 // =========================================================
 
-// Normalement, vous devriez initialiser Firebase Admin ici avec vos credentials.
-// Pour cet environnement de démonstration, nous allons omettre l'initialisation complète
-// mais conserver les fonctions pour illustrer le concept de persistance des données.
 const db = {}; // Placeholder pour l'instance Firestore
 
 
@@ -110,12 +101,11 @@ async function fetchTwitchAPI(url, token, clientId) {
  * @returns {Promise<Array<string>|null>} La liste des noms des chaînes suivies.
  */
 async function fetchUserFollows(userId, token) {
-    // Limite Twitch: max 100 followers par requête. Nous en prenons 100 max.
     const url = `https://api.twitch.tv/helix/users/follows?user_id=${userId}&first=100`;
     const data = await fetchTwitchAPI(url, token, TWITCH_CLIENT_ID);
 
-    if (data && data.data) {
-        // Retourne un tableau de noms d'utilisateurs des streamers suivis
+    // Vérification plus robuste pour éviter les 500
+    if (data && Array.isArray(data.data)) {
         return data.data.map(f => f.to_name);
     }
     return null;
@@ -128,7 +118,7 @@ async function fetchUserFollows(userId, token) {
  */
 async function fetchUser(token) {
     const data = await fetchTwitchAPI('https://api.twitch.tv/helix/users', token, TWITCH_CLIENT_ID);
-    if (data && data.data && data.data.length > 0) {
+    if (data && Array.isArray(data.data) && data.data.length > 0) {
         return data.data[0];
     }
     return null;
@@ -141,12 +131,10 @@ async function fetchUser(token) {
  * @returns {Promise<object|null>} Les données du jeu.
  */
 async function fetchGameDetailsForScan(query, token) {
-    // URL pour rechercher un jeu (catégorie)
     const url = `https://api.twitch.tv/helix/games?name=${encodeURIComponent(query)}`;
     const data = await fetchTwitchAPI(url, token, TWITCH_CLIENT_ID);
 
-    if (data && data.data && data.data.length > 0) {
-        // Retourne le premier résultat trouvé
+    if (data && Array.isArray(data.data) && data.data.length > 0) {
         return data.data[0];
     }
     return null;
@@ -159,16 +147,61 @@ async function fetchGameDetailsForScan(query, token) {
  * @returns {Promise<object|null>} Les données de l'utilisateur.
  */
 async function fetchUserDetailsForScan(query, token) {
-    // URL pour rechercher un utilisateur (par login ou ID)
     const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
     const data = await fetchTwitchAPI(url, token, TWITCH_CLIENT_ID);
 
-    if (data && data.data && data.data.length > 0) {
-        // Retourne le premier résultat trouvé
+    if (data && Array.isArray(data.data) && data.data.length > 0) {
         return data.data[0];
     }
     return null;
 }
+
+/**
+ * 🎬 NOUVEAU: Récupère les 5 dernières VODs (Archives) d'un utilisateur cible.
+ * @param {string} userId - L'ID de l'utilisateur Twitch cible.
+ * @param {string} token - Le jeton d'accès Twitch du demandeur.
+ * @returns {Promise<Array<object>|null>} La liste des 5 dernières VODs avec URLs formatées.
+ */
+async function fetchStreamerVods(userId, token) {
+    // type=archive pour les VODs, first=5
+    const url = `https://api.twitch.tv/helix/videos?user_id=${userId}&type=archive&first=5`;
+    const data = await fetchTwitchAPI(url, token, TWITCH_CLIENT_ID);
+
+    if (data && Array.isArray(data.data)) {
+        return data.data.map(vod => ({
+            id: vod.id,
+            title: vod.title,
+            duration: vod.duration,
+            views: vod.view_count,
+            // Formatage de l'URL de miniature à une taille fixe (320x180) pour l'affichage
+            thumbnail_url: vod.thumbnail_url.replace('%{width}', '320').replace('%{height}', '180'),
+            url: vod.url // Lien vers la VOD
+        }));
+    }
+    return null;
+}
+
+/**
+ * 🤝 NOUVEAU: Récupère les chaînes suivies (suggestions) par l'utilisateur cible.
+ * @param {string} targetUserId - L'ID de l'utilisateur Twitch cible.
+ * @param {string} token - Le jeton d'accès Twitch du demandeur.
+ * @returns {Promise<Array<object>|null>} La liste des 10 chaînes suivies par l'utilisateur cible.
+ */
+async function fetchTargetUserFollows(targetUserId, token) {
+    // On prend 10 pour les suggestions
+    const url = `https://api.twitch.tv/helix/users/follows?user_id=${targetUserId}&first=10`;
+    const data = await fetchTwitchAPI(url, token, TWITCH_CLIENT_ID);
+
+    if (data && Array.isArray(data.data)) {
+        return data.data.map(f => ({
+            name: f.to_name,
+            id: f.to_id,
+            followed_at: f.followed_at
+        }));
+    }
+    return null;
+}
+
 
 // =========================================================
 // Fonctions Gemini (Critique et Analyse)
@@ -176,27 +209,20 @@ async function fetchUserDetailsForScan(query, token) {
 
 /**
  * 🧠 Appelle l'API Gemini pour générer du contenu ou des critiques.
- * @param {string} prompt - L'invite de l'utilisateur pour l'IA.
- * @param {string} systemPrompt - Les instructions du système (persona).
- * @param {boolean} useGrounding - Utiliser Google Search pour l'ancrage des données.
- * @returns {Promise<string>} Le texte généré par l'IA ou un message d'erreur.
+ * (Fonction non modifiée, elle est robuste.)
  */
 async function callGeminiAPI(prompt, systemPrompt, useGrounding = false) {
     if (!GEMINI_API_KEY) {
         return "Erreur: La clé API Gemini est manquante. L'IA ne peut pas fonctionner.";
     }
 
-    // Gère le cas où l'utilisateur envoie une requête vide
     if (!prompt || prompt.length < 5) {
         return "Veuillez fournir une requête d'analyse plus détaillée.";
     }
 
-    // Le corps de la requête pour l'API Gemini
     const payload = {
         contents: [{ parts: [{ text: prompt }] }],
-        // Ajoute l'ancrage via Google Search si demandé
         tools: useGrounding ? [{ "google_search": {} }] : undefined,
-        // Définit le rôle et la persona du modèle
         systemInstruction: {
             parts: [{ text: systemPrompt }]
         },
@@ -209,7 +235,6 @@ async function callGeminiAPI(prompt, systemPrompt, useGrounding = false) {
     const maxRetries = 5;
     let delay = 1000;
 
-    // Boucle avec Backoff Exponentiel pour gérer les erreurs de réseau/throttling
     while (retries < maxRetries) {
         try {
             response = await fetch(apiUrl, {
@@ -223,10 +248,7 @@ async function callGeminiAPI(prompt, systemPrompt, useGrounding = false) {
                 const candidate = result.candidates?.[0];
 
                 if (candidate && candidate.content?.parts?.[0]?.text) {
-                    // Extraction du texte généré
                     let text = candidate.content.parts[0].text;
-                    
-                    // Extraction des sources d'ancrage (citations) si grounding est utilisé
                     let sources = [];
                     const groundingMetadata = candidate.groundingMetadata;
                     if (groundingMetadata && groundingMetadata.groundingAttributions) {
@@ -238,7 +260,6 @@ async function callGeminiAPI(prompt, systemPrompt, useGrounding = false) {
                             .filter(source => source.uri && source.title);
                     }
                     
-                    // Formatage du texte avec les sources (vous pouvez l'ajuster)
                     if (sources.length > 0) {
                         text += "\n\n**Sources consultées (Google Search) :**\n";
                         sources.forEach((source, index) => {
@@ -252,13 +273,11 @@ async function callGeminiAPI(prompt, systemPrompt, useGrounding = false) {
                     return "Erreur: Réponse API mal formatée ou contenu manquant.";
                 }
             } else if (response.status === 429 || response.status >= 500) {
-                // Erreur de Throttling ou Serveur: Tenter une nouvelle fois après un délai
                 console.warn(`Tentative ${retries + 1} échouée (Statut: ${response.status}). Retrying in ${delay / 1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2; // Double le délai pour le backoff exponentiel
+                delay *= 2; 
                 retries++;
             } else {
-                // Autres erreurs HTTP (400, 401, etc.): Arrêter
                 const errorText = await response.text();
                 console.error(`Erreur Gemini API (Statut: ${response.status}): ${errorText}`);
                 return `Erreur Gemini API: Échec de l'appel (${response.status}).`;
@@ -283,25 +302,22 @@ async function callGeminiAPI(prompt, systemPrompt, useGrounding = false) {
 
 /**
  * 🔑 Étape 1: Démarrage de l'Authentification (GET /twitch_auth_start)
+ * (Contient la correction SameSite pour l'iframe)
  */
 app.get('/twitch_auth_start', (req, res) => {
     if (!TWITCH_CLIENT_ID || !REDIRECT_URI) {
         return res.status(500).send("Configuration Twitch manquante.");
     }
     
-    // Scopes nécessaires pour l'application
     const scopes = 'user:read:follows viewing_activity_read';
     const state = crypto.randomBytes(16).toString('hex');
     
-    // Stocker le 'state' dans un cookie pour la vérification de sécurité au retour
     // CORRECTION CRITIQUE POUR L'IFRAME (SameSite=None; Secure)
-    // Cela permet au cookie d'être envoyé en contexte tiers, ce qui est nécessaire 
-    // lorsque l'application Render est dans une iframe sur un autre domaine.
     res.cookie('oauth_state', state, { 
         httpOnly: true, 
         maxAge: 600000,
-        sameSite: 'None', // Permet l'envoi du cookie cross-site
-        secure: true      // Doit être true si SameSite=None (Render utilise HTTPS)
+        sameSite: 'None', 
+        secure: true
     }); 
 
     const twitchAuthURL = `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${scopes}&state=${state}`;
@@ -317,12 +333,10 @@ app.get('/twitch_auth_callback', async (req, res) => {
     const { code, scope, state } = req.query;
     const expectedState = req.cookies.oauth_state;
 
-    // Supprimer le cookie après utilisation pour la propreté/sécurité
     res.clearCookie('oauth_state', { sameSite: 'None', secure: true });
 
     if (state !== expectedState) {
         console.error(`Erreur CSRF: L'état reçu (${state}) ne correspond pas à l'état attendu (${expectedState}).`);
-        // Redirige vers la page principale avec un message d'erreur
         return res.redirect(`/?error=${encodeURIComponent('Erreur de sécurité (CSRF).')}`);
     }
 
@@ -331,7 +345,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
         return res.redirect(`/?error=${encodeURIComponent('Code d\'autorisation manquant.')}`);
     }
 
-    // Échange du code contre un jeton d'accès (access_token)
     try {
         const tokenResponse = await fetch('https://id.twitch.tv/oauth2/token', {
             method: 'POST',
@@ -351,7 +364,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
             currentUserToken = tokenData.access_token;
             console.log("Jeton d'accès Twitch obtenu avec succès.");
 
-            // Récupérer les informations de l'utilisateur
             const userData = await fetchUser(currentUserToken);
 
             if (userData) {
@@ -359,7 +371,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 currentUserID = userData.id;
                 console.log(`Authentification réussie pour l'utilisateur: ${currentUsername}`);
             } else {
-                // Gérer l'échec de la récupération des données utilisateur
                 currentUserToken = null;
                 console.error("Échec de la récupération des données utilisateur Twitch.");
                 return res.redirect(`/?error=${encodeURIComponent('Échec de la récupération des données utilisateur Twitch.')}`);
@@ -374,14 +385,12 @@ app.get('/twitch_auth_callback', async (req, res) => {
         return res.redirect(`/?error=${encodeURIComponent('Erreur interne lors de l\'authentification.')}`);
     }
 
-    // Redirection vers la page d'accueil (le front-end dans l'iframe)
     return res.redirect('/');
 });
 
 
 /**
  * ℹ️ Route pour vérifier l'état de l'authentification (GET /auth_status)
- * Utilisé par le front-end pour savoir si l'utilisateur est connecté et obtenir son nom.
  */
 app.get('/auth_status', (req, res) => {
     if (currentUserToken && currentUsername) {
@@ -409,10 +418,11 @@ app.get('/fetch_follows', async (req, res) => {
     try {
         const follows = await fetchUserFollows(currentUserID, currentUserToken);
         if (follows) {
-            currentUserFollows = follows; // Mise à jour de l'état global
+            currentUserFollows = follows;
             return res.json({ success: true, follows: follows });
         } else {
-            return res.status(500).json({ message: "Erreur lors de la récupération des chaînes suivies." });
+            // Renvoie 200 avec tableau vide si rien n'est trouvé, au lieu d'un 500 générique
+            return res.json({ success: false, follows: [], message: "Aucune chaîne suivie trouvée ou erreur API silencieuse." });
         }
     } catch (error) {
         console.error("Erreur lors de la récupération des suivis:", error);
@@ -424,15 +434,11 @@ app.get('/fetch_follows', async (req, res) => {
  * 🚮 Route pour déconnecter l'utilisateur (GET /logout)
  */
 app.get('/logout', (req, res) => {
-    // Réinitialisation de l'état global
     currentUserToken = null;
     currentUsername = null;
     currentUserID = null;
     currentUserFollows = null;
     
-    // Optionnel : Révoquer le jeton Twitch (plus propre, mais pas indispensable ici)
-
-    // Redirection vers la page d'accueil non-authentifiée
     res.redirect('/');
 });
 
@@ -442,6 +448,7 @@ app.get('/logout', (req, res) => {
 
 /**
  * 💡 Route IA pour la critique et la détection de tendance (POST /critique_ia)
+ * (Fonction non modifiée)
  */
 app.post('/critique_ia', async (req, res) => {
     const { type, query, gameTitle, streamerName, clipUrl } = req.body;
@@ -460,7 +467,7 @@ app.post('/critique_ia', async (req, res) => {
             case 'trend':
                 title = 'Analyse des Tendances Actuelles';
                 userPrompt = `Identifiez et analysez les trois tendances de contenu Twitch, YouTube et TikTok les plus pertinentes pour un streamer de taille moyenne. Fournissez des conseils spécifiques pour exploiter chacune de ces tendances. La réponse doit être limitée aux 400 mots.`;
-                useGrounding = true; // Nécessite Google Search pour les tendances actuelles
+                useGrounding = true;
                 break;
             case 'niche_game':
                 if (!query) throw new Error("Le champ de recherche 'query' est manquant.");
@@ -472,7 +479,7 @@ app.post('/critique_ia', async (req, res) => {
                 if (!clipUrl) throw new Error("Le champ 'clipUrl' est manquant.");
                 title = `Idées de Repurposing pour Clip: ${clipUrl}`;
                 userPrompt = `Le streamer a un clip Twitch à l'URL suivante: ${clipUrl}. Générez 5 idées de repurposing (réutilisation de contenu) pour ce clip, spécifiquement pour TikTok/Shorts (max 60 secondes) et YouTube (format long). Indiquez quel type de montage (zoom, texte, musique) serait nécessaire pour chaque plateforme.`;
-                useGrounding = false; // Basé sur l'analyse créative, pas sur des données externes
+                useGrounding = false;
                 break;
             default:
                 return res.status(400).json({ error: "Type d'analyse IA non valide." });
@@ -480,9 +487,6 @@ app.post('/critique_ia', async (req, res) => {
 
         const rawText = await callGeminiAPI(userPrompt, systemPrompt, useGrounding);
         
-        // Convertir le Markdown en HTML simple pour l'affichage (optionnel, mais pratique ici)
-        // Pour les besoins de cet environnement, nous renvoyons le Markdown pur
-        // et laisserons le front-end le styliser si nécessaire.
         const htmlCritique = `<div class="p-4 bg-white/5 rounded-xl border border-border-medium shadow-lg">\n<h2 class="text-xl font-bold text-primary-pink mb-3">${title}</h2>\n${rawText.replace(/\n/g, '<br>')}</div>`;
 
         res.json({ html_critique: htmlCritique, raw_markdown: rawText });
@@ -496,6 +500,7 @@ app.post('/critique_ia', async (req, res) => {
 
 /**
  * 🔍 Route pour la recherche (Scan de Jeu/Utilisateur) (POST /scan_query)
+ * MODIFIÉ : Récupère les suivis suggérés et les VODs pour un utilisateur.
  */
 app.post('/scan_query', async (req, res) => {
     const { query } = req.body;
@@ -513,36 +518,38 @@ app.post('/scan_query', async (req, res) => {
     const gameData = await fetchGameDetailsForScan(query, token);
 
     if (gameData) {
-        // Si le jeu est trouvé, récupérer les streams en direct pour cette catégorie
         const streamUrl = `https://api.twitch.tv/helix/streams?game_id=${gameData.id}&first=100`;
         const streamData = await fetchTwitchAPI(streamUrl, token, TWITCH_CLIENT_ID);
         
-        if (streamData && streamData.data) {
-            // Renvoie les données du jeu et les streams associés
-            return res.json({
-                type: "game",
-                game_data: gameData,
-                streams: streamData.data
-            });
-        } else {
-             // Jeu trouvé, mais aucun stream en direct
-            return res.json({ 
-                type: "game", 
-                game_data: gameData, 
-                streams: [],
-                message: "Jeu trouvé, mais aucun stream en direct n'a été récupéré pour ce scan de jeu." 
-            });
-        }
+        // Assurer que streamData.data est un tableau
+        const streams = (streamData && Array.isArray(streamData.data)) ? streamData.data : [];
+
+        return res.json({
+            type: "game",
+            game_data: gameData,
+            streams: streams,
+            message: streams.length > 0 ? undefined : "Jeu trouvé, mais aucun stream en direct n'a été récupéré pour ce scan de jeu."
+        });
 
     } else {
         // --- ÉTAPE 2: Si aucun jeu trouvé, tenter un scan d'UTILISATEUR ---
         const userData = await fetchUserDetailsForScan(query, token);
         
         if (userData) {
-            // Si l'utilisateur est trouvé
+            const targetUserId = userData.id;
+            
+            // 1. Chaînes suggérées (qui le streamer cible suit)
+            const suggestedFollows = await fetchTargetUserFollows(targetUserId, token);
+            
+            // 2. 5 VODs récentes
+            const recentVods = await fetchStreamerVods(targetUserId, token);
+            
+            // Renvoie les données complètes (y compris les suivis et VODs)
             return res.json({
                 type: "user",
-                user_data: userData
+                user_data: userData,
+                suggested_channels: suggestedFollows || [], 
+                recent_vods: recentVods || []               
             });
         } else {
             // Aucun résultat trouvé ni comme jeu, ni comme utilisateur
@@ -569,13 +576,3 @@ app.listen(PORT, () => {
     console.log(`Serveur démarré sur le port ${PORT}`);
     console.log(`URL de redirection Twitch attendue: ${REDIRECT_URI}`);
 });
-
-
-
-
-
-
-
-
-
-
