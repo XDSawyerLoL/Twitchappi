@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-const admin = require("firebase-admin"); // Assurons-nous que cette dépendance est au top
+const admin = require("firebase-admin");
 
 const app = express();
 
@@ -16,21 +16,21 @@ const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
-// Utilisation du modèle Flash pour les analyses, incluant la recherche (grounding)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// CORRIGÉ: Remplacé le nom du modèle preview par le nom stable
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
-// --- DEBUG : Vérification des clés ---
-if (GEMINI_API_KEY) {
-    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
-} else {
-    // Avertissement critique si la clé IA manque
-    console.error("FATAL DEBUG: GEMINI_API_KEY non trouvée. Les fonctionnalités IA seront désactivées.");
-}
+// --- DEBUG CRITIQUE : Vérification des clés ---
+console.log("--- Statut des Variables d'Environnement (Vérifiez les valeurs NON-VIDES) ---");
+console.log(`PORT: ${PORT}`);
+console.log(`TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID ? 'OK - Chargée' : 'ERREUR - MANQUANTE'}`);
+// Ne pas afficher le secret pour des raisons de sécurité, juste son statut
+console.log(`TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET ? 'OK - Chargée' : 'ERREUR - MANQUANTE'}`);
+console.log(`TWITCH_REDIRECT_URI: ${REDIRECT_URI ? 'OK - Chargée' : 'ERREUR - MANQUANTE'}`);
+console.log(`GEMINI_API_KEY: ${GEMINI_API_KEY ? 'OK - Chargée' : 'AVERTISSEMENT - MANQUANTE'}`);
+console.log("-------------------------------------------------------------------------");
 
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI) {
-    console.error("FATAL DEBUG: Les variables d'environnement Twitch (CLIENT_ID, CLIENT_SECRET, REDIRECT_URI) ne sont pas configurées.");
+    console.error("FATAL DEBUG: Les variables d'environnement Twitch (CLIENT_ID, CLIENT_SECRET, REDIRECT_URI) ne sont pas configurées. L'authentification et les API Twitch ÉCHOUERONT.");
 }
 
 
@@ -42,15 +42,17 @@ if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI) {
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
-        console.log("Firebase Admin SDK initialisé avec succès.");
+        if (admin.apps.length === 0) { // Initialisation unique
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+            console.log("Firebase Admin SDK initialisé avec succès.");
+        }
     } catch (e) {
         console.error("ERREUR FATALE lors de l'initialisation de Firebase Admin :", e.message);
     }
 } else {
-    console.error("AVERTISSEMENT : FIREBASE_SERVICE_ACCOUNT n'est pas configuré. L'émission de tokens Firebase sera impossible.");
+    console.warn("AVERTISSEMENT : FIREBASE_SERVICE_ACCOUNT n'est pas configuré. L'émission de tokens Firebase sera impossible.");
 }
 
 
@@ -82,6 +84,11 @@ let appToken = {
  * @returns {string | null} Le token d'accès ou null en cas d'erreur.
  */
 async function getAppAccessToken() {
+    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+        console.error("FATAL: Impossible de récupérer le token d'application, CLIENT_ID ou SECRET manquant.");
+        return null;
+    }
+    
     if (appToken.accessToken && appToken.expiresAt > Date.now() + 60000) { // Token valide pour au moins 60 secondes
         return appToken.accessToken;
     }
@@ -102,29 +109,50 @@ async function getAppAccessToken() {
     console.log("Rafraîchissement du Token d'Application Twitch...");
 
     try {
-        const response = await fetch('https://id.twitch.tv/oauth2/token', {
+        const url = 'https://id.twitch.tv/oauth2/token';
+        const body = new URLSearchParams({
+            client_id: TWITCH_CLIENT_ID,
+            client_secret: TWITCH_CLIENT_SECRET,
+            grant_type: 'client_credentials'
+        }).toString();
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: TWITCH_CLIENT_ID,
-                client_secret: TWITCH_CLIENT_SECRET,
-                grant_type: 'client_credentials'
-            }).toString()
+            body: body
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            appToken.accessToken = data.access_token;
-            appToken.expiresAt = Date.now() + (data.expires_in * 1000);
-            console.log("Nouveau Token d'Application Twitch récupéré avec succès.");
-            return appToken.accessToken;
-        } else {
-            console.error('Erreur lors de la récupération du token d\'application:', data);
+        
+        // CORRECTION MAJEURE: Si la réponse n'est pas OK, on tente de lire le corps en texte
+        if (!response.ok) {
+            // Tente de lire le corps pour obtenir plus de détails sur l'erreur
+            const errorText = await response.text();
+            
+            // Si le corps est du HTML, c'est ce qui cause l'erreur '<'
+            if (errorText.startsWith('<')) {
+                console.error(`Erreur Twitch (HTTP ${response.status}): Réponse HTML/Inattendue. Vérifiez CLIENT_ID/SECRET/URI.`);
+            } else {
+                // Tente de parser en JSON si ce n'est pas du HTML, sinon affiche le texte brut
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    console.error(`Erreur Twitch (HTTP ${response.status}):`, errorJson);
+                } catch {
+                    console.error(`Erreur Twitch (HTTP ${response.status}): Réponse brute: ${errorText}`);
+                }
+            }
+            appToken.isRefreshing = false;
             return null;
         }
+
+        // Si la réponse est OK (HTTP 200)
+        const data = await response.json();
+
+        appToken.accessToken = data.access_token;
+        appToken.expiresAt = Date.now() + (data.expires_in * 1000);
+        console.log("Nouveau Token d'Application Twitch récupéré avec succès.");
+        return appToken.accessToken;
+
     } catch (error) {
-        console.error('Erreur de connexion lors de la récupération du token d\'application:', error);
+        console.error('Erreur de connexion/réseau lors de la récupération du token d\'application:', error);
         return null;
     } finally {
         appToken.isRefreshing = false;
@@ -153,7 +181,9 @@ async function fetchCurrentUser(userToken) {
             const data = await response.json();
             return data.data[0] || null;
         } else {
-            console.error('Erreur API Twitch lors de la récupération de l\'utilisateur:', response.status, await response.text());
+            // Ajout de la gestion d'erreur plus détaillée ici aussi
+            const errorText = await response.text();
+            console.error(`Erreur API Twitch (Utilisateur HTTP ${response.status}): ${errorText}`);
             return null;
         }
     } catch (e) {
@@ -181,7 +211,8 @@ async function fetchFollowedChannels(userId, userToken) {
             const data = await response.json();
             return data.data || [];
         } else {
-            console.error('Erreur API Twitch lors de la récupération des chaînes suivies:', response.status, await response.text());
+            const errorText = await response.text();
+            console.error(`Erreur API Twitch (Chaînes suivies HTTP ${response.status}): ${errorText}`);
             return [];
         }
     } catch (e) {
@@ -211,7 +242,8 @@ async function fetchGameDetailsForScan(query, appToken) {
             // Retourne le premier résultat trouvé
             return data.data[0] || null; 
         } else {
-            console.error('Erreur API Twitch lors de la recherche du jeu:', response.status, await response.text());
+            const errorText = await response.text();
+            console.error(`Erreur API Twitch (Jeu HTTP ${response.status}): ${errorText}`);
             return null;
         }
     } catch (e) {
@@ -240,7 +272,8 @@ async function fetchUserDetailsForScan(query, appToken) {
             // Retourne le premier résultat trouvé
             return data.data[0] || null; 
         } else {
-            console.error('Erreur API Twitch lors de la recherche de l\'utilisateur:', response.status, await response.text());
+            const errorText = await response.text();
+            console.error(`Erreur API Twitch (Utilisateur Scan HTTP ${response.status}): ${errorText}`);
             return null;
         }
     } catch (e) {
@@ -268,7 +301,8 @@ async function fetchStreamsForGame(gameId, appToken) {
             const data = await response.json();
             return data.data || [];
         } else {
-            console.error('Erreur API Twitch lors de la récupération des streams:', response.status, await response.text());
+            const errorText = await response.text();
+            console.error(`Erreur API Twitch (Streams HTTP ${response.status}): ${errorText}`);
             return [];
         }
     } catch (e) {
@@ -345,7 +379,7 @@ async function callGeminiApi(prompt, useGrounding = false, systemInstruction = "
                 };
             } else if (response.status === 429) {
                 // Trop de requêtes (Rate Limit), on attend et on réessaie
-                console.warn(`Tentative ${i + 1}: Rate limit atteint. Attente de ${delay}ms.`);
+                // console.warn(`Tentative ${i + 1}: Rate limit atteint. Attente de ${delay}ms.`); // Commenté pour éviter le bruit
                 if (i < maxRetries - 1) {
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= 2; // Backoff exponentiel
@@ -356,10 +390,16 @@ async function callGeminiApi(prompt, useGrounding = false, systemInstruction = "
             } else {
                 // Autres erreurs HTTP
                 const errorText = await response.text();
-                console.error(`Erreur API Gemini (HTTP ${response.status}):`, errorText);
+                // Gestion similaire à Twitch pour attraper l'erreur '<'
+                if (errorText.startsWith('<')) {
+                    console.error(`Erreur API Gemini (HTTP ${response.status}): Réponse HTML/Inattendue. Vérifiez la clé API ou l'URL.`);
+                } else {
+                     console.error(`Erreur API Gemini (HTTP ${response.status}):`, errorText);
+                }
+               
                 return { 
                     error: `Erreur API Gemini (HTTP ${response.status}).`,
-                    html_critique: `<p style="color:red;">Erreur de l'API IA: ${response.status}.</p>` 
+                    html_critique: `<p style="color:red;">Erreur de l'API IA: ${response.status}. ${errorText.length < 200 ? errorText : 'Détails en console.'}</p>` 
                 };
             }
         } catch (error) {
@@ -407,9 +447,11 @@ app.get('/auth/twitch/callback', async (req, res) => {
 
     // 1. Vérification CSRF et erreur
     if (error) {
+        console.error("Erreur de callback Twitch:", error);
         return res.redirect(`/NicheOptimizer.html?error=${error}`);
     }
     if (!storedState || state !== storedState) {
+        console.error("Erreur CSRF: State mismatch.");
         return res.redirect(`/NicheOptimizer.html?error=state_mismatch`);
     }
     // L'état a été vérifié, on le supprime
@@ -432,42 +474,47 @@ app.get('/auth/twitch/callback', async (req, res) => {
             }).toString()
         });
         
+        // CORRECTION: Ajout d'une gestion d'erreur détaillée pour l'échange de token
+        if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text();
+            console.error(`Erreur lors de l'échange de code (HTTP ${tokenResponse.status}): ${errorText}`);
+            return res.redirect(`/NicheOptimizer.html?error=token_exchange_failed&details=${tokenResponse.status}`);
+        }
+        
         const tokenData = await tokenResponse.json();
 
-        if (tokenResponse.ok) {
-            const userToken = tokenData.access_token;
+        const userToken = tokenData.access_token;
+        
+        // 3. Récupération des infos utilisateur (pour l'ID et l'e-mail)
+        const userData = await fetchCurrentUser(userToken);
+
+        if (userData && admin.apps.length > 0) {
+            const userId = userData.id;
+            const email = userData.email || `${userData.login}@twitch.user`; // Fallback pour email
+            const username = userData.login;
             
-            // 3. Récupération des infos utilisateur (pour l'ID et l'e-mail)
-            const userData = await fetchCurrentUser(userToken);
+            // 4. Création/Obtention d'un Custom Token Firebase
+            const firebaseToken = await admin.auth().createCustomToken(userId, {
+                twitch_username: username,
+                twitch_email: email,
+                twitch_user_id: userId
+            });
 
-            if (userData && admin.apps.length > 0) {
-                const userId = userData.id;
-                const email = userData.email || `${userData.login}@twitch.user`; // Fallback pour email
-                const username = userData.login;
-                
-                // 4. Création/Obtention d'un Custom Token Firebase
-                const firebaseToken = await admin.auth().createCustomToken(userId, {
-                    twitch_username: username,
-                    twitch_email: email,
-                    twitch_user_id: userId
-                });
+            // Redirige l'utilisateur avec son token d'accès Twitch et son token Firebase
+            res.cookie('twitch_access_token', userToken, { secure: true, maxAge: tokenData.expires_in * 1000 });
+            res.cookie('firebase_custom_token', firebaseToken, { secure: true, maxAge: 3600000 }); // Token Firebase valide pour 1h
+            
+            // Redirection vers l'application principale (le client gérera la connexion Firebase avec le token)
+            return res.redirect(`/NicheOptimizer.html?auth_success=true&username=${username}`);
 
-                // Redirige l'utilisateur avec son token d'accès Twitch et son token Firebase
-                // Le client stockera le token d'accès Twitch de manière sécurisée (httpOnly cookie si possible, ou localStorage/sessionStorage pour les SPAs)
-                // Ici, on utilise des cookies non-httpOnly pour l'accès JS facile
-                res.cookie('twitch_access_token', userToken, { secure: true, maxAge: tokenData.expires_in * 1000 });
-                res.cookie('firebase_custom_token', firebaseToken, { secure: true, maxAge: 3600000 }); // Token Firebase valide pour 1h
-                
-                // Redirection vers l'application principale (le client gérera la connexion Firebase avec le token)
-                return res.redirect(`/NicheOptimizer.html?auth_success=true&username=${username}`);
-
-            } else {
-                 return res.redirect(`/NicheOptimizer.html?error=user_fetch_failed`);
-            }
+        } else if (!userData) {
+             console.error("Échec de la récupération des données utilisateur de Twitch.");
+             return res.redirect(`/NicheOptimizer.html?error=user_fetch_failed`);
         } else {
-            console.error('Erreur lors de l\'échange de code:', tokenData);
-            return res.redirect(`/NicheOptimizer.html?error=token_exchange_failed`);
+             console.error("Firebase Admin non initialisé. Impossible de créer le token custom.");
+             return res.redirect(`/NicheOptimizer.html?error=firebase_admin_init_failed`);
         }
+
     } catch (e) {
         console.error('Erreur globale lors du callback Twitch:', e);
         return res.redirect(`/NicheOptimizer.html?error=internal_server_error`);
@@ -654,7 +701,8 @@ app.post('/api/scan_search', async (req, res) => {
             game_data: {
                 id: gameData.id,
                 name: gameData.name,
-                box_art_url: gameData.box_art_url.replace('{width}', '140').replace('{height}', '190'),
+                // Assurez-vous que l'URL est remplacée correctement pour l'affichage côté client
+                box_art_url: gameData.box_art_url.replace('{width}', '140').replace('{height}', '190'), 
                 total_streams: streams.length,
                 total_viewers: viewerCount,
                 top_streamer_login: streams[0]?.user_login || "N/A",
@@ -724,10 +772,6 @@ app.listen(PORT, () => {
     // Tente de récupérer le token d'application immédiatement
     getAppAccessToken();
 });
-
-// Reste de votre code (non spécifié dans le snippet, mais inclus pour la complétude)
-// ...
-
 
 
 
