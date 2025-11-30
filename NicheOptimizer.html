@@ -1,258 +1,391 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Twitch Streaming Suite - Futuristic Edition</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JustPlayer • Holographic Hub</title>
 
-<!-- Production Tailwind (precompiled) -->
-<link href="https://unpkg.com/tailwindcss@^3/dist/tailwind.min.css" rel="stylesheet">
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
 
-<style>
-:root{
-  --neon-blue:#22c7ef;
-  --neon-pink:#ff0099;
-}
+  <style>
+    /* ==========================
+       Palette & reset
+       Holographic futuriste : glow bleu / argent, glass
+       ========================== */
+    :root{
+      --bg:#071019; /* très foncé */
+      --panel: rgba(255,255,255,0.04);
+      --glass-border: rgba(255,255,255,0.06);
+      --accent-blue: #5fe0ff;
+      --accent-silver: #b6c7d6;
+      --muted: #98a6b3;
+      --success: #7ef0a6;
+      --danger: #ff6b6b;
+    }
 
-/* Futuristic Neon */
-*{transition:all .12s ease-out!important;}
-.neon{
-  box-shadow:0 0 10px var(--neon-blue),0 0 20px var(--neon-blue);
-}
-.neon:hover{
-  box-shadow:0 0 20px var(--neon-pink),0 0 40px var(--neon-pink);
-  transform:translateY(-3px);
-}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#041019 0%, #071a2a 100%);font-family:"Inter",system-ui,Arial;color:#e9f3fb;-webkit-font-smoothing:antialiased;}
+    a{text-decoration:none;color:inherit}
 
-/* Loader IA */
-.ai-loader{
-  width:42px;height:42px;
-  border-radius:50%;
-  border:4px solid var(--neon-blue);
-  border-top-color:transparent;
-  animation:spin .7s linear infinite, neonPulse 1.3s ease-in-out infinite;
-  margin:18px auto;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
-@keyframes neonPulse{
-  0%{box-shadow:0 0 6px var(--neon-blue);}
-  50%{box-shadow:0 0 20px var(--neon-pink);}
-  100%{box-shadow:0 0 6px var(--neon-blue);}
-}
+    /* Container */
+    .wrap{max-width:1200px;margin:18px auto;padding:16px;display:grid;grid-template-columns:1fr 420px;gap:18px;}
+    @media(max-width:980px){ .wrap{grid-template-columns:1fr; padding:12px;} }
 
-/* Panels glass */
-.panel{
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-  background:rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:14px;
-  padding:20px;
-}
+    /* Header */
+    header.hdr{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:8px}
+    .logo{display:flex;align-items:center;gap:10px}
+    .logo .title{font-family:'Orbitron',sans-serif;font-weight:700;color:var(--accent-blue);font-size:20px;letter-spacing:1px}
+    .logo .sub{font-size:12px;color:var(--muted)}
 
-/* Buttons */
-.btn-primary{
-  padding:10px 15px;
-  border-radius:8px;
-  font-weight:700;
-  background:var(--neon-blue);
-  color:black;
-}
-.btn-primary:hover{background:var(--neon-pink);color:white;}
+    /* Panel (glass) */
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--glass-border);
+      border-radius:14px;
+      padding:16px;
+      box-shadow:0 6px 30px rgba(3,20,30,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      backdrop-filter: blur(8px) saturate(1.1);
+    }
 
-.btn-secondary{
-  padding: 8px 12px;
-  border-radius:8px;
-  font-weight:700;
-  background:#1b1f24;
-  color:white;
-}
-</style>
+    /* Player area */
+    .player{
+      display:flex;flex-direction:column;gap:12px;
+    }
+    .player .meta{display:flex;align-items:center;gap:12px}
+    .player .meta .status{
+      margin-left:auto;font-size:13px;color:var(--muted);
+      padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.02)
+    }
+    #twitch-embed{width:100%;height:460px;border-radius:10px;overflow:hidden;border:1px solid rgba(95,224,255,0.06);box-shadow:0 10px 40px rgba(42,190,255,0.06)}
+    @media(max-width:640px){ #twitch-embed{height:300px} }
+
+    /* Controls */
+    .controls{display:flex;gap:8px}
+    .controls input{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#eaf6ff}
+    .btn{padding:10px 12px;border-radius:8px;border:0;font-weight:700;cursor:pointer}
+    .btn-primary{background:linear-gradient(90deg,var(--accent-blue),#8fe7ff);color:#022;box-shadow:0 6px 18px rgba(95,224,255,0.08)}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+
+    /* Dashboard analytics */
+    .dashboard{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+    .dash-card{padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);text-align:center}
+    .dash-card h3{margin:6px 0 0;font-size:13px;color:var(--muted)}
+    .dash-card .value{font-size:20px;font-weight:700;color:var(--accent-blue)}
+
+    /* IA result boxes */
+    .ai-result{margin-top:12px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border:1px solid rgba(255,255,255,0.03);min-height:60px}
+    .ai-loader{width:36px;height:36px;border-radius:50%;border:4px solid var(--accent-blue);border-top-color:transparent;margin:8px auto;animation:spin 0.8s linear infinite, pulse 1.4s ease-in-out infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%{box-shadow:0 0 6px rgba(95,224,255,0.5)}50%{box-shadow:0 0 18px rgba(181,226,255,0.9)}100%{box-shadow:0 0 6px rgba(95,224,255,0.5)}}
+
+    /* Floating IA assistant */
+    .assistant {
+      position:fixed; right:18px; bottom:18px; width:300px; max-width:92%;
+      border-radius:12px; padding:12px; z-index:1200;
+      background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border:1px solid rgba(95,224,255,0.08); box-shadow:0 8px 40px rgba(5,25,40,0.6);
+      backdrop-filter: blur(10px);
+    }
+    .assistant .head{display:flex;align-items:center;gap:10px}
+    .assistant .head .dot{width:10px;height:10px;border-radius:50%;background:var(--accent-blue);box-shadow:0 0 8px rgba(95,224,255,0.8)}
+    .assistant .messages{max-height:220px;overflow:auto;margin-top:8px;padding-right:6px}
+    .assistant .msg{padding:8px;border-radius:8px;margin-bottom:8px;font-size:13px}
+    .assistant .msg.user{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02);text-align:right}
+    .assistant .msg.ai{background:linear-gradient(90deg, rgba(95,224,255,0.06), rgba(181,226,255,0.03));border:1px solid rgba(95,224,255,0.08);color:#012}
+
+    .assistant form{display:flex;gap:8px;margin-top:8px}
+    .assistant input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#eaf6ff}
+
+    /* Small screens */
+    @media(max-width:420px){
+      .dashboard{grid-template-columns:repeat(2,1fr)}
+      .assistant{right:8px;left:8px;width:auto}
+    }
+  </style>
 </head>
 
-<body class="bg-[#0e1116] text-white">
+<body>
 
-<!-- ===================== NAV ===================== -->
-<header class="p-4 flex justify-between items-center border-b border-gray-700">
-  <h1 class="text-2xl font-bold neon p-3 rounded-lg">🎛️ JustPlayer Stream Hub — Futuristic Edition</h1>
-  <button id="btn-logout" class="btn-secondary">Déconnexion</button>
-</header>
+  <header class="hdr" style="max-width:1200px;margin:0 auto;padding:12px 16px;">
+    <div class="logo">
+      <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#0ff 10%, #9ff 80%);display:flex;align-items:center;justify-content:center;color:#012;font-weight:800">JP</div>
+      <div>
+        <div class="title">JustPlayer • Holographic Hub</div>
+        <div class="sub">Lecteur • Scan IA • Dashboard • Repurposing</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="btn-open-assistant" class="btn btn-ghost">Assistant IA</button>
+      <button id="btn-refresh" class="btn btn-ghost">⟳ Refresh</button>
+    </div>
+  </header>
 
-<div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <main class="wrap">
+    <!-- LEFT: Player + Dashboard -->
+    <section class="panel player">
+      <div class="meta">
+        <div style="font-weight:700">LECTEUR & CHAT</div>
+        <div id="player-channel-status" class="status">Aucun channel</div>
+      </div>
 
-<!-- ===================== PLAYER SECTION ===================== -->
-<div class="panel">
-  <h2 class="text-xl font-bold mb-3">🎥 Player Twitch + Chat</h2>
+      <div id="twitch-embed"></div>
 
-  <div id="player-channel-status" class="mb-2 text-lg">Aucun channel sélectionné.</div>
+      <div class="controls" style="margin-top:4px">
+        <input id="input-channel" placeholder="Entrez le nom de la chaîne Twitch (ex: gotaga)">
+        <button id="btn-launch" class="btn btn-primary">▶️ Charger</button>
+        <button id="btn-random" class="btn btn-ghost">🎲 Random</button>
+      </div>
 
-  <div id="twitch-embed" class="rounded-lg overflow-hidden" style="height:550px;"></div>
+      <div class="dashboard" id="dashboard">
+        <div class="dash-card">
+          <h3>Viewers</h3><div id="dash-viewers" class="value">—</div>
+        </div>
+        <div class="dash-card">
+          <h3>Jeu</h3><div id="dash-game" class="value">—</div>
+        </div>
+        <div class="dash-card">
+          <h3>Titre</h3><div id="dash-title" class="value" style="font-size:14px">—</div>
+        </div>
+      </div>
+    </section>
 
-  <div class="mt-4">
-    <label class="font-bold">Chaine Twitch :</label>
-    <input id="channel-input" class="text-black px-2 py-1 rounded" placeholder="nomduchannel">
-    <button id="btn-load-channel" class="btn-primary neon ml-2">Charger</button>
+    <!-- RIGHT: Tools IA -->
+    <aside class="panel">
+      <h3 style="margin:0 0 10px;font-weight:700">Outils IA</h3>
+
+      <div>
+        <label style="font-size:13px;color:var(--muted)">Scan cible (Jeu/Pseudo)</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <input id="input-target" placeholder="ex: starfield ou gotaga">
+          <button id="btn-scan" class="btn btn-primary">🎯 Scan</button>
+        </div>
+        <div id="scan-result" class="ai-result"></div>
+      </div>
+
+      <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+      <div>
+        <label style="font-size:13px;color:var(--muted)">Analyse de Niche</label>
+        <textarea id="input-niche" rows="4" style="width:100%;margin-top:6px;padding:8px;border-radius:8px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.04)"></textarea>
+        <button id="btn-niche" class="btn btn-primary" style="width:100%;margin-top:8px">📈 Analyser la niche</button>
+        <div id="niche-result" class="ai-result"></div>
+      </div>
+
+      <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+      <div>
+        <label style="font-size:13px;color:var(--muted)">Repurposing (texte)</label>
+        <textarea id="input-repurpose" rows="3" style="width:100%;margin-top:6px;padding:8px;border-radius:8px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.04)"></textarea>
+        <button id="btn-repurpose" class="btn btn-primary" style="width:100%;margin-top:8px">♻️ Repurposer</button>
+        <div id="repurpose-result" class="ai-result"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Floating Assistant -->
+  <div id="assistant" class="assistant" style="display:none">
+    <div class="head"><div class="dot"></div><div style="font-weight:700">Mini IA • Live Assistant</div></div>
+    <div class="messages" id="assistant-messages">
+      <div class="msg ai">Salut — je surveille le live et peux te donner idées & actions.</div>
+    </div>
+    <form id="assistant-form" style="margin-top:8px">
+      <input id="assistant-input" placeholder="Demande: ex 'Idées pour la prochaine session'">
+      <button class="btn btn-primary" type="submit">Envoyer</button>
+    </form>
   </div>
-</div>
 
-<!-- ===================== IA PANEL ===================== -->
-<div class="panel">
-  <h2 class="text-xl font-bold mb-3">🤖 IA Streaming Tools</h2>
+  <script>
+    /* ===========================
+       Client JS : player, polling, IA calls
+       =========================== */
 
-  <!-- Scan Target -->
-  <form id="form-target" class="mb-6">
-    <label class="font-bold">Streamer à analyser :</label>
-    <input id="target-streamer" class="text-black px-2 py-1 rounded w-full" placeholder="ex: zerator">
-    <button class="btn-primary neon w-full mt-2">🔍 Scan IA</button>
-  </form>
+    // Utilitaires
+    const $ = id => document.getElementById(id);
+    const API_BASE = ""; // relative -> Render will route to same host
 
-  <div id="target-result" class="mb-6"></div>
+    // Twitch embed init (auto load default)
+    let currentChannel = localStorage.getItem('activeChannel') || 'twitch';
+    let twitchEmbed = null;
 
-  <!-- Niche Analysis -->
-  <form id="form-niche-analysis" class="mb-6">
-    <label class="font-bold">Analyse ta niche :</label>
-    <textarea id="niche-description" class="text-black px-2 py-1 rounded w-full" rows="4" placeholder="Décris ton contenu..."></textarea>
-    <button class="btn-primary neon w-full mt-2">📊 Analyse IA</button>
-  </form>
-
-  <div id="niche-results" class="mb-6"></div>
-
-  <!-- Repurpose -->
-  <form id="form-repurpose" class="mb-6">
-    <label class="font-bold">Transformer ton contenu :</label>
-    <textarea id="repurpose-input" class="text-black px-2 py-1 rounded w-full" rows="4" placeholder="Colle ton texte..."></textarea>
-    <button class="btn-primary neon w-full mt-2">♻️ Repurposer</button>
-  </form>
-
-  <div id="repurpose-results" class="mb-6"></div>
-
-  <!-- Trend Detector -->
-  <button id="btn-trend-detector" class="btn-primary neon w-full">📈 Détecter Trends Twitch</button>
-
-  <div id="trend-results" class="mt-4"></div>
-
-</div>
-</div>
-
-<!-- Script Twitch -->
-<script src="https://embed.twitch.tv/embed/v1.js"></script>
-
-<script>
-// ======================= CONFIG ===========================
-const API_BASE = ""; // Render auto-resolve
-
-let embed = null;
-
-// ======================= PLAYER ===========================
-function launchPlayer(channel){
-    if(embed){
-      document.getElementById("twitch-embed").innerHTML = "";
+    function launchPlayer(channel){
+      if(!channel) return;
+      currentChannel = channel.toLowerCase();
+      localStorage.setItem('activeChannel', currentChannel);
+      $('player-channel-status').textContent = `Chargement… ${currentChannel}`;
+      // remove previous embed
+      document.getElementById('twitch-embed').innerHTML = '';
+      twitchEmbed = new Twitch.Embed("twitch-embed", {
+        width: "100%",
+        height: "100%",
+        channel: currentChannel,
+        layout: "video-and-chat",
+        autoplay: false,
+        parent: [window.location.hostname, 'localhost', '127.0.0.1']
+      });
     }
 
-    embed = new Twitch.Embed("twitch-embed", {
-      width:"100%",
-      height:550,
-      channel:channel,
-      layout:"video-and-chat",
-      autoplay:false, // IMPORTANT
-      parent:[
-        window.location.hostname,
-        "localhost",
-        "127.0.0.1"
-      ]
+    // Launch initial
+    window.addEventListener('DOMContentLoaded', ()=> {
+      $('input-channel')?.value && null;
+      $('input-channel')?.setAttribute('placeholder','Entrez le nom de la chaîne Twitch');
+      launchPlayer(currentChannel);
     });
 
-    localStorage.setItem("activeChannel", channel);
+    // Buttons actions
+    $('btn-launch').addEventListener('click', ()=>{
+      const ch = $('input-channel').value.trim();
+      if(ch) launchPlayer(ch);
+    });
+    $('btn-random').addEventListener('click', async ()=>{
+      try{
+        const r = await fetch('/random_small_streamer');
+        if(r.ok){
+          const d = await r.json();
+          launchPlayer(d.username);
+        } else alert('Impossible d\'obtenir un stream aléatoire.');
+      }catch(e){ console.error(e); alert('Erreur random'); }
+    });
 
-    document.getElementById("player-channel-status").innerText =
-      "Chargement du player pour " + channel + "…";
-}
-
-// Load Channel Btn
-document.getElementById("btn-load-channel").addEventListener("click", ()=>{
-  const ch = document.getElementById("channel-input").value.trim();
-  if(!ch) return;
-  launchPlayer(ch);
-});
-
-// ======================= LIVE PING (Polling render-friendly) ===========================
-setInterval(async ()=>{
-  const channel = localStorage.getItem("activeChannel");
-  if(!channel) return;
-
-  try{
-    const r = await fetch(`/live_ping?channel=${encodeURIComponent(channel)}`);
-    if(!r.ok) return;
-    const d = await r.json();
-
-    const el = document.getElementById("player-channel-status");
-    if(d.live){
-      el.innerText = `🔴 EN LIVE — ${channel.toUpperCase()}`;
-      el.style.color = "#ff0099";
-    } else {
-      el.innerText = `⚫ Offline — ${channel.toUpperCase()}`;
-      el.style.color = "#9aa3a8";
+    // Dashboard polling & live_ping
+    async function updateLiveStatus(){
+      try{
+        const channel = localStorage.getItem('activeChannel') || currentChannel;
+        if(!channel) return;
+        const r = await fetch(`/live_ping?channel=${encodeURIComponent(channel)}`);
+        if(!r.ok) return;
+        const data = await r.json();
+        // update status
+        if(data.live){
+          $('player-channel-status').textContent = `🔴 EN LIVE — ${channel}`;
+          $('dash-viewers').textContent = data.viewer_count || '—';
+          $('dash-game').textContent = data.game_name || '—';
+          $('dash-title').textContent = (data.title && data.title.length>36)? data.title.slice(0,36)+'…': (data.title||'—');
+        } else {
+          $('player-channel-status').textContent = `⚫ Offline — ${channel}`;
+          $('dash-viewers').textContent = '—';
+          $('dash-game').textContent = '—';
+          $('dash-title').textContent = '—';
+        }
+      }catch(e){
+        // silent
+      }
     }
-  }catch(e){}
-},2000);
+    // start polling every 2s
+    setInterval(updateLiveStatus, 2000);
+    updateLiveStatus();
 
+    // Helper to show loader and call API
+    function showLoader(targetEl){
+      targetEl.innerHTML = '<div class="ai-loader"></div>';
+    }
 
-// ======================= IA FORMS ===========================
-document.getElementById("form-target").addEventListener("submit", async(e)=>{
-  e.preventDefault();
-  const v = document.getElementById("target-streamer").value.trim();
-  if(!v) return;
+    // Scan target
+    $('btn-scan').addEventListener('click', async ()=>{
+      const q = $('input-target').value.trim();
+      if(!q) return alert('Saisis un jeu ou pseudo.');
+      const resEl = $('scan-result');
+      showLoader(resEl);
+      try{
+        const r = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target:q})});
+        if(!r.ok){
+          resEl.innerHTML = `<div style="color:var(--danger);text-align:center">Erreur ${r.status}</div>`;
+          return;
+        }
+        const d = await r.json();
+        // Format response simply
+        if(d.type === 'game'){
+          if(d.streams && d.streams.length){
+            resEl.innerHTML = '<strong>Streams en direct</strong><ul>' + d.streams.map(s=>`<li>${s.user_name} — ${s.viewer_count} spectateurs — ${s.game_name}</li>`).join('') + '</ul>';
+          } else {
+            resEl.innerHTML = `<div style="text-align:center;color:var(--muted)">${d.message||'Aucun stream trouvé'}</div>`;
+          }
+        } else if(d.type === 'user'){
+          resEl.innerHTML = `<div><strong>${d.user_data.username}</strong><p>${d.user_data.title || 'Hors ligne'}</p></div>`;
+        } else {
+          resEl.innerHTML = `<pre style="white-space:pre-wrap">${JSON.stringify(d)}</pre>`;
+        }
+      }catch(e){
+        resEl.innerHTML = `<div style="color:var(--danger)">Erreur réseau</div>`;
+      }
+    });
 
-  const box = document.getElementById("target-result");
-  box.innerHTML = `<div class="ai-loader"></div><p class="text-center mt-2">Analyse en cours…</p>`;
+    // Niche analyse
+    $('btn-niche').addEventListener('click', async ()=>{
+      const txt = $('input-niche').value.trim();
+      if(!txt) return alert('Entrez une description.');
+      const resEl = $('niche-result');
+      showLoader(resEl);
+      try{
+        const r = await fetch(`/niche_analyse?text=${encodeURIComponent(txt)}`);
+        if(!r.ok) { resEl.innerHTML = `<div style="color:var(--danger)">Erreur ${r.status}</div>`; return; }
+        const html = await r.text();
+        resEl.innerHTML = html;
+      }catch(e){
+        resEl.innerHTML = `<div style="color:var(--danger)">Erreur</div>`;
+      }
+    });
 
-  const r = await fetch(`/critique_ia?target=${encodeURIComponent(v)}`);
-  box.innerHTML = await r.text();
-});
+    // Repurpose
+    $('btn-repurpose').addEventListener('click', async ()=>{
+      const txt = $('input-repurpose').value.trim();
+      if(!txt) return alert('Colle le texte à repurposer.');
+      const resEl = $('repurpose-result');
+      showLoader(resEl);
+      try{
+        const r = await fetch(`/repurpose?text=${encodeURIComponent(txt)}`);
+        if(!r.ok) { resEl.innerHTML = `<div style="color:var(--danger)">Erreur ${r.status}</div>`; return; }
+        const html = await r.text();
+        resEl.innerHTML = html;
+      }catch(e){
+        resEl.innerHTML = `<div style="color:var(--danger)">Erreur</div>`;
+      }
+    });
 
+    // Trend detector
+    document.getElementById('btn-trend-detector')?.addEventListener('click', async ()=>{
+      const resEl = $('trend-results') || document.createElement('div');
+      if(!resEl.parentNode) { document.body.appendChild(resEl) }
+      showLoader(resEl);
+      try{
+        const r = await fetch('/trend_detector');
+        if(!r.ok){ resEl.innerHTML = `<div style="color:var(--danger)">Erreur ${r.status}</div>`; return; }
+        resEl.innerHTML = await r.text();
+      }catch(e){
+        resEl.innerHTML = `<div style="color:var(--danger)">Erreur</div>`;
+      }
+    });
 
-document.getElementById("form-niche-analysis").addEventListener("submit", async(e)=>{
-  e.preventDefault();
-  const v = document.getElementById("niche-description").value.trim();
-  if(!v) return;
+    // Assistant UI toggles + conversation
+    const assistant = $('assistant');
+    $('btn-open-assistant').addEventListener('click', ()=> {
+      assistant.style.display = assistant.style.display === 'none' ? 'block' : 'none';
+    });
+    // Assistant form
+    document.getElementById('assistant-form').addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      const q = $('assistant-input').value.trim();
+      if(!q) return;
+      const msgs = $('assistant-messages');
+      const userMsg = document.createElement('div'); userMsg.className='msg user'; userMsg.textContent=q; msgs.appendChild(userMsg);
+      $('assistant-input').value='';
+      const aiMsg = document.createElement('div'); aiMsg.className='msg ai'; aiMsg.innerHTML = '<div class="ai-loader" style="width:22px;height:22px;border-width:3px;margin:6px auto"></div>'; msgs.appendChild(aiMsg);
+      msgs.scrollTop = msgs.scrollHeight;
+      try{
+        const r = await fetch('/critique_ia', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type:'assistant', prompt:q, channel: localStorage.getItem('activeChannel') })});
+        if(!r.ok){ aiMsg.textContent = 'Erreur IA'; return; }
+        const d = await r.json();
+        aiMsg.className='msg ai'; aiMsg.textContent = d.text || (d.html_critique ? d.html_critique : 'Réponse IA');
+        msgs.scrollTop = msgs.scrollHeight;
+      }catch(e){
+        aiMsg.textContent = 'Erreur réseau';
+      }
+    });
 
-  const box = document.getElementById("niche-results");
-  box.innerHTML = `<div class="ai-loader"></div>`;
-
-  const r = await fetch(`/niche_analyse?text=${encodeURIComponent(v)}`);
-  box.innerHTML = await r.text();
-});
-
-
-document.getElementById("form-repurpose").addEventListener("submit", async(e)=>{
-  e.preventDefault();
-
-  const v = document.getElementById("repurpose-input").value.trim();
-  if(!v) return;
-
-  const box = document.getElementById("repurpose-results");
-  box.innerHTML = `<div class="ai-loader"></div>`;
-
-  const r = await fetch(`/repurpose?text=${encodeURIComponent(v)}`);
-  box.innerHTML = await r.text();
-});
-
-
-document.getElementById("btn-trend-detector").addEventListener("click", async()=>{
-  const box = document.getElementById("trend-results");
-  box.innerHTML = `<div class="ai-loader"></div>`;
-
-  const r = await fetch(`/trend_detector`);
-  box.innerHTML = await r.text();
-});
-
-
-// ======================= LOGOUT ===========================
-document.getElementById("btn-logout").addEventListener("click",()=>{
-  localStorage.removeItem("token");
-  window.location.href = "/";
-});
-
-</script>
+    // Refresh button
+    $('btn-refresh').addEventListener('click', ()=> updateLiveStatus());
+  </script>
 </body>
 </html>
+
