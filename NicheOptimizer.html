@@ -78,7 +78,6 @@
             channel: channel,
             allowfullscreen: true,
             layout: "video-and-chat",
-            // IMPORTANT : L'élément 'parent' doit correspondre à votre nom de domaine
             parent: [window.location.hostname] 
         };
 
@@ -127,7 +126,9 @@
         checkAuth(); 
     }
 
-    // ✅ CORRIGÉE: Intègre le correctif des URL de miniatures
+    /** * ✅ FONCTION CORRIGÉE POUR LES MINIATURES 
+     * Assure le remplacement des placeholders {width} et {height} par des valeurs numériques.
+     */
     async function fetchFollowedStreams() {
         const streamsList = document.getElementById('followed-streams-list');
         streamsList.innerHTML = '<p style="text-align:center; color:#555; padding:10px;">Chargement des streams LIVE...</p>';
@@ -156,7 +157,7 @@
                 item.className = 'followed-stream-item';
                 item.onclick = () => initializePlayer(stream.user_login); 
                 
-                // 🛠️ FIX DE MINIATURES : Remplace {width} et {height}
+                // 🛠️ FIX DE MINIATURES (le point clé)
                 const thumbnailUrl = stream.thumbnail_url
                     .replace('{width}', '320')
                     .replace('{height}', '180'); 
@@ -252,7 +253,6 @@
             
             if (!res.ok) {
                 const errorData = await res.json();
-                // Affiche l'erreur renvoyée par le serveur (500, 503, etc.)
                 throw new Error(errorData.error || `Erreur serveur (Statut: ${res.status}).`);
             }
 
@@ -261,7 +261,6 @@
             assistantMsgs.innerHTML += `<div class=\"msg bot\">${data.answer || "Désolé, problème IA ou réponse bloquée."}</div>`;
         } catch(err) { 
             document.getElementById(loaderId).remove();
-            // Affiche l'erreur réelle
             assistantMsgs.innerHTML += `<div class=\"msg bot\" style=\"color:red;\">❌ Erreur IA: ${err.message || "Problème de connexion serveur."}</div>`;
         }
         assistantMsgs.scrollTop = assistantMsgs.scrollHeight;
