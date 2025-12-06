@@ -169,7 +169,8 @@ async function fetchGameDetails(query, token) {
  * Récupère les streams en direct pour un ID de jeu donné.
  */
 async function fetchStreamsForGame(gameId, token) {
-    const url = `https://api.twitch.tv/helix/streams?game_id=${gameId}&first=100`;
+    // On peut récupérer 100 streams pour l'analyse, mais on en affichera 3 dans le frontend
+    const url = `https://api.twitch.tv/helix/streams?game_id=${gameId}&first=100`; 
     const HEADERS = {
         'Client-Id': TWITCH_CLIENT_ID,
         'Authorization': `Bearer ${token}`
@@ -184,6 +185,41 @@ async function fetchStreamsForGame(gameId, token) {
         return [];
     }
 }
+
+/**
+ * Récupère les VOD (Past Broadcasts) pour un ID de jeu donné.
+ * Fix: S'assure de l'URL de l'image de la VOD.
+ */
+async function fetchGameVideos(gameId, token, limit = 3) {
+    const url = `https://api.twitch.tv/helix/videos?game_id=${gameId}&first=${limit}&type=archive&sort=time`; 
+    const HEADERS = {
+        'Client-Id': TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${token}`
+    };
+
+    try {
+        const response = await fetch(url, { headers: HEADERS });
+        if (!response.ok) {
+            console.error("Erreur API Twitch (videos):", response.statusText);
+            return [];
+        }
+        const data = await response.json();
+        
+        // Le thumbnail_url de la VOD nécessite une substitution de résolution
+        const processedVideos = data.data.map(video => ({
+            ...video,
+            // Remplacer les placeholders du thumbnail par une résolution standard de 320x180
+            thumbnail_url: video.thumbnail_url.replace('%{width}', '320').replace('%{height}', '180'),
+            // Le player côté client peut utiliser l'ID 'v' + video.id ou seulement video.id pour les VODs.
+        }));
+        
+        return processedVideos || [];
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des VOD du jeu:", error.message);
+        return [];
+    }
+}
+
 
 /**
  * Récupère les détails d'un utilisateur et vérifie s'il est en direct.
@@ -482,6 +518,8 @@ app.post('/scan_target', async (req, res) => {
         
         if (gameData) {
             const streams = await fetchStreamsForGame(gameData.id, token);
+            // Fix: Limite les VODs à 3, sans espace pour changer
+            const videos = await fetchGameVideos(gameData.id, token, 3); 
             
             const totalViewers = streams.reduce((sum, stream) => sum + stream.viewer_count, 0);
             const totalStreamers = streams.length;
@@ -495,7 +533,8 @@ app.post('/scan_target', async (req, res) => {
                     total_viewers: totalViewers,
                     total_streamers: totalStreamers,
                     avg_viewers_per_streamer: avgViewers,
-                    streams: streams.slice(0, 10) 
+                    streams: streams.slice(0, 3), // Fix: Limite les streams live à 3
+                    videos: videos // Ajout des VODs
                 }
             });
 
@@ -526,9 +565,9 @@ app.post('/scan_target', async (req, res) => {
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
 
-    // NOTE: Si vous utilisez la fonctionnalité de critique de titre, 
-    // vous devez ajouter 'title_critique' ici et son bloc 'else if'
+    // Fix: Correction de l'erreur 400
     if (!['trend', 'niche', 'repurpose'].includes(type)) {
+        console.error(`Critique IA - Type invalide reçu: ${type}`);
         return res.status(400).json({ error: "Type de critique IA non supporté. Types valides : trend, niche, repurpose." });
     }
 
@@ -558,6 +597,7 @@ app.post('/critique_ia', async (req, res) => {
                 Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer). 
                 Voici le TOP 10 des meilleures opportunités de niches: ${promptData}
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours.
+                Assure-toi que tout le contenu est bien formaté en HTML standard (utilisation de paragraphes <p> et de listes <ul> ou <ol>).
             `;
             
         } else if (type === 'niche') {
@@ -580,6 +620,7 @@ app.post('/critique_ia', async (req, res) => {
                 Voici une analyse de ses 10 meilleurs streams actuels : ${promptData}
                 Analyse la concurrence et la saturation du jeu. Propose une niche **spécifique** pour ce jeu (ex: "Jeu en mode Difficile" ou "Builds exclusifs").
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Conclusion Niche (Saturation ?), 2. Proposition de Niche Spécifique, 3. 3 Idées de Titres Uniques pour cette Niche.
+                Assure-toi que tout le contenu est bien formaté en HTML standard (utilisation de paragraphes <p> et de listes <ul> ou <ol>).
             `;
 
         } else if (type === 'repurpose') {
@@ -589,6 +630,7 @@ app.post('/critique_ia', async (req, res) => {
             if (!userData) {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
+            // Ceci est un exemple statique, mais il est suffisant pour le prompt IA.
             promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
@@ -605,6 +647,7 @@ app.post('/critique_ia', async (req, res) => {
                 Voici l'analyse de ses récentes activités : ${promptData}
                 L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs.
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
+                Assure-toi que tout le contenu est bien formaté en HTML standard (utilisation de paragraphes <p> et de listes <ul> ou <ol>).
             `;
         }
         
@@ -618,7 +661,9 @@ app.post('/critique_ia', async (req, res) => {
         });
 
         return res.json({
-            html_critique: `<h4>${promptTitle}</h4>` + result.text 
+            // Renvoyer le titre et la critique pour une meilleure gestion côté client
+            title: promptTitle,
+            html_critique: result.text 
         });
 
     } catch (e) {
@@ -633,34 +678,32 @@ app.post('/critique_ia', async (req, res) => {
 
 // --- ROUTE MINI-ASSISTANT IA ---
 app.post('/mini_assistant', async (req, res) => {
-    // CORRECTION APPLIQUÉE : Récupération de 'q' et 'context' au lieu de 'message'
-    const { q, context } = req.body; 
-   
-    if (!ai) {
-        return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
-    }
-   
-    if (!q || q.trim() === "") {
-        return res.status(400).json({ error: "Le message de l'assistant est vide (champ 'q' manquant)." });
-    }
+    const { q, context } = req.body; 
+    
+    if (!ai) {
+        return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
+    }
+    
+    if (!q || q.trim() === "") {
+        return res.status(400).json({ error: "Le message de l'assistant est vide (champ 'q' manquant)." });
+    }
 
-    // Ajout du contexte à l'invite pour des réponses plus pertinentes
     const contextInfo = context ? `Tu réponds dans le contexte actuel de la chaîne/jeu : **${context}**. ` : '';
 
-    const iaPrompt = `Tu es un mini-assistant virtuel expert en streaming Twitch. ${contextInfo}Ton rôle est de fournir des réponses courtes, directes et actionnables aux questions des streamers concernant les stratégies, le matériel, le SEO ou l'engagement sur Twitch. Réponds au message de l'utilisateur : "${q}"
-    Ta réponse doit être en français et formatée en HTML. Utilise des listes ou des paragraphes courts.`;
+    const iaPrompt = `Tu es un mini-assistant virtuel expert en streaming Twitch. ${contextInfo}Ton rôle est de fournir des réponses courtes, directes et actionnables aux questions des streamers concernant les stratégies, le matériel, le SEO ou l'engagement sur Twitch. Réponds au message de l'utilisateur : "${q}"
+    Ta réponse doit être en français et formatée en HTML. Utilise des listes ou des paragraphes courts.`;
 
-    try {
-        const result = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            contents: iaPrompt,
-        });
+    try {
+        const result = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: iaPrompt,
+        });
 
-        return res.json({ html_response: result.text });
-    } catch (e) {
-        console.error("❌ Erreur critique dans /mini_assistant:", e.message);
-        return res.status(500).json({ error: `Erreur IA: ${e.message}.` });
-    }
+        return res.json({ html_response: result.text });
+    } catch (e) {
+        console.error("❌ Erreur critique dans /mini_assistant:", e.message);
+        return res.status(500).json({ error: `Erreur IA: ${e.message}.` });
+    }
 });
 
 // --- ROUTE STREAM BOOST (avec Cooldown) ---
@@ -739,5 +782,6 @@ app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
     getAppAccessToken(); 
 });
+
 
 
