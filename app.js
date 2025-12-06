@@ -370,83 +370,13 @@ async function fetchNicheOpportunities(token) {
     return topNiches;
 }
 
-
-// =========================================================
-// --- NOUVELLE FONCTION: CATÉGORIES RECOMMANDÉES ---
-// =========================================================
-
-/**
- * Récupère les streams pour les jeux les plus populaires (Hype) ayant moins de 100 viewers.
- */
-async function getTrendingLowViewerStreams(token) {
-    const HEADERS = {
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`
-    };
-
-    try {
-        // 1. Récupérer les 10 jeux les plus populaires
-        let topGamesUrl = `https://api.twitch.tv/helix/games/top?first=10`;
-        let topGamesResponse = await fetch(topGamesUrl, { headers: HEADERS });
-        let topGamesData = await topGamesResponse.json();
-        
-        if (!topGamesResponse.ok || !topGamesData.data) {
-             throw new Error(`Erreur API Twitch (top games): ${topGamesResponse.status}`);
-        }
-        
-        const topGameIds = topGamesData.data.map(game => game.id);
-
-        let recommendedStreams = [];
-        const MAX_STREAMS_PER_GAME = 5; // Limiter les résultats pour chaque jeu
-        const VIEWER_LIMIT = 100;
-
-        // 2. Pour chaque jeu, récupérer les streams avec moins de 100 viewers
-        for (const gameId of topGameIds) {
-            // Récupérer un grand échantillon de streams pour ce jeu
-            let streamsUrl = `https://api.twitch.tv/helix/streams?game_id=${gameId}&first=100`; 
-            let streamsResponse = await fetch(streamsUrl, { headers: HEADERS });
-            let streamsData = await streamsResponse.json();
-
-            if (!streamsResponse.ok || !streamsData.data) {
-                console.warn(`Avertissement: Impossible de récupérer les streams pour le jeu ${gameId}`);
-                continue;
-            }
-
-            // Filtrer manuellement les streams avec moins de 100 viewers
-            const lowViewerStreams = streamsData.data.filter(stream => stream.viewer_count < VIEWER_LIMIT);
-            
-            // 3. Ne prendre que les 5 premiers résultats pour ce jeu et formater
-            const selectedStreams = lowViewerStreams.slice(0, MAX_STREAMS_PER_GAME).map(stream => ({
-                id: stream.id,
-                user_name: stream.user_name,
-                title: stream.title,
-                viewer_count: stream.viewer_count,
-                game_name: stream.game_name,
-                thumbnail_url: stream.thumbnail_url.replace('-{width}x{height}', '-320x180'),
-                started_at: stream.started_at
-            }));
-
-            if (selectedStreams.length > 0) {
-                 recommendedStreams.push(...selectedStreams);
-            }
-        }
-
-        return recommendedStreams;
-
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération des streams recommandés:", error.message);
-        return [];
-    }
-}
-
-
 // =========================================================
 // --- MIDDLEWARE GÉNÉRAL ET ROUTES API ---
 // =========================================================
 
 // Middleware pour vérifier la clé Gemini avant les routes IA
 app.use((req, res, next) => {
-    if ((req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/mini_assistant')) && !ai) {
+    if (req.originalUrl.startsWith('/critique_ia') && !ai) {
         return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
     }
     next();
@@ -579,19 +509,53 @@ app.get('/followed_streams', async (req, res) => {
     }
 });
 
-// --- NOUVELLE ROUTE : CATÉGORIES RECOMMANDÉES ---
-app.get('/recommended_categories', async (req, res) => {
+// --- NOUVELLE ROUTE : CATÉGORIES RECOMMANDÉES (HYPE V/S) ---
+app.get('/hype_categories', async (req, res) => {
     try {
         const token = await getAppAccessToken();
         if (!token) {
-            return res.status(500).json({ error: "Impossible d'obtenir le jeton d'accès App Twitch." });
+            return res.status(503).json({ 
+                error: "Impossible d'obtenir le jeton d'accès App Twitch." 
+            });
         }
 
-        const streams = await getTrendingLowViewerStreams(token);
-        return res.json({ data: streams });
+        // 1. Récupérer les données de niche (V/S) depuis le cache/scan
+        const nicheOpportunities = await fetchNicheOpportunities(token);
+        
+        if (!nicheOpportunities || nicheOpportunities.length === 0) {
+            return res.json({ success: true, data: [] });
+        }
+
+        // 2. Récupérer les miniatures (box_art_url) pour chaque jeu
+        const categoryPromises = nicheOpportunities.map(async (niche) => {
+            const gameDetails = await fetchGameDetails(niche.game_name, token);
+            
+            if (gameDetails) {
+                return {
+                    game_name: niche.game_name,
+                    viewer_count: niche.total_viewers, 
+                    box_art_url: gameDetails.box_art_url 
+                };
+            }
+            return null;
+        });
+
+        // Attendre que toutes les promesses soient résolues
+        const resolvedCategories = await Promise.all(categoryPromises);
+        
+        // Filtrer les entrées nulles et retourner le résultat
+        const finalCategories = resolvedCategories.filter(cat => cat !== null);
+        
+        return res.json({ 
+            success: true, 
+            data: finalCategories 
+        });
+
     } catch (e) {
-        console.error("❌ Erreur critique dans /recommended_categories:", e.message);
-        return res.status(500).json({ error: `Erreur interne du serveur lors de la recherche des catégories recommandées: ${e.message}` });
+        console.error("❌ Erreur critique dans /hype_categories:", e.message);
+        return res.status(500).json({ 
+            error: `Erreur interne du serveur lors de la récupération des catégories: ${e.message}` 
+        });
     }
 });
 
@@ -690,7 +654,7 @@ app.post('/scan_target', async (req, res) => {
 });
 
 
-// --- ROUTE CRITIQUE IA (Mise à jour pour stabilité HTML) ---
+// --- ROUTE CRITIQUE IA ---
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
 
@@ -722,8 +686,7 @@ app.post('/critique_ia', async (req, res) => {
             iaPrompt = `
                 Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer). 
                 Voici le TOP 10 des meilleures opportunités de niches: ${promptData}
-                Ta réponse doit être en français et formatée en HTML en utilisant uniquement des balises de structure de base (<p>, <strong>, <ul>, <li>). N'utilise AUCUN style CSS ou balise <h1>/<h2>.
-                Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours.
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours.
             `;
             
         } else if (type === 'niche') {
@@ -745,8 +708,7 @@ app.post('/critique_ia', async (req, res) => {
                 Tu es l'IA spécialisée en Niche. Le jeu ciblé est **${query}**. 
                 Voici une analyse de ses 10 meilleurs streams actuels : ${promptData}
                 Analyse la concurrence et la saturation du jeu. Propose une niche **spécifique** pour ce jeu (ex: "Jeu en mode Difficile" ou "Builds exclusifs").
-                Ta réponse doit être en français et formatée en HTML en utilisant uniquement des balises de structure de base (<p>, <strong>, <ul>, <li>). N'utilise AUCUN style CSS ou balise <h1>/<h2>.
-                Réponds en trois parties: 1. Conclusion Niche (Saturation ?), 2. Proposition de Niche Spécifique, 3. 3 Idées de Titres Uniques pour cette Niche.
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Conclusion Niche (Saturation ?), 2. Proposition de Niche Spécifique, 3. 3 Idées de Titres Uniques pour cette Niche.
             `;
 
         } else if (type === 'repurpose') {
@@ -776,8 +738,7 @@ app.post('/critique_ia', async (req, res) => {
                 Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}**.
                 Voici l'analyse de ses récentes activités : ${promptData}
                 L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs.
-                Ta réponse doit être en français et formatée en HTML en utilisant uniquement des balises de structure de base (<p>, <strong>, <ul>, <li>). N'utilise AUCUN style CSS ou balise <h1>/<h2>.
-                Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook) avec un **Point de Clip:** format 00:00:00 (même si la VOD n'est pas scannée, simule un timecode plausible), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook) avec un **Point de Clip:** format 00:00:00 (même si la VOD n'est pas scannée, simule un timecode plausible), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
                 
                 IMPORTANT: Dans la partie 2, inclure la mention exacte de timecode comme ceci: **Point de Clip:** 00:25:40 pour que le frontend le détecte.
             `;
@@ -809,8 +770,7 @@ app.post('/critique_ia', async (req, res) => {
 
 
         return res.json({
-            // On conserve l'injection du titre ici.
-            html_critique: cleanedText
+            html_critique: `<h4>${promptTitle}</h4>` + cleanedText
         });
 
     } catch (e) {
@@ -818,69 +778,6 @@ app.post('/critique_ia', async (req, res) => {
         const statusCode = e.message.includes('non trouvé') ? 404 : 500;
         return res.status(statusCode).json({ 
             error: `Erreur IA: ${e.message}. Vérifiez la clé GEMINI_API_KEY ou la connexion Twitch.`
-        });
-    }
-});
-
-
-// --- ROUTE MINI-ASSISTANT IA (Mise à jour pour fiabilité) ---
-app.post('/mini_assistant', async (req, res) => {
-    const { q, context } = req.body; 
-
-    if (!q || q.trim() === '') {
-        return res.status(400).json({ error: "La requête (q) est manquante." });
-    }
-
-    try {
-        if (!ai) {
-             return res.status(503).json({ error: "Service d'IA non disponible." });
-        }
-        
-        const iaPrompt = `
-            Tu es 'Streamer Buddy', un assistant IA rapide et sympathique pour les streamers. 
-            Le contexte actuel du streamer est le canal Twitch: "${context}".
-            Réponds de manière concise (max 3-4 phrases ou une liste courte). **Assure-toi TOUJOURS de fournir une réponse, même si la question est vague.**
-            La réponse doit être en français et formatée en HTML pour l'affichage dans un chatbox. Utilise des balises <p> ou <ul>/<li> pour la mise en forme. **N'utilise PAS de balises \`\`\` ou \`\`\`html dans ta réponse finale.**
-            ---
-            Question de l'utilisateur: "${q}"
-        `;
-        
-        const result = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            contents: iaPrompt,
-        });
-
-        // Nettoyage du formatage Markdown/Code Block
-        let cleanedText = result.text.trim();
-        if (cleanedText.startsWith('```html')) {
-            cleanedText = cleanedText.substring(7); 
-        } else if (cleanedText.startsWith('```')) {
-             cleanedText = cleanedText.substring(3); 
-        }
-        if (cleanedText.endsWith('```')) {
-            cleanedText = cleanedText.substring(0, cleanedText.length - 3); 
-        }
-        cleanedText = cleanedText.trim(); 
-        
-        // FIX : Si le texte est vide après nettoyage (souvent dû aux filtres de sécurité), fournir un message d'erreur clair.
-        if (!cleanedText) {
-             console.error("❌ Le résultat de l'IA était vide après le nettoyage (filtres de sécurité possibles).");
-             return res.json({
-                 success: false,
-                 html_response: "<p style='color: #ff33b3; font-weight: bold;'>⚠️ L'IA n'a pas pu répondre à cette question, elle pourrait avoir enfreint les directives de sécurité ou la réponse est trop complexe.</p>"
-             });
-        }
-
-        // La réponse utilise 'html_response' pour être cohérente avec '/stream_boost'
-        return res.json({
-            success: true,
-            html_response: cleanedText 
-        });
-
-    } catch (e) {
-        console.error(`❌ Erreur critique dans /mini_assistant:`, e.message);
-        return res.status(500).json({ 
-            error: `Erreur IA: ${e.message}.`
         });
     }
 });
