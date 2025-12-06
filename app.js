@@ -531,10 +531,13 @@ app.get('/hype_categories', async (req, res) => {
             const gameDetails = await fetchGameDetails(niche.game_name, token);
             
             if (gameDetails) {
+                // Formatage pour la taille des miniatures: remplace le template par une taille fixe
+                const boxArtUrl = gameDetails.box_art_url.replace('-{width}x{height}', '-140x190'); 
+                
                 return {
                     game_name: niche.game_name,
                     viewer_count: niche.total_viewers, 
-                    box_art_url: gameDetails.box_art_url 
+                    box_art_url: boxArtUrl
                 };
             }
             return null;
@@ -851,3 +854,4 @@ app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
     getAppAccessToken(); 
 });
+
