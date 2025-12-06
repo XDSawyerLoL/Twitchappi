@@ -1,3 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer & Niche AI Hub V7.2 - Optimisation de Croissance Twitch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- VARIABLES CSS --- */
+        :root {
+            --color-bg-dark: #0d0d0d;
+            --color-bg-medium: #1a1a1a;
+            --color-bg-light: #111;
+            --color-primary-pink: #ff0099;
+            --color-secondary-blue: #22c7ef;
+            --color-ai-niche: #59d682;
+            --color-ai-repurpose: #9933ff;
+            --color-ai-growth: #ffcc00;
+            --color-text-dimmed: #9aa3a8;
+            --color-border-dark: #2e2e2e;
+            --color-border-medium: #333;
+        }
+
+        /* Styles Globaux */
+        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; }
+        h1, h2, h3, h4 { font-family: 'Orbitron', sans-serif; }
+        .tab-btn.active { border-bottom: 2px solid var(--color-primary-pink); color: var(--color-primary-pink); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .main-card { background-color: var(--color-bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); }
+        input[type="text"], button { transition: all 0.2s; }
+
+        /* Styles de l'Assistant IA */
+        #assistant-panel {
+            position: fixed;
+            top: 20%;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background-color: var(--color-bg-light);
+            border: 2px solid var(--color-secondary-blue);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(34, 199, 239, 0.4);
+            z-index: 1000;
+            display: none; /* Caché par défaut */
+            flex-direction: column;
+            padding: 10px;
+        }
+        #assistant-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1001;
+            padding: 8px 15px;
+            background-color: var(--color-secondary-blue);
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+            box-shadow: 0 4px 10px rgba(34, 199, 239, 0.5);
+        }
+        #assistant-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding-right: 5px;
+        }
+        .msg {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            line-height: 1.4;
+            max-width: 90%;
+        }
+        .msg.user { background-color: #333; margin-left: auto; text-align: right; }
+        .msg.bot { background-color: #22c7ef1a; border-left: 3px solid var(--color-secondary-blue); }
+        .msg.bot strong { color: var(--color-secondary-blue); }
+
+        /* Styles de l'Analyse */
+        .ai-content { 
+            padding: 15px; 
+            background-color: #1a1a1a;
+            border: 1px solid var(--color-primary-pink);
+            border-radius: 8px;
+            margin-top: 10px;
+            color: #f0f0f0;
+        }
+        .ai-content h4 { color: var(--color-ai-niche); font-size: 1.25rem; margin-top: 0; margin-bottom: 10px; border-bottom: 1px solid var(--color-border-dark); padding-bottom: 5px; }
+        .ai-content ul { list-style-type: disc; margin-left: 20px; padding-left: 0; }
+        .ai-content li { margin-bottom: 10px; }
+        .ai-content strong { color: var(--color-primary-pink); }
+
+        /* Styles des résultats de scan */
+        .stream-card { 
+            background-color: var(--color-bg-light); 
+            border: 1px solid var(--color-border-dark); 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stream-card:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 8px rgba(255, 0, 153, 0.2); 
+        }
+
+        /* Styles de l'onglet "Mon Fil Suivi" */
+        #followed-streams-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            padding: 15px 0;
+        }
+        .followed-stream-item {
+            background-color: var(--color-bg-light);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .followed-stream-item:hover {
+            transform: scale(1.02);
+            border-color: var(--color-primary-pink);
+        }
+        .streamer-thumbnail {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .stream-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--color-text-dimmed);
+            margin-top: 5px;
+        }
+        .stream-title {
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-top: 5px;
+            line-height: 1.3;
+        }
+
+        /* Styles du bouton Boost */
+        .boost-btn {
+            background-color: var(--color-primary-pink);
+            color: white;
+            font-weight: bold;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .boost-btn:hover {
+            background-color: #ff33b3;
+        }
+        .boost-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div id="assistant-toggle">
+        <span id="assistant-icon">🤖</span> AI Assistant
+    </div>
+    
+    <div id="assistant-panel">
+        <h3 class="font-bold text-lg mb-2 text-center" style="color:var(--color-secondary-blue);">Mini Assistant IA</h3>
+        <div id="assistant-messages" class="flex flex-col p-2 border border-gray-700 rounded-lg">
+            <div class="msg bot">Bonjour ! Je suis l'assistant AI Hub. Posez-moi une question sur le streaming, les titres, ou le growth !</div>
+        </div>
+        <form id="assistant-form" class="flex mt-auto">
+            <input type="text" id="assistant-input" placeholder="Votre question..." class="flex-grow p-2 rounded-l-lg bg-gray-800 border-none focus:ring-1 focus:ring-blue-400 focus:outline-none text-sm">
+            <button type="submit" class="p-2 bg-blue-500 rounded-r-lg hover:bg-blue-600">Envoyer</button>
+        </form>
+    </div>
+
+    <header class="text-center mb-8">
+        <h1 class="text-3xl md:text-5xl font-extrabold" style="color: var(--color-primary-pink);">
+            Streamer <span style="color: var(--color-secondary-blue);">&</span> Niche AI Hub
+        </h1>
+        <p class="text-lg mt-2 text-gray-400">Optimisez votre croissance et votre contenu sur Twitch.</p>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <section class="lg:col-span-2 space-y-8">
+            <div class="main-card p-4">
+                <h2 class="text-xl font-bold mb-4" style="color: var(--color-secondary-blue);">
+                    <span id="player-icon">🎬</span> Lecteur & Boost de Stream
+                </h2>
+                <div id="twitch-embed" class="w-full" style="height: 500px; background-color: black;">
+                    </div>
+                <div class="mt-4 flex flex-col md:flex-row justify-between items-center">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-semibold text-gray-400">Chaîne actuelle :</span>
+                        <strong id="player-channel-status" class="text-lg">TWITCH (LIVE)</strong>
+                    </div>
+                    <form id="form-channel-player" class="flex space-x-2 mt-4 md:mt-0 w-full md:w-auto">
+                        <input type="text" id="input-channel" placeholder="Nom de la chaîne ou VOD ID" class="p-2 flex-grow rounded bg-gray-700 border border-gray-600 focus:border-blue-500">
+                        <button type="submit" class="p-2 rounded bg-blue-500 hover:bg-blue-600 font-semibold">Regarder</button>
+                    </form>
+                </div>
+                 <div id="twitch-player-share" class="mt-4">
+                     </div>
+                 
+                 <div id="stream-boost-container" class="mt-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
+                    <h5 class="text-md font-bold text-white mb-2">🔥 Boost de Visibilité (Simulation)</h5>
+                    <p class="text-sm text-gray-400 mb-3">Envoyez un "Boost" à la chaîne actuelle. Ceci simule une alerte prioritaire dans le Hub. Cooldown de 3 heures.</p>
+                    <button id="btn-stream-boost" class="boost-btn">
+                         Activer le Boost pour cette Chaîne
+                    </button>
+                    <div id="boost-message" class="mt-3 text-sm"></div>
+                 </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-1 space-y-8">
+            <div class="main-card p-4">
+                <div class="flex justify-between border-b border-gray-700 mb-4">
+                    <button class="tab-btn p-3 text-sm font-semibold text-gray-500 hover:text-white" data-tab-id="tab-followed" onclick="openTab('tab-followed')">Mon Fil Suivi</button>
+                    <button class="tab-btn p-3 text-sm font-semibold text-gray-500 hover:text-white" data-tab-id="tab-niche" onclick="openTab('tab-niche')">Analyse Niche</button>
+                    <button class="tab-btn p-3 text-sm font-semibold text-gray-500 hover:text-white" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">Repurposing (IA)</button>
+                    <button class="tab-btn p-3 text-sm font-semibold text-gray-500 hover:text-white" data-tab-id="tab-growth" onclick="openTab('tab-growth')">Croissance (IA)</button>
+                </div>
+
+                <div id="tab-followed" class="tab-content">
+                    <h3 class="text-lg font-bold" style="color: var(--color-primary-pink);">Streams en Direct Suivis</h3>
+                    <div class="mt-2 p-2 bg-gray-700 rounded-lg text-sm flex justify-between items-center">
+                        <span id="login-status">Statut: Vérification...</span>
+                        <button id="btn-twitch-login" class="p-1 px-3 rounded text-white text-xs" style="background-color: #6441a5;">
+                            🔒 SE CONNECTER VIA TWITCH
+                        </button>
+                    </div>
+                    
+                    <div id="followed-streams-list" class="mt-3">
+                        <p style="text-align:center; color:var(--color-text-dimmed); padding:10px;">Chargement...</p>
+                    </div>
+                </div>
+
+                <div id="tab-niche" class="tab-content">
+                    <h3 class="text-lg font-bold mb-3" style="color: var(--color-ai-niche);">Recherche de Niche (V/S)</h3>
+                    <form id="form-scan-target" class="flex space-x-2">
+                        <input type="text" id="input-niche-game" placeholder="Nom du Jeu ou du Streamer" class="p-2 flex-grow rounded bg-gray-700 border border-gray-600 focus:border-green-500">
+                        <button type="submit" id="btn-niche-analyse" class="p-2 rounded bg-green-500 hover:bg-green-600 font-semibold">Scanner</button>
+                    </form>
+                    <div id="scan-results" class="mt-4">
+                        <p class="text-sm text-gray-400">Entrez un jeu pour voir son potentiel V/S (Spectateurs par Streamer) ou un streamer pour l'analyser.</p>
+                    </div>
+                    <div id="ai-niche-critique" class="mt-4">
+                        </div>
+                </div>
+
+                <div id="tab-repurpose" class="tab-content">
+                    <h3 class="text-lg font-bold mb-3" style="color: var(--color-ai-repurpose);">Générateur d'Idées de Clips Viraux</h3>
+                    <form id="form-repurpose-ia" class="flex space-x-2">
+                        <input type="text" id="input-repurpose-streamer" placeholder="Nom du Streamer à analyser" class="p-2 flex-grow rounded bg-gray-700 border border-gray-600 focus:border-purple-500">
+                        <button type="submit" class="p-2 rounded bg-purple-500 hover:bg-purple-600 font-semibold">Générer</button>
+                    </form>
+                    <div id="ai-repurpose-critique" class="mt-4">
+                        <p class="text-sm text-gray-400">L'IA simulera la VOD la plus récente et proposera des timestamps de clips pour TikTok/Shorts.</p>
+                    </div>
+                </div>
+
+                <div id="tab-growth" class="tab-content">
+                    <h3 class="text-lg font-bold mb-3" style="color: var(--color-ai-growth);">Analyse de Tendances Twitch</h3>
+                    <p class="text-sm text-gray-400 mb-3">Demandez à l'IA d'identifier les meilleures opportunités de jeux sous-évalués (haut V/S potentiel) en ce moment.</p>
+                    <button id="btn-trend-analyse" class="p-2 rounded bg-yellow-500 hover:bg-yellow-600 font-semibold w-full">Analyser les Tendances V/S</button>
+                    <div id="ai-trend-critique" class="mt-4">
+                        </div>
+                </div>
+                
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center mt-12 text-sm text-gray-600">
+        <p>&copy; 2024 Streamer AI Hub. Propulsé par Twitch API & Gemini API.</p>
+    </footer>
+
+
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
@@ -78,6 +371,7 @@
             channel: channel,
             allowfullscreen: true,
             layout: "video-and-chat",
+            // IMPORTANT : L'élément 'parent' doit correspondre à votre nom de domaine
             parent: [window.location.hostname] 
         };
 
@@ -210,8 +504,7 @@
         loginButton.disabled = false;
     }
 
-
-    // --- 3. GESTIONNAIRES D'ÉVÉNEMENTS ---
+    // --- 3. GESTIONNAIRES D'ÉVÉNEMENTS : LECTEUR & ASSISTANT ---
 
     document.getElementById('form-channel-player').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -227,7 +520,7 @@
     }
     document.getElementById('assistant-toggle').onclick = toggleAssistant;
 
-    // CORRIGÉE: Mini Assistant Logic avec gestion d'erreur améliorée
+    // Mini Assistant Logic
     const assistantForm = document.getElementById('assistant-form');
     const assistantMsgs = document.getElementById('assistant-messages');
     const input = document.getElementById('assistant-input');
@@ -265,9 +558,143 @@
         }
         assistantMsgs.scrollTop = assistantMsgs.scrollHeight;
     });
+    
+    // --- 4. GESTIONNAIRES D'ÉVÉNEMENTS : ANALYSE ---
 
+    const scanResults = document.getElementById('scan-results');
+    const aiNicheCritique = document.getElementById('ai-niche-critique');
+    const aiRepurposeCritique = document.getElementById('ai-repurpose-critique');
+    const aiTrendCritique = document.getElementById('ai-trend-critique');
+    
+    async function callAI(type, query, targetElement) {
+        targetElement.innerHTML = `<p style="text-align:center; color:var(--color-primary-pink);">🤖 L'IA est en train d'analyser...</p>`;
+        
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type, query })
+            });
 
-    // --- 4. Initialisation au chargement de la page ---
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || `Erreur serveur (Statut: ${res.status}).`);
+            }
+            
+            const data = await res.json();
+            if (data.success) {
+                targetElement.innerHTML = data.html_critique;
+            } else {
+                 throw new Error(data.error || "Échec de l'analyse IA.");
+            }
+
+        } catch (e) {
+            targetElement.innerHTML = `<p style="color:red; padding:10px;">❌ Erreur: ${e.message}</p>`;
+        }
+    }
+
+    document.getElementById('form-scan-target').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const query = document.getElementById('input-niche-game').value.trim();
+        if (!query) { return; }
+
+        scanResults.innerHTML = `<p style="text-align:center; color:var(--color-secondary-blue);">Scanning de Twitch pour '${query}'...</p>`;
+        aiNicheCritique.innerHTML = '';
+        
+        try {
+            const res = await fetch(`${API_BASE}/scan_target`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                if (data.type === 'game') {
+                    const game = data.game_data;
+                    scanResults.innerHTML = `
+                        <div class="p-3 bg-gray-800 rounded-lg border border-gray-700 flex items-center space-x-4">
+                            <img src="${game.box_art_url}" alt="${game.name}" class="w-16 h-auto rounded">
+                            <div>
+                                <h4 class="text-xl font-bold" style="color: var(--color-ai-niche);">${game.name}</h4>
+                                <p class="text-sm text-gray-400">Streamers LIVE: <strong class="text-white">${game.total_streamers.toLocaleString()}</strong></p>
+                                <p class="text-sm text-gray-400">Spectateurs Totaux: <strong class="text-white">${game.total_viewers.toLocaleString()}</strong></p>
+                                <p class="text-md text-yellow-400 font-bold">V/S Potentiel: ${game.avg_viewers_per_streamer.toLocaleString()} vues/streamer</p>
+                            </div>
+                        </div>
+                        <h5 class="text-sm font-semibold mt-4 mb-2">Top 3 Streamers :</h5>
+                        ${game.streams.slice(0, 3).map(stream => `
+                            <div class="stream-card flex justify-between items-center" onclick="initializePlayer('${stream.user_login}')">
+                                <span>${stream.user_name}</span>
+                                <span class="text-red-500 font-bold">${stream.viewer_count.toLocaleString()} vues</span>
+                            </div>
+                        `).join('')}
+                    `;
+                    // Lancer la critique IA après le scan
+                    callAI('niche', game.name, aiNicheCritique);
+
+                } else if (data.type === 'user') {
+                    const user = data.user_data;
+                     scanResults.innerHTML = `
+                        <div class="p-3 bg-gray-800 rounded-lg border border-gray-700 flex items-center space-x-4">
+                            <img src="${user.profile_image_url}" alt="${user.display_name}" class="w-16 h-16 rounded-full">
+                            <div>
+                                <h4 class="text-xl font-bold" style="color: var(--color-primary-pink);">${user.display_name}</h4>
+                                <p class="text-sm text-gray-400">${user.description.substring(0, 70)}...</p>
+                                <p class="text-sm font-bold ${user.is_live ? 'text-red-500' : 'text-gray-500'}">${user.is_live ? `🔴 EN DIRECT (${user.stream_details.viewer_count.toLocaleString()} vues)` : 'Hors Ligne'}</p>
+                            </div>
+                            <button onclick="initializePlayer('${user.login}')" class="p-2 rounded bg-blue-500 hover:bg-blue-600 font-semibold ml-auto">Regarder</button>
+                        </div>
+                    `;
+                    // L'analyse niche IA n'a pas lieu pour un streamer seul, on affiche un message
+                    aiNicheCritique.innerHTML = `<p class="text-sm text-gray-500 p-2">Analyse de niche non applicable pour un streamer individuel.</p>`;
+                }
+
+            } else {
+                scanResults.innerHTML = `<p style="color:red; padding:10px;">❌ ${data.message}</p>`;
+            }
+        } catch (e) {
+            scanResults.innerHTML = `<p style="color:red; padding:10px;">❌ Erreur: ${e.message}</p>`;
+        }
+    });
+
+    document.getElementById('form-repurpose-ia').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const streamer = document.getElementById('input-repurpose-streamer').value.trim();
+        if (streamer) {
+            callAI('repurpose', streamer, aiRepurposeCritique);
+        }
+    });
+
+    document.getElementById('btn-trend-analyse').addEventListener('click', function() {
+        callAI('trend', 'Analyse des tendances V/S Twitch', aiTrendCritique);
+    });
+    
+    // --- 5. GESTION DU BOOST ---
+    document.getElementById('btn-stream-boost').addEventListener('click', async function() {
+        const channel = localStorage.getItem('activeChannel') || 'Chaîne Inconnue';
+        const boostMessage = document.getElementById('boost-message');
+        boostMessage.innerHTML = '<p style="color:yellow;">Traitement du Boost...</p>';
+        
+        try {
+            const res = await fetch(`${API_BASE}/stream_boost`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ channel })
+            });
+            const data = await res.json();
+            
+            if (res.status === 429 || !data.success) {
+                boostMessage.innerHTML = data.html_response || `<p style="color:red;">❌ Erreur Boost: ${data.error || 'Statut inconnu'}</p>`;
+            } else {
+                boostMessage.innerHTML = data.html_response;
+            }
+        } catch (e) {
+            boostMessage.innerHTML = `<p style="color:red;">❌ Erreur réseau lors de l'appel Boost.</p>`;
+        }
+    });
+
+    // --- 6. Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         initializePlayer(lastChannel); 
@@ -278,3 +705,5 @@
         checkAuth();
     });
 </script>
+</body>
+</html>
