@@ -136,12 +136,22 @@
         .tab-heading { font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px; }
         .login-box { padding:15px; background:var(--color-bg-light); border-radius:8px; margin-bottom:20px; border: 1px solid #444; }
 
-        /* Liste Streams */
+        /* Liste Streams Suivis */
         #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0; }
         .followed-stream-item { display: flex; flex-direction: column; width: calc(33.333% - 10px); min-width: 180px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
         .followed-stream-item:hover { background: #280517; border-color: var(--color-primary-pink); transform: translateY(-2px); }
         .streamer-avatar { width: 100%; aspect-ratio: 16 / 9; border-radius: 4px; border: 1px solid var(--color-primary-pink); object-fit: cover; flex-shrink: 0; }
         .stream-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-dimmed); margin-top: 5px; }
+        
+        /* Nouveaux Styles pour Catégories Recommandées */
+        .category-wrapper { margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
+        #recommended-categories-list { display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0; }
+        .recommended-item { display: flex; flex-direction: column; width: calc(25% - 11.25px); min-width: 150px; padding: 8px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
+        .recommended-item:hover { background: #0a2333; border-color: var(--color-secondary-blue); transform: translateY(-2px); }
+        .category-thumbnail { width: 100%; aspect-ratio: 1 / 1.4; border-radius: 4px; border: 1px solid var(--color-secondary-blue); object-fit: cover; flex-shrink: 0; }
+        .category-meta { font-size: 11px; color: var(--color-text-dimmed); margin-top: 5px; text-align: center; }
+        .category-title { font-weight: 600; color: var(--color-ai-growth); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
 
         /* --- MINI ASSISTANT CSS --- */
         .assistant-btn { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, var(--color-secondary-blue), #0066cc); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(34, 199, 239, 0.4); z-index: 1000; transition: transform 0.2s; border: none; }
@@ -157,6 +167,7 @@
 
         @media (max-width: 768px) {
             .followed-stream-item { width: 100%; min-width: unset; }
+            .recommended-item { width: calc(50% - 7.5px); min-width: unset; }
             #twitch-embed { height: 350px; }
             .tab-btn { flex-basis: 50%; max-width: 50%; }
             .assistant-panel { width: calc(100% - 40px); bottom: 90px; right: 20px; height: 400px; }
@@ -181,7 +192,15 @@
         <div id="twitch-embed"></div>
         <div id="twitch-player-share" class="pt-3 border-t border-gray-700" style="border-color:var(--color-border-dark);"></div>
     </div>
-
+    
+    <div class="category-wrapper">
+        <h2 style="font-size: 16px; margin: 0 0 10px; font-family: 'Orbitron', sans-serif;">
+            <span style="color: var(--color-ai-growth);">⭐</span> CATÉGORIES RECOMMANDÉES (HYPE V/S)
+        </h2> 
+        <div id="recommended-categories-list" class="flex flex-wrap gap-3">
+            <p style="color:#555; text-align:center; padding:10px; width:100%;">Chargement des catégories...</p>
+        </div>
+    </div>
     <div id="tabs-container">
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
@@ -295,6 +314,7 @@
         }
     }
 
+    // Fonction pour déclencher l'analyse de Niche (utilisée par les catégories recommandées)
     function analyzeGameNiche(gameName) {
         document.getElementById('input-niche-game').value = gameName;
         openTab('tab-niche');
@@ -309,7 +329,7 @@
         return 0; 
     }
     
-    // NOUVELLE FONCTION : GÉNÉRER LES BOUTONS DE PARTAGE
+    // GÉNÉRER LES BOUTONS DE PARTAGE
     function generateShareButtons(channel, url) {
         const shareContainer = document.getElementById('twitch-player-share');
         if (!shareContainer) return;
@@ -343,7 +363,7 @@
         `;
     }
     
-    // 💡 MODIFICATION MAJEURE : launchPlayer peut maintenant cibler une VOD à un temps précis
+    // MODIFICATION MAJEURE : launchPlayer peut maintenant cibler une VOD à un temps précis
     function launchPlayer(channelName, videoId = null, timeStartSeconds = 0) {
         // Redirige toujours vers l'onglet Lecteur
         openTab('tab-followed'); 
@@ -512,6 +532,54 @@
             }
         } catch(e) {
             followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur API: ${e.message}</p>`;
+        }
+    }
+    
+    // --- Logique des Catégories Recommandées (HYPE V/S) ---
+    async function loadRecommendedCategories() {
+        const listContainer = document.getElementById('recommended-categories-list');
+        listContainer.innerHTML = '<p style="color:var(--color-secondary-blue); text-align:center; padding:10px; width:100%;">Analyse des catégories Hype en cours...</p>';
+
+        try {
+            // Appel à l'endpoint /hype_categories
+            const res = await fetch(`${API_BASE}/hype_categories`); 
+            
+            if(res.ok) {
+                const data = await res.json();
+                
+                if(data.data && data.data.length > 0) {
+                    listContainer.innerHTML = ''; 
+                    data.data.forEach(game => {
+                        const div = document.createElement('div');
+                        div.className = 'recommended-item';
+                        
+                        // Twitch box_art_url est typiquement {width}x{height}
+                        const imageUrl = game.box_art_url 
+                                        ? game.box_art_url.replace('{width}', '140').replace('{height}', '190') 
+                                        : 'https://static-cdn.jtvnw.net/ttv-static/404_boxart.jpg'; 
+
+                        div.innerHTML = `
+                            <img src="${imageUrl}" alt="Miniature de ${game.game_name}" class="category-thumbnail">
+                            <div class="category-meta">
+                                <span class="category-title" title="${game.game_name}">${game.game_name}</span>
+                                <span class="category-viewers">(${game.viewer_count.toLocaleString('fr-FR')} spectateurs)</span>
+                            </div>
+                        `;
+
+                        div.onclick = () => {
+                            // Clic sur la catégorie lance l'analyse de niche dans l'onglet correspondant
+                            analyzeGameNiche(game.game_name); 
+                        };
+                        listContainer.appendChild(div);
+                    });
+                } else {
+                    listContainer.innerHTML = '<p style="color:var(--color-text-dimmed); text-align:center; width:100%;">Aucune catégorie Hype trouvée ou disponible.</p>';
+                }
+            } else {
+                listContainer.innerHTML = `<p style="color:red; text-align:center; width:100%;">Erreur chargement des catégories (Statut: ${res.status}).</p>`;
+            }
+        } catch(e) {
+            listContainer.innerHTML = `<p style="color:red; text-align:center; width:100%;">Erreur API: ${e.message}</p>`;
         }
     }
 
@@ -803,8 +871,12 @@
             });
             const data = await res.json();
             document.getElementById(loaderId).remove();
-            // CORRECTION APPLIQUÉE ICI: data.answer a été remplacé par data.html_response
-            assistantMsgs.innerHTML += `<div class="msg bot">${data.html_response || "Désolé, problème IA ou réponse bloquée."}</div>`;
+            // CORRECTION ASSISTANT : data.answer a été remplacé par data.html_response
+            if (res.ok) {
+                 assistantMsgs.innerHTML += `<div class="msg bot">${data.html_response || "Désolé, problème IA ou réponse bloquée."}</div>`;
+            } else {
+                 assistantMsgs.innerHTML += `<div class="msg bot" style="color:red;">Erreur du serveur IA: ${data.error || "Inconnu"}.</div>`;
+            }
         } catch(err) { 
             document.getElementById(loaderId).remove();
             assistantMsgs.innerHTML += `<div class="msg bot" style="color:red;">Erreur connexion serveur.</div>`;
@@ -819,6 +891,7 @@
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         checkAuth();
+        loadRecommendedCategories(); // NOUVEL APPEL
     });
 </script>
 </body>
