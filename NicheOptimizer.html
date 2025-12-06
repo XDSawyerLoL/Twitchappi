@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* --- VARIABLES CSS POUR FACILITER LA MAINTENANCE DES COULEURS --- */
         :root{--color-bg-dark:#0d0d0d;--color-bg-medium:#1a1a1a;--color-bg-light:#111;--color-primary-pink:#ff0099;--color-secondary-blue:#22c7ef;--color-ai-niche:#59d682;--color-ai-repurpose:#9933ff;--color-ai-growth:#ffcc00;--color-text-dimmed:#9aa3a8;--color-border-dark:#2e2e2e;--color-border-medium:#333}
         *{box-sizing:border-box}
         body{background:var(--color-bg-dark);color:#fff;font-family:'Inter',Arial,sans-serif;margin:0;padding:0}
@@ -36,6 +37,30 @@
         .assistant-msg.bot .bubble{background:#111;border:1px solid var(--color-border-medium)}
         .small-muted{font-size:11px;color:var(--color-text-dimmed)}
         @media (max-width:768px){.assistant-panel{right:10px;left:10px;width:auto}}
+
+        /* 🚀 CORRECTION : Styles pour les streams suivis */
+        #followed-streams-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 200px min width for items */
+            gap: 15px; /* Spacing between items */
+        }
+        .followed-stream-item {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            background: #111; /* Slightly darker background for the item */
+            transition: background 0.2s;
+        }
+        .followed-stream-item:hover {
+            background: var(--color-bg-dark);
+            border: 1px solid var(--color-primary-pink);
+        }
+        .followed-stream-item img {
+            width: 100%;
+            height: auto; /* IMPORTANT: Maintain aspect ratio */
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -45,7 +70,7 @@
 
     <div class="player-wrapper">
         <h2>🎬 LECTEUR & CHAT <span id="player-channel-status" style="float:right;font-size:13px;color:var(--color-text-dimmed)"></span></h2>
-        <form id="form-channel-player"><input id="input-channel" class="action-input" placeholder="Nom de la chaîne Twitch (ex: gotaga)"><button id="btn-player-launch" class="btn-primary" style="margin-left:8px">▶️ LANCER</button></form>
+        <form id="form-channel-player" style="display:flex;gap:8px"><input id="input-channel" class="action-input" placeholder="Nom de la chaîne Twitch (ex: gotaga)"><button id="btn-player-launch" class="btn-primary" style="margin-left:8px">▶️ LANCER</button></form>
         <div id="twitch-embed" style="margin-top:12px;height:420px;border-radius:8px;overflow:hidden"></div>
     </div>
 
@@ -171,7 +196,14 @@
             if(payload.html) {safeSetHtml(container, payload.html);return}
             if(payload.error) {container.innerHTML = `<p style="color:#ff6b6b;font-weight:700">Erreur: ${payload.error}</p>`;return}
             if(payload.message) {container.textContent = payload.message;return}
-            // if it's an array or object, pretty-print it
+            
+            // 🚨 CORRECTION DU SCAN : Afficher l'objet JSON formaté pour le scan non-HTML
+            if(payload.type === 'Game' || payload.type === 'Streamer' || payload.type === 'none'){
+                container.innerHTML = '<pre style="white-space:pre-wrap;font-size:13px;color:var(--color-text-dimmed)">'+escapeHtml(JSON.stringify(payload,null,2))+'</pre>';
+                return;
+            }
+
+            // if it's an array or generic object, pretty-print it
             container.innerHTML = '<pre style="white-space:pre-wrap;font-size:13px;color:var(--color-text-dimmed)">'+escapeHtml(JSON.stringify(payload,null,2))+'</pre>'
         }
     }
@@ -233,4 +265,3 @@
 </script>
 </body>
 </html>
-
