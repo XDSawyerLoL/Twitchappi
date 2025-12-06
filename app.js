@@ -1,7 +1,3 @@
-// Remplacez tout le contenu de votre app.js par cette version mise à jour,
-// en vous assurant que tout le code des étapes précédentes est conservé.
-// Je réinsère le code complet pour plus de sécurité.
-
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
@@ -38,10 +34,14 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
-// --- FONCTIONS UTILITAIRES TWITCH API (similaires à avant) ---
+// --- FONCTIONS UTILITAIRES TWITCH API ---
 // =========================================================
 
 async function getAppAccessToken() {
+    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
+        console.error("Erreur: TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET non définis.");
+        return null;
+    }
     if (CACHE.appAccessToken.token && CACHE.appAccessToken.expiry > Date.now()) return CACHE.appAccessToken.token;
     try {
         const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, { method: 'POST' });
@@ -49,7 +49,7 @@ async function getAppAccessToken() {
         CACHE.appAccessToken.token = d.access_token;
         CACHE.appAccessToken.expiry = Date.now() + (d.expires_in * 1000) - 300000;
         return d.access_token;
-    } catch (e) { return null; }
+    } catch (e) { console.error("Erreur App Token:", e.message); return null; }
 }
 
 async function fetchGameDetails(query, token) {
@@ -85,6 +85,18 @@ async function fetchUserDetailsForScan(query, token) {
     } catch { return null; }
 }
 
+// 💡 NOUVEAU : Fonction pour récupérer la dernière VOD
+async function fetchLastVODDetails(channelLogin, token) {
+    try {
+        const r = await fetch(`https://api.twitch.tv/helix/videos?user_login=${encodeURIComponent(channelLogin)}&type=archive&first=1`, { 
+            headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` } 
+        });
+        const d = await r.json();
+        return d.data?.[0] || null;
+    } catch (e) { console.error("Erreur fetchLastVODDetails:", e.message); return null; }
+}
+
+
 // =========================================================
 // --- ROUTES TWITCH (Auth, Status, Logout, Followed) ---
 // =========================================================
@@ -95,43 +107,29 @@ app.get('/twitch_auth_start', (req, res) => {
     res.redirect(`https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`);
 });
 
-// 🚨 CORRECTION ICI : Gestion plus robuste du callback et du token exchange
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, error, error_description } = req.query;
-
     if (error) {
-        // Gérer l'erreur si l'utilisateur refuse l'accès
         console.error(`Twitch Auth Error: ${error_description}`);
         return res.send(`Erreur d'Autorisation: ${error_description || 'Accès refusé par l\'utilisateur.'}`);
     }
-
     try {
-        // Étape 1 : Échanger le code contre l'Access Token
         const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`, { method: 'POST' });
-        
         const d = await r.json();
-        
         if(!d.access_token) {
-            // Si Twitch renvoie un JSON d'erreur (ex: INVALID_CLIENT ou REDIRECT_URI mismatch)
             console.error("Erreur Token Exchange:", d);
             return res.send(`Erreur Token (vérifiez les clés): ${d.error_description || d.message || JSON.stringify(d)}`);
         }
-
         const accessToken = d.access_token;
-
-        // Étape 2 : Récupérer les informations utilisateur pour l'ID
         const uR = await fetch('https://api.twitch.tv/helix/users', { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` } });
         const uD = await uR.json();
-
         if (uD.data && uD.data.length > 0) {
-            // Étape 3 : Succès, stocker les cookies et rediriger
             res.cookie('twitch_access_token', accessToken, { httpOnly: true });
             res.cookie('twitch_user_id', uD.data[0].id, { httpOnly: true });
             res.redirect('/NicheOptimizer.html');
         } else {
             return res.send('Erreur: Impossible de récupérer les détails de l\'utilisateur Twitch.');
         }
-
     } catch(e) { 
         console.error("Erreur fatale dans twitch_auth_callback:", e);
         res.send(`Erreur technique lors du callback: ${e.message}`); 
@@ -143,10 +141,7 @@ app.get('/twitch_user_status', async (req, res) => {
     if(!t) return res.json({ is_connected: false });
     const r = await fetch('https://api.twitch.tv/helix/users', { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${t}` } });
     const d = await r.json();
-    // Le token peut être expiré/révoqué. Si d.data est vide, on force la déconnexion logique.
     if(d.data && d.data.length > 0) return res.json({ is_connected: true, username: d.data[0].display_name });
-    
-    // Si le token est invalide/expiré, on renvoie déconnecté
     return res.json({ is_connected: false });
 });
 
@@ -185,8 +180,37 @@ app.post('/scan_target', async (req, res) => {
     }
 });
 
+// 💡 NOUVEAU : Route pour la miniature VOD (utilisée par le Repurposing)
+app.post('/get_vod_details', async (req, res) => {
+    const { channel } = req.body;
+    if (!channel) return res.status(400).json({ success: false, error: "Chaîne manquante." });
+    
+    const token = await getAppAccessToken();
+    if (!token) return res.status(500).json({ success: false, error: "Impossible d'obtenir le token d'accès Twitch." });
+
+    const vod = await fetchLastVODDetails(channel, token);
+    
+    if (vod) {
+        // Formatter la miniature pour une taille standard (640x360)
+        const thumbnailUrl = vod.thumbnail_url.replace('%{width}', '640').replace('%{height}', '360');
+        res.json({ 
+            success: true,
+            vod_id: vod.id,
+            vod_title: vod.title,
+            vod_thumbnail: thumbnailUrl,
+            vod_url: vod.url
+        });
+    } else {
+        res.json({ 
+            success: false,
+            error: "Aucune VOD récente (archive) trouvée pour cette chaîne." 
+        });
+    }
+});
+
+
 // =========================================================
-// --- ROUTES IA (incluant les corrections de robustesse) ---
+// --- ROUTES IA (Mini-Assistant et Critique) ---
 // =========================================================
 
 app.post('/critique_ia', async (req, res) => {
@@ -199,7 +223,8 @@ app.post('/critique_ia', async (req, res) => {
     if (type === 'niche') {
         prompt = `Tu es expert Twitch. Analyse la niche du jeu "${query}". ${formattingRules}. Donne 3 conseils pour percer.`;
     } else if (type === 'repurpose') {
-        prompt = `Tu es expert TikTok/Youtube. Donne une stratégie de repurposing pour le streamer "${query}". ${formattingRules}. Donne 3 idées de clips viraux.`;
+        // 🚨 MODIFICATION DU PROMPT : Ajout de la demande de Timestamps
+        prompt = `Tu es expert TikTok/Youtube. Donne une stratégie de repurposing pour le streamer "${query}", en te basant sur sa dernière VOD (ou supposée). ${formattingRules}. Donne 3 idées de clips viraux, et pour chaque idée, insère un timestamp estimé à la fin au format strict et unique **Point de Clip:** HH:MM:SS (exemple: **Point de Clip:** 00:25:40) pour simuler la précision.`;
     } else if (type === 'trend') {
         prompt = `Tu es analyste de marché. Quelles sont les 3 prochaines tendances gaming Twitch ? ${formattingRules}. Justifie avec le potentiel de croissance.`;
     } else {
@@ -221,14 +246,14 @@ app.post('/critique_ia', async (req, res) => {
             const finishReason = candidate?.finishReason || 'UNKNOWN';
             let errorMessage = "L'IA n'a pas pu générer de réponse. ";
             if (finishReason === 'SAFETY') { errorMessage += `La réponse a été bloquée par les filtres de sécurité de l'IA. Essayez une requête moins sensible.`; } 
-            else { errorMessage += `Raison d'échec: ${finishReason}. La clé API est-elle valide ?`; }
+            else { errorMessage += `Raison d'échec: ${finishReason}.`; }
             
             console.error("Gemini a échoué à générer le contenu:", result); 
             res.status(500).json({ error: errorMessage });
         }
     } catch(e) { 
         console.error("Erreur Gemini/Critique:", e);
-        res.status(500).json({ error: `Erreur interne de l'IA: ${e.message}. (API Key?)` });
+        res.status(500).json({ error: `Erreur interne de l'IA: ${e.message}.` });
     }
 });
 
