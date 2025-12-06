@@ -531,8 +531,8 @@ app.get('/hype_categories', async (req, res) => {
             const gameDetails = await fetchGameDetails(niche.game_name, token);
             
             if (gameDetails) {
-                // Formatage pour la taille des miniatures: remplace le template par une taille fixe
-                const boxArtUrl = gameDetails.box_art_url.replace('-{width}x{height}', '-140x190'); 
+                // MODIFICATION ICI: Réduction de 140x190 à 80x110
+                const boxArtUrl = gameDetails.box_art_url.replace('-{width}x{height}', '-80x110'); 
                 
                 return {
                     game_name: niche.game_name,
@@ -626,6 +626,7 @@ app.post('/scan_target', async (req, res) => {
                 type: "game",
                 game_data: {
                     name: gameData.name,
+                    // Taille conservée pour l'affichage principal du scan (plus grand)
                     box_art_url: gameData.box_art_url.replace('-{width}x{height}', '-285x380'), 
                     total_viewers: totalViewers,
                     total_streamers: totalStreamers,
@@ -854,4 +855,3 @@ app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
     getAppAccessToken(); 
 });
-
