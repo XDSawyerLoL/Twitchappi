@@ -6,6 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
+// Assurez-vous d'avoir installé cette dépendance : npm install @google/genai
 const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
@@ -24,7 +25,6 @@ const GEMINI_MODEL = "gemini-2.5-flash";
 
 let ai = null;
 if (GEMINI_API_KEY) {
-    // S'assure que le module GenAI est bien initialisé
     ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
     console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
 } else {
@@ -60,7 +60,7 @@ app.use(cors({
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (y compris le CSS/JS si dans le même dossier)
+app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
 // --- FONCTIONS UTILITAIRES TWITCH API ---
@@ -144,7 +144,6 @@ async function fetchFollowedStreams(userId, userAccessToken) {
     }
 }
 
-
 /**
  * Récupère les détails d'un jeu par son nom.
  */
@@ -226,7 +225,7 @@ async function fetchUserDetailsForScan(query, token) {
 }
 
 /**
- * Récupère les détails de la dernière VOD d'un streamer. (CODE AJOUTÉ)
+ * Récupère les détails de la dernière VOD d'un streamer.
  */
 async function fetchLatestVOD(channelLogin, token) {
     // 1. Trouver l'ID de l'utilisateur
@@ -257,7 +256,6 @@ async function fetchLatestVOD(channelLogin, token) {
 
     if (vodData.data && vodData.data.length > 0) {
         const vod = vodData.data[0];
-        // Remplacer les placeholders de miniature pour l'affichage dans le frontend
         const thumbnailUrl = vod.thumbnail_url.replace(/%\{width\}/g, '320').replace(/%\{height\}/g, '180');
         
         return {
@@ -439,7 +437,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
-                // CORRECTION ICI: Redirection explicite vers la page principale
                 res.redirect('/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
@@ -513,7 +510,7 @@ app.get('/followed_streams', async (req, res) => {
 });
 
 
-// --- ROUTE POUR RÉCUPÉRER LES DÉTAILS VOD (Utilisée par le Repurposing) --- (AJOUTÉE)
+// --- ROUTE POUR RÉCUPÉRER LES DÉTAILS VOD (Utilisée par le Repurposing) ---
 app.post('/get_vod_details', async (req, res) => {
     const { channel } = req.body;
     
@@ -535,7 +532,6 @@ app.post('/get_vod_details', async (req, res) => {
         if (vodDetails) {
             return res.json({ success: true, ...vodDetails });
         } else {
-            // Renvoie le message d'erreur si la VOD est introuvable (pas publique, supprimée, ou trop vieille)
             return res.json({ 
                 success: false, 
                 error: "Aucune VOD récente (archive) trouvée pour cette chaîne. Cela peut être dû aux paramètres de confidentialité, à la suppression ou à la durée de rétention de Twitch."
@@ -627,7 +623,6 @@ app.post('/critique_ia', async (req, res) => {
         }
 
         let iaPrompt = "";
-        let promptData = "";
         let promptTitle = "";
 
         if (type === 'trend') {
@@ -636,7 +631,7 @@ app.post('/critique_ia', async (req, res) => {
             if (!nicheOpportunities || nicheOpportunities.length === 0) {
                 return res.json({ html_critique: `<p style="color:red;">❌ L'analyse n'a trouvé aucune niche fiable (moins de 5 streamers par jeu analysé).</p>` });
             }
-            promptData = JSON.stringify(nicheOpportunities, null, 2);
+            const promptData = JSON.stringify(nicheOpportunities, null, 2);
 
             iaPrompt = `
                 Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer). 
@@ -657,7 +652,7 @@ app.post('/critique_ia', async (req, res) => {
                 viewers: s.viewer_count,
                 title: s.title
             }));
-            promptData = JSON.stringify(topStreams, null, 2);
+            const promptData = JSON.stringify(topStreams, null, 2);
 
             iaPrompt = `
                 Tu es l'IA spécialisée en Niche. Le jeu ciblé est **${query}**. 
@@ -674,12 +669,11 @@ app.post('/critique_ia', async (req, res) => {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
             
-            // Récupérer la dernière VOD pour inclure le titre dans le prompt IA
             const vodDetails = await fetchLatestVOD(query, token).catch(() => null);
             const vodTitle = vodDetails ? vodDetails.vod_title : "VOD récente introuvable";
 
 
-            promptData = JSON.stringify({
+            const promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
                 dernieresActivites: [
@@ -709,8 +703,24 @@ app.post('/critique_ia', async (req, res) => {
             contents: iaPrompt,
         });
 
+        // --- CORRECTION : Nettoyage du formatage Markdown/Code Block ---
+        let cleanedText = result.text.trim();
+        // Supprimer '```html' ou '```' au début
+        if (cleanedText.startsWith('```html')) {
+            cleanedText = cleanedText.substring(7); 
+        } else if (cleanedText.startsWith('```')) {
+             cleanedText = cleanedText.substring(3); 
+        }
+        // Supprimer '```' à la fin
+        if (cleanedText.endsWith('```')) {
+            cleanedText = cleanedText.substring(0, cleanedText.length - 3); 
+        }
+        cleanedText = cleanedText.trim(); 
+        // -----------------------------------------------------------------
+
+
         return res.json({
-            html_critique: `<h4>${promptTitle}</h4>` + result.text 
+            html_critique: `<h4>${promptTitle}</h4>` + cleanedText
         });
 
     } catch (e) {
@@ -784,14 +794,6 @@ app.get('/', (req, res) => {
 // Route explicite pour NicheOptimizer.html (utile si le front y fait référence)
 app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
-});
-
-app.get('/lucky_streamer_picker.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
-});
-
-app.get('/sniper_tool.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
 });
 
 // Lancement du serveur
