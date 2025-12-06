@@ -16,19 +16,25 @@ const app = express();
 // =========================================================
 
 const PORT = process.env.PORT || 10000;
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; 
+// Remplacez les valeurs ci-dessous par vos clés réelles
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || "VOTRE_TWITCH_CLIENT_ID"; 
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || "VOTRE_TWITCH_CLIENT_SECRET"; 
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || "http://localhost:10000/twitch_auth_callback"; 
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "VOTRE_GEMINI_API_KEY";
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 let ai = null;
-if (GEMINI_API_KEY) {
-    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
-    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
+if (GEMINI_API_KEY && GEMINI_API_KEY !== "VOTRE_GEMINI_API_KEY") {
+    try {
+        ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
+        console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
+    } catch (e) {
+        console.error("FATAL DEBUG: Échec de l'initialisation de GoogleGenAI:", e.message);
+        ai = null;
+    }
 } else {
-    console.error("FATAL DEBUG: GEMINI_API_KEY non trouvée. L'IA sera désactivée.");
+    console.error("FATAL DEBUG: GEMINI_API_KEY non trouvée ou invalide. L'IA sera désactivée.");
 }
 
 // =========================================================
@@ -39,20 +45,20 @@ app.use(cors({ origin: '*', credentials: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// Cache temporaire en mémoire
+// Cache temporaire en mémoire pour les jetons et le boost
 const CACHE = {
     appAccessToken: null,
     appTokenExpiry: 0,
     streamBoosts: {} // { channelName: timestamp }
 };
 
+// Stockage temporaire des jetons utilisateur (en production, utiliser une DB)
+const USER_TOKENS = {};
+
 // =========================================================
 // --- FONCTIONS TWITCH API UTILITAIRES ---
 // =========================================================
 
-/**
- * Récupère ou rafraîchit le jeton d'accès d'application.
- */
 async function getAppAccessToken() {
     const now = Date.now();
     if (CACHE.appAccessToken && CACHE.appTokenExpiry > now) {
@@ -62,13 +68,10 @@ async function getAppAccessToken() {
     const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     try {
         const response = await fetch(url, { method: 'POST' });
-        
-        // VÉRIFICATION DE ROBUSTESSE
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Échec de l'obtention du jeton d'accès d'application Twitch. Statut: ${response.status}. Corps: ${errorText}`);
         }
-        
         const data = await response.json();
         if (data.access_token) {
             CACHE.appAccessToken = data.access_token;
@@ -80,51 +83,27 @@ async function getAppAccessToken() {
         }
     } catch (error) {
         console.error("❌ Erreur critique getAppAccessToken:", error.message);
-        throw new Error("Impossible d'obtenir le jeton d'accès App Twitch.");
+        throw new Error("Impossible d'obtenir le jeton d'accès App Twitch. Vérifiez TWITCH_CLIENT_ID/SECRET.");
     }
 }
 
-
-/**
- * Récupère les détails d'un jeu par son nom.
- */
 async function fetchGameDetails(query, token) {
     const url = `https://api.twitch.tv/helix/games?name=${encodeURIComponent(query)}`;
-    const HEADERS = {
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`
-    };
+    const HEADERS = { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` };
     try {
         const response = await fetch(url, { headers: HEADERS });
-        // VÉRIFICATION DE ROBUSTESSE
-        if (!response.ok) {
-            console.error(`❌ Erreur HTTP dans fetchGameDetails: ${response.status} - ${response.statusText}`);
-            return null;
-        }
+        if (!response.ok) { return null; }
         const data = await response.json();
         return data.data.length > 0 ? data.data[0] : null;
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération des détails du jeu:", error.message);
-        return null;
-    }
+    } catch (error) { return null; }
 }
 
-/**
- * Récupère les détails d'un utilisateur et vérifie s'il est en direct.
- */
 async function fetchUserDetailsForScan(query, token) {
     const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
-    const HEADERS = {
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`
-    };
+    const HEADERS = { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` };
     try {
         const response = await fetch(url, { headers: HEADERS });
-        // VÉRIFICATION DE ROBUSTESSE
-        if (!response.ok) {
-            console.error(`❌ Erreur HTTP (User) dans fetchUserDetailsForScan: ${response.status} - ${response.statusText}`);
-            return null; 
-        }
+        if (!response.ok) { return null; }
         const data = await response.json();
 
         if (data.data.length > 0) {
@@ -132,24 +111,17 @@ async function fetchUserDetailsForScan(query, token) {
             const streamUrl = `https://api.twitch.tv/helix/streams?user_id=${user.id}`;
             const streamResponse = await fetch(streamUrl, { headers: HEADERS });
             
-            // VÉRIFICATION DE ROBUSTESSE du stream
-            if (!streamResponse.ok) {
-                 console.warn(`⚠️ Erreur HTTP (Stream) lors de la vérification de l'état en direct: ${streamResponse.status}. On assume 'non live'.`);
-                 return {
-                    id: user.id,
-                    display_name: user.display_name,
-                    login: user.login,
-                    profile_image_url: user.profile_image_url,
-                    description: user.description,
-                    is_live: false,
-                    stream_details: null
-                };
+            let isLive = false;
+            let streamDetails = null;
+
+            if (streamResponse.ok) {
+                const streamData = await streamResponse.json();
+                isLive = streamData.data.length > 0;
+                streamDetails = isLive ? streamData.data[0] : null;
+            } else {
+                 console.warn(`⚠️ Erreur HTTP (Stream) lors de la vérification de l'état en direct: ${streamResponse.status}.`);
             }
-
-            const streamData = await streamResponse.json();
-            const isLive = streamData.data.length > 0;
-            const streamDetails = isLive ? streamData.data[0] : null;
-
+            
             return {
                 id: user.id,
                 display_name: user.display_name,
@@ -168,142 +140,51 @@ async function fetchUserDetailsForScan(query, token) {
     }
 }
 
-/**
- * Récupère les streams pour un jeu donné.
- */
 async function fetchStreamsByGameId(gameId, token, limit = 100) {
     const url = `https://api.twitch.tv/helix/streams?game_id=${gameId}&first=${limit}`;
-    const HEADERS = {
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`
-    };
+    const HEADERS = { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` };
     try {
         const response = await fetch(url, { headers: HEADERS });
-        // VÉRIFICATION DE ROBUSTESSE
-        if (!response.ok) {
-            console.error(`❌ Erreur HTTP dans fetchStreamsByGameId: ${response.status} - ${response.statusText}`);
-            return null;
-        }
+        if (!response.ok) { return null; }
         const data = await response.json();
         return data.data;
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération des streams:", error.message);
-        return null;
-    }
+    } catch (error) { return null; }
 }
 
-/**
- * Récupère la dernière VOD d'un streamer
- */
-async function fetchLatestVod(channelId, token) {
-    const url = `https://api.twitch.tv/helix/videos?user_id=${channelId}&type=archive&first=1`;
-    const HEADERS = {
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`
-    };
-    try {
-        const response = await fetch(url, { headers: HEADERS });
-        // VÉRIFICATION DE ROBUSTESSE
-        if (!response.ok) {
-            console.error(`❌ Erreur HTTP dans fetchLatestVod: ${response.status} - ${response.statusText}`);
-            return null;
-        }
-        const data = await response.json();
-        return data.data.length > 0 ? data.data[0] : null;
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération de la VOD:", error.message);
-        return null;
-    }
-}
-
-/**
- * Récupère les 20 meilleurs jeux par le nombre de spectateurs.
- */
-async function fetchTopGames(token) {
-    const url = `https://api.twitch.tv/helix/games/top?first=20`;
-    const HEADERS = {
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`
-    };
-    try {
-        const response = await fetch(url, { headers: HEADERS });
-        // VÉRIFICATION DE ROBUSTESSE
-        if (!response.ok) {
-            console.error(`❌ Erreur HTTP dans fetchTopGames: ${response.status} - ${response.statusText}`);
-            return null;
-        }
-        const data = await response.json();
-        return data.data;
-    } catch (error) {
-        console.error("❌ Erreur lors de la récupération des top jeux:", error.message);
-        return null;
-    }
-}
-
-
-// =========================================================
-// --- LOGIQUE D'AUTHENTIFICATION UTILISATEUR (OAuth) ---
-// =========================================================
-
-// Stockage temporaire des jetons utilisateur (en production, utiliser une DB)
-const USER_TOKENS = {};
-
-/**
- * Middleware pour tenter de rafraîchir le jeton d'accès utilisateur si expiré.
- */
 async function refreshUserToken(userId) {
     const tokenData = USER_TOKENS[userId];
-    if (!tokenData || tokenData.accessTokenExpiry > Date.now()) {
-        return tokenData; // Jeton non expiré ou inexistant
-    }
-
-    console.log(`DEBUG: Tentative de rafraîchissement du jeton pour ${userId}...`);
+    if (!tokenData || tokenData.accessTokenExpiry > Date.now()) { return tokenData; }
 
     const url = `https://id.twitch.tv/oauth2/token?grant_type=refresh_token&refresh_token=${tokenData.refreshToken}&client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}`;
 
     try {
         const response = await fetch(url, { method: 'POST' });
-        
-        if (!response.ok) {
-            console.error(`❌ Échec du rafraîchissement du jeton: ${response.status}`);
-            delete USER_TOKENS[userId]; // Supprimer les données expirées
-            return null;
-        }
-
+        if (!response.ok) { delete USER_TOKENS[userId]; return null; }
         const data = await response.json();
         if (data.access_token) {
             tokenData.accessToken = data.access_token;
             tokenData.refreshToken = data.refresh_token || tokenData.refreshToken;
             tokenData.accessTokenExpiry = Date.now() + (data.expires_in - 300) * 1000;
             USER_TOKENS[userId] = tokenData;
-            console.log(`DEBUG: Jeton rafraîchi pour ${userId}.`);
             return tokenData;
         }
     } catch (error) {
-        console.error("❌ Erreur lors du rafraîchissement du jeton:", error.message);
         delete USER_TOKENS[userId];
         return null;
     }
 }
 
-// Fonction utilitaire pour obtenir les données d'utilisateur connecté via un cookie
 async function getConnectedUserTokenData(req) {
     const sessionId = req.cookies.twitch_session_id;
     const tokenData = USER_TOKENS[sessionId];
-
     if (!tokenData) return null;
-
-    // Tenter de rafraîchir le jeton s'il est expiré
-    const refreshedTokenData = await refreshUserToken(sessionId);
-    return refreshedTokenData;
+    return await refreshUserToken(sessionId);
 }
-
 
 // =========================================================
 // --- ROUTES TWITCH AUTHENTIFICATION ---
 // =========================================================
 
-// 1. Démarrer le processus OAuth
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     const scope = 'user:read:follows'; 
@@ -312,51 +193,33 @@ app.get('/twitch_auth_start', (req, res) => {
     res.redirect(authUrl);
 });
 
-// 2. Traiter le Callback après connexion
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error } = req.query;
     const storedState = req.cookies.twitch_state;
     res.clearCookie('twitch_state');
 
-    if (error) {
-        console.error("Erreur de connexion Twitch:", error);
-        return res.redirect('/?auth_error=twitch_denied');
-    }
-    
-    if (state !== storedState) {
-        console.error("Erreur de sécurité: État CSRF invalide.");
-        return res.redirect('/?auth_error=csrf_fail');
+    if (error || state !== storedState) {
+        const errMsg = error ? `twitch_denied: ${error}` : 'csrf_fail';
+        console.error("Erreur de connexion Twitch:", errMsg);
+        return res.redirect(`/?auth_error=${errMsg}`);
     }
 
     const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`;
 
     try {
         const response = await fetch(tokenUrl, { method: 'POST' });
-        
-        if (!response.ok) {
-            throw new Error(`Échec de l'échange de code: ${response.status}`);
-        }
-        
+        if (!response.ok) { throw new Error(`Échec de l'échange de code: ${response.status}`); }
         const tokenData = await response.json();
         
         const userUrl = 'https://api.twitch.tv/helix/users';
-        const userRes = await fetch(userUrl, {
-            headers: {
-                'Client-Id': TWITCH_CLIENT_ID,
-                'Authorization': `Bearer ${tokenData.access_token}`
-            }
-        });
+        const userRes = await fetch(userUrl, { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${tokenData.access_token}` } });
         
-        if (!userRes.ok) {
-            throw new Error(`Échec de la récupération des infos utilisateur: ${userRes.status}`);
-        }
+        if (!userRes.ok) { throw new Error(`Échec de la récupération des infos utilisateur: ${userRes.status}`); }
 
         const userData = await userRes.json();
-        const userId = userData.data[0].id;
-        const username = userData.data[0].login;
-        const display_name = userData.data[0].display_name;
-        
+        const { id: userId, login: username, display_name } = userData.data[0];
         const sessionId = crypto.randomBytes(16).toString('hex');
+
         USER_TOKENS[sessionId] = {
             id: userId,
             username: username,
@@ -366,13 +229,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
             accessTokenExpiry: Date.now() + (tokenData.expires_in - 300) * 1000 
         };
         
-        res.cookie('twitch_session_id', sessionId, { 
-            httpOnly: true, 
-            secure: true, 
-            sameSite: 'Lax', 
-            maxAge: 7 * 24 * 60 * 60 * 1000 
-        });
-
+        res.cookie('twitch_session_id', sessionId, { httpOnly: true, secure: true, sameSite: 'Lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
         res.redirect('/'); 
     } catch (e) {
         console.error("❌ Erreur de gestion de callback:", e.message);
@@ -380,17 +237,14 @@ app.get('/twitch_auth_callback', async (req, res) => {
     }
 });
 
-// 3. Vérifier le statut de connexion (et retourner le jeton pour le front)
 app.get('/twitch_user_status', async (req, res) => {
     const tokenData = await getConnectedUserTokenData(req);
-    
     if (tokenData) {
         return res.json({ 
             is_connected: true, 
             username: tokenData.username, 
             display_name: tokenData.display_name, 
             userId: tokenData.id,
-            // Renvoyer le jeton d'accès pour les appels client-side API
             accessToken: tokenData.accessToken 
         });
     } else {
@@ -398,7 +252,6 @@ app.get('/twitch_user_status', async (req, res) => {
     }
 });
 
-// 4. Déconnexion
 app.post('/twitch_logout', (req, res) => {
     const sessionId = req.cookies.twitch_session_id;
     if (sessionId) {
@@ -409,7 +262,6 @@ app.post('/twitch_logout', (req, res) => {
     res.json({ success: false, message: "Aucune session trouvée" });
 });
 
-// 5. Récupérer les streams suivis
 app.get('/followed_streams', async (req, res) => {
     const tokenData = await getConnectedUserTokenData(req);
     
@@ -422,17 +274,13 @@ app.get('/followed_streams', async (req, res) => {
     try {
         const url = `https://api.twitch.tv/helix/streams/followed?user_id=${userId}&first=50`;
         const response = await fetch(url, {
-            headers: {
-                'Client-Id': TWITCH_CLIENT_ID,
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
         });
 
         if (!response.ok) {
-            // Loguer l'erreur côté serveur pour le débogage
             const errorText = await response.text();
             console.error(`❌ Échec de la récupération des streams suivis: ${response.status} - ${errorText}`);
-            throw new Error(`API Twitch a renvoyé ${response.status} pour les streams suivis.`);
+            throw new Error(`API Twitch a renvoyé ${response.status}.`);
         }
 
         const data = await response.json();
@@ -444,18 +292,13 @@ app.get('/followed_streams', async (req, res) => {
     }
 });
 
-
 // =========================================================
 // --- ROUTES D'ANALYSE ET IA ---
 // =========================================================
 
-// Route principale pour scanner un jeu ou un streamer
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body;
-    if (!query) {
-        return res.status(400).json({ success: false, error: "Requête manquante." });
-    }
-    // ... (Code de scan_target utilisant les fonctions robustes)
+    if (!query) { return res.status(400).json({ success: false, error: "Requête manquante." }); }
     try {
         const token = await getAppAccessToken();
         const gameData = await fetchGameDetails(query, token);
@@ -463,12 +306,11 @@ app.post('/scan_target', async (req, res) => {
             const streams = await fetchStreamsByGameId(gameData.id, token, 10);
             let totalViewers = 0;
             let totalStreamers = 0;
-            if (streams && streams.length > 0) {
+            if (streams) {
                 totalStreamers = streams.length;
                 totalViewers = streams.reduce((sum, stream) => sum + stream.viewer_count, 0);
             }
             const avgViewersPerStreamer = totalStreamers > 0 ? Math.round(totalViewers / totalStreamers) : 0;
-            
             return res.json({ 
                 success: true, 
                 type: 'game', 
@@ -484,99 +326,56 @@ app.post('/scan_target', async (req, res) => {
             });
         }
         const userData = await fetchUserDetailsForScan(query, token);
-        if (userData) {
-            return res.json({ 
-                success: true, 
-                type: 'user', 
-                user_data: userData 
-            });
-        }
-        return res.json({ 
-            success: false, 
-            type: 'none', 
-            message: `Aucun jeu ou streamer trouvé pour la requête: ${query}.` 
-        });
-
+        if (userData) { return res.json({ success: true, type: 'user', user_data: userData }); }
+        return res.json({ success: false, type: 'none', message: `Aucun jeu ou streamer trouvé pour la requête: ${query}.` });
     } catch (e) {
         console.error("❌ Erreur critique dans /scan_target:", e.message);
         return res.status(500).json({ success: false, error: `Erreur interne du serveur: ${e.message}` });
     }
 });
 
-// Route pour l'analyse IA (Niche, Repurpose, Trend)
+
 app.post('/critique_ia', async (req, res) => {
     if (!ai) {
         return res.status(503).json({ success: false, error: "Le service IA n'est pas disponible (clé API manquante)." });
     }
-    // ... (Logique IA)
     const { query, type } = req.body;
     let prompt = "";
     let systemInstruction = "";
-    // Définition de prompt et systemInstruction basée sur 'type' (omis pour la concision)
+    
     switch(type) {
         case 'niche':
             if (!query) return res.status(400).json({ success: false, error: "Le jeu est manquant pour l'analyse de niche." });
             systemInstruction = `Tu es un consultant IA expert en croissance Twitch. Ton but est d'analyser un jeu comme une "niche" et de donner une critique ultra-actionnable au streamer. Réponds en format HTML.`;
-            prompt = `Analyse le jeu **${query}** et fournis une critique de niche. Inclus :
-            1. Un titre fort (h4)
-            2. Un paragraphe sur l'attrait général.
-            3. Une liste non ordonnée (ul/li) de 3-5 points d'action (stratégies de contenu précises pour se démarquer sur ce jeu).
-            4. Utilise un langage motivant et professionnel.`;
+            prompt = `Analyse le jeu **${query}** et fournis une critique de niche. Inclus : 1. Un titre fort (h4) 2. Un paragraphe sur l'attrait général. 3. Une liste non ordonnée (ul/li) de 3-5 points d'action. 4. Utilise un langage motivant et professionnel.`;
             break;
-            
         case 'repurpose':
              if (!query) return res.status(400).json({ success: false, error: "Le streamer est manquant pour l'analyse de repurposing." });
             systemInstruction = `Tu es un expert en repurposing vidéo. Ton but est d'analyser une VOD (simulée ici pour **${query}**) et de donner des idées de clips courts pour TikTok/YouTube Shorts. Réponds en format HTML.`;
-            prompt = `Analyse la dernière VOD du streamer **${query}** (imaginaire, basée sur des concepts de VOD typiques: fail drôle, clutch épique, moment émotionnel, explication technique). Donne 3 suggestions de clips courts ultra-viraux. 
-            Pour chaque clip (dans une liste ul/li) :
-            1. Décris l'action.
-            2. Donne un titre viral précis.
-            3. **POINT CRITIQUE: Simule un timestamp de début de clip (format 00:00:00)** comme ceci: **Point de Clip:** 00:25:40. Ces timestamps sont cruciaux.
-            Utilise le HTML pour le formatage.`;
+            prompt = `Analyse la dernière VOD du streamer **${query}** (imaginaire). Donne 3 suggestions de clips courts ultra-viraux. Pour chaque clip (en liste ul/li) : 1. Décris l'action. 2. Donne un titre viral précis. 3. Simule un timestamp de début de clip (format 00:00:00) comme ceci: **Point de Clip:** 00:25:40.`;
             break;
-
         case 'trend':
-            systemInstruction = `Tu es un 'Trend Detector' IA. Ton but est d'analyser les tendances de jeu V/S (Spectateurs par Streamer) pour identifier des 'pépites cachées' où la demande est forte (Viewers) et l'offre faible (Streamers). Réponds en format HTML.`;
-            prompt = `Fournis une analyse des tendances de niche Twitch. Identifie 3 à 5 jeux/catégories qui ont actuellement un excellent potentiel V/S (Spectateurs/Streamer) et qui ne sont pas dans le Top 5 global. Pour chaque point (en liste ul/li) :
-            1. Donne le nom du jeu.
-            2. Explique brièvement pourquoi il est une opportunité (faible concurrence, communauté engagée).
-            Utilise le HTML pour le formatage.`;
+            systemInstruction = `Tu es un 'Trend Detector' IA. Ton but est d'analyser les tendances V/S (Spectateurs par Streamer). Réponds en format HTML.`;
+            prompt = `Fournis une analyse des tendances de niche Twitch. Identifie 3 à 5 jeux/catégories qui ont actuellement un excellent potentiel V/S et qui ne sont pas dans le Top 5 global. Pour chaque point (en liste ul/li) : 1. Donne le nom du jeu. 2. Explique pourquoi il est une opportunité.`;
             break;
-            
         default:
             return res.status(400).json({ success: false, error: "Type d'analyse IA invalide." });
     }
-
+    
     try {
-        const response = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            config: { systemInstruction: systemInstruction },
-        });
-
-        const html_critique = `
-            <div class="ai-content">
-                ${response.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}
-            </div>
-        `;
-        
+        const response = await ai.models.generateContent({ model: GEMINI_MODEL, contents: [{ role: "user", parts: [{ text: prompt }] }], config: { systemInstruction: systemInstruction } });
+        const html_critique = `<div class="ai-content">${response.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>`;
         return res.json({ success: true, html_critique: html_critique });
-
     } catch (e) {
         console.error(`❌ Erreur IA (${type}):`, e.message);
-        return res.status(500).json({ success: false, error: `Échec de l'appel à l'API Gemini. Erreur: ${e.message.substring(0, 50)}...` });
+        return res.status(500).json({ success: false, error: `Échec de l'appel à l'API Gemini. Vérifiez votre clé API et les logs serveur. (Détail: ${e.message.substring(0, 50)}...)` });
     }
 });
 
-
-// Route pour l'assistant IA de poche (gestion des erreurs sécurisée)
+// CORRIGÉE: Gestion des erreurs robuste pour /mini_assistant
 app.post('/mini_assistant', async (req, res) => {
     if (!ai) {
-        console.error("❌ Erreur Mini Assistant: GEMINI_API_KEY manquante. Retour 503."); 
-        return res.status(503).json({ 
-            success: false, 
-            error: "Le service IA n'est pas disponible (clé API manquante)." 
-        });
+        return res.status(503).json({ success: false, error: "Le service IA n'est pas disponible (clé API manquante)." });
     }
     
     const { q, context } = req.body;
@@ -590,7 +389,6 @@ app.post('/mini_assistant', async (req, res) => {
         });
         
         const html_answer = response.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-
         return res.json({ success: true, answer: html_answer });
         
     } catch (e) {
@@ -603,11 +401,22 @@ app.post('/mini_assistant', async (req, res) => {
 });
 
 
-// (Autres routes comme /hype_categories, /get_vod_details, /propose_streamer, /stream_boost restent inchangées)
-app.get('/hype_categories', async (req, res) => { /* ... */ });
-app.post('/get_vod_details', async (req, res) => { /* ... */ });
-app.get('/propose_streamer', async (req, res) => { /* ... */ });
-app.post('/stream_boost', (req, res) => { /* ... */ });
+// Route simple pour le boost (gardée pour la structure)
+app.post('/stream_boost', (req, res) => {
+    const { channel } = req.body;
+    const cooldownDuration = 3 * 3600 * 1000; // 3 heures
+    const now = Date.now();
+
+    if (CACHE.streamBoosts[channel] && (now - CACHE.streamBoosts[channel] < cooldownDuration)) {
+        const minutesRemaining = Math.ceil((CACHE.streamBoosts[channel] + cooldownDuration - now) / (60 * 1000));
+        const errorMessage = `<p style="color:#ffcc00; font-weight:bold;">⚠️ Vous devez attendre !</p><p>Cooldown de 3 heures actif. Prochain Boost disponible dans environ <strong>${minutesRemaining} minutes</strong>.</p>`;
+        return res.status(429).json({ error: `Cooldown actif. Prochain Boost dans ${minutesRemaining} minutes.`, html_response: errorMessage });
+    }
+
+    CACHE.streamBoosts[channel] = now;
+    const successMessage = `<p style="color:var(--color-primary-pink); font-weight:bold;">✅ Boost de Stream Activé !</p><p>La chaîne <strong>${channel}</strong> a été ajoutée à la rotation prioritaire pour une période de 10 minutes. Le prochain boost sera disponible dans 3 heures. Bonne chance !</p>`;
+    return res.json({ success: true, html_response: successMessage });
+});
 
 
 // =========================================================
@@ -620,5 +429,5 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
-    getAppAccessToken().catch(e => console.error("Échec du jeton initial:", e.message));
+    getAppAccessToken().catch(e => console.error("Échec du jeton initial (vérifiez les clés Twitch):", e.message));
 });
