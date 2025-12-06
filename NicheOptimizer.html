@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V7.3 - Fixes</title>
+    <title>Streamer AI Hub - Outil de Croissance et Niche</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* --- VARIABLES CSS POUR FACILITER LA MAINTENANCE DES COULEURS --- */
         :root {
-            --color-bg-dark: #0d0d0d;
-            --color-bg-medium: #1a1a1a;
-            --color-bg-light: #111;
+            /* Couleurs de fond forcées */
+            --color-bg-dark: #0d0d0d !important; 
+            --color-bg-medium: #1a1a1a !important;
+            --color-bg-light: #111 !important;
+            /* Couleurs d'accentuation */
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
             --color-ai-niche: #59d682; /* Vert */
@@ -22,14 +24,14 @@
             --color-border-medium: #333;
         }
 
-        /* Styles Globaux */
+        /* Styles Globaux (FORCE LE FOND NOIR TOTAL) */
         html, body { 
-            background-color: var(--color-bg-dark); 
+            background-color: var(--color-bg-dark) !important; 
             color: #fff; 
             font-family: 'Inter', Arial, sans-serif; 
             margin: 0; 
             padding: 0; 
-            min-height: 100vh; /* FIX FOND BLANC : Assure la couverture totale */
+            min-height: 100vh; 
             height: 100%; 
         }
 
@@ -52,16 +54,17 @@
         }
 
         .nav-link:hover {
-            background-color: var(--color-bg-medium);
+            background-color: var(--color-bg-light);
             color: var(--color-primary-pink);
         }
         
-        /* Styles de l'en-tête */
+        /* Styles de l'en-tête (Très visible) */
         header {
-            background-color: var(--color-bg-medium);
+            background-color: var(--color-bg-medium) !important;
             padding: 10px 0;
-            border-bottom: 2px solid var(--color-primary-pink);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            /* Bordure plus néon */
+            border-bottom: 2px solid var(--color-secondary-blue);
+            box-shadow: 0 0 15px rgba(34, 199, 239, 0.3);
         }
         
         .header-content {
@@ -76,8 +79,9 @@
         .logo {
             font-family: 'Orbitron', sans-serif;
             font-size: 1.5rem;
-            color: var(--color-secondary-blue);
-            text-shadow: 0 0 5px rgba(34, 199, 239, 0.5);
+            color: var(--color-primary-pink);
+            /* Ombre plus prononcée */
+            text-shadow: 0 0 10px rgba(255, 0, 153, 0.8);
         }
         
         /* Styles du menu des outils/onglets */
@@ -107,11 +111,12 @@
             color: #fff;
         }
 
+        /* Style actif plus marqué */
         .tab-button.active {
-            background-color: var(--color-primary-pink);
+            background-color: var(--color-secondary-blue);
             color: #fff;
-            border-color: var(--color-primary-pink);
-            box-shadow: 0 0 10px rgba(255, 0, 153, 0.5);
+            border-color: var(--color-secondary-blue);
+            box-shadow: 0 0 10px rgba(34, 199, 239, 0.5);
         }
 
         .tab-content {
@@ -180,6 +185,7 @@
             padding: 10px;
             background-color: var(--color-bg-medium);
             border-radius: 6px;
+            /* Utilisation d'une couleur d'accent pour la bordure */
             border-left: 3px solid var(--color-primary-pink);
         }
 
@@ -197,13 +203,11 @@
         /* Styles spécifiques VOD/Videos */
         .vod-grid {
             display: grid;
-            /* Fix: Force 3 colonnes pour répondre à la demande de ne pas mettre d'espace pour changer */
             grid-template-columns: repeat(3, 1fr); 
             gap: 15px;
             margin-top: 15px;
         }
 
-        /* S'assure que même sur petit écran (si on voulait plus tard) il y ait 3 colonnes ou moins */
         @media (max-width: 900px) {
             .vod-grid {
                 grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -221,12 +225,12 @@
         
         .vod-item:hover {
             transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(255, 0, 153, 0.3);
+            /* Ombre néon rose au survol */
+            box-shadow: 0 5px 15px rgba(255, 0, 153, 0.4);
         }
         
         .vod-item img {
             width: 100%;
-            /* Garde le ratio 16:9 pour les vidéos, mais autorise l'auto-hauteur si nécessaire */
             aspect-ratio: 16 / 9; 
             display: block;
             border-bottom: 1px solid var(--color-primary-pink);
@@ -266,6 +270,7 @@
         .stat-box .number {
             font-size: 1.5rem;
             font-weight: 700;
+            /* Utilisation d'Orbitron pour l'effet futuriste */
             color: var(--color-primary-pink);
             font-family: 'Orbitron', sans-serif;
         }
@@ -275,7 +280,8 @@
             background-color: var(--color-bg-light);
             padding: 15px;
             border-radius: 8px;
-            border-left: 5px solid var(--color-secondary-blue);
+            /* Bordure d'accentuation */
+            border-left: 5px solid var(--color-ai-growth); 
             margin-bottom: 20px;
             color: var(--color-text-dimmed);
         }
@@ -290,12 +296,14 @@
             padding: 20px;
             border-radius: 8px;
             border: 1px solid var(--color-border-medium);
+            /* Ajout d'une petite ombre pour le relief */
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
         }
         /* Fix stabilité: style pour les titres générés */
         #ia-critique-results h4 {
             font-size: 1.25rem;
             font-weight: 700;
-            color: var(--color-ai-niche);
+            color: var(--color-ai-niche); /* Vert pour l'IA/Analyse */
             margin-bottom: 15px;
             padding-bottom: 5px;
             border-bottom: 2px solid var(--color-border-medium);
@@ -309,11 +317,16 @@
         }
         
         #ia-critique-results ul, #ia-critique-results ol {
-            /* Fix stabilité: Assure l'indentation et les puces/nombres */
             list-style: disc;
             margin-left: 20px;
             padding-left: 0;
             margin-bottom: 15px;
+            color: var(--color-text-dimmed); /* Couleur pour le texte de liste */
+        }
+        
+        /* Surcharger les titres de listes dans la critique */
+        #ia-critique-results ul strong, #ia-critique-results ol strong {
+            color: #fff;
         }
 
         /* Styles pour la zone de lecture de stream */
@@ -323,10 +336,11 @@
             margin-top: 20px;
             border-radius: 8px;
             overflow: hidden;
-            border: 2px solid var(--color-secondary-blue);
+            /* Bordure accentuée pour le lecteur */
+            border: 2px solid var(--color-primary-pink);
         }
         
-        /* Styles pour le Mini-Assistant (inchangé, mais inclus pour la complétude) */
+        /* Styles pour le Mini-Assistant */
         #mini-assistant-wrapper {
             position: fixed;
             bottom: 20px;
@@ -672,9 +686,12 @@
 
             if (data.data && data.data.length > 0) {
                 data.data.forEach(stream => {
+                    // Note: L'image de profil est désormais gérée côté serveur dans le backend app.js
+                    const profileImageUrl = `https://static-cdn.jtvnw.net/jtv_user_pictures/${stream.user_id}-profile_image-70x70.png`;
+                    
                     const html = `
                         <div class="stream-item cursor-pointer" onclick="launchPlayer('${stream.user_login}')">
-                            <img src="${stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/twitch-profile_image-21af129c7821c9eb-70x70.png'}" alt="${stream.user_name}">
+                            <img src="${profileImageUrl}" alt="${stream.user_name}">
                             <div class="flex-grow">
                                 <p class="font-bold text-white">${stream.user_name}</p>
                                 <p class="text-sm text-gray-400 truncate">${stream.title}</p>
@@ -731,7 +748,7 @@
                 
                 // --- Bloc Stats et Infos Jeu ---
                 html = `
-                    <div class="flex items-start gap-6 mb-4 p-4 bg-gray-700 rounded-lg">
+                    <div class="flex items-start gap-6 mb-4 p-4 bg-gray-700 rounded-lg border border-gray-600">
                         <img src="${game.box_art_url}" alt="${game.name}" class="w-20 h-28 object-cover rounded shadow-lg">
                         <div>
                             <h3 class="text-2xl font-bold text-white mb-2">${game.name} - Analyse de Niche</h3>
@@ -752,7 +769,7 @@
                         </div>
                     </div>
                     
-                    <h4 class="text-lg font-semibold text-white mt-4 mb-2">Top ${game.streams.length || 0} Streams Live (Max 3):</h4>
+                    <h4 class="text-lg font-semibold text-white mt-4 mb-2 border-b border-gray-700 pb-1">Top ${game.streams.length || 0} Streams Live (Max 3):</h4>
                     ${game.streams.length > 0 ? 
                         game.streams.map(s => `
                         <div class="stream-item cursor-pointer" onclick="launchPlayer('${s.user_login}')">
@@ -771,7 +788,7 @@
                 
                 // --- Bloc VODs (Vidéos à la Demande) ---
                 if (game.videos && game.videos.length > 0) {
-                    html += `<h4 class="text-lg font-semibold text-white mt-6 mb-2">VODs Récentes (Max 3, cliquable) :</h4><div class="vod-grid">`;
+                    html += `<h4 class="text-lg font-semibold text-white mt-6 mb-2 border-b border-gray-700 pb-1">VODs Récentes (Max 3, cliquable) :</h4><div class="vod-grid">`;
                     
                     game.videos.forEach(v => {
                         html += `
@@ -815,7 +832,7 @@
                 }
                 
                 html = `
-                    <div class="flex items-start gap-6 mb-4 p-4 bg-gray-700 rounded-lg">
+                    <div class="flex items-start gap-6 mb-4 p-4 bg-gray-700 rounded-lg border border-gray-600">
                         <img src="${user.profile_image_url}" alt="${user.display_name}" class="w-24 h-24 object-cover rounded-full shadow-lg border-2 border-pink-500">
                         <div>
                             <h3 class="text-2xl font-bold text-white mb-1">${user.display_name} ${streamStatus}</h3>
