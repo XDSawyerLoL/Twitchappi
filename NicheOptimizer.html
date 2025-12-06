@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.9 - Complet</title>
+    <title>Streamer & Niche AI Hub V6.9.2 - Assistant Flottant</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -89,11 +89,6 @@
             box-shadow: 0 0 15px rgba(34, 199, 239, 0.3);
             overflow: hidden;
         }
-        #form-channel-player {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
 
         /* Inputs & Boutons Génériques */
         .action-input {
@@ -107,7 +102,7 @@
         }
         .btn-primary:hover:not(:disabled) { background: #E6008A; }
         .btn-secondary {
-            background: var(--color-secondary-blue); color: #00161d; border: 0; padding: 8px 12px; border-radius: 6px;
+            background: var(--color-secondary-blue); color: var(--color-bg-dark); border: 0; padding: 8px 12px; border-radius: 6px;
             cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px;
             box-shadow: 0 0 6px rgba(34,199,239,.4);
         }
@@ -115,7 +110,8 @@
         
         /* CONSISTENCE VISUELLE : Style de base pour tous les blocs de résultats (IA, Scan, Boost) */
         .ai-result-box {
-            background: #0a0a0a; 
+            /* FOND NOIR ASSURÉ POUR ÉVITER LE FOND BLANC */
+            background-color: var(--color-bg-light) !important;
             border: 1px solid var(--color-border-dark); 
             border-radius: 6px; 
             padding: 15px; 
@@ -138,9 +134,6 @@
             padding-bottom: 5px;
             color: var(--color-secondary-blue);
         }
-        .ai-result-box strong {
-            font-weight: 700;
-        }
         .ai-result-box ul, .ai-result-box ol {
             margin-left: 25px;
             margin-bottom: 15px; 
@@ -155,31 +148,15 @@
             margin-bottom: 8px; 
         }
 
-        /* Couleurs d'accentuation des résultats AI */
-        #scan-result { border-color: var(--color-secondary-blue); }
-        #niche-result-container .ai-result-box { border-color: var(--color-ai-niche); }
-        #repurpose-result-container .ai-result-box { border-color: var(--color-ai-repurpose); }
-        #trend-results { border-color: var(--color-ai-growth); }
-        #boost-results { border-color: var(--color-primary-pink); }
-        #title-critique-results { border-color: var(--color-primary-pink); }
-        #assistant-results { border-color: var(--color-secondary-blue); }
-
-        #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
-        #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
-        #trend-results h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
-        #title-critique-results h4 { color: var(--color-primary-pink); border-color: var(--color-primary-pink); }
-        #assistant-results h4 { color: var(--color-secondary-blue); border-color: var(--color-secondary-blue); }
-
         /* Styles d'onglets et de connexion */
         .flex-tabs {
             overflow-x: auto;
             white-space: nowrap;
-            /* Masquer la scrollbar par défaut */
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         .flex-tabs::-webkit-scrollbar {
-            display: none; /* Chrome, Safari and Opera */
+            display: none;
         }
 
         .tab-btn {
@@ -227,23 +204,6 @@
             border: 1px solid #444;
         }
 
-        /* Styles de carte du fil suivi */
-        #followed-streams-list {
-            display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0;
-        }
-        .followed-stream-item {
-            display: flex; flex-direction: column; width: calc(33.333% - 10px); min-width: 180px; padding: 10px;
-            background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark);
-            cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-        .followed-stream-item:hover {
-            background: #280517; border-color: var(--color-primary-pink); transform: translateY(-2px);
-        }
-        .streamer-avatar {
-            width: 100%; aspect-ratio: 16 / 9; border-radius: 4px; border: 1px solid var(--color-primary-pink); 
-            object-fit: cover; flex-shrink: 0;
-        }
-
         /* Styles de Partage Social */
         .social-share-btn {
             background: var(--color-bg-dark);
@@ -254,15 +214,149 @@
             font-size: 14px;
             cursor: pointer;
             transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
         }
-        .social-share-btn:hover {
-            background: #2e2e2e;
+        .social-share-btn.twitter { color: #1DA1F2; border-color: #1DA1F2; }
+        .social-share-btn.facebook { color: #1877F2; border-color: #1877F2; }
+        .social-share-btn.reddit { color: #FF4500; border-color: #FF4500; }
+        .social-share-btn.tiktok { color: #00F2EA; border-color: #00F2EA; }
+
+        /* --- STYLES DE L'ASSISTANT FLOTTANT (CHATBOT) --- */
+
+        /* 1. Bulle de Chat (Bouton Flottant) */
+        #floating-ai-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: var(--color-secondary-blue);
+            color: var(--color-bg-dark);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(34, 199, 239, 0.5);
+            transition: transform 0.3s, background-color 0.3s;
+            z-index: 1000;
+            border: 3px solid #fff;
         }
-        .social-share-btn.twitter {
-            color: #1DA1F2; border-color: #1DA1F2;
+        #floating-ai-button:hover {
+            background-color: #1eafdd;
+            transform: scale(1.05);
         }
-        .social-share-btn.facebook {
-            color: #1877F2; border-color: #1877F2;
+
+        /* 2. Fenêtre de Chat Modale */
+        #ai-chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 380px;
+            height: 500px;
+            background: var(--color-bg-medium);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--color-secondary-blue);
+            z-index: 999;
+            display: none; /* Caché par défaut */
+            flex-direction: column;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        #ai-chat-window.active {
+            display: flex;
+        }
+
+        /* En-tête du Chat */
+        #chat-header {
+            padding: 15px;
+            background-color: var(--color-secondary-blue);
+            color: var(--color-bg-dark);
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            border-bottom: 2px solid #fff;
+        }
+        #chat-close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--color-bg-dark);
+            cursor: pointer;
+        }
+
+        /* Zone d'Affichage des Messages */
+        #chat-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background-color: var(--color-bg-light);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        /* Styles des Messages */
+        .chat-message {
+            max-width: 85%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            line-height: 1.4;
+            font-size: 13px;
+        }
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--color-primary-pink);
+            color: #fff;
+            border-bottom-right-radius: 2px;
+        }
+        .ai-message {
+            align-self: flex-start;
+            background-color: var(--color-bg-medium);
+            color: #fff;
+            border: 1px solid var(--color-secondary-blue);
+            border-bottom-left-radius: 2px;
+        }
+        
+        /* Formulaire d'Envoi */
+        #chat-input-form {
+            display: flex;
+            padding: 10px;
+            background-color: var(--color-bg-medium);
+            border-top: 1px solid var(--color-border-medium);
+            flex-shrink: 0;
+        }
+        #chat-input-field {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid var(--color-border-medium);
+            background: var(--color-bg-dark);
+            color: #fff;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        #chat-send-btn {
+            background: var(--color-secondary-blue);
+            color: var(--color-bg-dark);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
         }
 
         /* Responsive */
@@ -273,13 +367,28 @@
             }
             #twitch-embed { height: 350px; } 
             .tab-btn { flex-basis: 50%; max-width: 50%; }
+            #social-share-container { flex-wrap: wrap; }
+            .social-share-btn { width: calc(50% - 6px); justify-content: center; }
+
+            /* Mobile Chatbot */
+            #ai-chat-window {
+                width: 100%;
+                height: 80%;
+                bottom: 0;
+                right: 0;
+                border-radius: 12px 12px 0 0;
+            }
+            #floating-ai-button {
+                bottom: 10px;
+                right: 10px;
+            }
         }
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.2</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -293,15 +402,21 @@
         </form>
         <div id="twitch-embed"></div>
         
-        <div id="social-share-container" class="mt-4 flex gap-3 justify-center">
+        <div id="social-share-container" class="mt-4 flex gap-3 justify-center flex-wrap">
             <button class="social-share-btn twitter" onclick="shareLive('twitter')">
-                🐦 Partager sur X (Twitter)
+                <span style="font-size: 18px;">🐦</span> X (Twitter)
             </button>
             <button class="social-share-btn facebook" onclick="shareLive('facebook')">
-                📘 Partager sur Facebook
+                <span style="font-size: 18px;">📘</span> Facebook
+            </button>
+            <button class="social-share-btn reddit" onclick="shareLive('reddit')">
+                <span style="font-size: 18px;">👽</span> Reddit
+            </button>
+            <button class="social-share-btn tiktok" onclick="shareLive('tiktok')">
+                <span style="font-size: 18px;">🎵</span> TikTok
             </button>
         </div>
-        </div>
+    </div>
 
     <div id="tabs-container">
         <div class="flex flex-wrap flex-tabs">
@@ -311,8 +426,7 @@
             <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">🚀 REPURPOSING</button>
             <button class="tab-btn" data-tab-id="tab-growth" onclick="openTab('tab-growth')">💰 CROISSANCE</button>
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
-            <button class="tab-btn" data-tab-id="tab-assistant" onclick="openTab('tab-assistant')">💬 ASSISTANT IA</button>
-        </div>
+            </div>
 
         <div id="tab-followed" class="tab-content">
             <h3 class="tab-heading text-pink">
@@ -321,11 +435,7 @@
             
             <div class="login-box">
                 <h4 class="text-blue font-bold text-sm mb-2">Connexion Utilisateur Twitch (OAuth)</h4>
-                
-                <p id="login-status" class="text-yellow text-xs mb-4">
-                    Statut: Vérification...
-                </p>
-
+                <p id="login-status" class="text-yellow text-xs mb-4">Statut: Vérification...</p>
                 <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">
                     🔒 SE CONNECTER VIA TWITCH
                 </button>
@@ -419,7 +529,7 @@
             </div>
 
             <div class="login-box">
-                <button id="btn-trend-detector" class="btn-primary w-full p-3" style="background:var(--color-ai-growth); color: var(--color-bg-light);">
+                <button id="btn-trend-detector" class="btn-primary w-full p-3" style="background:var(--color-ai-growth); color: var(--color-bg-dark);">
                     🔮 DÉTECTER LA PROCHAINE NICHE
                 </button>
                 <div id="trend-results" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;">
@@ -446,30 +556,27 @@
                 </div>
             </div>
         </div>
-
-        <div id="tab-assistant" class="tab-content">
-            <h3 class="tab-heading text-secondary-blue">
-                <span class="icon">💬</span> Mini-Assistant IA
-            </h3>
-            <div class="login-box">
-                <p class="text-sm mb-3" style="color:var(--color-text-dimmed);">
-                    Posez une question courte sur le streaming, le SEO Twitch, ou la croissance.
-                </p>
-                <form id="form-mini-assistant" class="flex gap-2">
-                    <input id="input-assistant-query" type="text" placeholder="Comment trouver ma niche ?" class="action-input">
-                    <button type="submit" id="btn-assistant-send" class="btn-primary min-w-[80px]" style="background:var(--color-secondary-blue);">
-                        ▶ ENVOYER
-                    </button>
-                </form>
-                <div id="assistant-results" class="ai-result-box" style="border-color: var(--color-secondary-blue); margin-top: 15px;">
-                    <p style="text-align:center; color:var(--color-text-dimmed);">
-                        L'assistant est prêt. Posez votre première question !
-                    </p>
-                </div>
-            </div>
-        </div>
-
     </div>
+</div>
+
+<div id="floating-ai-button" title="Ouvrir l'Assistant IA">
+    🤖
+</div>
+
+<div id="ai-chat-window">
+    <div id="chat-header">
+        Mini-Assistant IA Stream
+        <button id="chat-close-btn">✖</button>
+    </div>
+    <div id="chat-messages">
+        <div class="ai-message chat-message">
+            👋 Bonjour ! Je suis votre Assistant IA expert en streaming et croissance de contenu. Posez-moi une question !
+        </div>
+    </div>
+    <form id="chat-input-form">
+        <input type="text" id="chat-input-field" placeholder="Votre question..." required>
+        <button type="submit" id="chat-send-btn">➤</button>
+    </form>
 </div>
 
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
@@ -485,9 +592,7 @@
     // --- Fonctions d'Historique Local ---
     function saveHistory(key, query, max = 5) {
         let history = JSON.parse(localStorage.getItem(key)) || [];
-        // Retirer l'ancienne entrée si elle existe
         history = history.filter(item => item.toLowerCase() !== query.toLowerCase());
-        // Ajouter en tête et limiter à max
         history.unshift(query);
         localStorage.setItem(key, JSON.stringify(history.slice(0, max)));
     }
@@ -496,7 +601,6 @@
         const history = JSON.parse(localStorage.getItem(key)) || [];
         const input = document.getElementById(inputId);
         
-        // Créer ou mettre à jour la datalist pour l'autocomplétion
         let datalist = document.getElementById(`${inputId}-history`);
         if (!datalist) {
             datalist = document.createElement('datalist');
@@ -521,12 +625,11 @@
             if (targetBtn) targetBtn.classList.add('active');
         }
         
-        // Charger l'historique pour les onglets de recherche
         if (tabId === 'tab-cible') loadHistory('scanHistory', 'input-target');
         if (tabId === 'tab-niche') loadHistory('nicheHistory', 'input-niche-game');
     }
 
-    // --- Lecteur Twitch ---
+    // --- Lecteur Twitch & Partage ---
 
     function launchPlayer(channelName) {
         if (!channelName) return;
@@ -559,8 +662,7 @@
             launchPlayer(channel);
         }
     });
-
-    // --- Partage Social ---
+    
     function shareLive(platform) {
         const channel = inputChannel.value.trim();
         if (!channel || channel === DEFAULT_CHANNEL) {
@@ -576,8 +678,12 @@
         if (platform === 'twitter') {
             shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`;
         } else if (platform === 'facebook') {
-            // Partage sur Facebook utilise l'URL de la page à partager
             shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        } else if (platform === 'reddit') {
+            shareUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(`Stream en direct: ${channel} sur Twitch`)}`;
+        } else if (platform === 'tiktok') {
+             alert("Le partage direct sur TikTok pour un lien externe est limité. Ouvrez ce lien manuellement pour le partage mobile/PC.");
+             shareUrl = url;
         }
         
         if (shareUrl) {
@@ -585,14 +691,14 @@
         }
     }
 
-
-    // --- Authentification Twitch et Fil Suivi (Le reste de l'Auth est conservé) ---
+    // --- Authentification Twitch et Fil Suivi (Logique inchangée) ---
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
     let twitchUserConnected = false; 
-
+    
     async function checkAuth() {
+        // ... (Logique checkAuth inchangée) ...
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
             if(res.ok) {
@@ -634,7 +740,8 @@
     });
 
     async function loadFollowedStreams() {
-         if(!twitchUserConnected) {
+        // ... (Logique loadFollowedStreams inchangée) ...
+        if(!twitchUserConnected) {
             followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
             return;
         }
@@ -686,7 +793,7 @@
 
 
     // =========================================================
-    // --- GESTION DES FORMULAIRES DE RECHERCHE & IA ---
+    // --- GESTION DES FORMULAIRES DE RECHERCHE & IA (Logique inchangée) ---
     // =========================================================
     
     // 1. Scan Target (SCAN & RESULTATS)
@@ -698,7 +805,6 @@
 
         if (!query) return;
 
-        // Historique
         saveHistory('scanHistory', query);
         loadHistory('scanHistory', 'input-target');
 
@@ -777,7 +883,6 @@
 
         if (!query) return;
 
-        // Historique
         saveHistory('nicheHistory', query);
         loadHistory('nicheHistory', 'input-niche-game');
 
@@ -937,17 +1042,58 @@
     });
 
 
-    // 7. Mini-Assistant (ASSISTANT IA)
-    document.getElementById('form-mini-assistant').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const message = document.getElementById('input-assistant-query').value.trim();
-        const resultBox = document.getElementById('assistant-results');
-        const btn = document.getElementById('btn-assistant-send');
+    // =========================================================
+    // --- NOUVEAU: LOGIQUE CHATBOT FLOTTANT ---
+    // =========================================================
 
+    const floatingButton = document.getElementById('floating-ai-button');
+    const chatWindow = document.getElementById('ai-chat-window');
+    const closeButton = document.getElementById('chat-close-btn');
+    const chatMessagesContainer = document.getElementById('chat-messages');
+    const chatInputForm = document.getElementById('chat-input-form');
+    const chatInputField = document.getElementById('chat-input-field');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+
+    // Toggle Chat Window
+    floatingButton.addEventListener('click', () => {
+        chatWindow.classList.toggle('active');
+        if (chatWindow.classList.contains('active')) {
+            // Fait défiler jusqu'au dernier message
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+            chatInputField.focus();
+        }
+    });
+
+    closeButton.addEventListener('click', () => {
+        chatWindow.classList.remove('active');
+    });
+
+    function addMessageToChat(message, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${sender}-message`;
+        
+        // Utiliser innerHTML pour permettre le formatage (gras, listes) de l'IA
+        messageDiv.innerHTML = message; 
+        
+        chatMessagesContainer.appendChild(messageDiv);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight; // Scroll vers le bas
+    }
+
+    // Gestion de l'envoi de message
+    chatInputForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = chatInputField.value.trim();
         if (!message) return;
 
-        resultBox.innerHTML = `<p style="color:var(--color-secondary-blue);">🤖 Réflexion de l'Assistant en cours...</p>`;
-        btn.disabled = true;
+        // 1. Ajouter le message de l'utilisateur
+        addMessageToChat(message, 'user');
+        chatInputField.value = '';
+        chatSendBtn.disabled = true;
+
+        // 2. Afficher un message de chargement/réflexion de l'IA
+        const loadingMessageId = 'loading-ai-msg-' + Date.now();
+        addMessageToChat('🤖 Réflexion...', 'ai');
+        chatMessagesContainer.lastChild.id = loadingMessageId;
 
         try {
             const res = await fetch(`${API_BASE}/mini_assistant`, {
@@ -956,17 +1102,30 @@
                 body: JSON.stringify({ message: message })
             });
 
-            if(res.ok) {
-                const data = await res.json();
-                resultBox.innerHTML = `<h4>💬 Réponse de l'Assistant</h4>` + (data.html_response || '<p>Réponse de l\'IA reçue, mais le format est vide.</p>');
-            } else {
-                const data = await res.json();
-                resultBox.innerHTML = `<p style="color:#e34a64;">❌ Erreur de l'API Assistant (${res.status}): ${data.error || 'Erreur inconnue.'}</p>`;
+            const aiResponse = await res.json();
+            
+            // 3. Remplacer le message de chargement par la réponse réelle
+            const loadingMsgElement = document.getElementById(loadingMessageId);
+            if (loadingMsgElement) {
+                loadingMsgElement.remove(); // Retire le message "Réflexion..."
             }
-        } catch(e) {
-            resultBox.innerHTML = `<p style="color:#e34a64;">❌ Erreur de connexion au service Assistant: ${e.message}</p>`;
+            
+            let finalResponse = '';
+            if (res.ok) {
+                finalResponse = aiResponse.html_response || "Désolé, je n'ai pas pu générer de réponse.";
+            } else {
+                finalResponse = `<span style="color:var(--color-primary-pink);">❌ Erreur: ${aiResponse.error || "Problème de connexion à l'IA."}</span>`;
+            }
+            
+            addMessageToChat(finalResponse, 'ai');
+
+        } catch (error) {
+            console.error('Erreur Chat IA:', error);
+            const loadingMsgElement = document.getElementById(loadingMessageId);
+            if (loadingMsgElement) loadingMsgElement.remove();
+            addMessageToChat('Une erreur technique est survenue.', 'ai');
         } finally {
-            btn.disabled = false;
+            chatSendBtn.disabled = false;
         }
     });
 
@@ -978,7 +1137,6 @@
         openTab(savedTab);
         checkAuth();
         
-        // Chargement de l'historique local pour les inputs
         loadHistory('scanHistory', 'input-target');
         loadHistory('nicheHistory', 'input-niche-game');
     });
