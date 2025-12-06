@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamer & Niche AI Hub V7.1 - Visuel Repurposing</title>
-    <link href="[https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap](https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap)" rel="stylesheet">
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* --- VARIABLES CSS --- */
         :root {
@@ -230,7 +230,7 @@
             </form>
             
             <div id="repurpose-vod-preview">
-                <img id="vod-thumbnail" src="[https://placehold.co/150x84/222/9933ff.png?text=VOD](https://placehold.co/150x84/222/9933ff.png?text=VOD)" alt="Miniature VOD">
+                <img id="vod-thumbnail" src="https://placehold.co/150x84/222/9933ff.png?text=VOD" alt="Miniature VOD">
                 <div class="flex-1">
                     <div id="vod-title-display">Saisissez un pseudo pour analyser sa dernière VOD.</div>
                     <a id="vod-link" href="#" target="_blank" class="btn-secondary" style="background: var(--color-secondary-blue); padding: 5px 10px; font-size: 11px;">Voir la VOD complète</a>
@@ -276,7 +276,7 @@
     </form>
 </div>
 
-<script src="[https://embed.twitch.tv/embed/v1.js](https://embed.twitch.tv/embed/v1.js)"></script>
+<script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
@@ -351,12 +351,14 @@
         }
         
         document.getElementById('player-channel-status').textContent = statusText;
-        embed = new Twitch.Embed("twitch-embed", config);
+        // La variable Twitch est maintenant définie grâce au script corrigé
+        embed = new Twitch.Embed("twitch-embed", config); 
     }
 
     function initializePlayer() {
         const storedChannel = localStorage.getItem('activeChannel');
-        launchPlayer(storedChannel || DEFAULT_CHANNEL);
+        // Appel à launchPlayer avec 'twitch' par défaut
+        launchPlayer(storedChannel || DEFAULT_CHANNEL); 
     }
     
     document.getElementById('form-channel-player').addEventListener('submit', (e) => {
@@ -434,7 +436,7 @@
                         
                         const imageUrl = stream.thumbnail_url 
                                         ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') 
-                                        : stream.profile_image_url || '[https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png](https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png)'; 
+                                        : stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
 
                         div.innerHTML = `
                             <img src="${imageUrl}" alt="Preview de ${stream.user_name}" class="streamer-avatar">
@@ -608,7 +610,7 @@
                 previewBox.style.display = 'flex';
             } else {
                 // Afficher l'erreur VOD, mais continuer l'analyse IA (théorique)
-                document.getElementById('vod-thumbnail').src = '[https://placehold.co/150x84/222/9933ff.png?text=VOD+Non+Trouvée](https://placehold.co/150x84/222/9933ff.png?text=VOD+Non+Trouvée)';
+                document.getElementById('vod-thumbnail').src = 'https://placehold.co/150x84/222/9933ff.png?text=VOD+Non+Trouvée';
                 document.getElementById('vod-title-display').innerHTML = `<span style="color:red;">❌ ${vodData.error || 'VOD introuvable. Analyse théorique.'}</span>`;
                 document.getElementById('vod-link').href = '#';
                 previewBox.style.display = 'flex';
@@ -763,7 +765,8 @@
 
     // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
-        initializePlayer();
+        // Cette ligne fonctionnera maintenant car Twitch.Embed sera défini
+        initializePlayer(); 
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         checkAuth();
