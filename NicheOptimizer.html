@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.9.5 - Ultra Stable</title>
+    <title>Streamer & Niche AI Hub V6.9.6 - Stable Finale</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -67,6 +67,52 @@
             text-align: center;
         }
         
+        /* --- Styles Onglets Navigation (FIX V6.9.6) --- */
+        .flex-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--color-border-medium);
+            margin-bottom: 15px;
+            gap: 5px; /* Ajout de l'espacement entre les boutons */
+        }
+        .tab-btn {
+            background-color: var(--color-bg-medium);
+            color: var(--color-text-dimmed);
+            padding: 10px 15px;
+            border: 1px solid var(--color-border-medium);
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 11px;
+            line-height: 1; /* Assure que le texte ne déborde pas */
+        }
+        .tab-btn:hover {
+            color: #fff;
+            background-color: var(--color-bg-light);
+        }
+        .tab-btn.active {
+            color: var(--color-secondary-blue);
+            background-color: var(--color-bg-light);
+            border-color: var(--color-secondary-blue);
+            border-bottom: 2px solid var(--color-bg-light); /* Visuellement, masque le border-bottom du conteneur */
+        }
+
+        /* --- Styles Contenu Onglets (FIX V6.9.6) --- */
+        .tab-content {
+            display: none; /* Cache par défaut: C'ÉTAIT LA SOURCE DU PROBLÈME INITIAL DE STRUCTURE */
+            padding: 15px;
+            background: var(--color-bg-medium);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 8px;
+            min-height: 200px; /* Assure une hauteur minimale */
+        }
+        .tab-content.active {
+            display: block; /* Affiche l'onglet actif */
+        }
+
         /* Styles spécifiques au Lecteur */
         .player-wrapper {
             margin-bottom: 20px;
@@ -292,7 +338,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.5</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.6</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
