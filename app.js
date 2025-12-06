@@ -376,7 +376,7 @@ async function fetchNicheOpportunities(token) {
 
 // Middleware pour vérifier la clé Gemini avant les routes IA
 app.use((req, res, next) => {
-    if (req.originalUrl.startsWith('/critique_ia') && !ai) {
+    if ((req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/mini_assistant')) && !ai) {
         return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
     }
     next();
@@ -724,7 +724,7 @@ app.post('/critique_ia', async (req, res) => {
 
         return res.json({
             // On conserve l'injection du titre ici.
-            html_critique: `<h4>${promptTitle}</h4>` + cleanedText
+            html_critique: cleanedText
         });
 
     } catch (e) {
@@ -737,7 +737,7 @@ app.post('/critique_ia', async (req, res) => {
 });
 
 
-// --- NOUVELLE ROUTE MINI-ASSISTANT IA ---
+// --- ROUTE MINI-ASSISTANT IA (Mise à jour pour fiabilité) ---
 app.post('/mini_assistant', async (req, res) => {
     const { q, context } = req.body; 
 
@@ -753,8 +753,8 @@ app.post('/mini_assistant', async (req, res) => {
         const iaPrompt = `
             Tu es 'Streamer Buddy', un assistant IA rapide et sympathique pour les streamers. 
             Le contexte actuel du streamer est le canal Twitch: "${context}".
-            Réponds de manière concise (max 3-4 phrases ou une liste courte).
-            La réponse doit être en français et formatée en HTML pour l'affichage dans un chatbox. Utilise des balises <p> ou <ul>/<li> pour la mise en forme.
+            Réponds de manière concise (max 3-4 phrases ou une liste courte). **Assure-toi TOUJOURS de fournir une réponse, même si la question est vague.**
+            La réponse doit être en français et formatée en HTML pour l'affichage dans un chatbox. Utilise des balises <p> ou <ul>/<li> pour la mise en forme. **N'utilise PAS de balises \`\`\` ou \`\`\`html dans ta réponse finale.**
             ---
             Question de l'utilisateur: "${q}"
         `;
@@ -776,6 +776,15 @@ app.post('/mini_assistant', async (req, res) => {
         }
         cleanedText = cleanedText.trim(); 
         
+        // FIX : Si le texte est vide après nettoyage (souvent dû aux filtres de sécurité), fournir un message d'erreur clair.
+        if (!cleanedText) {
+             console.error("❌ Le résultat de l'IA était vide après le nettoyage (filtres de sécurité possibles).");
+             return res.json({
+                 success: false,
+                 html_response: "<p style='color: #ff33b3; font-weight: bold;'>⚠️ L'IA n'a pas pu répondre à cette question, elle pourrait avoir enfreint les directives de sécurité ou la réponse est trop complexe.</p>"
+             });
+        }
+
         // La réponse utilise 'html_response' pour être cohérente avec '/stream_boost'
         return res.json({
             success: true,
@@ -859,4 +868,5 @@ app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
     getAppAccessToken(); 
 });
+
 
