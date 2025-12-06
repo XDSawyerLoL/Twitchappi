@@ -136,22 +136,12 @@
         .tab-heading { font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px; }
         .login-box { padding:15px; background:var(--color-bg-light); border-radius:8px; margin-bottom:20px; border: 1px solid #444; }
 
-        /* Liste Streams Suivis */
+        /* Liste Streams */
         #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0; }
         .followed-stream-item { display: flex; flex-direction: column; width: calc(33.333% - 10px); min-width: 180px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
         .followed-stream-item:hover { background: #280517; border-color: var(--color-primary-pink); transform: translateY(-2px); }
         .streamer-avatar { width: 100%; aspect-ratio: 16 / 9; border-radius: 4px; border: 1px solid var(--color-primary-pink); object-fit: cover; flex-shrink: 0; }
         .stream-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-dimmed); margin-top: 5px; }
-        
-        /* Nouveaux Styles pour Catégories Recommandées */
-        .category-wrapper { margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
-        #recommended-categories-list { display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0; }
-        .recommended-item { display: flex; flex-direction: column; width: calc(25% - 11.25px); min-width: 150px; padding: 8px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
-        .recommended-item:hover { background: #0a2333; border-color: var(--color-secondary-blue); transform: translateY(-2px); }
-        .category-thumbnail { width: 100%; aspect-ratio: 1 / 1.4; border-radius: 4px; border: 1px solid var(--color-secondary-blue); object-fit: cover; flex-shrink: 0; }
-        .category-meta { font-size: 11px; color: var(--color-text-dimmed); margin-top: 5px; text-align: center; }
-        .category-title { font-weight: 600; color: var(--color-ai-growth); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-
 
         /* --- MINI ASSISTANT CSS --- */
         .assistant-btn { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, var(--color-secondary-blue), #0066cc); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(34, 199, 239, 0.4); z-index: 1000; transition: transform 0.2s; border: none; }
@@ -167,7 +157,6 @@
 
         @media (max-width: 768px) {
             .followed-stream-item { width: 100%; min-width: unset; }
-            .recommended-item { width: calc(50% - 7.5px); min-width: unset; }
             #twitch-embed { height: 350px; }
             .tab-btn { flex-basis: 50%; max-width: 50%; }
             .assistant-panel { width: calc(100% - 40px); bottom: 90px; right: 20px; height: 400px; }
@@ -192,15 +181,7 @@
         <div id="twitch-embed"></div>
         <div id="twitch-player-share" class="pt-3 border-t border-gray-700" style="border-color:var(--color-border-dark);"></div>
     </div>
-    
-    <div class="category-wrapper">
-        <h2 style="font-size: 16px; margin: 0 0 10px; font-family: 'Orbitron', sans-serif;">
-            <span style="color: var(--color-ai-growth);">⭐</span> CATÉGORIES RECOMMANDÉES (HYPE V/S)
-        </h2> 
-        <div id="recommended-categories-list" class="flex flex-wrap gap-3">
-            <p style="color:#555; text-align:center; padding:10px; width:100%;">Chargement des catégories...</p>
-        </div>
-    </div>
+
     <div id="tabs-container">
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
@@ -262,8 +243,21 @@
 
         <div id="tab-growth" class="tab-content">
             <h3 class="tab-heading text-yellow"><span class="icon">💰</span> Tableau de Bord Croissance</h3>
+            
+            <div class="login-box mb-4 p-4" style="border-color: var(--color-ai-niche);">
+                <h4 class="text-sm font-bold mb-3" style="color:var(--color-ai-niche);">
+                    Opportunités Hype V/S (Spectateurs / Streamer)
+                </h4>
+                <div id="hype-categories-container" class="flex flex-wrap gap-2 justify-start">
+                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Chargement des niches...</p>
+                </div>
+                <div id="analysis-results" class="mt-4 pt-4 border-t" style="border-color:var(--color-border-medium); display: none;">
+                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Cliquez sur une vignette ci-dessus pour trouver un streamer moyen (0-100 V).</p>
+                </div>
+            </div>
+
             <div class="login-box">
-                <button id="btn-trend-detector" class="btn-primary w-full p-3" style="background:var(--color-ai-growth); color: var(--color-bg-light);">🔮 DÉTECTER LA PROCHAINE NICHE</button>
+                <button id="btn-trend-detector" class="btn-primary w-full p-3" style="background:var(--color-ai-growth); color: var(--color-bg-light);">🔮 DÉTECTER LA PROCHAINE NICHE (CRITIQUE IA)</button>
                 <div id="trend-results" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Cliquez sur le bouton pour lancer l'analyse des tendances V/S.</p></div>
             </div>
         </div>
@@ -311,10 +305,14 @@
             targetTab.classList.add('active');
             const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
             if (targetBtn) targetBtn.classList.add('active');
+            
+            // NOUVEAU: Charger les catégories Hype V/S lorsque l'onglet Growth est ouvert
+            if (tabId === 'tab-growth') {
+                loadHypeCategories();
+            }
         }
     }
 
-    // Fonction pour déclencher l'analyse de Niche (utilisée par les catégories recommandées)
     function analyzeGameNiche(gameName) {
         document.getElementById('input-niche-game').value = gameName;
         openTab('tab-niche');
@@ -329,7 +327,7 @@
         return 0; 
     }
     
-    // GÉNÉRER LES BOUTONS DE PARTAGE
+    // NOUVELLE FONCTION : GÉNÉRER LES BOUTONS DE PARTAGE
     function generateShareButtons(channel, url) {
         const shareContainer = document.getElementById('twitch-player-share');
         if (!shareContainer) return;
@@ -363,7 +361,7 @@
         `;
     }
     
-    // MODIFICATION MAJEURE : launchPlayer peut maintenant cibler une VOD à un temps précis
+    // 💡 MODIFICATION MAJEURE : launchPlayer peut maintenant cibler une VOD à un temps précis
     function launchPlayer(channelName, videoId = null, timeStartSeconds = 0) {
         // Redirige toujours vers l'onglet Lecteur
         openTab('tab-followed'); 
@@ -535,51 +533,91 @@
         }
     }
     
-    // --- Logique des Catégories Recommandées (HYPE V/S) ---
-    async function loadRecommendedCategories() {
-        const listContainer = document.getElementById('recommended-categories-list');
-        listContainer.innerHTML = '<p style="color:var(--color-secondary-blue); text-align:center; padding:10px; width:100%;">Analyse des catégories Hype en cours...</p>';
+    // --- FONCTION: Proposer un Streamer Moyen (0-100 V) ---
+    async function proposeMidStreamer(gameId, gameName) {
+        const analysisResults = document.getElementById('analysis-results');
+        const loaderId = 'loader-propose-' + Date.now();
+        
+        analysisResults.innerHTML = `
+            <div class="p-4 bg-gray-900/50 rounded-lg mt-4" id="${loaderId}">
+                <p class="text-white flex items-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Recherche d'un streamer niche (0-100 spectateurs) pour ${gameName}...
+                </p>
+            </div>
+        `;
+        analysisResults.style.display = 'block';
 
         try {
-            // Appel à l'endpoint /hype_categories
-            const res = await fetch(`${API_BASE}/hype_categories`); 
+            const response = await fetch(`${API_BASE}/propose_streamer?gameId=${gameId}&gameName=${encodeURIComponent(gameName)}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
             
-            if(res.ok) {
-                const data = await res.json();
-                
-                if(data.data && data.data.length > 0) {
-                    listContainer.innerHTML = ''; 
-                    data.data.forEach(game => {
-                        const div = document.createElement('div');
-                        div.className = 'recommended-item';
-                        
-                        // Twitch box_art_url est typiquement {width}x{height}
-                        const imageUrl = game.box_art_url 
-                                        ? game.box_art_url.replace('{width}', '140').replace('{height}', '190') 
-                                        : 'https://static-cdn.jtvnw.net/ttv-static/404_boxart.jpg'; 
-
-                        div.innerHTML = `
-                            <img src="${imageUrl}" alt="Miniature de ${game.game_name}" class="category-thumbnail">
-                            <div class="category-meta">
-                                <span class="category-title" title="${game.game_name}">${game.game_name}</span>
-                                <span class="category-viewers">(${game.viewer_count.toLocaleString('fr-FR')} spectateurs)</span>
-                            </div>
-                        `;
-
-                        div.onclick = () => {
-                            // Clic sur la catégorie lance l'analyse de niche dans l'onglet correspondant
-                            analyzeGameNiche(game.game_name); 
-                        };
-                        listContainer.appendChild(div);
-                    });
-                } else {
-                    listContainer.innerHTML = '<p style="color:var(--color-text-dimmed); text-align:center; width:100%;">Aucune catégorie Hype trouvée ou disponible.</p>';
-                }
+            const loader = document.getElementById(loaderId);
+            if (loader) loader.remove();
+            
+            if (data.success) {
+                analysisResults.innerHTML = data.html_response;
             } else {
-                listContainer.innerHTML = `<p style="color:red; text-align:center; width:100%;">Erreur chargement des catégories (Statut: ${res.status}).</p>`;
+                // Affiche l'erreur ou le message d'absence de streamer
+                analysisResults.innerHTML = data.html_response || `<p style="color:#e34a64; font-weight:bold;">Erreur: Échec de la proposition de streamer.</p>`;
             }
-        } catch(e) {
-            listContainer.innerHTML = `<p style="color:red; text-align:center; width:100%;">Erreur API: ${e.message}</p>`;
+            
+        } catch(err) {
+            const loader = document.getElementById(loaderId);
+            if (loader) loader.remove();
+            analysisResults.innerHTML = `<p style="color:#e34a64; font-weight:bold;">Erreur de connexion serveur lors de la recherche de streamer.</p>`;
+        }
+    }
+
+    // --- FONCTION: Afficher les catégories HYPE V/S (Vignettes 60x80 cliquables) ---
+    function displayHypeCategories(categories) {
+        const container = document.getElementById('hype-categories-container');
+        container.innerHTML = ''; 
+
+        if (!categories || categories.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-500 p-2">Aucune opportunité de niche V/S trouvée (moins de 5 streamers par catégorie).</p>';
+            return;
+        }
+
+        categories.forEach(category => {
+            const item = document.createElement('div');
+            // Ajout de la fonction proposeMidStreamer et curseur pour indiquer la cliquabilité
+            item.className = 'flex flex-col items-center p-1 bg-gray-900/50 rounded-lg hover:bg-gray-700/50 transition duration-150 cursor-pointer'; 
+            item.onclick = () => proposeMidStreamer(category.game_id, category.game_name);
+
+            // La taille est gérée par l'URL dans app.js (60x80)
+            const thumbnail = `<img src="${category.box_art_url}" alt="${category.game_name}" class="rounded-md" style="width: 60px; height: 80px;">`;
+            
+            // Texte ajusté pour la petite taille de vignette
+            const title = `<p class="text-xs font-semibold text-white mt-1 max-w-[60px] text-center whitespace-nowrap overflow-hidden text-overflow-ellipsis" title="${category.game_name}">${category.game_name}</p>`;
+            
+            item.innerHTML = thumbnail + title;
+            container.appendChild(item);
+        });
+    }
+
+    // --- FONCTION: Charger les catégories HYPE (appel API) ---
+    async function loadHypeCategories() {
+        const container = document.getElementById('hype-categories-container');
+        container.innerHTML = '<p style="text-align:center; color:var(--color-secondary-blue); padding:10px;">Recherche des niches Hype V/S...</p>';
+        
+        try {
+            const res = await fetch(`${API_BASE}/hype_categories`);
+            const data = await res.json();
+
+            if (data.success) {
+                displayHypeCategories(data.data);
+            } else {
+                container.innerHTML = `<p style="color:red; text-align:center; padding:10px;">Erreur: ${data.error || "Impossible de charger les catégories."}</p>`;
+            }
+        } catch (e) {
+            container.innerHTML = `<p style="color:red; text-align:center; padding:10px;">Erreur de connexion au serveur pour les niches.</p>`;
         }
     }
 
@@ -871,12 +909,7 @@
             });
             const data = await res.json();
             document.getElementById(loaderId).remove();
-            // CORRECTION ASSISTANT : data.answer a été remplacé par data.html_response
-            if (res.ok) {
-                 assistantMsgs.innerHTML += `<div class="msg bot">${data.html_response || "Désolé, problème IA ou réponse bloquée."}</div>`;
-            } else {
-                 assistantMsgs.innerHTML += `<div class="msg bot" style="color:red;">Erreur du serveur IA: ${data.error || "Inconnu"}.</div>`;
-            }
+            assistantMsgs.innerHTML += `<div class="msg bot">${data.answer || "Désolé, problème IA ou réponse bloquée."}</div>`;
         } catch(err) { 
             document.getElementById(loaderId).remove();
             assistantMsgs.innerHTML += `<div class="msg bot" style="color:red;">Erreur connexion serveur.</div>`;
@@ -891,7 +924,6 @@
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         checkAuth();
-        loadRecommendedCategories(); // NOUVEL APPEL
     });
 </script>
 </body>
