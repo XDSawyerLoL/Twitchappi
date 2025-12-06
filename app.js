@@ -34,7 +34,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
-// --- FONCTIONS UTILITAIRES TWITCH API (similaires à avant) ---
+// --- FONCTIONS UTILITAIRES TWITCH API ---
 // =========================================================
 
 async function getAppAccessToken() {
@@ -160,7 +160,7 @@ app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
     
     let prompt = "";
-    const formattingRules = "Réponds en HTML pur (sans balises ```html). Utilise des <ul> et <li> pour les listes. Utilise <strong> pour le gras. Sois concis et percutant.";
+    const formattingRules = "Réponds en HTML pur (sans balises ```html). Utilise des <ul> et <li> pour les listes. Utilise <strong> pour le gras. Sois concis et percutant. NE RÉPONDS PAS SI LE CONTENU EST CONTROVERSÉ.";
 
     if (type === 'niche') {
         prompt = `Tu es expert Twitch. Analyse la niche du jeu "${query}". ${formattingRules}. Donne 3 conseils pour percer.`;
@@ -178,18 +178,28 @@ app.post('/critique_ia', async (req, res) => {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
         });
 
-        // 🚨 CORRECTION CRITIQUE: Vérifier si result.response et result.response.text sont présents
-        const generatedText = result?.response?.text ? result.response.text() : null;
-
+        // 🚨 FIX MAJEUR: Accéder directement au texte du candidat
+        const candidate = result.candidates?.[0];
+        const generatedText = candidate?.content?.parts?.[0]?.text;
+        
         if (generatedText) {
             res.json({ html_critique: generatedText });
         } else {
-            console.error("Gemini a échoué à générer le contenu:", result);
-            res.status(500).json({ error: "L'IA n'a pas pu générer de réponse. La clé API est-elle valide ou le contenu est-il bloqué ?" });
+            const finishReason = candidate?.finishReason || 'UNKNOWN';
+            let errorMessage = "L'IA n'a pas pu générer de réponse. ";
+
+            if (finishReason === 'SAFETY') {
+                errorMessage += `La réponse a été bloquée par les filtres de sécurité de l'IA. Essayez une requête moins sensible.`;
+            } else {
+                 errorMessage += `Raison d'échec: ${finishReason}. La clé API est-elle valide ?`;
+            }
+            
+            console.error("Gemini a échoué à générer le contenu:", result); 
+            res.status(500).json({ error: errorMessage });
         }
     } catch(e) { 
         console.error("Erreur Gemini/Critique:", e);
-        res.status(500).json({ error: `Erreur interne de l'IA: ${e.message}` });
+        res.status(500).json({ error: `Erreur interne de l'IA: ${e.message}. (API Key?)` });
     }
 });
 
@@ -199,21 +209,28 @@ app.post('/mini_assistant', async (req, res) => {
     if (!q) return res.status(400).json({ error: "Question manquante." });
 
     try {
-        const prompt = `Tu es un assistant personnel pour streamer Twitch. Réponds à cette question de manière courte, motivante et stratégique : "${q}". Réponds en français. Utilise du HTML simple (p, strong, ul, li) pour la mise en forme.`;
+        const prompt = `Tu es un assistant personnel pour streamer Twitch. Réponds à cette question de manière courte, motivante et stratégique : "${q}". Réponds en français. Utilise du HTML simple (p, strong, ul, li) pour la mise en forme. NE RÉPONDS PAS SI LE CONTENU EST CONTROVERSÉ.`;
         
         const result = await ai.models.generateContent({
             model: GEMINI_MODEL,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
         });
 
-        // 🚨 CORRECTION CRITIQUE: Vérifier si result.response et result.response.text sont présents
-        const generatedText = result?.response?.text ? result.response.text() : null;
+        // 🚨 FIX MAJEUR: Accéder directement au texte du candidat
+        const candidate = result.candidates?.[0];
+        const generatedText = candidate?.content?.parts?.[0]?.text;
 
         if (generatedText) {
             res.json({ answer: generatedText });
         } else {
-            console.error("Gemini a échoué à générer le contenu:", result);
-            res.status(500).json({ answer: "<p style='color:red;'>Désolé, l'Assistant a rencontré une erreur ou n'a pas pu répondre. (Clé API?)</p>" });
+            const finishReason = candidate?.finishReason || 'UNKNOWN';
+            let errorMessage = "Désolé, l'Assistant a rencontré une erreur ou n'a pas pu répondre. ";
+            if (finishReason === 'SAFETY') {
+                errorMessage = "Le message a été bloqué par les filtres de sécurité.";
+            }
+            
+            console.error("Erreur Assistant:", result);
+            res.status(500).json({ answer: `<p style='color:red;'>${errorMessage}</p>` });
         }
     } catch(e) {
         console.error("Erreur Assistant:", e);
@@ -241,4 +258,5 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.htm
 app.get('/NicheOptimizer.html', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
 
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
+
 
