@@ -22,8 +22,38 @@
         .action-input{width:100%;padding:10px;border-radius:6px;border:1px solid var(--color-border-medium);background:var(--color-bg-dark);color:#fff}
         .btn-primary{background:var(--color-primary-pink);color:#fff;border:0;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:600;text-transform:uppercase}
         .ai-result-box{background:#0a0a0a;border:1px solid var(--color-border-dark);border-radius:6px;padding:15px;margin-top:12px;color:#fff}
+        
+        /* Styles de base pour le contenu IA et Scan */
         .ai-result-box p{margin-bottom:10px;line-height:1.55;font-size:13px}
-        .ai-result-box h4{font-family:'Orbitron',sans-serif;font-size:15px;margin-top:8px;margin-bottom:8px;color:var(--color-secondary-blue);padding-bottom:4px;border-bottom:1px solid var(--color-border-medium)}
+        .ai-result-box h4{font-family:'Orbitron',sans-serif;font-size:15px;margin-top:8px;margin-bottom:12px;color:var(--color-secondary-blue);padding-bottom:4px;border-bottom:1px solid var(--color-border-medium)}
+        
+        /* Styles améliorés pour les listes IA et Scan */
+        .ai-result-box ul {
+            list-style-type: none; 
+            padding-left: 0;
+            margin-top: 15px;
+            margin-bottom: 0;
+        }
+        .ai-result-box li {
+            background: var(--color-bg-dark); 
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border-left: 3px solid var(--color-primary-pink); /* Couleur par défaut */
+            font-size: 13.5px;
+            line-height: 1.4;
+            transition: transform 0.1s;
+        }
+        .ai-result-box li:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Accentuation des couleurs par type d'analyse */
+        #scan-result li { border-left-color: var(--color-secondary-blue); }
+        #niche-results li { border-left-color: var(--color-ai-niche); }
+        #repurpose-results li { border-left-color: var(--color-ai-repurpose); }
+        #trend-results li { border-left-color: var(--color-ai-growth); }
+
         .assistant-btn{position:fixed;right:20px;bottom:20px;background:var(--color-secondary-blue);color:#00161d;border-radius:999px;padding:12px 16px;box-shadow:0 6px 18px rgba(34,199,239,.18);font-weight:700;cursor:pointer;border:none}
         .assistant-panel{position:fixed;right:20px;bottom:80px;width:360px;max-height:70vh;background:var(--color-bg-medium);border:1px solid var(--color-border-dark);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
         .assistant-header{padding:12px 14px;font-weight:700;background:linear-gradient(90deg,#0b6a7a, #0d2b5b);font-family:'Orbitron',sans-serif}
@@ -38,17 +68,17 @@
         .small-muted{font-size:11px;color:var(--color-text-dimmed)}
         @media (max-width:768px){.assistant-panel{right:10px;left:10px;width:auto}}
 
-        /* 🚀 CORRECTION : Styles pour les streams suivis */
+        /* Styles pour les streams suivis */
         #followed-streams-list {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 200px min width for items */
-            gap: 15px; /* Spacing between items */
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
         }
         .followed-stream-item {
             cursor: pointer;
             padding: 10px;
             border-radius: 8px;
-            background: #111; /* Slightly darker background for the item */
+            background: #111; 
             transition: background 0.2s;
         }
         .followed-stream-item:hover {
@@ -57,7 +87,7 @@
         }
         .followed-stream-item img {
             width: 100%;
-            height: auto; /* IMPORTANT: Maintain aspect ratio */
+            height: auto; 
             border-radius: 4px;
             margin-bottom: 8px;
         }
@@ -156,19 +186,15 @@
     // --- Helper: robust response parser to avoid "Format de réponse API inattendu." ---
     async function parseApiResponse(res){
         const contentType = res.headers.get('content-type') || '';
-        // Prefer JSON when declared
         if(contentType.includes('application/json')){
             try{return {type:'json', data: await res.json()}}catch(err){return {type:'text', data: await res.text()}}
         }
-        // If HTML or XML
         if(contentType.includes('text/html') || contentType.includes('application/xhtml+xml')){
             const text = await res.text();
             return {type:'html', data: text};
         }
-        // fallback: try to read as text and parse JSON if possible
         const text = await res.text();
         try{const parsed = JSON.parse(text);return {type:'json', data: parsed}}catch(e){
-            // detect if looks like HTML (starts with <) -> treat as html
             if(text.trim().startsWith('<')) return {type:'html', data: text};
             return {type:'text', data: text};
         }
@@ -176,7 +202,6 @@
 
     // --- Renderer helpers ---
     function safeSetHtml(container, html){
-        // IMPORTANT: only use if you trust your backend. This function keeps minimal sanitization: remove <script>
         const cleaned = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
         container.innerHTML = cleaned;
     }
@@ -185,25 +210,18 @@
         container.style.display = 'block';
         if(!payload){container.innerHTML = '<p class="small-muted">Aucune donnée reçue.</p>';return}
         if(typeof payload === 'string'){
-            // if looks like HTML
             if(payload.trim().startsWith('<')){safeSetHtml(container, payload);return}
             container.textContent = payload;return
         }
         if(typeof payload === 'object'){
-            // common keys we accept: html_results, html_critique, error, message, details
+            // L'API est censée renvoyer de l'HTML pour les scans et critiques IA via ces clés
             if(payload.html_results) {safeSetHtml(container, payload.html_results);return}
             if(payload.html_critique) {safeSetHtml(container, payload.html_critique);return}
             if(payload.html) {safeSetHtml(container, payload.html);return}
-            if(payload.error) {container.innerHTML = `<p style="color:#ff6b6b;font-weight:700">Erreur: ${payload.error}</p>`;return}
+            if(payload.error) {container.innerHTML = `<p style="color:#ff6b6b;font-weight:700">❌ Erreur: ${payload.error}</p>`;return}
             if(payload.message) {container.textContent = payload.message;return}
             
-            // 🚨 CORRECTION DU SCAN : Afficher l'objet JSON formaté pour le scan non-HTML
-            if(payload.type === 'Game' || payload.type === 'Streamer' || payload.type === 'none'){
-                container.innerHTML = '<pre style="white-space:pre-wrap;font-size:13px;color:var(--color-text-dimmed)">'+escapeHtml(JSON.stringify(payload,null,2))+'</pre>';
-                return;
-            }
-
-            // if it's an array or generic object, pretty-print it
+            // Si c'est un JSON générique (et non un HTML formaté)
             container.innerHTML = '<pre style="white-space:pre-wrap;font-size:13px;color:var(--color-text-dimmed)">'+escapeHtml(JSON.stringify(payload,null,2))+'</pre>'
         }
     }
@@ -218,24 +236,26 @@
             if(res.ok){
                 const parsed = await parseApiResponse(res);
                 if(parsed.type === 'json'){
-                    renderAiBox(container, parsed.data);
+                    // Reste ici si c'est un JSON, même si on s'attend à de l'HTML via html_results. renderAiBox gérera.
+                    renderAiBox(container, parsed.data); 
                 } else if(parsed.type === 'html'){
                     safeSetHtml(container, parsed.data);
                 } else {
-                    // text
                     renderAiBox(container, parsed.data);
                 }
             } else {
-                // specific 404 message
                 if(res.status===404){container.innerHTML = `<p style="color:#ff6b6b;font-weight:700">❌ Erreur 404: Le service ${endpoint} est introuvable. Vérifiez le backend.</p>`}else{
-                    container.innerHTML = `<p style="color:#ff6b6b;font-weight:700">Erreur API: statut ${res.status}</p>`
+                    // Tente de récupérer l'erreur JSON détaillée
+                    const errorData = await parseApiResponse(res);
+                    const errorMessage = errorData.type === 'json' && errorData.data.error ? errorData.data.error : `Statut ${res.status} (détails non fournis)`;
+                    container.innerHTML = `<p style="color:#ff6b6b;font-weight:700">❌ Erreur API: ${errorMessage}</p>`
                 }
             }
         }catch(e){container.innerHTML = `<p style="color:#ff6b6b">Erreur de connexion: ${e.message}</p>`}
     }
 
     // Scan cible
-    document.getElementById('form-target').addEventListener('submit',async e=>{e.preventDefault();const target=document.getElementById('input-target').value.trim();const resultBox=document.getElementById('scan-result');const placeholder=document.getElementById('scan-result-placeholder');const wrapper=document.getElementById('scan-result-wrapper');const btn=document.getElementById('btn-target');if(!target){placeholder.textContent='Veuillez entrer un Jeu ou un Pseudo.';return}placeholder.style.display='none';resultBox.style.display='block';btn.disabled=true;await postAndRender('/scan_target',{target},resultBox,`🚀 Scan de la cible pour ${target} en cours...`);btn.disabled=false})
+    document.getElementById('form-target').addEventListener('submit',async e=>{e.preventDefault();const target=document.getElementById('input-target').value.trim();const resultBox=document.getElementById('scan-result');const placeholder=document.getElementById('scan-result-placeholder');const btn=document.getElementById('btn-target');if(!target){placeholder.textContent='Veuillez entrer un Jeu ou un Pseudo.';return}placeholder.style.display='none';resultBox.style.display='block';btn.disabled=true;await postAndRender('/scan_target',{target},resultBox,`🚀 Scan de la cible pour ${target} en cours...`);btn.disabled=false})
 
     // Niche
     document.getElementById('form-niche-analysis').addEventListener('submit',async e=>{e.preventDefault();const game=document.getElementById('input-niche-game').value.trim();const resultBox=document.getElementById('niche-results');const container=document.getElementById('niche-result-container');const btn=document.getElementById('btn-niche-analyse');if(!game)return;container.style.display='block';btn.disabled=true;await postAndRender('/critique_ia',{game,type:'niche'},resultBox,`✨ Analyse IA de niche pour ${game}...`);btn.disabled=false})
