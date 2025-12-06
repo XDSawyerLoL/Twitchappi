@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.9.2 - Assistant Flottant</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Streamer & Niche AI Hub V6.9.3 - Stable</title>
+    <link href="[https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap](https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap)" rel="stylesheet">
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <style>
         /* --- VARIABLES CSS POUR FACILITER LA MAINTENANCE DES COULEURS --- */
         :root {
@@ -67,29 +67,6 @@
             border: 1px solid var(--color-border-dark);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
-        .player-wrapper h2 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
-            color: var(--color-secondary-blue);
-            margin: 0 0 10px;
-            display: flex;
-            align-items: center;
-        }
-        #player-channel-status {
-            font-size: 12px;
-            color: var(--color-text-dimmed);
-            margin-left: auto;
-            font-weight: normal;
-            font-family: 'Inter', sans-serif;
-        }
-        #twitch-embed {
-            width: 100%;
-            height: 550px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(34, 199, 239, 0.3);
-            overflow: hidden;
-        }
-
         /* Inputs & Boutons Génériques */
         .action-input {
             width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium);
@@ -100,17 +77,15 @@
             cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px;
             box-shadow: 0 0 6px rgba(255,0,153,.4);
         }
-        .btn-primary:hover:not(:disabled) { background: #E6008A; }
         .btn-secondary {
             background: var(--color-secondary-blue); color: var(--color-bg-dark); border: 0; padding: 8px 12px; border-radius: 6px;
             cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px;
             box-shadow: 0 0 6px rgba(34,199,239,.4);
         }
-        .btn-secondary:hover:not(:disabled) { background: #1eafdd; }
         
         /* CONSISTENCE VISUELLE : Style de base pour tous les blocs de résultats (IA, Scan, Boost) */
         .ai-result-box {
-            /* FOND NOIR ASSURÉ POUR ÉVITER LE FOND BLANC */
+            /* FOND NOIR ASSURÉ POUR ÉVITER LE FOND BLANC - Règle principale */
             background-color: var(--color-bg-light) !important;
             border: 1px solid var(--color-border-dark); 
             border-radius: 6px; 
@@ -118,7 +93,17 @@
             margin-top: 15px;
             color: #ffffff; 
         }
-        
+
+        /* CORRECTION FOND BLANC : Assurer que les éléments internes n'ont pas de fond blanc */
+        .ai-result-box > *, 
+        .ai-result-box h4,
+        .ai-result-box p,
+        .ai-result-box ul,
+        .ai-result-box ol,
+        .ai-result-box li {
+            background-color: transparent !important;
+        }
+
         /* Amélioration de la lisibilité du contenu de l'IA */
         .ai-result-box p {
             margin-bottom: 12px;
@@ -130,103 +115,63 @@
             font-size: 16px; 
             margin-top: 20px;
             margin-bottom: 10px;
-            border-bottom: 2px solid var(--color-primary-pink); /* Couleur par défaut */
+            border-bottom: 2px solid var(--color-secondary-blue);
             padding-bottom: 5px;
-            color: var(--color-secondary-blue);
         }
-        .ai-result-box ul, .ai-result-box ol {
-            margin-left: 25px;
-            margin-bottom: 15px; 
-            font-size: 13px;
-            line-height: 1.5;
-            list-style-type: disc; 
+        /* Couleurs d'accentuation des résultats AI */
+        #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
+        #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
+        #trend-results h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
+        #title-critique-results h4 { color: var(--color-primary-pink); border-color: var(--color-primary-pink); }
+        
+        /* --- CORRECTION MINIATURES LIVE (Grid Layout) --- */
+        #followed-streams-list {
+            display: grid; /* Utilisation de CSS Grid */
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* 280px min pour les tuiles */
+            gap: 15px; 
+            padding: 0; 
+            margin: 0;
+            list-style: none; /* Enlève les puces s'il y en avait */
         }
-        .ai-result-box ol {
-            list-style-type: decimal;
-        }
-        .ai-result-box li {
-            margin-bottom: 8px; 
-        }
-
-        /* Styles d'onglets et de connexion */
-        .flex-tabs {
-            overflow-x: auto;
-            white-space: nowrap;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        .flex-tabs::-webkit-scrollbar {
-            display: none;
-        }
-
-        .tab-btn {
-            font-family: 'Orbitron', sans-serif;
-            padding: 12px 15px;
-            background: var(--color-bg-light);
-            border: 1px solid var(--color-border-medium);
-            border-bottom: none;
-            color: var(--color-text-dimmed);
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.2s;
-            flex: 1;
-            text-align: center;
-            font-size: 12px;
-            white-space: nowrap;
-        }
-        .tab-btn.active {
-            background: var(--color-bg-medium);
-            color: #fff;
-            border-top: 3px solid var(--color-primary-pink);
-            font-weight: bold;
-        }
-        .tab-content {
-            display: none;
-            background: var(--color-bg-medium);
+        .followed-stream-item {
+            display: flex; 
+            flex-direction: column; 
+            padding: 10px;
+            background: var(--color-bg-light); 
+            border-radius: 8px; 
             border: 1px solid var(--color-border-dark);
-            border-top: none;
-            border-radius: 0 0 10px 10px;
-            padding: 20px;
+            cursor: pointer; 
+            transition: all 0.2s; 
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            /* Resetting width/min-width for grid to manage */
+            width: auto; 
+            min-width: unset;
         }
-        .tab-content.active {
-            display: block;
+        .streamer-avatar {
+            width: 100%; aspect-ratio: 16 / 9; border-radius: 4px; border: 1px solid var(--color-primary-pink); 
+            object-fit: cover; flex-shrink: 0;
         }
-        .tab-heading {
-             font-family:'Orbitron',sans-serif; 
-             margin-bottom:15px; 
-             font-size:16px;
+        .stream-details {
+            padding-top: 8px;
         }
-        .login-box {
-            padding:15px; 
-            background:var(--color-bg-light); 
-            border-radius:8px; 
-            margin-bottom:20px; 
-            border: 1px solid #444;
-        }
-
-        /* Styles de Partage Social */
-        .social-share-btn {
-            background: var(--color-bg-dark);
+        .stream-name {
+            font-weight: bold;
             color: #fff;
-            border: 1px solid var(--color-border-medium);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            text-transform: uppercase;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .social-share-btn.twitter { color: #1DA1F2; border-color: #1DA1F2; }
-        .social-share-btn.facebook { color: #1877F2; border-color: #1877F2; }
-        .social-share-btn.reddit { color: #FF4500; border-color: #FF4500; }
-        .social-share-btn.tiktok { color: #00F2EA; border-color: #00F2EA; }
+        .stream-meta {
+            font-size: 11px;
+            color: var(--color-text-dimmed);
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+        }
 
-        /* --- STYLES DE L'ASSISTANT FLOTTANT (CHATBOT) --- */
 
-        /* 1. Bulle de Chat (Bouton Flottant) */
+        /* Styles Chatbot Flottant */
         #floating-ai-button {
             position: fixed;
             bottom: 20px;
@@ -246,12 +191,6 @@
             z-index: 1000;
             border: 3px solid #fff;
         }
-        #floating-ai-button:hover {
-            background-color: #1eafdd;
-            transform: scale(1.05);
-        }
-
-        /* 2. Fenêtre de Chat Modale */
         #ai-chat-window {
             position: fixed;
             bottom: 90px;
@@ -263,38 +202,13 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
             border: 1px solid var(--color-secondary-blue);
             z-index: 999;
-            display: none; /* Caché par défaut */
+            display: none; 
             flex-direction: column;
             overflow: hidden;
-            font-family: 'Inter', sans-serif;
         }
-        
         #ai-chat-window.active {
             display: flex;
         }
-
-        /* En-tête du Chat */
-        #chat-header {
-            padding: 15px;
-            background-color: var(--color-secondary-blue);
-            color: var(--color-bg-dark);
-            font-weight: 700;
-            font-family: 'Orbitron', sans-serif;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-            border-bottom: 2px solid #fff;
-        }
-        #chat-close-btn {
-            background: none;
-            border: none;
-            font-size: 20px;
-            color: var(--color-bg-dark);
-            cursor: pointer;
-        }
-
-        /* Zone d'Affichage des Messages */
         #chat-messages {
             flex-grow: 1;
             padding: 15px;
@@ -304,8 +218,6 @@
             flex-direction: column;
             gap: 10px;
         }
-        
-        /* Styles des Messages */
         .chat-message {
             max-width: 85%;
             padding: 10px 12px;
@@ -327,50 +239,8 @@
             border-bottom-left-radius: 2px;
         }
         
-        /* Formulaire d'Envoi */
-        #chat-input-form {
-            display: flex;
-            padding: 10px;
-            background-color: var(--color-bg-medium);
-            border-top: 1px solid var(--color-border-medium);
-            flex-shrink: 0;
-        }
-        #chat-input-field {
-            flex-grow: 1;
-            padding: 10px;
-            border-radius: 20px;
-            border: 1px solid var(--color-border-medium);
-            background: var(--color-bg-dark);
-            color: #fff;
-            margin-right: 10px;
-            font-size: 14px;
-        }
-        #chat-send-btn {
-            background: var(--color-secondary-blue);
-            color: var(--color-bg-dark);
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
         /* Responsive */
         @media (max-width: 768px) {
-            .followed-stream-item {
-                width: 100%; 
-                min-width: unset;
-            }
-            #twitch-embed { height: 350px; } 
-            .tab-btn { flex-basis: 50%; max-width: 50%; }
-            #social-share-container { flex-wrap: wrap; }
-            .social-share-btn { width: calc(50% - 6px); justify-content: center; }
-
-            /* Mobile Chatbot */
             #ai-chat-window {
                 width: 100%;
                 height: 80%;
@@ -378,17 +248,13 @@
                 right: 0;
                 border-radius: 12px 12px 0 0;
             }
-            #floating-ai-button {
-                bottom: 10px;
-                right: 10px;
-            }
         }
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.2</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.3</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -426,7 +292,7 @@
             <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">🚀 REPURPOSING</button>
             <button class="tab-btn" data-tab-id="tab-growth" onclick="openTab('tab-growth')">💰 CROISSANCE</button>
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
-            </div>
+        </div>
 
         <div id="tab-followed" class="tab-content">
             <h3 class="tab-heading text-pink">
@@ -579,7 +445,7 @@
     </form>
 </div>
 
-<script src="https://embed.twitch.tv/embed/v1.js"></script>
+<script src="[https://embed.twitch.tv/embed/v1.js](https://embed.twitch.tv/embed/v1.js)"></script>
 <script>
     // --- Configuration Globale ---
     const API_BASE = window.location.origin;
@@ -691,14 +557,13 @@
         }
     }
 
-    // --- Authentification Twitch et Fil Suivi (Logique inchangée) ---
+    // --- Authentification Twitch et Fil Suivi ---
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
     let twitchUserConnected = false; 
     
     async function checkAuth() {
-        // ... (Logique checkAuth inchangée) ...
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
             if(res.ok) {
@@ -740,7 +605,6 @@
     });
 
     async function loadFollowedStreams() {
-        // ... (Logique loadFollowedStreams inchangée) ...
         if(!twitchUserConnected) {
             followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
             return;
@@ -762,7 +626,7 @@
                         
                         const imageUrl = stream.thumbnail_url 
                                         ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') 
-                                        : stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
+                                        : stream.profile_image_url || '[https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png](https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png)'; 
 
                         div.innerHTML = `
                             <img src="${imageUrl}" alt="Preview de ${stream.user_name}" class="streamer-avatar">
@@ -796,7 +660,7 @@
     // --- GESTION DES FORMULAIRES DE RECHERCHE & IA (Logique inchangée) ---
     // =========================================================
     
-    // 1. Scan Target (SCAN & RESULTATS)
+    // Scan Target
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const query = document.getElementById('input-target').value.trim();
@@ -874,7 +738,7 @@
         }
     });
 
-    // 2. Niche Analysis (OPTIMISATION NICHE)
+    // Niche Analysis
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const query = document.getElementById('input-niche-game').value.trim();
@@ -910,7 +774,7 @@
         }
     });
 
-    // 3. Repurposing (REPURPOSING)
+    // Repurposing
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -943,7 +807,7 @@
         }
     });
 
-    // 4. Trend Detector (CROISSANCE)
+    // Trend Detector
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const btn = document.getElementById('btn-trend-detector');
@@ -972,7 +836,7 @@
         }
     });
 
-    // 5. Stream Boost (BOOST)
+    // Stream Boost
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim();
@@ -1008,7 +872,7 @@
         }
     });
 
-    // 6. Title Critique (CROISSANCE)
+    // Title Critique
     document.getElementById('form-title-critique').addEventListener('submit', async (e) => {
         e.preventDefault();
         const title = document.getElementById('input-title-critique').value.trim();
@@ -1043,7 +907,7 @@
 
 
     // =========================================================
-    // --- NOUVEAU: LOGIQUE CHATBOT FLOTTANT ---
+    // --- LOGIQUE CHATBOT FLOTTANT ---
     // =========================================================
 
     const floatingButton = document.getElementById('floating-ai-button');
@@ -1058,7 +922,6 @@
     floatingButton.addEventListener('click', () => {
         chatWindow.classList.toggle('active');
         if (chatWindow.classList.contains('active')) {
-            // Fait défiler jusqu'au dernier message
             chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
             chatInputField.focus();
         }
@@ -1112,7 +975,11 @@
             
             let finalResponse = '';
             if (res.ok) {
-                finalResponse = aiResponse.html_response || "Désolé, je n'ai pas pu générer de réponse.";
+                // FIX 1: Strip code fences from the AI response
+                let rawResponse = aiResponse.html_response || "Désolé, je n'ai pas pu générer de réponse.";
+                // Suppression des balises de code Markdown de type ```html, ```json, ou ```
+                rawResponse = rawResponse.replace(/```(html|json)?\n?|```/gi, '').trim(); 
+                finalResponse = rawResponse;
             } else {
                 finalResponse = `<span style="color:var(--color-primary-pink);">❌ Erreur: ${aiResponse.error || "Problème de connexion à l'IA."}</span>`;
             }
