@@ -6,7 +6,6 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// Assurez-vous d'avoir installé cette dépendance : npm install @google/genai
 const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
@@ -25,7 +24,7 @@ const GEMINI_MODEL = "gemini-2.5-flash";
 
 let ai = null;
 if (GEMINI_API_KEY) {
-    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
+    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
 } else {
     console.error("FATAL DEBUG: GEMINI_API_KEY non trouvée. L'IA sera désactivée.");
@@ -60,7 +59,7 @@ app.use(cors({
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); 
+app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (y compris le CSS/JS si dans le même dossier)
 
 // =========================================================
 // --- FONCTIONS UTILITAIRES TWITCH API ---
@@ -144,6 +143,7 @@ async function fetchFollowedStreams(userId, userAccessToken) {
     }
 }
 
+
 /**
  * Récupère les détails d'un jeu par son nom.
  */
@@ -223,52 +223,6 @@ async function fetchUserDetailsForScan(query, token) {
         return null;
     }
 }
-
-/**
- * Récupère les détails de la dernière VOD d'un streamer.
- */
-async function fetchLatestVOD(channelLogin, token) {
-    // 1. Trouver l'ID de l'utilisateur
-    const userUrl = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(channelLogin)}`;
-    const HEADERS = {
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`
-    };
-
-    const userResponse = await fetch(userUrl, { headers: HEADERS });
-    const userData = await userResponse.json();
-
-    if (!userData.data || userData.data.length === 0) {
-        throw new Error(`Utilisateur Twitch non trouvé: ${channelLogin}`);
-    }
-
-    const userId = userData.data[0].id;
-
-    // 2. Trouver la dernière VOD (type=archive, first=1)
-    const vodUrl = `https://api.twitch.tv/helix/videos?user_id=${userId}&type=archive&first=1`;
-    
-    const vodResponse = await fetch(vodUrl, { headers: HEADERS });
-    const vodData = await vodResponse.json();
-
-    if (!vodResponse.ok) {
-        throw new Error(`Erreur API Twitch VOD: ${vodResponse.status}`);
-    }
-
-    if (vodData.data && vodData.data.length > 0) {
-        const vod = vodData.data[0];
-        const thumbnailUrl = vod.thumbnail_url.replace(/%\{width\}/g, '320').replace(/%\{height\}/g, '180');
-        
-        return {
-            vod_id: vod.id,
-            vod_title: vod.title,
-            vod_url: vod.url,
-            vod_thumbnail: thumbnailUrl
-        };
-    } else {
-        return null;
-    }
-}
-
 
 /**
  * Effectue un scan V/S (Viewers/Streamer) sur les petits streams pour trouver des niches.
@@ -437,6 +391,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
+                // CORRECTION ICI: Redirection explicite vers la page principale
                 res.redirect('/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
@@ -508,44 +463,6 @@ app.get('/followed_streams', async (req, res) => {
         return res.status(500).json({ error: "Échec de la récupération des streams Twitch." });
     }
 });
-
-
-// --- ROUTE POUR RÉCUPÉRER LES DÉTAILS VOD (Utilisée par le Repurposing) ---
-app.post('/get_vod_details', async (req, res) => {
-    const { channel } = req.body;
-    
-    if (!channel || channel.trim() === "") {
-        return res.status(400).json({ error: "Le nom de la chaîne est requis." });
-    }
-
-    try {
-        const token = await getAppAccessToken();
-        if (!token) {
-            return res.status(500).json({ 
-                success: false, 
-                error: "Impossible d'obtenir le jeton d'accès App Twitch." 
-            });
-        }
-
-        const vodDetails = await fetchLatestVOD(channel, token); 
-
-        if (vodDetails) {
-            return res.json({ success: true, ...vodDetails });
-        } else {
-            return res.json({ 
-                success: false, 
-                error: "Aucune VOD récente (archive) trouvée pour cette chaîne. Cela peut être dû aux paramètres de confidentialité, à la suppression ou à la durée de rétention de Twitch."
-            });
-        }
-    } catch (e) {
-        console.error("❌ Erreur critique dans /get_vod_details:", e.message);
-        return res.status(500).json({ 
-            success: false, 
-            error: `Erreur interne du serveur lors de la recherche de VOD: ${e.message}` 
-        });
-    }
-});
-
 
 // --- ROUTE SCAN & RESULTAT ---
 app.post('/scan_target', async (req, res) => {
@@ -623,6 +540,7 @@ app.post('/critique_ia', async (req, res) => {
         }
 
         let iaPrompt = "";
+        let promptData = "";
         let promptTitle = "";
 
         if (type === 'trend') {
@@ -631,7 +549,7 @@ app.post('/critique_ia', async (req, res) => {
             if (!nicheOpportunities || nicheOpportunities.length === 0) {
                 return res.json({ html_critique: `<p style="color:red;">❌ L'analyse n'a trouvé aucune niche fiable (moins de 5 streamers par jeu analysé).</p>` });
             }
-            const promptData = JSON.stringify(nicheOpportunities, null, 2);
+            promptData = JSON.stringify(nicheOpportunities, null, 2);
 
             iaPrompt = `
                 Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer). 
@@ -652,7 +570,7 @@ app.post('/critique_ia', async (req, res) => {
                 viewers: s.viewer_count,
                 title: s.title
             }));
-            const promptData = JSON.stringify(topStreams, null, 2);
+            promptData = JSON.stringify(topStreams, null, 2);
 
             iaPrompt = `
                 Tu es l'IA spécialisée en Niche. Le jeu ciblé est **${query}**. 
@@ -668,18 +586,13 @@ app.post('/critique_ia', async (req, res) => {
             if (!userData) {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
-            
-            const vodDetails = await fetchLatestVOD(query, token).catch(() => null);
-            const vodTitle = vodDetails ? vodDetails.vod_title : "VOD récente introuvable";
-
-
-            const promptData = JSON.stringify({
+            promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
                 dernieresActivites: [
-                    `Dernière VOD: "${vodTitle}"`,
-                    "Le streamer a une forte présence en Just Chatting et jeux compétitifs.",
-                    "Analyser la VOD la plus récente pour trouver des moments de clutch, des fails hilarants, ou des discussions profondes."
+                    "Streaming sur Valorant (3 heures, 1v5 clutch)",
+                    "Streaming sur League of Legends (2 heures, moment drôle avec un bug)",
+                    "Streaming de Just Chatting (1 heure, discussion sur le setup)"
                 ]
             }, null, 2);
 
@@ -688,9 +601,7 @@ app.post('/critique_ia', async (req, res) => {
                 Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}**.
                 Voici l'analyse de ses récentes activités : ${promptData}
                 L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs.
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook) avec un **Point de Clip:** format 00:00:00 (même si la VOD n'est pas scannée, simule un timecode plausible), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
-                
-                IMPORTANT: Dans la partie 2, inclure la mention exacte de timecode comme ceci: **Point de Clip:** 00:25:40 pour que le frontend le détecte.
+                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
             `;
         }
         
@@ -703,24 +614,8 @@ app.post('/critique_ia', async (req, res) => {
             contents: iaPrompt,
         });
 
-        // --- CORRECTION : Nettoyage du formatage Markdown/Code Block ---
-        let cleanedText = result.text.trim();
-        // Supprimer '```html' ou '```' au début
-        if (cleanedText.startsWith('```html')) {
-            cleanedText = cleanedText.substring(7); 
-        } else if (cleanedText.startsWith('```')) {
-             cleanedText = cleanedText.substring(3); 
-        }
-        // Supprimer '```' à la fin
-        if (cleanedText.endsWith('```')) {
-            cleanedText = cleanedText.substring(0, cleanedText.length - 3); 
-        }
-        cleanedText = cleanedText.trim(); 
-        // -----------------------------------------------------------------
-
-
         return res.json({
-            html_critique: `<h4>${promptTitle}</h4>` + cleanedText
+            html_critique: `<h4>${promptTitle}</h4>` + result.text 
         });
 
     } catch (e) {
@@ -794,6 +689,14 @@ app.get('/', (req, res) => {
 // Route explicite pour NicheOptimizer.html (utile si le front y fait référence)
 app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+app.get('/lucky_streamer_picker.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
+});
+
+app.get('/sniper_tool.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
 });
 
 // Lancement du serveur
