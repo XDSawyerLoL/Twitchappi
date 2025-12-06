@@ -1,7 +1,6 @@
 {
   "name": "twitchappi",
   "version": "1.0.0",
-  "description": "Streamer & Niche AI Hub - Optimized",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -20,7 +19,6 @@
     "node": ">=18.0.0"
   }
 }
-
 
 
 
