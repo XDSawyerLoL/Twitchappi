@@ -604,7 +604,7 @@ app.post('/scan_target', async (req, res) => {
 });
 
 
-// --- ROUTE CRITIQUE IA ---
+// --- ROUTE CRITIQUE IA (Mise à jour pour stabilité HTML) ---
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
 
@@ -636,7 +636,8 @@ app.post('/critique_ia', async (req, res) => {
             iaPrompt = `
                 Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer). 
                 Voici le TOP 10 des meilleures opportunités de niches: ${promptData}
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours.
+                Ta réponse doit être en français et formatée en HTML en utilisant uniquement des balises de structure de base (<p>, <strong>, <ul>, <li>). N'utilise AUCUN style CSS ou balise <h1>/<h2>.
+                Réponds en trois parties: 1. Niche Recommandée, 2. Optimisation du Contenu (SEO Twitch), 3. Plan d'Action 7 Jours.
             `;
             
         } else if (type === 'niche') {
@@ -658,7 +659,8 @@ app.post('/critique_ia', async (req, res) => {
                 Tu es l'IA spécialisée en Niche. Le jeu ciblé est **${query}**. 
                 Voici une analyse de ses 10 meilleurs streams actuels : ${promptData}
                 Analyse la concurrence et la saturation du jeu. Propose une niche **spécifique** pour ce jeu (ex: "Jeu en mode Difficile" ou "Builds exclusifs").
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Conclusion Niche (Saturation ?), 2. Proposition de Niche Spécifique, 3. 3 Idées de Titres Uniques pour cette Niche.
+                Ta réponse doit être en français et formatée en HTML en utilisant uniquement des balises de structure de base (<p>, <strong>, <ul>, <li>). N'utilise AUCUN style CSS ou balise <h1>/<h2>.
+                Réponds en trois parties: 1. Conclusion Niche (Saturation ?), 2. Proposition de Niche Spécifique, 3. 3 Idées de Titres Uniques pour cette Niche.
             `;
 
         } else if (type === 'repurpose') {
@@ -688,7 +690,8 @@ app.post('/critique_ia', async (req, res) => {
                 Tu es l'IA spécialisée en Repurposing. Le streamer ciblé est **${query}**.
                 Voici l'analyse de ses récentes activités : ${promptData}
                 L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs.
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook) avec un **Point de Clip:** format 00:00:00 (même si la VOD n'est pas scannée, simule un timecode plausible), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
+                Ta réponse doit être en français et formatée en HTML en utilisant uniquement des balises de structure de base (<p>, <strong>, <ul>, <li>). N'utilise AUCUN style CSS ou balise <h1>/<h2>.
+                Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook) avec un **Point de Clip:** format 00:00:00 (même si la VOD n'est pas scannée, simule un timecode plausible), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
                 
                 IMPORTANT: Dans la partie 2, inclure la mention exacte de timecode comme ceci: **Point de Clip:** 00:25:40 pour que le frontend le détecte.
             `;
@@ -720,6 +723,7 @@ app.post('/critique_ia', async (req, res) => {
 
 
         return res.json({
+            // On conserve l'injection du titre ici.
             html_critique: `<h4>${promptTitle}</h4>` + cleanedText
         });
 
@@ -728,6 +732,60 @@ app.post('/critique_ia', async (req, res) => {
         const statusCode = e.message.includes('non trouvé') ? 404 : 500;
         return res.status(statusCode).json({ 
             error: `Erreur IA: ${e.message}. Vérifiez la clé GEMINI_API_KEY ou la connexion Twitch.`
+        });
+    }
+});
+
+
+// --- NOUVELLE ROUTE MINI-ASSISTANT IA ---
+app.post('/mini_assistant', async (req, res) => {
+    const { q, context } = req.body; 
+
+    if (!q || q.trim() === '') {
+        return res.status(400).json({ error: "La requête (q) est manquante." });
+    }
+
+    try {
+        if (!ai) {
+             return res.status(503).json({ error: "Service d'IA non disponible." });
+        }
+        
+        const iaPrompt = `
+            Tu es 'Streamer Buddy', un assistant IA rapide et sympathique pour les streamers. 
+            Le contexte actuel du streamer est le canal Twitch: "${context}".
+            Réponds de manière concise (max 3-4 phrases ou une liste courte).
+            La réponse doit être en français et formatée en HTML pour l'affichage dans un chatbox. Utilise des balises <p> ou <ul>/<li> pour la mise en forme.
+            ---
+            Question de l'utilisateur: "${q}"
+        `;
+        
+        const result = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: iaPrompt,
+        });
+
+        // Nettoyage du formatage Markdown/Code Block
+        let cleanedText = result.text.trim();
+        if (cleanedText.startsWith('```html')) {
+            cleanedText = cleanedText.substring(7); 
+        } else if (cleanedText.startsWith('```')) {
+             cleanedText = cleanedText.substring(3); 
+        }
+        if (cleanedText.endsWith('```')) {
+            cleanedText = cleanedText.substring(0, cleanedText.length - 3); 
+        }
+        cleanedText = cleanedText.trim(); 
+        
+        // La réponse utilise 'html_response' pour être cohérente avec '/stream_boost'
+        return res.json({
+            success: true,
+            html_response: cleanedText 
+        });
+
+    } catch (e) {
+        console.error(`❌ Erreur critique dans /mini_assistant:`, e.message);
+        return res.status(500).json({ 
+            error: `Erreur IA: ${e.message}.`
         });
     }
 });
@@ -801,3 +859,4 @@ app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
     getAppAccessToken(); 
 });
+
