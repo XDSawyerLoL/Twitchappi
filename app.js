@@ -1,3 +1,7 @@
+// Remplacez tout le contenu de votre app.js par cette version mise à jour,
+// en vous assurant que tout le code des étapes précédentes est conservé.
+// Je réinsère le code complet pour plus de sécurité.
+
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
@@ -33,22 +37,157 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
-// --- Fonctions utilitaires Twitch API (non modifiées) ---
-async function getAppAccessToken() { /* ... */ }
-async function fetchGameDetails(query, token) { /* ... */ }
-async function fetchStreamsForGame(gameId, token) { /* ... */ }
-async function fetchUserDetailsForScan(query, token) { /* ... */ }
+// =========================================================
+// --- FONCTIONS UTILITAIRES TWITCH API (similaires à avant) ---
+// =========================================================
 
-// --- Routes Twitch (inchangées) ---
-app.get('/twitch_auth_start', (req, res) => { /* ... */ });
-app.get('/twitch_auth_callback', async (req, res) => { /* ... */ });
-app.get('/twitch_user_status', async (req, res) => { /* ... */ });
-app.post('/twitch_logout', (req, res) => { /* ... */ });
-app.get('/followed_streams', async (req, res) => { /* ... */ });
-app.post('/scan_target', async (req, res) => { /* ... */ });
+async function getAppAccessToken() {
+    if (CACHE.appAccessToken.token && CACHE.appAccessToken.expiry > Date.now()) return CACHE.appAccessToken.token;
+    try {
+        const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, { method: 'POST' });
+        const d = await r.json();
+        CACHE.appAccessToken.token = d.access_token;
+        CACHE.appAccessToken.expiry = Date.now() + (d.expires_in * 1000) - 300000;
+        return d.access_token;
+    } catch (e) { return null; }
+}
 
+async function fetchGameDetails(query, token) {
+    try {
+        const r = await fetch(`https://api.twitch.tv/helix/games?name=${encodeURIComponent(query)}`, { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` } });
+        const d = await r.json();
+        return d.data?.[0];
+    } catch { return null; }
+}
 
-// --- Routes IA (Critique inchangée, Mini-Assistant corrigé) ---
+async function fetchStreamsForGame(gameId, token) {
+    try {
+        const r = await fetch(`https://api.twitch.tv/helix/streams?game_id=${gameId}&first=10`, { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` } });
+        const d = await r.json();
+        return d.data || [];
+    } catch { return []; }
+}
+
+async function fetchUserDetailsForScan(query, token) {
+    try {
+        const r = await fetch(`https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`, { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` } });
+        const d = await r.json();
+        if (d.data?.length > 0) {
+            const user = d.data[0];
+            const sR = await fetch(`https://api.twitch.tv/helix/streams?user_id=${user.id}`, { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` } });
+            const sD = await sR.json();
+            return {
+                id: user.id, display_name: user.display_name, login: user.login, profile_image_url: user.profile_image_url, description: user.description,
+                is_live: sD.data.length > 0, stream_details: sD.data[0] || null
+            };
+        }
+        return null;
+    } catch { return null; }
+}
+
+// =========================================================
+// --- ROUTES TWITCH (Auth, Status, Logout, Followed) ---
+// =========================================================
+
+app.get('/twitch_auth_start', (req, res) => {
+    const state = crypto.randomBytes(16).toString('hex');
+    res.cookie('twitch_auth_state', state, { httpOnly: true });
+    res.redirect(`https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`);
+});
+
+// 🚨 CORRECTION ICI : Gestion plus robuste du callback et du token exchange
+app.get('/twitch_auth_callback', async (req, res) => {
+    const { code, error, error_description } = req.query;
+
+    if (error) {
+        // Gérer l'erreur si l'utilisateur refuse l'accès
+        console.error(`Twitch Auth Error: ${error_description}`);
+        return res.send(`Erreur d'Autorisation: ${error_description || 'Accès refusé par l\'utilisateur.'}`);
+    }
+
+    try {
+        // Étape 1 : Échanger le code contre l'Access Token
+        const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`, { method: 'POST' });
+        
+        const d = await r.json();
+        
+        if(!d.access_token) {
+            // Si Twitch renvoie un JSON d'erreur (ex: INVALID_CLIENT ou REDIRECT_URI mismatch)
+            console.error("Erreur Token Exchange:", d);
+            return res.send(`Erreur Token (vérifiez les clés): ${d.error_description || d.message || JSON.stringify(d)}`);
+        }
+
+        const accessToken = d.access_token;
+
+        // Étape 2 : Récupérer les informations utilisateur pour l'ID
+        const uR = await fetch('https://api.twitch.tv/helix/users', { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` } });
+        const uD = await uR.json();
+
+        if (uD.data && uD.data.length > 0) {
+            // Étape 3 : Succès, stocker les cookies et rediriger
+            res.cookie('twitch_access_token', accessToken, { httpOnly: true });
+            res.cookie('twitch_user_id', uD.data[0].id, { httpOnly: true });
+            res.redirect('/NicheOptimizer.html');
+        } else {
+            return res.send('Erreur: Impossible de récupérer les détails de l\'utilisateur Twitch.');
+        }
+
+    } catch(e) { 
+        console.error("Erreur fatale dans twitch_auth_callback:", e);
+        res.send(`Erreur technique lors du callback: ${e.message}`); 
+    }
+});
+
+app.get('/twitch_user_status', async (req, res) => {
+    const t = req.cookies.twitch_access_token;
+    if(!t) return res.json({ is_connected: false });
+    const r = await fetch('https://api.twitch.tv/helix/users', { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${t}` } });
+    const d = await r.json();
+    // Le token peut être expiré/révoqué. Si d.data est vide, on force la déconnexion logique.
+    if(d.data && d.data.length > 0) return res.json({ is_connected: true, username: d.data[0].display_name });
+    
+    // Si le token est invalide/expiré, on renvoie déconnecté
+    return res.json({ is_connected: false });
+});
+
+app.post('/twitch_logout', (req, res) => {
+    res.clearCookie('twitch_access_token'); res.clearCookie('twitch_user_id'); res.json({success:true});
+});
+
+app.get('/followed_streams', async (req, res) => {
+    const t = req.cookies.twitch_access_token;
+    const u = req.cookies.twitch_user_id;
+    if(!t || !u) return res.status(401).json({error:"Non connecté"});
+    const r = await fetch(`https://api.twitch.tv/helix/streams/followed?user_id=${u}`, { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${t}` } });
+    const d = await r.json();
+    
+    let streams = d.data || [];
+    if(streams.length === 0) {
+        streams = [
+            { user_name: 'StreamerDemo', viewer_count: 100, game_name: 'Demo Game', thumbnail_url: 'https://placehold.co/320x180/444/fff.png?text=Demo', profile_image_url: 'https://placehold.co/50' }
+        ];
+    }
+    res.json({ data: streams });
+});
+
+app.post('/scan_target', async (req, res) => {
+    const { query } = req.body;
+    const token = await getAppAccessToken();
+    const game = await fetchGameDetails(query, token);
+    if(game) {
+        const streams = await fetchStreamsForGame(game.id, token);
+        const total = streams.reduce((acc, s) => acc + s.viewer_count, 0);
+        res.json({ type: 'game', game_data: { name: game.name, box_art_url: game.box_art_url.replace('-{width}x{height}', '-285x380'), total_viewers: total, total_streamers: streams.length, avg_viewers_per_streamer: (total/streams.length||1).toFixed(1), streams: streams } });
+    } else {
+        const user = await fetchUserDetailsForScan(query, token);
+        if(user) res.json({ type: 'user', user_data: user });
+        else res.json({ type: 'none' });
+    }
+});
+
+// =========================================================
+// --- ROUTES IA (incluant les corrections de robustesse) ---
+// =========================================================
 
 app.post('/critique_ia', async (req, res) => {
     if(!ai) return res.status(503).json({ error: "Service IA indisponible (Clé manquante)." });
@@ -93,17 +232,14 @@ app.post('/critique_ia', async (req, res) => {
     }
 });
 
-// 💡 MODIFICATION: Ajout de 'context' dans la requête et le prompt (Section D)
 app.post('/mini_assistant', async (req, res) => {
     if(!ai) return res.status(503).json({ answer: "<p style='color:red;'>IA indisponible.</p>" });
     
-    // Récupération de la question (q) ET du contexte (context)
     const { q, context } = req.body; 
     if (!q) return res.status(400).json({ answer: "<p style='color:red;'>Question manquante.</p>" });
 
     let contextPrompt = "";
     if (context && context !== 'Twitch') {
-        // Ajoute le contexte au prompt, rendant l'IA plus pertinente
         contextPrompt = ` (Tu es actuellement concentré sur le streamer/jeu : ${context}).`;
     }
 
@@ -146,7 +282,10 @@ app.post('/stream_boost', (req, res) => {
     res.json({ success: true, html_response: `<p style="color:#59d682">✅ <strong>${channel}</strong> est boosté sur le réseau ! (Priorité max pendant 15 min)</p>` });
 });
 
-// --- Routes Statiques (inchangées) ---
+// =========================================================
+// --- ROUTES STATIQUES ---
+// =========================================================
+
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
 app.get('/NicheOptimizer.html', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
 
