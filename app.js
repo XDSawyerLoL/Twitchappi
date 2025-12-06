@@ -33,7 +33,7 @@ if (GEMINI_API_KEY) {
 
 // =========================================================
 // --- CACHING STRATÉGIQUE ---
-// =========================================
+// =========================================================
 
 const BOOST_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 heures
 
@@ -60,7 +60,7 @@ app.use(cors({
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); 
+app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (y compris le CSS/JS si dans le même dossier)
 
 // =========================================================
 // --- FONCTIONS UTILITAIRES TWITCH API ---
@@ -331,6 +331,7 @@ async function fetchNicheOpportunities(token) {
 
 // Middleware pour vérifier la clé Gemini avant les routes IA
 app.use((req, res, next) => {
+    // Ajout de /mini_assistant à la vérification
     if ((req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/mini_assistant')) && !ai) {
         return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
     }
@@ -525,9 +526,10 @@ app.post('/scan_target', async (req, res) => {
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
 
-    // FIX: Ajout de 'title_critique' aux types valides
-    if (!['trend', 'niche', 'repurpose', 'title_critique'].includes(type)) {
-        return res.status(400).json({ error: "Type de critique IA non supporté. Types valides : trend, niche, repurpose, title_critique." });
+    // NOTE: Si vous utilisez la fonctionnalité de critique de titre, 
+    // vous devez ajouter 'title_critique' ici et son bloc 'else if'
+    if (!['trend', 'niche', 'repurpose'].includes(type)) {
+        return res.status(400).json({ error: "Type de critique IA non supporté. Types valides : trend, niche, repurpose." });
     }
 
     if (type !== 'trend' && (!query || query.trim() === '')) {
@@ -583,35 +585,19 @@ app.post('/critique_ia', async (req, res) => {
         } else if (type === 'repurpose') {
             promptTitle = `Analyse de Repurposing pour le Streamer: ${query}`;
             
-            // NOTE: Assumer l'existence d'une fonction fetchUserVods qui renverrait des données réelles
-            // Utiliser un mock pour la démonstration sans VOD API réelle
-            const vodData = {
-                Streamer: query,
-                description: "Description de mock",
+            const userData = await fetchUserDetailsForScan(query, token);
+            if (!userData) {
+                 return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
+            }
+            promptData = JSON.stringify({
+                Streamer: userData.display_name,
+                description: userData.description,
                 dernieresActivites: [
                     "Streaming sur Valorant (3 heures, 1v5 clutch)",
                     "Streaming sur League of Legends (2 heures, moment drôle avec un bug)",
                     "Streaming de Just Chatting (1 heure, discussion sur le setup)"
                 ]
-            };
-            // Si l'API réelle renvoie une erreur ou un tableau vide de VODs
-            // C'est ici que vous inséreriez la vérification réelle des VODs
-            const vodsFound = true; // Remplacer par la logique réelle de vérification des VODs
-
-            if (!vodsFound) {
-                return res.json({
-                    html_critique: `<h4>${promptTitle}</h4>
-                                    <p style="color:var(--color-primary-pink); font-weight:bold;">
-                                        ❌ Aucune VOD récente (moins de 14 jours) n'a été trouvée pour ce streamer.
-                                    </p>
-                                    <p>
-                                        Le Repurposing nécessite au moins une VOD récente. Veuillez vérifier le nom de la chaîne ou la politique de sauvegarde des VOD.
-                                    </p>`,
-                    vod_found: false
-                });
-            }
-            
-            promptData = JSON.stringify(vodData, null, 2);
+            }, null, 2);
 
 
             iaPrompt = `
@@ -620,17 +606,6 @@ app.post('/critique_ia', async (req, res) => {
                 L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs.
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
             `;
-            
-        } else if (type === 'title_critique') { // NOUVELLE FONCTIONNALITÉ: Critique de Titre
-            if (!query) {
-                return res.status(400).json({ error: "Le titre à analyser est manquant." });
-            }
-            promptTitle = `Critique et Optimisation de Titre de Stream: "${query}"`;
-            iaPrompt = `Tu es l'IA experte en SEO Twitch et en accroche marketing. Tu dois analyser et optimiser un titre de stream. Le titre soumis est: "${query}". Ton analyse doit être constructive et hyper-spécifique pour augmenter le taux de clics (CTR) et le SEO sur Twitch.
-            Ta réponse doit être en français et formatée en HTML. Réponds en trois parties :
-            1. Note SEO et Attractivité (sur 10), avec justification.
-            2. Proposition d'Optimisation (version courte et version longue).
-            3. Suggestion de Tagline ou d'Émoji pour maximiser l'impact.`;
         }
         
         if (!ai) {
@@ -658,30 +633,34 @@ app.post('/critique_ia', async (req, res) => {
 
 // --- ROUTE MINI-ASSISTANT IA ---
 app.post('/mini_assistant', async (req, res) => {
-    const { message } = req.body; 
-    
-    if (!ai) {
-        return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
-    }
-    
-    if (!message || message.trim() === "") {
-        return res.status(400).json({ error: "Le message de l'assistant est vide." });
-    }
+    // CORRECTION APPLIQUÉE : Récupération de 'q' et 'context' au lieu de 'message'
+    const { q, context } = req.body; 
+   
+    if (!ai) {
+        return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
+    }
+   
+    if (!q || q.trim() === "") {
+        return res.status(400).json({ error: "Le message de l'assistant est vide (champ 'q' manquant)." });
+    }
 
-    const iaPrompt = `Tu es un mini-assistant virtuel expert en streaming Twitch. Ton rôle est de fournir des réponses courtes, directes et actionnables aux questions des streamers concernant les stratégies, le matériel, le SEO ou l'engagement sur Twitch. Réponds au message de l'utilisateur : "${message}"
-    Ta réponse doit être en français et formatée en HTML. Utilise des listes ou des paragraphes courts.`;
+    // Ajout du contexte à l'invite pour des réponses plus pertinentes
+    const contextInfo = context ? `Tu réponds dans le contexte actuel de la chaîne/jeu : **${context}**. ` : '';
 
-    try {
-        const result = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            contents: iaPrompt,
-        });
+    const iaPrompt = `Tu es un mini-assistant virtuel expert en streaming Twitch. ${contextInfo}Ton rôle est de fournir des réponses courtes, directes et actionnables aux questions des streamers concernant les stratégies, le matériel, le SEO ou l'engagement sur Twitch. Réponds au message de l'utilisateur : "${q}"
+    Ta réponse doit être en français et formatée en HTML. Utilise des listes ou des paragraphes courts.`;
 
-        return res.json({ html_response: result.text });
-    } catch (e) {
-        console.error("❌ Erreur critique dans /mini_assistant:", e.message);
-        return res.status(500).json({ error: `Erreur IA: ${e.message}.` });
-    }
+    try {
+        const result = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: iaPrompt,
+        });
+
+        return res.json({ html_response: result.text });
+    } catch (e) {
+        console.error("❌ Erreur critique dans /mini_assistant:", e.message);
+        return res.status(500).json({ error: `Erreur IA: ${e.message}.` });
+    }
 });
 
 // --- ROUTE STREAM BOOST (avec Cooldown) ---
@@ -747,9 +726,18 @@ app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
+app.get('/lucky_streamer_picker.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
+});
+
+app.get('/sniper_tool.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
+});
+
 // Lancement du serveur
 app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
     getAppAccessToken(); 
 });
+
 
