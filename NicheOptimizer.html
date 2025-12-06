@@ -300,6 +300,14 @@
         document.getElementById('btn-niche-analyse').click();
     }
 
+    function hmsToSeconds(hms) {
+        const parts = hms.split(':').map(p => parseInt(p, 10));
+        if (parts.length === 3) {
+            return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        }
+        return 0; 
+    }
+    
     // 💡 MODIFICATION MAJEURE : launchPlayer peut maintenant cibler une VOD à un temps précis
     function launchPlayer(channelName, videoId = null, timeStartSeconds = 0) {
         // Redirige toujours vers l'onglet Lecteur
@@ -335,7 +343,8 @@
             const h = Math.floor(totalSeconds / 3600);
             const m = Math.floor((totalSeconds % 3600) / 60);
             const s = totalSeconds % 60;
-            config.time = `${h}h${m}m${s}s`;
+            // Format time pour Twitch (ex: 1h30m5s)
+            config.time = `${h}h${m}m${s}s`; 
             statusText = `VOD: ${channelName.toUpperCase()} à ${h}h${m}m${s}s`;
         } else if (videoId) {
             statusText = `VOD: ${channelName.toUpperCase()}`;
@@ -356,23 +365,218 @@
         if(channel) launchPlayer(channel);
     });
 
-    // ... (Code checkAuth, btnLogin, loadFollowedStreams, form-target, form-niche-analysis inchangé)
+    // --- Authentification Twitch et Fil Suivi ---
+    const btnLogin = document.getElementById('btn-twitch-login');
+    const loginStatus = document.getElementById('login-status');
+    const followedStreamsList = document.getElementById('followed-streams-list');
+    let twitchUserConnected = false; 
 
-    // --- Repurposing Handler ---
-    
-    // Fonction utilitaire pour convertir HH:MM:SS en secondes (nécessaire pour Twitch Embed)
-    function hmsToSeconds(hms) {
-        const parts = hms.split(':').map(p => parseInt(p, 10));
-        if (parts.length === 3) {
-            return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    async function checkAuth() {
+        try {
+            const res = await fetch(`${API_BASE}/twitch_user_status`);
+            if(res.ok) {
+                const data = await res.json();
+                if(data.is_connected) {
+                    twitchUserConnected = true;
+                    loginStatus.innerHTML = `✅ Connecté en tant que <strong style="color:var(--color-secondary-blue)">${data.username}</strong>`;
+                    btnLogin.textContent = "🔒 DÉCONNEXION";
+                    btnLogin.style.background = "#e34a64"; 
+                    loadFollowedStreams(); 
+                } else {
+                    twitchUserConnected = false;
+                    loginStatus.textContent = "Statut: Déconnecté.";
+                    btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
+                    btnLogin.style.background = "#6441a5"; 
+                    followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
+                }
+            } else {
+                twitchUserConnected = false;
+                loginStatus.innerHTML = `❌ Erreur API (${res.status}). Veuillez vérifier le serveur backend.`;
+                followedStreamsList.innerHTML = '<p style="color:red; text-align:center;">Erreur de connexion au service Twitch.</p>';
+            }
+        } catch(e) {
+            console.error("Erreur check auth:", e);
+            twitchUserConnected = false;
+            loginStatus.innerHTML = `❌ Erreur technique: ${e.message}.`;
+            followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur API: ${e.message}</p>`;
         }
-        return 0; // Sécurité
     }
-    
-    // Global variable to store the VOD ID for launching the player
-    let currentVODId = null; 
 
-    // 💡 MODIFICATION MAJEURE : Nouvelle logique pour Repurposing (VOD + Timestamps)
+    btnLogin.addEventListener('click', () => {
+        if(twitchUserConnected) {
+            fetch(`${API_BASE}/twitch_logout`, { method: 'POST' }).finally(() => {
+                window.location.reload(); 
+            });
+        } else {
+            window.location.href = `${API_BASE}/twitch_auth_start`;
+        }
+    });
+
+    async function loadFollowedStreams() {
+         if(!twitchUserConnected) {
+            followedStreamsList.innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
+            return;
+        }
+        
+        followedStreamsList.innerHTML = '<p style="text-align:center; color:#555;">Chargement des streams en direct...</p>';
+        
+        try {
+            const res = await fetch(`${API_BASE}/followed_streams`);
+            
+            if(res.ok) {
+                const data = await res.json();
+                
+                if(data.data && data.data.length > 0) {
+                    followedStreamsList.innerHTML = ''; 
+                    data.data.forEach(stream => {
+                        const div = document.createElement('div');
+                        div.className = 'followed-stream-item';
+                        
+                        const imageUrl = stream.thumbnail_url 
+                                        ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') 
+                                        : stream.profile_image_url || '[https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png](https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png)'; 
+
+                        div.innerHTML = `
+                            <img src="${imageUrl}" alt="Preview de ${stream.user_name}" class="streamer-avatar">
+                            <div class="stream-details">
+                                <span class="stream-name" title="${stream.user_name}">${stream.user_name}</span>
+                                <div class="stream-meta">
+                                    <span class="stream-viewers">🔴 ${stream.viewer_count} spectateurs</span>
+                                    <span class="stream-game" title="${stream.game_name}">${stream.game_name}</span>
+                                </div>
+                            </div>
+                        `;
+
+                        div.onclick = () => {
+                            launchPlayer(stream.user_name);
+                        };
+                        followedStreamsList.appendChild(div);
+                    });
+                } else {
+                    followedStreamsList.innerHTML = '<p style="text-align:center;">Aucun stream en direct parmi vos chaînes suivies.</p>';
+                }
+            } else {
+                followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur chargement du fil (Statut: ${res.status}).</p>`;
+            }
+        } catch(e) {
+            followedStreamsList.innerHTML = `<p style="color:red; text-align:center;">Erreur API: ${e.message}</p>`;
+        }
+    }
+
+
+    // --- Logique de Scan Cible ---
+    document.getElementById('form-target').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const target = document.getElementById('input-target').value.trim();
+        const resultBox = document.getElementById('scan-result'); 
+        const btn = document.getElementById('btn-target');
+
+        if (!target) {
+            resultBox.innerHTML = '<p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Veuillez entrer un Jeu ou un Pseudo pour lancer le scan.</p>';
+            return;
+        }
+
+        resultBox.innerHTML = `<p style="text-align:center; color:var(--color-secondary-blue);">🚀 Scan de la cible en cours pour <strong>${target}</strong>... (Appel API réel)</p>`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/scan_target`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: target }) 
+            });
+
+            if(res.ok) {
+                const data = await res.json();
+                
+                let htmlOutput = '';
+
+                if (data.type === 'game' && data.game_data) {
+                    const g = data.game_data;
+                    htmlOutput += `<h4 style="color:var(--color-secondary-blue); border-color:var(--color-secondary-blue);">Analyse de Jeu: ${g.name}</h4>`;
+                    htmlOutput += `<div class="flex items-start gap-4 mb-4">
+                                        <img src="${g.box_art_url}" alt="Box Art" style="width: 80px; border-radius: 4px; border: 1px solid var(--color-secondary-blue);">
+                                        <div class="text-sm">
+                                            <p><strong>Total Streamers LIVE:</strong> ${g.total_streamers}</p>
+                                            <p><strong>Total Spectateurs LIVE:</strong> ${g.total_viewers.toLocaleString('fr-FR')}</p>
+                                            <p><strong>Spectateurs/Streamer (V/S):</strong> <strong style="color:var(--color-ai-niche);">${g.avg_viewers_per_streamer}</strong></p>
+                                        </div>
+                                    </div>`;
+                    htmlOutput += `<h5>Top 10 Streams:</h5><ul>`;
+                    g.streams.forEach(s => {
+                        htmlOutput += `<li><strong>${s.user_name}</strong> - ${s.viewer_count} spectateurs (${s.title.substring(0, 50)}...)</li>`;
+                    });
+                    htmlOutput += `</ul>`;
+                    htmlOutput += `<button onclick="analyzeGameNiche('${g.name}')" class="btn-primary" style="width:100%; background:var(--color-ai-niche); margin-top:10px;">📈 ANALYSER CETTE NICHE (IA)</button>`;
+                } else if (data.type === 'user' && data.user_data) {
+                    const u = data.user_data;
+                    htmlOutput += `<h4 style="color:var(--color-primary-pink); border-color:var(--color-primary-pink);">Analyse de Streamer: ${u.display_name}</h4>`;
+                    htmlOutput += `<div class="flex items-start gap-4 mb-4">
+                                        <img src="${u.profile_image_url}" alt="Avatar" style="width: 80px; border-radius: 50%; border: 2px solid var(--color-primary-pink);">
+                                        <div class="text-sm">
+                                            <p><strong>Statut:</strong> <span style="color:${u.is_live ? 'var(--color-primary-pink)' : 'var(--color-text-dimmed)'};">${u.is_live ? '🔴 EN DIRECT' : 'OFFLINE'}</span></p>
+                                            <p><strong>Description:</strong> ${u.description || 'N/A'}</p>
+                                            ${u.is_live && u.stream_details ? `<p><strong>Jeu Actuel:</strong> ${u.stream_details.game_name}</p><p><strong>Spectateurs:</strong> ${u.stream_details.viewer_count.toLocaleString('fr-FR')}</p>` : ''}
+                                        </div>
+                                    </div>`;
+                    htmlOutput += `<button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%;">Voir le Stream</button>`;
+                } else {
+                    htmlOutput = `<p style="color:var(--color-text-dimmed); text-align:center;">${data.message || 'Aucun résultat trouvé.'}</p>`;
+                }
+
+                resultBox.innerHTML = htmlOutput;
+                
+            } else {
+                let errorMsg = `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`;
+                const data = await res.json();
+                errorMsg = data.error || errorMsg;
+                resultBox.innerHTML = `<p style="color:#e34a64; text-align:center; font-weight: bold;">❌ ${errorMsg}</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:#e34a64; text-align:center;">Erreur de connexion au service de Scan: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+
+    // --- Logique d'interaction IA ---
+    
+    // 1. Analyse de Niche 
+    document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const game = document.getElementById('input-niche-game').value.trim();
+        const resultBox = document.getElementById('niche-results');
+        const btn = document.getElementById('btn-niche-analyse');
+
+        if (!game) return;
+
+        resultBox.innerHTML = `<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour <strong>${game}</strong>... (Appel API réel)</p>`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: game, type: 'niche' }) 
+            });
+
+            if(res.ok) {
+                const data = await res.json();
+                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+            } else {
+                const data = await res.json();
+                resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de l'API IA: ${res.status}. ${data.error || ''}</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de connexion au service IA: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    // 2. Repurposing (Intégration Miniature VOD et Timestamps)
+    let currentVODId = null; 
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -408,7 +612,6 @@
                 document.getElementById('vod-title-display').innerHTML = `<span style="color:red;">❌ ${vodData.error || 'VOD introuvable. Analyse théorique.'}</span>`;
                 document.getElementById('vod-link').href = '#';
                 previewBox.style.display = 'flex';
-                // Laisser currentVODId à null
             }
 
             resultBox.innerHTML = `<p style="color:var(--color-ai-repurpose);">2/2 Analyse IA en cours...</p>`;
@@ -456,10 +659,73 @@
         }
     });
 
-    // ... (Code form-niche-analysis, btn-trend-detector, form-boost, assistant-toggle, assistant-form, DOMContentLoaded inchangé)
-    
-    // ... (Reste du JavaScript)
-    // --- MINI ASSISTANT LOGIC (conservé pour référence) ---
+    // 3. Trend Detector 
+    document.getElementById('btn-trend-detector').addEventListener('click', async () => {
+        const resultBox = document.getElementById('trend-results');
+        const btn = document.getElementById('btn-trend-detector');
+
+        resultBox.innerHTML = `<p style="color:var(--color-ai-growth);">Détection des tendances en cours... (Appel API réel)</p>`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type: 'trend' })
+            });
+
+            if(res.ok) {
+                const data = await res.json();
+                resultBox.innerHTML = data.html_critique || data.error || '<p>Réponse IA reçue, mais le format est inattendu.</p>';
+            } else {
+                const data = await res.json();
+                resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de l'API Trend: ${res.status}. ${data.error || ''}</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de connexion au service Trend: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    // --- Logique STREAM BOOST ---
+    document.getElementById('form-boost').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const channel = document.getElementById('input-boost').value.trim();
+        const resultBox = document.getElementById('boost-results'); 
+        const btn = document.getElementById('btn-boost');
+
+        if (!channel) return;
+        
+        resultBox.innerHTML = `<p style="color:var(--color-primary-pink); text-align:center;">📤 Envoi du boost pour <strong>${channel}</strong>...</p>`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/stream_boost`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ channel: channel })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                resultBox.innerHTML = data.html_response;
+                launchPlayer(channel); 
+            } else if (res.status === 429) {
+                resultBox.innerHTML = data.html_response || `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Cooldown actif. Réessayez plus tard.</p>`;
+            } else {
+                resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur API (${res.status}): ${data.error || "Une erreur inconnue s'est produite."}</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur de connexion au serveur: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+
+    // --- MINI ASSISTANT LOGIC ---
     const assistantPanel = document.getElementById('assistant-panel');
     const assistantMsgs = document.getElementById('assistant-messages');
     function toggleAssistant() { assistantPanel.style.display = assistantPanel.style.display === 'flex' ? 'none' : 'flex'; }
@@ -495,12 +761,12 @@
     });
 
 
+    // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
         initializePlayer();
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
-        // Assurez-vous d'avoir le code checkAuth ici (non inclus pour la concision mais essentiel au fonctionnement)
-        // checkAuth(); 
+        checkAuth();
     });
 </script>
 </body>
