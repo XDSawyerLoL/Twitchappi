@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.9.4 - Stable</title>
+    <title>Streamer & Niche AI Hub V6.9.5 - Ultra Stable</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -33,7 +33,8 @@
         }
         
         #twitch-lucky-main {
-            /* FIX V6.9.4: Suppression de all: initial; qui cassait la structure */
+            /* FIX V6.9.5: Ajout de box-sizing pour plus de robustesse */
+            box-sizing: border-box; 
             display: block; 
             max-width: 1200px;
             margin: 20px auto;
@@ -41,6 +42,14 @@
             font-family: 'Inter', sans-serif;
             color: #fff; 
         }
+        
+        /* FIX V6.9.5: Assurer que le conteneur des onglets est un bloc visible et séparé */
+        #tabs-container {
+            margin-top: 25px; 
+            display: block;
+            width: 100%;
+        }
+
         h1 {
             font-family: 'Orbitron', sans-serif;
             font-size: 28px;
@@ -283,7 +292,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.4</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.5</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
