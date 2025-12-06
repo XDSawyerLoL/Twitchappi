@@ -40,7 +40,7 @@
         .action-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); background: var(--color-bg-dark); color: #fff; font-size: 13px; }
         .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(255,0,153,.4); }
         .btn-primary:hover:not(:disabled) { background: #E6008A; }
-        .btn-secondary { background: var(--color-secondary-blue); color: #00161d; border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(34,199,239,.4); }
+        .btn-secondary { background: var(--color-secondary-blue); color: var(--color-bg-dark); border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(34,199,239,.4); }
         .btn-secondary:hover:not(:disabled) { background: #1eafdd; }
         
         /* Résultats IA */
@@ -67,22 +67,22 @@
         /* Couleurs IA spécifiques pour les icônes */
         #niche-result-container li:before { content: "✅"; color: var(--color-ai-niche); }
         #repurpose-result-container li:before { content: "✂️"; color: var(--color-ai-repurpose); }
-        #trend-results li:before { content: "💎"; color: var(--color-ai-growth); }
+        .game-item li:before, #ai-trend-critique-container li:before { content: "💎"; color: var(--color-ai-growth); }
 
         /* Couleurs IA des titres et bordures */
         #scan-result { border-color: var(--color-secondary-blue); }
         #niche-result-container { border-color: var(--color-ai-niche); }
         #repurpose-result-container { border-color: var(--color-ai-repurpose); }
-        #trend-results { border-color: var(--color-ai-growth); }
+        #ai-trend-critique-container { border-color: var(--color-ai-growth); }
         #boost-results { border-color: var(--color-primary-pink); }
         
         #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
         #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
-        #trend-results h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
+        #ai-trend-critique-container h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
         
         #niche-result-container strong { color: var(--color-ai-niche); }
         #repurpose-result-container strong { color: var(--color-ai-repurpose); }
-        #trend-results strong { color: var(--color-ai-growth); }
+        #ai-trend-critique-container strong { color: var(--color-ai-growth); }
         
         /* Style pour la zone de Repurposing visuel */
         #repurpose-vod-preview {
@@ -136,11 +136,12 @@
         .tab-heading { font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px; }
         .login-box { padding:15px; background:var(--color-bg-light); border-radius:8px; margin-bottom:20px; border: 1px solid #444; }
 
-        /* Liste Streams */
-        #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0; }
+        /* Liste Streams & Jeux */
+        #followed-streams-list, #trending-games-list { display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0; }
         .followed-stream-item { display: flex; flex-direction: column; width: calc(33.333% - 10px); min-width: 180px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
         .followed-stream-item:hover { background: #280517; border-color: var(--color-primary-pink); transform: translateY(-2px); }
         .streamer-avatar { width: 100%; aspect-ratio: 16 / 9; border-radius: 4px; border: 1px solid var(--color-primary-pink); object-fit: cover; flex-shrink: 0; }
+        .game-item .streamer-avatar { aspect-ratio: 180 / 240; border-color: var(--color-ai-niche); }
         .stream-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-dimmed); margin-top: 5px; }
 
         /* --- MINI ASSISTANT CSS --- */
@@ -174,8 +175,8 @@
             <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR & CHAT
             <span id="player-channel-status"></span>
         </h2> 
-        <form id="form-channel-player">
-            <input id="input-channel" type="text" placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder" class="action-input">
+        <form id="form-channel-player" class="flex">
+            <input id="input-channel" type="text" placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder" class="action-input flex-grow">
             <button type="submit" id="btn-player-launch" class="btn-primary min-w-[80px]">▶️ LANCER</button>
         </form>
         <div id="twitch-embed"></div>
@@ -244,8 +245,17 @@
         <div id="tab-growth" class="tab-content">
             <h3 class="tab-heading text-yellow"><span class="icon">💰</span> Tableau de Bord Croissance</h3>
             <div class="login-box">
-                <button id="btn-trend-detector" class="btn-primary w-full p-3" style="background:var(--color-ai-growth); color: var(--color-bg-light);">🔮 DÉTECTER LA PROCHAINE NICHE</button>
-                <div id="trend-results" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Cliquez sur le bouton pour lancer l'analyse des tendances V/S.</p></div>
+                <button id="btn-hype-games" class="btn-primary w-full p-3 mb-4" style="background:var(--color-ai-niche); color: var(--color-bg-dark);">🕹️ MEILLEURS JEUX HYPE DU MOMENT</button>
+                
+                <button id="btn-trend-detector" class="btn-primary w-full p-3" style="background:var(--color-ai-growth); color: var(--color-bg-dark);">🔮 DÉTECTER LA PROCHAINE NICHE (IA)</button>
+                
+                <div id="ai-trend-critique-container" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Cliquez sur le bouton du dessus pour lancer l'analyse des tendances V/S.</p></div>
+            </div>
+             <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-medium);">
+                <h4 class="tab-heading text-yellow" style="color:var(--color-ai-niche);"><span class="icon">📈</span> Jeux en Tendance (Twitch)</h4>
+                <div id="trending-games-list" class="flex flex-wrap gap-4 justify-center">
+                    <p style="color:#555; text-align:center; padding:10px;">Cliquez sur "Jeux Hype" pour charger les résultats.</p>
+                </div>
             </div>
         </div>
 
@@ -284,6 +294,8 @@
     let embed = null;
     let twitchUserConnected = false;
     let currentVODId = null; 
+    const aiTrendCritiqueContainer = document.getElementById('ai-trend-critique-container');
+
 
     // --- 1. FONCTIONS DE GESTION DES ONGLET ET DU VOD ---
 
@@ -309,7 +321,7 @@
         const parts = hms.split(':').map(p => parseInt(p, 10));
         if (parts.length === 3) {
             return parts[0] * 3600 + parts[1] * 60 + parts[2];
-        } else if (parts.length === 2) { // gère aussi mm:ss
+        } else if (parts.length === 2) { 
             return parts[0] * 60 + parts[1];
         }
         return 0; 
@@ -363,7 +375,6 @@
              embedContainer.innerHTML = ''; 
         }
         
-        // Supprime l'ancien embed avant d'en créer un nouveau pour éviter les conflits
         if (embed) {
             embed = null; 
         }
@@ -396,18 +407,9 @@
         document.getElementById('input-channel').value = channelName;
         updatePlayerStatus(channelName, isLive, videoId);
         
-        // Initialisation du lecteur Twitch
         embed = new Twitch.Embed("twitch-embed", config);
 
-        // Si c'est une VOD avec un temps spécifique, tente de se déplacer
         if (videoId && time > 0) {
-            embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
-                setTimeout(() => {
-                     // Note: embed.seek(time) est commenté car il cause parfois des problèmes dans l'API embed. 
-                     // L'option 'time' dans la configuration est plus fiable.
-                }, 100); 
-            });
-            // Pour le partage, nous incluons le temps si c'est une VOD avec un timestamp
             shareUrl = shareUrl + `?t=${time}s`;
         }
 
@@ -431,7 +433,7 @@
         checkAuth(); 
     }
 
-    /** * Récupère et affiche les streams suivis. Inclut le FIX CRITIQUE pour les miniatures.
+    /** * FIX CRITIQUE : Assure le remplacement des placeholders pour les miniatures.
      */
     async function loadFollowedStreams() {
         const followedStreamsList = document.getElementById('followed-streams-list');
@@ -461,7 +463,7 @@
                 item.className = 'followed-stream-item';
                 item.onclick = () => window.launchPlayer(stream.user_login); 
                 
-                // 🛠️ FIX DE MINIATURES : Assure le remplacement des placeholders
+                // FIX DE MINIATURES
                 const thumbnailUrl = stream.thumbnail_url
                     .replace('{width}', '320')
                     .replace('{height}', '180'); 
@@ -497,7 +499,7 @@
                 twitchUserConnected = true;
                 loginStatus.innerHTML = `✅ Connecté en tant que <strong style="color:var(--color-secondary-blue)">${data.display_name || data.username}</strong>`;
                 loginButton.textContent = '🔒 DÉCONNEXION';
-                loginButton.style.background = '#e34a64'; // couleur rouge/gris pour déconnexion
+                loginButton.style.background = '#e34a64'; 
                 loginButton.onclick = handleLogout;
                 
                 await loadFollowedStreams(); 
@@ -515,7 +517,6 @@
         loginButton.disabled = false;
     }
     
-    // Attachement des événements de login/logout
     document.getElementById('btn-twitch-login').addEventListener('click', () => {
         if(twitchUserConnected) handleLogout(); else handleLogin();
     });
@@ -561,14 +562,18 @@
                 body: JSON.stringify({ q, context: currentChannel }) 
             });
             
+            // NOUVEAU: Gestion spécifique de l'erreur 429 (Rate Limit)
+            if (res.status === 429) {
+                 throw new Error("API Gemini: Limite de requêtes atteinte (Code 429). Votre serveur IA a atteint son quota. Veuillez réessayer plus tard.");
+            }
+
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || `Erreur serveur (Statut: ${res.status}).`);
+                const errorText = await res.text();
+                throw new Error(`Erreur serveur IA (HTTP ${res.status}). Réponse: ${errorText.substring(0, 50)}...`);
             }
 
             const data = await res.json();
             document.getElementById(loaderId).remove();
-            // Utilisation de data.html_response pour la compatibilité avec le backend
             assistantMsgs.innerHTML += `<div class=\"msg bot\">${data.html_response || "Désolé, problème IA ou réponse bloquée."}</div>`;
         } catch(err) { 
             document.getElementById(loaderId).remove();
@@ -577,11 +582,10 @@
         assistantMsgs.scrollTop = assistantMsgs.scrollHeight;
     });
     
-    // --- 4. GESTIONNAIRES D'ÉVÉNEMENTS : ANALYSE (Utilisation de la structure et du code du fichier) ---
+    // --- 4. GESTIONNAIRES D'ÉVÉNEMENTS : ANALYSE ---
 
     const nicheResults = document.getElementById('niche-results');
     const repurposeResults = document.getElementById('repurpose-results');
-    const trendResults = document.getElementById('trend-results');
     
     async function callAI(type, query, targetElement, button) {
         targetElement.innerHTML = `<p style="text-align:center; color:var(--color-primary-pink);">🤖 L'IA est en train d'analyser...</p>`;
@@ -593,10 +597,15 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ type, query })
             });
+            
+            // NOUVEAU: Gestion spécifique de l'erreur 429 (Rate Limit)
+            if (res.status === 429) {
+                 throw new Error("API Gemini: Limite de requêtes atteinte (Code 429). Votre serveur IA a atteint son quota. Veuillez réessayer plus tard.");
+            }
 
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || `Erreur serveur (Statut: ${res.status}).`);
+                const errorText = await res.text();
+                throw new Error(`Erreur serveur IA (HTTP ${res.status}). Réponse: ${errorText.substring(0, 50)}...`);
             }
             
             const data = await res.json();
@@ -629,6 +638,12 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ query })
             });
+            
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Erreur serveur Scan (HTTP ${res.status}). Réponse: ${errorText.substring(0, 50)}...`);
+            }
+            
             const data = await res.json();
             let htmlOutput = '';
 
@@ -636,7 +651,7 @@
                 if (data.type === 'game' && data.game_data) {
                     const g = data.game_data;
                     htmlOutput += `<h4 style="color:var(--color-secondary-blue); border-color:var(--color-secondary-blue);">Analyse de Jeu: ${g.name}</h4>`;
-                    htmlOutput += `<div class="flex items-start gap-4 mb-4"> <img src="${g.box_art_url}" alt="Box Art" style="width: 80px; border-radius: 4px; border: 1px solid var(--color-secondary-blue);"> <div class="text-sm"> <p><strong>Total Streamers LIVE:</strong> ${g.total_streamers.toLocaleString('fr-FR')}</p> <p><strong>Total Spectateurs LIVE:</strong> ${g.total_viewers.toLocaleString('fr-FR')}</p> <p><strong>Spectateurs/Streamer (V/S):</strong> <strong style="color:var(--color-ai-niche);">${g.avg_viewers_per_streamer}</strong></p> </div> </div>`;
+                    htmlOutput += `<div class="flex items-start gap-4 mb-4"> <img src="${g.box_art_url.replace('{width}', '80').replace('{height}', '80')}" alt="Box Art" style="width: 80px; height: 80px; border-radius: 4px; border: 1px solid var(--color-secondary-blue);"> <div class="text-sm"> <p><strong>Total Streamers LIVE:</strong> ${g.total_streamers.toLocaleString('fr-FR')}</p> <p><strong>Total Spectateurs LIVE:</strong> ${g.total_viewers.toLocaleString('fr-FR')}</p> <p><strong>Spectateurs/Streamer (V/S):</strong> <strong style="color:var(--color-ai-niche);">${g.avg_viewers_per_streamer}</strong></p> </div> </div>`;
                     htmlOutput += `<h5>Top Streams LIVE:</h5><ul class="list-none p-0">`;
                     htmlOutput += g.streams.slice(0, 5).map(stream => `
                         <li style="position:relative; padding-left:0; margin-bottom:5px;">
@@ -655,7 +670,7 @@
                     htmlOutput += `<button onclick="document.getElementById('input-repurpose-channel').value='${u.login}'; openTab('tab-repurpose');" class="btn-primary w-full" style="background:var(--color-ai-repurpose);">✂️ ANALYSER VOD (REPURPOSE)</button>`;
                 }
             } else {
-                htmlOutput = `<p style="color:red; padding:10px;">❌ ${data.message || "Erreur lors du scan de la cible."}</p>`;
+                htmlOutput = `<p style="color:red; padding:10px;">❌ ${data.message}</p>`;
             }
             resultBox.innerHTML = htmlOutput;
         } catch (e) {
@@ -689,6 +704,13 @@
         try {
             // 1. Récupérer les détails de la VOD
             const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${channel}`);
+            
+            // FIX CRITIQUE: Vérification de la réponse serveur VOD
+            if (!vodRes.ok) {
+                 const errorText = await vodRes.text();
+                 throw new Error(`Erreur serveur VOD (HTTP ${vodRes.status}). Réponse: ${errorText.substring(0, 50)}...`);
+            }
+
             const vodData = await vodRes.json();
             
             if (vodData.success && vodData.vod) {
@@ -707,15 +729,26 @@
                     body: JSON.stringify({ query: `${channel} | ${vod.title}`, type: 'repurpose' })
                 });
                 
+                // NOUVEAU: Gestion spécifique de l'erreur 429 (Rate Limit)
+                if (aiRes.status === 429) {
+                    throw new Error("API Gemini: Limite de requêtes atteinte (Code 429). Votre serveur IA a atteint son quota. Veuillez réessayer plus tard.");
+                }
+
+                 // FIX CRITIQUE: Vérification de la réponse serveur IA
+                if (!aiRes.ok) {
+                    const errorText = await aiRes.text();
+                    throw new Error(`Erreur serveur IA (HTTP ${aiRes.status}). Réponse: ${errorText.substring(0, 50)}...`);
+                }
+                
                 const aiData = await aiRes.json();
+
                 if (aiData.success && aiData.html_critique) {
                     let htmlOutput = aiData.html_critique;
                     
-                    // Transformation des timestamps en boutons cliquables
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = htmlOutput;
                     
-                    // Regex pour trouver le motif de timestamp: **Point de Clip:** 00:25:40
+                    // Transformation des timestamps en boutons cliquables
                     const timestampRegex = /\*\*Point de Clip:\*\* (\d{2}:\d{2}:\d{2})/g;
 
                     const nodes = tempDiv.querySelectorAll('li, p');
@@ -723,7 +756,6 @@
                         if (node.innerHTML.match(timestampRegex)) {
                             node.innerHTML = node.innerHTML.replace(timestampRegex, (fullMatch, timeString) => {
                                 const seconds = hmsToSeconds(timeString);
-                                // Script pour lancer le lecteur sur la VODID à la bonne seconde
                                 const launchScript = `window.seekVod('${currentVODId}', ${seconds})`;
                                 return `<span style="color:var(--color-ai-repurpose); font-weight:bold;">${timeString}</span> <button onclick="${launchScript}" class="timestamp-link">▶️ VOIR CLIP</button>`;
                             });
@@ -745,13 +777,68 @@
             btn.disabled = false;
         }
     });
+    
+    // --- 5. LOGIQUE DES JEUX HYPE (CROISSANCE) ---
+
+    async function fetchTrendingGames() {
+        const listContainer = document.getElementById('trending-games-list');
+        const btn = document.getElementById('btn-hype-games');
+        listContainer.innerHTML = '<p style="text-align:center; color:var(--color-ai-niche);">Chargement des jeux en tendance...</p>';
+        btn.disabled = true;
+
+        try {
+            // Assumer une route backend /trending_games existe et renvoie les jeux.
+            const res = await fetch(`${API_BASE}/trending_games`);
+            
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Erreur serveur (HTTP ${res.status}). Réponse: ${errorText.substring(0, 50)}...`);
+            }
+            
+            const data = await res.json();
+            
+            if (!data.success || !data.games || data.games.length === 0) {
+                 listContainer.innerHTML = `<p style="color:red; text-align:center; padding:10px;">❌ ${data.error || "Aucun jeu en tendance trouvé ou API vide."}</p>`;
+                 return;
+            }
+
+            listContainer.innerHTML = ''; 
+            data.games.forEach(game => {
+                const item = document.createElement('div');
+                item.className = 'game-item followed-stream-item'; 
+                item.style.cssText = 'width: 180px; min-width: 180px; flex-shrink: 0;';
+                item.onclick = () => analyzeGameNiche(game.name); 
+                
+                // Remplacement des placeholders pour les miniatures du jeu
+                const thumbnailUrl = game.box_art_url
+                    .replace('{width}', '180')
+                    .replace('{height}', '240'); 
+
+                item.innerHTML = `
+                    <img src="${thumbnailUrl}" alt="${game.name}" class="streamer-avatar" style="aspect-ratio: 180 / 240;">
+                    <strong style="color:var(--color-ai-niche); font-size: 13px; margin-top: 5px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${game.name}</strong>
+                    <div class="stream-meta" style="justify-content:center;">
+                        <span style="color:var(--color-primary-pink); font-weight:bold;">${game.viewer_count.toLocaleString()} vues</span>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+
+        } catch (error) {
+            listContainer.innerHTML = `<p style="color:red; text-align:center; padding:10px;">❌ Erreur de chargement des jeux hype: ${error.message}</p>`;
+        } finally {
+             btn.disabled = false;
+        }
+    }
+    
+    document.getElementById('btn-hype-games').addEventListener('click', fetchTrendingGames);
 
     document.getElementById('btn-trend-detector').addEventListener('click', function() {
         const btn = document.getElementById('btn-trend-detector');
-        callAI('trend', 'Analyse des tendances V/S Twitch', trendResults, btn);
+        callAI('trend', 'Analyse des tendances V/S Twitch', aiTrendCritiqueContainer, btn);
     });
     
-    // --- 5. GESTION DU BOOST ---
+    // --- 6. GESTION DU BOOST ---
     document.getElementById('form-boost').addEventListener('submit', async function(e) {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim() || localStorage.getItem('activeChannel') || 'Chaîne Inconnue';
@@ -766,30 +853,40 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ channel })
             });
+            
+             // NOUVEAU: Gestion spécifique de l'erreur 429 (Rate Limit)
+            if (res.status === 429) {
+                 const data = await res.json();
+                 // Le backend stream_boost renvoie déjà un HTML_RESPONSE pour le 429. On l'utilise s'il est présent.
+                 boostMessage.innerHTML = data.html_response || `<p style="color:red;">❌ Erreur Boost (429): Limite de requêtes atteinte. Veuillez réessayer plus tard.</p>`;
+                 return; // Sortir après avoir affiché l'erreur 429 du boost
+            }
+            
+            if (!res.ok) {
+                 const errorText = await res.text();
+                 throw new Error(`Erreur serveur Boost (HTTP ${res.status}). Réponse: ${errorText.substring(0, 50)}...`);
+            }
+            
             const data = await res.json();
             
             boostMessage.innerHTML = data.html_response || `<p style="color:red;">❌ Erreur Boost: ${data.error || 'Statut inconnu'}</p>`;
             
         } catch (e) {
-            boostMessage.innerHTML = `<p style="color:red;">❌ Erreur réseau lors de l'appel Boost.</p>`;
+            boostMessage.innerHTML = `<p style="color:red;">❌ Erreur réseau lors de l'appel Boost: ${e.message}</p>`;
         } finally {
-             // La désactivation du bouton doit être gérée par le backend via la réponse 429
-             // Ici, on le réactive pour permettre un nouvel essai si l'erreur n'était pas 429
              btn.disabled = false;
         }
     });
 
 
-    // --- 6. Initialisation au chargement de la page ---
+    // --- 7. Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         window.launchPlayer(lastChannel); 
 
-        // Rétablissement de l'onglet actif ou l'onglet par défaut 'tab-followed'
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         
-        // Vérification de l'authentification Twitch
         checkAuth();
     });
 </script>
