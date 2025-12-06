@@ -370,6 +370,76 @@ async function fetchNicheOpportunities(token) {
     return topNiches;
 }
 
+
+// =========================================================
+// --- NOUVELLE FONCTION: CATÉGORIES RECOMMANDÉES ---
+// =========================================================
+
+/**
+ * Récupère les streams pour les jeux les plus populaires (Hype) ayant moins de 100 viewers.
+ */
+async function getTrendingLowViewerStreams(token) {
+    const HEADERS = {
+        'Client-Id': TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${token}`
+    };
+
+    try {
+        // 1. Récupérer les 10 jeux les plus populaires
+        let topGamesUrl = `https://api.twitch.tv/helix/games/top?first=10`;
+        let topGamesResponse = await fetch(topGamesUrl, { headers: HEADERS });
+        let topGamesData = await topGamesResponse.json();
+        
+        if (!topGamesResponse.ok || !topGamesData.data) {
+             throw new Error(`Erreur API Twitch (top games): ${topGamesResponse.status}`);
+        }
+        
+        const topGameIds = topGamesData.data.map(game => game.id);
+
+        let recommendedStreams = [];
+        const MAX_STREAMS_PER_GAME = 5; // Limiter les résultats pour chaque jeu
+        const VIEWER_LIMIT = 100;
+
+        // 2. Pour chaque jeu, récupérer les streams avec moins de 100 viewers
+        for (const gameId of topGameIds) {
+            // Récupérer un grand échantillon de streams pour ce jeu
+            let streamsUrl = `https://api.twitch.tv/helix/streams?game_id=${gameId}&first=100`; 
+            let streamsResponse = await fetch(streamsUrl, { headers: HEADERS });
+            let streamsData = await streamsResponse.json();
+
+            if (!streamsResponse.ok || !streamsData.data) {
+                console.warn(`Avertissement: Impossible de récupérer les streams pour le jeu ${gameId}`);
+                continue;
+            }
+
+            // Filtrer manuellement les streams avec moins de 100 viewers
+            const lowViewerStreams = streamsData.data.filter(stream => stream.viewer_count < VIEWER_LIMIT);
+            
+            // 3. Ne prendre que les 5 premiers résultats pour ce jeu et formater
+            const selectedStreams = lowViewerStreams.slice(0, MAX_STREAMS_PER_GAME).map(stream => ({
+                id: stream.id,
+                user_name: stream.user_name,
+                title: stream.title,
+                viewer_count: stream.viewer_count,
+                game_name: stream.game_name,
+                thumbnail_url: stream.thumbnail_url.replace('-{width}x{height}', '-320x180'),
+                started_at: stream.started_at
+            }));
+
+            if (selectedStreams.length > 0) {
+                 recommendedStreams.push(...selectedStreams);
+            }
+        }
+
+        return recommendedStreams;
+
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des streams recommandés:", error.message);
+        return [];
+    }
+}
+
+
 // =========================================================
 // --- MIDDLEWARE GÉNÉRAL ET ROUTES API ---
 // =========================================================
@@ -506,6 +576,22 @@ app.get('/followed_streams', async (req, res) => {
     } catch (e) {
         console.error("Erreur lors de la récupération des streams suivis:", e.message);
         return res.status(500).json({ error: "Échec de la récupération des streams Twitch." });
+    }
+});
+
+// --- NOUVELLE ROUTE : CATÉGORIES RECOMMANDÉES ---
+app.get('/recommended_categories', async (req, res) => {
+    try {
+        const token = await getAppAccessToken();
+        if (!token) {
+            return res.status(500).json({ error: "Impossible d'obtenir le jeton d'accès App Twitch." });
+        }
+
+        const streams = await getTrendingLowViewerStreams(token);
+        return res.json({ data: streams });
+    } catch (e) {
+        console.error("❌ Erreur critique dans /recommended_categories:", e.message);
+        return res.status(500).json({ error: `Erreur interne du serveur lors de la recherche des catégories recommandées: ${e.message}` });
     }
 });
 
@@ -868,5 +954,3 @@ app.listen(PORT, () => {
     console.log(`Serveur Express démarré sur le port ${PORT}`);
     getAppAccessToken(); 
 });
-
-
