@@ -441,7 +441,7 @@
             const res = await fetch(`${API_BASE}/followed_streams`);
             const data = await res.json();
             
-            if (!res.ok) { // Vérification robuste du statut HTTP
+            if (!res.ok) { 
                 throw new Error(data.error || `Erreur serveur lors de la récupération du fil: Statut ${res.status}`);
             }
 
@@ -561,7 +561,7 @@
             
             document.getElementById(loaderId).remove();
 
-            // CORRECTION CRITIQUE: Vérifie le statut HTTP avant de traiter la réponse
+            // Vérifie le statut HTTP avant de traiter la réponse
             if (!res.ok) { 
                 // Affiche le message d'erreur HTML envoyé par le serveur (qui inclut la gestion du 429)
                 const errorMessage = data.html_response || data.error || `❌ Erreur de l'API IA: Code ${res.status}. Détail: ${data.message || 'Problème inconnu.'}`;
@@ -583,7 +583,7 @@
     const nicheResults = document.getElementById('niche-results');
     const repurposeResults = document.getElementById('repurpose-results');
     
-    // Fonction d'appel IA générique (CORRIGÉE POUR res.ok)
+    // Fonction d'appel IA générique (gère res.ok et affiche le 429)
     async function callAI(type, query, targetElement, button) {
         targetElement.innerHTML = `<p style="text-align:center; color:var(--color-primary-pink);">🤖 L'IA est en train d'analyser...</p>`;
         button.disabled = true;
@@ -636,7 +636,7 @@
             
             const data = await res.json();
 
-            if (!res.ok) { // Vérification robuste du statut HTTP
+            if (!res.ok) { 
                 throw new Error(data.error || `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`);
             }
             
@@ -778,7 +778,7 @@
             const res = await fetch(`${API_BASE}/trending_games`);
             const data = await res.json();
             
-            if (!res.ok) { // Vérification robuste du statut HTTP
+            if (!res.ok) { 
                 throw new Error(data.error || `Erreur serveur (HTTP ${res.status}).`);
             }
             
@@ -819,7 +819,6 @@
 
     document.getElementById('btn-trend-detector').addEventListener('click', function() {
         const btn = document.getElementById('btn-trend-detector');
-        // Utilise la fonction callAI qui gère déjà le 429
         callAI('trend', 'Analyse des tendances V/S Twitch', aiTrendCritiqueContainer, btn);
     });
     
