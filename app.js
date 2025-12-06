@@ -18,6 +18,9 @@ const GEMINI_MODEL = "gemini-2.5-flash";
 let ai = null;
 if (GEMINI_API_KEY) {
     ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
+} else {
+    console.error("FATAL DEBUG: GEMINI_API_KEY non trouvée. L'IA sera désactivée.");
 }
 
 const CACHE = {
@@ -29,6 +32,10 @@ app.use(cors({ origin: '*', credentials: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
+
+// =========================================================
+// --- FONCTIONS UTILITAIRES TWITCH API (similaires à avant) ---
+// =========================================================
 
 async function getAppAccessToken() {
     if (CACHE.appAccessToken.token && CACHE.appAccessToken.expiry > Date.now()) return CACHE.appAccessToken.token;
@@ -74,6 +81,10 @@ async function fetchUserDetailsForScan(query, token) {
     } catch { return null; }
 }
 
+// =========================================================
+// --- ROUTES TWITCH (Auth, Status, Logout, Followed) ---
+// =========================================================
+
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('twitch_auth_state', state, { httpOnly: true });
@@ -115,7 +126,7 @@ app.get('/followed_streams', async (req, res) => {
     const r = await fetch(`https://api.twitch.tv/helix/streams/followed?user_id=${u}`, { headers: { 'Client-Id': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${t}` } });
     const d = await r.json();
     
-    // FALLBACK SI VIDE
+    // FALLBACK VISUEL
     let streams = d.data || [];
     if(streams.length === 0) {
         streams = [
@@ -140,38 +151,94 @@ app.post('/scan_target', async (req, res) => {
     }
 });
 
+// =========================================================
+// --- ROUTES IA (CORRIGÉES POUR LA ROBUSTESSE) ---
+// =========================================================
+
 app.post('/critique_ia', async (req, res) => {
-    if(!ai) return res.status(503).json({ error: "IA non active" });
+    if(!ai) return res.status(503).json({ error: "Service IA indisponible (Clé manquante)." });
     const { type, query } = req.body;
+    
+    let prompt = "";
+    const formattingRules = "Réponds en HTML pur (sans balises ```html). Utilise des <ul> et <li> pour les listes. Utilise <strong> pour le gras. Sois concis et percutant.";
+
+    if (type === 'niche') {
+        prompt = `Tu es expert Twitch. Analyse la niche du jeu "${query}". ${formattingRules}. Donne 3 conseils pour percer.`;
+    } else if (type === 'repurpose') {
+        prompt = `Tu es expert TikTok/Youtube. Donne une stratégie de repurposing pour le streamer "${query}". ${formattingRules}. Donne 3 idées de clips viraux.`;
+    } else if (type === 'trend') {
+        prompt = `Tu es analyste de marché. Quelles sont les 3 prochaines tendances gaming Twitch ? ${formattingRules}. Justifie avec le potentiel de croissance.`;
+    } else {
+        return res.status(400).json({ error: "Type de critique IA invalide." });
+    }
+
     try {
-        const prompt = `Agis comme un expert Twitch. Analyse "${query}" pour le type "${type}". Réponds en HTML (sans balises de code) avec des listes <ul> et des titres <h4>. Sois précis et stratégique.`;
-        const result = await ai.models.generateContent({ model: GEMINI_MODEL, contents: [{ role: "user", parts: [{ text: prompt }] }] });
-        res.json({ html_critique: result.response.text() });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+        const result = await ai.models.generateContent({ 
+            model: GEMINI_MODEL, 
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+        });
+
+        // 🚨 CORRECTION CRITIQUE: Vérifier si result.response et result.response.text sont présents
+        const generatedText = result?.response?.text ? result.response.text() : null;
+
+        if (generatedText) {
+            res.json({ html_critique: generatedText });
+        } else {
+            console.error("Gemini a échoué à générer le contenu:", result);
+            res.status(500).json({ error: "L'IA n'a pas pu générer de réponse. La clé API est-elle valide ou le contenu est-il bloqué ?" });
+        }
+    } catch(e) { 
+        console.error("Erreur Gemini/Critique:", e);
+        res.status(500).json({ error: `Erreur interne de l'IA: ${e.message}` });
+    }
 });
 
 app.post('/mini_assistant', async (req, res) => {
-    if(!ai) return res.status(503).json({ error: "IA non active" });
+    if(!ai) return res.status(503).json({ error: "IA indisponible." });
     const { q } = req.body;
+    if (!q) return res.status(400).json({ error: "Question manquante." });
+
     try {
-        const prompt = `Assistant Twitch court et concis. Question: "${q}". Réponds en 2 phrases max avec un conseil actionnable.`;
-        const result = await ai.models.generateContent({ model: GEMINI_MODEL, contents: [{ role: "user", parts: [{ text: prompt }] }] });
-        res.json({ answer: result.response.text() });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+        const prompt = `Tu es un assistant personnel pour streamer Twitch. Réponds à cette question de manière courte, motivante et stratégique : "${q}". Réponds en français. Utilise du HTML simple (p, strong, ul, li) pour la mise en forme.`;
+        
+        const result = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+        });
+
+        // 🚨 CORRECTION CRITIQUE: Vérifier si result.response et result.response.text sont présents
+        const generatedText = result?.response?.text ? result.response.text() : null;
+
+        if (generatedText) {
+            res.json({ answer: generatedText });
+        } else {
+            console.error("Gemini a échoué à générer le contenu:", result);
+            res.status(500).json({ answer: "<p style='color:red;'>Désolé, l'Assistant a rencontré une erreur ou n'a pas pu répondre. (Clé API?)</p>" });
+        }
+    } catch(e) {
+        console.error("Erreur Assistant:", e);
+        res.status(500).json({ answer: `<p style='color:red;'>Erreur interne: ${e.message}</p>` });
+    }
 });
 
 app.post('/stream_boost', (req, res) => {
     const { channel } = req.body;
     const now = Date.now();
-    if (CACHE.streamBoosts[channel] && (now - CACHE.streamBoosts[channel] < 3*3600000)) {
-        return res.status(429).json({ html_response: `<p style="color:#e34a64">Cooldown actif.</p>` });
+    const BOOST_COOLDOWN_MS = 3 * 3600000; // 3 heures
+    if (CACHE.streamBoosts[channel] && (now - CACHE.streamBoosts[channel] < BOOST_COOLDOWN_MS)) {
+        const minutesRemaining = Math.ceil((BOOST_COOLDOWN_MS - (now - CACHE.streamBoosts[channel])) / 60000);
+        return res.status(429).json({ html_response: `<p style="color:#e34a64">⏳ Cooldown actif. Réessayez dans ${minutesRemaining} min.</p>` });
     }
     CACHE.streamBoosts[channel] = now;
-    res.json({ success: true, html_response: `<p style="color:#59d682">Boost activé pour ${channel}!</p>` });
+    res.json({ success: true, html_response: `<p style="color:#59d682">✅ <strong>${channel}</strong> est boosté sur le réseau ! (Priorité max pendant 15 min)</p>` });
 });
+
+// =========================================================
+// --- ROUTES STATIQUES ---
+// =========================================================
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
 app.get('/NicheOptimizer.html', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
 
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
 
