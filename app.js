@@ -626,7 +626,6 @@ app.post('/scan_target', async (req, res) => {
                 type: "game",
                 game_data: {
                     name: gameData.name,
-                    // Taille conservée pour l'affichage principal du scan (plus grand)
                     box_art_url: gameData.box_art_url.replace('-{width}x{height}', '-285x380'), 
                     total_viewers: totalViewers,
                     total_streamers: totalStreamers,
