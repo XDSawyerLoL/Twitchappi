@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.9.6 - Stable Finale</title>
+    <title>Streamer & Niche AI Hub V6.9.8 - Onglets & Chat Stables</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -67,7 +67,7 @@
             text-align: center;
         }
         
-        /* --- Styles Onglets Navigation (FIX V6.9.6) --- */
+        /* --- Styles Onglets Navigation --- */
         .flex-tabs {
             display: flex;
             flex-wrap: wrap;
@@ -100,9 +100,9 @@
             border-bottom: 2px solid var(--color-bg-light); /* Visuellement, masque le border-bottom du conteneur */
         }
 
-        /* --- Styles Contenu Onglets (FIX V6.9.6) --- */
+        /* --- Styles Contenu Onglets (FIX V6.9.8: Assure le masquage/affichage correct) --- */
         .tab-content {
-            display: none; /* Cache par défaut: C'ÉTAIT LA SOURCE DU PROBLÈME INITIAL DE STRUCTURE */
+            display: none; /* Cache par défaut */
             padding: 15px;
             background: var(--color-bg-medium);
             border: 1px solid var(--color-border-dark);
@@ -170,7 +170,7 @@
         
         /* CONSISTENCE VISUELLE : Style de base pour tous les blocs de résultats (IA, Scan, Boost) */
         .ai-result-box {
-            /* FOND NOIR ASSURÉ POUR ÉVITER LE FOND BLANC - Règle principale */
+            /* FOND NOIR ASSURÉ - Conteneur principal */
             background-color: var(--color-bg-light) !important;
             border: 1px solid var(--color-border-dark); 
             border-radius: 6px; 
@@ -179,14 +179,17 @@
             color: #ffffff; 
         }
 
-        /* CORRECTION FOND BLANC : Assurer que les éléments internes n'ont pas de fond blanc */
+        /* FIX V6.9.8: Élimination Totale du Fond Blanc pour le Contenu IA */
         .ai-result-box > *, 
         .ai-result-box h4,
         .ai-result-box p,
         .ai-result-box ul,
         .ai-result-box ol,
-        .ai-result-box li {
-            background-color: transparent !important;
+        .ai-result-box li,
+        .ai-result-box span,
+        .ai-result-box div {
+            background-color: transparent !important; /* Force la transparence sur tous les éléments enfants */
+            color: inherit; /* Assure que la couleur de texte est héritée */
         }
 
         /* Amélioration de la lisibilité du contenu de l'IA */
@@ -255,7 +258,7 @@
         }
 
 
-        /* Styles Chatbot Flottant */
+        /* --- Styles Chatbot Flottant (Raffinement V6.9.7) --- */
         #floating-ai-button {
             position: fixed;
             bottom: 20px;
@@ -293,6 +296,28 @@
         #ai-chat-window.active {
             display: flex;
         }
+
+        /* FIX V6.9.7: Styles En-tête */
+        #chat-header {
+            padding: 12px 15px;
+            background-color: var(--color-bg-dark);
+            border-bottom: 1px solid var(--color-secondary-blue);
+            color: var(--color-secondary-blue);
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #chat-close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
         #chat-messages {
             flex-grow: 1;
             padding: 15px;
@@ -308,7 +333,32 @@
             border-radius: 10px;
             line-height: 1.4;
             font-size: 13px;
+            display: block; /* Maintient le flux de bloc pour les éléments internes */
+            /* Assure la couleur de texte par défaut */
+            color: #fff; 
         }
+        
+        /* FIX V6.9.7: Styles pour les éléments internes de la réponse IA */
+        .chat-message p {
+            margin: 0 0 8px 0; /* Ajoute un espacement entre les paragraphes */
+        }
+        .chat-message ul, .chat-message ol {
+            padding-left: 20px; /* Ajoute l'indentation pour les listes */
+            margin: 8px 0;
+            list-style: disc; /* Assure des puces pour les listes non ordonnées */
+        }
+        .chat-message ol {
+            list-style: decimal; /* Assure la numérotation pour les listes ordonnées */
+        }
+        .chat-message li {
+            margin-bottom: 5px; /* Espacement entre les items de la liste */
+        }
+        .ai-message h4 {
+            color: var(--color-secondary-blue); /* Donne de la couleur aux titres IA */
+            font-size: 14px;
+            margin: 10px 0 5px 0;
+        }
+
         .user-message {
             align-self: flex-end;
             background-color: var(--color-primary-pink);
@@ -323,6 +373,31 @@
             border-bottom-left-radius: 2px;
         }
         
+        #chat-input-form {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid var(--color-border-dark);
+        }
+        #chat-input-field {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 6px 0 0 6px;
+            border: 1px solid var(--color-border-medium);
+            background: var(--color-bg-dark);
+            color: #fff;
+            font-size: 14px;
+        }
+        #chat-send-btn {
+            padding: 10px 15px;
+            background-color: var(--color-secondary-blue);
+            color: var(--color-bg-dark);
+            border: none;
+            border-radius: 0 6px 6px 0;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             #ai-chat-window {
@@ -338,7 +413,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.6</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.8</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -1083,8 +1158,11 @@
     // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
         initializePlayer();
+        
+        // FIX V6.9.8: Assure l'initialisation correcte de l'onglet
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
+        
         checkAuth();
         
         loadHistory('scanHistory', 'input-target');
