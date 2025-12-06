@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.9.3 - Stable</title>
-    <link href="[https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap](https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap)" rel="stylesheet">
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <title>Streamer & Niche AI Hub V6.9.4 - Stable</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* --- VARIABLES CSS POUR FACILITER LA MAINTENANCE DES COULEURS --- */
         :root {
@@ -33,8 +33,8 @@
         }
         
         #twitch-lucky-main {
-            all: initial;
-            display: block;
+            /* FIX V6.9.4: Suppression de all: initial; qui cassait la structure */
+            display: block; 
             max-width: 1200px;
             margin: 20px auto;
             padding: 10px;
@@ -67,6 +67,36 @@
             border: 1px solid var(--color-border-dark);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
+        .player-wrapper h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            color: var(--color-secondary-blue);
+            margin: 0 0 10px;
+            display: flex;
+            align-items: center;
+        }
+        #player-channel-status {
+            font-size: 12px;
+            color: var(--color-text-dimmed);
+            margin-left: auto;
+            font-weight: normal;
+            font-family: 'Inter', sans-serif;
+        }
+        /* FIX V6.9.4: Ajout de Flex pour la barre de recherche du player */
+        #form-channel-player {
+            display: flex;
+            gap: 8px; 
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        #twitch-embed {
+            width: 100%;
+            height: 550px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(34, 199, 239, 0.3);
+            overflow: hidden;
+        }
+
         /* Inputs & Boutons Génériques */
         .action-input {
             width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium);
@@ -143,7 +173,6 @@
             cursor: pointer; 
             transition: all 0.2s; 
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            /* Resetting width/min-width for grid to manage */
             width: auto; 
             min-width: unset;
         }
@@ -254,7 +283,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.3</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.9.4</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
 
     <div class="player-wrapper">
@@ -445,7 +474,7 @@
     </form>
 </div>
 
-<script src="[https://embed.twitch.tv/embed/v1.js](https://embed.twitch.tv/embed/v1.js)"></script>
+<script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     // --- Configuration Globale ---
     const API_BASE = window.location.origin;
@@ -626,7 +655,7 @@
                         
                         const imageUrl = stream.thumbnail_url 
                                         ? stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180') 
-                                        : stream.profile_image_url || '[https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png](https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png)'; 
+                                        : stream.profile_image_url || 'https://static-cdn.jtvnw.net/jtv_user_pictures/default_profile.png'; 
 
                         div.innerHTML = `
                             <img src="${imageUrl}" alt="Preview de ${stream.user_name}" class="streamer-avatar">
@@ -657,7 +686,7 @@
 
 
     // =========================================================
-    // --- GESTION DES FORMULAIRES DE RECHERCHE & IA (Logique inchangée) ---
+    // --- GESTION DES FORMULAIRES DE RECHERCHE & IA ---
     // =========================================================
     
     // Scan Target
@@ -975,9 +1004,8 @@
             
             let finalResponse = '';
             if (res.ok) {
-                // FIX 1: Strip code fences from the AI response
+                // Strip code fences from the AI response (Fix V6.9.3 maintained)
                 let rawResponse = aiResponse.html_response || "Désolé, je n'ai pas pu générer de réponse.";
-                // Suppression des balises de code Markdown de type ```html, ```json, ou ```
                 rawResponse = rawResponse.replace(/```(html|json)?\n?|```/gi, '').trim(); 
                 finalResponse = rawResponse;
             } else {
