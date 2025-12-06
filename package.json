@@ -23,12 +23,14 @@
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "querystring": "^0.2.1"
+    "querystring": "^0.2.1",
+    "@google/genai": "latest" 
   },
   "engines": {
     "node": ">=20.0.0"
   }
 }
+
 
 
 
