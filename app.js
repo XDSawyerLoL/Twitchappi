@@ -85,7 +85,7 @@ async function fetchUserDetailsForScan(query, token) {
     } catch { return null; }
 }
 
-// 💡 NOUVEAU : Fonction pour récupérer la dernière VOD
+// 💡 Fonction pour récupérer la dernière VOD
 async function fetchLastVODDetails(channelLogin, token) {
     try {
         const r = await fetch(`https://api.twitch.tv/helix/videos?user_login=${encodeURIComponent(channelLogin)}&type=archive&first=1`, { 
@@ -180,7 +180,7 @@ app.post('/scan_target', async (req, res) => {
     }
 });
 
-// 💡 NOUVEAU : Route pour la miniature VOD (utilisée par le Repurposing)
+// 💡 Route pour la miniature VOD (utilisée par le Repurposing)
 app.post('/get_vod_details', async (req, res) => {
     const { channel } = req.body;
     if (!channel) return res.status(400).json({ success: false, error: "Chaîne manquante." });
@@ -223,7 +223,7 @@ app.post('/critique_ia', async (req, res) => {
     if (type === 'niche') {
         prompt = `Tu es expert Twitch. Analyse la niche du jeu "${query}". ${formattingRules}. Donne 3 conseils pour percer.`;
     } else if (type === 'repurpose') {
-        // 🚨 MODIFICATION DU PROMPT : Ajout de la demande de Timestamps
+        // MODIFICATION DU PROMPT : Ajout de la demande de Timestamps
         prompt = `Tu es expert TikTok/Youtube. Donne une stratégie de repurposing pour le streamer "${query}", en te basant sur sa dernière VOD (ou supposée). ${formattingRules}. Donne 3 idées de clips viraux, et pour chaque idée, insère un timestamp estimé à la fin au format strict et unique **Point de Clip:** HH:MM:SS (exemple: **Point de Clip:** 00:25:40) pour simuler la précision.`;
     } else if (type === 'trend') {
         prompt = `Tu es analyste de marché. Quelles sont les 3 prochaines tendances gaming Twitch ? ${formattingRules}. Justifie avec le potentiel de croissance.`;
@@ -315,6 +315,3 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.htm
 app.get('/NicheOptimizer.html', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
 
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
-
-
-
