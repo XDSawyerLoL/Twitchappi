@@ -16,15 +16,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "axios": "^1.7.2",
+    "firebase-admin": "^12.1.0",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "express-session": "^1.18.0",
-    "firebase-admin": "^12.1.0",
-    "node-fetch": "^2.6.1",
-    "@google/genai": "latest"
+    "querystring": "^0.2.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
+
 
 
