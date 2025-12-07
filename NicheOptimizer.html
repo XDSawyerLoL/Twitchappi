@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V9.2 - Restauration complète</title>
+    <title>Streamer & Niche AI Hub V9.3 - Correctifs</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -360,8 +360,8 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V9.2</h1>
-    <div class="subtitle-center">Lecteur • Scan & IA • Niche Optimisation • Auto-Action & Disruption (Fix Authentification)</div>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V9.3</h1>
+    <div class="subtitle-center">Lecteur • Scan & IA • Niche Optimisation • Auto-Action & Disruption (Fix Authentification & API)</div>
 
     <div class="player-wrapper">
         <h2>
@@ -593,6 +593,17 @@
         }
         return 0; 
     }
+    
+    // FIX 1: Déplacer la fonction de partage dans les utilities pour assurer qu'elle soit définie au moment du lancement du lecteur.
+    function generateShareButtons(channel, url) {
+        // Logique de partage (Simulée)
+        const container = document.getElementById('twitch-player-share');
+        container.innerHTML = `
+            <span class="text-xs text-gray-500 mr-2">Partager:</span>
+            <a href="https://twitter.com/intent/tweet?text=Regarde%20${channel}%20en%20live%20!&url=${encodeURIComponent(url)}" target="_blank" class="btn-secondary" style="background:#1DA1F2; padding:3px 8px; font-size:10px;">X (Twitter)</a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}" target="_blank" class="btn-secondary" style="background:#1877F2; padding:3px 8px; font-size:10px;">Facebook</a>
+        `;
+    }
 
     // --- PLAYER LOGIC ---
     function launchPlayer(channel, videoId = null, time = 0) {
@@ -669,17 +680,8 @@
         }
     });
 
-    function generateShareButtons(channel, url) {
-        // Logique de partage (Simulée)
-        const container = document.getElementById('twitch-player-share');
-        container.innerHTML = `
-            <span class="text-xs text-gray-500 mr-2">Partager:</span>
-            <a href="https://twitter.com/intent/tweet?text=Regarde%20${channel}%20en%20live%20!&url=${encodeURIComponent(url)}" target="_blank" class="btn-secondary" style="background:#1DA1F2; padding:3px 8px; font-size:10px;">X (Twitter)</a>
-            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}" target="_blank" class="btn-secondary" style="background:#1877F2; padding:3px 8px; font-size:10px;">Facebook</a>
-        `;
-    }
 
-    // --- TWITCH AUTH & FOLLOWED STREAMS (RESTAURATION) ---
+    // --- TWITCH AUTH & FOLLOWED STREAMS ---
     let userAccessToken = null;
     let userId = null;
     let userName = null;
@@ -794,7 +796,7 @@
         `;
     }
 
-    // --- SCAN & ANALYSE LOGIC (RESTAURATION) ---
+    // --- SCAN & ANALYSE LOGIC ---
     document.getElementById('form-streamer-scan').addEventListener('submit', (e) => {
         e.preventDefault();
         startScan();
@@ -1002,7 +1004,7 @@
                             const seconds = hmsToSeconds(timeString);
                             
                             const clipTitleMatch = node.innerHTML.match(/\[Titre suggéré: (.+)\]/);
-                            const clipTitle = clipTitleMatch ? clipTitleMatch[1].replace(/"/g, "'") : "Clip Automatisé V9.2";
+                            const clipTitle = clipTitleMatch ? clipTitleMatch[1].replace(/"/g, "'") : "Clip Automatisé V9.3";
                             
                             const launchScript = `launchPlayer('${channel}', 'video:${currentVODId}', ${seconds})`;
                             const exportScript = `exportClip("${clipTitle}")`; 
@@ -1049,7 +1051,8 @@
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ query: query, type: 'growth_strategy' }) 
+                // FIX 2: Changement du type d'analyse de 'growth_strategy' à 'growth' pour résoudre le 400 Bad Request.
+                body: JSON.stringify({ query: query, type: 'growth' }) 
             });
 
             if(res.ok) {
@@ -1067,10 +1070,10 @@
 
             } else {
                 const data = await res.json();
-                resultBoxContent.innerHTML = `<p style="color:#e34a64; text-align:center;">Erreur de l'API Stratégie: ${res.status}. ${data.error || ''}</p>`;
+                resultBoxContent.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur API Stratégie (${res.status}): ${data.error || 'Réponse inattendue.'}</p>`;
             }
         } catch(e) {
-            resultBoxContent.innerHTML = `<p style="color:#e34a64; text-align:center;">Erreur de connexion au service Stratégie: ${e.message}</p>`;
+            resultBoxContent.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur de connexion au service Stratégie: ${e.message}</p>`;
         } finally {
             btn.disabled = false;
         }
@@ -1118,11 +1121,11 @@
                 resultBox.innerHTML = data.html_response || `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Cooldown actif. Réessayez plus tard.</p>`;
                 reportBox.style.display = 'none';
             } else {
-                resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur API (${res.status}): ${data.error || "Une erreur inconnue s'est produite."}</p>`;
+                resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur API (${res.status}): ${data.error || "Une erreur inconnue s'est produite."}</p>`;
                 reportBox.style.display = 'none';
             }
         } catch(e) {
-            resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur de connexion au serveur: ${e.message}</p>`;
+            resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur de connexion au serveur: ${e.message}</p>`;
             reportBox.style.display = 'none';
         } finally {
             btn.disabled = false;
@@ -1170,7 +1173,7 @@
         initializePlayer(); 
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
-        checkAuth(); // RESTAURATION DE L'APPEL D'AUTHENTIFICATION
+        checkAuth();
     });
 </script>
 </body>
