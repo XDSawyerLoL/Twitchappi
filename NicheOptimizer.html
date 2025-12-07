@@ -200,6 +200,9 @@
         .tab-btn[data-tab-id="tab-defis"].active {
             border-top: 3px solid var(--color-ai-growth);
         }
+        .tab-btn[data-tab-id="tab-tools"].active {
+            border-top: 3px solid var(--color-secondary-blue);
+        }
         .tab-btn.dragging {
             opacity: 0.7;
             border: 2px dashed var(--color-primary-pink);
@@ -298,6 +301,7 @@
             <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')" draggable="true">✂️ REPURPOSING</button>
             <button class="tab-btn" data-tab-id="tab-growth" onclick="openTab('tab-growth')" draggable="true">💰 CROISSANCE</button>
             <button class="tab-btn" data-tab-id="tab-defis" onclick="openTab('tab-defis')" draggable="true">⚔️ DÉFIS STRATÉGIQUES</button>
+            <button class="tab-btn" data-tab-id="tab-tools" onclick="openTab('tab-tools')" draggable="true">⚙️ OUTILS SNIPER</button> 
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')" draggable="true">⚡ BOOST</button>
         </div>
 
@@ -417,6 +421,26 @@
                 </div>
             </div>
         </div>
+        
+        <div id="tab-tools" class="tab-content">
+            <h3 class="tab-heading" style="color:var(--color-secondary-blue);">
+                <span class="icon">⚙️</span> Accès aux Outils Proactifs
+            </h3>
+            <div class="login-box" style="border-color: var(--color-secondary-blue);">
+                <p style="margin-bottom: 20px;">
+                    Ces outils sont conçus pour être lancés en parallèle de votre stream principal. Cliquez sur les boutons pour ouvrir les assistants dans une nouvelle fenêtre/onglet.
+                </p>
+                <div class="flex gap-4 flex-wrap">
+                    <a href="./lucky_streamer_picker.html" target="_blank" class="btn-primary flex-1 p-3 text-center" style="background:#0099ff;">
+                        🎱 ASSISTANT TIRAGE AU SORT (Lucky Picker)
+                    </a>
+                    <a href="./sniper_tool.html" target="_blank" class="btn-primary flex-1 p-3 text-center" style="background:#e34a64;">
+                        🎯 MINI-SNIPER (OBS Tool)
+                    </a>
+                </div>
+            </div>
+        </div>
+
 
         <div id="tab-boost" class="tab-content">
             <h3 class="tab-heading text-pink">
