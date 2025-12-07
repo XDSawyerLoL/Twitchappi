@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V9.0 - Auto-Action & Disruption</title> 
+    <title>Streamer & Niche AI Hub V9.2 - LIVE DASHBOARD ULTRA-EFFICACE</title> 
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -17,7 +17,7 @@
             --color-ai-niche: #59d682; /* Vert pour la niche */
             --color-ai-repurpose: #9933ff; /* Violet pour le repurposing */
             --color-ai-growth: #ffcc00; /* Jaune pour la croissance/alertes */
-            --color-ai-action: #e34a64; /* NOUVELLE COULEUR: Rouge/Corail pour l'action/export */ 
+            --color-ai-action: #e34a64; /* Rouge/Corail pour l'action/export */ 
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
@@ -26,7 +26,7 @@
         /* Styles Globaux */
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
         #twitch-lucky-main { all: initial; display: block; max-width: 1200px; margin: 20px auto; padding: 10px; font-family: 'Inter', sans-serif; color: #fff; }
-        /* TITRE MIS À JOUR EN V9.0 */
+        /* TITRE MIS À JOUR EN V9.2 */
         h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); margin-bottom: 5px; text-align: center; }
         .h1-blue-accent { color: var(--color-secondary-blue); }
         .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; }
@@ -37,6 +37,33 @@
         #player-channel-status { font-size: 12px; color: var(--color-text-dimmed); margin-left: auto; font-weight: normal; font-family: 'Inter', sans-serif; }
         #twitch-embed { width: 100%; height: 550px; border-radius: 8px; box-shadow: 0 0 15px rgba(34, 199, 239, 0.3); overflow: hidden; }
         #form-channel-player { display: flex; gap: 8px; margin-bottom: 15px; }
+
+        /* Infos Streamer Actif (V9.1) */
+        #active-streamer-info { 
+            display: none; 
+            background: var(--color-bg-light); 
+            border: 1px solid var(--color-border-medium); 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin-top: 15px; 
+        }
+        #active-streamer-info h4 { 
+            font-family: 'Orbitron', sans-serif; 
+            font-size: 14px; 
+            color: var(--color-primary-pink); 
+            margin-bottom: 8px; 
+        }
+        .streamer-stat { 
+            display: inline-block; 
+            margin-right: 15px; 
+            font-size: 12px; 
+            color: var(--color-text-dimmed); 
+        }
+        .stat-value { 
+            font-weight: 700; 
+            color: white; 
+            margin-left: 4px; 
+        }
         
         /* Inputs & Boutons */
         .action-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); background: var(--color-bg-dark); color: #fff; font-size: 13px; }
@@ -44,6 +71,27 @@
         .btn-primary:hover:not(:disabled) { background: #E6008A; }
         .btn-secondary { background: var(--color-secondary-blue); color: var(--color-bg-dark); border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(34,199,239,.4); }
         .btn-secondary:hover:not(:disabled) { background: #1eafdd; }
+
+        /* Boutons de Partage (V9.1 SVG) */
+        .share-btn-group button {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border-radius: 4px;
+            transition: opacity 0.2s;
+        }
+        .share-btn-group button:hover { opacity: 0.8; }
+        .share-btn-group svg {
+            width: 18px;
+            height: 18px;
+        }
+        .share-btn-group .btn-x { background-color: #000; color: #fff; border: 1px solid #444; }
+        .share-btn-group .btn-facebook { background-color: #1877F2; color: #fff; }
+        .share-btn-group .btn-reddit { background-color: #FF4500; color: #fff; }
+        .share-btn-group .btn-copy { background-color: var(--color-text-dimmed); color: #fff; }
         
         /* Résultats IA */
         .ai-result-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; margin-top: 15px; color: #ffffff; }
@@ -70,6 +118,8 @@
         #niche-result-container li:before { content: "✅"; color: var(--color-ai-niche); }
         #repurpose-result-container li:before { content: "✂️"; color: var(--color-ai-repurpose); }
         .game-item li:before, #ai-trend-critique-container li:before { content: "💎"; color: var(--color-ai-growth); }
+        #live-alerts li:before { content: "🚨"; color: var(--color-ai-action); } /* Nouvelle icône pour LIVE */
+
 
         /* Couleurs IA des titres et bordures */
         #scan-result { border-color: var(--color-secondary-blue); }
@@ -77,6 +127,7 @@
         #repurpose-result-container { border-color: var(--color-ai-repurpose); }
         #ai-trend-critique-container { border-color: var(--color-ai-growth); }
         #boost-results { border-color: var(--color-primary-pink); }
+        #live-alerts { border-color: var(--color-ai-action); } /* Nouveau style */
         
         #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
         #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
@@ -93,7 +144,7 @@
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 20px;
-            display: none; /* Caché par défaut */
+            display: none; 
             align-items: flex-start;
             gap: 15px;
         }
@@ -129,7 +180,7 @@
             background: #cc99ff;
         }
         
-        /* Styles spécifiques pour l'Auto-Export V9.0 */
+        /* Styles spécifiques pour l'Auto-Export V9.0 & Clip Instantané */
         .export-btn { 
             background: var(--color-ai-action); 
             color: #fff; border: 0; padding: 8px 12px; border-radius: 6px; 
@@ -140,9 +191,34 @@
             background: #D5445B;
         }
 
-        /* Onglets */
-        .tab-btn { font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: var(--color-bg-light); border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.2s; flex: 1; text-align: center; font-size: 12px; white-space: nowrap; }
-        .tab-btn.active { background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); font-weight: bold; }
+        /* Onglets (V9.1 Draggable) */
+        .tab-btn { 
+            font-family: 'Orbitron', sans-serif; 
+            padding: 12px 15px; 
+            background: var(--color-bg-light); 
+            border: 1px solid var(--color-border-medium); 
+            border-bottom: none; 
+            color: var(--color-text-dimmed); 
+            cursor: grab; /* Curseur de drag */
+            border-radius: 8px 8px 0 0; 
+            transition: all 0.2s; 
+            flex: 1; 
+            text-align: center; 
+            font-size: 12px; 
+            white-space: nowrap; 
+        }
+        .tab-btn:active { cursor: grabbing; }
+        .tab-btn.active { 
+            background: var(--color-bg-medium); 
+            color: #fff; 
+            border-top: 3px solid var(--color-primary-pink); 
+            font-weight: bold; 
+        }
+        /* Nouvelle couleur pour l'onglet LIVE */
+        .tab-btn[data-tab-id="tab-live"].active {
+            border-top: 3px solid var(--color-ai-action);
+        }
+
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-top: none; border-radius: 0 0 10px 10px; padding: 20px; }
         .tab-content.active { display: block; }
         .tab-heading { font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px; }
@@ -168,19 +244,32 @@
         .msg.bot ul { list-style-type: disc; padding-left: 20px; margin-top: 5px; }
         .assistant-input-area { padding: 10px; border-top: 1px solid var(--color-border-dark); display: flex; gap: 8px; }
 
+        /* V9.2 Styles Spécifiques pour LIVE DASHBOARD */
+        #live-dashboard > div {
+             box-shadow: 0 0 10px rgba(227, 74, 100, 0.2);
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+        }
+
         @media (max-width: 768px) {
             .followed-stream-item { width: 100%; min-width: unset; }
             #twitch-embed { height: 350px; }
-            .tab-btn { flex-basis: 50%; max-width: 50%; }
+            /* Les tabs deviennent flexibles pour s'adapter */
+            .tab-btn { flex-basis: 50%; max-width: 50%; } 
             .assistant-panel { width: calc(100% - 40px); bottom: 90px; right: 20px; height: 400px; }
+            #live-dashboard {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V9.0</h1>
-    <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing (Auto-Action) • Croissance</div>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V9.2</h1>
+    <div class="subtitle-center">Lecteur • Scan & IA • **LIVE DASHBOARD (Ultra-Efficace)** • Repurposing • Croissance • Glisser-Déposer</div>
 
     <div class="player-wrapper">
         <h2>
@@ -192,17 +281,29 @@
             <button type="submit" id="btn-player-launch" class="btn-primary min-w-[80px]">▶️ LANCER</button>
         </form>
         <div id="twitch-embed"></div>
-        <div id="twitch-player-share" class="pt-3 border-t border-gray-700" style="border-color:var(--color-border-dark);"></div>
+
+        <div id="active-streamer-info">
+            <h4 id="streamer-info-name">Détails Streamer</h4>
+            <div class="flex flex-wrap gap-4 mb-2">
+                <span class="streamer-stat">Followers: <span id="streamer-followers" class="stat-value">...</span></span>
+                <span class="streamer-stat">Vues Totales: <span id="streamer-views" class="stat-value">...</span></span>
+                <span class="streamer-stat">En Ligne: <span id="streamer-live-status" class="stat-value">...</span></span>
+            </div>
+            <p id="streamer-description" class="text-xs text-gray-400 mt-2 italic"></p>
+        </div>
+
+        <div id="twitch-player-share" class="pt-3 border-t border-gray-700 mt-3" style="border-color:var(--color-border-dark);">
+            </div>
     </div>
 
     <div id="tabs-container">
-        <div class="flex flex-wrap flex-tabs">
-            <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
-            <button class="tab-btn" data-tab-id="tab-cible" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
-            <button class="tab-btn" data-tab-id="tab-niche" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
-            <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">🚀 REPURPOSING</button>
-            <button class="tab-btn" data-tab-id="tab-growth" onclick="openTab('tab-growth')">💰 CROISSANCE</button>
-            <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
+        <div class="flex flex-wrap flex-tabs" id="tab-button-container">
+            <button class="tab-btn" data-tab-id="tab-followed" data-default-order="1" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
+            <button class="tab-btn" data-tab-id="tab-cible" data-default-order="2" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
+            <button class="tab-btn" data-tab-id="tab-live" data-default-order="3" onclick="openTab('tab-live')">🔴 LIVE DASHBOARD</button> <button class="tab-btn" data-tab-id="tab-niche" data-default-order="4" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
+            <button class="tab-btn" data-tab-id="tab-repurpose" data-default-order="5" onclick="openTab('tab-repurpose')">🚀 REPURPOSING</button>
+            <button class="tab-btn" data-tab-id="tab-growth" data-default-order="6" onclick="openTab('tab-growth')">💰 CROISSANCE</button>
+            <button class="tab-btn" data-tab-id="tab-boost" data-default-order="7" onclick="openTab('tab-boost')">⚡ BOOST</button>
         </div>
 
         <div id="tab-followed" class="tab-content">
@@ -225,6 +326,41 @@
                 <button type="submit" id="btn-target" class="btn-secondary min-w-[80px]">🎯 CIBLER</button>
             </form>
             <div id="scan-result" class="ai-result-box"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Entrez un jeu ou un pseudo et cliquez sur CIBLER.</p></div>
+        </div>
+
+        <div id="tab-live" class="tab-content">
+            <h3 class="tab-heading" style="color:var(--color-ai-action);"><span class="icon">🔴</span> Tableau de Bord LIVE (Analyse en Temps Réel)</h3>
+            <div id="live-dashboard" class="grid grid-cols-3 gap-4 mb-4">
+                <div class="p-4 bg-gray-900 rounded-lg border border-red-500/50">
+                    <div class="text-sm text-gray-400 font-bold">SPECTATEURS ACTUELS</div>
+                    <div id="live-metric-viewers" class="text-3xl font-orbitron text-red-500 mt-1">N/A</div>
+                </div>
+                <div class="p-4 bg-gray-900 rounded-lg border border-red-500/50">
+                    <div class="text-sm text-gray-400 font-bold">SCORE DE SANTÉ IA</div>
+                    <div id="live-metric-health" class="text-3xl font-orbitron text-yellow-500 mt-1">N/A</div>
+                </div>
+                <div class="p-4 bg-gray-900 rounded-lg border border-red-500/50">
+                    <div class="text-sm text-gray-400 font-bold">DURÉE DU STREAM</div>
+                    <div id="live-metric-uptime" class="text-3xl font-orbitron text-green-500 mt-1">00:00:00</div>
+                </div>
+            </div>
+            
+            <div id="live-stream-details" class="p-4 bg-gray-900 rounded-lg border border-gray-700 mb-4">
+                <h4 class="text-lg font-orbitron text-white mb-2">Détails Actuels</h4>
+                <p class="text-sm text-gray-400">Titre: <strong id="live-detail-title" class="text-white">...</strong></p>
+                <p class="text-sm text-gray-400">Jeu: <strong id="live-detail-game" class="text-white">...</strong></p>
+            </div>
+
+            <h4 class="tab-heading" style="color:var(--color-ai-action); margin-top: 20px;"><span class="icon">🚨</span> ALERTES IA & ACTIONS RAPIDES</h4>
+            <div id="live-alerts" class="ai-result-box">
+                <p style="color:var(--color-text-dimmed);">Aucune alerte IA pour le moment. Lancez un stream et connectez-vous pour commencer l'analyse.</p>
+            </div>
+            
+            <div class="flex gap-2 mt-4">
+                <button id="btn-live-ia-title" class="btn-primary flex-1" style="background:var(--color-ai-growth); color:var(--color-bg-dark); font-weight:bold;">🔮 TITRE IA</button>
+                <button id="btn-live-ia-health" class="btn-primary flex-1" style="background:var(--color-secondary-blue); color:var(--color-bg-dark); font-weight:bold;">🩺 SANTÉ STREAM</button>
+                <button id="btn-live-clip" class="export-btn flex-1">🎬 CLIP INSTANTANÉ</button>
+            </div>
         </div>
 
         <div id="tab-niche" class="tab-content">
@@ -311,12 +447,153 @@
     let embed = null;
     let twitchUserConnected = false;
     let currentVODId = null; 
-    let selectedClipTime = null; // V9.0: Pour l'export
+    let selectedClipTime = null; 
     const aiTrendCritiqueContainer = document.getElementById('ai-trend-critique-container');
     const exportButton = document.getElementById('btn-export-vod');
+    const tabButtonContainer = document.getElementById('tab-button-container');
 
+    // V9.2 - GESTION DU DASHBOARD LIVE
+    let liveDashboardInterval = null;
 
-    // --- 1. FONCTIONS DE GESTION DES ONGLET ET DU VOD ---
+    function startLiveDashboard(channelName) {
+        if (liveDashboardInterval) clearInterval(liveDashboardInterval);
+        
+        const dashboardLogic = async () => {
+            const alertsBox = document.getElementById('live-alerts');
+            alertsBox.innerHTML = '<p style="color:var(--color-ai-action);">⚙️ Rafraîchissement des données LIVE...</p>';
+
+            // MOCK: Simulation d'un appel API pour les données LIVE
+            try {
+                // Pour la démo, on simule une chaîne "live" avec des données
+                const isChannelLive = channelName !== DEFAULT_CHANNEL && channelName.toLowerCase() !== 'offline'; 
+                
+                if (isChannelLive) {
+                    // Données mockées plus réalistes
+                    const viewers = Math.floor(Math.random() * 200) + 50; 
+                    const vsRatio = (Math.random() * 0.5 + 0.5).toFixed(2);
+                    const healthScore = Math.min(100, (viewers / 10 + vsRatio * 50)).toFixed(0); 
+                    
+                    // Formatage du temps (simplifié)
+                    let uptimeHours = Math.floor(Math.random() * 4); 
+                    let uptimeMinutes = Math.floor(Math.random() * 60);
+                    let uptimeSeconds = Math.floor(Math.random() * 60);
+                    const uptime = `${String(uptimeHours).padStart(2, '0')}:${String(uptimeMinutes).padStart(2, '0')}:${String(uptimeSeconds).padStart(2, '0')}`;
+                    
+                    const mockStreamData = {
+                        viewer_count: viewers,
+                        avg_viewers_per_streamer: parseFloat(vsRatio),
+                        uptime: uptime,
+                        title: `LIVE: Je test la nouvelle IA v9.2 ! ${Math.random().toFixed(2)}`,
+                        game_name: "The Legend of Zelda: Tears of the Kingdom (Mock)",
+                    };
+                    
+                    // Update Metrics
+                    document.getElementById('live-dashboard').style.opacity = '1';
+                    document.getElementById('live-metric-viewers').textContent = mockStreamData.viewer_count.toLocaleString('fr-FR');
+                    document.getElementById('live-metric-health').textContent = `${healthScore} / 100`;
+                    document.getElementById('live-metric-uptime').textContent = mockStreamData.uptime; 
+                    
+                    // Update Details
+                    document.getElementById('live-detail-title').textContent = mockStreamData.title;
+                    document.getElementById('live-detail-game').textContent = mockStreamData.game_name;
+
+                    // Simulation des Alertes IA (Appel Critique IA)
+                    const alertRes = await fetch(`${API_BASE}/critique_ia`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        // On demande des alertes basées sur les données mockées
+                        body: JSON.stringify({ 
+                            type: 'live_alerts', 
+                            query: `viewers:${viewers}, health:${healthScore}, vsRatio:${vsRatio}` 
+                        })
+                    });
+                    const alertData = await alertRes.json();
+                    
+                    if(alertData.success && alertData.html_response) {
+                        document.getElementById('live-alerts').innerHTML = alertData.html_response;
+                    } else {
+                        alertsBox.innerHTML = `<p style="color:var(--color-text-dimmed);">Aucune alerte IA urgente. Tout est en ordre (Score: ${healthScore}).</p>`;
+                    }
+                    
+                } else {
+                    // If not live, display appropriate message
+                    document.getElementById('live-dashboard').style.opacity = '0.5';
+                    document.getElementById('live-metric-viewers').textContent = 'OFF';
+                    document.getElementById('live-metric-health').textContent = 'N/A';
+                    document.getElementById('live-metric-uptime').textContent = '00:00:00';
+                    document.getElementById('live-detail-title').textContent = '...';
+                    document.getElementById('live-detail-game').textContent = '...';
+                    alertsBox.innerHTML = `<p style="color:var(--color-text-dimmed);">Le dashboard LIVE est inactif. Le canal <strong>${channelName}</strong> n'est pas en direct ou est une VOD.</p>`;
+                }
+            } catch (e) {
+                console.error("Erreur Dashboard LIVE:", e);
+                alertsBox.innerHTML = `<p style="color:red;">❌ Erreur de connexion aux données LIVE.</p>`;
+            }
+        };
+        
+        // Run immediately and every 30 seconds
+        dashboardLogic();
+        liveDashboardInterval = setInterval(dashboardLogic, 30000); 
+    }
+
+    function stopLiveDashboard() {
+        if (liveDashboardInterval) {
+            clearInterval(liveDashboardInterval);
+            liveDashboardInterval = null;
+        }
+    }
+    // FIN V9.2 - GESTION DU DASHBOARD LIVE
+
+    // --- 1. FONCTIONS DE GESTION DES ONGLET ET DU VOD (AJOUT DRAGGABLE) ---
+
+    function saveTabOrder() {
+        const order = Array.from(tabButtonContainer.children).map(btn => btn.dataset.tabId);
+        localStorage.setItem('tabOrder', JSON.stringify(order));
+    }
+
+    function loadTabOrder() {
+        const savedOrder = JSON.parse(localStorage.getItem('tabOrder'));
+        if (savedOrder && savedOrder.length === tabButtonContainer.children.length) {
+            const buttons = Array.from(tabButtonContainer.children);
+            const orderedButtons = savedOrder.map(tabId => buttons.find(btn => btn.dataset.tabId === tabId));
+            orderedButtons.forEach(btn => tabButtonContainer.appendChild(btn));
+        } else {
+             // Si l'ordre est invalide ou manquant, réinitialiser l'ordre par défaut (basé sur data-default-order)
+            const buttons = Array.from(tabButtonContainer.children);
+            buttons.sort((a, b) => a.dataset.defaultOrder - b.dataset.defaultOrder);
+            buttons.forEach(btn => tabButtonContainer.appendChild(btn));
+        }
+    }
+
+    let draggingTab = null;
+    tabButtonContainer.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('tab-btn')) {
+            draggingTab = e.target;
+            e.dataTransfer.effectAllowed = 'move';
+            // Utiliser un petit délai pour que la classe soit ajoutée après le dragstart par le navigateur
+            setTimeout(() => e.target.style.opacity = '0.5', 0); 
+        }
+    });
+
+    tabButtonContainer.addEventListener('dragover', (e) => {
+        e.preventDefault(); 
+        if (draggingTab && e.target.classList.contains('tab-btn') && e.target !== draggingTab) {
+            const rect = e.target.getBoundingClientRect();
+            const next = (e.clientX > rect.left + rect.width / 2);
+            tabButtonContainer.insertBefore(draggingTab, next ? e.target.nextSibling : e.target);
+        }
+    });
+
+    tabButtonContainer.addEventListener('dragend', (e) => {
+        if (draggingTab) {
+            draggingTab.style.opacity = '1';
+            draggingTab = null;
+            saveTabOrder();
+        }
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.setAttribute('draggable', 'true'));
+
 
     function openTab(tabId) {
         localStorage.setItem('activeTab', tabId);
@@ -346,49 +623,95 @@
         return 0; 
     }
 
-    function updatePlayerStatus(channelName, isLive, videoId) {
+    // AJOUT V9.1 : Mise à jour des informations du streamer
+    function updateStreamerInfo(info) {
+        const infoBox = document.getElementById('active-streamer-info');
         const statusEl = document.getElementById('player-channel-status');
         const iconEl = document.getElementById('player-icon');
+
+        if (!info || info.is_vod) {
+            infoBox.style.display = 'none';
+            return;
+        }
+
+        infoBox.style.display = 'block';
+        document.getElementById('streamer-info-name').innerHTML = `Détails Streamer: <strong style="color:var(--color-secondary-blue);">${info.display_name || info.channel_name}</strong>`;
+        document.getElementById('streamer-followers').textContent = info.follower_count ? info.follower_count.toLocaleString('fr-FR') : 'N/A';
+        document.getElementById('streamer-views').textContent = info.view_count ? info.view_count.toLocaleString('fr-FR') : 'N/A';
+        document.getElementById('streamer-description').textContent = info.description || 'Pas de description fournie.';
         
-        if (videoId) {
-            statusEl.innerHTML = `📼 VOD: ${channelName.toUpperCase()}`;
-            statusEl.style.color = 'var(--color-ai-repurpose)';
-            iconEl.innerHTML = '▶️';
-        } else if (isLive) {
-            statusEl.innerHTML = `🔴 ${channelName.toUpperCase()} (LIVE)`;
+        const liveStatusEl = document.getElementById('streamer-live-status');
+
+        if (info.is_live) {
+            liveStatusEl.innerHTML = `<span style="color:red;">🔴 OUI</span>`;
+            statusEl.innerHTML = `🔴 ${info.channel_name.toUpperCase()} (LIVE)`;
             statusEl.style.color = '#ff0000';
             iconEl.innerHTML = '🔥';
         } else {
-            statusEl.innerHTML = `${channelName.toUpperCase()} (Hors ligne)`;
+            liveStatusEl.innerHTML = `<span style="color:var(--color-text-dimmed);">Non</span>`;
+             statusEl.innerHTML = `${info.channel_name.toUpperCase()} (Hors ligne)`;
             statusEl.style.color = 'var(--color-text-dimmed)';
             iconEl.innerHTML = '🎬';
         }
     }
+    
+    async function fetchStreamerDetails(channelName) {
+        try {
+            const res = await fetch(`${API_BASE}/streamer_details?channel=${channelName}`);
+            const data = await res.json();
+            if (data.success && data.details) {
+                // MOCK : Ajouter des données LIVE simulées pour le test du dashboard
+                const isLive = channelName.toLowerCase() !== DEFAULT_CHANNEL && channelName.toLowerCase() !== 'offline';
+                updateStreamerInfo({ 
+                    ...data.details, 
+                    channel_name: channelName, 
+                    is_vod: false, 
+                    is_live: isLive,
+                    stream_details: { viewer_count: isLive ? 150 : 0 } // Mock viewer count
+                });
+            } else {
+                updateStreamerInfo({ channel_name: channelName, is_live: false, is_vod: false }); 
+            }
+        } catch (error) {
+            console.error("Erreur de récupération des détails du streamer:", error);
+            updateStreamerInfo({ channel_name: channelName, is_live: false, is_vod: false });
+        }
+    }
 
+
+    // AJOUT V9.1 : Icônes SVG pour les boutons de partage
     function generateShareButtons(channel, url) {
         const shareContainer = document.getElementById('twitch-player-share');
         if (!shareContainer) return;
 
         const shareUrl = url || `https://twitch.tv/${channel}`;
         const encodedUrl = encodeURIComponent(shareUrl);
-        const encodedText = encodeURIComponent(`Découvrez le stream/VOD de ${channel} avec Streamer AI Hub !`);
+        const encodedText = encodeURIComponent(`Découvrez le stream/VOD de ${channel} sur Twitch !`);
 
         const twitterLink = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
         const facebookLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
         const redditLink = `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedText}`;
 
         shareContainer.innerHTML = `
-            <div class="flex space-x-2 mt-2 items-center text-sm">
+            <div class="flex space-x-2 mt-2 items-center text-sm share-btn-group">
                 <span class="text-xs text-gray-400">Partager :</span>
-                <button onclick="window.open('${twitterLink}', '_blank')" class="p-1 rounded bg-[#1DA1F2] hover:bg-[#1A91DA] text-white transition duration-200" title="Partager sur X (Twitter)">X</button>
-                <button onclick="window.open('${facebookLink}', '_blank')" class="p-1 rounded bg-blue-800 hover:bg-blue-900 text-white transition duration-200" title="Partager sur Facebook">F</button>
-                <button onclick="window.open('${redditLink}', '_blank')" class="p-1 rounded bg-[#FF4500] hover:bg-[#E53C00] text-white transition duration-200" title="Partager sur Reddit">R</button>
-                <button onclick="navigator.clipboard.writeText('${shareUrl}'); alert('Lien copié !')" class="p-1 rounded bg-gray-500 hover:bg-gray-600 text-white transition duration-200" title="Copier le lien">🔗</button>
+                <button onclick="window.open('${twitterLink}', '_blank')" class="btn-x" title="Partager sur X (Twitter)">
+                    <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="color:white;"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.619L11.75 14.61 3.542 22.847H.851l8.084-9.25L0 1.154h8.05l5.051 6.223 5.799-7.22zM17.86 20.669H19.1L6.467 3.19H5.11L17.86 20.67z"></path></svg>
+                </button>
+                <button onclick="window.open('${facebookLink}', '_blank')" class="btn-facebook" title="Partager sur Facebook">
+                    <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.874V15.45H8.086v-3.45h2.352V9.897c0-2.322 1.4-3.606 3.513-3.606.99 0 1.83.074 2.08.106v2.44h-1.44c-1.13 0-1.349.535-1.349 1.325v1.733h2.713l-.353 3.45H12.9V21.874C17.34 21.128 22 16.99 22 12z"/></svg>
+                </button>
+                <button onclick="window.open('${redditLink}', '_blank')" class="btn-reddit" title="Partager sur Reddit">
+                    <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10zm-3.085 1.574c-.7.66-1.576 1.196-2.45 1.455.518-.426.837-1.042.837-1.748 0-.58-.2-1.116-.537-1.554.437-.156.915-.228 1.41-.228 1.444 0 2.62.973 2.62 2.175s-1.176 2.175-2.62 2.175a2.593 2.593 0 01-1.258-.337l-2.035 1.705v1.23h3.587v2.493H8.381V18.17h3.587v-1.23l-2.035-1.705a2.593 2.593 0 01-1.258.337c-1.444 0-2.62-.973-2.62-2.175s1.176-2.175 2.62-2.175c.495 0 .973.072 1.41.228-.337.438-.537.974-.537 1.554 0 .706.32 1.322.837 1.748-.874-.259-1.75-1.095-2.45-1.455a4.17 4.17 0 01-1.235-1.294c.148-.094.316-.168.495-.219.006-.002.013-.004.019-.006.19-.052.41-.077.625-.077 2.053 0 3.725 1.637 3.725 3.655S14.053 19 12 19s-3.725-1.637-3.725-3.655c0-1.956 1.597-3.55 3.587-3.55.19 0 .39.02.58.058l.18.037.195.04c.184.04.37.07.56.07 1.99 0 3.587 1.594 3.587 3.55s-1.672 3.655-3.725 3.655c-.215 0-.435-.025-.625-.077-.006-.002-.013-.004-.019-.006-.179-.047-.357-.121-.495-.219a4.17 4.17 0 01-1.235 1.294zM12 7.55c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5z"/></svg>
+                </button>
+                <button onclick="navigator.clipboard.writeText('${shareUrl}'); alert('Lien copié !')" class="btn-copy" title="Copier le lien">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.182-5.918a4 4 0 005.656 0l4-4a4 4 0 10-5.656-5.656l-1.1 1.1"></path></svg>
+                </button>
             </div>
         `;
     }
 
-    window.launchPlayer = function(channelName = DEFAULT_CHANNEL, videoId = null, time = 0) {
+    window.launchPlayer = async function(channelName = DEFAULT_CHANNEL, videoId = null, time = 0) {
         const embedContainer = document.getElementById('twitch-embed');
         if (embedContainer) {
              embedContainer.innerHTML = ''; 
@@ -397,6 +720,9 @@
         if (embed) {
             embed = null; 
         }
+        
+        // V9.2 - Arrêter l'intervalle du Dashboard précédent
+        stopLiveDashboard(); 
 
         const config = {
             width: "100%",
@@ -407,12 +733,10 @@
         };
 
         let shareUrl = `https://twitch.tv/${channelName}`;
-        let isLive = true; 
-
+        
         if (videoId) {
             config.video = videoId;
             config.channel = undefined; 
-            isLive = false;
             shareUrl = `https://www.twitch.tv/videos/${videoId}`;
             
             if (time > 0) {
@@ -424,7 +748,6 @@
 
         localStorage.setItem('activeChannel', channelName);
         document.getElementById('input-channel').value = channelName;
-        updatePlayerStatus(channelName, isLive, videoId);
         
         embed = new Twitch.Embed("twitch-embed", config);
 
@@ -432,13 +755,26 @@
             shareUrl = shareUrl + `?t=${time}s`;
         }
 
+        // V9.2 - Démarrer l'analyse LIVE uniquement pour les chaînes en direct (pas pour les VOD)
+        if (!videoId) {
+            await fetchStreamerDetails(channelName);
+            startLiveDashboard(channelName);
+        } else {
+            // C'est une VOD, les infos sont limitées ou non pertinentes
+            const statusEl = document.getElementById('player-channel-status');
+            const iconEl = document.getElementById('player-icon');
+            statusEl.innerHTML = `📼 VOD: ${channelName.toUpperCase()}`;
+            statusEl.style.color = 'var(--color-ai-repurpose)';
+            iconEl.innerHTML = '▶️';
+            document.getElementById('active-streamer-info').style.display = 'none';
+        }
+
         generateShareButtons(channelName, shareUrl);
     }
     
-    // AMÉLIORATION V9.0: Stocke le temps du clip sélectionné
     window.seekVod = function(videoId, seconds, timeString) {
         const channel = localStorage.getItem('input-repurpose-channel') || DEFAULT_CHANNEL;
-        selectedClipTime = timeString; // Garde le format HH:MM:SS ou MM:SS
+        selectedClipTime = timeString; 
         exportButton.style.display = 'block';
         exportButton.textContent = `📤 EXPORTER CLIP (${timeString})`;
 
@@ -466,7 +802,6 @@
             const data = await res.json();
             
             if (!res.ok) { 
-                // GESTION DU 429 ICI (si l'API le renvoie)
                 throw new Error(data.error || `Erreur serveur lors de la récupération du fil: Statut ${res.status}`);
             }
 
@@ -559,7 +894,7 @@
     }
     document.getElementById('assistant-toggle').onclick = toggleAssistant;
 
-    // Mini Assistant Logic (Gestion robuste des erreurs)
+    // Mini Assistant Logic 
     const assistantForm = document.getElementById('assistant-form');
     const assistantMsgs = document.getElementById('assistant-messages');
 
@@ -587,6 +922,7 @@
             document.getElementById(loaderId).remove();
 
             if (!res.ok) { 
+                // Mise à jour de la gestion d'erreur dans l'assistant
                 const errorMessage = data.html_response || data.error || `❌ Erreur de l'API IA: Code ${res.status}. Détail: ${data.message || 'Problème inconnu.'}`;
                 assistantMsgs.innerHTML += `<div class=\"msg bot\" style=\"color:red;\">${errorMessage}</div>`;
             } else {
@@ -600,12 +936,90 @@
         assistantMsgs.scrollTop = assistantMsgs.scrollHeight;
     });
     
+    // V9.2 - GESTIONNAIRES LIVE DASHBOARD
+    document.getElementById('btn-live-ia-title').addEventListener('click', function() {
+        const btn = this;
+        const channel = localStorage.getItem('activeChannel') || 'gotaga';
+        const alertsBox = document.getElementById('live-alerts');
+        
+        alertsBox.innerHTML = '<p style="color:var(--color-ai-growth);">🔮 Génération d\'un nouveau titre viral...</p>';
+        btn.disabled = true;
+        
+        setTimeout(async () => {
+            try {
+                const res = await fetch(`${API_BASE}/critique_ia`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ type: 'live_title', query: channel })
+                });
+                const data = await res.json();
+                
+                if (data.success && data.html_response) {
+                     alertsBox.innerHTML = `<h4 style="color:var(--color-ai-growth); margin-top:0; border-bottom: none;">💡 Titre IA Suggéré:</h4> ${data.html_response}`;
+                } else {
+                     alertsBox.innerHTML = `<p style="color:red;">❌ Échec de la génération de titre.</p>`;
+                }
+            } catch(e) {
+                 alertsBox.innerHTML = `<p style="color:red;">❌ Erreur réseau.</p>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }, 1500);
+    });
+
+    document.getElementById('btn-live-ia-health').addEventListener('click', function() {
+        const btn = this;
+        const channel = localStorage.getItem('activeChannel') || 'gotaga';
+        const alertsBox = document.getElementById('live-alerts');
+        
+        alertsBox.innerHTML = '<p style="color:var(--color-secondary-blue);">🩺 Analyse de la santé du stream en cours...</p>';
+        btn.disabled = true;
+        
+        setTimeout(async () => {
+            try {
+                const res = await fetch(`${API_BASE}/critique_ia`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ type: 'live_health', query: channel })
+                });
+                const data = await res.json();
+                
+                if (data.success && data.html_response) {
+                     alertsBox.innerHTML = `<h4 style="color:var(--color-secondary-blue); margin-top:0; border-bottom: none;">🩺 Rapport de Santé IA:</h4> ${data.html_response}`;
+                } else {
+                     alertsBox.innerHTML = `<p style="color:red;">❌ Échec du rapport de santé.</p>`;
+                }
+            } catch(e) {
+                 alertsBox.innerHTML = `<p style="color:red;">❌ Erreur réseau.</p>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }, 1500);
+    });
+
+    document.getElementById('btn-live-clip').addEventListener('click', function() {
+        const btn = this;
+        const channel = localStorage.getItem('activeChannel') || 'gotaga';
+        const alertsBox = document.getElementById('live-alerts');
+        
+        alertsBox.innerHTML = '<p style="color:var(--color-ai-action);">🎬 Création d\'un clip instantané (dernières 30s)...</p>';
+        btn.disabled = true;
+        
+        // Simuler Clip Creation API Call
+        setTimeout(() => {
+            const clipUrl = `https://clips.twitch.tv/${channel}-InstantClip-${Date.now()}`; 
+            alertsBox.innerHTML = `<p style="color:var(--color-ai-action);">✅ Clip créé: <a href="${clipUrl}" target="_blank" style="color:var(--color-primary-pink); font-weight:bold;">${channel} Clip Instantané</a></p>`;
+            btn.disabled = false;
+        }, 2000);
+    });
+    // FIN V9.2 - GESTIONNAIRES LIVE DASHBOARD
+    
     // --- 4. GESTIONNAIRES D'ÉVÉNEMENTS : ANALYSE ---
 
     const nicheResults = document.getElementById('niche-results');
     const repurposeResults = document.getElementById('repurpose-results');
     
-    // Fonction d'appel IA générique (gère res.ok et affiche le 429)
+    // Fonction d'appel IA générique 
     async function callAI(type, query, targetElement, button) {
         targetElement.innerHTML = `<p style="text-align:center; color:var(--color-primary-pink);">🤖 L'IA est en train d'analyser...</p>`;
         button.disabled = true;
@@ -657,7 +1071,6 @@
             const data = await res.json();
 
             if (!res.ok) { 
-                // GESTION DU 429 ICI
                 throw new Error(data.error || `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`);
             }
             
@@ -684,6 +1097,8 @@
                     htmlOutput += `<div class="flex items-start gap-4 mb-4"> <img src="${u.profile_image_url}" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--color-primary-pink);"> <div class="text-sm"> <p><strong>Statut:</strong> <span class="${u.is_live ? 'text-red-500 font-bold' : 'text-gray-500'}">${u.is_live ? `🔴 EN DIRECT (${u.stream_details.viewer_count.toLocaleString('fr-FR')} vues)` : 'Hors Ligne'}</span></p> <p>${u.description.substring(0, 100) || 'Pas de description.'}</p> </div> </div>`;
                     htmlOutput += `<button onclick="window.launchPlayer('${u.login}')" class="btn-primary w-full mb-2">▶️ REGARDER</button>`;
                     htmlOutput += `<button onclick="document.getElementById('input-repurpose-channel').value='${u.login}'; openTab('tab-repurpose');" class="btn-primary w-full" style="background:var(--color-ai-repurpose);">✂️ ANALYSER VOD (REPURPOSE)</button>`;
+                    htmlOutput += `<button onclick="window.launchPlayer('${u.login}'); openTab('tab-live');" class="btn-secondary w-full mt-2" style="background:var(--color-ai-action);">🔴 VOIR DASHBOARD LIVE</button>`;
+
                 }
             } else {
                 htmlOutput = `<p style="color:red; padding:10px;">❌ ${data.message}</p>`;
@@ -715,9 +1130,10 @@
         repurposeResults.innerHTML = `<p style="color:var(--color-ai-repurpose);">1/2 Récupération VOD & 2/2 Analyse IA pour <strong>${channel}</strong>...</p>`;
         btn.disabled = true;
         previewBox.style.display = 'none';
-        exportButton.style.display = 'none'; // Cache le bouton Export
+        exportButton.style.display = 'none'; 
         currentVODId = null;
         selectedClipTime = null;
+        stopLiveDashboard(); // Assurez-vous que le dashboard s'arrête si on passe en mode VOD Repurpose
 
         try {
             // 1. Récupérer les détails de la VOD
@@ -757,8 +1173,8 @@
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = htmlOutput;
                     
-                    // Transformation des timestamps en boutons cliquables (avec V9.0: passage du timeString)
-                    const timestampRegex = /\*\*Point de Clip:\*\* (\d{2}:\d{2}:\d{2})|(\d{2}:\d{2})/g; // Capture H:M:S ou M:S
+                    // Transformation des timestamps en boutons cliquables 
+                    const timestampRegex = /\*\*Point de Clip:\*\* (\d{2}:\d{2}:\d{2})|(\d{2}:\d{2})/g; 
 
                     const nodes = tempDiv.querySelectorAll('li, p');
                     nodes.forEach(node => {
@@ -788,7 +1204,7 @@
         }
     });
 
-    // NOUVELLE LOGIQUE V9.0: GESTION DE L'EXPORT
+    // LOGIQUE DE L'EXPORT
     exportButton.addEventListener('click', async function() {
         if (!currentVODId || !selectedClipTime) {
             alert("Veuillez d'abord sélectionner un point de clip à exporter.");
@@ -890,7 +1306,7 @@
         callAI('trend', 'Analyse des tendances V/S Twitch', aiTrendCritiqueContainer, btn);
     });
     
-    // --- 6. GESTION DU BOOST (Gère le 429 et res.ok) ---
+    // --- 6. GESTION DU BOOST ---
     document.getElementById('form-boost').addEventListener('submit', async function(e) {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim() || localStorage.getItem('activeChannel') || 'Chaîne Inconnue';
@@ -926,6 +1342,9 @@
 
     // --- 7. Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
+        // Chargement et application de l'ordre des onglets
+        loadTabOrder(); 
+
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         window.launchPlayer(lastChannel); 
 
