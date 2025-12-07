@@ -18,11 +18,13 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID_TWITCH';
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'VOTRE_SECRET_TWITCH';
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || `http://localhost:${PORT}/twitch_auth_callback`;
+// ✅ Mise à jour de la REDIRECT_URI pour utiliser l'URL de Render
+// NOTE: L'URL exacte doit être configurée dans vos variables d'environnement sur Render
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || `https://justplayerstreamhubpro.onrender.com/twitch_auth_callback`;
 
 // CLÉ API GEMINI
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'VOTRE_CLE_API_GEMINI'; 
-const GEMINI_MODEL = "gemini-2.0-flash"; // Utilisation du modèle rapide et récent
+const GEMINI_MODEL = "gemini-2.0-flash"; 
 
 let ai = null;
 if (GEMINI_API_KEY && GEMINI_API_KEY !== 'VOTRE_CLE_API_GEMINI') {
@@ -44,8 +46,8 @@ app.use(express.static(path.join(__dirname)));
 // Cache en mémoire (À remplacer par BDD pour la persistance !)
 const CACHE = {
     twitchTokens: {}, 
-    twitchUser: null, // Stocke la session utilisateur
-    streamBoosts: {} // Cooldown du Boost
+    twitchUser: null,
+    streamBoosts: {}
 };
 
 // =========================================================
@@ -137,7 +139,7 @@ async function runGeminiAnalysis(prompt, expectJson = true) {
             }
         }
 
-        return { success: true, html_response: text }; // Fallback pour le mode texte/HTML simple
+        return { success: true, html_response: text }; 
 
     } catch (e) {
         console.error("Erreur Gemini:", e.message);
@@ -153,7 +155,6 @@ async function runGeminiAnalysis(prompt, expectJson = true) {
 
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
-    // Ajout scope 'user:read:email' et 'channel:read:subscriptions' pour stats profil
     const scope = "user:read:email user:read:follows channel:read:subscriptions user:read:broadcast"; 
     const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${scope}&state=${state}`;
     res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 }); 
@@ -206,7 +207,7 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 // =========================================================
-// 🟢 ROUTE : PROFIL & STATS PERSO
+// ROUTE : PROFIL & STATS PERSO
 // =========================================================
 
 app.get('/my_profile_stats', async (req, res) => {
@@ -216,19 +217,16 @@ app.get('/my_profile_stats', async (req, res) => {
         const userId = CACHE.twitchUser.id;
         const accessToken = CACHE.twitchUser.access_token;
 
-        // 1. Infos User (déjà en cache mais on rafraichit pour les views)
         const userRes = await twitchApiFetch(`users?id=${userId}`, accessToken);
         const userData = userRes.data[0];
 
-        // 2. Nombre de Followers (Nécessite appel channels/followers)
         const followersRes = await twitchApiFetch(`channels/followers?broadcaster_id=${userId}`, accessToken);
         const totalFollowers = followersRes.total;
 
-        // 3. Derniers abonnés (Subscribers) - (Peut échouer si pas affilié, on gère le try/catch)
         let subCount = "N/A (Non Affilié/Partenaire)";
         try {
             const subsRes = await twitchApiFetch(`subscriptions?broadcaster_id=${userId}&first=1`, accessToken);
-            subCount = subsRes.total; // Seulement si l'utilisateur a la permission
+            subCount = subsRes.total; 
         } catch (e) {
             console.log("Info Sub inaccessible (normal si pas partenaire)");
         }
@@ -240,9 +238,9 @@ app.get('/my_profile_stats', async (req, res) => {
                 login: userData.login,
                 avatar: userData.profile_image_url,
                 created_at: userData.created_at,
-                view_count: userData.view_count, // Vues totales de la chaîne
+                view_count: userData.view_count, 
                 follower_count: totalFollowers,
-                broadcaster_type: userData.broadcaster_type || "Streamer Standard", // affiliate, partner ou ""
+                broadcaster_type: userData.broadcaster_type || "Streamer Standard", 
                 sub_count: subCount,
                 description: userData.description
             }
@@ -255,7 +253,7 @@ app.get('/my_profile_stats', async (req, res) => {
 });
 
 // =========================================================
-// 🟢 ROUTE : RAID FINDER (0-100 Viewers)
+// ROUTE : RAID FINDER (0-100 Viewers)
 // =========================================================
 
 app.post('/raid_finder', async (req, res) => {
@@ -263,23 +261,18 @@ app.post('/raid_finder', async (req, res) => {
     if (!category) return res.status(400).json({ success: false, error: "Catégorie requise." });
 
     try {
-        // 1. Trouver l'ID du jeu
         const gameRes = await twitchApiFetch(`games?name=${encodeURIComponent(category)}`);
         if (!gameRes.data.length) return res.status(404).json({ success: false, error: "Jeu introuvable." });
         
         const gameId = gameRes.data[0].id;
         const gameArt = gameRes.data[0].box_art_url;
 
-        // 2. Chercher les streams (On en prend 100 pour filtrer après)
         const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&first=100&language=fr`); 
         
-        // 3. Filtrer entre 0 et 100 viewers
         let raidCandidates = streamsRes.data.filter(s => s.viewer_count >= 0 && s.viewer_count <= 100);
         
-        // Trier par viewers croissant (aider les petits)
         raidCandidates.sort((a, b) => a.viewer_count - b.viewer_count);
 
-        // On renvoie le Top 20 des candidats
         res.json({
             success: true,
             game_name: gameRes.data[0].name,
@@ -351,14 +344,12 @@ app.get('/trending_games', async (req, res) => {
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body;
     try {
-        // Logique hybride (Jeu ou Streamer) - inchangée mais nettoyée
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         
         if (gameRes.data.length > 0 && gameRes.data[0].name.toLowerCase() === query.toLowerCase()) {
-            // C'est un jeu
             const game = gameRes.data[0];
             const streamsRes = await twitchApiFetch(`streams?game_id=${game.id}&first=10`);
-            const viewers = streamsRes.data.reduce((acc, s) => acc + s.viewer_count, 0); // Calcul de la somme des viewers
+            const viewers = streamsRes.data.reduce((acc, s) => acc + s.viewer_count, 0); 
             
             return res.json({ 
                 success: true, 
@@ -372,7 +363,6 @@ app.post('/scan_target', async (req, res) => {
             });
         }
         
-        // Sinon recherche utilisateur
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
@@ -402,7 +392,6 @@ app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
     let prompt = "";
 
-    // Prompts JSON stricts
     switch (type) {
         case 'niche':
             prompt = `Analyse le jeu "${query}" pour un streamer. Retourne ce JSON: 
@@ -443,28 +432,25 @@ app.post('/critique_ia', async (req, res) => {
     res.status(result.status || 500).json(result);
 });
 
-// Action auto (Remplacement de la simulation des métriques)
 app.post('/auto_action', async (req, res) => {
     const { query, action_type } = req.body;
     if (!query) return res.status(400).json({ success: false });
 
     if (action_type === 'export_metrics') {
-        // ✅ Remplacement de la simulation par l'appel à la route réelle
-        const statsRes = await fetch(`http://localhost:${PORT}/my_profile_stats`); // On assume l'appel à la route locale
+        const statsRes = await fetch(`http://localhost:${PORT}/my_profile_stats`); 
         const statsData = await statsRes.json();
         
         if (statsData.success) {
             return res.json({
                 success: true,
                 data: {
-                    views: statsData.stats.view_count, // Vues totales réelles
-                    followers: statsData.stats.follower_count, // Followers réels
+                    views: statsData.stats.view_count, 
+                    followers: statsData.stats.follower_count, 
                     broadcaster_type: statsData.stats.broadcaster_type,
                     description: statsData.stats.description
                 }
             });
         } else {
-            // Si non connecté, renvoyer l'erreur appropriée
             return res.status(401).json({ success: false, error: "Non connecté pour exporter les métriques." });
         }
     }
@@ -480,7 +466,6 @@ app.post('/auto_action', async (req, res) => {
     res.json(result);
 });
 
-// Mini Assistant (Texte simple conservé pour le chat)
 app.post('/mini_assistant', async (req, res) => {
     const { q, context } = req.body;
     const prompt = `Assistant Twitch (Contexte: ${context}). Question: "${q}". Réponds en HTML très court (< 50 mots).`;
@@ -494,29 +479,18 @@ app.post('/stream_boost', async (req, res) => {
 
     const channel = CACHE.twitchUser.login;
     const now = Date.now();
-    // Cooldown de 3 heures (10 800 000 ms)
     if (CACHE.streamBoosts[channel] && now - CACHE.streamBoosts[channel] < 10800000) {
         return res.status(429).json({ success: false, html_response: "<p style='color:red'>⏳ Cooldown actif. Prochain Boost disponible dans 3 heures.</p>" });
     }
 
     try {
-        // 1. Trouver ce que streame l'utilisateur actuellement
         const streamRes = await twitchApiFetch(`streams?user_id=${CACHE.twitchUser.id}`, CACHE.twitchUser.access_token);
         if (!streamRes.data.length) {
             return res.json({ success: false, html_response: "<p style='color:orange'>🛑 Vous n'êtes pas LIVE. Le Boost recherche des raids seulement si vous streamez.</p>" });
         }
         const currentCategory = streamRes.data[0].game_name;
 
-        // 2. Utiliser la fonction du Raid Finder directement pour trouver des candidats
-        const raidFinderResponse = await app.get('/raid_finder').stack[0].handle(
-            { body: { category: currentCategory } }, 
-            { json: (data) => data } // Fake res object to get data back
-        );
-        
-        // C'est la manière la plus propre d'appeler une fonction de route sans passer par fetch sur localhost
-        // On récupère le handler de la route /raid_finder (mais il faudrait la refactoriser en fonction)
-        // Pour l'instant, pour simplifier, on va utiliser la structure du fetch comme dans l'explication précédente:
-        
+        // Appel à la route /raid_finder (ajustez le port si nécessaire, mais Render utilise les variables d'environnement)
         const raidDataRes = await fetch(`http://localhost:${PORT}/raid_finder`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -524,14 +498,14 @@ app.post('/stream_boost', async (req, res) => {
         });
         const raidData = await raidDataRes.json();
 
-        CACHE.streamBoosts[channel] = now; // Activer le cooldown seulement si l'opération a commencé
+        CACHE.streamBoosts[channel] = now; 
 
         if (raidData.success && raidData.candidates.length > 0) {
             const topCandidate = raidData.candidates[0];
             return res.json({ 
                 success: true, 
                 html_response: `<p style='color:#00e676'>🚀 <strong>BOOST ACTIVÉ !</strong> Raid suggéré: <strong>${topCandidate.user_name}</strong> (${topCandidate.viewer_count} viewers). Lancez <code>/raid ${topCandidate.user_login}</code> !</p>`,
-                raidCandidate: topCandidate // Données pour l'affichage frontal
+                raidCandidate: topCandidate 
             });
         }
         
@@ -544,11 +518,20 @@ app.post('/stream_boost', async (req, res) => {
 });
 
 // =========================================================
+// ROUTE RACINE (NicheOptimizer.html) ✅ FIX POUR CANNOT GET /
+// =========================================================
+
+app.get('/', (req, res) => {
+    // Serve NicheOptimizer.html
+    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+// =========================================================
 // SERVER START
 // =========================================================
 
 app.listen(PORT, () => {
     console.log(`Serveur prêt sur http://localhost:${PORT}`);
-    // Rappel: Assurez-vous que TWITCH_REDIRECT_URI est bien configuré avec l'URL de Render
     console.log(`REDIRECT_URI configuré: ${REDIRECT_URI}`);
+    console.log(`Fichier HTML servi à la racine: NicheOptimizer.html`);
 });
