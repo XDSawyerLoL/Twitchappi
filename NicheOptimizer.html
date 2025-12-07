@@ -1,9 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer & Niche AI Hub V10.2 - Full Features</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+
+    <style>
+        /* --- VARIABLES CSS (Ajout des ombres néon) --- */
+        :root {
+            --color-bg-dark: #0d0d0d;
+            --color-bg-medium: #1a1a1a;
+            --color-bg-light: #111;
+            --color-primary-pink: #ff0099;
+            --color-secondary-blue: #22c7ef;
+            --color-ai-niche: #59d682; /* Vert pour Niche */
+            --color-ai-repurpose: #9933ff; /* Violet pour Repurpose */
+            --color-ai-growth: #ffcc00; /* Jaune pour Trend */
+            --color-ai-action: #e34a64; /* Rouge pour Action/Erreur */
+            --color-text-dimmed: #9aa3a8;
+        }
+
+        body {
+            background-color: var(--color-bg-dark);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Titre principal et éléments futuristes */
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Ombres Néon */
+        .shadow-neon-pink { box-shadow: 0 0 5px var(--color-primary-pink), 0 0 10px var(--color-primary-pink); }
+        .shadow-neon-blue { box-shadow: 0 0 5px var(--color-secondary-blue), 0 0 10px var(--color-secondary-blue); }
+        .shadow-neon-green { box-shadow: 0 0 5px var(--color-ai-niche), 0 0 10px var(--color-ai-niche); }
+        .shadow-neon-yellow { box-shadow: 0 0 5px var(--color-ai-growth), 0 0 10px var(--color-ai-growth); }
+
+        /* Couleur de texte des analyses */
+        .text-pink-neon { color: var(--color-primary-pink); }
+        .text-secondary-blue { color: var(--color-secondary-blue); }
+        .text-ai-niche { color: var(--color-ai-niche); }
+        .text-ai-repurpose { color: var(--color-ai-repurpose); }
+        .text-ai-growth { color: var(--color-ai-growth); }
+        .text-ai-action { color: var(--color-ai-action); }
+
+        /* Style des boutons/liens pour les timestamps */
+        .timestamp-link {
+            display: inline-block;
+            background-color: var(--color-ai-repurpose);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+        .timestamp-link:hover {
+            background-color: #7f2ad0;
+        }
+
+        /* Styles spécifiques pour le conteneur du tableau de bord */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen">
+
+    <header class="bg-gray-900 border-b border-gray-700 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-orbitron text-white">Streamer AI Hub <span class="text-pink-neon">V10.2</span></h1>
+            <div id="auth-status">
+                </div>
+        </div>
+    </header>
+
+    <nav class="bg-gray-900 sticky top-0 z-10 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex space-x-4">
+                <button class="tab-button text-white border-b-2 border-white py-3 px-3 transition" onclick="openTab('tab-home')">🏠 Accueil/Profil</button>
+                <button class="tab-button text-gray-400 hover:text-white py-3 px-3 transition" onclick="openTab('tab-niche')">📊 Niche Optimizer (IA)</button>
+                <button class="tab-button text-gray-400 hover:text-white py-3 px-3 transition" onclick="openTab('tab-repurpose')">✂️ Repurposing VOD (IA)</button>
+                <button class="tab-button text-gray-400 hover:text-white py-3 px-3 transition" onclick="openTab('tab-followed')">👀 Mon Fil Suivi</button>
+                <button class="tab-button text-gray-400 hover:text-white py-3 px-3 transition" onclick="openTab('tab-boost')">🚀 Boost Raid</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <div id="tab-home" class="tab-content">
+            <h2 class="text-3xl font-orbitron text-secondary-blue mb-6">Tableau de Bord et Flux</h2>
+            
+            <div id="login-prompt" class="bg-gray-800 p-6 rounded-lg text-center shadow-neon-blue hidden">
+                <p class="text-lg mb-4">Connectez-vous à Twitch pour accéder aux statistiques de votre chaîne et aux fonctionnalités personnalisées.</p>
+                <button onclick="window.location.href='/twitch_auth_start'" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-purple-900/50 transition">
+                    <i class="fab fa-twitch mr-2"></i> Connexion Twitch
+                </button>
+            </div>
+
+            <div id="profile-info-display" class="dashboard-grid">
+                <div class="col-span-1 space-y-6">
+                    <div class="h-64 bg-black rounded-lg overflow-hidden shadow-neon-pink" id="twitch-player-container">
+                         <p class="text-center p-4 text-gray-500">Lecteur Twitch (Chargé après connexion/stats)</p>
+                    </div>
+                    
+                    <div class="bg-gray-800 p-4 rounded-lg shadow-inner border border-gray-700">
+                        <h3 class="text-lg font-semibold mb-2">Charger un Profil</h3>
+                        <div class="flex space-x-2">
+                            <input type="text" id="profile-channel-name" value="" class="flex-grow bg-gray-700 border border-gray-600 p-2 rounded text-sm" placeholder="Nom de la chaîne">
+                            <button onclick="loadProfileStats(document.getElementById('profile-channel-name').value)" class="bg-secondary-blue hover:bg-sky-500 p-2 rounded text-sm font-semibold">Charger</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-span-1 bg-gray-800 p-6 rounded-lg shadow-neon-blue border border-gray-700">
+                    <h3 class="text-xl font-orbitron text-pink-neon mb-4">Statistiques de la Chaîne</h3>
+                    </div>
+            </div>
+        </div>
+        
+        <div id="tab-niche" class="tab-content hidden">
+            <h2 class="text-3xl font-orbitron text-ai-niche mb-6">Analyse de Niche Stratégique</h2>
+            
+            <form id="ai-analysis-form" class="bg-gray-800 p-6 rounded-lg shadow-neon-green mb-8 border border-gray-700">
+                <h3 class="text-xl font-semibold mb-4 text-white">Sujet de l'Analyse</h3>
+                <div class="flex space-x-4 mb-4">
+                    <div class="flex items-center">
+                        <input type="radio" id="type-niche" name="analysis_type" value="niche" checked class="form-radio text-ai-niche border-gray-600 focus:ring-ai-niche">
+                        <label for="type-niche" class="ml-2 text-white">Jeu/Catégorie</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="type-trend" name="analysis_type" value="trend" class="form-radio text-ai-niche border-gray-600 focus:ring-ai-niche">
+                        <label for="type-trend" class="ml-2 text-white">Tendances Actuelles (Global)</label>
+                    </div>
+                </div>
+                
+                <input type="text" id="analysis_query" placeholder="Entrez le nom du jeu, du thème ou de la catégorie..." class="w-full bg-gray-700 border border-gray-600 p-3 rounded text-lg mb-4 text-white" value="">
+                
+                <button type="submit" class="w-full bg-ai-niche hover:bg-opacity-90 text-gray-900 font-bold py-3 rounded-lg text-lg shadow-lg shadow-green-900/50 transition duration-300">
+                    <i class="fas fa-brain mr-2"></i> Lancer l'Analyse Consolidée IA
+                </button>
+            </form>
+
+            <div id="ai-report-result" class="text-center py-8 text-lg text-gray-500">
+                Lancez une analyse pour voir le rapport ici.
+            </div>
+
+            <div id="ai-report-display" class="hidden">
+                <div class="dashboard-grid">
+                    
+                    <div class="col-span-1 space-y-6">
+                        
+                        <div class="card bg-gray-800 p-6 rounded-lg shadow-neon-green border border-gray-700">
+                            <h3 class="text-xl font-orbitron mb-4 text-ai-niche">Score d'Opportunité IA (0-100)</h3>
+                            <div class="relative flex justify-center items-center h-48">
+                                <canvas id="nicheScoreGauge" class="w-full h-full"></canvas>
+                                <div class="absolute inset-0 flex justify-center items-center">
+                                    <span id="gauge-score-text" class="text-5xl font-bold font-orbitron">--</span>
+                                </div>
+                            </div>
+                            <div id="verdict-ia" class="text-center mt-4 p-2 bg-gray-900 rounded-lg">
+                                <p class="text-lg text-white font-semibold">Chargement du verdict...</p>
+                            </div>
+                        </div>
+
+                        <div class="card bg-gray-800 p-6 rounded-lg shadow-neon-pink border border-gray-700">
+                            <h3 class="text-xl font-orbitron mb-2 text-pink-neon">🔥 Titre Disruptif IA</h3>
+                            <div id="disruptive-title-display" class="mt-4 p-3 bg-gray-900 rounded-lg border border-pink-neon/30">
+                                <p class="text-xl font-orbitron text-white">...</p>
+                                <span class="text-xs text-gray-500 mt-1">Généré par l'IA en une seule requête.</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-1 space-y-6">
+                        
+                        <div class="card bg-gray-800 p-6 rounded-lg shadow-neon-blue border border-gray-700">
+                            <h3 class="text-xl font-semibold mb-4 text-secondary-blue">Points d'Attaque (Faiblesses des Concurrents)</h3>
+                            <ul id="niche-strengths" class="space-y-2">
+                                <li class="text-gray-500">Chargement...</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="card bg-gray-800 p-6 rounded-lg shadow-neon-green border border-gray-700">
+                            <h3 class="text-xl font-semibold mb-4 text-ai-niche">Idées de Contenu Unique pour Débutants</h3>
+                            <ul id="niche-ideas" class="space-y-2">
+                                <li class="text-gray-500">Chargement...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <div id="tab-repurpose" class="tab-content hidden">
+            <h2 class="text-3xl font-orbitron text-ai-repurpose mb-6">Outil de Repurposing Vidéo IA</h2>
+
+            <form id="ai-analysis-form-repurpose" class="bg-gray-800 p-6 rounded-lg shadow-neon-purple mb-8 border border-gray-700" onsubmit="event.preventDefault(); document.getElementById('type-repurpose').checked = true; document.getElementById('ai-analysis-form').dispatchEvent(new Event('submit'));">
+                <h3 class="text-xl font-semibold mb-4 text-white">Analyser un Contenu Récent</h3>
+                <div class="hidden">
+                    <input type="radio" id="type-repurpose" name="analysis_type" value="repurpose" class="form-radio">
+                </div>
+                
+                <input type="text" id="repurpose_query" placeholder="Collez le Titre de la VOD ou le Thème du Stream" class="w-full bg-gray-700 border border-gray-600 p-3 rounded text-lg mb-4 text-white">
+                
+                <button type="submit" class="w-full bg-ai-repurpose hover:bg-opacity-90 text-white font-bold py-3 rounded-lg text-lg shadow-lg shadow-purple-900/50 transition duration-300">
+                    <i class="fas fa-cut mr-2"></i> Générer les Meilleurs Moments (Clips)
+                </button>
+            </form>
+            
+            <div id="repurpose-section-display" class="bg-gray-900 p-6 rounded-lg shadow-neon-purple border border-gray-700">
+                <p class="text-center text-gray-500">Le rapport de clips vidéo viraux s'affichera ici après analyse.</p>
+            </div>
+            
+            <p class="text-center text-sm text-gray-600 mt-4">Remarque: Pour une VOD spécifique, utilisez le titre de votre VOD comme requête pour une analyse plus précise.</p>
+
+        </div>
+        
+        <div id="tab-followed" class="tab-content hidden">
+            <h2 class="text-3xl font-orbitron text-white mb-6">Streams Suivis en Direct</h2>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-neon-blue border border-gray-700">
+                <button onclick="loadFollowedStreams()" class="bg-secondary-blue hover:bg-sky-500 p-2 rounded text-sm font-semibold mb-4">Actualiser la Liste</button>
+                <div id="followed-list-container">
+                    <p class="text-center text-gray-500">Chargement des streams...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="tab-boost" class="tab-content hidden">
+            <h2 class="text-3xl font-orbitron text-ai-action mb-6">Activation du Boost Raid (Trouver un Partenaire)</h2>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-neon-pink border border-gray-700">
+                <p class="text-lg text-white mb-4">Utilisez le Boost pour trouver instantanément un streamer en fin de live, dans votre niche (0-100 viewers), pour un raid efficace.</p>
+                
+                <button id="boost-button" onclick="runStreamBoost()" class="w-full bg-ai-action hover:bg-red-500 text-white font-bold py-3 rounded-lg text-lg shadow-lg shadow-red-900/50 transition duration-300">
+                    <i class="fas fa-rocket mr-2"></i> ACTIVER LE BOOST MAINTENANT
+                </button>
+                
+                <div id="boost-status" class="mt-6 p-4 bg-gray-900 rounded-lg border border-ai-action/30">
+                    <p class="text-center text-gray-500">Le rapport de raid s'affichera ici.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-12 pt-8 border-t border-gray-700">
+            <h3 class="text-xl font-orbitron text-gray-500 mb-4">Mini-Assistant IA (Test de service)</h3>
+            <div id="mini-assistant-response" class="p-3 bg-gray-900 rounded-lg text-sm text-gray-300 border border-gray-800">
+                <p>Assistant désactivé dans cette version pour minimiser les requêtes IA et se concentrer sur l'optimisation des quotas critiques.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-gray-900 mt-12 py-4 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-600">
+            © 2025 Streamer AI Hub. Propulsé par Google Gemini & Twitch API.
+        </div>
+    </footer>
+
 <script>
     // Variables globales
     const BACKEND_URL = ''; // Laisse vide pour utiliser le même hôte
     const DEFAULT_CHANNEL = 'twitch'; // Chaîne par défaut si non connecté
 
-    let playerInstance = null; // Instance du lecteur Twitch
+    let nicheChartInstance = null; // Instance Chart.js pour la jauge
     let currentVODTitle = ''; // Pour passer le titre VOD au repurposing
 
     // =========================================================
@@ -28,6 +302,13 @@
         localStorage.setItem('activeTab', tabName);
         
         if (tabName === 'tab-followed') loadFollowedStreams();
+        
+        // Synchroniser le champ de requête entre Niche et Repurpose
+        if (tabName === 'tab-niche') {
+            document.getElementById('analysis_query').value = document.getElementById('repurpose_query').value;
+        } else if (tabName === 'tab-repurpose') {
+            document.getElementById('repurpose_query').value = document.getElementById('analysis_query').value;
+        }
     }
     
     // =========================================================
@@ -48,7 +329,7 @@
                         <button onclick="logout()" class="ml-4 text-xs text-red-500 hover:text-red-400">Déconnexion</button>
                     </div>
                 `;
-                document.getElementById('profile-info-display').classList.remove('hidden');
+                document.getElementById('profile-info-display').style.display = 'grid'; // Afficher la grille
                 document.getElementById('login-prompt').classList.add('hidden');
                 document.getElementById('profile-channel-name').value = data.username;
                 loadProfileStats(data.username);
@@ -58,7 +339,7 @@
                         <i class="fab fa-twitch mr-2"></i> Connexion Twitch
                     </button>
                 `;
-                document.getElementById('profile-info-display').classList.add('hidden');
+                document.getElementById('profile-info-display').style.display = 'none'; // Cacher la grille
                 document.getElementById('login-prompt').classList.remove('hidden');
             }
         } catch (e) {
@@ -72,11 +353,8 @@
     }
 
     // =========================================================
-    // 3. AFFICHAGE DES RÉSULTATS IA ✅ MISE À JOUR MAJEURE
+    // 3. AFFICHAGE DES RÉSULTATS IA (CONSOLIDÉS)
     // =========================================================
-
-    // Variable pour stocker le graphique pour pouvoir le détruire
-    let nicheChartInstance = null;
     
     /**
      * Gère l'affichage des données IA consolidées (Niche ou Repurpose).
@@ -99,7 +377,6 @@
         document.getElementById('gauge-score-text').textContent = score;
         document.getElementById('gauge-score-text').style.color = color;
 
-        // Détruire l'ancienne instance avant d'en créer une nouvelle
         if (nicheChartInstance) {
             nicheChartInstance.destroy();
         }
@@ -130,7 +407,7 @@
             `<li class="flex items-start text-sm"><span class="text-secondary-blue mr-2">💡</span>${i}</li>`
         ).join('');
 
-        // --- 4. TITRE DISRUPTIF (Ajout du champ consolidé) ---
+        // --- 4. TITRE DISRUPTIF ---
         document.getElementById('disruptive-title-display').innerHTML = `
             <p class="text-xl font-orbitron text-white">${data.disruptive_title}</p>
             <span class="text-xs text-gray-500 mt-1">Généré par l'IA en une seule requête.</span>
@@ -157,13 +434,19 @@
             clipHTML += '</ul>';
             repurposeSection.innerHTML = clipHTML;
         } else if (type === 'repurpose') {
-             repurposeSection.innerHTML = `<p class="text-gray-500">Aucune suggestion de clip n'a pu être générée pour cette VOD.</p>`;
+             repurposeSection.innerHTML = `<p class="text-gray-500 text-center">Aucune suggestion de clip n'a pu être générée pour cette VOD.</p>`;
         } else {
-            repurposeSection.innerHTML = ''; // Cacher si c'est une analyse de niche
+             // Si on vient d'une analyse Niche, on affiche le prompt de Repurpose
+             repurposeSection.innerHTML = `<p class="text-center text-gray-500">Passez à l'onglet "Repurposing VOD" pour analyser le contenu vidéo.</p>`;
         }
 
         reportBox.classList.remove('hidden');
         resultBox.innerHTML = '';
+        
+        // Assurez-vous que l'onglet Repurpose utilise le même affichage si c'est le cas
+        if (type === 'repurpose') {
+             document.getElementById('tab-niche').querySelector('#ai-report-display').innerHTML = reportBox.innerHTML;
+        }
     }
     
     /**
@@ -185,7 +468,7 @@
                     <p class="text-gray-400"><strong>Pourquoi :</strong> ${data.why}</p>
                     <p class="text-gray-400"><strong>Saturation:</strong> ${data.saturation_level}%</p>
                     
-                    <h3 class="text-lg font-semibold text-white mt-4">Jeux Sous le Radar</h3>
+                    <h3 class="text-lg font-semibold text-white mt-4 border-t border-gray-700 pt-3">Jeux Sous le Radar</h3>
                     <ul class="list-disc list-inside text-gray-300 ml-4 space-y-1">
                         ${data.under_radar_games.map(g => `<li>${g}</li>`).join('')}
                     </ul>
@@ -203,23 +486,32 @@
      */
     document.getElementById('ai-analysis-form').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const type = document.querySelector('input[name="analysis_type"]:checked').value;
-        const queryInput = document.getElementById('analysis_query');
-        const query = queryInput.value.trim();
         
+        const type = document.querySelector('input[name="analysis_type"]:checked').value;
+        
+        // S'assurer que Repurpose a le bon champ de texte
+        let query;
+        if (type === 'repurpose') {
+            query = document.getElementById('repurpose_query').value.trim();
+        } else {
+             query = document.getElementById('analysis_query').value.trim();
+        }
+        
+        // Synchronisation des valeurs des deux champs de texte
+        document.getElementById('analysis_query').value = query;
+        document.getElementById('repurpose_query').value = query;
+
         const resultBox = document.getElementById('ai-report-result');
         const reportBox = document.getElementById('ai-report-display');
         const btn = document.querySelector('#ai-analysis-form button[type="submit"]');
 
         if (type !== 'trend' && !query) {
-            resultBox.innerHTML = '<p class="text-red-500 text-center">Veuillez entrer une requête.</p>';
+            resultBox.innerHTML = '<p class="text-red-500 text-center">Veuillez entrer une requête (jeu ou titre VOD).</p>';
             return;
         }
         
-        // Pour Repurpose, on sauvegarde le titre VOD pour l'affichage des clips
         if (type === 'repurpose') {
             currentVODTitle = query;
-            document.getElementById('repurpose-section-display').innerHTML = ''; // Nettoyer l'ancienne section clip
         }
 
         btn.disabled = true;
@@ -244,15 +536,16 @@
             } else {
                 let errorMessage = result.error || 'Problème inconnu.';
                 if (response.status === 429) {
-                    errorMessage = `Code 429: Trop de requêtes (Quota IA dépassé). Vérifiez votre console Google Cloud. Détail: ${result.error.message.substring(0, 100)}...`;
+                    // Message d'erreur 429 consolidé
+                    errorMessage = `Code 429: Quota IA dépassé (Vérifiez la facturation/quota Google Cloud).`;
                 } else if (response.status === 500 && errorMessage.includes("invalid character")) {
-                     errorMessage = "Erreur serveur IA: L'IA a renvoyé un format illisible (non-JSON) au lieu des données JSON.";
+                     errorMessage = "Erreur serveur IA: L'IA n'a pas renvoyé un format JSON valide.";
                 } else if (errorMessage.includes("Failed to fetch")) {
-                    errorMessage = "Échec de la connexion au serveur (réseau coupé ou API non démarrée).";
+                    errorMessage = "Échec de la connexion au serveur (réseau coupé ou serveur non démarré).";
                 }
                 
                 resultBox.innerHTML = `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">❌ Erreur serveur IA: ${errorMessage}</p>`;
-                reportBox.style.display = 'none';
+                reportBox.classList.add('hidden');
             }
         } catch (e) {
             resultBox.innerHTML = `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">❌ Erreur réseau: ${e.message}</p>`;
@@ -260,6 +553,15 @@
             btn.disabled = false;
         }
     });
+    
+    // Attacher la soumission du formulaire Repurpose au formulaire principal
+    document.getElementById('ai-analysis-form-repurpose').addEventListener('submit', function(e) {
+         e.preventDefault();
+         document.getElementById('type-repurpose').checked = true;
+         document.getElementById('analysis_query').value = document.getElementById('repurpose_query').value;
+         document.getElementById('ai-analysis-form').dispatchEvent(new Event('submit'));
+    });
+
 
     // =========================================================
     // 5. AUTRES FONCTIONS (Boost, Profile, etc.)
@@ -273,14 +575,13 @@
             const response = await fetch(BACKEND_URL + '/stream_boost', { method: 'POST' });
             const result = await response.json();
             
-            // Le serveur renvoie directement le HTML
             status.innerHTML = result.html_response;
             
             if(result.raidCandidate) {
                 const c = result.raidCandidate;
                 status.innerHTML += `<div class="p-3 rounded mt-3 bg-gray-800 border border-gray-700 shadow-neon-blue">
                     <p class="text-lg font-semibold text-white">Partenaire suggéré : ${c.user_name}</p>
-                    <p class="text-sm text-gray-400">Viewers: ${c.viewer_count} | <a href="[https://twitch.tv/$](https://twitch.tv/$){c.user_login}" target="_blank" class="text-secondary-blue hover:text-white">Voir la chaîne</a></p>
+                    <p class="text-sm text-gray-400">Viewers: ${c.viewer_count} | <a href="https://twitch.tv/${c.user_login}" target="_blank" class="text-secondary-blue hover:text-white">Voir la chaîne</a></p>
                     <button onclick="copyToClipboard('/raid ${c.user_login}')" class="bg-[#ff0099] hover:bg-opacity-80 text-white p-2 rounded mt-2 text-sm">Copier Commande de Raid</button>
                 </div>`;
             }
@@ -292,45 +593,82 @@
     
     async function loadProfileStats(username) {
         const display = document.getElementById('profile-info-display');
-        display.innerHTML = '<p class="text-center text-gray-500">Chargement des statistiques...</p>';
+        display.classList.add('pointer-events-none', 'opacity-50'); // Désactiver pendant le chargement
+        const defaultContent = display.innerHTML;
+        display.innerHTML = '<p class="text-center p-8 text-gray-500">Chargement des statistiques...</p>';
+
 
         try {
-            // Note: Nous n'avons pas créé de route consolidée pour le profil, donc deux appels séparés
-            const profileRes = await fetch(BACKEND_URL + '/my_profile_stats');
-            const profileData = await profileRes.json();
+            // Dans le contexte actuel, nous simulons l'appel de stats complexes non implémenté dans index.js
+            // Ici, nous faisons simplement un appel de base pour l'avatar et le live status
+            const userRes = await fetch(BACKEND_URL + `/scan_target`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: username })
+            });
+            const userData = await userRes.json();
             
-            if (profileData.success) {
-                const stats = profileData.stats;
+            if (userData.success && userData.type === 'user') {
+                const user = userData.user_data;
+                const stats = {
+                    display_name: user.display_name,
+                    avatar: user.profile_image_url,
+                    broadcaster_type: user.description ? 'Partenaire/Affilié' : 'Streamer Standard',
+                    follower_count: 'N/A*', // Simulé car nécessite un autre appel ou token spécifique
+                    view_count: 'N/A*',
+                    sub_count: 'N/A*'
+                };
+
                 const playerContainer = document.getElementById('twitch-player-container');
                 playerContainer.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${username}&parent=${window.location.hostname}&muted=false&autoplay=true" height="100%" width="100%" allowfullscreen class="rounded-lg shadow-neon-blue"></iframe>`;
                 
-                // Affichage des stats (simplifié)
                 display.innerHTML = `
-                    <div class="flex items-center space-x-4 mb-4">
-                        <img src="${stats.avatar}" class="w-16 h-16 rounded-full border-2 border-pink-neon shadow-neon-pink">
-                        <div>
-                            <h3 class="text-xl font-orbitron text-white">${stats.display_name}</h3>
-                            <p class="text-sm text-gray-400">${stats.broadcaster_type || 'Streamer Standard'}</p>
+                    <div class="col-span-1 space-y-6">
+                        <div class="h-64 bg-black rounded-lg overflow-hidden shadow-neon-pink" id="twitch-player-container">
+                            <iframe src="https://player.twitch.tv/?channel=${username}&parent=${window.location.hostname}&muted=false&autoplay=true" height="100%" width="100%" allowfullscreen class="rounded-lg shadow-neon-blue"></iframe>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-lg shadow-inner border border-gray-700">
+                            <h3 class="text-lg font-semibold mb-2">Charger un Profil</h3>
+                            <div class="flex space-x-2">
+                                <input type="text" id="profile-channel-name" value="${username}" class="flex-grow bg-gray-700 border border-gray-600 p-2 rounded text-sm" placeholder="Nom de la chaîne">
+                                <button onclick="loadProfileStats(document.getElementById('profile-channel-name').value)" class="bg-secondary-blue hover:bg-sky-500 p-2 rounded text-sm font-semibold">Charger</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-4 text-center">
-                        <div class="p-3 bg-gray-800 rounded-lg">
-                            <p class="text-xl font-bold text-pink-neon">${stats.follower_count}</p>
-                            <p class="text-xs text-gray-400">Followers</p>
+                    <div class="col-span-1 bg-gray-800 p-6 rounded-lg shadow-neon-blue border border-gray-700">
+                        <div class="flex items-center space-x-4 mb-4">
+                            <img src="${stats.avatar}" class="w-16 h-16 rounded-full border-2 border-pink-neon shadow-neon-pink">
+                            <div>
+                                <h3 class="text-xl font-orbitron text-white">${stats.display_name}</h3>
+                                <p class="text-sm text-gray-400">${stats.broadcaster_type}</p>
+                            </div>
                         </div>
-                        <div class="p-3 bg-gray-800 rounded-lg">
-                            <p class="text-xl font-bold text-secondary-blue">${stats.view_count}</p>
-                            <p class="text-xs text-gray-400">Vues Totales</p>
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div class="p-3 bg-gray-900 rounded-lg">
+                                <p class="text-xl font-bold text-pink-neon">12.5K*</p>
+                                <p class="text-xs text-gray-400">Followers</p>
+                            </div>
+                            <div class="p-3 bg-gray-900 rounded-lg">
+                                <p class="text-xl font-bold text-secondary-blue">240K*</p>
+                                <p class="text-xs text-gray-400">Vues Totales</p>
+                            </div>
+                            <div class="p-3 bg-gray-900 rounded-lg">
+                                <p class="text-xl font-bold text-ai-niche">65*</p>
+                                <p class="text-xs text-gray-400">Subs</p>
+                            </div>
                         </div>
-                        <div class="p-3 bg-gray-800 rounded-lg">
-                            <p class="text-xl font-bold text-ai-niche">${stats.sub_count}</p>
-                            <p class="text-xs text-gray-400">Subs</p>
-                        </div>
+                        <p class="text-xs text-gray-600 mt-4">* Données simulées. Les métriques réelles nécessitent plus de permissions Twitch ou une API complexe.</p>
                     </div>
                 `;
+                
+            } else {
+                 display.innerHTML = defaultContent;
+                 display.querySelector('.col-span-1:nth-child(2)').innerHTML = `<p class="text-red-500 text-center p-8">Chaîne '${username}' introuvable ou erreur de l'API Twitch.</p>`;
             }
         } catch (e) {
-            display.innerHTML = `<p class="text-red-500 text-center">Erreur de chargement des stats: ${e.message}</p>`;
+            display.innerHTML = `<p class="text-red-500 text-center p-8">Erreur de chargement des stats: ${e.message}</p>`;
+        } finally {
+            display.classList.remove('pointer-events-none', 'opacity-50');
         }
     }
     
@@ -346,8 +684,8 @@
                  result.streams.forEach(s => {
                      html += `
                         <div class="bg-gray-800 p-3 rounded-lg flex items-center space-x-3 border border-gray-700">
-                            <img src="${s.thumbnail_url.replace('{width}', '100').replace('{height}', '56')}" class="w-16 h-9 object-cover rounded">
-                            <div class="flex-grow">
+                            <img src="${s.thumbnail_url.replace('{width}', '100').replace('{height}', '56')}" class="w-20 h-11 object-cover rounded shadow-sm">
+                            <div class="flex-grow min-w-0">
                                 <p class="text-sm font-semibold text-white truncate">${s.user_name}</p>
                                 <p class="text-xs text-gray-400 truncate">${s.title}</p>
                             </div>
@@ -358,7 +696,7 @@
                  html += '</div>';
                  listContainer.innerHTML = html;
              } else {
-                 listContainer.innerHTML = '<p class="text-center text-gray-500">Aucun stream suivi en direct actuellement, ou non connecté.</p>';
+                 listContainer.innerHTML = '<p class="text-center text-gray-500">Aucun stream suivi en direct actuellement, ou non connecté. Connectez-vous à l\'onglet Accueil.</p>';
              }
         } catch (e) { listContainer.innerHTML = `<p class="text-red-500 text-center">Erreur: ${e.message}</p>`; }
     }
@@ -366,7 +704,7 @@
     // Utilitaires
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
-            alert('Copié: ' + text);
+            alert('Commande ou Timestamp copié: ' + text);
         }).catch(err => {
             console.error('Erreur de copie: ', err);
             alert("Erreur de copie (navigateur non pris en charge).");
@@ -375,11 +713,15 @@
 
     // --- Initialisation ---
     document.addEventListener('DOMContentLoaded', function() {
-        openTab('tab-home'); // Ouvrir la page d'accueil
+        // Détection de l'onglet actif ou Accueil par défaut
+        const savedTab = localStorage.getItem('activeTab') || 'tab-home';
+        openTab(savedTab);
         checkAuth();
         
-        // Attacher l'événement au bouton Boost (pour référence)
+        // Attacher l'événement au bouton Boost
         document.getElementById('boost-button').addEventListener('click', runStreamBoost);
     });
 
 </script>
+</body>
+</html>
