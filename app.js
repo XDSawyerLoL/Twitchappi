@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-// NOUVEAUTÉ : Ajout de dotenv pour lire le fichier .env
+// 1. NOUVEAU : Chargement des variables d'environnement depuis le fichier .env
 require('dotenv').config(); 
 const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
@@ -19,18 +19,20 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; // Maintenant chargée depuis .env
+// 2. CORRECTION : REDIRECT_URI est désormais lue correctement depuis .env
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 let ai = null;
 if (GEMINI_API_KEY) {
+    // La clé est valide, on initialise l'IA
     ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
+    console.log("✅ DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
 } else {
-    // Si dotenv n'est pas configuré, cette erreur apparaîtra.
-    console.error("FATAL DEBUG: GEMINI_API_KEY non trouvée ou non configurée. L'IA sera désactivée.");
+    // Si la clé manque (comme c'était le cas), on log l'erreur
+    console.error("❌ FATAL DEBUG: GEMINI_API_KEY non trouvée ou non configurée. L'IA sera désactivée.");
 }
 
 // =========================================================
@@ -73,7 +75,7 @@ app.use(express.static(path.join(__dirname)));
  */
 async function getAppAccessToken() {
     if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
-        console.error("❌ TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET manquant.");
+        console.error("❌ TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET manquant. Impossible de générer le token App.");
         return null;
     }
 
@@ -82,14 +84,15 @@ async function getAppAccessToken() {
         return CACHE.appAccessToken.token;
     }
     
+    // Le REDIRECT_URI n'est pas utilisé ici, mais les clés d'app le sont.
     const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     
     try {
         const response = await fetch(url, { method: 'POST' });
         if (!response.ok) {
-            // Log l'erreur 400 que l'utilisateur a vu
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(`Erreur HTTP: ${response.status} - ${errorData.message || 'Problème de configuration des clés.'}`);
+            // Ceci est l'erreur que vous voyiez (400) quand il y avait un problème de configuration général.
+            throw new Error(`Erreur HTTP: ${response.status} - ${errorData.message || 'Problème de configuration des clés App.'}`);
         }
         
         const data = await response.json();
@@ -340,7 +343,6 @@ async function fetchNicheOpportunities(token) {
 
 // Middleware pour vérifier la clé Gemini avant les routes IA
 app.use((req, res, next) => {
-    // AJOUT DE '/ai_chat_query' au middleware IA
     if ((req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/ai_chat_query')) && !ai) { 
         return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
     }
@@ -348,13 +350,12 @@ app.use((req, res, next) => {
 });
 
 // =========================================================
-// --- ROUTE PROXY TWITCH GÉNÉRIQUE (POUR ÉVOLUTION) ---
+// --- 3. ROUTE PROXY TWITCH GÉNÉRIQUE (POUR ÉVOLUTION) ---
 // =========================================================
 
 /**
  * Endpoint Proxy pour toute requête Twitch API (Helix) future.
- * Le frontend peut l'utiliser pour accéder à de nouvelles fonctionnalités sans changer le backend.
- * Exemple de POST body: { path: '/streams', method: 'GET', queryParams: { user_id: '123' } }
+ * Permet au frontend d'accéder à n'importe quel endpoint Twitch sans modifier le backend.
  */
 app.post('/twitch_proxy', async (req, res) => {
     const { path, method = 'GET', body = null } = req.body;
@@ -364,7 +365,6 @@ app.post('/twitch_proxy', async (req, res) => {
     }
 
     try {
-        // Utilise le token App pour la majorité des requêtes Helix publiques
         const token = await getAppAccessToken(); 
         
         if (!token) {
@@ -458,8 +458,9 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
-                // CORRECTION ICI: Redirection explicite vers la page principale
-                res.redirect('/NicheOptimizer.html'); 
+                // CORRECTION FINALE : Redirection vers le domaine principal après succès (utilise l'URI de base de Render)
+                const baseUri = REDIRECT_URI.replace('/twitch_auth_callback', '');
+                res.redirect(baseUri + '/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
             }
@@ -469,7 +470,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
         }
     } catch (error) {
         console.error("Erreur callback:", error.message);
-        return res.status(500).send(`Erreur lors de l'authentification: ${error.message}`);
+        return res.status(500).send(`Erreur lors de l'authentification: ${error.message}. Vérifiez que TWITCH_REDIRECT_URI est correct.`);
     }
 });
 
@@ -670,7 +671,6 @@ app.post('/critique_ia', async (req, res) => {
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
             `;
         } else if (type === 'title_suggest') {
-             // Cas pour la suggestion de titre/tag (si le frontend l'utilise comme une critique_ia)
              const { game, angle } = req.body;
              promptTitle = `Suggestion de Titre et Tag SEO`;
              iaPrompt = `
