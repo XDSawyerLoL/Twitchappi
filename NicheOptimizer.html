@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V7.2 - Partage Social</title>
+    <title>Streamer & Niche AI Hub V9.0 - Auto-Action & Disruption</title> 
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -14,9 +14,10 @@
             --color-bg-light: #111;
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
-            --color-ai-niche: #59d682;
-            --color-ai-repurpose: #9933ff;
-            --color-ai-growth: #ffcc00;
+            --color-ai-niche: #59d682; /* Vert pour la niche */
+            --color-ai-repurpose: #9933ff; /* Violet pour le repurposing */
+            --color-ai-growth: #ffcc00; /* Jaune pour la croissance/alertes */
+            --color-ai-action: #e34a64; /* NOUVELLE COULEUR: Rouge/Corail pour l'action/export */ 
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
@@ -25,6 +26,7 @@
         /* Styles Globaux */
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
         #twitch-lucky-main { all: initial; display: block; max-width: 1200px; margin: 20px auto; padding: 10px; font-family: 'Inter', sans-serif; color: #fff; }
+        /* TITRE MIS À JOUR EN V9.0 */
         h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); margin-bottom: 5px; text-align: center; }
         .h1-blue-accent { color: var(--color-secondary-blue); }
         .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; }
@@ -127,6 +129,16 @@
             background: #cc99ff;
         }
         
+        /* Styles spécifiques pour l'Auto-Export V9.0 */
+        .export-btn { 
+            background: var(--color-ai-action); 
+            color: #fff; border: 0; padding: 8px 12px; border-radius: 6px; 
+            cursor: pointer; font-weight: 700; text-transform: uppercase; 
+            font-size: 12px; box-shadow: 0 0 6px rgba(227, 74, 100, .4);
+        }
+        .export-btn:hover:not(:disabled) {
+            background: #D5445B;
+        }
 
         /* Onglets */
         .tab-btn { font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: var(--color-bg-light); border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.2s; flex: 1; text-align: center; font-size: 12px; white-space: nowrap; }
@@ -167,8 +179,8 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.2</h1>
-    <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V9.0</h1>
+    <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing (Auto-Action) • Croissance</div>
 
     <div class="player-wrapper">
         <h2>
@@ -225,7 +237,7 @@
         </div>
         
         <div id="tab-repurpose" class="tab-content">
-            <h3 class="tab-heading text-purple"><span class="icon">✂️</span> Repurposing IA</h3>
+            <h3 class="tab-heading text-purple"><span class="icon">✂️</span> Repurposing IA & Auto-Export</h3>
             <form id="form-repurpose" class="flex gap-2 mb-2 flex-col">
                 <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer" class="action-input">
                 <button type="submit" id="btn-repurpose-analyse" class="btn-primary p-3" style="background:var(--color-ai-repurpose);">🚀 ANALYSER VOD</button>
@@ -239,7 +251,12 @@
                 </div>
             </div>
 
-            <div id="repurpose-result-container" class="ai-result-box"><div id="repurpose-results" class="ai-content"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Les suggestions de contenu court apparaîtront ici.</p></div></div>
+            <div id="repurpose-result-container" class="ai-result-box">
+                <div id="repurpose-results" class="ai-content">
+                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Les suggestions de contenu court apparaîtront ici.</p>
+                </div>
+                <button id="btn-export-vod" class="export-btn w-full mt-4 p-3" style="display:none;">📤 EXPORTER LE CLIP SÉLECTIONNÉ</button>
+            </div>
         </div>
 
         <div id="tab-growth" class="tab-content">
@@ -294,7 +311,9 @@
     let embed = null;
     let twitchUserConnected = false;
     let currentVODId = null; 
+    let selectedClipTime = null; // V9.0: Pour l'export
     const aiTrendCritiqueContainer = document.getElementById('ai-trend-critique-container');
+    const exportButton = document.getElementById('btn-export-vod');
 
 
     // --- 1. FONCTIONS DE GESTION DES ONGLET ET DU VOD ---
@@ -416,8 +435,13 @@
         generateShareButtons(channelName, shareUrl);
     }
     
-    window.seekVod = function(videoId, seconds) {
-        const channel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
+    // AMÉLIORATION V9.0: Stocke le temps du clip sélectionné
+    window.seekVod = function(videoId, seconds, timeString) {
+        const channel = localStorage.getItem('input-repurpose-channel') || DEFAULT_CHANNEL;
+        selectedClipTime = timeString; // Garde le format HH:MM:SS ou MM:SS
+        exportButton.style.display = 'block';
+        exportButton.textContent = `📤 EXPORTER CLIP (${timeString})`;
+
         window.launchPlayer(channel, videoId, seconds);
         document.getElementById('twitch-lucky-main').scrollIntoView({ behavior: 'smooth' });
     }
@@ -442,6 +466,7 @@
             const data = await res.json();
             
             if (!res.ok) { 
+                // GESTION DU 429 ICI (si l'API le renvoie)
                 throw new Error(data.error || `Erreur serveur lors de la récupération du fil: Statut ${res.status}`);
             }
 
@@ -534,7 +559,7 @@
     }
     document.getElementById('assistant-toggle').onclick = toggleAssistant;
 
-    // Mini Assistant Logic (CORRIGÉ POUR LE 429 et res.ok)
+    // Mini Assistant Logic (Gestion robuste des erreurs)
     const assistantForm = document.getElementById('assistant-form');
     const assistantMsgs = document.getElementById('assistant-messages');
 
@@ -561,13 +586,10 @@
             
             document.getElementById(loaderId).remove();
 
-            // Vérifie le statut HTTP avant de traiter la réponse
             if (!res.ok) { 
-                // Affiche le message d'erreur HTML envoyé par le serveur (qui inclut la gestion du 429)
                 const errorMessage = data.html_response || data.error || `❌ Erreur de l'API IA: Code ${res.status}. Détail: ${data.message || 'Problème inconnu.'}`;
                 assistantMsgs.innerHTML += `<div class=\"msg bot\" style=\"color:red;\">${errorMessage}</div>`;
             } else {
-                // Cas de succès
                 assistantMsgs.innerHTML += `<div class=\"msg bot\">${data.html_response || "Désolé, problème IA ou réponse bloquée."}</div>`;
             }
 
@@ -597,9 +619,7 @@
             
             const data = await res.json();
 
-            // Vérification robuste du statut HTTP
             if (!res.ok) {
-                 // Affiche le message d'erreur HTML envoyé par le serveur (qui inclut la gestion du 429)
                  targetElement.innerHTML = data.html_response || `<p style="color:red; padding:10px;">❌ Erreur serveur IA: ${data.error || `Statut HTTP ${res.status}.`}</p>`;
                  return;
             }
@@ -637,6 +657,7 @@
             const data = await res.json();
 
             if (!res.ok) { 
+                // GESTION DU 429 ICI
                 throw new Error(data.error || `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`);
             }
             
@@ -694,14 +715,15 @@
         repurposeResults.innerHTML = `<p style="color:var(--color-ai-repurpose);">1/2 Récupération VOD & 2/2 Analyse IA pour <strong>${channel}</strong>...</p>`;
         btn.disabled = true;
         previewBox.style.display = 'none';
+        exportButton.style.display = 'none'; // Cache le bouton Export
         currentVODId = null;
+        selectedClipTime = null;
 
         try {
             // 1. Récupérer les détails de la VOD
             const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${channel}`);
             const vodData = await vodRes.json();
             
-            // Vérification robuste de la réponse VOD
             if (!vodRes.ok) {
                  throw new Error(vodData.error || `Erreur serveur VOD (HTTP ${vodRes.status}).`);
             }
@@ -724,7 +746,6 @@
                 
                 const aiData = await aiRes.json();
 
-                 // Vérification robuste de la réponse IA (pour 429 ou 500)
                 if (!aiRes.ok) {
                     repurposeResults.innerHTML = aiData.html_response || `<p style="color:red; padding:10px;">❌ Erreur serveur IA: ${aiData.error || `Statut HTTP ${aiRes.status}.`}</p>`;
                     return;
@@ -736,15 +757,16 @@
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = htmlOutput;
                     
-                    // Transformation des timestamps en boutons cliquables
-                    const timestampRegex = /\*\*Point de Clip:\*\* (\d{2}:\d{2}:\d{2})/g;
+                    // Transformation des timestamps en boutons cliquables (avec V9.0: passage du timeString)
+                    const timestampRegex = /\*\*Point de Clip:\*\* (\d{2}:\d{2}:\d{2})|(\d{2}:\d{2})/g; // Capture H:M:S ou M:S
 
                     const nodes = tempDiv.querySelectorAll('li, p');
                     nodes.forEach(node => {
                         if (node.innerHTML.match(timestampRegex)) {
-                            node.innerHTML = node.innerHTML.replace(timestampRegex, (fullMatch, timeString) => {
+                            node.innerHTML = node.innerHTML.replace(timestampRegex, (fullMatch, timeStringHMS, timeStringMS) => {
+                                const timeString = timeStringHMS || timeStringMS;
                                 const seconds = hmsToSeconds(timeString);
-                                const launchScript = `window.seekVod('${currentVODId}', ${seconds})`;
+                                const launchScript = `window.seekVod('${currentVODId}', ${seconds}, '${timeString}')`;
                                 return `<span style="color:var(--color-ai-repurpose); font-weight:bold;">${timeString}</span> <button onclick="${launchScript}" class="timestamp-link">▶️ VOIR CLIP</button>`;
                             });
                         }
@@ -763,6 +785,52 @@
             repurposeResults.innerHTML = `<p style="color:red">❌ Erreur réseau ou VOD: ${e.message}</p>`;
         } finally {
             btn.disabled = false;
+        }
+    });
+
+    // NOUVELLE LOGIQUE V9.0: GESTION DE L'EXPORT
+    exportButton.addEventListener('click', async function() {
+        if (!currentVODId || !selectedClipTime) {
+            alert("Veuillez d'abord sélectionner un point de clip à exporter.");
+            return;
+        }
+
+        const channel = document.getElementById('input-repurpose-channel').value.trim();
+        exportButton.disabled = true;
+        exportButton.textContent = "⚙️ EXPORT EN COURS...";
+        
+        try {
+            const res = await fetch(`${API_BASE}/auto_export`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    vod_id: currentVODId, 
+                    channel: channel,
+                    timestamp: selectedClipTime
+                })
+            });
+
+            const data = await res.json();
+            
+            if (!res.ok) { 
+                alert(`❌ Échec de l'export: ${data.error || `Statut HTTP ${res.status}`}`);
+                return;
+            }
+
+            if (data.success) {
+                alert(`✅ Export lancé avec succès ! Lien du clip: ${data.clip_url || 'Bientôt disponible.'}`);
+                exportButton.textContent = `✅ EXPORT LANCÉ (${selectedClipTime})`;
+            } else {
+                alert(`❌ Échec de l'export: ${data.error || 'Problème inconnu.'}`);
+            }
+
+        } catch (e) {
+            alert(`❌ Erreur réseau lors de l'export: ${e.message}`);
+        } finally {
+            exportButton.disabled = false;
+            if (!exportButton.textContent.includes('LANCÉ')) {
+                 exportButton.textContent = `📤 EXPORTER CLIP (${selectedClipTime})`;
+            }
         }
     });
     
@@ -822,7 +890,7 @@
         callAI('trend', 'Analyse des tendances V/S Twitch', aiTrendCritiqueContainer, btn);
     });
     
-    // --- 6. GESTION DU BOOST (CORRIGÉ POUR res.ok) ---
+    // --- 6. GESTION DU BOOST (Gère le 429 et res.ok) ---
     document.getElementById('form-boost').addEventListener('submit', async function(e) {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim() || localStorage.getItem('activeChannel') || 'Chaîne Inconnue';
