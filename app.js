@@ -33,7 +33,7 @@ if (GEMINI_API_KEY && GEMINI_API_KEY !== 'VOTRE_CLE_API_GEMINI') {
 } else {
     console.error("FATAL DEBUG: Clé API Gemini manquante, par défaut ou invalide. L'IA est DÉSACTIVÉE.");
     if (GEMINI_API_KEY === 'VOTRE_CLE_API_GEMINI') {
-         console.error("ATTENTION: La clé API est toujours sur la valeur PLACEHOLDER 'VOTRE_CLE_API_GEMINI'. VEUILLEZ LA REMPLACER DANS app.js.");
+          console.error("ATTENTION: La clé API est toujours sur la valeur PLACEHOLDER 'VOTRE_CLE_API_GEMINI'. VEUILLEZ LA REMPLACER DANS app.js.");
     }
 }
 
@@ -55,7 +55,6 @@ const CACHE = {
 
 // =========================================================
 // LOGIQUE TWITCH HELPER
-// (Pas de changement par rapport à la version précédente)
 // =========================================================
 
 async function getTwitchToken(tokenType) {
@@ -144,13 +143,12 @@ async function runGeminiAnalysis(prompt) {
         let statusCode = 500;
         let errorMessage = `Erreur interne du serveur lors de l'appel à l'IA. (Détail: ${e.message})`;
         
-        // Détection du 429 (Rate Limit) - C'est ICI que l'erreur est générée si Google la renvoie
+        // Détection des erreurs courantes (Rate Limit, Auth)
         if (e.message.includes('429')) {
              statusCode = 429;
              errorMessage = `❌ Erreur: Échec de l'appel à l'API Gemini. Limite de requêtes atteinte (Code 429). Votre clé IA a atteint son quota.`;
         }
         
-        // Si c'est une erreur d'authentification ou de clé invalide (souvent 400 ou 403), on peut la détecter aussi
         if (e.message.includes('400') || e.message.includes('403')) {
              statusCode = 403;
              errorMessage = `❌ Erreur: Clé API Gemini refusée (Code 403/400). La clé est invalide ou le service n'est pas activé.`;
@@ -167,11 +165,6 @@ async function runGeminiAnalysis(prompt) {
 
 // =========================================================
 // --- ROUTES D'AUTHENTIFICATION TWITCH (OAuth) ---
-// --- ROUTES TWITCH API (DATA) ---
-// --- ROUTES IA (CRITIQUE ET ANALYSE) ---
-// --- ROUTE MINI ASSISTANT ---
-// --- ROUTE BOOST (COOLDOWN) ---
-// (Pas de changement dans la logique ci-dessous)
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -235,6 +228,10 @@ app.get('/twitch_user_status', (req, res) => {
     CACHE.twitchUser = null; 
     res.json({ is_connected: false });
 });
+
+// =========================================================
+// --- ROUTES TWITCH API (DATA) ---
+// =========================================================
 
 app.get('/followed_streams', async (req, res) => {
     if (!CACHE.twitchUser) {
@@ -394,6 +391,10 @@ app.post('/scan_target', async (req, res) => {
     }
 });
 
+// =========================================================
+// --- ROUTES IA (CRITIQUE ET ANALYSE) ---
+// =========================================================
+
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
     let prompt = "";
@@ -469,19 +470,88 @@ app.post('/stream_boost', (req, res) => {
     CACHE.streamBoosts[channel] = now;
 
     const successMessage = `
-        <p style="color:var(--color-primary-pink); font-weight:bold;">
-            ✅ Boost de Stream Activé !
-        </p>
-        <p>
-            La chaîne <strong>${channel}</strong> a été ajoutée à la rotation prioritaire pour une période de 10 minutes. 
-            Le prochain boost sera disponible dans 3 heures. Bonne chance !
-        </p>
+         <p style="color:var(--color-primary-pink); font-weight:bold;">
+             ✅ Boost de Stream Activé !
+         </p>
+         <p>
+             La chaîne <strong>${channel}</strong> a été ajoutée à la rotation prioritaire pour une période de 10 minutes. 
+             Le prochain boost sera disponible dans 3 heures. Bonne chance !
+         </p>
     `;
 
     return res.json({ 
         success: true, 
         html_response: successMessage 
     });
+});
+
+// =========================================================
+// ✅ NOUVELLE ROUTE CRITIQUE : /auto_action (Ajoutée pour corriger l'erreur HTML)
+// =========================================================
+
+app.post('/auto_action', async (req, res) => {
+    try {
+        const { query, action_type } = req.body;
+        let prompt = "";
+        
+        if (!query || !action_type) {
+            return res.status(400).json({ success: false, error: "Les paramètres 'query' ou 'action_type' sont manquants." });
+        }
+
+        switch (action_type) {
+            case 'export_metrics':
+                // 1. Logique d'Export de Métriques (Simulée)
+                const metrics_data = {
+                    views: Math.floor(Math.random() * 500000) + 100000,
+                    retention: (Math.random() * 0.3) + 0.6, // 60% à 90%
+                    followers: Math.floor(Math.random() * 5000) + 1000
+                };
+                
+                // Simuler un message de succès (l'analyse IA n'est pas nécessaire pour l'export)
+                return res.json({
+                    success: true,
+                    html_response: `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">✅ Export des Métriques terminé pour ${query}.</p>`,
+                    metrics: metrics_data
+                });
+
+            case 'create_clip':
+                // 2. Logique de Création de Clip (Utilise l'IA pour le titre et les idées)
+                prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse le sujet ou VOD : "${query}". En format HTML, génère : 1. Un titre <h4> pour le rapport. 2. Une liste <ul> de 3 titres courts et percutants pour un clip (max 60 caractères chacun).`;
+                break;
+
+            case 'title_disruption':
+                // 3. Logique de Titre Disruptif
+                prompt = `Tu es un expert en stratégie de croissance Twitch. Analyse le jeu ou sujet : "${query}". En format HTML, génère : 1. Un titre <h4> pour le rapport. 2. Une liste <ul> de 3 suggestions de titres de stream ULTRA-DISRUPTIFS pour maximiser les clics dans les recommandations. 3. Une conclusion en <p> avec un <strong>.`;
+                break;
+
+            default:
+                return res.status(400).json({ success: false, error: `Type d'action non supporté : ${action_type}` });
+        }
+        
+        // Exécution de l'IA pour les actions 'create_clip' et 'title_disruption'
+        const result = await runGeminiAnalysis(prompt);
+
+        if (result.success) {
+            // Retourne la réponse de l'IA
+            return res.json({
+                success: true,
+                html_response: result.html_response,
+                metrics: null // Pas de métriques pour ces actions
+            });
+        } else {
+            // Gère les erreurs de l'IA (429, 500, etc.)
+            return res.status(result.status || 500).json(result);
+        }
+
+    } catch (error) {
+        // Gère toute autre erreur Node.js/Express inattendue et assure un retour JSON
+        console.error(`Erreur d'exécution dans /auto_action pour ${req.body?.action_type}:`, error.message);
+        return res.status(500).json({
+            success: false,
+            error: `Erreur interne du serveur lors de l'action: ${error.message}`,
+            html_response: `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur d'exécution de l'API: ${error.message}</p>`
+        });
+    }
 });
 
 
@@ -505,3 +575,4 @@ app.listen(PORT, () => {
     console.log(`Serveur démarré sur http://localhost:${PORT}`);
     console.log(`REDIRECT_URI pour Twitch: ${REDIRECT_URI}`);
 });
+
