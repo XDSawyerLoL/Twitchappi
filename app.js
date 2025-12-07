@@ -357,8 +357,10 @@ async function fetchNicheOpportunities(token) {
 
 // Middleware pour vérifier la clé Gemini avant les routes IA
 app.use((req, res, next) => {
-    if (req.originalUrl.startsWith('/critique_ia') && !ai) {
-        return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
+    if (req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/mini_assistant')) {
+        if (!ai) {
+             return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
+        }
     }
     next();
 });
@@ -496,7 +498,7 @@ app.get('/followed_streams', async (req, res) => {
     }
 });
 
-// NOUVELLE ROUTE : Raid Collaboratif (Réel)
+// ROUTE : Raid Collaboratif (Réel)
 app.post('/launch_raid', async (req, res) => {
     const { target_channel } = req.body;
     
@@ -705,6 +707,7 @@ app.post('/critique_ia', async (req, res) => {
             if (!userData) {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
+            // Ceci est un placeholder d'analyse, car nous n'avons pas accès aux VODs réelles.
             promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
@@ -724,10 +727,6 @@ app.post('/critique_ia', async (req, res) => {
             `;
         }
         
-        if (!ai) {
-             return res.status(503).json({ error: "Service d'IA non disponible." });
-        }
-        
         const result = await ai.models.generateContent({
             model: GEMINI_MODEL,
             contents: iaPrompt,
@@ -742,6 +741,38 @@ app.post('/critique_ia', async (req, res) => {
         const statusCode = e.message.includes('non trouvé') ? 404 : 500;
         return res.status(statusCode).json({ 
             error: `Erreur IA: ${e.message}. Vérifiez la clé GEMINI_API_KEY ou la connexion Twitch.`
+        });
+    }
+});
+
+
+// --- ROUTE MINI ASSISTANT IA (NOUVELLE ROUTE) ---
+app.post('/mini_assistant', async (req, res) => {
+    const { prompt } = req.body;
+
+    if (!prompt || prompt.trim() === '') {
+        return res.status(400).json({ error: "Le prompt de l'assistant est manquant." });
+    }
+
+    try {
+        const iaPrompt = `
+            Tu es le "Mini Assistant Streamer", un outil rapide et concis pour répondre aux questions des streamers. 
+            Réponds de manière brève et percutante (maximum 4 phrases). Formate ta réponse en HTML.
+            Question du Streamer : "${prompt}"
+        `;
+
+        const result = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: iaPrompt,
+        });
+
+        // La réponse est déjà formatée en HTML par le prompt de l'IA
+        return res.json({ html_response: result.text });
+
+    } catch (e) {
+        console.error(`❌ Erreur critique dans /mini_assistant:`, e.message);
+        return res.status(500).json({ 
+            error: `Erreur IA: ${e.message}. Vérifiez la clé GEMINI_API_KEY.`
         });
     }
 });
