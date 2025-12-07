@@ -46,12 +46,7 @@ const CACHE = {
         timestamp: 0,
         lifetime: 1000 * 60 * 20 // 20 minutes
     },
-    streamBoosts: {}, // Stores timestamp of last boost for cooldown
-    globalBoostChannel: { // NOUVEAU: Maintient la chaîne actuellement boostée globalement
-        channel: 'twitch', // Canal par défaut
-        timestamp: 0, // Date d'expiration du boost
-        boostDuration: 10 * 60 * 1000 // 10 minutes de boost
-    }
+    streamBoosts: {}
 };
 
 // =========================================================
@@ -148,6 +143,33 @@ async function fetchFollowedStreams(userId, userAccessToken) {
     }
 }
 
+
+/**
+ * Récupère l'ID utilisateur à partir du pseudo.
+ */
+async function getTwitchUserId(username, token) {
+    if (!username || !token) return null;
+
+    try {
+        const response = await fetch(`https://api.twitch.tv/helix/users?login=${username}`, {
+            headers: {
+                'Client-ID': TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            console.error(`Erreur Twitch API (users - status: ${response.status}): ${await response.text()}`);
+            return null;
+        }
+        
+        const data = await response.json();
+        return data.data[0] ? data.data[0].id : null;
+    } catch (error) {
+        console.error("Erreur lors de la récupération de l'ID utilisateur Twitch:", error);
+        return null;
+    }
+}
 
 /**
  * Récupère les détails d'un jeu par son nom.
@@ -350,7 +372,8 @@ app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('twitch_auth_state', state, { httpOnly: true, maxAge: 600000 });
     
-    const scope = 'user:read:follows'; 
+    // NOUVEAU SCOPE: channel:manage:raids pour la fonction Raid
+    const scope = 'user:read:follows channel:manage:raids'; 
     const authUrl = `https://id.twitch.tv/oauth2/authorize` +
         `?client_id=${TWITCH_CLIENT_ID}` +
         `&redirect_uri=${REDIRECT_URI}` +
@@ -393,8 +416,10 @@ app.get('/twitch_auth_callback', async (req, res) => {
             const identity = await fetchUserIdentity(userAccessToken);
 
             if (identity) {
+                // Sauvegarde des infos utilisateur dans des cookies HTTP-only pour la sécurité et le contexte
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
+                res.cookie('twitch_username', identity.login, { httpOnly: true, maxAge: tokenData.expires_in * 1000 }); // Ajout du login/username
 
                 // CORRECTION ICI: Redirection explicite vers la page principale
                 res.redirect('/NicheOptimizer.html'); 
@@ -433,6 +458,7 @@ app.get('/twitch_user_status', async (req, res) => {
         } else {
             res.clearCookie('twitch_access_token');
             res.clearCookie('twitch_user_id');
+            res.clearCookie('twitch_username'); // Clear the new cookie
             return res.json({ 
                 is_connected: false 
             });
@@ -449,6 +475,7 @@ app.get('/twitch_user_status', async (req, res) => {
 app.post('/twitch_logout', (req, res) => {
     res.clearCookie('twitch_access_token');
     res.clearCookie('twitch_user_id');
+    res.clearCookie('twitch_username'); // Clear the new cookie
     res.json({ success: true, message: "Déconnexion réussie" });
 });
 
@@ -468,6 +495,93 @@ app.get('/followed_streams', async (req, res) => {
         return res.status(500).json({ error: "Échec de la récupération des streams Twitch." });
     }
 });
+
+// NOUVELLE ROUTE : Raid Collaboratif (Réel)
+app.post('/launch_raid', async (req, res) => {
+    const { target_channel } = req.body;
+    
+    // Récupération des informations du Broadcaster à partir des cookies
+    const userAccessToken = req.cookies.twitch_access_token;
+    const from_broadcaster_user_id = req.cookies.twitch_user_id;
+    const from_broadcaster_username = req.cookies.twitch_username;
+
+    // 1. Vérification des prérequis de base
+    if (!target_channel) {
+        return res.status(400).json({ 
+            success: false, 
+            error: "Le canal cible est requis." 
+        });
+    }
+
+    if (!userAccessToken || !from_broadcaster_user_id || !from_broadcaster_username) {
+         return res.status(401).json({ 
+            success: false, 
+            error: "Authentification Broadcaster requise. Veuillez vous connecter avec le scope 'channel:manage:raids'." 
+        });
+    }
+
+    // 2. Récupération de l'ID utilisateur cible
+    try {
+        const appToken = await getAppAccessToken();
+        if (!appToken) {
+            return res.status(500).json({ error: "Impossible d'obtenir le jeton d'accès App Twitch." });
+        }
+        
+        const to_broadcaster_user_id = await getTwitchUserId(target_channel, appToken);
+
+        if (!to_broadcaster_user_id) {
+             return res.status(404).json({ 
+                success: false, 
+                error: `Impossible de trouver l'ID utilisateur pour la chaîne cible: ${target_channel}.` 
+            });
+        }
+        
+        // 3. Appel à l'API Twitch pour lancer le Raid
+        const raid_url = `https://api.twitch.tv/helix/raids?from_broadcaster_id=${from_broadcaster_user_id}&to_broadcaster_id=${to_broadcaster_user_id}`;
+
+        const response = await fetch(raid_url, {
+            method: 'POST',
+            headers: {
+                'Client-ID': TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${userAccessToken}` // Jeton utilisateur avec 'channel:manage:raids'
+            }
+        });
+
+        // La réponse 204 No Content indique le succès
+        if (response.status === 204) {
+            console.log(`[RAID] Raid réel lancé de ${from_broadcaster_username} vers ${target_channel}`);
+            return res.json({ 
+                success: true, 
+                message: `Raid lancé avec succès vers ${target_channel.toUpperCase()}.` 
+            });
+        }
+        
+        // Gérer les erreurs de l'API Twitch (ex: raid en cours, cible offline, pas le bon scope)
+        const errorText = await response.text();
+        console.error(`Échec du Raid API (${response.status}): ${errorText}`);
+        
+        let errorMessage = `Erreur API Twitch (${response.status}).`;
+        try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorMessage;
+        } catch (e) {
+            // Ignore si ce n'est pas du JSON
+        }
+
+        return res.status(response.status).json({
+            success: false,
+            error: `Échec du lancement du Raid: ${errorMessage}. Vérifiez que votre chaîne est en direct et que vous avez les bons scopes.`
+        });
+
+    } catch (error) {
+        console.error("Erreur technique lors de l'appel Raid:", error);
+        return res.status(500).json({ 
+            success: false, 
+            error: `Erreur interne du serveur lors du Raid: ${error.message}` 
+        });
+    }
+});
+
 
 // --- ROUTE SCAN & RESULTAT ---
 app.post('/scan_target', async (req, res) => {
@@ -526,16 +640,15 @@ app.post('/scan_target', async (req, res) => {
 });
 
 
-// --- ROUTE CRITIQUE IA (MISE À JOUR) ---
+// --- ROUTE CRITIQUE IA ---
 app.post('/critique_ia', async (req, res) => {
-    // AJOUT DE 'swot' ET 'daily_challenge'
     const { type, query } = req.body;
 
-    if (!['trend', 'niche', 'repurpose', 'swot', 'daily_challenge'].includes(type)) {
-        return res.status(400).json({ error: "Type de critique IA non supporté. Types valides : trend, niche, repurpose, swot, daily_challenge." });
+    if (!['trend', 'niche', 'repurpose'].includes(type)) {
+        return res.status(400).json({ error: "Type de critique IA non supporté. Types valides : trend, niche, repurpose." });
     }
 
-    if (type !== 'trend' && type !== 'daily_challenge' && (!query || query.trim() === '')) {
+    if (type !== 'trend' && (!query || query.trim() === '')) {
         return res.status(400).json({ error: "Le paramètre 'query' est manquant ou vide pour ce type d'analyse." });
     }
 
@@ -592,7 +705,6 @@ app.post('/critique_ia', async (req, res) => {
             if (!userData) {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
-            // Simplification des données pour l'exemple
             promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
@@ -610,78 +722,6 @@ app.post('/critique_ia', async (req, res) => {
                 L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs.
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
             `;
-        } else if (type === 'swot') { // NOUVEAU: SWOT
-            promptTitle = `Analyse SWOT Détaillée pour la Cible: ${query}`;
-            
-            const userData = await fetchUserDetailsForScan(query, token);
-            let gameData = null;
-
-            if (!userData) {
-                // Tenter une recherche de jeu si utilisateur non trouvé
-                gameData = await fetchGameDetails(query, token);
-            }
-
-            if (userData || gameData) {
-                if (userData) {
-                    promptData = JSON.stringify({
-                        Cible: userData.display_name,
-                        Type: "Streamer",
-                        Stats: {
-                            is_live: userData.is_live,
-                            description: userData.description,
-                            followers_estimation: "N/A (API ne fournit pas)",
-                            game_actuel: userData.stream_details ? userData.stream_details.game_name : 'Hors ligne'
-                        }
-                    }, null, 2);
-                    iaPrompt = `
-                        Tu es l'IA stratégique "The Incontestable". La cible est le streamer **${query}**. 
-                        Voici les données disponibles : ${promptData}
-                        L'objectif est de réaliser une Analyse SWOT (Forces, Faiblesses, Opportunités, Menaces) de ce streamer pour identifier les axes d'amélioration critiques.
-                        Ta réponse doit être en français et formatée en HTML. Réponds en quatre parties détaillées : 1. Forces (Internes), 2. Faiblesses (Internes), 3. Opportunités (Externes), 4. Menaces (Externes). Utilise une approche agressive de consultant en croissance.
-                    `;
-                } else if (gameData) {
-                    const streams = await fetchStreamsForGame(gameData.id, token);
-                    promptData = JSON.stringify({
-                        Cible: gameData.name,
-                        Type: "Jeu",
-                        Stats: {
-                            total_viewers: streams.reduce((sum, s) => sum + s.viewer_count, 0),
-                            total_streamers: streams.length
-                        }
-                    }, null, 2);
-                    iaPrompt = `
-                        Tu es l'IA stratégique "The Incontestable". La cible est le jeu **${query}**. 
-                        Voici les données disponibles : ${promptData}
-                        L'objectif est de réaliser une Analyse SWOT (Forces, Faiblesses, Opportunités, Menaces) pour un streamer qui se lancerait sur ce jeu.
-                        Ta réponse doit être en français et formatée en HTML. Réponds en quatre parties détaillées : 1. Forces (Internes), 2. Faiblesses (Internes), 3. Opportunités (Externes), 4. Menaces (Externes). Utilise une approche agressive de consultant en croissance.
-                    `;
-                }
-            } else {
-                return res.status(404).json({ error: `Cible non trouvée (Streamer ou Jeu): ${query}` });
-            }
-
-        } else if (type === 'daily_challenge') { // NOUVEAU: Défi Quotidien
-            
-            const currentBoostChannel = CACHE.globalBoostChannel.channel;
-            promptTitle = `Mission Critique: Défi Stratégique Global sur ${currentBoostChannel}`;
-            
-            let challengeData = {
-                'Chaîne Ciblée': currentBoostChannel,
-                'Objectif': 'Maximiser la visibilité et le ratio Clics/Impressions (CTR) sur cette cible.',
-                'Heure Idéale': '17h00 - 19h00 (Créneau de décompression post-travail)',
-                'Jeu Suggestion': 'Un jeu ayant un V/S > 10, mais moins de 20 streamers actuellement.',
-                'Concurrents à Surpasser': "Les 3 streamers en direct ayant le moins de viewers sur ce jeu."
-            };
-            promptData = JSON.stringify(challengeData, null, 2);
-            
-            iaPrompt = `
-                Tu es l'IA "Le Sniper". Ta mission est de générer un 'Défi Stratégique Quotidien' pour la communauté. 
-                Le canal actuellement boosté est **${currentBoostChannel}**. 
-                Voici les données et analyses pour cette cible: ${promptData}
-                
-                Génère une mission critique sous forme d'instructions claires et agressives, comme si la survie de l'humanité en dépendait.
-                Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Mission du Jour (titre percutant), 2. Plan d'Attaque (jeu, heure, tactique), 3. Titre/Description de Stream à Utiliser ABSOLUMENT.
-            `;
         }
         
         if (!ai) {
@@ -693,13 +733,8 @@ app.post('/critique_ia', async (req, res) => {
             contents: iaPrompt,
         });
 
-        // Utiliser une couleur différente pour le titre du Défi Stratégique
-        const titleHtml = (type === 'daily_challenge') 
-            ? `<h4 style="color:var(--color-ai-growth); border-color:var(--color-ai-growth);">${promptTitle}</h4>` 
-            : `<h4>${promptTitle}</h4>`;
-
         return res.json({
-            html_critique: titleHtml + result.text 
+            html_critique: `<h4>${promptTitle}</h4>` + result.text 
         });
 
     } catch (e) {
@@ -743,10 +778,6 @@ app.post('/stream_boost', (req, res) => {
     }
 
     CACHE.streamBoosts[channel] = now;
-    
-    // NOUVEAU: Définir le boost global pour 10 minutes (utilisé par le Défi Stratégique)
-    CACHE.globalBoostChannel.channel = channel;
-    CACHE.globalBoostChannel.timestamp = now + CACHE.globalBoostChannel.boostDuration;
 
     const successMessage = `
         <p style="color:var(--color-primary-pink); font-weight:bold;">
@@ -760,23 +791,8 @@ app.post('/stream_boost', (req, res) => {
 
     return res.json({ 
         success: true, 
-        html_response: successMessage,
-        boosted_channel: channel
+        html_response: successMessage 
     });
-});
-
-// NOUVELLE ROUTE: Récupérer le canal actuellement boosté ou par défaut
-app.get('/get_global_boost', (req, res) => {
-    const now = Date.now();
-    let currentChannel = CACHE.globalBoostChannel.channel;
-    
-    // Si le boost est expiré, revenir au défaut 'twitch'
-    if (CACHE.globalBoostChannel.channel !== 'twitch' && CACHE.globalBoostChannel.timestamp < now) {
-        CACHE.globalBoostChannel.channel = 'twitch';
-        currentChannel = 'twitch';
-    }
-    
-    res.json({ channel: currentChannel });
 });
 
 
