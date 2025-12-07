@@ -1,22 +1,205 @@
-<div id="tab-followed" class="tab-content">
-            <h3 class="tab-heading text-pink"><span class="icon">🔑</span> Connexion & Mon Fil Suivi</h3>
-            <div class="login-box">
-                <h4 class="text-blue font-bold text-sm mb-2">Connexion Utilisateur Twitch (OAuth)</h4>
-                <p id="login-status" class="text-yellow text-xs mb-4">Statut: Vérification...</p>
-                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">🔒 SE CONNECTER VIA TWITCH</button>
-            </div> 
-            <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-medium);"> 
-                <h4 class="tab-heading text-pink"><span class="icon">🔴</span> Vos Chaînes Suivies LIVE</h4> 
-                <div id="followed-streams-list"><p style="color:#555; text-align:center; padding:10px;">Chargement du fil...</p></div> 
-            </div> 
-        </div>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer & Niche AI Hub V10.2 - Full Features</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <style>
+        /* --- VARIABLES CSS (Ajout des ombres néon) --- */
+        :root {
+            --color-bg-dark: #0d0d0d;
+            --color-bg-medium: #1a1a1a;
+            --color-bg-light: #111;
+            --color-primary-pink: #ff0099;
+            --color-secondary-blue: #22c7ef;
+            --color-ai-niche: #59d682;
+            --color-ai-repurpose: #9933ff;
+            --color-ai-growth: #ffcc00;
+            --color-ai-action: #e34a64; 
+            --color-text-dimmed: #9aa3a8;
+            
+            /* Styles généraux */
+            body { background: var(--color-bg-dark); font-family: 'Inter', sans-serif; color: white; }
+            h1, h2, h3, h4 { font-family: 'Orbitron', sans-serif; }
+            .neon-shadow-pink { box-shadow: 0 0 5px var(--color-primary-pink), 0 0 10px var(--color-primary-pink); }
+            .neon-shadow-green { box-shadow: 0 0 5px var(--color-ai-niche), 0 0 10px var(--color-ai-niche); }
+            .bg-twitch { background-color: #6441a5; }
 
-    <script>
+            /* Styles des boutons d'onglet */
+            .tab-btn { transition: all 0.2s; border-bottom: 3px solid transparent; }
+            .tab-btn:hover { border-bottom-color: var(--color-primary-pink); }
+            .tab-btn.active { border-bottom-color: var(--color-secondary-blue); color: var(--color-secondary-blue); font-weight: bold; }
+
+            /* Styles des rapports IA */
+            .ai-report-box { border-left: 5px solid; padding-left: 15px; margin-top: 15px; }
+            .ai-report-box h4 { border-bottom: 2px solid; padding-bottom: 5px; margin-bottom: 10px; }
+            .ai-niche-report h4 { border-color: var(--color-ai-niche); color: var(--color-ai-niche); }
+            .ai-repurpose-report h4 { border-color: var(--color-ai-repurpose); color: var(--color-ai-repurpose); }
+            .ai-growth-report h4 { border-color: var(--color-ai-growth); color: var(--color-ai-growth); }
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
+            <h1 class="text-3xl font-bold text-white tracking-widest">
+                STREAMER <span class="text-xs text-red-500">v10.2</span> <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-blue-400">AI HUB</span>
+            </h1>
+            <div id="auth-area" class="text-right">
+                <p id="user-status" class="text-sm text-yellow-500">Statut: Déconnecté</p>
+                <button id="twitch-auth-btn" class="bg-twitch text-white px-4 py-2 rounded-lg text-sm transition duration-150 ease-in-out hover:bg-opacity-80">
+                    Connexion Twitch
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <div class="md:col-span-2 space-y-6">
+                
+                <div class="bg-black p-2 rounded-lg neon-shadow-pink">
+                    <div id="twitch-player" class="w-full aspect-video">
+                        <p class="text-center p-20 text-gray-500">Lecteur Twitch en attente...</p>
+                    </div>
+                </div>
+
+                <div id="twitch-player-share" class="flex justify-center space-x-4 bg-gray-800 p-3 rounded-lg border border-gray-700">
+                    <p class="text-sm text-white pt-2">Lecteur : <strong id="current-channel-name">...</strong></p>
+                    <button class="bg-gray-700 text-sm text-white px-3 py-2 rounded-lg transition duration-150 hover:bg-gray-600 share-player-btn" 
+                            data-platform="twitch" data-share-url="https://twitch.tv/" data-channel="">
+                        Voir sur Twitch
+                    </button>
+                </div>
+
+                <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <h3 class="text-xl text-secondary-blue mb-4">Streams Suivis LIVE (Max 12)</h3>
+                    <div id="followed-streams-list" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <p class="text-gray-500 col-span-3 text-center">Connectez-vous à Twitch pour charger votre fil suivi.</p>
+                    </div>
+                    <p id="followed-streams-error" class="text-sm text-red-500 mt-2 hidden"></p>
+                </div>
+            </div>
+
+            <div class="md:col-span-1 bg-gray-800 p-4 rounded-lg border border-gray-700 space-y-4">
+                <h3 class="text-xl text-white mb-4">AI Hub - Outils d'Optimisation</h3>
+
+                <div class="flex border-b border-gray-700">
+                    <button class="tab-btn active px-3 py-2 text-white" data-tab="tab-followed">Fil & Stats</button>
+                    <button class="tab-btn px-3 py-2 text-white ml-3" data-tab="tab-niche">Niche IA</button>
+                    <button class="tab-btn px-3 py-2 text-white ml-3" data-tab="tab-repurpose">Recyclage VOD</button>
+                    <button class="tab-btn px-3 py-2 text-white ml-3" data-tab="tab-actions">Actions</button>
+                </div>
+
+                <div id="tab-content" class="space-y-4 pt-3">
+                    
+                    <div id="tab-followed" class="tab-pane">
+                        <h4 class="text-lg text-secondary-blue mb-3">Statistiques de Streamer</h4>
+                        <div class="bg-gray-900 p-3 rounded-lg mb-4">
+                            <label for="scan-query" class="block text-sm font-medium text-white mb-2">Scanner (Pseudo ou Jeu):</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="scan-query" placeholder="Ex: ZeratoR ou Elden Ring" class="flex-grow p-2 rounded bg-gray-700 border border-gray-600 text-white">
+                                <button id="scan-btn" class="bg-primary-pink text-white px-4 rounded transition duration-150 hover:bg-opacity-80">
+                                    Scanner <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="scan-result-box" class="min-h-[150px] p-3 rounded bg-gray-900 border border-gray-600">
+                            <p class="text-sm text-gray-400">Résultat du scan (Utilisateur ou Jeu)</p>
+                        </div>
+                    </div>
+                    
+                    <div id="tab-niche" class="tab-pane hidden">
+                        <h4 class="text-lg text-ai-niche mb-3">Critique de Niche IA</h4>
+                        <div class="bg-gray-900 p-3 rounded-lg mb-4">
+                            <label for="niche-query" class="block text-sm font-medium text-white mb-2">Jeu ou Catégorie à analyser:</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="niche-query" placeholder="Ex: 'Niche Gaming' ou un nom de jeu" class="flex-grow p-2 rounded bg-gray-700 border border-gray-600 text-white">
+                                <button id="niche-btn" data-type="niche" class="bg-ai-niche text-white px-4 rounded transition duration-150 hover:bg-opacity-80">
+                                    Analyser <i class="fas fa-brain"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="niche-report-box" class="ai-report-box min-h-[150px] p-3 rounded bg-gray-900 border border-gray-600">
+                            <p class="text-sm text-gray-400">Le rapport IA s'affichera ici.</p>
+                        </div>
+                    </div>
+
+                    <div id="tab-repurpose" class="tab-pane hidden">
+                        <h4 class="text-lg text-ai-repurpose mb-3">Recyclage VOD/Clips IA</h4>
+                        <div class="bg-gray-900 p-3 rounded-lg mb-4">
+                            <label for="vod-channel" class="block text-sm font-medium text-white mb-2">Chaîne Twitch pour VOD:</label>
+                            <div class="flex space-x-2 mb-2">
+                                <input type="text" id="vod-channel" placeholder="Ex: user_twitch" class="flex-grow p-2 rounded bg-gray-700 border border-gray-600 text-white">
+                                <button id="vod-btn" class="bg-ai-repurpose text-white px-4 rounded transition duration-150 hover:bg-opacity-80">
+                                    Charger VOD <i class="fas fa-video"></i>
+                                </button>
+                            </div>
+                            <label for="vod-title" class="block text-sm font-medium text-white mb-2 mt-4">Titre de la VOD chargée (ou Entrez un titre):</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="vod-title" placeholder="Ex: J'ai battu le boss après 10h" class="flex-grow p-2 rounded bg-gray-700 border border-gray-600 text-white">
+                                <button id="repurpose-btn" data-type="repurpose" class="bg-ai-repurpose text-white px-4 rounded transition duration-150 hover:bg-opacity-80" disabled>
+                                    Critique IA <i class="fas fa-clipboard-list"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="repurpose-report-box" class="ai-report-box min-h-[150px] p-3 rounded bg-gray-900 border border-gray-600">
+                            <p class="text-sm text-gray-400">Le rapport de recyclage de contenu s'affichera ici.</p>
+                        </div>
+                    </div>
+
+                    <div id="tab-actions" class="tab-pane hidden">
+                        <h4 class="text-lg text-ai-action mb-3">Actions Automatiques & Boost</h4>
+                        <div class="space-y-3">
+                            
+                            <div class="bg-gray-900 p-3 rounded-lg flex justify-between items-center border border-gray-700">
+                                <span class="text-white text-sm">Raid Niche Boost (0-100 viewers)</span>
+                                <button id="raid-btn" data-type="raid_action" class="bg-ai-action text-white px-3 py-1 rounded transition duration-150 hover:bg-opacity-80" disabled>
+                                    Lancer <i class="fas fa-hand-rock"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="bg-gray-900 p-3 rounded-lg flex justify-between items-center border border-gray-700">
+                                <span class="text-white text-sm">Créer Clip (Canal actif)</span>
+                                <button id="clip-btn" data-type="create_clip" class="bg-ai-repurpose text-white px-3 py-1 rounded transition duration-150 hover:bg-opacity-80" disabled>
+                                    Clipper <i class="fas fa-scissors"></i>
+                                </button>
+                            </div>
+
+                            <div class="bg-gray-900 p-3 rounded-lg flex items-center border border-gray-700">
+                                <input type="text" id="title-query" placeholder="Thème VOD pour titre IA" class="flex-grow p-2 rounded bg-gray-700 border border-gray-600 text-white mr-2">
+                                <button id="title-btn" data-type="title_disruption" class="bg-ai-repurpose text-white px-3 py-1 rounded transition duration-150 hover:bg-opacity-80">
+                                    Titres IA <i class="fas fa-bolt"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="bg-gray-900 p-3 rounded-lg flex justify-between items-center border border-gray-700">
+                                <span class="text-white text-sm">Boost de Visibilité (Traffic)</span>
+                                <button id="boost-btn" class="bg-primary-pink text-white px-3 py-1 rounded transition duration-150 hover:bg-opacity-80" disabled>
+                                    BOOST <i class="fas fa-arrow-up"></i>
+                                </button>
+                            </div>
+
+                        </div>
+                        
+                        <div id="action-result-box" class="min-h-[150px] p-3 rounded bg-gray-900 border border-gray-600 mt-4">
+                            <p class="text-sm text-gray-400">Résultats des actions automatiques.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
     
     // =========================================================
-    // ✅ CORRECTION CRUCIALE POUR RENDER
+    // ✅ CORRECTION CRUCIALE : URL du serveur Render
     // =========================================================
-    // Cette variable doit être l'URL HTTPS de votre déploiement Render
     const API_BASE = 'https://justplayerstreamhubpro.onrender.com';
     // ---------------------------------------------------------
     
@@ -26,7 +209,6 @@
 
     // --- 1. Utilitaire de Requête API ---
     async function fetchAPI(endpoint, method = 'GET', data = null) {
-        // Utilise la variable API_BASE corrigée
         const url = `${API_BASE}${endpoint}`;
         
         const options = {
@@ -34,19 +216,27 @@
             headers: {
                 'Content-Type': 'application/json',
             },
-            // CRUCIAL : Permet l'envoi des cookies de session pour l'authentification
+            // CRUCIAL : Permet l'envoi des cookies de session pour l'authentification en cross-site
             credentials: 'include' 
         };
 
-        if (data && method !== 'GET') { options.body = JSON.stringify(data); }
+        if (data && method !== 'GET') {
+            options.body = JSON.stringify(data);
+        }
 
         try {
             const response = await fetch(url, options);
 
             if (!response.ok) {
                 let errorData = {};
-                try { errorData = await response.json(); } catch (e) { errorData = { error: `Erreur serveur (${response.status} ${response.statusText}).` }; }
-                if (errorData.html_response) { throw new Error(errorData.html_response); }
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    errorData = { error: `Erreur serveur (${response.status} ${response.statusText}).` };
+                }
+                if (errorData.html_response) {
+                    throw new Error(errorData.html_response);
+                }
                 throw new Error(errorData.error || `Erreur serveur non spécifiée (${response.status})`);
             }
             
@@ -62,103 +252,72 @@
 
     // --- 2. Fonctions d'Interface (Tabs et Player) ---
     function openTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-        document.getElementById(tabId).style.display = 'block';
+        document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.add('hidden'));
+        document.getElementById(tabId).classList.remove('hidden');
+
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
+        document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+
         localStorage.setItem('activeTab', tabId);
     }
-    
-    // Fonction lancée par le bouton "LANCER" du lecteur
+
     window.launchPlayer = function(channel) {
         if (!channel) return;
         
         ACTIVE_CHANNEL = channel;
         localStorage.setItem('activeChannel', channel);
+        document.getElementById('current-channel-name').textContent = channel.toUpperCase();
         
-        const playerDiv = document.getElementById('twitch-embed');
+        const playerDiv = document.getElementById('twitch-player');
         playerDiv.innerHTML = ''; 
-        
-        // La librairie Twitch Player est chargée dans le DOMContentLoaded
-        if (typeof Twitch === 'undefined') {
-             // S'assurer que le script est chargé avant d'initialiser
-            console.error("Twitch Player n'est pas encore chargé.");
-            setTimeout(() => window.launchPlayer(channel), 500);
-            return;
-        }
 
-        // Assurez-vous d'utiliser un nom de domaine parent valide pour Twitch Embed (Render + localhost)
-        new Twitch.Embed("twitch-embed", {
+        // S'assurer que le domaine Render et localhost sont listés comme parents pour l'embed
+        new Twitch.Player("twitch-player", {
             width: '100%',
             height: '100%',
             channel: channel,
-            parent: [RENDER_DOMAIN.replace('https://', ''), "localhost"]
+            parent: ["justplayerstreamhubpro.onrender.com", "localhost"] 
         });
         
-        // Mise à jour de l'UI (statut, boutons)
-        updatePlayerUI(channel, null, false, null);
         document.getElementById('clip-btn').dataset.query = channel;
         document.getElementById('boost-btn').dataset.query = channel;
     }
-    
-    // Ajouté pour le Repurposing (nécessite la variable API_BASE)
-    window.seekVod = function(vodId, seconds) {
-        const playerDiv = document.getElementById('twitch-embed');
-        playerDiv.innerHTML = ''; 
-
-        if (typeof Twitch === 'undefined') {
-            console.error("Twitch Player n'est pas encore chargé.");
-            return;
-        }
-
-        new Twitch.Embed("twitch-embed", {
-            width: '100%',
-            height: '100%',
-            video: vodId,
-            time: secondsToHms(seconds),
-            parent: [RENDER_DOMAIN.replace('https://', ''), "localhost"]
-        });
-        
-        updatePlayerUI(vodId, vodId, false, null);
-    }
-
-    // Simule la mise à jour de l'UI pour le joueur
-    function updatePlayerUI(channelName, videoId, isLive, viewerCount) {
-        const statusEl = document.getElementById('player-channel-status');
-        const iconEl = document.getElementById('player-icon');
-        // (Logique de votre UI inchangée)
-        if (videoId) { 
-            statusEl.innerHTML = `📼 VOD: ${channelName.toUpperCase()}`; 
-            statusEl.style.color = 'var(--color-ai-repurpose)'; 
-            iconEl.innerHTML = '▶️'; 
-        } else if (isLive) { 
-            statusEl.innerHTML = `🔴 ${channelName.toUpperCase()} (LIVE) - ${viewerCount ? viewerCount.toLocaleString('fr-FR') + ' vues' : ''}`; 
-            statusEl.style.color = '#ff0000'; 
-            iconEl.innerHTML = '🔥'; 
-        } else { 
-            statusEl.innerHTML = `${channelName.toUpperCase()} (Hors ligne)`; 
-            statusEl.style.color = 'var(--color-text-dimmed)'; 
-            iconEl.innerHTML = '🎬'; 
-        }
-    }
-    
-    function secondsToHms(d) {
-        d = Number(d);
-        const h = Math.floor(d / 3600);
-        const m = Math.floor(d % 3600 / 60);
-        const s = Math.floor(d % 3600 % 60);
-        
-        const hDisplay = h > 0 ? h + ":" : "";
-        const mDisplay = m < 10 ? (h > 0 ? "0" + m : m) + ":" : m + ":";
-        const sDisplay = s < 10 ? "0" + s : s;
-        return hDisplay + mDisplay + sDisplay;
-    }
 
     // --- 3. Gestion de l'Authentification Twitch ---
+    async function checkAuth() {
+        try {
+            const data = await fetchAPI('/twitch_user_status');
+            const authBtn = document.getElementById('twitch-auth-btn');
+            const userStatus = document.getElementById('user-status');
+            
+            IS_USER_CONNECTED = data.is_connected;
+
+            if (data.is_connected) {
+                userStatus.textContent = `Connecté en tant que: ${data.display_name}`;
+                authBtn.textContent = 'Déconnexion';
+                authBtn.onclick = logout;
+                loadFollowedStreams(); 
+                document.getElementById('raid-btn').disabled = false;
+                document.getElementById('clip-btn').disabled = false;
+                document.getElementById('boost-btn').disabled = false;
+            } else {
+                userStatus.textContent = 'Statut: Déconnecté';
+                authBtn.textContent = 'Connexion Twitch';
+                authBtn.onclick = startAuth;
+                document.getElementById('followed-streams-list').innerHTML = `<p class="text-gray-500 col-span-3 text-center">Connectez-vous à Twitch pour charger votre fil suivi.</p>`;
+                document.getElementById('raid-btn').disabled = true;
+                document.getElementById('clip-btn').disabled = true;
+                document.getElementById('boost-btn').disabled = true;
+            }
+        } catch (error) {
+            console.error("Erreur de statut d'authentification:", error);
+            document.getElementById('user-status').textContent = `Statut: ❌ API non disponible`;
+        }
+    }
     
-    // ✅ CORRIGÉ : L'appel de départ pointe vers l'API_BASE (Render)
+    // ✅ CORRIGÉ : Utilise la variable API_BASE
     function startAuth() {
-        window.location.href = `${API_BASE}/twitch_auth_start`;
+        window.location.href = `${API_BASE}/twitch_auth_start`; 
     }
 
     async function logout() {
@@ -171,87 +330,93 @@
         }
     }
 
-    async function checkAuth() {
-        const loginStatus = document.getElementById('login-status');
-        const loginButton = document.getElementById('btn-twitch-login');
-        loginStatus.textContent = 'Statut: Vérification...';
-        
-        try {
-            // Utilise fetchAPI qui pointe vers l'API_BASE (Render)
-            const data = await fetchAPI('/twitch_user_status'); 
-            
-            IS_USER_CONNECTED = data.is_connected;
-
-            if (data.is_connected) {
-                loginStatus.innerHTML = `Connecté en tant que: <strong>${data.display_name}</strong>`;
-                loginButton.textContent = '🔒 DÉCONNEXION';
-                loginButton.onclick = logout;
-                loginButton.style.background = '#e34a64'; // Couleur de déconnexion
-                loadFollowedStreams(); 
-                // document.getElementById('raid-btn').disabled = false; // Désactivé par défaut si non trouvé
-                // document.getElementById('clip-btn').disabled = false; // Désactivé par défaut si non trouvé
-                // document.getElementById('boost-btn').disabled = false; // Désactivé par défaut si non trouvé
-
-            } else {
-                loginStatus.textContent = 'Statut: Déconnecté';
-                loginButton.textContent = '🔒 SE CONNECTER VIA TWITCH';
-                loginButton.onclick = startAuth; // Attache la fonction startAuth corrigée
-                loginButton.style.background = '#6441a5'; // Couleur Twitch
-                document.getElementById('followed-streams-list').innerHTML = `<p style="color:var(--color-text-dimmed); text-align:center; padding:10px;">Connectez-vous à Twitch pour charger votre fil suivi.</p>`;
-                // Désactivation des boutons d'actions nécessitant la connexion
-                // ... (Logique pour désactiver les autres boutons)
-            }
-        } catch (error) {
-            if (error.message.includes("Non authentifié")) {
-                 loginStatus.textContent = 'Statut: Déconnecté (Session expirée)';
-                 loginButton.textContent = '🔒 SE CONNECTER VIA TWITCH';
-                 loginButton.onclick = startAuth; 
-                 loginButton.style.background = '#6441a5';
-            } else {
-                loginStatus.innerHTML = `Statut: ❌ API non disponible (${error.message})`;
-                loginButton.disabled = true;
-            }
-        }
-    }
-
-    // --- 4. Chargement des Streams Suivis (Utilise fetchAPI corrigé) ---
+    // --- 4. Chargement des Streams Suivis ---
     async function loadFollowedStreams() {
         const followedStreamsList = document.getElementById('followed-streams-list');
-        followedStreamsList.innerHTML = '<p style="text-align:center; color:var(--color-primary-pink); padding:10px;">Chargement de votre fil...</p>';
+        followedStreamsList.innerHTML = '<p class="col-span-3 text-center text-primary-pink">Chargement de votre fil...</p>';
 
         try {
             const data = await fetchAPI('/followed_streams');
+            
+            followedStreamsList.innerHTML = '';
+            
             if (data.streams.length === 0) {
-                followedStreamsList.innerHTML = '<p style="text-align:center; color:var(--color-text-dimmed); padding:10px;">Aucune chaîne suivie n\'est actuellement en direct.</p>';
+                followedStreamsList.innerHTML = '<p class="col-span-3 text-center text-gray-500">Aucune chaîne suivie n\'est actuellement en direct.</p>';
                 return;
             }
-            // ... (Logique d'affichage des streams inchangée) ...
-            followedStreamsList.innerHTML = ''; // Clear loading message
-             data.streams.forEach(stream => { 
+            
+            data.streams.forEach(stream => { 
                 const item = document.createElement('div');
-                item.className = 'followed-stream-item';
+                item.className = 'followed-stream-item cursor-pointer p-2 bg-gray-900 rounded-lg hover:bg-gray-700 transition duration-150';
                 item.onclick = () => window.launchPlayer(stream.user_login);
+                
                 const thumbnailUrl = stream.thumbnail_url
                     .replace('{width}', '320')
                     .replace('{height}', '180');
+                    
                 item.innerHTML = `
-                    <img src="${thumbnailUrl}" alt="${stream.user_name}" style="border-radius: 6px; width:100%;">
-                    <strong style="color:var(--color-primary-pink); font-size: 13px; margin-top: 5px;">${stream.user_name}</strong>
-                    <div class="stream-meta text-xs text-gray-400 flex justify-between">
-                        <span>${stream.game_name}</span>
-                        <span style="color:#ff0000;">${stream.viewer_count.toLocaleString()} vues</span>
+                    <img src="${thumbnailUrl}" alt="${stream.user_name}" class="rounded-md w-full aspect-video object-cover mb-1">
+                    <strong class="text-sm text-white block truncate">${stream.user_name}</strong>
+                    <div class="text-xs text-gray-400 flex justify-between">
+                        <span class="truncate">${stream.game_name}</span>
+                        <span class="text-red-500">${stream.viewer_count.toLocaleString('fr-FR')} vues</span>
                     </div>
-                    <p class="text-xs text-white mt-1">${stream.title.substring(0, 50)}...</p>
                 `;
                 followedStreamsList.appendChild(item);
             });
         } catch (error) {
-            followedStreamsList.innerHTML = `<p style="color:red; text-align:center; padding:10px;">❌ Erreur de chargement du fil: ${error.message}</p>`;
+            followedStreamsList.innerHTML = `<p class="col-span-3 text-center text-red-500">❌ Erreur de chargement du fil: ${error.message}</p>`;
         }
     }
 
-    // --- (Ajoutez ici toutes vos autres fonctions JS : callAI, hmsToSeconds, etc. pour un fichier complet) ---
-    
+    // --- 5. Événements des Outils IA et Scan (Structure générique) ---
+    function setupToolListeners(toolId, endpoint, resultId, buttonText = "Analyser", isAITool = true) {
+        const btn = document.getElementById(toolId);
+        const queryInput = document.getElementById(toolId.replace('-btn', '-query'));
+        const resultBox = document.getElementById(resultId);
+
+        if (!btn) return; 
+
+        btn.addEventListener('click', async () => {
+            const query = queryInput ? queryInput.value.trim() : btn.dataset.query;
+            
+            if (!query && !isAITool) {
+                resultBox.innerHTML = `<p class="text-red-500 text-center">Veuillez entrer une requête ou sélectionner une cible.</p>`;
+                return;
+            }
+            
+            btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Traitement...`;
+            resultBox.innerHTML = `<p class="text-secondary-blue text-center">Envoi de la requête au serveur...</p>`;
+
+            try {
+                const data = await fetchAPI(endpoint, 'POST', { query: query, channel: ACTIVE_CHANNEL });
+                
+                if (data.html_response) {
+                    resultBox.innerHTML = data.html_response;
+                } else if (data.success) {
+                    resultBox.innerHTML = `<p class="text-ai-niche text-center">✅ Opération réussie.</p>`;
+                } else {
+                    throw new Error(data.error || "Erreur inconnue de l'API.");
+                }
+
+            } catch (e) {
+                let errorMessage = e.message;
+                if (errorMessage.includes("Non authentifié")) {
+                    errorMessage = "Connexion Twitch requise pour cette action.";
+                } else if (errorMessage.includes("Failed to fetch")) {
+                    errorMessage = "Échec de la connexion au serveur (réseau coupé ou API non démarrée).";
+                }
+                
+                resultBox.innerHTML = `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">❌ Erreur: ${errorMessage}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+    }
+
     // --- 8. Initialisation ---
     document.addEventListener('DOMContentLoaded', function() {
         // Ajout de la librairie Twitch Player
@@ -268,22 +433,22 @@
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         
-        checkAuth(); // Déclenche la vérification et configure le bouton de connexion.
-        
-        // Événement pour le lecteur personnalisé
-        document.getElementById('form-channel-player').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const channel = document.getElementById('input-channel').value.trim();
-            if (channel) {
-                window.launchPlayer(channel);
-            }
+        checkAuth();
+
+        // Écouteurs pour les onglets
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => openTab(btn.dataset.tab));
         });
-        
-        // ... (Autres écouteurs d'événements) ...
-        
-        // --- Écouteur pour le bouton de connexion au démarrage (même si checkAuth le fait déjà) ---
-        document.getElementById('btn-twitch-login').onclick = startAuth; // Default click handler
-        
+
+        // Mise en place des écouteurs pour les outils (à ajuster selon le back-end)
+        setupToolListeners('scan-btn', '/scan_target', 'scan-result-box', 'Scanner', false);
+        setupToolListeners('niche-btn', '/ai_analyze_niche', 'niche-report-box', 'Analyser', true);
+        setupToolListeners('raid-btn', '/raid_action', 'action-result-box', 'Lancer', false);
+        setupToolListeners('clip-btn', '/create_clip', 'action-result-box', 'Clipper', false);
+        setupToolListeners('title-btn', '/ai_generate_titles', 'action-result-box', 'Titres IA', true);
+
+        // Écouteur pour le bouton de Recyclage VOD (nécessite une logique de chargement intermédiaire)
+        // ... (Logique spécifique VOD à réintégrer si nécessaire)
     });
 </script>
 </body>
