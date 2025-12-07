@@ -1,7 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-// 1. NOUVEAU : Chargement des variables d'environnement depuis le fichier .env
-require('dotenv').config(); 
 const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -19,7 +17,6 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-// 2. CORRECTION : REDIRECT_URI est désormais lue correctement depuis .env
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI; 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -27,12 +24,10 @@ const GEMINI_MODEL = "gemini-2.5-flash";
 
 let ai = null;
 if (GEMINI_API_KEY) {
-    // La clé est valide, on initialise l'IA
     ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    console.log("✅ DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
+    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
 } else {
-    // Si la clé manque (comme c'était le cas), on log l'erreur
-    console.error("❌ FATAL DEBUG: GEMINI_API_KEY non trouvée ou non configurée. L'IA sera désactivée.");
+    console.error("FATAL DEBUG: GEMINI_API_KEY non trouvée. L'IA sera désactivée.");
 }
 
 // =========================================================
@@ -64,7 +59,7 @@ app.use(cors({
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); 
+app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (y compris le CSS/JS si dans le même dossier)
 
 // =========================================================
 // --- FONCTIONS UTILITAIRES TWITCH API ---
@@ -74,25 +69,17 @@ app.use(express.static(path.join(__dirname)));
  * Récupère ou met à jour le jeton d'accès d'application Twitch.
  */
 async function getAppAccessToken() {
-    if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
-        console.error("❌ TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET manquant. Impossible de générer le token App.");
-        return null;
-    }
-
     const now = Date.now();
     if (CACHE.appAccessToken.token && CACHE.appAccessToken.expiry > now) {
         return CACHE.appAccessToken.token;
     }
     
-    // Le REDIRECT_URI n'est pas utilisé ici, mais les clés d'app le sont.
     const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     
     try {
         const response = await fetch(url, { method: 'POST' });
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            // Ceci est l'erreur que vous voyiez (400) quand il y avait un problème de configuration général.
-            throw new Error(`Erreur HTTP: ${response.status} - ${errorData.message || 'Problème de configuration des clés App.'}`);
+            throw new Error(`Erreur HTTP: ${response.status}`);
         }
         
         const data = await response.json();
@@ -343,65 +330,12 @@ async function fetchNicheOpportunities(token) {
 
 // Middleware pour vérifier la clé Gemini avant les routes IA
 app.use((req, res, next) => {
+    // AJOUT DE '/ai_chat_query' au middleware IA
     if ((req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/ai_chat_query')) && !ai) { 
         return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
     }
     next();
 });
-
-// =========================================================
-// --- 3. ROUTE PROXY TWITCH GÉNÉRIQUE (POUR ÉVOLUTION) ---
-// =========================================================
-
-/**
- * Endpoint Proxy pour toute requête Twitch API (Helix) future.
- * Permet au frontend d'accéder à n'importe quel endpoint Twitch sans modifier le backend.
- */
-app.post('/twitch_proxy', async (req, res) => {
-    const { path, method = 'GET', body = null } = req.body;
-    
-    if (!path) {
-        return res.status(400).json({ error: "Le chemin (path) de l'API Twitch est requis." });
-    }
-
-    try {
-        const token = await getAppAccessToken(); 
-        
-        if (!token) {
-            return res.status(500).json({ error: "Impossible d'obtenir le jeton d'accès App Twitch." });
-        }
-
-        const url = `https://api.twitch.tv/helix${path.startsWith('/') ? path : '/' + path}`;
-        
-        const fetchOptions = {
-            method: method.toUpperCase(),
-            headers: {
-                'Client-Id': TWITCH_CLIENT_ID,
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        };
-
-        if (body && method.toUpperCase() !== 'GET' && method.toUpperCase() !== 'HEAD') {
-            fetchOptions.body = JSON.stringify(body);
-        }
-
-        const response = await fetch(url, fetchOptions);
-        const responseData = await response.json();
-
-        if (!response.ok) {
-            console.error(`Erreur Proxy Twitch (${path}):`, responseData);
-            return res.status(response.status).json({ error: responseData.error || responseData.message || "Erreur inconnue de l'API Twitch" });
-        }
-
-        res.json(responseData);
-
-    } catch (e) {
-        console.error("❌ Erreur critique dans /twitch_proxy:", e.message);
-        res.status(500).json({ error: `Erreur interne du serveur: ${e.message}` });
-    }
-});
-
 
 // --- Routes OAuth ---
 
@@ -458,9 +392,8 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
-                // CORRECTION FINALE : Redirection vers le domaine principal après succès (utilise l'URI de base de Render)
-                const baseUri = REDIRECT_URI.replace('/twitch_auth_callback', '');
-                res.redirect(baseUri + '/NicheOptimizer.html'); 
+                // CORRECTION ICI: Redirection explicite vers la page principale
+                res.redirect('/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
             }
@@ -470,7 +403,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
         }
     } catch (error) {
         console.error("Erreur callback:", error.message);
-        return res.status(500).send(`Erreur lors de l'authentification: ${error.message}. Vérifiez que TWITCH_REDIRECT_URI est correct.`);
+        return res.status(500).send(`Erreur lors de l'authentification: ${error.message}`);
     }
 });
 
@@ -593,8 +526,8 @@ app.post('/scan_target', async (req, res) => {
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
 
-    if (!['trend', 'niche', 'repurpose', 'title_suggest'].includes(type)) {
-        return res.status(400).json({ error: "Type de critique IA non supporté. Types valides : trend, niche, repurpose, title_suggest." });
+    if (!['trend', 'niche', 'repurpose'].includes(type)) {
+        return res.status(400).json({ error: "Type de critique IA non supporté. Types valides : trend, niche, repurpose." });
     }
 
     if (type !== 'trend' && (!query || query.trim() === '')) {
@@ -608,6 +541,7 @@ app.post('/critique_ia', async (req, res) => {
         }
 
         let iaPrompt = "";
+        let promptData = "";
         let promptTitle = "";
 
         if (type === 'trend') {
@@ -616,7 +550,7 @@ app.post('/critique_ia', async (req, res) => {
             if (!nicheOpportunities || nicheOpportunities.length === 0) {
                 return res.json({ html_critique: `<p style="color:red;">❌ L'analyse n'a trouvé aucune niche fiable (moins de 5 streamers par jeu analysé).</p>` });
             }
-            const promptData = JSON.stringify(nicheOpportunities, null, 2);
+            promptData = JSON.stringify(nicheOpportunities, null, 2);
 
             iaPrompt = `
                 Tu es le 'Streamer AI Hub', un conseiller en croissance expert. Ton analyse est basée sur le ratio V/S (Spectateurs par Streamer). 
@@ -637,7 +571,7 @@ app.post('/critique_ia', async (req, res) => {
                 viewers: s.viewer_count,
                 title: s.title
             }));
-            const promptData = JSON.stringify(topStreams, null, 2);
+            promptData = JSON.stringify(topStreams, null, 2);
 
             iaPrompt = `
                 Tu es l'IA spécialisée en Niche. Le jeu ciblé est **${query}**. 
@@ -653,7 +587,7 @@ app.post('/critique_ia', async (req, res) => {
             if (!userData) {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
-            const promptData = JSON.stringify({
+            promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
                 dernieresActivites: [
@@ -670,14 +604,6 @@ app.post('/critique_ia', async (req, res) => {
                 L'objectif est de générer du contenu court (TikTok/YouTube Shorts) à partir de ses VODs.
                 Ta réponse doit être en français et formatée en HTML. Réponds en trois parties: 1. Identification du "Moment Viral" Potentiel (le plus fort), 2. Proposition de Vidéo Courte (Titre, Description, Hook), 3. 3 Idées de Sujets YouTube Long-Format Basées sur le style du Streamer.
             `;
-        } else if (type === 'title_suggest') {
-             const { game, angle } = req.body;
-             promptTitle = `Suggestion de Titre et Tag SEO`;
-             iaPrompt = `
-                Tu es un expert en SEO pour les plateformes de streaming. Le jeu est **${game}** et l'angle du stream/vidéo est **${angle}**. 
-                Génère 5 suggestions de titres accrocheurs et 10 tags SEO pertinents pour YouTube et Twitch.
-                Ta réponse doit être en français et formatée en HTML. 
-             `;
         }
         
         if (!ai) {
@@ -704,7 +630,7 @@ app.post('/critique_ia', async (req, res) => {
 
 
 // =========================================================
-// --- ROUTE CHATBOT IA GÉNÉRAL ---
+// --- ROUTE CHATBOT IA GÉNÉRAL (AJOUTÉE) ---
 // =========================================================
 
 /**
@@ -731,7 +657,8 @@ app.post('/ai_chat_query', async (req, res) => {
                     parts: [
                         { text: "Vous êtes 'Streamer AI', un assistant expert en croissance sur Twitch, YouTube, et TikTok. Votre objectif est de fournir des conseils stratégiques, des analyses de marché, et des idées de contenu. Répondez de manière amicale, professionnelle et concise, en utilisant des listes ou des mises en forme pour faciliter la lecture. Ne parlez pas de politique, de contenu offensant, ou de sujets hors de la création de contenu et du streaming. Utilisez le Français." }
                     ]
-                },
+                }
+                ,
                 {
                     role: "user",
                     parts: [
@@ -744,6 +671,7 @@ app.post('/ai_chat_query', async (req, res) => {
             }
         });
 
+        // Utilisation de Markdown pour formater le texte
         const formattedResponse = response.text.trim(); 
 
         res.json({ 
@@ -811,7 +739,7 @@ app.post('/stream_boost', (req, res) => {
 
 
 // =========================================================
-// Configuration des Routes Statiques
+// Configuration des Routes Statiques (CORRIGÉ)
 // =========================================================
 
 // Route racine - sert le NicheOptimizer
@@ -824,13 +752,7 @@ app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-app.get('/lucky_streamer_picker.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'lucky_streamer_picker.html'));
-});
-
-app.get('/sniper_tool.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'sniper_tool.html'));
-});
+// Les routes /lucky_streamer_picker.html et /sniper_tool.html sont maintenant supprimées.
 
 // Lancement du serveur
 app.listen(PORT, () => {
