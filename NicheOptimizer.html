@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V7.0 - Mini-Bulle IA</title>
+    <title>Streamer & Niche AI Hub V7.1 - Chat IA</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -20,6 +20,8 @@
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
+            /* Nouvelle couleur pour le chat */
+            --color-chat-bubble: #33aaff; /* Bleu clair */
         }
 
         /* Styles Globaux */
@@ -188,6 +190,11 @@
             border-top: 3px solid var(--color-primary-pink);
             font-weight: bold;
         }
+        /* Couleurs spécifiques aux onglets IA pour les rendre plus clairs */
+        .tab-btn.niche-ai.active { border-top: 3px solid var(--color-ai-niche); color: var(--color-ai-niche); }
+        .tab-btn.repurpose-ai.active { border-top: 3px solid var(--color-ai-repurpose); color: var(--color-ai-repurpose); }
+        .tab-btn.growth-ai.active { border-top: 3px solid var(--color-ai-growth); color: var(--color-ai-growth); }
+        
         .tab-content {
             display: none;
             background: var(--color-bg-medium);
@@ -237,55 +244,57 @@
             #twitch-embed { height: 350px; } 
         }
 
-        /* --- NOUVEAUX STYLES MINI-BULLE IA --- */
-        #ai-bubble-opener {
+        /* --- NOUVEAUX STYLES CHAT IA FLOTTANT --- */
+        #ai-chat-bubble {
             position: fixed;
             bottom: 30px;
             right: 30px;
             width: 60px;
             height: 60px;
-            background: var(--color-ai-repurpose); /* Violet */
+            background: var(--color-chat-bubble); 
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(153, 51, 255, 0.6);
+            box-shadow: 0 4px 15px rgba(51, 170, 255, 0.6);
             z-index: 1000; 
-            transition: transform 0.2s;
+            transition: transform 0.2s, background 0.2s;
             font-size: 30px;
             font-family: 'Orbitron', sans-serif;
             border: 2px solid white;
         }
 
-        #ai-bubble-opener:hover {
+        #ai-chat-bubble:hover {
             transform: scale(1.1);
+            background: #1e87e6;
         }
         
-        #ai-panel {
+        #ai-chat-panel {
             position: fixed;
-            bottom: 100px; /* Au-dessus de la bulle */
+            bottom: 100px; 
             right: 30px;
             width: 350px;
-            max-height: 80vh;
+            height: 450px; 
             background: var(--color-bg-medium);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             z-index: 999;
             padding: 15px;
-            border: 2px solid var(--color-ai-repurpose);
-            overflow-y: auto;
+            border: 2px solid var(--color-chat-bubble);
+            display: flex;
+            flex-direction: column;
             transform: translateX(120%); /* Caché par défaut */
             transition: transform 0.4s ease-out;
         }
 
-        #ai-panel.open {
+        #ai-chat-panel.open {
             transform: translateX(0);
         }
-
-        #ai-panel-header {
+        
+        #chat-header {
             font-family: 'Orbitron', sans-serif;
-            color: var(--color-ai-repurpose);
+            color: var(--color-chat-bubble);
             font-size: 18px;
             margin-bottom: 10px;
             border-bottom: 1px solid var(--color-border-medium);
@@ -295,40 +304,65 @@
             align-items: center;
         }
 
-        .ai-section {
-            margin-bottom: 25px;
-            padding: 10px;
-            border: 1px solid var(--color-border-medium);
-            border-radius: 8px;
-        }
-
-        .ai-section h5 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 14px;
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px dashed var(--color-border-medium);
-        }
-        .ai-section.niche h5 { color: var(--color-ai-niche); }
-        .ai-section.repurpose h5 { color: var(--color-ai-repurpose); }
-        .ai-section.growth h5 { color: var(--color-ai-growth); }
-
-        .ai-content {
-            max-height: 300px; 
+        #chat-window {
+            flex-grow: 1;
             overflow-y: auto;
-            padding-right: 5px;
+            padding: 10px;
+            background: var(--color-bg-dark);
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid var(--color-border-medium);
+            scroll-behavior: smooth;
+        }
+        
+        .chat-message {
+            margin-bottom: 10px;
+            line-height: 1.4;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 85%;
+            font-size: 13px;
+            color: #fff;
+        }
+        .user-message {
+            background: var(--color-primary-pink);
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+            text-align: right;
+        }
+        .ai-message {
+            background: var(--color-chat-bubble);
+            margin-right: auto;
+            border-bottom-left-radius: 2px;
         }
 
-        /* Fix pour les boutons */
-        .ai-section .btn-primary { width: 100%; }
+        #form-chat-input {
+            display: flex;
+            gap: 5px;
+        }
+        #chat-input {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border-medium);
+            background: var(--color-bg-dark);
+            color: #fff;
+        }
+        #btn-send-chat {
+            background: var(--color-chat-bubble);
+            color: var(--color-bg-dark);
+            font-weight: 700;
+            padding: 10px 12px;
+            border-radius: 6px;
+        }
 
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.0</h1>
-    <div class="subtitle-center">Lecteur • Scan & Résultats • Croissance • **Mini-Bulle IA**</div>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.1</h1>
+    <div class="subtitle-center">Lecteur • Scan & Résultats • Croissance • **Chat IA**</div>
 
     <div class="player-wrapper">
         <h2>
@@ -346,6 +380,9 @@
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
             <button class="tab-btn" data-tab-id="tab-cible" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
+            <button class="tab-btn niche-ai" data-tab-id="tab-niche" onclick="openTab('tab-niche')">📈 CRITIQUE NICHE</button>
+            <button class="tab-btn repurpose-ai" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">✂️ REPURPOSING IA</button>
+            <button class="tab-btn growth-ai" data-tab-id="tab-growth" onclick="openTab('tab-growth')">💰 DÉTECTION TREND</button>
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST & RAID</button>
         </div>
 
@@ -390,6 +427,61 @@
                 </p>
             </div>
         </div>
+        
+        <div id="tab-niche" class="tab-content">
+            <h3 class="tab-heading" style="color:var(--color-ai-niche);">
+                <span class="icon">📈</span> Analyse de Niche IA
+            </h3>
+            <form id="form-niche-analysis" class="flex gap-2 mb-2">
+                <input id="input-niche-game" type="text" placeholder="Jeu à Analyser (ex: Starfield)" class="action-input">
+                <button type="submit" id="btn-niche-analyse" class="btn-secondary min-w-[100px]" style="background:var(--color-ai-niche); color: var(--color-bg-dark);">
+                    ✨ ANALYSER
+                </button>
+            </form>
+            <div id="niche-result-container" class="ai-result-box" style="border-color: var(--color-ai-niche);">
+                <div id="niche-results">
+                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                        Entrez un jeu pour recevoir une critique approfondie de la niche.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-repurpose" class="tab-content">
+            <h3 class="tab-heading" style="color:var(--color-ai-repurpose);">
+                <span class="icon">✂️</span> Repurposing Contenu IA
+            </h3>
+            <form id="form-repurpose" class="flex gap-2 mb-2">
+                <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer pour VOD" class="action-input">
+                <button type="submit" id="btn-repurpose-analyse" class="btn-secondary min-w-[100px]" style="background:var(--color-ai-repurpose);">
+                    🚀 ANALYSER VOD
+                </button>
+            </form>
+            <div id="repurpose-result-container" class="ai-result-box" style="border-color: var(--color-ai-repurpose);">
+                <div id="repurpose-results">
+                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                        L'IA analyse vos VOD (ou celles d'un autre) pour générer des idées de clips/shorts.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-growth" class="tab-content">
+            <h3 class="tab-heading" style="color:var(--color-ai-growth);">
+                <span class="icon">💰</span> Détection de Trend V/S IA
+            </h3>
+            <p class="text-sm mb-4" style="color:var(--color-text-dimmed);">
+                Cliquez pour obtenir les jeux en forte croissance ou avec un ratio Spectateurs/Streamer (V/S) élevé, parfait pour les petits streamers.
+            </p>
+            <button id="btn-trend-detector" class="btn-primary" style="background:var(--color-ai-growth); color:var(--color-bg-dark); width:100%; padding:12px;">
+                🔮 DÉTECTER LA PROCHAINE NICHE CHAUDE
+            </button>
+            <div id="trend-results" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;">
+                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                    Analyse des tendances V/S (Spectateurs/Streamer) en cours.
+                </p>
+            </div>
+        </div>
 
         <div id="tab-boost" class="tab-content">
             <h3 class="tab-heading text-pink">
@@ -424,62 +516,26 @@
     </div>
 </div>
 
-<div id="ai-bubble-opener">
-    🤖
+<div id="ai-chat-bubble">
+    💬
 </div>
 
-<div id="ai-panel">
-    <div id="ai-panel-header">
-        ASSISTANT IA V7.0
-        <span id="ai-panel-close" style="cursor: pointer;">&times;</span>
+<div id="ai-chat-panel">
+    <div id="chat-header">
+        ASSISTANT CHAT IA
+        <span id="ai-chat-close" style="cursor: pointer; font-size: 24px;">&times;</span>
     </div>
 
-    <div class="ai-section niche">
-        <h5>📈 Analyse de Niche</h5>
-        <form id="form-niche-analysis" class="flex gap-2 mb-2 flex-col">
-            <input id="input-niche-game" type="text" placeholder="Jeu à Analyser (ex: Starfield)" class="action-input">
-            <button type="submit" id="btn-niche-analyse" class="btn-primary p-2" style="background:var(--color-ai-niche); color: var(--color-bg-light);">
-                ✨ ANALYSER
-            </button>
-        </form>
-        <div id="niche-result-container" class="ai-result-box">
-            <div id="niche-results" class="ai-content">
-                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                    Résultats de Niche.
-                </p>
-            </div>
+    <div id="chat-window">
+        <div class="chat-message ai-message">
+            Bonjour ! Je suis Streamer AI. Comment puis-je vous aider à développer votre chaîne ou trouver la meilleure stratégie de contenu ? Posez-moi une question !
         </div>
     </div>
     
-    <div class="ai-section growth">
-        <h5>💰 Détection de Trend V/S</h5>
-        <button id="btn-trend-detector" class="btn-primary p-2" style="background:var(--color-ai-growth); color: var(--color-bg-light);">
-            🔮 DÉTECTER LA PROCHAINE NICHE
-        </button>
-        <div id="trend-results" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;">
-            <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                Analyse des tendances V/S (Spectateurs/Streamer).
-            </p>
-        </div>
-    </div>
-
-    <div class="ai-section repurpose">
-        <h5>✂️ Repurposing IA</h5>
-        <form id="form-repurpose" class="flex gap-2 mb-2 flex-col">
-            <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer" class="action-input">
-            <button type="submit" id="btn-repurpose-analyse" class="btn-primary p-2" style="background:var(--color-ai-repurpose);">
-                🚀 ANALYSER VOD
-            </button>
-        </form>
-        <div id="repurpose-result-container" class="ai-result-box">
-            <div id="repurpose-results" class="ai-content">
-                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                    Suggestions de contenu court.
-                </p>
-            </div>
-        </div>
-    </div>
-
+    <form id="form-chat-input">
+        <input id="chat-input" type="text" placeholder="Demandez conseil à l'IA..." required>
+        <button type="submit" id="btn-send-chat" class="min-w-[50px] font-bold">▶️</button>
+    </form>
 </div>
 
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
@@ -488,7 +544,7 @@
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
 
-    // --- Gestion des Onglets (Non-IA) ---
+    // --- Gestion des Onglets ---
     function openTab(tabId) {
         localStorage.setItem('activeTab', tabId);
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -600,7 +656,7 @@
             if(res.ok) {
                 const data = await res.json();
                 
-                if(data.data && data.data.length > 0) {
+                if (data.data && data.data.length > 0) {
                     followedStreamsList.innerHTML = ''; 
                     data.data.forEach(stream => {
                         const div = document.createElement('div');
@@ -713,9 +769,9 @@
     });
 
 
-    // --- Logique d'interaction IA (Déplacée dans la Mini-Bulle) ---
+    // --- Logique d'interaction IA (Retour aux onglets) ---
     
-    // 1. Analyse de Niche (MAJ pour le panneau)
+    // 1. Analyse de Niche 
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -748,7 +804,7 @@
         }
     });
 
-    // 2. Repurposing (MAJ pour le panneau)
+    // 2. Repurposing 
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -781,7 +837,7 @@
         }
     });
 
-    // 3. Trend Detector (MAJ pour le panneau)
+    // 3. Trend Detector 
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const btn = document.getElementById('btn-trend-detector');
@@ -882,37 +938,94 @@
             btn.disabled = false;
         }
     });
-
-
-    // --- Logique Mini-Bulle IA ---
-    const aiBubble = document.getElementById('ai-bubble-opener');
-    const aiPanel = document.getElementById('ai-panel');
-    const aiPanelClose = document.getElementById('ai-panel-close');
     
+    // --- Logique du CHAT IA FLOTTANT ---
+    const aiChatBubble = document.getElementById('ai-chat-bubble');
+    const aiChatPanel = document.getElementById('ai-chat-panel');
+    const aiChatClose = document.getElementById('ai-chat-close');
+    const chatWindow = document.getElementById('chat-window');
+    const formChatInput = document.getElementById('form-chat-input');
+    const chatInput = document.getElementById('chat-input');
+    const btnSendChat = document.getElementById('btn-send-chat');
+
     // Ouvre/ferme le panneau
-    aiBubble.addEventListener('click', () => {
-        aiPanel.classList.toggle('open');
-        aiBubble.textContent = aiPanel.classList.contains('open') ? '❌' : '🤖';
+    aiChatBubble.addEventListener('click', () => {
+        aiChatPanel.classList.toggle('open');
+        aiChatBubble.textContent = aiChatPanel.classList.contains('open') ? '❌' : '💬';
+        if (aiChatPanel.classList.contains('open')) {
+             // S'assure que la fenêtre est scorllée en bas
+             chatWindow.scrollTop = chatWindow.scrollHeight;
+             chatInput.focus();
+        }
     });
     
     // Ferme le panneau via le bouton 'x'
-    aiPanelClose.addEventListener('click', () => {
-        aiPanel.classList.remove('open');
-        aiBubble.textContent = '🤖';
+    aiChatClose.addEventListener('click', () => {
+        aiChatPanel.classList.remove('open');
+        aiChatBubble.textContent = '💬';
+    });
+    
+    function addMessage(text, isUser) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message ${isUser ? 'user-message' : 'ai-message'}`;
+        // Pour gérer les retours à la ligne du Markdown de Gemini, on remplace par <br>
+        const formattedText = isUser ? text : text.replace(/\n/g, '<br>');
+        msgDiv.innerHTML = formattedText;
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll vers le bas
+    }
+
+    formChatInput.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const query = chatInput.value.trim();
+        if (!query) return;
+
+        addMessage(query, true); // Ajout du message utilisateur
+        chatInput.value = '';
+        btnSendChat.disabled = true;
+
+        addMessage("🤖 L'IA réfléchit...", false);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        
+        // Supprimer le message "L'IA réfléchit" (le dernier enfant)
+        const loadingMessage = chatWindow.lastChild;
+        
+        try {
+            const res = await fetch(`${API_BASE}/ai_chat_query`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: query }) 
+            });
+
+            const data = await res.json();
+            
+            // Retirer le message de chargement
+            if (loadingMessage) {
+                chatWindow.removeChild(loadingMessage);
+            }
+            
+            if(res.ok && data.success) {
+                addMessage(data.response, false); 
+            } else {
+                addMessage(`❌ Erreur: ${data.error || "Problème de connexion."}`, false);
+            }
+            
+        } catch(e) {
+             if (loadingMessage) {
+                chatWindow.removeChild(loadingMessage);
+            }
+            addMessage(`❌ Erreur technique: ${e.message}`, false);
+        } finally {
+            btnSendChat.disabled = false;
+        }
     });
 
 
     // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
         initializePlayer();
-        // Ne charge plus les anciens onglets IA
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
-        // Assure que seuls les onglets restants sont ouverts par défaut
-        if (savedTab.startsWith('tab-niche') || savedTab.startsWith('tab-repurpose') || savedTab.startsWith('tab-growth')) {
-             openTab('tab-followed');
-        } else {
-             openTab(savedTab);
-        }
+        openTab(savedTab);
         checkAuth();
     });
 </script>
