@@ -26,19 +26,21 @@
         /* Styles généraux et Neon */
         body { background: var(--color-bg-dark); font-family: 'Inter', sans-serif; color: white; }
         h1, h2, h3, h4 { font-family: 'Orbitron', sans-serif; }
+        /* Lueur néon rose sur le lecteur principal */
         .neon-shadow-pink { box-shadow: 0 0 5px var(--color-primary-pink), 0 0 10px var(--color-primary-pink); }
         .bg-twitch { background-color: #6441a5; }
 
         /* Styles des boutons d'onglet */
         .tab-btn { transition: all 0.2s; border-bottom: 3px solid transparent; }
         .tab-btn:hover { border-bottom-color: var(--color-primary-pink); }
+        /* Lueur bleu cyan sur l'onglet actif */
         .tab-btn.active { border-bottom-color: var(--color-secondary-blue); color: var(--color-secondary-blue); font-weight: bold; }
 
-        /* Styles des rapports IA */
+        /* Styles des rapports IA (bordure colorée) */
         .ai-report-box { border-left: 5px solid; padding-left: 15px; margin-top: 15px; }
         .ai-report-box h4 { border-bottom: 2px solid; padding-bottom: 5px; margin-bottom: 10px; }
         
-        /* Style des items de stream suivi */
+        /* Effet de survol sur les chaînes suivies */
         .followed-stream-item { 
             cursor: pointer;
             padding: 8px;
@@ -227,6 +229,7 @@
             headers: {
                 'Content-Type': 'application/json',
             },
+            // CRUCIAL : Permet l'envoi des cookies de session pour l'authentification en cross-site
             credentials: 'include' 
         };
 
@@ -239,18 +242,15 @@
             
             // Si la réponse n'est pas OK
             if (!response.ok) {
-                // Tente de lire le corps de la réponse comme du JSON
                 let errorData = {};
                 const contentType = response.headers.get("content-type");
                 
                 if (contentType && contentType.includes("application/json")) {
-                    // Si c'est du JSON, lit les données d'erreur normales de l'API
                     errorData = await response.json();
                 } else if (contentType && contentType.includes("text/html")) {
-                    // Si c'est du HTML, c'est le bug '<' ou une page d'erreur Render
-                    throw new Error("Réponse inattendue du serveur. C'est probablement une page d'erreur HTML au lieu de données JSON (Vérifiez la connexion Twitch ou le statut de l'API sur Render).");
+                    // C'est le bug '<' ou une page d'erreur Render
+                    throw new Error("Réponse inattendue du serveur. C'est probablement une page d'erreur HTML au lieu de JSON. (Vérifiez la connexion Twitch ou le statut de l'API).");
                 } else {
-                    // Si autre chose (texte brut, etc.)
                      throw new Error(`Erreur serveur (${response.status} ${response.statusText}). Le serveur n'a pas renvoyé de JSON.`);
                 }
                 
@@ -258,7 +258,6 @@
                 throw new Error(errorData.error || `Erreur serveur non spécifiée (${response.status})`);
             }
             
-            // Si la réponse est OK, elle doit être du JSON
             return await response.json();
 
         } catch (error) {
@@ -320,7 +319,6 @@
                 document.getElementById('clip-btn').disabled = false;
                 document.getElementById('boost-btn').disabled = false;
             } else {
-                // Logique si l'API répond que l'utilisateur n'est pas connecté (Statut 401/JSON)
                 userStatus.textContent = 'Statut: Déconnecté';
                 authBtn.textContent = 'Connexion Twitch';
                 authBtn.onclick = startAuth;
@@ -341,14 +339,12 @@
             
             document.getElementById('user-status').textContent = `Statut: ${statusText}`;
             
-            // Reconfigure le bouton pour la connexion
             const authBtn = document.getElementById('twitch-auth-btn');
             authBtn.textContent = 'Connexion Twitch';
             authBtn.onclick = startAuth;
         }
     }
     
-    // Utilise la variable API_BASE
     function startAuth() {
         window.location.href = `${API_BASE}/twitch_auth_start`; 
     }
@@ -398,7 +394,6 @@
                 followedStreamsList.appendChild(item);
             });
         } catch (error) {
-            // Affiche l'erreur plus précise grâce à la nouvelle fonction fetchAPI
             followedStreamsList.innerHTML = `<p class="col-span-3 text-center text-red-500">❌ Erreur de chargement du fil: ${error.message}</p>`;
         }
     }
@@ -414,7 +409,7 @@
         btn.addEventListener('click', async () => {
             const query = queryInput ? queryInput.value.trim() : btn.dataset.query;
             
-            if (!query && !isAITool) {
+            if (!query && !isAITool && queryInput) {
                 resultBox.innerHTML = `<p class="text-red-500 text-center">Veuillez entrer une requête ou sélectionner une cible.</p>`;
                 return;
             }
@@ -438,7 +433,6 @@
             } catch (e) {
                 let errorMessage = e.message;
                 
-                // Amélioration de l'affichage des erreurs spécifiques à la communication
                 if (errorMessage.includes("Réponse inattendue du serveur")) {
                     errorMessage = "Problème d'authentification ou API mal configurée sur Render.";
                 } else if (errorMessage.includes("Échec de la connexion au serveur")) {
@@ -469,21 +463,20 @@
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         
-        checkAuth(); // Déclenche la vérification et configure le bouton de connexion.
+        checkAuth(); 
 
         // Écouteurs pour les onglets
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => openTab(btn.dataset.tab));
         });
 
-        // Mise en place des écouteurs pour les outils (à ajuster selon le back-end)
+        // Mise en place des écouteurs pour les outils
         setupToolListeners('scan-btn', '/scan_target', 'scan-result-box', 'Scanner', false);
         setupToolListeners('niche-btn', '/ai_analyze_niche', 'niche-report-box', 'Analyser', true);
         setupToolListeners('raid-btn', '/raid_action', 'action-result-box', 'Lancer', false);
         setupToolListeners('clip-btn', '/create_clip', 'action-result-box', 'Clipper', false);
         setupToolListeners('title-btn', '/ai_generate_titles', 'action-result-box', 'Titres IA', true);
 
-        // Écouteur pour le bouton de connexion au démarrage
         document.getElementById('twitch-auth-btn').onclick = startAuth;
     });
 </script>
