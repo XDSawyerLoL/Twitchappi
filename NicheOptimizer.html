@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V6.8 - Stable</title>
+    <title>Streamer & Niche AI Hub V7.0 - Mini-Bulle IA</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -25,7 +25,7 @@
         /* Styles Globaux */
         body {
             background-color: var(--color-bg-dark);
-            color: #fff; /* Couleur de texte par défaut pour éviter le noir sur noir */
+            color: #fff; 
             font-family: 'Inter', Arial, sans-serif;
             margin: 0;
             padding: 0;
@@ -97,7 +97,7 @@
         /* Inputs & Boutons Génériques */
         .action-input {
             width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium);
-            background: var(--color-bg-dark); color: #fff; font-size: 13px; /* Texte Input en blanc */
+            background: var(--color-bg-dark); color: #fff; font-size: 13px; 
         }
         .btn-primary {
             background: var(--color-primary-pink); color: #fff; border: 0; padding: 8px 12px; border-radius: 6px;
@@ -141,7 +141,7 @@
             margin-bottom: 15px; 
             font-size: 13px;
             line-height: 1.5;
-            list-style-type: disc; /* Force les listes visibles */
+            list-style-type: disc; 
         }
         .ai-result-box ol {
             list-style-type: decimal;
@@ -156,7 +156,7 @@
         #repurpose-result-container { border-color: var(--color-ai-repurpose); }
         #trend-results { border-color: var(--color-ai-growth); }
         #boost-results { border-color: var(--color-primary-pink); }
-        #assistant-response { border-color: var(--color-secondary-blue); }
+        #raid-results { border-color: #6441a5; }
 
         #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
         #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
@@ -165,7 +165,6 @@
         #niche-result-container strong { color: var(--color-ai-niche); }
         #repurpose-result-container strong { color: var(--color-ai-repurpose); }
         #trend-results strong { color: var(--color-ai-growth); }
-        /* FIN CORRECTION VISUELLE IA */
 
         /* Styles d'onglets et de connexion */
         .tab-btn {
@@ -236,15 +235,100 @@
                 min-width: unset;
             }
             #twitch-embed { height: 350px; } 
-            .tab-btn { flex-basis: 50%; max-width: 50%; }
         }
+
+        /* --- NOUVEAUX STYLES MINI-BULLE IA --- */
+        #ai-bubble-opener {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: var(--color-ai-repurpose); /* Violet */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(153, 51, 255, 0.6);
+            z-index: 1000; 
+            transition: transform 0.2s;
+            font-size: 30px;
+            font-family: 'Orbitron', sans-serif;
+            border: 2px solid white;
+        }
+
+        #ai-bubble-opener:hover {
+            transform: scale(1.1);
+        }
+        
+        #ai-panel {
+            position: fixed;
+            bottom: 100px; /* Au-dessus de la bulle */
+            right: 30px;
+            width: 350px;
+            max-height: 80vh;
+            background: var(--color-bg-medium);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            padding: 15px;
+            border: 2px solid var(--color-ai-repurpose);
+            overflow-y: auto;
+            transform: translateX(120%); /* Caché par défaut */
+            transition: transform 0.4s ease-out;
+        }
+
+        #ai-panel.open {
+            transform: translateX(0);
+        }
+
+        #ai-panel-header {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--color-ai-repurpose);
+            font-size: 18px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--color-border-medium);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-section {
+            margin-bottom: 25px;
+            padding: 10px;
+            border: 1px solid var(--color-border-medium);
+            border-radius: 8px;
+        }
+
+        .ai-section h5 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed var(--color-border-medium);
+        }
+        .ai-section.niche h5 { color: var(--color-ai-niche); }
+        .ai-section.repurpose h5 { color: var(--color-ai-repurpose); }
+        .ai-section.growth h5 { color: var(--color-ai-growth); }
+
+        .ai-content {
+            max-height: 300px; 
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        /* Fix pour les boutons */
+        .ai-section .btn-primary { width: 100%; }
+
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V6.8</h1>
-    <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance</div>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.0</h1>
+    <div class="subtitle-center">Lecteur • Scan & Résultats • Croissance • **Mini-Bulle IA**</div>
 
     <div class="player-wrapper">
         <h2>
@@ -255,22 +339,6 @@
             <input id="input-channel" type="text" placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder" class="action-input">
             <button type="submit" id="btn-player-launch" class="btn-primary min-w-[80px]">▶️ LANCER</button>
         </form>
-        
-        <div id="stream-actions" class="flex gap-4 mb-4 mt-2 p-2 rounded-lg" style="background:var(--color-bg-light); border: 1px dashed var(--color-border-dark);">
-            <button id="btn-share-stream" class="btn-secondary flex-1" style="background:#1DA1F2;">
-                📣 PARTAGER (Twitter)
-            </button>
-            
-            <button id="btn-open-raid-config" class="btn-primary flex-1" style="background:#e34a64; color: #fff;">
-                ⚔️ LANCER UN RAID IMMÉDIAT
-            </button>
-        </div>
-        
-        <div id="raid-config-panel" class="p-3 mb-4 rounded-lg flex gap-2 items-center" style="background:var(--color-bg-light); border: 1px solid #ffcc00; display: none;">
-            <input id="raid-target-channel" type="text" placeholder="Cible du Raid (pseudo)" class="action-input flex-1" style="border-color:#ffcc00;">
-            <button id="btn-confirm-raid" class="btn-primary min-w-[120px]" style="background:#e34a64;">CONFIRMER RAID</button>
-        </div>
-        
         <div id="twitch-embed"></div>
     </div>
 
@@ -278,12 +346,7 @@
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
             <button class="tab-btn" data-tab-id="tab-cible" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
-            <button class="tab-btn" data-tab-id="tab-sniper" onclick="openTab('tab-sniper')">🎯 SNIPER TOOL</button>
-            <button class="tab-btn" data-tab-id="tab-niche" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
-            <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">🚀 REPURPOSING</button>
-            <button class="tab-btn" data-tab-id="tab-growth" onclick="openTab('tab-growth')">💰 CROISSANCE</button>
-            <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
-            <button class="tab-btn" data-tab-id="tab-assistant" onclick="openTab('tab-assistant')">💬 ASSISTANT IA</button>
+            <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST & RAID</button>
         </div>
 
         <div id="tab-followed" class="tab-content">
@@ -328,85 +391,12 @@
             </div>
         </div>
 
-        <div id="tab-sniper" class="tab-content">
-            <h3 class="tab-heading text-blue">
-                <span class="icon">🎯</span> Sniper Tool V2 (Bêta)
-            </h3>
-            <p style="color:var(--color-text-dimmed); margin-bottom: 20px;">
-                Ciblez des streamers en fonction de leur nombre de spectateurs. Lancez le leurre pour afficher leurs chaînes.
-            </p>
-            <form id="form-sniper" class="flex gap-2 mb-4">
-                <input id="input-min-viewers" type="number" placeholder="Min Viewers (ex: 50)" class="action-input flex-1">
-                <input id="input-max-viewers" type="number" placeholder="Max Viewers (ex: 150)" class="action-input flex-1">
-                <button type="submit" id="btn-sniper-launch" class="btn-primary min-w-[120px]" style="background:#00aaff;">
-                    LAUNCH LURE
-                </button>
-            </form>
-             <div id="sniper-results" class="ai-result-box" style="border-color: #00aaff;">
-                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                    La liste des streamers correspondants à la niche de spectateurs apparaîtra ici.
-                </p>
-            </div>
-        </div>
-        <div id="tab-niche" class="tab-content">
-            <h3 class="tab-heading text-green">
-                <span class="icon">📈</span> Analyse de Niche
-            </h3>
-            <form id="form-niche-analysis" class="flex gap-2 mb-2">
-                <input id="input-niche-game" type="text" placeholder="Jeu à Analyser (ex: Starfield)" class="action-input">
-                <button type="submit" id="btn-niche-analyse" class="btn-primary min-w-[120px]" style="background:var(--color-ai-niche);">
-                    ✨ ANALYSER
-                </button>
-            </form>
-            <div id="niche-result-container" class="ai-result-box">
-                <div id="niche-results" class="ai-content">
-                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                        Les résultats de l'analyse de niche IA apparaîtront ici.
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <div id="tab-repurpose" class="tab-content">
-            <h3 class="tab-heading text-purple">
-                <span class="icon">✂️</span> Repurposing IA
-            </h3>
-            <form id="form-repurpose" class="flex gap-2 mb-2 flex-col">
-                <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer" class="action-input">
-                <button type="submit" id="btn-repurpose-analyse" class="btn-primary p-3" style="background:var(--color-ai-repurpose);">
-                    🚀 ANALYSER VOD
-                </button>
-            </form>
-            <div id="repurpose-result-container" class="ai-result-box">
-                <div id="repurpose-results" class="ai-content">
-                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                        Les suggestions de contenu court pour le Repurposing apparaîtront ici.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-growth" class="tab-content">
-            <h3 class="tab-heading text-yellow">
-                <span class="icon">💰</span> Tableau de Bord Croissance
-            </h3>
-            <div class="login-box">
-                <button id="btn-trend-detector" class="btn-primary w-full p-3" style="background:var(--color-ai-growth); color: var(--color-bg-light);">
-                    🔮 DÉTECTER LA PROCHAINE NICHE
-                </button>
-                <div id="trend-results" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;">
-                    <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                        Cliquez sur le bouton pour lancer l'analyse des tendances V/S.
-                    </p>
-                </div>
-            </div>
-        </div>
-
         <div id="tab-boost" class="tab-content">
             <h3 class="tab-heading text-pink">
-                <span class="icon">⬆️</span> STREAM BOOST
+                <span class="icon">⬆️</span> STREAM BOOST & RAID
             </h3>
-            <div class="login-box">
+            <div class="login-box mb-6">
+                <h4 class="text-pink font-bold text-sm mb-2" style="color:var(--color-primary-pink);">⚡ Boost de Visibilité (Cooldown)</h4>
                 <form id="form-boost" class="flex gap-2">
                     <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input">
                     <button type="submit" id="btn-boost" class="btn-primary min-w-[100px]">📤 BOOST</button>
@@ -417,28 +407,79 @@
                     </p>
                 </div>
             </div>
+            
+            <div class="login-box" style="border-color:#6441a5;">
+                <h4 class="text-pink font-bold text-sm mb-2" style="color:#6441a5;">⚔️ Raid Rapide (Nécessite le Scope 'channel:manage:raids')</h4>
+                <form id="form-raid" class="flex gap-2">
+                    <input id="input-raid-target" type="text" placeholder="Chaîne cible du Raid (ex: gotaga)" class="action-input">
+                    <button type="submit" id="btn-raid" class="btn-primary min-w-[100px]" style="background:#6441a5;">⚔️ RAID</button>
+                </form>
+                <div id="raid-results" class="ai-result-box" style="border-color: #6441a5; margin-top: 15px;">
+                    <p style="text-align:center; color: var(--color-text-dimmed);">
+                        Connectez-vous avec le scope 'channel:manage:raids' pour initier un Raid.
+                    </p>
+                </div>
+            </div>
         </div>
-        
-        <div id="tab-assistant" class="tab-content">
-            <h3 class="tab-heading text-secondary-blue">
-                <span class="icon">💬</span> Mini Assistant IA
-            </h3>
-            <p style="color:var(--color-text-dimmed); margin-bottom: 20px;">
-                Posez une question rapide sur la croissance, le contenu ou le streaming. L'IA répondra de manière brève et percutante.
-            </p>
-            <form id="form-assistant" class="flex gap-2 mb-4">
-                <input id="input-assistant-prompt" type="text" placeholder="Ex: Quel est le meilleur moment pour streamer ce soir ?" class="action-input flex-1">
-                <button type="submit" id="btn-assistant-ask" class="btn-primary min-w-[100px]" style="background:var(--color-secondary-blue); color: var(--color-bg-light);">
-                    DEMANDER
-                </button>
-            </form>
-             <div id="assistant-response" class="ai-result-box">
+    </div>
+</div>
+
+<div id="ai-bubble-opener">
+    🤖
+</div>
+
+<div id="ai-panel">
+    <div id="ai-panel-header">
+        ASSISTANT IA V7.0
+        <span id="ai-panel-close" style="cursor: pointer;">&times;</span>
+    </div>
+
+    <div class="ai-section niche">
+        <h5>📈 Analyse de Niche</h5>
+        <form id="form-niche-analysis" class="flex gap-2 mb-2 flex-col">
+            <input id="input-niche-game" type="text" placeholder="Jeu à Analyser (ex: Starfield)" class="action-input">
+            <button type="submit" id="btn-niche-analyse" class="btn-primary p-2" style="background:var(--color-ai-niche); color: var(--color-bg-light);">
+                ✨ ANALYSER
+            </button>
+        </form>
+        <div id="niche-result-container" class="ai-result-box">
+            <div id="niche-results" class="ai-content">
                 <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
-                    L'assistance IA est prête.
+                    Résultats de Niche.
                 </p>
             </div>
         </div>
+    </div>
+    
+    <div class="ai-section growth">
+        <h5>💰 Détection de Trend V/S</h5>
+        <button id="btn-trend-detector" class="btn-primary p-2" style="background:var(--color-ai-growth); color: var(--color-bg-light);">
+            🔮 DÉTECTER LA PROCHAINE NICHE
+        </button>
+        <div id="trend-results" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;">
+            <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                Analyse des tendances V/S (Spectateurs/Streamer).
+            </p>
         </div>
+    </div>
+
+    <div class="ai-section repurpose">
+        <h5>✂️ Repurposing IA</h5>
+        <form id="form-repurpose" class="flex gap-2 mb-2 flex-col">
+            <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer" class="action-input">
+            <button type="submit" id="btn-repurpose-analyse" class="btn-primary p-2" style="background:var(--color-ai-repurpose);">
+                🚀 ANALYSER VOD
+            </button>
+        </form>
+        <div id="repurpose-result-container" class="ai-result-box">
+            <div id="repurpose-results" class="ai-content">
+                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                    Suggestions de contenu court.
+                </p>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
@@ -447,7 +488,7 @@
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
 
-    // --- Gestion des Onglets ---
+    // --- Gestion des Onglets (Non-IA) ---
     function openTab(tabId) {
         localStorage.setItem('activeTab', tabId);
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -461,7 +502,7 @@
         }
     }
 
-    // --- Lecteur Twitch ---
+    // --- Lecteur Twitch (Fonctions inchangées) ---
     let embed = null;
     const twitchEmbedContainer = document.getElementById('twitch-embed');
     const inputChannel = document.getElementById('input-channel');
@@ -497,83 +538,8 @@
             launchPlayer(channel);
         }
     });
-    
-    // --- Logique de Partage Social ---
-    document.getElementById('btn-share-stream').addEventListener('click', () => {
-        const currentChannel = inputChannel.value.trim() || DEFAULT_CHANNEL;
-        if (currentChannel === DEFAULT_CHANNEL) {
-             alert("Veuillez d'abord lancer une chaîne spécifique pour la partager.");
-             return;
-        }
-        
-        const text = encodeURIComponent(`🔴 Je suis en train de streamer sur Twitch ! Venez me rejoindre sur la chaîne de ${currentChannel} :`);
-        const url = encodeURIComponent(`https://twitch.tv/${currentChannel}`);
-        
-        // Ouvrir la fenêtre de partage Twitter/X
-        window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=Twitch,Streaming,HubV7`, '_blank');
-    });
 
-    // --- Logique Raid Collaboratif (Interface & Appel Backend) ---
-    const raidPanel = document.getElementById('raid-config-panel');
-    const btnOpenRaid = document.getElementById('btn-open-raid-config');
-    const btnConfirmRaid = document.getElementById('btn-confirm-raid');
-    const raidTargetInput = document.getElementById('raid-target-channel');
-
-    btnOpenRaid.addEventListener('click', () => {
-        // Toggle l'affichage du panneau de configuration
-        raidPanel.style.display = raidPanel.style.display === 'flex' ? 'none' : 'flex';
-    });
-
-    btnConfirmRaid.addEventListener('click', async () => {
-        const target = raidTargetInput.value.trim();
-        const initiatingChannel = localStorage.getItem('activeChannel') || inputChannel.value.trim();
-        
-        if (!target) {
-            alert("Veuillez spécifier une chaîne cible pour le raid.");
-            return;
-        }
-
-        if (target.toLowerCase() === initiatingChannel.toLowerCase()) {
-            alert("Vous ne pouvez pas raider votre propre chaîne ! Sélectionnez une autre cible.");
-            return;
-        }
-
-        if (!confirm(`Confirmez-vous le lancement d'un RAID de votre communauté vers la chaîne ${target.toUpperCase()} ? L'action est irréversible et nécessite d'être connecté en tant que Broadcaster avec le scope 'channel:manage:raids'.`)) {
-            return;
-        }
-
-        // Lancement du Raid (Appel Backend)
-        btnConfirmRaid.disabled = true;
-        btnConfirmRaid.textContent = 'RAID EN COURS...';
-
-        try {
-            const res = await fetch(`${API_BASE}/launch_raid`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    target_channel: target
-                }) 
-            });
-
-            const data = await res.json();
-            
-            if(res.ok) {
-                alert(`✅ RAID enclenché ! ${target.toUpperCase()} devrait recevoir votre communauté sous peu. Le lecteur va basculer sur la chaîne cible.`);
-                launchPlayer(target); // Bascule le lecteur sur la cible du Raid
-            } else {
-                alert(`❌ Échec du Raid : ${data.error || 'Erreur inconnue. Vérifiez l\'authentification broadcaster.'}`);
-            }
-        } catch(e) {
-            alert(`❌ Erreur de connexion au service de Raid: ${e.message}`);
-        } finally {
-            btnConfirmRaid.disabled = false;
-            btnConfirmRaid.textContent = 'CONFIRMER RAID';
-            raidPanel.style.display = 'none'; 
-            raidTargetInput.value = ''; 
-        }
-    });
-
-    // --- Authentification Twitch et Fil Suivi ---
+    // --- Authentification Twitch et Fil Suivi (Fonctions inchangées) ---
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const followedStreamsList = document.getElementById('followed-streams-list');
@@ -672,7 +638,7 @@
     }
 
 
-    // --- Logique de Scan Cible ---
+    // --- Logique de Scan Cible (Inchagée) ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
@@ -746,27 +712,10 @@
         }
     });
 
-    // --- Logique Sniper Tool (Placeholder) ---
-    document.getElementById('form-sniper').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const minViewers = document.getElementById('input-min-viewers').value.trim();
-        const maxViewers = document.getElementById('input-max-viewers').value.trim();
-        const resultBox = document.getElementById('sniper-results');
-        
-        resultBox.innerHTML = `<p style="color:#00aaff; text-align:center;">
-                                🚧 **SNIPER TOOL** - Fonctionnalité en cours de développement. 
-                                Recherche simulée pour ${minViewers} à ${maxViewers} spectateurs.
-                                </p>
-                                <ul>
-                                    <li>StreamerA (120 spectateurs) - <span style="cursor:pointer; color:var(--color-primary-pink);" onclick="launchPlayer('streamerA')">Lancer</span></li>
-                                    <li>StreamerB (65 spectateurs) - <span style="cursor:pointer; color:var(--color-primary-pink);" onclick="launchPlayer('streamerB')">Lancer</span></li>
-                                </ul>`;
-    });
 
-
-    // --- Logique d'interaction IA ---
+    // --- Logique d'interaction IA (Déplacée dans la Mini-Bulle) ---
     
-    // 1. Analyse de Niche
+    // 1. Analyse de Niche (MAJ pour le panneau)
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -775,7 +724,7 @@
 
         if (!game) return;
 
-        resultBox.innerHTML = `<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour <strong>${game}</strong>... (Appel API réel)</p>`;
+        resultBox.innerHTML = `<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour <strong>${game}</strong>...</p>`;
         btn.disabled = true;
 
         try {
@@ -799,7 +748,7 @@
         }
     });
 
-    // 2. Repurposing
+    // 2. Repurposing (MAJ pour le panneau)
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -808,7 +757,7 @@
 
         if (!channel) return;
 
-        resultBox.innerHTML = `<p style="color:var(--color-ai-repurpose);">Analyse de VOD pour <strong>${channel}</strong> en cours... (Appel API réel)</p>`;
+        resultBox.innerHTML = `<p style="color:var(--color-ai-repurpose);">Analyse de VOD pour <strong>${channel}</strong> en cours... 🤖</p>`;
         btn.disabled = true;
 
         try {
@@ -832,12 +781,12 @@
         }
     });
 
-    // 3. Trend Detector
+    // 3. Trend Detector (MAJ pour le panneau)
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const btn = document.getElementById('btn-trend-detector');
 
-        resultBox.innerHTML = `<p style="color:var(--color-ai-growth);">Détection des tendances en cours... (Appel API réel)</p>`;
+        resultBox.innerHTML = `<p style="color:var(--color-ai-growth);">Détection des tendances en cours... 💰</p>`;
         btn.disabled = true;
 
         try {
@@ -861,43 +810,8 @@
         }
     });
 
-    // 4. Mini Assistant IA (NOUVELLE LOGIQUE)
-    document.getElementById('form-assistant').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const prompt = document.getElementById('input-assistant-prompt').value.trim();
-        const resultBox = document.getElementById('assistant-response');
-        const btn = document.getElementById('btn-assistant-ask');
 
-        if (!prompt) return;
-
-        resultBox.innerHTML = `<p style="color:var(--color-secondary-blue); text-align:center;">Réflexion en cours sur : <strong>${prompt}</strong>...</p>`;
-        btn.disabled = true;
-
-        try {
-            const res = await fetch(`${API_BASE}/mini_assistant`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ prompt: prompt })
-            });
-
-            if(res.ok) {
-                const data = await res.json();
-                // La réponse HTML vient du serveur et est insérée directement
-                resultBox.innerHTML = data.html_response || '<p style="color:#e34a64;">L\'assistant IA n\'a pas pu fournir de réponse.</p>';
-            } else {
-                const data = await res.json();
-                resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de l'API Assistant: ${res.status}. ${data.error || ''}</p>`;
-            }
-        } catch(e) {
-            resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de connexion au service Assistant: ${e.message}</p>`;
-        } finally {
-            btn.disabled = false;
-            document.getElementById('input-assistant-prompt').value = ''; // Effacer le champ après l'envoi
-        }
-    });
-
-
-    // --- Logique STREAM BOOST ---
+    // --- Logique STREAM BOOST et RAID (Inchagée) ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim();
@@ -919,14 +833,11 @@
             const data = await res.json();
 
             if (res.ok) {
-                // Succès du Boost
                 resultBox.innerHTML = data.html_response;
-                launchPlayer(channel); // Lance le stream boosté
+                launchPlayer(channel); 
             } else if (res.status === 429) {
-                // Cooldown actif (géré par le serveur backend)
                 resultBox.innerHTML = data.html_response || `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Cooldown actif. Réessayez plus tard.</p>`;
             } else {
-                // Autres erreurs
                 resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur API (${res.status}): ${data.error || "Une erreur inconnue s'est produite."}</p>`;
             }
         } catch(e) {
@@ -935,12 +846,73 @@
             btn.disabled = false;
         }
     });
+    
+    document.getElementById('form-raid').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const targetChannelLogin = document.getElementById('input-raid-target').value.trim();
+        const resultBox = document.getElementById('raid-results'); 
+        const btn = document.getElementById('btn-raid');
+
+        if (!targetChannelLogin) return;
+        
+        resultBox.innerHTML = `<p style="color:#6441a5; text-align:center;">⚔️ Préparation du Raid vers <strong>${targetChannelLogin}</strong>...</p>`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/start_raid`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ targetChannelLogin: targetChannelLogin })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                resultBox.innerHTML = data.html_response;
+            } else {
+                if (data.html_response) {
+                    resultBox.innerHTML = data.html_response;
+                } else {
+                    resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur Raid (${res.status}): ${data.error || "Une erreur inconnue s'est produite."}</p>`;
+                }
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">Erreur de connexion au serveur pour le Raid: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+
+    // --- Logique Mini-Bulle IA ---
+    const aiBubble = document.getElementById('ai-bubble-opener');
+    const aiPanel = document.getElementById('ai-panel');
+    const aiPanelClose = document.getElementById('ai-panel-close');
+    
+    // Ouvre/ferme le panneau
+    aiBubble.addEventListener('click', () => {
+        aiPanel.classList.toggle('open');
+        aiBubble.textContent = aiPanel.classList.contains('open') ? '❌' : '🤖';
+    });
+    
+    // Ferme le panneau via le bouton 'x'
+    aiPanelClose.addEventListener('click', () => {
+        aiPanel.classList.remove('open');
+        aiBubble.textContent = '🤖';
+    });
+
 
     // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
         initializePlayer();
+        // Ne charge plus les anciens onglets IA
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
-        openTab(savedTab);
+        // Assure que seuls les onglets restants sont ouverts par défaut
+        if (savedTab.startsWith('tab-niche') || savedTab.startsWith('tab-repurpose') || savedTab.startsWith('tab-growth')) {
+             openTab('tab-followed');
+        } else {
+             openTab(savedTab);
+        }
         checkAuth();
     });
 </script>
