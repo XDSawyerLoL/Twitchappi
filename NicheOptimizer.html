@@ -452,12 +452,13 @@
 
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
-    const API_BASE = window.location.origin;
+    // ✅ REMPLACER PAR L'URL DE VOTRE SERVEUR BACK-END (ex: http://localhost:10000 ou l'URL de Render)
+    const API_BASE = 'http://localhost:10000'; 
     const DEFAULT_CHANNEL = 'twitch'; 
     let embed = null;
     let twitchUserConnected = false;
     let currentVODId = null; 
-    let currentGame = 'Just Chatting'; // Variable pour stocker le jeu actuel du streamer connecté (utilisé pour le Raid)
+    let currentGame = 'Just Chatting'; 
     const nicheMetricsContainer = document.getElementById('niche-metrics-container');
     const nicheAiReportContainer = document.getElementById('niche-ai-report-container');
     const nicheResults = document.getElementById('niche-results');
@@ -522,7 +523,6 @@
         }
     }
 
-    // [Fonctions de Partage et LaunchPlayer conservées]...
     function shareLinkContent(platform, url, channelName) {
         const title = encodeURIComponent(`🔴 Regardez ${channelName} en direct !`);
         const message = encodeURIComponent(`Je regarde ${channelName} sur Twitch via le Streamer AI Hub. C'est le moment de nous rejoindre !`);
@@ -993,7 +993,7 @@
 
     // --- 5. GESTIONNAIRES D'ÉVÉNEMENTS : ONGLET NICHE (CONSERVÉ) ---
 
-    function runFullNicheAnalysis(query) { /* ... (Logique inchangée) ... */
+    function runFullNicheAnalysis(query) { 
         nicheAiReportContainer.classList.remove('hidden');
         nicheResults.innerHTML = `<p style="text-align:center; color:var(--color-ai-niche);">🤖 L'IA est en train de générer le Score de Niche, le Verdict et les Idées de Contenu...</p>`;
         
@@ -1314,7 +1314,6 @@
 
     // Fonction callAI générique pour le bouton Trend Detector
     async function callAI(type, query, targetElement, button) {
-         // ... (Logique callAI inchangée) ...
          targetElement.innerHTML = `<p style="text-align:center; color:var(--color-primary-pink);">🤖 L'IA est en train d'analyser les tendances...</p>`;
         button.disabled = true;
         
@@ -1380,6 +1379,9 @@
 
     // --- 9. Initialisation et Écouteur des Nouveaux Boutons de Partage ---
     document.addEventListener('DOMContentLoaded', function() {
+        // ✅ IMPORTANT: Assurez-vous que cette URL correspond à votre API_BASE.
+        console.log(`Le Front-end tente de se connecter à l'API à: ${API_BASE}`);
+        
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         window.launchPlayer(lastChannel); 
 
