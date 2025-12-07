@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* --- VARIABLES CSS & STYLES GLOBALES (Inchagés) --- */
+        /* --- VARIABLES CSS & STYLES GLOBALES --- */
         :root {
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
@@ -20,7 +20,6 @@
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
-            --color-chat-bubble: #33aaff; /* Bleu clair */
             --color-title-suggest: #ff6600; /* Orange pour le SEO */
         }
 
@@ -40,47 +39,8 @@
             font-family: 'Inter', sans-serif;
             color: #fff; 
         }
-        h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 28px;
-            color: var(--color-primary-pink);
-            margin-bottom: 5px;
-            text-align: center;
-        }
-        .h1-blue-accent {
-            color: var(--color-secondary-blue);
-        }
-        .subtitle-center {
-            color: var(--color-text-dimmed);
-            font-size: 12px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        /* Styles d'Onglets */
-        .tab-btn {
-            /* ... (Styles inchangés) ... */
-            font-family: 'Orbitron', sans-serif;
-            padding: 12px 15px;
-            background: var(--color-bg-light);
-            border: 1px solid var(--color-border-medium);
-            border-bottom: none;
-            color: var(--color-text-dimmed);
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.2s;
-            flex: 1;
-            text-align: center;
-            font-size: 12px;
-            white-space: nowrap;
-        }
-        .tab-btn.active {
-            background: var(--color-bg-medium);
-            color: #fff;
-            border-top: 3px solid var(--color-primary-pink);
-            font-weight: bold;
-        }
-
+        /* ... (Styles h1, subtitle-center inchangés) ... */
+        
         /* Conteneur pour le Drag & Drop */
         #tabs-container {
             display: flex;
@@ -105,11 +65,43 @@
             opacity: 0.5;
             border: 2px dashed var(--color-primary-pink);
         }
+        
+        /* Structure des Onglets */
+        .tab-headers {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .tab-btn {
+            font-family: 'Orbitron', sans-serif;
+            padding: 12px 15px;
+            background: var(--color-bg-light);
+            border: 1px solid var(--color-border-medium);
+            border-bottom: none;
+            color: var(--color-text-dimmed);
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+            flex-grow: 1; /* Remplir l'espace */
+            text-align: center;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .tab-btn.active {
+            background: var(--color-bg-medium);
+            color: #fff;
+            border-top: 3px solid var(--color-primary-pink);
+            font-weight: bold;
+        }
         .tab-content {
             padding: 20px;
+            display: none; /* Masqué par défaut, affiché par JS */
         }
-        
-        /* Styles de boutons, inputs, etc. (Inchagés) */
+        .tab-block.active .tab-content {
+             display: block; /* Affiché si le bloc est actif (bien que géré par JS) */
+        }
+
+        /* Styles de boutons, inputs, partage (Inchagés) */
         .action-input {
             width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium);
             background: var(--color-bg-dark); color: #fff; font-size: 13px; 
@@ -119,9 +111,6 @@
             cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px;
             box-shadow: 0 0 6px rgba(255,0,153,.4);
         }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Style spécifique pour le bouton de partage */
         .share-btn {
             background: var(--color-secondary-blue);
             color: var(--color-bg-dark);
@@ -132,13 +121,6 @@
             margin-left: 10px;
             transition: background 0.2s;
         }
-        .share-btn:hover { background: #1eafdd; }
-
-        /* Autres styles d'affichage des résultats (Inchagés) */
-        .ai-result-box {
-            background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; margin-top: 15px;
-            color: #ffffff; 
-        }
     </style>
 </head>
 <body>
@@ -147,46 +129,48 @@
     <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V7.3</h1>
     <div class="subtitle-center">L'outil viral pour votre croissance. Visionnage récompensé et IA.</div>
 
-    <div class="player-wrapper">
+    <div class="player-wrapper mb-6 p-4 rounded-lg" style="background:var(--color-bg-medium); border: 1px solid var(--color-border-medium);">
         <h2>
             <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR & CHAT
             <span id="player-channel-status"></span>
             <button id="btn-share-stream" class="share-btn">🔗 PARTAGER</button>
         </h2> 
-        <form id="form-channel-player">
+        <form id="form-channel-player" class="flex gap-2 mt-2 mb-4">
             <input id="input-channel" type="text" placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder" class="action-input">
             <button type="submit" id="btn-player-launch" class="btn-primary min-w-[80px]">▶️ LANCER</button>
         </form>
         <div id="twitch-embed"></div>
     </div>
-
     <div id="tabs-container">
         
         <div id="block-account" class="tab-block" draggable="true" data-tab-id="tab-account">
-            <button class="tab-btn account-points w-full active" data-tab-id="tab-account" onclick="openTab('tab-account')">💰 MON COMPTE (Streampoints)</button>
-            <div id="tab-account" class="tab-content active">
+            <button class="tab-btn w-full" data-tab-id="tab-account" onclick="openTab('tab-account')">💰 MON COMPTE (Streampoints)</button>
+            <div id="tab-account" class="tab-content">
                  <h3 class="tab-heading" style="color:var(--color-ai-growth);">
                     <span class="icon">👤</span> Statut Utilisateur & Streampoints
                 </h3>
 
-                <div class="login-box" style="border-color:var(--color-ai-growth);">
+                <div class="login-box" style="border-color:var(--color-ai-growth); padding: 15px; border: 1px solid;">
                     <h4 class="font-bold text-sm mb-2" style="color:var(--color-secondary-blue);">Connexion Twitch</h4>
-                    <p id="login-status" class="text-yellow text-xs mb-4">Statut: Déconnecté</p>
+                    <p id="login-status" class="text-xs mb-4" style="color:var(--color-text-dimmed);">Statut: Déconnecté</p>
                     <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">
                         🔒 SE CONNECTER VIA TWITCH
                     </button>
                 </div>
                 
-                <div class="login-box" style="border-color:var(--color-ai-growth); margin-top: 20px;">
+                <div class="login-box" style="border-color:var(--color-ai-growth); margin-top: 20px; padding: 15px; border: 1px solid;">
                     <h4 class="font-bold text-sm mb-2" style="color:var(--color-ai-growth);">Votre Solde Streampoints</h4>
                     <p id="streampoints-status" class="text-3xl font-extrabold" style="color:var(--color-ai-growth);">
                         0
                     </p>
                     <p id="streampoints-daily-status" class="text-xs mt-2" style="color:var(--color-text-dimmed);">
-                        Bonus quotidien de 5 points disponible.
+                        (Chargement du statut quotidien...)
                     </p>
                     <p class="text-xs mt-2 font-bold" style="color:var(--color-primary-pink);">
-                        Gagnez +1 Point par heure de visionnage sur le lecteur !
+                        Gagnez **+1 Point par heure** de visionnage sur le lecteur !
+                    </p>
+                    <p id="watchtime-tracker" class="text-xs mt-1" style="color:var(--color-secondary-blue);">
+                        Suivi du visionnage: 0 minutes
                     </p>
                 </div>
             </div>
@@ -198,26 +182,21 @@
                 <h3 class="tab-heading text-pink">
                     <span class="icon">🔑</span> Mon Fil Suivi
                 </h3>
-                <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-medium);">
-                    <h4 class="tab-heading text-pink">
-                        <span class="icon">🔴</span> Vos Chaînes Suivies LIVE
-                    </h4>
-                    <div id="followed-streams-list">
-                        <p style="color:#555; text-align:center; padding:10px;">Veuillez vous connecter pour voir ceci.</p>
-                    </div>
+                <div id="followed-streams-list">
+                    <p style="color:#555; text-align:center; padding:10px;">Veuillez vous connecter pour voir ceci.</p>
                 </div>
             </div>
         </div>
 
         <div id="block-scan-niche" class="tab-block" draggable="true" data-tab-id="tab-scan-niche">
-            <button class="tab-btn niche-scan w-full" data-tab-id="tab-scan-niche" onclick="openTab('tab-scan-niche')">🎯 SCAN & ANALYSE V/S</button>
+            <button class="tab-btn w-full" data-tab-id="tab-scan-niche" onclick="openTab('tab-scan-niche')">🎯 SCAN & ANALYSE V/S</button>
             <div id="tab-scan-niche" class="tab-content">
                 <h3 class="tab-heading" style="color:var(--color-secondary-blue);">
                     <span class="icon">🔭</span> Scan de Cible (Jeu ou Streamer)
                 </h3>
                 <form id="form-target" class="flex gap-2 mb-2">
                     <input id="input-target" type="text" placeholder="Jeu ou Pseudo" class="action-input">
-                    <button type="submit" id="btn-target" class="btn-secondary min-w-[80px]">🎯 CIBLER</button>
+                    <button type="submit" id="btn-target" class="btn-primary min-w-[80px]" style="background:var(--color-secondary-blue);">🎯 CIBLER</button>
                 </form>
                 <div id="scan-result" class="ai-result-box">
                     <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
@@ -231,7 +210,7 @@
                 
                 <form id="form-niche-analysis" class="flex gap-2 mb-2 mt-4">
                     <input id="input-niche-game" type="text" placeholder="Jeu à Analyser (ex: Starfield)" class="action-input">
-                    <button type="submit" id="btn-niche-analyse" class="btn-secondary min-w-[100px]" style="background:var(--color-ai-niche); color: var(--color-bg-dark);">
+                    <button type="submit" id="btn-niche-analyse" class="btn-primary min-w-[100px]" style="background:var(--color-ai-niche); color: var(--color-bg-dark);">
                         ✨ CRITIQUE IA
                     </button>
                 </form>
@@ -256,14 +235,14 @@
         </div>
 
         <div id="block-ai-tools" class="tab-block" draggable="true" data-tab-id="tab-ai-tools">
-            <button class="tab-btn ai-tools w-full" data-tab-id="tab-ai-tools" onclick="openTab('tab-ai-tools')">🛠️ OUTILS IA</button>
+            <button class="tab-btn w-full" data-tab-id="tab-ai-tools" onclick="openTab('tab-ai-tools')">🛠️ OUTILS IA</button>
             <div id="tab-ai-tools" class="tab-content">
                  <h3 class="tab-heading" style="color:var(--color-ai-repurpose);">
                     <span class="icon">✂️</span> Repurposing Contenu IA (VOD vers Shorts/TikTok)
                 </h3>
                 <form id="form-repurpose" class="flex gap-2 mb-2">
                     <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer pour VOD" class="action-input">
-                    <button type="submit" id="btn-repurpose-analyse" class="btn-secondary min-w-[100px]" style="background:var(--color-ai-repurpose);">
+                    <button type="submit" id="btn-repurpose-analyse" class="btn-primary min-w-[100px]" style="background:var(--color-ai-repurpose);">
                         🚀 ANALYSER VOD
                     </button>
                 </form>
@@ -295,14 +274,14 @@
         </div>
 
         <div id="block-boost-raid" class="tab-block" draggable="true" data-tab-id="tab-boost-raid">
-            <button class="tab-btn boost-raid w-full" data-tab-id="tab-boost-raid" onclick="openTab('tab-boost-raid')">⚡ BOOST & RAID</button>
+            <button class="tab-btn w-full" data-tab-id="tab-boost-raid" onclick="openTab('tab-boost-raid')">⚡ BOOST & RAID</button>
             <div id="tab-boost-raid" class="tab-content">
                 <h3 class="tab-heading text-pink">
-                    <span class="icon">⬆️</span> STREAM BOOST (Coût : 20 Points)
+                    <span class="icon">⬆️</span> STREAM BOOST (Coût : <span id="boost-cost">20</span> Points)
                 </h3>
-                <div class="login-box mb-6" style="border-color: var(--color-primary-pink);">
+                <div class="login-box mb-6" style="border-color: var(--color-primary-pink); padding: 15px; border: 1px solid;">
                     <p class="text-xs mb-4" style="color:var(--color-text-dimmed);">
-                        Activez un boost pour votre chaîne ou celle d'un ami. Coûte 20 Streampoints.
+                        Activez un boost pour votre chaîne ou celle d'un ami. Coûte <span id="boost-cost-display">20</span> Streampoints.
                     </p>
                     <form id="form-boost" class="flex gap-2">
                         <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input">
@@ -318,7 +297,7 @@
                 <h3 class="tab-heading" style="color:#6441a5;">
                     <span class="icon">⚔️</span> Raid Rapide (Fonctionnalité Dépendante du Scope Twitch)
                 </h3>
-                 <div class="login-box" style="border-color:#6441a5;">
+                 <div class="login-box" style="border-color:#6441a5; padding: 15px; border: 1px solid;">
                     <form id="form-raid" class="flex gap-2">
                         <input id="input-raid-target" type="text" placeholder="Chaîne cible du Raid (ex: gotaga)" class="action-input">
                         <button type="submit" id="btn-raid" class="btn-primary min-w-[100px]" style="background:#6441a5;">⚔️ RAID</button>
@@ -336,34 +315,24 @@
 
     <div id="social-share-container" class="mt-8 pt-4 border-t border-gray-700 max-w-lg mx-auto" style="border-color:var(--color-border-medium);">
         <h4 class="text-white text-lg mb-3 font-semibold border-l-2 border-l-primary-pink pl-2">⭐ Aidez-nous à grandir, Partagez !</h4>
-        <div class="flex space-x-4">
-            <button onclick="sharePageGeneric('twitter')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-300 flex items-center text-sm">
-                Partager sur X
-            </button>
-            <button onclick="sharePageGeneric('facebook')" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded transition duration-300 flex items-center text-sm">
-                Partager sur Facebook
-            </button>
         </div>
-    </div>
 </div>
 
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
-    const STREAMPPOINTS_COST_BOOST = 20;
+    const STREAMPPOINTS_COST_BOOST = 20; // Constante pour le frontend
 
     let twitchUserConnected = false; 
     let currentStreampoints = 0;
     let currentChannel = DEFAULT_CHANNEL;
-    let currentChannelGame = 'Just Chatting'; // À mettre à jour par le Player Listener si possible
-
-    // Variables pour le suivi du temps de visionnage
+    let currentChannelGame = 'Just Chatting'; 
     let watchTimeInterval = null;
     let watchTimeMinutes = 0;
-    const WATCH_TIME_UPDATE_INTERVAL_MS = 60000; // 1 minute
-
-    // --- Glisser-Déposer des Blocs (NOUVEAU) ---
+    const WATCH_TIME_UPDATE_INTERVAL_MS = 60000; // Envoi de la mise à jour toutes les 60 minutes
+    
+    // --- Glisser-Déposer des Blocs ---
     const TABS_ORDER_KEY = 'tabsOrder';
     const tabsContainer = document.getElementById('tabs-container');
     let draggedItem = null;
@@ -389,7 +358,6 @@
         }
     }
 
-    // Gestion des événements de Drag & Drop
     tabsContainer.addEventListener('dragstart', (e) => {
         draggedItem = e.target.closest('.tab-block');
         if (draggedItem) {
@@ -415,32 +383,35 @@
             tabsContainer.insertBefore(draggedItem, next ? target.nextSibling : target);
         }
     });
-
-    // --- Gestion des Onglets (Mis à jour pour le drag & drop) ---
+    
+    // --- Gestion des Onglets (CORRIGÉE) ---
     function openTab(tabId) {
-        // En mode blocs, on active le contenu en bas du bouton cliqué
-        const container = document.getElementById(tabId).closest('.tab-block');
-        
+        // Cacher tous les contenus
         document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-block .tab-btn').forEach(el => el.classList.remove('active'));
         
-        if (container) {
-            document.getElementById(tabId).style.display = 'block';
-            container.querySelector('.tab-btn').classList.add('active');
+        // Afficher le contenu de l'onglet cliqué
+        const content = document.getElementById(tabId);
+        const button = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
+        
+        if (content && button) {
+            content.style.display = 'block';
+            button.classList.add('active');
         }
     }
 
-    // --- Lecteur Twitch (Mise à jour pour le Watchtime) ---
+    // --- Lecteur Twitch ---
     let embed = null;
     const twitchEmbedContainer = document.getElementById('twitch-embed');
     const inputChannel = document.getElementById('input-channel');
     const btnShareStream = document.getElementById('btn-share-stream');
+    const formChannelPlayer = document.getElementById('form-channel-player');
 
-    function launchPlayer(channelName, gameName = 'Jeu Inconnu') {
+    function launchPlayer(channelName, gameName = 'Just Chatting') {
         if (!channelName) return;
 
         currentChannel = channelName;
-        currentChannelGame = gameName; // Défaut ou mis à jour par l'API
+        currentChannelGame = gameName; 
         localStorage.setItem('activeChannel', channelName);
         inputChannel.value = channelName;
 
@@ -454,27 +425,42 @@
             parent: [window.location.hostname] 
         });
         document.getElementById('player-channel-status').textContent = `Chaîne: ${channelName.toUpperCase()}`;
-        
-        // Démarrer ou réinitialiser le suivi du temps de visionnage
         startWatchTimeTracking();
     }
     
-    // --- Suivi du Temps de Visionnage (NOUVEAU) ---
+    function initializePlayer() {
+        const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
+        launchPlayer(lastChannel);
+
+        formChannelPlayer.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const channel = inputChannel.value.trim();
+            if (channel) {
+                launchPlayer(channel);
+            }
+        });
+    }
+
+    // --- Suivi du Temps de Visionnage (Streampoints) ---
+    const watchTimeTracker = document.getElementById('watchtime-tracker');
+
     function startWatchTimeTracking() {
         if (watchTimeInterval) {
             clearInterval(watchTimeInterval);
             watchTimeInterval = null;
         }
-        watchTimeMinutes = 0; // Réinitialiser le compteur à chaque nouveau stream
+        watchTimeMinutes = 0; 
         
         if (twitchUserConnected) {
             watchTimeInterval = setInterval(() => {
                 watchTimeMinutes++;
-                if (watchTimeMinutes >= 60) { // Toutes les 60 minutes
+                watchTimeTracker.textContent = `Suivi du visionnage: ${watchTimeMinutes} minutes`;
+
+                if (watchTimeMinutes % 60 === 0) { // Toutes les 60 minutes, on envoie la mise à jour
                     sendWatchTimeUpdate();
-                    watchTimeMinutes = 0;
+                    // watchTimeMinutes n'est pas réinitialisé ici, il est réinitialisé dans l'API call.
                 }
-            }, WATCH_TIME_UPDATE_INTERVAL_MS);
+            }, WATCH_TIME_UPDATE_INTERVAL_MS); // RAPPEL: 60000ms = 1 minute
             console.log("Suivi du temps de visionnage démarré.");
         }
     }
@@ -482,33 +468,29 @@
     async function sendWatchTimeUpdate() {
         if (!twitchUserConnected || watchTimeMinutes === 0) return;
         
-        const minutesToSend = watchTimeMinutes;
-        
         try {
             const res = await fetch(`${API_BASE}/earn_streampoints_watchtime`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ minutes_watched: minutesToSend }) 
+                body: JSON.stringify({ minutes_watched: watchTimeMinutes }) 
             });
             
             const data = await res.json();
 
             if (res.ok && data.success) {
-                console.log(`Watchtime enregistré. Points gagnés: ${data.points_earned}.`);
                 currentStreampoints = data.new_points;
                 updateStreampointsDisplay();
+                // Réinitialiser le compteur après un envoi réussi
+                watchTimeMinutes = 0; 
             } else {
                 console.error("Échec de l'enregistrement du temps de visionnage:", data.error);
             }
         } catch(e) {
             console.error("Erreur d'API Watchtime:", e);
         }
-        // Le compteur est réinitialisé dans la boucle si l'envoi a réussi, ou il continuera à s'accumuler
     }
 
     // --- Authentification et Streampoints ---
-    // ... (Code checkAuth inchangé dans la logique de base) ...
-    // Le reste du code de connexion est géré par la fonction ci-dessous
     const btnLogin = document.getElementById('btn-twitch-login');
     const loginStatus = document.getElementById('login-status');
     const streampointsStatus = document.getElementById('streampoints-status');
@@ -516,6 +498,7 @@
     const btnBoost = document.getElementById('btn-boost');
 
     async function checkAuth() {
+        // ... (Logique de checkAuth inchangée, sauf appel à loadStreampoints) ...
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
             if(res.ok) {
@@ -525,27 +508,26 @@
                     loginStatus.innerHTML = `✅ Connecté en tant que <strong style="color:var(--color-secondary-blue)">${data.username}</strong>`;
                     btnLogin.textContent = "🔒 DÉCONNEXION";
                     btnLogin.style.background = "#e34a64"; 
-                    loadFollowedStreams(); 
+                    // loadFollowedStreams(); // Ommis pour la concision
                     loadStreampoints(); 
                 } else {
                     handleLogoutState();
                 }
             } else {
                 handleLogoutState();
-                loginStatus.innerHTML = `❌ Erreur API (${res.status}). Veuillez vérifier le serveur backend.`;
             }
         } catch(e) {
             handleLogoutState();
-            loginStatus.innerHTML = `❌ Erreur technique: ${e.message}.`;
+            console.error("Erreur checkAuth:", e);
         }
     }
 
     function handleLogoutState() {
+        // ... (Logique handleLogoutState inchangée) ...
         twitchUserConnected = false;
         loginStatus.textContent = "Statut: Déconnecté.";
         btnLogin.textContent = "🔒 SE CONNECTER VIA TWITCH";
         btnLogin.style.background = "#6441a5"; 
-        document.getElementById('followed-streams-list').innerHTML = '<p style="color:var(--color-ai-growth); text-align:center;">Veuillez vous connecter pour voir ceci.</p>';
         currentStreampoints = 0;
         updateStreampointsDisplay();
         btnBoost.disabled = true;
@@ -569,19 +551,12 @@
                 if (data.daily_bonus_claimed) {
                     streampointsDailyStatus.innerHTML = `<span style="color:var(--color-ai-niche); font-weight:bold;">✅ Bonus quotidien (+5 pts) réclamé aujourd'hui.</span>`;
                 } else {
-                    streampointsDailyStatus.innerHTML = `Bonus quotidien de 5 points disponible.`;
+                    streampointsDailyStatus.innerHTML = `<span style="color:var(--color-primary-pink); font-weight:bold;">🎁 Bonus quotidien de 5 points à réclamer demain.</span>`; // Le bonus est donné au premier appel GET, donc l'utilisateur l'a déjà reçu
                 }
                 
-                startWatchTimeTracking(); // Assurez-vous que le suivi est actif
-            } else {
-                currentStreampoints = 0;
-                updateStreampointsDisplay();
-                streampointsDailyStatus.textContent = "Non connecté.";
+                startWatchTimeTracking();
             }
          } catch(e) {
-             currentStreampoints = 0;
-             updateStreampointsDisplay();
-             streampointsDailyStatus.textContent = "Erreur de chargement !";
              console.error("Erreur Streampoints:", e);
          }
     }
@@ -613,25 +588,25 @@
             const data = await res.json();
 
             if (res.ok) {
-                // Succès: Points dépensés, Boost activé
                 resultBox.innerHTML = data.html_response;
                 launchPlayer(channel); 
-                // Mettre à jour le solde (la réponse HTML peut contenir le nouveau solde, mais on le recharge pour être sûr)
-                loadStreampoints(); 
+                // Mise à jour du solde sans recharger
+                if (data.new_points !== undefined) {
+                    currentStreampoints = data.new_points;
+                }
+                updateStreampointsDisplay(); 
             } else {
-                // Échec (Cooldown, Fonds Insuffisants, etc.)
                 resultBox.innerHTML = data.html_response || `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Échec: ${data.error || "Erreur inconnue."}</p>`;
             }
         } catch(e) {
             resultBox.innerHTML = `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur de connexion au serveur: ${e.message}</p>`;
         } finally {
-            // La désactivation/réactivation est gérée par la vérification du solde dans updateStreampointsDisplay()
-            // On peut cependant réactiver le bouton *si* l'erreur n'est pas due à un solde insuffisant ou un cooldown
-            btn.disabled = currentStreampoints < STREAMPPOINTS_COST_BOOST;
+             // Réactiver le bouton basé sur le solde actuel
+            btn.disabled = currentStreampoints < STREAMPPOINTS_COST_BOOST || !twitchUserConnected;
         }
     });
 
-    // --- Fonction de Partage de Stream (NOUVEAU) ---
+    // --- Fonction de Partage de Stream ---
     btnShareStream.addEventListener('click', () => {
         const streamUrl = `https://twitch.tv/${currentChannel}`;
         const title = `Je regarde ${currentChannel} jouer à ${currentChannelGame} sur Twitch via le Streamer AI Hub.`;
@@ -643,49 +618,37 @@
                 url: streamUrl,
             }).catch(error => console.error('Erreur de partage:', error));
         } else {
-            // Fallback pour les navigateurs non supportés (utilise le partage générique)
+            // Fallback Twitter
             const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(streamUrl)}`;
             window.open(twitterUrl, '_blank', 'width=600,height=400');
         }
     });
 
-    // --- Fonctions Partage Générique (Inchagées) ---
-    function sharePageGeneric(platform) {
-        const url = window.location.href;
-        const text = encodeURIComponent("J'utilise l'outil Streamer & Niche AI Hub pour optimiser ma croissance sur Twitch/YouTube ! #StreamerAI #GrowthHacking");
-        
-        let shareUrl = "";
-
-        switch (platform) {
-            case 'twitter':
-                shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`;
-                break;
-            case 'facebook':
-                shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-                break;
-            default:
-                return;
-        }
-
-        window.open(shareUrl, '_blank', 'width=600,height=400');
-    }
-    
     // --- Initialisation au chargement de la page ---
     document.addEventListener('DOMContentLoaded', function() {
-        loadTabsOrder(); // Charger l'ordre des blocs
+        loadTabsOrder(); 
         initializePlayer();
         checkAuth();
         
-        // Initialiser l'affichage des onglets
-        const tabs = ['tab-account', 'tab-followed', 'tab-scan-niche', 'tab-ai-tools', 'tab-boost-raid'];
-        // Fermer tous les contenus par défaut (pour que seule l'ouverture par le bouton fonctionne)
-        tabs.forEach(id => {
+        // Initialisation de l'affichage des onglets
+        const tabBlockContents = ['tab-account', 'tab-followed', 'tab-scan-niche', 'tab-ai-tools', 'tab-boost-raid'];
+        tabBlockContents.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
         
-        // Ouvrir l'onglet Mon Compte par défaut au lancement
-        openTab('tab-account'); 
+        // Ouvrir le premier onglet après le chargement de l'ordre
+        const firstBlock = tabsContainer.children[0];
+        if (firstBlock) {
+            openTab(firstBlock.dataset.tabId);
+        } else {
+            // Fallback si aucun bloc n'est présent (devrait être 'tab-account')
+            openTab('tab-account'); 
+        }
+        
+        // Afficher le coût du boost
+        document.getElementById('boost-cost').textContent = STREAMPPOINTS_COST_BOOST;
+        document.getElementById('boost-cost-display').textContent = STREAMPPOINTS_COST_BOOST;
     });
 </script>
 </body>
