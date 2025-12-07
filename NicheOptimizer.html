@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V9.3 - Correctifs</title>
+    <title>Streamer & Niche AI Hub V9.4 - Fix Auth</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -360,8 +360,8 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V9.3</h1>
-    <div class="subtitle-center">Lecteur • Scan & IA • Niche Optimisation • Auto-Action & Disruption (Fix Authentification & API)</div>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V9.4</h1>
+    <div class="subtitle-center">Lecteur • Scan & IA • Niche Optimisation • Auto-Action & Disruption (Fix Authentification)</div>
 
     <div class="player-wrapper">
         <h2>
@@ -535,6 +535,11 @@
 </div>
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
+    // ** PARAMÈTRES D'AUTHENTIFICATION TWITCH (À CONFIGURER) **
+    const CLIENT_ID = 'VOTRE_CLIENT_ID_TWITCH'; // Remplacez par votre Client ID réel
+    const REDIRECT_URI = window.location.href; 
+    const SCOPES = 'user:read:follows channel:read:subscriptions'; 
+
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
     let embed = null;
@@ -594,9 +599,7 @@
         return 0; 
     }
     
-    // FIX 1: Déplacer la fonction de partage dans les utilities pour assurer qu'elle soit définie au moment du lancement du lecteur.
     function generateShareButtons(channel, url) {
-        // Logique de partage (Simulée)
         const container = document.getElementById('twitch-player-share');
         container.innerHTML = `
             <span class="text-xs text-gray-500 mr-2">Partager:</span>
@@ -686,14 +689,32 @@
     let userId = null;
     let userName = null;
 
-    document.getElementById('btn-twitch-auth').addEventListener('click', () => {
-        // Simule le lancement du flux OAuth2
-        const response = '{"access_token": "SIMULATED_TOKEN", "user_id": "123456", "user_name": "StreamerTest"}';
-        handleAuthResponse(response);
-    });
+    // 1. Fonction pour initier la connexion OAuth
+    function initiateTwitchAuth() {
+        if (CLIENT_ID === 'VOTRE_CLIENT_ID_TWITCH') {
+             alert("ATTENTION: Veuillez remplacer 'VOTRE_CLIENT_ID_TWITCH' dans le script pour que l'authentification fonctionne réellement.");
+        }
+        
+        // Simule la redirection Twitch (gardé comme un placeholder pour le développement local)
+        const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(SCOPES)}`;
+        
+        // Simule le résultat de l'authentification pour continuer le flux de l'application
+        const simulatedAuthSuccess = `{"access_token": "SIMULATED_TOKEN_${Date.now()}", "user_id": "123456", "user_name": "StreamerTest"}`;
+        handleAuthResponse(simulatedAuthSuccess);
+        
+        // **CODE RÉEL À DÉCOMMENTER EN PRODUCTION:**
+        // window.location.href = authUrl;
+    }
 
+    // FIX: Réactivation du bouton d'authentification pour appeler initiateTwitchAuth
+    document.getElementById('btn-twitch-auth').addEventListener('click', initiateTwitchAuth);
+
+
+    // 2. Fonction pour gérer la réponse de la connexion (réel ou simulé)
     function handleAuthResponse(response) {
         try {
+            // Dans un scénario réel, on analyserait le hash de l'URL pour les tokens.
+            // Ici, on utilise la réponse simulée ou stockée.
             const data = JSON.parse(response);
             if (data.access_token) {
                 userAccessToken = data.access_token;
@@ -705,7 +726,7 @@
                 
                 document.getElementById('auth-section').innerHTML = `
                     <p class="text-sm font-bold text-green-400">✅ Connecté : ${userName}</p>
-                    <p class="text-xs text-gray-400">Chargement de votre fil en cours...</p>
+                    <button id="btn-twitch-logout" class="btn-secondary mt-2 text-xs" onclick="logout()">Déconnexion</button>
                 `;
                 loadFollowedStreams();
             } else {
@@ -716,10 +737,29 @@
         }
     }
 
+    // 3. Vérifie si l'utilisateur est déjà authentifié au chargement de la page
     function checkAuth() {
         userAccessToken = localStorage.getItem('twitchToken');
         userId = localStorage.getItem('twitchUserId');
         userName = localStorage.getItem('twitchUserName');
+
+        // Gérer le cas où le token vient du hash de l'URL après une redirection Twitch réelle
+        if (!userAccessToken && window.location.hash.includes('access_token')) {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash.replace(/&/g, ',').replace(/=/g, ':').replace(/,/g, '&')); // Petite astuce pour parser le hash
+            const token = params.get('access_token');
+            // NOTE: Pour un vrai système OAuth, il faudrait faire un appel à l'API Twitch pour obtenir l'ID et le nom d'utilisateur à partir du token.
+            // Pour l'instant, nous stockons le token et simulons les infos utilisateur si nous en avons besoin.
+            if (token) {
+                // Simulation des infos utilisateur basées sur l'obtention réussie du token
+                const simulatedAuth = `{"access_token": "${token}", "user_id": "REAL_USER_ID", "user_name": "Authentifie_Via_Twitch"}`;
+                handleAuthResponse(simulatedAuth);
+                // Retirer le hash de l'URL pour la propreté
+                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+                return;
+            }
+        }
+
 
         if (userAccessToken && userName) {
             document.getElementById('auth-section').innerHTML = `
@@ -737,6 +777,7 @@
         location.reload(); 
     }
 
+    // 4. Charge les streams suivis (simulés)
     function loadFollowedStreams() {
         const container = document.getElementById('followed-streams-container');
         const msg = document.getElementById('followed-streams-message');
@@ -765,7 +806,6 @@
                 simulatedStreams.forEach(stream => {
                     container.innerHTML += generateStreamItem(stream);
                 });
-                // Attacher les listeners pour lancer le lecteur
                 document.querySelectorAll('.followed-stream-item').forEach(item => {
                     item.addEventListener('click', (e) => {
                         const channelName = item.dataset.channel;
@@ -1004,7 +1044,7 @@
                             const seconds = hmsToSeconds(timeString);
                             
                             const clipTitleMatch = node.innerHTML.match(/\[Titre suggéré: (.+)\]/);
-                            const clipTitle = clipTitleMatch ? clipTitleMatch[1].replace(/"/g, "'") : "Clip Automatisé V9.3";
+                            const clipTitle = clipTitleMatch ? clipTitleMatch[1].replace(/"/g, "'") : "Clip Automatisé V9.4";
                             
                             const launchScript = `launchPlayer('${channel}', 'video:${currentVODId}', ${seconds})`;
                             const exportScript = `exportClip("${clipTitle}")`; 
@@ -1051,7 +1091,6 @@
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                // FIX 2: Changement du type d'analyse de 'growth_strategy' à 'growth' pour résoudre le 400 Bad Request.
                 body: JSON.stringify({ query: query, type: 'growth' }) 
             });
 
