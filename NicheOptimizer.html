@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* --- VARIABLES CSS --- */
+        /* --- VARIABLES CSS (Ajout des ombres néon) --- */
         :root {
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
@@ -18,35 +18,96 @@
             --color-ai-niche: #59d682;
             --color-ai-repurpose: #9933ff;
             --color-ai-growth: #ffcc00;
-            --color-ai-action: #e34a64; /* Rouge/Corail pour l'action/export (Nouveauté V9/V10.2) */
+            --color-ai-action: #e34a64; 
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
+            
+            /* ✅ NOUVELLES VARIABLES D'OMBRES NÉON */
+            --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
+            --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
+            --shadow-niche: 0 0 15px rgba(89, 214, 130, 0.4);
+            --shadow-repurpose: 0 0 15px rgba(153, 51, 255, 0.4);
+            --shadow-action: 0 0 15px rgba(227, 74, 100, 0.4);
+            --shadow-growth: 0 0 15px rgba(255, 204, 0, 0.4);
         }
 
         /* Styles Globaux */
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
         #twitch-lucky-main { all: initial; display: block; max-width: 1200px; margin: 20px auto; padding: 10px; font-family: 'Inter', sans-serif; color: #fff; }
-        h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); margin-bottom: 5px; text-align: center; }
+        
+        /* ✅ TITRE H1 ET SOUS-TITRE AMÉLIORÉS */
+        h1 { 
+            font-family: 'Orbitron', sans-serif; 
+            font-size: 28px; 
+            color: var(--color-primary-pink); 
+            margin-bottom: 5px; 
+            text-align: center; 
+            text-shadow: 0 0 5px var(--color-primary-pink), 0 0 15px rgba(255, 0, 153, 0.5); /* Effet Néon */
+        }
         .h1-blue-accent { color: var(--color-secondary-blue); }
-        .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; }
+        .subtitle-center { 
+            color: var(--color-text-dimmed); 
+            font-size: 12px; 
+            margin-bottom: 25px; 
+            text-align: center; 
+            letter-spacing: 1px; /* Espacement pour look tech */
+        }
         
         /* Lecteur */
-        .player-wrapper { margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
-        .player-wrapper h2 { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); margin: 0 0 10px; display: flex; align-items: center; }
+        .player-wrapper { 
+            margin-bottom: 20px; 
+            padding: 15px; 
+            background: var(--color-bg-medium); 
+            border-radius: 12px; 
+            border: 1px solid var(--color-border-dark); 
+            box-shadow: var(--shadow-blue); /* Lueur autour du lecteur */
+        }
+        .player-wrapper h2 { 
+            font-family: 'Orbitron', sans-serif; 
+            font-size: 20px; 
+            color: var(--color-secondary-blue); 
+            margin: 0 0 10px; 
+            display: flex; 
+            align-items: center; 
+            text-shadow: 0 0 4px var(--color-secondary-blue); /* Néon H2 */
+        }
         #player-channel-status { font-size: 12px; color: var(--color-text-dimmed); margin-left: auto; font-weight: normal; font-family: 'Inter', sans-serif; }
         #twitch-embed { width: 100%; height: 550px; border-radius: 8px; box-shadow: 0 0 15px rgba(34, 199, 239, 0.3); overflow: hidden; }
         #form-channel-player { display: flex; gap: 8px; margin-bottom: 15px; }
         
         /* Inputs & Boutons */
-        .action-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); background: var(--color-bg-dark); color: #fff; font-size: 13px; }
-        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(255,0,153,.4); }
-        .btn-primary:hover:not(:disabled) { background: #E6008A; }
-        .btn-secondary { background: var(--color-secondary-blue); color: var(--color-bg-dark); border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(34,199,239,.4); }
-        .btn-secondary:hover:not(:disabled) { background: #1eafdd; }
+        .action-input { 
+            width: 100%; 
+            padding: 10px; 
+            border-radius: 6px; 
+            border: 1px solid var(--color-border-medium); 
+            background: var(--color-bg-dark); 
+            color: #fff; 
+            font-size: 13px; 
+            transition: border-color 0.3s, box-shadow 0.3s; /* Transition fluide */
+        }
+        .action-input:focus {
+            border-color: var(--color-primary-pink);
+            box-shadow: 0 0 8px rgba(255, 0, 153, 0.5); /* Focus néon rose */
+            outline: none;
+        }
+
+        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(255,0,153,.4); transition: all 0.2s; }
+        .btn-primary:hover:not(:disabled) { background: #E6008A; transform: scale(1.02); }
+        .btn-secondary { background: var(--color-secondary-blue); color: var(--color-bg-dark); border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(34,199,239,.4); transition: all 0.2s; }
+        .btn-secondary:hover:not(:disabled) { background: #1eafdd; transform: scale(1.02); }
         
         /* Résultats IA */
-        .ai-result-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; margin-top: 15px; color: #ffffff; }
+        .ai-result-box { 
+            background: #0a0a0a; 
+            border: 1px solid var(--color-border-dark); 
+            border-radius: 6px; 
+            padding: 15px; 
+            margin-top: 15px; 
+            color: #ffffff; 
+            transition: box-shadow 0.3s; /* Transition pour le changement de lueur */
+        }
         .ai-result-box p { margin-bottom: 12px; line-height: 1.6; font-size: 13px; }
         .ai-result-box h4 { font-family: 'Orbitron', sans-serif; font-size: 16px; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid var(--color-primary-pink); padding-bottom: 5px; color: var(--color-secondary-blue); }
         .ai-result-box strong { font-weight: 700; }
@@ -73,13 +134,13 @@
         #auto-action-results li:before { content: "🔥"; color: var(--color-ai-action); } /* ACTION */
 
 
-        /* Couleurs IA des titres et bordures */
-        #scan-result { border-color: var(--color-secondary-blue); }
-        #niche-result-container { border-color: var(--color-ai-niche); }
-        #repurpose-result-container { border-color: var(--color-ai-repurpose); }
-        #ai-trend-critique-container { border-color: var(--color-ai-growth); }
-        #boost-results { border-color: var(--color-primary-pink); }
-        #auto-action-results, #action-report-box { border-color: var(--color-ai-action); } /* ACTION */
+        /* ✅ LUEURS SPÉCIFIQUES DES BOÎTES DE RÉSULTAT IA */
+        #scan-result { border-color: var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
+        #niche-result-container { border-color: var(--color-ai-niche); box-shadow: var(--shadow-niche); }
+        #repurpose-result-container { border-color: var(--color-ai-repurpose); box-shadow: var(--shadow-repurpose); }
+        #ai-trend-critique-container { border-color: var(--color-ai-growth); box-shadow: var(--shadow-growth); }
+        #boost-results { border-color: var(--color-primary-pink); box-shadow: var(--shadow-pink); }
+        #auto-action-results, #action-report-box { border-color: var(--color-ai-action); box-shadow: var(--shadow-action); } /* ACTION */
         
         #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
         #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
@@ -95,6 +156,7 @@
             display: none; 
             align-items: flex-start;
             gap: 15px;
+            box-shadow: 0 0 10px rgba(153, 51, 255, 0.4);
         }
         #vod-title-display {
             font-size: 14px;
@@ -119,8 +181,41 @@
         }
         
         /* Onglets */
-        .tab-btn { font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: var(--color-bg-light); border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.2s; flex: 1; text-align: center; font-size: 12px; white-space: nowrap; }
-        .tab-btn.active { background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); font-weight: bold; }
+        .tab-btn { 
+            font-family: 'Orbitron', sans-serif; 
+            padding: 12px 15px; 
+            background: var(--color-bg-light); 
+            border: 1px solid var(--color-border-medium); 
+            border-bottom: none; 
+            color: var(--color-text-dimmed); 
+            cursor: pointer; 
+            border-radius: 8px 8px 0 0; 
+            transition: all 0.3s; 
+            flex: 1; 
+            text-align: center; 
+            font-size: 12px; 
+            white-space: nowrap; 
+        }
+        .tab-btn:hover {
+            color: #fff;
+            background: #232323; 
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.15); /* Effet de survol léger */
+        }
+        .tab-btn.active { 
+            background: var(--color-bg-medium); 
+            color: #fff; 
+            border-top: 3px solid var(--color-primary-pink); 
+            font-weight: bold;
+            box-shadow: var(--shadow-pink); /* Glow pour l'onglet actif */
+            z-index: 10; /* Pour s'assurer qu'il recouvre la bordure inférieure */
+            border-bottom: 1px solid var(--color-bg-medium); /* Pour que le contenu se fonde */
+        }
+        /* Correction de l'onglet Action pour garder la couleur */
+        .tab-btn[data-tab-id="tab-action"].active {
+            border-top: 3px solid var(--color-ai-action) !important;
+            box-shadow: var(--shadow-action);
+        }
+
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-top: none; border-radius: 0 0 10px 10px; padding: 20px; }
         .tab-content.active { display: block; }
         .tab-heading { font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px; }
@@ -128,12 +223,52 @@
 
         /* Liste Streams & Jeux */
         #followed-streams-list, #trending-games-list { display: flex; flex-wrap: wrap; gap: 15px; padding: 0; margin: 0; }
-        .followed-stream-item { display: flex; flex-direction: column; width: calc(33.333% - 10px); min-width: 180px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
+        .followed-stream-item { 
+            display: flex; 
+            flex-direction: column; 
+            width: calc(33.333% - 10px); 
+            min-width: 180px; 
+            padding: 10px; 
+            background: var(--color-bg-light); 
+            border-radius: 8px; 
+            border: 1px solid var(--color-border-dark); 
+            cursor: pointer; 
+            transition: all 0.3s ease; /* Transition plus douce */
+            transform: scale(1); /* Point de départ */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .followed-stream-item:hover {
+            background: #232323; /* Légèrement plus clair */
+            transform: translateY(-3px) scale(1.02); /* Soulèvement et zoom */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7), var(--shadow-pink); /* Ombre intense avec glow rose */
+        }
         
         /* Mini Assistant CSS (Fixe la bulle) */
-        .assistant-btn { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, var(--color-secondary-blue), #0066cc); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(34, 199, 239, 0.4); z-index: 1000; transition: transform 0.2s; border: none; }
-        .assistant-panel { position: fixed; bottom: 90px; right: 20px; width: 350px; height: 500px; background: var(--color-bg-medium); border: 1px solid var(--color-secondary-blue); border-radius: 12px; display: none; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden; }
-        .assistant-header { padding: 15px; background: rgba(34, 199, 239, 0.1); border-bottom: 1px solid var(--color-border-dark); font-family: 'Orbitron', sans-serif; font-size: 14px; color: var(--color-secondary-blue); display: flex; justify-content: space-between; align-items: center; }
+        .assistant-btn { 
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px; 
+            background: linear-gradient(135deg, var(--color-secondary-blue), #0066cc); 
+            color: white; 
+            width: 60px; 
+            height: 60px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 24px; 
+            cursor: pointer; 
+            box-shadow: 0 4px 15px rgba(34, 199, 239, 0.4), 0 0 20px var(--color-secondary-blue); /* Lueur plus forte */
+            z-index: 1000; 
+            transition: transform 0.2s, box-shadow 0.3s; 
+            border: none; 
+        }
+        .assistant-btn:hover {
+            transform: scale(1.05) rotate(5deg);
+            box-shadow: 0 4px 20px rgba(34, 199, 239, 0.6), 0 0 30px var(--color-secondary-blue);
+        }
+        .assistant-panel { position: fixed; bottom: 90px; right: 20px; width: 350px; height: 500px; background: var(--color-bg-medium); border: 1px solid var(--color-secondary-blue); border-radius: 12px; display: none; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5), var(--shadow-blue); z-index: 1000; overflow: hidden; }
+        .assistant-header { padding: 15px; background: rgba(34, 199, 239, 0.1); border-bottom: 1px solid var(--color-border-dark); font-family: 'Orbitron', sans-serif; font-size: 14px; color: var(--color-secondary-blue); display: flex; justify-content: space-between; align-items: center; text-shadow: 0 0 2px var(--color-secondary-blue); }
         .assistant-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.4; max-width: 85%; color: #fff; }
         .msg.user { align-self: flex-end; background: var(--color-primary-pink); border-bottom-right-radius: 0; } 
@@ -685,7 +820,7 @@
             const data = await res.json();
 
             if (!res.ok) {
-                 targetElement.innerHTML = data.html_response || `<p style="color:red; padding:10px;">❌ Erreur serveur IA: ${data.error || `Statut HTTP ${res.status}.`}</p>`;
+                 targetElement.innerHTML = data.html_response || `<p style="color:red; padding:10px;">❌ Erreur serveur IA: Code ${res.status}. Détail: ${data.message || 'Problème inconnu.'}</p>`;
                  return;
             }
             
