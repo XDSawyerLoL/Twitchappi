@@ -31,7 +31,7 @@ if (GEMINI_API_KEY) {
 }
 
 // =========================================================
-// --- CACHING STRATÉGIQUE ---
+// --- CACHING STRATÉGIQUE (INCLUT STREAMPPOINTS) ---
 // =========================================================
 
 const BOOST_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 heures
@@ -46,7 +46,8 @@ const CACHE = {
         timestamp: 0,
         lifetime: 1000 * 60 * 20 // 20 minutes
     },
-    streamBoosts: {}
+    streamBoosts: {},
+    streampoints: {} // { userId: { points: 100, last_activity: timestamp } } <-- NOUVEAU
 };
 
 // =========================================================
@@ -59,15 +60,13 @@ app.use(cors({
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (y compris le CSS/JS si dans le même dossier)
+app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
 // --- FONCTIONS UTILITAIRES TWITCH API ---
+// (Les fonctions Twitch API restent inchangées)
 // =========================================================
 
-/**
- * Récupère ou met à jour le jeton d'accès d'application Twitch.
- */
 async function getAppAccessToken() {
     const now = Date.now();
     if (CACHE.appAccessToken.token && CACHE.appAccessToken.expiry > now) {
@@ -97,9 +96,6 @@ async function getAppAccessToken() {
     }
 }
 
-/**
- * Récupère les détails de l'utilisateur à partir d'un token d'accès utilisateur.
- */
 async function fetchUserIdentity(userAccessToken) {
     const url = 'https://api.twitch.tv/helix/users';
     try {
@@ -120,9 +116,6 @@ async function fetchUserIdentity(userAccessToken) {
     }
 }
 
-/**
- * Récupère les streams en direct suivis par l'utilisateur.
- */
 async function fetchFollowedStreams(userId, userAccessToken) {
     const url = `https://api.twitch.tv/helix/streams/followed?user_id=${userId}`;
     try {
@@ -143,10 +136,6 @@ async function fetchFollowedStreams(userId, userAccessToken) {
     }
 }
 
-
-/**
- * Récupère les détails d'un jeu par son nom.
- */
 async function fetchGameDetails(query, token) {
     const url = `https://api.twitch.tv/helix/games?name=${encodeURIComponent(query)}`;
     const HEADERS = {
@@ -164,9 +153,6 @@ async function fetchGameDetails(query, token) {
     }
 }
 
-/**
- * Récupère les streams en direct pour un ID de jeu donné.
- */
 async function fetchStreamsForGame(gameId, token) {
     const url = `https://api.twitch.tv/helix/streams?game_id=${gameId}&first=100`;
     const HEADERS = {
@@ -184,9 +170,6 @@ async function fetchStreamsForGame(gameId, token) {
     }
 }
 
-/**
- * Récupère les détails d'un utilisateur et vérifie s'il est en direct.
- */
 async function fetchUserDetailsForScan(query, token) {
     const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
     const HEADERS = {
@@ -224,9 +207,6 @@ async function fetchUserDetailsForScan(query, token) {
     }
 }
 
-/**
- * Effectue un scan V/S (Viewers/Streamer) sur les petits streams pour trouver des niches.
- */
 async function fetchNicheOpportunities(token) {
     const now = Date.now();
     if (CACHE.nicheOpportunities.data && CACHE.nicheOpportunities.timestamp + CACHE.nicheOpportunities.lifetime > now) {
@@ -324,20 +304,21 @@ async function fetchNicheOpportunities(token) {
     return topNiches;
 }
 
+
 // =========================================================
 // --- MIDDLEWARE GÉNÉRAL ET ROUTES API ---
 // =========================================================
 
 // Middleware pour vérifier la clé Gemini avant les routes IA
 app.use((req, res, next) => {
-    // AJOUT DE '/ai_chat_query' au middleware IA
-    if ((req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/ai_chat_query')) && !ai) { 
+    // Inclut toutes les routes IA
+    if ((req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/ai_chat_query') || req.originalUrl.startsWith('/ai_title_suggest')) && !ai) { 
         return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
     }
     next();
 });
 
-// --- Routes OAuth ---
+// --- Routes OAuth (Inchagées) ---
 
 app.get('/twitch_auth_start', (req, res) => {
     if (!TWITCH_CLIENT_ID || !REDIRECT_URI) {
@@ -392,7 +373,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
-                // CORRECTION ICI: Redirection explicite vers la page principale
                 res.redirect('/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
@@ -465,7 +445,7 @@ app.get('/followed_streams', async (req, res) => {
     }
 });
 
-// --- ROUTE SCAN & RESULTAT ---
+// --- ROUTE SCAN & RESULTAT (Inchagée) ---
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body; 
     if (!query || query.trim() === "") {
@@ -494,7 +474,7 @@ app.post('/scan_target', async (req, res) => {
                     box_art_url: gameData.box_art_url.replace('-{width}x{height}', '-285x380'), 
                     total_viewers: totalViewers,
                     total_streamers: totalStreamers,
-                    avg_viewers_per_streamer: avgViewers,
+                    avg_viewers_per_streamer: avgViewers, // Ratio V/S
                     streams: streams.slice(0, 10) 
                 }
             });
@@ -522,7 +502,7 @@ app.post('/scan_target', async (req, res) => {
 });
 
 
-// --- ROUTE CRITIQUE IA ---
+// --- ROUTE CRITIQUE IA (Inchagée) ---
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
 
@@ -587,6 +567,7 @@ app.post('/critique_ia', async (req, res) => {
             if (!userData) {
                  return res.status(404).json({ error: `Streamer non trouvé: ${query}` });
             }
+            // Ceci est une simulation de VODs pour l'IA, car l'API Twitch ne donne pas les VODs si facilement
             promptData = JSON.stringify({
                 Streamer: userData.display_name,
                 description: userData.description,
@@ -630,12 +611,8 @@ app.post('/critique_ia', async (req, res) => {
 
 
 // =========================================================
-// --- ROUTE CHATBOT IA GÉNÉRAL (AJOUTÉE) ---
+// --- ROUTE CHATBOT IA GÉNÉRAL (Inchagée) ---
 // =========================================================
-
-/**
- * Endpoint pour la conversation générale avec l'IA.
- */
 app.post('/ai_chat_query', async (req, res) => {
     if (!ai) {
         return res.status(503).json({ error: "Le service IA n'est pas configuré (GEMINI_API_KEY manquante)." });
@@ -670,7 +647,6 @@ app.post('/ai_chat_query', async (req, res) => {
             }
         });
 
-        // Utilisation de Markdown pour formater le texte
         const formattedResponse = response.text.trim(); 
 
         res.json({ 
@@ -687,8 +663,96 @@ app.post('/ai_chat_query', async (req, res) => {
     }
 });
 
+// =========================================================
+// --- NOUVELLE ROUTE : SUGGESTION DE TITRE & TAGS IA ---
+// =========================================================
 
-// --- ROUTE STREAM BOOST (avec Cooldown) ---
+app.post('/ai_title_suggest', async (req, res) => {
+    if (!ai) {
+        return res.status(503).json({ error: "Service IA non configuré." });
+    }
+
+    const { game, angle } = req.body;
+    if (!game || !angle) {
+        return res.status(400).json({ error: "Le jeu et l'angle du stream sont requis." });
+    }
+
+    const iaPrompt = `
+        Vous êtes l'expert SEO de Twitch. Le jeu est "${game}" et l'angle du stream est "${angle}".
+        Votre objectif est de créer un titre accrocheur qui maximise le taux de clic (CTR) et le référencement (SEO).
+        Générez 3 propositions de titres complètes et 10 tags Twitch optimisés (y compris des tags spécifiques au jeu ou à l'angle).
+        Structurez votre réponse en Français et en HTML, en utilisant une liste non ordonnée pour les titres et une liste de tags clairement formatée.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: iaPrompt,
+            config: { temperature: 0.8 }
+        });
+
+        res.json({
+            success: true,
+            html_suggestion: response.text.trim()
+        });
+
+    } catch (e) {
+        console.error("Erreur lors de la suggestion de titre IA:", e);
+        res.status(500).json({ 
+            error: "Erreur lors du traitement de la requête IA.",
+            html_suggestion: `<p style="color:#e34a64; font-weight:bold;">❌ Erreur lors de la génération des titres: ${e.message}</p>`
+        });
+    }
+});
+
+
+// =========================================================
+// --- NOUVELLES ROUTES : STREAMPPOINTS ---
+// =========================================================
+
+app.get('/user_streampoints', (req, res) => {
+    const userId = req.cookies.twitch_user_id;
+
+    if (!userId) {
+        return res.json({ points: 0, is_connected: false });
+    }
+
+    if (!CACHE.streampoints[userId]) {
+        // Donne 100 points de bienvenue
+        CACHE.streampoints[userId] = { points: 100, last_activity: Date.now() }; 
+    }
+
+    return res.json({ 
+        points: CACHE.streampoints[userId].points, 
+        is_connected: true 
+    });
+});
+
+app.post('/spend_streampoints', (req, res) => {
+    const userId = req.cookies.twitch_user_id;
+    const { cost, action } = req.body;
+
+    if (!userId) {
+        return res.status(401).json({ success: false, error: "Non connecté. Veuillez vous connecter pour utiliser les Streampoints." });
+    }
+    
+    const userPoints = CACHE.streampoints[userId];
+
+    if (!userPoints || userPoints.points < cost) {
+        return res.status(402).json({ success: false, error: `Fonds insuffisants. Il vous faut ${cost} points pour effectuer cette action.` });
+    }
+
+    userPoints.points -= cost;
+
+    return res.json({ 
+        success: true, 
+        new_points: userPoints.points,
+        message: `Vous avez dépensé ${cost} Streampoints pour l'action : ${action}. Points restants : ${userPoints.points}`
+    });
+});
+
+
+// --- ROUTE STREAM BOOST (avec Cooldown) (Inchagée) ---
 app.post('/stream_boost', (req, res) => {
     const { channel } = req.body;
     
@@ -738,15 +802,12 @@ app.post('/stream_boost', (req, res) => {
 
 
 // =========================================================
-// Configuration des Routes Statiques
+// Configuration des Routes Statiques (Inchagées)
 // =========================================================
-
-// Route racine - sert le NicheOptimizer
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-// Route explicite pour NicheOptimizer.html (utile si le front y fait référence)
 app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
