@@ -31,10 +31,12 @@ if (GEMINI_API_KEY) {
 }
 
 // =========================================================
-// --- CACHING STRATÉGIQUE ---
+// --- CACHING STRATÉGIQUE ET DONNÉES UTILISATEUR ---
 // =========================================================
 
 const BOOST_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 heures
+const POINTS_PER_STREAMER_SHARE = 10;
+const USER_POINTS = {}; // Stockage temporaire des points utilisateur (simulé)
 
 const CACHE = {
     appAccessToken: {
@@ -59,15 +61,12 @@ app.use(cors({
 })); 
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); // Sert les fichiers statiques (y compris le CSS/JS si dans le même dossier)
+app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
 // --- FONCTIONS UTILITAIRES TWITCH API ---
 // =========================================================
 
-/**
- * Récupère ou met à jour le jeton d'accès d'application Twitch.
- */
 async function getAppAccessToken() {
     const now = Date.now();
     if (CACHE.appAccessToken.token && CACHE.appAccessToken.expiry > now) {
@@ -97,9 +96,6 @@ async function getAppAccessToken() {
     }
 }
 
-/**
- * Récupère les détails de l'utilisateur à partir d'un token d'accès utilisateur.
- */
 async function fetchUserIdentity(userAccessToken) {
     const url = 'https://api.twitch.tv/helix/users';
     try {
@@ -120,9 +116,6 @@ async function fetchUserIdentity(userAccessToken) {
     }
 }
 
-/**
- * Récupère les streams en direct suivis par l'utilisateur.
- */
 async function fetchFollowedStreams(userId, userAccessToken) {
     const url = `https://api.twitch.tv/helix/streams/followed?user_id=${userId}`;
     try {
@@ -143,10 +136,6 @@ async function fetchFollowedStreams(userId, userAccessToken) {
     }
 }
 
-
-/**
- * Récupère les détails d'un jeu par son nom.
- */
 async function fetchGameDetails(query, token) {
     const url = `https://api.twitch.tv/helix/games?name=${encodeURIComponent(query)}`;
     const HEADERS = {
@@ -164,9 +153,6 @@ async function fetchGameDetails(query, token) {
     }
 }
 
-/**
- * Récupère les streams en direct pour un ID de jeu donné.
- */
 async function fetchStreamsForGame(gameId, token) {
     const url = `https://api.twitch.tv/helix/streams?game_id=${gameId}&first=100`;
     const HEADERS = {
@@ -184,9 +170,6 @@ async function fetchStreamsForGame(gameId, token) {
     }
 }
 
-/**
- * Récupère les détails d'un utilisateur et vérifie s'il est en direct.
- */
 async function fetchUserDetailsForScan(query, token) {
     const url = `https://api.twitch.tv/helix/users?login=${encodeURIComponent(query)}`;
     const HEADERS = {
@@ -224,9 +207,6 @@ async function fetchUserDetailsForScan(query, token) {
     }
 }
 
-/**
- * Effectue un scan V/S (Viewers/Streamer) sur les petits streams pour trouver des niches.
- */
 async function fetchNicheOpportunities(token) {
     const now = Date.now();
     if (CACHE.nicheOpportunities.data && CACHE.nicheOpportunities.timestamp + CACHE.nicheOpportunities.lifetime > now) {
@@ -328,9 +308,7 @@ async function fetchNicheOpportunities(token) {
 // --- MIDDLEWARE GÉNÉRAL ET ROUTES API ---
 // =========================================================
 
-// Middleware pour vérifier la clé Gemini avant les routes IA
 app.use((req, res, next) => {
-    // AJOUT DE '/ai_chat_query' au middleware IA
     if ((req.originalUrl.startsWith('/critique_ia') || req.originalUrl.startsWith('/ai_chat_query')) && !ai) { 
         return res.status(503).json({ error: "Service d'IA non disponible : Clé Gemini manquante." });
     }
@@ -346,6 +324,7 @@ app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     res.cookie('twitch_auth_state', state, { httpOnly: true, maxAge: 600000 });
     
+    // Ajout d'un scope pour la gestion du compte si nécessaire (pour un système de points réel par exemple)
     const scope = 'user:read:follows'; 
     const authUrl = `https://id.twitch.tv/oauth2/authorize` +
         `?client_id=${TWITCH_CLIENT_ID}` +
@@ -385,14 +364,17 @@ app.get('/twitch_auth_callback', async (req, res) => {
 
         if (tokenData.access_token) {
             const userAccessToken = tokenData.access_token;
-            
             const identity = await fetchUserIdentity(userAccessToken);
 
             if (identity) {
                 res.cookie('twitch_access_token', userAccessToken, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
                 res.cookie('twitch_user_id', identity.id, { httpOnly: true, maxAge: tokenData.expires_in * 1000 });
 
-                // CORRECTION ICI: Redirection explicite vers la page principale
+                // Initialisation des points si l'utilisateur est nouveau
+                if (!USER_POINTS[identity.id]) {
+                    USER_POINTS[identity.id] = 0;
+                }
+
                 res.redirect('/NicheOptimizer.html'); 
             } else {
                 return res.status(500).send("Erreur: Échec de la récupération de l'identité utilisateur après l'authentification.");
@@ -410,35 +392,31 @@ app.get('/twitch_auth_callback', async (req, res) => {
 
 app.get('/twitch_user_status', async (req, res) => {
     const userAccessToken = req.cookies.twitch_access_token;
+    const userId = req.cookies.twitch_user_id;
     
     if (!userAccessToken) {
-        return res.json({ 
-            is_connected: false 
-        });
+        return res.json({ is_connected: false });
     }
 
     try {
         const identity = await fetchUserIdentity(userAccessToken); 
 
         if (identity) {
+            const userPoints = USER_POINTS[userId] || 0; 
             return res.json({ 
                 is_connected: true, 
                 username: identity.display_name,
-                user_id: identity.id
+                user_id: identity.id,
+                points: userPoints 
             });
         } else {
             res.clearCookie('twitch_access_token');
             res.clearCookie('twitch_user_id');
-            return res.json({ 
-                is_connected: false 
-            });
+            return res.json({ is_connected: false });
         }
     } catch (error) {
         console.error("Erreur critique dans /twitch_user_status (catch):", error.message);
-        return res.json({ 
-            is_connected: false, 
-            error: "Vérification interne échouée." 
-        });
+        return res.json({ is_connected: false, error: "Vérification interne échouée." });
     }
 });
 
@@ -467,6 +445,7 @@ app.get('/followed_streams', async (req, res) => {
 
 // --- ROUTE SCAN & RESULTAT ---
 app.post('/scan_target', async (req, res) => {
+    // ... (Logique de scan inchangée) ...
     const { query } = req.body; 
     if (!query || query.trim() === "") {
         return res.status(400).json({ error: "Le paramètre 'query' est manquant ou vide. Veuillez entrer un nom de jeu ou un pseudo." });
@@ -521,9 +500,9 @@ app.post('/scan_target', async (req, res) => {
     }
 });
 
-
 // --- ROUTE CRITIQUE IA ---
 app.post('/critique_ia', async (req, res) => {
+    // ... (Logique de critique IA inchangée) ...
     const { type, query } = req.body;
 
     if (!['trend', 'niche', 'repurpose'].includes(type)) {
@@ -629,14 +608,9 @@ app.post('/critique_ia', async (req, res) => {
 });
 
 
-// =========================================================
 // --- ROUTE CHATBOT IA GÉNÉRAL (AJOUTÉE) ---
-// =========================================================
-
-/**
- * Endpoint pour la conversation générale avec l'IA.
- */
 app.post('/ai_chat_query', async (req, res) => {
+    // ... (Logique de chat IA inchangée) ...
     if (!ai) {
         return res.status(503).json({ error: "Le service IA n'est pas configuré (GEMINI_API_KEY manquante)." });
     }
@@ -671,7 +645,6 @@ app.post('/ai_chat_query', async (req, res) => {
             }
         });
 
-        // Utilisation de Markdown pour formater le texte
         const formattedResponse = response.text.trim(); 
 
         res.json({ 
@@ -691,6 +664,7 @@ app.post('/ai_chat_query', async (req, res) => {
 
 // --- ROUTE STREAM BOOST (avec Cooldown) ---
 app.post('/stream_boost', (req, res) => {
+    // ... (Logique de Boost inchangée) ...
     const { channel } = req.body;
     
     if (!channel || channel.trim() === "") {
@@ -737,9 +711,74 @@ app.post('/stream_boost', (req, res) => {
     });
 });
 
+// --- NOUVELLE ROUTE : Partage Social (Simulation de Points) ---
+app.post('/share_streamer', (req, res) => {
+    const userId = req.cookies.twitch_user_id;
+    const { streamer, platform } = req.body;
+
+    if (!userId) {
+         return res.status(401).json({ error: "Veuillez vous connecter pour accumuler des points." });
+    }
+
+    // SIMULATION : Ajout des points
+    USER_POINTS[userId] = (USER_POINTS[userId] || 0) + POINTS_PER_STREAMER_SHARE;
+    const newPoints = USER_POINTS[userId];
+
+    const message = `
+        <p style="color:#59d682; font-weight:bold;">
+            ✨ Partage réussi !
+        </p>
+        <p>
+            Vous avez gagné <strong>${POINTS_PER_STREAMER_SHARE} points</strong> pour le partage de 
+            <strong>${streamer}</strong> sur ${platform}. Total de points : ${newPoints}.
+        </p>
+    `;
+
+    return res.json({
+        success: true,
+        message: message,
+        new_points: newPoints
+    });
+});
+
+// --- NOUVELLE ROUTE : Échange de Points (Simulation) ---
+app.post('/redeem_points', (req, res) => {
+    const userId = req.cookies.twitch_user_id;
+    const { cost } = req.body;
+
+    if (!userId) {
+         return res.status(401).json({ error: "Veuillez vous connecter." });
+    }
+    const currentPoints = USER_POINTS[userId] || 0;
+
+    if (currentPoints < cost) {
+         return res.status(400).json({ error: `Fonds insuffisants. Il vous manque ${cost - currentPoints} points.` });
+    }
+
+    // SIMULATION : Déduction des points
+    USER_POINTS[userId] -= cost;
+    const newPoints = USER_POINTS[userId];
+
+    const message = `
+        <p style="color:var(--color-secondary-blue); font-weight:bold;">
+            🎉 Échange réussi !
+        </p>
+        <p>
+            Vous avez dépensé <strong>${cost} points</strong>. Votre nouveau solde est de ${newPoints} points.
+            Votre récompense a été débloquée !
+        </p>
+    `;
+
+    return res.json({
+        success: true,
+        message: message,
+        new_points: newPoints
+    });
+});
+
 
 // =========================================================
-// Configuration des Routes Statiques (CORRIGÉ)
+// Configuration des Routes Statiques
 // =========================================================
 
 // Route racine - sert le NicheOptimizer
@@ -747,12 +786,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-// Route explicite pour NicheOptimizer.html (utile si le front y fait référence)
+// Route explicite pour NicheOptimizer.html
 app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
-
-// Les routes /lucky_streamer_picker.html et /sniper_tool.html sont maintenant supprimées.
 
 // Lancement du serveur
 app.listen(PORT, () => {
