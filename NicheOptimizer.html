@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
     <style>
-        /* --- VARIABLES CSS (Ajout des ombres néon) --- */
+        /* --- VARIABLES CSS (Thème sombre/néon) --- */
         :root {
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
@@ -27,7 +27,6 @@
         body { background: var(--color-bg-dark); font-family: 'Inter', sans-serif; color: white; }
         h1, h2, h3, h4 { font-family: 'Orbitron', sans-serif; }
         .neon-shadow-pink { box-shadow: 0 0 5px var(--color-primary-pink), 0 0 10px var(--color-primary-pink); }
-        .neon-shadow-green { box-shadow: 0 0 5px var(--color-ai-niche), 0 0 10px var(--color-ai-niche); }
         .bg-twitch { background-color: #6441a5; }
 
         /* Styles des boutons d'onglet */
@@ -38,10 +37,8 @@
         /* Styles des rapports IA */
         .ai-report-box { border-left: 5px solid; padding-left: 15px; margin-top: 15px; }
         .ai-report-box h4 { border-bottom: 2px solid; padding-bottom: 5px; margin-bottom: 10px; }
-        .ai-niche-report h4 { border-color: var(--color-ai-niche); color: var(--color-ai-niche); }
-        .ai-repurpose-report h4 { border-color: var(--color-ai-repurpose); color: var(--color-ai-repurpose); }
-        .ai-growth-report h4 { border-color: var(--color-ai-growth); color: var(--color-ai-growth); }
         
+        /* Style des items de stream suivi */
         .followed-stream-item { 
             cursor: pointer;
             padding: 8px;
@@ -213,7 +210,6 @@
     
     // =========================================================
     // ✅ CORRECTION CRUCIALE : URL du serveur Render
-    // CECI RÉSOUD LE BUG DE L'ERREUR '<' (car le Front-end contacte la bonne API)
     // =========================================================
     const API_BASE = 'https://justplayerstreamhubpro.onrender.com';
     // ---------------------------------------------------------
@@ -222,7 +218,7 @@
     let ACTIVE_CHANNEL = DEFAULT_CHANNEL;
     let IS_USER_CONNECTED = false;
 
-    // --- 1. Utilitaire de Requête API ---
+    // --- 1. Utilitaire de Requête API (Amélioration de la gestion des erreurs HTML) ---
     async function fetchAPI(endpoint, method = 'GET', data = null) {
         const url = `${API_BASE}${endpoint}`;
         
@@ -231,7 +227,6 @@
             headers: {
                 'Content-Type': 'application/json',
             },
-            // CRUCIAL : Permet l'envoi des cookies de session pour l'authentification en cross-site
             credentials: 'include' 
         };
 
@@ -241,25 +236,29 @@
 
         try {
             const response = await fetch(url, options);
-
-            // C'est ici que l'erreur '<' se produit si le serveur renvoie du HTML au lieu de JSON
+            
+            // Si la réponse n'est pas OK
             if (!response.ok) {
+                // Tente de lire le corps de la réponse comme du JSON
                 let errorData = {};
+                const contentType = response.headers.get("content-type");
                 
-                // Tente de lire le corps de la réponse. Si c'est du HTML, .json() échouera.
-                const textResponse = await response.text();
-                
-                try {
-                    errorData = JSON.parse(textResponse);
-                } catch (e) {
-                    // Si la réponse n'est pas du JSON, c'est probablement du HTML d'erreur/connexion.
-                    throw new Error("Réponse inattendue. L'API est injoignable ou a retourné une page HTML (non-authentifié/erreur 404/500).");
+                if (contentType && contentType.includes("application/json")) {
+                    // Si c'est du JSON, lit les données d'erreur normales de l'API
+                    errorData = await response.json();
+                } else if (contentType && contentType.includes("text/html")) {
+                    // Si c'est du HTML, c'est le bug '<' ou une page d'erreur Render
+                    throw new Error("Réponse inattendue du serveur. C'est probablement une page d'erreur HTML au lieu de données JSON (Vérifiez la connexion Twitch ou le statut de l'API sur Render).");
+                } else {
+                    // Si autre chose (texte brut, etc.)
+                     throw new Error(`Erreur serveur (${response.status} ${response.statusText}). Le serveur n'a pas renvoyé de JSON.`);
                 }
                 
                 if (errorData.html_response) { throw new Error(errorData.html_response); }
                 throw new Error(errorData.error || `Erreur serveur non spécifiée (${response.status})`);
             }
             
+            // Si la réponse est OK, elle doit être du JSON
             return await response.json();
 
         } catch (error) {
@@ -321,6 +320,7 @@
                 document.getElementById('clip-btn').disabled = false;
                 document.getElementById('boost-btn').disabled = false;
             } else {
+                // Logique si l'API répond que l'utilisateur n'est pas connecté (Statut 401/JSON)
                 userStatus.textContent = 'Statut: Déconnecté';
                 authBtn.textContent = 'Connexion Twitch';
                 authBtn.onclick = startAuth;
@@ -331,12 +331,15 @@
             }
         } catch (error) {
             console.error("Erreur de statut d'authentification:", error);
-            // Vérifie si l'erreur vient d'un échec de la connexion réseau (l'API n'est pas démarrée)
-            if (error.message.includes("API n'est pas démarrée")) {
-                 document.getElementById('user-status').textContent = `Statut: ❌ API non démarrée`;
-            } else {
-                document.getElementById('user-status').textContent = `Statut: Déconnecté (Session perdue)`;
+            
+            let statusText = 'Déconnecté (Session perdue)';
+            if (error.message.includes("Échec de la connexion")) {
+                 statusText = `❌ API non joignable: ${error.message}`;
+            } else if (error.message.includes("Réponse inattendue")) {
+                 statusText = `❌ Erreur API/HTTPS (Réponse HTML inattendue)`;
             }
+            
+            document.getElementById('user-status').textContent = `Statut: ${statusText}`;
             
             // Reconfigure le bouton pour la connexion
             const authBtn = document.getElementById('twitch-auth-btn');
@@ -395,7 +398,7 @@
                 followedStreamsList.appendChild(item);
             });
         } catch (error) {
-            // ✅ Correction : Affiche l'erreur pour identifier la cause réelle
+            // Affiche l'erreur plus précise grâce à la nouvelle fonction fetchAPI
             followedStreamsList.innerHTML = `<p class="col-span-3 text-center text-red-500">❌ Erreur de chargement du fil: ${error.message}</p>`;
         }
     }
@@ -434,10 +437,12 @@
 
             } catch (e) {
                 let errorMessage = e.message;
-                if (errorMessage.includes("Réponse inattendue")) {
-                    errorMessage = "Non authentifié ou API non joignable. Vérifiez la connexion Twitch.";
-                } else if (errorMessage.includes("Failed to fetch")) {
-                    errorMessage = "Échec de la connexion au serveur (réseau coupé ou API non démarrée).";
+                
+                // Amélioration de l'affichage des erreurs spécifiques à la communication
+                if (errorMessage.includes("Réponse inattendue du serveur")) {
+                    errorMessage = "Problème d'authentification ou API mal configurée sur Render.";
+                } else if (errorMessage.includes("Échec de la connexion au serveur")) {
+                    errorMessage = "API Back-end non démarrée ou inaccessible.";
                 }
                 
                 resultBox.innerHTML = `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">❌ Erreur: ${errorMessage}</p>`;
