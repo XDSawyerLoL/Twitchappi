@@ -156,6 +156,7 @@
         #repurpose-result-container { border-color: var(--color-ai-repurpose); }
         #trend-results { border-color: var(--color-ai-growth); }
         #boost-results { border-color: var(--color-primary-pink); }
+        #assistant-response { border-color: var(--color-secondary-blue); }
 
         #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
         #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
@@ -277,10 +278,12 @@
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
             <button class="tab-btn" data-tab-id="tab-cible" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
+            <button class="tab-btn" data-tab-id="tab-sniper" onclick="openTab('tab-sniper')">🎯 SNIPER TOOL</button>
             <button class="tab-btn" data-tab-id="tab-niche" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
             <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">🚀 REPURPOSING</button>
             <button class="tab-btn" data-tab-id="tab-growth" onclick="openTab('tab-growth')">💰 CROISSANCE</button>
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
+            <button class="tab-btn" data-tab-id="tab-assistant" onclick="openTab('tab-assistant')">💬 ASSISTANT IA</button>
         </div>
 
         <div id="tab-followed" class="tab-content">
@@ -325,6 +328,26 @@
             </div>
         </div>
 
+        <div id="tab-sniper" class="tab-content">
+            <h3 class="tab-heading text-blue">
+                <span class="icon">🎯</span> Sniper Tool V2 (Bêta)
+            </h3>
+            <p style="color:var(--color-text-dimmed); margin-bottom: 20px;">
+                Ciblez des streamers en fonction de leur nombre de spectateurs. Lancez le leurre pour afficher leurs chaînes.
+            </p>
+            <form id="form-sniper" class="flex gap-2 mb-4">
+                <input id="input-min-viewers" type="number" placeholder="Min Viewers (ex: 50)" class="action-input flex-1">
+                <input id="input-max-viewers" type="number" placeholder="Max Viewers (ex: 150)" class="action-input flex-1">
+                <button type="submit" id="btn-sniper-launch" class="btn-primary min-w-[120px]" style="background:#00aaff;">
+                    LAUNCH LURE
+                </button>
+            </form>
+             <div id="sniper-results" class="ai-result-box" style="border-color: #00aaff;">
+                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                    La liste des streamers correspondants à la niche de spectateurs apparaîtra ici.
+                </p>
+            </div>
+        </div>
         <div id="tab-niche" class="tab-content">
             <h3 class="tab-heading text-green">
                 <span class="icon">📈</span> Analyse de Niche
@@ -396,7 +419,26 @@
             </div>
         </div>
         
-    </div>
+        <div id="tab-assistant" class="tab-content">
+            <h3 class="tab-heading text-secondary-blue">
+                <span class="icon">💬</span> Mini Assistant IA
+            </h3>
+            <p style="color:var(--color-text-dimmed); margin-bottom: 20px;">
+                Posez une question rapide sur la croissance, le contenu ou le streaming. L'IA répondra de manière brève et percutante.
+            </p>
+            <form id="form-assistant" class="flex gap-2 mb-4">
+                <input id="input-assistant-prompt" type="text" placeholder="Ex: Quel est le meilleur moment pour streamer ce soir ?" class="action-input flex-1">
+                <button type="submit" id="btn-assistant-ask" class="btn-primary min-w-[100px]" style="background:var(--color-secondary-blue); color: var(--color-bg-light);">
+                    DEMANDER
+                </button>
+            </form>
+             <div id="assistant-response" class="ai-result-box">
+                <p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">
+                    L'assistance IA est prête.
+                </p>
+            </div>
+        </div>
+        </div>
 </div>
 
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
@@ -480,11 +522,6 @@
     btnOpenRaid.addEventListener('click', () => {
         // Toggle l'affichage du panneau de configuration
         raidPanel.style.display = raidPanel.style.display === 'flex' ? 'none' : 'flex';
-        // Le champ est laissé vide pour que l'utilisateur choisisse sa cible, mais on peut le pré-remplir si on veut suggérer de raider la chaîne active
-        // const currentChannel = localStorage.getItem('activeChannel') || inputChannel.value.trim();
-        // if (currentChannel !== DEFAULT_CHANNEL && currentChannel) {
-        //      raidTargetInput.value = currentChannel;
-        // }
     });
 
     btnConfirmRaid.addEventListener('click', async () => {
@@ -635,11 +672,11 @@
     }
 
 
-    // --- Logique de Scan Cible (VISUEL CORRIGÉ + FIX DE PARAMÈTRE) ---
+    // --- Logique de Scan Cible ---
     document.getElementById('form-target').addEventListener('submit', async (e) => {
         e.preventDefault();
         const target = document.getElementById('input-target').value.trim();
-        const resultBox = document.getElementById('scan-result'); // Conteneur toujours visible
+        const resultBox = document.getElementById('scan-result'); 
         const btn = document.getElementById('btn-target');
 
         if (!target) {
@@ -647,7 +684,6 @@
             return;
         }
 
-        // FIX VISUEL: Message de chargement cohérent
         resultBox.innerHTML = `<p style="text-align:center; color:var(--color-secondary-blue);">🚀 Scan de la cible en cours pour <strong>${target}</strong>... (Appel API réel)</p>`;
         btn.disabled = true;
 
@@ -655,7 +691,6 @@
             const res = await fetch(`${API_BASE}/scan_target`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                // FIX: ENVOIE 'query'
                 body: JSON.stringify({ query: target }) 
             });
 
@@ -711,10 +746,27 @@
         }
     });
 
+    // --- Logique Sniper Tool (Placeholder) ---
+    document.getElementById('form-sniper').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const minViewers = document.getElementById('input-min-viewers').value.trim();
+        const maxViewers = document.getElementById('input-max-viewers').value.trim();
+        const resultBox = document.getElementById('sniper-results');
+        
+        resultBox.innerHTML = `<p style="color:#00aaff; text-align:center;">
+                                🚧 **SNIPER TOOL** - Fonctionnalité en cours de développement. 
+                                Recherche simulée pour ${minViewers} à ${maxViewers} spectateurs.
+                                </p>
+                                <ul>
+                                    <li>StreamerA (120 spectateurs) - <span style="cursor:pointer; color:var(--color-primary-pink);" onclick="launchPlayer('streamerA')">Lancer</span></li>
+                                    <li>StreamerB (65 spectateurs) - <span style="cursor:pointer; color:var(--color-primary-pink);" onclick="launchPlayer('streamerB')">Lancer</span></li>
+                                </ul>`;
+    });
+
 
     // --- Logique d'interaction IA ---
     
-    // 1. Analyse de Niche (VISUEL CORRIGÉ + FIX DE PARAMÈTRE)
+    // 1. Analyse de Niche
     document.getElementById('form-niche-analysis').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-niche-game').value.trim();
@@ -723,7 +775,6 @@
 
         if (!game) return;
 
-        // FIX VISUEL: Message de chargement cohérent
         resultBox.innerHTML = `<p style="color:var(--color-ai-niche);">Analyse IA de niche en cours pour <strong>${game}</strong>... (Appel API réel)</p>`;
         btn.disabled = true;
 
@@ -731,7 +782,6 @@
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                // FIX: ENVOIE 'query'
                 body: JSON.stringify({ query: game, type: 'niche' }) 
             });
 
@@ -749,7 +799,7 @@
         }
     });
 
-    // 2. Repurposing (VISUEL CORRIGÉ + FIX DE PARAMÈTRE)
+    // 2. Repurposing
     document.getElementById('form-repurpose').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-repurpose-channel').value.trim();
@@ -758,7 +808,6 @@
 
         if (!channel) return;
 
-        // FIX VISUEL: Message de chargement cohérent
         resultBox.innerHTML = `<p style="color:var(--color-ai-repurpose);">Analyse de VOD pour <strong>${channel}</strong> en cours... (Appel API réel)</p>`;
         btn.disabled = true;
 
@@ -766,7 +815,6 @@
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                // FIX: ENVOIE 'query'
                 body: JSON.stringify({ query: channel, type: 'repurpose' }) 
             });
 
@@ -784,12 +832,11 @@
         }
     });
 
-    // 3. Trend Detector (VISUEL CORRIGÉ)
+    // 3. Trend Detector
     document.getElementById('btn-trend-detector').addEventListener('click', async () => {
         const resultBox = document.getElementById('trend-results');
         const btn = document.getElementById('btn-trend-detector');
 
-        // FIX VISUEL: Message de chargement cohérent
         resultBox.innerHTML = `<p style="color:var(--color-ai-growth);">Détection des tendances en cours... (Appel API réel)</p>`;
         btn.disabled = true;
 
@@ -814,7 +861,43 @@
         }
     });
 
-    // --- Logique STREAM BOOST (VISUEL CORRIGÉ + FIX LECTEUR) ---
+    // 4. Mini Assistant IA (NOUVELLE LOGIQUE)
+    document.getElementById('form-assistant').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const prompt = document.getElementById('input-assistant-prompt').value.trim();
+        const resultBox = document.getElementById('assistant-response');
+        const btn = document.getElementById('btn-assistant-ask');
+
+        if (!prompt) return;
+
+        resultBox.innerHTML = `<p style="color:var(--color-secondary-blue); text-align:center;">Réflexion en cours sur : <strong>${prompt}</strong>...</p>`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/mini_assistant`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ prompt: prompt })
+            });
+
+            if(res.ok) {
+                const data = await res.json();
+                // La réponse HTML vient du serveur et est insérée directement
+                resultBox.innerHTML = data.html_response || '<p style="color:#e34a64;">L\'assistant IA n\'a pas pu fournir de réponse.</p>';
+            } else {
+                const data = await res.json();
+                resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de l'API Assistant: ${res.status}. ${data.error || ''}</p>`;
+            }
+        } catch(e) {
+            resultBox.innerHTML = `<p style="color:#e34a64;">Erreur de connexion au service Assistant: ${e.message}</p>`;
+        } finally {
+            btn.disabled = false;
+            document.getElementById('input-assistant-prompt').value = ''; // Effacer le champ après l'envoi
+        }
+    });
+
+
+    // --- Logique STREAM BOOST ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value.trim();
@@ -823,7 +906,6 @@
 
         if (!channel) return;
         
-        // FIX VISUEL: Message de chargement cohérent
         resultBox.innerHTML = `<p style="color:var(--color-primary-pink); text-align:center;">📤 Envoi du boost pour <strong>${channel}</strong>...</p>`;
         btn.disabled = true;
 
@@ -839,7 +921,7 @@
             if (res.ok) {
                 // Succès du Boost
                 resultBox.innerHTML = data.html_response;
-                launchPlayer(channel); // FIX: Lance le stream boosté
+                launchPlayer(channel); // Lance le stream boosté
             } else if (res.status === 429) {
                 // Cooldown actif (géré par le serveur backend)
                 resultBox.innerHTML = data.html_response || `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Cooldown actif. Réessayez plus tard.</p>`;
