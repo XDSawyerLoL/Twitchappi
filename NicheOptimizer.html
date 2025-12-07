@@ -919,7 +919,15 @@
                 reportBox.style.display = 'none';
             }
         } catch(e) {
-            resultBox.innerHTML = `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">Erreur de connexion au serveur: ${e.message}</p>`;
+            // Message d'erreur plus explicite pour l'erreur JSON/HTML
+            let errorMessage = e.message;
+            if (errorMessage.includes("Unexpected token '<'")) {
+                errorMessage = "Le serveur a renvoyé une page d'erreur (HTML) au lieu des données JSON. L'API est probablement HS.";
+            } else if (errorMessage.includes("Failed to fetch")) {
+                errorMessage = "Échec de la connexion au serveur (réseau coupé ou API non démarrée).";
+            }
+            
+            resultBox.innerHTML = `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">❌ Erreur: ${errorMessage}</p>`;
             reportBox.style.display = 'none';
         } finally {
             btn.disabled = false;
