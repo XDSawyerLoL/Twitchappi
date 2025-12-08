@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamer & Niche AI Hub V10.2 - Full Features</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -56,7 +56,7 @@
         
         /* Lecteur */
         .player-wrapper { 
-            margin-bottom: 20px; 
+            margin-top: 20px; /* Espace après les onglets */
             padding: 15px; 
             background: var(--color-bg-medium); 
             border-radius: 12px; 
@@ -217,7 +217,23 @@
         }
 
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-top: none; border-radius: 0 0 10px 10px; padding: 20px; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; border-top: 1px solid var(--color-border-dark); } /* MODIFIÉ POUR LES ONGLET ACTIF */
+
+        /* Styles Spécifiques à l'onglet 'tab-followed' pour un affichage permanent */
+        #tab-followed.tab-content.active { 
+            display: block; 
+            border-radius: 10px; /* Rendre les bords arrondis car il n'y a plus de barre d'onglet dessus */
+            margin-bottom: 20px; /* Espace avant le lecteur */
+            border-top: 1px solid var(--color-border-dark);
+            box-shadow: var(--shadow-pink); /* Un petit glow pour le distinguer */
+        }
+        #tab-followed .tab-heading {
+             margin-bottom: 0px; 
+             padding-bottom: 10px; 
+             border-bottom: 1px solid var(--color-border-medium);
+        }
+
+
         .tab-heading { font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px; }
         .login-box { padding:15px; background:var(--color-bg-light); border-radius:8px; margin-bottom:20px; border: 1px solid #444; }
 
@@ -287,19 +303,6 @@
 <div id="twitch-lucky-main">
     <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V10.2</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance • Action</div>
-
-    <div class="player-wrapper">
-        <h2>
-            <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR & CHAT
-            <span id="player-channel-status"></span>
-        </h2> 
-        <form id="form-channel-player" class="flex">
-            <input id="input-channel" type="text" placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder" class="action-input flex-grow">
-            <button type="submit" id="btn-player-launch" class="btn-primary min-w-[80px]">▶️ LANCER</button>
-        </form>
-        <div id="twitch-embed"></div>
-        <div id="twitch-player-share" class="pt-3 border-t border-gray-700" style="border-color:var(--color-border-dark);"></div>
-    </div>
 
     <div id="tabs-container">
         <div class="flex flex-wrap flex-tabs">
@@ -419,6 +422,19 @@
         </div>
         
     </div>
+
+    <div class="player-wrapper">
+        <h2>
+            <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR & CHAT
+            <span id="player-channel-status"></span>
+        </h2> 
+        <form id="form-channel-player" class="flex">
+            <input id="input-channel" type="text" placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder" class="action-input flex-grow">
+            <button type="submit" id="btn-player-launch" class="btn-primary min-w-[80px]">▶️ LANCER</button>
+        </form>
+        <div id="twitch-embed"></div>
+        <div id="twitch-player-share" class="pt-3 border-t border-gray-700" style="border-color:var(--color-border-dark);"></div>
+    </div>
 </div>
 
 <button id="assistant-toggle" class="assistant-btn">🤖</button>
@@ -457,6 +473,14 @@
             targetTab.classList.add('active');
             const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
             if (targetBtn) targetBtn.classList.add('active');
+            
+            // ✅ Logique pour tab-followed : on le masque si un autre onglet est actif
+            if (tabId !== 'tab-followed') {
+                 document.getElementById('tab-followed').classList.remove('active');
+                 const followedBtn = document.querySelector(`.tab-btn[data-tab-id="tab-followed"]`);
+                 if (followedBtn) followedBtn.classList.remove('active');
+            }
+
             if (tabId === 'tab-action') {
                  // S'assurer que le bouton Action a la couleur correcte
                 targetBtn.style.borderTop = '3px solid var(--color-ai-action)';
@@ -1144,6 +1168,7 @@
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         window.launchPlayer(lastChannel); 
 
+        // ✅ MODIFICATION DE L'INITIALISATION : On s'assure que tab-followed est l'onglet par défaut.
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         
