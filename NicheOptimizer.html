@@ -183,7 +183,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h3 class="text-pink font-bold" style="color:var(--color-primary-pink);">🔴 Vos Chaînes Suivies LIVE</h3>
                 <div class="flex gap-2 items-center">
-                    <button id="btn-export-pdf" class="btn-primary" style="background:var(--color-ai-growth); font-size:10px; display: none;">📊 EXPORT STATS PDF</button>
+                    <button id="btn-export-pdf" class="btn-primary" style="background:var(--color-ai-growth); font-size:10px; display: none;">📊 EXPORT STATS CSV</button>
                     <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; font-size:10px;">🔒 CONNEXION TWITCH</button>
                 </div>
             </div>
@@ -257,19 +257,7 @@
                 <p style="text-align:center; color:#777;">Résultats de la recherche de chaîne ici.</p>
             </div>
             
-            <h3 style="color:var(--color-ai-action); margin-top:30px; margin-bottom:10px;">🔥 ACTIONS IA RESTANTES</h3>
-            <form id="form-auto-action" class="flex flex-col gap-3" style="max-width:600px; margin:0 auto;">
-                <select id="select-action-type" class="action-input">
-                    <option value="create_clip">🎬 CRÉER CLIP AUTOMATIQUE</option>
-                    <option value="title_disruption">📝 IDÉE TITRE DISRUPTIF</option>
-                </select>
-                <input id="input-auto-action" type="text" placeholder="Cible..." class="action-input">
-                <button type="submit" id="btn-auto-action" class="btn-primary" style="background:var(--color-ai-action);">EXÉCUTER</button>
-            </form>
-            <div id="auto-action-results" style="margin-top:15px; padding:10px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:50px;">
-                <p style="text-align:center; color:#777;">Résultats de l'action ici.</p>
             </div>
-        </div>
 
     </div>
 </div>
@@ -396,6 +384,13 @@
                     follower_growth: (Math.random() * 10 - 2).toFixed(1), // -2 à 8%
                     engagement_rate: (Math.random() * 10 + 5).toFixed(1) // 5% à 15%
                 };
+                
+                // Fonction d'aide pour formatter les nombres (correction toLocaleString)
+                const safeFormat = (value) => {
+                    // Si c'est un nombre, le formatter. Si c'est la string 'N/A', la retourner telle quelle.
+                    return (typeof value === 'number') ? value.toLocaleString() : value;
+                };
+
 
                 // RENDU SCAN SPÉCIFIQUE STREAMER (Utilisation des nouvelles métriques brutes)
                 boxScan.innerHTML = `
@@ -414,7 +409,7 @@
                             <div class="metric-label"><i class="fas fa-eye"></i> Vues Moy. (Sim.)</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-value">${u.total_followers.toLocaleString()}</div>
+                            <div class="metric-value">${safeFormat(u.total_followers)}</div>
                             <div class="metric-label"><i class="fas fa-user-plus"></i> Total Suiveurs</div>
                         </div>
                         <div class="metric-item">
@@ -422,7 +417,7 @@
                             <div class="metric-label"><i class="fas fa-chart-line"></i> Croissance Suiv. (Sim.)</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-value">${u.total_vods.toLocaleString()}</div>
+                            <div class="metric-value">${safeFormat(u.total_vods)}</div>
                             <div class="metric-label"><i class="fas fa-video"></i> VODs Publiées</div>
                         </div>
                         <div class="metric-item" style="grid-column: span 2;">
@@ -555,10 +550,10 @@
     });
 
 
-    // --- LOGIQUE AUTH & EXPORT PDF (Relocalisée) ---
+    // --- LOGIQUE AUTH & EXPORT CSV/PDF (Mise à jour pour gérer le téléchargement du fichier) ---
     async function runPdfExport() {
         const resBox = document.getElementById('pdf-export-results');
-        resBox.innerHTML = "<i class='fas fa-sync fa-spin' style='color:var(--color-ai-growth)'></i> Génération du PDF des métriques en cours...";
+        resBox.innerHTML = "<i class='fas fa-sync fa-spin' style='color:var(--color-ai-growth)'></i> Génération du fichier CSV en cours...";
         
         try {
             const userRes = await fetch(`${API_BASE}/twitch_user_status`);
@@ -570,17 +565,31 @@
                 body:JSON.stringify({query: target, action_type:'export_metrics'})
             });
             
-            if (!res.ok) throw new Error(`Erreur: ${res.status}`);
-            const data = await res.json();
+            // Le serveur va envoyer un fichier, donc le statut 200 indique le succès.
+            if (res.status === 200) {
+                // Si la requête réussit et qu'un fichier est renvoyé (via les headers Content-Disposition),
+                // le navigateur lance automatiquement le téléchargement.
+                resBox.innerHTML = `<p style="color:var(--color-ai-growth); font-weight:bold; text-align:center;">✅ Téléchargement des métriques CSV lancé ! Vérifiez vos téléchargements.</p>`;
+                return; 
+            }
             
-            if(data.html_response) {
-                resBox.innerHTML = data.html_response;
-            } else {
-                 resBox.innerHTML = "✅ Export PDF terminé. Vérifiez vos téléchargements!";
+            // Si le statut n'est pas 200 ou si une autre erreur s'est produite
+            if (!res.ok) {
+                 // Si c'est une erreur JSON (comme un 500 ou 400), on tente de la lire.
+                 try {
+                     const errorData = await res.json();
+                     if (errorData.html_response) {
+                         resBox.innerHTML = errorData.html_response;
+                     } else {
+                         throw new Error(errorData.error || `Erreur serveur : ${res.status}`);
+                     }
+                 } catch (e) {
+                      throw new Error(`Erreur HTTP : ${res.status}`);
+                 }
             }
            
         } catch(e) { 
-            resBox.innerHTML = `<p style="color:red;">❌ Échec de l'export PDF: ${e.message}. (Backend hors-service ou clé AI invalide)</p>`; 
+            resBox.innerHTML = `<p style="color:red;">❌ Échec de l'export CSV : ${e.message}.</p>`; 
         }
     }
 
@@ -595,6 +604,8 @@
                 btnLogin.innerText = "🔓 DÉCONNEXION";
                 btnLogin.onclick = async () => { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); location.reload(); };
                 btnPdf.style.display = 'inline-block'; // Afficher le bouton PDF
+                // NOTE: Le texte du bouton a été mis à jour pour refléter le CSV
+                btnPdf.innerText = '📊 EXPORT STATS CSV';
                 btnPdf.onclick = () => runPdfExport(); // Lier la fonction d'export
                 loadFollowedStreams();
             } else {
@@ -633,7 +644,7 @@
         }
     }
 
-    // --- BOOST & ACTION IA RESTANTES ---
+    // --- BOOST ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value;
@@ -646,30 +657,6 @@
             if (!res.ok) throw new Error(`Erreur: ${res.status}`);
             const data = await res.json();
             resBox.innerHTML = data.html_response || data.error || "Action terminée.";
-        } catch(e) { 
-            resBox.innerHTML = `<p style="color:red;">❌ Erreur: ${e.message}</p>`; 
-        }
-    });
-
-    document.getElementById('form-auto-action').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const type = document.getElementById('select-action-type').value;
-        const query = document.getElementById('input-auto-action').value;
-        const resBox = document.getElementById('auto-action-results');
-        resBox.innerHTML = "<i class='fas fa-sync fa-spin'></i> Traitement...";
-        try {
-            const res = await fetch(`${API_BASE}/auto_action`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query, action_type:type})
-            });
-            if (!res.ok) {
-                const status = res.status;
-                const errorText = status === 403 || status === 400 
-                    ? `❌ ERREUR API (${status}): Clé AI Invalide.`
-                    : `❌ Erreur Serveur (${status}) pour l'Automatisation.`;
-                throw new Error(errorText);
-            }
-            const data = await res.json();
-            resBox.innerHTML = data.html_response || "Action terminée.";
         } catch(e) { 
             resBox.innerHTML = `<p style="color:red;">❌ Erreur: ${e.message}</p>`; 
         }
