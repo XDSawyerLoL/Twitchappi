@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub - COCKPIT MODE (V13 - RAID)</title>
+    <title>Streamer & Niche AI Hub - COCKPIT MODE (V14 - Final)</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -132,6 +132,17 @@
         }
         .followed-stream-item:hover { transform: translateY(-3px); box-shadow: var(--shadow-pink); }
         .followed-stream-item img { width: 100%; border-radius: 4px; margin-bottom: 5px; }
+        
+        /* RAID Result Style */
+        .raid-target-box { 
+            padding: 15px; background: #111; border-radius: 8px; border: 2px solid var(--color-ai-action);
+            display: flex; gap: 15px; align-items: center; 
+            box-shadow: var(--shadow-action);
+        }
+        .raid-target-box img { 
+            width: 100px; height: 56px; object-fit: cover; border-radius: 4px; 
+            border: 1px solid var(--color-ai-action);
+        }
 
         /* Media Queries */
         @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
@@ -140,7 +151,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V13 (Cockpit)</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V14 (Cockpit)</h1>
     <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Action</div>
 
     <div class="tabs-nav-container">
@@ -380,20 +391,19 @@
                 const u = scanData.user_data;
                 
                 // Données précises (simulées) pour un streamer
-                const metrics = u.metrics || {
+                const metrics = {
                     avg_viewers: (Math.random() * 500).toFixed(0),
                     follower_growth: (Math.random() * 10 - 2).toFixed(1), // -2 à 8%
-                    hours_streamed: (Math.random() * 400).toFixed(0),
                     engagement_rate: (Math.random() * 10 + 5).toFixed(1) // 5% à 15%
                 };
 
-                // RENDU SCAN SPÉCIFIQUE STREAMER
+                // RENDU SCAN SPÉCIFIQUE STREAMER (Utilisation des nouvelles métriques brutes)
                 boxScan.innerHTML = `
                     <div style="display:flex; gap:10px; align-items:center; border-bottom:1px solid #222; padding-bottom:10px; margin-bottom:10px;">
                         <img src="${u.profile_image_url}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--color-secondary-blue);">
                         <div>
                             <div style="font-weight:bold; font-size:14px;">${u.display_name}</div>
-                            <div style="color:${u.is_live?'red':'gray'}">${u.is_live ? '🔴 LIVE' : '⚫ OFF'} | ${u.game_name || 'Divers'}</div>
+                            <div style="color:${u.is_live?'red':'gray'}">${u.is_live ? `🔴 LIVE (${u.viewer_count} vues)` : '⚫ OFF'} | ${u.game_name || 'Divers'}</div>
                         </div>
                     </div>
                     <button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%; margin-bottom:10px; font-size:10px;">VOIR STREAM</button>
@@ -401,19 +411,23 @@
                     <div class="metric-grid">
                         <div class="metric-item">
                             <div class="metric-value">${metrics.avg_viewers}</div>
-                            <div class="metric-label"><i class="fas fa-eye"></i> Vues Moy. (30J)</div>
+                            <div class="metric-label"><i class="fas fa-eye"></i> Vues Moy. (Sim.)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${u.total_followers.toLocaleString()}</div>
+                            <div class="metric-label"><i class="fas fa-user-plus"></i> Total Suiveurs</div>
                         </div>
                         <div class="metric-item">
                             <div class="metric-value ${metrics.follower_growth > 0 ? 'trend-up' : 'trend-down'}">${metrics.follower_growth}%</div>
-                            <div class="metric-label"><i class="fas fa-chart-line"></i> Croissance Suiv. (7J)</div>
+                            <div class="metric-label"><i class="fas fa-chart-line"></i> Croissance Suiv. (Sim.)</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-value">${metrics.hours_streamed}h</div>
-                            <div class="metric-label"><i class="fas fa-clock"></i> Heures Streamées (30J)</div>
+                            <div class="metric-value">${u.total_vods.toLocaleString()}</div>
+                            <div class="metric-label"><i class="fas fa-video"></i> VODs Publiées</div>
                         </div>
-                        <div class="metric-item">
+                        <div class="metric-item" style="grid-column: span 2;">
                             <div class="metric-value">${metrics.engagement_rate}%</div>
-                            <div class="metric-label"><i class="fas fa-comment-dots"></i> Taux Engag. Chat</div>
+                            <div class="metric-label"><i class="fas fa-comment-dots"></i> Taux Engag. Chat (Sim.)</div>
                         </div>
                     </div>
                 `;
@@ -445,11 +459,11 @@
                     <div class="metric-grid">
                         <div class="metric-item">
                             <div class="metric-value">${g.total_viewers.toLocaleString()}</div>
-                            <div class="metric-label"><i class="fas fa-users"></i> Viewers Totaux</div>
+                            <div class="metric-label"><i class="fas fa-users"></i> Viewers Totaux (Live)</div>
                         </div>
                         <div class="metric-item">
                             <div class="metric-value">${g.total_streamers.toLocaleString()}</div>
-                            <div class="metric-label"><i class="fas fa-user-friends"></i> Streamers Totaux</div>
+                            <div class="metric-label"><i class="fas fa-user-friends"></i> Streamers Totaux (Live)</div>
                         </div>
                         <div class="metric-item" style="grid-column: span 2;">
                             <div class="metric-value ${g.avg_viewers_per_streamer > 20 ? 'trend-down' : 'trend-up'}" style="font-size:24px;">${g.avg_viewers_per_streamer}</div>
@@ -472,49 +486,74 @@
     });
 
 
-    // --- LOGIQUE RAID (Nouveau) ---
+    // --- LOGIQUE RAID (Mise à jour pour utiliser le nouveau endpoint backend) ---
     document.getElementById('form-raid').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-raid-game').value;
         const maxViewers = document.getElementById('input-raid-viewer-count').value;
         const resBox = document.getElementById('raid-results');
+        const btn = document.getElementById('btn-start-raid');
 
         if (!game) {
             resBox.innerHTML = "<p style='color:red; text-align:center;'>Veuillez entrer une catégorie de jeu cible.</p>";
             return;
         }
-
-        resBox.innerHTML = `<i class='fas fa-sync fa-spin' style='color:var(--color-ai-action)'></i> Recherche d'une cible de Raid dans **${game}** (< ${maxViewers} vues)...`;
+        
+        btn.disabled = true;
+        btn.innerHTML = `<i class='fas fa-sync fa-spin'></i> Recherche d'une cible...`;
+        resBox.innerHTML = `<i class='fas fa-search' style='color:var(--color-ai-action)'></i> Recherche d'une cible de Raid dans **${game}** (< ${maxViewers} vues)...`;
         
         try {
-            // SIMULATION API CALL (Doit être implémenté dans votre backend)
             const res = await fetch(`${API_BASE}/start_raid`, {
                 method:'POST', headers:{'Content-Type':'application/json'}, 
                 body:JSON.stringify({game, max_viewers: parseInt(maxViewers)})
             });
             
-            if (!res.ok) throw new Error(`Erreur: ${res.status}`);
             const data = await res.json();
             
-            // SIMULATION DE RÉSULTAT
             if (data.success && data.channel) {
-                const html = `
-                    <p style="color:var(--color-ai-niche); font-weight:bold; font-size:16px; text-align:center;"><i class="fas fa-bullhorn"></i> CIBLE TROUVÉE ET RAID LANCÉ!</p>
-                    <div style="margin-top:10px; padding:10px; background:#111; border-radius:4px; text-align:center;">
-                        <p style="font-weight:bold; font-size:14px; color:var(--color-secondary-blue);">CHAÎNE : ${data.channel.name}</p>
-                        <p style="font-size:12px; color:white;">SPECTATEURS : ${data.channel.viewers}</p>
-                        <p style="font-size:12px; color:#888;">JEU : ${data.channel.game}</p>
+                const c = data.channel;
+                
+                // 1. Affichage du résultat de la cible
+                resBox.innerHTML = `
+                    <p style="color:var(--color-ai-action); font-weight:bold; font-size:16px; text-align:center; margin-bottom:15px;">
+                        ✅ CIBLE TROUVÉE POUR LE RAID !
+                    </p>
+                    <div class="raid-target-box">
+                        <img src="${c.thumbnail_url}" alt="Vignette de ${c.name}">
+                        <div>
+                            <p style="font-family:'Orbitron', sans-serif; font-size:14px; color:white;">
+                                <a href="#" onclick="launchPlayer('${c.login}'); return false;" style="color:var(--color-secondary-blue); text-decoration:none;">${c.name}</a>
+                            </p>
+                            <p style="font-size:12px; color:#888;">${c.game}</p>
+                            <p style="font-size:13px; font-weight:bold; color:var(--color-ai-action);">
+                                <i class="fas fa-eye"></i> ${c.viewers} SPECTATEURS
+                            </p>
+                        </div>
                     </div>
-                    <button onclick="launchPlayer('${data.channel.login}')" class="btn-primary" style="width:100%; margin-top:10px; background:var(--color-secondary-blue);">VOIR LA CIBLE</button>
+                    <button onclick="launchPlayer('${c.login}')" class="btn-primary" style="background:var(--color-ai-action); width:100%; margin-top:15px;">
+                        <i class="fas fa-bullhorn"></i> LANCER LE RAID ET VOIR LA CHAÎNE
+                    </button>
                 `;
-                resBox.innerHTML = html;
+                
+                // 2. Lancement réel du Raid dans le lecteur principal
+                launchPlayer(c.login);
+                
+            } else if (data.error) {
+                // Erreur (ex: pas de cible trouvée, jeu invalide, etc.)
+                resBox.innerHTML = `<p style="color:red; text-align:center; font-weight:bold;">❌ Erreur lors du Raid: ${data.error}</p>`; 
             } else {
-                resBox.innerHTML = `<p style="color:var(--color-ai-action); text-align:center;">❌ Aucune cible de Raid trouvée dans ${game} avec moins de ${maxViewers} vues. (Essayez une autre catégorie)</p>`;
+                 resBox.innerHTML = `<p style="color:red; text-align:center; font-weight:bold;">❌ Erreur de réponse inconnue du serveur.</p>`; 
             }
+            
         } catch(e) { 
-            resBox.innerHTML = `<p style="color:red; text-align:center;">❌ Erreur lors du Raid: ${e.message}</p>`; 
+            resBox.innerHTML = `<p style="color:red; text-align:center; font-weight:bold;">❌ Erreur de connexion au backend: ${e.message}</p>`; 
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-satellite-dish"></i> LANCER LA RECHERCHE & LE RAID`;
         }
     });
+
 
     // --- LOGIQUE AUTH & EXPORT PDF (Relocalisée) ---
     async function runPdfExport() {
@@ -522,10 +561,9 @@
         resBox.innerHTML = "<i class='fas fa-sync fa-spin' style='color:var(--color-ai-growth)'></i> Génération du PDF des métriques en cours...";
         
         try {
-            // Obtenir les infos utilisateur pour définir la cible de l'export
             const userRes = await fetch(`${API_BASE}/twitch_user_status`);
             const userData = await userRes.json();
-            const target = userData.user_login || 'me'; 
+            const target = userData.username || 'me'; 
 
             const res = await fetch(`${API_BASE}/auto_action`, {
                 method:'POST', headers:{'Content-Type':'application/json'}, 
