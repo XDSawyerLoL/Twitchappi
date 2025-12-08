@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub V10.2 - Full Features</title>
+    <title>Streamer & Niche AI Hub V11.0 - Stratégie Intégrée</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -15,15 +15,15 @@
             --color-bg-light: #111;
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
-            --color-ai-niche: #59d682;
+            --color-ai-niche: #59d682; /* Utilisé pour l'onglet Stratégie */
             --color-ai-repurpose: #9933ff;
-            --color-ai-growth: #ffcc00;
+            --color-ai-growth: #ffcc00; /* Principal pour Stratégie */
             --color-ai-action: #e34a64; 
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
             
-            /* ✅ NOUVELLES VARIABLES D'OMBRES NÉON */
+            /* NOUVELLES VARIABLES D'OMBRES NÉON */
             --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
             --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
             --shadow-niche: 0 0 15px rgba(89, 214, 130, 0.4);
@@ -36,7 +36,6 @@
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
         #twitch-lucky-main { all: initial; display: block; max-width: 1200px; margin: 20px auto; padding: 10px; font-family: 'Inter', sans-serif; color: #fff; }
         
-        /* ✅ TITRE H1 ET SOUS-TITRE AMÉLIORÉS */
         h1 { 
             font-family: 'Orbitron', sans-serif; 
             font-size: 28px; 
@@ -128,23 +127,23 @@
         }
 
         /* Couleurs IA spécifiques pour les icônes */
-        #niche-result-container li:before { content: "✅"; color: var(--color-ai-niche); }
+        /* ✅ On utilise le style pour les icônes de stratégie (anciennement niche/growth) */
+        #tab-strategie .ai-result-box li:before, .game-item li:before { content: "💎"; color: var(--color-ai-growth); } 
         #repurpose-result-container li:before { content: "✂️"; color: var(--color-ai-repurpose); }
-        .game-item li:before, #ai-trend-critique-container li:before { content: "💎"; color: var(--color-ai-growth); }
         #auto-action-results li:before { content: "🔥"; color: var(--color-ai-action); } /* ACTION */
 
 
-        /* ✅ LUEURS SPÉCIFIQUES DES BOÎTES DE RÉSULTAT IA */
+        /* LUEURS SPÉCIFIQUES DES BOÎTES DE RÉSULTAT IA */
         #scan-result { border-color: var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
-        #niche-result-container { border-color: var(--color-ai-niche); box-shadow: var(--shadow-niche); }
         #repurpose-result-container { border-color: var(--color-ai-repurpose); box-shadow: var(--shadow-repurpose); }
-        #ai-trend-critique-container { border-color: var(--color-ai-growth); box-shadow: var(--shadow-growth); }
+        /* ✅ Lueur jaune pour Stratégie & Croissance */
+        #strategy-result-container { border-color: var(--color-ai-growth); box-shadow: var(--shadow-growth); }
         #boost-results { border-color: var(--color-primary-pink); box-shadow: var(--shadow-pink); }
         #auto-action-results, #action-report-box { border-color: var(--color-ai-action); box-shadow: var(--shadow-action); } /* ACTION */
         
-        #niche-result-container h4 { color: var(--color-ai-niche); border-color: var(--color-ai-niche); }
+        /* ✅ Couleurs des titres dans l'onglet Stratégie */
+        #strategy-result-container h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
         #repurpose-result-container h4 { color: var(--color-ai-repurpose); border-color: var(--color-ai-repurpose); }
-        #ai-trend-critique-container h4 { color: var(--color-ai-growth); border-color: var(--color-ai-growth); }
         
         /* Style pour la zone de Repurposing visuel */
         #repurpose-vod-preview {
@@ -207,14 +206,14 @@
             border-top: 3px solid var(--color-primary-pink); 
             font-weight: bold;
             box-shadow: var(--shadow-pink); /* Glow pour l'onglet actif */
-            z-index: 10; /* Pour s'assurer qu'il recouvre la bordure inférieure */
-            border-bottom: 1px solid var(--color-bg-medium); /* Pour que le contenu se fonde */
+            z-index: 10; 
+            border-bottom: 1px solid var(--color-bg-medium); 
         }
-        /* Correction de l'onglet Action pour garder la couleur */
-        .tab-btn[data-tab-id="tab-action"].active {
-            border-top: 3px solid var(--color-ai-action) !important;
-            box-shadow: var(--shadow-action);
-        }
+        /* Gérer les couleurs spécifiques des onglets actifs */
+        .tab-btn[data-tab-id="tab-metrics"].active { border-top: 3px solid var(--color-secondary-blue) !important; box-shadow: var(--shadow-blue); }
+        .tab-btn[data-tab-id="tab-strategie"].active { border-top: 3px solid var(--color-ai-growth) !important; box-shadow: var(--shadow-growth); }
+        .tab-btn[data-tab-id="tab-repurpose"].active { border-top: 3px solid var(--color-ai-repurpose) !important; box-shadow: var(--shadow-repurpose); }
+        .tab-btn[data-tab-id="tab-action"].active { border-top: 3px solid var(--color-ai-action) !important; box-shadow: var(--shadow-action); }
 
         /* La classe tab-content est appliquée à tous les contenus, qu'ils soient au-dessus ou en dessous du lecteur */
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-top: none; border-radius: 0 0 10px 10px; padding: 20px; }
@@ -234,14 +233,14 @@
             border-radius: 8px; 
             border: 1px solid var(--color-border-dark); 
             cursor: pointer; 
-            transition: all 0.3s ease; /* Transition plus douce */
-            transform: scale(1); /* Point de départ */
+            transition: all 0.3s ease; 
+            transform: scale(1); 
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
         .followed-stream-item:hover {
-            background: #232323; /* Légèrement plus clair */
-            transform: translateY(-3px) scale(1.02); /* Soulèvement et zoom */
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7), var(--shadow-pink); /* Ombre intense avec glow rose */
+            background: #232323; 
+            transform: translateY(-3px) scale(1.02); 
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7), var(--shadow-pink); 
         }
         
         /* Mini Assistant CSS (Fixe la bulle) */
@@ -259,7 +258,7 @@
             justify-content: center; 
             font-size: 24px; 
             cursor: pointer; 
-            box-shadow: 0 4px 15px rgba(34, 199, 239, 0.4), 0 0 20px var(--color-secondary-blue); /* Lueur plus forte */
+            box-shadow: 0 4px 15px rgba(34, 199, 239, 0.4), 0 0 20px var(--color-secondary-blue); 
             z-index: 1000; 
             transition: transform 0.2s, box-shadow 0.3s; 
             border: none; 
@@ -286,48 +285,58 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V10.2</h1>
-    <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance • Action</div>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V11.0</h1>
+    <div class="subtitle-center">Lecteur • Analyse • Stratégie • Repurposing • Action</div>
     
     <div id="tabs-container">
         
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
-            <button class="tab-btn" data-tab-id="tab-cible" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
-            <button class="tab-btn" data-tab-id="tab-niche" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
-            <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">🚀 REPURPOSING</button>
-            <button class="tab-btn" data-tab-id="tab-growth" onclick="openTab('tab-growth')">💰 CROISSANCE</button>
+            <button class="tab-btn" data-tab-id="tab-metrics" onclick="openTab('tab-metrics')" style="border-top: 3px solid var(--color-secondary-blue);">🎯 ANALYSE & MÉTRIQUES</button>
+            <button class="tab-btn" data-tab-id="tab-strategie" onclick="openTab('tab-strategie')" style="border-top: 3px solid var(--color-ai-growth);">📈 STRATÉGIE & CROISSANCE</button>
+            <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')" style="border-top: 3px solid var(--color-ai-repurpose);">🚀 REPURPOSING</button>
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
-            <button class="tab-btn" data-tab-id="tab-action" onclick="openTab('tab-action')" style="border-top: 3px solid var(--color-ai-action);">🔥 DISRUPTION/ACTION</button>
+            <button class="tab-btn" data-tab-id="tab-action" onclick="openTab('tab-action')" style="border-top: 3px solid var(--color-ai-action);">🔥 ACTION RAPIDE</button>
         </div>
 
-        <div id="tab-cible" class="tab-content">
-            <h3 class="tab-heading text-blue"><span class="icon">🔭</span> Configuration & Scan</h3>
+        <div id="tab-metrics" class="tab-content">
+            <h3 class="tab-heading text-blue"><span class="icon">🔭</span> Analyse de Cible & Métriques (IA)</h3>
             <form id="form-target" class="flex gap-2 mb-2">
                 <input id="input-target" type="text" placeholder="Jeu ou Pseudo" class="action-input">
-                <button type="submit" id="btn-target" class="btn-secondary min-w-[80px]">🎯 CIBLER</button>
+                <button type="submit" id="btn-target" class="btn-secondary min-w-[100px]">🎯 ANALYSER</button>
             </form>
-            <div id="scan-result" class="ai-result-box"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Entrez un jeu ou un pseudo et cliquez sur CIBLER.</p></div>
+            <div id="scan-result" class="ai-result-box"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Entrez un jeu ou un pseudo et cliquez sur ANALYSER.</p></div>
         </div>
 
-        <div id="tab-niche" class="tab-content">
-            <h3 class="tab-heading text-green"><span class="icon">📈</span> Analyse de Niche</h3>
-            <form id="form-niche-analysis" class="flex gap-2 mb-2">
-                <input id="input-niche-game" type="text" placeholder="Jeu à Analyser (ex: Starfield)" class="action-input">
-                <button type="submit" id="btn-niche-analyse" class="btn-primary min-w-[120px]" style="background:var(--color-ai-niche);">✨ ANALYSER</button>
-            </form>
-            <div id="niche-result-container" class="ai-result-box"><div id="niche-results" class="ai-content"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Les résultats de l'analyse de niche IA apparaîtront ici.</p></div></div>
+        <div id="tab-strategie" class="tab-content">
+            <h3 class="tab-heading" style="color:var(--color-ai-growth);"><span class="icon">🧠</span> Stratégie de Niche & Heures d'Or</h3>
+             <div class="login-box mb-4">
+                <button id="btn-hype-games" class="btn-primary w-full p-3" style="background:var(--color-ai-niche); color: var(--color-bg-dark); margin-bottom: 10px;">🕹️ MEILLEURS JEUX EN TENDANCE (TWITCH)</button>
+                <form id="form-niche-analysis" class="flex gap-2">
+                    <input id="input-niche-game" type="text" placeholder="Jeu, Thème ou Genre à Analyser (ex: Jeux de survie)" class="action-input">
+                    <button type="submit" id="btn-niche-analyse" class="btn-primary min-w-[120px]" style="background:var(--color-ai-growth);">🔮 IA STRATÉGIE</button>
+                </form>
+            </div>
+            
+            <div id="strategy-result-container" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Lancez l'IA Stratégie pour obtenir une analyse de niche, des angles de contenu et vos heures d'or.</p></div>
+            
+             <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-medium);">
+                <h4 class="tab-heading" style="color:var(--color-ai-niche);"><span class="icon">📈</span> Jeux en Tendance (Twitch)</h4>
+                <div id="trending-games-list" class="flex flex-wrap gap-4 justify-center">
+                    <p style="color:#555; text-align:center; padding:10px;">Cliquez sur "Jeux en Tendance" pour charger les résultats.</p>
+                </div>
+            </div>
         </div>
         
         <div id="tab-repurpose" class="tab-content">
-            <h3 class="tab-heading text-purple"><span class="icon">✂️</span> Repurposing IA</h3>
+            <h3 class="tab-heading" style="color:var(--color-ai-repurpose);"><span class="icon">✂️</span> Repurposing IA</h3>
             <form id="form-repurpose" class="flex gap-2 mb-2 flex-col">
                 <input id="input-repurpose-channel" type="text" placeholder="Pseudo du Streamer" class="action-input">
                 <button type="submit" id="btn-repurpose-analyse" class="btn-primary p-3" style="background:var(--color-ai-repurpose);">🚀 ANALYSER VOD</button>
             </form>
             
             <div id="repurpose-vod-preview">
-                <img id="vod-thumbnail" src="https://placehold.co/150x84/222/9933ff.png?text=VOD" alt="Miniature VOD">
+                <img id="vod-thumbnail" src="https://placehold.co/150x84/222/9933ff.png?text=VOD" alt="Miniature VOD" style="width:150px; height:84px;">
                 <div class="flex-1">
                     <div id="vod-title-display">Saisissez un pseudo pour analyser sa dernière VOD.</div>
                     <a id="vod-link" href="#" target="_blank" class="btn-secondary" style="background: var(--color-secondary-blue); padding: 5px 10px; font-size: 11px;">Voir la VOD complète</a>
@@ -335,23 +344,6 @@
             </div>
 
             <div id="repurpose-result-container" class="ai-result-box"><div id="repurpose-results" class="ai-content"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Les suggestions de contenu court apparaîtront ici.</p></div></div>
-        </div>
-
-        <div id="tab-growth" class="tab-content">
-            <h3 class="tab-heading text-yellow"><span class="icon">💰</span> Tableau de Bord Croissance</h3>
-            <div class="login-box">
-                <button id="btn-hype-games" class="btn-primary w-full p-3 mb-4" style="background:var(--color-ai-niche); color: var(--color-bg-dark);">🕹️ MEILLEURS JEUX HYPE DU MOMENT</button>
-                
-                <button id="btn-trend-detector" class="btn-primary w-full p-3" style="background:var(--color-ai-growth); color: var(--color-bg-dark);">🔮 DÉTECTER LA PROCHAINE NICHE (IA)</button>
-                
-                <div id="ai-trend-critique-container" class="ai-result-box" style="border-color: var(--color-ai-growth); margin-top: 15px;"><p style="text-align:center; color:var(--color-text-dimmed); font-weight: bold;">Cliquez sur le bouton du dessus pour lancer l'analyse des tendances V/S.</p></div>
-            </div>
-             <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-medium);">
-                <h4 class="tab-heading text-yellow" style="color:var(--color-ai-niche);"><span class="icon">📈</span> Jeux en Tendance (Twitch)</h4>
-                <div id="trending-games-list" class="flex flex-wrap gap-4 justify-center">
-                    <p style="color:#555; text-align:center; padding:10px;">Cliquez sur "Jeux Hype" pour charger les résultats.</p>
-                </div>
-            </div>
         </div>
 
         <div id="tab-boost" class="tab-content">
@@ -366,14 +358,12 @@
         </div>
         
         <div id="tab-action" class="tab-content">
-            <h3 class="tab-heading" style="color:var(--color-ai-action);"><span class="icon">🔥</span> DISRUPTION & AUTO-ACTION</h3>
+            <h3 class="tab-heading" style="color:var(--color-ai-action);"><span class="icon">🔥</span> ACTION RAPIDE</h3>
             <div class="login-box">
                 <form id="form-auto-action" class="flex flex-col gap-3">
                     <h4 class="text-sm font-bold" style="color:var(--color-ai-action);">Sélectionnez l'Action Automatique:</h4>
                     <select id="select-action-type" class="action-input">
-                        <option value="export_metrics">📊 EXPORT METRICS (Statistiques)</option>
                         <option value="create_clip">🎬 CRÉER CLIP AUTOMATIQUE</option>
-                        <option value="title_disruption">📝 SUGGESTION TITRE DISRUPTIF</option>
                     </select>
                     <input id="input-auto-action" type="text" placeholder="Entrez la chaîne/VOD/Thème" class="action-input">
                     <button type="submit" id="btn-auto-action" class="btn-primary p-3" style="background:var(--color-ai-action);">🚀 LANCER L'ACTION</button>
@@ -443,54 +433,40 @@
     let embed = null;
     let twitchUserConnected = false;
     let currentVODId = null; 
-    const aiTrendCritiqueContainer = document.getElementById('ai-trend-critique-container');
+    const strategyResultContainer = document.getElementById('strategy-result-container'); // Nouveau ID
 
-
-    // --- 1. FONCTIONS DE GESTION DES ONGLET ET DU VOD (CORRIGÉ) ---
+    // --- 1. FONCTIONS DE GESTION DES ONGLET ET DU VOD (MIS À JOUR) ---
 
     function openTab(tabId) {
         localStorage.setItem('activeTab', tabId);
         
         // 1. Désactiver tous les boutons d'onglet
-        document.querySelectorAll('#tabs-container .tab-btn').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => {
+             el.classList.remove('active');
+             // Réinitialiser la couleur par défaut pour les non-actifs
+             el.style.borderTop = '3px solid transparent';
+        });
         
-        // 2. Désactiver TOUS les contenus d'onglet (ceux du dessus ET 'tab-followed' en dessous)
+        // 2. Désactiver TOUS les contenus d'onglet
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); 
 
         // 3. Activer le bouton cliqué
-        const followedContent = document.getElementById('tab-followed');
         const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
-        
         if (targetBtn) {
             targetBtn.classList.add('active');
-            
-             // Gérer la couleur spéciale pour l'onglet Action
-            if (tabId === 'tab-action') {
-                 targetBtn.style.borderTop = '3px solid var(--color-ai-action)';
-            } else {
-                // Rétablir la couleur rose pour les autres onglets
-                targetBtn.style.borderTop = '3px solid var(--color-primary-pink)';
-            }
         }
 
-
-        if (tabId === 'tab-followed') {
-             // Si l'utilisateur clique sur "Mon Fil Suivi", activer son contenu (qui est en dessous du lecteur)
-            followedContent.classList.add('active');
-        } else {
-            // Si un autre onglet est activé, masquer le contenu "Mon Fil Suivi" (déjà fait par le sélecteur général au point 2)
-            
-            // 4. Activer le contenu cible (un des onglets du dessus)
-            const targetContent = document.getElementById(tabId);
-            if (targetContent) {
-                targetContent.classList.add('active');
-            }
+        // 4. Activer le contenu cible (qu'il soit au-dessus ou en dessous)
+        const targetContent = document.getElementById(tabId);
+        if (targetContent) {
+            targetContent.classList.add('active');
         }
     }
 
-    function analyzeGameNiche(gameName) {
+    // Fonction mise à jour pour le nouveau ID d'onglet
+    function analyzeGameStrategy(gameName) {
         document.getElementById('input-niche-game').value = gameName;
-        openTab('tab-niche');
+        openTab('tab-strategie');
         document.getElementById('btn-niche-analyse').click();
     }
 
@@ -523,14 +499,6 @@
         }
     }
 
-    // --- ✅ NOUVELLE LOGIQUE DE PARTAGE DU LECTEUR ---
-    
-    /**
-     * Gère le partage d'un lien (Stream ou VOD) sur les réseaux sociaux.
-     * @param {string} platform - Le réseau social (twitter, reddit, discord, whatsapp, telegram, copy).
-     * @param {string} url - L'URL du Stream ou de la VOD à partager.
-     * @param {string} channelName - Le nom de la chaîne pour le message de partage.
-     */
     function shareLinkContent(platform, url, channelName) {
         const title = encodeURIComponent(`🔴 Regardez ${channelName} en direct !`);
         const message = encodeURIComponent(`Je regarde ${channelName} sur Twitch via le Streamer AI Hub. C'est le moment de nous rejoindre !`);
@@ -538,15 +506,12 @@
         
         switch (platform) {
             case 'twitter':
-                // Le lien par défaut est ajouté séparément pour Twitter
                 shareUrl = `https://twitter.com/intent/tweet?text=${message}&url=${encodeURIComponent(url)}`;
                 break;
             case 'reddit':
-                // Reddit utilise l'URL et le titre
                 shareUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${title}`;
                 break;
             case 'discord':
-                // Pour Discord, on copie le message et le lien.
                 navigator.clipboard.writeText(`${decodeURIComponent(message)}\n${url}`).then(() => {
                     alert('✅ Le lien de stream a été copié dans votre presse-papiers pour Discord ! Collez-le dans votre canal.');
                 }).catch(err => {
@@ -554,11 +519,9 @@
                 });
                 return; 
             case 'whatsapp':
-                // WhatsApp utilise le paramètre text (URL est déjà dans le message)
                 shareUrl = `whatsapp://send?text=${message + encodeURIComponent('\n') + encodeURIComponent(url)}`;
                 break;
             case 'telegram':
-                // Telegram utilise le paramètre text et url
                 shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${message}`;
                 break;
             case 'copy':
@@ -577,10 +540,6 @@
         }
     }
 
-    /**
-     * Remplacement de l'ancienne fonction générant les boutons de partage.
-     * Elle injecte les nouveaux boutons esthétiques.
-     */
     function generateShareButtons(channel, url) {
         const shareContainer = document.getElementById('twitch-player-share');
         if (!shareContainer) return;
@@ -658,7 +617,6 @@
             shareUrl = shareUrl + `?t=${time}s`;
         }
 
-        // Appel de la NOUVELLE fonction pour injecter les boutons améliorés
         generateShareButtons(channelName, shareUrl);
     }
     
@@ -823,7 +781,6 @@
     
     // --- 4. GESTIONNAIRES D'ÉVÉNEMENTS : ANALYSE ---
 
-    const nicheResults = document.getElementById('niche-results');
     const repurposeResults = document.getElementById('repurpose-results');
     
     // Fonction d'appel IA générique
@@ -858,6 +815,7 @@
         }
     }
 
+    // ✅ LOGIQUE MISE À JOUR pour tab-metrics (anciennement tab-cible)
     document.getElementById('form-target').addEventListener('submit', async function(e) {
         e.preventDefault();
         const query = document.getElementById('input-target').value.trim();
@@ -865,10 +823,11 @@
         const btn = document.getElementById('btn-target');
         if (!query) return;
 
-        resultBox.innerHTML = `<p style="text-align:center; color:var(--color-secondary-blue);">🚀 Scan de la cible en cours pour <strong>${query}</strong>...</p>`;
+        resultBox.innerHTML = `<p style="text-align:center; color:var(--color-secondary-blue);">🚀 Analyse de la cible en cours pour <strong>${query}</strong>...</p>`;
         btn.disabled = true;
 
         try {
+            // L'API /scan_target retourne désormais l'analyse IA complète
             const res = await fetch(`${API_BASE}/scan_target`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -878,37 +837,22 @@
             const data = await res.json();
 
             if (!res.ok) { 
-                throw new Error(data.error || `Erreur lors de l'appel au service de Scan (Statut: ${res.status}).`);
+                resultBox.innerHTML = data.html_response || `<p style="color:red; padding:10px;">❌ Erreur lors de l'appel au service de Scan (Statut: ${res.status}).</p>`;
+                return;
             }
             
-            let htmlOutput = '';
-
             if (data.success) {
-                if (data.type === 'game' && data.game_data) {
-                    const g = data.game_data;
-                    htmlOutput += `<h4 style="color:var(--color-secondary-blue); border-color:var(--color-secondary-blue);">Analyse de Jeu: ${g.name}</h4>`;
-                    htmlOutput += `<div class="flex items-start gap-4 mb-4"> <img src="${g.box_art_url.replace('{width}', '80').replace('{height}', '80')}" alt="Box Art" style="width: 80px; height: 80px; border-radius: 4px; border: 1px solid var(--color-secondary-blue);"> <div class="text-sm"> <p><strong>Total Streamers LIVE:</strong> ${g.total_streamers.toLocaleString('fr-FR')}</p> <p><strong>Total Spectateurs LIVE:</strong> ${g.total_viewers.toLocaleString('fr-FR')}</p> <p><strong>Spectateurs/Streamer (V/S):</strong> <strong style="color:var(--color-ai-niche);">${g.avg_viewers_per_streamer}</strong></p> </div> </div>`;
-                    htmlOutput += `<h5>Top Streams LIVE:</h5><ul class="list-none p-0">`;
-                    htmlOutput += g.streams.slice(0, 5).map(stream => `
-                        <li style="position:relative; padding-left:0; margin-bottom:5px;">
-                            <span onclick="window.launchPlayer('${stream.user_login}')" style="cursor:pointer; color:var(--color-primary-pink); font-weight:bold;">${stream.user_name}</span> - ${stream.title.substring(0, 40)}... 
-                            <span class="text-red-500 text-xs ml-2">${stream.viewer_count.toLocaleString('fr-FR')} vues</span>
-                        </li>
-                    `).join('');
-                    htmlOutput += `</ul>`;
-                    htmlOutput += `<button onclick="analyzeGameNiche('${g.name}')" class="btn-primary w-full mt-3" style="background:var(--color-ai-niche);">👉 ANALYSER EN NICHE (IA)</button>`;
-
-                } else if (data.type === 'user' && data.user_data) {
-                    const u = data.user_data;
-                    htmlOutput += `<h4 style="color:var(--color-primary-pink); border-color:var(--color-primary-pink);">Analyse de Streamer: ${u.display_name}</h4>`;
-                    htmlOutput += `<div class="flex items-start gap-4 mb-4"> <img src="${u.profile_image_url}" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--color-primary-pink);"> <div class="text-sm"> <p><strong>Statut:</strong> <span class="${u.is_live ? 'text-red-500 font-bold' : 'text-gray-500'}">${u.is_live ? `🔴 EN DIRECT (${u.stream_details.viewer_count.toLocaleString('fr-FR')} vues)` : 'Hors Ligne'}</span></p> <p>${u.description.substring(0, 100) || 'Pas de description.'}</p> </div> </div>`;
-                    htmlOutput += `<button onclick="window.launchPlayer('${u.login}')" class="btn-primary w-full mb-2">▶️ REGARDER</button>`;
-                    htmlOutput += `<button onclick="document.getElementById('input-repurpose-channel').value='${u.login}'; openTab('tab-repurpose');" class="btn-primary w-full" style="background:var(--color-ai-repurpose);">✂️ ANALYSER VOD (REPURPOSE)</button>`;
+                let htmlOutput = data.html_response;
+                // Si c'est un jeu, ajouter le bouton pour la stratégie
+                if (data.type === 'game' && data.game_name) {
+                    htmlOutput += `<button onclick="analyzeGameStrategy('${data.game_name}')" class="btn-primary w-full mt-3" style="background:var(--color-ai-growth);">👉 STRATÉGIE & HEURES D'OR (IA)</button>`;
+                } else if (data.type === 'user' && data.user_login) {
+                     htmlOutput += `<button onclick="document.getElementById('input-repurpose-channel').value='${data.user_login}'; openTab('tab-repurpose');" class="btn-primary w-full mt-3" style="background:var(--color-ai-repurpose);">✂️ ANALYSER VOD (REPURPOSE)</button>`;
                 }
+                resultBox.innerHTML = htmlOutput;
             } else {
-                htmlOutput = `<p style="color:red; padding:10px;">❌ ${data.message}</p>`;
+                resultBox.innerHTML = data.html_response || `<p style="color:red; padding:10px;">❌ ${data.message}</p>`;
             }
-            resultBox.innerHTML = htmlOutput;
         } catch (e) {
             resultBox.innerHTML = `<p style="color:red; padding:10px;">❌ Erreur réseau ou API: ${e.message}</p>`;
         } finally {
@@ -916,12 +860,14 @@
         }
     });
 
+    // ✅ LOGIQUE MISE À JOUR pour tab-strategie (anciennement tab-niche/growth)
     document.getElementById('form-niche-analysis').addEventListener('submit', function(e) {
         e.preventDefault();
-        const game = document.getElementById('input-niche-game').value.trim();
+        const query = document.getElementById('input-niche-game').value.trim();
         const btn = document.getElementById('btn-niche-analyse');
-        if (game) {
-            callAI('niche', game, nicheResults, btn);
+        if (query) {
+            // Utilise le nouveau type 'strategie' pour l'API
+            callAI('strategie', query, strategyResultContainer, btn); 
         }
     });
 
@@ -938,7 +884,6 @@
         currentVODId = null;
 
         try {
-            // 1. Récupérer les détails de la VOD
             const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${channel}`);
             const vodData = await vodRes.json();
             
@@ -956,7 +901,6 @@
                 previewBox.style.display = 'flex';
                 repurposeResults.innerHTML = `<p style="color:var(--color-ai-repurpose);">✅ VOD récente trouvée (${vod.title.substring(0, 30)}...). 2/2 Lancement de l'analyse IA...</p>`;
 
-                // 2. Lancer l'analyse IA
                 const aiRes = await fetch(`${API_BASE}/critique_ia`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -976,7 +920,6 @@
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = htmlOutput;
                     
-                    // Transformation des timestamps en boutons cliquables
                     const timestampRegex = /\*\*Point de Clip:\*\* (\d{2}:\d{2}:\d{2})/g;
 
                     const nodes = tempDiv.querySelectorAll('li, p');
@@ -1032,7 +975,8 @@
                 const item = document.createElement('div');
                 item.className = 'game-item followed-stream-item'; 
                 item.style.cssText = 'width: 180px; min-width: 180px; flex-shrink: 0;';
-                item.onclick = () => analyzeGameNiche(game.name); 
+                // Utilise la nouvelle fonction analyzeGameStrategy
+                item.onclick = () => analyzeGameStrategy(game.name); 
                 
                 const thumbnailUrl = game.box_art_url
                     .replace('{width}', '180')
@@ -1056,11 +1000,6 @@
     }
     
     document.getElementById('btn-hype-games').addEventListener('click', fetchTrendingGames);
-
-    document.getElementById('btn-trend-detector').addEventListener('click', function() {
-        const btn = document.getElementById('btn-trend-detector');
-        callAI('trend', 'Analyse des tendances V/S Twitch', aiTrendCritiqueContainer, btn);
-    });
     
     // --- 6. GESTION DU BOOST ---
     document.getElementById('form-boost').addEventListener('submit', async function(e) {
@@ -1080,7 +1019,6 @@
             
             const data = await res.json();
             
-             // Vérification robuste du statut HTTP (pour le 429 de cooldown ou autre erreur)
             if (!res.ok) {
                  boostMessage.innerHTML = data.html_response || `<p style="color:red;">❌ Erreur Boost: ${data.error || `Statut HTTP ${res.status}.`}</p>`;
                  return;
@@ -1096,10 +1034,11 @@
     });
 
 
-    // --- 7. LOGIQUE DE L'ONGLET ACTION/DISRUPTION (CORRIGÉ) ---
+    // --- 7. LOGIQUE DE L'ONGLET ACTION/DISRUPTION (SIMPLIFIÉ) ---
     document.getElementById('form-auto-action').addEventListener('submit', async function(e) {
         e.preventDefault();
         const query = document.getElementById('input-auto-action').value.trim();
+        // Seule action restante: create_clip
         const actionType = document.getElementById('select-action-type').value; 
         const resultBox = document.getElementById('auto-action-results');
         const reportBox = document.getElementById('action-report-box');
@@ -1125,27 +1064,14 @@
 
             if (res.ok && data.success) {
                 resultBox.innerHTML = data.html_response || `<p style="color:var(--color-ai-niche); font-weight:bold; text-align:center;">Action ${actionType} réussie !</p>`;
-                
-                // Si l'action a renvoyé des métriques (comme pour l'export_metrics)
-                if (data.metrics) {
-                    const { views, retention, followers } = data.metrics;
-                    document.getElementById('metric-views').textContent = views.toLocaleString('fr-FR');
-                    document.getElementById('metric-retention').textContent = `${(retention * 100).toFixed(0)}%`;
-                    document.getElementById('metric-followers').textContent = followers.toLocaleString('fr-FR');
-                    reportBox.style.display = 'block';
-                } else {
-                    reportBox.style.display = 'none';
-                }
+                reportBox.style.display = 'none'; // Assurer qu'on cache le rapport de metrics si ce n'est pas utilisé.
 
             } else if (res.status === 429) {
                 resultBox.innerHTML = data.html_response || `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">❌ Cooldown actif. Réessayez plus tard.</p>`;
-                reportBox.style.display = 'none';
             } else {
                 resultBox.innerHTML = `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">Erreur API (${res.status}): ${data.error || "Une erreur inconnue s'est produite."}</p>`;
-                reportBox.style.display = 'none';
             }
         } catch(e) {
-            // Message d'erreur plus explicite pour l'erreur JSON/HTML
             let errorMessage = e.message;
             if (errorMessage.includes("Unexpected token '<'")) {
                 errorMessage = "Le serveur a renvoyé une page d'erreur (HTML) au lieu des données JSON. L'API est probablement HS.";
@@ -1154,7 +1080,6 @@
             }
             
             resultBox.innerHTML = `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">❌ Erreur: ${errorMessage}</p>`;
-            reportBox.style.display = 'none';
         } finally {
             btn.disabled = false;
         }
@@ -1165,12 +1090,12 @@
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         window.launchPlayer(lastChannel); 
 
+        // Règle la tab par défaut sur 'tab-followed' s'il n'y a pas de sauvegarde.
         const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
         openTab(savedTab);
         
         checkAuth();
         
-        // --- Écouteur des Nouveaux Boutons de Partage du Player ---
         document.getElementById('twitch-player-share').addEventListener('click', function(e) {
             const btn = e.target.closest('.share-player-btn');
             if (!btn) return;
