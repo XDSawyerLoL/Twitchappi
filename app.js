@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 10000;
 // ✅ CLIENT ID Confirmé
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '1c34pzhawqfrsjmarc7edmef1ph2l8'; 
 // 🚨 UTILISEZ VOTRE NOUVEAU CLIENT SECRET RÉGÉNÉRÉ !
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '!!! VOTRE NOUVEAU SECRET TWITCH PRIVE ICI !!!'; 
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'j0r2y5ittmjkyswv3qvaoizvlzbx0w'; 
 // ✅ REDIRECT_URI Corrigé pour Render
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://justplayerstreamhubpro.onrender.com/twitch_auth_callback';
 
@@ -581,3 +581,4 @@ app.listen(PORT, () => {
     console.log(`Serveur démarré sur http://localhost:${PORT}`);
     console.log(`REDIRECT_URI pour Twitch: ${REDIRECT_URI}`);
 });
+
