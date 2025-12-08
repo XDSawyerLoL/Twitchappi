@@ -182,8 +182,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
     }
 
     try {
-        // CORRECTION CRITIQUE : Envoi des paramètres dans le corps (body) de la requête POST,
-        // ce qui est la méthode standard et plus fiable pour le token exchange OAuth2.
+        // CORRECTION CRITIQUE : Envoi des paramètres dans le corps (body) de la requête POST
         const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
             method: 'POST',
             headers: {
@@ -317,7 +316,7 @@ app.post('/scan_target', async (req, res) => {
     try {
         
         // =======================================================
-        // --- NOUVEAU: Tenter d'abord la recherche d'UTILISATEUR (PRIORITÉ) ---
+        // --- Tenter d'abord la recherche d'UTILISATEUR (PRIORITÉ) ---
         // =======================================================
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
         if (userRes.data.length > 0) {
@@ -346,6 +345,10 @@ app.post('/scan_target', async (req, res) => {
                 vodCount = vodRes.total;
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
 
+            // NOUVEAU: Données supplémentaires réelles
+            const totalViews = user.view_count || 'N/A';
+            const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A';
+
 
             return res.json({
                 success: true,
@@ -363,6 +366,8 @@ app.post('/scan_target', async (req, res) => {
                     // STATISTIQUES BRUTES UTILISÉES POUR L'AFFICHAGE FRONTE-END
                     total_followers: followerCount,
                     total_vods: vodCount,
+                    total_views_count: totalViews, 
+                    account_creation_date: creationDate,
                 }
             });
         }
@@ -488,7 +493,8 @@ app.post('/critique_ia', async (req, res) => {
 
     switch (type) {
         case 'niche':
-            prompt = `En tant qu'expert en stratégie de croissance Twitch, analyse le jeu ou streamer "${query}". Fournis une critique de niche en format HTML: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au sujet (ex: "Défi Speedrun avec handicap"). 4. Une conclusion forte en <p> avec un <strong>.`;
+            // PROMPT RÉVISÉ: Demande de concision et structure en listes
+            prompt = `En tant qu'expert en stratégie de croissance Twitch, analyse le jeu ou streamer "${query}". Fournis une critique de niche en format HTML. Sois extrêmement concis et utilise des listes (<ul> et <li>) plutôt que des paragraphes longs: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts CLAIRS (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au sujet (ex: "Défi Speedrun avec handicap"). 4. Une conclusion courte et impactante en <p> avec un <strong>.`;
             break;
         case 'repurpose':
             prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre <h4>. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
