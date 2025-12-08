@@ -26,7 +26,7 @@ const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://justplayerstrea
 
 // 🚨🚨 VÉRIFIEZ ABSOLUMENT CETTE LIGNE 🚨🚨
 // REMPLACEZ 'VOTRE_CLE_API_GEMINI' par votre clé réelle
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'VOTRE_CLE_API_GEMINI'; 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCnU_5cWxzXV8TVVSncmNRaVl7mjLeIdIM'; 
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 let ai = null;
@@ -581,4 +581,5 @@ app.listen(PORT, () => {
     console.log(`Serveur démarré sur http://localhost:${PORT}`);
     console.log(`REDIRECT_URI pour Twitch: ${REDIRECT_URI}`);
 });
+
 
