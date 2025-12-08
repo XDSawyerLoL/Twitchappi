@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamer & Niche AI Hub V10.2 - Full Features</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -23,7 +23,7 @@
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
             
-            /* ✅ NOUVELLES VARIABLES D'OMBRES NÉON */
+            /* NOUVELLES VARIABLES D'OMBRES NÉON */
             --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
             --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
             --shadow-niche: 0 0 15px rgba(89, 214, 130, 0.4);
@@ -36,7 +36,7 @@
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
         #twitch-lucky-main { all: initial; display: block; max-width: 1200px; margin: 20px auto; padding: 10px; font-family: 'Inter', sans-serif; color: #fff; }
         
-        /* ✅ TITRE H1 ET SOUS-TITRE AMÉLIORÉS */
+        /* TITRE H1 ET SOUS-TITRE AMÉLIORÉS */
         h1 { 
             font-family: 'Orbitron', sans-serif; 
             font-size: 28px; 
@@ -134,7 +134,7 @@
         #auto-action-results li:before { content: "🔥"; color: var(--color-ai-action); } /* ACTION */
 
 
-        /* ✅ LUEURS SPÉCIFIQUES DES BOÎTES DE RÉSULTAT IA */
+        /* LUEURS SPÉCIFIQUES DES BOÎTES DE RÉSULTAT IA */
         #scan-result { border-color: var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
         #niche-result-container { border-color: var(--color-ai-niche); box-shadow: var(--shadow-niche); }
         #repurpose-result-container { border-color: var(--color-ai-repurpose); box-shadow: var(--shadow-repurpose); }
@@ -219,18 +219,16 @@
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-top: none; border-radius: 0 0 10px 10px; padding: 20px; }
         .tab-content.active { display: block; border-top: 1px solid var(--color-border-dark); } /* MODIFIÉ POUR LES ONGLET ACTIF */
 
-        /* Styles Spécifiques à l'onglet 'tab-followed' pour un affichage permanent */
-        #tab-followed.tab-content.active { 
-            display: block; 
-            border-radius: 10px; /* Rendre les bords arrondis car il n'y a plus de barre d'onglet dessus */
-            margin-bottom: 20px; /* Espace avant le lecteur */
-            border-top: 1px solid var(--color-border-dark);
-            box-shadow: var(--shadow-pink); /* Un petit glow pour le distinguer */
+        /* Styles Spécifiques à l'onglet 'tab-followed' (MAINTENANT SOUS LE LECTEUR) */
+        #tab-followed { 
+            display: none; /* Cache par défaut, seul l'activation CSS le montre */
+            border-radius: 10px; /* Bords arrondis pour le conteneur seul */
+            margin-top: 20px; /* Espace après le lecteur */
+            border: 1px solid var(--color-border-dark); 
         }
-        #tab-followed .tab-heading {
-             margin-bottom: 0px; 
-             padding-bottom: 10px; 
-             border-bottom: 1px solid var(--color-border-medium);
+        #tab-followed.active { 
+            display: block; 
+            box-shadow: var(--shadow-pink); /* Un petit glow pour le distinguer */
         }
 
 
@@ -306,26 +304,12 @@
 
     <div id="tabs-container">
         <div class="flex flex-wrap flex-tabs">
-            <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
             <button class="tab-btn" data-tab-id="tab-cible" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
             <button class="tab-btn" data-tab-id="tab-niche" onclick="openTab('tab-niche')">📈 OPTIMISATION NICHE</button>
             <button class="tab-btn" data-tab-id="tab-repurpose" onclick="openTab('tab-repurpose')">🚀 REPURPOSING</button>
             <button class="tab-btn" data-tab-id="tab-growth" onclick="openTab('tab-growth')">💰 CROISSANCE</button>
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
             <button class="tab-btn" data-tab-id="tab-action" onclick="openTab('tab-action')" style="border-top: 3px solid var(--color-ai-action);">🔥 DISRUPTION/ACTION</button>
-        </div>
-
-        <div id="tab-followed" class="tab-content">
-            <h3 class="tab-heading text-pink"><span class="icon">🔑</span> Connexion & Mon Fil Suivi</h3>
-            <div class="login-box">
-                <h4 class="text-blue font-bold text-sm mb-2">Connexion Utilisateur Twitch (OAuth)</h4>
-                <p id="login-status" class="text-yellow text-xs mb-4">Statut: Vérification...</p>
-                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">🔒 SE CONNECTER VIA TWITCH</button>
-            </div>
-            <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-medium);">
-                <h4 class="tab-heading text-pink"><span class="icon">🔴</span> Vos Chaînes Suivies LIVE</h4>
-                <div id="followed-streams-list"><p style="color:#555; text-align:center; padding:10px;">Chargement du fil...</p></div>
-            </div>
         </div>
 
         <div id="tab-cible" class="tab-content">
@@ -435,6 +419,20 @@
         <div id="twitch-embed"></div>
         <div id="twitch-player-share" class="pt-3 border-t border-gray-700" style="border-color:var(--color-border-dark);"></div>
     </div>
+    
+    <div id="tab-followed" class="tab-content active">
+        <h3 class="tab-heading text-pink"><span class="icon">🔑</span> Connexion & Mon Fil Suivi</h3>
+        <div class="login-box">
+            <h4 class="text-blue font-bold text-sm mb-2">Connexion Utilisateur Twitch (OAuth)</h4>
+            <p id="login-status" class="text-yellow text-xs mb-4">Statut: Vérification...</p>
+            <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; width:100%; padding: 12px;">🔒 SE CONNECTER VIA TWITCH</button>
+        </div>
+        <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-medium);">
+            <h4 class="tab-heading text-pink"><span class="icon">🔴</span> Vos Chaînes Suivies LIVE</h4>
+            <div id="followed-streams-list"><p style="color:#555; text-align:center; padding:10px;">Chargement du fil...</p></div>
+        </div>
+    </div>
+    
 </div>
 
 <button id="assistant-toggle" class="assistant-btn">🤖</button>
@@ -462,34 +460,41 @@
     const aiTrendCritiqueContainer = document.getElementById('ai-trend-critique-container');
 
 
-    // --- 1. FONCTIONS DE GESTION DES ONGLET ET DU VOD ---
+    // --- 1. FONCTIONS DE GESTION DES ONGLET ET DU VOD (MODIFIÉ) ---
 
     function openTab(tabId) {
         localStorage.setItem('activeTab', tabId);
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        const targetTab = document.getElementById(tabId);
-        if (targetTab) {
-            targetTab.classList.add('active');
-            const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
-            if (targetBtn) targetBtn.classList.add('active');
-            
-            // ✅ Logique pour tab-followed : on le masque si un autre onglet est actif
-            if (tabId !== 'tab-followed') {
-                 document.getElementById('tab-followed').classList.remove('active');
-                 const followedBtn = document.querySelector(`.tab-btn[data-tab-id="tab-followed"]`);
-                 if (followedBtn) followedBtn.classList.remove('active');
-            }
+        
+        // 1. Désactiver tous les onglets de contenu (ceux du dessus)
+        document.querySelectorAll('#tabs-container .tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('#tabs-container .tab-btn').forEach(el => el.classList.remove('active'));
 
-            if (tabId === 'tab-action') {
-                 // S'assurer que le bouton Action a la couleur correcte
-                targetBtn.style.borderTop = '3px solid var(--color-ai-action)';
-            } else {
-                // Rétablir la couleur par défaut pour les autres onglets actifs
-                if(targetBtn) targetBtn.style.borderTop = '3px solid var(--color-primary-pink)';
+        // 2. Gérer l'onglet "Mon Fil Suivi" (celui du dessous)
+        const followedTab = document.getElementById('tab-followed');
+        if (tabId === 'tab-followed') {
+             // Si l'utilisateur clique sur "Mon Fil Suivi" ou c'est l'initialisation
+            followedTab.classList.add('active');
+        } else {
+            // Si un autre onglet est activé, masquer "Mon Fil Suivi"
+            followedTab.classList.remove('active');
+            
+            // 3. Activer l'onglet cible (un des onglets du dessus)
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) {
+                targetTab.classList.add('active');
+                const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
+                if (targetBtn) targetBtn.classList.add('active');
+                
+                // Rétablir la couleur de l'onglet Action si c'est lui
+                if (tabId === 'tab-action' && targetBtn) {
+                     targetBtn.style.borderTop = '3px solid var(--color-ai-action)';
+                } else if(targetBtn) {
+                    targetBtn.style.borderTop = '3px solid var(--color-primary-pink)';
+                }
             }
         }
     }
+
 
     function analyzeGameNiche(gameName) {
         document.getElementById('input-niche-game').value = gameName;
@@ -526,8 +531,6 @@
         }
     }
 
-    // --- ✅ NOUVELLE LOGIQUE DE PARTAGE DU LECTEUR ---
-    
     /**
      * Gère le partage d'un lien (Stream ou VOD) sur les réseaux sociaux.
      * @param {string} platform - Le réseau social (twitter, reddit, discord, whatsapp, telegram, copy).
@@ -1168,8 +1171,8 @@
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         window.launchPlayer(lastChannel); 
 
-        // ✅ MODIFICATION DE L'INITIALISATION : On s'assure que tab-followed est l'onglet par défaut.
-        const savedTab = localStorage.getItem('activeTab') || 'tab-followed';
+        // Initialisation de l'onglet: on utilise le dernier onglet actif, ou par défaut un onglet du dessus (scan)
+        const savedTab = localStorage.getItem('activeTab') || 'tab-cible';
         openTab(savedTab);
         
         checkAuth();
