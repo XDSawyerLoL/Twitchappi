@@ -13,13 +13,16 @@ const app = express();
 
 // =========================================================
 // --- CONFIGURATION ET VARIABLES D'ENVIRONNEMENT ---
-// (REMPLACEZ CES VALEURS PAR VOS CLÉS)
+// ⚠️ VÉRIFIEZ ET REMPLACEZ LES PLACESHOLDERS PAR VOS CLÉS
 // =========================================================
 
 const PORT = process.env.PORT || 10000;
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID_TWITCH';
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'VOTRE_SECRET_TWITCH';
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'http://localhost:10000/twitch_auth_callback';
+// ✅ CLIENT ID Confirmé
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '1c34pzhawqfrsjmarc7edmef1ph2l8'; 
+// 🚨 UTILISEZ VOTRE NOUVEAU CLIENT SECRET RÉGÉNÉRÉ !
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '!!! VOTRE NOUVEAU SECRET TWITCH PRIVE ICI !!!'; 
+// ✅ REDIRECT_URI Corrigé pour Render
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://justplayerstreamhubpro.onrender.com/twitch_auth_callback';
 
 // 🚨🚨 VÉRIFIEZ ABSOLUMENT CETTE LIGNE 🚨🚨
 // REMPLACEZ 'VOTRE_CLE_API_GEMINI' par votre clé réelle
@@ -62,6 +65,7 @@ async function getTwitchToken(tokenType) {
         return CACHE.twitchTokens[tokenType].access_token;
     }
     
+    // Requête POST pour le token d'APPLICATION (grant_type=client_credentials)
     const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     
     try {
@@ -187,6 +191,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
     }
 
     try {
+        // C'EST ICI QUE VOTRE SERVEUR FAIT LA REQUÊTE POST (ÉCHANGE DE TOKEN)
         const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`;
         
         const tokenRes = await fetch(tokenUrl, { method: 'POST' });
@@ -208,7 +213,8 @@ app.get('/twitch_auth_callback', async (req, res) => {
             
             res.redirect('/'); 
         } else {
-            res.status(500).send("Erreur lors de l'échange du code Twitch.");
+            console.error("Erreur détaillée lors de l'échange de token:", tokenData);
+            res.status(500).send("Erreur lors de l'échange du code Twitch. (Vérifiez les logs du serveur pour les détails.)");
         }
     } catch (e) {
         res.status(500).send(`Erreur interne du serveur lors de l'authentification: ${e.message}`);
@@ -407,7 +413,7 @@ app.post('/critique_ia', async (req, res) => {
             prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre <h4>. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
             break;
         case 'trend':
-            prompt = `Tu es un détecteur de niches. Analyse les tendances actuelles et donne un avis sur la prochaine "grosse niche" Twitch. Fournis une critique en format HTML: 1. Un titre <h4>. 2. Une analyse en <p> sur la tendance V/S (viewers-to-streamers). 3. Une liste <ul> de 3 jeux ou genres "sous-évalués" à stream. 4. Un conseil de croissance tactique en <p>.`;
+            prompt = `Tu es un détecteur de niches. Analyse les tendances actuelles et donne un avis sur la prochaine "grosse niche" Twitch. Fournis une critique en format HTML: 1. Un titre <h4>. 2. Une analyse en <p> sur la tendance V/S (viewers-to-streamers). 3. Une liste <ul> de 3 jeux ou genres "sous-évalués" à stream. 4. Un conseil de croissance tactique en <p> avec un <strong>.`;
             break;
         default:
             return res.status(400).json({ success: false, error: "Type d'analyse IA invalide." });
@@ -486,7 +492,7 @@ app.post('/stream_boost', (req, res) => {
 });
 
 // =========================================================
-// ✅ NOUVELLE ROUTE CRITIQUE : /auto_action (Ajoutée pour corriger l'erreur HTML)
+// ✅ NOUVELLE ROUTE CRITIQUE : /auto_action 
 // =========================================================
 
 app.post('/auto_action', async (req, res) => {
@@ -575,4 +581,3 @@ app.listen(PORT, () => {
     console.log(`Serveur démarré sur http://localhost:${PORT}`);
     console.log(`REDIRECT_URI pour Twitch: ${REDIRECT_URI}`);
 });
-
