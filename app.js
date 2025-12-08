@@ -182,9 +182,22 @@ app.get('/twitch_auth_callback', async (req, res) => {
     }
 
     try {
-        const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`;
+        // CORRECTION CRITIQUE : Envoi des paramètres dans le corps (body) de la requête POST,
+        // ce qui est la méthode standard et plus fiable pour le token exchange OAuth2.
+        const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                client_id: TWITCH_CLIENT_ID,
+                client_secret: TWITCH_CLIENT_SECRET,
+                code: code,
+                grant_type: 'authorization_code',
+                redirect_uri: REDIRECT_URI
+            })
+        });
         
-        const tokenRes = await fetch(tokenUrl, { method: 'POST' });
         const tokenData = await tokenRes.json();
         
         if (tokenData.access_token) {
@@ -302,38 +315,10 @@ app.post('/scan_target', async (req, res) => {
     if (!query) return res.status(400).json({ success: false, message: "Requête vide." });
     
     try {
-        // --- Tenter d'abord la recherche de JEU ---
-        const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
-        if (gameRes.data.length > 0) {
-            const game = gameRes.data[0];
-            
-            const streamsRes = await twitchApiFetch(`streams?game_id=${game.id}&first=5`);
-            const totalStreams = streamsRes.data.length;
-            const totalViewers = streamsRes.data.reduce((acc, s) => acc + s.viewer_count, 0);
-            const avgViewersPerStreamer = totalStreams > 0 ? (totalViewers / totalStreams).toFixed(1) : 0;
-            const streams = streamsRes.data;
-
-            return res.json({ 
-                success: true, 
-                type: 'game',
-                game_data: {
-                    name: game.name,
-                    id: game.id,
-                    box_art_url: game.box_art_url,
-                    total_streamers: totalStreams,
-                    total_viewers: totalViewers,
-                    avg_viewers_per_streamer: avgViewersPerStreamer,
-                    streams: streams.map(s => ({
-                        user_name: s.user_name,
-                        user_login: s.user_login,
-                        title: s.title,
-                        viewer_count: s.viewer_count
-                    }))
-                }
-            });
-        }
-
-        // --- Si échec, tenter la recherche d'UTILISATEUR ---
+        
+        // =======================================================
+        // --- NOUVEAU: Tenter d'abord la recherche d'UTILISATEUR (PRIORITÉ) ---
+        // =======================================================
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
@@ -364,7 +349,7 @@ app.post('/scan_target', async (req, res) => {
 
             return res.json({
                 success: true,
-                type: 'user',
+                type: 'user', 
                 user_data: {
                     login: user.login,
                     display_name: user.display_name,
@@ -375,14 +360,47 @@ app.post('/scan_target', async (req, res) => {
                     game_name: streamDetails?.game_name || 'Divers',
                     viewer_count: streamDetails?.viewer_count || 0,
                     
-                    // NOUVELLES STATISTIQUES BRUTES AJOUTÉES
+                    // STATISTIQUES BRUTES UTILISÉES POUR L'AFFICHAGE FRONTE-END
                     total_followers: followerCount,
                     total_vods: vodCount,
                 }
             });
         }
 
-        return res.status(404).json({ success: false, message: `Impossible de trouver un jeu ou un utilisateur correspondant à "${query}".` });
+        // =======================================================
+        // --- Si AUCUN utilisateur trouvé, tenter la recherche de JEU ---
+        // =======================================================
+        const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
+        if (gameRes.data.length > 0) {
+            const game = gameRes.data[0];
+            
+            const streamsRes = await twitchApiFetch(`streams?game_id=${game.id}&first=5`);
+            const totalStreams = streamsRes.data.length;
+            const totalViewers = streamsRes.data.reduce((acc, s) => acc + s.viewer_count, 0);
+            const avgViewersPerStreamer = totalStreams > 0 ? (totalViewers / totalStreams).toFixed(1) : 0;
+            const streams = streamsRes.data;
+
+            return res.json({ 
+                success: true, 
+                type: 'game', 
+                game_data: {
+                    name: game.name,
+                    id: game.id,
+                    box_art_url: game.box_art_url,
+                    total_streamers: totalStreams,
+                    total_viewers: totalViewers,
+                    avg_viewers_per_streamer: avgViewersPerStreamer,
+                    streams: streams.map(s => ({
+                        user_name: s.user_name,
+                        user_login: s.user_login,
+                        title: s.title,
+                        viewer_count: s.viewer_count
+                    }))
+                }
+            });
+        }
+
+        return res.status(404).json({ success: false, message: `Impossible de trouver un utilisateur ou un jeu correspondant à "${query}".` });
 
     } catch (e) {
         console.error("Erreur dans /scan_target:", e.message);
@@ -470,7 +488,7 @@ app.post('/critique_ia', async (req, res) => {
 
     switch (type) {
         case 'niche':
-            prompt = `En tant qu'expert en stratégie de croissance Twitch, analyse le jeu "${query}". Fournis une critique de niche en format HTML: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au jeu (ex: "Défi Speedrun avec handicap"). 4. Une conclusion forte en <p> avec un <strong>.`;
+            prompt = `En tant qu'expert en stratégie de croissance Twitch, analyse le jeu ou streamer "${query}". Fournis une critique de niche en format HTML: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au sujet (ex: "Défi Speedrun avec handicap"). 4. Une conclusion forte en <p> avec un <strong>.`;
             break;
         case 'repurpose':
             prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre <h4>. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
@@ -549,18 +567,25 @@ app.post('/auto_action', async (req, res) => {
 
         switch (action_type) {
             case 'export_metrics':
-                // 1. Logique d'Export de Métriques (Simulée)
+                // 1. Logique d'Export de Métriques (Génération d'un fichier CSV)
                 const metrics_data = {
                     views: Math.floor(Math.random() * 500000) + 100000,
-                    retention: (Math.random() * 0.3) + 0.6, // 60% à 90%
+                    retention: (Math.random() * 0.3) + 0.6,
                     followers: Math.floor(Math.random() * 5000) + 1000
                 };
                 
-                return res.json({
-                    success: true,
-                    html_response: `<p style="color:var(--color-ai-growth); font-weight:bold; text-align:center;">✅ Export des Métriques terminé pour ${query}. Le fichier PDF est prêt.</p>`,
-                    metrics: metrics_data
-                });
+                const csvContent = [
+                    'Métrique,Valeur',
+                    `Vues Totales (Simulées),${metrics_data.views}`,
+                    `Taux de Rétention (Simulé),${(metrics_data.retention * 100).toFixed(1)}%`,
+                    `Nouveaux Suiveurs (Simulés),${metrics_data.followers}`
+                ].join('\n');
+                
+                // Déclenche le téléchargement du fichier CSV
+                res.setHeader('Content-Type', 'text/csv');
+                res.setHeader('Content-Disposition', `attachment; filename="Stats_Twitch_${query}_${new Date().toISOString().slice(0, 10)}.csv"`);
+                
+                return res.send(csvContent); // <- Envoi du fichier. Ne retourne pas de JSON.
 
             case 'create_clip':
                 // 2. Logique de Création de Clip (Utilise l'IA pour le titre et les idées)
@@ -591,11 +616,14 @@ app.post('/auto_action', async (req, res) => {
 
     } catch (error) {
         console.error(`Erreur d'exécution dans /auto_action pour ${req.body?.action_type}:`, error.message);
-        return res.status(500).json({
-            success: false,
-            error: `Erreur interne du serveur lors de l'action: ${error.message}`,
-            html_response: `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur d'exécution de l'API: ${error.message}</p>`
-        });
+        // Si l'erreur se produit AVANT res.send (pour le CSV) ou res.json (pour l'IA)
+        if (!res.headersSent) {
+            return res.status(500).json({
+                success: false,
+                error: `Erreur interne du serveur lors de l'action: ${error.message}`,
+                html_response: `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur d'exécution de l'API: ${error.message}</p>`
+            });
+        }
     }
 });
 
