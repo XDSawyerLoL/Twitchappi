@@ -216,6 +216,7 @@
             box-shadow: var(--shadow-action);
         }
 
+        /* La classe tab-content est appliquée à tous les contenus, qu'ils soient au-dessus ou en dessous du lecteur */
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-top: none; border-radius: 0 0 10px 10px; padding: 20px; }
         .tab-content.active { display: block; }
         .tab-heading { font-family:'Orbitron',sans-serif; margin-bottom:15px; font-size:16px; }
@@ -287,21 +288,9 @@
 <div id="twitch-lucky-main">
     <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V10.2</h1>
     <div class="subtitle-center">Lecteur • Scan & IA • Niche • Repurposing • Croissance • Action</div>
-
-    <div class="player-wrapper">
-        <h2>
-            <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR & CHAT
-            <span id="player-channel-status"></span>
-        </h2> 
-        <form id="form-channel-player" class="flex">
-            <input id="input-channel" type="text" placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder" class="action-input flex-grow">
-            <button type="submit" id="btn-player-launch" class="btn-primary min-w-[80px]">▶️ LANCER</button>
-        </form>
-        <div id="twitch-embed"></div>
-        <div id="twitch-player-share" class="pt-3 border-t border-gray-700" style="border-color:var(--color-border-dark);"></div>
-    </div>
-
+    
     <div id="tabs-container">
+        
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
             <button class="tab-btn" data-tab-id="tab-cible" onclick="openTab('tab-cible')">🎯 SCAN & RESULTATS</button>
@@ -311,8 +300,6 @@
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
             <button class="tab-btn" data-tab-id="tab-action" onclick="openTab('tab-action')" style="border-top: 3px solid var(--color-ai-action);">🔥 DISRUPTION/ACTION</button>
         </div>
-
-        
 
         <div id="tab-cible" class="tab-content">
             <h3 class="tab-heading text-blue"><span class="icon">🔭</span> Configuration & Scan</h3>
@@ -408,7 +395,19 @@
         </div>
         
     </div>
-</div>
+    <div class="player-wrapper">
+        <h2>
+            <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR & CHAT
+            <span id="player-channel-status"></span>
+        </h2> 
+        <form id="form-channel-player" class="flex">
+            <input id="input-channel" type="text" placeholder="Nom de la chaîne Twitch (ex: gotaga)" title="Nom de la chaîne Twitch à regarder" class="action-input flex-grow">
+            <button type="submit" id="btn-player-launch" class="btn-primary min-w-[80px]">▶️ LANCER</button>
+        </form>
+        <div id="twitch-embed"></div>
+        <div id="twitch-player-share" class="pt-3 border-t border-gray-700" style="border-color:var(--color-border-dark);"></div>
+    </div>
+    </div>
 
 <button id="assistant-toggle" class="assistant-btn">🤖</button>
 <div id="assistant-panel" class="assistant-panel">
@@ -455,15 +454,13 @@
         // 1. Désactiver tous les boutons d'onglet
         document.querySelectorAll('#tabs-container .tab-btn').forEach(el => el.classList.remove('active'));
         
-        // 2. Désactiver tous les contenus d'onglet (ceux du dessus)
-        // Note: Cette sélection doit inclure tous les contenus, y compris 'tab-followed'
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        // 2. Désactiver TOUS les contenus d'onglet (ceux du dessus ET 'tab-followed' en dessous)
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); 
 
-        // 3. Gérer le contenu de l'onglet "Mon Fil Suivi" (celui du dessous)
+        // 3. Activer le bouton cliqué
         const followedContent = document.getElementById('tab-followed');
         const targetBtn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
         
-        // Activer le bouton cliqué (quel que soit l'emplacement de son contenu)
         if (targetBtn) {
             targetBtn.classList.add('active');
             
@@ -471,6 +468,7 @@
             if (tabId === 'tab-action') {
                  targetBtn.style.borderTop = '3px solid var(--color-ai-action)';
             } else {
+                // Rétablir la couleur rose pour les autres onglets
                 targetBtn.style.borderTop = '3px solid var(--color-primary-pink)';
             }
         }
@@ -480,8 +478,7 @@
              // Si l'utilisateur clique sur "Mon Fil Suivi", activer son contenu (qui est en dessous du lecteur)
             followedContent.classList.add('active');
         } else {
-            // Si un autre onglet est activé, masquer le contenu "Mon Fil Suivi" (fait par le sélecteur général au point 2, mais on le laisse si la structure HTML change)
-            // followedContent.classList.remove('active'); 
+            // Si un autre onglet est activé, masquer le contenu "Mon Fil Suivi" (déjà fait par le sélecteur général au point 2)
             
             // 4. Activer le contenu cible (un des onglets du dessus)
             const targetContent = document.getElementById(tabId);
