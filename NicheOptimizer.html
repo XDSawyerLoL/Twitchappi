@@ -8,14 +8,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* --- VARIABLES CSS --- */
+        /* --- VARIABLES CSS (Thème Noir/Néon) --- */
         :root {
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
-            --color-ai-niche: #59d682;
-            --color-ai-repurpose: #9933ff;
+            --color-ai-niche: #59d682; /* Vert pour Niche */
+            --color-ai-repurpose: #9933ff; /* Violet pour Disruption/Export */
             --color-ai-action: #e34a64; 
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
@@ -36,7 +36,7 @@
         
         /* Conteneur principal (Centré) */
         .page-wrapper {
-            max-width: 1300px; /* Augmenté légèrement pour plus d'espace */
+            max-width: 1300px; 
             margin: 20px auto; 
             padding: 10px; 
         }
@@ -57,11 +57,11 @@
             text-align: center; 
         }
 
-        /* Conteneur des deux colonnes */
+        /* Conteneur des deux colonnes (Le cœur de la structure) */
         #twitch-lucky-main {
             display: flex;
             gap: 20px;
-            align-items: flex-start; /* Important pour que les colonnes ne s'étirent pas verticalement */
+            align-items: flex-start;
         }
         
         /* Colonne de Gauche (Fil) */
@@ -74,7 +74,7 @@
         #col-right-content {
             flex-grow: 1;
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* Assure que les blocs s'empilent verticalement */
         }
 
         /* Lecteur */
@@ -94,7 +94,6 @@
             align-items: center; 
             text-shadow: 0 0 4px var(--color-secondary-blue);
         }
-        /* Hauteur ajustée pour le lecteur Twitch pour mieux s'adapter */
         #twitch-embed { width: 100%; height: 500px; border-radius: 8px; box-shadow: 0 0 15px rgba(34, 199, 239, 0.3); overflow: hidden; }
 
         /* Onglets (Boutons) - Style horizontal */
@@ -109,22 +108,24 @@
             font-weight: 600;
             transition: all 0.2s;
             margin-right: 2px;
+            white-space: nowrap;
         }
         .tab-btn-horizontal.active {
-            background: var(--color-bg-dark);
+            background: var(--color-bg-dark); /* Doit correspondre à la couleur du conteneur de contenu */
             color: var(--color-primary-pink);
             border-color: var(--color-primary-pink);
-            border-bottom-color: var(--color-bg-dark); /* Donne l'effet d'être sur la zone de contenu */
+            border-bottom-color: var(--color-bg-dark); /* Jointure visuelle */
             box-shadow: var(--shadow-pink);
+            z-index: 10;
         }
         
-        /* Contenu des Onglets Horizontaux */
+        /* Contenu des Onglets Horizontaux (Au-dessus du lecteur) */
         #tab-content-horizontal-container {
             background: var(--color-bg-dark);
             border: 1px solid var(--color-border-dark);
             border-radius: 0 6px 6px 6px;
             padding: 15px;
-            margin-top: -1px; /* Jointure avec les onglets */
+            margin-top: -1px; 
             margin-bottom: 20px;
         }
 
@@ -133,15 +134,37 @@
             width: 100%; 
             padding: 10px; 
             border-radius: 6px; 
-            border: 1px solid var(--color-border-medium); 
-            background: var(--color-bg-medium); /* Plus sombre */
+            border: 1px solid var(--color-border-dark); 
+            background: var(--color-bg-medium); 
             color: #fff; 
             font-size: 13px; 
         }
-        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; box-shadow: var(--shadow-pink); transition: all 0.2s; }
-        .btn-secondary { background: var(--color-secondary-blue); color: var(--color-bg-dark); border: 0; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; box-shadow: var(--shadow-blue); transition: all 0.2s; }
+        .btn-primary { 
+            background: var(--color-primary-pink); 
+            color: #fff; 
+            border: 0; 
+            padding: 10px 15px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 700; 
+            font-size: 14px; 
+            box-shadow: var(--shadow-pink); 
+            transition: all 0.2s; 
+        }
+        .btn-secondary { 
+            background: var(--color-secondary-blue); 
+            color: var(--color-bg-dark); 
+            border: 0; 
+            padding: 10px 15px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 700; 
+            font-size: 14px; 
+            box-shadow: var(--shadow-blue); 
+            transition: all 0.2s; 
+        }
         
-        /* Style des listes et résultats IA */
+        /* Style des résultats IA (Sous le lecteur) */
         .ai-report-area { 
             background: var(--color-bg-medium); 
             border: 1px solid var(--color-border-dark); 
@@ -155,10 +178,14 @@
             font-size: 18px; 
             margin-bottom: 15px; 
         }
-        .ia-report-header h4 { font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--color-primary-pink); margin-bottom: 5px;}
-        .ia-html-response h3 { font-size: 1.25rem; font-weight: 600; color: var(--color-ai-niche); margin-top: 15px; border-bottom: 1px solid var(--color-border-dark); padding-bottom: 5px; }
-        .ia-html-response ul { list-style-type: none; padding-left: 0; margin-left: 0;}
-        .ia-html-response li { margin-bottom: 5px; padding-left: 1.5em; position: relative; font-size: 14px;}
+        
+        /* Personnalisation de l'affichage des résultats IA (Bullet points) */
+        .ia-html-response li { 
+            margin-bottom: 5px; 
+            padding-left: 1.5em; 
+            position: relative; 
+            font-size: 14px;
+        }
         .ia-html-response li:before {
             content: "➤";
             color: var(--color-secondary-blue);
@@ -177,6 +204,7 @@
             cursor: pointer;
             transition: background 0.2s;
             border-left: 3px solid var(--color-primary-pink);
+            box-shadow: 0 0 3px rgba(255, 0, 153, 0.1);
         }
         .stream-card:hover {
             background: #2a2a2a;
@@ -200,7 +228,7 @@
                     </div>
                 </div>
                 
-                <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-medium);">
+                <div class="mt-6 pt-5 border-t border-gray-700" style="border-color: var(--color-border-dark);">
                     <h4 class="tab-heading" style="color:var(--color-primary-pink);"><i class="fas fa-stream mr-2"></i>Vos Chaînes Suivies LIVE</h4>
                     <div id="followed-streams-list" class="space-y-3">
                         <p style="color:var(--color-text-dimmed); text-align:center; padding:10px;">Connectez-vous pour voir le fil...</p>
@@ -281,7 +309,7 @@
 
             </div>
         </div>
-        </div>
+    </div>
 
 <script>
     // --- VARIABLES GLOBALES ---
@@ -310,7 +338,7 @@
             });
         }
         localStorage.setItem('activeChannel', channel);
-        updatePlayerStatus(channel, false); // Statut mis à jour lors du lancement
+        updatePlayerStatus(channel, false); 
     };
 
     function updatePlayerStatus(channelName, isLive = false, videoId = null) {
@@ -453,7 +481,7 @@
                 // Affiche la réponse IA brute
                 let outputHtml = `
                     <div class="ia-report-header border-b border-gray-700 pb-2 mb-4">
-                        <h4 class="text-xl font-orbitron text-white">${actionName} pour ${channel}</h4>
+                        <h4 style="font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--color-primary-pink); margin-bottom: 5px;">${actionName} pour ${channel}</h4>
                         <p class="text-gray-400 text-sm">Action effectuée le ${new Date().toLocaleTimeString()} ${new Date().toLocaleDateString()}</p>
                     </div>
                     <div class="ia-html-response">${data.html_response}</div>
@@ -570,12 +598,11 @@
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         window.launchPlayer(lastChannel); 
 
-        // Active le bon onglet supérieur (Fusionné)
         const savedTab = localStorage.getItem('activeTab') || 'tab-niche-scan'; 
         openHorizontalTab(savedTab);
         
         checkAuth();
-        setupRaidForm(); // Initialise le formulaire de raid
+        setupRaidForm(); 
     });
 </script>
 </body>
