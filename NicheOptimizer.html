@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* --- VARIABLES CSS (Ajout des ombres néon) --- */
+        /* --- VARIABLES CSS (Rétablies à la version stable) --- */
         :root {
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
@@ -85,13 +85,13 @@
             box-shadow: 0 0 8px var(--color-ai-action);
         }
         
-        /* Ajustement de la largeur des colonnes */
-        .grid-cols-2-custom {
-             grid-template-columns: minmax(300px, 1fr) 320px; /* 320px pour correspondre à la largeur standard du lecteur */
+        /* Ajustement de la largeur pour l'harmonie */
+        .grid-cols-custom {
+             grid-template-columns: minmax(300px, 1fr) 350px; /* Largeur fixe de 350px pour la colonne de droite */
         }
         @media (min-width: 1024px) {
-            .grid-cols-2-custom {
-                 grid-template-columns: minmax(600px, 1fr) 350px; /* Augmentation à 350px pour une meilleure lecture */
+            .grid-cols-custom {
+                 grid-template-columns: minmax(600px, 1fr) 350px; /* Conserve 350px */
             }
         }
         
@@ -105,6 +105,14 @@
         #followed-streams-list a:hover {
              background-color: #2a2a2a;
         }
+        .tab-btn {
+             color: var(--color-text-dimmed);
+             border-bottom-color: transparent !important;
+        }
+        .tab-btn.active-tab {
+             color: white;
+             border-bottom-color: var(--color-secondary-blue) !important;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen font-inter p-4 lg:p-8" onload="checkAuth()">
@@ -115,7 +123,7 @@
         </h1>
     </header>
 
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2-custom gap-8">
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-custom gap-8">
         
         <div class="col-span-1">
             
@@ -182,7 +190,7 @@
             
         </div>
 
-        <div class="col-span-1 w-full"> 
+        <div class="col-span-1 w-full lg:w-[350px]"> 
             
             <div id="auth-status-box" class="bg-gray-800 p-4 rounded-lg neon-border mb-8">
                 <h2 class="text-xl font-bold mb-3 font-orbitron text-white">
@@ -196,10 +204,10 @@
 
             <div id="user-tabs-container" class="bg-gray-800 p-4 rounded-lg neon-border">
                 <div class="flex border-b border-gray-700 mb-3">
-                    <button id="tab-followed-btn" class="tab-btn px-4 py-2 text-sm font-semibold border-b-2 border-transparent hover:border-var(--color-secondary-blue) transition" onclick="openTab('tab-followed')">
+                    <button id="tab-followed-btn" class="tab-btn px-4 py-2 text-sm font-semibold border-b-2 transition" onclick="openTab('tab-followed')">
                         <i class="fas fa-video mr-1"></i> Streams LIVE Suivis
                     </button>
-                    <button id="tab-trending-btn" class="tab-btn px-4 py-2 text-sm font-semibold border-b-2 border-transparent hover:border-var(--color-secondary-blue) transition" onclick="openTab('tab-trending')">
+                    <button id="tab-trending-btn" class="tab-btn px-4 py-2 text-sm font-semibold border-b-2 transition" onclick="openTab('tab-trending')">
                         <i class="fas fa-fire mr-1"></i> Top Jeux
                     </button>
                 </div>
@@ -266,6 +274,7 @@
         
         // Charger la dernière VOD pour le bouton
         loadLatestVOD(channel);
+        localStorage.setItem('activeChannel', channel);
     };
 
     // --- 2. Fonction de Partage / VOD / Raid ---
@@ -280,7 +289,6 @@
             
             if (data.success && data.vod) {
                 vodBtn.textContent = '▶️ Dernière VOD';
-                // Stocke l'ID de la VOD pour le clic
                 vodBtn.dataset.shareUrl = data.vod.id; 
                 vodBtn.onclick = () => window.launchPlayer(channel, data.vod.id);
             } else {
@@ -298,8 +306,8 @@
         if (platform === 'Twitch') {
             window.open(url, '_blank');
         } else if (platform === 'Raid') {
-            // Logique de Raid déclenchée par le bouton
-            launchRaidTarget(channel);
+            // Logique de Raid gérée par le bouton dans l'écouteur du DOMContentLoaded
+            // Le clic est géré par l'événement global
         }
     }
 
@@ -338,7 +346,7 @@
 
     async function logout() {
         await fetch(`${API_BASE}/twitch_logout`, { method: 'POST' });
-        authChecked = false; // Permet une nouvelle vérification
+        authChecked = false; 
         checkAuth();
     }
 
@@ -353,7 +361,6 @@
             
             if (!res.ok || !data.success) { 
                 const errorMessage = data.error || `Erreur serveur lors de la récupération du fil: Statut ${res.status}`;
-                // Afficher l'erreur explicite du back-end
                 throw new Error(errorMessage);
             }
 
@@ -381,7 +388,7 @@
             let errorMessage = error.message;
             if (errorMessage.includes("Veuillez vous reconnecter via Twitch")) {
                 errorMessage += " (Token expiré)";
-                authChecked = false; // Force la re-vérification pour afficher le bouton de connexion
+                authChecked = false; 
                 checkAuth();
             }
             followedStreamsList.innerHTML = `<p style="color:red; text-align:center; padding:10px;">❌ Erreur de chargement du fil: ${errorMessage}</p>`;
@@ -418,11 +425,12 @@
     // --- 6. Gestion des Onglets ---
     function openTab(tabName) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('border-var(--color-secondary-blue)', 'text-white'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active-tab'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('text-white'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.add('text-gray-400'));
 
         document.getElementById(`${tabName}-content`).classList.remove('hidden');
-        document.getElementById(`${tabName}-btn`).classList.add('border-var(--color-secondary-blue)', 'text-white');
+        document.getElementById(`${tabName}-btn`).classList.add('active-tab', 'text-white');
         document.getElementById(`${tabName}-btn`).classList.remove('text-gray-400');
         
         localStorage.setItem('activeTab', tabName);
@@ -464,7 +472,6 @@
             const data = await res.json();
 
             if (!data.success) {
-                // Si la recherche ne trouve rien, afficher l'erreur de l'IA/Serveur
                 resultBox.innerHTML = data.html_response || `<p style="color:red; text-align:center;">❌ ${data.message || data.error}</p>`;
                 return;
             }
@@ -596,7 +603,7 @@
     }
 
 
-    // --- 9. Initialisation et Écouteur des Nouveaux Boutons de Partage et Raid---
+    // --- 9. Initialisation et Écouteur des Boutons ---
     document.addEventListener('DOMContentLoaded', function() {
         const lastChannel = localStorage.getItem('activeChannel') || DEFAULT_CHANNEL;
         window.launchPlayer(lastChannel); 
@@ -606,6 +613,7 @@
         
         checkAuth();
         
+        // Écouteur pour les boutons du Player (Regarder, VOD, RAID)
         document.getElementById('twitch-player-share').addEventListener('click', function(e) {
             const btn = e.target.closest('button');
             if (!btn) return;
@@ -614,14 +622,15 @@
             const url = btn.dataset.shareUrl;
             const channel = btn.dataset.channel;
 
-            if (platform === 'Twitch') {
-                shareLinkContent('Twitch', url, channel);
+            if (platform === 'Twitch' || platform === 'VOD') {
+                // Utiliser la fonction de base pour les liens Twitch
+                shareLinkContent(platform, url, channel);
             } else if (platform === 'Raid') {
-                // Utiliser le nom du jeu stocké dans la variable globale (currentScanQuery)
-                if (currentScanType === 'game' && currentScanQuery) {
+                // Lancer la fonction de recherche de raid si le bouton est activé
+                if (!btn.disabled && currentScanType === 'game' && currentScanQuery) {
                     launchRaidTarget(currentScanQuery);
-                } else {
-                     alert("Veuillez d'abord scanner un jeu valide pour lancer un Raid Aléatoire.");
+                } else if (!currentScanQuery) {
+                     alert("Veuillez scanner un jeu valide (via la barre de recherche) pour activer le Raid Aléatoire.");
                 }
             }
         });
