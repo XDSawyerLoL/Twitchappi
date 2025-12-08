@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer AI Cockpit V11 - Unified</title>
+    <title>Streamer & Niche AI Hub - COCKPIT MODE</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* --- VARIABLES CSS --- */
+        /* --- VOTRE CSS ORIGINAL (INTACT) --- */
         :root {
-            --color-bg-dark: #090909;
-            --color-bg-medium: #141414;
-            --color-bg-light: #1c1c1c;
+            --color-bg-dark: #0d0d0d;
+            --color-bg-medium: #1a1a1a;
+            --color-bg-light: #111;
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
             --color-ai-niche: #59d682;
@@ -21,299 +21,210 @@
             --color-ai-action: #e34a64; 
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
+            --color-border-medium: #333;
             
-            /* OMBRES NÉON */
-            --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.3);
-            --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.3);
+            --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
+            --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
+            --shadow-niche: 0 0 15px rgba(89, 214, 130, 0.4);
+            --shadow-repurpose: 0 0 15px rgba(153, 51, 255, 0.4);
+            --shadow-action: 0 0 15px rgba(227, 74, 100, 0.4);
+            --shadow-growth: 0 0 15px rgba(255, 204, 0, 0.4);
         }
 
         /* Styles Globaux */
-        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
-        #app-container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
+        #twitch-lucky-main { all: initial; display: block; max-width: 1400px; margin: 20px auto; padding: 10px; font-family: 'Inter', sans-serif; color: #fff; }
         
-        /* HEADER */
-        header { text-align: center; margin-bottom: 10px; }
         h1 { 
-            font-family: 'Orbitron', sans-serif; font-size: 32px; color: #fff; text-transform: uppercase; letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); 
+            margin-bottom: 5px; text-align: center; 
+            text-shadow: 0 0 5px var(--color-primary-pink), 0 0 15px rgba(255, 0, 153, 0.5);
         }
-        .highlight { color: var(--color-secondary-blue); text-shadow: var(--shadow-blue); }
-
-        /* --- 1. BARRE D'ONGLETS (NAVIGATION TOP) --- */
-        .nav-tabs {
-            display: flex;
-            background: var(--color-bg-medium);
-            border-radius: 12px;
-            padding: 5px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            border: 1px solid var(--color-border-dark);
-            position: sticky; top: 0; z-index: 50; /* Reste en haut */
-            overflow-x: auto;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            background: transparent;
-            color: var(--color-text-dimmed);
-            font-family: 'Orbitron', sans-serif;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border-radius: 8px;
-            white-space: nowrap;
-            text-align: center;
-        }
-        .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .tab-btn.active {
-            background: var(--color-primary-pink);
-            color: white;
-            box-shadow: var(--shadow-pink);
-            font-weight: bold;
-        }
-        /* Couleurs spécifiques pour l'onglet actif Dashboard */
-        .tab-btn[data-tab="dashboard"].active { background: linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose)); box-shadow: var(--shadow-blue); }
-        .tab-btn[data-tab="action"].active { background: var(--color-ai-action); box-shadow: 0 0 15px rgba(227, 74, 100, 0.4); }
-
-        /* --- 2. ZONE LECTEUR (MILIEU) --- */
-        .player-section {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            background: var(--color-bg-medium);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid var(--color-border-dark);
-        }
-        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.8); background: #000; }
+        .h1-blue-accent { color: var(--color-secondary-blue); }
+        .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
         
-        /* Contrôles lecteur compacts */
-        .player-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-        .input-dark { 
-            background: var(--color-bg-dark); border: 1px solid #333; color: white; padding: 8px 12px; border-radius: 6px; width: 100%; 
-            transition: all 0.3s;
+        /* Navigation (Onglets) - Remontée en haut */
+        .tabs-nav-container { margin-bottom: 15px; }
+        .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+        .tab-btn { 
+            font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: var(--color-bg-light); 
+            border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); 
+            cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.3s; flex: 1; text-align: center; 
+            font-size: 12px; white-space: nowrap; 
         }
-        .input-dark:focus { border-color: var(--color-secondary-blue); box-shadow: var(--shadow-blue); outline: none; }
+        .tab-btn:hover { color: #fff; background: #232323; box-shadow: 0 0 10px rgba(255, 255, 255, 0.15); }
+        .tab-btn.active { 
+            background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); 
+            font-weight: bold; box-shadow: var(--shadow-pink); z-index: 10; 
+        }
 
-        /* --- 3. ZONE CONTENU (BAS - RESULTATS) --- */
-        .content-area { min-height: 400px; position: relative; }
-        .tab-pane { display: none; animation: fadeIn 0.4s ease; }
-        .tab-pane.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Lecteur (Milieu) */
+        .player-wrapper { 
+            margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); 
+            border-radius: 12px; border: 1px solid var(--color-border-dark); 
+            box-shadow: var(--shadow-blue); 
+        }
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); text-shadow: 0 0 4px var(--color-secondary-blue); }
+        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; box-shadow: 0 0 15px rgba(34, 199, 239, 0.3); overflow: hidden; }
+        
+        /* Quick Change Input dans le header du player */
+        .player-quick-input {
+            background: var(--color-bg-dark); border: 1px solid var(--color-border-medium); color: white;
+            padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 200px;
+        }
 
-        /* --- STYLE DU DASHBOARD UNIFIÉ (GRID) --- */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+        /* Zone de Contenu (Bas) */
+        .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-radius: 10px; padding: 20px; min-height: 300px; }
+        .tab-content.active { display: block; animation: fadeEffect 0.5s; }
+        @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
+
+        /* NOUVEAU : Grille Dashboard unifié */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
+        .dashboard-box { 
+            background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; 
+            min-height: 250px; display: flex; flex-direction: column;
         }
         
-        .dashboard-card {
-            background: var(--color-bg-medium);
-            border: 1px solid var(--color-border-dark);
-            border-radius: 10px;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.2s;
-        }
-        .dashboard-card:hover { transform: translateY(-2px); }
-        
-        /* En-têtes des cartes */
-        .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .card-icon { font-size: 18px; }
-        .card-title { font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: bold; }
+        /* Couleurs spécifiques dashboard */
+        .box-stats { border-top: 2px solid var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
+        .box-niche { border-top: 2px solid var(--color-ai-niche); box-shadow: var(--shadow-niche); }
+        .box-vod { border-top: 2px solid var(--color-ai-repurpose); box-shadow: var(--shadow-repurpose); }
 
-        /* Couleurs des cartes */
-        .card-scan { border-top: 3px solid var(--color-secondary-blue); }
-        .card-scan .card-title { color: var(--color-secondary-blue); }
-        
-        .card-niche { border-top: 3px solid var(--color-ai-niche); }
-        .card-niche .card-title { color: var(--color-ai-niche); }
-        
-        .card-repurpose { border-top: 3px solid var(--color-ai-repurpose); }
-        .card-repurpose .card-title { color: var(--color-ai-repurpose); }
-
-        .card-action { border-top: 3px solid var(--color-ai-action); }
-        .card-action .card-title { color: var(--color-ai-action); }
-
-        /* Barre de recherche Master */
-        .master-search-box {
-            background: linear-gradient(135deg, #1a1a1a, #252525);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #444;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        .dashboard-title { 
+            font-family: 'Orbitron', sans-serif; font-size: 14px; margin-bottom: 10px; 
+            border-bottom: 1px solid #333; padding-bottom: 5px; 
         }
-        .btn-master {
-            background: linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose));
-            color: white; border: none; padding: 0 25px; border-radius: 6px; font-weight: bold; cursor: pointer;
-            text-transform: uppercase; font-family: 'Orbitron'; height: 42px;
-            box-shadow: 0 0 15px rgba(34, 199, 239, 0.4);
-            transition: 0.2s;
+
+        /* Inputs & Boutons (VOTRE STYLE) */
+        .action-input { 
+            width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); 
+            background: var(--color-bg-dark); color: #fff; font-size: 13px; transition: 0.3s; 
         }
-        .btn-master:hover { filter: brightness(1.2); transform: scale(1.02); }
+        .action-input:focus { border-color: var(--color-primary-pink); box-shadow: 0 0 8px rgba(255, 0, 153, 0.5); outline: none; }
+        
+        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(255,0,153,.4); transition: all 0.2s; }
+        .btn-primary:hover:not(:disabled) { transform: scale(1.02); filter: brightness(1.1); }
+        
+        .btn-big-scan {
+            width: 100%; background: linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose));
+            font-size: 14px; padding: 12px; margin-top: 10px;
+        }
 
         /* Listes suivies */
-        .stream-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .stream-card {
-            background: var(--color-bg-light); border: 1px solid #333; border-radius: 8px; padding: 10px;
-            cursor: pointer; transition: 0.2s;
+        #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; }
+        .followed-stream-item { 
+            width: calc(20% - 12px); min-width: 150px; padding: 10px; background: var(--color-bg-light); 
+            border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: 0.3s;
         }
-        .stream-card:hover { border-color: var(--color-primary-pink); background: #222; }
-        .stream-card img { width: 100%; border-radius: 6px; margin-bottom: 8px; }
+        .followed-stream-item:hover { transform: translateY(-3px); box-shadow: var(--shadow-pink); }
+        .followed-stream-item img { width: 100%; border-radius: 4px; margin-bottom: 5px; }
 
-        /* Helpers */
-        .text-xs { font-size: 0.75rem; }
-        .text-gray { color: #888; }
-        .metric-big { font-size: 24px; font-weight: bold; display: block; margin-top: 5px; }
-
-        /* Loader IA */
-        .loading-pulse { animation: pulse 1.5s infinite; color: var(--color-text-dimmed); text-align: center; padding: 20px; font-style: italic;}
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-
-        @media (max-width: 768px) {
-            #twitch-embed { height: 300px; }
-            .dashboard-grid { grid-template-columns: 1fr; }
-        }
+        /* Media Queries */
+        @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
     </style>
 </head>
 <body>
 
-<div id="app-container">
+<div id="twitch-lucky-main">
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V11 (Fusion)</h1>
+    <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Action</div>
 
-    <header>
-        <h1>STREAMER <span class="highlight">COCKPIT</span></h1>
-    </header>
-
-    <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="followed" onclick="switchTab('followed')">
-            <i class="fas fa-satellite-dish"></i> MON FIL SUIVI
-        </button>
-        <button class="tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')">
-            <i class="fas fa-tachometer-alt"></i> ANALYSE 360° (SCAN & IA)
-        </button>
-        <button class="tab-btn" data-tab="action" onclick="switchTab('action')">
-            <i class="fas fa-fire"></i> ACTIONS & BOOST
-        </button>
-    </nav>
-
-    <div class="player-section">
-        <div class="player-controls">
-            <span style="font-family:'Orbitron'; color:var(--color-primary-pink);">LECTEUR</span>
-            <form id="quick-play-form" class="flex-grow flex gap-2">
-                <input id="player-input" type="text" placeholder="Changer de chaîne (ex: sieved)" class="input-dark">
-                <button type="submit" class="btn-master" style="width: auto; height: 38px; font-size: 12px; padding: 0 15px;">GO</button>
-            </form>
-            <div id="player-status" class="text-xs text-gray">Prêt</div>
+    <div class="tabs-nav-container">
+        <div class="flex flex-wrap flex-tabs">
+            <button class="tab-btn active" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
+            <button class="tab-btn" data-tab-id="tab-dashboard" onclick="openTab('tab-dashboard')" style="color:white; border-top: 3px solid var(--color-secondary-blue);">📊 DASHBOARD 360° (SCAN & IA)</button>
+            <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
+            <button class="tab-btn" data-tab-id="tab-action" onclick="openTab('tab-action')" style="border-top: 3px solid var(--color-ai-action);">🔥 AUTO-ACTION</button>
         </div>
-        <div id="twitch-embed"></div>
-        <div id="share-buttons" class="flex justify-end gap-2 mt-2"></div>
     </div>
 
-    <div class="content-area">
+    <div class="player-wrapper">
+        <div class="player-header">
+            <h2 class="player-title">
+                <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR
+                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente</span>
+            </h2>
+            <form id="mini-player-form" class="flex gap-2">
+                <input id="input-channel" type="text" placeholder="Chaîne..." class="player-quick-input">
+                <button type="submit" class="btn-primary" style="padding: 5px 10px;">GO</button>
+            </form>
+        </div>
+        <div id="twitch-embed"></div>
+    </div>
 
-        <div id="tab-followed" class="tab-pane active">
-            <div style="background: var(--color-bg-medium); padding: 20px; border-radius: 10px; border: 1px solid var(--color-border-dark);">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold font-orbitron text-pink-500">🔴 Chaînes Suivies en Direct</h3>
-                    <button id="btn-login" class="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded text-sm font-bold transition">Connexion Twitch</button>
-                </div>
-                <div id="followed-list" class="stream-grid">
-                    <p class="text-gray text-center col-span-full">Connectez-vous pour voir vos chaînes suivies.</p>
-                </div>
+    <div id="content-area">
+
+        <div id="tab-followed" class="tab-content active">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 class="text-pink font-bold" style="color:var(--color-primary-pink);">🔴 Vos Chaînes Suivies LIVE</h3>
+                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; font-size:10px;">🔒 CONNEXION TWITCH</button>
             </div>
+            <div id="followed-streams-list"><p style="color:#555; text-align:center;">Connectez-vous pour voir vos favoris.</p></div>
         </div>
 
-        <div id="tab-dashboard" class="tab-pane">
-            
-            <div class="master-search-box">
-                <div class="text-3xl">🔭</div>
-                <div class="flex-grow">
-                    <label class="text-xs text-gray uppercase font-bold ml-1">Entrez un Streamer ou un Jeu pour un rapport complet</label>
-                    <input id="master-input" type="text" placeholder="ex: Gotaga, Valorant, Zerator..." class="input-dark" style="font-size: 16px; border:none; background: transparent; padding-left:0;">
-                </div>
-                <button onclick="runGlobalAnalysis()" class="btn-master">LANCER L'ANALYSE GLOBALE</button>
+        <div id="tab-dashboard" class="tab-content">
+            <div style="text-align:center; margin-bottom:20px;">
+                <h3 class="text-blue font-bold text-lg mb-2" style="color:var(--color-secondary-blue);">ANALYSE COMPLÈTE & IA</h3>
+                <p style="color:#888; font-size:12px; margin-bottom:10px;">Entrez un pseudo ou un jeu. Le système lancera le Scan, l'Analyse de Niche et la Recherche VOD simultanément.</p>
+                
+                <form id="form-global-scan">
+                    <input id="input-global-target" type="text" placeholder="Ex: Gotaga, Valorant, Squeezie..." class="action-input" style="font-size:16px; text-align:center;">
+                    <button type="submit" id="btn-global-scan" class="btn-primary btn-big-scan">🚀 LANCER L'ANALYSE 360°</button>
+                </form>
             </div>
 
             <div class="dashboard-grid">
                 
-                <div class="dashboard-card card-scan">
-                    <div class="card-header">
-                        <span class="card-icon">📊</span>
-                        <span class="card-title">STATISTIQUES & SCAN</span>
-                    </div>
-                    <div id="result-scan">
-                        <p class="text-gray text-sm">En attente d'une recherche...</p>
+                <div class="dashboard-box box-stats">
+                    <div class="dashboard-title" style="color:var(--color-secondary-blue)">📊 MÉTRIQUES & INFO</div>
+                    <div id="res-scan-content" style="font-size:13px; color:#ddd;">
+                        En attente...
                     </div>
                 </div>
 
-                <div class="dashboard-card card-niche">
-                    <div class="card-header">
-                        <span class="card-icon">📈</span>
-                        <span class="card-title">ANALYSE DE NICHE (IA)</span>
-                    </div>
-                    <div id="result-niche">
-                        <p class="text-gray text-sm">L'IA analysera le potentiel ici.</p>
+                <div class="dashboard-box box-niche">
+                    <div class="dashboard-title" style="color:var(--color-ai-niche)">🧠 CRITIQUE NICHE (IA)</div>
+                    <div id="res-niche-content" style="font-size:13px; line-height:1.4;">
+                        L'IA analysera le positionnement ici.
                     </div>
                 </div>
 
-                <div class="dashboard-card card-repurpose">
-                    <div class="card-header">
-                        <span class="card-icon">✂️</span>
-                        <span class="card-title">REPURPOSING & VOD</span>
-                    </div>
-                    <div id="result-repurpose">
-                        <p class="text-gray text-sm">Suggestions de clips et titres ici.</p>
+                <div class="dashboard-box box-vod">
+                    <div class="dashboard-title" style="color:var(--color-ai-repurpose)">✂️ VOD & REPURPOSING</div>
+                    <div id="res-vod-content" style="font-size:13px;">
+                        Suggestions de clips sur la dernière VOD.
                     </div>
                 </div>
-
-                <div class="dashboard-card card-growth" style="border-top: 3px solid var(--color-ai-growth);">
-                    <div class="card-header">
-                        <span class="card-icon" style="color:var(--color-ai-growth)">💎</span>
-                        <span class="card-title" style="color:var(--color-ai-growth)">POTENTIEL CROISSANCE</span>
-                    </div>
-                    <div id="result-growth">
-                        <button onclick="fetchTrendingGames()" class="input-dark w-full text-xs mb-2 hover:bg-gray-800">Voir Jeux Trends Actuels</button>
-                        <div id="mini-trends-list" class="text-xs"></div>
-                    </div>
-                </div>
-
             </div>
         </div>
 
-        <div id="tab-action" class="tab-pane">
-            <div class="dashboard-grid">
-                <div class="dashboard-card card-action">
-                    <div class="card-header">
-                        <span class="card-icon">🔥</span>
-                        <span class="card-title">AUTOMATISATION</span>
-                    </div>
-                    <form id="action-form" class="flex flex-col gap-3">
-                        <select id="action-type" class="input-dark">
-                            <option value="create_clip">🎬 Créer un Clip Auto</option>
-                            <option value="export_metrics">📊 Exporter Rapport PDF</option>
-                            <option value="title_disruption">📝 Générer Titre Disruptif</option>
-                        </select>
-                        <input id="action-target" type="text" placeholder="Cible (Streamer/VOD)" class="input-dark">
-                        <button type="submit" class="btn-master" style="background: var(--color-ai-action); box-shadow: var(--shadow-action);">EXÉCUTER</button>
-                    </form>
-                    <div id="action-result" class="mt-4 text-sm"></div>
+        <div id="tab-boost" class="tab-content">
+            <h3 style="color:var(--color-primary-pink); margin-bottom:10px;">⚡ STREAM BOOST</h3>
+            <div class="login-box" style="background:var(--color-bg-light); padding:15px; border-radius:8px;">
+                <form id="form-boost" class="flex gap-2">
+                    <input id="input-boost" type="text" placeholder="Chaîne à promouvoir" class="action-input">
+                    <button type="submit" id="btn-boost" class="btn-primary">📤 BOOST</button>
+                </form>
+                <div id="boost-results" class="ai-result-box" style="margin-top:10px; color:var(--color-text-dimmed); text-align:center;">
+                    Entrez le nom de la chaîne et cliquez sur BOOST.
                 </div>
+            </div>
+        </div>
 
-                <div class="dashboard-card" style="border-top: 3px solid #ff0099;">
-                    <div class="card-header">
-                        <span class="card-icon" style="color:#ff0099">⚡</span>
-                        <span class="card-title" style="color:#ff0099">BOOST DE CHAÎNE</span>
-                    </div>
-                    <input id="boost-input" type="text" placeholder="Nom de la chaîne" class="input-dark mb-2">
-                    <button onclick="triggerBoost()" class="btn-master" style="width:100%; background: var(--color-primary-pink); font-size:12px;">ENVOYER TRAFIC (SIM)</button>
-                    <div id="boost-result" class="mt-2 text-xs text-gray"></div>
-                </div>
+        <div id="tab-action" class="tab-content">
+            <h3 style="color:var(--color-ai-action); margin-bottom:10px;">🔥 AUTOMATISATION</h3>
+            <form id="form-auto-action" class="flex flex-col gap-3" style="max-width:600px; margin:0 auto;">
+                <select id="select-action-type" class="action-input">
+                    <option value="export_metrics">📊 EXPORT METRICS (PDF)</option>
+                    <option value="create_clip">🎬 CRÉER CLIP AUTOMATIQUE</option>
+                    <option value="title_disruption">📝 IDÉE TITRE DISRUPTIF</option>
+                </select>
+                <input id="input-auto-action" type="text" placeholder="Cible..." class="action-input">
+                <button type="submit" id="btn-auto-action" class="btn-primary" style="background:var(--color-ai-action);">EXÉCUTER</button>
+            </form>
+            <div id="auto-action-results" style="margin-top:15px; padding:10px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:50px;">
+                <p style="text-align:center; color:#777;">Résultats de l'action ici.</p>
             </div>
         </div>
 
@@ -323,245 +234,224 @@
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
+    const DEFAULT_CHANNEL = 'twitch'; 
     let embed = null;
+    let twitchUserConnected = false;
 
-    // --- GESTION DES ONGLETS ---
-    function switchTab(tabId) {
-        // UI Tabs
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-        
-        // UI Content
-        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-        document.getElementById(`tab-${tabId}`).classList.add('active');
+    // --- GESTION ONGLETS ---
+    function openTab(tabId) {
+        // UI Boutons
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        const btn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
+        if(btn) btn.classList.add('active');
+
+        // UI Contenu
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
     }
 
-    // --- LECTEUR TWITCH ---
-    function launchPlayer(channel) {
+    // --- LECTEUR ---
+    window.launchPlayer = function(channelName, videoId = null, time = 0) {
         document.getElementById('twitch-embed').innerHTML = '';
-        const options = {
-            width: "100%",
-            height: "100%",
-            channel: channel,
-            layout: "video-and-chat", // On garde le chat
-            parent: [window.location.hostname, "localhost"] // Important pour l'embed
+        const config = {
+            width: "100%", height: "100%", layout: "video-and-chat",
+            parent: [window.location.hostname, "localhost"] // Important
         };
-        embed = new Twitch.Embed("twitch-embed", options);
-        document.getElementById('player-input').value = channel;
-        document.getElementById('player-status').innerText = `Lecture de : ${channel}`;
+        if (videoId) {
+            config.video = videoId;
+            if (time > 0) config.time = `${time}s`;
+        } else {
+            config.channel = channelName;
+        }
+        embed = new Twitch.Embed("twitch-embed", config);
         
-        // Mise à jour des boutons de partage
-        updateShareButtons(channel);
+        // Update UI Text
+        document.getElementById('input-channel').value = channelName;
+        document.getElementById('player-channel-status').innerText = videoId ? `📼 VOD` : `🔴 ${channelName}`;
     }
-    
-    document.getElementById('quick-play-form').addEventListener('submit', (e) => {
+
+    document.getElementById('mini-player-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        launchPlayer(document.getElementById('player-input').value);
+        launchPlayer(document.getElementById('input-channel').value);
     });
 
-    function updateShareButtons(channel) {
-        const container = document.getElementById('share-buttons');
-        const url = `https://twitch.tv/${channel}`;
-        container.innerHTML = `
-            <button onclick="window.open('https://twitter.com/intent/tweet?text=Live ${channel}&url=${url}', '_blank')" class="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-400"><i class="fab fa-twitter"></i></button>
-            <button onclick="navigator.clipboard.writeText('${url}')" class="text-xs bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-500"><i class="fas fa-link"></i></button>
-        `;
-    }
+    // --- LOGIQUE FUSIONNÉE (DASHBOARD 360) ---
+    document.getElementById('form-global-scan').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const query = document.getElementById('input-global-target').value.trim();
+        if(!query) return;
 
-    // --- ANALYSE GLOBALE (LE CŒUR DU SYSTÈME) ---
-    async function runGlobalAnalysis() {
-        const query = document.getElementById('master-input').value.trim();
-        if (!query) return alert("Veuillez entrer un pseudo ou un jeu !");
+        const btn = document.getElementById('btn-global-scan');
+        const boxScan = document.getElementById('res-scan-content');
+        const boxNiche = document.getElementById('res-niche-content');
+        const boxVod = document.getElementById('res-vod-content');
 
-        // 1. Reset UI
-        const scanBox = document.getElementById('result-scan');
-        const nicheBox = document.getElementById('result-niche');
-        const repurposeBox = document.getElementById('result-repurpose');
-        
-        scanBox.innerHTML = '<div class="loading-pulse">🔎 Scan des métriques...</div>';
-        nicheBox.innerHTML = '<div class="loading-pulse">🧠 Analyse IA Niche...</div>';
-        repurposeBox.innerHTML = '<div class="loading-pulse">🎬 Recherche de contenu...</div>';
+        // 1. UI Loading State
+        btn.disabled = true; btn.innerText = "⏳ ANALYSE EN COURS...";
+        boxScan.innerHTML = "<p class='text-blue-400'>Recherche métriques...</p>";
+        boxNiche.innerHTML = "<p class='text-green-400'>Attente données...</p>";
+        boxVod.innerHTML = "<p class='text-purple-400'>Attente cible...</p>";
 
-        // 2. Lancer Scan Basique (Détermine si c'est un jeu ou un user)
         try {
+            // ÉTAPE 1 : SCAN (Identification User ou Game)
             const scanRes = await fetch(`${API_BASE}/scan_target`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ query })
             });
             const scanData = await scanRes.json();
 
-            if (scanData.success) {
-                // A. Affichage Scan
-                let htmlScan = "";
-                if (scanData.type === 'user') {
-                    const u = scanData.user_data;
-                    htmlScan = `
-                        <div class="flex gap-3">
-                            <img src="${u.profile_image_url}" class="w-16 h-16 rounded-full border border-blue-400">
-                            <div>
-                                <h4 class="font-bold text-lg">${u.display_name}</h4>
-                                <p class="text-xs ${u.is_live ? 'text-red-500':'text-gray-500'}">${u.is_live ? '🔴 EN LIVE' : '⚫ HORS LIGNE'}</p>
-                                <button onclick="launchPlayer('${u.login}')" class="text-xs bg-blue-600 text-white px-2 py-1 rounded mt-1">Voir Stream</button>
-                            </div>
+            if (!scanData.success) throw new Error(scanData.message);
+
+            // AFFICHER RÉSULTATS SCAN
+            if (scanData.type === 'user') {
+                const u = scanData.user_data;
+                boxScan.innerHTML = `
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <img src="${u.profile_image_url}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--color-secondary-blue);">
+                        <div>
+                            <div style="font-weight:bold; font-size:14px;">${u.display_name}</div>
+                            <div style="color:${u.is_live?'red':'gray'}">${u.is_live ? '🔴 LIVE' : '⚫ OFF'}</div>
                         </div>
-                        <div class="mt-3 text-sm">
-                            <p>${u.description.substring(0, 80)}...</p>
-                        </div>
-                    `;
-                    // Si c'est un user, on lance le Repurposing VOD
-                    runRepurposeAnalysis(u.login);
-                    // On peut aussi demander à l'IA une critique de la niche du user
-                    runAIAnalysis('niche', `Le streamer ${u.display_name} joue à ${u.game_name || 'divers jeux'}. Analyse sa position.`);
-                
-                } else { // C'est un JEU
-                    const g = scanData.game_data;
-                    htmlScan = `
-                        <div class="flex gap-3">
-                            <img src="${g.box_art_url.replace('{width}','80').replace('{height}','100')}" class="w-16 rounded border border-green-400">
-                            <div>
-                                <h4 class="font-bold text-lg text-green-400">${g.name}</h4>
-                                <p class="text-sm">V/S Ratio: <strong class="text-white">${g.avg_viewers_per_streamer}</strong></p>
-                                <p class="text-xs text-gray-400">${g.total_viewers} Viewers / ${g.total_streamers} Streamers</p>
-                            </div>
-                        </div>
-                    `;
-                    repurposeBox.innerHTML = "<p class='text-gray text-xs mt-2'>Sélectionnez un streamer spécifique de ce jeu pour voir les options de repurposing.</p>";
-                    // Analyse IA spécifique au jeu
-                    runAIAnalysis('niche', g.name);
-                }
-                scanBox.innerHTML = htmlScan;
+                    </div>
+                    <p style="margin-top:10px;">${u.description || 'Pas de bio.'}</p>
+                    <button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%; margin-top:5px; font-size:10px;">VOIR STREAM</button>
+                `;
 
-            } else {
-                scanBox.innerHTML = `<p class="text-red-500">❌ ${scanData.message}</p>`;
-            }
-
-        } catch (e) {
-            scanBox.innerHTML = `<p class="text-red-500">Erreur Scan: ${e.message}</p>`;
-        }
-    }
-
-    // Sous-fonction pour l'IA (Niche)
-    async function runAIAnalysis(type, query) {
-        const box = document.getElementById('result-niche');
-        try {
-            const res = await fetch(`${API_BASE}/critique_ia`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ type, query })
-            });
-            const data = await res.json();
-            box.innerHTML = data.html_response || data.error;
-        } catch (e) { box.innerHTML = "Erreur IA"; }
-    }
-
-    // Sous-fonction pour Repurposing (User Only)
-    async function runRepurposeAnalysis(channelName) {
-        const box = document.getElementById('result-repurpose');
-        try {
-            // 1. Get VOD
-            const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${channelName}`);
-            const vodData = await vodRes.json();
-            
-            if (vodData.success && vodData.vod) {
-                // 2. IA Analysis sur le titre de la VOD
-                box.innerHTML = `<p class="text-xs text-purple-400">VOD trouvée: ${vodData.vod.title.substring(0,30)}... Analyse...</p>`;
-                
-                const aiRes = await fetch(`${API_BASE}/critique_ia`, {
+                // ÉTAPE 2 : IA NICHE (Sur le user)
+                boxNiche.innerHTML = "<p class='text-green-400'>🧠 L'IA analyse le profil...</p>";
+                fetch(`${API_BASE}/critique_ia`, {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ type: 'repurpose', query: `${channelName} | ${vodData.vod.title}` })
-                });
-                const aiData = await aiRes.json();
-                box.innerHTML = aiData.html_response;
-            } else {
-                box.innerHTML = "<p class='text-gray text-xs'>Pas de VOD récente trouvée.</p>";
-            }
-        } catch (e) { box.innerHTML = "Erreur Repurpose"; }
-    }
+                    body: JSON.stringify({ type: 'niche', query: `Streamer: ${u.display_name} | Jeu: ${u.game_name || 'Variety'}` })
+                }).then(r => r.json()).then(d => boxNiche.innerHTML = d.html_response);
 
-    // --- AUTRES FONCTIONS (Boost, Auth...) ---
-    
-    // Auth Simulation / Real Logic
+                // ÉTAPE 3 : VOD & REPURPOSE
+                boxVod.innerHTML = "<p class='text-purple-400'>🎬 Recherche VOD...</p>";
+                const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${u.login}`);
+                const vodData = await vodRes.json();
+                
+                if(vodData.success && vodData.vod) {
+                    boxVod.innerHTML = `
+                        <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">${vodData.vod.title.substring(0,40)}...</div>
+                        <img src="${vodData.vod.thumbnail_url.replace('%{width}','320').replace('%{height}','180').replace('{width}','320').replace('{height}','180')}" style="width:100%; border-radius:4px;">
+                        <p class='text-purple-400 mt-2'>🧠 Analyse IA des clips...</p>
+                    `;
+                    // Lancer IA Repurpose
+                    fetch(`${API_BASE}/critique_ia`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ type: 'repurpose', query: `${u.login} | ${vodData.vod.title}` })
+                    }).then(r => r.json()).then(d => {
+                        // Nettoyage simple pour affichage compact
+                        boxVod.innerHTML += `<div style="margin-top:5px; max-height:150px; overflow-y:auto;">${d.html_response}</div>`;
+                    });
+                } else {
+                    boxVod.innerHTML = "Pas de VOD trouvée.";
+                }
+
+            } else {
+                // C'EST UN JEU
+                const g = scanData.game_data;
+                boxScan.innerHTML = `
+                    <img src="${g.box_art_url.replace('{width}','60').replace('{height}','80')}" style="float:left; margin-right:10px; border-radius:4px;">
+                    <div style="font-weight:bold; color:var(--color-secondary-blue);">${g.name}</div>
+                    <div>${g.total_viewers.toLocaleString()} Viewers</div>
+                    <div>${g.total_streamers.toLocaleString()} Streamers</div>
+                    <div style="color:var(--color-ai-niche); font-weight:bold; margin-top:5px;">Ratio V/S: ${g.avg_viewers_per_streamer}</div>
+                `;
+
+                // ÉTAPE 2 : IA NICHE (Sur le jeu)
+                boxNiche.innerHTML = "<p class='text-green-400'>🧠 L'IA analyse le potentiel du jeu...</p>";
+                fetch(`${API_BASE}/critique_ia`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ type: 'niche', query: `Jeu Twitch: ${g.name}` })
+                }).then(r => r.json()).then(d => boxNiche.innerHTML = d.html_response);
+
+                boxVod.innerHTML = "<p style='color:#777;'>Sélectionnez un streamer spécifique pour l'analyse VOD.</p>";
+            }
+
+        } catch (err) {
+            boxScan.innerHTML = `<p style="color:red;">Erreur: ${err.message}</p>`;
+        } finally {
+            btn.disabled = false; btn.innerText = "🚀 LANCER L'ANALYSE 360°";
+        }
+    });
+
+    // --- FIL SUIVI & AUTH (Code Original optimisé) ---
     async function checkAuth() {
-        const btn = document.getElementById('btn-login');
-        const list = document.getElementById('followed-list');
+        const btn = document.getElementById('btn-twitch-login');
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
             const data = await res.json();
-            if(data.is_connected) {
-                btn.innerText = "Déconnexion";
-                btn.onclick = async () => { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); checkAuth(); };
+            if (data.is_connected) {
+                twitchUserConnected = true;
+                btn.innerText = "🔓 DÉCONNEXION";
+                btn.onclick = async () => { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); location.reload(); };
                 loadFollowedStreams();
             } else {
-                btn.onclick = () => window.location.href = `${API_BASE}/twitch_auth_start`;
+                btn.onclick = () => location.href = `${API_BASE}/twitch_auth_start`;
             }
-        } catch(e) {}
+        } catch(e) { console.error(e); }
     }
 
     async function loadFollowedStreams() {
-        const list = document.getElementById('followed-list');
-        list.innerHTML = '<p class="text-gray col-span-full text-center">Chargement des lives...</p>';
-        try {
-            const res = await fetch(`${API_BASE}/followed_streams`);
-            const data = await res.json();
-            if(data.streams) {
-                list.innerHTML = data.streams.map(s => `
-                    <div class="stream-card" onclick="launchPlayer('${s.user_login}')">
-                        <img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}" alt="${s.user_name}">
-                        <div class="font-bold text-sm truncate">${s.user_name}</div>
-                        <div class="text-xs text-gray-400 truncate">${s.game_name}</div>
-                        <div class="text-xs text-red-500">${s.viewer_count} vues</div>
-                    </div>
-                `).join('');
-            }
-        } catch(e) { list.innerHTML = "Erreur chargement."; }
+        const list = document.getElementById('followed-streams-list');
+        list.innerHTML = "Chargement...";
+        const res = await fetch(`${API_BASE}/followed_streams`);
+        const data = await res.json();
+        if(data.streams && data.streams.length > 0) {
+            list.innerHTML = '';
+            data.streams.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'followed-stream-item';
+                item.onclick = () => launchPlayer(s.user_login);
+                item.innerHTML = `
+                    <img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}" alt="${s.user_name}">
+                    <div style="font-weight:bold; font-size:12px; color:white;">${s.user_name}</div>
+                    <div style="font-size:10px; color:#aaa;">${s.game_name}</div>
+                    <div style="font-size:10px; color:red;">${s.viewer_count} vues</div>
+                `;
+                list.appendChild(item);
+            });
+        } else {
+            list.innerHTML = "Aucun stream en direct.";
+        }
     }
 
-    async function triggerBoost() {
-        const channel = document.getElementById('boost-input').value || document.getElementById('player-input').value;
-        const resBox = document.getElementById('boost-result');
-        resBox.innerHTML = "🚀 Initialisation du protocole...";
+    // --- BOOST & ACTION HANDLERS ---
+    document.getElementById('form-boost').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const channel = document.getElementById('input-boost').value;
+        const resBox = document.getElementById('boost-results');
+        resBox.innerHTML = "Boost en cours...";
         try {
             const res = await fetch(`${API_BASE}/stream_boost`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({channel})
+                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel})
             });
             const data = await res.json();
-            resBox.innerHTML = data.html_response;
+            resBox.innerHTML = data.html_response || data.error;
         } catch(e) { resBox.innerHTML = "Erreur."; }
-    }
-
-    async function fetchTrendingGames() {
-        const list = document.getElementById('mini-trends-list');
-        list.innerHTML = "Chargement...";
-        try {
-            const res = await fetch(`${API_BASE}/trending_games`);
-            const data = await res.json();
-            list.innerHTML = data.games.slice(0,5).map(g => `<span class="inline-block bg-gray-800 rounded px-2 py-1 m-1 border border-gray-600">${g.name}</span>`).join('');
-        } catch(e) {}
-    }
-
-    // Init
-    window.onload = () => {
-        launchPlayer('twitch'); // Chaîne par défaut
-        checkAuth();
-    };
-
-    // Action Form
-    document.getElementById('action-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const type = document.getElementById('action-type').value;
-        const query = document.getElementById('action-target').value;
-        const resBox = document.getElementById('action-result');
-        resBox.innerHTML = "Traitement en cours...";
-        
-        try {
-            const res = await fetch(`${API_BASE}/auto_action`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({query, action_type: type})
-            });
-            const data = await res.json();
-            resBox.innerHTML = data.html_response || "Action effectuée.";
-        } catch(e) { resBox.innerHTML = "Erreur Action."; }
     });
 
+    document.getElementById('form-auto-action').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const type = document.getElementById('select-action-type').value;
+        const query = document.getElementById('input-auto-action').value;
+        const resBox = document.getElementById('auto-action-results');
+        resBox.innerHTML = "Traitement...";
+        try {
+            const res = await fetch(`${API_BASE}/auto_action`, {
+                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query, action_type:type})
+            });
+            const data = await res.json();
+            resBox.innerHTML = data.html_response || "Action terminée.";
+        } catch(e) { resBox.innerHTML = "Erreur."; }
+    });
+
+    // INIT
+    window.onload = () => {
+        launchPlayer(DEFAULT_CHANNEL);
+        openTab('tab-followed'); // Onglet par défaut
+        checkAuth();
+    };
 </script>
 </body>
 </html>
