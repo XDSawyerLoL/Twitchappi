@@ -6,39 +6,39 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// Assurez-vous d'avoir installé cette dépendance : npm install @google/genai
 const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
 
 // =========================================================
 // --- CONFIGURATION ET VARIABLES D'ENVIRONNEMENT ---
-// ⚠️ VÉRIFIEZ ET REMPLACEZ LES PLACESHOLDERS PAR VOS CLÉS
+// 🚨 Le serveur utilise UNIQUEMENT les variables de Render (process.env)
+// Plus de secrets codés en dur !
 // =========================================================
 
 const PORT = process.env.PORT || 10000;
-// ✅ CLIENT ID Confirmé
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '1c34pzhawqfrsjmarc7edmef1ph2l8'; 
-// 🚨 UTILISEZ VOTRE NOUVEAU CLIENT SECRET RÉGÉNÉRÉ !
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || 'j0r2y5ittmjkyswv3qvaoizvlzbx0w'; 
-// ✅ REDIRECT_URI Corrigé pour Render
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://justplayerstreamhubpro.onrender.com/twitch_auth_callback';
-
-// 🚨🚨 VÉRIFIEZ ABSOLUMENT CETTE LIGNE 🚨🚨
-// REMPLACEZ 'VOTRE_CLE_API_GEMINI' par votre clé réelle
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCnU_5cWxzXV8TVVSncmNRaVl7mjLeIdIM'; 
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
-let ai = null;
-if (GEMINI_API_KEY && GEMINI_API_KEY !== 'VOTRE_CLE_API_GEMINI') {
-    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
-    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
-} else {
-    console.error("FATAL DEBUG: Clé API Gemini manquante, par défaut ou invalide. L'IA est DÉSACTIVÉE.");
-    if (GEMINI_API_KEY === 'VOTRE_CLE_API_GEMINI') {
-          console.error("ATTENTION: La clé API est toujours sur la valeur PLACEHOLDER 'VOTRE_CLE_API_GEMINI'. VEUILLEZ LA REMPLACER DANS app.js.");
-    }
+// =========================================================
+// VÉRIFICATION CRITIQUE AU DÉMARRAGE (Empêche l'exécution sans clés)
+// =========================================================
+
+if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
+    console.error("=========================================================");
+    console.error("FATAL ERROR: VARIABLES D'ENVIRONNEMENT MANQUANTES.");
+    console.error("Vérifiez l'onglet 'Environment' sur Render.");
+    console.error(`Missing keys: ${!TWITCH_CLIENT_ID ? 'TWITCH_CLIENT_ID ' : ''}${!TWITCH_CLIENT_SECRET ? 'TWITCH_CLIENT_SECRET ' : ''}${!REDIRECT_URI ? 'TWITCH_REDIRECT_URI ' : ''}${!GEMINI_API_KEY ? 'GEMINI_API_KEY' : ''}`);
+    console.error("=========================================================");
+    process.exit(1); 
 }
+
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
+console.log("DEBUG: Toutes les clés critiques sont chargées. L'IA est ACTIVE.");
+
 
 // =========================================================
 // MIDDLEWARES
@@ -65,7 +65,6 @@ async function getTwitchToken(tokenType) {
         return CACHE.twitchTokens[tokenType].access_token;
     }
     
-    // Requête POST pour le token d'APPLICATION (grant_type=client_credentials)
     const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     
     try {
@@ -75,6 +74,7 @@ async function getTwitchToken(tokenType) {
         if (data.access_token) {
             CACHE.twitchTokens[tokenType] = {
                 access_token: data.access_token,
+                // Expiry set 5 minutes before actual expiry for buffer
                 expiry: Date.now() + (data.expires_in * 1000) - 300000 
             };
             return data.access_token;
@@ -89,6 +89,7 @@ async function getTwitchToken(tokenType) {
 }
 
 async function twitchApiFetch(endpoint, token) {
+    // Note: The token argument here will be CACHE.twitchUser.access_token for followed_streams
     const accessToken = token || await getTwitchToken('app');
     if (!accessToken) throw new Error("Accès Twitch non autorisé.");
 
@@ -100,35 +101,32 @@ async function twitchApiFetch(endpoint, token) {
     });
 
     if (res.status === 401) {
+        // Invalidate the application token if it failed
         if (token === CACHE.twitchTokens['app']?.access_token) {
              CACHE.twitchTokens['app'] = null; 
         }
-        throw new Error("Token Twitch expiré ou invalide. Veuillez réessayer.");
+        // Invalidate the user token if it failed
+        if (token === CACHE.twitchUser?.access_token) {
+             CACHE.twitchUser = null; 
+        }
+        const errorText = await res.text();
+        throw new Error(`Erreur d'autorisation Twitch (401). Token invalide. Détail: ${errorText.substring(0, 100)}...`);
     }
     
     if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`Erreur lors de l'appel à l'API Twitch: Statut ${res.status}. Détail: ${errorText.substring(0, 50)}...`);
+        throw new Error(`Erreur lors de l'appel à l'API Twitch: Statut ${res.status}. Détail: ${errorText.substring(0, 100)}...`);
     }
 
     return res.json();
 }
 
 // =========================================================
-// LOGIQUE GEMINI HELPER (Le cœur de la gestion du 429)
+// LOGIQUE GEMINI HELPER
 // =========================================================
 
 async function runGeminiAnalysis(prompt) {
-    if (!ai) {
-        // Renvoie une erreur 500 si la clé n'est pas configurée dans la console du serveur
-        return { 
-            success: false, 
-            status: 500, 
-            error: "L'API Gemini n'est pas configurée (GEMINI_API_KEY manquante ou invalide).",
-            html_response: `<p style="color:red; font-weight:bold;">❌ Erreur de Configuration IA: La clé GEMINI_API_KEY n'est pas valide ou est manquante. Vérifiez le fichier app.js et la console du serveur.</p>`
-        };
-    }
-
+    // L'objet 'ai' est garanti d'être défini grâce à la vérification au démarrage
     try {
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
@@ -191,7 +189,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
     }
 
     try {
-        // C'EST ICI QUE VOTRE SERVEUR FAIT LA REQUÊTE POST (ÉCHANGE DE TOKEN)
         const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`;
         
         const tokenRes = await fetch(tokenUrl, { method: 'POST' });
@@ -213,8 +210,14 @@ app.get('/twitch_auth_callback', async (req, res) => {
             
             res.redirect('/'); 
         } else {
-            console.error("Erreur détaillée lors de l'échange de token:", tokenData);
-            res.status(500).send("Erreur lors de l'échange du code Twitch. (Vérifiez les logs du serveur pour les détails.)");
+            // 🚨 Amélioration du log pour capturer l'erreur exacte de Twitch
+            console.error("=========================================================");
+            console.error("ERREUR CRITIQUE: Échec de l'échange de code Twitch.");
+            console.error("Détails renvoyés par Twitch:", tokenData);
+            console.error("=========================================================");
+            
+            const twitchError = tokenData.message || tokenData.error || "Détail non fourni.";
+            res.status(500).send(`Erreur lors de l'échange du code Twitch. Vérifiez le log du serveur. Détail: ${twitchError}`);
         }
     } catch (e) {
         res.status(500).send(`Erreur interne du serveur lors de l'authentification: ${e.message}`);
@@ -245,6 +248,7 @@ app.get('/followed_streams', async (req, res) => {
     }
 
     try {
+        // Utilise le token utilisateur pour la liste des streams suivis
         const data = await twitchApiFetch(`streams/followed?user_id=${CACHE.twitchUser.id}`, CACHE.twitchUser.access_token);
         
         const streams = data.data.map(stream => ({
@@ -259,6 +263,7 @@ app.get('/followed_streams', async (req, res) => {
         
         return res.json({ success: true, streams });
     } catch (e) {
+        // Renvoie l'erreur détaillée de twitchApiFetch (qui est maintenant plus précise)
         console.error("Erreur lors de la récupération des streams suivis:", e.message);
         return res.status(500).json({ success: false, error: e.message });
     }
@@ -492,7 +497,7 @@ app.post('/stream_boost', (req, res) => {
 });
 
 // =========================================================
-// ✅ NOUVELLE ROUTE CRITIQUE : /auto_action 
+// ✅ ROUTES CRITIQUES : /auto_action
 // =========================================================
 
 app.post('/auto_action', async (req, res) => {
@@ -581,5 +586,3 @@ app.listen(PORT, () => {
     console.log(`Serveur démarré sur http://localhost:${PORT}`);
     console.log(`REDIRECT_URI pour Twitch: ${REDIRECT_URI}`);
 });
-
-
