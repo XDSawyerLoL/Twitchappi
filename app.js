@@ -31,16 +31,15 @@ const JWT_SECRET = 'super_secret_key_streamer_hub'; // Clé secrète pour les co
 const TOKEN_EXPIRY = 3600; // Durée de validité du token Twitch en secondes (1 heure)
 
 // Stockage en mémoire des tokens pour l'exemple
-// En production, utilisez une base de données (Redis, MongoDB, etc.)
 const userSessions = {}; 
 
 // =========================================================
 // --- MIDDLEWARES ---
 // =========================================================
 
-app.use(cors()); // Permet les requêtes cross-origin (utile pour le développement)
+app.use(cors()); 
 app.use(bodyParser.json());
-app.use(cookieParser(JWT_SECRET)); // Utilise le cookie-parser avec la clé secrète
+app.use(cookieParser(JWT_SECRET)); 
 
 // =========================================================
 // --- UTILS API TWITCH ---
@@ -52,8 +51,6 @@ app.use(cookieParser(JWT_SECRET)); // Utilise le cookie-parser avec la clé secr
 async function twitchApiFetch(endpoint, method = 'GET', body = null) {
     const url = `${TWITCH_API_BASE}/${endpoint}`;
     
-    // Pour les endpoints qui ne nécessitent pas de token utilisateur (comme la recherche de jeux/streams),
-    // on utilise le "App Access Token" pour l'authentification.
     let appAccessToken = await getAppAccessToken(); 
 
     const options = {
@@ -84,8 +81,7 @@ async function twitchApiFetch(endpoint, method = 'GET', body = null) {
 }
 
 /**
- * Récupère le App Access Token (stocké globalement ou régénéré)
- * En production, cette logique devrait être beaucoup plus robuste (stockage sécurisé, expiration).
+ * Récupère le App Access Token.
  */
 let appTokenCache = { token: null, expiry: 0 };
 async function getAppAccessToken(forceRefresh = false) {
@@ -272,9 +268,8 @@ app.get('/twitch_user_status', async (req, res) => {
             display_name: session.displayName
         });
     } else {
-        // Optionnel: Tenter de rafraîchir le token ici si refresh_token est disponible
-        if (session && session.refreshToken) {
-            // Logique de rafraîchissement à implémenter ici
+        // Nettoyage de la session expirée
+        if (session) {
             delete userSessions[sessionId];
         }
         res.clearCookie('user_session');
@@ -306,7 +301,8 @@ function requireAuth(req, res, next) {
 
     if (!session || session.expiresAt <= Date.now()) {
         res.clearCookie('user_session');
-        return res.status(401).json({ success: false, error: "Non connecté ou session expirée.", message: "Veuillez vous reconnecter via Twitch." });
+        // Message d'erreur clair pour le frontend
+        return res.status(401).json({ success: false, error: "Session expirée.", message: "Veuillez vous reconnecter via Twitch pour actualiser vos informations de suivi." });
     }
 
     req.twitchSession = session;
@@ -325,24 +321,28 @@ app.get('/followed_streams', requireAuth, async (req, res) => {
         }
     });
     
-    // Tentative de récupération des données JSON, même en cas d'erreur HTTP
     let followsData = {};
     try {
         followsData = await followsRes.json();
     } catch (e) {
-        // Si la réponse n'est pas du JSON, on gère l'erreur de manière générique
-        followsData.message = "Réponse Twitch non-JSON. Erreur de serveur ou de configuration.";
+        // En cas d'erreur non-JSON, on suppose une erreur de serveur ou de configuration
+        return res.status(500).json({ success: false, error: "Erreur Twitch API Follows: Réponse Twitch non-JSON. Vérifiez votre connexion et vos clés." });
     }
 
-    // ✅ CORRECTION: Vérifier explicitement le statut HTTP de la réponse Twitch
+    // ✅ Vérification explicite des erreurs HTTP 400 et 401/403
     if (!followsRes.ok) {
-        const errorMsg = followsData.message || `Statut HTTP ${followsRes.status}. Vérifiez si votre token utilisateur a expiré ou si votre TWITCH_CLIENT_ID est correct.`;
-        return res.status(followsRes.status).json({ success: false, error: `Erreur Twitch API Follows: ${errorMsg}` });
+        let errorMsg = followsData.message || `Statut HTTP ${followsRes.status}. Cause probable: Token utilisateur expiré ou Client-ID incorrect.`;
+        
+        if (followsRes.status === 401 || followsRes.status === 403 || errorMsg.includes("This API is not available")) {
+             errorMsg = "Votre session Twitch a expiré (token invalide). Veuillez vous déconnecter/reconnecter via Twitch.";
+        }
+        
+        return res.status(followsRes.status).json({ success: false, error: `❌ Erreur de chargement du fil: ${errorMsg}` });
     }
 
-    // Gérer les erreurs dans le corps JSON (si le statut HTTP est 200 mais le corps est une erreur)
+    // Gérer les erreurs dans le corps JSON 
     if (followsData.error) {
-        return res.status(500).json({ success: false, error: `Erreur Twitch API Follows: ${followsData.message}` });
+        return res.status(500).json({ success: false, error: `❌ Erreur de chargement du fil: ${followsData.message}` });
     }
     
     const followedUserIds = followsData.data.map(f => f.to_id);
@@ -371,7 +371,8 @@ app.get('/trending_games', async (req, res) => {
         if (topGamesRes.data) {
             return res.json({ success: true, games: topGamesRes.data });
         } else {
-            return res.json({ success: false, error: "Impossible de récupérer la liste des jeux." });
+            // Le message d'erreur sera dans topGamesRes.message ou topGamesRes.error
+            return res.json({ success: false, error: topGamesRes.message || topGamesRes.error || "Impossible de récupérer la liste des jeux. Vérifiez votre App Access Token." });
         }
     } catch (e) {
         console.error("Erreur dans /trending_games:", e);
