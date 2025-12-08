@@ -257,7 +257,8 @@
                 <p style="text-align:center; color:#777;">Résultats de la recherche de chaîne ici.</p>
             </div>
             
-            </div>
+            
+        </div>
 
     </div>
 </div>
@@ -378,7 +379,7 @@
             if (scanData.type === 'user') {
                 const u = scanData.user_data;
                 
-                // Données précises (simulées) pour un streamer
+                // Maintien de métriques SIMULÉES CLÉS pour l'analyse (non disponibles publiquement)
                 const metrics = {
                     avg_viewers: (Math.random() * 500).toFixed(0),
                     follower_growth: (Math.random() * 10 - 2).toFixed(1), // -2 à 8%
@@ -387,12 +388,12 @@
                 
                 // Fonction d'aide pour formatter les nombres (correction toLocaleString)
                 const safeFormat = (value) => {
-                    // Si c'est un nombre, le formatter. Si c'est la string 'N/A', la retourner telle quelle.
-                    return (typeof value === 'number') ? value.toLocaleString() : value;
+                    // Si c'est un nombre ou une chaîne de chiffres, le formatter. Si c'est la string 'N/A', la retourner telle quelle.
+                    return (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) ? Number(value).toLocaleString() : value;
                 };
 
 
-                // RENDU SCAN SPÉCIFIQUE STREAMER (Utilisation des nouvelles métriques brutes)
+                // RENDU SCAN SPÉCIFIQUE STREAMER (Utilisation des données réelles et enrichies)
                 boxScan.innerHTML = `
                     <div style="display:flex; gap:10px; align-items:center; border-bottom:1px solid #222; padding-bottom:10px; margin-bottom:10px;">
                         <img src="${u.profile_image_url}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--color-secondary-blue);">
@@ -405,42 +406,57 @@
                     
                     <div class="metric-grid">
                         <div class="metric-item">
-                            <div class="metric-value">${metrics.avg_viewers}</div>
-                            <div class="metric-label"><i class="fas fa-eye"></i> Vues Moy. (Sim.)</div>
-                        </div>
-                        <div class="metric-item">
                             <div class="metric-value">${safeFormat(u.total_followers)}</div>
                             <div class="metric-label"><i class="fas fa-user-plus"></i> Total Suiveurs</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-value ${metrics.follower_growth > 0 ? 'trend-up' : 'trend-down'}">${metrics.follower_growth}%</div>
-                            <div class="metric-label"><i class="fas fa-chart-line"></i> Croissance Suiv. (Sim.)</div>
+                            <div class="metric-value">${safeFormat(u.total_views_count)}</div>
+                            <div class="metric-label"><i class="fas fa-eye"></i> Vues Totales</div>
                         </div>
                         <div class="metric-item">
                             <div class="metric-value">${safeFormat(u.total_vods)}</div>
                             <div class="metric-label"><i class="fas fa-video"></i> VODs Publiées</div>
                         </div>
-                        <div class="metric-item" style="grid-column: span 2;">
-                            <div class="metric-value">${metrics.engagement_rate}%</div>
-                            <div class="metric-label"><i class="fas fa-comment-dots"></i> Taux Engag. Chat (Sim.)</div>
+                        <div class="metric-item">
+                            <div class="metric-value">${u.account_creation_date}</div>
+                            <div class="metric-label"><i class="fas fa-calendar-alt"></i> Création Compte</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${metrics.avg_viewers}</div>
+                            <div class="metric-label"><i class="fas fa-chart-bar"></i> Vues Moy. (Sim.)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value ${metrics.follower_growth > 0 ? 'trend-up' : 'trend-down'}">${metrics.follower_growth}%</div>
+                            <div class="metric-label"><i class="fas fa-chart-line"></i> Croissance (Sim.)</div>
                         </div>
                     </div>
                 `;
 
-                // ÉTAPE 2 & 3: IA NICHE et VOD
+                // ÉTAPE 2 : IA NICHE
                 runAIAnalysis('niche', `Streamer: ${u.display_name} | Jeu: ${u.game_name || 'Variety'}`, boxNiche);
 
+                // ÉTAPE 3 : VOD & REPURPOSE
                 boxVod.innerHTML = "<p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Recherche VOD...</p>";
                 const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${u.login}`);
                 const vodData = await vodRes.json();
                 
                 if(vodData.success && vodData.vod) {
+                    // AFFICHE LA VOD SANS LANCER L'ANALYSE IA
                     boxVod.innerHTML = `
-                        <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">VOD: ${vodData.vod.title.substring(0,40)}...</div>
-                        <img src="${vodData.vod.thumbnail_url.replace('%{width}','320').replace('%{height}','180').replace('{width}','320').replace('{height}','180')}" style="width:100%; border-radius:4px;">
-                        <p class='text-purple-400 mt-2 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA des moments clés...</p>
+                        <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">VOD Récente: ${vodData.vod.title.substring(0,40)}...</div>
+                        <img id="vod-thumbnail" src="${vodData.vod.thumbnail_url.replace('%{width}','320').replace('%{height}','180').replace('{width}','320').replace('{height}','180')}" style="width:100%; border-radius:4px;">
+                        <div id="vod-analysis-placeholder" class='mt-2' style="min-height: 100px;">
+                            <p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA des moments clés en cours...</p>
+                        </div>
                     `;
-                    runAIAnalysis('repurpose', `${u.login} | ${vodData.vod.title}`, boxVod);
+                    
+                    // LANCE L'ANALYSE IA ET INJECTE LE RÉSULTAT DANS le placeholder
+                    const analysisBox = document.getElementById('vod-analysis-placeholder');
+                    await runAIAnalysis('repurpose', `${u.login} | ${vodData.vod.title}`, analysisBox);
+                    
+                    // Ajout d'un titre pour que l'analyse IA s'affiche clairement sous la VOD
+                    analysisBox.insertAdjacentHTML('afterbegin', `<div class="dashboard-title" style="color:var(--color-ai-repurpose); margin-top:10px;">Analyse Repurposing:</div>`);
+
                 } else {
                     boxVod.innerHTML = "<p style='color:#777; text-align:center; margin-top:50px;'>Pas de VOD récente trouvée. L'analyse repurposing est indisponible.</p>";
                 }
