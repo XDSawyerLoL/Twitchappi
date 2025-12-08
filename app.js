@@ -26,64 +26,59 @@ const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'http://localhost:10000/
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'VOTRE_CLE_API_GEMINI'; 
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
-let ai = null;
-if (GEMINI_API_KEY && GEMINI_API_KEY !== 'VOTRE_CLE_API_GEMINI') {
-    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
-    console.log("DEBUG: GEMINI_API_KEY est chargée. L'IA est ACTIVE.");
-} else {
-    console.error("FATAL DEBUG: Clé API Gemini manquante, par défaut ou invalide. L'IA est DÉSACTIVÉE.");
-    if (GEMINI_API_KEY === 'VOTRE_CLE_API_GEMINI') {
-          console.error("ATTENTION: La clé API est toujours sur la valeur PLACEHOLDER 'VOTRE_CLE_API_GEMINI'. VEUILLEZ LA REMPLACER DANS app.js.");
-    }
-}
+const ai = new GoogleGenAI(GEMINI_API_KEY);
+
+// Cache global pour les tokens et les données utilisateur
+const CACHE = {
+    twitchTokens: {}, // { app: { access_token, expires_at }, user: { ... } }
+    twitchUser: null, // { id, login, display_name, access_token, refresh_token }
+    lastStreamBoost: 0,
+    raidCooldown: new Map(), // Pour gérer le cooldown de l'IA (clé: type d'action)
+};
 
 // =========================================================
-// MIDDLEWARES
+// --- MIDDLEWARE ---
 // =========================================================
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); 
-
-// Cache simple en mémoire pour les tokens et le boost
-const CACHE = {
-    twitchTokens: {}, 
-    twitchUser: null,
-    streamBoosts: {} 
-};
+app.use(cookieParser(crypto.randomBytes(32).toString('hex')));
+app.use(express.static(path.join(__dirname))); // Pour servir NicheOptimizer.html
 
 // =========================================================
-// LOGIQUE TWITCH HELPER
+// --- FONCTIONS UTILS TWITCH API ---
 // =========================================================
 
-async function getTwitchToken(tokenType) {
-    if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) {
-        return CACHE.twitchTokens[tokenType].access_token;
+/**
+ * Obtient un token d'application Twitch ou le renouvelle si nécessaire.
+ * @param {'app'|'user'} type - Le type de token à obtenir.
+ */
+async function getTwitchToken(type) {
+    if (type === 'app' && CACHE.twitchTokens.app && CACHE.twitchTokens.app.expires_at > Date.now()) {
+        return CACHE.twitchTokens.app.access_token;
     }
     
-    const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
-    
-    try {
-        const response = await fetch(url, { method: 'POST' });
-        const data = await response.json();
+    if (type === 'app') {
+        const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
+        const res = await fetch(url, { method: 'POST' });
+        const data = await res.json();
         
         if (data.access_token) {
-            CACHE.twitchTokens[tokenType] = {
+            CACHE.twitchTokens.app = {
                 access_token: data.access_token,
-                expiry: Date.now() + (data.expires_in * 1000) - 300000 
+                expires_at: Date.now() + (data.expires_in * 1000) - 60000 // 1 minute de marge
             };
             return data.access_token;
-        } else {
-            console.error("Échec de la récupération du token Twitch (Client Credentials).", data);
-            return null;
         }
-    } catch (error) {
-        console.error("Erreur réseau lors de la récupération du token Twitch:", error);
-        return null;
     }
+    return null;
 }
 
+/**
+ * Effectue un appel à l'API Twitch Helix.
+ * @param {string} endpoint - L'endpoint Helix (ex: 'users?login=...')
+ * @param {string} token - Le token d'accès (user ou app).
+ */
 async function twitchApiFetch(endpoint, token) {
     const accessToken = token || await getTwitchToken('app');
     if (!accessToken) throw new Error("Accès Twitch non autorisé.");
@@ -95,10 +90,18 @@ async function twitchApiFetch(endpoint, token) {
         }
     });
 
-    if (res.status === 401) {
+    // 🚨 FIX: Gérer le statut 401/403 pour le token utilisateur
+    if (res.status === 401 || res.status === 403) {
+        // Invalide le token app si c'est lui qui a échoué
         if (token === CACHE.twitchTokens['app']?.access_token) {
              CACHE.twitchTokens['app'] = null; 
         }
+        
+        // Si le token qui a échoué est le token utilisateur, lancer une erreur spécifique
+        if (token && token === CACHE.twitchUser?.access_token) {
+            throw new Error("USER_TOKEN_INVALIDATED"); 
+        }
+        
         throw new Error("Token Twitch expiré ou invalide. Veuillez réessayer.");
     }
     
@@ -110,124 +113,127 @@ async function twitchApiFetch(endpoint, token) {
     return res.json();
 }
 
-// =========================================================
-// LOGIQUE GEMINI HELPER (Le cœur de la gestion du 429)
-// =========================================================
-
-async function runGeminiAnalysis(prompt) {
-    if (!ai) {
-        // Renvoie une erreur 500 si la clé n'est pas configurée dans la console du serveur
-        return { 
-            success: false, 
-            status: 500, 
-            error: "L'API Gemini n'est pas configurée (GEMINI_API_KEY manquante ou invalide).",
-            html_response: `<p style="color:red; font-weight:bold;">❌ Erreur de Configuration IA: La clé GEMINI_API_KEY n'est pas valide ou est manquante. Vérifiez le fichier app.js et la console du serveur.</p>`
+/**
+ * Fonction générique pour interroger l'IA Gemini.
+ * @param {string} systemInstruction - Instruction système pour le modèle.
+ * @param {string} prompt - Le prompt utilisateur.
+ */
+async function callGemini(systemInstruction, prompt) {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'VOTRE_CLE_API_GEMINI') {
+        return {
+            success: false,
+            error: "Clé API Gemini manquante. Veuillez configurer `GEMINI_API_KEY` dans app.js.",
+            html_response: `<p style="color:red; text-align:center;">❌ Configuration manquante: Clé API Gemini non définie.</p>`
         };
     }
-
     try {
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
-            contents: [
-                { role: "user", parts: [{ text: prompt }] }
-            ],
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
             config: {
-                systemInstruction: "Tu es un expert en croissance et stratégie Twitch. Toutes tes réponses doivent être formatées en HTML simple (utilisant <p>, <ul>, <li>, <h4>, <strong>, <em>) sans balise <html> ou <body>, pour être directement injectées dans une div."
-            }
+                systemInstruction: systemInstruction,
+                temperature: 0.7,
+            },
         });
+
+        // Simuler un retour structuré simple pour l'interface client
+        const html_response = response.text.replace(/\n/g, '<br>');
         
-        const text = response.text.trim();
-        return { success: true, html_response: text };
+        return {
+            success: true,
+            html_response: `<div class="ai-content">${html_response}</div>`,
+            status: 200
+        };
 
     } catch (e) {
-        let statusCode = 500;
-        let errorMessage = `Erreur interne du serveur lors de l'appel à l'IA. (Détail: ${e.message})`;
-        
-        // Détection des erreurs courantes (Rate Limit, Auth)
-        if (e.message.includes('429')) {
-             statusCode = 429;
-             errorMessage = `❌ Erreur: Échec de l'appel à l'API Gemini. Limite de requêtes atteinte (Code 429). Votre clé IA a atteint son quota.`;
-        }
-        
-        if (e.message.includes('400') || e.message.includes('403')) {
-             statusCode = 403;
-             errorMessage = `❌ Erreur: Clé API Gemini refusée (Code 403/400). La clé est invalide ou le service n'est pas activé.`;
-        }
-        
-        return { 
-            success: false, 
-            status: statusCode, 
-            error: errorMessage,
-            html_response: `<p style="color:red; font-weight:bold;">${errorMessage}</p>`
+        console.error("Erreur Gemini:", e);
+        return {
+            success: false,
+            error: `Erreur d'exécution de l'IA: ${e.message}`,
+            html_response: `<p style="color:red; text-align:center;">❌ Erreur IA: ${e.message}</p>`,
+            status: 500
         };
     }
 }
 
+
 // =========================================================
-// --- ROUTES D'AUTHENTIFICATION TWITCH (OAuth) ---
+// --- ROUTES D'AUTHENTIFICATION TWITCH ---
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-    res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 }); 
+    res.cookie('twitch_auth_state', state, { httpOnly: true, signed: true });
     res.redirect(url);
 });
 
 app.get('/twitch_auth_callback', async (req, res) => {
-    const { code, state, error, error_description } = req.query;
-    const storedState = req.cookies.twitch_state;
-    
-    if (state !== storedState) {
-        return res.status(400).send("Erreur de sécurité: État invalide.");
-    }
+    const { code, state } = req.query;
 
-    if (error) {
-        return res.status(400).send(`Erreur Twitch: ${error} - ${error_description}`);
+    if (req.signedCookies.twitch_auth_state !== state) {
+        return res.status(403).send('Erreur: L\'état CSRF ne correspond pas.');
     }
 
     try {
-        const tokenUrl = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`;
-        
-        const tokenRes = await fetch(tokenUrl, { method: 'POST' });
+        // 1. Échange du code pour le token d'accès utilisateur
+        const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: TWITCH_CLIENT_ID,
+                client_secret: TWITCH_CLIENT_SECRET,
+                code,
+                grant_type: 'authorization_code',
+                redirect_uri: REDIRECT_URI
+            })
+        });
         const tokenData = await tokenRes.json();
-        
+
         if (tokenData.access_token) {
-            
-            const userRes = await twitchApiFetch('users', tokenData.access_token);
-            const user = userRes.data[0];
-            
+            const userToken = tokenData.access_token;
+
+            // 2. Récupération des informations de l'utilisateur
+            const user = await twitchApiFetch('users', userToken);
+            const userData = user.data[0];
+
+            // 3. Stockage des informations dans le cache global (simple session pour cette démo)
             CACHE.twitchUser = {
-                display_name: user.display_name,
-                username: user.login,
-                id: user.id,
-                access_token: tokenData.access_token,
+                id: userData.id,
+                login: userData.login,
+                display_name: userData.display_name,
+                access_token: userToken,
                 refresh_token: tokenData.refresh_token,
-                expiry: Date.now() + (tokenData.expires_in * 1000)
             };
-            
-            res.redirect('/'); 
+
+            res.clearCookie('twitch_auth_state');
+            res.redirect('/');
         } else {
-            res.status(500).send("Erreur lors de l'échange du code Twitch.");
+            throw new Error(`Échec de l'échange de token: ${tokenData.message || 'Inconnu'}`);
         }
-    } catch (e) {
-        res.status(500).send(`Erreur interne du serveur lors de l'authentification: ${e.message}`);
+    } catch (error) {
+        console.error("Erreur d'authentification:", error);
+        res.status(500).send(`Erreur lors de l'authentification Twitch: ${error.message}`);
+    }
+});
+
+app.get('/twitch_user_status', (req, res) => {
+    if (CACHE.twitchUser) {
+        res.json({
+            is_connected: true,
+            display_name: CACHE.twitchUser.display_name,
+            username: CACHE.twitchUser.login
+        });
+    } else {
+        res.json({ is_connected: false });
     }
 });
 
 app.post('/twitch_logout', (req, res) => {
     CACHE.twitchUser = null;
-    res.json({ success: true });
+    res.json({ success: true, message: "Déconnexion réussie." });
 });
 
-app.get('/twitch_user_status', (req, res) => {
-    if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
-        const { display_name, username, id } = CACHE.twitchUser;
-        return res.json({ is_connected: true, display_name, username, id });
-    }
-    CACHE.twitchUser = null; 
-    res.json({ is_connected: false });
-});
 
 // =========================================================
 // --- ROUTES TWITCH API (DATA) ---
@@ -253,290 +259,203 @@ app.get('/followed_streams', async (req, res) => {
         
         return res.json({ success: true, streams });
     } catch (e) {
+        // 🚨 FIX: Si le token utilisateur a été invalidé par Twitch
+        if (e.message === "USER_TOKEN_INVALIDATED") {
+            CACHE.twitchUser = null; // Invalide le cache côté serveur
+            return res.status(401).json({ 
+                success: false, 
+                error: "Token utilisateur Twitch expiré ou révoqué. Veuillez vous reconnecter via Twitch.",
+                needs_reconnect: true // Flag pour le client
+            });
+        }
+        
         console.error("Erreur lors de la récupération des streams suivis:", e.message);
         return res.status(500).json({ success: false, error: e.message });
     }
 });
 
-
-app.get('/get_latest_vod', async (req, res) => {
-    const channel = req.query.channel;
-    if (!channel) {
-        return res.status(400).json({ success: false, error: "Paramètre 'channel' manquant." });
+app.get('/random_raid_target', async (req, res) => {
+    const { game_name } = req.query;
+    if (!game_name) {
+        return res.status(400).json({ success: false, error: "Le paramètre 'game_name' est requis." });
     }
-
-    try {
-        const userRes = await twitchApiFetch(`users?login=${channel}`);
-        if (!userRes.data || userRes.data.length === 0) {
-            return res.status(404).json({ success: false, error: "Chaîne Twitch introuvable." });
-        }
-        const userId = userRes.data[0].id;
-
-        const vodRes = await twitchApiFetch(`videos?user_id=${userId}&type=archive&first=1`);
-        if (!vodRes.data || vodRes.data.length === 0) {
-            return res.status(404).json({ success: false, error: `Aucune VOD récente trouvée pour ${channel}.` });
-        }
-        
-        const vod = vodRes.data[0];
-        const thumbnailUrl = vod.thumbnail_url.replace('%{width}', '150').replace('%{height}', '84');
-
-        return res.json({ 
-            success: true, 
-            vod: {
-                id: vod.id,
-                title: vod.title,
-                url: vod.url,
-                thumbnail_url: thumbnailUrl,
-                duration: vod.duration 
-            }
-        });
-    } catch (e) {
-        console.error("Erreur lors de la récupération de la VOD:", e.message);
-        return res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.get('/trending_games', async (req, res) => {
-    try {
-        const data = await twitchApiFetch('games/top?first=20');
-        
-        const games = data.data.map(game => ({
-            id: game.id,
-            name: game.name,
-            box_art_url: game.box_art_url,
-            viewer_count: 0 
-        }));
-
-        return res.json({ success: true, games });
-
-    } catch (e) {
-        console.error("Erreur lors de la récupération des jeux en tendance:", e.message);
-        return res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.post('/scan_target', async (req, res) => {
-    const { query } = req.body;
-    if (!query) return res.status(400).json({ success: false, message: "Requête vide." });
     
     try {
-        const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
-        if (gameRes.data.length > 0) {
-            const game = gameRes.data[0];
-            
-            const streamsRes = await twitchApiFetch(`streams?game_id=${game.id}&first=5`);
-            const totalStreams = streamsRes.data.length;
-            const totalViewers = streamsRes.data.reduce((acc, s) => acc + s.viewer_count, 0);
-            const avgViewersPerStreamer = totalStreams > 0 ? (totalViewers / totalStreams).toFixed(1) : 0;
-
-            const streams = streamsRes.data;
-
-            return res.json({ 
-                success: true, 
-                type: 'game',
-                game_data: {
-                    name: game.name,
-                    id: game.id,
-                    box_art_url: game.box_art_url,
-                    total_streamers: totalStreams,
-                    total_viewers: totalViewers,
-                    avg_viewers_per_streamer: avgViewersPerStreamer,
-                    streams: streams.map(s => ({
-                        user_name: s.user_name,
-                        user_login: s.user_login,
-                        title: s.title,
-                        viewer_count: s.viewer_count
-                    }))
-                }
-            });
+        // 1. Récupérer l'ID du jeu
+        const gameSearch = await twitchApiFetch(`games?name=${encodeURIComponent(game_name)}`);
+        const game = gameSearch.data[0];
+        
+        if (!game) {
+            return res.status(404).json({ success: false, error: `Jeu non trouvé pour: ${game_name}` });
         }
-
-        const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
-        if (userRes.data.length > 0) {
-            const user = userRes.data[0];
-            
-            let streamDetails = null;
-            try {
-                const streamRes = await twitchApiFetch(`streams?user_id=${user.id}`);
-                if (streamRes.data.length > 0) {
-                    streamDetails = streamRes.data[0];
-                }
-            } catch (e) {
-            }
-
-            return res.json({
-                success: true,
-                type: 'user',
-                user_data: {
-                    login: user.login,
-                    display_name: user.display_name,
-                    id: user.id,
-                    profile_image_url: user.profile_image_url,
-                    description: user.description,
-                    is_live: !!streamDetails,
-                    stream_details: streamDetails ? {
-                        title: streamDetails.title,
-                        game_name: streamDetails.game_name,
-                        viewer_count: streamDetails.viewer_count
-                    } : null
-                }
-            });
+        
+        const gameId = game.id;
+        
+        // 2. Récupérer les streams du jeu (max 100)
+        // Filtrer les gros streamers (plus de 1000 vues) pour cibler les petites niches
+        const streamsData = await twitchApiFetch(`streams?game_id=${gameId}&first=100`);
+        
+        const potentialTargets = streamsData.data.filter(stream => stream.viewer_count > 5 && stream.viewer_count < 1000);
+        
+        if (potentialTargets.length === 0) {
+            return res.status(404).json({ success: false, error: `Aucun streamer de taille moyenne trouvé dans la catégorie ${game_name} pour un raid.` });
         }
+        
+        // 3. Sélectionner une cible aléatoire
+        const randomIndex = Math.floor(Math.random() * potentialTargets.length);
+        const target = potentialTargets[randomIndex];
+        
+        return res.json({ 
+            success: true, 
+            raid_target: {
+                user_login: target.user_login,
+                display_name: target.user_name,
+                viewer_count: target.viewer_count,
+                game_name: target.game_name
+            } 
+        });
 
-        return res.status(404).json({ success: false, message: `Impossible de trouver un jeu ou un utilisateur correspondant à "${query}".` });
-
-    } catch (e) {
-        console.error("Erreur dans /scan_target:", e.message);
-        return res.status(500).json({ success: false, error: e.message });
+    } catch (error) {
+        console.error("Erreur Raid Target:", error);
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
 
+
 // =========================================================
-// --- ROUTES IA (CRITIQUE ET ANALYSE) ---
+// --- ROUTES IA (AI CRITIQUE & BOOST) ---
 // =========================================================
 
 app.post('/critique_ia', async (req, res) => {
     const { type, query } = req.body;
+    
+    if (!type || !query) {
+        return res.status(400).json({ success: false, error: "Les paramètres 'type' et 'query' sont requis." });
+    }
+    
+    let systemInstruction = "";
     let prompt = "";
+    let resultContainerId = "ai-result-box"; 
 
     switch (type) {
         case 'niche':
-            prompt = `En tant qu'expert en stratégie de croissance Twitch, analyse le jeu "${query}". Fournis une critique de niche en format HTML: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au jeu (ex: "Défi Speedrun avec handicap"). 4. Une conclusion forte en <p> avec un <strong>.`;
+            systemInstruction = `Tu es un expert en optimisation de niche Twitch, en ciblage de mots-clés et en stratégie de croissance. Ton but est de fournir une analyse détaillée, structurée en HTML, pour maximiser l'opportunité pour un streamer.
+            Rédige la réponse en français. Utilise des listes <ul> avec des emojis. Commence par un titre <h4>.`;
+            prompt = `Analyse le jeu ou la niche suivante: ${query}. Donne une critique structurée sur les points suivants: 1. Opportunité (Taille vs Concurrence). 2. Angle de Contenu Unique (Proposition de Valeur). 3. Mots-Clés et Titres suggérés. 4. Plan d'action pour la croissance.`;
+            resultContainerId = "niche-result-container"; 
             break;
+        
         case 'repurpose':
-            prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre <h4>. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
+            systemInstruction = `Tu es un spécialiste du repurposing de contenu vidéo Twitch en format court (TikTok, Shorts). Tu analyses une VOD/chaîne et suggères 3 à 5 moments marquants pour en faire des clips viraux.
+            Rédige la réponse en français. Utilise des listes <ul>. Pour chaque suggestion, indique l'heure de début au format (HH:MM:SS). Commence par un titre <h4>.`;
+            prompt = `Analyse la chaîne/VOD de ce streamer: ${query}. Donne 5 idées précises de clips courts (TikTok/Shorts) avec le timestamp (HH:MM:SS) idéal pour le début du clip.`;
+            resultContainerId = "repurpose-result-container";
             break;
-        case 'trend':
-            prompt = `Tu es un détecteur de niches. Analyse les tendances actuelles et donne un avis sur la prochaine "grosse niche" Twitch. Fournis une critique en format HTML: 1. Un titre <h4>. 2. Une analyse en <p> sur la tendance V/S (viewers-to-streamers). 3. Une liste <ul> de 3 jeux ou genres "sous-évalués" à stream. 4. Un conseil de croissance tactique en <p>.`;
+
+        case 'trend_detector':
+            systemInstruction = `Tu es un algorithme de détection de tendances basé sur l'analyse Vue/Streamer (V/S). Ton rôle est d'identifier les jeux ou catégories qui sont sous-diffusés (Low Supply, High Demand).
+            Rédige la réponse en français. Utilise une liste <ul>. Ne donne que les jeux spécifiques. Commence par un titre <h4>.`;
+            prompt = `Analyse la tendance actuelle du streaming et suggère 5 jeux avec un fort potentiel de croissance (Excellent ratio Vues/Streamer). Pour chaque jeu, décris brièvement pourquoi il est une opportunité.`;
+            resultContainerId = "ai-trend-critique-container";
             break;
+            
         default:
-            return res.status(400).json({ success: false, error: "Type d'analyse IA invalide." });
+            return res.status(400).json({ success: false, error: "Type d'analyse IA inconnu." });
     }
 
-    const result = await runGeminiAnalysis(prompt);
-
-    if (result.success) {
-        return res.json(result);
-    } else {
-        return res.status(result.status || 500).json(result);
-    }
-});
-
-app.post('/mini_assistant', async (req, res) => {
-    const { q, context } = req.body; 
+    const aiResult = await callGemini(systemInstruction, prompt);
     
-    if (!q) {
-        return res.status(400).json({ success: false, error: "Requête de l'assistant vide." });
-    }
-    
-    const prompt = `L'utilisateur stream actuellement sur la chaîne : "${context}". L'utilisateur te pose cette question : "${q}". Réponds de manière concise en format HTML pour être affiché dans une petite fenêtre de chat.`;
-
-    const result = await runGeminiAnalysis(prompt);
-
-    if (result.success) {
-        return res.json(result);
+    if (aiResult.success) {
+        return res.json({ success: true, html_response: aiResult.html_response, type, resultContainerId });
     } else {
-        return res.status(result.status || 500).json(result);
+        return res.status(aiResult.status || 500).json(aiResult);
     }
 });
 
 
-const BOOST_COOLDOWN_MS = 3 * 60 * 60 * 1000; 
-
-app.post('/stream_boost', (req, res) => {
+app.post('/stream_boost', async (req, res) => {
     const { channel } = req.body;
-    const now = Date.now();
-    const lastBoost = CACHE.streamBoosts[channel];
-    
-    if (lastBoost && now - lastBoost < BOOST_COOLDOWN_MS) {
-        const remainingTime = BOOST_COOLDOWN_MS - (now - lastBoost);
-        const minutesRemaining = Math.ceil(remainingTime / 60000); 
+    const cooldownPeriod = 3 * 60 * 60 * 1000; // 3 heures
 
-        const errorMessage = `
-             <p style="color:red; font-weight:bold;">
-                 ❌ Boost en Cooldown
-             </p>
-             <p>
-                 Vous devez attendre encore <strong style="color:var(--color-primary-pink);">${minutesRemaining} minutes</strong>.
-             </p>
-        `;
-
-        return res.status(429).json({ 
-            error: `Cooldown de 3 heures actif. Prochain Boost disponible dans environ ${minutesRemaining} minutes.`,
-            html_response: errorMessage
+    if (Date.now() - CACHE.lastStreamBoost < cooldownPeriod) {
+        const remaining = (CACHE.lastStreamBoost + cooldownPeriod) - Date.now();
+        const minutes = Math.ceil(remaining / (60 * 1000));
+        return res.status(429).json({
+            success: false,
+            error: `Le Boost IA est en cooldown. Réessayez dans ${minutes} minutes.`,
+            html_response: `<p style="color:red; text-align:center;">❌ Cooldown: Le Stream Boost est limité. Réessayez dans ${minutes} minutes.</p>`
         });
     }
 
-    CACHE.streamBoosts[channel] = now;
+    const systemInstruction = `Tu es l'algorithme de recommandation Twitch. Tu vas simuler un 'Boost' de l'algorithme sur le streamer ciblé, en générant un rapport très engageant pour l'utilisateur, comme si les vues et l'engagement étaient temporairement augmentés.
+    Rédige la réponse en français. Utilise des titres <h4>. Fournis des métriques simulées concrètes.`;
+    
+    const prompt = `Génère un rapport de Stream Boost pour la chaîne '${channel}'. Simule les métriques suivantes: 1. Augmentation des vues totale (nombre). 2. Rétention des spectateurs (pourcentage). 3. Engagement du Chat (multiplicateur). Donne des conseils clairs sur ce qui a "déclenché" le boost.`;
 
-    const successMessage = `
-         <p style="color:var(--color-primary-pink); font-weight:bold;">
-             ✅ Boost de Stream Activé !
-         </p>
-         <p>
-             La chaîne <strong>${channel}</strong> a été ajoutée à la rotation prioritaire pour une période de 10 minutes. 
-             Le prochain boost sera disponible dans 3 heures. Bonne chance !
-         </p>
-    `;
+    const aiResult = await callGemini(systemInstruction, prompt);
 
-    return res.json({ 
-        success: true, 
-        html_response: successMessage 
-    });
+    if (aiResult.success) {
+        CACHE.lastStreamBoost = Date.now();
+        
+        // Simuler des métriques aléatoires pour l'interface
+        const metrics = {
+            views: `+${(Math.floor(Math.random() * 50) + 20).toString()}k`,
+            retention: `${(Math.random() * 15 + 80).toFixed(1)}%`,
+            engagement: `x${(Math.random() * 1.5 + 1).toFixed(1)}`,
+        };
+        
+        return res.json({ success: true, html_response: aiResult.html_response, metrics });
+    } else {
+        return res.status(aiResult.status || 500).json(aiResult);
+    }
 });
 
-// =========================================================
-// ✅ NOUVELLE ROUTE CRITIQUE : /auto_action (Ajoutée pour corriger l'erreur HTML)
-// =========================================================
 
 app.post('/auto_action', async (req, res) => {
+    const { action_type, query } = req.body;
+    
+    if (action_type === 'random_raid') {
+        // Rediriger vers la nouvelle route GET pour le raid (séparée pour la clarté)
+        // L'appel du front gère maintenant directement /random_raid_target
+        return res.status(400).json({ 
+             success: false, 
+             error: "Cette route ne gère plus le raid. Le front-end doit appeler /random_raid_target pour cette action." 
+        });
+    }
+
+    if (!action_type || !query) {
+        return res.status(400).json({ success: false, error: "Les paramètres 'action_type' et 'query' sont requis." });
+    }
+
+    let systemInstruction = `Tu es une IA d'action rapide pour le streaming. L'utilisateur a demandé une action de type '${action_type}' pour la cible '${query}'. Fournis une réponse courte mais percutante, formatée en HTML pour l'interface.`;
+    let prompt = "";
+    
+    switch(action_type) {
+        case 'export_metrics':
+            prompt = `Génère un résumé des métriques et un plan d'action d'urgence pour la chaîne/le jeu '${query}'.`;
+            break;
+        case 'title_disruption':
+            prompt = `Génère 5 titres de stream TRES disruptifs et accrocheurs pour la chaîne/le jeu '${query}'.`;
+            break;
+        default:
+            return res.status(400).json({ success: false, error: "Action automatique non supportée." });
+    }
+
     try {
-        const { query, action_type } = req.body;
-        let prompt = "";
-        
-        if (!query || !action_type) {
-            return res.status(400).json({ success: false, error: "Les paramètres 'query' ou 'action_type' sont manquants." });
-        }
-
-        switch (action_type) {
-            case 'export_metrics':
-                // 1. Logique d'Export de Métriques (Simulée)
-                const metrics_data = {
-                    views: Math.floor(Math.random() * 500000) + 100000,
-                    retention: (Math.random() * 0.3) + 0.6, // 60% à 90%
-                    followers: Math.floor(Math.random() * 5000) + 1000
-                };
-                
-                // Simuler un message de succès (l'analyse IA n'est pas nécessaire pour l'export)
-                return res.json({
-                    success: true,
-                    html_response: `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">✅ Export des Métriques terminé pour ${query}.</p>`,
-                    metrics: metrics_data
-                });
-
-            case 'create_clip':
-                // 2. Logique de Création de Clip (Utilise l'IA pour le titre et les idées)
-                prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse le sujet ou VOD : "${query}". En format HTML, génère : 1. Un titre <h4> pour le rapport. 2. Une liste <ul> de 3 titres courts et percutants pour un clip (max 60 caractères chacun).`;
-                break;
-
-            case 'title_disruption':
-                // 3. Logique de Titre Disruptif
-                prompt = `Tu es un expert en stratégie de croissance Twitch. Analyse le jeu ou sujet : "${query}". En format HTML, génère : 1. Un titre <h4> pour le rapport. 2. Une liste <ul> de 3 suggestions de titres de stream ULTRA-DISRUPTIFS pour maximiser les clics dans les recommandations. 3. Une conclusion en <p> avec un <strong>.`;
-                break;
-
-            default:
-                return res.status(400).json({ success: false, error: `Type d'action non supporté : ${action_type}` });
-        }
-        
-        // Exécution de l'IA pour les actions 'create_clip' et 'title_disruption'
-        const result = await runGeminiAnalysis(prompt);
+        const result = await callGemini(systemInstruction, prompt);
 
         if (result.success) {
-            // Retourne la réponse de l'IA
+             // Simuler des métriques fixes/simples pour l'affichage du rapport
+             const metrics = {
+                views: `${(Math.floor(Math.random() * 5) + 1).toString()}k`,
+                retention: `${(Math.random() * 10 + 70).toFixed(1)}%`,
+                engagement: `${(Math.random() * 100 + 50).toFixed(0)}`, 
+            };
+            
             return res.json({
                 success: true,
                 html_response: result.html_response,
-                metrics: null // Pas de métriques pour ces actions
+                metrics: metrics 
             });
         } else {
             // Gère les erreurs de l'IA (429, 500, etc.)
@@ -572,6 +491,6 @@ app.get('/NicheOptimizer.html', (req, res) => {
 // =========================================================
 
 app.listen(PORT, () => {
-    console.log(`Serveur démarré sur http://localhost:${PORT}`);
-    console.log(`REDIRECT_URI pour Twitch: ${REDIRECT_URI}`);
+    console.log(`Serveur Node.js démarré sur http://localhost:${PORT}`);
+    console.log(`Redirect URI configurée: ${REDIRECT_URI}`);
 });
