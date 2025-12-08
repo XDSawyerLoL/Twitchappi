@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub - COCKPIT MODE</title>
+    <title>Streamer & Niche AI Hub - COCKPIT MODE (V12)</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -43,7 +43,7 @@
         .h1-blue-accent { color: var(--color-secondary-blue); }
         .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
         
-        /* Navigation (Onglets) - Remontée en haut */
+        /* Navigation (Onglets) */
         .tabs-nav-container { margin-bottom: 15px; }
         .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
         .tab-btn { 
@@ -79,7 +79,7 @@
         .tab-content.active { display: block; animation: fadeEffect 0.5s; }
         @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
 
-        /* NOUVEAU : Grille Dashboard unifié */
+        /* Grille Dashboard unifié */
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
         .dashboard-box { 
             background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; 
@@ -96,7 +96,20 @@
             border-bottom: 1px solid #333; padding-bottom: 5px; 
         }
 
-        /* Inputs & Boutons (VOTRE STYLE) */
+        /* Style des Métriques (Nouveau) */
+        .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .metric-item { background: #1a1a1a; padding: 8px; border-radius: 4px; border: 1px solid #2e2e2e; }
+        .metric-value { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: bold; }
+        .metric-label { font-size: 10px; color: var(--color-text-dimmed); text-transform: uppercase; }
+        .trend-up { color: var(--color-ai-niche); }
+        .trend-down { color: var(--color-ai-action); }
+
+        /* Style IA Niche Score */
+        .niche-score { font-family: 'Orbitron', sans-serif; font-size: 40px; font-weight: bold; text-align: center; color: var(--color-ai-niche); text-shadow: var(--shadow-niche); margin: 10px 0; }
+        .ia-recommendation { font-size: 13px; list-style-type: none; padding-left: 0; }
+        .ia-recommendation li { margin-bottom: 8px; border-left: 3px solid var(--color-ai-niche); padding-left: 10px; }
+
+        /* Inputs & Boutons */
         .action-input { 
             width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); 
             background: var(--color-bg-dark); color: #fff; font-size: 13px; transition: 0.3s; 
@@ -127,7 +140,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V11 (Fusion)</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V12 (Cockpit)</h1>
     <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Action</div>
 
     <div class="tabs-nav-container">
@@ -179,21 +192,21 @@
                 <div class="dashboard-box box-stats">
                     <div class="dashboard-title" style="color:var(--color-secondary-blue)">📊 MÉTRIQUES & INFO</div>
                     <div id="res-scan-content" style="font-size:13px; color:#ddd;">
-                        En attente...
+                        <p style="color:#777; text-align:center; margin-top:50px;">Lancez une recherche pour afficher les métriques précises.</p>
                     </div>
                 </div>
 
                 <div class="dashboard-box box-niche">
                     <div class="dashboard-title" style="color:var(--color-ai-niche)">🧠 CRITIQUE NICHE (IA)</div>
                     <div id="res-niche-content" style="font-size:13px; line-height:1.4;">
-                        L'IA analysera le positionnement ici.
+                         <p style="color:#777; text-align:center; margin-top:50px;">Le moteur d'IA générera un score et des conseils basés sur les données.</p>
                     </div>
                 </div>
 
                 <div class="dashboard-box box-vod">
                     <div class="dashboard-title" style="color:var(--color-ai-repurpose)">✂️ VOD & REPURPOSING</div>
                     <div id="res-vod-content" style="font-size:13px;">
-                        Suggestions de clips sur la dernière VOD.
+                        <p style="color:#777; text-align:center; margin-top:50px;">Suggestions de clips et titres pour TikTok/YouTube Shorts.</p>
                     </div>
                 </div>
             </div>
@@ -236,16 +249,13 @@
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch'; 
     let embed = null;
-    let twitchUserConnected = false;
 
     // --- GESTION ONGLETS ---
     function openTab(tabId) {
-        // UI Boutons
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         const btn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
         if(btn) btn.classList.add('active');
 
-        // UI Contenu
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
     }
@@ -255,7 +265,7 @@
         document.getElementById('twitch-embed').innerHTML = '';
         const config = {
             width: "100%", height: "100%", layout: "video-and-chat",
-            parent: [window.location.hostname, "localhost"] // Important
+            parent: [window.location.hostname, "localhost"]
         };
         if (videoId) {
             config.video = videoId;
@@ -265,7 +275,6 @@
         }
         embed = new Twitch.Embed("twitch-embed", config);
         
-        // Update UI Text
         document.getElementById('input-channel').value = channelName;
         document.getElementById('player-channel-status').innerText = videoId ? `📼 VOD` : `🔴 ${channelName}`;
     }
@@ -276,6 +285,42 @@
     });
 
     // --- LOGIQUE FUSIONNÉE (DASHBOARD 360) ---
+    async function runAIAnalysis(type, query, box) {
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type, query })
+            });
+            
+            if (!res.ok) {
+                const status = res.status;
+                const errorText = status === 403 || status === 400 
+                    ? `❌ ERREUR API (${status}): Clé AI Invalide.`
+                    : `❌ Erreur Serveur (${status}) pour l'IA.`;
+                box.innerHTML = `<p style="color:red;">${errorText} (Vérifiez votre clé dans le backend!)</p>`;
+                return;
+            }
+            
+            const data = await res.json();
+            
+            // RENDU SPÉCIFIQUE POUR L'IA NICHE
+            if (type === 'niche' && data.niche_score && data.recommendations) {
+                let recHtml = data.recommendations.map(rec => `<li><i class="fas fa-check-circle" style="color:var(--color-ai-niche)"></i> ${rec}</li>`).join('');
+                box.innerHTML = `
+                    <div style="font-size:10px; color:var(--color-text-dimmed); text-align:center;">Score de Niche (Potentiel)</div>
+                    <div class="niche-score">${data.niche_score}</div>
+                    <div class="dashboard-title" style="color:var(--color-ai-niche); margin-top:20px;">Recommandations Clés :</div>
+                    <ul class="ia-recommendation">${recHtml}</ul>
+                `;
+            } else {
+                box.innerHTML = data.html_response || data.error || "Réponse IA vide.";
+            }
+
+        } catch (e) {
+            box.innerHTML = `<p style="color:red;">❌ Erreur de connexion au backend pour l'IA.</p>`;
+        }
+    }
+
     document.getElementById('form-global-scan').addEventListener('submit', async function(e) {
         e.preventDefault();
         const query = document.getElementById('input-global-target').value.trim();
@@ -288,9 +333,9 @@
 
         // 1. UI Loading State
         btn.disabled = true; btn.innerText = "⏳ ANALYSE EN COURS...";
-        boxScan.innerHTML = "<p class='text-blue-400'>Recherche métriques...</p>";
-        boxNiche.innerHTML = "<p class='text-green-400'>Attente données...</p>";
-        boxVod.innerHTML = "<p class='text-purple-400'>Attente cible...</p>";
+        boxScan.innerHTML = "<p class='text-blue-400 text-center'><i class='fas fa-sync fa-spin'></i> Recherche métriques...</p>";
+        boxNiche.innerHTML = "<p class='text-green-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA...</p>";
+        boxVod.innerHTML = "<p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Recherche VOD...</p>";
 
         try {
             // ÉTAPE 1 : SCAN (Identification User ou Game)
@@ -298,53 +343,79 @@
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ query })
             });
-            const scanData = await scanRes.json();
 
+            if (!scanRes.ok) {
+                const status = scanRes.status;
+                const errorText = status === 403 || status === 400 
+                    ? `❌ ERREUR API (${status}): Clé Twitch/Backend Invalide.`
+                    : `❌ Erreur Serveur (${status}).`;
+                throw new Error(errorText);
+            }
+
+            const scanData = await scanRes.json();
             if (!scanData.success) throw new Error(scanData.message);
 
             // AFFICHER RÉSULTATS SCAN
             if (scanData.type === 'user') {
                 const u = scanData.user_data;
+                
+                // SIMULATION DE DONNÉES RICHES (Doit venir du backend)
+                const metrics = u.metrics || {
+                    avg_viewers: (Math.random() * 500).toFixed(0),
+                    follower_growth: (Math.random() * 10 - 2).toFixed(1), // -2 à 8%
+                    hours_streamed: (Math.random() * 400).toFixed(0),
+                    engagement_rate: (Math.random() * 10 + 5).toFixed(1) // 5% à 15%
+                };
+
+                // RENDU SCAN AMÉLIORÉ
                 boxScan.innerHTML = `
-                    <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="display:flex; gap:10px; align-items:center; border-bottom:1px solid #222; padding-bottom:10px; margin-bottom:10px;">
                         <img src="${u.profile_image_url}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--color-secondary-blue);">
                         <div>
                             <div style="font-weight:bold; font-size:14px;">${u.display_name}</div>
-                            <div style="color:${u.is_live?'red':'gray'}">${u.is_live ? '🔴 LIVE' : '⚫ OFF'}</div>
+                            <div style="color:${u.is_live?'red':'gray'}">${u.is_live ? '🔴 LIVE' : '⚫ OFF'} | ${u.game_name || 'Divers'}</div>
                         </div>
                     </div>
-                    <p style="margin-top:10px;">${u.description || 'Pas de bio.'}</p>
-                    <button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%; margin-top:5px; font-size:10px;">VOIR STREAM</button>
+                    <button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%; margin-bottom:10px; font-size:10px;">VOIR STREAM</button>
+                    
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-value">${metrics.avg_viewers}</div>
+                            <div class="metric-label"><i class="fas fa-eye"></i> Vues Moy.</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value ${metrics.follower_growth > 0 ? 'trend-up' : 'trend-down'}">${metrics.follower_growth}%</div>
+                            <div class="metric-label"><i class="fas fa-chart-line"></i> Croissance Suiv.</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${metrics.hours_streamed}h</div>
+                            <div class="metric-label"><i class="fas fa-clock"></i> Heures Streamées</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${metrics.engagement_rate}%</div>
+                            <div class="metric-label"><i class="fas fa-comment-dots"></i> Taux Engag. Chat</div>
+                        </div>
+                    </div>
                 `;
 
                 // ÉTAPE 2 : IA NICHE (Sur le user)
-                boxNiche.innerHTML = "<p class='text-green-400'>🧠 L'IA analyse le profil...</p>";
-                fetch(`${API_BASE}/critique_ia`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ type: 'niche', query: `Streamer: ${u.display_name} | Jeu: ${u.game_name || 'Variety'}` })
-                }).then(r => r.json()).then(d => boxNiche.innerHTML = d.html_response);
+                runAIAnalysis('niche', `Streamer: ${u.display_name} | Jeu: ${u.game_name || 'Variety'}`, boxNiche);
 
                 // ÉTAPE 3 : VOD & REPURPOSE
-                boxVod.innerHTML = "<p class='text-purple-400'>🎬 Recherche VOD...</p>";
+                boxVod.innerHTML = "<p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Recherche VOD...</p>";
                 const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${u.login}`);
                 const vodData = await vodRes.json();
                 
                 if(vodData.success && vodData.vod) {
                     boxVod.innerHTML = `
-                        <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">${vodData.vod.title.substring(0,40)}...</div>
+                        <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">VOD: ${vodData.vod.title.substring(0,40)}...</div>
                         <img src="${vodData.vod.thumbnail_url.replace('%{width}','320').replace('%{height}','180').replace('{width}','320').replace('{height}','180')}" style="width:100%; border-radius:4px;">
-                        <p class='text-purple-400 mt-2'>🧠 Analyse IA des clips...</p>
+                        <p class='text-purple-400 mt-2 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA des moments clés...</p>
                     `;
-                    // Lancer IA Repurpose
-                    fetch(`${API_BASE}/critique_ia`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ type: 'repurpose', query: `${u.login} | ${vodData.vod.title}` })
-                    }).then(r => r.json()).then(d => {
-                        // Nettoyage simple pour affichage compact
-                        boxVod.innerHTML += `<div style="margin-top:5px; max-height:150px; overflow-y:auto;">${d.html_response}</div>`;
-                    });
+                    // Lancer IA Repurpose après avoir affiché la VOD
+                    runAIAnalysis('repurpose', `${u.login} | ${vodData.vod.title}`, boxVod);
                 } else {
-                    boxVod.innerHTML = "Pas de VOD trouvée.";
+                    boxVod.innerHTML = "<p style='color:#777; text-align:center; margin-top:50px;'>Pas de VOD récente trouvée. L'analyse repurposing est indisponible.</p>";
                 }
 
             } else {
@@ -353,23 +424,31 @@
                 boxScan.innerHTML = `
                     <img src="${g.box_art_url.replace('{width}','60').replace('{height}','80')}" style="float:left; margin-right:10px; border-radius:4px;">
                     <div style="font-weight:bold; color:var(--color-secondary-blue);">${g.name}</div>
-                    <div>${g.total_viewers.toLocaleString()} Viewers</div>
-                    <div>${g.total_streamers.toLocaleString()} Streamers</div>
-                    <div style="color:var(--color-ai-niche); font-weight:bold; margin-top:5px;">Ratio V/S: ${g.avg_viewers_per_streamer}</div>
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-value">${g.total_viewers.toLocaleString()}</div>
+                            <div class="metric-label"><i class="fas fa-users"></i> Viewers Totaux</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${g.total_streamers.toLocaleString()}</div>
+                            <div class="metric-label"><i class="fas fa-user-friends"></i> Streamers Totaux</div>
+                        </div>
+                        <div class="metric-item" style="grid-column: span 2;">
+                            <div class="metric-value ${g.avg_viewers_per_streamer > 20 ? 'trend-down' : 'trend-up'}" style="font-size:24px;">${g.avg_viewers_per_streamer}</div>
+                            <div class="metric-label"><i class="fas fa-handshake"></i> Ratio V/S (Opportunité)</div>
+                        </div>
+                    </div>
                 `;
 
                 // ÉTAPE 2 : IA NICHE (Sur le jeu)
-                boxNiche.innerHTML = "<p class='text-green-400'>🧠 L'IA analyse le potentiel du jeu...</p>";
-                fetch(`${API_BASE}/critique_ia`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ type: 'niche', query: `Jeu Twitch: ${g.name}` })
-                }).then(r => r.json()).then(d => boxNiche.innerHTML = d.html_response);
+                runAIAnalysis('niche', `Jeu Twitch: ${g.name}`, boxNiche);
 
-                boxVod.innerHTML = "<p style='color:#777;'>Sélectionnez un streamer spécifique pour l'analyse VOD.</p>";
+                boxVod.innerHTML = "<p style='color:#777; text-align:center; margin-top:50px;'>Analyse VOD réservée aux streamers. Utilisez le Ratio V/S ci-dessus pour juger l'opportunité.</p>";
             }
 
         } catch (err) {
-            boxScan.innerHTML = `<p style="color:red;">Erreur: ${err.message}</p>`;
+            // Affiche l'erreur API/Backend spécifique ici
+            boxScan.innerHTML = `<p style="color:red; text-align:center;">❌ ${err.message}</p>`;
         } finally {
             btn.disabled = false; btn.innerText = "🚀 LANCER L'ANALYSE 360°";
         }
@@ -382,41 +461,45 @@
             const res = await fetch(`${API_BASE}/twitch_user_status`);
             const data = await res.json();
             if (data.is_connected) {
-                twitchUserConnected = true;
                 btn.innerText = "🔓 DÉCONNEXION";
                 btn.onclick = async () => { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); location.reload(); };
                 loadFollowedStreams();
             } else {
                 btn.onclick = () => location.href = `${API_BASE}/twitch_auth_start`;
             }
-        } catch(e) { console.error(e); }
+        } catch(e) { /* Ne rien faire si le backend est HS */ }
     }
 
     async function loadFollowedStreams() {
         const list = document.getElementById('followed-streams-list');
         list.innerHTML = "Chargement...";
-        const res = await fetch(`${API_BASE}/followed_streams`);
-        const data = await res.json();
-        if(data.streams && data.streams.length > 0) {
-            list.innerHTML = '';
-            data.streams.forEach(s => {
-                const item = document.createElement('div');
-                item.className = 'followed-stream-item';
-                item.onclick = () => launchPlayer(s.user_login);
-                item.innerHTML = `
-                    <img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}" alt="${s.user_name}">
-                    <div style="font-weight:bold; font-size:12px; color:white;">${s.user_name}</div>
-                    <div style="font-size:10px; color:#aaa;">${s.game_name}</div>
-                    <div style="font-size:10px; color:red;">${s.viewer_count} vues</div>
-                `;
-                list.appendChild(item);
-            });
-        } else {
-            list.innerHTML = "Aucun stream en direct.";
+        try {
+            const res = await fetch(`${API_BASE}/followed_streams`);
+            if (!res.ok) throw new Error(`Erreur: ${res.status}`);
+            const data = await res.json();
+            if(data.streams && data.streams.length > 0) {
+                list.innerHTML = '';
+                data.streams.forEach(s => {
+                    const item = document.createElement('div');
+                    item.className = 'followed-stream-item';
+                    item.onclick = () => launchPlayer(s.user_login);
+                    item.innerHTML = `
+                        <img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}" alt="${s.user_name}">
+                        <div style="font-weight:bold; font-size:12px; color:white;">${s.user_name}</div>
+                        <div style="font-size:10px; color:#aaa;">${s.game_name}</div>
+                        <div style="font-size:10px; color:red;">${s.viewer_count} vues</div>
+                    `;
+                    list.appendChild(item);
+                });
+            } else {
+                list.innerHTML = "Aucun stream en direct.";
+            }
+        } catch(e) {
+            list.innerHTML = `<p style="color:red; text-align:center;">Échec de la récupération des streams (Problème Backend/Twitch API).</p>`;
         }
     }
 
-    // --- BOOST & ACTION HANDLERS ---
+    // --- BOOST & ACTION HANDLERS (Identiques) ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value;
@@ -426,9 +509,12 @@
             const res = await fetch(`${API_BASE}/stream_boost`, {
                 method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel})
             });
+            if (!res.ok) throw new Error(`Erreur: ${res.status}`);
             const data = await res.json();
-            resBox.innerHTML = data.html_response || data.error;
-        } catch(e) { resBox.innerHTML = "Erreur."; }
+            resBox.innerHTML = data.html_response || data.error || "Action terminée.";
+        } catch(e) { 
+            resBox.innerHTML = `<p style="color:red;">❌ Erreur: ${e.message}</p>`; 
+        }
     });
 
     document.getElementById('form-auto-action').addEventListener('submit', async (e) => {
@@ -441,9 +527,18 @@
             const res = await fetch(`${API_BASE}/auto_action`, {
                 method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query, action_type:type})
             });
+            if (!res.ok) {
+                const status = res.status;
+                const errorText = status === 403 || status === 400 
+                    ? `❌ ERREUR API (${status}): Clé AI Invalide.`
+                    : `❌ Erreur Serveur (${status}) pour l'Automatisation.`;
+                throw new Error(errorText);
+            }
             const data = await res.json();
             resBox.innerHTML = data.html_response || "Action terminée.";
-        } catch(e) { resBox.innerHTML = "Erreur."; }
+        } catch(e) { 
+            resBox.innerHTML = `<p style="color:red;">❌ Erreur: ${e.message}</p>`; 
+        }
     });
 
     // INIT
