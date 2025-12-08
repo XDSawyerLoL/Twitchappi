@@ -13,7 +13,6 @@ const app = express();
 // =========================================================
 // --- CONFIGURATION ET VARIABLES D'ENVIRONNEMENT ---
 // 🚨 Le serveur utilise UNIQUEMENT les variables de Render (process.env)
-// Plus de secrets codés en dur !
 // =========================================================
 
 const PORT = process.env.PORT || 10000;
@@ -24,13 +23,12 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 // =========================================================
-// VÉRIFICATION CRITIQUE AU DÉMARRAGE (Empêche l'exécution sans clés)
+// VÉRIFICATION CRITIQUE AU DÉMARRAGE
 // =========================================================
 
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
     console.error("=========================================================");
     console.error("FATAL ERROR: VARIABLES D'ENVIRONNEMENT MANQUANTES.");
-    console.error("Vérifiez l'onglet 'Environment' sur Render.");
     console.error(`Missing keys: ${!TWITCH_CLIENT_ID ? 'TWITCH_CLIENT_ID ' : ''}${!TWITCH_CLIENT_SECRET ? 'TWITCH_CLIENT_SECRET ' : ''}${!REDIRECT_URI ? 'TWITCH_REDIRECT_URI ' : ''}${!GEMINI_API_KEY ? 'GEMINI_API_KEY' : ''}`);
     console.error("=========================================================");
     process.exit(1); 
@@ -89,7 +87,6 @@ async function getTwitchToken(tokenType) {
 }
 
 async function twitchApiFetch(endpoint, token) {
-    // Note: The token argument here will be CACHE.twitchUser.access_token for followed_streams
     const accessToken = token || await getTwitchToken('app');
     if (!accessToken) throw new Error("Accès Twitch non autorisé.");
 
@@ -101,11 +98,9 @@ async function twitchApiFetch(endpoint, token) {
     });
 
     if (res.status === 401) {
-        // Invalidate the application token if it failed
         if (token === CACHE.twitchTokens['app']?.access_token) {
              CACHE.twitchTokens['app'] = null; 
         }
-        // Invalidate the user token if it failed
         if (token === CACHE.twitchUser?.access_token) {
              CACHE.twitchUser = null; 
         }
@@ -126,7 +121,6 @@ async function twitchApiFetch(endpoint, token) {
 // =========================================================
 
 async function runGeminiAnalysis(prompt) {
-    // L'objet 'ai' est garanti d'être défini grâce à la vérification au démarrage
     try {
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
@@ -145,7 +139,6 @@ async function runGeminiAnalysis(prompt) {
         let statusCode = 500;
         let errorMessage = `Erreur interne du serveur lors de l'appel à l'IA. (Détail: ${e.message})`;
         
-        // Détection des erreurs courantes (Rate Limit, Auth)
         if (e.message.includes('429')) {
              statusCode = 429;
              errorMessage = `❌ Erreur: Échec de l'appel à l'API Gemini. Limite de requêtes atteinte (Code 429). Votre clé IA a atteint son quota.`;
@@ -210,7 +203,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
             
             res.redirect('/'); 
         } else {
-            // 🚨 Amélioration du log pour capturer l'erreur exacte de Twitch
             console.error("=========================================================");
             console.error("ERREUR CRITIQUE: Échec de l'échange de code Twitch.");
             console.error("Détails renvoyés par Twitch:", tokenData);
@@ -248,7 +240,6 @@ app.get('/followed_streams', async (req, res) => {
     }
 
     try {
-        // Utilise le token utilisateur pour la liste des streams suivis
         const data = await twitchApiFetch(`streams/followed?user_id=${CACHE.twitchUser.id}`, CACHE.twitchUser.access_token);
         
         const streams = data.data.map(stream => ({
@@ -263,7 +254,6 @@ app.get('/followed_streams', async (req, res) => {
         
         return res.json({ success: true, streams });
     } catch (e) {
-        // Renvoie l'erreur détaillée de twitchApiFetch (qui est maintenant plus précise)
         console.error("Erreur lors de la récupération des streams suivis:", e.message);
         return res.status(500).json({ success: false, error: e.message });
     }
@@ -307,30 +297,12 @@ app.get('/get_latest_vod', async (req, res) => {
     }
 });
 
-app.get('/trending_games', async (req, res) => {
-    try {
-        const data = await twitchApiFetch('games/top?first=20');
-        
-        const games = data.data.map(game => ({
-            id: game.id,
-            name: game.name,
-            box_art_url: game.box_art_url,
-            viewer_count: 0 
-        }));
-
-        return res.json({ success: true, games });
-
-    } catch (e) {
-        console.error("Erreur lors de la récupération des jeux en tendance:", e.message);
-        return res.status(500).json({ success: false, error: e.message });
-    }
-});
-
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body;
     if (!query) return res.status(400).json({ success: false, message: "Requête vide." });
     
     try {
+        // --- Tenter d'abord la recherche de JEU ---
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if (gameRes.data.length > 0) {
             const game = gameRes.data[0];
@@ -339,7 +311,6 @@ app.post('/scan_target', async (req, res) => {
             const totalStreams = streamsRes.data.length;
             const totalViewers = streamsRes.data.reduce((acc, s) => acc + s.viewer_count, 0);
             const avgViewersPerStreamer = totalStreams > 0 ? (totalViewers / totalStreams).toFixed(1) : 0;
-
             const streams = streamsRes.data;
 
             return res.json({ 
@@ -362,18 +333,34 @@ app.post('/scan_target', async (req, res) => {
             });
         }
 
+        // --- Si échec, tenter la recherche d'UTILISATEUR ---
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
             
+            // 1. Récupérer les streams (pour savoir s'il est live, son jeu, etc.)
             let streamDetails = null;
             try {
                 const streamRes = await twitchApiFetch(`streams?user_id=${user.id}`);
                 if (streamRes.data.length > 0) {
                     streamDetails = streamRes.data[0];
                 }
-            } catch (e) {
-            }
+            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+
+            // 2. Récupérer le nombre total de followers
+            let followerCount = 'N/A';
+            try {
+                const followerRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`); 
+                followerCount = followerRes.total;
+            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+            
+            // 3. Récupérer le nombre total de VODs
+            let vodCount = 'N/A';
+            try {
+                const vodRes = await twitchApiFetch(`videos?user_id=${user.id}&type=archive&first=1`);
+                vodCount = vodRes.total;
+            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+
 
             return res.json({
                 success: true,
@@ -385,11 +372,12 @@ app.post('/scan_target', async (req, res) => {
                     profile_image_url: user.profile_image_url,
                     description: user.description,
                     is_live: !!streamDetails,
-                    stream_details: streamDetails ? {
-                        title: streamDetails.title,
-                        game_name: streamDetails.game_name,
-                        viewer_count: streamDetails.viewer_count
-                    } : null
+                    game_name: streamDetails?.game_name || 'Divers',
+                    viewer_count: streamDetails?.viewer_count || 0,
+                    
+                    // NOUVELLES STATISTIQUES BRUTES AJOUTÉES
+                    total_followers: followerCount,
+                    total_vods: vodCount,
                 }
             });
         }
@@ -399,6 +387,76 @@ app.post('/scan_target', async (req, res) => {
     } catch (e) {
         console.error("Erreur dans /scan_target:", e.message);
         return res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// =========================================================
+// --- ROUTE RAID (Recherche réelle) ---
+// =========================================================
+
+app.post('/start_raid', async (req, res) => {
+    const { game, max_viewers } = req.body;
+    
+    if (!game || !max_viewers) {
+        return res.status(400).json({ success: false, error: "Jeu ou nombre de viewers manquant pour le Raid." });
+    }
+    
+    try {
+        // 1. Tenter de récupérer l'ID du jeu
+        const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
+        if (gameRes.data.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                error: `Catégorie de jeu "${game}" introuvable sur Twitch.`,
+            });
+        }
+        const gameId = gameRes.data[0].id;
+        const gameName = gameRes.data[0].name;
+        
+        // 2. Récupérer les 100 premiers streams pour ce jeu (ils sont généralement triés par vues, donc nous allons chercher une petite chaîne parmi les 100)
+        const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&first=100`);
+        const liveStreams = streamsRes.data;
+        
+        let target = null;
+        
+        // 3. Filtrer pour trouver la CIBLE RAID
+        // On va chercher le plus petit streamer (>= 1 vue) qui est en dessous de max_viewers.
+        for (const stream of liveStreams) {
+            if (stream.viewer_count <= max_viewers && stream.viewer_count > 0) {
+                 if (!target || stream.viewer_count < target.viewer_count) {
+                    target = {
+                        name: stream.user_name,
+                        login: stream.user_login,
+                        viewers: stream.viewer_count,
+                        game: stream.game_name,
+                        // Remplace les placeholders de Twitch pour obtenir l'URL de la miniature du stream
+                        thumbnail_url: stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180')
+                    };
+                 }
+            }
+        }
+        
+        if (target) {
+            // Cible trouvée. Retourne les données réelles.
+            return res.json({
+                success: true,
+                channel: target,
+                // Le frontend va générer l'HTML à partir des données structurées
+            });
+        } else {
+            // Aucune cible adéquate trouvée
+            return res.status(404).json({ 
+                success: false, 
+                error: `Aucune cible de Raid trouvée dans ${gameName} avec moins de ${max_viewers} vues (parmi les 100 premiers résultats).`,
+            });
+        }
+        
+    } catch (e) {
+        console.error("Erreur lors de la recherche de Raid:", e.message);
+        return res.status(500).json({ 
+            success: false, 
+            error: `Erreur serveur lors de la recherche de Raid: ${e.message}`,
+        });
     }
 });
 
@@ -433,29 +491,9 @@ app.post('/critique_ia', async (req, res) => {
     }
 });
 
-app.post('/mini_assistant', async (req, res) => {
-    const { q, context } = req.body; 
-    
-    if (!q) {
-        return res.status(400).json({ success: false, error: "Requête de l'assistant vide." });
-    }
-    
-    const prompt = `L'utilisateur stream actuellement sur la chaîne : "${context}". L'utilisateur te pose cette question : "${q}". Réponds de manière concise en format HTML pour être affiché dans une petite fenêtre de chat.`;
-
-    const result = await runGeminiAnalysis(prompt);
-
-    if (result.success) {
-        return res.json(result);
-    } else {
-        return res.status(result.status || 500).json(result);
-    }
-});
-
-
-const BOOST_COOLDOWN_MS = 3 * 60 * 60 * 1000; 
-
 app.post('/stream_boost', (req, res) => {
     const { channel } = req.body;
+    const BOOST_COOLDOWN_MS = 3 * 60 * 60 * 1000; 
     const now = Date.now();
     const lastBoost = CACHE.streamBoosts[channel];
     
@@ -497,7 +535,7 @@ app.post('/stream_boost', (req, res) => {
 });
 
 // =========================================================
-// ✅ ROUTES CRITIQUES : /auto_action
+// Configuration des Routes Statiques
 // =========================================================
 
 app.post('/auto_action', async (req, res) => {
@@ -518,10 +556,9 @@ app.post('/auto_action', async (req, res) => {
                     followers: Math.floor(Math.random() * 5000) + 1000
                 };
                 
-                // Simuler un message de succès (l'analyse IA n'est pas nécessaire pour l'export)
                 return res.json({
                     success: true,
-                    html_response: `<p style="color:var(--color-ai-action); font-weight:bold; text-align:center;">✅ Export des Métriques terminé pour ${query}.</p>`,
+                    html_response: `<p style="color:var(--color-ai-growth); font-weight:bold; text-align:center;">✅ Export des Métriques terminé pour ${query}. Le fichier PDF est prêt.</p>`,
                     metrics: metrics_data
                 });
 
@@ -543,19 +580,16 @@ app.post('/auto_action', async (req, res) => {
         const result = await runGeminiAnalysis(prompt);
 
         if (result.success) {
-            // Retourne la réponse de l'IA
             return res.json({
                 success: true,
                 html_response: result.html_response,
-                metrics: null // Pas de métriques pour ces actions
+                metrics: null
             });
         } else {
-            // Gère les erreurs de l'IA (429, 500, etc.)
             return res.status(result.status || 500).json(result);
         }
 
     } catch (error) {
-        // Gère toute autre erreur Node.js/Express inattendue et assure un retour JSON
         console.error(`Erreur d'exécution dans /auto_action pour ${req.body?.action_type}:`, error.message);
         return res.status(500).json({
             success: false,
@@ -565,10 +599,6 @@ app.post('/auto_action', async (req, res) => {
     }
 });
 
-
-// =========================================================
-// Configuration des Routes Statiques
-// =========================================================
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
