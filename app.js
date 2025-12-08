@@ -181,7 +181,8 @@ async function runGeminiAnalysis(prompt) {
 // 1. Démarrage de l'authentification
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
-    const scope = 'user:read:follows'; // Scope pour lire le fil suivi
+    // Scope pour lire le fil suivi
+    const scope = 'user:read:follows'; 
     const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${scope}&state=${state}`;
     
     // Stocke l'état dans un cookie sécurisé
@@ -323,12 +324,27 @@ app.get('/followed_streams', requireAuth, async (req, res) => {
             'Authorization': `Bearer ${session.accessToken}`
         }
     });
-    const followsData = await followsRes.json();
+    
+    // Tentative de récupération des données JSON, même en cas d'erreur HTTP
+    let followsData = {};
+    try {
+        followsData = await followsRes.json();
+    } catch (e) {
+        // Si la réponse n'est pas du JSON, on gère l'erreur de manière générique
+        followsData.message = "Réponse Twitch non-JSON. Erreur de serveur ou de configuration.";
+    }
 
+    // ✅ CORRECTION: Vérifier explicitement le statut HTTP de la réponse Twitch
+    if (!followsRes.ok) {
+        const errorMsg = followsData.message || `Statut HTTP ${followsRes.status}. Vérifiez si votre token utilisateur a expiré ou si votre TWITCH_CLIENT_ID est correct.`;
+        return res.status(followsRes.status).json({ success: false, error: `Erreur Twitch API Follows: ${errorMsg}` });
+    }
+
+    // Gérer les erreurs dans le corps JSON (si le statut HTTP est 200 mais le corps est une erreur)
     if (followsData.error) {
         return res.status(500).json({ success: false, error: `Erreur Twitch API Follows: ${followsData.message}` });
     }
-
+    
     const followedUserIds = followsData.data.map(f => f.to_id);
     if (followedUserIds.length === 0) {
         return res.json({ success: true, streams: [] });
@@ -391,7 +407,7 @@ app.get('/get_latest_vod', async (req, res) => {
     }
 });
 
-// 4. ✅ NOUVELLE LOGIQUE: Analyse de Cible & Métriques (Fusion IA)
+// 4. Analyse de Cible & Métriques (Fusion IA)
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body;
     if (!query) return res.status(400).json({ success: false, message: "Requête vide." });
@@ -497,7 +513,7 @@ app.post('/critique_ia', async (req, res) => {
     let prompt = "";
 
     switch (type) {
-        case 'strategie': // ✅ NOUVEAU TYPE: Fusion Niche + Croissance (avec Heures d'Or)
+        case 'strategie': // Fusion Niche + Croissance (avec Heures d'Or)
             prompt = `Tu es un expert en croissance et planification Twitch. Le streamer cherche une analyse stratégique pour le thème/jeu/genre : "${query}".
             
             Fournis une critique complète en format HTML simple: 
