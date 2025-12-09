@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub - COCKPIT MODE (V14 - Final)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Streamer & Niche AI Hub - COCKPIT MODE (V15 - Final)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -96,7 +96,7 @@
             border-bottom: 1px solid #333; padding-bottom: 5px; 
         }
 
-        /* Style des Métriques (Nouveau) */
+        /* Style des Métriques (Nouveau et Amélioré) */
         .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         .metric-item { background: #1a1a1a; padding: 8px; border-radius: 4px; border: 1px solid #2e2e2e; }
         .metric-value { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: bold; }
@@ -104,10 +104,55 @@
         .trend-up { color: var(--color-ai-niche); }
         .trend-down { color: var(--color-ai-action); }
 
-        /* Style IA Niche Score */
-        .niche-score { font-family: 'Orbitron', sans-serif; font-size: 40px; font-weight: bold; text-align: center; color: var(--color-ai-niche); text-shadow: var(--shadow-niche); margin: 10px 0; }
-        .ia-recommendation { font-size: 13px; list-style-type: none; padding-left: 0; }
-        .ia-recommendation li { margin-bottom: 8px; border-left: 3px solid var(--color-ai-niche); padding-left: 10px; }
+        /* Style IA Niche Score (MODIFIÉ POUR PLUS D'IMPACT) */
+        .niche-score-box { 
+            text-align: center; padding: 10px; margin: 10px 0; 
+            border: 2px solid var(--color-ai-niche); border-radius: 6px;
+            background: #111;
+        }
+        .niche-score-value { 
+            font-family: 'Orbitron', sans-serif; font-size: 40px; font-weight: bold; 
+            color: var(--color-ai-niche); text-shadow: var(--shadow-niche); 
+        }
+        .niche-score-label { 
+            font-size: 12px; color: #ddd; text-transform: uppercase; 
+            margin-top: -5px; 
+        }
+
+        /* Styles pour l'output IA/VOD (AESTHETIQUE AMELIOREE) */
+        .ai-output-enhanced { color: #ddd; }
+        .ai-output-enhanced h4 {
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            font-size: 14px;
+        }
+        .box-niche .ai-output-enhanced h4 { color: var(--color-ai-niche); text-shadow: 0 0 5px rgba(89, 214, 130, 0.3); }
+        .box-vod .ai-output-enhanced h4 { color: var(--color-ai-repurpose); text-shadow: 0 0 5px rgba(153, 51, 255, 0.3); }
+
+        .ai-output-enhanced ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-top: 5px;
+        }
+        .ai-output-enhanced li {
+            margin-bottom: 8px;
+            border-left: 3px solid var(--color-text-dimmed);
+            padding-left: 10px;
+        }
+        .box-niche .ai-output-enhanced li { border-left-color: var(--color-ai-niche); }
+        .box-vod .ai-output-enhanced li { border-left-color: var(--color-ai-repurpose); }
+
+        .ai-output-enhanced strong {
+            color: white;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+        .ai-output-enhanced p {
+            margin-bottom: 10px;
+        }
+
 
         /* Inputs & Boutons */
         .action-input { 
@@ -151,7 +196,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V14 (Cockpit)</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V15 (Cockpit)</h1>
     <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Action</div>
 
     <div class="tabs-nav-container">
@@ -224,6 +269,10 @@
                         <p style="color:#777; text-align:center; margin-top:50px;">Suggestions de clips et titres pour TikTok/YouTube Shorts.</p>
                     </div>
                 </div>
+            </div>
+            
+            <div style="margin-top:20px; padding:10px; border-left: 3px solid var(--color-ai-action); background:#151515; font-size:11px; color:#777;">
+                 <p><strong>NOTE IMPORTANTE :</strong> Pour des raisons techniques et de sécurité, nous ne pouvons pas effectuer de *web scraping* sur des sites tiers (TwitchTracker, SullyGnome) pour obtenir des statistiques publiques (comme l'audience moyenne et la croissance réelle). Toutes les métriques sont issues de l'API officielle Twitch ou sont calculées en interne par l'IA (le **Niche Score**).</p>
             </div>
         </div>
 
@@ -303,12 +352,12 @@
         launchPlayer(document.getElementById('input-channel').value);
     });
 
-    // --- LOGIQUE IA ---
-    async function runAIAnalysis(type, query, box) {
+    // --- LOGIQUE IA (Modifiée pour l'esthétique) ---
+    async function runAIAnalysis(type, query, box, niche_score = null) {
         try {
             const res = await fetch(`${API_BASE}/critique_ia`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ type, query })
+                body: JSON.stringify({ type, query, niche_score })
             });
             
             if (!res.ok) {
@@ -322,25 +371,15 @@
             
             const data = await res.json();
             
-            // RENDU SPÉCIFIQUE POUR L'IA NICHE
-            if (type === 'niche' && data.niche_score && data.recommendations) {
-                let recHtml = data.recommendations.map(rec => `<li><i class="fas fa-check-circle" style="color:var(--color-ai-niche)"></i> ${rec}</li>`).join('');
-                box.innerHTML = `
-                    <div style="font-size:10px; color:var(--color-text-dimmed); text-align:center;">Score de Niche (Potentiel)</div>
-                    <div class="niche-score">${data.niche_score}</div>
-                    <div class="dashboard-title" style="color:var(--color-ai-niche); margin-top:20px;">Recommandations Clés :</div>
-                    <ul class="ia-recommendation">${recHtml}</ul>
-                `;
-            } else {
-                box.innerHTML = data.html_response || data.error || "Réponse IA vide.";
-            }
+            // On enveloppe TOUTES les réponses IA dans la classe d'amélioration visuelle
+            box.innerHTML = `<div class="ai-output-enhanced">${data.html_response || data.error || "Réponse IA vide."}</div>`;
 
         } catch (e) {
             box.innerHTML = `<p style="color:red;">❌ Erreur de connexion au backend pour l'IA.</p>`;
         }
     }
 
-    // --- LOGIQUE SCAN ET METRIQUES (Corrigée pour cibler les chaînes) ---
+    // --- LOGIQUE SCAN ET METRIQUES (Mise à jour pour les nouvelles métriques et l'esthétique) ---
     document.getElementById('form-global-scan').addEventListener('submit', async function(e) {
         e.preventDefault();
         const query = document.getElementById('input-global-target').value.trim();
@@ -378,13 +417,7 @@
             // AFFICHER RÉSULTATS SCAN
             if (scanData.type === 'user') {
                 const u = scanData.user_data;
-                
-                // Maintien de métriques SIMULÉES CLÉS pour l'analyse (non disponibles publiquement)
-                const metrics = {
-                    avg_viewers: (Math.random() * 500).toFixed(0),
-                    follower_growth: (Math.random() * 10 - 2).toFixed(1), // -2 à 8%
-                    engagement_rate: (Math.random() * 10 + 5).toFixed(1) // 5% à 15%
-                };
+                const nicheScore = u.ai_calculated_niche_score;
                 
                 // Fonction d'aide pour formatter les nombres (correction toLocaleString)
                 const safeFormat = (value) => {
@@ -399,41 +432,45 @@
                         <img src="${u.profile_image_url}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--color-secondary-blue);">
                         <div>
                             <div style="font-weight:bold; font-size:14px;">${u.display_name}</div>
-                            <div style="color:${u.is_live?'red':'gray'}">${u.is_live ? `🔴 LIVE (${u.viewer_count} vues)` : '⚫ OFF'} | ${u.game_name || 'Divers'}</div>
+                            <div style="color:${u.is_live?'red':'gray'}">${u.is_live ? `🔴 LIVE (${safeFormat(u.viewer_count)} vues)` : '⚫ OFF'} | ${u.game_name || 'Divers'}</div>
                         </div>
                     </div>
                     <button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%; margin-bottom:10px; font-size:10px;">VOIR STREAM</button>
                     
                     <div class="metric-grid">
                         <div class="metric-item">
-                            <div class="metric-value">${safeFormat(u.total_followers)}</div>
-                            <div class="metric-label"><i class="fas fa-user-plus"></i> Total Suiveurs</div>
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(u.total_followers)}</div>
+                            <div class="metric-label"><i class="fas fa-user-plus"></i> Total Suiveurs (RÉEL)</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-value">${safeFormat(u.total_views_count)}</div>
-                            <div class="metric-label"><i class="fas fa-eye"></i> Vues Totales</div>
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(u.total_views_count)}</div>
+                            <div class="metric-label"><i class="fas fa-eye"></i> Vues Totales (RÉEL)</div>
                         </div>
                         <div class="metric-item">
                             <div class="metric-value">${safeFormat(u.total_vods)}</div>
-                            <div class="metric-label"><i class="fas fa-video"></i> VODs Publiées</div>
+                            <div class="metric-label"><i class="fas fa-video"></i> VODs Publiées (RÉEL)</div>
                         </div>
                         <div class="metric-item">
                             <div class="metric-value">${u.account_creation_date}</div>
-                            <div class="metric-label"><i class="fas fa-calendar-alt"></i> Création Compte</div>
+                            <div class="metric-label"><i class="fas fa-calendar-alt"></i> Création Compte (RÉEL)</div>
                         </div>
-                        <div class="metric-item">
-                            <div class="metric-value">${metrics.avg_viewers}</div>
-                            <div class="metric-label"><i class="fas fa-chart-bar"></i> Vues Moy. (Sim.)</div>
+                        
+                        <div class="metric-item" style="grid-column: span 2; border: 1px solid var(--color-secondary-blue); background: #151515;">
+                            <div class="metric-value" style="font-size:14px; color:var(--color-secondary-blue);">
+                                <i class="fas fa-medal" style="color:#FFD700;"></i> Statut: ${u.broadcaster_type.toUpperCase() || 'NORMAL'}
+                            </div>
+                            <div class="metric-label">Type de Chaîne (RÉEL)</div>
                         </div>
-                        <div class="metric-item">
-                            <div class="metric-value ${metrics.follower_growth > 0 ? 'trend-up' : 'trend-down'}">${metrics.follower_growth}%</div>
-                            <div class="metric-label"><i class="fas fa-chart-line"></i> Croissance (Sim.)</div>
+
+                        <div class="niche-score-box" style="grid-column: span 2;">
+                            <div class="niche-score-value">${nicheScore}</div>
+                            <div class="niche-score-label"><i class="fas fa-robot"></i> SCORE NICHE (Calculé)</div>
                         </div>
                     </div>
                 `;
 
-                // ÉTAPE 2 : IA NICHE
-                runAIAnalysis('niche', `Streamer: ${u.display_name} | Jeu: ${u.game_name || 'Variety'}`, boxNiche);
+                // ÉTAPE 2 : IA NICHE - On passe le Niche Score à l'IA
+                runAIAnalysis('niche', `Streamer: ${u.display_name} | Jeu: ${u.game_name || 'Variety'}`, boxNiche, nicheScore);
 
                 // ÉTAPE 3 : VOD & REPURPOSE
                 boxVod.innerHTML = "<p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Recherche VOD...</p>";
@@ -441,7 +478,7 @@
                 const vodData = await vodRes.json();
                 
                 if(vodData.success && vodData.vod) {
-                    // AFFICHE LA VOD SANS LANCER L'ANALYSE IA
+                    // 1. Affiche la VOD SANS LANCER L'ANALYSE IA
                     boxVod.innerHTML = `
                         <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">VOD Récente: ${vodData.vod.title.substring(0,40)}...</div>
                         <img id="vod-thumbnail" src="${vodData.vod.thumbnail_url.replace('%{width}','320').replace('%{height}','180').replace('{width}','320').replace('{height}','180')}" style="width:100%; border-radius:4px;">
@@ -450,13 +487,10 @@
                         </div>
                     `;
                     
-                    // LANCE L'ANALYSE IA ET INJECTE LE RÉSULTAT DANS le placeholder
+                    // 2. LANCE L'ANALYSE IA et INJECTE le résultat dans le placeholder
                     const analysisBox = document.getElementById('vod-analysis-placeholder');
                     await runAIAnalysis('repurpose', `${u.login} | ${vodData.vod.title}`, analysisBox);
                     
-                    // Ajout d'un titre pour que l'analyse IA s'affiche clairement sous la VOD
-                    analysisBox.insertAdjacentHTML('afterbegin', `<div class="dashboard-title" style="color:var(--color-ai-repurpose); margin-top:10px;">Analyse Repurposing:</div>`);
-
                 } else {
                     boxVod.innerHTML = "<p style='color:#777; text-align:center; margin-top:50px;'>Pas de VOD récente trouvée. L'analyse repurposing est indisponible.</p>";
                 }
@@ -464,27 +498,36 @@
             } else {
                 // C'EST UN JEU
                 const g = scanData.game_data;
+                const nicheScore = g.ai_calculated_niche_score;
+                
                 boxScan.innerHTML = `
                     <img src="${g.box_art_url.replace('{width}','60').replace('{height}','80')}" style="float:left; margin-right:10px; border-radius:4px;">
                     <div style="font-weight:bold; color:var(--color-secondary-blue);">${g.name}</div>
                     <div class="metric-grid">
                         <div class="metric-item">
-                            <div class="metric-value">${g.total_viewers.toLocaleString()}</div>
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${g.total_viewers.toLocaleString()}</div>
                             <div class="metric-label"><i class="fas fa-users"></i> Viewers Totaux (Live)</div>
                         </div>
                         <div class="metric-item">
-                            <div class="metric-value">${g.total_streamers.toLocaleString()}</div>
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${g.total_streamers.toLocaleString()}</div>
                             <div class="metric-label"><i class="fas fa-user-friends"></i> Streamers Totaux (Live)</div>
                         </div>
-                        <div class="metric-item" style="grid-column: span 2;">
-                            <div class="metric-value ${g.avg_viewers_per_streamer > 20 ? 'trend-down' : 'trend-up'}" style="font-size:24px;">${g.avg_viewers_per_streamer}</div>
-                            <div class="metric-label"><i class="fas fa-handshake"></i> Ratio V/S (Opportunité)</div>
+                        
+                        <div class="niche-score-box" style="grid-column: span 2;">
+                            <div class="niche-score-value">${nicheScore}</div>
+                            <div class="niche-score-label"><i class="fas fa-robot"></i> SCORE NICHE (Calculé)</div>
+                        </div>
+                        <div class="metric-item" style="grid-column: span 2; border: 1px solid var(--color-ai-niche);">
+                            <div class="metric-value" style="font-size:20px; color:var(--color-ai-niche);">
+                                <i class="fas fa-handshake"></i> ${g.avg_viewers_per_streamer}
+                            </div>
+                            <div class="metric-label" style="color:var(--color-ai-niche);">Ratio V/S (Viewers/Streamer)</div>
                         </div>
                     </div>
                 `;
 
                 // ÉTAPE 2 : IA NICHE (Sur le jeu)
-                runAIAnalysis('niche', `Jeu Twitch: ${g.name}`, boxNiche);
+                runAIAnalysis('niche', `Jeu Twitch: ${g.name}`, boxNiche, nicheScore);
 
                 boxVod.innerHTML = "<p style='color:#777; text-align:center; margin-top:50px;'>Analyse VOD réservée aux streamers. Utilisez le Ratio V/S ci-dessus pour juger l'opportunité.</p>";
             }
@@ -497,7 +540,7 @@
     });
 
 
-    // --- LOGIQUE RAID (Mise à jour pour utiliser le nouveau endpoint backend) ---
+    // --- LOGIQUE RAID (Inchangée) ---
     document.getElementById('form-raid').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-raid-game').value;
@@ -566,7 +609,7 @@
     });
 
 
-    // --- LOGIQUE AUTH & EXPORT CSV/PDF (Mise à jour pour gérer le téléchargement du fichier) ---
+    // --- LOGIQUE AUTH & EXPORT CSV/PDF (Inchangée) ---
     async function runPdfExport() {
         const resBox = document.getElementById('pdf-export-results');
         resBox.innerHTML = "<i class='fas fa-sync fa-spin' style='color:var(--color-ai-growth)'></i> Génération du fichier CSV en cours...";
@@ -660,7 +703,7 @@
         }
     }
 
-    // --- BOOST ---
+    // --- BOOST (Inchangé) ---
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value;
