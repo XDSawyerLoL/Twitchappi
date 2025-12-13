@@ -183,10 +183,14 @@ app.get('/twitch_auth_callback', async (req, res) => {
     const storedState = req.cookies.twitch_state;
     
     if (state !== storedState) {
+        // Sécurité: Assurez-vous de nettoyer le cookie d'état après l'avoir vérifié.
+        res.clearCookie('twitch_state');
         return res.status(400).send("Erreur de sécurité: État invalide.");
     }
 
     if (error) {
+        // Sécurité: Assurez-vous de nettoyer le cookie d'état après l'avoir vérifié.
+        res.clearCookie('twitch_state');
         return res.status(400).send(`Erreur Twitch: ${error} - ${error_description}`);
     }
 
@@ -221,17 +225,55 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 expiry: Date.now() + (tokenData.expires_in * 1000)
             };
             
-            res.redirect('/'); 
+            // ==========================================================
+            // --- DÉBUT DE LA MODIFICATION POUR LA FERMETURE DU POP-UP ---
+            // ==========================================================
+            
+            // 1. Nettoyer le cookie d'état
+            res.clearCookie('twitch_state');
+            
+            // 2. Renvoyer un script qui ferme la pop-up et rafraîchit la fenêtre parente.
+            res.send(`
+                <html>
+                <head>
+                    <title>Connexion Réussie</title>
+                    <style>body { background-color: #1a1a1a; color: white; text-align: center; padding-top: 50px; font-family: sans-serif; }</style>
+                </head>
+                <body>
+                    <h1>✅ Connexion Twitch réussie !</h1>
+                    <p>Veuillez patienter...</p>
+                    <script>
+                        // 1. Déclenche le rafraîchissement de la fenêtre principale (l'iFrame)
+                        if (window.opener) {
+                            // Ajout d'un paramètre pour afficher un message de succès
+                            window.opener.location.href = window.opener.location.href.split('?')[0] + '?connected=true'; 
+                        }
+                        // 2. Ferme la pop-up immédiatement
+                        window.close();
+                    </script>
+                </body>
+                </html>
+            `);
+            
+            // ==========================================================
+            // --- FIN DE LA MODIFICATION ---
+            // ==========================================================
+            
         } else {
             console.error("=========================================================");
             console.error("ERREUR CRITIQUE: Échec de l'échange de code Twitch.");
             console.error("Détails renvoyés par Twitch:", tokenData);
             console.error("=========================================================");
             
+            // Sécurité: Nettoyer le cookie d'état même en cas d'échec de l'échange
+            res.clearCookie('twitch_state');
+            
             const twitchError = tokenData.message || tokenData.error || "Détail non fourni.";
             res.status(500).send(`Erreur lors de l'échange du code Twitch. Vérifiez le log du serveur. Détail: ${twitchError}`);
         }
     } catch (e) {
+        // Sécurité: Nettoyer le cookie d'état en cas d'erreur
+        res.clearCookie('twitch_state');
         res.status(500).send(`Erreur interne du serveur lors de l'authentification: ${e.message}`);
     }
 });
@@ -430,7 +472,6 @@ async function refreshGlobalStreamList() {
     const now = Date.now();
     const rotation = CACHE.globalStreamRotation;
     
-    // Vérification du Cooldown
     if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) {
         return;
     }
@@ -438,34 +479,20 @@ async function refreshGlobalStreamList() {
     console.log("DEBUG: Rafraîchissement de la liste de streams 0-100...");
     
     try {
-        // Demande les 100 premiers streams FR
         const data = await twitchApiFetch(`streams?language=fr&first=100`);
         const allStreams = data.data;
 
-        // 1. Priorité: Streams entre 1 et 100 vues
-        let suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
+        const suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
 
-        // 💥 CORRECTIF APPLIQUÉ ICI : Assouplissement du filtre si la liste 1-100 est vide.
-        if (suitableStreams.length === 0 && allStreams.length > 0) {
-            
-            // Si rien n'est trouvé dans la plage 1-100, trier et prendre les 10 plus petits du Top 100
-            suitableStreams = allStreams
-                .sort((a, b) => a.viewer_count - b.viewer_count)
-                .slice(0, 10); 
-
-            console.warn(`WARN: Le filtre 1-100 n'a rien donné. Utilisation des ${suitableStreams.length} plus petits streams du Top 100 (pour éviter le Fallback).`);
-        }
-        // FIN DU CORRECTIF
-
-        // Mise à jour du cache si des streams ont été trouvés
         if (suitableStreams.length > 0) {
             rotation.streams = suitableStreams.map(s => ({ 
                 channel: s.user_login, 
                 viewers: s.viewer_count 
             }));
-            rotation.currentIndex = 0; // Réinitialiser l'index au premier stream trouvé
+            // S'assurer que l'index n'est pas hors limites après le rafraîchissement
+            rotation.currentIndex = rotation.currentIndex % rotation.streams.length;
             rotation.lastFetchTime = now;
-            console.log(`DEBUG: ${rotation.streams.length} streams mis en cache pour l'Auto-Discovery.`);
+            console.log(`DEBUG: ${rotation.streams.length} streams 0-100 mis en cache.`);
         } else {
              rotation.streams = [];
              rotation.currentIndex = 0;
@@ -499,10 +526,9 @@ app.get('/get_default_stream', async (req, res) => {
     const rotation = CACHE.globalStreamRotation;
     
     if (rotation.streams.length === 0) {
-        // Fallback ultime si MÊME l'assouplissement n'a rien donné
         return res.json({ 
-            success: true, // Doit être 'true' pour que le client lance le lecteur.
-            error: "Aucun stream trouvé dans les Top 100. Passage au fallback.", 
+            success: false, 
+            error: "Aucun stream 1-100 vues trouvé dans les top 100.",
             channel: 'twitch',
             viewers: 0,
             message: `⚠️ Fallback: Aucun stream trouvé. Charge la chaîne 'twitch'.`
@@ -670,7 +696,7 @@ app.post('/critique_ia', async (req, res) => {
             prompt = `En tant qu'expert en stratégie de croissance Twitch, le score de niche calculé est ${niche_score}. Analyse le jeu ou streamer "${query}". Fournis une critique de niche en format HTML. Sois extrêmement concis et utilise des listes (<ul> et <li>) plutôt que des paragraphes longs: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts CLAIRS (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au sujet (ex: "Défi Speedrun avec handicap"). 4. Une conclusion courte et impactante en <p> avec un <strong>.`;
             break;
         case 'repurpose':
-            prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre <h4>. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
+            prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre ####. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
             break;
         case 'trend':
             prompt = `Tu es un détecteur de niches. Analyse les tendances actuelles et donne un avis sur la prochaine "grosse niche" Twitch. Fournis une critique en format HTML: 1. Un titre ####. 2. Une analyse en <p> sur la tendance V...`;
