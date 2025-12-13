@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamer & Niche AI Hub - COCKPIT MODE (V15 - Final)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -301,7 +301,7 @@
             </div>
             
             <div style="margin-top:20px; padding:10px; border-left: 3px solid var(--color-ai-action); background:#151515; font-size:11px; color:#777;">
-                 <p><strong>NOTE IMPORTANTE :</strong> Pour des raisons techniques et de sécurité, nous ne pouvons pas effectuer de *web scraping* sur des sites tiers (TwitchTracker, SullyGnome) pour obtenir des statistiques publiques (comme l'audience moyenne et la croissance réelle). Toutes les métriques sont issues de l'API officielle Twitch ou sont calculées en interne par l'IA (le **Niche Score**).</p>
+                 <p><strong>NOTE IMPORTANTE :</strong> Toutes les métriques sont issues de l'API officielle Twitch ou sont calculées en interne par l'IA (le **Niche Score**).</p>
             </div>
         </div>
 
@@ -339,188 +339,225 @@
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
-    const DEFAULT_CHANNEL = 'twitch'; 
-    
-    // FIX: Durée du cycle automatique à 3 minutes minimum.
-    const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000; // 3 minutes (180 000 ms)
-
+    const DEFAULT_CHANNEL = 'twitch';
+    // Durée du cycle automatique à 3 minutes minimum.
+    const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000; // 180 000 ms
     let embed = null;
-    let autoCycleTimer = null;
-    let boostTimeout = null;
-    let followedStreams = []; // Stocke la liste des streams suivis LIVE
-    let currentIndex = 0;
-    let currentChannel = DEFAULT_CHANNEL;
+    let autoCycleTimer = null; 
+    let boostTimeout = null; 
     let isConnected = false;
     let userData = {};
-    let lastScanData = null;
+    window.followedStreams = []; // Rendue globale pour le débogage (si vous en avez besoin ailleurs)
 
-    // --- UTILS ---
-
+    // --- GESTION ONGLETS ---
     function openTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        const btn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
+        if(btn) btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
-
-        // Recharger le fil suivi si l'onglet est actif
-        if (tabId === 'tab-followed' && isConnected) {
+        
+        if (tabId === 'tab-followed') {
             loadFollowedStreams();
         }
     }
-
-    function updateCycleButtons() {
-        const prevBtn = document.getElementById('btn-prev-stream');
-        const nextBtn = document.getElementById('btn-next-stream');
-        
-        if (followedStreams.length > 1) {
-            prevBtn.disabled = false;
-            nextBtn.disabled = false;
-        } else {
-            prevBtn.disabled = true;
-            nextBtn.disabled = true;
-        }
-    }
-
-    function updatePlayerStatus(channel, isLive, isLoading = false) {
-        const statusEl = document.getElementById('player-channel-status');
-        const iconEl = document.getElementById('player-icon');
-        
-        if (isLoading) {
-             statusEl.innerHTML = `<span style="color:#ffcc00;">[Chargement de ${channel}...]</span>`;
-             iconEl.innerHTML = '⚙️';
-             return;
-        }
-
-        if (isLive) {
-             const stream = followedStreams.find(s => s.user_login === channel) || {};
-             const viewerCount = stream.viewer_count ? stream.viewer_count.toLocaleString('fr-FR') : 'N/A';
-             const gameName = stream.game_name || 'Jeu non spécifié';
-
-             statusEl.innerHTML = `LIVE: ${channel.toUpperCase()} - ${gameName} (<span style="color:var(--color-primary-pink);">${viewerCount} V</span>)`;
-             iconEl.innerHTML = '🔴';
-        } else {
-             statusEl.innerHTML = `OFFLINE: ${channel.toUpperCase()} (Affichage en mode VOD ou Chaîne par défaut)`;
-             iconEl.innerHTML = '⏸️';
-        }
-    }
-
-    function resetAutoCycleTimer() {
-        if (autoCycleTimer) {
-            clearTimeout(autoCycleTimer);
-        }
-        autoCycleTimer = setTimeout(autoCycleNextStream, AUTO_CYCLE_DURATION_MS);
-    }
     
-    // --- LECTEUR TWITCH (CORRIGÉ POUR IFRAME SUR JUSTPLAYER.FR) ---
+    // --- UTILS ---
+    const safeFormat = (value) => { 
+        if (value === 'N/A' || typeof value === 'undefined' || value === null) {
+            return 'N/A';
+        }
+        return (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) 
+               ? Number(value).toLocaleString('fr-FR') 
+               : value.toString().toUpperCase();
+    };
 
-    function launchPlayer(channel, force = false) {
-        // Empêcher la relance si la chaîne est la même et non forcée
-        if (channel === currentChannel && !force) {
+
+    // --- LECTEUR TWITCH (CORRIGÉ POUR IFRAME SUR JUSTPLAYER.FR) ---
+    window.launchPlayer = function(channelName, videoId = null, time = 0) {
+        // Empêche de relancer le même stream/vod si rien n'a changé
+        if (embed && 
+            ((!videoId && embed.getChannel() === channelName) || (videoId && embed.getVideo() === videoId))) {
             return;
         }
-        
-        currentChannel = channel;
-        currentIndex = followedStreams.findIndex(s => s.user_login === channel) || 0;
-        updateCycleButtons();
 
         // DÉTERMINATION DES DOMAINES PARENTS (CORRIGÉ POUR IFRAME)
-        const urlParams = new URLSearchParams(window.location.search);
-        const externalParent = urlParams.get('parent_host'); // Lecture du paramètre d'URL (si passé)
-        
         const hostWithoutPort = window.location.hostname;
-        
-        // Liste des hôtes autorisés (l'iframe elle-même + local + justplayer.fr)
         const parentList = [
             hostWithoutPort, 
             "localhost", 
             "127.0.0.1", 
             "justplayerstreamhubpro.onrender.com", 
-            "justplayer.fr" // AJOUT STATIQUE POUR LE DOMAINE PARENT CONNU
+            "justplayer.fr" 
         ];
         
-        // Si un parent externe a été passé en paramètre, l'ajouter
-        if (externalParent) {
-            const cleanParent = externalParent.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
-            if (!parentList.includes(cleanParent)) {
-                 console.log("Ajout du parent externe (via paramètre):", cleanParent);
-                 parentList.push(cleanParent);
-            }
-        }
-        
-        // Si l'URL contient un port, ajoutons l'adresse complète (utile pour les tests locaux)
         if (window.location.host.includes(':')) {
             parentList.push(window.location.host); 
         }
 
+        document.getElementById('twitch-embed').innerHTML = ''; // Nettoyer avant de relancer
         const config = { 
             width: "100%", 
             height: "100%", 
             layout: "video-and-chat", 
-            channel: channel,
-            // Utilisation de la liste des parents corrigée
             parent: parentList 
         };
 
-        // Si le lecteur n'existe pas encore, le créer
-        if (!embed) {
-            embed = new Twitch.Embed("twitch-embed", config);
-            
-            embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
-                 const stream = followedStreams.find(s => s.user_login === channel);
-                 updatePlayerStatus(channel, !!stream); 
-            });
-
-            embed.addEventListener(Twitch.Embed.ERROR, (error) => {
-                 console.error("Erreur Embed Twitch:", error);
-                 updatePlayerStatus(channel, false);
-            });
-
-
+        if (videoId) {
+            config.video = videoId;
+            if (time > 0) config.time = `${time}s`;
+            console.log(`Lancement VOD: ${videoId}`);
         } else {
-            embed.setChannel(channel);
+            config.channel = channelName;
+            console.log(`Lancement Channel: ${channelName}`);
         }
+
+        embed = new Twitch.Embed("twitch-embed", config);
+        document.getElementById('input-channel').value = channelName;
+    }
+
+    // Logique du Lecteur par Défaut / Boost (DÉCLENCHE LE CYCLE AUTOMATIQUE)
+    async function checkBoostAndPlay(isManualAction = false) {
+        const playerStatusEl = document.getElementById('player-channel-status');
+        const btnPrev = document.getElementById('btn-prev-stream');
+        const btnNext = document.getElementById('btn-next-stream');
         
-        updatePlayerStatus(channel, false, true); 
-        resetAutoCycleTimer();
-    }
+        // 1. Arrêter les timers existants
+        if (autoCycleTimer) clearInterval(autoCycleTimer);
+        if (isManualAction && boostTimeout) clearTimeout(boostTimeout); 
 
-    function cycleStream(direction) {
-        if (followedStreams.length === 0) return;
+        try {
+            const res = await fetch(`${API_BASE}/get_default_stream`); 
+            
+            // **AMÉLIORATION DE LA GESTION D'ERREUR DU SERVEUR**
+            if (!res.ok) {
+                 const errorText = await res.text().catch(() => 'Erreur de lecture du corps.');
+                 const errorData = await res.json().catch(() => ({error: `Réponse serveur non-JSON/HTML. Corps: ${errorText.substring(0, 100)}...`}));
+                 
+                 throw new Error(`Erreur Serveur ${res.status}: ${errorData.error || errorData.message || 'Le backend a crashé ou n\'est pas disponible.'}`);
+            }
 
-        if (direction === 'next') {
-            currentIndex = (currentIndex + 1) % followedStreams.length;
-        } else if (direction === 'prev') {
-            currentIndex = (currentIndex - 1 + followedStreams.length) % followedStreams.length;
-        }
+            const data = await res.json();
+            
+            if (data.success) {
+                const { channel, viewers, message } = data;
+                launchPlayer(channel);
+                
+                if (viewers === 'BOOST') {
+                    btnPrev.disabled = true;
+                    btnNext.disabled = true;
+                    
+                    const checkBoostRes = await fetch(`${API_BASE}/check_boost_status`);
+                    const boostStatus = await checkBoostRes.json();
+                    
+                    if (boostStatus.is_boosted) {
+                         if (boostTimeout) clearTimeout(boostTimeout);
+                         // Planifier le retour à l'Auto-Discovery après l'expiration
+                         boostTimeout = setTimeout(() => {
+                            checkBoostAndPlay(); 
+                         }, (boostStatus.remaining_seconds * 1000) + 2000); 
+                    }
+                    playerStatusEl.innerHTML = message;
 
-        launchPlayer(followedStreams[currentIndex].user_login, true); // Force le lancement
-    }
-
-    function autoCycleNextStream() {
-        if (followedStreams.length > 0) {
-            cycleStream('next');
-        } else {
-            // Si pas de follows, relancer le boost/default check (qui prendra le 0-200)
-            checkBoostAndPlay();
+                } else {
+                    // Mode Auto-Discovery ou Fallback List
+                    btnPrev.disabled = false;
+                    btnNext.disabled = false;
+                    
+                    // Démarrer le timer de 3 minutes pour le cycle AUTOMATIQUE
+                    autoCycleTimer = setInterval(() => {
+                        cycleStream('next'); 
+                    }, AUTO_CYCLE_DURATION_MS);
+                    
+                    // Affichage du Timer
+                    let secondsLeft = AUTO_CYCLE_DURATION_MS / 1000;
+                    const timerDisplay = document.createElement('span');
+                    timerDisplay.style.marginLeft = '10px';
+                    timerDisplay.style.color = 'var(--color-ai-niche)';
+                    
+                    const updateTimer = setInterval(() => {
+                        secondsLeft--;
+                        if (secondsLeft <= 0) {
+                            clearInterval(updateTimer);
+                            return;
+                        }
+                        const minutes = Math.floor(secondsLeft / 60);
+                        const seconds = secondsLeft % 60;
+                        timerDisplay.innerText = `(Prochain Auto-Cycle: ${minutes}m ${seconds}s)`;
+                    }, 1000);
+                    
+                    playerStatusEl.innerHTML = message;
+                    playerStatusEl.appendChild(timerDisplay);
+                }
+            } else {
+                // Fallback si l'API ne trouve rien ou erreur
+                launchPlayer(data.channel || DEFAULT_CHANNEL); 
+                playerStatusEl.innerHTML = `⚠️ Fallback: ${data.message || 'Erreur de récupération des données de stream.'}`;
+                btnPrev.disabled = true;
+                btnNext.disabled = true;
+            }
+        } catch (e) {
+            console.error("Erreur dans la boucle du lecteur:", e.message);
+            launchPlayer(DEFAULT_CHANNEL); 
+            playerStatusEl.innerHTML = `❌ ERREUR SYSTÈME: ${e.message}. Lancement par défaut.`; 
+            btnPrev.disabled = true;
+            btnNext.disabled = true;
         }
     }
     
-    // --- AUTHENTIFICATION & FLUX SUIVI (CORRIGÉ POUR POPUP) ---
+    // Fonction pour changer de streamer manuellement (Global)
+    async function cycleStream(direction) {
+        const playerStatusEl = document.getElementById('player-channel-status');
+        const btnPrev = document.getElementById('btn-prev-stream');
+        const btnNext = document.getElementById('btn-next-stream');
+        
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+        playerStatusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Changement de chaîne...`;
+
+        try {
+            const res = await fetch(`${API_BASE}/cycle_stream`, {
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ direction }) 
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({error: 'Erreur Serveur: Non-JSON'}));
+                throw new Error(errorData.error || `Erreur Serveur: ${res.status}`);
+            }
+
+            const data = await res.json();
+            
+            if (data.success) {
+                launchPlayer(data.channel);
+            } else {
+                throw new Error(data.error || 'Erreur inconnue.');
+            }
+            
+        } catch (e) {
+            playerStatusEl.innerHTML = `❌ Échec du changement: ${e.message}`;
+        } finally {
+            checkBoostAndPlay(true); 
+        }
+    }
+
+    // --- AUTHENTIFICATION & FLUX SUIVI (CORRIGÉ POUR POPUP ET REFRESH) ---
+
+    // **RE-INTRODUCTION DU POPUP ET POSTMESSAGE**
+    function startAuth() {
+        const authUrl = `${API_BASE}/twitch_auth_start`;
+        // Ouvre le flux d'authentification dans une nouvelle fenêtre popup de taille limitée
+        window.open(authUrl, 'twitch_login_popup', 'width=500,height=650,scrollbars=yes,status=no,resizable=yes');
+    }
 
     async function checkAuthStatus() {
         const loginBtn = document.getElementById('btn-twitch-login');
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
-            // Check si la réponse est un JSON valide
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                console.error("Erreur: L'API de statut n'a pas renvoyé de JSON. Elle a peut-être crashé.");
-                // Ne pas crasher, rester déconnecté
-                isConnected = false;
-                loginBtn.innerHTML = '🔒 CONNEXION TWITCH (Erreur serveur)';
-                loginBtn.style.background = '#800000';
-                loginBtn.onclick = startAuth;
-                return; 
+            
+            if (!res.ok) {
+                throw new Error("Erreur Serveur: Impossible de contacter le statut Twitch.");
             }
             
             const data = await res.json();
@@ -532,7 +569,7 @@
                 loginBtn.innerHTML = `✅ Connecté: ${data.display_name}`;
                 loginBtn.style.background = '#0e7e0e';
                 loginBtn.onclick = logout;
-                loadFollowedStreams();
+                loadFollowedStreams(); // Charger les streams si connecté
             } else {
                 loginBtn.innerHTML = '🔒 CONNEXION TWITCH';
                 loginBtn.style.background = '#6441a5';
@@ -541,450 +578,372 @@
             }
         } catch (e) {
             console.error("Erreur de statut d'auth:", e);
+            isConnected = false;
+            loginBtn.innerHTML = '🔒 CONNEXION TWITCH (Erreur serveur)';
+            loginBtn.style.background = '#800000';
+            loginBtn.onclick = startAuth;
         }
     }
     
-    // Ouverture de la fenêtre de connexion en popup
-    function startAuth() {
-        const authUrl = `${API_BASE}/twitch_auth_start`;
-        // Ouvre le flux d'authentification dans une nouvelle fenêtre popup de taille limitée
-        // NOTE CRITIQUE : Le succès dépend du code de la partie 2 (callback)
-        window.open(authUrl, 'twitch_login_popup', 'width=500,height=650,scrollbars=yes,status=no,resizable=yes');
-    }
-
     async function logout() {
         if (!confirm("Voulez-vous vraiment vous déconnecter de Twitch?")) return;
         try {
             await fetch(`${API_BASE}/twitch_logout`, { method: 'POST' });
             isConnected = false;
-            followedStreams = [];
-            document.getElementById('followed-streams-list').innerHTML = '<p style="color:#555; text-align:center;">Connectez-vous pour voir vos favoris.</p>';
-            checkAuthStatus();
-            // Recharger le lecteur par défaut (0-200 vues)
-            checkBoostAndPlay();
+            window.followedStreams = []; 
+            checkAuthStatus(); 
+            loadFollowedStreams(); 
+            checkBoostAndPlay(); 
         } catch (e) {
             console.error("Erreur de déconnexion:", e);
         }
     }
 
     async function loadFollowedStreams() {
-        if (!isConnected) return;
+        const list = document.getElementById('followed-streams-list');
+        if (!isConnected) return; 
         
-        const listEl = document.getElementById('followed-streams-list');
-        listEl.innerHTML = '<p style="text-align:center; color:var(--color-primary-pink);"><i class="fas fa-spinner fa-spin"></i> Chargement des streams suivis...</p>';
-
+        list.innerHTML = `<p style="text-align:center; color:var(--color-primary-pink);"><i class='fas fa-sync fa-spin'></i> Chargement des streams suivis...</p>`;
+        
         try {
             const res = await fetch(`${API_BASE}/followed_streams`);
+            if (!res.ok) throw new Error("Erreur de l'API Backend.");
             const data = await res.json();
-
-            if (data.success) {
-                followedStreams = data.streams;
+            
+            if (data.success && data.streams.length > 0) {
+                window.followedStreams = data.streams; 
                 
-                if (followedStreams.length === 0) {
-                     listEl.innerHTML = '<p style="color:#555; text-align:center;">Aucun de vos streams suivis n\'est actuellement en direct.</p>';
-                     updateCycleButtons();
-                     return;
-                }
-                
-                let html = '';
-                followedStreams.forEach(stream => {
-                    // Utiliser la miniature pour l'aperçu
-                    const thumbnailUrl = stream.thumbnail_url.replace('{width}', '280').replace('{height}', '158');
-                    html += `
-                        <div class="followed-stream-item" onclick="launchPlayer('${stream.user_login}')">
-                            <img src="${thumbnailUrl}" alt="${stream.user_name}">
-                            <div class="font-bold" style="color:var(--color-secondary-blue);">${stream.user_name}</div>
-                            <div style="font-size:12px; color:#ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${stream.title}">${stream.title}</div>
-                            <div style="font-size:11px; color:var(--color-primary-pink);"><i class="fas fa-eye"></i> ${stream.viewer_count.toLocaleString('fr-FR')}</div>
-                            <div style="font-size:10px; color:var(--color-text-dimmed);">${stream.game_name}</div>
-                        </div>
+                list.innerHTML = "";
+                data.streams.forEach(stream => {
+                    const fixedThumbnailUrl = stream.thumbnail_url
+                        .replace('{width}', '320') 
+                        .replace('{height}', '180'); 
+                        
+                    const item = document.createElement('div');
+                    item.className = 'followed-stream-item';
+                    item.onclick = () => launchPlayer(stream.user_login);
+                    item.innerHTML = `
+                        <img src="${fixedThumbnailUrl}" alt="${stream.user_name} stream preview">
+                        <div style="font-weight:bold; font-size:13px; color:#fff;">${stream.user_name}</div>
+                        <div style="font-size:11px; color:var(--color-text-dimmed);">${stream.game_name}</div>
+                        <div style="font-size:11px; color:var(--color-primary-pink); font-weight:bold;"><i class="fas fa-eye"></i> ${stream.viewer_count.toLocaleString('fr-FR')}</div>
+                        <div style="font-size:10px; color:red;">🔴 LIVE</div>
                     `;
+                    list.appendChild(item);
                 });
-                
-                listEl.innerHTML = html;
-                updateCycleButtons();
-                
-                // On ne lance PAS ici, c'est checkBoostAndPlay qui gère le démarrage initial.
-                // Si l'onglet 'Suivi' est déjà actif, il faut s'assurer que le joueur est le premier followé.
-                if (document.getElementById('tab-followed').classList.contains('active')) {
-                     launchPlayer(followedStreams[0].user_login);
-                }
-                
             } else {
-                listEl.innerHTML = `<p style="color:red; text-align:center;">❌ Erreur: ${data.error}. Veuillez vous reconnecter.</p>`;
-                updateCycleButtons();
+                list.innerHTML = "<p style='color:#777; text-align:center;'>Aucun stream en direct. Vos favoris sont hors ligne.</p>";
             }
-        } catch (e) {
-             listEl.innerHTML = `<p style="color:red; text-align:center;">❌ Erreur réseau lors de la récupération des streams: ${e.message}</p>`;
-             updateCycleButtons();
+        } catch(e) {
+            list.innerHTML = `<p style="color:red; text-align:center;">Échec de la récupération des streams (Problème Backend/Twitch API: ${e.message}).</p>`;
         }
     }
 
-    // --- LOGIQUE AUTO-DISCOVERY / BOOST (LOGIQUE DE PRIORITÉ INVERSÉE) ---
-
-    async function checkBoostAndPlay() {
-        try {
-            const boostRes = await fetch(`${API_BASE}/get_boost_channel`);
-            const boostData = await boostRes.json();
-            
-            let targetChannel = null;
-
-            if (boostData.success) {
-                // PRIORITÉ 1: Boost actif
-                targetChannel = boostData.channel;
-                document.getElementById('player-channel-status').innerHTML = `<span style="color:var(--color-primary-pink);">⚡ BOOST ACTIF : ${targetChannel.toUpperCase()}</span>`;
-            } else {
-                // PRIORITÉ 2: Streamer 0-200 Vues (Discovery)
-                const defaultRes = await fetch(`${API_BASE}/get_default_stream`);
-                const defaultData = await defaultRes.json();
-                
-                if(defaultData.success) {
-                    targetChannel = defaultData.channel_name;
-                    document.getElementById('player-channel-status').innerHTML = `<span style="color:var(--color-secondary-blue);">✨ AUTO-DISCOVERY : ${targetChannel.toUpperCase()} (0-200 V)</span>`;
-                } else if (isConnected && followedStreams.length > 0) {
-                    // PRIORITÉ 3: Premier Stream Suivi (uniquement si connecté)
-                    targetChannel = followedStreams[0].user_login;
-                    document.getElementById('player-channel-status').innerHTML = `<span style="color:#888;">▶️ PREMIER SUIVI : ${targetChannel.toUpperCase()}</span>`;
-                }
-            }
-
-            // Lancement du joueur ou par défaut si rien n'est trouvé
-            launchPlayer(targetChannel || DEFAULT_CHANNEL);
-            
-        } catch (e) {
-            console.error("Erreur lors de la vérification du boost ou du stream par défaut:", e);
-            document.getElementById('player-channel-status').innerHTML = `<span style="color:red;">❌ ERREUR SERVEUR - Lancement par défaut.</span>`;
-            launchPlayer(DEFAULT_CHANNEL);
-        }
-    }
-
-
-    // --- LOGIQUE DASHBOARD (SCAN & IA) ---
-
-    async function displayScanResults(type, data) {
-        const statsBox = document.getElementById('res-scan-content');
-        
-        let html = '';
-        if (type === 'user') {
-            const user = data.user_data;
-            lastScanData = data; // Enregistrer les données pour l'export
-            
-            // Affichage des métriques de l'utilisateur
-            const viewsPerFollower = user.total_followers > 0 ? (user.total_views_count / user.total_followers).toFixed(2) : 'N/A';
-            const viewsPerVod = user.total_vods > 0 ? (user.total_views_count / user.total_vods).toLocaleString('fr-FR', {maximumFractionDigits: 0}) : 'N/A';
-
-            html = `
-                <div class="flex items-center gap-4 mb-4">
-                    <img src="${user.profile_image_url}" class="w-16 h-16 rounded-full border-2" style="border-color:var(--color-secondary-blue);">
-                    <div>
-                        <h4 class="font-bold text-lg text-white">${user.display_name} (${user.login})</h4>
-                        <p class="text-xs ${user.is_live ? 'trend-up' : 'trend-down'}">Statut: ${user.is_live ? '🔴 LIVE' : 'Hors Ligne'}</p>
-                        <p class="text-xs text-white">Broadcaster Type: ${user.broadcaster_type}</p>
-                    </div>
-                </div>
-                
-                <div class="metric-grid">
-                    <div class="metric-item">
-                        <div class="metric-value">${user.total_followers.toLocaleString('fr-FR')}</div>
-                        <div class="metric-label">Total Followers</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value ${user.viewer_count > 0 ? 'trend-up' : ''}">${user.viewer_count.toLocaleString('fr-FR')}</div>
-                        <div class="metric-label">Vues Actuelles (si LIVE)</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value">${user.total_views_count.toLocaleString('fr-FR')}</div>
-                        <div class="metric-label">Vues Totales du Compte</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value">${user.total_vods}</div>
-                        <div class="metric-label">VODs Archivées</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value">${viewsPerVod}</div>
-                        <div class="metric-label">Vues Moy. / VOD</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value trend-up">${user.ai_estimated_avg_viewers}</div>
-                        <div class="metric-label">IA: Vues Moy. Estimées</div>
-                    </div>
-                </div>
-                
-                <p class="text-xs text-center mt-3 text-white">
-                    <button class="btn-primary" style="background:var(--color-secondary-blue); padding:5px 10px;" onclick="launchPlayer('${user.login}', true)">▶️ Voir ${user.login} maintenant</button>
-                </p>
-                <div style="font-size:10px; color:#555; margin-top:10px; text-align:center;">Compte créé le ${user.account_creation_date}</div>
-            `;
-            
-        } else if (type === 'game') {
-            const game = data.game_data;
-             lastScanData = data; // Enregistrer les données pour l'export
-             
-            // Affichage des métriques du jeu
-            let topStreamsHtml = game.top_streams.map(s => 
-                `<p class="text-xs flex justify-between">
-                    <span>${s.user_name}</span> 
-                    <span class="trend-up">${s.viewer_count.toLocaleString('fr-FR')} V</span>
-                </p>`
-            ).join('');
-            
-            html = `
-                <div class="flex items-center gap-4 mb-4">
-                    <img src="${game.box_art_url}" class="w-16 h-20 border-2" style="border-color:var(--color-secondary-blue);">
-                    <div>
-                        <h4 class="font-bold text-lg text-white">${game.name}</h4>
-                        <p class="text-xs text-white">Catégorie ID: ${game.id}</p>
-                    </div>
-                </div>
-                
-                <div class="metric-grid">
-                    <div class="metric-item">
-                        <div class="metric-value">${game.total_streams_found}</div>
-                        <div class="metric-label">Streams trouvés (Top 100)</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value">${game.total_viewers_on_top_streams.toLocaleString('fr-FR')}</div>
-                        <div class="metric-label">Total Vues (Top 5)</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value trend-up">${game.avg_viewers_per_top_streamer}</div>
-                        <div class="metric-label">Vues Moy. / Streamer (Top 5)</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value trend-up">${game.ai_niche_density}%</div>
-                        <div class="metric-label">IA: Densité de Niche</div>
-                    </div>
-                </div>
-                
-                <h5 class="text-white font-bold text-sm mt-4 border-b border-gray-700 pb-1">Top 5 Streams Actuels:</h5>
-                <div class="text-xs text-gray-400 mt-2">${topStreamsHtml}</div>
-            `;
-        } else {
-             statsBox.innerHTML = `<p style="color:red; text-align:center; margin-top:50px;">Erreur: Type de scan inconnu.</p>`;
-             lastScanData = null;
-             return;
-        }
-
-        statsBox.innerHTML = html;
-        // Sauvegarder les données pour l'export CSV
-        await fetch(`${API_BASE}/set_last_scan`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: lastScanData })
-        });
-    }
-
-    async function callAiCritique(targetType, targetName, targetData) {
-        const nicheBox = document.getElementById('res-niche-content');
-        nicheBox.innerHTML = '<p style="text-align:center; color:var(--color-ai-niche); margin-top:50px;"><i class="fas fa-microchip fa-spin"></i> Analyse de Niche par IA en cours...</p>';
-        
-        const vodBox = document.getElementById('res-vod-content');
-        vodBox.innerHTML = '<p style="text-align:center; color:var(--color-ai-repurpose); margin-top:50px;"><i class="fas fa-microchip fa-spin"></i> Recherche de Repurposing VOD...</p>';
-
-        try {
-            // 1. Appel Critique Niche
-            const nicheRes = await fetch(`${API_BASE}/ai_niche_critique`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_name: targetName, target_type: targetType, target_data: targetData })
-            });
-            const nicheData = await nicheRes.json();
-            
-            if (nicheData.success) {
-                const score = nicheData.niche_score;
-                nicheBox.innerHTML = `
-                    <div class="niche-score-box">
-                        <div class="niche-score-value">${score}</div>
-                        <div class="niche-score-label">SCORE DE NICHE (IA)</div>
-                    </div>
-                    <div class="ai-output-enhanced">${nicheData.html_output}</div>
-                `;
-            } else {
-                nicheBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur IA Critique: ${nicheData.error}</p>`;
-            }
-
-            // 2. Appel Repurposing VOD (uniquement si c'est un utilisateur)
-            if (targetType === 'user') {
-                const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${targetName}`);
-                const vodData = await vodRes.json();
-                
-                if (vodData.success) {
-                    const vod = vodData.vod;
-                    const aiVodRes = await fetch(`${API_BASE}/ai_vod_repurpose`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ title: vod.title, duration: vod.duration })
-                    });
-                    const aiVodData = await aiVodRes.json();
-                    
-                    if (aiVodData.success) {
-                        vodBox.innerHTML = `
-                            <p class="text-xs text-white mb-2">Dernière VOD (${vod.duration}) :</p>
-                            <a href="${vod.url}" target="_blank" class="font-bold text-sm" style="color:var(--color-ai-repurpose); display:block; margin-bottom:10px;">"${vod.title}"</a>
-                            <div class="ai-output-enhanced">${aiVodData.html_output}</div>
-                        `;
-                    } else {
-                        vodBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur IA VOD: ${aiVodData.error}</p>`;
-                    }
-                } else {
-                     vodBox.innerHTML = `<p style="color:#777; text-align:center; margin-top:50px;">${vodData.error}</p>`;
-                }
-            } else {
-                 vodBox.innerHTML = `<p style="color:#777; text-align:center; margin-top:50px;">Analyse VOD disponible uniquement pour les streamers (pas les jeux).</p>`;
-            }
-
-
-        } catch (e) {
-            console.error("Erreur générale IA:", e);
-            nicheBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur réseau lors de l'appel IA/VOD.</p>`;
-            vodBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur réseau lors de l'appel IA/VOD.</p>`;
-        }
-    }
-
-
-    // --- ÉCOUTEUR POSTMESSAGE (POUR LE POPUP DE CONNEXION) ---
+    // --- ÉCOUTEUR POSTMESSAGE (POUR LA FERMETURE/REFRESH DU POPUP) ---
 
     window.addEventListener('message', (event) => {
-        // La vérification de l'origine est recommandée pour la sécurité, mais '*' permet plus de flexibilité.
-        // Puisque nous faisons confiance à notre propre serveur Render pour envoyer le message.
-        
         // Le message 'auth_success' est celui que le backend doit envoyer après la connexion
         if (event.data === 'auth_success') {
             // La connexion est réussie, on rafraîchit le statut de connexion dans l'iframe.
             checkAuthStatus();
+            // On s'assure que le lecteur se met à jour si l'utilisateur avait un stream suivi.
+            checkBoostAndPlay(); 
         }
     });
 
+    // --- LOGIQUE DASHBOARD (IA, SCAN, ETC.) ---
 
-    // --- LISTENERS ---
-    
-    // 1. Formulaire de scan global
+    async function runAIAnalysis(type, query, box, niche_score = null) {
+        box.innerHTML = `<p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA (${type})...</p>`;
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ type, query, niche_score }) 
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({ error: 'Erreur Serveur Inconnue.' }));
+                throw new Error(errorData.error || `Erreur Serveur: ${res.status}`);
+            }
+
+            const data = await res.json();
+            box.innerHTML = `<div class="ai-output-enhanced">${data.html_response}</div>`;
+        } catch (e) {
+            box.innerHTML = `<p style="color:red; text-align:center;">❌ ${e.message}</p>`;
+        }
+    }
+
+    async function runGlobalScan(query) {
+        const boxScan = document.getElementById('res-scan-content');
+        const boxNiche = document.getElementById('res-niche-content');
+        const boxVod = document.getElementById('res-vod-content');
+        
+        boxScan.innerHTML = "<p class='text-blue-400 text-center'><i class='fas fa-sync fa-spin'></i> Scan de données Twitch...</p>";
+        boxNiche.innerHTML = "<p class='text-green-400 text-center'>En attente de données...</p>";
+        boxVod.innerHTML = "<p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Recherche VOD...</p>";
+
+        try {
+            // ÉTAPE 1 : SCAN (Identification User ou Game)
+            const scanRes = await fetch(`${API_BASE}/scan_target`, {
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ query }) 
+            });
+
+            let scanData;
+
+            if (scanRes.ok) {
+                scanData = await scanRes.json();
+            } else {
+                const errorData = await scanRes.json().catch(() => ({ error: 'Erreur Serveur Inconnue. Réponse non-JSON.' }));
+                
+                const status = scanRes.status;
+                let errorMessage = errorData.error || `Erreur Serveur (${status}).`;
+                
+                if (status === 403 || status === 400) {
+                    errorMessage = `❌ ERREUR API (${status}): Clé Twitch/Backend Invalide ou Requête Mal Formée. Détail: ${errorMessage}`;
+                } else if (status === 404) {
+                    errorMessage = errorData.message || `Impossible de trouver un utilisateur ou un jeu.`;
+                }
+
+                throw new Error(errorMessage);
+            }
+            
+            if (!scanData.success) throw new Error(scanData.message);
+
+            // AFFICHER RÉSULTATS SCAN
+            if (scanData.type === 'user') {
+                const u = scanData.user_data;
+                const nicheScore = u.ai_calculated_niche_score; 
+                
+                // RENDU SCAN SPÉCIFIQUE STREAMER
+                boxScan.innerHTML = `
+                    <div style="display:flex; gap:10px; align-items:center; border-bottom:1px solid #222; padding-bottom:10px; margin-bottom:10px;">
+                        <img src="${u.profile_image_url}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--color-secondary-blue);">
+                        <div>
+                            <div style="font-weight:bold; font-size:14px;">${u.display_name}</div>
+                            <div style="color:${u.is_live?'red':'gray'}">${u.is_live ? `🔴 LIVE (${safeFormat(u.viewer_count)} vues)` : '⚫ OFF'} | ${u.game_name || 'Divers'}</div>
+                        </div>
+                    </div>
+                    <button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%; margin-bottom:10px; font-size:10px;">VOIR STREAM</button>
+                    
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(u.total_followers)}</div>
+                            <div class="metric-label"><i class="fas fa-user-plus"></i> Total Suiveurs (RÉEL)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(u.total_views)}</div>
+                            <div class="metric-label"><i class="fas fa-eye"></i> Vues Totales (RÉEL)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(u.vod_count)}</div>
+                            <div class="metric-label"><i class="fas fa-video"></i> VODs Publiées (RÉEL)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${u.creation_date}</div>
+                            <div class="metric-label"><i class="fas fa-calendar-alt"></i> Création Compte (RÉEL)</div>
+                        </div>
+                        <div class="metric-item" style="grid-column: span 2;">
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(u.broadcaster_type)}</div>
+                            <div class="metric-label"><i class="fas fa-handshake"></i> Statut de Chaîne (RÉEL)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="niche-score-box">
+                        <div class="niche-score-value" id="niche-score-placeholder">${safeFormat(nicheScore)}</div>
+                        <div class="niche-score-label"><i class="fas fa-brain"></i> SCORE NICHE (Calculé)</div>
+                    </div>
+                `;
+
+                // ÉTAPE 2: LANCE L'ANALYSE IA DE NICHE
+                const nicheQuery = `${u.display_name} | ${u.game_name || 'Divers'} | ${safeFormat(u.total_followers)} followers`;
+                await runAIAnalysis('niche', nicheQuery, boxNiche, nicheScore);
+
+                // ÉTAPE 3: RECHERCHE VOD
+                const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${u.login}`);
+                if (vodRes.ok) {
+                    const vodData = await vodRes.json();
+                    if (vodData.success && vodData.vod) {
+                        boxVod.innerHTML = `
+                            <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">VOD Récente: ${vodData.vod.title.substring(0,40)}...</div>
+                            <img id="vod-thumbnail" src="${vodData.vod.thumbnail_url}" style="width:100%; border-radius:4px;">
+                            <button onclick="launchPlayer('${u.login}', '${vodData.vod.id}')" class="btn-primary" style="width:100%; margin-top:5px; margin-bottom:10px; font-size:10px; background:#6441a5;">VOIR VOD</button>
+                            <div id="vod-analysis-placeholder" class='mt-2' style="min-height: 100px;"> 
+                                <p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA des moments clés en cours...</p> 
+                            </div>
+                        `;
+
+                        const analysisBox = document.getElementById('vod-analysis-placeholder');
+                        await runAIAnalysis('repurpose', `${u.login} | ${vodData.vod.title}`, analysisBox);
+                    } else {
+                        boxVod.innerHTML = "<p style='color:#777; text-align:center; margin-top:50px;'>Pas de VOD récente trouvée. L'analyse repurposing est indisponible.</p>";
+                    }
+                } else {
+                    boxVod.innerHTML = "<p style='color:#777; text-align:center; margin-top:50px;'>Erreur lors de la recherche de VOD.</p>";
+                }
+
+
+            } else if (scanData.type === 'game') {
+                // C'EST UN JEU
+                const g = scanData.game_data;
+                const nicheScore = g.ai_calculated_niche_score;
+
+                boxScan.innerHTML = `
+                    <img src="${g.box_art_url.replace('{width}','60').replace('{height}','80')}" style="float:left; margin-right:10px; border-radius:4px;">
+                    <div style="font-weight:bold; color:var(--color-secondary-blue);">${g.name}</div>
+                    <div style="color:#777; font-size:12px;">Catégorie de Jeu</div>
+                    
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(g.total_viewers)}</div>
+                            <div class="metric-label"><i class="fas fa-users"></i> Viewers Totaux (Live)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(g.total_streamers)}</div>
+                            <div class="metric-label"><i class="fas fa-user-friends"></i> Streamers Totaux (Live)</div>
+                        </div>
+                        <div class="metric-item" style="grid-column: span 2;">
+                            <div class="metric-value" style="color:var(--color-secondary-blue);">${safeFormat(g.avg_viewers_per_streamer)}</div>
+                            <div class="metric-label"><i class="fas fa-chart-line"></i> Moy. Vues par Streamer</div>
+                        </div>
+                    </div>
+                    
+                    <div class="niche-score-box">
+                        <div class="niche-score-value" id="niche-score-placeholder">${safeFormat(nicheScore)}</div>
+                        <div class="niche-score-label"><i class="fas fa-brain"></i> SCORE NICHE (Calculé)</div>
+                    </div>
+                    <div style="clear:both;"></div>
+                `;
+
+                // ÉTAPE 2: LANCE L'ANALYSE IA DE NICHE
+                await runAIAnalysis('niche', `Jeu: ${g.name} | Viewers: ${g.total_viewers} | Streamers: ${g.total_streamers}`, boxNiche, nicheScore);
+
+                // ÉTAPE 3: VOD (Non applicable pour un jeu)
+                boxVod.innerHTML = "<p style='color:#777; text-align:center; margin-top:50px;'>L'analyse VOD est réservée aux analyses de chaînes.</p>";
+            }
+
+        } catch (e) {
+            boxScan.innerHTML = `<p style="color:red; text-align:center; margin-top:50px;">❌ Échec du Scan: ${e.message}</p>`;
+            boxNiche.innerHTML = "<p class='text-green-400 text-center'>Erreur Scan. Analyse IA annulée.</p>";
+            boxVod.innerHTML = "<p class='text-purple-400 text-center'>Erreur Scan. Recherche VOD annulée.</p>";
+        } finally {
+            document.getElementById('btn-global-scan').disabled = false;
+            document.getElementById('btn-global-scan').innerHTML = '🚀 LANCER L\'ANALYSE 360°';
+        }
+    }
+
+    // --- GESTION DES ÉVÉNEMENTS ---
+
+    document.getElementById('btn-twitch-login').addEventListener('click', startAuth);
+
     document.getElementById('form-global-scan').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const input = document.getElementById('input-global-target');
-        const btn = document.getElementById('btn-global-scan');
-        const query = input.value.trim();
-
-        if (query.length === 0) return;
-
-        btn.disabled = true;
-        btn.innerHTML = 'Scan en cours... <i class="fas fa-circle-notch fa-spin"></i>';
-        
-        try {
-            const res = await fetch(`${API_BASE}/scan_target`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query })
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                await displayScanResults(data.type, data);
-                await callAiCritique(data.type, data.type === 'user' ? data.user_data.login : data.game_data.name, data.type === 'user' ? data.user_data : data.game_data);
-            } else {
-                document.getElementById('res-scan-content').innerHTML = `<p style="color:red; text-align:center; margin-top:50px;">❌ Erreur: ${data.message}</p>`;
-                document.getElementById('res-niche-content').innerHTML = `<p style="color:#777; text-align:center; margin-top:50px;">...</p>`;
-                document.getElementById('res-vod-content').innerHTML = `<p style="color:#777; text-align:center; margin-top:50px;">...</p>`;
-                lastScanData = null;
-            }
-        } catch(e) {
-             document.getElementById('res-scan-content').innerHTML = `<p style="color:red; text-align:center; margin-top:50px;">❌ Erreur réseau: ${e.message}</p>`;
-             lastScanData = null;
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '🚀 LANCER L\'ANALYSE 360°';
+        const query = document.getElementById('input-global-target').value.trim();
+        if (query) {
+            document.getElementById('btn-global-scan').disabled = true;
+            document.getElementById('btn-global-scan').innerHTML = '<i class="fas fa-sync fa-spin"></i> ANALYSE EN COURS...';
+            await runGlobalScan(query);
         }
     });
     
-    // 2. Formulaire de changement rapide du lecteur
     document.getElementById('mini-player-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-channel').value.trim();
         if (channel) {
-            launchPlayer(channel, true);
+            launchPlayer(channel);
+            document.getElementById('player-channel-status').innerHTML = `Chaîne chargée manuellement: ${channel}`;
+            // Arrêter la rotation automatique en mode manuel
+            if (autoCycleTimer) clearInterval(autoCycleTimer);
+            document.getElementById('btn-prev-stream').disabled = true;
+            document.getElementById('btn-next-stream').disabled = true;
         }
     });
 
-    // 3. Formulaire Boost (MAINTENANT AVEC GESTION D'ERREUR ROBUSTE)
+    // 4. Formulaire BOOST (GESTION D'ERREUR ROBUSTE - FIX DU TOKEN '<')
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const input = document.getElementById('input-boost');
-        const channel = input.value.trim().toLowerCase();
+        const channel = document.getElementById('input-boost').value.trim();
         const resBox = document.getElementById('boost-results');
         const btn = e.target.querySelector('button');
-
-        if (channel.length === 0) return;
+        
+        if (!channel) {
+            resBox.innerHTML = '<p style="color:red;">❌ Veuillez entrer une chaîne.</p>';
+            return;
+        }
 
         btn.disabled = true;
         const originalText = btn.innerHTML;
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> EN COURS...`;
-
+        resBox.innerHTML = "<p style='text-align:center; color:var(--color-primary-pink);'><i class='fas fa-sync fa-spin'></i> Boost en cours de validation (15 min)...</p>";
+        
         try {
-            const res = await fetch(`${API_BASE}/activate_boost`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ channel })
+            const res = await fetch(`${API_BASE}/stream_boost`, {
+                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel})
             });
 
-            // GESTION DU PROBLÈME: Si la réponse n'est pas un JSON, c'est une erreur serveur (comme HTML)
             const contentType = res.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-                 const errorText = await res.text(); // Lire le corps de la réponse (l'HTML de l'erreur)
-                 console.error("Erreur serveur Boost (Réponse non-JSON):", errorText.substring(0, 200) + '...');
-                 resBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur API: Le serveur n'a pas renvoyé de JSON. (Erreur 500 ou crash backend).</p>`;
+                 const errorText = await res.text();
+                 console.error("Erreur serveur Boost (Réponse non-JSON/HTML):", errorText.substring(0, 200) + '...');
+                 resBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur API: Le serveur n'a pas renvoyé de JSON. (Erreur 500 ou crash backend). Votre backend est probablement tombé. (Détail: ${errorText.substring(0, 50)}...)</p>`;
                  return;
             }
             
             const data = await res.json();
             
             if (data.success) {
-                resBox.innerHTML = `<p style="color:var(--color-primary-pink); font-weight:bold;">${data.message}</p>`;
-                // Mettre à jour le lecteur pour le boost immédiatement
-                checkBoostAndPlay();
+                resBox.innerHTML = data.html_response;
+                checkBoostAndPlay(true);
             } else {
-                 resBox.innerHTML = `<p style="color:red; font-weight:bold;">${data.message}</p>`;
+                resBox.innerHTML = data.html_response || `<p style="color:red; font-weight:bold;">❌ Échec du Boost: ${data.error || 'Erreur inconnue.'}</p>`;
             }
         } catch(e) { 
-            resBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur réseau ou JSON invalide: ${e.message}</p>`; 
+            resBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur réseau: ${e.message}</p>`; 
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
         }
     });
     
-    // 4. Formulaire RAID
+    // 5. Formulaire RAID
     document.getElementById('form-raid').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const gameQuery = document.getElementById('input-raid-game').value.trim();
-        const maxViewers = document.getElementById('select-raid-viewers').value;
+        const game = document.getElementById('input-raid-game').value.trim();
+        const max_viewers = document.getElementById('select-raid-viewers').value;
         const resBox = document.getElementById('raid-results');
         
-        if (gameQuery.length === 0) {
-             resBox.innerHTML = `<p style="color:red; text-align:center;">Veuillez entrer un jeu cible.</p>`;
-             return;
+        if (!game) {
+            resBox.innerHTML = '<p style="color:red;">❌ Veuillez entrer un jeu.</p>';
+            return;
         }
 
         document.getElementById('btn-start-raid').disabled = true;
-        document.getElementById('btn-start-raid').innerHTML = 'Recherche en cours... <i class="fas fa-circle-notch fa-spin"></i>';
-        resBox.innerHTML = `<p style="color:var(--color-ai-action); text-align:center; margin-top:10px;"><i class="fas fa-spinner fa-spin"></i> Recherche des meilleures cibles dans ${gameQuery}...</p>`;
-
+        document.getElementById('btn-start-raid').innerHTML = '<i class="fas fa-sync fa-spin"></i> Recherche de cible...';
+        resBox.innerHTML = `<p style='text-align:center; color:var(--color-ai-action);'><i class='fas fa-sync fa-spin'></i> Recherche de cible de Raid dans la catégorie <strong>${game}</strong>...</p>`;
+        
         try {
-            const res = await fetch(`${API_BASE}/find_raid_target?game_query=${encodeURIComponent(gameQuery)}&max_viewers=${maxViewers}`);
+            const res = await fetch(`${API_BASE}/start_raid`, {
+                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game, max_viewers})
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({error: 'Erreur Serveur Inconnue.'}));
+                throw new Error(errorData.error || `Erreur Serveur: ${res.status}`);
+            }
+
             const data = await res.json();
             
             if (data.success) {
-                const { login, display_name, viewer_count, title, game_name, thumbnail_url } = data.target;
-                const viewers = parseInt(viewer_count, 10);
-                
+                const { name, login, viewers, game, thumbnail_url } = data.target;
                 resBox.innerHTML = `
-                    <p style="font-weight:bold; color:var(--color-ai-action); margin-bottom:10px;">✅ CIBLE DE RAID IDÉALE TROUVÉE :</p>
+                    <p style="font-weight:bold; color:var(--color-ai-action); margin-bottom:10px;">✅ Cible de Raid Optimale trouvée !</p>
                     <div class="raid-target-box">
-                        <img src="${thumbnail_url}" alt="${display_name}">
-                        <div style="flex-grow:1;">
-                            <div class="font-bold text-lg text-white">${display_name}</div>
-                            <div class="text-sm" style="color:#ddd; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${title}">${title}</div>
-                            <div class="text-xs" style="color:var(--color-text-dimmed);">${game_name}</div>
-                            <div class="font-bold text-pink mt-1" style="color:var(--color-ai-niche); font-weight:bold;"><i class="fas fa-eye"></i> ${viewers.toLocaleString('fr-FR')} spectateurs</div>
+                        <img src="${thumbnail_url}" alt="Raid Target Preview">
+                        <div>
+                            <div style="font-family:'Orbitron',sans-serif; font-size:16px; color:#fff;">${name}</div>
+                            <div style="font-size:12px; color:#ddd;">Jeu: ${game}</div>
+                            <div style="font-size:14px; color:var(--color-ai-niche); font-weight:bold;"><i class="fas fa-eye"></i> ${viewers.toLocaleString('fr-FR')} spectateurs</div>
                         </div>
                         <button onclick="launchPlayer('${login}')" class="btn-primary" style="margin-left:auto; background:var(--color-ai-action);">LANCER RAID</button>
                     </div>
@@ -1000,13 +959,8 @@
         }
     });
 
-    // 5. Export CSV
+    // 6. Export CSV
     document.getElementById('btn-export-pdf').addEventListener('click', () => {
-        if (!lastScanData) {
-            document.getElementById('pdf-export-results').innerHTML = `<p style="color:red;">❌ Lancez un scan (Dashboard) avant d'exporter.</p>`;
-            return;
-        }
-
         window.open(`${API_BASE}/export_csv`, '_blank');
         const resBox = document.getElementById('pdf-export-results');
         resBox.innerHTML = `<p style="color:var(--color-ai-growth);">✅ Export CSV téléchargé (basé sur le dernier Scan).</p>`;
@@ -1015,24 +969,10 @@
 
     // --- INITIALISATION ---
     window.onload = () => {
-        // Gère les messages d'erreur post-redirection (si le backend a crashé et redirigé)
-        const urlParams = new URLSearchParams(window.location.search);
-        const error = urlParams.get('error');
-        if (error) {
-            alert("Erreur de Connexion: " + decodeURIComponent(error));
-            // Nettoyer l'URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        checkAuthStatus(); // Vérifie si l'utilisateur est connecté
-        
-        // Lance le lecteur par défaut (Auto-Discovery ou Boost)
+        checkAuthStatus();
         checkBoostAndPlay(); 
-        
-        // Onglet par défaut
-        openTab('tab-followed');
+        openTab('tab-followed'); 
     };
 </script>
-
 </body>
 </html>
