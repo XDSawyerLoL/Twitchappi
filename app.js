@@ -430,6 +430,7 @@ async function refreshGlobalStreamList() {
     const now = Date.now();
     const rotation = CACHE.globalStreamRotation;
     
+    // Vérification du Cooldown
     if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) {
         return;
     }
@@ -437,20 +438,34 @@ async function refreshGlobalStreamList() {
     console.log("DEBUG: Rafraîchissement de la liste de streams 0-100...");
     
     try {
+        // Demande les 100 premiers streams FR
         const data = await twitchApiFetch(`streams?language=fr&first=100`);
         const allStreams = data.data;
 
-        const suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
+        // 1. Priorité: Streams entre 1 et 100 vues
+        let suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
 
+        // 💥 CORRECTIF APPLIQUÉ ICI : Assouplissement du filtre si la liste 1-100 est vide.
+        if (suitableStreams.length === 0 && allStreams.length > 0) {
+            
+            // Si rien n'est trouvé dans la plage 1-100, trier et prendre les 10 plus petits du Top 100
+            suitableStreams = allStreams
+                .sort((a, b) => a.viewer_count - b.viewer_count)
+                .slice(0, 10); 
+
+            console.warn(`WARN: Le filtre 1-100 n'a rien donné. Utilisation des ${suitableStreams.length} plus petits streams du Top 100 (pour éviter le Fallback).`);
+        }
+        // FIN DU CORRECTIF
+
+        // Mise à jour du cache si des streams ont été trouvés
         if (suitableStreams.length > 0) {
             rotation.streams = suitableStreams.map(s => ({ 
                 channel: s.user_login, 
                 viewers: s.viewer_count 
             }));
-            // S'assurer que l'index n'est pas hors limites après le rafraîchissement
-            rotation.currentIndex = rotation.currentIndex % rotation.streams.length;
+            rotation.currentIndex = 0; // Réinitialiser l'index au premier stream trouvé
             rotation.lastFetchTime = now;
-            console.log(`DEBUG: ${rotation.streams.length} streams 0-100 mis en cache.`);
+            console.log(`DEBUG: ${rotation.streams.length} streams mis en cache pour l'Auto-Discovery.`);
         } else {
              rotation.streams = [];
              rotation.currentIndex = 0;
@@ -484,16 +499,14 @@ app.get('/get_default_stream', async (req, res) => {
     const rotation = CACHE.globalStreamRotation;
     
     if (rotation.streams.length === 0) {
-        // --- DÉBUT DU CORRECTIF ---
-        // FIX : On renvoie success: true pour que le front-end lance le lecteur de repli.
+        // Fallback ultime si MÊME l'assouplissement n'a rien donné
         return res.json({ 
-            success: true, // Ceci était 'false' et causait le non-chargement du lecteur.
-            error: "Aucun stream 1-100 vues trouvé dans les top 100. Passage au fallback.", 
+            success: true, // Doit être 'true' pour que le client lance le lecteur.
+            error: "Aucun stream trouvé dans les Top 100. Passage au fallback.", 
             channel: 'twitch',
             viewers: 0,
             message: `⚠️ Fallback: Aucun stream trouvé. Charge la chaîne 'twitch'.`
         });
-        // --- FIN DU CORRECTIF ---
     }
 
     // 3. Servir le stream à l'index actuel
