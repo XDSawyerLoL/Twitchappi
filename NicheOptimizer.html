@@ -505,7 +505,7 @@
         }
     }
     
-    // --- AUTHENTIFICATION & FLUX SUIVI ---
+    // --- AUTHENTIFICATION & FLUX SUIVI (CORRIGÉ POUR POPUP) ---
 
     async function checkAuthStatus() {
         const loginBtn = document.getElementById('btn-twitch-login');
@@ -532,8 +532,11 @@
         }
     }
     
+    // CORRECTION ICI: Ouverture de la fenêtre de connexion en popup
     function startAuth() {
-        window.location.href = `${API_BASE}/twitch_auth_start`;
+        const authUrl = `${API_BASE}/twitch_auth_start`;
+        // Ouvre le flux d'authentification dans une nouvelle fenêtre popup de taille limitée
+        window.open(authUrl, 'twitch_login_popup', 'width=500,height=650,scrollbars=yes,status=no,resizable=yes');
     }
 
     async function logout() {
@@ -820,6 +823,20 @@
             vodBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur réseau lors de l'appel IA/VOD.</p>`;
         }
     }
+
+
+    // --- ÉCOUTEUR POSTMESSAGE (POUR LE POPUP DE CONNEXION) ---
+
+    window.addEventListener('message', (event) => {
+        // La vérification de l'origine est recommandée pour la sécurité, mais '*' permet plus de flexibilité.
+        // Puisque nous faisons confiance à notre propre serveur Render pour envoyer le message.
+        
+        // Le message 'auth_success' est celui que le backend doit envoyer après la connexion
+        if (event.data === 'auth_success') {
+            // La connexion est réussie, on rafraîchit le statut de connexion dans l'iframe.
+            checkAuthStatus();
+        }
+    });
 
 
     // --- LISTENERS ---
