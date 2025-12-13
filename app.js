@@ -484,13 +484,15 @@ app.get('/get_default_stream', async (req, res) => {
     const rotation = CACHE.globalStreamRotation;
     
     if (rotation.streams.length === 0) {
+        // --- DEBUT DU CORRECTIF ---
         return res.json({ 
-            success: false, 
-            error: "Aucun stream 1-100 vues trouvé dans les top 100.",
+            success: true, // Corrigé : Doit être 'true' pour que le client lance le lecteur par défaut.
+            error: "Aucun stream 1-100 vues trouvé dans les top 100. Passage au fallback.", 
             channel: 'twitch',
             viewers: 0,
             message: `⚠️ Fallback: Aucun stream trouvé. Charge la chaîne 'twitch'.`
         });
+        // --- FIN DU CORRECTIF ---
     }
 
     // 3. Servir le stream à l'index actuel
