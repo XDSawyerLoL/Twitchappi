@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node app.js"
   },
-  "type": "commonjs",  <-- 🔑 NOUVEAU : C'est la ligne qui résout le conflit.
+  "type": "commonjs",
   "dependencies": {
     "express": "^4.19.2",
     "node-fetch": "^2.7.0",
@@ -20,6 +20,7 @@
     "node": "20.x"
   }
 }
+
 
 
 
