@@ -21,8 +21,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 // =========================================================
-// --- NOUVELLE LOGIQUE D'IMPORTATION DYNAMIQUE POUR L'IA ---
-// (Résolution du conflit CommonJS/ESM)
+// --- LOGIQUE D'IMPORTATION DYNAMIQUE POUR L'IA ---
 // =========================================================
 
 let ai;
@@ -33,7 +32,7 @@ async function initGemini() {
         const geminiModule = await import('@google/genai');
         GoogleGenAI = geminiModule.GoogleGenAI;
         ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
-        console.log("✅ GoogleGenAI chargé via l'importation dynamique. L'IA est ACTIVE.");
+        console.log("✅ GoogleGenAI chargé. L'IA est ACTIVE.");
         return true;
     } catch (e) {
         console.error("FATAL ERROR: Impossible de charger GoogleGenAI.", e.message);
@@ -246,8 +245,9 @@ app.get('/twitch_user_status', (req, res) => {
 // --- ROUTES TWITCH API (DATA) ---
 // =========================================================
 
-// Nouvelle route pour le stream par défaut (corrigée pour le 404)
+// CORRIGÉE: Fournit toujours une réponse JSON avec le nom du canal
 app.get('/get_default_stream', async (req, res) => {
+    // FORCÉ EN MINUSCULES pour la compatibilité avec le lecteur vidéo
     const defaultChannel = 'twitch'; 
     
     try {
@@ -258,16 +258,16 @@ app.get('/get_default_stream', async (req, res) => {
             
             return res.json({ 
                 success: true, 
-                channel_name: stream.user_login,
+                channel_name: stream.user_login.toLowerCase(), // Nom de connexion en minuscules
                 is_live: true,
                 title: stream.title
             });
             
         } else {
-             // Chaîne par défaut hors ligne, mais le nom est quand même retourné pour le lecteur
+             // Chaîne par défaut hors ligne.
              return res.json({ 
                 success: true, 
-                channel_name: defaultChannel,
+                channel_name: defaultChannel.toLowerCase(),
                 is_live: false,
                 title: 'Chaîne par défaut hors ligne.'
              });
@@ -275,10 +275,11 @@ app.get('/get_default_stream', async (req, res) => {
         
     } catch (e) {
         console.error("Erreur lors de la récupération du stream par défaut:", e.message);
+        // En cas d'erreur API, retourne quand même le nom de la chaîne pour que le lecteur puisse au moins tenter
         return res.status(500).json({ 
             success: false, 
             error: `Impossible de récupérer le stream par défaut: ${e.message}`,
-            channel_name: defaultChannel 
+            channel_name: defaultChannel.toLowerCase() // Fournir le nom en cas d'erreur
         });
     }
 });
@@ -353,7 +354,6 @@ app.post('/scan_target', async (req, res) => {
     
     try {
         
-        // --- Tenter d'abord la recherche d'UTILISATEUR (PRIORITÉ) ---
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
@@ -364,19 +364,19 @@ app.post('/scan_target', async (req, res) => {
                 if (streamRes.data.length > 0) {
                     streamDetails = streamRes.data[0];
                 }
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+            } catch (e) { /* Ignorer l'erreur */ }
 
             let followerCount = 'N/A';
             try {
                 const followerRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`); 
                 followerCount = followerRes.total;
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+            } catch (e) { /* Ignorer l'erreur */ }
             
             let vodCount = 'N/A';
             try {
                 const vodRes = await twitchApiFetch(`videos?user_id=${user.id}&type=archive&first=1`);
                 vodCount = vodRes.total;
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+            } catch (e) { /* Ignorer l'erreur */ }
 
             const totalViews = user.view_count || 'N/A';
             const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A';
@@ -408,7 +408,6 @@ app.post('/scan_target', async (req, res) => {
             });
         }
 
-        // --- Si AUCUN utilisateur trouvé, tenter la recherche de JEU ---
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if (gameRes.data.length > 0) {
             const game = gameRes.data[0];
