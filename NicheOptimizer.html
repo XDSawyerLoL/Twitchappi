@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamer & Niche AI Hub - COCKPIT MODE (V15 - Final)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -715,7 +715,12 @@
             
             if (!statusData.is_connected) {
                 list.innerHTML = "<p style='color:#555; text-align:center;'>Connectez-vous pour voir vos favoris.</p>";
+                // S'assurer que le bouton affiche "Connexion"
+                document.getElementById('btn-twitch-login').innerHTML = '🔒 CONNEXION TWITCH';
                 return;
+            } else {
+                // S'assurer que le bouton affiche le nom de l'utilisateur ou "Déconnexion"
+                document.getElementById('btn-twitch-login').innerHTML = `✅ ${statusData.display_name} (DECONNEXION)`;
             }
 
             const res = await fetch(`${API_BASE}/followed_streams`);
@@ -752,13 +757,40 @@
         }
     }
 
+    // Nouvelle fonction CRITIQUE pour la Connexion Twitch en Pop-up (pour iframe)
+    function startTwitchAuthPopup() {
+        // Vérifie d'abord si l'utilisateur est déjà connecté pour gérer la déconnexion
+        const btn = document.getElementById('btn-twitch-login');
+        if (btn.innerHTML.includes('(DECONNEXION)')) {
+            // Logique de déconnexion si l'utilisateur est déjà connecté
+            fetch(`${API_BASE}/twitch_logout`, { method: 'POST' })
+                .then(() => {
+                    loadFollowedStreams(); // Mettre à jour l'état après déconnexion
+                });
+            return;
+        }
+
+        const url = `${API_BASE}/twitch_auth_start`;
+        
+        // Ouvre la fenêtre d'authentification Twitch dans une nouvelle fenêtre
+        const authWindow = window.open(url, 'TwitchAuth', 'width=500,height=800,scrollbars=yes,resizable=yes');
+        
+        // Vérifie régulièrement si la fenêtre a été fermée
+        const checkAuth = setInterval(() => {
+            if (!authWindow || authWindow.closed) {
+                clearInterval(checkAuth);
+                // Une fois fermée, on appelle loadFollowedStreams(), 
+                // qui vérifie l'état de la connexion et met à jour l'interface.
+                loadFollowedStreams(); 
+            }
+        }, 1000);
+    }
+
 
     // --- GESTION DES ÉVÉNEMENTS ---
 
-    // 1. Bouton de Connexion Twitch
-    document.getElementById('btn-twitch-login').addEventListener('click', () => {
-        window.location.href = `${API_BASE}/twitch_auth_start`;
-    });
+    // 1. Bouton de Connexion Twitch (CORRIGÉ pour utiliser le pop-up)
+    document.getElementById('btn-twitch-login').addEventListener('click', startTwitchAuthPopup);
 
     // 2. Formulaire de scan global
     document.getElementById('form-global-scan').addEventListener('submit', async (e) => {
@@ -876,6 +908,8 @@
 
     // --- INITIALISATION ---
     window.onload = () => {
+        // Charge les streams suivis pour vérifier l'état de connexion DÈS LE DÉPART
+        loadFollowedStreams(); 
         // Lance le lecteur par défaut (Auto-Discovery ou Boost)
         checkBoostAndPlay(); 
         // Onglet par défaut
