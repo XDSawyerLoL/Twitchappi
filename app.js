@@ -51,8 +51,16 @@ const CACHE = {
     twitchTokens: {}, 
     twitchUser: null,
     streamBoosts: {},       // Stockage du cooldown (3 heures)
-    boostedStream: null,    // NOUVEAU: Stockage du boost actif { channel: 'name', endTime: timestamp }
-    lastScanData: null      // Cache pour l'export CSV
+    boostedStream: null,    // Stockage du boost actif { channel: 'name', endTime: timestamp }
+    lastScanData: null,     // Cache pour l'export CSV
+    
+    // Rotation globale
+    globalStreamRotation: {
+        streams: [],    // Liste des streams 0-100
+        currentIndex: 0,
+        lastFetchTime: 0,
+        fetchCooldown: 15 * 60 * 1000 // Refetch streams every 15 minutes
+    }
 };
 
 // =========================================================
@@ -161,7 +169,6 @@ async function runGeminiAnalysis(prompt) {
 
 // =========================================================
 // --- ROUTES D'AUTHENTIFICATION TWITCH (OAuth) ---
-// (Inchangé)
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -184,7 +191,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
     }
 
     try {
-        // CORRECTION CRITIQUE : Envoi des paramètres dans le corps (body) de la requête POST
         const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
             method: 'POST',
             headers: {
@@ -246,7 +252,6 @@ app.get('/twitch_user_status', (req, res) => {
 
 // =========================================================
 // --- ROUTES TWITCH API (DATA) ---
-// (Inchangé)
 // =========================================================
 
 app.get('/followed_streams', async (req, res) => {
@@ -294,7 +299,6 @@ app.get('/get_latest_vod', async (req, res) => {
         }
         
         const vod = vodRes.data[0];
-        // Correction de la structure d'URL de la vignette VOD si nécessaire
         const thumbnailUrl = vod.thumbnail_url.replace('%{width}', '150').replace('%{height}', '84');
 
         return res.json({ 
@@ -319,9 +323,7 @@ app.post('/scan_target', async (req, res) => {
     
     try {
         
-        // =======================================================
         // --- Tenter d'abord la recherche d'UTILISATEUR (PRIORITÉ) ---
-        // =======================================================
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`); 
         
         if (userRes.data.length > 0) {
@@ -339,7 +341,6 @@ app.post('/scan_target', async (req, res) => {
             // 2. Récupérer le nombre total de followers
             let followerCount = 'N/A';
             try {
-                // L'API followers donne le total directement dans la réponse
                 const followerRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`);
                 followerCount = followerRes.total;
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
@@ -347,20 +348,17 @@ app.post('/scan_target', async (req, res) => {
             // 3. Récupérer le nombre total de VODs
             let vodCount = 'N/A';
             try {
-                // L'API videos donne le total directement dans la réponse
                 const vodRes = await twitchApiFetch(`videos?user_id=${user.id}&type=archive&first=1`);
                 vodCount = vodRes.total;
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
 
             // Données supplémentaires réelles
-            const totalViews = user.view_count || 'N/A'; 
-            // Formate la date de création en FR
+            // CORRIGÉ: Conserve 0 vues au lieu de 'N/A'
+            const totalViews = (user.view_count !== undefined && user.view_count !== null) ? user.view_count : 'N/A'; 
+            
             const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A'; 
-            // Récupère le type de partenaire/affilié
             const broadcasterType = user.broadcaster_type || 'normal'; 
             
-            // Calculer un score de niche simple basé sur le type de diffuseur et la date
-            // Simule l'IA en attendant l'appel réel à l'IA
             let aiCalculatedNicheScore = (broadcasterType === 'partner') ? '8.5/10' : '5.0/10';
 
             const userData = { 
@@ -376,7 +374,7 @@ app.post('/scan_target', async (req, res) => {
                 vod_count: vodCount,
                 total_views: totalViews,
                 creation_date: creationDate,
-                ai_calculated_niche_score: aiCalculatedNicheScore // Placeholder
+                ai_calculated_niche_score: aiCalculatedNicheScore 
             };
             
             CACHE.lastScanData = userData;
@@ -384,9 +382,7 @@ app.post('/scan_target', async (req, res) => {
             return res.json({ success: true, type: 'user', user_data: userData });
         }
         
-        // =======================================================
         // --- Tenter la recherche de JEU (SECONDE PRIORITÉ) ---
-        // =======================================================
         
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         
@@ -400,7 +396,6 @@ app.post('/scan_target', async (req, res) => {
             const totalViewers = streams.reduce((sum, s) => sum + s.viewer_count, 0);
             const avgViewersPerStreamer = totalStreams > 0 ? Math.round(totalViewers / totalStreams) : 0;
             
-            // Simule l'IA en attendant l'appel réel à l'IA
             let aiCalculatedNicheScore = (avgViewersPerStreamer < 100) ? '8.0/10' : '4.5/10';
             
             const gameData = { 
@@ -410,7 +405,7 @@ app.post('/scan_target', async (req, res) => {
                 total_streamers: totalStreams,
                 total_viewers: totalViewers,
                 avg_viewers_per_streamer: avgViewersPerStreamer,
-                ai_calculated_niche_score: aiCalculatedNicheScore, // Placeholder
+                ai_calculated_niche_score: aiCalculatedNicheScore, 
                 streams: streams.map(s => ({ user_name: s.user_name, user_login: s.user_login, title: s.title, viewer_count: s.viewer_count }))
             };
             
@@ -428,41 +423,121 @@ app.post('/scan_target', async (req, res) => {
 });
 
 // =========================================================
-// --- ROUTE DU LECTEUR PAR DÉFAUT (0-100 VUES) ---
+// --- LOGIQUE POUR LA ROTATION GLOBALE (0-100 VUES) ---
 // =========================================================
-app.get('/get_default_stream', async (req, res) => {
+
+async function refreshGlobalStreamList() {
+    const now = Date.now();
+    const rotation = CACHE.globalStreamRotation;
+    
+    if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) {
+        return;
+    }
+    
+    console.log("DEBUG: Rafraîchissement de la liste de streams 0-100...");
+    
     try {
-        // Fetch streams in French (or remove language to get worldwide)
-        // Note: The Twitch API lists streams by popularity, so we fetch 100 and filter
         const data = await twitchApiFetch(`streams?language=fr&first=100`);
         const allStreams = data.data;
 
-        // Filter streams to find those with 1 to 100 viewers (excluding 0 which is often used for non-live or issues)
         const suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
 
-        if (suitableStreams.length === 0) {
-            // Fallback: If the top 100 French streams are all >100 viewers, we send a random big channel
-            const fallbackStream = allStreams.length > 0 ? allStreams[Math.floor(Math.random() * allStreams.length)] : null;
-            if (fallbackStream) {
-                 return res.json({ success: true, channel: fallbackStream.user_login, viewers: fallbackStream.viewer_count, message: "Aucun stream 1-100 en fr, fallback sur une chaîne aléatoire." });
-            }
-            return res.status(404).json({ success: false, error: "Aucun stream en direct trouvé." });
+        if (suitableStreams.length > 0) {
+            rotation.streams = suitableStreams.map(s => ({ 
+                channel: s.user_login, 
+                viewers: s.viewer_count 
+            }));
+            // S'assurer que l'index n'est pas hors limites après le rafraîchissement
+            rotation.currentIndex = rotation.currentIndex % rotation.streams.length;
+            rotation.lastFetchTime = now;
+            console.log(`DEBUG: ${rotation.streams.length} streams 0-100 mis en cache.`);
+        } else {
+             rotation.streams = [];
+             rotation.currentIndex = 0;
+             rotation.lastFetchTime = now; 
         }
         
-        // Pick a random stream from the suitable list (0-100 viewers)
-        const randomStream = suitableStreams[Math.floor(Math.random() * suitableStreams.length)];
+    } catch (e) {
+        console.error("Erreur lors du rafraîchissement de la liste de streams 0-100:", e.message);
+    }
+}
 
+
+// Récupère le stream actuel (Boost ou Auto-Discovery global)
+app.get('/get_default_stream', async (req, res) => {
+    
+    // 1. D'abord, vérifier si un Boost est ACTIF (Priorité 1)
+    if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
+        const { channel, endTime } = CACHE.boostedStream;
+        const remaining = Math.ceil((endTime - Date.now()) / 60000); // Minutes restantes
         return res.json({ 
             success: true, 
-            channel: randomStream.user_login,
-            viewers: randomStream.viewer_count,
-            message: `Stream trouvé: ${randomStream.user_login} (${randomStream.viewer_count} vues)`
+            channel: channel, 
+            viewers: 'BOOST',
+            message: `⚡ BOOST ACTIF (${remaining} min restantes)`
         });
-    } catch (e) {
-        console.error("Erreur dans /get_default_stream:", e.message);
-        // En cas d'erreur API, on peut renvoyer une erreur explicite pour que le front-end le gère
-        return res.status(500).json({ success: false, error: "Erreur lors de la récupération des streams par défaut. Vérifiez le token Twitch." });
     }
+
+    // 2. Si pas de Boost, rafraîchir la liste si nécessaire (Cooldown de 15 min)
+    await refreshGlobalStreamList(); 
+
+    const rotation = CACHE.globalStreamRotation;
+    
+    if (rotation.streams.length === 0) {
+        return res.json({ 
+            success: false, 
+            error: "Aucun stream 1-100 vues trouvé dans les top 100.",
+            channel: 'twitch',
+            viewers: 0,
+            message: `⚠️ Fallback: Aucun stream trouvé. Charge la chaîne 'twitch'.`
+        });
+    }
+
+    // 3. Servir le stream à l'index actuel
+    const currentStream = rotation.streams[rotation.currentIndex];
+
+    return res.json({ 
+        success: true, 
+        channel: currentStream.channel,
+        viewers: currentStream.viewers,
+        message: `✅ Auto-Discovery: ${currentStream.channel} (${currentStream.viewers} vues) - Stream ${rotation.currentIndex + 1}/${rotation.streams.length}`
+    });
+});
+
+// Permet de passer au stream suivant/précédent (Contrôle manuel ou automatique)
+app.post('/cycle_stream', async (req, res) => {
+    const { direction } = req.body; // 'next' ou 'prev'
+
+    if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
+        return res.status(403).json({ success: false, error: "Impossible de changer de chaîne manuellement pendant le Boost actif." });
+    }
+
+    await refreshGlobalStreamList();
+    const rotation = CACHE.globalStreamRotation;
+
+    if (rotation.streams.length === 0) {
+        return res.status(404).json({ success: false, error: "Aucune chaîne disponible pour la rotation (liste 0-100 vide)." });
+    }
+
+    let newIndex = rotation.currentIndex;
+
+    if (direction === 'next') {
+        newIndex = (newIndex + 1) % rotation.streams.length;
+    } else if (direction === 'prev') {
+        newIndex = (newIndex - 1 + rotation.streams.length) % rotation.streams.length;
+    } else {
+        return res.status(400).json({ success: false, error: "Direction invalide." });
+    }
+
+    rotation.currentIndex = newIndex;
+    const newStream = rotation.streams[newIndex];
+
+    return res.json({ 
+        success: true, 
+        channel: newStream.channel, 
+        viewers: newStream.viewers,
+        message: `Passage à Auto-Discovery: ${newStream.channel} (${newStream.viewers} vues) - Stream ${newIndex + 1}/${rotation.streams.length}`
+    });
 });
 
 
@@ -478,7 +553,6 @@ app.get('/check_boost_status', (req, res) => {
             remaining_seconds: remainingTime 
         });
     }
-    // Boost expiré ou inactif
     CACHE.boostedStream = null;
     return res.json({ is_boosted: false });
 });
@@ -486,7 +560,6 @@ app.get('/check_boost_status', (req, res) => {
 // =========================================================
 // --- ROUTE BOOST (Cooldown de 3h, Boost de 15 minutes) ---
 // =========================================================
-
 app.post('/stream_boost', async (req, res) => {
     const { channel } = req.body;
     if (!channel) {
@@ -494,8 +567,8 @@ app.post('/stream_boost', async (req, res) => {
     }
 
     const now = Date.now();
-    const COOLDOWN_DURATION = 3 * 60 * 60 * 1000; // 3 heures de Cooldown
-    const BOOST_DURATION = 15 * 60 * 1000; // 15 minutes de Boost ACTIF
+    const COOLDOWN_DURATION = 3 * 60 * 60 * 1000; // 3 heures
+    const BOOST_DURATION = 15 * 60 * 1000; // 15 minutes
 
     // 1. Vérification du Cooldown (3 heures)
     if (CACHE.streamBoosts[channel] && (now - CACHE.streamBoosts[channel]) < COOLDOWN_DURATION) {
@@ -525,10 +598,7 @@ app.post('/stream_boost', async (req, res) => {
     return res.json({ success: true, html_response: successMessage });
 });
 
-// =========================================================
-// --- ROUTES RAID & IA (Inchangé) ---
-// =========================================================
-// ... (code de /start_raid, /critique_ia, /export_csv, /auto_action)
+// ... (Routes Raid et IA) ...
 
 app.post('/start_raid', async (req, res) => {
     const { game, max_viewers } = req.body;
@@ -538,7 +608,6 @@ app.post('/start_raid', async (req, res) => {
     }
 
     try {
-        // 1. Tenter de récupérer l'ID du jeu
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
         
         if (gameRes.data.length === 0) {
@@ -548,13 +617,10 @@ app.post('/start_raid', async (req, res) => {
         const gameId = gameRes.data[0].id;
         const gameName = gameRes.data[0].name;
 
-        // 2. Récupérer les 100 premiers streams pour ce jeu (ils sont généralement triés par viewers décroissants)
         const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&first=100`);
 
-        // 3. Filtrer les streams pour trouver une cible appropriée
         const target = streamsRes.data
             .filter(stream => stream.viewer_count <= parseInt(max_viewers))
-            // Tri par le plus grand nombre de viewers sous la limite (pour un raid plus impactant)
             .sort((a, b) => b.viewer_count - a.viewer_count)[0]; 
 
         if (target) {
@@ -565,7 +631,6 @@ app.post('/start_raid', async (req, res) => {
                     login: target.user_login,
                     viewers: target.viewer_count,
                     game: target.game_name,
-                    // Utiliser l'URL de vignette en version moyenne
                     thumbnail_url: target.thumbnail_url.replace('%{width}', '100').replace('%{height}', '56')
                 }
             });
@@ -586,14 +651,13 @@ app.post('/critique_ia', async (req, res) => {
 
     switch (type) {
         case 'niche':
-            // PROMPT RÉVISÉ: Ajout du score pour plus de contexte
             prompt = `En tant qu'expert en stratégie de croissance Twitch, le score de niche calculé est ${niche_score}. Analyse le jeu ou streamer "${query}". Fournis une critique de niche en format HTML. Sois extrêmement concis et utilise des listes (<ul> et <li>) plutôt que des paragraphes longs: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts CLAIRS (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au sujet (ex: "Défi Speedrun avec handicap"). 4. Une conclusion courte et impactante en <p> avec un <strong>.`;
             break;
         case 'repurpose':
             prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre <h4>. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
             break;
         case 'trend':
-            prompt = `Tu es un détecteur de niches. Analyse les tendances actuelles et donne un avis sur la prochaine "grosse niche" Twitch. Fournis une critique en format HTML: 1. Un titre <h4>. 2. Une analyse en <p> sur la tendance V...`;
+            prompt = `Tu es un détecteur de niches. Analyse les tendances actuelles et donne un avis sur la prochaine "grosse niche" Twitch. Fournis une critique en format HTML: 1. Un titre ####. 2. Une analyse en <p> sur la tendance V...`;
             break;
         default:
             return res.status(400).json({ success: false, error: "Type d'analyse IA non reconnu." });
@@ -665,16 +729,15 @@ app.post('/auto_action', async (req, res) => {
 
         switch (action_type) {
             case 'create_clip':
-                 prompt = `...`; // Placeholder pour le prompt de création de clip
+                 prompt = `...`; // Placeholder
                  break;
             case 'title_disruption':
-                 prompt = `...`; // Placeholder pour le prompt de titre disruptif
+                 prompt = `...`; // Placeholder
                  break;
             default:
                 return res.status(400).json({ success: false, error: `Type d'action non supporté : ${action_type}` });
         }
 
-        // Exécution de l'IA pour les actions 'create_clip' et 'title_disruption'
         const result = await runGeminiAnalysis(prompt);
 
         if (result.success) {
@@ -689,7 +752,6 @@ app.post('/auto_action', async (req, res) => {
 
     } catch (error) {
         console.error(`Erreur d'exécution dans /auto_action pour ${req.body?.action_type}:`, error.message);
-        // Si l'erreur se produit AVANT res.send (pour le CSV) ou res.json (pour l'IA)
         if (!res.headersSent) {
             return res.status(500).json({
                 success: false,
