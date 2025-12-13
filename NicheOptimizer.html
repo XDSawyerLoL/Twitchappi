@@ -215,18 +215,6 @@
 
         /* Media Queries */
         @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
-
-        /* NOUVEAU STYLE: Message de succès de connexion */
-        .success-message {
-            padding: 10px;
-            background: var(--color-ai-niche);
-            color: var(--color-bg-dark);
-            text-align: center;
-            font-weight: bold;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            box-shadow: 0 0 15px rgba(89, 214, 130, 0.6);
-        }
     </style>
 </head>
 <body>
@@ -234,8 +222,6 @@
 <div id="twitch-lucky-main">
     <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V15 (Cockpit)</h1>
     <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Action</div>
-
-    <div id="connection-status-banner"></div>
 
     <div class="tabs-nav-container">
         <div class="flex flex-wrap flex-tabs">
@@ -354,7 +340,7 @@
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
-    const DEFAULT_CHANNEL = 'twitch';
+    const DEFAULT_CHANNEL = ''; // CORRECTION: Chaîne vide pour éviter de charger 'twitch' par défaut
     // FIX: Durée du cycle automatique à 3 minutes minimum.
     const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000; // 3 minutes (180 000 ms)
     let embed = null;
@@ -385,43 +371,19 @@
                : value.toString().toUpperCase();
     };
 
-    // NOUVELLE FONCTION: Vérifie les paramètres d'URL pour le succès
-    function checkConnectionSuccess() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('connected') === 'true') {
-            const banner = document.getElementById('connection-status-banner');
-            banner.innerHTML = `<div class="success-message"><i class="fas fa-check-circle"></i> Connexion Twitch établie avec succès ! Vous pouvez maintenant voir vos chaînes suivies.</div>`;
-            
-            // Nettoyer l'URL après 5 secondes pour ne pas conserver le message
-            setTimeout(() => {
-                const newUrl = window.location.href.split('?')[0];
-                window.history.replaceState(null, null, newUrl);
-                banner.innerHTML = '';
-            }, 5000);
-        }
-    }
 
-
-    // --- LECTEUR (CORRECTION TWITCH) ---
+    // --- LECTEUR ---
     window.launchPlayer = function(channelName, videoId = null, time = 0) {
         if (embed && embed.getChannel() === channelName && !videoId) {
             return;
         }
 
         document.getElementById('twitch-embed').innerHTML = '';
-        
-        // FIX CRITIQUE: Ajout de 'justplayer.fr' aux domaines parents autorisés 
-        const authorizedParents = [
-            window.location.hostname, // Domaine de l'iFrame (render.com)
-            "localhost",
-            "justplayer.fr"           // Domaine de la page hôte (justplayer.fr)
-        ];
-        
         const config = { 
             width: "100%", 
             height: "100%", 
             layout: "video-and-chat", 
-            parent: authorizedParents
+            parent: [window.location.hostname, "localhost"] 
         };
 
         if (videoId) {
@@ -672,12 +634,9 @@
                     if (vodData.success && vodData.vod) {
                         // 1. Affiche la VOD SANS LANCER L'ANALYSE IA
                         // NOTE: Le backend renvoie déjà l'URL de la miniature VOD formatée.
-                        const fixedThumbnailUrl = vodData.vod.thumbnail_url
-                            .replace('{width}', '320') 
-                            .replace('{height}', '180');
                         boxVod.innerHTML = `
                             <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">VOD Récente: ${vodData.vod.title.substring(0,40)}...</div>
-                            <img id="vod-thumbnail" src="${fixedThumbnailUrl}" style="width:100%; border-radius:4px;">
+                            <img id="vod-thumbnail" src="${vodData.vod.thumbnail_url}" style="width:100%; border-radius:4px;">
                             <button onclick="launchPlayer('${u.login}', '${vodData.vod.id}')" class="btn-primary" style="width:100%; margin-top:5px; margin-bottom:10px; font-size:10px; background:#6441a5;">VOIR VOD</button>
                             <div id="vod-analysis-placeholder" class='mt-2' style="min-height: 100px;"> 
                                 <p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA des moments clés en cours...</p> 
@@ -756,12 +715,7 @@
             
             if (!statusData.is_connected) {
                 list.innerHTML = "<p style='color:#555; text-align:center;'>Connectez-vous pour voir vos favoris.</p>";
-                // Si déconnecté, on peut masquer le bouton d'export
-                document.getElementById('btn-export-pdf').disabled = true;
                 return;
-            } else {
-                // Si connecté, on peut réactiver le bouton d'export
-                document.getElementById('btn-export-pdf').disabled = false;
             }
 
             const res = await fetch(`${API_BASE}/followed_streams`);
@@ -801,20 +755,9 @@
 
     // --- GESTION DES ÉVÉNEMENTS ---
 
-    // 1. Bouton de Connexion Twitch (Utilisation de Pop-up pour rester sur la page)
-    document.getElementById('btn-twitch-login').addEventListener('click', (e) => {
-        e.preventDefault(); 
-        
-        const authUrl = `${API_BASE}/twitch_auth_start`;
-        
-        // Paramètres pour centrer la pop-up
-        const width = 600;
-        const height = 700;
-        const left = (window.screen.width / 2) - (width / 2);
-        const top = (window.screen.height / 2) - (height / 2);
-        
-        // Ouvre la nouvelle fenêtre
-        window.open(authUrl, 'TwitchAuth', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`);
+    // 1. Bouton de Connexion Twitch
+    document.getElementById('btn-twitch-login').addEventListener('click', () => {
+        window.location.href = `${API_BASE}/twitch_auth_start`;
     });
 
     // 2. Formulaire de scan global
@@ -933,13 +876,9 @@
 
     // --- INITIALISATION ---
     window.onload = () => {
-        // 1. Vérifie si le rafraîchissement provient d'une connexion réussie
-        checkConnectionSuccess();
-        
-        // 2. Lance le lecteur par défaut (Auto-Discovery ou Boost)
+        // Lance le lecteur par défaut (Auto-Discovery ou Boost)
         checkBoostAndPlay(); 
-        
-        // 3. Onglet par défaut
+        // Onglet par défaut
         openTab('tab-followed'); 
     };
 </script>
