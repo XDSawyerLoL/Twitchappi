@@ -236,7 +236,7 @@
         <div class="player-header">
             <h2 class="player-title">
                 <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR
-                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente de démarrage automatique (0-100 vues)</span>
+                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente de démarrage automatique (0-200 vues)</span>
             </h2>
             <div class="flex gap-2 items-center">
                 <button id="btn-prev-stream" class="btn-cycle" onclick="cycleStream('prev')" disabled><i class="fas fa-arrow-left"></i> Précédent</button>
@@ -500,7 +500,7 @@
         if (followedStreams.length > 0) {
             cycleStream('next');
         } else {
-            // Si pas de follows, relancer le boost/default check
+            // Si pas de follows, relancer le boost/default check (qui prendra le 0-200)
             checkBoostAndPlay();
         }
     }
@@ -511,6 +511,18 @@
         const loginBtn = document.getElementById('btn-twitch-login');
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
+            // Check si la réponse est un JSON valide
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                console.error("Erreur: L'API de statut n'a pas renvoyé de JSON. Elle a peut-être crashé.");
+                // Ne pas crasher, rester déconnecté
+                isConnected = false;
+                loginBtn.innerHTML = '🔒 CONNEXION TWITCH (Erreur serveur)';
+                loginBtn.style.background = '#800000';
+                loginBtn.onclick = startAuth;
+                return; 
+            }
+            
             const data = await res.json();
             
             isConnected = data.is_connected;
@@ -532,10 +544,11 @@
         }
     }
     
-    // CORRECTION ICI: Ouverture de la fenêtre de connexion en popup
+    // Ouverture de la fenêtre de connexion en popup
     function startAuth() {
         const authUrl = `${API_BASE}/twitch_auth_start`;
         // Ouvre le flux d'authentification dans une nouvelle fenêtre popup de taille limitée
+        // NOTE CRITIQUE : Le succès dépend du code de la partie 2 (callback)
         window.open(authUrl, 'twitch_login_popup', 'width=500,height=650,scrollbars=yes,status=no,resizable=yes');
     }
 
@@ -547,7 +560,7 @@
             followedStreams = [];
             document.getElementById('followed-streams-list').innerHTML = '<p style="color:#555; text-align:center;">Connectez-vous pour voir vos favoris.</p>';
             checkAuthStatus();
-            // Recharger le lecteur par défaut
+            // Recharger le lecteur par défaut (0-200 vues)
             checkBoostAndPlay();
         } catch (e) {
             console.error("Erreur de déconnexion:", e);
@@ -591,9 +604,10 @@
                 listEl.innerHTML = html;
                 updateCycleButtons();
                 
-                // Si l'utilisateur est connecté et que l'onglet 'Suivi' est actif, on peut lancer le premier stream suivi
+                // On ne lance PAS ici, c'est checkBoostAndPlay qui gère le démarrage initial.
+                // Si l'onglet 'Suivi' est déjà actif, il faut s'assurer que le joueur est le premier followé.
                 if (document.getElementById('tab-followed').classList.contains('active')) {
-                    launchPlayer(followedStreams[0].user_login);
+                     launchPlayer(followedStreams[0].user_login);
                 }
                 
             } else {
@@ -606,37 +620,40 @@
         }
     }
 
-    // --- LOGIQUE AUTO-DISCOVERY / BOOST ---
+    // --- LOGIQUE AUTO-DISCOVERY / BOOST (LOGIQUE DE PRIORITÉ INVERSÉE) ---
 
     async function checkBoostAndPlay() {
         try {
-            const res = await fetch(`${API_BASE}/get_boost_channel`);
-            const data = await res.json();
+            const boostRes = await fetch(`${API_BASE}/get_boost_channel`);
+            const boostData = await boostRes.json();
+            
+            let targetChannel = null;
 
-            let targetChannel = DEFAULT_CHANNEL;
-            if (data.success) {
-                // Boost actif
-                targetChannel = data.channel;
+            if (boostData.success) {
+                // PRIORITÉ 1: Boost actif
+                targetChannel = boostData.channel;
                 document.getElementById('player-channel-status').innerHTML = `<span style="color:var(--color-primary-pink);">⚡ BOOST ACTIF : ${targetChannel.toUpperCase()}</span>`;
             } else {
-                // Pas de boost, prend le stream par défaut ou le premier follow
-                if (followedStreams.length > 0) {
-                     targetChannel = followedStreams[0].user_login;
-                } else {
-                    // Dernier recours : Twitch par défaut
-                    const defaultRes = await fetch(`${API_BASE}/get_default_stream`);
-                    const defaultData = await defaultRes.json();
-                    if(defaultData.success) {
-                        targetChannel = defaultData.channel_name;
-                    }
+                // PRIORITÉ 2: Streamer 0-200 Vues (Discovery)
+                const defaultRes = await fetch(`${API_BASE}/get_default_stream`);
+                const defaultData = await defaultRes.json();
+                
+                if(defaultData.success) {
+                    targetChannel = defaultData.channel_name;
+                    document.getElementById('player-channel-status').innerHTML = `<span style="color:var(--color-secondary-blue);">✨ AUTO-DISCOVERY : ${targetChannel.toUpperCase()} (0-200 V)</span>`;
+                } else if (isConnected && followedStreams.length > 0) {
+                    // PRIORITÉ 3: Premier Stream Suivi (uniquement si connecté)
+                    targetChannel = followedStreams[0].user_login;
+                    document.getElementById('player-channel-status').innerHTML = `<span style="color:#888;">▶️ PREMIER SUIVI : ${targetChannel.toUpperCase()}</span>`;
                 }
             }
 
-            launchPlayer(targetChannel);
+            // Lancement du joueur ou par défaut si rien n'est trouvé
+            launchPlayer(targetChannel || DEFAULT_CHANNEL);
             
         } catch (e) {
             console.error("Erreur lors de la vérification du boost ou du stream par défaut:", e);
-            // S'assurer que le lecteur démarre au moins sur un channel par défaut si l'API échoue
+            document.getElementById('player-channel-status').innerHTML = `<span style="color:red;">❌ ERREUR SERVEUR - Lancement par défaut.</span>`;
             launchPlayer(DEFAULT_CHANNEL);
         }
     }
@@ -888,14 +905,19 @@
         }
     });
 
-    // 3. Formulaire Boost
+    // 3. Formulaire Boost (MAINTENANT AVEC GESTION D'ERREUR ROBUSTE)
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const input = document.getElementById('input-boost');
         const channel = input.value.trim().toLowerCase();
         const resBox = document.getElementById('boost-results');
+        const btn = e.target.querySelector('button');
 
         if (channel.length === 0) return;
+
+        btn.disabled = true;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> EN COURS...`;
 
         try {
             const res = await fetch(`${API_BASE}/activate_boost`, {
@@ -903,6 +925,16 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ channel })
             });
+
+            // GESTION DU PROBLÈME: Si la réponse n'est pas un JSON, c'est une erreur serveur (comme HTML)
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                 const errorText = await res.text(); // Lire le corps de la réponse (l'HTML de l'erreur)
+                 console.error("Erreur serveur Boost (Réponse non-JSON):", errorText.substring(0, 200) + '...');
+                 resBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur API: Le serveur n'a pas renvoyé de JSON. (Erreur 500 ou crash backend).</p>`;
+                 return;
+            }
+            
             const data = await res.json();
             
             if (data.success) {
@@ -913,7 +945,10 @@
                  resBox.innerHTML = `<p style="color:red; font-weight:bold;">${data.message}</p>`;
             }
         } catch(e) { 
-            resBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur réseau: ${e.message}</p>`; 
+            resBox.innerHTML = `<p style="color:red; font-weight:bold;">❌ Erreur réseau ou JSON invalide: ${e.message}</p>`; 
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     });
     
