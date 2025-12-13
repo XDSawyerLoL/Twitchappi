@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamer & Niche AI Hub - COCKPIT MODE (V15 - Final)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -212,10 +212,10 @@
         <div class="player-header">
             <h2 class="player-title">
                 <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR
-                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente</span>
+                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente de démarrage automatique (0-100 vues)</span>
             </h2>
             <form id="mini-player-form" class="flex gap-2">
-                <input id="input-channel" type="text" placeholder="Chaîne..." class="player-quick-input">
+                <input id="input-channel" type="text" placeholder="Chaîne à charger manuellement..." class="player-quick-input">
                 <button type="submit" class="btn-primary" style="padding: 5px 10px;">GO</button>
             </form>
         </div>
@@ -277,8 +277,8 @@
         </div>
 
         <div id="tab-boost" class="tab-content">
-            <h3 style="color:var(--color-primary-pink); margin-bottom:10px;">⚡ STREAM BOOST</h3>
-            <p style="color:#888; font-size:12px; margin-bottom:15px;">Ajoutez votre chaîne dans la rotation prioritaire de notre service, actif pendant 10 minutes. Un cooldown de 3 heures est appliqué par chaîne pour assurer l'équité du système.</p>
+            <h3 style="color:var(--color-primary-pink); margin-bottom:10px;">⚡ STREAM BOOST (15 Minutes)</h3>
+            <p style="color:#888; font-size:12px; margin-bottom:15px;">Ajoutez votre chaîne dans la rotation prioritaire de notre service, actif pendant **15 minutes**. Un cooldown de 3 heures est appliqué par chaîne pour assurer l'équité du système.</p>
             <form id="form-boost" class="flex gap-2">
                 <input id="input-boost" type="text" placeholder="Votre Chaîne Twitch" class="action-input" style="flex-grow:1;">
                 <button type="submit" class="btn-primary" style="background:var(--color-primary-pink);"><i class="fas fa-arrow-circle-up"></i> ACTIVER</button>
@@ -311,8 +311,9 @@
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
-    const DEFAULT_CHANNEL = 'twitch';
     let embed = null;
+    let playerLoopInterval = null; // Pour gérer le timer de la boucle par défaut (0-100 vues)
+    let boostTimeout = null; // Pour gérer le timer d'expiration du boost
 
     // --- GESTION ONGLETS ---
     function openTab(tabId) {
@@ -325,6 +326,11 @@
 
     // --- LECTEUR ---
     window.launchPlayer = function(channelName, videoId = null, time = 0) {
+        // Si la chaîne est déjà celle jouée (et ce n'est pas une VOD), on ne relance pas le player pour éviter le flicker
+        if (embed && embed.getChannel() === channelName && !videoId) {
+            return;
+        }
+
         document.getElementById('twitch-embed').innerHTML = '';
         const config = { 
             width: "100%", 
@@ -342,15 +348,126 @@
 
         embed = new Twitch.Embed("twitch-embed", config);
         document.getElementById('input-channel').value = channelName;
-        document.getElementById('player-channel-status').innerText = videoId ? `📼 VOD` : `🔴 ${channelName}`;
+        // La mise à jour du statut est gérée par checkBoostAndPlay ou la fonction appelante
     }
 
+    // Logique du Lecteur par Défaut / Boost
+    async function checkBoostAndPlay(isManualBoost = false) {
+        const playerStatusEl = document.getElementById('player-channel-status');
+        
+        // 1. Arrêter les timers précédents
+        if (playerLoopInterval) clearInterval(playerLoopInterval);
+        if (boostTimeout) clearTimeout(boostTimeout);
+
+        try {
+            const res = await fetch(`${API_BASE}/check_boost_status`);
+            const boostStatus = await res.json();
+
+            if (boostStatus.is_boosted) {
+                // CAS 1: BOOST ACTIF
+                const { channel, remaining_seconds } = boostStatus;
+                
+                launchPlayer(channel);
+                playerStatusEl.innerHTML = `⚡ BOOST ACTIF: <strong>${channel}</strong> (${Math.ceil(remaining_seconds / 60)} min restantes)`;
+                
+                // Configurer le timer pour le retour au mode par défaut
+                boostTimeout = setTimeout(() => {
+                    // Une fois le boost terminé, on relance la vérification pour revenir au mode par défaut
+                    checkBoostAndPlay(); 
+                }, (remaining_seconds * 1000) + 1000); // +1s pour assurer la transition
+                
+                
+            } else {
+                // CAS 2: MODE PAR DÉFAUT (0-100 VUES)
+                const defaultRes = await fetch(`${API_BASE}/get_default_stream`);
+                const defaultData = await defaultRes.json();
+                
+                if (defaultData.success) {
+                    const { channel, viewers } = defaultData;
+                    
+                    launchPlayer(channel);
+                    playerStatusEl.innerHTML = `✅ Auto-Discovery: <strong>${channel}</strong> (${viewers} vues)`;
+                } else {
+                    // Fallback si l'API ne trouve rien ou erreur
+                    launchPlayer('twitch'); 
+                    playerStatusEl.innerHTML = `⚠️ Fallback Twitch (Erreur: ${defaultData.error || 'Aucun stream trouvé 0-100'})`;
+                }
+                
+                // Démarrer l'intervalle pour la prochaine vérification et nouveau stream (30 secondes)
+                playerLoopInterval = setInterval(checkBoostAndPlay, 30000); 
+            }
+        } catch (e) {
+            console.error("Erreur dans la boucle du lecteur:", e.message);
+            launchPlayer('twitch'); // Fallback en cas d'erreur critique de l'API
+            playerStatusEl.innerHTML = `❌ Erreur du Système: ${e.message}`;
+            // Réessayer après 60 secondes en cas d'échec critique
+            playerLoopInterval = setInterval(checkBoostAndPlay, 60000); 
+        }
+    }
+    
+    // Remplacement de la logique GO MANUEL (qui doit interrompre la boucle auto)
     document.getElementById('mini-player-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        launchPlayer(document.getElementById('input-channel').value);
+        const channelName = document.getElementById('input-channel').value;
+        if (playerLoopInterval) clearInterval(playerLoopInterval); // Stopper l'auto-discovery
+        if (boostTimeout) clearTimeout(boostTimeout); // Stopper le boost timer
+        launchPlayer(channelName);
+        document.getElementById('player-channel-status').innerText = `▶️ Manuel: ${channelName}`;
+        // NOTE: Le lecteur restera sur cette chaîne jusqu'à la prochaine action (boost ou refresh)
     });
 
-    // --- LOGIQUE IA ---
+    // --- LOGIQUE IA & SCAN (Fonctions inchangées) ---
+    // ... (runAIAnalysis, safeFormat, runGlobalScan, form-global-scan, runCsvExport, checkLoginStatus)
+
+    // --- BOOST (Mise à jour pour relancer le player loop immédiatement) ---
+    document.getElementById('form-boost').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const channel = document.getElementById('input-boost').value;
+        const resBox = document.getElementById('boost-results');
+        resBox.innerHTML = "<i class='fas fa-sync fa-spin'></i> Boost en cours...";
+        try {
+            const res = await fetch(`${API_BASE}/stream_boost`, {
+                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel})
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                if (res.status === 429) {
+                     resBox.innerHTML = data.html_response;
+                } else {
+                    throw new Error(data.error || `Erreur: ${res.status}`);
+                }
+            } else {
+                resBox.innerHTML = data.html_response || "Action terminée.";
+                // IMPORTANT: Relancer le check pour immédiatement switcher sur la chaîne boostée
+                await checkBoostAndPlay(true);
+            }
+
+        } catch(e) { 
+            resBox.innerHTML = `<p style="color:red;">❌ Erreur: ${e.message}</p>`; 
+        }
+    });
+
+    // INIT
+    window.onload = () => {
+        checkBoostAndPlay(); // Démarrer la boucle du joueur par défaut
+        openTab('tab-followed'); 
+        checkLoginStatus(); 
+    };
+
+    // --- (Autres fonctions comme runAIAnalysis, safeFormat, runGlobalScan, etc., sont conservées) ---
+
+    // Fonction d'aide pour formatter les nombres (correction toLocaleString)
+    const safeFormat = (value) => { 
+        if (value === 'N/A' || typeof value === 'undefined' || value === null) {
+            return 'N/A';
+        }
+        return (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) 
+               ? Number(value).toLocaleString('fr-FR') 
+               : value.toString().toUpperCase();
+    };
+
     async function runAIAnalysis(type, query, box, niche_score = null) {
         box.innerHTML = `<p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA (${type})...</p>`;
         try {
@@ -372,19 +489,6 @@
         }
     }
 
-
-    // --- SCAN GLOBAL ---
-
-    // Fonction d'aide pour formatter les nombres (correction toLocaleString)
-    const safeFormat = (value) => { 
-        // Si c'est un nombre ou une chaîne de chiffres, le formatter. Si c'est la string 'N/A', la retourner telle quelle. 
-        if (value === 'N/A' || typeof value === 'undefined' || value === null) {
-            return 'N/A';
-        }
-        return (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) 
-               ? Number(value).toLocaleString('fr-FR') 
-               : value.toString().toUpperCase(); // Pour le statut: le garder en string et le mettre en majuscule
-    };
 
     async function runGlobalScan(query) {
         const boxScan = document.getElementById('res-scan-content');
@@ -544,7 +648,6 @@
         runGlobalScan(query);
     });
     
-    // --- RAID (Inchangé) ---
     document.getElementById('form-raid').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-raid-game').value;
@@ -589,6 +692,7 @@
                     </button>
                 `;
                 // 2. Lancement réel du Raid dans le lecteur principal
+                // NOTE: Ceci interrompt la boucle auto tant que le boost n'est pas actif
                 launchPlayer(c.login);
 
             } else if (data.error) {
@@ -605,7 +709,6 @@
         }
     });
 
-    // --- EXPORT CSV ---
     function runCsvExport() {
         const resultsBox = document.getElementById('pdf-export-results');
         resultsBox.innerHTML = `<p><i class='fas fa-sync fa-spin'></i> Préparation de l'export...</p>`;
@@ -618,7 +721,6 @@
                 return res.blob();
             })
             .then(blob => {
-                // Créer un lien temporaire pour télécharger le fichier
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
@@ -633,8 +735,6 @@
                 resultsBox.innerHTML = `<p style="color:red;">❌ Erreur d'Export CSV: ${error.message}</p>`;
             });
     }
-
-    // --- CONNEXION TWITCH (Inchangé) ---
 
     async function loadFollowedStreams() {
         const list = document.getElementById('followed-streams-list');
@@ -700,43 +800,6 @@
             btnLogin.disabled = true;
         }
     }
-
-
-    // --- BOOST (Inchangé) ---
-    document.getElementById('form-boost').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const channel = document.getElementById('input-boost').value;
-        const resBox = document.getElementById('boost-results');
-        resBox.innerHTML = "<i class='fas fa-sync fa-spin'></i> Boost en cours...";
-        try {
-            const res = await fetch(`${API_BASE}/stream_boost`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel})
-            });
-            
-            const data = await res.json();
-            
-            if (!res.ok) {
-                // Gérer l'erreur 429 du Cooldown
-                if (res.status === 429) {
-                     resBox.innerHTML = data.html_response;
-                } else {
-                    throw new Error(data.error || `Erreur: ${res.status}`);
-                }
-            } else {
-                resBox.innerHTML = data.html_response || "Action terminée.";
-            }
-
-        } catch(e) { 
-            resBox.innerHTML = `<p style="color:red;">❌ Erreur: ${e.message}</p>`; 
-        }
-    });
-
-    // INIT
-    window.onload = () => {
-        launchPlayer(DEFAULT_CHANNEL);
-        openTab('tab-followed'); // Onglet par défaut
-        checkLoginStatus(); // Vérifier la connexion Twitch
-    };
 </script>
 
 </body>
