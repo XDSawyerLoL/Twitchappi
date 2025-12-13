@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-const { stringify } = require('csv-stringify'); // NOUVEAU: Ajout de csv-stringify
+const { stringify } = require('csv-stringify'); 
 
 const app = express();
 
@@ -22,15 +22,14 @@ const GEMINI_MODEL = "gemini-2.5-flash";
 
 // =========================================================
 // --- NOUVELLE LOGIQUE D'IMPORTATION DYNAMIQUE POUR L'IA ---
+// (Résolution du conflit CommonJS/ESM)
 // =========================================================
 
-// Déclaration de 'ai' au scope global
 let ai;
 let GoogleGenAI; 
 
 async function initGemini() {
     try {
-        // Importation dynamique pour contourner le problème de module CommonJS/ESM
         const geminiModule = await import('@google/genai');
         GoogleGenAI = geminiModule.GoogleGenAI;
         ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
@@ -51,7 +50,6 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
-// Cache simple en mémoire pour les tokens et le boost
 const CACHE = {
     twitchTokens: {}, 
     twitchUser: null,
@@ -76,7 +74,6 @@ async function getTwitchToken(tokenType) {
         if (data.access_token) {
             CACHE.twitchTokens[tokenType] = {
                 access_token: data.access_token,
-                // Expiry set 5 minutes before actual expiry for buffer
                 expiry: Date.now() + (data.expires_in * 1000) - 300000 
             };
             return data.access_token;
@@ -126,7 +123,6 @@ async function twitchApiFetch(endpoint, token) {
 
 async function runGeminiAnalysis(prompt) {
     try {
-        // 'ai' est maintenant disponible car startServer a attendu initGemini()
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
             contents: [
@@ -250,6 +246,44 @@ app.get('/twitch_user_status', (req, res) => {
 // --- ROUTES TWITCH API (DATA) ---
 // =========================================================
 
+// Nouvelle route pour le stream par défaut (corrigée pour le 404)
+app.get('/get_default_stream', async (req, res) => {
+    const defaultChannel = 'twitch'; 
+    
+    try {
+        const streamRes = await twitchApiFetch(`streams?user_login=${defaultChannel}`);
+        
+        if (streamRes.data.length > 0) {
+            const stream = streamRes.data[0];
+            
+            return res.json({ 
+                success: true, 
+                channel_name: stream.user_login,
+                is_live: true,
+                title: stream.title
+            });
+            
+        } else {
+             // Chaîne par défaut hors ligne, mais le nom est quand même retourné pour le lecteur
+             return res.json({ 
+                success: true, 
+                channel_name: defaultChannel,
+                is_live: false,
+                title: 'Chaîne par défaut hors ligne.'
+             });
+        }
+        
+    } catch (e) {
+        console.error("Erreur lors de la récupération du stream par défaut:", e.message);
+        return res.status(500).json({ 
+            success: false, 
+            error: `Impossible de récupérer le stream par défaut: ${e.message}`,
+            channel_name: defaultChannel 
+        });
+    }
+});
+
+
 app.get('/followed_streams', async (req, res) => {
     if (!CACHE.twitchUser) {
         return res.status(401).json({ success: false, error: "Utilisateur non connecté." });
@@ -319,14 +353,11 @@ app.post('/scan_target', async (req, res) => {
     
     try {
         
-        // =======================================================
         // --- Tenter d'abord la recherche d'UTILISATEUR (PRIORITÉ) ---
-        // =======================================================
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
             
-            // 1. Récupérer les streams (pour savoir s'il est live, son jeu, etc.)
             let streamDetails = null;
             try {
                 const streamRes = await twitchApiFetch(`streams?user_id=${user.id}`);
@@ -335,14 +366,12 @@ app.post('/scan_target', async (req, res) => {
                 }
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
 
-            // 2. Récupérer le nombre total de followers
             let followerCount = 'N/A';
             try {
                 const followerRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`); 
                 followerCount = followerRes.total;
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
             
-            // 3. Récupérer le nombre total de VODs
             let vodCount = 'N/A';
             try {
                 const vodRes = await twitchApiFetch(`videos?user_id=${user.id}&type=archive&first=1`);
@@ -367,23 +396,19 @@ app.post('/scan_target', async (req, res) => {
                     game_name: streamDetails?.game_name || 'Divers',
                     viewer_count: streamDetails?.viewer_count || 0,
                     
-                    // STATISTIQUES BRUTES TWITCH API (RÉELLES)
                     total_followers: followerCount,
                     total_vods: vodCount,
                     total_views_count: totalViews, 
                     account_creation_date: creationDate,
                     broadcaster_type: broadcasterType, 
                     
-                    // DONNÉES ESTIMÉES PAR L'IA (car non publiques sur Twitch API)
                     ai_estimated_avg_viewers: (Math.random() * 500).toFixed(0),
-                    ai_estimated_growth: (Math.random() * 10 - 2).toFixed(1), // -2% à 8%
+                    ai_estimated_growth: (Math.random() * 10 - 2).toFixed(1), 
                 }
             });
         }
 
-        // =======================================================
         // --- Si AUCUN utilisateur trouvé, tenter la recherche de JEU ---
-        // =======================================================
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if (gameRes.data.length > 0) {
             const game = gameRes.data[0];
@@ -559,7 +584,7 @@ app.post('/stream_boost', (req, res) => {
 });
 
 // =========================================================
-// Configuration des Routes Statiques
+// Configuration des Routes pour les actions automatisées
 // =========================================================
 
 app.post('/auto_action', async (req, res) => {
@@ -573,7 +598,6 @@ app.post('/auto_action', async (req, res) => {
 
         switch (action_type) {
             case 'export_metrics':
-                // 1. Logique d'Export de Métriques (Génération d'un fichier CSV)
                 const metrics_data = [
                     { Métrique: 'Vues Totales (Simulées)', Valeur: Math.floor(Math.random() * 500000) + 100000 },
                     { Métrique: 'Taux de Rétention (Simulé)', Valeur: `${((Math.random() * 0.3) + 0.6).toFixed(3) * 100}%` },
@@ -591,7 +615,7 @@ app.post('/auto_action', async (req, res) => {
                     
                     return res.send(csvContent);
                 });
-                return; // IMPORTANT : Sortir pour ne pas exécuter le code IA
+                return;
 
             case 'create_clip':
                 prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse le sujet ou VOD : "${query}". En format HTML, génère : 1. Un titre <h4> pour le rapport. 2. Une liste <ul> de 3 titres courts et percutants pour un clip (max 60 caractères chacun).`;
@@ -605,7 +629,6 @@ app.post('/auto_action', async (req, res) => {
                 return res.status(400).json({ success: false, error: `Type d'action non supporté : ${action_type}` });
         }
         
-        // Exécution de l'IA pour les actions 'create_clip' et 'title_disruption'
         const result = await runGeminiAnalysis(prompt);
 
         if (result.success) {
@@ -632,7 +655,7 @@ app.post('/auto_action', async (req, res) => {
 
 
 // =========================================================
-// --- ROUTES STATIQUES ET GESTION DES ERREURS ---
+// --- ROUTES STATIQUES ET GESTION DES ERREURS (FIN) ---
 // =========================================================
 
 // Servir la page d'accueil
@@ -647,11 +670,9 @@ app.get('/NicheOptimizer.html', (req, res) => {
 
 // Gestion des requêtes non trouvées (404)
 app.use((req, res, next) => {
-    // Si la requête accepte du JSON (c'est-à-dire une requête API)
     if (req.accepts('json')) {
         return res.status(404).json({ success: false, error: "Route API non trouvée. Veuillez vérifier l'URL." });
     }
-    // Pour les autres requêtes (navigation), on peut renvoyer la page d'accueil ou une simple erreur
     res.status(404).send("Page non trouvée.");
 });
 
@@ -662,11 +683,11 @@ app.use((req, res, next) => {
 
 async function startServer() {
     
-    // 1. VÉRIFICATION CRITIQUE
+    // 1. VÉRIFICATION CRITIQUE des Variables d'Environnement
     if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
         console.error("=========================================================");
         console.error("FATAL ERROR: VARIABLES D'ENVIRONNEMENT MANQUANTES.");
-        console.error(`Missing keys: ${!TWITCH_CLIENT_ID ? 'TWITCH_CLIENT_ID ' : ''}${!TWITCH_CLIENT_SECRET ? 'TWITCH_CLIENT_SECRET ' : ''}${!REDIRECT_URI ? 'TWITCH_REDIRECT_URI ' : ''}${!GEMINI_API_KEY ? 'GEMINI_API_KEY' : ''}`);
+        console.error("Assurez-vous que TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_REDIRECT_URI et GEMINI_API_KEY sont définis.");
         console.error("=========================================================");
         process.exit(1); 
     }
@@ -680,7 +701,6 @@ async function startServer() {
     // 3. Démarrage du serveur Express
     app.listen(PORT, () => {
         console.log(`Serveur démarré sur http://localhost:${PORT}`);
-        console.log(`REDIRECT_URI pour Twitch: ${REDIRECT_URI}`);
     });
 }
 
