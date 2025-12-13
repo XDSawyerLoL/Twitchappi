@@ -341,8 +341,8 @@
 <script>
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch';
-    // Durée du cycle automatique à 3 minutes minimum.
-    const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000; // 3 minutes (180 000 ms)
+    // Durée du cycle automatique à 3 minutes.
+    const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000; 
     let embed = null;
     let autoCycleTimer = null; 
     let countdownInterval = null; 
@@ -356,7 +356,6 @@
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         
-        // Relance le chargement des streams suivis si on arrive sur cet onglet
         if (tabId === 'tab-followed') {
             loadFollowedStreams();
         }
@@ -365,10 +364,8 @@
     // --- UTILS ---
     const safeFormat = (value) => { 
         if (value === 'N/A' || typeof value === 'undefined' || value === null) {
-            // Si le backend n'a pas pu récupérer la valeur, on reste sur N/A (cas d'erreur)
             return 'N/A';
         }
-        // Sinon, on formate en tant que nombre ou on laisse tel quel (pour les dates, etc.)
         return (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) 
                ? Number(value).toLocaleString('fr-FR') 
                : value.toString().toUpperCase();
@@ -386,6 +383,7 @@
             width: "100%", 
             height: "100%", 
             layout: "video-and-chat", 
+            // IMPORTANT: Assurez-vous que le domaine actuel est listé dans 'parent'
             parent: [window.location.hostname, "localhost"] 
         };
 
@@ -397,8 +395,6 @@
         }
 
         embed = new Twitch.Embed("twitch-embed", config);
-        // FIX: Suppression de la mise à jour du champ d'entrée manuelle pour éviter le "twitch" inutile.
-        // document.getElementById('input-channel').value = channelName; 
     }
 
     // Logique du Lecteur par Défaut / Boost (DÉCLENCHE LE CYCLE AUTOMATIQUE)
@@ -407,10 +403,33 @@
         const btnPrev = document.getElementById('btn-prev-stream');
         const btnNext = document.getElementById('btn-next-stream');
         
-        // 1. Arrêter les timers existants pour éviter les doublons (FIX Bug 1 & 3)
+        // 1. Arrêter les timers existants
         if (autoCycleTimer) clearInterval(autoCycleTimer);
         if (countdownInterval) clearInterval(countdownInterval); 
         if (isManualAction && boostTimeout) clearTimeout(boostTimeout); 
+        
+        // Enregistrer l'heure de début du cycle ou récupérer l'heure du dernier cycle
+        let startTime = Date.now();
+        let secondsLeft = AUTO_CYCLE_DURATION_MS / 1000;
+        
+        // FIX 1: Persistance du timer via localStorage
+        if (!isManualAction && localStorage.getItem('lastCycleTime')) {
+            const lastCycleTime = parseInt(localStorage.getItem('lastCycleTime'));
+            const timeElapsed = Date.now() - lastCycleTime;
+            
+            if (timeElapsed < AUTO_CYCLE_DURATION_MS) {
+                secondsLeft = Math.floor((AUTO_CYCLE_DURATION_MS - timeElapsed) / 1000);
+                startTime = lastCycleTime; // Rétablir l'heure de début pour la prochaine action
+            } else {
+                // Si le temps est dépassé (ex: 5 minutes passées), on force un cycle
+                console.log("Temps de cycle dépassé. Forçage du prochain stream.");
+                cycleStream('next'); 
+                return; // L'appel à cycleStream va relancer checkBoostAndPlay avec isManualAction=true
+            }
+        }
+        
+        // Mettre à jour localStorage immédiatement pour marquer le début du cycle
+        localStorage.setItem('lastCycleTime', startTime);
 
         try {
             const res = await fetch(`${API_BASE}/get_default_stream`); 
@@ -421,16 +440,17 @@
                 launchPlayer(channel);
                 
                 if (viewers === 'BOOST') {
-                    // Mode BOOST : Désactive les boutons manuels
+                    // Mode BOOST
                     btnPrev.disabled = true;
                     btnNext.disabled = true;
+                    localStorage.removeItem('lastCycleTime'); // Pas de cycle auto en mode Boost
                     
                     const checkBoostRes = await fetch(`${API_BASE}/check_boost_status`);
                     const boostStatus = await checkBoostRes.json();
                     
                     if (boostStatus.is_boosted) {
                          if (boostTimeout) clearTimeout(boostTimeout);
-                         // Planifier le retour à l'Auto-Discovery après l'expiration du boost (+2s de buffer)
+                         // Planifier le retour à l'Auto-Discovery après l'expiration du boost
                          boostTimeout = setTimeout(() => {
                             checkBoostAndPlay(); 
                          }, (boostStatus.remaining_seconds * 1000) + 2000); 
@@ -438,7 +458,7 @@
                     playerStatusEl.innerHTML = message;
 
                 } else {
-                    // Mode Auto-Discovery : Active les boutons manuels
+                    // Mode Auto-Discovery
                     btnPrev.disabled = false;
                     btnNext.disabled = false;
                     
@@ -446,46 +466,45 @@
                     playerStatusEl.innerHTML = `${message} <span id="timer-display" style="margin-left:10px; color:var(--color-ai-niche);"></span>`;
                     const timerDisplayEl = document.getElementById('timer-display');
                     
-                    let secondsLeft = AUTO_CYCLE_DURATION_MS / 1000;
-                    
                     // Fonction de mise à jour du timer (appelée toutes les secondes)
+                    let currentSecondsLeft = secondsLeft;
+                    
                     const updateTimer = () => {
-                        const minutes = Math.floor(secondsLeft / 60);
-                        const seconds = secondsLeft % 60;
+                        const minutes = Math.floor(currentSecondsLeft / 60);
+                        const seconds = currentSecondsLeft % 60;
                         timerDisplayEl.innerText = `(Prochain Auto-Cycle: ${minutes}m ${seconds.toString().padStart(2, '0')}s)`;
                         
-                        secondsLeft--;
+                        currentSecondsLeft--;
                         
-                        if (secondsLeft < 0) {
-                            // Le cycle réel sera pris en charge par l'autoCycleTimer
-                            // On peut arrêter l'intervalle d'affichage
+                        if (currentSecondsLeft < 0) {
                             clearInterval(countdownInterval); 
                         }
                     };
                     
-                    // Appel initial pour afficher tout de suite
                     updateTimer(); 
 
                     // Démarrer le timer d'affichage (toutes les secondes)
                     countdownInterval = setInterval(updateTimer, 1000);
                     
-                    // Démarrer le timer de 3 minutes pour le cycle AUTOMATIQUE
-                    autoCycleTimer = setInterval(() => {
-                        // C'est le cycle réel, il force un changement de stream
-                        cycleStream('next'); 
-                    }, AUTO_CYCLE_DURATION_MS);
+                    // Démarrer le timer de N minutes pour le cycle AUTOMATIQUE (FIX 4: utilise le temps restant calculé)
+                    const actualDelay = secondsLeft * 1000;
+                    if (actualDelay > 0) {
+                        autoCycleTimer = setTimeout(() => {
+                            cycleStream('next'); 
+                        }, actualDelay);
+                    } else {
+                        // Si actualDelay est <= 0, cela signifie que le temps était dépassé et qu'un cycle a été forcé.
+                        // Rien à faire ici, le cycle a déjà été lancé plus haut.
+                    }
                 }
             } else {
-                // Fallback si l'API ne trouve rien ou erreur
                 launchPlayer(data.channel || DEFAULT_CHANNEL); 
-                // FIX: Afficher uniquement le message du backend pour éviter la double-inclusion du préfixe "⚠️ Fallback: "
-                playerStatusEl.innerHTML = data.message || `⚠️ Fallback: Erreur de récupération lors du premier chargement.`;
+                playerStatusEl.innerHTML = `⚠️ ${data.message || 'Erreur de récupération lors du premier chargement.'}`;
                 btnPrev.disabled = true;
                 btnNext.disabled = true;
             }
         } catch (e) {
             console.error("Erreur dans la boucle du lecteur:", e.message);
-            // Assurer que le player s'initialise même en cas d'erreur API (Bug 2)
             launchPlayer(DEFAULT_CHANNEL); 
             playerStatusEl.innerHTML = `❌ Erreur du Système. Rechargement manuel recommandé: ${e.message.substring(0, 50)}...`;
             btnPrev.disabled = true;
@@ -499,13 +518,11 @@
         const btnPrev = document.getElementById('btn-prev-stream');
         const btnNext = document.getElementById('btn-next-stream');
         
-        // On désactive les boutons pendant la requête
         btnPrev.disabled = true;
         btnNext.disabled = true;
         playerStatusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Changement de chaîne...`;
 
-        // Stopper les timers existants pour éviter un nouveau déclenchement pendant le cycle
-        if (autoCycleTimer) clearInterval(autoCycleTimer);
+        if (autoCycleTimer) clearTimeout(autoCycleTimer);
         if (countdownInterval) clearInterval(countdownInterval); 
 
         try {
@@ -524,6 +541,8 @@
             
             if (data.success) {
                 launchPlayer(data.channel);
+                // FIX 1: Enregistrer le temps du cycle réussi
+                localStorage.setItem('lastCycleTime', Date.now()); 
             } else {
                 throw new Error(data.error || 'Erreur inconnue.');
             }
@@ -651,11 +670,14 @@
                 if (vodRes.ok) {
                     const vodData = await vodRes.json();
                     if (vodData.success && vodData.vod) {
-                        // 1. Affiche la VOD SANS LANCER L'ANALYSE IA
-                        // NOTE: Le backend renvoie déjà l'URL de la miniature VOD formatée.
+                        // FIX 2: Correctement formater l'URL de la miniature VOD
+                        const fixedThumbnailUrl = vodData.vod.thumbnail_url
+                            .replace('{width}', '400') 
+                            .replace('{height}', '225');
+                            
                         boxVod.innerHTML = `
                             <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">VOD Récente: ${vodData.vod.title.substring(0,40)}...</div>
-                            <img id="vod-thumbnail" src="${vodData.vod.thumbnail_url}" style="width:100%; border-radius:4px;">
+                            <img id="vod-thumbnail" src="${fixedThumbnailUrl}" alt="VOD thumbnail" style="width:100%; border-radius:4px;">
                             <button onclick="launchPlayer('${u.login}', '${vodData.vod.id}')" class="btn-primary" style="width:100%; margin-top:5px; margin-bottom:10px; font-size:10px; background:#6441a5;">VOIR VOD</button>
                             <div id="vod-analysis-placeholder" class='mt-2' style="min-height: 100px;"> 
                                 <p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA des moments clés en cours...</p> 
@@ -722,8 +744,6 @@
         }
     }
 
-
-    // Correction de la fonction pour les miniatures
     async function loadFollowedStreams() {
         const list = document.getElementById('followed-streams-list');
         list.innerHTML = `<p style="text-align:center; color:var(--color-primary-pink);"><i class='fas fa-sync fa-spin'></i> Chargement des streams suivis...</p>`;
@@ -745,8 +765,6 @@
                 list.innerHTML = "";
                 data.streams.forEach(stream => {
                     
-                    // FIX APPLIQUÉ: Remplacer les placeholders {width} et {height} pour afficher la miniature.
-                    // On utilise '320' et '180' pour une taille standard.
                     const fixedThumbnailUrl = stream.thumbnail_url
                         .replace('{width}', '320') 
                         .replace('{height}', '180'); 
@@ -798,10 +816,11 @@
             launchPlayer(channel);
             document.getElementById('player-channel-status').innerHTML = `Chaîne chargée manuellement: ${channel}`;
             // Arrêter la rotation automatique en mode manuel
-            if (autoCycleTimer) clearInterval(autoCycleTimer);
+            if (autoCycleTimer) clearTimeout(autoCycleTimer);
             if (countdownInterval) clearInterval(countdownInterval); 
             document.getElementById('btn-prev-stream').disabled = true;
             document.getElementById('btn-next-stream').disabled = true;
+            localStorage.removeItem('lastCycleTime'); // Plus de persistance en mode manuel
         }
     });
 
@@ -826,7 +845,6 @@
             const data = await res.json();
             
             if (!res.ok) {
-                // Le message d'erreur est déjà formaté en HTML par le backend
                 resBox.innerHTML = data.html_response || `<p style="color:red;">❌ Erreur: ${data.error || 'Statut HTTP non OK.'}</p>`;
             } else {
                 resBox.innerHTML = data.html_response;
