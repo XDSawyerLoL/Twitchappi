@@ -35,6 +35,7 @@ async function initGemini() {
         console.log("✅ GoogleGenAI chargé. L'IA est ACTIVE.");
         return true;
     } catch (e) {
+        // En cas d'erreur de chargement (par exemple si le package n'est pas installé)
         console.error("FATAL ERROR: Impossible de charger GoogleGenAI.", e.message);
         return false;
     }
@@ -64,6 +65,7 @@ async function getTwitchToken(tokenType) {
         return CACHE.twitchTokens[tokenType].access_token;
     }
     
+    // Tentative d'obtention d'un nouveau token
     const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
     
     try {
@@ -73,7 +75,7 @@ async function getTwitchToken(tokenType) {
         if (data.access_token) {
             CACHE.twitchTokens[tokenType] = {
                 access_token: data.access_token,
-                // Réduire la validité pour renouvellement avant expiration réelle
+                // Réduire la validité pour renouvellement avant expiration réelle (5 minutes avant)
                 expiry: Date.now() + (data.expires_in * 1000) - 300000 
             };
             return data.access_token;
@@ -89,7 +91,7 @@ async function getTwitchToken(tokenType) {
 
 async function twitchApiFetch(endpoint, token) {
     const accessToken = token || await getTwitchToken('app');
-    if (!accessToken) throw new Error("Accès Twitch non autorisé. Le token d'application n'a pas pu être récupéré.");
+    if (!accessToken) throw new Error("Accès Twitch non autorisé. Le token d'application n'a pas pu être récupéré."); 
 
     const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, {
         headers: {
@@ -107,7 +109,7 @@ async function twitchApiFetch(endpoint, token) {
              CACHE.twitchUser = null; 
         }
         const errorText = await res.text();
-        throw new Error(`Erreur d'autorisation Twitch (401). Token invalide. Détail: ${errorText.substring(0, 100)}...`);
+        throw new Error(`Erreur d'autorisation Twitch (401). Token invalide. Détail: ${errorText.substring(0, 100)}...`); 
     }
     
     if (!res.ok) {
@@ -123,6 +125,16 @@ async function twitchApiFetch(endpoint, token) {
 // =========================================================
 
 async function runGeminiAnalysis(prompt) {
+    // Vérification que l'IA est bien chargée
+    if (!ai) {
+        return { 
+            success: false, 
+            status: 503, 
+            error: "Service IA indisponible. Le module GoogleGenAI n'a pas pu être initialisé.",
+            html_response: `<p style="color:red; font-weight:bold;">❌ Erreur: Service IA indisponible.</p>`
+        };
+    }
+
     try {
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
@@ -162,7 +174,6 @@ async function runGeminiAnalysis(prompt) {
 
 // =========================================================
 // --- ROUTES D'AUTHENTIFICATION TWITCH (OAuth) ---
-// (Aucune modification ici)
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -248,8 +259,9 @@ app.get('/twitch_user_status', (req, res) => {
 // --- ROUTES TWITCH API (DATA) ---
 // =========================================================
 
+
 // =========================================================
-// NOUVELLE LOGIQUE: Recherche de stream 0-100 Vues + Boost
+// LOGIQUE DE RECHERCHE DE STREAM PAR DÉFAUT (0-100 VUES + BOOST)
 // =========================================================
 
 let lastAutoStream = { channel_name: 'twitch', viewers: 0, title: 'Chaîne par défaut (Twitch).', is_boosted: false };
@@ -257,7 +269,7 @@ const MAX_AUTO_VIEWERS = 100;
 
 app.get('/get_default_stream', async (req, res) => {
     const now = Date.now();
-    const BOOST_ACTIVE_MS = 10 * 60 * 1000; // 10 minutes d'activité
+    const BOOST_ACTIVE_MS = 10 * 60 * 1000; // 10 minutes d'activité du Boost
     let boostedChannel = null;
 
     // 1. Vérification du Boost Actif
@@ -265,6 +277,9 @@ app.get('/get_default_stream', async (req, res) => {
         if (now - CACHE.streamBoosts[channel] < BOOST_ACTIVE_MS) {
             boostedChannel = channel;
             break;
+        } else {
+             // Si le boost a expiré, on le retire du cache
+             delete CACHE.streamBoosts[channel];
         }
     }
 
@@ -290,12 +305,13 @@ app.get('/get_default_stream', async (req, res) => {
         }
     }
     
-    // 2. Auto-Découverte (0-100 viewers aléatoire)
+    // 2. Auto-Découverte (1-100 viewers aléatoire)
     try {
         // Recherche des 100 premiers streams
         const streamsRes = await twitchApiFetch(`streams?first=100`);
         const liveStreams = streamsRes.data;
         
+        // Filtre : streams entre 1 et MAX_AUTO_VIEWERS (100)
         const candidateStreams = liveStreams.filter(s => s.viewer_count > 0 && s.viewer_count <= MAX_AUTO_VIEWERS);
         
         let targetStream;
@@ -311,10 +327,11 @@ app.get('/get_default_stream', async (req, res) => {
             };
             
         } else {
-            // Si aucun stream 0-100 vues n'est trouvé dans le top 100, on utilise 'twitch'
+            // Si aucun stream 1-100 vues n'est trouvé dans le top 100, on utilise 'twitch'
             lastAutoStream.channel_name = 'twitch';
-            lastAutoStream.title = 'Aucun Stream 0-100 Vues trouvé. Lecture du canal par défaut.';
+            lastAutoStream.title = 'Aucun Stream 1-100 Vues trouvé. Lecture du canal par défaut.';
             lastAutoStream.viewers = 0;
+            lastAutoStream.is_boosted = false;
         }
         
         return res.json({ 
@@ -328,7 +345,7 @@ app.get('/get_default_stream', async (req, res) => {
     } catch (e) {
         console.error("Erreur critique lors de la récupération du stream par défaut (vérifiez le Token API):", e.message);
         
-        // 3. Fallback sur le dernier canal connu ou 'twitch' en cas d'erreur critique API
+        // 3. Fallback sur le canal 'twitch' en cas d'erreur critique API
         return res.status(500).json({ 
             success: false, 
             error: `Erreur API: ${e.message.substring(0, 50)}...`,
@@ -341,7 +358,7 @@ app.get('/get_default_stream', async (req, res) => {
 
 // Ajout de la route /cycle_stream (pour boutons Précédent/Suivant)
 app.post('/cycle_stream', async (req, res) => {
-    // Dans cette implémentation simple, 'cycle' force un nouveau stream aléatoire
+    // Redirige simplement vers la logique de recherche de stream par défaut
     try {
         const streamRes = await fetch(`${req.protocol}://${req.get('host')}/get_default_stream`);
         const data = await streamRes.json();
@@ -454,7 +471,7 @@ app.post('/scan_target', async (req, res) => {
             const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A';
             const broadcasterType = user.broadcaster_type || 'normal'; 
             
-            // Calcul simulé du score de niche
+            // Simulation de score de niche IA
             const ai_calculated_niche_score = Math.floor(Math.random() * 100) + 1;
 
 
@@ -473,11 +490,11 @@ app.post('/scan_target', async (req, res) => {
                     
                     total_followers: followerCount,
                     total_vods: vodCount,
-                    total_views: totalViews, // Correction pour la cohérence
+                    total_views: totalViews, 
                     account_creation_date: creationDate,
                     broadcaster_type: broadcasterType, 
                     
-                    ai_calculated_niche_score: ai_calculated_niche_score, // Ajout du score IA simulé
+                    ai_calculated_niche_score: ai_calculated_niche_score, 
                 }
             });
         }
@@ -492,7 +509,7 @@ app.post('/scan_target', async (req, res) => {
             const avgViewersPerStreamer = totalStreams > 0 ? (totalViewers / totalStreams).toFixed(1) : 0;
             const streams = streamsRes.data;
             
-            // Calcul simulé du score de niche
+            // Simulation de score de niche IA
             const ai_calculated_niche_score = Math.floor(Math.random() * 100) + 1;
 
             return res.json({ 
@@ -505,7 +522,7 @@ app.post('/scan_target', async (req, res) => {
                     total_streamers: totalStreams,
                     total_viewers: totalViewers,
                     avg_viewers_per_streamer: avgViewersPerStreamer,
-                    ai_calculated_niche_score: ai_calculated_niche_score, // Ajout du score IA simulé
+                    ai_calculated_niche_score: ai_calculated_niche_score, 
                     streams: streams.map(s => ({
                         user_name: s.user_name,
                         user_login: s.user_login,
@@ -526,7 +543,6 @@ app.post('/scan_target', async (req, res) => {
 
 // =========================================================
 // --- ROUTE RAID (Recherche réelle) ---
-// (Aucune modification ici)
 // =========================================================
 
 app.post('/start_raid', async (req, res) => {
@@ -547,11 +563,13 @@ app.post('/start_raid', async (req, res) => {
         const gameId = gameRes.data[0].id;
         const gameName = gameRes.data[0].name;
         
+        // Recherche jusqu'à 100 streams dans la catégorie
         const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&first=100`);
         const liveStreams = streamsRes.data;
         
         let target = null;
         
+        // Chercher la plus petite chaîne > 0 viewers dans la limite
         for (const stream of liveStreams) {
             if (stream.viewer_count <= max_viewers && stream.viewer_count > 0) {
                  if (!target || stream.viewer_count < target.viewer_count) {
@@ -589,7 +607,6 @@ app.post('/start_raid', async (req, res) => {
 
 // =========================================================
 // --- ROUTES IA (CRITIQUE ET ANALYSE) ---
-// (Aucune modification ici)
 // =========================================================
 
 app.post('/critique_ia', async (req, res) => {
@@ -621,7 +638,7 @@ app.post('/critique_ia', async (req, res) => {
 
 app.post('/stream_boost', (req, res) => {
     const { channel } = req.body;
-    const BOOST_COOLDOWN_MS = 3 * 60 * 60 * 1000; 
+    const BOOST_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 heures de cooldown
     const now = Date.now();
     const lastBoost = CACHE.streamBoosts[channel];
     
@@ -644,7 +661,7 @@ app.post('/stream_boost', (req, res) => {
         });
     }
 
-    // Le boost est actif, même si l'API ne vérifie pas l'existence de la chaîne à ce stade.
+    // Le boost est actif
     CACHE.streamBoosts[channel] = now; 
 
     const successMessage = `
@@ -653,7 +670,7 @@ app.post('/stream_boost', (req, res) => {
          </p>
          <p>
              La chaîne <strong>${channel}</strong> a été ajoutée à la rotation prioritaire pour une période de 10 minutes. 
-             Le prochain boost sera disponible dans 3 heures. Bonne chance !
+             Le prochain boost sera disponible dans 3 heures.
          </p>
     `;
 
@@ -665,7 +682,6 @@ app.post('/stream_boost', (req, res) => {
 
 // =========================================================
 // Configuration des Routes pour les actions automatisées
-// (Modification mineure dans l'action export_metrics pour utiliser les vraies métriques du scan)
 // =========================================================
 
 app.post('/auto_action', async (req, res) => {
@@ -808,6 +824,7 @@ async function startServer() {
     // 2. Initialisation de l'IA (Importation dynamique)
     const isAiReady = await initGemini();
     if (!isAiReady) {
+        // Le processus se termine ici si l'IA ne peut pas être initialisée
         process.exit(1); 
     }
 
