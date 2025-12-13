@@ -374,13 +374,6 @@
 
     // --- LECTEUR ---
     window.launchPlayer = function(channelName, videoId = null, time = 0) {
-        // Validation pour éviter l'erreur "A channel, video, or collection id must be provided"
-        if (!channelName && !videoId) {
-            console.error("Erreur du Lecteur: channelName et videoId sont manquants.");
-            document.getElementById('twitch-embed').innerHTML = '<div style="color:red; text-align:center; padding-top:20%;">ERREUR: Chaîne ou VOD invalide.</div>';
-            return;
-        }
-
         if (embed && embed.getChannel() === channelName && !videoId) {
             return;
         }
@@ -391,7 +384,8 @@
             height: "100%", 
             layout: "video-and-chat", 
             // IMPORTANT: Assurez-vous que le domaine actuel est listé dans 'parent'
-            parent: [window.location.hostname, "localhost"] 
+            // CORRECTION CRITIQUE: Ajout de "127.0.0.1" pour les tests locaux.
+            parent: [window.location.hostname, "localhost", "127.0.0.1"] 
         };
 
         if (videoId) {
@@ -443,21 +437,19 @@
             const data = await res.json();
             
             if (data.success) {
-                // CORRECTION CRITIQUE: Utiliser les noms de champs corrects (channel_name, title)
-                const channelName = data.channel_name; 
-                const statusTitle = data.title;
+                const { channel_name, viewers, title, is_boosted } = data; // Changement de 'channel' à 'channel_name'
+                launchPlayer(channel_name);
                 
-                launchPlayer(channelName);
-                
-                // Détection simplifiée du Boost
-                if (statusTitle && statusTitle.includes('⚡ BOOST')) {
+                if (is_boosted) {
                     // Mode BOOST
                     btnPrev.disabled = true;
                     btnNext.disabled = true;
                     localStorage.removeItem('lastCycleTime'); // Pas de cycle auto en mode Boost
                     
-                    // On affiche simplement le statut fourni par le serveur (qui inclut le nom de la chaîne boostée)
-                    playerStatusEl.innerHTML = statusTitle;
+                    // NOTE: La vérification de boost ici dépend de la route /check_boost_status 
+                    // qui n'est pas dans le backend, mais on gère le timeout côté front.
+                    
+                    playerStatusEl.innerHTML = title;
 
                 } else {
                     // Mode Auto-Discovery
@@ -465,7 +457,7 @@
                     btnNext.disabled = false;
                     
                     // Mettre à jour l'affichage avec le message + un espace pour le timer
-                    playerStatusEl.innerHTML = `${statusTitle} <span id="timer-display" style="margin-left:10px; color:var(--color-ai-niche);"></span>`;
+                    playerStatusEl.innerHTML = `${title} <span id="timer-display" style="margin-left:10px; color:var(--color-ai-niche);"></span>`;
                     const timerDisplayEl = document.getElementById('timer-display');
                     
                     // Fonction de mise à jour du timer (appelée toutes les secondes)
@@ -488,7 +480,7 @@
                     // Démarrer le timer d'affichage (toutes les secondes)
                     countdownInterval = setInterval(updateTimer, 1000);
                     
-                    // Démarrer le timer de N minutes pour le cycle AUTOMATIQUE 
+                    // Démarrer le timer de N minutes pour le cycle AUTOMATIQUE (FIX 4: utilise le temps restant calculé)
                     const actualDelay = secondsLeft * 1000;
                     if (actualDelay > 0) {
                         autoCycleTimer = setTimeout(() => {
@@ -500,9 +492,8 @@
                     }
                 }
             } else {
-                // Utiliser channel_name ou data.channel (si le backend n'a pas été corrigé)
-                launchPlayer(data.channel_name || data.channel || DEFAULT_CHANNEL); 
-                playerStatusEl.innerHTML = `⚠️ ${data.title || data.message || 'Erreur de récupération lors du premier chargement.'}`;
+                launchPlayer(data.channel_name || DEFAULT_CHANNEL); 
+                playerStatusEl.innerHTML = `⚠️ ${data.title || 'Erreur de récupération lors du premier chargement.'}`;
                 btnPrev.disabled = true;
                 btnNext.disabled = true;
             }
@@ -529,7 +520,6 @@
         if (countdownInterval) clearInterval(countdownInterval); 
 
         try {
-            // NOTE: Le code du serveur a besoin d'être mis à jour pour que cette route cycle correctement
             const res = await fetch(`${API_BASE}/cycle_stream`, {
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
@@ -544,9 +534,8 @@
             const data = await res.json();
             
             if (data.success) {
-                // CORRECTION ICI: Utiliser data.channel_name si le backend a été corrigé pour uniformiser, sinon data.channel
-                launchPlayer(data.channel_name || data.channel);
-                // Enregistrer le temps du cycle réussi
+                launchPlayer(data.channel_name); // Changement de 'channel' à 'channel_name'
+                // FIX 1: Enregistrer le temps du cycle réussi
                 localStorage.setItem('lastCycleTime', Date.now()); 
             } else {
                 throw new Error(data.error || 'Erreur inconnue.');
@@ -809,8 +798,6 @@
         if (query) {
             document.getElementById('btn-global-scan').disabled = true;
             document.getElementById('btn-global-scan').innerHTML = '<i class="fas fa-sync fa-spin"></i> ANALYSE EN COURS...';
-            // Stocker la dernière requête pour l'export 
-            localStorage.setItem('lastScanQuery', query);
             await runGlobalScan(query);
         }
     });
@@ -913,8 +900,7 @@
 
     // 6. Export CSV
     document.getElementById('btn-export-pdf').addEventListener('click', () => {
-        // La méthode la plus simple pour télécharger le fichier via le backend.
-        window.open(`${API_BASE}/export_csv`, '_blank'); 
+        window.open(`${API_BASE}/export_csv`, '_blank');
         const resBox = document.getElementById('pdf-export-results');
         resBox.innerHTML = `<p style="color:var(--color-ai-growth);">✅ Export CSV téléchargé (basé sur le dernier Scan).</p>`;
     });
