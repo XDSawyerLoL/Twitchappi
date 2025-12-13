@@ -374,6 +374,12 @@
 
     // --- LECTEUR ---
     window.launchPlayer = function(channelName, videoId = null, time = 0) {
+        
+        // CORRECTION DE SÉCURITÉ #1: Garantir que channelName n'est jamais vide
+        if (!channelName || channelName.trim() === '') {
+            channelName = DEFAULT_CHANNEL; 
+        }
+
         if (embed && embed.getChannel() === channelName && !videoId) {
             return;
         }
@@ -383,8 +389,7 @@
             width: "100%", 
             height: "100%", 
             layout: "video-and-chat", 
-            // IMPORTANT: Assurez-vous que le domaine actuel est listé dans 'parent'
-            // CORRECTION CRITIQUE: Ajout de "127.0.0.1" pour les tests locaux.
+            // CORRECTION DE SÉCURITÉ #2: Assurer la compatibilité localhost/127.0.0.1
             parent: [window.location.hostname, "localhost", "127.0.0.1"] 
         };
 
@@ -392,7 +397,7 @@
             config.video = videoId;
             if (time > 0) config.time = `${time}s`;
         } else {
-            config.channel = channelName;
+            config.channel = channelName; 
         }
 
         embed = new Twitch.Embed("twitch-embed", config);
@@ -446,9 +451,6 @@
                     btnNext.disabled = true;
                     localStorage.removeItem('lastCycleTime'); // Pas de cycle auto en mode Boost
                     
-                    // NOTE: La vérification de boost ici dépend de la route /check_boost_status 
-                    // qui n'est pas dans le backend, mais on gère le timeout côté front.
-                    
                     playerStatusEl.innerHTML = title;
 
                 } else {
@@ -499,8 +501,9 @@
             }
         } catch (e) {
             console.error("Erreur dans la boucle du lecteur:", e.message);
+            // Assurez-vous que le joueur est lancé avec une chaîne valide en cas d'erreur réseau/API
             launchPlayer(DEFAULT_CHANNEL); 
-            playerStatusEl.innerHTML = `❌ Erreur du Système. Rechargement manuel recommandé: ${e.message.substring(0, 50)}...`;
+            playerStatusEl.innerHTML = `❌ Erreur du Système. Vérifiez le serveur Node.js: ${e.message.substring(0, 50)}...`;
             btnPrev.disabled = true;
             btnNext.disabled = true;
         }
