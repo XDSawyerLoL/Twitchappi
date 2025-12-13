@@ -137,7 +137,7 @@ async function runGeminiAnalysis(prompt) {
                 { role: "user", parts: [{ text: prompt }] }
             ],
             config: {
-                systemInstruction: "Tu es un expert en croissance et stratégie Twitch. Toutes tes réponses doivent être formatées en HTML simple (utilisant <p>, <ul>, <li>, <h4>, <strong>, <em>) sans balise <html> ou <body>, pour être directement injectées dans une div."
+                systemInstruction: "Tu es un expert en croissance et stratégie Twitch. Toutes tes réponses doivent être formatées en HTML simple (utilisant <p>, <ul>, <li>, ####, <strong>, <em>) sans balise <html> ou <body>, pour être directement injectées dans une div."
             }
         });
         
@@ -342,19 +342,21 @@ app.post('/scan_target', async (req, res) => {
             let followerCount = 'N/A';
             try {
                 const followerRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`);
-                followerCount = followerRes.total;
+                // CORRECTION: Si total est présent (même 0), on l'utilise. Sinon N/A en cas d'erreur API non gérée par le catch.
+                followerCount = followerRes.total !== undefined ? followerRes.total : 0;
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
 
             // 3. Récupérer le nombre total de VODs
             let vodCount = 'N/A';
             try {
                 const vodRes = await twitchApiFetch(`videos?user_id=${user.id}&type=archive&first=1`);
-                vodCount = vodRes.total;
+                // CORRECTION: Si total est présent (même 0), on l'utilise.
+                vodCount = vodRes.total !== undefined ? vodRes.total : 0;
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
 
             // Données supplémentaires réelles
-            // CORRIGÉ: Conserve 0 vues au lieu de 'N/A'
-            const totalViews = (user.view_count !== undefined && user.view_count !== null) ? user.view_count : 'N/A'; 
+            // CORRECTION: Assurer que totalViews affiche 0 et non 'N/A' s'il est null/undefined (comme pour un nouveau compte).
+            const totalViews = (user.view_count !== undefined && user.view_count !== null) ? user.view_count : 0; 
             
             const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A'; 
             const broadcasterType = user.broadcaster_type || 'normal'; 
@@ -370,9 +372,9 @@ app.post('/scan_target', async (req, res) => {
                 viewer_count: streamDetails ? streamDetails.viewer_count : 0,
                 game_name: streamDetails ? streamDetails.game_name : '',
                 broadcaster_type: broadcasterType.toUpperCase() || 'NORMAL',
-                total_followers: followerCount,
-                vod_count: vodCount,
-                total_views: totalViews,
+                total_followers: followerCount, // Utilisera 0 ou le compte réel
+                vod_count: vodCount,           // Utilisera 0 ou le compte réel
+                total_views: totalViews,       // Utilisera 0 ou le compte réel
                 creation_date: creationDate,
                 ai_calculated_niche_score: aiCalculatedNicheScore 
             };
