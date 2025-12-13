@@ -1,7 +1,7 @@
 {
   "name": "twitchappi",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "app.js", 
   "scripts": {
     "start": "node app.js"
   },
@@ -16,7 +16,7 @@
     "markdown-it": "^14.1.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "20.x"
   }
 }
 
