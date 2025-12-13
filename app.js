@@ -12,7 +12,6 @@ const app = express();
 
 // =========================================================
 // --- CONFIGURATION ET VARIABLES D'ENVIRONNEMENT ---
-// 🚨 Le serveur utilise UNIQUEMENT les variables de Render (process.env)
 // =========================================================
 
 const PORT = process.env.PORT || 10000;
@@ -51,8 +50,9 @@ app.use(express.static(path.join(__dirname)));
 const CACHE = {
     twitchTokens: {}, 
     twitchUser: null,
-    streamBoosts: {},
-    lastScanData: null // Cache pour l'export CSV
+    streamBoosts: {},       // Stockage du cooldown (3 heures)
+    boostedStream: null,    // NOUVEAU: Stockage du boost actif { channel: 'name', endTime: timestamp }
+    lastScanData: null      // Cache pour l'export CSV
 };
 
 // =========================================================
@@ -161,6 +161,7 @@ async function runGeminiAnalysis(prompt) {
 
 // =========================================================
 // --- ROUTES D'AUTHENTIFICATION TWITCH (OAuth) ---
+// (Inchangé)
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -245,6 +246,7 @@ app.get('/twitch_user_status', (req, res) => {
 
 // =========================================================
 // --- ROUTES TWITCH API (DATA) ---
+// (Inchangé)
 // =========================================================
 
 app.get('/followed_streams', async (req, res) => {
@@ -426,8 +428,107 @@ app.post('/scan_target', async (req, res) => {
 });
 
 // =========================================================
-// --- ROUTE RAID (Recherche réelle) ---
+// --- ROUTE DU LECTEUR PAR DÉFAUT (0-100 VUES) ---
 // =========================================================
+app.get('/get_default_stream', async (req, res) => {
+    try {
+        // Fetch streams in French (or remove language to get worldwide)
+        // Note: The Twitch API lists streams by popularity, so we fetch 100 and filter
+        const data = await twitchApiFetch(`streams?language=fr&first=100`);
+        const allStreams = data.data;
+
+        // Filter streams to find those with 1 to 100 viewers (excluding 0 which is often used for non-live or issues)
+        const suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
+
+        if (suitableStreams.length === 0) {
+            // Fallback: If the top 100 French streams are all >100 viewers, we send a random big channel
+            const fallbackStream = allStreams.length > 0 ? allStreams[Math.floor(Math.random() * allStreams.length)] : null;
+            if (fallbackStream) {
+                 return res.json({ success: true, channel: fallbackStream.user_login, viewers: fallbackStream.viewer_count, message: "Aucun stream 1-100 en fr, fallback sur une chaîne aléatoire." });
+            }
+            return res.status(404).json({ success: false, error: "Aucun stream en direct trouvé." });
+        }
+        
+        // Pick a random stream from the suitable list (0-100 viewers)
+        const randomStream = suitableStreams[Math.floor(Math.random() * suitableStreams.length)];
+
+        return res.json({ 
+            success: true, 
+            channel: randomStream.user_login,
+            viewers: randomStream.viewer_count,
+            message: `Stream trouvé: ${randomStream.user_login} (${randomStream.viewer_count} vues)`
+        });
+    } catch (e) {
+        console.error("Erreur dans /get_default_stream:", e.message);
+        // En cas d'erreur API, on peut renvoyer une erreur explicite pour que le front-end le gère
+        return res.status(500).json({ success: false, error: "Erreur lors de la récupération des streams par défaut. Vérifiez le token Twitch." });
+    }
+});
+
+
+// =========================================================
+// --- ROUTE POUR VÉRIFIER LE STATUT DU BOOST ---
+// =========================================================
+app.get('/check_boost_status', (req, res) => {
+    if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
+        const remainingTime = Math.ceil((CACHE.boostedStream.endTime - Date.now()) / 1000);
+        return res.json({ 
+            is_boosted: true, 
+            channel: CACHE.boostedStream.channel, 
+            remaining_seconds: remainingTime 
+        });
+    }
+    // Boost expiré ou inactif
+    CACHE.boostedStream = null;
+    return res.json({ is_boosted: false });
+});
+
+// =========================================================
+// --- ROUTE BOOST (Cooldown de 3h, Boost de 15 minutes) ---
+// =========================================================
+
+app.post('/stream_boost', async (req, res) => {
+    const { channel } = req.body;
+    if (!channel) {
+        return res.status(400).json({ error: "Nom de chaîne manquant pour le Boost." });
+    }
+
+    const now = Date.now();
+    const COOLDOWN_DURATION = 3 * 60 * 60 * 1000; // 3 heures de Cooldown
+    const BOOST_DURATION = 15 * 60 * 1000; // 15 minutes de Boost ACTIF
+
+    // 1. Vérification du Cooldown (3 heures)
+    if (CACHE.streamBoosts[channel] && (now - CACHE.streamBoosts[channel]) < COOLDOWN_DURATION) {
+        const remaining = CACHE.streamBoosts[channel] + COOLDOWN_DURATION - now;
+        const minutesRemaining = Math.ceil(remaining / (60 * 1000));
+        
+        const errorMessage = `
+            <p style="color:red; font-weight:bold;"> ❌ Boost en Cooldown </p>
+            <p> Vous devez attendre encore <strong style="color:var(--color-primary-pink);">${minutesRemaining} minutes</strong>. </p>
+        `;
+        return res.status(429).json({ error: `Cooldown de 3 heures actif. Prochain Boost disponible dans environ ${minutesRemaining} minutes.`, html_response: errorMessage });
+    }
+
+    // 2. Activation du Cooldown
+    CACHE.streamBoosts[channel] = now;
+    
+    // 3. Activation du Boost (pour le joueur)
+    CACHE.boostedStream = {
+        channel: channel,
+        endTime: now + BOOST_DURATION
+    };
+
+    const successMessage = `
+        <p style="color:var(--color-primary-pink); font-weight:bold;"> ✅ Boost de Stream Activé (15 min) ! </p>
+        <p> La chaîne <strong>${channel}</strong> est maintenant diffusée. Le prochain boost sera disponible dans 3 heures. </p>
+    `;
+    return res.json({ success: true, html_response: successMessage });
+});
+
+// =========================================================
+// --- ROUTES RAID & IA (Inchangé) ---
+// =========================================================
+// ... (code de /start_raid, /critique_ia, /export_csv, /auto_action)
 
 app.post('/start_raid', async (req, res) => {
     const { game, max_viewers } = req.body;
@@ -479,10 +580,6 @@ app.post('/start_raid', async (req, res) => {
 });
 
 
-// =========================================================
-// --- ROUTES IA (CRITIQUE ET ANALYSE) ---
-// =========================================================
-
 app.post('/critique_ia', async (req, res) => {
     const { type, query, niche_score } = req.body;
     let prompt = "";
@@ -511,43 +608,6 @@ app.post('/critique_ia', async (req, res) => {
     }
 });
 
-
-// =========================================================
-// --- ROUTE BOOST (Cooldown de 3h) ---
-// =========================================================
-
-app.post('/stream_boost', async (req, res) => {
-    const { channel } = req.body;
-    if (!channel) {
-        return res.status(400).json({ error: "Nom de chaîne manquant pour le Boost." });
-    }
-
-    const now = Date.now();
-    const COOLDOWN_DURATION = 3 * 60 * 60 * 1000; // 3 heures en millisecondes
-    
-    if (CACHE.streamBoosts[channel] && (now - CACHE.streamBoosts[channel]) < COOLDOWN_DURATION) {
-        const remaining = CACHE.streamBoosts[channel] + COOLDOWN_DURATION - now;
-        const minutesRemaining = Math.ceil(remaining / (60 * 1000));
-        
-        const errorMessage = `
-            <p style="color:red; font-weight:bold;"> ❌ Boost en Cooldown </p>
-            <p> Vous devez attendre encore <strong style="color:var(--color-primary-pink);">${minutesRemaining} minutes</strong>. </p>
-        `;
-        return res.status(429).json({ error: `Cooldown de 3 heures actif. Prochain Boost disponible dans environ ${minutesRemaining} minutes.`, html_response: errorMessage });
-    }
-
-    CACHE.streamBoosts[channel] = now;
-    const successMessage = `
-        <p style="color:var(--color-primary-pink); font-weight:bold;"> ✅ Boost de Stream Activé ! </p>
-        <p> La chaîne <strong>${channel}</strong> a été ajoutée à la rotation prioritaire pour une période de 10 minutes. Le prochain boost sera disponible dans 3 heures. Bonne chance ! </p>
-    `;
-    return res.json({ success: true, html_response: successMessage });
-});
-
-
-// =========================================================
-// --- ROUTE EXPORT CSV ---
-// =========================================================
 
 app.get('/export_csv', (req, res) => {
     const data = CACHE.lastScanData;
@@ -593,10 +653,6 @@ app.get('/export_csv', (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=Twitch_Analysis_Export.csv');
     res.send(csvContent);
 });
-
-// =========================================================
-// Configuration des Routes Statiques
-// =========================================================
 
 app.post('/auto_action', async (req, res) => {
     try {
