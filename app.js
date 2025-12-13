@@ -5,8 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-
-// ❌ REMPLACÉ: const { GoogleGenAI } = require('@google/genai');
+const { stringify } = require('csv-stringify'); // NOUVEAU: Ajout de csv-stringify
 
 const app = express();
 
@@ -188,7 +187,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
     }
 
     try {
-        // CORRECTION CRITIQUE : Envoi des paramètres dans le corps (body) de la requête POST
         const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
             method: 'POST',
             headers: {
@@ -340,7 +338,6 @@ app.post('/scan_target', async (req, res) => {
             // 2. Récupérer le nombre total de followers
             let followerCount = 'N/A';
             try {
-                // L'API followers donne le total directement dans la réponse
                 const followerRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`); 
                 followerCount = followerRes.total;
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
@@ -348,16 +345,12 @@ app.post('/scan_target', async (req, res) => {
             // 3. Récupérer le nombre total de VODs
             let vodCount = 'N/A';
             try {
-                // L'API videos donne le total directement dans la réponse
                 const vodRes = await twitchApiFetch(`videos?user_id=${user.id}&type=archive&first=1`);
                 vodCount = vodRes.total;
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
 
-            // NOUVEAU: Données supplémentaires réelles
             const totalViews = user.view_count || 'N/A';
-            // Formate la date de création en FR
             const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A';
-            // Récupère le type de partenaire/affilié
             const broadcasterType = user.broadcaster_type || 'normal'; 
 
 
@@ -382,7 +375,6 @@ app.post('/scan_target', async (req, res) => {
                     broadcaster_type: broadcasterType, 
                     
                     // DONNÉES ESTIMÉES PAR L'IA (car non publiques sur Twitch API)
-                    // Ces données doivent rester simulées/estimées car Twitch ne les fournit pas publiquement.
                     ai_estimated_avg_viewers: (Math.random() * 500).toFixed(0),
                     ai_estimated_growth: (Math.random() * 10 - 2).toFixed(1), // -2% à 8%
                 }
@@ -442,7 +434,6 @@ app.post('/start_raid', async (req, res) => {
     }
     
     try {
-        // 1. Tenter de récupérer l'ID du jeu
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
         if (gameRes.data.length === 0) {
             return res.status(404).json({ 
@@ -453,14 +444,11 @@ app.post('/start_raid', async (req, res) => {
         const gameId = gameRes.data[0].id;
         const gameName = gameRes.data[0].name;
         
-        // 2. Récupérer les 100 premiers streams pour ce jeu (ils sont généralement triés par vues, donc nous allons chercher une petite chaîne parmi les 100)
         const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&first=100`);
         const liveStreams = streamsRes.data;
         
         let target = null;
         
-        // 3. Filtrer pour trouver la CIBLE RAID
-        // On va chercher le plus petit streamer (>= 1 vue) qui est en dessous de max_viewers.
         for (const stream of liveStreams) {
             if (stream.viewer_count <= max_viewers && stream.viewer_count > 0) {
                  if (!target || stream.viewer_count < target.viewer_count) {
@@ -469,7 +457,6 @@ app.post('/start_raid', async (req, res) => {
                         login: stream.user_login,
                         viewers: stream.viewer_count,
                         game: stream.game_name,
-                        // Remplace les placeholders de Twitch pour obtenir l'URL de la miniature du stream
                         thumbnail_url: stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180')
                     };
                  }
@@ -477,14 +464,11 @@ app.post('/start_raid', async (req, res) => {
         }
         
         if (target) {
-            // Cible trouvée. Retourne les données réelles.
             return res.json({
                 success: true,
                 channel: target,
-                // Le frontend va générer l'HTML à partir des données structurées
             });
         } else {
-            // Aucune cible adéquate trouvée
             return res.status(404).json({ 
                 success: false, 
                 error: `Aucune cible de Raid trouvée dans ${gameName} avec moins de ${max_viewers} vues (parmi les 100 premiers résultats).`,
@@ -510,7 +494,6 @@ app.post('/critique_ia', async (req, res) => {
 
     switch (type) {
         case 'niche':
-            // PROMPT RÉVISÉ: Demande de concision et structure en listes
             prompt = `En tant qu'expert en stratégie de croissance Twitch, analyse le jeu ou streamer "${query}". Fournis une critique de niche en format HTML. Sois extrêmement concis et utilise des listes (<ul> et <li>) plutôt que des paragraphes longs: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts CLAIRS (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au sujet (ex: "Défi Speedrun avec handicap"). 4. Une conclusion courte et impactante en <p> avec un <strong>.`;
             break;
         case 'repurpose':
@@ -591,32 +574,30 @@ app.post('/auto_action', async (req, res) => {
         switch (action_type) {
             case 'export_metrics':
                 // 1. Logique d'Export de Métriques (Génération d'un fichier CSV)
-                const metrics_data = {
-                    views: Math.floor(Math.random() * 500000) + 100000,
-                    retention: (Math.random() * 0.3) + 0.6,
-                    followers: Math.floor(Math.random() * 5000) + 1000
-                };
+                const metrics_data = [
+                    { Métrique: 'Vues Totales (Simulées)', Valeur: Math.floor(Math.random() * 500000) + 100000 },
+                    { Métrique: 'Taux de Rétention (Simulé)', Valeur: `${((Math.random() * 0.3) + 0.6).toFixed(3) * 100}%` },
+                    { Métrique: 'Nouveaux Suiveurs (Simulés)', Valeur: Math.floor(Math.random() * 5000) + 1000 }
+                ];
                 
-                const csvContent = [
-                    'Métrique,Valeur',
-                    `Vues Totales (Simulées),${metrics_data.views}`,
-                    `Taux de Rétention (Simulé),${(metrics_data.retention * 100).toFixed(1)}%`,
-                    `Nouveaux Suiveurs (Simulés),${metrics_data.followers}`
-                ].join('\n');
-                
-                // Déclenche le téléchargement du fichier CSV
-                res.setHeader('Content-Type', 'text/csv');
-                res.setHeader('Content-Disposition', `attachment; filename="Stats_Twitch_${query}_${new Date().toISOString().slice(0, 10)}.csv"`);
-                
-                return res.send(csvContent); // <- Envoi du fichier. Ne retourne pas de JSON.
+                stringify(metrics_data, { header: true }, (err, csvContent) => {
+                    if (err) {
+                        console.error("Erreur lors de la création du CSV:", err);
+                        return res.status(500).json({ success: false, error: "Erreur interne lors de la création du fichier CSV." });
+                    }
+                    
+                    res.setHeader('Content-Type', 'text/csv');
+                    res.setHeader('Content-Disposition', `attachment; filename="Stats_Twitch_${query}_${new Date().toISOString().slice(0, 10)}.csv"`);
+                    
+                    return res.send(csvContent);
+                });
+                return; // IMPORTANT : Sortir pour ne pas exécuter le code IA
 
             case 'create_clip':
-                // 2. Logique de Création de Clip (Utilise l'IA pour le titre et les idées)
                 prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse le sujet ou VOD : "${query}". En format HTML, génère : 1. Un titre <h4> pour le rapport. 2. Une liste <ul> de 3 titres courts et percutants pour un clip (max 60 caractères chacun).`;
                 break;
 
             case 'title_disruption':
-                // 3. Logique de Titre Disruptif
                 prompt = `Tu es un expert en stratégie de croissance Twitch. Analyse le jeu ou sujet : "${query}". En format HTML, génère : 1. Un titre <h4> pour le rapport. 2. Une liste <ul> de 3 suggestions de titres de stream ULTRA-DISRUPTIFS pour maximiser les clics dans les recommandations. 3. Une conclusion en <p> avec un <strong>.`;
                 break;
 
@@ -639,7 +620,6 @@ app.post('/auto_action', async (req, res) => {
 
     } catch (error) {
         console.error(`Erreur d'exécution dans /auto_action pour ${req.body?.action_type}:`, error.message);
-        // Si l'erreur se produit AVANT res.send (pour le CSV) ou res.json (pour l'IA)
         if (!res.headersSent) {
             return res.status(500).json({
                 success: false,
@@ -651,13 +631,30 @@ app.post('/auto_action', async (req, res) => {
 });
 
 
+// =========================================================
+// --- ROUTES STATIQUES ET GESTION DES ERREURS ---
+// =========================================================
+
+// Servir la page d'accueil
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
+// Servir la page principale explicitement
 app.get('/NicheOptimizer.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
+
+// Gestion des requêtes non trouvées (404)
+app.use((req, res, next) => {
+    // Si la requête accepte du JSON (c'est-à-dire une requête API)
+    if (req.accepts('json')) {
+        return res.status(404).json({ success: false, error: "Route API non trouvée. Veuillez vérifier l'URL." });
+    }
+    // Pour les autres requêtes (navigation), on peut renvoyer la page d'accueil ou une simple erreur
+    res.status(404).send("Page non trouvée.");
+});
+
 
 // =========================================================
 // DÉMARRAGE DU SERVEUR (ASYNCHRONE)
@@ -677,7 +674,6 @@ async function startServer() {
     // 2. Initialisation de l'IA (Importation dynamique)
     const isAiReady = await initGemini();
     if (!isAiReady) {
-        // initGemini a déjà loggé l'erreur
         process.exit(1); 
     }
 
