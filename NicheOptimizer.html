@@ -411,7 +411,7 @@
         autoCycleTimer = setTimeout(autoCycleNextStream, AUTO_CYCLE_DURATION_MS);
     }
     
-    // --- LECTEUR TWITCH ---
+    // --- LECTEUR TWITCH (CORRIGÉ POUR IFRAME SUR JUSTPLAYER.FR) ---
 
     function launchPlayer(channel, force = false) {
         // Empêcher la relance si la chaîne est la même et non forcée
@@ -423,11 +423,31 @@
         currentIndex = followedStreams.findIndex(s => s.user_login === channel) || 0;
         updateCycleButtons();
 
-        // FIX AMÉLIORÉ: Gère les adresses IP locales avec port
-        const hostWithoutPort = window.location.hostname;
-        const parentList = [hostWithoutPort, "localhost", "127.0.0.1"];
+        // DÉTERMINATION DES DOMAINES PARENTS (CORRIGÉ POUR IFRAME)
+        const urlParams = new URLSearchParams(window.location.search);
+        const externalParent = urlParams.get('parent_host'); // Lecture du paramètre d'URL (si passé)
         
-        // Ajout explicite de l'adresse complète si elle contient un port (ex: 192.168.1.10:10000)
+        const hostWithoutPort = window.location.hostname;
+        
+        // Liste des hôtes autorisés (l'iframe elle-même + local + justplayer.fr)
+        const parentList = [
+            hostWithoutPort, 
+            "localhost", 
+            "127.0.0.1", 
+            "justplayerstreamhubpro.onrender.com", 
+            "justplayer.fr" // AJOUT STATIQUE POUR LE DOMAINE PARENT CONNU
+        ];
+        
+        // Si un parent externe a été passé en paramètre, l'ajouter
+        if (externalParent) {
+            const cleanParent = externalParent.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+            if (!parentList.includes(cleanParent)) {
+                 console.log("Ajout du parent externe (via paramètre):", cleanParent);
+                 parentList.push(cleanParent);
+            }
+        }
+        
+        // Si l'URL contient un port, ajoutons l'adresse complète (utile pour les tests locaux)
         if (window.location.host.includes(':')) {
             parentList.push(window.location.host); 
         }
@@ -437,7 +457,7 @@
             height: "100%", 
             layout: "video-and-chat", 
             channel: channel,
-            // CORRECTION CRITIQUE: Utilisation de la liste des parents corrigée pour éviter le refus de connexion (CORS)
+            // Utilisation de la liste des parents corrigée
             parent: parentList 
         };
 
@@ -446,12 +466,10 @@
             embed = new Twitch.Embed("twitch-embed", config);
             
             embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
-                 // Une fois que la vidéo est prête, on considère le stream comme LIVE (ou VOD)
                  const stream = followedStreams.find(s => s.user_login === channel);
-                 updatePlayerStatus(channel, !!stream); // !!stream est true si trouvé
+                 updatePlayerStatus(channel, !!stream); 
             });
 
-            // Gérer les erreurs (Ex: Chaîne introuvable)
             embed.addEventListener(Twitch.Embed.ERROR, (error) => {
                  console.error("Erreur Embed Twitch:", error);
                  updatePlayerStatus(channel, false);
@@ -459,11 +477,10 @@
 
 
         } else {
-            // Sinon, mettre à jour la chaîne
             embed.setChannel(channel);
         }
         
-        updatePlayerStatus(channel, false, true); // Indiquer qu'il charge
+        updatePlayerStatus(channel, false, true); 
         resetAutoCycleTimer();
     }
 
