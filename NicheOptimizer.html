@@ -372,7 +372,7 @@
     };
 
 
-    // --- LECTEUR (CORRECTION APPLIQUÉE ICI) ---
+    // --- LECTEUR (CORRECTION TWITCH) ---
     window.launchPlayer = function(channelName, videoId = null, time = 0) {
         if (embed && embed.getChannel() === channelName && !videoId) {
             return;
@@ -381,7 +381,6 @@
         document.getElementById('twitch-embed').innerHTML = '';
         
         // FIX CRITIQUE: Ajout de 'justplayer.fr' aux domaines parents autorisés 
-        // pour que le lecteur Twitch fonctionne dans l'iFrame.
         const authorizedParents = [
             window.location.hostname, // Domaine de l'iFrame (render.com)
             "localhost",
@@ -643,9 +642,12 @@
                     if (vodData.success && vodData.vod) {
                         // 1. Affiche la VOD SANS LANCER L'ANALYSE IA
                         // NOTE: Le backend renvoie déjà l'URL de la miniature VOD formatée.
+                        const fixedThumbnailUrl = vodData.vod.thumbnail_url
+                            .replace('{width}', '320') 
+                            .replace('{height}', '180');
                         boxVod.innerHTML = `
                             <div style="font-weight:bold; color:var(--color-ai-repurpose); margin-bottom:5px;">VOD Récente: ${vodData.vod.title.substring(0,40)}...</div>
-                            <img id="vod-thumbnail" src="${vodData.vod.thumbnail_url}" style="width:100%; border-radius:4px;">
+                            <img id="vod-thumbnail" src="${fixedThumbnailUrl}" style="width:100%; border-radius:4px;">
                             <button onclick="launchPlayer('${u.login}', '${vodData.vod.id}')" class="btn-primary" style="width:100%; margin-top:5px; margin-bottom:10px; font-size:10px; background:#6441a5;">VOIR VOD</button>
                             <div id="vod-analysis-placeholder" class='mt-2' style="min-height: 100px;"> 
                                 <p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA des moments clés en cours...</p> 
@@ -764,9 +766,22 @@
 
     // --- GESTION DES ÉVÉNEMENTS ---
 
-    // 1. Bouton de Connexion Twitch
-    document.getElementById('btn-twitch-login').addEventListener('click', () => {
-        window.location.href = `${API_BASE}/twitch_auth_start`;
+    // 1. Bouton de Connexion Twitch (CORRECTION APPLIQUÉE ICI pour utiliser un POP-UP)
+    document.getElementById('btn-twitch-login').addEventListener('click', (e) => {
+        e.preventDefault(); 
+        
+        const authUrl = `${API_BASE}/twitch_auth_start`;
+        
+        // Paramètres pour centrer la pop-up
+        const width = 600;
+        const height = 700;
+        const left = (window.screen.width / 2) - (width / 2);
+        const top = (window.screen.height / 2) - (height / 2);
+        
+        // Ouvre la nouvelle fenêtre
+        window.open(authUrl, 'TwitchAuth', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`);
+        
+        // IMPORTANT: L'utilisateur pourrait avoir besoin d'autoriser la pop-up s'il est bloqué.
     });
 
     // 2. Formulaire de scan global
