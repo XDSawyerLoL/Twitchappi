@@ -215,6 +215,18 @@
 
         /* Media Queries */
         @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
+
+        /* NOUVEAU STYLE: Message de succès de connexion */
+        .success-message {
+            padding: 10px;
+            background: var(--color-ai-niche);
+            color: var(--color-bg-dark);
+            text-align: center;
+            font-weight: bold;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 15px rgba(89, 214, 130, 0.6);
+        }
     </style>
 </head>
 <body>
@@ -222,6 +234,8 @@
 <div id="twitch-lucky-main">
     <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V15 (Cockpit)</h1>
     <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Action</div>
+
+    <div id="connection-status-banner"></div>
 
     <div class="tabs-nav-container">
         <div class="flex flex-wrap flex-tabs">
@@ -370,6 +384,22 @@
                ? Number(value).toLocaleString('fr-FR') 
                : value.toString().toUpperCase();
     };
+
+    // NOUVELLE FONCTION: Vérifie les paramètres d'URL pour le succès
+    function checkConnectionSuccess() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('connected') === 'true') {
+            const banner = document.getElementById('connection-status-banner');
+            banner.innerHTML = `<div class="success-message"><i class="fas fa-check-circle"></i> Connexion Twitch établie avec succès ! Vous pouvez maintenant voir vos chaînes suivies.</div>`;
+            
+            // Nettoyer l'URL après 5 secondes pour ne pas conserver le message
+            setTimeout(() => {
+                const newUrl = window.location.href.split('?')[0];
+                window.history.replaceState(null, null, newUrl);
+                banner.innerHTML = '';
+            }, 5000);
+        }
+    }
 
 
     // --- LECTEUR (CORRECTION TWITCH) ---
@@ -726,7 +756,12 @@
             
             if (!statusData.is_connected) {
                 list.innerHTML = "<p style='color:#555; text-align:center;'>Connectez-vous pour voir vos favoris.</p>";
+                // Si déconnecté, on peut masquer le bouton d'export
+                document.getElementById('btn-export-pdf').disabled = true;
                 return;
+            } else {
+                // Si connecté, on peut réactiver le bouton d'export
+                document.getElementById('btn-export-pdf').disabled = false;
             }
 
             const res = await fetch(`${API_BASE}/followed_streams`);
@@ -766,7 +801,7 @@
 
     // --- GESTION DES ÉVÉNEMENTS ---
 
-    // 1. Bouton de Connexion Twitch (CORRECTION APPLIQUÉE ICI pour utiliser un POP-UP)
+    // 1. Bouton de Connexion Twitch (Utilisation de Pop-up pour rester sur la page)
     document.getElementById('btn-twitch-login').addEventListener('click', (e) => {
         e.preventDefault(); 
         
@@ -780,8 +815,6 @@
         
         // Ouvre la nouvelle fenêtre
         window.open(authUrl, 'TwitchAuth', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`);
-        
-        // IMPORTANT: L'utilisateur pourrait avoir besoin d'autoriser la pop-up s'il est bloqué.
     });
 
     // 2. Formulaire de scan global
@@ -900,9 +933,13 @@
 
     // --- INITIALISATION ---
     window.onload = () => {
-        // Lance le lecteur par défaut (Auto-Discovery ou Boost)
+        // 1. Vérifie si le rafraîchissement provient d'une connexion réussie
+        checkConnectionSuccess();
+        
+        // 2. Lance le lecteur par défaut (Auto-Discovery ou Boost)
         checkBoostAndPlay(); 
-        // Onglet par défaut
+        
+        // 3. Onglet par défaut
         openTab('tab-followed'); 
     };
 </script>
