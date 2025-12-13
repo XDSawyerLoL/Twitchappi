@@ -341,11 +341,11 @@
 <script>
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch';
-    // FIX: Durée du cycle automatique à 3 minutes minimum.
+    // Durée du cycle automatique à 3 minutes minimum.
     const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000; // 3 minutes (180 000 ms)
     let embed = null;
-    let autoCycleTimer = null; // Timer pour le cycle réel de 3 minutes
-    let countdownInterval = null; // Nouveau : Timer pour l'affichage du compte à rebours
+    let autoCycleTimer = null; 
+    let countdownInterval = null; 
     let boostTimeout = null; 
 
     // --- GESTION ONGLETS ---
@@ -397,7 +397,8 @@
         }
 
         embed = new Twitch.Embed("twitch-embed", config);
-        document.getElementById('input-channel').value = channelName;
+        // FIX: Suppression de la mise à jour du champ d'entrée manuelle pour éviter le "twitch" inutile.
+        // document.getElementById('input-channel').value = channelName; 
     }
 
     // Logique du Lecteur par Défaut / Boost (DÉCLENCHE LE CYCLE AUTOMATIQUE)
@@ -447,7 +448,7 @@
                     
                     let secondsLeft = AUTO_CYCLE_DURATION_MS / 1000;
                     
-                    // Fonction de mise à jour du timer (appelée toutes les secondes) (FIX Bug 3)
+                    // Fonction de mise à jour du timer (appelée toutes les secondes)
                     const updateTimer = () => {
                         const minutes = Math.floor(secondsLeft / 60);
                         const seconds = secondsLeft % 60;
@@ -468,7 +469,7 @@
                     // Démarrer le timer d'affichage (toutes les secondes)
                     countdownInterval = setInterval(updateTimer, 1000);
                     
-                    // Démarrer le timer de 3 minutes pour le cycle AUTOMATIQUE (FIX Bug 3)
+                    // Démarrer le timer de 3 minutes pour le cycle AUTOMATIQUE
                     autoCycleTimer = setInterval(() => {
                         // C'est le cycle réel, il force un changement de stream
                         cycleStream('next'); 
@@ -477,13 +478,14 @@
             } else {
                 // Fallback si l'API ne trouve rien ou erreur
                 launchPlayer(data.channel || DEFAULT_CHANNEL); 
-                playerStatusEl.innerHTML = `⚠️ Fallback: ${data.message || 'Erreur de récupération lors du premier chargement.'}`;
+                // FIX: Afficher uniquement le message du backend pour éviter la double-inclusion du préfixe "⚠️ Fallback: "
+                playerStatusEl.innerHTML = data.message || `⚠️ Fallback: Erreur de récupération lors du premier chargement.`;
                 btnPrev.disabled = true;
                 btnNext.disabled = true;
             }
         } catch (e) {
             console.error("Erreur dans la boucle du lecteur:", e.message);
-            // FIX: Assurer que le player s'initialise même en cas d'erreur API (Bug 2)
+            // Assurer que le player s'initialise même en cas d'erreur API (Bug 2)
             launchPlayer(DEFAULT_CHANNEL); 
             playerStatusEl.innerHTML = `❌ Erreur du Système. Rechargement manuel recommandé: ${e.message.substring(0, 50)}...`;
             btnPrev.disabled = true;
@@ -502,7 +504,7 @@
         btnNext.disabled = true;
         playerStatusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Changement de chaîne...`;
 
-        // Stopper les timers existants pour éviter un nouveau déclenchement pendant le cycle (FIX Bug 3)
+        // Stopper les timers existants pour éviter un nouveau déclenchement pendant le cycle
         if (autoCycleTimer) clearInterval(autoCycleTimer);
         if (countdownInterval) clearInterval(countdownInterval); 
 
@@ -797,7 +799,7 @@
             document.getElementById('player-channel-status').innerHTML = `Chaîne chargée manuellement: ${channel}`;
             // Arrêter la rotation automatique en mode manuel
             if (autoCycleTimer) clearInterval(autoCycleTimer);
-            if (countdownInterval) clearInterval(countdownInterval); // FIX
+            if (countdownInterval) clearInterval(countdownInterval); 
             document.getElementById('btn-prev-stream').disabled = true;
             document.getElementById('btn-next-stream').disabled = true;
         }
