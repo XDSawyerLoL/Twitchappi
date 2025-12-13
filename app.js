@@ -467,15 +467,14 @@ async function refreshGlobalStreamList() {
         return;
     }
     
-    // Changement de la plage dans le message pour refléter la nouvelle limite (150)
     console.log("DEBUG: Rafraîchissement de la liste de streams 0-150...");
     
     try {
-        // FIX APPLIQUÉ: Augmenter le nombre de streams (first=500) pour avoir plus de chance de trouver des chaînes à faibles vues.
+        // Recherche sur les 500 premiers streams français pour maximiser les chances de trouver des petits streamers
         const data = await twitchApiFetch(`streams?language=fr&first=500`); 
         const allStreams = data.data;
 
-        // FIX APPLIQUÉ: Changer la limite supérieure à 150 (comme demandé par l'utilisateur)
+        // Filtrage pour les streams entre 1 et 150 vues
         const suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 150); 
 
         if (suitableStreams.length > 0) {
@@ -520,13 +519,13 @@ app.get('/get_default_stream', async (req, res) => {
     const rotation = CACHE.globalStreamRotation;
     
     if (rotation.streams.length === 0) {
+        // FIX APPLIQUÉ: channel: '' au lieu de 'twitch' en cas d'échec
         return res.json({ 
-            // Message mis à jour pour refléter la nouvelle limite (150)
             success: false, 
             error: "Aucun stream 1-150 vues trouvé dans les top 500.",
-            channel: 'twitch',
+            channel: '', // Chaîne vide pour ne rien charger
             viewers: 0,
-            message: `⚠️ Fallback: Aucun stream trouvé. Charge la chaîne 'twitch'.`
+            message: `⚠️ Aucun stream de niche (1-150 vues) trouvé pour la rotation.`
         });
     }
 
@@ -537,7 +536,6 @@ app.get('/get_default_stream', async (req, res) => {
         success: true, 
         channel: currentStream.channel,
         viewers: currentStream.viewers,
-        // Message mis à jour pour refléter la nouvelle limite (150)
         message: `✅ Auto-Discovery: ${currentStream.channel} (${currentStream.viewers} vues) - Stream ${rotation.currentIndex + 1}/${rotation.streams.length}`
     });
 });
@@ -554,7 +552,6 @@ app.post('/cycle_stream', async (req, res) => {
     const rotation = CACHE.globalStreamRotation;
 
     if (rotation.streams.length === 0) {
-        // Message mis à jour pour refléter la nouvelle limite (150)
         return res.status(404).json({ success: false, error: "Aucune chaîne disponible pour la rotation (liste 0-150 vide)." });
     }
 
@@ -575,7 +572,6 @@ app.post('/cycle_stream', async (req, res) => {
         success: true, 
         channel: newStream.channel, 
         viewers: newStream.viewers,
-        // Message mis à jour pour refléter la nouvelle limite (150)
         message: `Passage à Auto-Discovery: ${newStream.channel} (${newStream.viewers} vues) - Stream ${newIndex + 1}/${rotation.streams.length}`
     });
 });
