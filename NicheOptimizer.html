@@ -364,8 +364,10 @@
     // --- UTILS ---
     const safeFormat = (value) => { 
         if (value === 'N/A' || typeof value === 'undefined' || value === null) {
+            // Si le backend n'a pas pu récupérer la valeur, on reste sur N/A (cas d'erreur)
             return 'N/A';
         }
+        // Sinon, on formate en tant que nombre ou on laisse tel quel (pour les dates, etc.)
         return (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) 
                ? Number(value).toLocaleString('fr-FR') 
                : value.toString().toUpperCase();
