@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streamer & Niche AI Hub - COCKPIT MODE (V15 - Final)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
@@ -340,7 +340,7 @@
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
-    const DEFAULT_CHANNEL = ''; // CORRECTION: Chaîne vide pour éviter de charger 'twitch' par défaut
+    const DEFAULT_CHANNEL = 'twitch';
     // FIX: Durée du cycle automatique à 3 minutes minimum.
     const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000; // 3 minutes (180 000 ms)
     let embed = null;
@@ -718,7 +718,11 @@
                 return;
             }
 
-            const res = await fetch(`${API_BASE}/followed_streams`);
+            // --- CORRECTION APPLIQUÉE ICI ---
+            // Ajout du paramètre 'first=100' pour s'assurer que si le backend l'utilise, il est valide (entier).
+            const res = await fetch(`${API_BASE}/followed_streams?first=100`); 
+            // ---------------------------------
+            
             if (!res.ok) throw new Error("Erreur de l'API Backend.");
             const data = await res.json();
             
