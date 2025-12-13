@@ -374,6 +374,13 @@
 
     // --- LECTEUR ---
     window.launchPlayer = function(channelName, videoId = null, time = 0) {
+        // Validation pour éviter l'erreur "A channel, video, or collection id must be provided"
+        if (!channelName && !videoId) {
+            console.error("Erreur du Lecteur: channelName et videoId sont manquants.");
+            document.getElementById('twitch-embed').innerHTML = '<div style="color:red; text-align:center; padding-top:20%;">ERREUR: Chaîne ou VOD invalide.</div>';
+            return;
+        }
+
         if (embed && embed.getChannel() === channelName && !videoId) {
             return;
         }
@@ -436,26 +443,21 @@
             const data = await res.json();
             
             if (data.success) {
-                const { channel, viewers, message } = data;
-                launchPlayer(channel);
+                // CORRECTION CRITIQUE: Utiliser les noms de champs corrects (channel_name, title)
+                const channelName = data.channel_name; 
+                const statusTitle = data.title;
                 
-                if (viewers === 'BOOST') {
+                launchPlayer(channelName);
+                
+                // Détection simplifiée du Boost
+                if (statusTitle && statusTitle.includes('⚡ BOOST')) {
                     // Mode BOOST
                     btnPrev.disabled = true;
                     btnNext.disabled = true;
                     localStorage.removeItem('lastCycleTime'); // Pas de cycle auto en mode Boost
                     
-                    const checkBoostRes = await fetch(`${API_BASE}/check_boost_status`);
-                    const boostStatus = await checkBoostRes.json();
-                    
-                    if (boostStatus.is_boosted) {
-                         if (boostTimeout) clearTimeout(boostTimeout);
-                         // Planifier le retour à l'Auto-Discovery après l'expiration du boost
-                         boostTimeout = setTimeout(() => {
-                            checkBoostAndPlay(); 
-                         }, (boostStatus.remaining_seconds * 1000) + 2000); 
-                    }
-                    playerStatusEl.innerHTML = message;
+                    // On affiche simplement le statut fourni par le serveur (qui inclut le nom de la chaîne boostée)
+                    playerStatusEl.innerHTML = statusTitle;
 
                 } else {
                     // Mode Auto-Discovery
@@ -463,7 +465,7 @@
                     btnNext.disabled = false;
                     
                     // Mettre à jour l'affichage avec le message + un espace pour le timer
-                    playerStatusEl.innerHTML = `${message} <span id="timer-display" style="margin-left:10px; color:var(--color-ai-niche);"></span>`;
+                    playerStatusEl.innerHTML = `${statusTitle} <span id="timer-display" style="margin-left:10px; color:var(--color-ai-niche);"></span>`;
                     const timerDisplayEl = document.getElementById('timer-display');
                     
                     // Fonction de mise à jour du timer (appelée toutes les secondes)
@@ -486,7 +488,7 @@
                     // Démarrer le timer d'affichage (toutes les secondes)
                     countdownInterval = setInterval(updateTimer, 1000);
                     
-                    // Démarrer le timer de N minutes pour le cycle AUTOMATIQUE (FIX 4: utilise le temps restant calculé)
+                    // Démarrer le timer de N minutes pour le cycle AUTOMATIQUE 
                     const actualDelay = secondsLeft * 1000;
                     if (actualDelay > 0) {
                         autoCycleTimer = setTimeout(() => {
@@ -498,8 +500,9 @@
                     }
                 }
             } else {
-                launchPlayer(data.channel || DEFAULT_CHANNEL); 
-                playerStatusEl.innerHTML = `⚠️ ${data.message || 'Erreur de récupération lors du premier chargement.'}`;
+                // Utiliser channel_name ou data.channel (si le backend n'a pas été corrigé)
+                launchPlayer(data.channel_name || data.channel || DEFAULT_CHANNEL); 
+                playerStatusEl.innerHTML = `⚠️ ${data.title || data.message || 'Erreur de récupération lors du premier chargement.'}`;
                 btnPrev.disabled = true;
                 btnNext.disabled = true;
             }
@@ -526,6 +529,7 @@
         if (countdownInterval) clearInterval(countdownInterval); 
 
         try {
+            // NOTE: Le code du serveur a besoin d'être mis à jour pour que cette route cycle correctement
             const res = await fetch(`${API_BASE}/cycle_stream`, {
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
@@ -540,8 +544,9 @@
             const data = await res.json();
             
             if (data.success) {
-                launchPlayer(data.channel);
-                // FIX 1: Enregistrer le temps du cycle réussi
+                // CORRECTION ICI: Utiliser data.channel_name si le backend a été corrigé pour uniformiser, sinon data.channel
+                launchPlayer(data.channel_name || data.channel);
+                // Enregistrer le temps du cycle réussi
                 localStorage.setItem('lastCycleTime', Date.now()); 
             } else {
                 throw new Error(data.error || 'Erreur inconnue.');
@@ -804,6 +809,8 @@
         if (query) {
             document.getElementById('btn-global-scan').disabled = true;
             document.getElementById('btn-global-scan').innerHTML = '<i class="fas fa-sync fa-spin"></i> ANALYSE EN COURS...';
+            // Stocker la dernière requête pour l'export 
+            localStorage.setItem('lastScanQuery', query);
             await runGlobalScan(query);
         }
     });
@@ -906,7 +913,8 @@
 
     // 6. Export CSV
     document.getElementById('btn-export-pdf').addEventListener('click', () => {
-        window.open(`${API_BASE}/export_csv`, '_blank');
+        // La méthode la plus simple pour télécharger le fichier via le backend.
+        window.open(`${API_BASE}/export_csv`, '_blank'); 
         const resBox = document.getElementById('pdf-export-results');
         resBox.innerHTML = `<p style="color:var(--color-ai-growth);">✅ Export CSV téléchargé (basé sur le dernier Scan).</p>`;
     });
