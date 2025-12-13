@@ -484,9 +484,10 @@ app.get('/get_default_stream', async (req, res) => {
     const rotation = CACHE.globalStreamRotation;
     
     if (rotation.streams.length === 0) {
-        // --- DEBUT DU CORRECTIF ---
+        // --- DÉBUT DU CORRECTIF ---
+        // FIX : On renvoie success: true pour que le front-end lance le lecteur de repli.
         return res.json({ 
-            success: true, // Corrigé : Doit être 'true' pour que le client lance le lecteur par défaut.
+            success: true, // Ceci était 'false' et causait le non-chargement du lecteur.
             error: "Aucun stream 1-100 vues trouvé dans les top 100. Passage au fallback.", 
             channel: 'twitch',
             viewers: 0,
