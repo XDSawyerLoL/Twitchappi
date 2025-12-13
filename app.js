@@ -56,7 +56,7 @@ const CACHE = {
     
     // Rotation globale
     globalStreamRotation: {
-        streams: [],    // Liste des streams 0-100
+        streams: [],    // Liste des streams 0-150
         currentIndex: 0,
         lastFetchTime: 0,
         fetchCooldown: 15 * 60 * 1000 // Refetch streams every 15 minutes
@@ -225,10 +225,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 expiry: Date.now() + (tokenData.expires_in * 1000)
             };
             
-            // ==========================================================
-            // --- DÉBUT DE LA MODIFICATION POUR LA FERMETURE DU POP-UP ---
-            // ==========================================================
-            
             // 1. Nettoyer le cookie d'état
             res.clearCookie('twitch_state');
             
@@ -254,10 +250,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 </body>
                 </html>
             `);
-            
-            // ==========================================================
-            // --- FIN DE LA MODIFICATION ---
-            // ==========================================================
             
         } else {
             console.error("=========================================================");
@@ -395,7 +387,6 @@ app.post('/scan_target', async (req, res) => {
             } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
 
             // Données supplémentaires réelles
-            // CORRIGÉ: Conserve 0 vues au lieu de 'N/A'
             const totalViews = (user.view_count !== undefined && user.view_count !== null) ? user.view_count : 'N/A'; 
             
             const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A'; 
@@ -465,7 +456,7 @@ app.post('/scan_target', async (req, res) => {
 });
 
 // =========================================================
-// --- LOGIQUE POUR LA ROTATION GLOBALE (0-100 VUES) ---
+// --- LOGIQUE POUR LA ROTATION GLOBALE (0-150 VUES) ---
 // =========================================================
 
 async function refreshGlobalStreamList() {
@@ -476,13 +467,16 @@ async function refreshGlobalStreamList() {
         return;
     }
     
-    console.log("DEBUG: Rafraîchissement de la liste de streams 0-100...");
+    // Changement de la plage dans le message pour refléter la nouvelle limite (150)
+    console.log("DEBUG: Rafraîchissement de la liste de streams 0-150...");
     
     try {
-        const data = await twitchApiFetch(`streams?language=fr&first=100`);
+        // FIX APPLIQUÉ: Augmenter le nombre de streams (first=500) pour avoir plus de chance de trouver des chaînes à faibles vues.
+        const data = await twitchApiFetch(`streams?language=fr&first=500`); 
         const allStreams = data.data;
 
-        const suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
+        // FIX APPLIQUÉ: Changer la limite supérieure à 150 (comme demandé par l'utilisateur)
+        const suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 150); 
 
         if (suitableStreams.length > 0) {
             rotation.streams = suitableStreams.map(s => ({ 
@@ -492,7 +486,7 @@ async function refreshGlobalStreamList() {
             // S'assurer que l'index n'est pas hors limites après le rafraîchissement
             rotation.currentIndex = rotation.currentIndex % rotation.streams.length;
             rotation.lastFetchTime = now;
-            console.log(`DEBUG: ${rotation.streams.length} streams 0-100 mis en cache.`);
+            console.log(`DEBUG: ${rotation.streams.length} streams 0-150 mis en cache.`);
         } else {
              rotation.streams = [];
              rotation.currentIndex = 0;
@@ -500,7 +494,7 @@ async function refreshGlobalStreamList() {
         }
         
     } catch (e) {
-        console.error("Erreur lors du rafraîchissement de la liste de streams 0-100:", e.message);
+        console.error("Erreur lors du rafraîchissement de la liste de streams 0-150:", e.message);
     }
 }
 
@@ -527,8 +521,9 @@ app.get('/get_default_stream', async (req, res) => {
     
     if (rotation.streams.length === 0) {
         return res.json({ 
+            // Message mis à jour pour refléter la nouvelle limite (150)
             success: false, 
-            error: "Aucun stream 1-100 vues trouvé dans les top 100.",
+            error: "Aucun stream 1-150 vues trouvé dans les top 500.",
             channel: 'twitch',
             viewers: 0,
             message: `⚠️ Fallback: Aucun stream trouvé. Charge la chaîne 'twitch'.`
@@ -542,6 +537,7 @@ app.get('/get_default_stream', async (req, res) => {
         success: true, 
         channel: currentStream.channel,
         viewers: currentStream.viewers,
+        // Message mis à jour pour refléter la nouvelle limite (150)
         message: `✅ Auto-Discovery: ${currentStream.channel} (${currentStream.viewers} vues) - Stream ${rotation.currentIndex + 1}/${rotation.streams.length}`
     });
 });
@@ -558,7 +554,8 @@ app.post('/cycle_stream', async (req, res) => {
     const rotation = CACHE.globalStreamRotation;
 
     if (rotation.streams.length === 0) {
-        return res.status(404).json({ success: false, error: "Aucune chaîne disponible pour la rotation (liste 0-100 vide)." });
+        // Message mis à jour pour refléter la nouvelle limite (150)
+        return res.status(404).json({ success: false, error: "Aucune chaîne disponible pour la rotation (liste 0-150 vide)." });
     }
 
     let newIndex = rotation.currentIndex;
@@ -578,6 +575,7 @@ app.post('/cycle_stream', async (req, res) => {
         success: true, 
         channel: newStream.channel, 
         viewers: newStream.viewers,
+        // Message mis à jour pour refléter la nouvelle limite (150)
         message: `Passage à Auto-Discovery: ${newStream.channel} (${newStream.viewers} vues) - Stream ${newIndex + 1}/${rotation.streams.length}`
     });
 });
