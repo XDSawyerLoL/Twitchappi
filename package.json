@@ -7,23 +7,19 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "node-fetch": "^2.7.0",       
+    "node-fetch": "^2.7.0",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "@google/genai": "^0.15.0",    
-    "csv-stringify": "^6.4.6",     
-    "markdown-it": "^14.1.0"      
-    
-
-    // "express-session": "^1.18.0",
-    // "firebase-admin": "^12.1.0", 
-    // "dotenv": "^16.4.5"
+    "@google/genai": "^0.15.0",
+    "csv-stringify": "^6.4.6",
+    "markdown-it": "^14.1.0"
   },
   "engines": {
-    "node": ">=20.0.0"            
+    "node": ">=20.0.0"
   }
 }
+
 
 
 
