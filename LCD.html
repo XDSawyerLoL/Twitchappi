@@ -6,30 +6,55 @@
     <title>Lecteur Micro-Niche (0-50 Vues) Auto-Cycle</title>
     <script src="https://embed.twitch.tv/embed/v1.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
     <style>
         /* Styles pour un lecteur immersif */
-        :root { --color-bg-dark: #0d0d0d; --color-ai-niche: #59d682; }
+        :root { 
+            --color-bg-dark: #0d0d0d; 
+            --color-ai-niche: #59d682; /* Vert pour la niche */
+            --color-twitch: #6441a5; 
+        }
+        
+        /* Conteneurs principaux */
         html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%; 
-            overflow: hidden; background-color: var(--color-bg-dark); 
-            color: white; font-family: sans-serif;
+            margin: 0; padding: 0; 
+            height: 100%; width: 100%; 
+            overflow: hidden; 
+            background-color: var(--color-bg-dark); 
+            color: white; 
+            font-family: sans-serif;
         }
+        
+        /* Barre supérieure */
         .player-header {
-            background-color: #1a1a1a; padding: 5px 10px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5); height: 40px; 
+            background-color: #1a1a1a; 
+            padding: 5px 10px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5); 
+            height: 40px; 
         }
+        
+        /* Titre */
         .player-title { 
-            font-size: 14px; color: var(--color-ai-niche); 
-            font-weight: bold; margin: 0;
+            font-size: 14px; 
+            color: var(--color-ai-niche); 
+            font-weight: bold; 
+            margin: 0;
         }
+        
+        /* Statut et Compteur */
         #player-status {
             font-size: 12px;
             color: #ddd;
         }
+        
+        /* Lecteur Twitch */
         #twitch-embed {
             width: 100%;
-            height: calc(100% - 40px); /* Hauteur moins le header */
+            /* Hauteur totale moins la hauteur du header (40px) */
+            height: calc(100% - 40px); 
             border-radius: 0;
         }
     </style>
@@ -87,7 +112,7 @@
             width: "100%", 
             height: "100%", 
             channel: channelName,
-            layout: "video", 
+            layout: "video", // Mode sans chat
             parent: parentList 
         };
 
@@ -102,14 +127,14 @@
         
         let statusMessage = '';
         if (currentChannel) {
-            statusMessage = `<i class='fas fa-tv' style='color:#ff0099;'></i> ${currentChannel.toUpperCase()} | `;
+            statusMessage = `<i class='fas fa-tv' style='color:var(--color-ai-niche);'></i> ${currentChannel.toUpperCase()} | `;
         }
         
         statusMessage += `Prochain cycle: ${minutes}m ${seconds}s`;
         statusEl.innerHTML = statusMessage;
     }
 
-    // --- Fonction de Cycle Automatique ---
+    // --- Fonction de Cycle Automatique (le cœur de l'app) ---
     async function startCycle() {
         const statusEl = document.getElementById('player-status');
         
@@ -120,7 +145,7 @@
         statusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Recherche micro-niche...`;
 
         try {
-            // L'API est appelée avec le filtre 0-50 viewers
+            // APPEL API au backend Render
             const res = await fetch(`${API_BASE}/get_micro_niche_stream_cycle?min_viewers=0&max_viewers=50`); 
             
             if (!res.ok) {
@@ -133,13 +158,13 @@
             if (data.success && data.channel) {
                 launchPlayer(data.channel);
             } else {
+                // Si l'API répond OK mais ne trouve aucun streamer 0-50
                 launchPlayer(DEFAULT_CHANNEL);
                 throw new Error(data.message || "Aucune chaîne dans la niche 0-50 trouvée. Lancement par défaut.");
             }
         } catch (e) {
             console.error("Échec de la recherche de micro-niche:", e.message);
-            // Afficher l'erreur mais continuer
-            // Si launchPlayer a réussi (dans le cas où il n'y a pas de streamer 0-50), le statut est mis à jour plus tard
+            // Fallback si l'API échoue totalement (et si la chaîne n'a pas été lancée)
             if (!currentChannel) launchPlayer(DEFAULT_CHANNEL); 
             statusEl.innerHTML = `<i class='fas fa-exclamation-triangle' style='color:red;'></i> Erreur: ${e.message}`;
         } finally {
