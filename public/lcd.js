@@ -1,5 +1,7 @@
+// server.js ou app.js
+
 // ===================================================================
-// 1. DÉPENDANCES ET INITIALISATION D'EXPRESS
+// 1. DÉPENDANCES ET INITIALISATION
 // ===================================================================
 const express = require('express');
 const axios = require('axios');
@@ -9,8 +11,7 @@ const app = express();
 const TWITCH_API_URL = 'https://api.twitch.tv/helix';
 
 // ===================================================================
-// 2. MIDDLEWARE : SERVICE DES FICHIERS STATIQUES (RÉSOLUTION DU 404/MIME TYPE)
-// CECI DOIT ÊTRE PLACÉ IMMÉDIATEMENT APRÈS L'INITIALISATION DE 'app'
+// 2. MIDDLEWARE : SERVICE DES FICHIERS STATIQUES (SOLUTION 404/MIME TYPE)
 // ===================================================================
 
 // Rend accessibles LCD.html et LCD.js depuis le dossier 'public'
@@ -18,7 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 console.log(`Fichiers statiques servis depuis: ${path.join(__dirname, 'public')}`);
 
 // ===================================================================
-// 3. LOGIQUE D'AUTHENTIFICATION ET ROUTE D'API (LE BACKEND)
+// 3. LOGIQUE D'AUTHENTIFICATION ET ROUTE D'API
 // ===================================================================
 
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID_TWITCH';
@@ -40,7 +41,7 @@ const getTwitchAccessToken = async () => {
     }
 };
 
-// Route pour la découverte de la micro-niche
+// Route pour la découverte de la micro-niche (appelée par LCD.js)
 app.get('/get_micro_niche_stream_cycle', async (req, res) => {
     
     const minViewers = 0;
@@ -57,7 +58,6 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
             'Authorization': `Bearer ${accessToken}`,
         };
         
-        // Appel à l'API Twitch
         const streamsResponse = await axios.get(`${TWITCH_API_URL}/streams`, {
             headers: headers,
             params: { first: 100 }
@@ -65,7 +65,6 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
 
         const streams = streamsResponse.data.data;
         
-        // Filtrage des streams 0-50
         const microNicheStreams = streams.filter(stream => {
             return stream.viewer_count >= minViewers && stream.viewer_count <= maxViewers;
         });
@@ -74,7 +73,6 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
             return res.json({ success: false, message: "Aucun streamer trouvé dans l'échantillon 0-50." });
         }
 
-        // Sélection aléatoire
         const randomIndex = Math.floor(Math.random() * microNicheStreams.length);
         const targetStream = microNicheStreams[randomIndex];
         
