@@ -9,23 +9,48 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
     <style>
-        :root { --color-bg-dark: #0d0d0d; --color-ai-niche: #59d682; }
+        /* Styles pour un lecteur immersif */
+        :root { 
+            --color-bg-dark: #0d0d0d; 
+            --color-ai-niche: #59d682; 
+        }
+        
         html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%; 
-            overflow: hidden; background-color: var(--color-bg-dark); 
-            color: white; font-family: sans-serif;
+            margin: 0; padding: 0; 
+            height: 100%; width: 100%; 
+            overflow: hidden; 
+            background-color: var(--color-bg-dark); 
+            color: white; 
+            font-family: sans-serif;
         }
+        
         .player-header {
-            background-color: #1a1a1a; padding: 5px 10px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5); height: 40px; 
+            background-color: #1a1a1a; 
+            padding: 5px 10px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5); 
+            height: 40px; 
         }
+        
         .player-title { 
-            font-size: 14px; color: var(--color-ai-niche); 
-            font-weight: bold; margin: 0;
+            font-size: 14px; 
+            color: var(--color-ai-niche); 
+            font-weight: bold; 
+            margin: 0;
         }
-        #player-status { font-size: 12px; color: #ddd; }
-        #twitch-embed { width: 100%; height: calc(100% - 40px); border-radius: 0; }
+        
+        #player-status {
+            font-size: 12px;
+            color: #ddd;
+        }
+        
+        #twitch-embed {
+            width: 100%;
+            height: calc(100% - 40px); 
+            border-radius: 0;
+        }
     </style>
 </head>
 <body>
