@@ -41,10 +41,13 @@ function launchPlayer(channelName) {
         parent: parentList 
     };
 
-    embed = new Twitch.Embed("twitch-embed", config);
+    // Assurez-vous que Twitch est défini (vérifié dans window.onload)
+    if (typeof Twitch !== 'undefined') {
+        embed = new Twitch.Embed("twitch-embed", config);
+    }
 }
 
-// --- 2. Fonction de Mise à Jour du Compteur ---
+// --- 2. Fonction de Mise à Jour du Compteur (Correction de la variable CSS) ---
 function updateCountdownDisplay(secondsLeft) {
     const statusEl = document.getElementById('player-status');
     const minutes = Math.floor(secondsLeft / 60);
@@ -52,7 +55,8 @@ function updateCountdownDisplay(secondsLeft) {
     
     let statusMessage = '';
     if (currentChannel) {
-        statusMessage = `<i class='fas fa-tv' style='color:var(--color-ai-niche);'></i> ${currentChannel.toUpperCase()} | `;
+        // Utilisation du code hexadécimal direct pour éviter les problèmes de CSS variable
+        statusMessage = `<i class='fas fa-tv' style='color:#59d682;'></i> ${currentChannel.toUpperCase()} | `; 
     }
     
     statusMessage += `Prochain cycle: ${minutes}m ${seconds}s`;
@@ -67,7 +71,8 @@ async function startCycle() {
     if (autoCycleTimer) clearInterval(autoCycleTimer);
     if (countdownTimer) clearInterval(countdownTimer);
 
-    statusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Recherche micro-niche...`;
+    // Ceci ne s'affichera que si le code a réussi l'initialisation de base
+    statusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Recherche micro-niche...`; 
 
     try {
         // APPEL API au backend Render
@@ -111,7 +116,7 @@ async function startCycle() {
     }
 }
 
-// --- INITIALISATION (S'exécute lorsque la page est chargée) ---
+// --- INITIALISATION ---
 window.onload = () => {
     // Vérifie si la librairie Twitch Embed est chargée
     if (typeof Twitch === 'undefined') {
