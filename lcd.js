@@ -11,43 +11,27 @@ let currentChannel = null;
 // --- 1. Fonction de Lancement du Lecteur ---
 function launchPlayer(channelName) {
     if (embed && embed.getChannel() === channelName) { return; }
-    
     currentChannel = channelName;
     
-    // DÉTERMINATION DES DOMAINES PARENTS (Essentiel pour Twitch Embed)
     const hostWithoutPort = window.location.hostname;
-    const parentList = [
-        hostWithoutPort, 
-        "localhost", 
-        "127.0.0.1", 
-        "justplayerstreamhubpro.onrender.com", 
-        "justplayer.fr" // Domaine cible
-    ];
-    
-    if (window.location.host.includes(':')) {
-        parentList.push(window.location.host); 
-    }
+    const parentList = [ hostWithoutPort, "localhost", "127.0.0.1", "justplayerstreamhubpro.onrender.com", "justplayer.fr" ];
+    if (window.location.host.includes(':')) { parentList.push(window.location.host); }
 
     const embedContainer = document.getElementById('twitch-embed');
     if (!embedContainer) { return; }
-    
     embedContainer.innerHTML = '';
 
     const config = { 
-        width: "100%", 
-        height: "100%", 
-        channel: channelName,
-        layout: "video", // Mode sans chat
-        parent: parentList 
+        width: "100%", height: "100%", channel: channelName,
+        layout: "video", parent: parentList 
     };
 
-    // Assurez-vous que Twitch est défini (vérifié dans window.onload)
     if (typeof Twitch !== 'undefined') {
         embed = new Twitch.Embed("twitch-embed", config);
     }
 }
 
-// --- 2. Fonction de Mise à Jour du Compteur (Correction de la variable CSS) ---
+// --- 2. Fonction de Mise à Jour du Compteur ---
 function updateCountdownDisplay(secondsLeft) {
     const statusEl = document.getElementById('player-status');
     const minutes = Math.floor(secondsLeft / 60);
@@ -55,7 +39,7 @@ function updateCountdownDisplay(secondsLeft) {
     
     let statusMessage = '';
     if (currentChannel) {
-        // Utilisation du code hexadécimal direct pour éviter les problèmes de CSS variable
+        // Utilisation du code hexadécimal direct (#59d682) pour éviter le blocage
         statusMessage = `<i class='fas fa-tv' style='color:#59d682;'></i> ${currentChannel.toUpperCase()} | `; 
     }
     
@@ -67,11 +51,9 @@ function updateCountdownDisplay(secondsLeft) {
 async function startCycle() {
     const statusEl = document.getElementById('player-status');
     
-    // 1. Arrêter les timers existants
     if (autoCycleTimer) clearInterval(autoCycleTimer);
     if (countdownTimer) clearInterval(countdownTimer);
 
-    // Ceci ne s'affichera que si le code a réussi l'initialisation de base
     statusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Recherche micro-niche...`; 
 
     try {
@@ -80,7 +62,7 @@ async function startCycle() {
         
         if (!res.ok) {
             const errorText = await res.text().catch(() => 'Erreur inconnue.');
-            throw new Error(`Serveur non disponible ou Erreur ${res.status}: ${errorText.substring(0, 50)}...`);
+            throw new Error(`Erreur ${res.status}: ${errorText.substring(0, 50)}...`);
         }
 
         const data = await res.json();
@@ -88,20 +70,18 @@ async function startCycle() {
         if (data.success && data.channel) {
             launchPlayer(data.channel);
         } else {
-            // Si l'API répond OK mais ne trouve aucun streamer 0-50
             launchPlayer(DEFAULT_CHANNEL);
             throw new Error(data.message || "Aucune chaîne dans la niche 0-50 trouvée. Lancement par défaut.");
         }
     } catch (e) {
         console.error("Échec de la recherche de micro-niche:", e.message);
-        // Fallback si l'API échoue totalement
         if (!currentChannel) launchPlayer(DEFAULT_CHANNEL); 
         statusEl.innerHTML = `<i class='fas fa-exclamation-triangle' style='color:red;'></i> Erreur: ${e.message}`;
     } finally {
-        // 4. Démarrer le timer de 3 minutes pour le cycle AUTOMATIQUE
+        // Démarrer le timer de 3 minutes pour le cycle AUTOMATIQUE
         autoCycleTimer = setInterval(startCycle, CYCLE_DURATION_MS);
         
-        // 5. Affichage du Compteur
+        // Affichage du Compteur
         let secondsLeft = CYCLE_DURATION_MS / 1000;
         updateCountdownDisplay(secondsLeft);
 
@@ -118,7 +98,6 @@ async function startCycle() {
 
 // --- INITIALISATION ---
 window.onload = () => {
-    // Vérifie si la librairie Twitch Embed est chargée
     if (typeof Twitch === 'undefined') {
         document.getElementById('player-status').innerHTML = 'Erreur: La librairie Twitch n\'a pas pu être chargée.';
         return;
