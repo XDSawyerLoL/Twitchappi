@@ -3,17 +3,17 @@
 // ===================================================================
 const express = require('express');
 const axios = require('axios');
-const path = require('path'); // Nécessaire pour gérer les chemins de fichiers statiques
+const path = require('path'); 
 
-const app = express(); // Initialisation de l'application Express
+const app = express(); 
 const TWITCH_API_URL = 'https://api.twitch.tv/helix';
 
 // ===================================================================
-// 2. MIDDLEWARE : SERVIR LES FICHIERS STATIQUES (LCD.html et LCD.js)
-// CECI DOIT ÊTRE PLACÉ AVANT TOUTE DÉFINITION DE ROUTE SPÉCIFIQUE
+// 2. MIDDLEWARE : SERVICE DES FICHIERS STATIQUES (RÉSOLUTION DU 404/MIME TYPE)
+// CECI DOIT ÊTRE PLACÉ IMMÉDIATEMENT APRÈS L'INITIALISATION DE 'app'
 // ===================================================================
 
-// Rend accessible le contenu du dossier 'public' sous la racine '/'
+// Rend accessibles LCD.html et LCD.js depuis le dossier 'public'
 app.use(express.static(path.join(__dirname, 'public'))); 
 console.log(`Fichiers statiques servis depuis: ${path.join(__dirname, 'public')}`);
 
@@ -23,6 +23,7 @@ console.log(`Fichiers statiques servis depuis: ${path.join(__dirname, 'public')}
 
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID_TWITCH';
 
+// Fonction pour obtenir un nouveau token d'accès Twitch (Client Credentials Flow)
 const getTwitchAccessToken = async () => {
     try {
         const tokenResponse = await axios.post('https://id.twitch.tv/oauth2/token', null, {
@@ -32,7 +33,6 @@ const getTwitchAccessToken = async () => {
                 grant_type: 'client_credentials'
             }
         });
-        // Renvoie le nouveau token d'accès
         return tokenResponse.data.access_token;
     } catch (error) {
         console.error("Échec de l'obtention du token Twitch:", error.response?.data || error.message);
@@ -49,7 +49,7 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
     try {
         const accessToken = await getTwitchAccessToken();
         if (!accessToken) {
-            return res.status(503).json({ success: false, message: "Service Twitch non disponible (Token manquant ou échec d'authentification)." });
+            return res.status(503).json({ success: false, message: "Service Twitch non disponible (Token manquant)." });
         }
 
         const headers = {
@@ -65,7 +65,7 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
 
         const streams = streamsResponse.data.data;
         
-        // Filtrage
+        // Filtrage des streams 0-50
         const microNicheStreams = streams.filter(stream => {
             return stream.viewer_count >= minViewers && stream.viewer_count <= maxViewers;
         });
