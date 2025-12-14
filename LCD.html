@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecteur Micro-Niche (0-50 Vues) Auto-Cycle</title>
+    <script src="https://embed.twitch.tv/embed/v1.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Styles pour un lecteur immersif */
+        :root { --color-bg-dark: #0d0d0d; --color-ai-niche: #59d682; }
+        html, body {
+            margin: 0; padding: 0; height: 100%; width: 100%; 
+            overflow: hidden; background-color: var(--color-bg-dark); 
+            color: white; font-family: sans-serif;
+        }
+        .player-header {
+            background-color: #1a1a1a; padding: 5px 10px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5); height: 40px; 
+        }
+        .player-title { 
+            font-size: 14px; color: var(--color-ai-niche); 
+            font-weight: bold; margin: 0;
+        }
+        #player-status {
+            font-size: 12px;
+            color: #ddd;
+        }
+        #twitch-embed {
+            width: 100%;
+            height: calc(100% - 40px); /* Hauteur moins le header */
+            border-radius: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="player-header">
+    <div class="player-title">
+        <span style="margin-right:6px;"><i class="fas fa-search-dollar"></i></span>
+        Micro-Niche (0-50 Vues) | Auto-Cycle
+    </div>
+    <div id="player-status">
+        <i class="fas fa-sync fa-spin"></i> Initialisation...
+    </div>
+</div>
+
+<div id="twitch-embed"></div>
+
+<script>
+    const API_BASE = window.location.origin;
+    const DEFAULT_CHANNEL = 'twitch'; 
+    const CYCLE_DURATION_MS = 3 * 60 * 1000; // 3 minutes
+    
+    let embed = null;
+    let autoCycleTimer = null;
+    let countdownTimer = null;
+    let currentChannel = null;
+
+    // --- Fonction de Lancement du Lecteur ---
+    function launchPlayer(channelName) {
+        if (embed && embed.getChannel() === channelName) { return; }
+        
+        currentChannel = channelName;
+        
+        // DÉTERMINATION DES DOMAINES PARENTS (Inclut justplayer.fr)
+        const hostWithoutPort = window.location.hostname;
+        const parentList = [
+            hostWithoutPort, 
+            "localhost", 
+            "127.0.0.1", 
+            "justplayerstreamhubpro.onrender.com", 
+            "justplayer.fr" // Domaine cible
+        ];
+        
+        if (window.location.host.includes(':')) {
+            parentList.push(window.location.host); 
+        }
+
+        const embedContainer = document.getElementById('twitch-embed');
+        if (!embedContainer) { return; }
+        
+        embedContainer.innerHTML = '';
+
+        const config = { 
+            width: "100%", 
+            height: "100%", 
+            channel: channelName,
+            layout: "video", 
+            parent: parentList 
+        };
+
+        embed = new Twitch.Embed("twitch-embed", config);
+    }
+
+    // --- Fonction de Mise à Jour du Compteur ---
+    function updateCountdownDisplay(secondsLeft) {
+        const statusEl = document.getElementById('player-status');
+        const minutes = Math.floor(secondsLeft / 60);
+        const seconds = secondsLeft % 60;
+        
+        let statusMessage = '';
+        if (currentChannel) {
+            statusMessage = `<i class='fas fa-tv' style='color:#ff0099;'></i> ${currentChannel.toUpperCase()} | `;
+        }
+        
+        statusMessage += `Prochain cycle: ${minutes}m ${seconds}s`;
+        statusEl.innerHTML = statusMessage;
+    }
+
+    // --- Fonction de Cycle Automatique ---
+    async function startCycle() {
+        const statusEl = document.getElementById('player-status');
+        
+        // 1. Arrêter les timers existants
+        if (autoCycleTimer) clearInterval(autoCycleTimer);
+        if (countdownTimer) clearInterval(countdownTimer);
+
+        statusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Recherche micro-niche...`;
+
+        try {
+            // L'API est appelée avec le filtre 0-50 viewers
+            const res = await fetch(`${API_BASE}/get_micro_niche_stream_cycle?min_viewers=0&max_viewers=50`); 
+            
+            if (!res.ok) {
+                const errorText = await res.text().catch(() => 'Erreur inconnue.');
+                throw new Error(`Serveur non disponible ou Erreur ${res.status}: ${errorText.substring(0, 50)}...`);
+            }
+
+            const data = await res.json();
+            
+            if (data.success && data.channel) {
+                launchPlayer(data.channel);
+            } else {
+                launchPlayer(DEFAULT_CHANNEL);
+                throw new Error(data.message || "Aucune chaîne dans la niche 0-50 trouvée. Lancement par défaut.");
+            }
+        } catch (e) {
+            console.error("Échec de la recherche de micro-niche:", e.message);
+            // Afficher l'erreur mais continuer
+            // Si launchPlayer a réussi (dans le cas où il n'y a pas de streamer 0-50), le statut est mis à jour plus tard
+            if (!currentChannel) launchPlayer(DEFAULT_CHANNEL); 
+            statusEl.innerHTML = `<i class='fas fa-exclamation-triangle' style='color:red;'></i> Erreur: ${e.message}`;
+        } finally {
+            // 2. Démarrer le timer de 3 minutes pour le cycle AUTOMATIQUE
+            autoCycleTimer = setInterval(startCycle, CYCLE_DURATION_MS);
+            
+            // 3. Affichage du Compteur
+            let secondsLeft = CYCLE_DURATION_MS / 1000;
+            updateCountdownDisplay(secondsLeft);
+
+            countdownTimer = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft < 0) {
+                    clearInterval(countdownTimer);
+                    return;
+                }
+                updateCountdownDisplay(secondsLeft);
+            }, 1000);
+        }
+    }
+
+    // --- INITIALISATION ---
+    window.onload = () => {
+        if (typeof Twitch === 'undefined') {
+            document.getElementById('player-status').innerHTML = 'Erreur: La librairie Twitch n\'a pas pu être chargée.';
+            return;
+        }
+        startCycle();
+    };
+</script>
+
+</body>
+</html>
