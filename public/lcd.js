@@ -1,19 +1,29 @@
-// Assurez-vous que ces dépendances sont installées (npm install express axios)
+// ===================================================================
+// 1. DÉPENDANCES ET INITIALISATION D'EXPRESS
+// ===================================================================
 const express = require('express');
 const axios = require('axios');
-// Si vous utilisez 'app' comme objet Express principal (app.js ou server.js)
-// const app = express(); 
+const path = require('path'); // Nécessaire pour gérer les chemins de fichiers statiques
 
+const app = express(); // Initialisation de l'application Express
 const TWITCH_API_URL = 'https://api.twitch.tv/helix';
 
-// --- CONFIGURATION TWITCH (À REMPLACER par vos variables d'environnement) ---
+// ===================================================================
+// 2. MIDDLEWARE : SERVIR LES FICHIERS STATIQUES (LCD.html et LCD.js)
+// CECI DOIT ÊTRE PLACÉ AVANT TOUTE DÉFINITION DE ROUTE SPÉCIFIQUE
+// ===================================================================
+
+// Rend accessible le contenu du dossier 'public' sous la racine '/'
+app.use(express.static(path.join(__dirname, 'public'))); 
+console.log(`Fichiers statiques servis depuis: ${path.join(__dirname, 'public')}`);
+
+// ===================================================================
+// 3. LOGIQUE D'AUTHENTIFICATION ET ROUTE D'API (LE BACKEND)
+// ===================================================================
+
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID_TWITCH';
 
-// Fonction CRUCIALE pour obtenir un jeton d'accès valide
-// La manière la plus sûre de faire est d'utiliser le flux Client Credentials
 const getTwitchAccessToken = async () => {
-    // Si le token est déjà en cache et valide, retournez-le.
-    // Sinon, effectuez une nouvelle requête pour obtenir le token:
     try {
         const tokenResponse = await axios.post('https://id.twitch.tv/oauth2/token', null, {
             params: {
@@ -22,7 +32,7 @@ const getTwitchAccessToken = async () => {
                 grant_type: 'client_credentials'
             }
         });
-        // Pour une application réelle, vous devriez stocker ce token et sa date d'expiration.
+        // Renvoie le nouveau token d'accès
         return tokenResponse.data.access_token;
     } catch (error) {
         console.error("Échec de l'obtention du token Twitch:", error.response?.data || error.message);
@@ -30,8 +40,7 @@ const getTwitchAccessToken = async () => {
     }
 };
 
-// --- ROUTE DE DÉCOUVERTE MICRO-NICHE ---
-// Si vous avez un objet 'app' Express, utilisez app.get
+// Route pour la découverte de la micro-niche
 app.get('/get_micro_niche_stream_cycle', async (req, res) => {
     
     const minViewers = 0;
@@ -40,7 +49,7 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
     try {
         const accessToken = await getTwitchAccessToken();
         if (!accessToken) {
-            return res.status(503).json({ success: false, message: "Service Twitch non disponible (Token manquant)." });
+            return res.status(503).json({ success: false, message: "Service Twitch non disponible (Token manquant ou échec d'authentification)." });
         }
 
         const headers = {
@@ -48,7 +57,7 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
             'Authorization': `Bearer ${accessToken}`,
         };
         
-        // 1. Appel à l'API Twitch (prend les 100 premiers streams)
+        // Appel à l'API Twitch
         const streamsResponse = await axios.get(`${TWITCH_API_URL}/streams`, {
             headers: headers,
             params: { first: 100 }
@@ -56,35 +65,27 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
 
         const streams = streamsResponse.data.data;
         
-        // 2. Filtrage des streams 0-50
+        // Filtrage
         const microNicheStreams = streams.filter(stream => {
             return stream.viewer_count >= minViewers && stream.viewer_count <= maxViewers;
         });
 
         if (microNicheStreams.length === 0) {
-            // L'API répond OK, mais aucun streamer trouvé dans l'échantillon
-            return res.json({ 
-                success: false, 
-                message: "Aucun streamer trouvé dans l'échantillon 0-50." 
-            });
+            return res.json({ success: false, message: "Aucun streamer trouvé dans l'échantillon 0-50." });
         }
 
-        // 3. Sélection aléatoire
+        // Sélection aléatoire
         const randomIndex = Math.floor(Math.random() * microNicheStreams.length);
         const targetStream = microNicheStreams[randomIndex];
-        const channelName = targetStream.user_login;
-
-        // 4. Succès: renvoie le nom de la chaîne
+        
         return res.json({
             success: true,
-            channel: channelName,
+            channel: targetStream.user_login,
             viewers: targetStream.viewer_count
         });
 
     } catch (error) {
-        // Erreur de communication HTTP (4xx ou 5xx) avec Twitch ou erreur interne
         const status = error.response ? error.response.status : 500;
-        
         console.error("Erreur dans /get_micro_niche_stream_cycle:", error.response?.data || error.message);
         
         return res.status(status).json({
@@ -92,4 +93,13 @@ app.get('/get_micro_niche_stream_cycle', async (req, res) => {
             error: `Erreur API/Serveur. Statut: ${status}`
         });
     }
+});
+
+// ===================================================================
+// 4. LANCEMENT DU SERVEUR
+// ===================================================================
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Serveur Node.js démarré sur le port ${PORT}`);
 });
