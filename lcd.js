@@ -1,118 +1,95 @@
-// --- DÉCLARATIONS GLOBALES ET CONSTANTES ---
-const API_BASE = window.location.origin;
-const DEFAULT_CHANNEL = 'twitch'; 
-const CYCLE_DURATION_MS = 3 * 60 * 1000; // 3 minutes (180 000 ms)
+// Assurez-vous que ces dépendances sont installées (npm install express axios)
+const express = require('express');
+const axios = require('axios');
+// Si vous utilisez 'app' comme objet Express principal (app.js ou server.js)
+// const app = express(); 
 
-let embed = null;
-let autoCycleTimer = null;
-let countdownTimer = null;
-let currentChannel = null;
+const TWITCH_API_URL = 'https://api.twitch.tv/helix';
 
-// --- 1. Fonction de Lancement du Lecteur ---
-function launchPlayer(channelName) {
-    if (embed && embed.getChannel() === channelName) { return; }
-    currentChannel = channelName;
-    
-    const hostWithoutPort = window.location.hostname;
-    const parentList = [ 
-        hostWithoutPort, 
-        "localhost", 
-        "127.0.0.1", 
-        "justplayerstreamhubpro.onrender.com", 
-        "justplayer.fr" 
-    ];
-    if (window.location.host.includes(':')) { parentList.push(window.location.host); }
+// --- CONFIGURATION TWITCH (À REMPLACER par vos variables d'environnement) ---
+const CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID_TWITCH';
 
-    const embedContainer = document.getElementById('twitch-embed');
-    if (!embedContainer) { return; }
-    embedContainer.innerHTML = '';
-
-    const config = { 
-        width: "100%", height: "100%", channel: channelName,
-        layout: "video", parent: parentList 
-    };
-
-    if (typeof Twitch !== 'undefined') {
-        embed = new Twitch.Embed("twitch-embed", config);
+// Fonction CRUCIALE pour obtenir un jeton d'accès valide
+// La manière la plus sûre de faire est d'utiliser le flux Client Credentials
+const getTwitchAccessToken = async () => {
+    // Si le token est déjà en cache et valide, retournez-le.
+    // Sinon, effectuez une nouvelle requête pour obtenir le token:
+    try {
+        const tokenResponse = await axios.post('https://id.twitch.tv/oauth2/token', null, {
+            params: {
+                client_id: CLIENT_ID,
+                client_secret: process.env.TWITCH_CLIENT_SECRET || 'VOTRE_CLIENT_SECRET_TWITCH',
+                grant_type: 'client_credentials'
+            }
+        });
+        // Pour une application réelle, vous devriez stocker ce token et sa date d'expiration.
+        return tokenResponse.data.access_token;
+    } catch (error) {
+        console.error("Échec de l'obtention du token Twitch:", error.response?.data || error.message);
+        return null;
     }
-}
+};
 
-// --- 2. Fonction de Mise à Jour du Compteur ---
-function updateCountdownDisplay(secondsLeft) {
-    const statusEl = document.getElementById('player-status');
-    const minutes = Math.floor(secondsLeft / 60);
-    const seconds = secondsLeft % 60;
+// --- ROUTE DE DÉCOUVERTE MICRO-NICHE ---
+// Si vous avez un objet 'app' Express, utilisez app.get
+app.get('/get_micro_niche_stream_cycle', async (req, res) => {
     
-    let statusMessage = '';
-    if (currentChannel) {
-        // Code hexadécimal direct (#59d682)
-        statusMessage = `<i class='fas fa-tv' style='color:#59d682;'></i> ${currentChannel.toUpperCase()} | `; 
-    }
-    
-    statusMessage += `Prochain cycle: ${minutes}m ${seconds}s`;
-    statusEl.innerHTML = statusMessage;
-}
-
-// --- 3. Fonction de Cycle Automatique (Appel API au Backend) ---
-async function startCycle() {
-    const statusEl = document.getElementById('player-status');
-    
-    // Arrêter les timers existants
-    if (autoCycleTimer) clearInterval(autoCycleTimer);
-    if (countdownTimer) clearInterval(countdownTimer);
-
-    statusEl.innerHTML = `<i class='fas fa-sync fa-spin'></i> Recherche micro-niche...`; 
+    const minViewers = 0;
+    const maxViewers = 50;
 
     try {
-        // APPEL CRITIQUE AU BACKEND NODE.JS SUR RENDER
-        const res = await fetch(`${API_BASE}/get_micro_niche_stream_cycle?min_viewers=0&max_viewers=50`); 
-        
-        if (!res.ok) {
-            const errorText = await res.text().catch(() => 'Erreur inconnue.');
-            // Afficher l'erreur du serveur dans la console
-            console.error(`Erreur Serveur HTTP ${res.status}:`, errorText);
-            throw new Error(`Erreur ${res.status}: ${errorText.substring(0, 50)}...`);
+        const accessToken = await getTwitchAccessToken();
+        if (!accessToken) {
+            return res.status(503).json({ success: false, message: "Service Twitch non disponible (Token manquant)." });
         }
 
-        const data = await res.json();
+        const headers = {
+            'Client-ID': CLIENT_ID,
+            'Authorization': `Bearer ${accessToken}`,
+        };
         
-        if (data.success && data.channel) {
-            launchPlayer(data.channel);
-        } else {
-            // L'API répond OK, mais n'a pas trouvé de streamer (message: "Aucun streamer...")
-            launchPlayer(DEFAULT_CHANNEL);
-            throw new Error(data.message || "Aucune chaîne dans la niche 0-50 trouvée. Lancement par défaut.");
+        // 1. Appel à l'API Twitch (prend les 100 premiers streams)
+        const streamsResponse = await axios.get(`${TWITCH_API_URL}/streams`, {
+            headers: headers,
+            params: { first: 100 }
+        });
+
+        const streams = streamsResponse.data.data;
+        
+        // 2. Filtrage des streams 0-50
+        const microNicheStreams = streams.filter(stream => {
+            return stream.viewer_count >= minViewers && stream.viewer_count <= maxViewers;
+        });
+
+        if (microNicheStreams.length === 0) {
+            // L'API répond OK, mais aucun streamer trouvé dans l'échantillon
+            return res.json({ 
+                success: false, 
+                message: "Aucun streamer trouvé dans l'échantillon 0-50." 
+            });
         }
-    } catch (e) {
-        // Gère les erreurs réseau, 404 de la route, ou 500 du backend
-        console.error("Échec total du cycle API:", e.message);
-        if (!currentChannel) launchPlayer(DEFAULT_CHANNEL); 
-        statusEl.innerHTML = `<i class='fas fa-exclamation-triangle' style='color:red;'></i> Erreur API: ${e.message}`;
-    } finally {
-        // Redémarrer le cycle dans 3 minutes
-        autoCycleTimer = setInterval(startCycle, CYCLE_DURATION_MS);
+
+        // 3. Sélection aléatoire
+        const randomIndex = Math.floor(Math.random() * microNicheStreams.length);
+        const targetStream = microNicheStreams[randomIndex];
+        const channelName = targetStream.user_login;
+
+        // 4. Succès: renvoie le nom de la chaîne
+        return res.json({
+            success: true,
+            channel: channelName,
+            viewers: targetStream.viewer_count
+        });
+
+    } catch (error) {
+        // Erreur de communication HTTP (4xx ou 5xx) avec Twitch ou erreur interne
+        const status = error.response ? error.response.status : 500;
         
-        // Affichage du Compteur
-        let secondsLeft = CYCLE_DURATION_MS / 1000;
-        updateCountdownDisplay(secondsLeft);
-
-        countdownTimer = setInterval(() => {
-            secondsLeft--;
-            if (secondsLeft < 0) {
-                clearInterval(countdownTimer);
-                return;
-            }
-            updateCountdownDisplay(secondsLeft);
-        }, 1000);
+        console.error("Erreur dans /get_micro_niche_stream_cycle:", error.response?.data || error.message);
+        
+        return res.status(status).json({
+            success: false,
+            error: `Erreur API/Serveur. Statut: ${status}`
+        });
     }
-}
-
-// --- INITIALISATION ---
-window.onload = () => {
-    // Le script ne s'exécute que si la librairie Twitch Embed est chargée
-    if (typeof Twitch === 'undefined') {
-        document.getElementById('player-status').innerHTML = 'Erreur: La librairie Twitch n\'a pas pu être chargée.';
-        return;
-    }
-    startCycle();
-};
+});
