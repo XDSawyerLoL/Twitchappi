@@ -1,71 +1,97 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STREAMER HUB V15 | Cockpit</title>
+/**
+ * ===================================================================
+ * STREAMER HUB V15 - LOGIQUE DU COCKPIT (LCD.js)
+ * ===================================================================
+ */
+
+// Configuration API (Utilise les endpoints définis dans votre serveur)
+const API_BASE_URL = window.location.origin;
+let twitchPlayer = null;
+
+/**
+ * 1. FONCTION DE FERMETURE ET REFRESH
+ * Ferme le cockpit et rafraîchit la page Just Player pour mettre à jour les stats.
+ */
+function closeAndRefresh() {
+    console.log("Fermeture du cockpit et rafraîchissement du site Just Player...");
     
-    <script src="https://embed.twitch.tv/embed/v1.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    // Si la fenêtre parente existe encore, on la rafraîchit
+    if (window.opener && !window.opener.closed) {
+        try {
+            window.opener.location.reload();
+        } catch (e) {
+            console.error("Erreur lors du rafraîchissement de la page parente:", e);
+        }
+    }
     
-    <style>
-        :root { 
-            --color-bg-dark: #0d0d0d; 
-            --color-ai-niche: #59d682; 
-            --glow-color: rgba(89, 214, 130, 0.4);
-        }
-        html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%; 
-            overflow: hidden; background-color: var(--color-bg-dark); 
-            color: white; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        .player-header {
-            background-color: #1a1a1a; padding: 0 20px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8); height: 50px; 
-            border-bottom: 1px solid #333;
-        }
-        /* Design du Titre V15 Cockpit */
-        .player-title { 
-            font-size: 16px; 
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            font-weight: 800;
-            background: linear-gradient(90deg, #fff, var(--color-ai-niche));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 10px var(--glow-color);
-        }
-        .player-title span { color: var(--color-ai-niche); -webkit-text-fill-color: initial; }
-        
-        #player-status { 
-            font-size: 11px; 
-            color: #aaa; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            background: rgba(255,255,255,0.05);
-            padding: 5px 12px;
-            border-radius: 20px;
-            border: 1px solid #333;
-        }
-        #twitch-embed { width: 100%; height: calc(100% - 50px); }
-    </style>
-</head>
-<body>
+    // Fermeture du pop-up actuel
+    window.self.close();
+}
 
-<div class="player-header">
-    <div class="player-title">
-        <i class="fas fa-terminal" style="margin-right:10px; font-size: 14px;"></i>
-        STREAMER HUB <span>V15</span> (Cockpit)
-    </div>
-    <div id="player-status">
-        <i class="fas fa-sync fa-spin"></i> Liaison API établie
-    </div>
-</div>
+/**
+ * 2. RÉCUPÉRATION DU STREAM (MICRO-NICHE)
+ * Appelle votre route Node.js /get_micro_niche_stream_cycle
+ */
+async function fetchNextStream() {
+    const statusEl = document.getElementById('player-status');
+    statusEl.innerHTML = '<i class="fas fa-sync fa-spin"></i> Recherche Niche...';
 
-<div id="twitch-embed"></div>
+    try {
+        const response = await fetch(`${API_BASE_URL}/get_micro_niche_stream_cycle`);
+        const data = await response.json();
 
-<script src="LCD.js"></script> 
+        if (data.success && data.channel) {
+            statusEl.innerHTML = `<i class="fas fa-eye"></i> Focus: ${data.channel} (${data.viewers} vues)`;
+            updateTwitchEmbed(data.channel);
+        } else {
+            statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Aucun flux trouvé';
+            // Relance une recherche après 10 secondes en cas d'échec
+            setTimeout(fetchNextStream, 10000);
+        }
+    } catch (error) {
+        console.error("Erreur lors de la récupération du flux:", error);
+        statusEl.innerHTML = '<i class="fas fa-wifi"></i> Erreur Connexion';
+    }
+}
 
-</body>
-</html>
+/**
+ * 3. MISE À JOUR DU LECTEUR TWITCH
+ * Utilise l'API Embed de Twitch chargée dans LCD.html
+ */
+function updateTwitchEmbed(channel) {
+    const embedContainer = document.getElementById('twitch-embed');
+    
+    // Nettoie l'ancien contenu si nécessaire
+    embedContainer.innerHTML = '';
+
+    twitchPlayer = new Twitch.Embed("twitch-embed", {
+        width: "100%",
+        height: "100%",
+        channel: channel,
+        parent: [window.location.hostname],
+        layout: "video",
+        autoplay: true,
+        muted: false
+    });
+
+    // Optionnel : Cycle automatique après 10 minutes sur un streamer
+    // setTimeout(fetchNextStream, 600000); 
+}
+
+/**
+ * 4. INITIALISATION AU CHARGEMENT
+ */
+window.onload = () => {
+    console.log("STREAMER HUB V15 Cockpit Initialisé.");
+    fetchNextStream();
+};
+
+/**
+ * 5. SÉCURITÉ DE FERMETURE
+ * Rafraîchit le site si l'utilisateur ferme l'onglet via la croix du navigateur.
+ */
+window.onbeforeunload = function() {
+    if (window.opener && !window.opener.closed) {
+        window.opener.location.reload();
+    }
+};
