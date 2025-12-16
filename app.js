@@ -15,7 +15,6 @@ const app = express();
 // CONFIG
 // =========================================================
 const PORT = process.env.PORT || 10000;
-
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
@@ -37,7 +36,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
 
 // =========================================================
-// CACHE MÉMOIRE
+// CACHE
 // =========================================================
 const CACHE = {
     appToken: null,
@@ -89,7 +88,7 @@ async function twitchFetch(endpoint, userToken = null) {
 }
 
 // =========================================================
-// AUTH TWITCH (POPUP)
+// AUTH TWITCH
 // =========================================================
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
@@ -136,19 +135,17 @@ app.get('/twitch_auth_callback', async (req, res) => {
         });
 
         const tokenData = await tokenRes.json();
-
         const userRes = await twitchFetch('users', tokenData.access_token);
         const user = userRes.data[0];
 
         CACHE.twitchUser = {
             id: user.id,
-            login: user.login,
             display_name: user.display_name,
             access_token: tokenData.access_token,
             expiry: Date.now() + tokenData.expires_in * 1000
         };
 
-        // 🔥 ferme le popup + refresh front
+        // popup → refresh
         res.send(`
             <script>
                 if (window.opener) {
@@ -183,7 +180,7 @@ app.post('/twitch_logout', (req, res) => {
 });
 
 // =========================================================
-// ✅ STREAMS SUIVIS — API TWITCH ACTUELLE
+// ✅ STREAMS SUIVIS (SAFE)
 // =========================================================
 app.get('/followed_streams', async (req, res) => {
     if (!CACHE.twitchUser) {
@@ -191,7 +188,6 @@ app.get('/followed_streams', async (req, res) => {
     }
 
     try {
-        // 1️⃣ chaînes suivies
         const followed = await twitchFetch(
             `channels/followed?user_id=${CACHE.twitchUser.id}&first=100`,
             CACHE.twitchUser.access_token
@@ -201,7 +197,6 @@ app.get('/followed_streams', async (req, res) => {
             return res.json({ success: true, streams: [] });
         }
 
-        // 2️⃣ streams LIVE uniquement
         const ids = followed.data.map(c => `user_id=${c.broadcaster_id}`).join('&');
 
         const live = await twitchFetch(
@@ -211,11 +206,13 @@ app.get('/followed_streams', async (req, res) => {
 
         const streams = live.data.map(s => ({
             user_id: s.user_id,
-            user_name: s.user_name,
-            title: s.title,
-            game_name: s.game_name,
-            viewers: s.viewer_count,
+            user_name: s.user_name || '',
+            title: s.title || '',
+            game_name: s.game_name || '',
+            viewers: s.viewer_count || 0,
             thumbnail: s.thumbnail_url
+                ? s.thumbnail_url.replace('{width}', '320').replace('{height}', '180')
+                : 'https://static-cdn.jtvnw.net/ttv-static/404_preview-320x180.jpg'
         }));
 
         res.json({ success: true, streams });
@@ -227,7 +224,7 @@ app.get('/followed_streams', async (req, res) => {
 });
 
 // =========================================================
-// START SERVER
+// START
 // =========================================================
 app.listen(PORT, () => {
     console.log(`✅ Backend lancé sur le port ${PORT}`);
