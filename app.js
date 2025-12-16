@@ -1,5 +1,5 @@
 // =========================================================
-// IMPORTS & SETUP
+// IMPORTS
 // =========================================================
 const express = require('express');
 const cors = require('cors');
@@ -8,7 +8,6 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-
 const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
@@ -61,7 +60,7 @@ const CACHE = {
 // =========================================================
 // TWITCH HELPERS
 // =========================================================
-async function getTwitchToken() {
+async function getTwitchAppToken() {
     if (CACHE.twitchTokens.app && CACHE.twitchTokens.app.expiry > Date.now()) {
         return CACHE.twitchTokens.app.access_token;
     }
@@ -70,6 +69,7 @@ async function getTwitchToken() {
         `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
         { method: 'POST' }
     );
+
     const data = await res.json();
 
     CACHE.twitchTokens.app = {
@@ -81,7 +81,7 @@ async function getTwitchToken() {
 }
 
 async function twitchApiFetch(endpoint, token = null) {
-    const accessToken = token || await getTwitchToken();
+    const accessToken = token || await getTwitchAppToken();
 
     const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, {
         headers: {
@@ -92,14 +92,14 @@ async function twitchApiFetch(endpoint, token = null) {
 
     if (!res.ok) {
         const txt = await res.text();
-        throw new Error(`Twitch API Error ${res.status}: ${txt}`);
+        throw new Error(`Twitch API ${res.status}: ${txt}`);
     }
 
     return res.json();
 }
 
 // =========================================================
-// AUTH TWITCH (OAUTH)
+// AUTH TWITCH (OAUTH POPUP)
 // =========================================================
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
@@ -121,9 +121,6 @@ app.get('/twitch_auth_start', (req, res) => {
     res.redirect(url);
 });
 
-// =========================================================
-// 🔥 CALLBACK MODIFIÉ (FERMETURE POPUP + REFRESH)
-// =========================================================
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error } = req.query;
 
@@ -162,7 +159,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
             expiry: Date.now() + tokenData.expires_in * 1000
         };
 
-        // ✅ POPUP → POSTMESSAGE → FERMETURE → REFRESH FRONT
+        // ✅ POPUP → REFRESH FRONT
         res.send(`
             <script>
                 if (window.opener) {
@@ -175,7 +172,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
         `);
 
     } catch (e) {
-        console.error(e);
+        console.error("OAuth Error:", e.message);
         res.status(500).send("Erreur OAuth Twitch");
     }
 });
@@ -195,9 +192,55 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 // =========================================================
-// (LE RESTE DE TON BACKEND EST STRICTEMENT IDENTIQUE)
+// ✅ STREAMS SUIVIS (API OFFICIELLE)
+// =========================================================
+app.get('/followed_streams', async (req, res) => {
+    if (!CACHE.twitchUser) {
+        return res.status(401).json({ success: false, error: "Utilisateur non connecté." });
+    }
+
+    try {
+        // 1️⃣ chaînes suivies
+        const followsRes = await twitchApiFetch(
+            `users/follows?from_id=${CACHE.twitchUser.id}&first=100`,
+            CACHE.twitchUser.access_token
+        );
+
+        if (!followsRes.data || followsRes.data.length === 0) {
+            return res.json({ success: true, streams: [] });
+        }
+
+        // 2️⃣ streams LIVE parmi elles
+        const ids = followsRes.data.map(f => f.to_id);
+        const query = ids.map(id => `user_id=${id}`).join('&');
+
+        const streamsRes = await twitchApiFetch(
+            `streams?${query}`,
+            CACHE.twitchUser.access_token
+        );
+
+        const streams = streamsRes.data.map(s => ({
+            user_id: s.user_id,
+            user_name: s.user_name,
+            user_login: s.user_login,
+            title: s.title,
+            game_name: s.game_name,
+            viewer_count: s.viewer_count,
+            thumbnail_url: s.thumbnail_url
+        }));
+
+        res.json({ success: true, streams });
+
+    } catch (e) {
+        console.error("❌ /followed_streams:", e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// =========================================================
+// (LE RESTE DE TON BACKEND PEUT RESTER IDENTIQUE)
 // =========================================================
 
 app.listen(PORT, () => {
-    console.log(`✅ Serveur lancé sur le port ${PORT}`);
+    console.log(`✅ Backend lancé sur le port ${PORT}`);
 });
