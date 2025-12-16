@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
+        /* --- CSS INTACT (Style V15) --- */
         :root {
             --color-bg-dark: #0d0d0d; --color-bg-medium: #1a1a1a; --color-bg-light: #111;
             --color-primary-pink: #ff0099; --color-secondary-blue: #22c7ef;
@@ -15,10 +16,8 @@
             --color-ai-action: #e34a64; --color-text-dimmed: #9aa3a8; --color-border-dark: #2e2e2e;
             --color-exit: #ff4b4b;
         }
-
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
         
-        /* HEADER V15 COCKPIT */
         .cockpit-header {
             background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
             border-bottom: 2px solid var(--color-secondary-blue);
@@ -27,7 +26,6 @@
         }
         .v15-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
         .v15-title span { color: var(--color-secondary-blue); text-shadow: 0 0 15px rgba(34, 199, 239, 0.4); }
-
         .cockpit-controls { display: flex; gap: 15px; align-items: center; }
         .golden-hour-badge {
             font-family: 'Orbitron', sans-serif; font-size: 11px;
@@ -42,7 +40,6 @@
         }
         .btn-exit-cockpit:hover { background: var(--color-exit); color: white; }
 
-        /* TABS & PLAYER */
         #twitch-lucky-main { max-width: 1400px; margin: 0 auto; padding: 10px; }
         .tabs-nav-container { margin-bottom: 15px; }
         .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -54,7 +51,6 @@
         .player-wrapper { margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); }
         #twitch-embed { width: 100%; height: 500px; border-radius: 8px; background:black; }
         
-        /* DASHBOARD GRID */
         .tab-content { display: none; background: var(--color-bg-medium); padding: 20px; border-radius: 10px; }
         .tab-content.active { display: block; animation: fadeEffect 0.5s; }
         @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
@@ -148,14 +144,52 @@
     const API_BASE = window.location.origin;
     let embed = null, autoCycleTimer = null, isConnected = false;
 
-    // --- LOGIQUE SORTIE ---
+    // --- 1. FONCTION CRITIQUE : CALCUL DES PARENTS TWITCH ---
+    function getTwitchParents() {
+        const parents = [
+            "localhost", 
+            "127.0.0.1", 
+            window.location.hostname, // justplayerstreamhubpro.onrender.com
+            "justplayer.fr",          // Ton site principal
+            "www.justplayer.fr"       // La version www
+        ];
+
+        // Récupère aussi le paramètre d'URL si présent (ex: ?parent_host=monsite.com)
+        const urlParams = new URLSearchParams(window.location.search);
+        const parentHost = urlParams.get('parent_host');
+        if (parentHost && !parents.includes(parentHost)) {
+            parents.push(parentHost);
+        }
+        
+        return parents;
+    }
+
+    // --- 2. LOGIQUE DU LECTEUR (Correction Affichage) ---
+    window.launchPlayer = function(channelName) {
+        if (embed && embed.getChannel() === channelName) return;
+        
+        document.getElementById('twitch-embed').innerHTML = ''; 
+        
+        // Utilisation de la liste des parents dynamique
+        embed = new Twitch.Embed("twitch-embed", {
+            width: "100%", 
+            height: "100%", 
+            channel: channelName, 
+            layout: "video-and-chat",
+            parent: getTwitchParents() // Liste complète des domaines autorisés
+        });
+        
+        document.getElementById('player-status').innerText = `Lecture : ${channelName}`;
+    }
+
+    // --- 3. SORTIE & REFRESH ---
     function exitCockpit() {
         if (window.opener && !window.opener.closed) window.opener.location.reload();
         window.close();
     }
     window.onbeforeunload = () => { if (window.opener && !window.opener.closed) window.opener.location.reload(); };
 
-    // --- AUTH & GOLDEN HOUR ---
+    // --- 4. AUTH & GOLDEN HOUR ---
     function startAuth() { window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login_popup', 'width=500,height=650'); }
     
     async function updateGoldenHour() {
@@ -164,22 +198,11 @@
             const data = await res.json();
             document.getElementById('golden-val').innerText = data.score + "%";
             document.getElementById('golden-hour-display').style.borderColor = data.score > 70 ? "#59d682" : (data.score < 50 ? "#ff4b4b" : "#ffcc00");
-        } catch(e) {}
+        } catch(e) { document.getElementById('golden-val').innerText = "N/A"; }
         setTimeout(updateGoldenHour, 60000);
     }
 
-    // --- LECTEUR TWITCH (JUSTPLAYER.FR FIX) ---
-    window.launchPlayer = function(channelName) {
-        if (embed && embed.getChannel() === channelName) return;
-        document.getElementById('twitch-embed').innerHTML = ''; 
-        embed = new Twitch.Embed("twitch-embed", {
-            width: "100%", height: "100%", channel: channelName, layout: "video-and-chat",
-            // ICI: LA CORRECTION DU DOMAINE
-            parent: ["justplayer.fr", "www.justplayer.fr", "localhost", "127.0.0.1", window.location.hostname]
-        });
-        document.getElementById('player-status').innerText = `Lecture : ${channelName}`;
-    }
-
+    // --- 5. LOGIQUE API & CYCLE ---
     async function checkBoostAndPlay() {
         if (autoCycleTimer) clearInterval(autoCycleTimer);
         try {
@@ -198,7 +221,6 @@
         } catch(e) {}
     }
 
-    // --- GESTION TABS & DATA ---
     function openTab(tabId) {
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
@@ -264,6 +286,9 @@
         document.getElementById('raid-results').innerHTML = data.success ? 
             `<div onclick="launchPlayer('${data.target.user_login}')" style="cursor:pointer; border:1px solid red; padding:10px;"><b>${data.target.user_name}</b> (${data.target.viewer_count} vues) - CLICK TO RAID</div>` : "Rien trouvé.";
     });
+
+    // LISTENER MESSAGE (Pour le Auth Popup)
+    window.addEventListener('message', (event) => { if (event.data === 'auth_success') checkAuthStatus(); });
 
     window.onload = () => {
         checkAuthStatus();
