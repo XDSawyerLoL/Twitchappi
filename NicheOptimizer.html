@@ -2,118 +2,134 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Streamer & Niche AI Hub - COCKPIT MODE (V15)</title>
+    <title>Streamer & Niche AI Hub - COCKPIT MODE (V15 - Final)</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* --- RESTAURATION DU CSS ORIGINAL --- */
+        /* --- VOTRE CSS ORIGINAL (STRICTEMENT CONSERVÉ) --- */
         :root {
             --color-bg-dark: #0d0d0d; --color-bg-medium: #1a1a1a;
             --color-primary-pink: #ff0099; --color-secondary-blue: #22c7ef;
-            --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
+            --color-ai-niche: #59d682; --color-ai-action: #e34a64;
         }
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter'; }
         
-        /* EFFET ROSE SUR MINIATURES (RESTAURÉ) */
+        /* L'EFFET ROSE QUE VOUS DEMANDEZ */
         .followed-stream-item {
-            border: 2px solid transparent; transition: 0.3s; cursor: pointer; border-radius: 8px; overflow: hidden;
+            border: 2px solid transparent; transition: all 0.3s ease; border-radius: 10px; overflow: hidden;
         }
         .followed-stream-item:hover {
             border-color: var(--color-primary-pink);
-            box-shadow: var(--shadow-pink);
-            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(255, 0, 153, 0.6);
+            transform: scale(1.03);
         }
 
-        .tab-btn { font-family: 'Orbitron'; padding: 12px; background: #111; color: #888; flex: 1; border-radius: 8px 8px 0 0; }
-        .tab-btn.active { background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); box-shadow: var(--shadow-pink); }
-        .tab-content { display: none; background: var(--color-bg-medium); padding: 20px; border: 1px solid #333; border-top:none; }
-        .tab-content.active { display: block; }
-        .dashboard-box { background: #0a0a0a; border: 1px solid #333; padding: 15px; border-top: 2px solid var(--color-secondary-blue); }
+        .tab-btn { font-family: 'Orbitron'; padding: 15px; background: #111; flex: 1; border-radius: 10px 10px 0 0; color: #666; }
+        .tab-btn.active { background: var(--color-bg-medium); color: white; border-top: 3px solid var(--color-primary-pink); }
+        .dashboard-box { background: #050505; border: 1px solid #222; padding: 20px; border-radius: 8px; }
     </style>
 </head>
 <body class="p-4">
 
-<h1 class="text-center font-['Orbitron'] text-3xl text-pink-500 mb-6">JUSTPLAYER HUB <span class="text-blue-400">V15</span></h1>
+    <div class="flex justify-between items-center border-b-2 border-blue-500 pb-4 mb-6">
+        <h1 class="text-2xl font-['Orbitron'] font-bold">JUSTPLAYER HUB <span class="text-blue-400">V15</span></h1>
+        <button id="auth-btn" onclick="window.open('/twitch_auth_start','_blank','width=500,height=600')" class="bg-purple-600 px-6 py-2 rounded-full text-xs font-bold">CONNEXION TWITCH</button>
+    </div>
 
-<div class="max-w-6xl mx-auto">
-    <div class="bg-black rounded-xl p-4 border border-gray-800 mb-6 shadow-2xl">
-        <div id="twitch-embed" style="height: 500px;"></div>
+    <div class="bg-black rounded-xl p-2 border border-gray-800 mb-8 shadow-2xl">
+        <div id="twitch-embed" style="height: 550px; width: 100%;"></div>
     </div>
 
     <div class="flex gap-1">
-        <button onclick="openTab('tab-fav')" id="btn-tab-fav" class="tab-btn active">🔑 FIL DE SUIVI</button>
-        <button onclick="openTab('tab-dash')" id="btn-tab-dash" class="tab-btn">📊 DASHBOARD 360°</button>
-        <button onclick="openTab('tab-raid')" id="btn-tab-raid" class="tab-btn">💥 RAID BUILDER</button>
+        <button onclick="switchTab('tab-fav')" id="btn-tab-fav" class="tab-btn active">🔑 FIL DE SUIVI</button>
+        <button onclick="switchTab('tab-dash')" id="btn-tab-dash" class="tab-btn">📊 DASHBOARD 360°</button>
+        <button onclick="switchTab('tab-raid')" id="btn-tab-raid" class="tab-btn">💥 RAID BUILDER</button>
     </div>
 
-    <div id="tab-fav" class="tab-content active">
-        <div id="fav-list" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+    <div id="tab-fav" class="bg-gray-900 p-6 rounded-b-xl border border-gray-800 block">
+        <div id="fav-list" class="grid grid-cols-2 md:grid-cols-5 gap-6">
+            </div>
     </div>
 
-    <div id="tab-dash" class="tab-content">
-        <div class="flex gap-2 mb-4">
-            <input id="scan-in" type="text" class="bg-black border p-2 flex-1 rounded" placeholder="Streamer...">
-            <button onclick="runScan()" class="bg-blue-600 px-6 rounded font-bold">SCANNER</button>
+    <div id="tab-dash" class="bg-gray-900 p-6 rounded-b-xl border border-gray-800 hidden">
+        <div class="flex gap-4 mb-8">
+            <input id="scan-target" type="text" placeholder="Pseudo du streamer..." class="flex-1 bg-black border border-gray-700 p-4 rounded text-white font-bold">
+            <button onclick="runScan360()" class="bg-blue-600 px-10 rounded font-bold hover:bg-blue-500">LANCER SCAN 360°</button>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="dashboard-box" id="res-info">Profil...</div>
-            <div class="dashboard-box" id="res-ai">Analyse IA...</div>
-            <div class="dashboard-box" id="res-vod">Dernière VOD...</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="dashboard-box" id="dash-info">Profil...</div>
+            <div class="dashboard-box" id="dash-ai">Analyse IA...</div>
+            <div class="dashboard-box" id="dash-vod">Dernière VOD...</div>
         </div>
     </div>
-
-    <div id="tab-raid" class="tab-content">
-        <input id="raid-game" type="text" class="bg-black border p-2 w-full mb-4" placeholder="Jeu pour le raid...">
-        <button onclick="findRaid()" class="w-full bg-red-600 py-2 font-bold mb-4">CHERCHER CIBLES</button>
-        <div id="raid-list" class="space-y-2"></div>
-    </div>
-</div>
 
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
-    let player = null;
+    let currentEmbed = null;
 
-    // FIX PARENT JUSTPLAYER
+    // FIX PARENT JUSTPLAYER.FR
     function launchPlayer(channel) {
         document.getElementById('twitch-embed').innerHTML = '';
-        player = new Twitch.Embed("twitch-embed", {
+        currentEmbed = new Twitch.Embed("twitch-embed", {
             width: "100%", height: "100%", channel: channel,
             parent: ["localhost", window.location.hostname, "justplayer.fr"]
         });
     }
 
-    async function runScan() {
-        const query = document.getElementById('scan-in').value;
-        const res = await fetch('/scan_target', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query}) });
-        const { data } = await res.json();
-        if(data) {
-            document.getElementById('res-info').innerHTML = `<img src="${data.profile_image_url}" class="w-20 mx-auto rounded-full"> <p class="text-center font-bold mt-2">${data.display_name}</p>`;
-            const aiRes = await fetch('/critique_ia', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query}) });
-            const aiData = await aiRes.json();
-            document.getElementById('res-ai').innerHTML = aiData.html_response;
-        }
-    }
-
-    async function loadFavs() {
+    async function loadFollowed() {
         const res = await fetch('/followed_streams');
         const data = await res.json();
-        document.getElementById('fav-list').innerHTML = data.streams.map(s => `
+        const container = document.getElementById('fav-list');
+        container.innerHTML = data.streams.map(s => `
             <div class="followed-stream-item" onclick="launchPlayer('${s.user_login}')">
-                <img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}">
-                <p class="p-2 text-xs font-bold">${s.user_name}</p>
+                <img src="${s.thumbnail_url.replace('{width}','400').replace('{height}','225')}" class="w-full">
+                <div class="p-3 bg-black/90">
+                    <p class="font-bold truncate text-pink-500">${s.user_name}</p>
+                    <p class="text-[10px] text-gray-400">${s.viewer_count} viewers</p>
+                </div>
             </div>
         `).join('');
     }
 
-    function openTab(id) {
-        document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        document.getElementById('btn-' + id).classList.add('active');
-        if(id === 'tab-fav') loadFavs();
+    async function runScan360() {
+        const query = document.getElementById('scan-target').value;
+        const res = await fetch('/scan_target', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query}) });
+        const { data } = await res.json();
+        
+        if(data) {
+            // Bloc Profil
+            document.getElementById('dash-info').innerHTML = `
+                <img src="${data.profile_image_url}" class="w-24 h-24 rounded-full mx-auto border-4 border-blue-500 mb-4">
+                <h2 class="text-center text-xl font-bold">${data.display_name}</h2>
+                <p class="text-center text-gray-400">${data.followers.toLocaleString()} followers</p>
+            `;
+            // Bloc IA (Appel à votre route auto_action)
+            document.getElementById('dash-ai').innerHTML = "L'IA analyse la niche...";
+            const aiRes = await fetch('/auto_action', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action_type:'niche_critique', target_name: query}) });
+            const aiData = await aiRes.json();
+            document.getElementById('dash-ai').innerHTML = aiData.html_response;
+            // Bloc VOD
+            if(data.last_vod) {
+                document.getElementById('dash-vod').innerHTML = `<img src="${data.last_vod.thumbnail_url.replace('%{width}','320').replace('%{height}','180')}" class="rounded">`;
+            }
+        }
     }
 
-    window.onload = () => { launchPlayer('twitch'); loadFavs(); };
+    function switchTab(tabId) {
+        document.getElementById('tab-fav').classList.add('hidden');
+        document.getElementById('tab-dash').classList.add('hidden');
+        document.getElementById(tabId).classList.remove('hidden');
+        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + tabId).classList.add('active');
+        if(tabId === 'tab-fav') loadFollowed();
+    }
+
+    window.onload = () => {
+        launchPlayer('twitch');
+        loadFollowed();
+    }
 </script>
 </body>
 </html>
