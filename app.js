@@ -19,7 +19,7 @@ const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
-const GEMINI_MODEL = "gemini-2.0-flash"; 
+const GEMINI_MODEL = "gemini-2.0-flash"; // Ajusté selon ta version
 
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
     console.error("FATAL ERROR: VARIABLES D'ENVIRONNEMENT MANQUANTES.");
@@ -33,17 +33,6 @@ app.use(express.static(path.join(__dirname)));
 const genAI = new GoogleGenAI(GEMINI_API_KEY);
 
 // --- FONCTIONS AUXILIAIRES ---
-async function getAppAccessToken() {
-    const params = new URLSearchParams();
-    params.append('client_id', TWITCH_CLIENT_ID);
-    params.append('client_secret', TWITCH_CLIENT_SECRET);
-    params.append('grant_type', 'client_credentials');
-
-    const response = await fetch('https://id.twitch.tv/oauth2/token', { method: 'POST', body: params });
-    const data = await response.json();
-    return data.access_token;
-}
-
 async function runGeminiAnalysis(prompt) {
     try {
         const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
@@ -56,7 +45,7 @@ async function runGeminiAnalysis(prompt) {
 }
 
 // =========================================================
-// --- ROUTES ---
+// --- ROUTES AUTHENTIFICATION ---
 // =========================================================
 
 app.get('/auth/twitch', (req, res) => {
@@ -79,33 +68,42 @@ app.get('/auth/callback', async (req, res) => {
     params.append('grant_type', 'authorization_code');
     params.append('redirect_uri', REDIRECT_URI);
 
-    const resp = await fetch('https://id.twitch.tv/oauth2/token', { method: 'POST', body: params });
-    const data = await resp.json();
-    res.redirect(`/?access_token=${data.access_token}`);
+    try {
+        const resp = await fetch('https://id.twitch.tv/oauth2/token', { method: 'POST', body: params });
+        const data = await resp.json();
+        res.redirect(`/?access_token=${data.access_token}`);
+    } catch (e) { res.status(500).send("Erreur lors de l'échange de token."); }
 });
+
+// =========================================================
+// --- ROUTE IA UNIFIÉE ---
+// =========================================================
 
 app.post('/auto_action', async (req, res) => {
     const { action_type, target_name, data_context } = req.body;
     let prompt = "";
 
-    switch (action_type) {
-        case 'niche_analysis':
-            prompt = `Analyse la niche Twitch : ${target_name}. Contexte : ${JSON.stringify(data_context)}. Donne un score 0-100 et stratégie en HTML.`;
-            break;
-        case 'golden_hour':
-            prompt = `Expert Twitch : Analyse le fuseau ${data_context.timezone}. Trouve les 3 meilleurs créneaux (Heure d'Or) où les gros streamers s'arrêtent mais l'audience reste. Réponse en HTML avec <h4> et <ul>.`;
-            break;
-        case 'repurpose_strategy':
-            prompt = `Stratégie de découpage VOD pour : ${target_name}. Réponse en HTML.`;
-            break;
-        default:
-            return res.status(400).json({ success: false, error: "Action non supportée" });
-    }
+    try {
+        switch (action_type) {
+            case 'niche_analysis':
+                prompt = `Analyse la niche Twitch suivante: ${target_name}. Contexte: ${JSON.stringify(data_context)}. Donne un score de 0 à 100 et des conseils stratégiques en HTML.`;
+                break;
+            case 'golden_hour':
+                prompt = `Tu es un expert en data Twitch. Analyse le fuseau horaire : ${data_context.timezone}. Identifie les moments précis où la concurrence (gros streamers) faiblit mais où l'audience est encore là. Propose 3 créneaux "Heure d'Or" en HTML avec <h4> et <ul>.`;
+                break;
+            case 'repurpose_strategy':
+                prompt = `Propose une stratégie de repurposing (TikTok/Shorts) pour : ${target_name}. Réponse en HTML.`;
+                break;
+            default:
+                return res.status(400).json({ success: false, error: "Action non supportée" });
+        }
 
-    const result = await runGeminiAnalysis(prompt);
-    res.json(result);
+        const result = await runGeminiAnalysis(prompt);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
-
-app.listen(PORT, () => console.log(`Serveur prêt sur port ${PORT}`));
+app.listen(PORT, () => console.log(`Serveur actif sur le port ${PORT}`));
