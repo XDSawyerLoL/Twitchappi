@@ -1,103 +1,71 @@
-// server.js ou app.js
-
-// ===================================================================
-// 1. DÉPENDANCES ET INITIALISATION
-// ===================================================================
-const express = require('express');
-const axios = require('axios');
-const path = require('path'); 
-
-const app = express(); 
-const TWITCH_API_URL = 'https://api.twitch.tv/helix';
-
-// ===================================================================
-// 2. MIDDLEWARE : SERVICE DES FICHIERS STATIQUES (SOLUTION 404/MIME TYPE)
-// ===================================================================
-
-// Rend accessibles LCD.html et LCD.js depuis le dossier 'public'
-app.use(express.static(path.join(__dirname, 'public'))); 
-console.log(`Fichiers statiques servis depuis: ${path.join(__dirname, 'public')}`);
-
-// ===================================================================
-// 3. LOGIQUE D'AUTHENTIFICATION ET ROUTE D'API
-// ===================================================================
-
-const CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'VOTRE_CLIENT_ID_TWITCH';
-
-// Fonction pour obtenir un nouveau token d'accès Twitch (Client Credentials Flow)
-const getTwitchAccessToken = async () => {
-    try {
-        const tokenResponse = await axios.post('https://id.twitch.tv/oauth2/token', null, {
-            params: {
-                client_id: CLIENT_ID,
-                client_secret: process.env.TWITCH_CLIENT_SECRET || 'VOTRE_CLIENT_SECRET_TWITCH',
-                grant_type: 'client_credentials'
-            }
-        });
-        return tokenResponse.data.access_token;
-    } catch (error) {
-        console.error("Échec de l'obtention du token Twitch:", error.response?.data || error.message);
-        return null;
-    }
-};
-
-// Route pour la découverte de la micro-niche (appelée par LCD.js)
-app.get('/get_micro_niche_stream_cycle', async (req, res) => {
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STREAMER HUB V15 | Cockpit</title>
     
-    const minViewers = 0;
-    const maxViewers = 50;
-
-    try {
-        const accessToken = await getTwitchAccessToken();
-        if (!accessToken) {
-            return res.status(503).json({ success: false, message: "Service Twitch non disponible (Token manquant)." });
+    <script src="https://embed.twitch.tv/embed/v1.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <style>
+        :root { 
+            --color-bg-dark: #0d0d0d; 
+            --color-ai-niche: #59d682; 
+            --glow-color: rgba(89, 214, 130, 0.4);
         }
-
-        const headers = {
-            'Client-ID': CLIENT_ID,
-            'Authorization': `Bearer ${accessToken}`,
-        };
-        
-        const streamsResponse = await axios.get(`${TWITCH_API_URL}/streams`, {
-            headers: headers,
-            params: { first: 100 }
-        });
-
-        const streams = streamsResponse.data.data;
-        
-        const microNicheStreams = streams.filter(stream => {
-            return stream.viewer_count >= minViewers && stream.viewer_count <= maxViewers;
-        });
-
-        if (microNicheStreams.length === 0) {
-            return res.json({ success: false, message: "Aucun streamer trouvé dans l'échantillon 0-50." });
+        html, body {
+            margin: 0; padding: 0; height: 100%; width: 100%; 
+            overflow: hidden; background-color: var(--color-bg-dark); 
+            color: white; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-
-        const randomIndex = Math.floor(Math.random() * microNicheStreams.length);
-        const targetStream = microNicheStreams[randomIndex];
+        .player-header {
+            background-color: #1a1a1a; padding: 0 20px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8); height: 50px; 
+            border-bottom: 1px solid #333;
+        }
+        /* Design du Titre V15 Cockpit */
+        .player-title { 
+            font-size: 16px; 
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-weight: 800;
+            background: linear-gradient(90deg, #fff, var(--color-ai-niche));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px var(--glow-color);
+        }
+        .player-title span { color: var(--color-ai-niche); -webkit-text-fill-color: initial; }
         
-        return res.json({
-            success: true,
-            channel: targetStream.user_login,
-            viewers: targetStream.viewer_count
-        });
+        #player-status { 
+            font-size: 11px; 
+            color: #aaa; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid #333;
+        }
+        #twitch-embed { width: 100%; height: calc(100% - 50px); }
+    </style>
+</head>
+<body>
 
-    } catch (error) {
-        const status = error.response ? error.response.status : 500;
-        console.error("Erreur dans /get_micro_niche_stream_cycle:", error.response?.data || error.message);
-        
-        return res.status(status).json({
-            success: false,
-            error: `Erreur API/Serveur. Statut: ${status}`
-        });
-    }
-});
+<div class="player-header">
+    <div class="player-title">
+        <i class="fas fa-terminal" style="margin-right:10px; font-size: 14px;"></i>
+        STREAMER HUB <span>V15</span> (Cockpit)
+    </div>
+    <div id="player-status">
+        <i class="fas fa-sync fa-spin"></i> Liaison API établie
+    </div>
+</div>
 
-// ===================================================================
-// 4. LANCEMENT DU SERVEUR
-// ===================================================================
+<div id="twitch-embed"></div>
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Serveur Node.js démarré sur le port ${PORT}`);
-});
+<script src="LCD.js"></script> 
+
+</body>
+</html>
