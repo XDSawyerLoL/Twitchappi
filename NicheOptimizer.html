@@ -1,815 +1,521 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
-const bodyParser = require('body-parser');
-const path = require('path');
-const crypto = require('crypto');
-const cookieParser = require('cookie-parser');
-
-const { GoogleGenAI } = require('@google/genai');
-
-const app = express();
-
-// =========================================================
-// --- CONFIGURATION ET VARIABLES D'ENVIRONNEMENT ---
-// =========================================================
-
-const PORT = process.env.PORT || 10000;
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
-const GEMINI_MODEL = "gemini-2.5-flash"; 
-
-// =========================================================
-// VÉRIFICATION CRITIQUE AU DÉMARRAGE
-// =========================================================
-
-if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
-    console.error("=========================================================");
-    console.error("FATAL ERROR: VARIABLES D'ENVIRONNEMENT MANQUANTES.");
-    console.error(`Missing keys: ${!TWITCH_CLIENT_ID ? 'TWITCH_CLIENT_ID ' : ''}${!TWITCH_CLIENT_SECRET ? 'TWITCH_CLIENT_SECRET ' : ''}${!REDIRECT_URI ? 'TWITCH_REDIRECT_URI ' : ''}${!GEMINI_API_KEY ? 'GEMINI_API_KEY' : ''}`);
-    console.error("=========================================================");
-    process.exit(1); 
-}
-
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
-console.log("DEBUG: Toutes les clés critiques sont chargées. L'IA est ACTIVE.");
-
-
-// =========================================================
-// MIDDLEWARES
-// =========================================================
-
-app.use(cors());
-app.use(bodyParser.json());
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname))); 
-
-// Cache simple en mémoire pour les tokens et le boost
-const CACHE = {
-    twitchTokens: {}, 
-    twitchUser: null,
-    streamBoosts: {},       // Stockage du cooldown (3 heures)
-    boostedStream: null,    // Stockage du boost actif { channel: 'name', endTime: timestamp }
-    lastScanData: null,     // Cache pour l'export CSV
-    
-    // Rotation globale
-    globalStreamRotation: {
-        streams: [],    // Liste des streams 0-100
-        currentIndex: 0,
-        lastFetchTime: 0,
-        fetchCooldown: 15 * 60 * 1000 // Refetch streams every 15 minutes
-    }
-};
-
-// =========================================================
-// LOGIQUE TWITCH HELPER
-// =========================================================
-
-async function getTwitchToken(tokenType) {
-    if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) {
-        return CACHE.twitchTokens[tokenType].access_token;
-    }
-    
-    const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
-    
-    try {
-        const response = await fetch(url, { method: 'POST' });
-        const data = await response.json();
-        
-        if (data.access_token) {
-            CACHE.twitchTokens[tokenType] = {
-                access_token: data.access_token,
-                // Expiry set 5 minutes before actual expiry for buffer
-                expiry: Date.now() + (data.expires_in * 1000) - 300000 
-            };
-            return data.access_token;
-        } else {
-            console.error("Échec de la récupération du token Twitch (Client Credentials).", data);
-            return null;
-        }
-    } catch (error) {
-        console.error("Erreur réseau lors de la récupération du token Twitch:", error);
-        return null;
-    }
-}
-
-async function twitchApiFetch(endpoint, token) {
-    const accessToken = token || await getTwitchToken('app');
-    if (!accessToken) throw new Error("Accès Twitch non autorisé.");
-
-    const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, {
-        headers: {
-            'Client-ID': TWITCH_CLIENT_ID,
-            'Authorization': `Bearer ${accessToken}`
-        }
-    });
-
-    if (res.status === 401) {
-        if (token === CACHE.twitchTokens['app']?.access_token) {
-             CACHE.twitchTokens['app'] = null; 
-        }
-        if (token === CACHE.twitchUser?.access_token) {
-             CACHE.twitchUser = null; 
-        }
-        const errorText = await res.text();
-        throw new Error(`Erreur d'autorisation Twitch (401). Token invalide. Détail: ${errorText.substring(0, 100)}...`);
-    }
-    
-    if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Erreur lors de l'appel à l'API Twitch: Statut ${res.status}. Détail: ${errorText.substring(0, 100)}...`);
-    }
-
-    return res.json();
-}
-
-// =========================================================
-// LOGIQUE GEMINI HELPER
-// =========================================================
-
-async function runGeminiAnalysis(prompt) {
-    try {
-        const response = await ai.models.generateContent({
-            model: GEMINI_MODEL,
-            contents: [
-                { role: "user", parts: [{ text: prompt }] }
-            ],
-            config: {
-                systemInstruction: "Tu es un expert en croissance et stratégie Twitch. Toutes tes réponses doivent être formatées en HTML simple (utilisant <p>, <ul>, <li>, <h4>, <strong>, <em>) sans balise <html> ou <body>, pour être directement injectées dans une div."
-            }
-        });
-        
-        const text = response.text.trim();
-        return { success: true, html_response: text };
-
-    } catch (e) {
-        let statusCode = 500;
-        let errorMessage = `Erreur interne du serveur lors de l'appel à l'IA. (Détail: ${e.message})`;
-        
-        if (e.message.includes('429')) {
-             statusCode = 429;
-             errorMessage = `❌ Erreur: Échec de l'appel à l'API Gemini. Limite de requêtes atteinte (Code 429). Votre clé IA a atteint son quota.`;
-        }
-        
-        if (e.message.includes('400') || e.message.includes('403')) {
-             statusCode = 403;
-             errorMessage = `❌ Erreur: Clé API Gemini refusée (Code 403/400). La clé est invalide ou le service n'est pas activé.`;
-        }
-        
-        return { 
-            success: false, 
-            status: statusCode, 
-            error: errorMessage,
-            html_response: `<p style="color:red; font-weight:bold;">${errorMessage}</p>`
-        };
-    }
-}
-
-// =========================================================
-// --- ROUTES D'AUTHENTIFICATION TWITCH (OAuth) ---
-// =========================================================
-
-app.get('/twitch_auth_start', (req, res) => {
-    const state = crypto.randomBytes(16).toString('hex');
-    const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-    res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 }); 
-    res.redirect(url);
-});
-
-// >>>>>> CORRECTION ICI : FERMETURE AUTOMATIQUE DU POPUP <<<<<<
-app.get('/twitch_auth_callback', async (req, res) => {
-    const { code, state, error, error_description } = req.query;
-    const storedState = req.cookies.twitch_state;
-    
-    if (state !== storedState) {
-        return res.status(400).send("Erreur de sécurité: État invalide.");
-    }
-
-    if (error) {
-        return res.status(400).send(`Erreur Twitch: ${error} - ${error_description}`);
-    }
-
-    try {
-        const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                client_id: TWITCH_CLIENT_ID,
-                client_secret: TWITCH_CLIENT_SECRET,
-                code: code,
-                grant_type: 'authorization_code',
-                redirect_uri: REDIRECT_URI
-            })
-        });
-        
-        const tokenData = await tokenRes.json();
-        
-        if (tokenData.access_token) {
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer & Niche AI Hub - COCKPIT MODE (V15 - Final)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* --- VOTRE CSS ORIGINAL (INTACT) --- */
+        :root {
+            --color-bg-dark: #0d0d0d;
+            --color-bg-medium: #1a1a1a;
+            --color-bg-light: #111;
+            --color-primary-pink: #ff0099;
+            --color-secondary-blue: #22c7ef;
+            --color-ai-niche: #59d682;
+            --color-ai-repurpose: #9933ff;
+            --color-ai-growth: #ffcc00;
+            --color-ai-action: #e34a64; 
+            --color-text-dimmed: #9aa3a8;
+            --color-border-dark: #2e2e2e;
+            --color-border-medium: #333;
             
-            const userRes = await twitchApiFetch('users', tokenData.access_token);
-            const user = userRes.data[0];
-            
-            CACHE.twitchUser = {
-                display_name: user.display_name,
-                username: user.login,
-                id: user.id,
-                access_token: tokenData.access_token,
-                refresh_token: tokenData.refresh_token,
-                expiry: Date.now() + (tokenData.expires_in * 1000)
-            };
-            
-            // Remplacement de res.redirect('/') par le script de fermeture :
-            res.send(`
-                <html>
-                    <head><title>Connexion Réussie</title></head>
-                    <body style="background-color: #1a1a1a; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh;">
-                        <div style="text-align: center;">
-                            <h2 style="color: #59d682;">✅ Connexion Réussie !</h2>
-                            <p>Fermeture de la fenêtre...</p>
-                        </div>
-                        <script>
-                            if (window.opener) {
-                                window.opener.postMessage('auth_success', '*');
-                            }
-                            window.close();
-                        </script>
-                    </body>
-                </html>
-            `);
-
-        } else {
-            console.error("=========================================================");
-            console.error("ERREUR CRITIQUE: Échec de l'échange de code Twitch.");
-            console.error("Détails renvoyés par Twitch:", tokenData);
-            console.error("=========================================================");
-            
-            const twitchError = tokenData.message || tokenData.error || "Détail non fourni.";
-            res.status(500).send(`Erreur lors de l'échange du code Twitch. Vérifiez le log du serveur. Détail: ${twitchError}`);
-        }
-    } catch (e) {
-        res.status(500).send(`Erreur interne du serveur lors de l'authentification: ${e.message}`);
-    }
-});
-// >>>>>> FIN CORRECTION <<<<<<
-
-app.post('/twitch_logout', (req, res) => {
-    CACHE.twitchUser = null;
-    res.json({ success: true });
-});
-
-app.get('/twitch_user_status', (req, res) => {
-    if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
-        const { display_name, username, id } = CACHE.twitchUser;
-        return res.json({ is_connected: true, display_name, username, id });
-    }
-    CACHE.twitchUser = null; 
-    res.json({ is_connected: false });
-});
-
-// =========================================================
-// --- ROUTES TWITCH API (DATA) ---
-// =========================================================
-
-app.get('/followed_streams', async (req, res) => {
-    if (!CACHE.twitchUser) {
-        return res.status(401).json({ success: false, error: "Utilisateur non connecté." });
-    }
-
-    try {
-        const data = await twitchApiFetch(`streams/followed?user_id=${CACHE.twitchUser.id}`, CACHE.twitchUser.access_token);
-        
-        const streams = data.data.map(stream => ({
-            user_id: stream.user_id,
-            user_name: stream.user_name,
-            user_login: stream.user_login,
-            title: stream.title,
-            game_name: stream.game_name,
-            viewer_count: stream.viewer_count,
-            thumbnail_url: stream.thumbnail_url 
-        }));
-        
-        return res.json({ success: true, streams });
-    } catch (e) {
-        console.error("Erreur lors de la récupération des streams suivis:", e.message);
-        return res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-
-app.get('/get_latest_vod', async (req, res) => {
-    const channel = req.query.channel;
-    if (!channel) {
-        return res.status(400).json({ success: false, error: "Paramètre 'channel' manquant." });
-    }
-
-    try {
-        const userRes = await twitchApiFetch(`users?login=${channel}`);
-        if (!userRes.data || userRes.data.length === 0) {
-            return res.status(404).json({ success: false, error: "Chaîne Twitch introuvable." });
-        }
-        const userId = userRes.data[0].id;
-
-        const vodRes = await twitchApiFetch(`videos?user_id=${userId}&type=archive&first=1`);
-        if (!vodRes.data || vodRes.data.length === 0) {
-            return res.status(404).json({ success: false, error: `Aucune VOD récente trouvée pour ${channel}.` });
-        }
-        
-        const vod = vodRes.data[0];
-        const thumbnailUrl = vod.thumbnail_url.replace('%{width}', '150').replace('%{height}', '84');
-
-        return res.json({ 
-            success: true, 
-            vod: {
-                id: vod.id,
-                title: vod.title,
-                url: vod.url,
-                thumbnail_url: thumbnailUrl,
-                duration: vod.duration 
-            }
-        });
-    } catch (e) {
-        console.error("Erreur lors de la récupération de la VOD:", e.message);
-        return res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.post('/scan_target', async (req, res) => {
-    const { query } = req.body;
-    if (!query) return res.status(400).json({ success: false, message: "Requête vide." });
-    
-    try {
-        
-        // --- Tenter d'abord la recherche d'UTILISATEUR (PRIORITÉ) ---
-        const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`); 
-        
-        if (userRes.data.length > 0) {
-            const user = userRes.data[0];
-            
-            // 1. Récupérer les streams (pour savoir s'il est live, son jeu, etc.)
-            let streamDetails = null;
-            try {
-                const streamRes = await twitchApiFetch(`streams?user_id=${user.id}`);
-                if (streamRes.data.length > 0) {
-                    streamDetails = streamRes.data[0];
-                }
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
-
-            // 2. Récupérer le nombre total de followers
-            let followerCount = 'N/A';
-            try {
-                const followerRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`);
-                followerCount = followerRes.total;
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
-
-            // 3. Récupérer le nombre total de VODs
-            let vodCount = 'N/A';
-            try {
-                const vodRes = await twitchApiFetch(`videos?user_id=${user.id}&type=archive&first=1`);
-                vodCount = vodRes.total;
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
-
-            // Données supplémentaires réelles
-            // CORRIGÉ: Conserve 0 vues au lieu de 'N/A'
-            const totalViews = (user.view_count !== undefined && user.view_count !== null) ? user.view_count : 'N/A'; 
-            
-            const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A'; 
-            const broadcasterType = user.broadcaster_type || 'normal'; 
-            
-            let aiCalculatedNicheScore = (broadcasterType === 'partner') ? '8.5/10' : '5.0/10';
-
-            const userData = { 
-                login: user.login, 
-                display_name: user.display_name, 
-                id: user.id, 
-                profile_image_url: user.profile_image_url,
-                is_live: !!streamDetails,
-                viewer_count: streamDetails ? streamDetails.viewer_count : 0,
-                game_name: streamDetails ? streamDetails.game_name : '',
-                broadcaster_type: broadcasterType.toUpperCase() || 'NORMAL',
-                total_followers: followerCount,
-                vod_count: vodCount,
-                total_views: totalViews,
-                creation_date: creationDate,
-                ai_calculated_niche_score: aiCalculatedNicheScore 
-            };
-            
-            CACHE.lastScanData = userData;
-
-            return res.json({ success: true, type: 'user', user_data: userData });
-        }
-        
-        // --- Tenter la recherche de JEU (SECONDE PRIORITÉ) ---
-        
-        const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
-        
-        if (gameRes.data.length > 0) {
-            const game = gameRes.data[0];
-            
-            const streamsRes = await twitchApiFetch(`streams?game_id=${game.id}&first=100`);
-            const streams = streamsRes.data;
-            
-            const totalStreams = streams.length;
-            const totalViewers = streams.reduce((sum, s) => sum + s.viewer_count, 0);
-            const avgViewersPerStreamer = totalStreams > 0 ? Math.round(totalViewers / totalStreams) : 0;
-            
-            let aiCalculatedNicheScore = (avgViewersPerStreamer < 100) ? '8.0/10' : '4.5/10';
-            
-            const gameData = { 
-                name: game.name, 
-                id: game.id, 
-                box_art_url: game.box_art_url,
-                total_streamers: totalStreams,
-                total_viewers: totalViewers,
-                avg_viewers_per_streamer: avgViewersPerStreamer,
-                ai_calculated_niche_score: aiCalculatedNicheScore, 
-                streams: streams.map(s => ({ user_name: s.user_name, user_login: s.user_login, title: s.title, viewer_count: s.viewer_count }))
-            };
-            
-            CACHE.lastScanData = gameData;
-            
-            return res.json({ success: true, type: 'game', game_data: gameData });
+            --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
+            --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
+            --shadow-niche: 0 0 15px rgba(89, 214, 130, 0.4);
+            --shadow-repurpose: 0 0 15px rgba(153, 51, 255, 0.4);
+            --shadow-action: 0 0 15px rgba(227, 74, 100, 0.4);
+            --shadow-growth: 0 0 15px rgba(255, 204, 0, 0.4);
         }
 
-        return res.status(404).json({ success: false, message: `Impossible de trouver un utilisateur ou un jeu correspondant à "${query}".` });
+        /* Styles Globaux */
+        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
+        #twitch-lucky-main { all: initial; display: block; max-width: 1400px; margin: 20px auto; padding: 10px; font-family: 'Inter', sans-serif; color: #fff; }
         
-    } catch (e) {
-        console.error("Erreur dans /scan_target:", e.message);
-        return res.status(500).json({ success: false, error: e.message });
-    }
-});
+        h1 { 
+            font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); 
+            margin-bottom: 5px; text-align: center; 
+            text-shadow: 0 0 5px var(--color-primary-pink), 0 0 15px rgba(255, 0, 153, 0.5);
+        }
+        .h1-blue-accent { color: var(--color-secondary-blue); }
+        .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
+        
+        /* Navigation (Onglets) */
+        .tabs-nav-container { margin-bottom: 15px; }
+        .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+        .tab-btn { 
+            font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: var(--color-bg-light); 
+            border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); 
+            cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.3s; flex: 1; text-align: center; 
+            font-size: 12px; white-space: nowrap; 
+        }
+        .tab-btn:hover { color: #fff; background: #232323; box-shadow: 0 0 10px rgba(255, 255, 255, 0.15); }
+        .tab-btn.active { 
+            background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); 
+            font-weight: bold; box-shadow: var(--shadow-pink); z-index: 10; 
+        }
 
-// =========================================================
-// --- LOGIQUE POUR LA ROTATION GLOBALE (0-100 VUES) ---
-// =========================================================
+        /* Lecteur */
+        .player-wrapper { 
+            margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); 
+            border-radius: 12px; border: 1px solid var(--color-border-dark); 
+            box-shadow: var(--shadow-blue); 
+        }
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); text-shadow: 0 0 4px var(--color-secondary-blue); }
+        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; box-shadow: 0 0 15px rgba(34, 199, 239, 0.3); overflow: hidden; }
+        
+        .player-quick-input {
+            background: var(--color-bg-dark); border: 1px solid var(--color-border-medium); color: white;
+            padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 200px;
+        }
+        
+        .btn-cycle {
+            background: var(--color-bg-dark); color: var(--color-secondary-blue); border: 1px solid var(--color-secondary-blue);
+            padding: 5px 10px; border-radius: 4px; font-size: 12px; transition: 0.2s; cursor: pointer;
+        }
+        .btn-cycle:hover:not(:disabled) { background: var(--color-secondary-blue); color: var(--color-bg-dark); box-shadow: var(--shadow-blue); }
+        .btn-cycle:disabled { opacity: 0.5; cursor: not-allowed; background: var(--color-bg-dark); color: var(--color-text-dimmed); border-color: var(--color-text-dimmed); }
 
-async function refreshGlobalStreamList() {
-    const now = Date.now();
-    const rotation = CACHE.globalStreamRotation;
-    
-    // Vérification du Cooldown
-    if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) {
-        return;
+        /* Contenu */
+        .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-radius: 10px; padding: 20px; min-height: 300px; }
+        .tab-content.active { display: block; animation: fadeEffect 0.5s; }
+        @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
+
+        /* Dashboard */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
+        .dashboard-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; min-height: 250px; display: flex; flex-direction: column; }
+        .box-stats { border-top: 2px solid var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
+        .box-niche { border-top: 2px solid var(--color-ai-niche); box-shadow: var(--shadow-niche); }
+        .box-vod { border-top: 2px solid var(--color-ai-repurpose); box-shadow: var(--shadow-repurpose); }
+
+        .dashboard-title { font-family: 'Orbitron', sans-serif; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+
+        .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .metric-item { background: #1a1a1a; padding: 8px; border-radius: 4px; border: 1px solid #2e2e2e; }
+        .metric-value { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: bold; }
+        .metric-label { font-size: 10px; color: var(--color-text-dimmed); text-transform: uppercase; }
+
+        .niche-score-box { text-align: center; padding: 10px; margin: 10px 0; border: 2px solid var(--color-ai-niche); border-radius: 6px; background: #111; }
+        .niche-score-value { font-family: 'Orbitron', sans-serif; font-size: 40px; font-weight: bold; color: var(--color-ai-niche); text-shadow: var(--shadow-niche); }
+        .niche-score-label { font-size: 12px; color: #ddd; text-transform: uppercase; margin-top: -5px; }
+
+        .ai-output-enhanced { color: #ddd; }
+        .ai-output-enhanced h4 { font-family: 'Orbitron', sans-serif; margin-top: 15px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); font-size: 14px; }
+        .box-niche .ai-output-enhanced h4 { color: var(--color-ai-niche); text-shadow: 0 0 5px rgba(89, 214, 130, 0.3); }
+        .box-vod .ai-output-enhanced h4 { color: var(--color-ai-repurpose); text-shadow: 0 0 5px rgba(153, 51, 255, 0.3); }
+        .ai-output-enhanced ul { list-style-type: none; padding-left: 0; margin-top: 5px; }
+        .ai-output-enhanced li { margin-bottom: 8px; border-left: 3px solid var(--color-text-dimmed); padding-left: 10px; }
+        .box-niche .ai-output-enhanced li { border-left-color: var(--color-ai-niche); }
+        .box-vod .ai-output-enhanced li { border-left-color: var(--color-ai-repurpose); }
+        .ai-output-enhanced strong { color: white; text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+        .ai-output-enhanced p { margin-bottom: 10px; }
+
+        .action-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); background: var(--color-bg-dark); color: #fff; font-size: 13px; transition: 0.3s; }
+        .action-input:focus { border-color: var(--color-primary-pink); box-shadow: 0 0 8px rgba(255, 0, 153, 0.5); outline: none; }
+        
+        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(255,0,153,.4); transition: all 0.2s; }
+        .btn-primary:hover:not(:disabled) { transform: scale(1.02); filter: brightness(1.1); }
+        
+        .btn-big-scan { width: 100%; background: linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose)); font-size: 14px; padding: 12px; margin-top: 10px; }
+
+        #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; }
+        .followed-stream-item { width: calc(20% - 12px); min-width: 150px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: 0.3s; }
+        .followed-stream-item:hover { transform: translateY(-3px); box-shadow: var(--shadow-pink); }
+        .followed-stream-item img { width: 100%; border-radius: 4px; margin-bottom: 5px; }
+        
+        .raid-target-box { padding: 15px; background: #111; border-radius: 8px; border: 2px solid var(--color-ai-action); display: flex; gap: 15px; align-items: center; box-shadow: var(--shadow-action); }
+        .raid-target-box img { width: 100px; height: 56px; object-fit: cover; border-radius: 4px; border: 1px solid var(--color-ai-action); }
+
+        @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
+    </style>
+</head>
+<body>
+
+<div id="twitch-lucky-main">
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V15 (Cockpit)</h1>
+    <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Action</div>
+
+    <div class="tabs-nav-container">
+        <div class="flex flex-wrap flex-tabs">
+            <button class="tab-btn active" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
+            <button class="tab-btn" data-tab-id="tab-dashboard" onclick="openTab('tab-dashboard')" style="color:white; border-top: 3px solid var(--color-secondary-blue);">📊 DASHBOARD 360° (SCAN & IA)</button>
+            <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
+            <button class="tab-btn" data-tab-id="tab-raid" onclick="openTab('tab-raid')" style="border-top: 3px solid var(--color-ai-action);">💥 RAID (0-100 V)</button>
+        </div>
+    </div>
+
+    <div class="player-wrapper">
+        <div class="player-header">
+            <h2 class="player-title">
+                <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR
+                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente de démarrage automatique</span>
+            </h2>
+            <div class="flex gap-2 items-center">
+                <button id="btn-prev-stream" class="btn-cycle" onclick="cycleStream('prev')" disabled><i class="fas fa-arrow-left"></i> Précédent</button>
+                <button id="btn-next-stream" class="btn-cycle" onclick="cycleStream('next')" disabled>Suivant <i class="fas fa-arrow-right"></i></button>
+                <form id="mini-player-form" class="flex gap-2">
+                    <input id="input-channel" type="text" placeholder="Chaîne..." class="player-quick-input">
+                    <button type="submit" class="btn-primary" style="padding: 5px 10px;">GO</button>
+                </form>
+            </div>
+        </div>
+        <div id="twitch-embed"></div>
+    </div>
+
+    <div id="content-area">
+        <div id="tab-followed" class="tab-content active">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 class="text-pink font-bold" style="color:var(--color-primary-pink);">🔴 Vos Chaînes Suivies LIVE</h3>
+                <div class="flex gap-2 items-center">
+                    <button id="btn-export-pdf" class="btn-primary" style="background:var(--color-ai-growth); font-size:10px;">📊 EXPORT CSV</button>
+                    <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; font-size:10px;">🔒 CONNEXION TWITCH</button>
+                </div>
+            </div>
+            <div id="pdf-export-results" style="margin-bottom: 10px; color: var(--color-ai-growth); text-align: center;"></div>
+            <div id="followed-streams-list"><p style="color:#555; text-align:center;">Connectez-vous pour voir vos favoris.</p></div>
+        </div>
+
+        <div id="tab-dashboard" class="tab-content">
+            <div style="text-align:center; margin-bottom:20px;">
+                <h3 class="text-blue font-bold text-lg mb-2" style="color:var(--color-secondary-blue);">ANALYSE COMPLÈTE & IA</h3>
+                <form id="form-global-scan">
+                    <input id="input-global-target" type="text" placeholder="Ex: Gotaga, Valorant..." class="action-input" style="font-size:16px; text-align:center;">
+                    <button type="submit" id="btn-global-scan" class="btn-primary btn-big-scan">🚀 LANCER L'ANALYSE 360°</button>
+                </form>
+            </div>
+            <div class="dashboard-grid">
+                <div class="dashboard-box box-stats">
+                    <div class="dashboard-title" style="color:var(--color-secondary-blue)">📊 MÉTRIQUES & INFO</div>
+                    <div id="res-scan-content" style="font-size:13px; color:#ddd;"><p style="color:#777; text-align:center; margin-top:50px;">Lancez une recherche.</p></div>
+                </div>
+                <div class="dashboard-box box-niche">
+                    <div class="dashboard-title" style="color:var(--color-ai-niche)">🧠 CRITIQUE NICHE (IA)</div>
+                    <div id="res-niche-content" style="font-size:13px; line-height:1.4;"><p style="color:#777; text-align:center; margin-top:50px;">Analyse en attente.</p></div>
+                </div>
+                <div class="dashboard-box box-vod">
+                    <div class="dashboard-title" style="color:var(--color-ai-repurpose)">✂️ VOD & REPURPOSING</div>
+                    <div id="res-vod-content" style="font-size:13px;"><p style="color:#777; text-align:center; margin-top:50px;">Suggestions de clips.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-boost" class="tab-content">
+            <h3 style="color:var(--color-primary-pink); margin-bottom:10px;">⚡ STREAM BOOST (15 Minutes)</h3>
+            <form id="form-boost" class="flex gap-2">
+                <input id="input-boost" type="text" placeholder="Votre Chaîne Twitch" class="action-input" style="flex-grow:1;">
+                <button type="submit" class="btn-primary">ACTIVER</button>
+            </form>
+            <div id="boost-results" style="margin-top:15px; padding:10px; background:#111; border-radius:6px; min-height:50px; text-align:center;"></div>
+        </div>
+
+        <div id="tab-raid" class="tab-content">
+            <h3 style="color:var(--color-ai-action); margin-bottom:10px;">💥 RAID OPTIMISÉ</h3>
+            <form id="form-raid" class="flex gap-2 flex-col sm:flex-row">
+                <input id="input-raid-game" type="text" placeholder="Jeu cible" class="action-input" style="flex-grow:1;">
+                <select id="select-raid-viewers" class="action-input" style="width:auto;">
+                    <option value="10">Max 10 Vues</option>
+                    <option value="30">Max 30 Vues</option>
+                    <option value="100" selected>Max 100 Vues</option>
+                </select>
+                <button type="submit" id="btn-start-raid" class="btn-primary">LANCER RAID</button>
+            </form>
+            <div id="raid-results" style="margin-top:15px; padding:15px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:50px;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://embed.twitch.tv/embed/v1.js"></script>
+<script>
+    const API_BASE = window.location.origin;
+    const DEFAULT_CHANNEL = 'twitch';
+    const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000;
+    let embed = null;
+    let autoCycleTimer = null; 
+    let boostTimeout = null; 
+    let isConnected = false;
+    let userData = {};
+    let authWindow = null; // Important pour le suivi du popup
+
+    // --- GESTION ONGLETS ---
+    function openTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        const btn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
+        if(btn) btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if (tabId === 'tab-followed') loadFollowedStreams();
     }
     
-    console.log("DEBUG: Rafraîchissement de la liste de streams 0-100...");
-    
-    try {
-        // Demande les 100 premiers streams FR
-        const data = await twitchApiFetch(`streams?language=fr&first=100`);
-        const allStreams = data.data;
-
-        // 1. Priorité: Streams entre 1 et 100 vues
-        let suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
-
-        // 💥 CORRECTIF APPLIQUÉ ICI : Assouplissement du filtre si la liste 1-100 est vide.
-        if (suitableStreams.length === 0 && allStreams.length > 0) {
-            
-            // Si rien n'est trouvé dans la plage 1-100, trier et prendre les 10 plus petits du Top 100
-            suitableStreams = allStreams
-                .sort((a, b) => a.viewer_count - b.viewer_count)
-                .slice(0, 10); 
-
-            console.warn(`WARN: Le filtre 1-100 n'a rien donné. Utilisation des ${suitableStreams.length} plus petits streams du Top 100 (pour éviter le Fallback).`);
-        }
-        // FIN DU CORRECTIF
-
-        // Mise à jour du cache si des streams ont été trouvés
-        if (suitableStreams.length > 0) {
-            rotation.streams = suitableStreams.map(s => ({ 
-                channel: s.user_login, 
-                viewers: s.viewer_count 
-            }));
-            rotation.currentIndex = 0; // Réinitialiser l'index au premier stream trouvé
-            rotation.lastFetchTime = now;
-            console.log(`DEBUG: ${rotation.streams.length} streams mis en cache pour l'Auto-Discovery.`);
-        } else {
-             rotation.streams = [];
-             rotation.currentIndex = 0;
-             rotation.lastFetchTime = now; 
-        }
-        
-    } catch (e) {
-        console.error("Erreur lors du rafraîchissement de la liste de streams 0-100:", e.message);
-    }
-}
-
-
-// Récupère le stream actuel (Boost ou Auto-Discovery global)
-app.get('/get_default_stream', async (req, res) => {
-    
-    // 1. D'abord, vérifier si un Boost est ACTIF (Priorité 1)
-    if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
-        const { channel, endTime } = CACHE.boostedStream;
-        const remaining = Math.ceil((endTime - Date.now()) / 60000); // Minutes restantes
-        return res.json({ 
-            success: true, 
-            channel: channel, 
-            viewers: 'BOOST',
-            message: `⚡ BOOST ACTIF (${remaining} min restantes)`
-        });
-    }
-
-    // 2. Si pas de Boost, rafraîchir la liste si nécessaire (Cooldown de 15 min)
-    await refreshGlobalStreamList(); 
-
-    const rotation = CACHE.globalStreamRotation;
-    
-    if (rotation.streams.length === 0) {
-        // Fallback ultime si MÊME l'assouplissement n'a rien donné
-        return res.json({ 
-            success: true, // Doit être 'true' pour que le client lance le lecteur.
-            error: "Aucun stream trouvé dans les Top 100. Passage au fallback.", 
-            channel: 'twitch',
-            viewers: 0,
-            message: `⚠️ Fallback: Aucun stream trouvé. Charge la chaîne 'twitch'.`
-        });
-    }
-
-    // 3. Servir le stream à l'index actuel
-    const currentStream = rotation.streams[rotation.currentIndex];
-
-    return res.json({ 
-        success: true, 
-        channel: currentStream.channel,
-        viewers: currentStream.viewers,
-        message: `✅ Auto-Discovery: ${currentStream.channel} (${currentStream.viewers} vues) - Stream ${rotation.currentIndex + 1}/${rotation.streams.length}`
-    });
-});
-
-// Permet de passer au stream suivant/précédent (Contrôle manuel ou automatique)
-app.post('/cycle_stream', async (req, res) => {
-    const { direction } = req.body; // 'next' ou 'prev'
-
-    if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
-        return res.status(403).json({ success: false, error: "Impossible de changer de chaîne manuellement pendant le Boost actif." });
-    }
-
-    await refreshGlobalStreamList();
-    const rotation = CACHE.globalStreamRotation;
-
-    if (rotation.streams.length === 0) {
-        return res.status(404).json({ success: false, error: "Aucune chaîne disponible pour la rotation (liste 0-100 vide)." });
-    }
-
-    let newIndex = rotation.currentIndex;
-
-    if (direction === 'next') {
-        newIndex = (newIndex + 1) % rotation.streams.length;
-    } else if (direction === 'prev') {
-        newIndex = (newIndex - 1 + rotation.streams.length) % rotation.streams.length;
-    } else {
-        return res.status(400).json({ success: false, error: "Direction invalide." });
-    }
-
-    rotation.currentIndex = newIndex;
-    const newStream = rotation.streams[newIndex];
-
-    return res.json({ 
-        success: true, 
-        channel: newStream.channel, 
-        viewers: newStream.viewers,
-        message: `Passage à Auto-Discovery: ${newStream.channel} (${newStream.viewers} vues) - Stream ${newIndex + 1}/${rotation.streams.length}`
-    });
-});
-
-
-// =========================================================
-// --- ROUTE POUR VÉRIFIER LE STATUT DU BOOST ---
-// =========================================================
-app.get('/check_boost_status', (req, res) => {
-    if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
-        const remainingTime = Math.ceil((CACHE.boostedStream.endTime - Date.now()) / 1000);
-        return res.json({ 
-            is_boosted: true, 
-            channel: CACHE.boostedStream.channel, 
-            remaining_seconds: remainingTime 
-        });
-    }
-    CACHE.boostedStream = null;
-    return res.json({ is_boosted: false });
-});
-
-// =========================================================
-// --- ROUTE BOOST (Cooldown de 3h, Boost de 15 minutes) ---
-// =========================================================
-app.post('/stream_boost', async (req, res) => {
-    const { channel } = req.body;
-    if (!channel) {
-        return res.status(400).json({ error: "Nom de chaîne manquant pour le Boost." });
-    }
-
-    const now = Date.now();
-    const COOLDOWN_DURATION = 3 * 60 * 60 * 1000; // 3 heures
-    const BOOST_DURATION = 15 * 60 * 1000; // 15 minutes
-
-    // 1. Vérification du Cooldown (3 heures)
-    if (CACHE.streamBoosts[channel] && (now - CACHE.streamBoosts[channel]) < COOLDOWN_DURATION) {
-        const remaining = CACHE.streamBoosts[channel] + COOLDOWN_DURATION - now;
-        const minutesRemaining = Math.ceil(remaining / (60 * 1000));
-        
-        const errorMessage = `
-            <p style="color:red; font-weight:bold;"> ❌ Boost en Cooldown </p>
-            <p> Vous devez attendre encore <strong style="color:var(--color-primary-pink);">${minutesRemaining} minutes</strong>. </p>
-        `;
-        return res.status(429).json({ error: `Cooldown de 3 heures actif. Prochain Boost disponible dans environ ${minutesRemaining} minutes.`, html_response: errorMessage });
-    }
-
-    // 2. Activation du Cooldown
-    CACHE.streamBoosts[channel] = now;
-    
-    // 3. Activation du Boost (pour le joueur)
-    CACHE.boostedStream = {
-        channel: channel,
-        endTime: now + BOOST_DURATION
+    // --- UTILS ---
+    const safeFormat = (value) => { 
+        if (value === 'N/A' || typeof value === 'undefined' || value === null) return 'N/A';
+        return (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) ? Number(value).toLocaleString('fr-FR') : value.toString().toUpperCase();
     };
 
-    const successMessage = `
-        <p style="color:var(--color-primary-pink); font-weight:bold;"> ✅ Boost de Stream Activé (15 min) ! </p>
-        <p> La chaîne <strong>${channel}</strong> est maintenant diffusée. Le prochain boost sera disponible dans 3 heures. </p>
-    `;
-    return res.json({ success: true, html_response: successMessage });
-});
-
-// ... (Routes Raid et IA) ...
-
-app.post('/start_raid', async (req, res) => {
-    const { game, max_viewers } = req.body;
-
-    if (!game || !max_viewers) {
-        return res.status(400).json({ success: false, error: "Jeu ou nombre de viewers manquant pour le Raid." });
+    // --- LECTEUR TWITCH ---
+    window.launchPlayer = function(channelName, videoId = null, time = 0) {
+        if (embed && ((!videoId && embed.getChannel() === channelName) || (videoId && embed.getVideo() === videoId))) return;
+        const hostWithoutPort = window.location.hostname;
+        const parentList = [hostWithoutPort, "localhost", "127.0.0.1", "justplayerstreamhubpro.onrender.com", "justplayer.fr"];
+        if (window.location.host.includes(':')) parentList.push(window.location.host);
+        
+        document.getElementById('twitch-embed').innerHTML = ''; 
+        const config = { width: "100%", height: "100%", layout: "video-and-chat", parent: parentList };
+        if (videoId) { config.video = videoId; if (time > 0) config.time = `${time}s`; } 
+        else { config.channel = channelName; }
+        embed = new Twitch.Embed("twitch-embed", config);
+        document.getElementById('input-channel').value = channelName;
     }
 
-    try {
-        const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
-        
-        if (gameRes.data.length === 0) {
-            return res.status(404).json({ success: false, error: `Catégorie de jeu "${game}" introuvable sur Twitch.`, });
-        }
-
-        const gameId = gameRes.data[0].id;
-        const gameName = gameRes.data[0].name;
-
-        const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&first=100`);
-
-        const target = streamsRes.data
-            .filter(stream => stream.viewer_count <= parseInt(max_viewers))
-            .sort((a, b) => b.viewer_count - a.viewer_count)[0]; 
-
-        if (target) {
-            return res.json({
-                success: true,
-                target: {
-                    name: target.user_name,
-                    login: target.user_login,
-                    viewers: target.viewer_count,
-                    game: target.game_name,
-                    thumbnail_url: target.thumbnail_url.replace('%{width}', '100').replace('%{height}', '56')
+    async function checkBoostAndPlay(isManualAction = false) {
+        const playerStatusEl = document.getElementById('player-channel-status');
+        if (autoCycleTimer) clearInterval(autoCycleTimer);
+        if (isManualAction && boostTimeout) clearTimeout(boostTimeout); 
+        try {
+            const res = await fetch(`${API_BASE}/get_default_stream`); 
+            const data = await res.json();
+            if (data.success) {
+                const { channel, viewers, message } = data;
+                launchPlayer(channel);
+                if (viewers === 'BOOST') {
+                    document.getElementById('btn-prev-stream').disabled = true;
+                    document.getElementById('btn-next-stream').disabled = true;
+                    playerStatusEl.innerHTML = message;
+                } else {
+                    document.getElementById('btn-prev-stream').disabled = false;
+                    document.getElementById('btn-next-stream').disabled = false;
+                    autoCycleTimer = setInterval(() => { cycleStream('next'); }, AUTO_CYCLE_DURATION_MS);
+                    playerStatusEl.innerHTML = message;
                 }
+            } else {
+                launchPlayer(DEFAULT_CHANNEL); 
+                playerStatusEl.innerHTML = `⚠️ Fallback: ${data.message}`;
+            }
+        } catch (e) { launchPlayer(DEFAULT_CHANNEL); }
+    }
+    
+    async function cycleStream(direction) {
+        document.getElementById('player-channel-status').innerHTML = `<i class='fas fa-sync fa-spin'></i> Changement...`;
+        try {
+            const res = await fetch(`${API_BASE}/cycle_stream`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ direction }) 
             });
-        } else {
-            return res.json({ success: false, error: `Aucune chaîne trouvée correspondant aux critères (Jeu: ${gameName}, Max: ${max_viewers} Vues).` });
+            const data = await res.json();
+            if (data.success) launchPlayer(data.channel);
+        } catch (e) { console.error(e); } 
+        finally { checkBoostAndPlay(true); }
+    }
+
+    // --- AUTHENTIFICATION CORRIGÉE (POPUP & REFRESH) ---
+    async function startAuth() {
+        // CAS 1: DÉJÀ CONNECTÉ -> ON DÉCONNECTE
+        if (isConnected) {
+            if (confirm("Voulez-vous vraiment vous déconnecter de Twitch ?")) {
+                try {
+                    await fetch(`${API_BASE}/twitch_logout`, { method: 'POST' });
+                    checkAuthStatus(); // Mise à jour de l'UI
+                    document.getElementById('followed-streams-list').innerHTML = '<p style="color:#555; text-align:center;">Déconnecté.</p>';
+                } catch (e) { console.error("Erreur Logout", e); }
+            }
+            return;
         }
+
+        // CAS 2: PAS CONNECTÉ -> ON OUVRE LE POPUP
+        const authUrl = `${API_BASE}/twitch_auth_start`;
+        const width = 500; const height = 650;
+        const left = (window.screen.width / 2) - (width / 2);
+        const top = (window.screen.height / 2) - (height / 2);
         
-    } catch (e) {
-        console.error("Erreur dans /start_raid:", e.message);
-        return res.status(500).json({ success: false, error: e.message });
-    }
-});
+        authWindow = window.open(authUrl, 'twitch_login_popup', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,status=no,resizable=yes`);
 
-
-app.post('/critique_ia', async (req, res) => {
-    const { type, query, niche_score } = req.body;
-    let prompt = "";
-
-    switch (type) {
-        case 'niche':
-            prompt = `En tant qu'expert en stratégie de croissance Twitch, le score de niche calculé est ${niche_score}. Analyse le jeu ou streamer "${query}". Fournis une critique de niche en format HTML. Sois extrêmement concis et utilise des listes (<ul> et <li>) plutôt que des paragraphes longs: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts CLAIRS (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au sujet (ex: "Défi Speedrun avec handicap"). 4. Une conclusion courte et impactante en <p> avec un <strong>.`;
-            break;
-        case 'repurpose':
-            prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre <h4>. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
-            break;
-        case 'trend':
-            prompt = `Tu es un détecteur de niches. Analyse les tendances actuelles et donne un avis sur la prochaine "grosse niche" Twitch. Fournis une critique en format HTML: 1. Un titre ####. 2. Une analyse en <p> sur la tendance V...`;
-            break;
-        default:
-            return res.status(400).json({ success: false, error: "Type d'analyse IA non reconnu." });
+        // OBSERVATEUR : Surveille si le popup se ferme (automatiquement ou manuellement)
+        const checkChild = setInterval(() => {
+            if (!authWindow || authWindow.closed) {
+                clearInterval(checkChild);
+                console.log("Popup fermé. Actualisation des données...");
+                checkAuthStatus(); // Actualise l'état (bouton + liste)
+                checkBoostAndPlay(); // Relance le cycle si besoin
+            }
+        }, 1000); // Vérifie toutes les secondes
     }
 
-    const result = await runGeminiAnalysis(prompt);
-
-    if (result.success) {
-        return res.json({ success: true, html_response: result.html_response });
-    } else {
-        return res.status(result.status || 500).json(result);
-    }
-});
-
-
-app.get('/export_csv', (req, res) => {
-    const data = CACHE.lastScanData;
-    
-    if (!data) {
-        return res.status(404).send("Aucune donnée de scan récente disponible pour l'export.");
-    }
-
-    let csvContent = "";
-    
-    if (data.type === 'user') {
-        const d = data;
-        csvContent = 
-            "Metrique,Valeur\n" +
-            `Type de Scan,Streamer\n` +
-            `Nom d'utilisateur,${d.display_name}\n` +
-            `Login,${d.login}\n` +
-            `Statut Live,${d.is_live ? 'OUI' : 'NON'}\n` +
-            `Jeu Actuel,${d.game_name}\n` +
-            `Vues Actuelles,${d.viewer_count}\n` +
-            `Total Suiveurs (RÉEL),${d.total_followers}\n` +
-            `Vues Totales (RÉEL),${d.total_views}\n` +
-            `VODs Publiées (RÉEL),${d.vod_count}\n` +
-            `Création Compte (RÉEL),${d.creation_date}\n` +
-            `Type de Chaîne (RÉEL),${d.broadcaster_type}\n` +
-            `SCORE NICHE (Calculé),${d.ai_calculated_niche_score}\n`;
-
-    } else if (data.type === 'game') {
-        const d = data;
-        csvContent = 
-            "Metrique,Valeur\n" +
-            `Type de Scan,Jeu\n` +
-            `Nom du Jeu,${d.name}\n` +
-            `Viewers Totaux (Live),${d.total_viewers}\n` +
-            `Streamers Totaux (Live),${d.total_streamers}\n` +
-            `Moy. Vues par Streamer,${d.avg_viewers_per_streamer}\n` +
-            `SCORE NICHE (Calculé),${d.ai_calculated_niche_score}\n`;
-    } else {
-        return res.status(500).send("Erreur: Format de données de scan inconnu.");
-    }
-    
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=Twitch_Analysis_Export.csv');
-    res.send(csvContent);
-});
-
-app.post('/auto_action', async (req, res) => {
-    try {
-        const { query, action_type } = req.body;
-        let prompt = "";
-
-        if (!query || !action_type) {
-            return res.status(400).json({ success: false, error: "Les paramètres 'query' ou 'action_type' sont manquants." });
+    async function checkAuthStatus() {
+        const loginBtn = document.getElementById('btn-twitch-login');
+        try {
+            const res = await fetch(`${API_BASE}/twitch_user_status`);
+            const data = await res.json();
+            isConnected = data.is_connected;
+            
+            if (isConnected) {
+                userData = data;
+                loginBtn.innerHTML = `❌ DÉCONNEXION (${data.display_name})`;
+                loginBtn.style.background = '#e34a64'; // Rouge pour signifier l'action de déconnexion
+                loadFollowedStreams();
+            } else {
+                loginBtn.innerHTML = '🔒 CONNEXION TWITCH';
+                loginBtn.style.background = '#6441a5';
+            }
+        } catch (e) {
+            isConnected = false;
+            loginBtn.innerHTML = '🔒 CONNEXION TWITCH';
         }
-
-        switch (action_type) {
-            case 'create_clip':
-                 prompt = `...`; // Placeholder
-                 break;
-            case 'title_disruption':
-                 prompt = `...`; // Placeholder
-                 break;
-            default:
-                return res.status(400).json({ success: false, error: `Type d'action non supporté : ${action_type}` });
+    }
+    
+    // BACKUP : Si le serveur envoie un postMessage, on l'écoute aussi
+    window.addEventListener('message', (event) => {
+        if (event.data === 'auth_success') {
+            if(authWindow) authWindow.close(); // Force la fermeture si le message est reçu
+            checkAuthStatus();
         }
+    });
 
-        const result = await runGeminiAnalysis(prompt);
+    async function loadFollowedStreams() {
+        const list = document.getElementById('followed-streams-list');
+        if (!isConnected) return; 
+        list.innerHTML = `<p style="text-align:center; color:var(--color-primary-pink);"><i class='fas fa-sync fa-spin'></i> Chargement...</p>`;
+        try {
+            const res = await fetch(`${API_BASE}/followed_streams`);
+            const data = await res.json();
+            if (data.success && data.streams.length > 0) {
+                list.innerHTML = "";
+                data.streams.forEach(stream => {
+                    const item = document.createElement('div');
+                    item.className = 'followed-stream-item';
+                    item.onclick = () => launchPlayer(stream.user_login);
+                    item.innerHTML = `
+                        <img src="${stream.thumbnail_url.replace('{width}', '320').replace('{height}', '180')}">
+                        <div style="font-weight:bold; font-size:13px; color:#fff;">${stream.user_name}</div>
+                        <div style="font-size:11px; color:var(--color-primary-pink); font-weight:bold;"><i class="fas fa-eye"></i> ${stream.viewer_count}</div>
+                        <div style="font-size:10px; color:red;">🔴 LIVE</div>
+                    `;
+                    list.appendChild(item);
+                });
+            } else {
+                list.innerHTML = "<p style='color:#777; text-align:center;'>Aucun stream en direct.</p>";
+            }
+        } catch(e) { list.innerHTML = `<p style="color:red; text-align:center;">Erreur chargement.</p>`; }
+    }
 
-        if (result.success) {
-            return res.json({
-                success: true,
-                html_response: result.html_response,
-                metrics: null
+    // --- SCAN & IA ---
+    async function runAIAnalysis(type, query, box, niche_score = null) {
+        box.innerHTML = `<p class='text-purple-400 text-center'><i class='fas fa-sync fa-spin'></i> Analyse IA...</p>`;
+        try {
+            const res = await fetch(`${API_BASE}/critique_ia`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type, query, niche_score }) 
             });
-        } else {
-            return res.status(result.status || 500).json(result);
-        }
-
-    } catch (error) {
-        console.error(`Erreur d'exécution dans /auto_action pour ${req.body?.action_type}:`, error.message);
-        if (!res.headersSent) {
-            return res.status(500).json({
-                success: false,
-                error: `Erreur interne du serveur lors de l'action: ${error.message}`,
-                html_response: `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur d'exécution de l'API: ${error.message}</p>`
-            });
-        }
+            const data = await res.json();
+            box.innerHTML = `<div class="ai-output-enhanced">${data.html_response}</div>`;
+        } catch (e) { box.innerHTML = `<p style="color:red; text-align:center;">❌ ${e.message}</p>`; }
     }
-});
 
+    async function runGlobalScan(query) {
+        const boxScan = document.getElementById('res-scan-content');
+        const boxNiche = document.getElementById('res-niche-content');
+        const boxVod = document.getElementById('res-vod-content');
+        boxScan.innerHTML = "<p class='text-blue-400 text-center'>Scan en cours...</p>";
+        try {
+            const scanRes = await fetch(`${API_BASE}/scan_target`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ query }) 
+            });
+            const scanData = await scanRes.json();
+            if (!scanData.success) throw new Error(scanData.message);
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
-});
+            if (scanData.type === 'user') {
+                const u = scanData.user_data;
+                const nicheScore = u.ai_calculated_niche_score; 
+                boxScan.innerHTML = `
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+                        <img src="${u.profile_image_url}" style="width:50px; height:50px; border-radius:50%;">
+                        <div><div style="font-weight:bold;">${u.display_name}</div><div>${u.game_name || 'Divers'}</div></div>
+                    </div>
+                    <button onclick="launchPlayer('${u.login}')" class="btn-primary" style="width:100%;">VOIR STREAM</button>
+                    <div class="metric-grid">
+                        <div class="metric-item"><div class="metric-value">${safeFormat(u.total_followers)}</div><div class="metric-label">Followers</div></div>
+                        <div class="metric-item"><div class="metric-value">${safeFormat(u.total_views)}</div><div class="metric-label">Vues</div></div>
+                    </div>
+                    <div class="niche-score-box"><div class="niche-score-value">${safeFormat(nicheScore)}</div><div class="niche-score-label">SCORE NICHE</div></div>
+                `;
+                runAIAnalysis('niche', `${u.display_name} | ${u.game_name}`, boxNiche, nicheScore);
+                
+                const vodRes = await fetch(`${API_BASE}/get_latest_vod?channel=${u.login}`);
+                if (vodRes.ok) {
+                    const vodData = await vodRes.json();
+                    if (vodData.success && vodData.vod) {
+                        boxVod.innerHTML = `
+                            <div style="margin-bottom:5px;">${vodData.vod.title.substring(0,40)}...</div>
+                            <img src="${vodData.vod.thumbnail_url}" style="width:100%; border-radius:4px;">
+                            <button onclick="launchPlayer('${u.login}', '${vodData.vod.id}')" class="btn-primary" style="width:100%; margin-top:5px;">VOIR VOD</button>
+                            <div id="vod-ai-res" class="mt-2"></div>
+                        `;
+                        runAIAnalysis('repurpose', `${u.login} | ${vodData.vod.title}`, document.getElementById('vod-ai-res'));
+                    } else { boxVod.innerHTML = "Pas de VOD."; }
+                }
+            } else if (scanData.type === 'game') {
+                const g = scanData.game_data;
+                boxScan.innerHTML = `<div style="font-weight:bold; color:var(--color-secondary-blue);">${g.name}</div><div>Viewers: ${safeFormat(g.total_viewers)}</div>`;
+                runAIAnalysis('niche', `Jeu: ${g.name}`, boxNiche, g.ai_calculated_niche_score);
+                boxVod.innerHTML = "Analyse VOD impossible sur un jeu.";
+            }
+        } catch (e) { boxScan.innerHTML = `<p style="color:red;">Erreur: ${e.message}</p>`; }
+        finally { document.getElementById('btn-global-scan').disabled = false; document.getElementById('btn-global-scan').innerHTML = '🚀 LANCER L\'ANALYSE 360°'; }
+    }
 
-app.get('/NicheOptimizer.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
-});
+    // --- LISTENERS ---
+    document.getElementById('btn-twitch-login').onclick = startAuth;
+    document.getElementById('form-global-scan').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const query = document.getElementById('input-global-target').value.trim();
+        if (query) {
+            document.getElementById('btn-global-scan').disabled = true;
+            document.getElementById('btn-global-scan').innerHTML = 'ANALYSE...';
+            await runGlobalScan(query);
+        }
+    });
+    document.getElementById('mini-player-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const c = document.getElementById('input-channel').value.trim();
+        if(c) { launchPlayer(c); if(autoCycleTimer) clearInterval(autoCycleTimer); }
+    });
+    
+    // Forms Boost & Raid (Logique simplifiée pour clarté, identique à votre original)
+    document.getElementById('form-boost').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const channel = document.getElementById('input-boost').value.trim();
+        const resBox = document.getElementById('boost-results');
+        if(!channel) return;
+        resBox.innerHTML = "Boost en cours...";
+        try {
+            const res = await fetch(`${API_BASE}/stream_boost`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel}) });
+            const data = await res.json();
+            resBox.innerHTML = data.html_response || (data.success ? "Boost OK" : "Erreur");
+            checkBoostAndPlay(true);
+        } catch(e) { resBox.innerHTML = "Erreur réseau"; }
+    });
 
-// =========================================================
-// DÉMARRAGE DU SERVEUR
-// =========================================================
-app.listen(PORT, () => {
-    console.log(`Serveur démarré sur le port ${PORT}`);
-});
+    document.getElementById('form-raid').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const game = document.getElementById('input-raid-game').value.trim();
+        const max_viewers = document.getElementById('select-raid-viewers').value;
+        const resBox = document.getElementById('raid-results');
+        if(!game) return;
+        resBox.innerHTML = "Recherche...";
+        try {
+            const res = await fetch(`${API_BASE}/start_raid`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game, max_viewers}) });
+            const data = await res.json();
+            if(data.success) {
+                const t = data.target;
+                resBox.innerHTML = `<div class="raid-target-box"><img src="${t.thumbnail_url}"><div><div>${t.name}</div><div>${t.viewers} vues</div></div><button onclick="launchPlayer('${t.login}')" class="btn-primary" style="margin-left:auto;">GO</button></div>`;
+            } else { resBox.innerHTML = "Aucune cible."; }
+        } catch(e) { resBox.innerHTML = "Erreur réseau"; }
+    });
+
+    document.getElementById('btn-export-pdf').addEventListener('click', () => { window.open(`${API_BASE}/export_csv`, '_blank'); });
+
+    window.onload = () => { checkAuthStatus(); checkBoostAndPlay(); openTab('tab-followed'); };
+</script>
+</body>
+</html>
