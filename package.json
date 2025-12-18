@@ -1,7 +1,7 @@
 {
-  "name": "streamer-niche-hub-pro",
-  "version": "3.0.0",
-  "description": "Streamer Hub V22 - Production Edition",
+  "name": "streamer-niche-hub-ultimate-fix",
+  "version": "5.0.0",
+  "description": "Streamer Hub V24 - Stable Production",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -12,13 +12,14 @@
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "@google/generative-ai": "^0.16.0",
+    "@google/generative-ai": "^0.21.0",
     "dotenv": "^16.4.5"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
+
 
 
 
