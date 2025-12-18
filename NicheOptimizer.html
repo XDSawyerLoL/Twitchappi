@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub - COCKPIT MODE (V17 - Final)</title>
+    <title>Streamer & Niche AI Hub - COCKPIT MODE (V18 - AutoCycle Fix)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,25 +11,28 @@
     
     <style>
         :root {
-            /* Palette Cyberpunk Dark */
+            /* Palette Dark */
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
             --color-bg-light: #111;
             
+            /* Accents Neon */
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
-            --color-time-gold: #ffd700; /* Couleur pour Best Time */
+            --color-time-gold: #ffd700; /* Best Time */
             
+            /* IA Colors */
             --color-ai-niche: #59d682;
             --color-ai-repurpose: #9933ff;
             --color-ai-growth: #ffcc00; 
             --color-ai-action: #e34a64; 
             
+            /* UI */
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
             
-            /* Effets Neon */
+            /* Ombres */
             --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
             --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
             --shadow-action: 0 0 15px rgba(227, 74, 100, 0.4);
@@ -151,7 +154,7 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V17 (Production)</h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V18 (Full)</h1>
     <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Croissance</div>
 
     <div class="tabs-nav-container">
@@ -168,7 +171,7 @@
         <div class="player-header">
             <h2 class="player-title">
                 <span style="margin-right:6px;">🎬</span> LECTEUR
-                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente de démarrage...</span>
+                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente...</span>
             </h2>
             <div class="flex gap-2 items-center">
                 <button id="btn-prev-stream" class="btn-cycle" onclick="cycleStream('prev')" disabled><i class="fas fa-arrow-left"></i></button>
@@ -290,6 +293,8 @@
 <script>
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch';
+    
+    // CONFIGURATION : 3 MINUTES EN MILLISECONDES
     const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000;
     
     let embed = null;
@@ -333,13 +338,16 @@
         document.getElementById('input-channel').value = channelName;
     }
 
-    // --- LOGIQUE DE ROTATION & BOOST ---
+    // --- LOGIQUE DE ROTATION & BOOST (LE CŒUR DU SYSTÈME AUTOMATIQUE) ---
     async function checkBoostAndPlay(manual = false) {
         const statusEl = document.getElementById('player-channel-status');
         const btnPrev = document.getElementById('btn-prev-stream');
         const btnNext = document.getElementById('btn-next-stream');
         
+        // 1. On nettoie toujours l'ancien timer pour éviter les doublons
         if (autoCycleTimer) clearInterval(autoCycleTimer);
+        
+        // Si action manuelle, on nettoie le timeout de boost pour éviter les conflits
         if (manual && boostTimeout) clearTimeout(boostTimeout);
 
         try {
@@ -347,25 +355,34 @@
             const data = await res.json();
             
             if (data.success) {
+                // Lancement du stream récupéré
                 launchPlayer(data.channel);
                 statusEl.innerHTML = data.message;
                 
                 if (data.viewers === 'BOOST') {
-                    // Mode Boost : On bloque la navigation
+                    // MODE BOOST : On bloque la navigation
                     btnPrev.disabled = true; 
                     btnNext.disabled = true;
                     
-                    // Vérif du temps restant pour relancer l'auto-cycle après
+                    // On vérifie combien de temps il reste au boost
                     const bRes = await fetch(`${API_BASE}/check_boost_status`);
                     const bData = await bRes.json();
+                    
                     if(bData.is_boosted) {
+                        // On relancera la vérification à la fin du boost
                         boostTimeout = setTimeout(() => checkBoostAndPlay(), (bData.remaining_seconds * 1000) + 2000);
                     }
                 } else {
-                    // Mode Auto : Navigation active + Timer
+                    // MODE AUTO : On active la navigation manuelle
                     btnPrev.disabled = false; 
                     btnNext.disabled = false;
-                    autoCycleTimer = setInterval(() => cycleStream('next'), AUTO_CYCLE_DURATION_MS);
+                    
+                    // IMPORTANT : On lance le minuteur de 3 minutes pour passer au suivant
+                    console.log(`Minuteur lancé : Prochain changement dans ${AUTO_CYCLE_DURATION_MS/1000} secondes.`);
+                    autoCycleTimer = setInterval(() => {
+                        console.log("Minuteur écoulé : Changement de chaîne...");
+                        cycleStream('next');
+                    }, AUTO_CYCLE_DURATION_MS);
                 }
             } else {
                 launchPlayer(DEFAULT_CHANNEL);
@@ -376,6 +393,7 @@
         }
     }
     
+    // Fonction appelée par le minuteur ou les boutons
     async function cycleStream(direction) {
         document.getElementById('btn-prev-stream').disabled = true; 
         document.getElementById('btn-next-stream').disabled = true;
@@ -388,6 +406,7 @@
         } catch(e) {
             console.error(e);
         } finally { 
+            // On relance la logique pour redémarrer le minuteur propre
             checkBoostAndPlay(true); 
         }
     }
