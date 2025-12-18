@@ -21,13 +21,6 @@
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
-            
-            --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
-            --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
-            --shadow-niche: 0 0 15px rgba(89, 214, 130, 0.4);
-            --shadow-repurpose: 0 0 15px rgba(153, 51, 255, 0.4);
-            --shadow-action: 0 0 15px rgba(227, 74, 100, 0.4);
-            --shadow-growth: 0 0 15px rgba(255, 204, 0, 0.4);
         }
 
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
@@ -52,17 +45,17 @@
         .tab-btn:hover { color: #fff; background: #232323; box-shadow: 0 0 10px rgba(255, 255, 255, 0.15); }
         .tab-btn.active { 
             background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); 
-            font-weight: bold; box-shadow: var(--shadow-pink); z-index: 10; 
+            font-weight: bold; box-shadow: 0 0 15px rgba(255, 0, 153, 0.4); z-index: 10; 
         }
 
         .player-wrapper { 
             margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); 
             border-radius: 12px; border: 1px solid var(--color-border-dark); 
-            box-shadow: var(--shadow-blue); 
+            box-shadow: 0 0 15px rgba(34, 199, 239, 0.4); 
         }
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); text-shadow: 0 0 4px var(--color-secondary-blue); }
-        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; box-shadow: 0 0 15px rgba(34, 199, 239, 0.3); overflow: hidden; }
+        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; }
         
         .player-quick-input {
             background: var(--color-bg-dark); border: 1px solid var(--color-border-medium); color: white;
@@ -73,11 +66,7 @@
             background: var(--color-bg-dark);
             color: var(--color-secondary-blue);
             border: 1px solid var(--color-secondary-blue);
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            transition: 0.2s;
-            cursor: pointer;
+            padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;
         }
         .btn-cycle:hover { background: var(--color-secondary-blue); color: var(--color-bg-dark); }
 
@@ -90,19 +79,20 @@
             background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; 
             min-height: 250px; display: flex; flex-direction: column;
         }
-        .box-stats { border-top: 2px solid var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
-        .box-niche { border-top: 2px solid var(--color-ai-niche); box-shadow: var(--shadow-niche); }
-        .box-vod { border-top: 2px solid var(--color-ai-repurpose); box-shadow: var(--shadow-repurpose); }
+        .box-stats { border-top: 2px solid var(--color-secondary-blue); }
+        .box-niche { border-top: 2px solid var(--color-ai-niche); }
+        .box-vod { border-top: 2px solid var(--color-ai-repurpose); }
         .dashboard-title { font-family: 'Orbitron', sans-serif; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
 
         .action-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); background: var(--color-bg-dark); color: #fff; font-size: 13px; margin-bottom: 10px; }
-        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(255,0,153,.4); transition: all 0.2s; }
+        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; transition: all 0.2s; }
         .btn-big-scan { width: 100%; background: linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose)); font-size: 14px; padding: 12px; margin-top: 10px; }
 
         #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; }
         .followed-stream-item { width: calc(20% - 12px); min-width: 150px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: 0.3s; }
         .followed-stream-item img { width: 100%; border-radius: 4px; margin-bottom: 5px; }
         
+        /* Style Résultats IA */
         .ai-result-box { color: #ddd; line-height: 1.5; font-size: 14px; }
         .ai-result-box h4 { color: var(--color-ai-growth); font-family: 'Orbitron', sans-serif; margin-top: 15px; border-bottom: 1px solid #333; }
         .ai-result-box strong { color: #fff; }
@@ -171,7 +161,7 @@
 
         <div id="tab-golden" class="tab-content">
             <h3 style="color:var(--color-ai-growth); margin-bottom:10px; font-weight:bold;">🌟 PRÉDICTION DE L'HEURE D'OR</h3>
-            <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Demandez à l'IA d'analyser la concurrence pour un jeu spécifique à une date donnée afin de trouver le créneau de visibilité maximale.</p>
+            <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Demandez à l'IA d'analyser la concurrence pour un jeu spécifique à une date donnée.</p>
             
             <form id="form-golden" style="display:flex; gap:10px; flex-wrap:wrap;">
                 <input id="golden-game" type="text" placeholder="Jeu (ex: League of Legends)" class="action-input" style="flex:1; min-width:200px;">
@@ -229,7 +219,7 @@
             layout: "video",
             autoplay: true,
             muted: false,
-            // ⚠️ CORRECTION CRITIQUE : AJOUT DE JUSTPLAYER.FR POUR L'EMBED
+            // ⚠️ CORRECTION : AJOUT EXPLICITE DE JUSTPLAYER.FR
             parent: ["localhost", "127.0.0.1", "justplayer.fr", "www.justplayer.fr"]
         });
         document.getElementById('input-channel').value = channel;
