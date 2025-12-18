@@ -1,12 +1,13 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V17 - FINAL)
- * =================================================
- * Serveur Node.js/Express gérant :
- * 1. L'authentification Twitch (OAuth) avec fermeture propre des popups.
- * 2. L'API Twitch (Helix) pour les scans, raids et statuts.
- * 3. L'IA Google Gemini pour les analyses (Niche, Repurposing, Planning).
- * 4. La rotation automatique des streams (0-100 vues).
- * 5. Le système de Boost et de Raid optimisé.
+ * STREAMER & NICHE AI HUB - BACKEND (V18 - FINAL FULL)
+ * ====================================================
+ * Ce serveur gère l'intégralité de l'application :
+ * - Authentification Twitch (OAuth)
+ * - Rotation automatique des streams (< 100 viewers)
+ * - Système de Boost (Prioritaire 15 min)
+ * - Système de Raid Optimisé (Filtrage précis)
+ * - Intelligence Artificielle (Gemini) pour l'analyse
+ * - Export CSV
  */
 
 const express = require('express');
@@ -26,14 +27,14 @@ const app = express();
 
 const PORT = process.env.PORT || 10000;
 
-// Récupération des clés (Assurez-vous qu'elles sont dans votre .env ou variables système)
+// Récupération des clés API (Doivent être définies dans votre hébergeur ou .env)
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
-// Vérification de sécurité au démarrage
+// Vérification de sécurité au démarrage pour éviter les crashs silencieux
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
     console.error("#############################################################");
     console.error("ERREUR FATALE : VARIABLES D'ENVIRONNEMENT MANQUANTES");
@@ -42,20 +43,20 @@ if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_K
     process.exit(1); 
 }
 
-// Initialisation de l'IA
+// Initialisation de l'IA Google Gemini
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
 
-// Middlewares Express
+// Middlewares Express (Sécurité et Parsing)
 app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
-// Sert les fichiers statiques (HTML/CSS/JS client)
+// Sert les fichiers statiques (HTML/CSS/JS client) depuis le dossier racine
 app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
 // 2. SYSTÈME DE CACHE EN MÉMOIRE (RAM)
 // =========================================================
-// Stocke les données temporaires pour éviter de surcharger les API
+// Stocke les données temporaires pour éviter de surcharger les API Twitch
 const CACHE = {
     twitchTokens: {},       // Tokens d'application (App Access Token)
     twitchUser: null,       // Session utilisateur connecté (User Access Token)
@@ -70,7 +71,7 @@ const CACHE = {
         streams: [],        // Liste des streams filtrés (0-100 vues)
         currentIndex: 0,    // Index actuel dans la liste
         lastFetchTime: 0,   // Dernier appel à l'API Twitch
-        fetchCooldown: 15 * 60 * 1000 // Rafraichissement toutes les 15 min
+        fetchCooldown: 5 * 60 * 1000 // On rafraichit la liste toutes les 5 min (plus agressif)
     }
 };
 
@@ -97,7 +98,7 @@ async function getTwitchToken(tokenType) {
         if (data.access_token) {
             CACHE.twitchTokens[tokenType] = {
                 access_token: data.access_token,
-                // On retire 5 minutes (300000ms) à l'expiration pour être sûr
+                // On retire 5 minutes (300000ms) à l'expiration pour marge de sécurité
                 expiry: Date.now() + (data.expires_in * 1000) - 300000 
             };
             return data.access_token;
@@ -127,7 +128,7 @@ async function twitchApiFetch(endpoint, token) {
     });
 
     if (res.status === 401) {
-        // Token expiré -> on nettoie le cache
+        // Token expiré -> on nettoie le cache pour forcer le renouvellement
         if (token === CACHE.twitchTokens['app']?.access_token) CACHE.twitchTokens['app'] = null; 
         if (token === CACHE.twitchUser?.access_token) CACHE.twitchUser = null; 
         throw new Error(`Erreur Auth Twitch (401). Token expiré.`);
@@ -414,35 +415,40 @@ app.post('/scan_target', async (req, res) => {
 });
 
 // =========================================================
-// 6. ROTATION AUTOMATIQUE & LECTEUR
+// 6. ROTATION AUTOMATIQUE & LECTEUR (LOGIQUE COEUR)
 // =========================================================
 
 async function refreshGlobalStreamList() {
     const now = Date.now();
     const rotation = CACHE.globalStreamRotation;
     
-    // Cooldown de 15 min pour ne pas spammer Twitch
+    // Cooldown de 5 min pour ne pas spammer Twitch, sauf si la liste est vide
     if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) {
         return;
     }
     
-    console.log("Rafraîchissement de la liste 0-100 vues...");
+    console.log("Mise à jour de la liste des streams FR < 100 vues...");
     
     try {
+        // ON RÉCUPÈRE LES STREAMS FRANÇAIS (language=fr)
         const data = await twitchApiFetch(`streams?language=fr&first=100`);
         const allStreams = data.data;
 
-        // Filtre strict : 0 à 100 vues
+        // FILTRE STRICT : Streams entre 0 et 100 viewers
         let suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
 
-        // Fallback : Si aucun stream <100, on prend les 10 plus petits du top 100
+        // Fallback : Si aucun stream <100 (rare en FR), on prend les 15 plus petits du top 100 fetché
         if (suitableStreams.length === 0 && allStreams.length > 0) {
-            suitableStreams = allStreams.sort((a, b) => a.viewer_count - b.viewer_count).slice(0, 10); 
+            suitableStreams = allStreams.sort((a, b) => a.viewer_count - b.viewer_count).slice(0, 15); 
+            console.log("Fallback actif: Utilisation des plus petits streams disponibles.");
         }
 
         if (suitableStreams.length > 0) {
             rotation.streams = suitableStreams.map(s => ({ channel: s.user_login, viewers: s.viewer_count }));
-            rotation.currentIndex = 0;
+            // On ne reset pas l'index à 0 brutalement pour éviter de boucler sur le premier
+            // On s'assure juste que l'index est valide
+            if (rotation.currentIndex >= rotation.streams.length) rotation.currentIndex = 0;
+            
             rotation.lastFetchTime = now;
         }
     } catch (e) {
@@ -487,7 +493,7 @@ app.get('/get_default_stream', async (req, res) => {
     });
 });
 
-// Changer de chaîne manuellement (Next/Prev)
+// Changer de chaîne (Appelé par le Timer 3min du Frontend ou boutons)
 app.post('/cycle_stream', async (req, res) => {
     const { direction } = req.body; 
 
@@ -501,6 +507,7 @@ app.post('/cycle_stream', async (req, res) => {
 
     if (rotation.streams.length === 0) return res.status(404).json({ success: false });
 
+    // Calcul du nouvel index (Circulaire)
     if (direction === 'next') {
         rotation.currentIndex = (rotation.currentIndex + 1) % rotation.streams.length;
     } else {
@@ -508,6 +515,9 @@ app.post('/cycle_stream', async (req, res) => {
     }
 
     const newStream = rotation.streams[rotation.currentIndex];
+    
+    console.log(`Cycle vers: ${newStream.channel} (${newStream.viewers} vues)`);
+    
     return res.json({ success: true, channel: newStream.channel, viewers: newStream.viewers });
 });
 
@@ -679,6 +689,6 @@ app.get('/export_csv', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`===========================================`);
-    console.log(` STREAMER HUB V17 DÉMARRÉ SUR LE PORT ${PORT}`);
+    console.log(` STREAMER HUB V18 (FULL) DÉMARRÉ SUR LE PORT ${PORT}`);
     console.log(`===========================================`);
 });
