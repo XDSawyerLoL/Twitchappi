@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* --- VOTRE CSS ORIGINAL EST CONSERVÉ À 100% --- */
+        /* --- CSS ORIGINAL --- */
         :root {
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
@@ -60,7 +60,15 @@
             margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); 
             border-radius: 12px; border: 1px solid var(--color-border-dark); 
             box-shadow: var(--shadow-blue); 
+            transition: all 0.5s ease;
         }
+        
+        /* --- NOUVEAU STYLE HEURE D'OR --- */
+        .golden-hour-glow {
+            border: 2px solid #ffd700 !important;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.5) !important;
+        }
+
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); text-shadow: 0 0 4px var(--color-secondary-blue); }
         #twitch-embed { width: 100%; height: 500px; border-radius: 8px; box-shadow: 0 0 15px rgba(34, 199, 239, 0.3); overflow: hidden; }
@@ -180,7 +188,7 @@
         </div>
     </div>
 
-    <div class="player-wrapper">
+    <div class="player-wrapper" id="player-wrapper-box">
         <div class="player-header">
             <h2 class="player-title">
                 <span style="margin-right:6px;" id="player-icon">🎬</span> LECTEUR
@@ -252,11 +260,8 @@
     const API_BASE = window.location.origin;
     let embed = null;
     let autoCycleInterval = null;
-    
-    // TEMPS DE ROTATION : 3 Minutes (180000ms)
-    const ROTATION_TIME_MS = 180000; 
+    const ROTATION_TIME_MS = 180000; // 3 minutes
 
-    // Gestion Onglets
     function openTab(tabId) {
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
@@ -265,11 +270,9 @@
         if (tabId === 'tab-followed') loadFollowedStreams();
     }
 
-    // Fonction de lancement du lecteur (Nettoie l'ancien player pour éviter le crash)
     function launchPlayer(channel) {
         const container = document.getElementById("twitch-embed");
-        container.innerHTML = ""; // NETTOYAGE CRITIQUE
-        
+        container.innerHTML = ""; 
         embed = new Twitch.Embed("twitch-embed", {
             width: "100%",
             height: "100%",
@@ -277,44 +280,38 @@
             layout: "video",
             autoplay: true,
             muted: false,
-            parent: ["localhost", "127.0.0.1"] // Ajoutez votre domaine ici si prod
+            parent: ["localhost", "127.0.0.1"]
         });
-        
         document.getElementById('input-channel').value = channel;
     }
 
-    // --- CŒUR DU SYSTÈME : ROTATION AUTOMATIQUE ---
-    
     async function checkBoostAndPlay() {
-        // Arrête le timer existant pour éviter les doublons
         if (autoCycleInterval) clearInterval(autoCycleInterval);
-
         try {
             const res = await fetch(`${API_BASE}/get_default_stream`);
             const data = await res.json();
-            
             launchPlayer(data.channel);
             
             const statusLabel = document.getElementById('player-channel-status');
-            
+            const wrapper = document.getElementById('player-wrapper-box');
+
+            // --- LOGIQUE HEURE D'OR (VISUEL) ---
+            if (data.is_golden_hour) {
+                wrapper.classList.add('golden-hour-glow');
+                statusLabel.style.color = "#ffd700"; // Or
+                statusLabel.innerHTML = `<i class="fas fa-star"></i> ${data.message}`;
+            } else {
+                wrapper.classList.remove('golden-hour-glow');
+                statusLabel.style.color = "#888";
+                statusLabel.innerHTML = data.message;
+            }
+
             if (data.viewers === 'BOOST') {
-                statusLabel.innerHTML = `⚡ BOOST ACTIF (${data.channel})`;
-                // On revérifie dans 1 minute si le boost est fini
                 autoCycleInterval = setTimeout(checkBoostAndPlay, 60000);
             } else {
-                statusLabel.innerHTML = `🔄 Auto-Cycle: ${data.channel} (${data.viewers} vues)`;
-                
-                // Lancement du timer de 3 minutes pour passer au suivant
-                autoCycleInterval = setInterval(() => {
-                    cycleStream('next');
-                }, ROTATION_TIME_MS);
-                
-                // Petit compte à rebours visuel dans la console ou UI (Optionnel)
-                console.log(`Prochain changement de stream dans ${ROTATION_TIME_MS/1000} secondes.`);
+                autoCycleInterval = setInterval(() => cycleStream('next'), ROTATION_TIME_MS);
             }
-        } catch (e) {
-            console.error("Erreur cycle:", e);
-        }
+        } catch (e) { console.error("Erreur cycle:", e); }
     }
 
     async function cycleStream(direction) {
@@ -325,20 +322,38 @@
                 body: JSON.stringify({ direction })
             });
             const data = await res.json();
-            
-            // Relancer le timer propre
             if (autoCycleInterval) clearInterval(autoCycleInterval);
-            
             launchPlayer(data.channel);
-            document.getElementById('player-channel-status').innerHTML = `🔄 Auto-Cycle: ${data.channel} (${data.viewers} vues)`;
             
-            // Remet le timer de 3 minutes
+            const wrapper = document.getElementById('player-wrapper-box');
+            if (data.is_golden_hour) {
+                wrapper.classList.add('golden-hour-glow');
+            } else {
+                wrapper.classList.remove('golden-hour-glow');
+            }
+            
+            document.getElementById('player-channel-status').innerHTML = data.is_golden_hour 
+                ? `🌟 HEURE D'OR: ${data.channel}` 
+                : `🔄 Auto-Cycle: ${data.channel} (${data.viewers} vues)`;
+                
             autoCycleInterval = setInterval(() => cycleStream('next'), ROTATION_TIME_MS);
-            
         } catch (e) { console.error(e); }
     }
 
-    // Auth & Events
+    // --- POPUP AUTH & MESSAGE LISTENER ---
+    function startAuth() {
+        // Ouvre le popup
+        window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login', 'width=500,height=600');
+    }
+
+    // Écoute le message envoyé par le popup (app.js ligne 160)
+    window.addEventListener('message', (event) => {
+        if (event.data === 'auth_success') {
+            checkAuthStatus(); // Rafraîchit le bouton
+            loadFollowedStreams(); // Charge les données
+        }
+    });
+
     async function checkAuthStatus() {
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
@@ -349,7 +364,8 @@
                 btn.style.background = '#0e7e0e';
                 btn.onclick = () => fetch(`${API_BASE}/twitch_logout`, {method:'POST'}).then(()=>window.location.reload());
             } else {
-                btn.onclick = () => window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=600');
+                btn.innerHTML = '🔒 CONNEXION TWITCH'; 
+                btn.onclick = startAuth;
             }
         } catch(e) {}
     }
@@ -372,23 +388,18 @@
         } catch(e) { list.innerHTML = "Erreur chargement."; }
     }
     
-    // IA & Scan Events
+    // IA & Scan
     document.getElementById('form-global-scan').addEventListener('submit', async (e) => {
         e.preventDefault();
         const query = document.getElementById('input-global-target').value;
         const btn = document.getElementById('btn-global-scan');
         btn.disabled = true; btn.innerText = "Scan en cours...";
-        
         try {
             const res = await fetch(`${API_BASE}/scan_target`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query})});
             const data = await res.json();
-            
             if(data.success) {
-                // Affichage Basique des résultats (Votre logique visuelle complexe est simplifiée ici pour tenir dans le code, mais les IDs sont là)
                 document.getElementById('res-scan-content').innerHTML = `Trouvé: ${data.type === 'user' ? data.user_data.display_name : data.game_data.name}`;
-                
-                // Appel IA
-                const resIA = await fetch(`${API_BASE}/critique_ia`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query})});
+                const resIA = await fetch(`${API_BASE}/critique_ia`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query, niche_score: 'Calcul...'})});
                 const dataIA = await resIA.json();
                 document.getElementById('res-niche-content').innerHTML = dataIA.html_response;
             }
@@ -396,10 +407,9 @@
         btn.disabled = false; btn.innerText = "🚀 LANCER L'ANALYSE 360°";
     });
 
-    // Boot
     window.onload = () => {
         checkAuthStatus();
-        checkBoostAndPlay(); // Lance la rotation auto dès le chargement
+        checkBoostAndPlay();
         openTab('tab-followed');
     };
 </script>
