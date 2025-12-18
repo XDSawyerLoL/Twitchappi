@@ -178,6 +178,7 @@ app.get('/twitch_auth_start', (req, res) => {
     res.redirect(url);
 });
 
+// >>>>>> CORRECTION ICI : FERMETURE AUTOMATIQUE DU POPUP <<<<<<
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error, error_description } = req.query;
     const storedState = req.cookies.twitch_state;
@@ -221,7 +222,25 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 expiry: Date.now() + (tokenData.expires_in * 1000)
             };
             
-            res.redirect('/'); 
+            // Remplacement de res.redirect('/') par le script de fermeture :
+            res.send(`
+                <html>
+                    <head><title>Connexion Réussie</title></head>
+                    <body style="background-color: #1a1a1a; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh;">
+                        <div style="text-align: center;">
+                            <h2 style="color: #59d682;">✅ Connexion Réussie !</h2>
+                            <p>Fermeture de la fenêtre...</p>
+                        </div>
+                        <script>
+                            if (window.opener) {
+                                window.opener.postMessage('auth_success', '*');
+                            }
+                            window.close();
+                        </script>
+                    </body>
+                </html>
+            `);
+
         } else {
             console.error("=========================================================");
             console.error("ERREUR CRITIQUE: Échec de l'échange de code Twitch.");
@@ -235,6 +254,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
         res.status(500).send(`Erreur interne du serveur lors de l'authentification: ${e.message}`);
     }
 });
+// >>>>>> FIN CORRECTION <<<<<<
 
 app.post('/twitch_logout', (req, res) => {
     CACHE.twitchUser = null;
