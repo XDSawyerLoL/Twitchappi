@@ -221,7 +221,23 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 expiry: Date.now() + (tokenData.expires_in * 1000)
             };
             
-            res.redirect('/'); 
+            // --- MODIFICATION: Fermeture propre du Popup et signal au parent ---
+            res.send(`
+                <html>
+                <body>
+                    <p>Connexion réussie. Fermeture...</p>
+                    <script>
+                        if (window.opener) {
+                            window.opener.postMessage('auth_success', '*');
+                            window.close();
+                        } else {
+                            window.location.href = '/';
+                        }
+                    </script>
+                </body>
+                </html>
+            `);
+
         } else {
             console.error("=========================================================");
             console.error("ERREUR CRITIQUE: Échec de l'échange de code Twitch.");
@@ -329,31 +345,30 @@ app.post('/scan_target', async (req, res) => {
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
             
-            // 1. Récupérer les streams (pour savoir s'il est live, son jeu, etc.)
+            // 1. Récupérer les streams
             let streamDetails = null;
             try {
                 const streamRes = await twitchApiFetch(`streams?user_id=${user.id}`);
                 if (streamRes.data.length > 0) {
                     streamDetails = streamRes.data[0];
                 }
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+            } catch (e) { /* Ignorer l'erreur */ }
 
             // 2. Récupérer le nombre total de followers
             let followerCount = 'N/A';
             try {
                 const followerRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`);
                 followerCount = followerRes.total;
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+            } catch (e) { /* Ignorer l'erreur */ }
 
             // 3. Récupérer le nombre total de VODs
             let vodCount = 'N/A';
             try {
                 const vodRes = await twitchApiFetch(`videos?user_id=${user.id}&type=archive&first=1`);
                 vodCount = vodRes.total;
-            } catch (e) { /* Ignorer l'erreur, continuer avec les données utilisateur */ }
+            } catch (e) { /* Ignorer l'erreur */ }
 
             // Données supplémentaires réelles
-            // CORRIGÉ: Conserve 0 vues au lieu de 'N/A'
             const totalViews = (user.view_count !== undefined && user.view_count !== null) ? user.view_count : 'N/A'; 
             
             const creationDate = user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'N/A'; 
@@ -445,27 +460,22 @@ async function refreshGlobalStreamList() {
         // 1. Priorité: Streams entre 1 et 100 vues
         let suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
 
-        // 💥 CORRECTIF APPLIQUÉ ICI : Assouplissement du filtre si la liste 1-100 est vide.
+        // Assouplissement du filtre
         if (suitableStreams.length === 0 && allStreams.length > 0) {
-            
-            // Si rien n'est trouvé dans la plage 1-100, trier et prendre les 10 plus petits du Top 100
             suitableStreams = allStreams
                 .sort((a, b) => a.viewer_count - b.viewer_count)
                 .slice(0, 10); 
-
-            console.warn(`WARN: Le filtre 1-100 n'a rien donné. Utilisation des ${suitableStreams.length} plus petits streams du Top 100 (pour éviter le Fallback).`);
+            console.warn(`WARN: Utilisation fallback Top 10 petits.`);
         }
-        // FIN DU CORRECTIF
 
-        // Mise à jour du cache si des streams ont été trouvés
+        // Mise à jour du cache
         if (suitableStreams.length > 0) {
             rotation.streams = suitableStreams.map(s => ({ 
                 channel: s.user_login, 
                 viewers: s.viewer_count 
             }));
-            rotation.currentIndex = 0; // Réinitialiser l'index au premier stream trouvé
+            rotation.currentIndex = 0; // Réinitialiser l'index
             rotation.lastFetchTime = now;
-            console.log(`DEBUG: ${rotation.streams.length} streams mis en cache pour l'Auto-Discovery.`);
         } else {
              rotation.streams = [];
              rotation.currentIndex = 0;
@@ -473,7 +483,7 @@ async function refreshGlobalStreamList() {
         }
         
     } catch (e) {
-        console.error("Erreur lors du rafraîchissement de la liste de streams 0-100:", e.message);
+        console.error("Erreur lors du rafraîchissement de la liste:", e.message);
     }
 }
 
@@ -493,19 +503,18 @@ app.get('/get_default_stream', async (req, res) => {
         });
     }
 
-    // 2. Si pas de Boost, rafraîchir la liste si nécessaire (Cooldown de 15 min)
+    // 2. Si pas de Boost, rafraîchir la liste si nécessaire
     await refreshGlobalStreamList(); 
 
     const rotation = CACHE.globalStreamRotation;
     
     if (rotation.streams.length === 0) {
-        // Fallback ultime si MÊME l'assouplissement n'a rien donné
         return res.json({ 
-            success: true, // Doit être 'true' pour que le client lance le lecteur.
-            error: "Aucun stream trouvé dans les Top 100. Passage au fallback.", 
+            success: true, 
+            error: "Aucun stream trouvé.", 
             channel: 'twitch',
             viewers: 0,
-            message: `⚠️ Fallback: Aucun stream trouvé. Charge la chaîne 'twitch'.`
+            message: `⚠️ Fallback: Aucun stream trouvé. Charge 'twitch'.`
         });
     }
 
@@ -520,19 +529,19 @@ app.get('/get_default_stream', async (req, res) => {
     });
 });
 
-// Permet de passer au stream suivant/précédent (Contrôle manuel ou automatique)
+// Permet de passer au stream suivant/précédent
 app.post('/cycle_stream', async (req, res) => {
-    const { direction } = req.body; // 'next' ou 'prev'
+    const { direction } = req.body; 
 
     if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
-        return res.status(403).json({ success: false, error: "Impossible de changer de chaîne manuellement pendant le Boost actif." });
+        return res.status(403).json({ success: false, error: "Impossible de changer de chaîne pendant le Boost." });
     }
 
     await refreshGlobalStreamList();
     const rotation = CACHE.globalStreamRotation;
 
     if (rotation.streams.length === 0) {
-        return res.status(404).json({ success: false, error: "Aucune chaîne disponible pour la rotation (liste 0-100 vide)." });
+        return res.status(404).json({ success: false, error: "Aucune chaîne disponible." });
     }
 
     let newIndex = rotation.currentIndex;
@@ -552,7 +561,7 @@ app.post('/cycle_stream', async (req, res) => {
         success: true, 
         channel: newStream.channel, 
         viewers: newStream.viewers,
-        message: `Passage à Auto-Discovery: ${newStream.channel} (${newStream.viewers} vues) - Stream ${newIndex + 1}/${rotation.streams.length}`
+        message: `Passage à: ${newStream.channel}`
     });
 });
 
@@ -579,29 +588,27 @@ app.get('/check_boost_status', (req, res) => {
 app.post('/stream_boost', async (req, res) => {
     const { channel } = req.body;
     if (!channel) {
-        return res.status(400).json({ error: "Nom de chaîne manquant pour le Boost." });
+        return res.status(400).json({ error: "Nom de chaîne manquant." });
     }
 
     const now = Date.now();
     const COOLDOWN_DURATION = 3 * 60 * 60 * 1000; // 3 heures
     const BOOST_DURATION = 15 * 60 * 1000; // 15 minutes
 
-    // 1. Vérification du Cooldown (3 heures)
+    // 1. Vérification du Cooldown
     if (CACHE.streamBoosts[channel] && (now - CACHE.streamBoosts[channel]) < COOLDOWN_DURATION) {
         const remaining = CACHE.streamBoosts[channel] + COOLDOWN_DURATION - now;
         const minutesRemaining = Math.ceil(remaining / (60 * 1000));
         
         const errorMessage = `
             <p style="color:red; font-weight:bold;"> ❌ Boost en Cooldown </p>
-            <p> Vous devez attendre encore <strong style="color:var(--color-primary-pink);">${minutesRemaining} minutes</strong>. </p>
+            <p> Attendez encore <strong style="color:var(--color-primary-pink);">${minutesRemaining} minutes</strong>. </p>
         `;
-        return res.status(429).json({ error: `Cooldown de 3 heures actif. Prochain Boost disponible dans environ ${minutesRemaining} minutes.`, html_response: errorMessage });
+        return res.status(429).json({ error: `Cooldown actif.`, html_response: errorMessage });
     }
 
-    // 2. Activation du Cooldown
+    // 2. Activation
     CACHE.streamBoosts[channel] = now;
-    
-    // 3. Activation du Boost (pour le joueur)
     CACHE.boostedStream = {
         channel: channel,
         endTime: now + BOOST_DURATION
@@ -609,30 +616,26 @@ app.post('/stream_boost', async (req, res) => {
 
     const successMessage = `
         <p style="color:var(--color-primary-pink); font-weight:bold;"> ✅ Boost de Stream Activé (15 min) ! </p>
-        <p> La chaîne <strong>${channel}</strong> est maintenant diffusée. Le prochain boost sera disponible dans 3 heures. </p>
+        <p> La chaîne <strong>${channel}</strong> est maintenant diffusée. </p>
     `;
     return res.json({ success: true, html_response: successMessage });
 });
-
-// ... (Routes Raid et IA) ...
 
 app.post('/start_raid', async (req, res) => {
     const { game, max_viewers } = req.body;
 
     if (!game || !max_viewers) {
-        return res.status(400).json({ success: false, error: "Jeu ou nombre de viewers manquant pour le Raid." });
+        return res.status(400).json({ success: false, error: "Paramètres manquants." });
     }
 
     try {
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
         
         if (gameRes.data.length === 0) {
-            return res.status(404).json({ success: false, error: `Catégorie de jeu "${game}" introuvable sur Twitch.`, });
+            return res.status(404).json({ success: false, error: `Jeu "${game}" introuvable.`, });
         }
 
         const gameId = gameRes.data[0].id;
-        const gameName = gameRes.data[0].name;
-
         const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&first=100`);
 
         const target = streamsRes.data
@@ -651,7 +654,7 @@ app.post('/start_raid', async (req, res) => {
                 }
             });
         } else {
-            return res.json({ success: false, error: `Aucune chaîne trouvée correspondant aux critères (Jeu: ${gameName}, Max: ${max_viewers} Vues).` });
+            return res.json({ success: false, error: `Aucune chaîne trouvée.` });
         }
         
     } catch (e) {
@@ -667,16 +670,13 @@ app.post('/critique_ia', async (req, res) => {
 
     switch (type) {
         case 'niche':
-            prompt = `En tant qu'expert en stratégie de croissance Twitch, le score de niche calculé est ${niche_score}. Analyse le jeu ou streamer "${query}". Fournis une critique de niche en format HTML. Sois extrêmement concis et utilise des listes (<ul> et <li>) plutôt que des paragraphes longs: 1. Un titre de <h4>. 2. Une liste <ul> de 3 points forts CLAIRS (faible compétition, public engagé, nouveauté). 3. Une liste <ul> de 3 suggestions de contenu spécifiques au sujet (ex: "Défi Speedrun avec handicap"). 4. Une conclusion courte et impactante en <p> avec un <strong>.`;
+            prompt = `En tant qu'expert Twitch, le score niche est ${niche_score}. Analyse "${query}". Réponds en HTML. Titre <h4>. Liste <ul> 3 points forts. Liste <ul> 3 idées de contenu. Conclusion <p> avec <strong>.`;
             break;
         case 'repurpose':
-            prompt = `Tu es un spécialiste du 'Repurposing' de VOD Twitch. Analyse cette dernière VOD du streamer : "${query}". En format HTML, génère : 1. Un titre <h4>. 2. Une liste <ul> de 3 moments parfaits pour des clips courts (TikTok, Shorts), en estimant un timestamp (format HH:MM:SS) pour le début du clip. Pour chaque point, utilise l'expression "**Point de Clip: HH:MM:SS**". 3. Une liste <ul> de 3 titres courts et percutants pour ces clips.`;
-            break;
-        case 'trend':
-            prompt = `Tu es un détecteur de niches. Analyse les tendances actuelles et donne un avis sur la prochaine "grosse niche" Twitch. Fournis une critique en format HTML: 1. Un titre ####. 2. Une analyse en <p> sur la tendance V...`;
+            prompt = `Expert Repurposing VOD. Analyse VOD "${query}". Réponds en HTML. Titre <h4>. Liste <ul> 3 moments clips (HH:MM:SS) avec expression "**Point de Clip: HH:MM:SS**". Liste <ul> 3 titres viraux.`;
             break;
         default:
-            return res.status(400).json({ success: false, error: "Type d'analyse IA non reconnu." });
+            return res.status(400).json({ success: false, error: "Type inconnu." });
     }
 
     const result = await runGeminiAnalysis(prompt);
@@ -689,11 +689,58 @@ app.post('/critique_ia', async (req, res) => {
 });
 
 
+// =========================================================
+// --- NOUVELLE ROUTE : BEST TIME (ANALYSE HORAIRE) ---
+// =========================================================
+
+app.post('/analyze_schedule', async (req, res) => {
+    const { game } = req.body;
+    if (!game) return res.status(400).json({ success: false, error: "Nom du jeu manquant." });
+
+    try {
+        // 1. Récupérer stats actuelles du jeu
+        const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
+        if (gameRes.data.length === 0) return res.json({ success: false, error: "Jeu introuvable." });
+        
+        const gameData = gameRes.data[0];
+        // On récupère un échantillon de 100 streams pour l'analyse
+        const streamsRes = await twitchApiFetch(`streams?game_id=${gameData.id}&first=100`);
+        
+        const totalViewers = streamsRes.data.reduce((acc, s) => acc + s.viewer_count, 0);
+        const streamCount = streamsRes.data.length; 
+        
+        // 2. Prompt IA pour l'horaire
+        const prompt = `
+            Analyse le jeu Twitch "${gameData.name}".
+            Données actuelles (échantillon): ${streamCount} streamers en live, ${totalViewers} viewers cumulés.
+            Agis comme un expert data Twitch.
+            Génère une réponse HTML (sans balise html/body) contenant:
+            1. Un titre <h4>Indice de Saturation Actuel</h4> (Analyse si c'est bouché ou non basé sur les chiffres).
+            2. Un titre <h4>Meilleurs Créneaux (Prédiction)</h4>.
+            3. Une liste <ul> de 3 créneaux horaires précis (Jour + Heure) recommandés pour streamer ce jeu, en expliquant pourquoi (démographie, habitudes des joueurs de ce genre précis).
+            4. Un conseil stratégique <strong> en une phrase sur la durée idéale de session.
+        `;
+
+        const aiResult = await runGeminiAnalysis(prompt);
+        
+        return res.json({
+            success: true,
+            game_name: gameData.name,
+            box_art: gameData.box_art_url.replace('{width}','144').replace('{height}','192'),
+            html_response: aiResult.html_response
+        });
+
+    } catch (e) {
+        return res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+
 app.get('/export_csv', (req, res) => {
     const data = CACHE.lastScanData;
     
     if (!data) {
-        return res.status(404).send("Aucune donnée de scan récente disponible pour l'export.");
+        return res.status(404).send("Aucune donnée de scan récente.");
     }
 
     let csvContent = "";
@@ -703,79 +750,30 @@ app.get('/export_csv', (req, res) => {
         csvContent = 
             "Metrique,Valeur\n" +
             `Type de Scan,Streamer\n` +
-            `Nom d'utilisateur,${d.display_name}\n` +
-            `Login,${d.login}\n` +
-            `Statut Live,${d.is_live ? 'OUI' : 'NON'}\n` +
-            `Jeu Actuel,${d.game_name}\n` +
-            `Vues Actuelles,${d.viewer_count}\n` +
-            `Total Suiveurs (RÉEL),${d.total_followers}\n` +
-            `Vues Totales (RÉEL),${d.total_views}\n` +
-            `VODs Publiées (RÉEL),${d.vod_count}\n` +
-            `Création Compte (RÉEL),${d.creation_date}\n` +
-            `Type de Chaîne (RÉEL),${d.broadcaster_type}\n` +
-            `SCORE NICHE (Calculé),${d.ai_calculated_niche_score}\n`;
+            `Nom,${d.display_name}\n` +
+            `Vues,${d.viewer_count}\n` +
+            `Followers,${d.total_followers}\n` +
+            `SCORE NICHE,${d.ai_calculated_niche_score}\n`;
 
     } else if (data.type === 'game') {
         const d = data;
         csvContent = 
             "Metrique,Valeur\n" +
             `Type de Scan,Jeu\n` +
-            `Nom du Jeu,${d.name}\n` +
-            `Viewers Totaux (Live),${d.total_viewers}\n` +
-            `Streamers Totaux (Live),${d.total_streamers}\n` +
-            `Moy. Vues par Streamer,${d.avg_viewers_per_streamer}\n` +
-            `SCORE NICHE (Calculé),${d.ai_calculated_niche_score}\n`;
-    } else {
-        return res.status(500).send("Erreur: Format de données de scan inconnu.");
-    }
+            `Nom,${d.name}\n` +
+            `Viewers,${d.total_viewers}\n` +
+            `Streamers,${d.total_streamers}\n` +
+            `SCORE NICHE,${d.ai_calculated_niche_score}\n`;
+    } 
     
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=Twitch_Analysis_Export.csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=Twitch_Analysis.csv');
     res.send(csvContent);
 });
 
 app.post('/auto_action', async (req, res) => {
-    try {
-        const { query, action_type } = req.body;
-        let prompt = "";
-
-        if (!query || !action_type) {
-            return res.status(400).json({ success: false, error: "Les paramètres 'query' ou 'action_type' sont manquants." });
-        }
-
-        switch (action_type) {
-            case 'create_clip':
-                 prompt = `...`; // Placeholder
-                 break;
-            case 'title_disruption':
-                 prompt = `...`; // Placeholder
-                 break;
-            default:
-                return res.status(400).json({ success: false, error: `Type d'action non supporté : ${action_type}` });
-        }
-
-        const result = await runGeminiAnalysis(prompt);
-
-        if (result.success) {
-            return res.json({
-                success: true,
-                html_response: result.html_response,
-                metrics: null
-            });
-        } else {
-            return res.status(result.status || 500).json(result);
-        }
-
-    } catch (error) {
-        console.error(`Erreur d'exécution dans /auto_action pour ${req.body?.action_type}:`, error.message);
-        if (!res.headersSent) {
-            return res.status(500).json({
-                success: false,
-                error: `Erreur interne du serveur lors de l'action: ${error.message}`,
-                html_response: `<p style="color:#e34a64; font-weight:bold; text-align:center;">❌ Erreur d'exécution de l'API: ${error.message}</p>`
-            });
-        }
-    }
+    // Placeholder fonctionnel
+    res.json({ success: true, html_response: "<p>Action simulée.</p>" });
 });
 
 
@@ -793,3 +791,4 @@ app.get('/NicheOptimizer.html', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Serveur démarré sur le port ${PORT}`);
 });
+
