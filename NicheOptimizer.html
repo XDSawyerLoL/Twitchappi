@@ -3,37 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V16 - Gemini Pro</title>
+    <title>Streamer & Niche AI Hub - COCKPIT MODE (V16)</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* Insérez ici VOTRE CSS original de V15 */
-        :root { --color-bg-dark: #0d0d0d; --color-primary-pink: #ff0099; --color-secondary-blue: #22c7ef; --color-ai-growth: #ffcc00; }
-        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', sans-serif; }
-        .tab-btn { font-family: 'Orbitron', sans-serif; cursor: pointer; padding: 12px; }
-        .tab-btn.active { border-top: 3px solid var(--color-primary-pink); background: #1a1a1a; }
-        .tab-content { display: none; padding: 20px; }
+        /* --- VOTRE CSS V15 INTACT --- */
+        :root {
+            --color-bg-dark: #0d0d0d; --color-bg-medium: #1a1a1a; --color-primary-pink: #ff0099;
+            --color-secondary-blue: #22c7ef; --color-ai-niche: #59d682; --color-ai-repurpose: #9933ff; --color-ai-growth: #ffcc00;
+        }
+        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        #twitch-lucky-main { all: initial; display: block; max-width: 1400px; margin: 20px auto; padding: 10px; font-family: 'Inter', sans-serif; color: #fff; }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); text-align: center; text-shadow: 0 0 15px rgba(255, 0, 153, 0.5); }
+        .tab-btn { font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: #111; color: #9aa3a8; cursor: pointer; border-radius: 8px 8px 0 0; flex: 1; text-align: center; }
+        .tab-btn.active { background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); box-shadow: 0 0 15px rgba(255, 0, 153, 0.4); }
+        #twitch-embed { width: 100%; height: 500px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 15px rgba(34, 199, 239, 0.4); }
+        .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid #2e2e2e; border-radius: 10px; padding: 20px; min-height: 300px; }
         .tab-content.active { display: block; }
-        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; }
-        .action-input { width: 100%; padding: 10px; background: #000; border: 1px solid #333; color: #fff; border-radius: 6px; }
-        .btn-primary { background: var(--color-primary-pink); padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .action-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #000; color: #fff; }
+        .btn-primary { background: var(--color-primary-pink); color: #fff; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="twitch-lucky-main" class="max-w-7xl mx-auto p-4">
-    <h1 class="text-center text-3xl mb-4" style="font-family:'Orbitron'; color:var(--color-primary-pink)">STREAMER HUB V16</h1>
+<div id="twitch-lucky-main">
+    <h1 class="text-3xl mb-4">STREAMER HUB COCKPIT V16</h1>
 
-    <div class="flex gap-2 mb-4 border-b border-gray-800">
-        <button class="tab-btn active" onclick="openTab('tab-dashboard')">📊 DASHBOARD</button>
-        <button class="tab-btn" onclick="openTab('tab-golden')">🌟 HEURE D'OR</button>
-        <button class="tab-btn" onclick="openTab('tab-followed')">🔑 MON FIL</button>
+    <div class="tabs-nav-container mb-4">
+        <div class="flex gap-2">
+            <button class="tab-btn active" onclick="openTab('tab-followed')">🔑 MON FIL</button>
+            <button class="tab-btn" onclick="openTab('tab-dashboard')">📊 DASHBOARD</button>
+            <button class="tab-btn" onclick="openTab('tab-golden')" style="color:var(--color-ai-growth)">🌟 HEURE D'OR</button>
+            <button class="tab-btn" onclick="openTab('tab-boost')">⚡ BOOST</button>
+        </div>
     </div>
 
-    <div class="bg-gray-900 p-4 rounded-xl mb-6 shadow-2xl">
+    <div class="bg-gray-900 p-4 rounded-xl mb-6">
         <div class="flex justify-between items-center mb-2">
-            <span id="player-status" class="text-xs text-blue-400">Initialisation...</span>
+            <span id="player-channel-status" class="text-xs text-blue-400">Rotation 0-100 Viewers active...</span>
             <div class="flex gap-2">
                 <button onclick="cycleStream('prev')" class="text-xs border border-blue-400 px-2 py-1 rounded">Préc.</button>
                 <button onclick="cycleStream('next')" class="text-xs border border-blue-400 px-2 py-1 rounded">Suiv.</button>
@@ -43,31 +51,40 @@
     </div>
 
     <div id="content-area">
-        <div id="tab-dashboard" class="tab-content active">
-            <div class="text-center mb-6">
-                <input id="input-global-target" type="text" placeholder="Gotaga, Valorant..." class="action-input max-w-md">
-                <button onclick="runGlobalScan()" class="btn-primary ml-2">🚀 SCANNER</button>
+        <div id="tab-followed" class="tab-content active">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="color:var(--color-primary-pink)">🔴 Favoris en direct</h3>
+                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5">CONNEXION TWITCH</button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-gray-900 p-4 rounded border-t-2 border-blue-400"><h4>📊 STATS</h4><div id="res-scan"></div></div>
-                <div class="bg-gray-900 p-4 rounded border-t-2 border-green-400"><h4>🧠 CRITIQUE IA</h4><div id="res-niche"></div></div>
-                <div class="bg-gray-900 p-4 rounded border-t-2 border-purple-400"><h4>✂️ VOD</h4><div id="res-vod"></div></div>
-            </div>
+            <div id="followed-streams-list" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
         </div>
 
         <div id="tab-golden" class="tab-content">
-            <h3 style="color:var(--color-ai-growth)" class="mb-4">🌟 PRÉDICTION STRATÉGIQUE</h3>
-            <div class="flex gap-2">
-                <input id="gold-game" type="text" placeholder="Jeu (ex: League of Legends)" class="action-input">
-                <input id="gold-date" type="text" placeholder="Date (ex: Ce soir)" class="action-input">
+            <h3 class="mb-4" style="color:var(--color-ai-growth)">🌟 PRÉDICTION STRATÉGIQUE (IA)</h3>
+            <div class="flex gap-2 mb-4">
+                <input id="gold-game" type="text" placeholder="Jeu (ex: LoL)" class="action-input">
+                <input id="gold-date" type="text" placeholder="Date (ex: Samedi)" class="action-input">
                 <button onclick="predictGoldenHour()" class="btn-primary" style="background:var(--color-ai-growth); color:#000">🔮 ANALYSER</button>
             </div>
-            <div id="res-golden" class="mt-4 p-4 bg-black rounded border border-yellow-600 min-h-[100px]"></div>
+            <div id="res-golden" class="p-4 bg-black rounded border border-yellow-600 min-h-[100px]"></div>
         </div>
 
-        <div id="tab-followed" class="tab-content">
-            <button onclick="startAuth()" class="btn-primary">🔒 CONNEXION TWITCH</button>
-            <div id="followed-list" class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-4"></div>
+        <div id="tab-dashboard" class="tab-content">
+            <div class="text-center mb-6">
+                <input id="input-global-target" type="text" placeholder="Entrez une chaîne..." class="action-input max-w-md">
+                <button onclick="runGlobalScan()" class="btn-primary ml-2">🚀 SCAN</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-800 p-4 rounded border-t-2 border-blue-400"><h4>📊 MÉTRIQUES</h4><div id="res-scan-content"></div></div>
+                <div class="bg-gray-800 p-4 rounded border-t-2 border-green-400"><h4>🧠 IA NICHE</h4><div id="res-niche-content"></div></div>
+                <div class="bg-gray-800 p-4 rounded border-t-2 border-purple-400"><h4>✂️ VOD</h4><div id="res-vod-content"></div></div>
+            </div>
+        </div>
+        
+        <div id="tab-boost" class="tab-content">
+            <h3>⚡ STREAM BOOST</h3>
+            <div class="flex gap-2"><input id="input-boost" type="text" class="action-input"><button onclick="activateBoost()" class="btn-primary">ACTIVER</button></div>
+            <div id="boost-results" class="mt-4"></div>
         </div>
     </div>
 </div>
@@ -82,9 +99,10 @@
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         event.target.classList.add('active');
         document.getElementById(id).classList.add('active');
+        if(id === 'tab-followed') loadFollowedStreams();
     }
 
-    // ✅ FIX EMBED : Parents autorisés
+    // ✅ CORRECTIF LECTEUR : Parents pour justplayer.fr
     function launchPlayer(channel) {
         document.getElementById("twitch-embed").innerHTML = "";
         new Twitch.Embed("twitch-embed", {
@@ -97,9 +115,10 @@
         const res = await fetch(`${API_BASE}/get_default_stream`);
         const data = await res.json();
         launchPlayer(data.channel);
-        document.getElementById('player-status').innerText = data.message;
+        document.getElementById('player-channel-status').innerText = data.message;
         if(autoCycleTimer) clearInterval(autoCycleTimer);
-        autoCycleTimer = setInterval(() => cycleStream('next'), 180000); // 3 min
+        // ✅ CORRECTIF : Rotation toutes les 3 minutes
+        autoCycleTimer = setInterval(() => cycleStream('next'), 180000); 
     }
 
     async function cycleStream(direction) {
@@ -108,27 +127,59 @@
         });
         const data = await res.json();
         launchPlayer(data.channel);
-        document.getElementById('player-status').innerText = `Cycle: ${data.channel}`;
     }
 
     async function predictGoldenHour() {
         const game = document.getElementById('gold-game').value;
         const date = document.getElementById('gold-date').value;
         const resBox = document.getElementById('res-golden');
-        resBox.innerHTML = "Analyse data en cours...";
+        resBox.innerHTML = "Analyse en cours...";
         const res = await fetch(`${API_BASE}/analyze_golden_hour`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ game, date })
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ game, date })
         });
         const data = await res.json();
         resBox.innerHTML = data.html_response;
     }
 
-    // AUTH FIX
+    // ✅ CORRECTIF AUTH : Écoute du postMessage
     function startAuth() { window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=600'); }
-    window.addEventListener('message', (e) => { if(e.data === 'auth_success') location.reload(); });
+    window.addEventListener('message', (e) => { 
+        if(e.data === 'auth_success') {
+            checkAuthStatus();
+            loadFollowedStreams();
+        }
+    });
 
-    window.onload = () => { checkBoostAndPlay(); };
+    async function checkAuthStatus() {
+        const res = await fetch(`${API_BASE}/twitch_user_status`);
+        const data = await res.json();
+        const btn = document.getElementById('btn-twitch-login');
+        if(data.is_connected) {
+            btn.innerHTML = `✅ ${data.display_name}`;
+            btn.style.background = '#0e7e0e';
+            btn.onclick = () => fetch(`${API_BASE}/twitch_logout`, {method:'POST'}).then(()=>location.reload());
+        } else {
+            btn.onclick = startAuth;
+        }
+    }
+
+    async function loadFollowedStreams() {
+        const res = await fetch(`${API_BASE}/followed_streams`);
+        const data = await res.json();
+        const list = document.getElementById('followed-streams-list');
+        if(data.success && data.streams.length) {
+            list.innerHTML = data.streams.map(s => `<div class="p-2 bg-gray-800 rounded cursor-pointer" onclick="launchPlayer('${s.user_login}')"><img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}" class="rounded"><div>${s.user_name}</div><div class="text-red-500 text-xs">🔴 ${s.viewer_count}</div></div>`).join('');
+        }
+    }
+
+    async function runGlobalScan() {
+        const query = document.getElementById('input-global-target').value;
+        const resIA = await fetch(`${API_BASE}/critique_ia`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query})});
+        const dataIA = await resIA.json();
+        document.getElementById('res-niche-content').innerHTML = dataIA.html_response;
+    }
+
+    window.onload = () => { checkAuthStatus(); checkBoostAndPlay(); };
 </script>
 </body>
 </html>
