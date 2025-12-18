@@ -20,9 +20,7 @@ const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 
-// ✅ CORRECTION CRITIQUE IA : Utilisation du modèle PRO STABLE
-// "gemini-2.5" n'existe pas et les versions "-exp" causent l'erreur 429.
-// Avec votre compte Pro, "gemini-1.5-pro" est la version illimitée/performante.
+// Correction Modèle pour éviter erreur 404/429
 const GEMINI_MODEL = "gemini-1.5-pro"; 
 
 // =========================================================
@@ -30,16 +28,11 @@ const GEMINI_MODEL = "gemini-1.5-pro";
 // =========================================================
 
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
-    console.error("=========================================================");
     console.error("FATAL ERROR: VARIABLES D'ENVIRONNEMENT MANQUANTES.");
-    console.error(`Missing keys: ${!TWITCH_CLIENT_ID ? 'TWITCH_CLIENT_ID ' : ''}${!TWITCH_CLIENT_SECRET ? 'TWITCH_CLIENT_SECRET ' : ''}${!REDIRECT_URI ? 'TWITCH_REDIRECT_URI ' : ''}${!GEMINI_API_KEY ? 'GEMINI_API_KEY' : ''}`);
-    console.error("=========================================================");
     process.exit(1); 
 }
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
-console.log("DEBUG: Toutes les clés critiques sont chargées. L'IA est ACTIVE.");
-
 
 // =========================================================
 // MIDDLEWARES
@@ -58,12 +51,11 @@ const CACHE = {
     boostedStream: null,    
     lastScanData: null,     
     
-    // Rotation globale
     globalStreamRotation: {
         streams: [],    
         currentIndex: 0,
         lastFetchTime: 0,
-        fetchCooldown: 15 * 60 * 1000 // Refresh liste toutes les 15 min
+        fetchCooldown: 15 * 60 * 1000 
     }
 };
 
@@ -88,12 +80,10 @@ async function getTwitchToken(tokenType) {
                 expiry: Date.now() + (data.expires_in * 1000) - 300000 
             };
             return data.access_token;
-        } else {
-            console.error("Échec token Twitch:", data);
-            return null;
         }
+        return null;
     } catch (error) {
-        console.error("Erreur réseau token Twitch:", error);
+        console.error("Erreur Token:", error);
         return null;
     }
 }
@@ -115,52 +105,37 @@ async function twitchApiFetch(endpoint, token) {
         throw new Error(`Erreur 401 Token invalide.`);
     }
     
-    if (!res.ok) {
-        throw new Error(`Erreur API Twitch: ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Erreur API Twitch: ${res.status}`);
 
     return res.json();
 }
 
 // =========================================================
-// LOGIQUE GEMINI HELPER (FIXE)
+// LOGIQUE GEMINI HELPER
 // =========================================================
 
 async function runGeminiAnalysis(prompt) {
     try {
         const response = await ai.models.generateContent({
-            model: GEMINI_MODEL, // Utilise gemini-1.5-pro défini plus haut
-            contents: [
-                { role: "user", parts: [{ text: prompt }] }
-            ],
+            model: GEMINI_MODEL,
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
             config: {
                 systemInstruction: "Tu es un expert Twitch. Réponds en HTML simple (<ul>, <li>, <h4>, <strong>, <p>) sans balises <html>/<body>."
             }
         });
-        
-        const text = response.text().trim(); // Correction méthode .text()
-        return { success: true, html_response: text };
-
+        return { success: true, html_response: response.text().trim() };
     } catch (e) {
-        let statusCode = 500;
-        let errorMessage = `Erreur IA: ${e.message}`;
-        
-        if (e.message.includes('429')) {
-             statusCode = 429;
-             errorMessage = `❌ Erreur Quota (429).`;
-        }
-        
         return { 
             success: false, 
-            status: statusCode, 
-            error: errorMessage,
-            html_response: `<p style="color:red; font-weight:bold;">${errorMessage}</p>`
+            status: 500, 
+            error: e.message,
+            html_response: `<p style="color:red;">Erreur IA: ${e.message}</p>`
         };
     }
 }
 
 // =========================================================
-// ROUTES AUTH (INCHANGÉES)
+// ROUTES AUTH (FIX POPUP)
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -192,7 +167,29 @@ app.get('/twitch_auth_callback', async (req, res) => {
             const userRes = await twitchApiFetch('users', tokenData.access_token);
             const user = userRes.data[0];
             CACHE.twitchUser = { ...user, access_token: tokenData.access_token, expiry: Date.now() + (tokenData.expires_in * 1000) };
-            res.redirect('/'); 
+            
+            // --- FIX : RENVOYER UN SCRIPT QUI FERME LE POPUP ---
+            res.send(`
+                <html>
+                <head><title>Connexion Réussie</title></head>
+                <body style="background:#111; color:#fff; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;">
+                    <div style="text-align:center;">
+                        <h2>✅ Connexion Réussie !</h2>
+                        <p>Fermeture de la fenêtre...</p>
+                    </div>
+                    <script>
+                        // Envoie le message à la fenêtre principale
+                        if (window.opener) {
+                            window.opener.postMessage('auth_success', '*');
+                            window.close();
+                        } else {
+                            // Fallback si pas ouvert en popup
+                            window.location.href = '/';
+                        }
+                    </script>
+                </body>
+                </html>
+            `);
         } else {
             res.status(500).send("Échec échange code.");
         }
@@ -215,7 +212,7 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 // =========================================================
-// ROUTES API DATA (INCHANGÉES)
+// ROUTES API DATA
 // =========================================================
 
 app.get('/followed_streams', async (req, res) => {
@@ -229,7 +226,6 @@ app.get('/followed_streams', async (req, res) => {
 });
 
 app.get('/get_latest_vod', async (req, res) => {
-    // ... (Code existant conservé pour VOD)
     const channel = req.query.channel;
     try {
         const userRes = await twitchApiFetch(`users?login=${channel}`);
@@ -248,7 +244,6 @@ app.post('/scan_target', async (req, res) => {
             const user = userRes.data[0];
             const streamRes = await twitchApiFetch(`streams?user_id=${user.id}`).catch(()=>({data:[]}));
             
-            // Calcul score bidon pour l'exemple, l'IA fera le vrai job
             const userData = { 
                 type: 'user',
                 login: user.login, 
@@ -258,6 +253,10 @@ app.post('/scan_target', async (req, res) => {
                 viewer_count: streamRes.data.length > 0 ? streamRes.data[0].viewer_count : 0,
                 game_name: streamRes.data.length > 0 ? streamRes.data[0].game_name : '',
                 total_views: user.view_count,
+                vod_count: 0, // Placeholder
+                creation_date: new Date(user.created_at).toLocaleDateString(),
+                broadcaster_type: user.broadcaster_type || 'normal',
+                total_followers: 'N/A', // Require extra call
                 ai_calculated_niche_score: 'Calcul...'
             };
             CACHE.lastScanData = userData;
@@ -275,6 +274,7 @@ app.post('/scan_target', async (req, res) => {
                 box_art_url: game.box_art_url,
                 total_viewers: streamsRes.data.reduce((sum, s) => sum + s.viewer_count, 0),
                 total_streamers: streamsRes.data.length,
+                avg_viewers_per_streamer: Math.round(streamsRes.data.reduce((sum, s) => sum + s.viewer_count, 0) / (streamsRes.data.length || 1)),
                 ai_calculated_niche_score: 'Calcul...'
             };
             CACHE.lastScanData = gameData;
@@ -287,8 +287,15 @@ app.post('/scan_target', async (req, res) => {
 });
 
 // =========================================================
-// LOGIQUE ROTATION 0-100 VUES (Essentiel)
+// LOGIQUE ROTATION & HEURE D'OR
 // =========================================================
+
+// Helper pour déterminer si c'est l'heure d'or (Ex: 18h - 23h)
+function checkGoldenHour() {
+    const hour = new Date().getHours();
+    // Heure d'or définie entre 18h et 23h (heure serveur)
+    return hour >= 18 && hour <= 23;
+}
 
 async function refreshGlobalStreamList() {
     const now = Date.now();
@@ -297,14 +304,13 @@ async function refreshGlobalStreamList() {
     if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) return;
     
     try {
-        // On cherche 100 streams FR
         const data = await twitchApiFetch(`streams?language=fr&first=100`);
         const allStreams = data.data;
 
-        // FILTRE STRICT : Entre 0 et 100 viewers
+        // Filtre 0-100 viewers
         let suitableStreams = allStreams.filter(stream => stream.viewer_count <= 100);
 
-        // Fallback : Si aucun petit stream, on prend les plus petits disponibles
+        // Fallback
         if (suitableStreams.length === 0 && allStreams.length > 0) {
             suitableStreams = allStreams.sort((a, b) => a.viewer_count - b.viewer_count).slice(0, 10);
         }
@@ -312,18 +318,23 @@ async function refreshGlobalStreamList() {
         rotation.streams = suitableStreams.map(s => ({ channel: s.user_login, viewers: s.viewer_count }));
         rotation.currentIndex = 0;
         rotation.lastFetchTime = now;
-        console.log(`REFRESH: ${rotation.streams.length} chaînes trouvées pour la rotation.`);
         
     } catch (e) {
-        console.error("Erreur refresh rotation:", e.message);
+        console.error("Erreur rotation:", e.message);
     }
 }
 
 app.get('/get_default_stream', async (req, res) => {
-    // 1. Priorité Boost
+    // 1. Check Boost
     if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
         const remaining = Math.ceil((CACHE.boostedStream.endTime - Date.now()) / 60000);
-        return res.json({ success: true, channel: CACHE.boostedStream.channel, viewers: 'BOOST', message: `⚡ BOOST ACTIF (${remaining} min)` });
+        return res.json({ 
+            success: true, 
+            channel: CACHE.boostedStream.channel, 
+            viewers: 'BOOST', 
+            message: `⚡ BOOST ACTIF (${remaining} min)`,
+            is_golden_hour: checkGoldenHour()
+        });
     }
 
     // 2. Rotation
@@ -331,15 +342,20 @@ app.get('/get_default_stream', async (req, res) => {
     const rotation = CACHE.globalStreamRotation;
     
     if (rotation.streams.length === 0) {
-        return res.json({ success: true, channel: 'twitch', message: "Aucun stream dispo." });
+        return res.json({ success: true, channel: 'twitch', message: "Aucun stream dispo.", is_golden_hour: checkGoldenHour() });
     }
 
     const currentStream = rotation.streams[rotation.currentIndex];
+    const isGolden = checkGoldenHour();
+
     return res.json({ 
         success: true, 
         channel: currentStream.channel,
         viewers: currentStream.viewers,
-        message: `Cycle Auto: ${currentStream.channel} (${currentStream.viewers} vues)`
+        message: isGolden 
+            ? `🌟 HEURE D'OR ACTIVE: ${currentStream.channel}` 
+            : `Cycle Auto: ${currentStream.channel} (${currentStream.viewers} vues)`,
+        is_golden_hour: isGolden
     });
 });
 
@@ -355,7 +371,7 @@ app.post('/cycle_stream', async (req, res) => {
     else rotation.currentIndex = (rotation.currentIndex - 1 + rotation.streams.length) % rotation.streams.length;
 
     const newStream = rotation.streams[rotation.currentIndex];
-    return res.json({ success: true, channel: newStream.channel, viewers: newStream.viewers });
+    return res.json({ success: true, channel: newStream.channel, viewers: newStream.viewers, is_golden_hour: checkGoldenHour() });
 });
 
 app.get('/check_boost_status', (req, res) => {
@@ -372,14 +388,14 @@ app.post('/stream_boost', async (req, res) => {
 });
 
 app.post('/start_raid', async (req, res) => {
-    // ... Logique Raid (inchangée)
-    return res.json({ success: false, error: "Fonction raid simplifiée pour cette démo." });
+     const { game, max_viewers } = req.body;
+     // ... (Simplifié pour l'exemple, reprendre ta logique si besoin)
+    return res.json({ success: false, error: "Fonction raid simplifiée." });
 });
 
 app.post('/critique_ia', async (req, res) => {
-    const { type, query } = req.body;
-    // Prompt optimisé pour Gemini 1.5 Pro
-    let prompt = `Analyse Twitch pour : ${query}. `;
+    const { type, query, niche_score } = req.body;
+    let prompt = `Analyse Twitch pour : ${query}. Score: ${niche_score}. `;
     if (type === 'niche') prompt += "Donne 3 points faibles et 1 opportunité cachée. Format HTML.";
     if (type === 'repurpose') prompt += "Donne 3 timestamps pour des clips TikTok. Format HTML.";
     
@@ -387,7 +403,7 @@ app.post('/critique_ia', async (req, res) => {
     return res.json(result);
 });
 
-app.get('/export_csv', (req, res) => { /* ... Inchangé ... */ res.send("CSV Export"); });
+app.get('/export_csv', (req, res) => { res.send("CSV Export"); });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
 app.get('/NicheOptimizer.html', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
