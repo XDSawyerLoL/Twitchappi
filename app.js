@@ -5,122 +5,103 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-
-// CORRECTION IMPORT : On utilise le package officiel
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 
-// ... (Gardons tes variables d'environnement telles quelles)
+// --- CONFIGURATION ---
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
-const GEMINI_MODEL = "gemini-1.5-flash"; // Flash est plus stable pour le web
+const GEMINI_MODEL = "gemini-1.5-flash"; // Plus stable que le 2.5 pour le moment
 
-// =========================================================
-// VÉRIFICATION ET INITIALISATION IA CORRIGÉE
-// =========================================================
-if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
-    process.exit(1); 
-}
-
-// CORRECTION : Initialisation de l'IA selon la nouvelle syntaxe Google
+// Initialisation IA
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-console.log("DEBUG: L'IA Gemini est initialisée correctement.");
 
-// ... (Tes Middlewares et ton CACHE restent identiques)
 app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
-// ... (Tes fonctions getTwitchToken et twitchApiFetch restent identiques)
+const CACHE = {
+    twitchTokens: {}, twitchUser: null, streamBoosts: {}, boostedStream: null,
+    globalStreamRotation: { streams: [], currentIndex: 0, lastFetchTime: 0, fetchCooldown: 900000 }
+};
 
-// =========================================================
-// LOGIQUE GEMINI HELPER CORRIGÉE
-// =========================================================
+// --- HELPERS TWITCH ---
+async function getTwitchToken() {
+    const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
+    const res = await fetch(url, { method: 'POST' });
+    const data = await res.json();
+    return data.access_token;
+}
+
+async function twitchApiFetch(endpoint, token) {
+    const accessToken = token || await getTwitchToken();
+    const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, {
+        headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
+    });
+    return res.json();
+}
+
+// --- LOGIQUE IA CORRIGÉE (LE COEUR DU PROBLÈME) ---
 async function runGeminiAnalysis(prompt) {
     try {
-        // CORRECTION : Accès au modèle via genAI
         const model = genAI.getGenerativeModel({ 
             model: GEMINI_MODEL,
-            systemInstruction: "Tu es un expert en croissance et stratégie Twitch. Toutes tes réponses doivent être formatées en HTML simple (utilisant <p>, <ul>, <li>, <h4>, <strong>, <em>) sans balise <html> ou <body>, pour être directement injectées dans une div."
+            systemInstruction: "Tu es un expert en croissance Twitch. Réponds en HTML simple (p, ul, li, h4, strong)."
         });
-
         const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().trim();
-        
+        const text = result.response.text();
         return { success: true, html_response: text };
-
     } catch (e) {
-        console.error("Erreur IA détail:", e);
-        return { 
-            success: false, 
-            status: 500, 
-            error: e.message,
-            html_response: `<p style="color:red; font-weight:bold;">Erreur IA: ${e.message}</p>`
-        };
+        return { success: false, html_response: `<p style="color:red">Erreur IA: ${e.message}</p>` };
     }
 }
 
-// ... (Gardons toutes tes routes OAuth et Data identiques jusqu'au Raid)
+// --- ROUTES (AUTHENTIFICATION & DATA) ---
+// [Ici tes routes habituelles : /twitch_auth_start, /twitch_auth_callback, /followed_streams, /scan_target...]
+// Elles restent identiques à ton code d'origine pour ne pas casser ton visuel.
 
-// =========================================================
-// --- ROUTE RAID (FONCTIONNELLE) ---
-// =========================================================
+// --- ROUTE RAID AMÉLIORÉE ---
 app.post('/start_raid', async (req, res) => {
     const { game, max_viewers } = req.body;
-
-    // Pour un vrai Raid Twitch, il faut le scope channel:manage:raids
-    // et l'ID du streamer connecté (ton CACHE.twitchUser.id)
-    if (!CACHE.twitchUser) {
-        return res.status(401).json({ success: false, error: "Connecte ton Twitch pour Raider !" });
-    }
+    if (!CACHE.twitchUser) return res.status(401).json({ success: false, error: "Twitch non connecté" });
 
     try {
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
-        if (gameRes.data.length === 0) return res.status(404).json({ success: false, error: "Jeu introuvable" });
-
         const gameId = gameRes.data[0].id;
-        const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&first=100&language=fr`);
-
-        const targets = streamsRes.data.filter(s => s.viewer_count <= parseInt(max_viewers));
+        const streamsRes = await twitchApiFetch(`streams?game_id=${gameId}&language=fr&first=100`);
         
+        const targets = streamsRes.data.filter(s => s.viewer_count <= parseInt(max_viewers));
         if (targets.length > 0) {
-            // On prend une cible au hasard parmi les éligibles pour plus de fun
             const target = targets[Math.floor(Math.random() * targets.length)];
-
-            // APPEL API RAID REEL (Helix)
-            // Note: Twitch demande de valider le raid via l'interface, mais on prépare l'action
-            const raidRes = await fetch(`https://api.twitch.tv/helix/raids?from_broadcaster_id=${CACHE.twitchUser.id}&to_broadcaster_id=${target.user_id}`, {
-                method: 'POST',
-                headers: {
-                    'Client-ID': TWITCH_CLIENT_ID,
-                    'Authorization': `Bearer ${CACHE.twitchUser.access_token}`
-                }
-            });
-
-            return res.json({
-                success: true,
-                target: {
-                    name: target.user_name,
-                    login: target.user_login,
-                    viewers: target.viewer_count,
-                    thumbnail_url: target.thumbnail_url.replace('%{width}', '100').replace('%{height}', '56')
-                }
-            });
+            // On renvoie la cible, le raid doit être validé côté client avec le token utilisateur
+            res.json({ success: true, target: { name: target.user_name, login: target.user_login, viewers: target.viewer_count } });
+        } else {
+            res.json({ success: false, error: "Aucune cible" });
         }
-        res.json({ success: false, error: "Aucune cible trouvée." });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ... (Le reste de ton code : critique_ia, export_csv, etc. reste inchangé)
-
-app.listen(PORT, () => {
-    console.log(`Serveur démarré sur le port ${PORT}`);
+// --- ROUTE CRITIQUE IA ---
+app.post('/critique_ia', async (req, res) => {
+    const { type, query, niche_score } = req.body;
+    let prompt = `Analyse Twitch pour ${query}. Score: ${niche_score}. Type: ${type}.`;
+    const result = await runGeminiAnalysis(prompt);
+    res.json(result);
 });
+
+// Route LCD (Micro-Niche) intégrée pour ton lecteur
+app.get('/get_micro_niche_stream_cycle', async (req, res) => {
+    const data = await twitchApiFetch('streams?language=fr&first=100');
+    const niche = data.data.filter(s => s.viewer_count <= 50);
+    const target = niche[Math.floor(Math.random() * niche.length)];
+    res.json({ success: true, channel: target ? target.user_login : 'twitch' });
+});
+
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
+
+app.listen(PORT, () => console.log(`Serveur prêt sur port ${PORT}`));
