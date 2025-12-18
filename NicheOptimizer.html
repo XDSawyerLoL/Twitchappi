@@ -37,23 +37,32 @@
         .h1-blue-accent { color: var(--color-secondary-blue); }
         .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
         
+        .tabs-nav-container { margin-bottom: 15px; }
+        .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
         .tab-btn { font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: var(--color-bg-light); border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.3s; flex: 1; text-align: center; font-size: 12px; }
         .tab-btn.active { background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); font-weight: bold; box-shadow: var(--shadow-pink); z-index: 10; }
 
         .player-wrapper { margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); box-shadow: var(--shadow-blue); }
-        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; }
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); text-shadow: 0 0 4px var(--color-secondary-blue); }
+        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; box-shadow: 0 0 15px rgba(34, 199, 239, 0.3); overflow: hidden; }
         
+        .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-radius: 10px; padding: 20px; min-height: 300px; }
+        .tab-content.active { display: block; animation: fadeEffect 0.5s; }
+        @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
+
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
-        .dashboard-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; min-height: 250px; }
+        .dashboard-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; min-height: 250px; display: flex; flex-direction: column; }
+        .box-stats { border-top: 2px solid var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
+        .box-niche { border-top: 2px solid var(--color-ai-niche); box-shadow: var(--shadow-niche); }
+        .box-vod { border-top: 2px solid var(--color-ai-repurpose); box-shadow: var(--shadow-repurpose); }
+
+        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; box-shadow: 0 0 6px rgba(255,0,153,.4); transition: all 0.2s; }
+        .action-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); background: var(--color-bg-dark); color: #fff; font-size: 13px; }
         
-        .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; transition: all 0.2s; }
-        .action-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); background: var(--color-bg-dark); color: #fff; }
-
-        .followed-stream-item { width: calc(20% - 12px); min-width: 150px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; text-align: center; }
+        .followed-stream-item { width: calc(20% - 12px); min-width: 150px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: 0.3s; }
+        .followed-stream-item:hover { transform: translateY(-3px); box-shadow: var(--shadow-pink); }
         .followed-stream-item img { width: 100%; border-radius: 4px; margin-bottom: 5px; }
-
-        .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-radius: 10px; padding: 20px; }
-        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
@@ -63,7 +72,7 @@
     <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle</div>
 
     <div class="tabs-nav-container">
-        <div class="flex flex-wrap gap-1">
+        <div class="flex-tabs">
             <button class="tab-btn active" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL SUIVI</button> 
             <button class="tab-btn" data-tab-id="tab-dashboard" onclick="openTab('tab-dashboard')">📊 DASHBOARD 360°</button>
             <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
@@ -72,6 +81,13 @@
     </div>
 
     <div class="player-wrapper">
+        <div class="player-header">
+            <h2 class="player-title">🎬 LECTEUR</h2>
+            <div class="flex gap-2">
+                <input id="input-channel" type="text" placeholder="Chaîne..." class="action-input" style="width:150px;">
+                <button onclick="launchPlayer(document.getElementById('input-channel').value)" class="btn-primary">GO</button>
+            </div>
+        </div>
         <div id="twitch-embed"></div>
     </div>
 
@@ -79,14 +95,38 @@
         <div id="tab-followed" class="tab-content active">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h3 style="color:var(--color-primary-pink);">🔴 Vos Chaînes Suivies LIVE</h3>
-                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5;">🔒 CONNEXION TWITCH</button>
+                <div class="flex gap-2">
+                    <button id="btn-export-pdf" class="btn-primary" style="background:var(--color-ai-growth);">📊 EXPORT CSV</button>
+                    <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5;">🔒 CONNEXION TWITCH</button>
+                </div>
             </div>
             <div id="followed-streams-list" class="flex flex-wrap gap-4"></div>
         </div>
 
-        <div id="tab-dashboard" class="tab-content">...</div>
-        <div id="tab-boost" class="tab-content">...</div>
-        <div id="tab-raid" class="tab-content">...</div>
+        <div id="tab-dashboard" class="tab-content">
+            <div style="text-align:center; margin-bottom:20px;">
+                <form id="form-global-scan">
+                    <input id="input-global-target" type="text" placeholder="Ex: Gotaga, Valorant..." class="action-input" style="width:60%; text-align:center;">
+                    <button type="submit" class="btn-primary">🚀 ANALYSE 360°</button>
+                </form>
+            </div>
+            <div class="dashboard-grid">
+                <div class="dashboard-box box-stats" id="res-scan-content">Statistiques...</div>
+                <div class="dashboard-box box-niche" id="res-niche-content">Analyse IA...</div>
+                <div class="dashboard-box box-vod" id="res-vod-content">Clips & VOD...</div>
+            </div>
+        </div>
+
+        <div id="tab-boost" class="tab-content">
+            <h3 style="color:var(--color-primary-pink);">⚡ STREAM BOOST</h3>
+            <input id="input-boost" type="text" placeholder="Votre Chaîne" class="action-input" style="margin:10px 0;">
+            <button class="btn-primary">ACTIVER LE BOOST</button>
+        </div>
+
+        <div id="tab-raid" class="tab-content">
+            <h3 style="color:var(--color-ai-action);">💥 RAID OPTIMISÉ</h3>
+            <div id="raid-results">Recherche de cibles...</div>
+        </div>
     </div>
 </div>
 
@@ -103,11 +143,10 @@
         document.getElementById(tabId).classList.add('active');
     }
 
-    // --- REPARATION DU POPUP ET DECONNEXION ---
+    // --- REPARATION POPUP ET DECONNEXION ---
     async function startAuth() {
-        // LOGIQUE DE DÉCONNEXION
         if (isConnected) {
-            if (confirm("Voulez-vous vous déconnecter ?")) {
+            if (confirm("Se déconnecter de Twitch ?")) {
                 try {
                     await fetch(`${API_BASE}/twitch_logout`, { method: 'POST' });
                     checkAuthStatus();
@@ -117,19 +156,17 @@
             return;
         }
 
-        // LOGIQUE D'OUVERTURE POPUP
         const authUrl = `${API_BASE}/twitch_auth_start`;
         const width = 500, height = 650;
         const left = (window.screen.width / 2) - (width / 2);
         const top = (window.screen.height / 2) - (height / 2);
         
-        authWindow = window.open(authUrl, 'twitch_login_popup', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes`);
+        authWindow = window.open(authUrl, 'twitch_login_popup', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,status=no`);
 
-        // SURVEILLANCE DE FERMETURE (REPARE LE POPUP)
         const checkChild = setInterval(() => {
             if (!authWindow || authWindow.closed) {
                 clearInterval(checkChild);
-                checkAuthStatus(); // Actualise la page d'origine
+                checkAuthStatus();
             }
         }, 1000);
     }
@@ -142,7 +179,7 @@
             isConnected = data.is_connected;
             
             if (isConnected) {
-                loginBtn.innerHTML = `❌ DECONNEXION (${data.display_name})`;
+                loginBtn.innerHTML = `❌ QUITTER (${data.display_name})`;
                 loginBtn.style.background = '#e34a64'; 
                 loadFollowedStreams();
             } else {
@@ -162,7 +199,7 @@
                 list.innerHTML = data.streams.map(s => `
                     <div class="followed-stream-item" onclick="launchPlayer('${s.user_login}')">
                         <img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}">
-                        <div>${s.user_name}</div>
+                        <div style="font-size:12px; margin-top:5px;">${s.user_name}</div>
                     </div>
                 `).join('');
             }
@@ -170,6 +207,7 @@
     }
 
     function launchPlayer(channel) {
+        if(!channel) return;
         document.getElementById('twitch-embed').innerHTML = '';
         new Twitch.Embed("twitch-embed", {
             width: "100%", height: "100%", channel: channel,
