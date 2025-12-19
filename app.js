@@ -1,5 +1,5 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V18 - FIREBASE PERSISTENCE)
+ * STREAMER & NICHE AI HUB - BACKEND (V18 - FIREBASE RENDER READY)
  * ==============================================================
  * Serveur Node.js/Express gérant :
  * 1. L'authentification Twitch (OAuth).
@@ -18,26 +18,39 @@ const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const { GoogleGenAI } = require('@google/genai');
 
-// --- AJOUT FIREBASE ---
+// --- AJOUT FIREBASE (COMPATIBLE RENDER & LOCAL) ---
 const admin = require('firebase-admin');
 
-// ⚠️ IMPORTANT : Assurez-vous d'avoir le fichier serviceAccountKey.json à la racine
-// Si vous déployez sur un serveur distant (ex: Render, Heroku), utilisez les variables d'environnement
-// pour stocker le contenu du JSON au lieu d'un fichier physique pour la sécurité.
 let serviceAccount;
-try {
-    serviceAccount = require('./serviceAccountKey.json');
-} catch (e) {
-    console.error("⚠️ Fichier serviceAccountKey.json introuvable. Firebase ne pourra pas démarrer sans.");
-    // Fallback ou gestion d'erreur ici si nécessaire
+
+// 1. TENTATIVE CHARGEMENT DEPUIS ENV VAR (POUR RENDER)
+// Le JSON doit être stocké dans une variable d'environnement nommée "FIREBASE_SERVICE_KEY"
+if (process.env.FIREBASE_SERVICE_KEY) {
+    try {
+        // Render stocke les sauts de ligne, JSON.parse les gère généralement bien
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_KEY);
+        console.log("✅ Clé Firebase chargée depuis les variables d'environnement.");
+    } catch (error) {
+        console.error("❌ Erreur de parsing du JSON Firebase (Env Var) :", error.message);
+    }
+} 
+// 2. FALLBACK : TENTATIVE CHARGEMENT FICHIER LOCAL (POUR DEV)
+else {
+    try {
+        serviceAccount = require('./serviceAccountKey.json');
+        console.log("✅ Clé Firebase chargée depuis le fichier local.");
+    } catch (e) {
+        console.warn("⚠️ Aucune clé Firebase trouvée (Ni Env Var, Ni Fichier). La base de données ne fonctionnera pas.");
+    }
 }
 
+// INITIALISATION
 if (serviceAccount) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     });
 } else {
-    // Initialisation par défaut (utile si hébergé sur Google Cloud)
+    // Initialisation vide (ne marchera que si hébergé sur Google Cloud Platform directement)
     admin.initializeApp();
 }
 
@@ -70,7 +83,6 @@ if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_K
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
 
 // Middlewares Express
-// RESTRICTION CORS : Pour plus de sécurité, remplacez '*' par votre domaine en production
 app.use(cors()); 
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -82,13 +94,8 @@ app.use(express.static(path.join(__dirname)));
 const CACHE = {
     twitchTokens: {},       
     twitchUser: null,       
-    
-    // On garde un petit cache local pour le boost pour éviter de spammer Firestore à chaque requête,
-    // mais la vérité source est dans Firestore.
     boostedStream: null,    
-    
     lastScanData: null,     
-    
     globalStreamRotation: {
         streams: [],        
         currentIndex: 0,    
@@ -212,7 +219,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
             const userRes = await twitchApiFetch('users', tokenData.access_token);
             const user = userRes.data[0];
             
-            // Note: Pour une vraie prod, stockez aussi la session utilisateur dans Firestore ici.
             CACHE.twitchUser = {
                 display_name: user.display_name,
                 username: user.login,
@@ -414,7 +420,6 @@ app.get('/get_default_stream', async (req, res) => {
 
     // --- LECTURE DU BOOST DANS FIREBASE ---
     try {
-        // On cherche un boost dont la date de fin est dans le futur
         const boostQuery = await db.collection('boosts')
             .where('endTime', '>', now)
             .orderBy('endTime', 'desc')
@@ -424,21 +429,18 @@ app.get('/get_default_stream', async (req, res) => {
         if (!boostQuery.empty) {
             const data = boostQuery.docs[0].data();
             currentBoost = { channel: data.channel, endTime: data.endTime };
-            // On met à jour le cache local pour éviter les requêtes inutiles ailleurs
             CACHE.boostedStream = currentBoost; 
         } else {
             CACHE.boostedStream = null;
         }
     } catch(e) {
         console.error("Erreur lecture Boost DB:", e);
-        // Fallback : on utilise le cache local si la DB est inaccessible
+        // Fallback local
         if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) {
             currentBoost = CACHE.boostedStream;
         }
     }
-    // ---------------------------------------
 
-    // PRIORITÉ 1: BOOST ACTIF
     if (currentBoost && currentBoost.endTime > now) {
         const remaining = Math.ceil((currentBoost.endTime - now) / 60000);
         return res.json({ 
@@ -449,7 +451,6 @@ app.get('/get_default_stream', async (req, res) => {
         });
     }
 
-    // PRIORITÉ 2: ROTATION AUTOMATIQUE
     await refreshGlobalStreamList(); 
     const rotation = CACHE.globalStreamRotation;
     
@@ -469,7 +470,6 @@ app.get('/get_default_stream', async (req, res) => {
 app.post('/cycle_stream', async (req, res) => {
     const { direction } = req.body; 
 
-    // Interdit si un boost est en cours (vérifié localement pour rapidité, le client sera redirigé de toute façon)
     if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
         return res.status(403).json({ success: false, error: "Boost actif. Changement impossible." });
     }
