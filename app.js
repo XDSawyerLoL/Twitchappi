@@ -1,12 +1,12 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V18 - FINAL FIX RENDER)
- * ==========================================================
+ * STREAMER & NICHE AI HUB - BACKEND (V19 - AUTO-REPAIR FIREBASE)
+ * ==============================================================
  * Serveur Node.js/Express gérant :
  * 1. L'authentification Twitch (OAuth).
  * 2. L'API Twitch (Helix) pour les scans, raids et statuts.
  * 3. L'IA Google Gemini pour les analyses.
- * 4. La rotation automatique des streams (< 100 vues).
- * 5. Le système de Boost persistant via Firebase Firestore.
+ * 4. Le système de Boost persistant via Firebase Firestore.
+ * 5. CORRECTIF : Gestion automatique des erreurs de formatage JSON Render.
  */
 
 const express = require('express');
@@ -20,29 +20,41 @@ const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
 // =========================================================
-// 0. INITIALISATION FIREBASE (ROBUSTE POUR RENDER)
+// 0. INITIALISATION FIREBASE (V19 - AUTO-REPAIR)
 // =========================================================
 let serviceAccount;
 
 // Cas 1 : Environnement de Production (Render)
 if (process.env.FIREBASE_SERVICE_KEY) {
     try {
-        // CORRECTION CRITIQUE : Render échappe parfois les sauts de ligne (\n)
-        // On remplace les caractères littéraux '\n' par de vrais sauts de ligne
-        const rawJson = process.env.FIREBASE_SERVICE_KEY.replace(/\\n/g, '\n');
+        let rawJson = process.env.FIREBASE_SERVICE_KEY;
+        
+        // --- 🛡️ ETAPE DE NETTOYAGE ---
+        // 1. Si l'utilisateur a mis des guillemets simples ou doubles AUTOUR du tout, on les vire
+        if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
+        if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
+
+        // 2. CORRECTION "BAD CONTROL CHARACTER" :
+        // On remplace les vrais sauts de ligne (Entrée) par le caractère d'échappement "\n"
+        // Cela répare le JSON si le copier-coller a ajouté des retours à la ligne réels.
+        rawJson = rawJson.replace(/\r\n/g, '\\n').replace(/\n/g, '\\n').replace(/\r/g, '\\n');
+
         serviceAccount = JSON.parse(rawJson);
-        console.log("✅ [FIREBASE] Clé chargée depuis les variables d'environnement.");
+        console.log("✅ [FIREBASE] Clé chargée et réparée automatiquement.");
+
     } catch (error) {
-        console.error("❌ [FIREBASE] Erreur de parsing JSON Env Var :", error.message);
+        console.error("❌ [FIREBASE] Erreur FATALE de parsing JSON :", error.message);
+        // On affiche un bout pour aider au debug (sans afficher la clé privée)
+        console.error("🔍 Début du contenu reçu :", process.env.FIREBASE_SERVICE_KEY ? process.env.FIREBASE_SERVICE_KEY.substring(0, 50) : "VIDE");
     }
 } 
-// Cas 2 : Environnement Local (Fichier)
+// Cas 2 : Environnement Local (Fichier physique)
 else {
     try {
         serviceAccount = require('./serviceAccountKey.json');
         console.log("✅ [FIREBASE] Clé chargée depuis le fichier local.");
     } catch (e) {
-        console.warn("⚠️ [FIREBASE] Aucune clé trouvée. La base de données ne fonctionnera pas.");
+        console.warn("⚠️ [FIREBASE] Aucune clé trouvée (Ni Env Var, Ni Fichier).");
     }
 }
 
@@ -51,7 +63,7 @@ if (serviceAccount) {
     try {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            // CORRECTION CRITIQUE : On force l'ID du projet pour éviter l'erreur "Unable to detect Project Id"
+            // On force l'ID du projet pour éviter l'erreur "Unable to detect Project Id"
             projectId: serviceAccount.project_id 
         });
         console.log(`✅ [FIREBASE] Connecté au projet : ${serviceAccount.project_id}`);
@@ -59,7 +71,7 @@ if (serviceAccount) {
         console.error("❌ [FIREBASE] Erreur d'initialisation :", e.message);
     }
 } else {
-    // Fallback (rarement utile sur Render sans env var)
+    // Fallback : permet au serveur de démarrer même sans DB (mais les boosts planteront)
     try { admin.initializeApp(); } catch(e){}
 }
 
@@ -84,8 +96,6 @@ if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_K
     console.error("ERREUR FATALE : VARIABLES D'ENVIRONNEMENT MANQUANTES");
     console.error("Vérifiez TWITCH_CLIENT_ID, SECRET, REDIRECT_URI et GEMINI_API_KEY");
     console.error("#############################################################");
-    // On ne crash pas process.exit(1) pour laisser le serveur tourner et afficher les logs, 
-    // mais l'app ne marchera pas.
 }
 
 // Initialisation IA
@@ -705,6 +715,6 @@ app.get('/export_csv', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`===========================================`);
-    console.log(` STREAMER HUB V18 (RENDER READY) PORT ${PORT}`);
+    console.log(` STREAMER HUB V19 (AUTO-REPAIR) PORT ${PORT}`);
     console.log(`===========================================`);
 });
