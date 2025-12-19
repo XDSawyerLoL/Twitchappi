@@ -1,12 +1,12 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V18 - FIREBASE RENDER READY)
- * ==============================================================
+ * STREAMER & NICHE AI HUB - BACKEND (V18 - FINAL FIX RENDER)
+ * ==========================================================
  * Serveur Node.js/Express gérant :
  * 1. L'authentification Twitch (OAuth).
  * 2. L'API Twitch (Helix) pour les scans, raids et statuts.
  * 3. L'IA Google Gemini pour les analyses.
- * 4. La rotation automatique des streams.
- * 5. Le système de Boost et de Raid optimisé (AVEC PERSISTANCE FIREBASE).
+ * 4. La rotation automatique des streams (< 100 vues).
+ * 5. Le système de Boost persistant via Firebase Firestore.
  */
 
 const express = require('express');
@@ -17,84 +17,93 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const { GoogleGenAI } = require('@google/genai');
-
-// --- AJOUT FIREBASE (COMPATIBLE RENDER & LOCAL) ---
 const admin = require('firebase-admin');
 
+// =========================================================
+// 0. INITIALISATION FIREBASE (ROBUSTE POUR RENDER)
+// =========================================================
 let serviceAccount;
 
-// 1. TENTATIVE CHARGEMENT DEPUIS ENV VAR (POUR RENDER)
-// Le JSON doit être stocké dans une variable d'environnement nommée "FIREBASE_SERVICE_KEY"
+// Cas 1 : Environnement de Production (Render)
 if (process.env.FIREBASE_SERVICE_KEY) {
     try {
-        // Render stocke les sauts de ligne, JSON.parse les gère généralement bien
-        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_KEY);
-        console.log("✅ Clé Firebase chargée depuis les variables d'environnement.");
+        // CORRECTION CRITIQUE : Render échappe parfois les sauts de ligne (\n)
+        // On remplace les caractères littéraux '\n' par de vrais sauts de ligne
+        const rawJson = process.env.FIREBASE_SERVICE_KEY.replace(/\\n/g, '\n');
+        serviceAccount = JSON.parse(rawJson);
+        console.log("✅ [FIREBASE] Clé chargée depuis les variables d'environnement.");
     } catch (error) {
-        console.error("❌ Erreur de parsing du JSON Firebase (Env Var) :", error.message);
+        console.error("❌ [FIREBASE] Erreur de parsing JSON Env Var :", error.message);
     }
 } 
-// 2. FALLBACK : TENTATIVE CHARGEMENT FICHIER LOCAL (POUR DEV)
+// Cas 2 : Environnement Local (Fichier)
 else {
     try {
         serviceAccount = require('./serviceAccountKey.json');
-        console.log("✅ Clé Firebase chargée depuis le fichier local.");
+        console.log("✅ [FIREBASE] Clé chargée depuis le fichier local.");
     } catch (e) {
-        console.warn("⚠️ Aucune clé Firebase trouvée (Ni Env Var, Ni Fichier). La base de données ne fonctionnera pas.");
+        console.warn("⚠️ [FIREBASE] Aucune clé trouvée. La base de données ne fonctionnera pas.");
     }
 }
 
-// INITIALISATION
+// Démarrage de Firebase Admin
 if (serviceAccount) {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
+    try {
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            // CORRECTION CRITIQUE : On force l'ID du projet pour éviter l'erreur "Unable to detect Project Id"
+            projectId: serviceAccount.project_id 
+        });
+        console.log(`✅ [FIREBASE] Connecté au projet : ${serviceAccount.project_id}`);
+    } catch (e) {
+        console.error("❌ [FIREBASE] Erreur d'initialisation :", e.message);
+    }
 } else {
-    // Initialisation vide (ne marchera que si hébergé sur Google Cloud Platform directement)
-    admin.initializeApp();
+    // Fallback (rarement utile sur Render sans env var)
+    try { admin.initializeApp(); } catch(e){}
 }
 
 const db = admin.firestore();
-// ----------------------
 
+// =========================================================
+// 1. CONFIGURATION SERVEUR
+// =========================================================
 const app = express();
-
-// =========================================================
-// 1. CONFIGURATION ET VARIABLES D'ENVIRONNEMENT
-// =========================================================
-
 const PORT = process.env.PORT || 10000;
 
-// Récupération des clés
+// Récupération des clés API
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
-// Vérification de sécurité au démarrage
+// Vérification de sécurité
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
     console.error("#############################################################");
     console.error("ERREUR FATALE : VARIABLES D'ENVIRONNEMENT MANQUANTES");
-    process.exit(1); 
+    console.error("Vérifiez TWITCH_CLIENT_ID, SECRET, REDIRECT_URI et GEMINI_API_KEY");
+    console.error("#############################################################");
+    // On ne crash pas process.exit(1) pour laisser le serveur tourner et afficher les logs, 
+    // mais l'app ne marchera pas.
 }
 
-// Initialisation de l'IA
+// Initialisation IA
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
 
-// Middlewares Express
+// Middlewares
 app.use(cors()); 
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
-// 2. SYSTÈME DE CACHE HYBRIDE (RAM + DB)
+// 2. SYSTÈME DE CACHE HYBRIDE
 // =========================================================
 const CACHE = {
     twitchTokens: {},       
     twitchUser: null,       
-    boostedStream: null,    
+    boostedStream: null,    // Cache local du boost pour réduire les lectures DB
     lastScanData: null,     
     globalStreamRotation: {
         streams: [],        
@@ -105,7 +114,7 @@ const CACHE = {
 };
 
 // =========================================================
-// 3. FONCTIONS UTILITAIRES (HELPERS)
+// 3. HELPERS (Twitch & IA)
 // =========================================================
 
 async function getTwitchToken(tokenType) {
@@ -184,7 +193,7 @@ async function runGeminiAnalysis(prompt) {
 }
 
 // =========================================================
-// 4. ROUTES D'AUTHENTIFICATION (LOGIN / LOGOUT)
+// 4. AUTHENTIFICATION
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -265,7 +274,7 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 // =========================================================
-// 5. API DE DONNÉES (FOLLOWS, VOD, SCAN)
+// 5. ROUTES DATA (FOLLOWS, VOD, SCAN)
 // =========================================================
 
 app.get('/followed_streams', async (req, res) => {
@@ -319,6 +328,7 @@ app.post('/scan_target', async (req, res) => {
     if (!query) return res.status(400).json({ success: false, message: "Requête vide." });
     
     try {
+        // SCENARIO 1 : C'est un Streamer
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`); 
         
         if (userRes.data.length > 0) {
@@ -354,6 +364,7 @@ app.post('/scan_target', async (req, res) => {
             return res.json({ success: true, type: 'user', user_data: userData });
         }
         
+        // SCENARIO 2 : C'est un Jeu/Catégorie
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if (gameRes.data.length > 0) {
             const game = gameRes.data[0];
@@ -385,7 +396,7 @@ app.post('/scan_target', async (req, res) => {
 });
 
 // =========================================================
-// 6. ROTATION AUTOMATIQUE & LECTEUR (AVEC VERIF DB)
+// 6. ROTATION & LECTEUR (DB PERSISTANT)
 // =========================================================
 
 async function refreshGlobalStreamList() {
@@ -393,12 +404,14 @@ async function refreshGlobalStreamList() {
     const rotation = CACHE.globalStreamRotation;
     if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) return;
     
-    console.log("Rafraîchissement de la liste 0-100 vues...");
+    console.log("🔄 Rafraîchissement de la liste 0-100 vues...");
     try {
         const data = await twitchApiFetch(`streams?language=fr&first=100`);
         const allStreams = data.data;
+        // FILTRE STRICT : Entre 0 et 100 vues
         let suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
 
+        // Fallback si vide
         if (suitableStreams.length === 0 && allStreams.length > 0) {
             suitableStreams = allStreams.sort((a, b) => a.viewer_count - b.viewer_count).slice(0, 10); 
         }
@@ -409,7 +422,7 @@ async function refreshGlobalStreamList() {
             rotation.lastFetchTime = now;
         }
     } catch (e) {
-        console.error("Erreur Rotation:", e);
+        console.error("❌ Erreur Rotation:", e.message);
     }
 }
 
@@ -418,8 +431,9 @@ app.get('/get_default_stream', async (req, res) => {
     const now = Date.now();
     let currentBoost = null;
 
-    // --- LECTURE DU BOOST DANS FIREBASE ---
+    // --- 1. VERIFICATION FIREBASE (PRIORITAIRE) ---
     try {
+        // On cherche un boost actif qui n'est pas encore fini
         const boostQuery = await db.collection('boosts')
             .where('endTime', '>', now)
             .orderBy('endTime', 'desc')
@@ -429,18 +443,21 @@ app.get('/get_default_stream', async (req, res) => {
         if (!boostQuery.empty) {
             const data = boostQuery.docs[0].data();
             currentBoost = { channel: data.channel, endTime: data.endTime };
-            CACHE.boostedStream = currentBoost; 
+            CACHE.boostedStream = currentBoost; // Update cache
         } else {
             CACHE.boostedStream = null;
         }
     } catch(e) {
-        console.error("Erreur lecture Boost DB:", e);
-        // Fallback local
+        console.error("⚠️ Erreur lecture Firestore (Boost):", e.message);
+        // Fallback RAM si DB plante
         if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) {
             currentBoost = CACHE.boostedStream;
         }
     }
 
+    // --- 2. LOGIQUE DE SELECTION ---
+    
+    // Cas A : Boost Actif
     if (currentBoost && currentBoost.endTime > now) {
         const remaining = Math.ceil((currentBoost.endTime - now) / 60000);
         return res.json({ 
@@ -451,6 +468,7 @@ app.get('/get_default_stream', async (req, res) => {
         });
     }
 
+    // Cas B : Rotation Auto
     await refreshGlobalStreamList(); 
     const rotation = CACHE.globalStreamRotation;
     
@@ -470,6 +488,7 @@ app.get('/get_default_stream', async (req, res) => {
 app.post('/cycle_stream', async (req, res) => {
     const { direction } = req.body; 
 
+    // Interdire changement si boost actif (Vérif RAM rapide)
     if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
         return res.status(403).json({ success: false, error: "Boost actif. Changement impossible." });
     }
@@ -490,10 +509,9 @@ app.post('/cycle_stream', async (req, res) => {
 });
 
 // =========================================================
-// 7. FONCTIONNALITÉS AVANCÉES (BOOST & RAID)
+// 7. FEATURES AVANCEES (BOOST, RAID, SCHEDULE)
 // =========================================================
 
-// Statut Boost (vérifié dans DB)
 app.get('/check_boost_status', async (req, res) => {
     const now = Date.now();
     try {
@@ -516,7 +534,6 @@ app.get('/check_boost_status', async (req, res) => {
     return res.json({ is_boosted: false });
 });
 
-// Activer un Boost (ECRITURE DB)
 app.post('/stream_boost', async (req, res) => {
     const { channel } = req.body;
     if (!channel) return res.status(400).json({ error: "Nom de chaîne requis." });
@@ -526,7 +543,7 @@ app.post('/stream_boost', async (req, res) => {
     const DURATION = 15 * 60 * 1000;     // 15 minutes
 
     try {
-        // 1. Vérifier si un boost est DÉJÀ actif globalement (concurrence)
+        // 1. Vérif Boost Global
         const activeBoostQuery = await db.collection('boosts')
             .where('endTime', '>', now)
             .limit(1)
@@ -541,7 +558,7 @@ app.post('/stream_boost', async (req, res) => {
             });
         }
 
-        // 2. Vérifier le Cooldown personnel du streamer
+        // 2. Vérif Cooldown User
         const userHistoryQuery = await db.collection('boosts')
             .where('channel', '==', channel)
             .orderBy('endTime', 'desc') 
@@ -559,7 +576,7 @@ app.post('/stream_boost', async (req, res) => {
             }
         }
 
-        // 3. Créer le nouveau Boost dans la DB
+        // 3. Activation
         await db.collection('boosts').add({
             channel: channel,
             startTime: now,
@@ -567,7 +584,7 @@ app.post('/stream_boost', async (req, res) => {
             created_at: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // Mise à jour du cache local immédiat
+        // Update Cache
         CACHE.boostedStream = { channel: channel, endTime: now + DURATION }; 
 
         return res.json({ 
@@ -577,7 +594,7 @@ app.post('/stream_boost', async (req, res) => {
 
     } catch (e) {
         console.error("Erreur Firebase Boost:", e);
-        return res.status(500).json({ error: "Erreur Base de Données", html_response: "<p>Erreur serveur lors de l'activation.</p>" });
+        return res.status(500).json({ error: "Erreur DB", html_response: "<p>Erreur serveur lors de l'activation.</p>" });
     }
 });
 
@@ -683,11 +700,11 @@ app.get('/export_csv', (req, res) => {
 });
 
 // =========================================================
-// 8. DÉMARRAGE DU SERVEUR
+// 8. DÉMARRAGE
 // =========================================================
 
 app.listen(PORT, () => {
     console.log(`===========================================`);
-    console.log(` STREAMER HUB V18 (PERSISTENCE) DÉMARRÉ SUR PORT ${PORT}`);
+    console.log(` STREAMER HUB V18 (RENDER READY) PORT ${PORT}`);
     console.log(`===========================================`);
 });
