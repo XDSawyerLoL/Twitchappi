@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer HUB - COCKPIT ULTIME (V19)</title>
+    <title>Streamer HUB - COCKPIT ULTIME (V20)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,6 +31,7 @@
             /* Ombres Néon */
             --glow-pink: 0 0 15px rgba(255, 0, 153, 0.3);
             --glow-blue: 0 0 15px rgba(34, 199, 239, 0.3);
+            --glow-gold: 0 0 15px rgba(255, 215, 0, 0.3);
         }
 
         body { 
@@ -150,7 +151,7 @@
 
 <div id="main-container">
     
-    <h1>STREAMER HUB <span style="color:var(--secondary-blue); font-size:1rem;">V19</span></h1>
+    <h1>STREAMER HUB <span style="color:var(--secondary-blue); font-size:1rem;">V20</span></h1>
     <div class="subtitle">INTELLIGENCE ARTIFICIELLE • AUTOMATISATION • CROISSANCE</div>
 
     <div class="tabs-container">
@@ -271,8 +272,15 @@
 <script>
     // --- CONFIGURATION ---
     const API_BASE = window.location.origin;
-    // LISTE DES DOMAINES AUTORISÉS POUR RENDER (Anti-écran noir)
-    const PARENT_DOMAINS = ["justplayerstreamhubpro.onrender.com", "localhost", "127.0.0.1"]; 
+    
+    // LISTE COMPLETE DES DOMAINES PARENTS AUTORISÉS (FIX ECRAN NOIR)
+    const PARENT_DOMAINS = [
+        "justplayerstreamhubpro.onrender.com", 
+        "localhost", 
+        "127.0.0.1", 
+        "justplayer.fr", 
+        "www.justplayer.fr"
+    ]; 
 
     // VARIABLES GLOBALES
     let embed = null;
@@ -284,31 +292,29 @@
 
     // --- INITIALISATION ---
     window.onload = () => {
-        // 1. Charger Auth
         checkAuth();
-        // 2. Charger Player
         initPlayer();
-        // 3. Premier Sync
-        syncStream();
-        // 4. Boucles
-        setInterval(syncStream, 10000); // Sync avec le serveur toutes les 10s
-        setInterval(tickTimer, 1000);   // Timer visuel toutes les 1s
+        syncStream(); // Premier chargement
+        setInterval(syncStream, 10000); // Sync serveur 10s
+        setInterval(tickTimer, 1000);   // Timer visuel 1s
     };
 
     // --- LOGIQUE PLAYER ---
     function initPlayer() {
         const currentHost = window.location.hostname;
-        // Ajoute le domaine actuel à la liste si pas déjà présent
+        // On fusionne le host actuel avec la liste autorisée
         const parents = PARENT_DOMAINS.includes(currentHost) ? PARENT_DOMAINS : [...PARENT_DOMAINS, currentHost];
 
         const options = {
             width: "100%", height: "100%",
-            channel: "monstercat", // Placeholder
+            channel: "monstercat",
             layout: "video-and-chat",
             autoplay: true,
             muted: false,
-            parent: parents
+            parent: parents // Le point critique pour Twitch
         };
+        // Nettoyage préalable
+        document.getElementById('twitch-embed').innerHTML = "";
         embed = new Twitch.Embed("twitch-embed", options);
     }
 
@@ -376,7 +382,6 @@
         timerVal = MAX_TIMER; // Reset visuel
         document.getElementById('timer-fill').style.width = "100%";
         
-        // Bloquer temporairement pour éviter le spam
         document.getElementById('btn-prev').disabled = true;
         document.getElementById('btn-next').disabled = true;
 
@@ -416,7 +421,6 @@
                 }
             });
     }
-    // Ecouteur retour popup
     window.addEventListener('message', (e) => { if(e.data === 'auth_success') location.reload(); });
 
     function loadFeed() {
@@ -461,7 +465,6 @@
                 </div>
                 <button onclick="forcePlay('${u.login}')" class="btn-main" style="width:100%; margin-top:10px;">VOIR</button>
             `;
-            // Appels IA
             callAI('niche', `${u.display_name} | ${u.game_name}`, boxN, u.ai_calculated_niche_score);
             callAI('repurpose', `${u.login} (VOD Analysis)`, boxV);
         } else if (data.type === 'game') {
@@ -536,15 +539,14 @@
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        // Trouver le bouton correspondant (index basé sur l'ordre HTML)
-        // Simplifié : on ajoute active au bouton cliqué via event si besoin, ou on laisse l'utilisateur gérer
-        // Ici simple hack visuel : on reset tout et on met active sur le bouton qui a appelé la fonction ? 
-        // Non, plus simple : on laisse le CSS gérer via JS class
-        // Pour faire propre, il faudrait passer 'this' en argument, mais on va faire simple :
-        const index = ['tab-feed','tab-dash','tab-time','tab-boost','tab-raid'].indexOf(id);
-        document.querySelectorAll('.tab-btn')[index].classList.add('active');
+        // Activation visuelle du bouton
+        const btns = document.querySelectorAll('.tab-btn');
+        if(id === 'tab-feed') btns[0].classList.add('active');
+        if(id === 'tab-dash') btns[1].classList.add('active');
+        if(id === 'tab-time') btns[2].classList.add('active');
+        if(id === 'tab-boost') btns[3].classList.add('active');
+        if(id === 'tab-raid') btns[4].classList.add('active');
     }
 </script>
-
 </body>
 </html>
