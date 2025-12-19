@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer HUB - COCKPIT ULTIME (V20)</title>
+    <title>Streamer HUB - COCKPIT ULTIME (V21)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,7 +31,6 @@
             /* Ombres Néon */
             --glow-pink: 0 0 15px rgba(255, 0, 153, 0.3);
             --glow-blue: 0 0 15px rgba(34, 199, 239, 0.3);
-            --glow-gold: 0 0 15px rgba(255, 215, 0, 0.3);
         }
 
         body { 
@@ -151,7 +150,7 @@
 
 <div id="main-container">
     
-    <h1>STREAMER HUB <span style="color:var(--secondary-blue); font-size:1rem;">V20</span></h1>
+    <h1>STREAMER HUB <span style="color:var(--secondary-blue); font-size:1rem;">V21</span></h1>
     <div class="subtitle">INTELLIGENCE ARTIFICIELLE • AUTOMATISATION • CROISSANCE</div>
 
     <div class="tabs-container">
@@ -310,8 +309,9 @@
             channel: "monstercat",
             layout: "video-and-chat",
             autoplay: true,
-            muted: false,
-            parent: parents // Le point critique pour Twitch
+            // CORRECTION AUTOPLAY : "muted" DOIT ETRE TRUE POUR QUE L'AUTOPLAY FONCTIONNE SANS CLIC
+            muted: true,
+            parent: parents 
         };
         // Nettoyage préalable
         document.getElementById('twitch-embed').innerHTML = "";
