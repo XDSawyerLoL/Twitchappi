@@ -1,12 +1,13 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V19 - AUTO-REPAIR FIREBASE)
- * ==============================================================
+ * STREAMER & NICHE AI HUB - BACKEND (V20 - ULTIMATE FIX COMPLETE)
+ * ===============================================================
  * Serveur Node.js/Express gérant :
- * 1. L'authentification Twitch (OAuth).
+ * 1. L'authentification Twitch (OAuth) avec fermeture propre des popups.
  * 2. L'API Twitch (Helix) pour les scans, raids et statuts.
- * 3. L'IA Google Gemini pour les analyses.
- * 4. Le système de Boost persistant via Firebase Firestore.
- * 5. CORRECTIF : Gestion automatique des erreurs de formatage JSON Render.
+ * 3. L'IA Google Gemini pour les analyses (Niche, Repurposing, Planning).
+ * 4. La rotation automatique des streams (0-100 vues).
+ * 5. Le système de Boost et de Raid optimisé.
+ * 6. PERSISTANCE : Connexion Firebase Blindée pour Render.
  */
 
 const express = require('express');
@@ -17,44 +18,43 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const { GoogleGenAI } = require('@google/genai');
+
+// --- AJOUT FIREBASE (COMPATIBLE RENDER & LOCAL) ---
 const admin = require('firebase-admin');
 
 // =========================================================
-// 0. INITIALISATION FIREBASE (V19 - AUTO-REPAIR)
+// 0. INITIALISATION FIREBASE (LE CORRECTIF V20)
 // =========================================================
 let serviceAccount;
 
 // Cas 1 : Environnement de Production (Render)
+// On nettoie la variable d'environnement pour éviter les erreurs de parsing
 if (process.env.FIREBASE_SERVICE_KEY) {
     try {
         let rawJson = process.env.FIREBASE_SERVICE_KEY;
         
-        // --- 🛡️ ETAPE DE NETTOYAGE ---
-        // 1. Si l'utilisateur a mis des guillemets simples ou doubles AUTOUR du tout, on les vire
+        // 1. Nettoyage des guillemets parasites au début/fin
         if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
         if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
 
-        // 2. CORRECTION "BAD CONTROL CHARACTER" :
-        // On remplace les vrais sauts de ligne (Entrée) par le caractère d'échappement "\n"
-        // Cela répare le JSON si le copier-coller a ajouté des retours à la ligne réels.
+        // 2. CORRECTION CRITIQUE RENDER : Remplacement des sauts de ligne littéraux
         rawJson = rawJson.replace(/\r\n/g, '\\n').replace(/\n/g, '\\n').replace(/\r/g, '\\n');
 
         serviceAccount = JSON.parse(rawJson);
-        console.log("✅ [FIREBASE] Clé chargée et réparée automatiquement.");
+        console.log("✅ [FIREBASE] Clé chargée et réparée automatiquement (Source: Env Var).");
 
     } catch (error) {
         console.error("❌ [FIREBASE] Erreur FATALE de parsing JSON :", error.message);
-        // On affiche un bout pour aider au debug (sans afficher la clé privée)
-        console.error("🔍 Début du contenu reçu :", process.env.FIREBASE_SERVICE_KEY ? process.env.FIREBASE_SERVICE_KEY.substring(0, 50) : "VIDE");
+        console.error("🔍 Vérifiez votre variable FIREBASE_SERVICE_KEY dans Render.");
     }
 } 
-// Cas 2 : Environnement Local (Fichier physique)
+// Cas 2 : Environnement Local (Fichier physique pour le dev)
 else {
     try {
         serviceAccount = require('./serviceAccountKey.json');
         console.log("✅ [FIREBASE] Clé chargée depuis le fichier local.");
     } catch (e) {
-        console.warn("⚠️ [FIREBASE] Aucune clé trouvée (Ni Env Var, Ni Fichier).");
+        console.warn("⚠️ [FIREBASE] Aucune clé trouvée (Ni Env Var, Ni Fichier). La DB ne marchera pas.");
     }
 }
 
@@ -63,34 +63,52 @@ if (serviceAccount) {
     try {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            // On force l'ID du projet pour éviter l'erreur "Unable to detect Project Id"
+            // On force l'ID du projet dès l'init pour aider Firebase
             projectId: serviceAccount.project_id 
         });
         console.log(`✅ [FIREBASE] Connecté au projet : ${serviceAccount.project_id}`);
     } catch (e) {
-        console.error("❌ [FIREBASE] Erreur d'initialisation :", e.message);
+        console.error("❌ [FIREBASE] Erreur d'initialisation Admin :", e.message);
     }
 } else {
-    // Fallback : permet au serveur de démarrer même sans DB (mais les boosts planteront)
+    // Initialisation vide (fallback)
     try { admin.initializeApp(); } catch(e){}
 }
 
+// Initialisation de Firestore
 const db = admin.firestore();
 
-// =========================================================
-// 1. CONFIGURATION SERVEUR
-// =========================================================
+// --- LE FORÇAGE ULTIME (V20) ---
+// On impose l'ID du projet dans les réglages de la DB pour contourner le bug Render "Unable to detect Project Id"
+if (serviceAccount) {
+    try {
+        db.settings({
+            projectId: serviceAccount.project_id || process.env.GOOGLE_CLOUD_PROJECT || 'goodstreamer-7e87d',
+            ignoreUndefinedProperties: true
+        });
+        console.log("✅ [FIRESTORE] ID de projet forcé dans les settings.");
+    } catch(e) {
+        console.error("⚠️ [FIRESTORE] Impossible d'appliquer les settings :", e.message);
+    }
+}
+// ------------------------------
+
 const app = express();
+
+// =========================================================
+// 1. CONFIGURATION ET VARIABLES D'ENVIRONNEMENT
+// =========================================================
+
 const PORT = process.env.PORT || 10000;
 
-// Récupération des clés API
+// Récupération des clés
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
-// Vérification de sécurité
+// Vérification de sécurité au démarrage
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
     console.error("#############################################################");
     console.error("ERREUR FATALE : VARIABLES D'ENVIRONNEMENT MANQUANTES");
@@ -98,35 +116,44 @@ if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_K
     console.error("#############################################################");
 }
 
-// Initialisation IA
+// Initialisation de l'IA
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
 
-// Middlewares
-app.use(cors()); 
+// Middlewares Express
+app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
+// Sert les fichiers statiques (HTML/CSS/JS client)
 app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
-// 2. SYSTÈME DE CACHE HYBRIDE
+// 2. SYSTÈME DE CACHE HYBRIDE (RAM + DB)
 // =========================================================
 const CACHE = {
-    twitchTokens: {},       
-    twitchUser: null,       
-    boostedStream: null,    // Cache local du boost pour réduire les lectures DB
-    lastScanData: null,     
+    twitchTokens: {},       // Tokens d'application (App Access Token)
+    twitchUser: null,       // Session utilisateur connecté (User Access Token)
+    
+    // Le boost actif est stocké ici pour lecture rapide, mais la vérité est dans Firebase
+    boostedStream: null,    
+    
+    lastScanData: null,     // Dernières données scannées (pour l'export CSV)
+    
+    // Rotation automatique des chaînes (Auto-Discovery)
     globalStreamRotation: {
-        streams: [],        
-        currentIndex: 0,    
-        lastFetchTime: 0,   
-        fetchCooldown: 15 * 60 * 1000 
+        streams: [],        // Liste des streams filtrés (0-100 vues)
+        currentIndex: 0,    // Index actuel dans la liste
+        lastFetchTime: 0,   // Dernier appel à l'API Twitch
+        fetchCooldown: 15 * 60 * 1000 // Rafraichissement toutes les 15 min
     }
 };
 
 // =========================================================
-// 3. HELPERS (Twitch & IA)
+// 3. FONCTIONS UTILITAIRES (HELPERS)
 // =========================================================
 
+/**
+ * Récupère un Token Twitch "App Access" (Client Credentials)
+ */
 async function getTwitchToken(tokenType) {
     if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) {
         return CACHE.twitchTokens[tokenType].access_token;
@@ -154,6 +181,9 @@ async function getTwitchToken(tokenType) {
     }
 }
 
+/**
+ * Effectue un appel à l'API Twitch Helix
+ */
 async function twitchApiFetch(endpoint, token) {
     const accessToken = token || await getTwitchToken('app');
     if (!accessToken) throw new Error("Impossible d'obtenir un Token Twitch.");
@@ -179,6 +209,9 @@ async function twitchApiFetch(endpoint, token) {
     return res.json();
 }
 
+/**
+ * Appelle Google Gemini (IA) pour générer du contenu HTML
+ */
 async function runGeminiAnalysis(prompt) {
     try {
         const response = await ai.models.generateContent({
@@ -203,7 +236,7 @@ async function runGeminiAnalysis(prompt) {
 }
 
 // =========================================================
-// 4. AUTHENTIFICATION
+// 4. ROUTES D'AUTHENTIFICATION (LOGIN / LOGOUT)
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -216,7 +249,7 @@ app.get('/twitch_auth_start', (req, res) => {
 
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error, error_description } = req.query;
-    if (state !== req.cookies.twitch_state) return res.status(400).send("Erreur de sécurité.");
+    if (state !== req.cookies.twitch_state) return res.status(400).send("Erreur de sécurité (State mismatch).");
     if (error) return res.status(400).send(`Erreur Twitch : ${error_description}`);
 
     try {
@@ -250,6 +283,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 <html>
                 <body style="background:#111; color:#fff; font-family:sans-serif; text-align:center; padding-top:50px;">
                     <h2>Connexion Réussie !</h2>
+                    <p>Fermeture de la fenêtre...</p>
                     <script>
                         if (window.opener) {
                             window.opener.postMessage('auth_success', '*');
@@ -262,7 +296,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 </html>
             `);
         } else {
-            res.status(500).send("Échec Token.");
+            res.status(500).send("Échec de l'obtention du token Twitch.");
         }
     } catch (e) {
         res.status(500).send(`Erreur Serveur: ${e.message}`);
@@ -284,13 +318,15 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 // =========================================================
-// 5. ROUTES DATA (FOLLOWS, VOD, SCAN)
+// 5. API DE DONNÉES (FOLLOWS, VOD, SCAN)
 // =========================================================
 
 app.get('/followed_streams', async (req, res) => {
     if (!CACHE.twitchUser) return res.status(401).json({ success: false, error: "Non connecté." });
+
     try {
         const data = await twitchApiFetch(`streams/followed?user_id=${CACHE.twitchUser.id}`, CACHE.twitchUser.access_token);
+        
         const streams = data.data.map(stream => ({
             user_name: stream.user_name,
             user_login: stream.user_login,
@@ -299,8 +335,10 @@ app.get('/followed_streams', async (req, res) => {
             viewer_count: stream.viewer_count,
             thumbnail_url: stream.thumbnail_url 
         }));
+        
         return res.json({ success: true, streams });
     } catch (e) {
+        console.error("Erreur Followed:", e);
         return res.status(500).json({ success: false, error: e.message });
     }
 });
@@ -308,16 +346,21 @@ app.get('/followed_streams', async (req, res) => {
 app.get('/get_latest_vod', async (req, res) => {
     const channel = req.query.channel;
     if (!channel) return res.status(400).json({ success: false, error: "Paramètre manquant" });
+
     try {
         const userRes = await twitchApiFetch(`users?login=${channel}`);
-        if (!userRes.data || userRes.data.length === 0) return res.status(404).json({ success: false });
-        
+        if (!userRes.data || userRes.data.length === 0) {
+            return res.status(404).json({ success: false, error: "Chaîne introuvable" });
+        }
         const userId = userRes.data[0].id;
+
         const vodRes = await twitchApiFetch(`videos?user_id=${userId}&type=archive&first=1`);
-        
-        if (!vodRes.data || vodRes.data.length === 0) return res.status(404).json({ success: false });
+        if (!vodRes.data || vodRes.data.length === 0) {
+            return res.status(404).json({ success: false, error: "Aucune VOD trouvée" });
+        }
         
         const vod = vodRes.data[0];
+        
         return res.json({ 
             success: true, 
             vod: {
@@ -333,28 +376,33 @@ app.get('/get_latest_vod', async (req, res) => {
     }
 });
 
+// SCAN GLOBAL (Utilisateur ou Jeu)
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body;
     if (!query) return res.status(400).json({ success: false, message: "Requête vide." });
     
     try {
-        // SCENARIO 1 : C'est un Streamer
+        // A. Essayer de trouver un UTILISATEUR
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`); 
         
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
+            
+            // Infos Stream Live
             let streamDetails = null;
             try {
                 const streamRes = await twitchApiFetch(`streams?user_id=${user.id}`);
                 if (streamRes.data.length > 0) streamDetails = streamRes.data[0];
             } catch (e) {}
 
+            // Infos Followers
             let followerCount = 'N/A';
             try {
                 const fRes = await twitchApiFetch(`users/follows?followed_id=${user.id}&first=1`);
                 followerCount = fRes.total;
             } catch (e) {}
 
+            // Calcul basique du score niche
             let aiScore = (user.broadcaster_type === 'partner') ? '8.5/10' : '5.5/10';
 
             const userData = { 
@@ -374,16 +422,21 @@ app.post('/scan_target', async (req, res) => {
             return res.json({ success: true, type: 'user', user_data: userData });
         }
         
-        // SCENARIO 2 : C'est un Jeu/Catégorie
+        // B. Essayer de trouver un JEU (Catégorie)
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
+        
         if (gameRes.data.length > 0) {
             const game = gameRes.data[0];
+            
+            // Statistiques globales du jeu
             const streamsRes = await twitchApiFetch(`streams?game_id=${game.id}&first=100`);
             const streams = streamsRes.data;
+            
             const totalStreams = streams.length;
             const totalViewers = streams.reduce((sum, s) => sum + s.viewer_count, 0);
             const avgViewers = totalStreams > 0 ? Math.round(totalViewers / totalStreams) : 0;
-            let aiScore = (avgViewers < 100) ? '8.0/10' : '4.5/10';
+            
+            let aiScore = (avgViewers < 100) ? '8.0/10' : '4.5/10'; 
             
             const gameData = { 
                 name: game.name, 
@@ -399,29 +452,36 @@ app.post('/scan_target', async (req, res) => {
             return res.json({ success: true, type: 'game', game_data: gameData });
         }
 
-        return res.status(404).json({ success: false, message: "Aucun résultat trouvé." });
+        return res.status(404).json({ success: false, message: "Aucun résultat trouvé (Ni User, Ni Jeu)." });
+        
     } catch (e) {
         return res.status(500).json({ success: false, error: e.message });
     }
 });
 
 // =========================================================
-// 6. ROTATION & LECTEUR (DB PERSISTANT)
+// 6. ROTATION AUTOMATIQUE & LECTEUR (AVEC FIREBASE)
 // =========================================================
 
 async function refreshGlobalStreamList() {
     const now = Date.now();
     const rotation = CACHE.globalStreamRotation;
-    if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) return;
+    
+    // Cooldown de 15 min pour ne pas spammer Twitch
+    if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) {
+        return;
+    }
     
     console.log("🔄 Rafraîchissement de la liste 0-100 vues...");
+    
     try {
         const data = await twitchApiFetch(`streams?language=fr&first=100`);
         const allStreams = data.data;
-        // FILTRE STRICT : Entre 0 et 100 vues
+
+        // Filtre strict : 0 à 100 vues
         let suitableStreams = allStreams.filter(stream => stream.viewer_count > 0 && stream.viewer_count <= 100);
 
-        // Fallback si vide
+        // Fallback : Si aucun stream <100, on prend les 10 plus petits du top 100
         if (suitableStreams.length === 0 && allStreams.length > 0) {
             suitableStreams = allStreams.sort((a, b) => a.viewer_count - b.viewer_count).slice(0, 10); 
         }
@@ -432,18 +492,19 @@ async function refreshGlobalStreamList() {
             rotation.lastFetchTime = now;
         }
     } catch (e) {
-        console.error("❌ Erreur Rotation:", e.message);
+        console.error("❌ Erreur Rotation:", e);
     }
 }
 
+// Route principale appelée par le lecteur pour savoir quoi jouer
 app.get('/get_default_stream', async (req, res) => {
     
     const now = Date.now();
     let currentBoost = null;
 
-    // --- 1. VERIFICATION FIREBASE (PRIORITAIRE) ---
+    // 1. VÉRIFICATION FIREBASE (PRIORITÉ ABSOLUE)
     try {
-        // On cherche un boost actif qui n'est pas encore fini
+        // On cherche un boost qui finit dans le futur
         const boostQuery = await db.collection('boosts')
             .where('endTime', '>', now)
             .orderBy('endTime', 'desc')
@@ -453,21 +514,21 @@ app.get('/get_default_stream', async (req, res) => {
         if (!boostQuery.empty) {
             const data = boostQuery.docs[0].data();
             currentBoost = { channel: data.channel, endTime: data.endTime };
-            CACHE.boostedStream = currentBoost; // Update cache
+            // On met à jour le cache local
+            CACHE.boostedStream = currentBoost; 
         } else {
             CACHE.boostedStream = null;
         }
     } catch(e) {
-        console.error("⚠️ Erreur lecture Firestore (Boost):", e.message);
-        // Fallback RAM si DB plante
+        console.error("⚠️ Erreur lecture Boost DB:", e.message);
+        // Fallback RAM si la DB a un souci
         if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) {
             currentBoost = CACHE.boostedStream;
         }
     }
 
-    // --- 2. LOGIQUE DE SELECTION ---
-    
-    // Cas A : Boost Actif
+    // 2. LOGIQUE DE PRIORITÉ
+    // Si Boost trouvé et valide
     if (currentBoost && currentBoost.endTime > now) {
         const remaining = Math.ceil((currentBoost.endTime - now) / 60000);
         return res.json({ 
@@ -478,12 +539,16 @@ app.get('/get_default_stream', async (req, res) => {
         });
     }
 
-    // Cas B : Rotation Auto
+    // Sinon : ROTATION AUTOMATIQUE
     await refreshGlobalStreamList(); 
     const rotation = CACHE.globalStreamRotation;
     
     if (rotation.streams.length === 0) {
-        return res.json({ success: true, channel: 'twitch', message: 'Fallback: Aucun stream trouvé.' });
+        return res.json({ 
+            success: true, 
+            channel: 'twitch', 
+            message: 'Fallback: Aucun stream trouvé.' 
+        });
     }
 
     const currentStream = rotation.streams[rotation.currentIndex];
@@ -495,10 +560,11 @@ app.get('/get_default_stream', async (req, res) => {
     });
 });
 
+// Changer de chaîne manuellement (Next/Prev)
 app.post('/cycle_stream', async (req, res) => {
     const { direction } = req.body; 
 
-    // Interdire changement si boost actif (Vérif RAM rapide)
+    // Interdit si un boost est en cours (Vérif RAM)
     if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
         return res.status(403).json({ success: false, error: "Boost actif. Changement impossible." });
     }
@@ -519,9 +585,10 @@ app.post('/cycle_stream', async (req, res) => {
 });
 
 // =========================================================
-// 7. FEATURES AVANCEES (BOOST, RAID, SCHEDULE)
+// 7. FONCTIONNALITÉS AVANCÉES (BOOST, RAID, IA, CSV)
 // =========================================================
 
+// Vérifier si un boost est en cours (pour l'UI)
 app.get('/check_boost_status', async (req, res) => {
     const now = Date.now();
     try {
@@ -544,6 +611,7 @@ app.get('/check_boost_status', async (req, res) => {
     return res.json({ is_boosted: false });
 });
 
+// Activer un Boost (ECRITURE DB)
 app.post('/stream_boost', async (req, res) => {
     const { channel } = req.body;
     if (!channel) return res.status(400).json({ error: "Nom de chaîne requis." });
@@ -553,7 +621,7 @@ app.post('/stream_boost', async (req, res) => {
     const DURATION = 15 * 60 * 1000;     // 15 minutes
 
     try {
-        // 1. Vérif Boost Global
+        // 1. Vérifier si un boost est DÉJÀ actif globalement (un seul boost à la fois)
         const activeBoostQuery = await db.collection('boosts')
             .where('endTime', '>', now)
             .limit(1)
@@ -568,7 +636,7 @@ app.post('/stream_boost', async (req, res) => {
             });
         }
 
-        // 2. Vérif Cooldown User
+        // 2. Vérifier le Cooldown personnel
         const userHistoryQuery = await db.collection('boosts')
             .where('channel', '==', channel)
             .orderBy('endTime', 'desc') 
@@ -586,7 +654,7 @@ app.post('/stream_boost', async (req, res) => {
             }
         }
 
-        // 3. Activation
+        // 3. Créer le nouveau Boost
         await db.collection('boosts').add({
             channel: channel,
             startTime: now,
@@ -594,20 +662,21 @@ app.post('/stream_boost', async (req, res) => {
             created_at: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // Update Cache
+        // Mise à jour cache
         CACHE.boostedStream = { channel: channel, endTime: now + DURATION }; 
 
         return res.json({ 
             success: true, 
-            html_response: `<p style="color:var(--color-primary-pink); font-weight:bold;">🚀 Boost activé pour ${channel} (15 min) ! Sauvegardé.</p>` 
+            html_response: `<p style="color:var(--color-primary-pink); font-weight:bold;">🚀 Boost activé pour ${channel} (15 min) !</p>` 
         });
 
     } catch (e) {
         console.error("Erreur Firebase Boost:", e);
-        return res.status(500).json({ error: "Erreur DB", html_response: "<p>Erreur serveur lors de l'activation.</p>" });
+        return res.status(500).json({ error: "Erreur Base de Données", html_response: "<p>Erreur serveur lors de l'activation.</p>" });
     }
 });
 
+// RAID OPTIMISÉ
 app.post('/start_raid', async (req, res) => {
     const { game, max_viewers } = req.body;
     if (!game || !max_viewers) return res.status(400).json({ success: false, error: "Données manquantes" });
@@ -622,6 +691,7 @@ app.post('/start_raid', async (req, res) => {
         const candidates = streamsRes.data.filter(stream => stream.viewer_count <= parseInt(max_viewers));
         let target = candidates.sort((a, b) => b.viewer_count - a.viewer_count)[0];
         
+        // Fallback
         if (!target && streamsRes.data.length > 0) {
             target = streamsRes.data.sort((a, b) => a.viewer_count - b.viewer_count)[0];
         }
@@ -645,18 +715,22 @@ app.post('/start_raid', async (req, res) => {
     }
 });
 
+// Appels IA Génériques
 app.post('/critique_ia', async (req, res) => {
     const { type, query, niche_score } = req.body;
     let prompt = "";
+
     if (type === 'niche') {
         prompt = `Expert Twitch. Score niche calculé: ${niche_score}. Analyse le sujet "${query}". Structure HTML requise: Titre <h4>, Liste <ul> de 3 forces, Liste <ul> de 3 idées contenus, Conclusion <p> avec <strong>.`;
     } else if (type === 'repurpose') {
         prompt = `Expert Montage Vidéo. Analyse la VOD "${query}". Structure HTML: Titre <h4>, Liste <ul> de 3 timestamps clips (HH:MM:SS) avec texte "**Point de Clip: HH:MM:SS**", Liste <ul> de 3 titres YouTube Shorts.`;
     }
+
     const result = await runGeminiAnalysis(prompt);
     res.json(result);
 });
 
+// BEST TIME (PLANNING)
 app.post('/analyze_schedule', async (req, res) => {
     const { game } = req.body;
     if (!game) return res.status(400).json({ success: false, error: "Jeu manquant." });
@@ -693,6 +767,7 @@ app.post('/analyze_schedule', async (req, res) => {
     }
 });
 
+// Export CSV
 app.get('/export_csv', (req, res) => {
     const data = CACHE.lastScanData;
     if (!data) return res.status(404).send("Aucune donnée disponible. Faites un scan d'abord.");
@@ -710,11 +785,12 @@ app.get('/export_csv', (req, res) => {
 });
 
 // =========================================================
-// 8. DÉMARRAGE
+// 8. DÉMARRAGE DU SERVEUR
 // =========================================================
 
 app.listen(PORT, () => {
     console.log(`===========================================`);
-    console.log(` STREAMER HUB V19 (AUTO-REPAIR) PORT ${PORT}`);
+    console.log(` STREAMER HUB V20 (COMPLETE + FIX) PORT ${PORT}`);
     console.log(`===========================================`);
 });
+
