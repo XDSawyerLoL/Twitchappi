@@ -1,13 +1,7 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V21.0 - ULTIMATE FINAL)
- * ==========================================================
- * Serveur Node.js/Express gérant :
- * 1. Auth Twitch (OAuth) avec fermeture propre des popups.
- * 2. API Twitch (Helix) pour scans, raids et statuts.
- * 3. IA Google Gemini 1.5 Flash (Niche, Repurposing, Planning).
- * 4. Rotation automatique des streams (0-100 vues).
- * 5. Système de Boost et de Raid optimisé.
- * 6. PERSISTANCE : Connexion Firebase Blindée pour Render.
+ * STREAMER & NICHE AI HUB - BACKEND (V22 - FINAL ULTIMATE)
+ * ========================================================
+ * COPIE INTÉGRALE AVEC CORRECTIFS DE PROD (RENDER)
  */
 
 const express = require('express');
@@ -18,66 +12,57 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// --- CORRECTIF CRITIQUE : SDK IA OFFICIEL ---
+// --- CORRECTIF 1 : L'IA DOIT UTILISER LE SDK OFFICIEL STABLE ---
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// --- AJOUT FIREBASE (COMPATIBLE RENDER & LOCAL) ---
+// --- CORRECTIF 2 : FIREBASE ADMIN ---
 const admin = require('firebase-admin');
 
 // =========================================================
-// 0. INITIALISATION FIREBASE (BLINDÉE)
+// CONFIGURATION FIREBASE (BLINDÉE POUR RENDER)
 // =========================================================
 let serviceAccount;
 
-// Cas 1 : Environnement de Production (Render)
 if (process.env.FIREBASE_SERVICE_KEY) {
     try {
-        let rawJson = process.env.FIREBASE_SERVICE_KEY;
-        // Nettoyage des guillemets parasites et sauts de ligne
-        if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
-        if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
+        // Nettoyage agressif des guillemets et sauts de ligne pour Render
+        let rawJson = process.env.FIREBASE_SERVICE_KEY.trim();
+        if (rawJson.startsWith("'") || rawJson.startsWith('"')) rawJson = rawJson.slice(1, -1);
         rawJson = rawJson.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
-
+        
         serviceAccount = JSON.parse(rawJson);
-        console.log("✅ [FIREBASE] Clé chargée et réparée automatiquement (Source: Env Var).");
+        console.log("✅ [FIREBASE] Clé chargée depuis ENV.");
     } catch (error) {
-        console.error("❌ [FIREBASE] Erreur FATALE de parsing JSON :", error.message);
+        console.error("❌ [FIREBASE] Erreur JSON critique :", error.message);
     }
-} 
-// Cas 2 : Environnement Local
-else {
+} else {
     try {
         serviceAccount = require('./serviceAccountKey.json');
-        console.log("✅ [FIREBASE] Clé chargée depuis le fichier local.");
+        console.log("✅ [FIREBASE] Clé chargée depuis fichier local.");
     } catch (e) {
-        console.warn("⚠️ [FIREBASE] Aucune clé trouvée (Ni Env Var, Ni Fichier). La DB ne marchera pas.");
+        console.warn("⚠️ [FIREBASE] Aucune clé trouvée. La DB sera désactivée.");
     }
 }
 
-// Démarrage de Firebase Admin
-if (serviceAccount) {
+// Initialisation unique
+if (serviceAccount && !admin.apps.length) {
     try {
-        if (!admin.apps.length) {
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount),
-                projectId: serviceAccount.project_id 
-            });
-        }
-        console.log(`✅ [FIREBASE] Connecté au projet : ${serviceAccount.project_id}`);
-    } catch (e) {
-        console.error("❌ [FIREBASE] Erreur d'initialisation Admin :", e.message);
-    }
-} else {
-    try { admin.initializeApp(); } catch(e){}
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            projectId: serviceAccount.project_id
+        });
+        console.log(`✅ [DB] Connecté au projet : ${serviceAccount.project_id}`);
+    } catch (e) { console.error("❌ Erreur Init Admin :", e); }
+} else if (!admin.apps.length) {
+    admin.initializeApp();
 }
 
 const db = admin.firestore();
 const app = express();
 
 // =========================================================
-// 1. CONFIGURATION ET VARIABLES
+// VARIABLES D'ENVIRONNEMENT & IA
 // =========================================================
-
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
@@ -85,12 +70,7 @@ const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 const GEMINI_MODEL = "gemini-1.5-flash"; 
 
-// Vérification sécurité
-if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
-    console.error("### ERREUR FATALE : VARIABLES MANQUANTES ###");
-}
-
-// Initialisation IA
+// Initialisation IA (Nouvelle Syntaxe)
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Middlewares
@@ -100,20 +80,23 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
-// 2. CACHE & ÉTAT
+// SYSTÈME DE CACHE & VARIABLES GLOBALES
 // =========================================================
 const CACHE = {
     twitchTokens: {}, 
     twitchUser: null, 
-    boostedStream: null,    
-    lastScanData: null,     
+    boostedStream: null, 
+    lastScanData: null, 
     globalStreamRotation: {
-        streams: [], currentIndex: 0, lastFetchTime: 0, fetchCooldown: 15 * 60 * 1000
+        streams: [], 
+        currentIndex: 0, 
+        lastFetchTime: 0, 
+        fetchCooldown: 15 * 60 * 1000 
     }
 };
 
 // =========================================================
-// 3. HELPERS (TWITCH & IA)
+// HELPERS (FONCTIONS UTILES)
 // =========================================================
 
 async function getTwitchToken(tokenType) {
@@ -137,7 +120,7 @@ async function getTwitchToken(tokenType) {
 
 async function twitchApiFetch(endpoint, token) {
     const accessToken = token || await getTwitchToken('app');
-    if (!accessToken) throw new Error("Impossible d'obtenir un Token Twitch.");
+    if (!accessToken) throw new Error("Token Twitch manquant.");
 
     const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, {
         headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
@@ -146,35 +129,29 @@ async function twitchApiFetch(endpoint, token) {
     if (res.status === 401) {
         if (token === CACHE.twitchTokens['app']?.access_token) CACHE.twitchTokens['app'] = null; 
         if (token === CACHE.twitchUser?.access_token) CACHE.twitchUser = null; 
-        throw new Error(`Erreur Auth Twitch (401). Token expiré.`);
-    }
-    if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Erreur API Twitch (${res.status}): ${txt}`);
+        throw new Error(`Erreur Auth 401.`);
     }
     return res.json();
 }
 
-/**
- * MOTEUR IA GEMINI FLASH (CORRIGÉ V1)
- */
+// --- FONCTION IA RÉPARÉE ---
 async function runGeminiAnalysis(prompt) {
     try {
         const model = genAI.getGenerativeModel({ 
             model: GEMINI_MODEL,
-            systemInstruction: "Tu es un expert en stratégie Twitch. Réponds UNIQUEMENT en HTML simple (p, ul, li, h4, strong) sans balises <html>."
+            systemInstruction: "Tu es un expert Twitch. Réponds en HTML simple (p, ul, li, h4, strong). Pas de markdown."
         });
         const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
-        return { success: true, html_response: text };
+        const text = result.response.text();
+        return { success: true, html_response: text.trim() };
     } catch (e) {
-        console.error("Erreur Gemini:", e);
-        return { success: false, html_response: `<p style="color:var(--color-ai-action);">❌ Erreur IA: ${e.message}</p>` };
+        console.error("IA Error:", e);
+        return { success: false, html_response: `<p style="color:red">Erreur IA: ${e.message}</p>` };
     }
 }
 
 // =========================================================
-// 4. ROUTES AUTHENTIFICATION
+// ROUTES AUTHENTIFICATION
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -187,7 +164,8 @@ app.get('/twitch_auth_start', (req, res) => {
 
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error } = req.query;
-    if (state !== req.cookies.twitch_state) return res.status(400).send("Erreur de sécurité.");
+    // Vérification de sécurité
+    if (state !== req.cookies.twitch_state) return res.status(400).send("Erreur state.");
     
     try {
         const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
@@ -195,7 +173,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 client_id: TWITCH_CLIENT_ID, client_secret: TWITCH_CLIENT_SECRET,
-                code: code, grant_type: 'authorization_code', redirect_uri: REDIRECT_URI
+                code, grant_type: 'authorization_code', redirect_uri: REDIRECT_URI
             })
         });
         const tokenData = await tokenRes.json();
@@ -207,23 +185,22 @@ app.get('/twitch_auth_callback', async (req, res) => {
                 display_name: user.display_name, username: user.login, id: user.id,
                 access_token: tokenData.access_token, expiry: Date.now() + (tokenData.expires_in * 1000)
             };
-            res.send(`<html><body style="background:#111; color:#fff; text-align:center; padding-top:50px;"><h2>Connexion Réussie !</h2><script>if(window.opener){window.opener.postMessage('auth_success','*');window.close();}else{window.location.href='/';}</script></body></html>`);
+            res.send(`<html><body style="background:#111;color:#fff;text-align:center;padding-top:50px;"><h2>Connecté !</h2><script>if(window.opener){window.opener.postMessage('auth_success','*');window.close();}else{window.location.href='/';}</script></body></html>`);
         } else { res.status(500).send("Echec Token."); }
-    } catch (e) { res.status(500).send(`Erreur: ${e.message}`); }
+    } catch (e) { res.status(500).send(e.message); }
 });
 
 app.post('/twitch_logout', (req, res) => { CACHE.twitchUser = null; res.json({ success: true }); });
 
 app.get('/twitch_user_status', (req, res) => {
     if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
-        const { display_name, username, id } = CACHE.twitchUser;
-        return res.json({ is_connected: true, display_name, username, id });
+        return res.json({ is_connected: true, display_name: CACHE.twitchUser.display_name, id: CACHE.twitchUser.id });
     }
     res.json({ is_connected: false });
 });
 
 // =========================================================
-// 5. API DATA (FOLLOWS, VOD, SCAN & TRACKER)
+// ROUTES API DONNÉES
 // =========================================================
 
 app.get('/followed_streams', async (req, res) => {
@@ -235,7 +212,7 @@ app.get('/followed_streams', async (req, res) => {
             viewer_count: s.viewer_count, thumbnail_url: s.thumbnail_url 
         }));
         return res.json({ success: true, streams });
-    } catch (e) { return res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
 app.get('/get_latest_vod', async (req, res) => {
@@ -253,21 +230,22 @@ app.get('/get_latest_vod', async (req, res) => {
             success: true, 
             vod: { id: vod.id, title: vod.title, thumbnail_url: vod.thumbnail_url.replace('%{width}', '150').replace('%{height}', '84') }
         });
-    } catch (e) { return res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
-// --- ROUTE SCAN MAJEURE AVEC TRACKER ---
+// --- SCAN 360° + TRACKER (LE CŒUR DU SYSTÈME) ---
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body;
     if (!query) return res.status(400).json({ success: false });
     
     try {
+        // A. Recherche Streamer
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
         
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
             
-            // Infos Stream & Follows
+            // Infos
             let streamDetails = null;
             try {
                 const sRes = await twitchApiFetch(`streams?user_id=${user.id}`);
@@ -280,16 +258,15 @@ app.post('/scan_target', async (req, res) => {
                 totalFollowers = fRes.total;
             } catch (e) {}
 
-            // --- TRACKER LOGIC (FIREBASE) ---
+            // --- TRACKER LOGIC (L'AJOUT MAJEUR) ---
             const historyRef = db.collection('streamer_history').doc(user.login).collection('snapshots');
             const lastSnap = await historyRef.orderBy('timestamp', 'desc').limit(1).get();
             
-            let growthInfo = "Initialisation du Tracker...";
+            let growthInfo = "Initialisation du Tracker.";
             if(!lastSnap.empty) {
                 const diff = totalFollowers - lastSnap.docs[0].data().followers;
                 growthInfo = `Évolution : ${diff >= 0 ? '+' : ''}${diff} followers depuis le dernier scan.`;
             }
-            // Sauvegarde nouvel état
             await historyRef.add({ followers: totalFollowers, timestamp: admin.firestore.FieldValue.serverTimestamp() });
 
             const userData = { 
@@ -305,7 +282,7 @@ app.post('/scan_target', async (req, res) => {
             return res.json({ success: true, type: 'user', user_data: userData });
         }
         
-        // Recherche Jeu
+        // B. Recherche Jeu
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if (gameRes.data.length > 0) {
             const game = gameRes.data[0];
@@ -322,26 +299,23 @@ app.post('/scan_target', async (req, res) => {
         }
 
         return res.status(404).json({ success: false, message: "Aucun résultat." });
-    } catch (e) { return res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) { return res.status(500).json({ error: e.message }); }
 });
 
 // =========================================================
-// 6. ROTATION & LECTEUR (PRIORITÉ DB)
+// ROTATION & BOOST
 // =========================================================
 
 async function refreshGlobalStreamList() {
     const now = Date.now();
-    const rotation = CACHE.globalStreamRotation;
-    if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) return;
-    
+    if (now - CACHE.globalStreamRotation.lastFetchTime < CACHE.globalStreamRotation.fetchCooldown && CACHE.globalStreamRotation.streams.length > 0) return;
     try {
         const data = await twitchApiFetch(`streams?language=fr&first=100`);
         const suitableStreams = data.data.filter(stream => stream.viewer_count <= 100);
-        
         if (suitableStreams.length > 0) {
-            rotation.streams = suitableStreams.map(s => ({ channel: s.user_login, viewers: s.viewer_count }));
-            rotation.currentIndex = 0;
-            rotation.lastFetchTime = now;
+            CACHE.globalStreamRotation.streams = suitableStreams.map(s => ({ channel: s.user_login, viewers: s.viewer_count }));
+            CACHE.globalStreamRotation.currentIndex = 0;
+            CACHE.globalStreamRotation.lastFetchTime = now;
         }
     } catch (e) { console.error("Erreur Rotation:", e); }
 }
@@ -350,16 +324,14 @@ app.get('/get_default_stream', async (req, res) => {
     const now = Date.now();
     let currentBoost = null;
 
-    // 1. Vérification Firebase
+    // Priorité DB
     try {
         const boostQuery = await db.collection('boosts').where('endTime', '>', now).orderBy('endTime', 'desc').limit(1).get();
         if (!boostQuery.empty) {
             const data = boostQuery.docs[0].data();
             currentBoost = { channel: data.channel, endTime: data.endTime };
             CACHE.boostedStream = currentBoost; 
-        } else {
-            CACHE.boostedStream = null;
-        }
+        } else { CACHE.boostedStream = null; }
     } catch(e) {
         if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) currentBoost = CACHE.boostedStream;
     }
@@ -392,10 +364,6 @@ app.post('/cycle_stream', async (req, res) => {
     return res.json({ success: true, channel: newStream.channel });
 });
 
-// =========================================================
-// 7. FONCTIONS AVANCÉES (BOOST, RAID, IA)
-// =========================================================
-
 app.get('/check_boost_status', async (req, res) => {
     const now = Date.now();
     try {
@@ -410,17 +378,12 @@ app.get('/check_boost_status', async (req, res) => {
 
 app.post('/stream_boost', async (req, res) => {
     const { channel } = req.body;
-    if (!channel) return res.status(400).json({ error: "Nom requis." });
     const now = Date.now();
-    
     try {
         const active = await db.collection('boosts').where('endTime', '>', now).limit(1).get();
-        if (!active.empty) return res.status(429).json({ error: "Un boost est déjà actif." });
+        if (!active.empty) return res.status(429).json({ error: "Slot occupé" });
 
-        await db.collection('boosts').add({
-            channel: channel, startTime: now, endTime: now + 900000, // 15 min
-            created_at: admin.firestore.FieldValue.serverTimestamp()
-        });
+        await db.collection('boosts').add({ channel: channel, startTime: now, endTime: now + 900000, created_at: admin.firestore.FieldValue.serverTimestamp() });
         CACHE.boostedStream = { channel: channel, endTime: now + 900000 }; 
         return res.json({ success: true, html_response: `<p style="color:#ff0099;">🚀 Boost activé pour ${channel} !</p>` });
     } catch (e) { return res.status(500).json({ error: "Erreur DB" }); }
@@ -436,21 +399,15 @@ app.post('/start_raid', async (req, res) => {
         const target = streamsRes.data.filter(s => s.viewer_count <= parseInt(max_viewers)).sort((a,b) => b.viewer_count - a.viewer_count)[0];
         
         if (target) {
-            return res.json({
-                success: true,
-                target: { name: target.user_name, login: target.user_login, viewers: target.viewer_count, thumbnail_url: target.thumbnail_url.replace('{width}','100').replace('{height}','56') }
-            });
+            return res.json({ success: true, target: { name: target.user_name, login: target.user_login, viewers: target.viewer_count, game: target.game_name, thumbnail_url: target.thumbnail_url.replace('{width}','100').replace('{height}','56') } });
         }
-        return res.json({ success: false, error: "Aucune cible trouvée." });
+        return res.json({ success: false, error: "Aucune cible." });
     } catch (e) { return res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.post('/critique_ia', async (req, res) => {
     const { type, query, niche_score } = req.body;
-    let prompt = "";
-    if (type === 'niche') prompt = `Expert Twitch. Score: ${niche_score}. Analyse : "${query}". Donne 3 conseils HTML.`;
-    else if (type === 'repurpose') prompt = `Expert Montage. Analyse "${query}". Donne timestamps clips HTML.`;
-    
+    let prompt = `Analyse : ${query}. Contexte : ${niche_score}. Type : ${type}.`;
     const result = await runGeminiAnalysis(prompt);
     res.json(result);
 });
@@ -466,7 +423,11 @@ app.get('/export_csv', (req, res) => {
     const d = CACHE.lastScanData;
     if (!d) return res.status(404).send("Pas de données.");
     res.setHeader('Content-Type', 'text/csv');
-    res.send(`Nom,Followers,Score\n${d.display_name || d.name},${d.total_followers || 0},${d.ai_calculated_niche_score}`);
+    res.send(`Metrique,Valeur\nNom,${d.display_name || d.name}\nFollowers,${d.total_followers || 0}`);
 });
 
-app.listen(PORT, () => console.log(`🚀 HUB V21.0 FULL ON PORT ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`===========================================`);
+    console.log(` STREAMER HUB V22 (COMPLETE) PORT ${PORT}`);
+    console.log(`===========================================`);
+});
