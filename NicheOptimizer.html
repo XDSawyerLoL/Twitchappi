@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
     <style>
-        /* DESIGN V17 STRICT */
+        /* --- DESIGN CYBERPUNK V17 (NE PAS TOUCHER) --- */
         :root {
             --bg-dark: #0d0d0d; --bg-medium: #1a1a1a; --bg-light: #111;
             --color-primary-pink: #ff0099; --color-secondary-blue: #22c7ef; --color-time-gold: #ffd700;
@@ -19,12 +19,13 @@
             --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
         }
 
-        body { background-color: var(--bg-dark); color: #fff; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        body { background-color: var(--bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
         #twitch-lucky-main { max-width: 1400px; margin: 20px auto; padding: 10px; }
         
-        h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); text-align: center; text-shadow: 0 0 5px var(--color-primary-pink); margin-bottom: 5px; }
-        
-        /* MARKET TICKER */
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); margin-bottom: 5px; text-align: center; text-shadow: 0 0 5px var(--color-primary-pink); }
+        .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
+
+        /* TICKER BOURSIER */
         .ticker-container {
             background: #000; border: 1px solid var(--color-border-medium); border-bottom: 2px solid var(--color-ai-niche);
             padding: 8px; margin-bottom: 20px; border-radius: 6px;
@@ -39,10 +40,13 @@
         .tab-btn:hover { color: #fff; background: #232323; }
         .tab-btn.active { background: var(--bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); font-weight: bold; }
 
-        /* PLAYER */
+        /* LECTEUR */
         .player-wrapper { margin-bottom: 20px; padding: 15px; background: var(--bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); box-shadow: var(--shadow-blue); }
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         #twitch-embed { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; }
-        
+        .progress-bar-container { width: 100%; height: 4px; background: #222; margin-top: -5px; margin-bottom: 10px; border-radius:2px; overflow:hidden; }
+        .progress-bar { height: 100%; width: 0%; background: var(--color-secondary-blue); transition: width 1s linear; }
+
         /* MARKET TABLE */
         .market-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
         .market-table th { text-align: left; color: var(--color-secondary-blue); font-family: 'Orbitron'; padding: 10px; border-bottom: 2px solid #333; }
@@ -50,22 +54,21 @@
         .rating-badge { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; color: #000; }
         .rate-A { background: var(--color-ai-niche); }
         .rate-B { background: var(--color-time-gold); }
+        .rate-C { background: var(--color-ai-action); color: white; }
 
-        /* DASHBOARD GRID */
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        /* DASHBOARD */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
         .dashboard-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 20px; min-height: 200px; }
         .big-stat { font-size: 32px; font-weight: bold; color: white; }
-        .stat-label { font-size: 12px; color: #888; text-transform: uppercase; }
         .trend-up { color: #0f0; } .trend-down { color: #f00; }
 
-        /* RAID */
-        .raid-card { display: flex; gap: 15px; align-items: center; background: #111; padding: 15px; border: 1px solid var(--color-ai-action); border-radius: 8px; }
-        .raid-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--color-ai-action); }
-
+        /* RAID & PLANNING */
+        .raid-target-box { padding: 15px; background: #111; border-radius: 8px; border: 2px solid var(--color-ai-action); display: flex; gap: 15px; align-items: center; }
+        .raid-target-box img { width: 100px; height: 56px; object-fit: cover; border-radius: 4px; }
+        
         .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .action-input { padding: 10px; background: #222; border: 1px solid #444; color: white; border-radius: 6px; }
         .hidden { display: none; }
-        @media (max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -78,7 +81,8 @@
         <div>CHAINES: <span id="tick-c" class="ticker-val">...</span></div>
     </div>
 
-    <h1>STREAMER HUB V28</h1>
+    <h1><span class="h1-blue-accent">STREAMER</span> HUB V28</h1>
+    <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Market Data</div>
 
     <div class="tabs-nav-container">
         <div class="flex flex-wrap flex-tabs">
@@ -94,8 +98,9 @@
     <div class="player-wrapper">
         <div class="player-header">
             <h2 style="font-family:'Orbitron'; color:var(--color-secondary-blue);">LIVESTREAM</h2>
-            <div id="player-status" style="font-size:12px; color:#888;">En attente...</div>
+            <div style="text-align:right; font-size:10px; color:#888;" id="timer-text">Rotation: 3:00</div>
         </div>
+        <div class="progress-bar-container"><div id="cycle-bar" class="progress-bar"></div></div>
         <div id="twitch-embed"></div>
         <div style="text-align:center; margin-top:10px;">
             <button onclick="cycle('next')" class="bg-gray-800 text-white px-3 py-1 text-xs rounded">NEXT STREAM</button>
@@ -107,7 +112,7 @@
             <button onclick="auth()" class="btn-primary" style="background:#6441a5;">CONNEXION TWITCH</button>
         </div>
         <div id="followed-list" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
-            <p style="color:#666;">Connectez-vous pour voir vos favoris.</p>
+            <p style="color:#666;">Connectez-vous pour voir vos favoris en direct.</p>
         </div>
     </div>
 
@@ -139,11 +144,11 @@
             </div>
             
             <div class="dashboard-box">
-                <div class="stat-label">FOLLOWERS</div>
+                <div style="font-size:12px; color:#888;">FOLLOWERS</div>
                 <div id="d-fol" class="big-stat">-</div>
                 <div id="d-trend" style="font-weight:bold; margin-top:5px;">-</div>
                 <hr style="border-color:#333; margin:10px 0;">
-                <div class="stat-label" style="color:var(--color-secondary-blue);">CONSEIL IA</div>
+                <div style="color:var(--color-secondary-blue); font-size:12px;">CONSEIL IA</div>
                 <div id="d-ia" style="font-size:13px; font-style:italic;">-</div>
             </div>
         </div>
@@ -151,7 +156,7 @@
 
     <div id="pan-time" class="tab-content hidden text-center">
         <h3 style="color:var(--color-time-gold);">SMART PLANNING</h3>
-        <input id="input-schedule-game" type="text" placeholder="Jeu (ex: League of Legends)" class="action-input" style="width:250px;">
+        <input id="plan-input" type="text" placeholder="Jeu (ex: League of Legends)" class="action-input" style="width:250px;">
         <button onclick="runPlan()" class="btn-primary" style="background:var(--color-time-gold); color:black; width:auto; margin-top:10px;">ANALYSER</button>
         <div id="sched-res" class="mt-4 text-left max-w-lg mx-auto bg-black p-4 border border-yellow-600 hidden text-sm text-gray-300"></div>
     </div>
@@ -166,8 +171,8 @@
     <div id="pan-raid" class="tab-content hidden text-center">
         <h3 style="color:var(--color-ai-action);">RAID FINDER</h3>
         <div style="display:flex; justify-content:center; gap:10px;">
-            <input id="raid-game-input" type="text" placeholder="Jeu cible" class="action-input" style="width:200px;">
-            <select id="raid-max-input" class="action-input" style="width:100px;">
+            <input id="raid-input" type="text" placeholder="Jeu cible" class="action-input" style="width:200px;">
+            <select id="raid-select" class="action-input" style="width:100px;">
                 <option value="50">50 vues</option>
                 <option value="100">100 vues</option>
             </select>
@@ -181,8 +186,9 @@
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API = window.location.origin;
-    let embed;
+    let embed, timer, sec=180;
 
+    // NAV
     function nav(id) {
         document.querySelectorAll('.tab-content').forEach(c => c.style.display='none');
         document.getElementById('pan-'+id).style.display='block';
@@ -192,27 +198,34 @@
         if(id==='followed') loadFollowed();
     }
 
+    // PLAYER
     function initPlayer(c) {
         if(embed && embed.getChannel && embed.getChannel() === c) return;
         document.getElementById('twitch-embed').innerHTML='';
         embed = new Twitch.Embed("twitch-embed", {width:"100%", height:"100%", channel:c, layout:"video-and-chat", autoplay:true, muted:true, parent:["localhost","127.0.0.1",window.location.hostname]});
-        document.getElementById('player-status').innerText = "LIVE: "+c;
     }
-
+    
+    function tick() {
+        sec--; document.getElementById('cycle-bar').style.width = (sec/180)*100+"%";
+        document.getElementById('timer-text').innerText = `Cycle: ${Math.floor(sec/60)}:${sec%60}`;
+        if(sec<=0) cycle('next');
+    }
     async function cycle(d) {
+        sec=180;
         const r = await fetch(API+'/cycle_stream', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({direction:d})});
         const j = await r.json();
         if(j.success) initPlayer(j.channel);
     }
+    setInterval(tick, 1000);
 
-    // MARKET (RECORDER)
+    // MARKET
     async function loadMarket(type) {
         const tb = document.getElementById('market-tbody'); tb.innerHTML='<tr><td colspan="5" class="text-center">Chargement...</td></tr>';
         const r = await fetch(API+'/global_pulse', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type})});
         const d = await r.json();
         
         document.getElementById('tick-v').innerText = d.overview.viewers;
-        document.getElementById('tick-g').innerText = d.overview.top_game;
+        document.getElementById('tick-g').innerText = d.overview.top_game || "-";
         document.getElementById('tick-c').innerText = d.overview.channels;
 
         tb.innerHTML = "";
@@ -227,13 +240,14 @@
         const q = document.getElementById('dash-input').value;
         if(!q) return;
         document.getElementById('dash-res').classList.remove('hidden');
+        document.getElementById('d-ia').innerHTML = "Analyse...";
         const r = await fetch(API+'/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q})});
         const d = await r.json();
         if(d.success) {
             const u = d.data;
             document.getElementById('d-img').src = u.profile_image_url;
             document.getElementById('d-name').innerText = u.display_name;
-            document.getElementById('d-days').innerText = u.days;
+            document.getElementById('d-days').innerText = "Streams: "+u.days;
             document.getElementById('d-fol').innerText = u.followers.toLocaleString();
             document.getElementById('d-trend').innerHTML = d.diff>0 ? `<span class='trend-up'>+${d.diff}</span>` : `<span class='trend-down'>${d.diff}</span>`;
             document.getElementById('d-ia').innerHTML = d.ia;
@@ -241,29 +255,41 @@
         }
     }
 
-    // RAID FIX
+    // RAID FIX (IDs synchronisés)
     async function runRaid() {
-        const g = document.getElementById('raid-game-input').value; // ID Fixé
-        const m = document.getElementById('raid-max-input').value; // ID Fixé
+        const g = document.getElementById('raid-input').value; // ID Corrigé
+        const m = document.getElementById('raid-select').value; // ID Corrigé
         const box = document.getElementById('raid-res');
         box.innerHTML = "Recherche...";
         
         const r = await fetch(API+'/start_raid', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g, max:m})});
         const d = await r.json();
+        
         if(d.success) {
             const t = d.target;
-            box.innerHTML = `<div class="raid-card"><img src="${t.avatar}" class="raid-avatar"><div><b>${t.name}</b><br>${t.viewers} vues</div><button onclick="initPlayer('${t.login}')" class="btn-primary" style="margin-left:auto; width:auto;">GO</button></div>`;
+            box.innerHTML = `
+                <div class="raid-target-box">
+                    <img src="${t.avatar}" class="raid-avatar" style="width:50px; height:50px; border-radius:50%;">
+                    <img src="${t.thumb}" style="width:100px; border-radius:4px;">
+                    <div>
+                        <div style="font-weight:bold;">${t.name}</div>
+                        <div style="font-size:12px; color:#aaa;">${t.viewers} vues</div>
+                    </div>
+                    <button onclick="initPlayer('${t.login}')" class="btn-primary" style="margin-left:auto;">GO</button>
+                </div>`;
         } else { box.innerText = d.error; }
     }
 
-    // PLAN FIX
+    // PLAN FIX (IDs synchronisés)
     async function runPlan() {
-        const g = document.getElementById('input-schedule-game').value; // ID Fixé
+        const g = document.getElementById('plan-input').value; // ID Corrigé
         const box = document.getElementById('sched-res');
         box.classList.remove('hidden'); box.innerHTML = "Calcul...";
         const r = await fetch(API+'/analyze_schedule', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g})});
         const d = await r.json();
-        if(d.success) box.innerHTML = d.ia_advice;
+        if(d.success) {
+            box.innerHTML = `<div class="flex gap-2 mb-2"><img src="${d.box_art}"><b>${d.name}</b></div>` + d.ia_advice;
+        }
     }
 
     // BOOST
@@ -278,14 +304,14 @@
 
     // AUTH
     function auth() { window.open(API+'/twitch_auth_start','_blank','width=500,height=600'); }
-    window.addEventListener('message', e => { if(e.data==='auth') location.reload(); });
+    window.addEventListener('message', e => { if(e.data==='auth_success') location.reload(); });
     async function loadFollowed() {
         const list = document.getElementById('followed-list');
         const r = await fetch(API+'/followed_streams');
         const d = await r.json();
         if(d.success && d.streams.length) {
             list.innerHTML = "";
-            d.streams.forEach(s => list.innerHTML+=`<div style="width:120px;cursor:pointer" onclick="initPlayer('${s.user_login}')"><img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}" style="width:100%;border-radius:4px;"><b>${s.user_name}</b></div>`);
+            d.streams.forEach(s => list.innerHTML+=`<div style="width:120px;cursor:pointer" onclick="initPlayer('${s.user_login}')"><img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}" style="width:100%"><b>${s.user_name}</b></div>`);
         } else { list.innerHTML = "Pas de favoris en live."; }
     }
 
