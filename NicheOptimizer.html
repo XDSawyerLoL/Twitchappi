@@ -3,479 +3,308 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V25 - MARKET MAKER</title>
+    <title>Streamer Hub V26 - TRADER PRO</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
     <style>
         :root {
-            --bg-dark: #0d0d0d; --bg-medium: #1a1a1a; --bg-light: #111;
-            --color-primary-pink: #ff0099; --color-secondary-blue: #22c7ef; --color-time-gold: #ffd700;
-            --color-ai-niche: #59d682; --color-ai-repurpose: #9933ff; --color-ai-action: #e34a64; 
-            --color-text-dimmed: #9aa3a8; --color-border-dark: #2e2e2e; --color-border-medium: #333;
-            --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
+            --bg-dark: #050505; --bg-panel: #111;
+            --neon-blue: #00f3ff; --neon-green: #00ff66; --neon-red: #ff0055; --neon-gold: #ffd700;
+            --text-main: #eee; --text-dim: #888;
         }
-
-        body { background-color: var(--bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
-        #twitch-lucky-main { max-width: 1400px; margin: 20px auto; padding: 10px; }
+        body { background: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; font-size: 14px; }
+        h1, h2, h3, .font-tech { font-family: 'Orbitron', sans-serif; }
         
-        h1 { font-family: 'Orbitron'; font-size: 28px; color: var(--color-primary-pink); text-align: center; text-shadow: 0 0 5px var(--color-primary-pink); margin-bottom: 5px; }
+        /* LAYOUT */
+        #main-container { max-width: 1200px; margin: 0 auto; padding: 10px; }
+        
+        /* MARKET TICKER */
+        .ticker-bar { background: #000; border-bottom: 1px solid #333; padding: 8px; display: flex; justify-content: space-between; font-size: 11px; color: var(--neon-blue); margin-bottom: 15px; }
         
         /* TABS */
-        .tabs-nav-container { margin-bottom: 15px; }
-        .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
-        .tab-btn { font-family: 'Orbitron'; padding: 12px; background: var(--bg-light); border: 1px solid var(--color-border-medium); color: var(--color-text-dimmed); cursor: pointer; flex: 1; text-align: center; font-size: 11px; transition: 0.3s; }
-        .tab-btn:hover { background: #232323; color: white; }
-        .tab-btn.active { background: var(--bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); font-weight: bold; }
+        .nav-tabs { display: flex; gap: 2px; margin-bottom: 20px; }
+        .nav-btn { flex: 1; background: #1a1a1a; padding: 12px; text-align: center; cursor: pointer; color: var(--text-dim); transition: 0.2s; border-top: 2px solid transparent; }
+        .nav-btn:hover { background: #222; color: #fff; }
+        .nav-btn.active { background: var(--bg-panel); color: #fff; border-top-color: var(--neon-blue); font-weight: bold; }
+        
+        /* PANELS */
+        .panel { display: none; background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid #222; }
+        .panel.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* MARKET TABLE */
-        .market-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
-        .market-table th { background: #222; padding: 10px; color: var(--color-secondary-blue); text-align: left; font-family: 'Orbitron'; }
-        .market-table td { background: #111; padding: 10px; border-bottom: 1px solid #333; }
-        .market-table tr:hover td { background: #1a1a1a; }
-        .rank-cell { font-weight: bold; color: var(--color-time-gold); }
-        
-        /* OVERVIEW CARDS */
-        .overview-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
-        .overview-card { background: #151515; padding: 15px; border-radius: 6px; text-align: center; border-bottom: 2px solid var(--color-secondary-blue); }
-        .ov-val { font-size: 18px; font-weight: bold; color: white; }
-        .ov-label { font-size: 10px; color: #888; text-transform: uppercase; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; color: var(--text-dim); font-size: 11px; padding: 8px; border-bottom: 1px solid #333; }
+        td { padding: 10px 8px; border-bottom: 1px solid #222; font-size: 13px; }
+        .rating-tag { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .rate-A { background: rgba(0, 255, 102, 0.1); color: var(--neon-green); }
+        .rate-B { background: rgba(255, 215, 0, 0.1); color: var(--neon-gold); }
+        .rate-C { background: rgba(255, 0, 85, 0.1); color: var(--neon-red); }
 
-        /* PLAYER */
-        .progress-bar-container { width: 100%; height: 4px; background: #222; margin-top: -10px; margin-bottom: 10px; }
-        .progress-bar { height: 100%; width: 0%; background: var(--color-secondary-blue); transition: width 1s linear; }
-        .player-wrapper { margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); box-shadow: var(--shadow-blue); }
-        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; }
-        
-        /* COMMON */
-        .btn-primary { background: var(--color-primary-pink); color: #fff; padding: 10px; border-radius: 6px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        .action-input { width: 100%; padding: 10px; background: #222; border: 1px solid #444; color: white; text-align: center; border-radius: 6px; }
-        .hidden { display: none; }
-        
-        /* DASHBOARD */
-        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
-        .dashboard-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; min-height: 250px; display: flex; flex-direction: column; }
-        .star-rating { color: #ffd700; font-size: 18px; margin: 5px 0; }
-        .trend-up { color: #0f0; } .trend-down { color: #f00; }
-        .days-active { color: var(--color-secondary-blue); font-size: 11px; margin-top: 5px; font-weight: bold; }
+        /* DASHBOARD CARDS */
+        .dash-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        .profile-card { text-align: center; border-right: 1px solid #333; padding-right: 20px; }
+        .stats-card { text-align: left; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #222; }
+        .stat-val { font-weight: bold; font-size: 16px; }
+        .trend-up { color: var(--neon-green); } .trend-down { color: var(--neon-red); }
+
+        /* INPUTS */
+        input, select { background: #000; border: 1px solid #333; color: #fff; padding: 8px; border-radius: 4px; width: 100%; }
+        button.action-btn { background: var(--neon-blue); color: #000; font-weight: bold; padding: 8px 16px; border-radius: 4px; cursor: pointer; border: none; width: 100%; margin-top: 10px; }
+        button.action-btn:hover { background: #fff; }
 
         /* RAID */
-        .raid-card { display: flex; gap: 15px; align-items: center; background: #111; padding: 15px; border: 1px solid var(--color-ai-action); border-radius: 8px; }
-        .raid-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-ai-action); }
-        .raid-thumb { width: 100px; height: 56px; border-radius: 4px; object-fit: cover; }
-
-        @media (max-width: 1024px) { .dashboard-grid, .overview-grid { grid-template-columns: 1fr; } }
+        .raid-res { display: flex; align-items: center; gap: 15px; background: #000; padding: 10px; border: 1px solid #333; margin-top: 15px; border-radius: 6px; }
+        .raid-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
     </style>
 </head>
 <body>
 
-<div id="twitch-lucky-main">
-    <h1>STREAMER HUB V25 <span style="font-size:12px; background:#444; padding:2px 5px; border-radius:4px;">MARKET MAKER</span></h1>
+<div id="main-container">
     
-    <div class="tabs-nav-container">
-        <div class="flex flex-wrap flex-tabs">
-            <button class="tab-btn active" onclick="switchTab('followed')" id="btn-tab-followed">🔑 MON FIL</button>
-            <button class="tab-btn" onclick="switchTab('market')" id="btn-tab-market" style="border-top: 3px solid #00ff00;">🌍 MARKET DATA</button>
-            <button class="tab-btn" onclick="switchTab('dashboard')" id="btn-tab-dashboard" style="color:white; border-top: 3px solid var(--color-secondary-blue);">📊 DASHBOARD</button>
-            <button class="tab-btn" onclick="switchTab('schedule')" id="btn-tab-schedule" style="border-top: 3px solid var(--color-time-gold);">📅 SMART PLANNING</button>
-            <button class="tab-btn" onclick="switchTab('boost')" id="btn-tab-boost">⚡ BOOST</button>
-            <button class="tab-btn" onclick="switchTab('raid')" id="btn-tab-raid" style="border-top: 3px solid var(--color-ai-action);">💥 RAID</button>
-        </div>
+    <div class="ticker-bar">
+        <span>MARKET STATUS: OPEN</span>
+        <span id="ticker-viewers">Viewers: ...</span>
+        <span id="ticker-channels">Channels: ...</span>
+        <span id="ticker-top">Top: ...</span>
     </div>
 
-    <div style="text-align:right; font-size:10px; color:#888;" id="timer-text">Rotation: 3:00</div>
-    <div class="progress-bar-container"><div id="cycle-bar" class="progress-bar"></div></div>
+    <h1 class="text-3xl text-center mb-6 font-tech"><span style="color:var(--neon-blue)">STREAMER</span> HUB <span class="text-xs bg-gray-800 px-2 rounded">V26</span></h1>
 
-    <div class="player-wrapper">
-        <div class="player-header">
-            <h2 style="font-family:'Orbitron'; color:var(--color-secondary-blue);">🎬 LECTEUR <span id="player-status" style="font-size:12px; color:#888; margin-left:10px;">Chargement...</span></h2>
-            <div>
-                <button onclick="cycleStream('prev')" class="bg-gray-800 text-white px-3 py-1 rounded text-xs">Prev</button>
-                <button onclick="cycleStream('next')" class="bg-gray-800 text-white px-3 py-1 rounded text-xs">Next</button>
+    <div class="nav-tabs">
+        <div class="nav-btn active" onclick="nav('market')">🌍 MARKET DATA</div>
+        <div class="nav-btn" onclick="nav('dashboard')">📊 DASHBOARD</div>
+        <div class="nav-btn" onclick="nav('planning')">📅 PLANNING</div>
+        <div class="nav-btn" onclick="nav('raid')">💥 RAID</div>
+    </div>
+
+    <div id="pan-market" class="panel active">
+        <div class="flex gap-2 mb-4">
+            <button onclick="loadMarket('games')" class="bg-gray-800 px-3 py-1 rounded text-xs hover:bg-gray-700">GAMES</button>
+            <button onclick="loadMarket('languages')" class="bg-gray-800 px-3 py-1 rounded text-xs hover:bg-gray-700">LANGUAGES</button>
+        </div>
+        
+        <div class="grid grid-cols-4 gap-4 mb-6 text-center">
+            <div class="bg-black p-3 rounded border border-gray-800">
+                <div class="text-gray-500 text-xs">VIEWERS</div>
+                <div class="font-bold text-lg" id="mkt-v">-</div>
+            </div>
+            <div class="bg-black p-3 rounded border border-gray-800">
+                <div class="text-gray-500 text-xs">CHANNELS</div>
+                <div class="font-bold text-lg" id="mkt-c">-</div>
+            </div>
+            <div class="bg-black p-3 rounded border border-gray-800">
+                <div class="text-gray-500 text-xs">WATCH TIME</div>
+                <div class="font-bold text-lg" id="mkt-wt">-</div>
+            </div>
+            <div class="bg-black p-3 rounded border border-gray-800">
+                <div class="text-gray-500 text-xs">STREAM TIME</div>
+                <div class="font-bold text-lg" id="mkt-st">-</div>
             </div>
         </div>
-        <div id="twitch-embed"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>RANG</th>
+                    <th>NOM</th>
+                    <th>RATING</th>
+                    <th>VIEWERS</th>
+                    <th>CHANNELS</th>
+                </tr>
+            </thead>
+            <tbody id="market-list">
+                <tr><td colspan="5" class="text-center py-4 text-gray-600">Chargement des données...</td></tr>
+            </tbody>
+        </table>
     </div>
 
-    <div id="tab-followed" class="tab-content active">
-        <div class="text-center mb-4">
-            <button id="auth-btn" onclick="startAuth()" class="btn-primary" style="background:#6441a5; width:auto; padding: 10px 30px;">CONNEXION TWITCH</button>
-        </div>
-        <div id="followed-list" class="flex flex-wrap gap-4 justify-center">
-            <p style="color:#666; margin-top:20px;">Connectez-vous pour voir vos favoris.</p>
-        </div>
-    </div>
-
-    <div id="tab-market" class="tab-content hidden">
-        <h3 style="color:#00ff00; font-family:'Orbitron'; text-align:center; margin-bottom:20px;">TWITCH GLOBAL PULSE (Last 7 Days)</h3>
-        
-        <div class="overview-grid">
-            <div class="overview-card"><div class="ov-val" id="mkt-viewers">-</div><div class="ov-label">Viewers</div></div>
-            <div class="overview-card"><div class="ov-val" id="mkt-channels">-</div><div class="ov-label">Channels</div></div>
-            <div class="overview-card"><div class="ov-val" id="mkt-active">-</div><div class="ov-label">Active Streamers</div></div>
-            <div class="overview-card"><div class="ov-val" id="mkt-watch">-</div><div class="ov-label">Watch Time</div></div>
-            <div class="overview-card"><div class="ov-val" id="mkt-stream">-</div><div class="ov-label">Stream Time</div></div>
+    <div id="pan-dashboard" class="panel">
+        <div class="flex gap-2 mb-6 justify-center">
+            <input id="dash-input" type="text" placeholder="Pseudo..." style="width:200px;">
+            <button onclick="runDash()" class="action-btn" style="width:auto;">SCAN</button>
         </div>
 
-        <div class="flex gap-2 mb-4 justify-center">
-            <button class="bg-gray-800 text-white px-4 py-2 rounded text-xs">Games</button>
-            <button class="bg-gray-800 text-white px-4 py-2 rounded text-xs">Languages</button>
-            <button class="bg-gray-800 text-white px-4 py-2 rounded text-xs">Compare</button>
-        </div>
-
-        <div style="overflow-x:auto;">
-            <table class="market-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Game</th>
-                        <th>Unified Rating</th>
-                        <th>Viewers</th>
-                        <th>Channels</th>
-                        <th>Hours Watched</th>
-                        <th>Peak Viewers</th>
-                        <th>To Stream?</th>
-                    </tr>
-                </thead>
-                <tbody id="market-tbody">
-                    <tr><td colspan="8" style="text-align:center;">Chargement du Market...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="tab-dashboard" class="tab-content hidden">
-        <div class="text-center mb-6">
-            <input id="scan-query" type="text" class="action-input" style="width:300px;" placeholder="Pseudo du Streamer...">
-            <button onclick="runScan()" class="btn-primary" style="width:auto; padding: 10px 30px; display:inline-block;">SCANNER</button>
-        </div>
-
-        <div id="dashboard-results" class="dashboard-grid hidden">
-            <div class="dashboard-box box-stats">
-                <div style="font-family:'Orbitron'; color:var(--color-secondary-blue);">📈 PERFORMANCE</div>
-                <img id="res-img" src="" style="width:60px; height:60px; border-radius:50%; margin:10px auto; border:2px solid white;">
-                <div id="res-name" style="font-weight:bold; font-size:18px;">-</div>
-                <div id="res-stars" class="star-rating"></div>
-                <div id="res-days" class="days-active"></div>
-                <div style="margin-top:15px;">
-                    <div class="label-small" style="color:#888; font-size:10px;">FOLLOWERS</div>
-                    <div id="res-followers" class="big-number">-</div>
-                    <div id="res-trend" style="font-size:12px;">-</div>
+        <div id="dash-res" class="hidden dash-grid">
+            <div class="profile-card">
+                <img id="d-img" src="" class="w-24 h-24 rounded-full mx-auto mb-3 border-2 border-white">
+                <div id="d-name" class="font-bold text-xl text-white">Nom</div>
+                <div id="d-days" class="text-xs text-blue-400 mt-2">Jours: -</div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-row">
+                    <span class="text-gray-500">Followers</span>
+                    <span id="d-follow" class="stat-val">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="text-gray-500">Tendance</span>
+                    <span id="d-trend" class="stat-val">-</span>
+                </div>
+                <div class="mt-4">
+                    <h4 class="font-tech text-blue-400 mb-2">CONSEILS DU COACH</h4>
+                    <div id="d-advice" class="text-sm text-gray-300 leading-relaxed"></div>
                 </div>
             </div>
-            <div class="dashboard-box box-niche" style="border-top:2px solid var(--color-ai-niche);">
-                <div style="font-family:'Orbitron'; color:var(--color-ai-niche);">🧠 COACHING</div>
-                <div id="ai-coach-content" style="font-size:13px; text-align:left; margin-top:10px; line-height:1.5;">En attente...</div>
+        </div>
+    </div>
+
+    <div id="pan-planning" class="panel">
+        <div class="text-center max-w-md mx-auto">
+            <h3 class="font-tech text-yellow-500 mb-2">SMART SCHEDULER</h3>
+            <p class="text-xs text-gray-500 mb-4">Trouvez le meilleur créneau pour streamer.</p>
+            <input id="plan-game" type="text" placeholder="Jeu (ex: League of Legends)">
+            <button onclick="runPlan()" class="action-btn bg-yellow-600 text-white">ANALYSER</button>
+        </div>
+        <div id="plan-res" class="mt-6 p-4 bg-black rounded border border-gray-800 hidden text-sm"></div>
+    </div>
+
+    <div id="pan-raid" class="panel">
+        <div class="text-center max-w-md mx-auto">
+            <h3 class="font-tech text-red-500 mb-2">RAID FINDER</h3>
+            <div class="flex gap-2">
+                <input id="raid-game-input" type="text" placeholder="Jeu cible">
+                <select id="raid-max-input" style="width:100px;">
+                    <option value="50">50 vues</option>
+                    <option value="100">100 vues</option>
+                </select>
             </div>
-            <div class="dashboard-box box-vod">
-                <div style="font-family:'Orbitron'; color:var(--color-ai-repurpose);">✂️ VOD REPURPOSE</div>
-                <div id="vod-content" style="text-align:center; margin-top:10px;"><p style="color:#666;">Scan nécessaire.</p></div>
-                <div id="ai-vod-content" style="font-size:13px; text-align:left; margin-top:10px;"></div>
-            </div>
+            <button onclick="runRaidFix()" class="action-btn bg-red-600 text-white">CHERCHER CIBLE</button>
         </div>
-    </div>
-
-    <div id="tab-schedule" class="tab-content hidden">
-        <h3 class="text-center" style="color:var(--color-time-gold); font-family:'Orbitron';">📅 SMART PLANNING</h3>
-        <div class="text-center">
-            <input id="sched-game" type="text" class="action-input" style="width:300px;" placeholder="Jeu (ex: LoL)">
-            <button onclick="runSchedule()" class="btn-primary" style="background:var(--color-time-gold); color:black; width:auto;">ANALYSER</button>
-        </div>
-        <div id="sched-res" class="mt-6 ai-text max-w-2xl mx-auto p-4 bg-gray-900 rounded border border-yellow-600 hidden"></div>
-    </div>
-
-    <div id="tab-boost" class="tab-content hidden text-center">
-        <h3 style="color:var(--color-primary-pink); font-family:'Orbitron';">⚡ BOOST</h3>
-        <input id="boost-chan" type="text" class="action-input" style="width:300px;" placeholder="Votre chaîne">
-        <button onclick="activateBoost()" class="btn-primary" style="width:300px; margin: 10px auto;">ACTIVER</button>
-        <div id="boost-msg" class="mt-4"></div>
-    </div>
-
-    <div id="tab-raid" class="tab-content hidden text-center">
-        <h3 style="color:var(--color-ai-action); font-family:'Orbitron';">💥 RAID FINDER</h3>
-        <div class="flex justify-center gap-2">
-            <input id="raid-game" type="text" class="action-input" style="width:200px;" placeholder="Jeu cible">
-            <select id="raid-max" class="action-input" style="width:100px;">
-                <option value="50">50 vues</option>
-                <option value="100">100 vues</option>
-            </select>
-            <button onclick="runRaid()" class="btn-primary" style="background:var(--color-ai-action); width:auto;">GO</button>
-        </div>
-        <div id="raid-res" class="mt-6 max-w-md mx-auto"></div>
+        <div id="raid-result-area"></div>
     </div>
 
 </div>
 
-<script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
-    const API_BASE = window.location.origin;
-    const CYCLE_TIME = 180;
-    let timerVal = CYCLE_TIME;
-    let timerInterval = null;
-    let embed = null;
-    let isConnected = false;
+    const API = window.location.origin;
 
-    function switchTab(id) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn-tab-'+id).classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        document.getElementById('tab-'+id).classList.remove('hidden');
-        if(id === 'followed') loadFollowed();
-        if(id === 'market') loadMarketData();
+    // NAVIGATION
+    function nav(id) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('pan-'+id).classList.add('active');
+        // Find the button (approximatif)
+        if(id=='market') loadMarket('games');
     }
 
-    const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString('fr-FR') : 'N/A';
-
-    function initPlayer(channel) {
-        if(embed && embed.getChannel && embed.getChannel() === channel) return;
-        document.getElementById('twitch-embed').innerHTML = '';
-        const options = {
-            width: "100%", height: "100%", channel: channel, layout: "video-and-chat",
-            autoplay: true, muted: true,
-            parent: ["localhost", "127.0.0.1", "justplayerstreamhubpro.onrender.com", "justplayer.fr", "www.justplayer.fr", window.location.hostname]
-        };
-        embed = new Twitch.Embed("twitch-embed", options);
-        document.getElementById('player-status').innerText = "LIVE: " + channel;
-    }
-
-    function startTimer() {
-        clearInterval(timerInterval);
-        timerVal = CYCLE_TIME;
-        updateBar();
-        timerInterval = setInterval(() => {
-            timerVal--;
-            updateBar();
-            if(timerVal <= 0) cycleStream('next');
-        }, 1000);
-    }
-
-    function updateBar() {
-        const pct = (timerVal / CYCLE_TIME) * 100;
-        document.getElementById('cycle-bar').style.width = pct + "%";
-    }
-
-    async function cycleStream(dir) {
-        timerVal = CYCLE_TIME; updateBar();
+    // 1. MARKET
+    async function loadMarket(type) {
+        const tbody = document.getElementById('market-list');
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Chargement...</td></tr>';
+        
         try {
-            const r = await fetch(`${API_BASE}/cycle_stream`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({direction:dir})});
-            const d = await r.json();
-            if(d.success) initPlayer(d.channel);
-        } catch(e){}
-    }
-
-    async function checkStatus() {
-        try {
-            const r = await fetch(`${API_BASE}/get_default_stream`);
-            const d = await r.json();
-            if(d.viewers === 'BOOST') {
-                clearInterval(timerInterval);
-                document.getElementById('cycle-bar').style.width = "100%";
-                document.getElementById('cycle-bar').style.background = "#ff0099";
-                initPlayer(d.channel);
-            } else {
-                startTimer();
-                initPlayer(d.channel);
-            }
-        } catch(e){ initPlayer('twitch'); }
-    }
-
-    function startAuth() { window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=600'); }
-    window.addEventListener('message', (e) => { if(e.data === 'auth_success') location.reload(); });
-
-    async function checkAuth() {
-        const btn = document.getElementById('auth-btn');
-        try {
-            const r = await fetch(`${API_BASE}/twitch_user_status`);
-            const d = await r.json();
-            isConnected = d.is_connected;
-            if(isConnected) {
-                btn.innerText = `Déconnexion (${d.display_name})`;
-                btn.onclick = async () => { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); location.reload(); };
-                loadFollowed();
-            }
-        } catch(e){}
-    }
-
-    async function loadFollowed() {
-        if(!isConnected) return;
-        const list = document.getElementById('followed-list');
-        list.innerHTML = "Chargement...";
-        try {
-            const r = await fetch(`${API_BASE}/followed_streams`);
-            const d = await r.json();
-            if(d.success && d.streams.length > 0) {
-                list.innerHTML = "";
-                d.streams.forEach(s => {
-                    list.innerHTML += `
-                    <div style="width:150px; cursor:pointer;" onclick="initPlayer('${s.user_login}')">
-                        <img src="${s.thumbnail_url.replace('{width}','320').replace('{height}','180')}" style="width:100%; border-radius:4px;">
-                        <div style="font-weight:bold; font-size:12px;">${s.user_name}</div>
-                        <div style="color:#ff0099; font-size:10px;">${s.viewer_count} vues</div>
-                    </div>`;
-                });
-            } else { list.innerHTML = "Aucun favori en live."; }
-        } catch(e){}
-    }
-
-    // --- MARKET DATA (V25) ---
-    async function loadMarketData() {
-        const tbody = document.getElementById('market-tbody');
-        try {
-            const r = await fetch(`${API_BASE}/global_pulse`);
+            const r = await fetch(`${API}/global_pulse`, { 
+                method:'POST', headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({type}) 
+            });
             const d = await r.json();
             
-            if(d.success) {
-                // Update Overview
-                document.getElementById('mkt-viewers').innerText = d.overview.viewers;
-                document.getElementById('mkt-channels').innerText = d.overview.channels;
-                document.getElementById('mkt-active').innerText = d.overview.active_streamers;
-                document.getElementById('mkt-watch').innerText = d.overview.watch_time;
-                document.getElementById('mkt-stream').innerText = d.overview.stream_time;
+            // Update Ticker
+            document.getElementById('mkt-v').innerText = d.overview.viewers;
+            document.getElementById('mkt-c').innerText = d.overview.channels;
+            document.getElementById('mkt-wt').innerText = d.overview.watch_time;
+            document.getElementById('mkt-st').innerText = d.overview.stream_time;
+            document.getElementById('ticker-viewers').innerText = d.overview.viewers;
 
-                // Update Table
-                tbody.innerHTML = "";
-                d.games_table.forEach(g => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td class="rank-cell">#${g.rank}</td>
-                            <td style="display:flex; align-items:center; gap:10px;">
-                                <img src="${g.box_art}" style="width:30px; border-radius:3px;"> ${g.game}
-                            </td>
-                            <td style="font-weight:bold; color:${g.unified_rating.includes('A')?'#0f0':'#f00'}">${g.unified_rating}</td>
-                            <td>${safeFormat(g.viewers)}</td>
-                            <td>${safeFormat(g.channels)}</td>
-                            <td>${g.hours_watched}</td>
-                            <td>${safeFormat(g.peak_viewers)}</td>
-                            <td style="color:${g.stream_suggestion.includes('OUI')?'#0f0':'#888'}">${g.stream_suggestion}</td>
-                        </tr>
-                    `;
-                });
-            }
-        } catch(e) { tbody.innerHTML = `<tr><td colspan="8">Erreur de chargement</td></tr>`; }
+            tbody.innerHTML = "";
+            d.table.forEach(i => {
+                let ratingClass = i.rating.includes('A') ? 'rate-A' : (i.rating.includes('B') ? 'rate-B' : 'rate-C');
+                let img = i.img ? `<img src="${i.img}" style="width:20px; vertical-align:middle; display:inline; margin-right:5px;">` : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="color:#888;">#${i.rank}</td>
+                        <td style="font-weight:bold;">${img}${i.name}</td>
+                        <td><span class="rating-tag ${ratingClass}">${i.rating || '-'}</span></td>
+                        <td>${Number(i.viewers).toLocaleString()}</td>
+                        <td>${Number(i.channels).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="5">Erreur chargement</td></tr>'; }
     }
 
-    async function runScan() {
-        const q = document.getElementById('scan-query').value;
+    // 2. DASHBOARD
+    async function runDash() {
+        const q = document.getElementById('dash-input').value;
+        const resDiv = document.getElementById('dash-res');
         if(!q) return;
         
-        document.getElementById('dashboard-results').classList.remove('hidden');
-        document.getElementById('ai-coach-content').innerHTML = "Analyse...";
-        
         try {
-            const r = await fetch(`${API_BASE}/scan_target`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q})});
-            const d = await r.json();
-            
-            if(d.type === 'user') {
-                const u = d.user_data;
-                const h = d.history;
-                
-                document.getElementById('res-img').src = u.profile_image_url;
-                document.getElementById('res-name').innerText = u.display_name;
-                document.getElementById('res-followers').innerText = safeFormat(u.total_followers);
-                document.getElementById('res-days').innerText = "Streams : " + u.active_days; // V24
-
-                let stars = ""; for(let i=1; i<=5; i++) stars += (i<=d.stars)?"★":"☆";
-                document.getElementById('res-stars').innerText = stars;
-                
-                const trend = document.getElementById('res-trend');
-                if(h.trend==='up') { trend.innerText = `▲ +${h.diff}`; trend.className='trend-up'; }
-                else if(h.trend==='down') { trend.innerText = `▼ ${h.diff}`; trend.className='trend-down'; }
-                else { trend.innerText = "Stable"; trend.style.color='#888'; }
-
-                initPlayer(u.login);
-                fetchVOD(u.login, u.display_name, h, d.stars);
-            }
-        } catch(e) { alert("Erreur Scan"); }
-    }
-
-    async function fetchVOD(login, name, history, stars) {
-        const vodBox = document.getElementById('vod-content');
-        const aiVodBox = document.getElementById('ai-vod-content');
-        vodBox.innerHTML = "Recherche VOD...";
-        
-        try {
-            const r = await fetch(`${API_BASE}/get_latest_vod?channel=${login}`);
+            const r = await fetch(`${API}/scan_target`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q}) });
             const d = await r.json();
             
             if(d.success) {
-                vodBox.innerHTML = `<img src="${d.vod.thumbnail_url}" style="width:100%; border-radius:4px; margin-bottom:5px;">
-                                    <div style="font-size:10px;">${d.vod.title.substring(0,40)}...</div>`;
+                resDiv.classList.remove('hidden');
+                const u = d.data;
+                document.getElementById('d-img').src = u.profile_image_url;
+                document.getElementById('d-name').innerText = u.display_name;
+                document.getElementById('d-days').innerText = "Streams: " + u.days;
+                document.getElementById('d-follow').innerText = u.followers;
                 
-                const iaR = await fetch(`${API_BASE}/critique_ia`, {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({type:'niche', query:name, history_data:history, stars:stars})
-                });
-                const iaD = await iaR.json();
-                document.getElementById('ai-coach-content').innerHTML = iaD.html_response;
+                const tr = document.getElementById('d-trend');
+                tr.innerText = d.diff > 0 ? `+${d.diff}` : d.diff;
+                tr.className = d.trend === 'up' ? 'stat-val trend-up' : 'stat-val trend-down';
 
-                const vodR = await fetch(`${API_BASE}/critique_ia`, {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({type:'repurpose', query:name, vod_data:d.vod})
+                // IA Call
+                const ia = await fetch(`${API}/critique_ia`, { 
+                    method:'POST', headers:{'Content-Type':'application/json'}, 
+                    body:JSON.stringify({ type:'coach', query: u.display_name, context:`Followers: ${u.followers}, Tendance: ${d.trend}` }) 
                 });
-                const vodD = await vodR.json();
-                aiVodBox.innerHTML = vodD.html_response;
-            } else { vodBox.innerHTML = "Pas de VOD."; }
-        } catch(e){}
-    }
-
-    async function runSchedule() {
-        const g = document.getElementById('sched-game').value;
-        const box = document.getElementById('sched-res');
-        box.classList.remove('hidden');
-        box.innerHTML = "Analyse du marché...";
-        
-        try {
-            const r = await fetch(`${API_BASE}/analyze_schedule`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g})});
-            const d = await r.json();
-            if(d.success) {
-                const ia = await fetch(`${API_BASE}/critique_ia`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'schedule', game_data:d.game_data})});
                 const iaD = await ia.json();
-                box.innerHTML = `<div style="display:flex; gap:10px; margin-bottom:10px;"><img src="${d.box_art}"><div><b>${d.game_data.name}</b><br>${d.game_data.total_viewers} viewers</div></div>` + iaD.html_response;
+                document.getElementById('d-advice').innerHTML = iaD.html_response;
             }
         } catch(e){}
     }
 
-    async function runRaid() {
-        const g = document.getElementById('raid-game').value;
-        const m = document.getElementById('raid-max').value;
-        const box = document.getElementById('raid-res');
+    // 3. RAID FIX
+    async function runRaidFix() {
+        const g = document.getElementById('raid-game-input').value;
+        const m = document.getElementById('raid-max-input').value;
+        const box = document.getElementById('raid-result-area');
+        
         box.innerHTML = "Recherche...";
         try {
-            const r = await fetch(`${API_BASE}/start_raid`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g, max_viewers:m})});
+            const r = await fetch(`${API}/start_raid`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g, max:m}) });
             const d = await r.json();
+            
             if(d.success) {
                 const t = d.target;
                 box.innerHTML = `
-                <div class="raid-card">
-                    <img src="${t.avatar_url}" class="raid-avatar">
-                    <img src="${t.thumbnail_url}" class="raid-thumb">
-                    <div><b>${t.name}</b><br><span style="color:#0f0">${t.viewers} vues</span></div>
-                    <button class="btn-primary" onclick="initPlayer('${t.login}')" style="width:auto; margin-left:auto;">GO</button>
-                </div>`;
+                    <div class="raid-res">
+                        <img src="${t.avatar}" class="raid-img">
+                        <div>
+                            <div class="font-bold text-white">${t.name}</div>
+                            <div class="text-xs text-gray-400">${t.viewers} spectateurs</div>
+                        </div>
+                        <a href="https://twitch.tv/${t.login}" target="_blank" class="ml-auto bg-red-600 px-3 py-1 rounded text-white text-xs font-bold">GO</a>
+                    </div>
+                `;
+            } else { box.innerText = d.error; }
+        } catch(e){ box.innerText = "Erreur"; }
+    }
+
+    // 4. PLANNING
+    async function runPlan() {
+        const g = document.getElementById('plan-game').value;
+        const box = document.getElementById('plan-res');
+        box.classList.remove('hidden');
+        box.innerHTML = "Analyse...";
+        
+        try {
+            const r = await fetch(`${API}/analyze_schedule`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g}) });
+            const d = await r.json();
+            if(d.success) {
+                box.innerHTML = `<div class="font-bold text-yellow-500 mb-2">${d.data.name}</div>` + d.ia_advice;
             } else { box.innerText = d.error; }
         } catch(e){}
     }
 
-    async function activateBoost() {
-        const c = document.getElementById('boost-chan').value;
-        const msg = document.getElementById('boost-msg');
-        msg.innerText = "...";
-        try {
-            const r = await fetch(`${API_BASE}/stream_boost`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel:c})});
-            const d = await r.json();
-            msg.innerHTML = d.html_response || d.error;
-            if(d.success) checkStatus();
-        } catch(e){}
-    }
-
-    window.onload = () => {
-        checkAuth();
-        checkStatus();
-        switchTab('followed');
-    };
+    // Init
+    window.onload = () => { loadMarket('games'); };
 </script>
 </body>
 </html>
