@@ -1,7 +1,7 @@
 {
   "name": "streamer-niche-hub",
-  "version": "2.0.0",
-  "description": "Streamer Hub Backend - Optimized",
+  "version": "2.2.0",
+  "description": "Streamer Hub Backend - JSON Fix",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -17,6 +17,7 @@
     "node": ">=18.0.0"
   }
 }
+
 
 
 
