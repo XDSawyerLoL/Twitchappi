@@ -17,7 +17,7 @@
             --color-bg-light: #111;
             
             --color-primary-pink: #ff0099;
-            --color-secondary-blue: #00f3ff; /* Ajusté pour V21 Neon */
+            --color-secondary-blue: #00f3ff;
             --color-time-gold: #ffd700;
             
             --color-ai-niche: #59d682;
@@ -63,7 +63,7 @@
             font-weight: bold; box-shadow: var(--shadow-pink); z-index: 10; 
         }
 
-        /* --- NOUVEAUTÉ V21 : PROGRESS BAR TIMER --- */
+        /* --- V21 : PROGRESS BAR TIMER --- */
         .progress-wrapper {
             width: 100%; height: 6px; background: #222; position: relative; overflow: hidden; margin-bottom: -1px; z-index: 5;
             border-radius: 12px 12px 0 0;
@@ -104,7 +104,7 @@
         .tab-content.active { display: block; animation: fadeEffect 0.5s; }
         @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
 
-        /* --- NOUVEAUTÉ V21 : DATA CARDS (GOD MODE) --- */
+        /* --- V21 : DATA CARDS (GOD MODE) --- */
         .god-mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
         .god-card { 
             background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 8px; padding: 20px; 
@@ -343,17 +343,17 @@
     // --- UTILITAIRE FORMATTAGE ---
     const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString('fr-FR') : 'N/A';
 
-    // --- LECTEUR TWITCH (V21: AUTOPLAY FIXED) ---
+    // --- LECTEUR TWITCH (V21 CORRECTIF DOMAINE) ---
     window.launchPlayer = function(channelName, videoId = null) {
         if (embed && ((!videoId && embed.getChannel() === channelName) || (videoId && embed.getVideo() === videoId))) return;
 
-        // Configuration pour Autoplay (Muted obligatoire)
         const options = {
             width: "100%", height: "100%", 
             layout: "video-and-chat", 
             autoplay: true, 
-            muted: true, // IMPORTANT V21
-            parent: ["localhost", "127.0.0.1", "justplayerstreamhubpro.onrender.com", window.location.hostname]
+            muted: true, // OBLIGATOIRE
+            // ICI : LISTE COMPLÈTE DES DOMAINES AUTORISÉS
+            parent: ["localhost", "127.0.0.1", "justplayerstreamhubpro.onrender.com", "justplayer.fr", "www.justplayer.fr", window.location.hostname]
         };
 
         document.getElementById('twitch-embed').innerHTML = '';
