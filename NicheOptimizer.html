@@ -3,582 +3,592 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V21 - GOD MODE (Production)</title>
+    <title>Streamer Hub V22 - WALL STREET EDITION (Full)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
     <style>
+        /* =========================================
+           THÈME GRAPHIQUE "WALL STREET DARK"
+           ========================================= */
         :root {
-            /* Palette Cyberpunk Dark */
-            --color-bg-dark: #0d0d0d;
-            --color-bg-medium: #1a1a1a;
-            --color-bg-light: #111;
-            
-            --color-primary-pink: #ff0099;
-            --color-secondary-blue: #00f3ff;
-            --color-time-gold: #ffd700;
-            
-            --color-ai-niche: #59d682;
-            --color-ai-repurpose: #9933ff;
-            --color-ai-growth: #ffcc00; 
-            --color-ai-action: #e34a64; 
-            
-            --color-text-dimmed: #9aa3a8;
-            --color-border-dark: #2e2e2e;
-            --color-border-medium: #333;
-            
-            /* Effets Neon */
-            --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
-            --shadow-blue: 0 0 15px rgba(0, 243, 255, 0.4);
-            --shadow-action: 0 0 15px rgba(227, 74, 100, 0.4);
+            --bg-dark: #0b0c10;
+            --bg-card: #1f2833;
+            --neon-cyan: #66fcf1;
+            --neon-green: #45a29e;
+            --alert-red: #ff4d4d;
+            --gold-star: #ffd700;
+            --text-gray: #c5c6c7;
         }
 
-        /* Base */
-        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
-        #twitch-lucky-main { max-width: 1400px; margin: 20px auto; padding: 10px; }
-        
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--text-gray); 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; padding: 0; 
+        }
+
+        #app-container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+
+        /* HEADER & NAVIGATION */
         h1 { 
-            font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); 
-            margin-bottom: 5px; text-align: center; 
-            text-shadow: 0 0 5px var(--color-primary-pink);
+            font-family: 'Orbitron', sans-serif; 
+            color: var(--neon-cyan); 
+            text-align: center; 
+            font-size: 32px; 
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(102, 252, 241, 0.4); 
         }
-        .h1-blue-accent { color: var(--color-secondary-blue); }
-        .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
 
-        /* Navigation (Onglets) */
-        .tabs-nav-container { margin-bottom: 15px; }
-        .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
-        
+        .version-tag {
+            font-size: 12px; 
+            background: var(--neon-green); 
+            color: black; 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+
+        .tabs-container {
+            display: flex; 
+            gap: 5px; 
+            margin-bottom: 20px;
+        }
+
         .tab-btn { 
-            font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: var(--color-bg-light); 
-            border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); 
-            cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.3s; flex: 1; text-align: center; 
-            font-size: 12px; white-space: nowrap; 
+            background: var(--bg-card); 
+            color: #888; 
+            padding: 15px; 
+            border-radius: 8px 8px 0 0; 
+            flex: 1; 
+            text-align: center; 
+            cursor: pointer; 
+            font-family: 'Orbitron', sans-serif; 
+            font-size: 14px; 
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
         }
-        .tab-btn:hover { color: #fff; background: #232323; }
+
+        .tab-btn:hover {
+            background: #2b3642;
+            color: white;
+        }
+
         .tab-btn.active { 
-            background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); 
-            font-weight: bold; box-shadow: var(--shadow-pink); z-index: 10; 
+            background: #2b3642; 
+            color: var(--neon-cyan); 
+            border-bottom: 3px solid var(--neon-cyan); 
+            font-weight: bold; 
         }
 
-        /* --- V21 : PROGRESS BAR TIMER --- */
-        .progress-wrapper {
-            width: 100%; height: 6px; background: #222; position: relative; overflow: hidden; margin-bottom: -1px; z-index: 5;
-            border-radius: 12px 12px 0 0;
+        /* LECTEUR & TIMER */
+        .progress-bar-container { 
+            width: 100%; 
+            height: 6px; 
+            background: #333; 
+            margin-top: 10px; 
+            border-radius: 3px;
+            overflow: hidden;
         }
+
         .progress-bar { 
-            height: 100%; background: var(--color-secondary-blue); width: 100%; 
-            transition: width 1s linear; box-shadow: 0 0 10px var(--color-secondary-blue); 
-        }
-        .timer-display {
-            text-align: right; font-size: 11px; color: var(--color-secondary-blue); font-family: 'Orbitron'; margin-bottom: 5px;
+            height: 100%; 
+            width: 0%; 
+            background: var(--neon-cyan); 
+            transition: width 1s linear; 
+            box-shadow: 0 0 10px var(--neon-cyan);
         }
 
-        /* Lecteur (Zone Centrale) */
-        .player-wrapper { 
-            margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); 
-            border-radius: 0 0 12px 12px; border: 1px solid var(--color-border-dark); 
-            box-shadow: var(--shadow-blue); 
+        .player-frame { 
+            border: 1px solid #333; 
+            border-radius: 0 0 12px 12px; 
+            overflow: hidden; 
+            height: 550px; 
+            background: black; 
+            position: relative;
         }
-        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); }
-        #twitch-embed { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; }
+
+        /* DASHBOARD BOURSIER */
+        .stock-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 20px; 
+            margin-top: 30px; 
+        }
+
+        .stock-card { 
+            background: var(--bg-card); 
+            padding: 25px; 
+            border-radius: 12px; 
+            border: 1px solid #333; 
+            text-align: center; 
+            transition: transform 0.2s;
+        }
+
+        .stock-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-cyan);
+        }
         
-        .player-quick-input {
-            background: var(--color-bg-dark); border: 1px solid var(--color-border-medium); color: white;
-            padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 200px;
+        .stock-value { 
+            font-size: 36px; 
+            font-weight: bold; 
+            color: white; 
+            margin: 10px 0; 
+            font-family: 'Orbitron', sans-serif; 
         }
         
-        .btn-cycle {
-            background: var(--color-bg-dark); color: var(--color-secondary-blue);
-            border: 1px solid var(--color-secondary-blue); padding: 5px 10px; border-radius: 4px;
-            font-size: 12px; transition: 0.2s; cursor: pointer;
+        .stock-label { 
+            font-size: 12px; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            color: #888; 
+            font-weight: 600;
         }
-        .btn-cycle:hover:not(:disabled) { background: var(--color-secondary-blue); color: var(--color-bg-dark); }
-        .btn-cycle:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Contenu des Onglets */
-        .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-radius: 10px; padding: 20px; min-height: 300px; }
-        .tab-content.active { display: block; animation: fadeEffect 0.5s; }
-        @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
-
-        /* --- V21 : DATA CARDS (GOD MODE) --- */
-        .god-mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
-        .god-card { 
-            background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 8px; padding: 20px; 
-            text-align: center; display: flex; flex-direction: column; justify-content: center;
-        }
-        .big-number { font-size: 28px; font-weight: bold; color: white; margin: 5px 0; }
-        .label-small { font-size: 10px; color: var(--color-text-dimmed); text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Tendance Badge */
-        .trend-badge { 
-            display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 5px; 
+        /* Indicateurs de Tendance */
+        .trend-pill { 
+            display: inline-flex; 
+            align-items: center; 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 13px; 
+            font-weight: bold; 
+            margin-top: 10px; 
         }
-        .trend-up { background: rgba(0, 255, 102, 0.1); color: #00ff66; border: 1px solid #00ff66; }
-        .trend-down { background: rgba(255, 0, 0, 0.1); color: #ff4444; border: 1px solid #ff4444; }
-        .trend-new { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid #fff; }
+        .trend-up { background: rgba(0, 255, 127, 0.15); color: #00ff7f; border: 1px solid #00ff7f; }
+        .trend-down { background: rgba(255, 77, 77, 0.15); color: #ff4d4d; border: 1px solid #ff4d4d; }
+        .trend-flat { background: rgba(255, 255, 255, 0.1); color: #ccc; border: 1px solid #666; }
 
-        /* Éléments IA & Texte */
-        .ai-output-enhanced { color: #ddd; font-size: 13px; line-height: 1.5; text-align: left; }
-        .ai-output-enhanced h4 { font-family: 'Orbitron', sans-serif; margin-top: 0; border-bottom: 1px solid var(--color-secondary-blue); color: var(--color-secondary-blue); padding-bottom: 5px; margin-bottom: 10px; }
-        .ai-output-enhanced ul { list-style: none; padding-left: 0; }
-        .ai-output-enhanced li { margin-bottom: 8px; border-left: 3px solid #444; padding-left: 10px; font-size: 12px; }
+        /* Étoiles de Notation */
+        .star-rating { color: #444; font-size: 24px; margin: 15px 0; }
+        .star-rating .filled { color: var(--gold-star); text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+
+        /* BOITE DU COACH IA */
+        .coach-box { 
+            text-align: left; 
+            background: #181b21; 
+            padding: 20px; 
+            border-left: 4px solid var(--neon-cyan); 
+            border-radius: 0 12px 12px 0;
+            margin-top: 20px;
+        }
+        .coach-box h4 { color: var(--neon-cyan); font-family: 'Orbitron'; margin-bottom: 10px; font-size: 16px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .coach-box ul { list-style: none; padding: 0; }
+        .coach-box li { margin-bottom: 8px; font-size: 14px; color: #e0e0e0; padding-left: 15px; border-left: 2px solid #555; }
+
+        /* CARTE DE RAID */
+        .raid-card { 
+            display: flex; 
+            align-items: center; 
+            gap: 20px; 
+            background: #111; 
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--neon-cyan); 
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.1);
+        }
+        .raid-avatar { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--neon-cyan); object-fit: cover; }
+        .raid-thumb { width: 160px; height: 90px; border-radius: 6px; object-fit: cover; border: 1px solid #333; }
+        .raid-info { flex: 1; text-align: left; }
+        .raid-name { font-weight: bold; font-size: 18px; color: white; }
+        .raid-game { color: #888; font-size: 14px; }
+        .raid-viewers { color: var(--neon-green); font-weight: bold; font-size: 14px; margin-top: 5px; }
+
+        /* BOUTONS ET INPUTS */
+        .btn-action { 
+            width: 100%; padding: 12px; background: var(--neon-cyan); color: #0b0c10; 
+            font-weight: bold; border-radius: 6px; margin-top: 15px; cursor: pointer; transition: 0.2s; 
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-action:hover { background: #fff; transform: scale(1.02); }
         
-        /* Inputs & Boutons Généraux */
-        .action-input { 
-            width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--color-border-medium); 
-            background: var(--color-bg-dark); color: #fff; font-size: 13px; transition: 0.3s; 
+        .input-std { 
+            width: 100%; padding: 12px; background: #111; border: 1px solid #444; 
+            color: white; text-align: center; border-radius: 6px; font-size: 14px; 
         }
-        .btn-primary { 
-            background: var(--color-primary-pink); color: #fff; border: 0; padding: 10px 15px; 
-            border-radius: 6px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; transition: all 0.2s; 
-        }
-        .btn-primary:hover:not(:disabled) { transform: scale(1.02); filter: brightness(1.1); }
-        .btn-big-scan { width: 100%; background: linear-gradient(90deg, var(--color-secondary-blue), var(--color-primary-pink)); font-size: 14px; padding: 12px; margin-top: 10px; font-weight: bold; border: 1px solid var(--color-secondary-blue); }
+        .input-std:focus { outline: none; border-color: var(--neon-cyan); }
 
-        /* Listes de Streams */
-        #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; }
-        .followed-stream-item { 
-            width: calc(20% - 12px); min-width: 150px; padding: 10px; background: var(--color-bg-light); 
-            border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: 0.3s;
-        }
-        .followed-stream-item:hover { transform: translateY(-3px); border-color: var(--color-primary-pink); }
-        .followed-stream-item img { width: 100%; border-radius: 4px; margin-bottom: 5px; }
-
-        /* Boites Spécifiques (Raid, Schedule) */
-        .raid-target-box { 
-            padding: 15px; background: #111; border-radius: 8px; border: 2px solid var(--color-ai-action);
-            display: flex; gap: 15px; align-items: center; box-shadow: var(--shadow-action);
-        }
-        .raid-target-box img { width: 100px; height: 56px; object-fit: cover; border-radius: 4px; }
-
-        .schedule-box { 
-            border: 2px solid var(--color-time-gold); padding: 15px; background: #121212; 
-            border-radius: 8px; margin-top: 15px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
-        }
-        .schedule-header { color: var(--color-time-gold); font-family: 'Orbitron', sans-serif; font-size: 18px; margin-bottom: 10px; }
-
-        @media (max-width: 1024px) { .god-mode-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V21 (GOD MODE)</h1>
-    <div class="subtitle-center">Cockpit Unifié • Data Warehouse • Intelligence Artificielle</div>
-
-    <div class="tabs-nav-container">
-        <div class="flex flex-wrap flex-tabs">
-            <button class="tab-btn active" data-tab-id="tab-followed" onclick="openTab('tab-followed')">🔑 MON FIL</button> 
-            <button class="tab-btn" data-tab-id="tab-dashboard" onclick="openTab('tab-dashboard')" style="color:white; border-top: 3px solid var(--color-secondary-blue);">📊 DATA ANALYTICS</button>
-            <button class="tab-btn" data-tab-id="tab-time" onclick="openTab('tab-time')" style="border-top: 3px solid var(--color-time-gold);">⏰ BEST TIME</button>
-            <button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">⚡ BOOST</button>
-            <button class="tab-btn" data-tab-id="tab-raid" onclick="openTab('tab-raid')" style="border-top: 3px solid var(--color-ai-action);">💥 RAID</button>
-        </div>
+<div id="app-container">
+    <h1>STREAMER HUB <span class="version-tag">V22 WALL STREET</span></h1>
+    
+    <div class="tabs-container">
+        <div class="tab-btn active" onclick="switchTab('dashboard')">📊 DASHBOARD & COACH</div>
+        <div class="tab-btn" onclick="switchTab('boost')">⚡ BOOST VISIBILITÉ</div>
+        <div class="tab-btn" onclick="switchTab('raid')">💥 RAID FINDER</div>
     </div>
 
-    <div class="timer-display" id="timer-text">Prochain changement: 3:00</div>
-    <div class="progress-wrapper">
+    <div style="display:flex; justify-content:space-between; align-items:end; margin-bottom:5px;">
+        <div id="player-status" class="text-xs text-gray-400">Chargement du flux...</div>
+        <div style="text-align:right; font-size:11px; color:#666;" id="timer-text">Prochain changement: 3:00</div>
+    </div>
+    
+    <div class="progress-bar-container">
         <div id="cycle-bar" class="progress-bar"></div>
     </div>
-
-    <div class="player-wrapper">
-        <div class="player-header">
-            <h2 class="player-title">
-                <span style="margin-right:6px;">🎬</span> LECTEUR
-                <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:10px;">En attente de démarrage...</span>
-            </h2>
-            <div class="flex gap-2 items-center">
-                <button id="btn-prev-stream" class="btn-cycle" onclick="cycleStream('prev')"><i class="fas fa-arrow-left"></i></button>
-                <button id="btn-next-stream" class="btn-cycle" onclick="cycleStream('next')"><i class="fas fa-arrow-right"></i></button>
-                
-                <form id="mini-player-form" class="flex gap-2" onsubmit="event.preventDefault(); launchPlayer(document.getElementById('input-channel').value)">
-                    <input id="input-channel" type="text" placeholder="Chaîne..." class="player-quick-input">
-                    <button type="submit" class="btn-primary" style="padding: 5px 10px;">GO</button>
-                </form>
-            </div>
-        </div>
+    
+    <div class="player-frame">
         <div id="twitch-embed"></div>
     </div>
+    
+    <div style="display:flex; justify-content:space-between; margin-top:10px;">
+        <button onclick="cycleStream('prev')" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-bold transition">
+            <i class="fas fa-arrow-left"></i> PRÉCÉDENT
+        </button>
+        <button onclick="cycleStream('next')" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-bold transition">
+            SUIVANT <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
 
-    <div id="content-area">
-
-        <div id="tab-followed" class="tab-content active">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 class="text-pink font-bold" style="color:var(--color-primary-pink);">🔴 Vos Chaînes Suivies LIVE</h3>
-                <div class="flex gap-2 items-center">
-                    <button id="btn-export-pdf" class="btn-primary" style="background:var(--color-ai-growth); font-size:10px;">📊 CSV</button>
-                    <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; font-size:10px;">🔒 CONNEXION TWITCH</button>
-                </div>
-            </div>
-            <div id="followed-streams-list">
-                <p style="color:#555; text-align:center; padding: 40px;">Connectez-vous pour voir vos favoris en direct.</p>
-            </div>
-        </div>
-
-        <div id="tab-dashboard" class="tab-content">
-            <div style="text-align:center; margin-bottom:20px;">
-                <h3 class="text-blue font-bold text-lg mb-2" style="color:var(--color-secondary-blue);">ANALYSE DE PERFORMANCE & HISTORIQUE</h3>
-                <p style="color:#888; font-size:12px; margin-bottom:10px;">Comparez les données en temps réel avec l'historique enregistré.</p>
-                <form id="form-global-scan">
-                    <input id="input-global-target" type="text" placeholder="Ex: JLTomy, Kameto, Valorant..." class="action-input" style="font-size:16px; text-align:center;">
-                    <button type="submit" id="btn-global-scan" class="btn-primary btn-big-scan">🚀 LANCER L'AUDIT COMPLET</button>
-                </form>
-            </div>
-
-            <div class="god-mode-grid" id="scan-results" style="display:none;">
-                
-                <div class="god-card" style="border-top: 2px solid #fff;">
-                    <img id="res-img" src="" style="width:80px; height:80px; border-radius:50%; margin:0 auto 10px; border:2px solid white;">
-                    <div id="res-name" style="font-size:18px; font-weight:bold; color:white;">Nom</div>
-                    <div id="res-trend" class="trend-badge trend-new">En attente...</div>
-                    <div style="font-size:10px; color:#666; margin-top:10px;">
-                        <i class="fas fa-hdd"></i> Données stockées dans Firebase
-                    </div>
-                </div>
-
-                <div class="god-card" style="border-top: 2px solid var(--color-primary-pink);">
-                    <div style="margin-bottom:15px;">
-                        <div id="res-stat-1" class="big-number" style="color:var(--color-primary-pink)">-</div>
-                        <div class="label-small">Followers Totaux</div>
-                    </div>
-                    <div>
-                        <div id="res-stat-2" class="big-number" style="color:var(--color-secondary-blue)">-</div>
-                        <div class="label-small">Vues Totales</div>
-                    </div>
-                </div>
-
-                <div class="god-card" style="border-top: 2px solid var(--color-ai-niche); text-align:left; justify-content:flex-start;">
-                    <div style="font-family:'Orbitron'; font-size:12px; color:var(--color-ai-niche); margin-bottom:10px; text-align:center;">VERDICT DATA ANALYST</div>
-                    <div id="ai-content" class="ai-output-enhanced">
-                        Chargement de l'analyse...
-                    </div>
-                </div>
-            </div>
-            <div id="scan-placeholder" style="text-align:center; color:#555; margin-top:50px;">
-                Entrez un nom ci-dessus pour accéder à l'historique.
-            </div>
-        </div>
-
-        <div id="tab-time" class="tab-content">
-            <h3 style="color:var(--color-time-gold); margin-bottom:10px;">⏰ OPTIMISATION DE L'HORAIRE</h3>
-            <p style="color:#888; font-size:12px; margin-bottom:15px;">L'IA analyse le ratio Viewers/Streamers actuel d'un jeu et prédit les meilleurs créneaux horaires.</p>
-            <form id="form-schedule" class="flex gap-2">
-                <input id="input-schedule-game" type="text" placeholder="Nom du jeu (ex: League of Legends)" class="action-input" style="flex-grow:1;">
-                <button type="submit" id="btn-schedule" class="btn-primary" style="background:var(--color-time-gold); color:#000;">
-                    <i class="fas fa-hourglass-half"></i> CALCULER
-                </button>
-            </form>
+    <div id="tab-dashboard" class="mt-8">
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-white mb-2">ANALYSE BOURSIÈRE & COACHING</h2>
+            <p class="text-gray-500 text-sm mb-4">Entrez un pseudo pour obtenir son audit complet, sa notation et ses conseils.</p>
             
-            <div id="schedule-results" style="display:none;" class="schedule-box box-schedule">
-                <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
-                    <img id="schedule-img" src="" style="width:50px; border-radius:4px;">
-                    <div class="schedule-header" id="schedule-game-name">Jeu</div>
+            <form onsubmit="runScan(event)" class="max-w-md mx-auto flex gap-2">
+                <input id="scan-query" type="text" class="input-std" placeholder="Nom du Streamer (ex: JLTomy)...">
+                <button type="submit" class="bg-white text-black font-bold px-6 rounded hover:bg-gray-300 transition">SCAN</button>
+            </form>
+        </div>
+
+        <div id="scan-results" class="hidden">
+            <div class="text-center mb-6">
+                <img id="res-img" src="" class="w-24 h-24 rounded-full mx-auto border-4 border-gray-700 shadow-lg">
+                <div id="res-name" class="text-3xl font-bold text-white mt-3 font-orbitron">Name</div>
+                
+                <div id="res-stars" class="star-rating">
+                    </div>
+            </div>
+
+            <div class="stock-grid">
+                <div class="stock-card">
+                    <div class="stock-label">TOTAL FOLLOWERS</div>
+                    <div id="res-followers" class="stock-value">-</div>
+                    <div id="trend-follow" class="trend-pill trend-flat">Analyse...</div>
                 </div>
-                <div id="schedule-ai-content" class="ai-output-enhanced"></div>
-            </div>
-        </div>
-
-        <div id="tab-boost" class="tab-content">
-            <h3 style="color:var(--color-primary-pink); margin-bottom:10px;">⚡ STREAM BOOST (15 Minutes)</h3>
-            <p style="color:#888; font-size:12px; margin-bottom:15px;">Mettez votre chaîne en avant pour tous les utilisateurs.</p>
-            <form id="form-boost" class="flex gap-2">
-                <input id="input-boost" type="text" placeholder="Votre Chaîne Twitch" class="action-input" style="flex-grow:1;">
-                <button type="submit" class="btn-primary" style="background:var(--color-primary-pink);"><i class="fas fa-arrow-circle-up"></i> ACTIVER</button>
-            </form>
-            <div id="boost-results" style="margin-top:15px; padding:10px; background:#111; border-radius:6px; min-height:50px; text-align:center;">
-                 <p style="color:#777;">Statut du dernier Boost...</p>
-            </div>
-        </div>
-
-        <div id="tab-raid" class="tab-content">
-            <h3 style="color:var(--color-ai-action); margin-bottom:10px;">💥 RAID OPTIMISÉ (Langue FR)</h3>
-            <p style="color:#888; font-size:12px; margin-bottom:15px;">Trouvez la meilleure cible francophone pour votre raid selon la taille de l'audience.</p>
-            <form id="form-raid" class="flex gap-2 flex-col sm:flex-row">
-                <input id="input-raid-game" type="text" placeholder="Jeu cible (Ex: Minecraft)" class="action-input" style="flex-grow:1;">
                 
-                <select id="select-raid-viewers" class="action-input" style="width:auto;">
-                    <option value="10">Max 10 Vues (Micro)</option>
-                    <option value="30">Max 30 Vues (Petit)</option>
-                    <option value="50">Max 50 Vues (Moyen)</option>
-                    <option value="70">Max 70 Vues (Intermédiaire)</option>
-                    <option value="100" selected>Max 100 Vues (Gros)</option>
-                </select>
+                <div class="stock-card">
+                    <div class="stock-label">VUES TOTALES</div>
+                    <div id="res-views" class="stock-value">-</div>
+                    <div class="text-xs text-gray-500 mt-2">Cumul historique</div>
+                </div>
                 
-                <button type="submit" id="btn-start-raid" class="btn-primary" style="background:var(--color-ai-action);">
-                    <i class="fas fa-satellite-dish"></i> RECHERCHER
-                </button>
-            </form>
-            <div id="raid-results" style="margin-top:15px; padding:15px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:50px;">
-                 <p style="text-align:center; color:#777;">Les résultats s'afficheront ici.</p>
+                <div class="stock-card">
+                    <div class="stock-label">SCORE PERFORMANCE</div>
+                    <div id="res-score" class="stock-value" style="color:var(--neon-green)">-</div>
+                    <div class="text-xs text-gray-500 mt-2">Calculé par l'IA</div>
+                </div>
+            </div>
+
+            <div class="coach-box">
+                <div style="font-size:11px; color:#888; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">
+                    <i class="fas fa-user-tie"></i> Le Verdict du Coach
+                </div>
+                <div id="ai-content" class="ai-output-enhanced">
+                    <p class="text-gray-500 italic">Analyse du profil en cours...</p>
+                </div>
             </div>
         </div>
     </div>
+
+    <div id="tab-boost" class="hidden mt-8 text-center">
+        <div class="max-w-lg mx-auto bg-gray-900 p-8 rounded-xl border border-gray-800">
+            <h2 class="text-3xl font-bold text-pink-500 mb-4">BOOST VISIBILITÉ</h2>
+            <p class="mb-6 text-gray-400">
+                Prenez le contrôle exclusif du lecteur vidéo de tous les utilisateurs connectés pendant 15 minutes.
+            </p>
+            <input id="boost-channel" type="text" class="input-std mb-4" placeholder="Entrez votre chaîne Twitch ici">
+            <button onclick="activateBoost()" class="btn-action" style="background:var(--alert-red); color:white;">
+                <i class="fas fa-rocket"></i> ACTIVER LE BOOST
+            </button>
+            <div id="boost-msg" class="mt-4 text-sm font-bold"></div>
+        </div>
+    </div>
+
+    <div id="tab-raid" class="hidden mt-8">
+        <div class="text-center mb-6">
+            <h2 class="text-xl font-bold text-cyan-400 mb-2">RAID FINDER OPTIMISÉ</h2>
+            <p class="text-gray-500 text-sm">Trouvez la cible idéale pour envoyer vos spectateurs.</p>
+        </div>
+        
+        <form onsubmit="runRaid(event)" class="flex gap-2 max-w-lg mx-auto mb-8">
+            <input id="raid-game" type="text" class="input-std" placeholder="Jeu (ex: Minecraft)" style="flex:2;">
+            <select id="raid-max" class="input-std" style="flex:1;">
+                <option value="10">Micro (10)</option>
+                <option value="50" selected>Petit (50)</option>
+                <option value="100">Moyen (100)</option>
+                <option value="500">Gros (500)</option>
+            </select>
+            <button type="submit" class="bg-cyan-500 text-black px-6 font-bold rounded hover:bg-cyan-400 transition">GO</button>
+        </form>
+        
+        <div id="raid-res" class="max-w-2xl mx-auto">
+            </div>
+    </div>
+
 </div>
 
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script>
     const API_BASE = window.location.origin;
-    const DEFAULT_CHANNEL = 'twitch';
-    const CYCLE_TIME_SEC = 180; // 3 Minutes (V21)
+    const CYCLE_TIME = 180; // 3 Minutes
     
+    let timerVal = CYCLE_TIME;
+    let timerInterval = null;
     let embed = null;
-    let cycleTimerInterval = null; 
-    let secondsLeft = CYCLE_TIME_SEC;
-    let boostTimeout = null; 
-    let isConnected = false;
 
-    // --- GESTION DES ONGLETS ---
-    function openTab(tabId) {
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        if (tabId === 'tab-followed') loadFollowedStreams();
-    }
-
-    // --- UTILITAIRE FORMATTAGE ---
-    const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString('fr-FR') : 'N/A';
-
-    // --- LECTEUR TWITCH (V21 CORRECTIF DOMAINE) ---
-    window.launchPlayer = function(channelName, videoId = null) {
-        if (embed && ((!videoId && embed.getChannel() === channelName) || (videoId && embed.getVideo() === videoId))) return;
-
+    // --- 1. GESTION DU LECTEUR VIDÉO ---
+    function initPlayer(channel) {
+        // Anti-clignotement : si c'est déjà la bonne chaîne, on ne fait rien
+        if(embed && embed.getChannel && embed.getChannel() === channel) return;
+        
+        document.getElementById('twitch-embed').innerHTML = '';
+        
         const options = {
             width: "100%", height: "100%", 
+            channel: channel, 
             layout: "video-and-chat", 
             autoplay: true, 
-            muted: true, // OBLIGATOIRE
-            // ICI : LISTE COMPLÈTE DES DOMAINES AUTORISÉS
+            muted: true, // CRITIQUE : Autoplay nécessite Muted sur Chrome/Firefox
+            // Liste exhaustive des parents pour éviter l'écran noir
             parent: ["localhost", "127.0.0.1", "justplayerstreamhubpro.onrender.com", "justplayer.fr", "www.justplayer.fr", window.location.hostname]
         };
-
-        document.getElementById('twitch-embed').innerHTML = '';
-        if (videoId) options.video = videoId; else options.channel = channelName;
-
+        
         embed = new Twitch.Embed("twitch-embed", options);
-        document.getElementById('input-channel').value = channelName;
+        document.getElementById('player-status').innerText = "Lecture en cours : " + channel;
     }
 
-    // --- TIMER VISUEL (V21) ---
-    function startCycleTimer() {
-        clearInterval(cycleTimerInterval);
-        secondsLeft = CYCLE_TIME_SEC;
-        updateTimerUI();
+    // --- 2. GESTION DU TIMER (Barre de Progression) ---
+    function startTimer() {
+        clearInterval(timerInterval);
+        timerVal = CYCLE_TIME;
+        updateBar();
         
-        cycleTimerInterval = setInterval(() => {
-            secondsLeft--;
-            updateTimerUI();
-            if (secondsLeft <= 0) {
+        timerInterval = setInterval(() => {
+            timerVal--;
+            updateBar();
+            if(timerVal <= 0) {
                 cycleStream('next');
             }
         }, 1000);
     }
-
-    function updateTimerUI() {
-        const pct = ((CYCLE_TIME_SEC - secondsLeft) / CYCLE_TIME_SEC) * 100;
-        document.getElementById('cycle-bar').style.width = pct + "%";
-        const m = Math.floor(secondsLeft / 60);
-        const s = secondsLeft % 60;
-        document.getElementById('timer-text').innerText = `Prochain changement: ${m}:${s < 10 ? '0'+s : s}`;
-    }
-
-    // --- LOGIQUE DE ROTATION & BOOST ---
-    async function checkBoostAndPlay(manual = false) {
-        const statusEl = document.getElementById('player-channel-status');
-        
-        if (manual && boostTimeout) clearTimeout(boostTimeout);
-
-        try {
-            const res = await fetch(`${API_BASE}/get_default_stream`);
-            const data = await res.json();
-            
-            if (data.success) {
-                launchPlayer(data.channel);
-                statusEl.innerHTML = data.message;
-                
-                if (data.viewers === 'BOOST') {
-                    // Mode Boost : Pause Timer
-                    clearInterval(cycleTimerInterval);
-                    document.getElementById('cycle-bar').style.width = "100%";
-                    document.getElementById('cycle-bar').style.background = "#ff0099";
-                    document.getElementById('timer-text').innerText = "⏸️ Rotation en pause (Boost Actif)";
-                    
-                    const bRes = await fetch(`${API_BASE}/check_boost_status`);
-                    const bData = await bRes.json();
-                    if(bData.is_boosted) {
-                        boostTimeout = setTimeout(() => checkBoostAndPlay(), (bData.remaining_seconds * 1000) + 2000);
-                    }
-                } else {
-                    // Mode Auto : Start Timer
-                    document.getElementById('cycle-bar').style.background = "var(--color-secondary-blue)";
-                    startCycleTimer();
-                }
-            } else {
-                launchPlayer(DEFAULT_CHANNEL);
-            }
-        } catch(e) { launchPlayer(DEFAULT_CHANNEL); }
-    }
     
-    async function cycleStream(direction) {
-        // Reset visuel immédiat
-        secondsLeft = CYCLE_TIME_SEC; updateTimerUI();
-        try {
-            const res = await fetch(`${API_BASE}/cycle_stream`, { 
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ direction }) 
-            });
-            const data = await res.json();
-            if (data.success) launchPlayer(data.channel);
-        } catch(e) { console.error(e); } 
-        finally { startCycleTimer(); }
+    function updateBar() {
+        const pct = (timerVal / CYCLE_TIME) * 100;
+        document.getElementById('cycle-bar').style.width = pct + "%";
+        
+        const m = Math.floor(timerVal / 60);
+        const s = timerVal % 60;
+        document.getElementById('timer-text').innerText = `Prochain changement : ${m}:${s < 10 ? '0'+s : s}`;
     }
 
-    // --- SCAN V21 (HISTORIQUE & VERDICT) ---
-    async function runGlobalScan(query) {
-        const resGrid = document.getElementById('scan-results');
-        const placeholder = document.getElementById('scan-placeholder');
-        const aiBox = document.getElementById('ai-content');
+    // --- 3. ROTATION & BOOST ---
+    async function cycleStream(dir) {
+        // Reset visuel immédiat pour donner un feedback utilisateur
+        timerVal = CYCLE_TIME; 
+        updateBar(); 
         
-        // UI Loading
-        placeholder.style.display = 'none';
-        resGrid.style.display = 'grid';
-        aiBox.innerHTML = "<i class='fas fa-sync fa-spin'></i> Analyse Data Warehouse & Historique...";
+        try {
+            const r = await fetch(`${API_BASE}/cycle_stream`, {
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({direction:dir})
+            });
+            const d = await r.json();
+            if(d.success) initPlayer(d.channel);
+        } catch(e) { console.error("Erreur cycle:", e); }
+    }
+
+    async function checkStatus() {
+        // Vérifie au démarrage si un Boost est actif ou si on lance la rotation
+        try {
+            const r = await fetch(`${API_BASE}/get_default_stream`);
+            const d = await r.json();
+            
+            if(d.viewers === 'BOOST') {
+                // Mode Boost : Barre rouge, pas de timer
+                clearInterval(timerInterval);
+                document.getElementById('cycle-bar').style.background = "#ff4d4d";
+                document.getElementById('cycle-bar').style.width = "100%";
+                document.getElementById('timer-text').innerText = "⚠️ BOOST ACTIF - ROTATION PAUSE";
+                initPlayer(d.channel);
+            } else {
+                // Mode Normal : Barre cyan, timer actif
+                document.getElementById('cycle-bar').style.background = "#66fcf1";
+                startTimer();
+                initPlayer(d.channel);
+            }
+        } catch(e) { 
+            // Fallback en cas d'erreur serveur
+            initPlayer('twitch'); 
+        }
+    }
+
+    // --- 4. SCAN, DATA & NOTATION ---
+    async function runScan(e) {
+        e.preventDefault();
+        const q = document.getElementById('scan-query').value;
+        const resDiv = document.getElementById('scan-results');
+        const aiDiv = document.getElementById('ai-content');
+        
+        if(!q) return;
+
+        resDiv.classList.remove('hidden');
+        aiDiv.innerHTML = "<p class='text-center'><i class='fas fa-sync fa-spin'></i> Analyse Boursière & IA en cours...</p>";
         
         try {
             const res = await fetch(`${API_BASE}/scan_target`, { 
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ query }) 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({query:q}) 
             });
-            const data = await res.json();
+            const d = await res.json();
             
-            if(!data.success) throw new Error(data.message);
-            
-            if(data.type === 'user') {
-                const u = data.user_data;
-                const h = data.history || {}; // Données V21
+            if(d.type === 'user') {
+                const u = d.user_data;
+                const h = d.history;
                 
+                // Remplissage des données de base
                 document.getElementById('res-img').src = u.profile_image_url;
                 document.getElementById('res-name').innerText = u.display_name;
-                document.getElementById('res-stat-1').innerText = safeFormat(u.total_followers);
-                document.getElementById('res-stat-2').innerText = safeFormat(u.total_views);
+                document.getElementById('res-followers').innerText = Number(u.total_followers).toLocaleString();
+                document.getElementById('res-views').innerText = Number(u.total_views).toLocaleString();
+                document.getElementById('res-score').innerText = d.stars + "/5";
 
-                // Affichage Tendance
-                const trendEl = document.getElementById('res-trend');
-                trendEl.className = 'trend-badge';
+                // GESTION ETOILES (Rendu visuel)
+                let starsHTML = "";
+                for(let i=1; i<=5; i++) {
+                    starsHTML += i <= d.stars ? '<i class="fas fa-star filled"></i>' : '<i class="far fa-star"></i>';
+                }
+                document.getElementById('res-stars').innerHTML = starsHTML;
+
+                // GESTION TENDANCE (La pilule colorée)
+                const trendEl = document.getElementById('trend-follow');
                 if(h.trend === 'up') {
-                    trendEl.innerText = `📈 CROISSANCE (+${h.growth})`; trendEl.classList.add('trend-up');
-                } else if (h.trend === 'down') {
-                    trendEl.innerText = `📉 DÉCLIN (${h.growth})`; trendEl.classList.add('trend-down');
+                    trendEl.className = "trend-pill trend-up";
+                    trendEl.innerHTML = `<i class="fas fa-arrow-up"></i> +${h.diff}`;
+                } else if(h.trend === 'down') {
+                    trendEl.className = "trend-pill trend-down";
+                    trendEl.innerHTML = `<i class="fas fa-arrow-down"></i> ${h.diff}`;
                 } else {
-                    trendEl.innerText = `🆕 NOUVEAU / STABLE`; trendEl.classList.add('trend-new');
+                    trendEl.className = "trend-pill trend-flat";
+                    trendEl.innerText = "Stable";
                 }
 
-                // IA Verdict
-                const aiRes = await fetch(`${API_BASE}/critique_ia`, { 
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ type: 'niche', query: u.display_name, history_data: h }) 
+                // APPEL IA COACH
+                const aiRes = await fetch(`${API_BASE}/critique_ia`, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json'}, 
+                    body:JSON.stringify({
+                        type:'niche', 
+                        query: u.display_name, 
+                        history_data: h, 
+                        stars: d.stars
+                    })
                 });
                 const aiData = await aiRes.json();
-                aiBox.innerHTML = aiData.html_response;
+                aiDiv.innerHTML = aiData.html_response;
+                
+                // Lancer la chaîne analysée dans le lecteur
+                initPlayer(u.login); 
             }
-        } catch(e) { aiBox.innerHTML = `<p style='color:red;'>Erreur: ${e.message}</p>`; }
+        } catch(e) { 
+            aiDiv.innerText = "Erreur lors de l'analyse. Vérifiez le pseudo."; 
+        }
     }
 
-    document.getElementById('form-global-scan').addEventListener('submit', (e) => { 
-        e.preventDefault(); 
-        runGlobalScan(document.getElementById('input-global-target').value); 
-    });
-
-    // --- FONCTIONS EXISTANTES (AUTH, RAID, BOOST, SCHEDULE) ---
-    function startAuth() { window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login_popup', 'width=500,height=650'); }
-    window.addEventListener('message', (event) => { if (event.data === 'auth_success') window.location.reload(); });
-    
-    async function checkAuthStatus() {
-        const btn = document.getElementById('btn-twitch-login');
-        try {
-            const res = await fetch(`${API_BASE}/twitch_user_status`);
-            const data = await res.json();
-            isConnected = data.is_connected;
-            if (isConnected) {
-                btn.innerHTML = `✅ ${data.display_name}`; btn.style.background = '#0e7e0e';
-                btn.onclick = async () => { if(confirm("Déconnexion ?")) { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); window.location.reload(); }};
-                loadFollowedStreams();
-            } else {
-                btn.onclick = startAuth;
-            }
-        } catch (e) {}
-    }
-
-    async function loadFollowedStreams() {
-        const list = document.getElementById('followed-streams-list');
-        if (!isConnected) return;
-        try {
-            const res = await fetch(`${API_BASE}/followed_streams`);
-            const data = await res.json();
-            if (data.success && data.streams.length > 0) {
-                list.innerHTML = "";
-                data.streams.forEach(s => {
-                    list.innerHTML += `<div class='followed-stream-item' onclick="launchPlayer('${s.user_login}')"><img src="${s.thumbnail_url.replace('{width}', '320').replace('{height}', '180')}"><div style="font-weight:bold; font-size:13px;">${s.user_name}</div></div>`;
-                });
-            } else { list.innerHTML = "<p style='color:#777;'>Personne en live.</p>"; }
-        } catch(e){}
-    }
-
-    // RAID
-    document.getElementById('form-raid').addEventListener('submit', async (e) => {
+    // --- 5. RAID FINDER (Correctif Images) ---
+    async function runRaid(e) {
         e.preventDefault();
-        const game = document.getElementById('input-raid-game').value;
-        const max = document.getElementById('select-raid-viewers').value;
-        const box = document.getElementById('raid-results');
-        box.innerHTML = "Recherche...";
+        const game = document.getElementById('raid-game').value;
+        const max = document.getElementById('raid-max').value;
+        const box = document.getElementById('raid-res');
+        
+        box.innerHTML = "<p class='text-center text-gray-500'>Recherche de la meilleure cible...</p>";
+        
         try {
-            const res = await fetch(`${API_BASE}/start_raid`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game, max_viewers: max}) });
-            const d = await res.json();
-            if(d.success) box.innerHTML = `<div class="raid-target-box"><img src="${d.target.thumbnail_url}"><div><b>${d.target.name}</b><br>${d.target.viewers} viewers</div><button class="btn-primary" onclick="launchPlayer('${d.target.login}')">GO</button></div>`;
-            else box.innerHTML = d.error;
-        } catch(e){}
-    });
-
-    // BOOST
-    document.getElementById('form-boost').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const c = document.getElementById('input-boost').value;
-        const box = document.getElementById('boost-results');
-        box.innerHTML = "Activation...";
-        try {
-            const res = await fetch(`${API_BASE}/stream_boost`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel:c}) });
-            const d = await res.json();
-            box.innerHTML = d.html_response || d.error;
-            if(d.success) checkBoostAndPlay(true);
-        } catch(e){}
-    });
-
-    // SCHEDULE
-    document.getElementById('form-schedule').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const game = document.getElementById('input-schedule-game').value;
-        const resBox = document.getElementById('schedule-results');
-        try {
-            const res = await fetch(`${API_BASE}/analyze_schedule`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game}) });
-            const d = await res.json();
+            const r = await fetch(`${API_BASE}/start_raid`, { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({game, max_viewers:max}) 
+            });
+            const d = await r.json();
+            
             if(d.success) {
-                resBox.style.display = 'block';
-                document.getElementById('schedule-img').src = d.box_art;
-                document.getElementById('schedule-game-name').innerText = d.game_name;
-                document.getElementById('schedule-ai-content').innerHTML = d.html_response;
+                const t = d.target;
+                // Affichage propre avec Avatar rond + Miniature
+                box.innerHTML = `
+                    <div class="raid-card">
+                        <img src="${t.avatar_url}" class="raid-avatar" alt="Avatar">
+                        <img src="${t.thumbnail_url}" class="raid-thumb" alt="Stream">
+                        <div class="raid-info">
+                            <div class="raid-name">${t.name}</div>
+                            <div class="raid-game">${t.login}</div>
+                            <div class="raid-viewers">🟢 ${t.viewers} spectateurs</div>
+                        </div>
+                        <button onclick="launchPlayer('${t.login}')" class="bg-cyan-500 text-black font-bold px-4 py-2 rounded hover:bg-white transition">
+                            RAID
+                        </button>
+                    </div>
+                `;
+            } else { 
+                box.innerHTML = `<p style="color:var(--alert-red); text-align:center;">${d.error}</p>`; 
             }
-        } catch(e){}
-    });
+        } catch(e) { 
+            box.innerText = "Erreur de connexion au serveur."; 
+        }
+    }
 
-    document.getElementById('btn-export-pdf').addEventListener('click', () => window.open(`${API_BASE}/export_csv`, '_blank'));
+    // --- 6. BOOST ---
+    async function activateBoost() {
+        const c = document.getElementById('boost-channel').value;
+        const msg = document.getElementById('boost-msg');
+        if(!c) return;
+        
+        msg.innerText = "Demande d'activation...";
+        try {
+            const r = await fetch(`${API_BASE}/stream_boost`, { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({channel:c}) 
+            });
+            const d = await r.json();
+            msg.innerHTML = d.html_response || d.error;
+            
+            if(d.success) {
+                // Rafraîchir la page après 1.5s pour voir le boost
+                setTimeout(() => location.reload(), 1500);
+            }
+        } catch(e){ 
+            msg.innerText = "Erreur technique."; 
+        }
+    }
 
-    window.onload = () => {
-        checkAuthStatus();
-        checkBoostAndPlay(); 
-        openTab('tab-followed'); 
-    };
+    // --- NAVIGATION ---
+    function switchTab(id) {
+        document.getElementById('tab-dashboard').classList.add('hidden');
+        document.getElementById('tab-boost').classList.add('hidden');
+        document.getElementById('tab-raid').classList.add('hidden');
+        document.getElementById('tab-'+id).classList.remove('hidden');
+        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    // Initialisation au chargement
+    window.onload = checkStatus;
 </script>
 </body>
 </html>
