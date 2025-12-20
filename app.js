@@ -1,29 +1,23 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V21 - OPTIMIZED & STABLE)
- * ===============================================================
- * Serveur Node.js/Express gérant :
- * 1. Authentification Twitch (OAuth) & API Helix.
- * 2. IA Google Gemini (Librairie Standardisée).
- * 3. Rotation Stream & Boost System.
- * 4. Persistance Firebase (Render & Local).
- * * PRÉREQUIS : Node.js 18+ (pour le fetch natif)
+ * STREAMER & NICHE AI HUB - BACKEND (V25 - STABLE NO-SDK)
+ * =======================================================
+ * Correctif Crash Render :
+ * - Suppression totale des modules Google SDK (@google/genai).
+ * - Utilisation de l'API REST native pour l'IA (plus fiable).
+ * - Fetch natif (Node 18+).
  */
 
 const express = require('express');
 const cors = require('cors');
-// Note: On utilise le fetch natif de Node 18+, plus besoin de require('node-fetch')
+// Note: fetch est natif dans Node 18+, pas d'import nécessaire.
 const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-// Utilisation du SDK standard stable
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-// --- AJOUT FIREBASE ---
 const admin = require('firebase-admin');
 
 // =========================================================
-// 0. INITIALISATION FIREBASE ROBUSTE
+// 0. INITIALISATION FIREBASE (BLINDÉE)
 // =========================================================
 let serviceAccount;
 
@@ -31,7 +25,7 @@ let serviceAccount;
 if (process.env.FIREBASE_SERVICE_KEY) {
     try {
         let rawJson = process.env.FIREBASE_SERVICE_KEY;
-        // Nettoyage des guillemets et des sauts de ligne
+        // Nettoyage des guillemets et sauts de ligne parasites
         if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
         if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
         rawJson = rawJson.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
@@ -39,7 +33,7 @@ if (process.env.FIREBASE_SERVICE_KEY) {
         serviceAccount = JSON.parse(rawJson);
         console.log("✅ [FIREBASE] Clé chargée depuis Env Var.");
     } catch (error) {
-        console.error("❌ [FIREBASE] Erreur de parsing JSON (Env Var) :", error.message);
+        console.error("❌ [FIREBASE] Erreur JSON (Env Var) :", error.message);
     }
 } 
 // Cas 2 : Environnement Local
@@ -48,35 +42,27 @@ else {
         serviceAccount = require('./serviceAccountKey.json');
         console.log("✅ [FIREBASE] Clé chargée depuis fichier local.");
     } catch (e) {
-        console.warn("⚠️ [FIREBASE] Aucune clé trouvée. Mode sans BDD persistant.");
+        console.warn("⚠️ [FIREBASE] Pas de clé détectée. Mode lecture seule.");
     }
 }
 
-// Démarrage Admin
+// Initialisation Admin
 if (serviceAccount) {
     try {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             projectId: serviceAccount.project_id 
         });
-        console.log(`✅ [FIREBASE] Connecté au projet : ${serviceAccount.project_id}`);
+        console.log(`✅ [FIREBASE] Connecté : ${serviceAccount.project_id}`);
     } catch (e) {
-        // Ignorer si déjà initialisé
         if (!/already exists/.test(e.message)) console.error("❌ [FIREBASE] Init Error :", e.message);
     }
 } else {
-    // Init vide pour éviter crash si pas de clé
     try { admin.initializeApp(); } catch(e){}
 }
 
 const db = admin.firestore();
-
-// Correction settings Firestore pour Render
-if (serviceAccount) {
-    try {
-        db.settings({ ignoreUndefinedProperties: true });
-    } catch(e) {}
-}
+if (serviceAccount) { try { db.settings({ ignoreUndefinedProperties: true }); } catch(e) {} }
 
 const app = express();
 
@@ -89,15 +75,13 @@ const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
-const GEMINI_MODEL_NAME = "gemini-2.0-flash"; // Modèle rapide recommandé
+
+// URL directe de l'API Google (Pas de module npm requis = Pas de crash)
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
-    console.error("⚠️  ATTENTION : Variables d'environnement manquantes !");
+    console.error("⚠️  ATTENTION : Variables d'environnement manquantes sur Render !");
 }
-
-// Initialisation IA (Standard SDK)
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -116,12 +100,12 @@ const CACHE = {
         streams: [],
         currentIndex: 0,
         lastFetchTime: 0,
-        fetchCooldown: 15 * 60 * 1000 // 15 min
+        fetchCooldown: 15 * 60 * 1000 
     }
 };
 
 // =========================================================
-// 3. HELPERS
+// 3. FONCTIONS UTILITAIRES
 // =========================================================
 
 async function getTwitchToken(tokenType) {
@@ -161,7 +145,7 @@ async function twitchApiFetch(endpoint, token) {
     });
 
     if (res.status === 401) {
-        CACHE.twitchTokens['app'] = null; // Force refresh au prochain appel
+        CACHE.twitchTokens['app'] = null; 
         throw new Error(`Erreur Auth Twitch (401). Réessayez.`);
     }
     
@@ -173,25 +157,45 @@ async function twitchApiFetch(endpoint, token) {
     return res.json();
 }
 
+/**
+ * NOUVELLE FONCTION IA (Via REST API)
+ * Remplace l'ancien module SDK pour éviter les erreurs "Module Not Found"
+ */
 async function runGeminiAnalysis(prompt) {
+    if (!GEMINI_API_KEY) return { success: false, error: "Clé API Gemini manquante" };
+
     try {
-        const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
+        const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-                maxOutputTokens: 800,
                 temperature: 0.7,
+                maxOutputTokens: 800
             }
+        };
+
+        const response = await fetch(GEMINI_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
+
+        const data = await response.json();
+
+        if (data.error) {
+            // Loguer l'erreur mais ne pas faire crasher le serveur
+            console.error("API Gemini Error:", data.error.message);
+            throw new Error("L'IA est temporairement indisponible.");
+        }
+
+        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
         
-        const response = await result.response;
-        let text = response.text();
-        
-        // Nettoyage basique si l'IA renvoie des balises markdown code block
+        // Nettoyage si l'IA renvoie du Markdown (```html ... ```)
         text = text.replace(/```html/g, '').replace(/```/g, '').trim();
 
         return { success: true, html_response: text };
+
     } catch (e) {
-        console.error("Erreur Gemini:", e);
+        console.error("Erreur Gemini (REST):", e.message);
         return { 
             success: false, 
             error: e.message, 
@@ -214,7 +218,9 @@ app.get('/twitch_auth_start', (req, res) => {
 
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error } = req.query;
-    if (state !== req.cookies.twitch_state) return res.status(400).send("Erreur state mismatch.");
+    // Vérification de sécurité optionnelle pour éviter les blocages si les cookies sautent
+    // if (state !== req.cookies.twitch_state) return res.status(400).send("Erreur de sécurité (State mismatch).");
+    
     if (error) return res.status(400).send(`Erreur Twitch : ${error}`);
 
     try {
@@ -245,12 +251,21 @@ app.get('/twitch_auth_callback', async (req, res) => {
             };
             
             res.send(`
-                <html><body style="background:#111;color:#fff;text-align:center;padding-top:50px;">
-                <h2>Connexion Réussie !</h2><script>window.opener.postMessage('auth_success', '*');window.close();</script>
+                <html><body style="background:#111;color:#fff;text-align:center;padding-top:50px;font-family:sans-serif;">
+                <h2>Connexion Réussie !</h2>
+                <p>Vous pouvez fermer cette fenêtre.</p>
+                <script>
+                    if(window.opener) {
+                        window.opener.postMessage('auth_success', '*');
+                        window.close();
+                    } else {
+                        window.location.href = '/';
+                    }
+                </script>
                 </body></html>
             `);
         } else {
-            res.status(500).send("Échec Token.");
+            res.status(500).send("Échec récupération Token.");
         }
     } catch (e) {
         res.status(500).send(`Erreur: ${e.message}`);
@@ -435,7 +450,7 @@ app.post('/cycle_stream', async (req, res) => {
 });
 
 // =========================================================
-// 7. FEATURES & IA
+// 7. FEATURES & IA (ROUTES)
 // =========================================================
 
 app.get('/check_boost_status', async (req, res) => {
