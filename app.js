@@ -1,15 +1,15 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V25 - STABLE NO-SDK)
- * =======================================================
- * Correctif Crash Render :
- * - Suppression totale des modules Google SDK (@google/genai).
- * - Utilisation de l'API REST native pour l'IA (plus fiable).
- * - Fetch natif (Node 18+).
+ * STREAMER & NICHE AI HUB - BACKEND (V26 - JSON FIX)
+ * ==================================================
+ * Correctif JSON Parse Error :
+ * - Suppression du "nettoyage" pré-parse qui corrompait le JSON.
+ * - Correction de la clé privée APRES le parsing (Post-Processing).
+ * - Compatible Render (Env Var) & Local (Fichier).
  */
 
 const express = require('express');
 const cors = require('cors');
-// Note: fetch est natif dans Node 18+, pas d'import nécessaire.
+// fetch est natif en Node 18+
 const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
@@ -17,47 +17,54 @@ const cookieParser = require('cookie-parser');
 const admin = require('firebase-admin');
 
 // =========================================================
-// 0. INITIALISATION FIREBASE (BLINDÉE)
+// 0. INITIALISATION FIREBASE (FIX PARSING)
 // =========================================================
 let serviceAccount;
 
-// Cas 1 : Environnement de Production (Render)
-if (process.env.FIREBASE_SERVICE_KEY) {
-    try {
+try {
+    // Cas 1 : Render (Variable d'environnement)
+    if (process.env.FIREBASE_SERVICE_KEY) {
         let rawJson = process.env.FIREBASE_SERVICE_KEY;
-        // Nettoyage des guillemets et sauts de ligne parasites
+        
+        // Nettoyage basique des guillemets externes (copier-coller accidentel)
         if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
         if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
-        rawJson = rawJson.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
 
+        // TENTATIVE DE PARSING DIRECT (Le plus fiable)
         serviceAccount = JSON.parse(rawJson);
-        console.log("✅ [FIREBASE] Clé chargée depuis Env Var.");
-    } catch (error) {
-        console.error("❌ [FIREBASE] Erreur JSON (Env Var) :", error.message);
-    }
-} 
-// Cas 2 : Environnement Local
-else {
-    try {
+        console.log("✅ [FIREBASE] JSON parsé avec succès.");
+        
+        // FIX CLÉ PRIVÉE (Post-Parsing) :
+        // Si la clé privée contient des "\n" littéraux (texte), on les convertit en vrais sauts de ligne.
+        if (serviceAccount.private_key && serviceAccount.private_key.includes("\\n")) {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+    } 
+    // Cas 2 : Local (Fichier physique)
+    else {
         serviceAccount = require('./serviceAccountKey.json');
-        console.log("✅ [FIREBASE] Clé chargée depuis fichier local.");
-    } catch (e) {
-        console.warn("⚠️ [FIREBASE] Pas de clé détectée. Mode lecture seule.");
+        console.log("✅ [FIREBASE] Fichier local chargé.");
     }
-}
 
-// Initialisation Admin
-if (serviceAccount) {
-    try {
+    // Connexion
+    if (serviceAccount) {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             projectId: serviceAccount.project_id 
         });
         console.log(`✅ [FIREBASE] Connecté : ${serviceAccount.project_id}`);
-    } catch (e) {
-        if (!/already exists/.test(e.message)) console.error("❌ [FIREBASE] Init Error :", e.message);
+    } else {
+        console.warn("⚠️ [FIREBASE] Aucune clé trouvée. Mode BDD désactivé.");
+        try { admin.initializeApp(); } catch(e){}
     }
-} else {
+
+} catch (error) {
+    console.error("###################################################");
+    console.error("❌ ERREUR CRITIQUE FIREBASE (Parsing JSON)");
+    console.error("Message :", error.message);
+    console.error("Conseil : Vérifiez que votre variable d'environnement sur Render ne contient pas de sauts de ligne réels, mais bien des \\n");
+    console.error("###################################################");
+    // On initialise vide pour ne pas faire crasher l'app au démarrage
     try { admin.initializeApp(); } catch(e){}
 }
 
@@ -76,7 +83,6 @@ const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 
-// URL directe de l'API Google (Pas de module npm requis = Pas de crash)
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
@@ -158,8 +164,7 @@ async function twitchApiFetch(endpoint, token) {
 }
 
 /**
- * NOUVELLE FONCTION IA (Via REST API)
- * Remplace l'ancien module SDK pour éviter les erreurs "Module Not Found"
+ * FONCTION IA REST (Sans SDK)
  */
 async function runGeminiAnalysis(prompt) {
     if (!GEMINI_API_KEY) return { success: false, error: "Clé API Gemini manquante" };
@@ -182,14 +187,11 @@ async function runGeminiAnalysis(prompt) {
         const data = await response.json();
 
         if (data.error) {
-            // Loguer l'erreur mais ne pas faire crasher le serveur
             console.error("API Gemini Error:", data.error.message);
             throw new Error("L'IA est temporairement indisponible.");
         }
 
         let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        
-        // Nettoyage si l'IA renvoie du Markdown (```html ... ```)
         text = text.replace(/```html/g, '').replace(/```/g, '').trim();
 
         return { success: true, html_response: text };
@@ -218,9 +220,6 @@ app.get('/twitch_auth_start', (req, res) => {
 
 app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state, error } = req.query;
-    // Vérification de sécurité optionnelle pour éviter les blocages si les cookies sautent
-    // if (state !== req.cookies.twitch_state) return res.status(400).send("Erreur de sécurité (State mismatch).");
-    
     if (error) return res.status(400).send(`Erreur Twitch : ${error}`);
 
     try {
@@ -253,7 +252,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
             res.send(`
                 <html><body style="background:#111;color:#fff;text-align:center;padding-top:50px;font-family:sans-serif;">
                 <h2>Connexion Réussie !</h2>
-                <p>Vous pouvez fermer cette fenêtre.</p>
                 <script>
                     if(window.opener) {
                         window.opener.postMessage('auth_success', '*');
@@ -321,7 +319,6 @@ app.post('/scan_target', async (req, res) => {
     if (!query) return res.status(400).json({ success: false });
     
     try {
-        // User Scan
         const userRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`); 
         if (userRes.data.length > 0) {
             const user = userRes.data[0];
@@ -353,7 +350,6 @@ app.post('/scan_target', async (req, res) => {
             return res.json({ success: true, type: 'user', user_data: userData });
         }
         
-        // Game Scan
         const gameRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if (gameRes.data.length > 0) {
             const game = gameRes.data[0];
@@ -374,7 +370,6 @@ app.post('/scan_target', async (req, res) => {
             CACHE.lastScanData = gameData;
             return res.json({ success: true, type: 'game', game_data: gameData });
         }
-
         return res.status(404).json({ success: false, message: "Introuvable" });
         
     } catch (e) {
@@ -408,7 +403,6 @@ app.get('/get_default_stream', async (req, res) => {
     const now = Date.now();
     let currentBoost = null;
 
-    // Check Firebase
     try {
         const boostQuery = await db.collection('boosts')
             .where('endTime', '>', now).orderBy('endTime', 'desc').limit(1).get();
@@ -450,7 +444,7 @@ app.post('/cycle_stream', async (req, res) => {
 });
 
 // =========================================================
-// 7. FEATURES & IA (ROUTES)
+// 7. FEATURES (BOOST, RAID, ETC)
 // =========================================================
 
 app.get('/check_boost_status', async (req, res) => {
