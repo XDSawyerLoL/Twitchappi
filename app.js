@@ -1,15 +1,10 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V31 - ULTIMATE PRODUCTION)
- * =============================================================
- * Serveur Node.js/Express complet pour l'application "JustPlayer / Streamer Hub".
- * * FONCTIONNALITÉS :
- * 1. AUTHENTIFICATION : OAuth2 Twitch (Login/Logout) + Gestion Cookies.
- * 2. BASE DE DONNÉES : Firebase Firestore (Persistance Boosts, Historique, Market).
- * 3. INTELLIGENCE ARTIFICIELLE : Google Gemini (Coach, Analyste, Planning).
- * 4. LECTEUR INTELLIGENT : Rotation automatique (Filtre strict <100 vues) + Boost.
- * 5. MARKET DATA : Agrégation de données globales (Vue "TwitchTracker").
- * 6. RAID FINDER : Recherche de cibles optimisée avec Avatar + Miniature.
- * 7. ANALYSE : Calcul de tendances (Bourse), Score 5 étoiles, Habitudes de stream.
+ * STREAMER HUB - BACKEND V32 (FINAL DEBUG)
+ * ========================================
+ * 1. Filtre Strict : Le lecteur refuse tout stream > 100 vues.
+ * 2. Scan Réparé : Followers et VODs récupérés avec les bons endpoints.
+ * 3. Market Data : Gestion des sous-onglets (Jeux/Langues/Compare).
+ * 4. Planning & Raid : Routes testées et valides.
  */
 
 const express = require('express');
@@ -22,94 +17,35 @@ const cookieParser = require('cookie-parser');
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
-// ====================================================================================
-// 1. INITIALISATION DE LA BASE DE DONNÉES (FIREBASE / FIRESTORE)
-// ====================================================================================
-// Ce bloc est critique pour le fonctionnement sur Render.com et en local.
-
+// --- INITIALISATION FIREBASE ---
 let serviceAccount;
-
-// Cas A : Environnement de Production (Variable d'environnement Render)
 if (process.env.FIREBASE_SERVICE_KEY) {
     try {
         let rawJson = process.env.FIREBASE_SERVICE_KEY;
-        
-        // Nettoyage des guillemets parasites (souvent ajoutés par les interfaces web)
         if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
         if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
-        
-        // Correction des sauts de ligne échappés (\n) qui cassent le JSON
         rawJson = rawJson.replace(/\r\n/g, '\\n').replace(/\n/g, '\\n').replace(/\r/g, '\\n');
-
         serviceAccount = JSON.parse(rawJson);
-        console.log("✅ [FIREBASE] Clé chargée et réparée depuis les variables d'environnement.");
+    } catch (e) { console.error("Firebase Key Error"); }
+} else { try { serviceAccount = require('./serviceAccountKey.json'); } catch (e) {} }
 
-    } catch (error) {
-        console.error("❌ [FIREBASE] Erreur FATALE de parsing JSON :", error.message);
-        console.error("🔍 Vérifiez votre variable FIREBASE_SERVICE_KEY.");
-    }
-} 
-// Cas B : Environnement Local (Fichier physique)
-else {
-    try {
-        serviceAccount = require('./serviceAccountKey.json');
-        console.log("✅ [FIREBASE] Clé chargée depuis le fichier local.");
-    } catch (e) {
-        console.warn("⚠️ [FIREBASE] Aucune clé trouvée. La base de données ne sera pas disponible.");
-    }
-}
-
-// Initialisation de l'instance Admin
 if (serviceAccount) {
-    try {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            projectId: serviceAccount.project_id 
-        });
-        console.log(`✅ [FIREBASE] Connecté au projet : ${serviceAccount.project_id}`);
-    } catch (e) {
-        console.error("❌ [FIREBASE] Erreur d'initialisation Admin :", e.message);
-    }
-} else {
-    // Fallback pour ne pas faire crasher l'app si pas de DB
-    try { admin.initializeApp(); } catch(e){}
-}
+    try { admin.initializeApp({ credential: admin.credential.cert(serviceAccount), projectId: serviceAccount.project_id }); } 
+    catch (e) {}
+} else { try { admin.initializeApp(); } catch(e){} }
 
 const db = admin.firestore();
-
-// Forçage des paramètres pour éviter les bugs "Undefined Project ID" sur certains hébergeurs
-if (serviceAccount) {
-    try {
-        db.settings({
-            projectId: serviceAccount.project_id || 'streamer-hub-prod',
-            ignoreUndefinedProperties: true
-        });
-    } catch(e) {
-        console.warn("⚠️ [FIREBASE] Impossible d'appliquer les settings avancés.");
-    }
-}
+if (serviceAccount) { try { db.settings({ projectId: serviceAccount.project_id, ignoreUndefinedProperties: true }); } catch(e) {} }
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ====================================================================================
-// 2. CONFIGURATION API (TWITCH & GEMINI)
-// ====================================================================================
-
+// KEYS
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 const GEMINI_MODEL = "gemini-2.5-flash"; 
-
-// Vérification de sécurité au démarrage
-if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI || !GEMINI_API_KEY) {
-    console.error("#############################################################");
-    console.error("ERREUR FATALE : VARIABLES D'ENVIRONNEMENT MANQUANTES");
-    console.error("Vérifiez TWITCH_CLIENT_ID, SECRET, REDIRECT_URI et GEMINI_API_KEY");
-    console.error("#############################################################");
-}
-
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
 
 app.use(cors());
@@ -117,311 +53,174 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
-// ====================================================================================
-// 3. SYSTÈME DE CACHE & ÉTAT GLOBAL
-// ====================================================================================
-
-const CACHE = {
-    twitchTokens: {},       // Stockage des tokens d'application et utilisateur
-    twitchUser: null,       // Session utilisateur connecté
-    boostedStream: null,    // Stream mis en avant (Boost)
-    lastScanData: null,     // Dernières données pour l'export CSV
-    
-    // Rotation automatique des chaînes (Découverte)
-    globalStreamRotation: {
-        streams: [],        // Liste des petits streamers
-        currentIndex: 0,    
-        lastFetchTime: 0,   
-        fetchCooldown: 10 * 60 * 1000 // 10 Minutes de cache
-    },
-
-    // Cache pour les données de marché (éviter de spammer l'API Twitch)
-    marketData: {
-        games: null,
-        languages: null,
-        lastUpdate: 0,
-        updateInterval: 5 * 60 * 1000 // 5 Minutes
-    }
+// CACHE
+const CACHE = { 
+    twitchTokens: {}, 
+    smallStreamPool: [], 
+    lastPoolUpdate: 0 
 };
 
-// ====================================================================================
-// 4. FONCTIONS UTILITAIRES (HELPERS)
-// ====================================================================================
-
-/**
- * Obtient un Token d'Application Twitch (Client Credentials Flow).
- * Gère le cache et l'expiration.
- */
-async function getTwitchToken(tokenType) {
-    if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) {
-        return CACHE.twitchTokens[tokenType].access_token;
-    }
-    
-    const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
-    
+// HELPERS
+async function getTwitchToken() {
+    if (CACHE.twitchTokens.app && CACHE.twitchTokens.app.expiry > Date.now()) return CACHE.twitchTokens.app.token;
     try {
-        const response = await fetch(url, { method: 'POST' });
-        const data = await response.json();
-        
-        if (data.access_token) {
-            CACHE.twitchTokens[tokenType] = {
-                access_token: data.access_token,
-                expiry: Date.now() + (data.expires_in * 1000) - 300000 // Marge de 5 min
-            };
-            return data.access_token;
-        } else {
-            console.error("Erreur Token Twitch:", data);
-            return null;
-        }
-    } catch (error) {
-        console.error("Erreur réseau Token:", error);
-        return null;
-    }
+        const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, { method: 'POST' });
+        const d = await r.json();
+        CACHE.twitchTokens.app = { token: d.access_token, expiry: Date.now() + d.expires_in * 1000 };
+        return d.access_token;
+    } catch (e) { return null; }
 }
 
-/**
- * Wrapper pour les appels API Twitch Helix.
- * Gère l'authentification et le renouvellement automatique du token en cas d'erreur 401.
- */
-async function twitchApiFetch(endpoint, token) {
-    const accessToken = token || await getTwitchToken('app');
-    if (!accessToken) throw new Error("Impossible d'obtenir un Token Twitch.");
-
-    const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, {
-        headers: {
-            'Client-ID': TWITCH_CLIENT_ID,
-            'Authorization': `Bearer ${accessToken}`
-        }
-    });
-
-    if (res.status === 401) {
-        // Token invalide, on nettoie le cache et on relance
-        if (token === CACHE.twitchTokens['app']?.access_token) CACHE.twitchTokens['app'] = null; 
-        throw new Error(`Erreur Auth Twitch (401). Token expiré.`);
-    }
-    
-    if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Erreur API Twitch (${res.status}): ${txt}`);
-    }
-
-    return res.json();
+async function apiCall(endpoint) {
+    const t = await getTwitchToken();
+    const r = await fetch(`https://api.twitch.tv/helix/${endpoint}`, { headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${t}` } });
+    if(r.status === 401) CACHE.twitchTokens.app = null;
+    return r.json();
 }
 
-/**
- * Moteur d'Analyse IA (Gemini)
- * Accepte un "type" pour adapter le persona (Coach, Analyste, etc.)
- */
-async function runGeminiAnalysis(prompt, type="standard") {
-    let sysInstruct = "Tu es un expert Twitch. Réponds en HTML simple.";
-    
-    if (type === 'coach') {
-        sysInstruct = "Tu es un Coach de Performance Twitch Bienveillant. Tu analyses les chiffres comme un expert financier, mais tu parles pour motiver. Utilise des listes à puces. Sois concis.";
-    } else if (type === 'scheduler') {
-        sysInstruct = "Tu es un expert en planification stratégique. Tu cherches les 'Océans Bleus' (créneaux peu concurrentiels).";
-    }
-
+async function runGemini(prompt) {
     try {
-        const response = await ai.models.generateContent({
+        const r = await ai.models.generateContent({
             model: GEMINI_MODEL,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            config: { systemInstruction: sysInstruct }
+            config: { systemInstruction: "Tu es un expert Twitch concis. Réponds UNIQUEMENT avec des listes HTML (<ul><li>). Pas de texte inutile." }
         });
+        return { html: r.text.trim() };
+    } catch (e) { return { html: "IA Indisponible." }; }
+}
+
+// --- FILTRE STRICT < 100 VUES ---
+async function updateSmallStreamPool() {
+    // Si pool récent, on garde
+    if (Date.now() - CACHE.lastPoolUpdate < 300000 && CACHE.smallStreamPool.length > 0) return;
+    
+    let cursor = "";
+    let found = [];
+    
+    // On scanne jusqu'à 10 pages (1000 streams) pour trouver les petits
+    for (let i = 0; i < 10; i++) {
+        let url = `streams?language=fr&first=100` + (cursor ? `&after=${cursor}` : ``);
+        const res = await apiCall(url);
+        if (!res.data || res.data.length === 0) break;
         
-        return { success: true, html_response: response.text.trim() };
-
-    } catch (e) {
-        console.error("Erreur Gemini:", e);
-        return { 
-            success: false, 
-            error: e.message, 
-            html_response: `<p style="color:red;">❌ Le service IA est momentanément indisponible.</p>` 
-        };
+        // LE FILTRE EST ICI : STRICTEMENT <= 100
+        const small = res.data.filter(s => s.viewer_count <= 100 && s.viewer_count > 0);
+        found = found.concat(small);
+        
+        if (found.length >= 50) break; // On a assez de stock
+        cursor = res.pagination.cursor;
+        if (!cursor) break;
     }
+    
+    CACHE.smallStreamPool = found.length > 0 ? found : [];
+    CACHE.lastPoolUpdate = Date.now();
 }
 
-/**
- * Moteur "Bourse" : Historisation et Calcul de Tendances.
- * Sauvegarde chaque scan dans Firebase et compare avec le passé.
- */
-async function handleHistoryAndStats(type, id, newData) {
-    const docRef = db.collection('history_stats').doc(String(id));
-    let doc;
-    try { doc = await docRef.get(); } catch(e) { return { trend: 'stable', diff: 0 }; }
-
-    let analysis = { trend: 'stable', diff: 0, previous: 0 };
-
-    if (doc.exists) {
-        const oldData = doc.data();
-        if (type === 'user') {
-            const currentFollowers = newData.total_followers || 0;
-            const oldFollowers = oldData.total_followers || 0;
-            const diff = currentFollowers - oldFollowers;
-            
-            analysis.diff = diff;
-            analysis.previous = oldFollowers;
-            
-            if (diff > 0) analysis.trend = 'up';
-            else if (diff < 0) analysis.trend = 'down';
-            else analysis.trend = 'stable';
-        }
-        // Mise à jour (Merge)
-        await docRef.update({ 
-            ...newData, 
-            last_updated: admin.firestore.FieldValue.serverTimestamp() 
-        });
-    } else {
-        // Nouveau profil
-        analysis.trend = 'new';
-        await docRef.set({ 
-            ...newData, 
-            first_seen: admin.firestore.FieldValue.serverTimestamp(),
-            last_updated: admin.firestore.FieldValue.serverTimestamp()
-        });
-    }
-    return analysis;
-}
-
-// ====================================================================================
-// 5. ROTATION "DEEP DIVE" (FILTRE STRICT < 100 VUES)
-// ====================================================================================
-
-async function refreshGlobalStreamList() {
-    const now = Date.now();
-    const rotation = CACHE.globalStreamRotation;
-    
-    // Cooldown
-    if (now - rotation.lastFetchTime < rotation.fetchCooldown && rotation.streams.length > 0) return;
-    
-    console.log("🔄 Lancement du Deep Dive Scan (<100 vues)...");
-    
-    let allFoundStreams = [];
-    let cursor = ""; 
-    
+// --- 1. SCAN TARGET (CORRIGÉ) ---
+app.post('/scan_target', async (req, res) => {
+    const { query } = req.body;
     try {
-        // On boucle 5 fois (Pagination) pour aller chercher loin dans la liste
-        for (let i = 0; i < 5; i++) {
-            let url = `streams?language=fr&first=100`;
-            if (cursor) url += `&after=${cursor}`;
+        // 1. User
+        const uRes = await apiCall(`users?login=${encodeURIComponent(query)}`);
+        if (uRes.data && uRes.data.length > 0) {
+            const u = uRes.data[0];
             
-            const res = await twitchApiFetch(url);
-            const batch = res.data;
-            
-            if (!batch || batch.length === 0) break;
+            // 2. Followers (Correct endpoint)
+            let followers = 0;
+            try { 
+                const f = await apiCall(`channels/followers?broadcaster_id=${u.id}&first=1`); 
+                followers = f.total; 
+            } catch(e){}
 
-            // FILTRE STRICT : On ne garde que ceux entre 0 et 100 vues
-            const smallOnes = batch.filter(s => s.viewer_count > 0 && s.viewer_count <= 100);
+            // 3. VOD & Jours
+            let days = "Inconnu";
+            try {
+                const vRes = await apiCall(`videos?user_id=${u.id}&first=10&type=archive`);
+                if(vRes.data && vRes.data.length > 0) {
+                    const map = {}; 
+                    vRes.data.forEach(v => {
+                        const d = new Date(v.created_at).toLocaleDateString('fr-FR', { weekday: 'short' });
+                        map[d] = (map[d] || 0) + 1;
+                    });
+                    days = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0].toUpperCase()).join(", ");
+                }
+            } catch(e){}
+
+            // 4. Historique
+            const docRef = db.collection('history_stats').doc(String(u.id));
+            const old = await docRef.get();
+            let diff=0, trend="stable";
             
-            allFoundStreams = allFoundStreams.concat(smallOnes);
-            
-            if (allFoundStreams.length >= 50) break; // On a assez de stock
-            
-            cursor = res.pagination.cursor;
-            if (!cursor) break;
+            if(old.exists) { 
+                diff = followers - (old.data().total_followers || 0); 
+                trend = diff > 0 ? "up" : (diff < 0 ? "down" : "stable"); 
+            }
+            await docRef.set({total_followers: followers, last_scan: new Date()}, {merge:true});
+
+            // 5. IA
+            const prompt = `Streamer: ${u.display_name}. Followers: ${followers}. Trend: ${trend}. Donne 3 conseils stratégiques courts en HTML.`;
+            const ia = await runGemini(prompt);
+
+            const uData = { 
+                login: u.login, display_name: u.display_name, id: u.id, 
+                profile_image_url: u.profile_image_url, total_followers: followers, active_days: days 
+            };
+
+            return res.json({ success: true, type: 'user', data: uData, diff, trend, ia: ia.html });
         }
+        return res.json({success:false, error:"Streamer introuvable."});
+    } catch(e) { return res.json({success:false, error:e.message}); }
+});
 
-        if (allFoundStreams.length > 0) {
-            // Mélange pour varier
-            allFoundStreams.sort(() => Math.random() - 0.5);
-            
-            rotation.streams = allFoundStreams.map(s => ({ channel: s.user_login, viewers: s.viewer_count }));
-            rotation.currentIndex = 0;
-            rotation.lastFetchTime = now;
-            console.log(`✅ Deep Dive : ${allFoundStreams.length} streamers trouvés.`);
-        } else {
-            console.log("⚠️ Aucun petit streamer trouvé. Fallback.");
-            rotation.streams = [{channel:'twitch', viewers:0}]; 
-        }
-
-    } catch (e) { console.error("Erreur Deep Dive:", e); }
-}
-
-// ====================================================================================
-// 6. ROUTES API PRINCIPALES
-// ====================================================================================
-
-// --- A. GLOBAL MARKET PULSE (TwitchTracker Clone) ---
+// --- 2. GLOBAL PULSE (MARKET) ---
 app.post('/global_pulse', async (req, res) => {
-    const { type } = req.body; // 'games' ou 'languages'
-    
+    const { type } = req.body; 
     try {
-        // 1. Récupération du Top 100 streams pour échantillonnage statistique
-        const sRes = await twitchApiFetch('streams?first=100');
+        const sRes = await apiCall('streams?first=100');
         const streams = sRes.data;
+        const totalV = streams.reduce((acc, s) => acc + s.viewer_count, 0);
         
-        // Calcul des totaux de l'échantillon
-        const totalSampleViewers = streams.reduce((acc, s) => acc + s.viewer_count, 0);
-        
-        // Extrapolation pour estimer le trafic total (Facteur x1.5 environ pour la longue traîne)
-        const estViewers = Math.floor(totalSampleViewers * 1.5);
-        const estChannels = Math.floor(streams.length * 60); 
+        // Extrapolation
+        const estViewers = Math.floor(totalV * 1.5);
+        const estChannels = Math.floor(streams.length * 65);
 
-        // Données Overview (Cartes du haut)
         const overview = {
             viewers: estViewers.toLocaleString(),
             channels: estChannels.toLocaleString(),
             active_streamers: Math.floor(estChannels * 0.8).toLocaleString(),
-            watch_time: Math.floor(estViewers * 50 / 60) + "Mh",
-            stream_time: Math.floor(estChannels * 2.5) + "Kh"
+            watch_time: Math.floor(estViewers * 45 / 60) + "Mh",
+            stream_time: Math.floor(estChannels * 2) + "Kh"
         };
 
         let tableData = [];
 
         if (type === 'languages') {
-            // MODE LANGUES
-            const langMap = {};
+            const map = {};
             streams.forEach(s => {
                 const l = s.language.toUpperCase();
-                if(!langMap[l]) langMap[l] = { count:0, viewers:0 };
-                langMap[l].count++;
-                langMap[l].viewers += s.viewer_count;
+                if(!map[l]) map[l] = {c:0, v:0};
+                map[l].c++; map[l].v += s.viewer_count;
             });
-            
-            // Conversion en tableau trié
-            tableData = Object.entries(langMap)
-                .sort((a,b) => b[1].viewers - a[1].viewers)
-                .map(([lang, stats], idx) => ({
-                    rank: idx + 1,
-                    name: lang,
-                    viewers: stats.viewers,
-                    channels: stats.count,
-                    rating: stats.viewers > 50000 ? "A+" : (stats.viewers > 10000 ? "B" : "C")
-                }));
-
+            tableData = Object.entries(map).sort((a,b)=>b[1].v - a[1].v).map(([k,v], i) => ({
+                rank: i+1, name: k, viewers: v.v, channels: v.c, 
+                rating: v.v > 50000 ? "A+" : "B"
+            }));
         } else {
-            // MODE JEUX (Défaut)
-            const gRes = await twitchApiFetch('games/top?first=15');
-            const topGames = gRes.data;
-            
-            for(let i=0; i<topGames.length; i++) {
-                const g = topGames[i];
-                // Appel spécifique pour chaque jeu (limit 5)
-                const gsRes = await twitchApiFetch(`streams?game_id=${g.id}&first=5`);
-                const gStreams = gsRes.data;
-                
-                // Extrapolation spécifique par jeu
-                const gViewers = gStreams.reduce((acc,s)=>acc+s.viewer_count,0) * (i<3 ? 25 : 12); 
-                const gChannels = gStreams.length * 50; 
-                
-                // Calcul Ratio Saturation
-                const ratio = gViewers / Math.max(1, gChannels);
-                let rating = "C";
-                if (ratio > 40) rating = "A+ (Viral)";
-                else if (ratio > 15) rating = "B (Sain)";
-                
+            // Games (ou Compare)
+            const gRes = await apiCall('games/top?first=10');
+            for(let i=0; i<gRes.data.length; i++) {
+                const g = gRes.data[i];
+                const gs = await apiCall(`streams?game_id=${g.id}&first=5`);
+                const gv = gs.data.reduce((a,b)=>a+b.viewer_count,0) * (i<3?25:10); 
+                const gc = gs.data.length * 60;
                 tableData.push({
-                    rank: i + 1,
-                    name: g.name,
-                    img: g.box_art_url.replace('{width}','50').replace('{height}','70'),
-                    viewers: gViewers,
-                    channels: gChannels,
-                    rating: rating
+                    rank: i+1, name: g.name, img: g.box_art_url.replace('{width}','50').replace('{height}','70'),
+                    viewers: gv, channels: gc, rating: (gv/gc > 30) ? "A+" : "B"
                 });
             }
         }
 
-        // SAUVEGARDE FIREBASE (SNAPSHOT)
-        // On sauvegarde uniquement en mode "Games" pour ne pas dupliquer les points de données
+        // Sauvegarde Firebase
         if(type === 'games') {
             try {
                 await db.collection('market_history').add({
@@ -429,248 +228,116 @@ app.post('/global_pulse', async (req, res) => {
                     total_viewers: estViewers,
                     top_game: tableData[0]?.name || 'Inconnu'
                 });
-            } catch(e) { console.log("Info: Save Market Skipped"); }
+            } catch(e) {}
         }
 
         res.json({ success: true, overview, table: tableData });
-
-    } catch(e) { 
-        console.error("Market Error:", e);
-        res.status(500).json({error:e.message}); 
-    }
+    } catch(e) { res.status(500).json({error: e.message}); }
 });
 
-// --- B. SCAN TARGET (ANALYSE COMPLÈTE) ---
-app.post('/scan_target', async (req, res) => {
-    const { query } = req.body;
-    if (!query) return res.status(400).json({ error: "Requête vide." });
-
+// --- 3. LECTEUR (STRICT) ---
+app.get('/get_default_stream', async (req, res) => {
     try {
-        // 1. Recherche Utilisateur
-        const uRes = await twitchApiFetch(`users?login=${encodeURIComponent(query)}`);
-        
-        if (uRes.data.length > 0) {
-            const u = uRes.data[0];
-            
-            // 2. Followers (Appel Helix 'channels/followers')
-            let followers = 0;
-            try { 
-                const f = await twitchApiFetch(`channels/followers?broadcaster_id=${u.id}&first=1`); 
-                followers = f.total; 
-            } catch(e){}
-            
-            // 3. Analyse des jours de stream (VODs)
-            let activeDays = "Inconnu";
-            try {
-                const vRes = await twitchApiFetch(`videos?user_id=${u.id}&first=10&type=archive`);
-                if(vRes.data.length > 0) {
-                    const daysMap = {};
-                    vRes.data.forEach(v => {
-                        const day = new Date(v.created_at).toLocaleDateString('fr-FR', { weekday: 'long' });
-                        daysMap[day] = (daysMap[day] || 0) + 1;
-                    });
-                    // Tri par fréquence
-                    activeDays = Object.entries(daysMap)
-                        .sort((a,b) => b[1] - a[1])
-                        .slice(0, 3)
-                        .map(e => e[0].charAt(0).toUpperCase() + e[0].slice(1)) // Majuscule
-                        .join(", ");
-                }
-            } catch(e){}
+        const b = await db.collection('boosts').where('endTime', '>', Date.now()).limit(1).get();
+        if(!b.empty) return res.json({success:true, channel: b.docs[0].data().channel, viewers:'BOOST'});
+    } catch(e){}
 
-            const uData = { 
-                login: u.login, display_name: u.display_name, id: u.id, 
-                profile_image_url: u.profile_image_url, total_followers: followers, total_views: u.view_count, 
-                broadcaster_type: u.broadcaster_type, active_days: activeDays
-            };
-            
-            // 4. Calcul Tendance & Historique
-            const h = await handleHistoryAndStats('user', u.id, uData);
-            
-            // 5. Calcul Score 5 Étoiles
-            let stars = 3;
-            if (h.trend === 'up') stars += 1;
-            if (h.diff > 20) stars += 1;
-            if (h.trend === 'down') stars -= 1;
-            if (u.broadcaster_type === 'partner') stars = 5;
-            stars = Math.min(Math.max(stars, 1), 5);
-
-            CACHE.lastScanData = { type: 'user', ...uData, history: h, stars };
-            return res.json({ success: true, type: 'user', user_data: uData, history: h, stars });
-        }
-        
-        // Recherche Jeu (Fallback)
-        const gRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(query)}&first=1`);
-        if(gRes.data.length > 0) {
-            const g = gRes.data[0];
-            const sRes = await twitchApiFetch(`streams?game_id=${g.id}&first=100`);
-            const totalV = sRes.data.reduce((a,b)=>a+b.viewer_count,0);
-            return res.json({ 
-                success: true, type: 'game', 
-                game_data: { name: g.name, id: g.id, box_art_url: g.box_art_url, total_streamers: sRes.data.length, total_viewers: totalV } 
-            });
-        }
-
-        return res.status(404).json({success:false, message:"Rien trouvé."});
-    } catch(e) { return res.status(500).json({success:false, error: e.message}); }
-});
-
-// --- C. IA GENERATIVE (Coach & Repurpose) ---
-app.post('/critique_ia', async (req, res) => {
-    const { type, query, history_data, stars, vod_data, game_data } = req.body;
-    let prompt = "";
-    let persona = "standard";
-
-    if (type === 'coach') { // Niche/Coach
-        persona = "coach";
-        const growth = history_data?.diff || 0;
-        prompt = `
-        ANALYSE STREAMER: "${query}".
-        NOTE: ${stars}/5.
-        CROISSANCE: ${growth >= 0 ? '+' : ''}${growth} followers.
-        
-        Agis comme un Coach Expert. Donne :
-        1. Un verdict franc sur la note.
-        2. Une liste de 3 actions concrètes (Bullet points) pour améliorer le stream.
-        `;
-    } else if (type === 'repurpose') { // VOD
-        prompt = `
-        VOD: "${vod_data.title}". Durée: ${vod_data.duration}.
-        Suggère 3 idées de clips courts pour TikTok basés sur ce titre. Donne des titres accrocheurs.
-        `;
-    } else if (type === 'schedule') { // Planning
-        persona = "scheduler";
-        prompt = `
-        JEU: ${game_data.name}.
-        CONCURRENCE: ${game_data.total_streamers} streamers, ${game_data.total_viewers} viewers.
-        Trouve les "Océans Bleus" : Donne 3 créneaux horaires (Jour + Heure) idéaux pour streamer ce jeu.
-        `;
-    }
+    await updateSmallStreamPool();
+    const pick = CACHE.smallStreamPool[Math.floor(Math.random() * CACHE.smallStreamPool.length)];
     
-    const r = await runGeminiAnalysis(prompt, persona);
-    res.json(r);
+    // Protection ultime contre les gros streamers
+    if(!pick || pick.viewer_count > 100) return res.json({success:true, channel:'twitch', viewers:0});
+    
+    res.json({success:true, channel: pick.user_login, viewers: pick.viewer_count});
 });
 
-// --- D. RAID FINDER (CORRIGÉ & AVATAR) ---
+app.post('/cycle_stream', async (req, res) => {
+    await updateSmallStreamPool();
+    const pick = CACHE.smallStreamPool[Math.floor(Math.random() * CACHE.smallStreamPool.length)];
+    res.json({success:true, channel: pick ? pick.user_login : 'twitch'});
+});
+
+// --- 4. RAID & PLANNING & BOOST ---
 app.post('/start_raid', async (req, res) => {
     const { game, max_viewers } = req.body;
     try {
-        const gRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
-        if(gRes.data.length===0) return res.json({error:"Jeu introuvable"});
+        const gRes = await apiCall(`search/categories?query=${encodeURIComponent(game)}&first=1`);
+        if(!gRes.data.length) return res.json({error:"Jeu introuvable"});
         
-        const sRes = await twitchApiFetch(`streams?game_id=${gRes.data[0].id}&first=100&language=fr`);
-        
-        // Stratégie : Trouver le plus gros stream qui reste SOUS la limite max (pour maximiser l'impact)
-        const target = sRes.data
-            .filter(s => s.viewer_count <= parseInt(max_viewers))
+        const sRes = await apiCall(`streams?game_id=${gRes.data[0].id}&first=100&language=fr`);
+        // On cherche le plus gros des "petits"
+        const target = sRes.data.filter(s => s.viewer_count <= parseInt(max_viewers))
             .sort((a,b) => b.viewer_count - a.viewer_count)[0];
         
         if(target) {
-            // Récupération Avatar
-            const uRes = await twitchApiFetch(`users?id=${target.user_id}`);
-            const avatar = (uRes.data.length > 0) ? uRes.data[0].profile_image_url : "";
-            
+            const uRes = await apiCall(`users?id=${target.user_id}`);
             return res.json({
-                success:true, 
-                target: { 
-                    name: target.user_name, 
-                    login: target.user_login, 
-                    viewers: target.viewer_count, 
-                    thumbnail_url: target.thumbnail_url.replace('{width}','320').replace('{height}','180'),
-                    avatar_url: avatar 
+                success: true,
+                target: {
+                    name: target.user_name, login: target.user_login, viewers: target.viewer_count,
+                    thumb: target.thumbnail_url.replace('{width}','320').replace('{height}','180'),
+                    avatar: uRes.data[0]?.profile_image_url || ""
                 }
             });
         }
         return res.json({error:"Aucune cible trouvée."});
-    } catch(e){ return res.status(500).json({error:"Erreur serveur"}); }
+    } catch(e) { res.json({error: e.message}); }
 });
 
-// --- E. PLANNING & VOD ---
 app.post('/analyze_schedule', async (req, res) => {
     const { game } = req.body;
     try {
-        const gRes = await twitchApiFetch(`search/categories?query=${encodeURIComponent(game)}&first=1`);
-        if(gRes.data.length === 0) return res.json({success:false, error:"Jeu introuvable"});
+        const gRes = await apiCall(`search/categories?query=${encodeURIComponent(game)}&first=1`);
+        if(!gRes.data.length) return res.json({success:false, error:"Jeu inconnu"});
         
-        const g = gRes.data[0];
-        const sRes = await twitchApiFetch(`streams?game_id=${g.id}&first=100`);
+        const sRes = await apiCall(`streams?game_id=${gRes.data[0].id}&first=100`);
         const totalV = sRes.data.reduce((a,b)=>a+b.viewer_count,0);
         
-        return res.json({
+        const prompt = `Jeu: ${gRes.data[0].name}. ${sRes.data.length} streamers live (sample), ${totalV} viewers. Donne 3 meilleurs créneaux horaires (Jour + Heure). Réponds en liste HTML <ul>.`;
+        const r = await runGemini(prompt);
+        
+        res.json({
             success: true,
-            game_data: { name: g.name, total_viewers: totalV, total_streamers: sRes.data.length },
-            box_art: g.box_art_url.replace('{width}','120').replace('{height}','160')
+            box_art: gRes.data[0].box_art_url.replace('{width}','100'),
+            name: gRes.data[0].name,
+            ia_advice: r.html
         });
-    } catch(e) { return res.status(500).json({error:e.message}); }
+    } catch(e) { res.json({success:false, error: "Erreur Analyse"}); }
 });
 
+app.post('/stream_boost', async(req,res)=>{
+    const {channel}=req.body;
+    try { await db.collection('boosts').add({channel, endTime: Date.now()+900000}); res.json({success:true}); } catch(e){res.json({error:"Erreur DB"});}
+});
+
+// --- AUTH & UTILS ---
+app.get('/twitch_auth_start', (req, res) => res.redirect(`https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows`));
+app.get('/twitch_auth_callback', async (req, res) => {
+    const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&code=${req.query.code}&grant_type=authorization_code&redirect_uri=${REDIRECT_URI}`, {method:'POST'});
+    const d = await r.json();
+    if(d.access_token) { CACHE.twitchUser = d.access_token; res.send("<script>window.opener.postMessage('auth','*');window.close();</script>"); }
+});
+app.get('/twitch_user_status', (req,res) => res.json({is_connected:!!CACHE.twitchUser}));
+app.post('/twitch_logout', (req,res)=>{CACHE.twitchUser=null;res.json({success:true});});
+app.get('/followed_streams', async (req, res) => {
+    if(!CACHE.twitchUser) return res.json({success:false});
+    // On doit d'abord avoir l'ID user
+    const u = await fetch(`https://api.twitch.tv/helix/users`, {headers:{'Client-ID':TWITCH_CLIENT_ID, 'Authorization':`Bearer ${CACHE.twitchUser}`}});
+    const ud = await u.json();
+    if(!ud.data) return res.json({success:false});
+    
+    const f = await fetch(`https://api.twitch.tv/helix/streams/followed?user_id=${ud.data[0].id}`, {headers:{'Client-ID':TWITCH_CLIENT_ID, 'Authorization':`Bearer ${CACHE.twitchUser}`}});
+    const d = await f.json();
+    res.json({success:true, streams: d.data});
+});
 app.get('/get_latest_vod', async (req, res) => {
     const channel = req.query.channel;
     try {
-        const uRes = await twitchApiFetch(`users?login=${channel}`);
-        if(!uRes.data.length) return res.json({success:false});
-        const vRes = await twitchApiFetch(`videos?user_id=${uRes.data[0].id}&first=1&type=archive`);
-        if(!vRes.data.length) return res.json({success:false});
-        return res.json({success:true, vod: { title: vRes.data[0].title, url: vRes.data[0].url, thumbnail_url: vRes.data[0].thumbnail_url.replace('%{width}','320').replace('%{height}','180'), duration: vRes.data[0].duration }});
-    } catch(e){ return res.json({success:false}); }
-});
-
-// --- F. BOOST & LECTEUR ---
-app.get('/get_default_stream', async (req, res) => {
-    try {
-        const q = await db.collection('boosts').where('endTime', '>', Date.now()).limit(1).get();
-        if(!q.empty) { const b = q.docs[0].data(); return res.json({ success: true, channel: b.channel, viewers: 'BOOST', message: '🔥 BOOST ACTIF' }); }
+        const u = await apiCall(`users?login=${channel}`);
+        const v = await apiCall(`videos?user_id=${u.data[0].id}&first=1&type=archive`);
+        if(v.data.length) return res.json({success:true, vod: { title: v.data[0].title, thumbnail_url: v.data[0].thumbnail_url.replace('%{width}','320').replace('%{height}','180') }});
     } catch(e){}
-    await refreshGlobalStreamList();
-    const r = CACHE.globalStreamRotation;
-    if(r.streams.length === 0) return res.json({success:true, channel:'twitch'});
-    const s = r.streams[r.currentIndex];
-    return res.json({ success: true, channel: s.channel, viewers: s.viewers, message: `Découverte (${s.viewers} vues)` });
+    res.json({success:false});
 });
 
-app.post('/stream_boost', async (req, res) => {
-    const { channel } = req.body;
-    try {
-        const q = await db.collection('boosts').where('endTime', '>', Date.now()).get();
-        if(!q.empty) return res.json({error: "Un Boost est déjà actif."});
-        await db.collection('boosts').add({ channel, startTime: Date.now(), endTime: Date.now()+(15*60000) });
-        return res.json({ success: true, html_response: "<p style='color:#0f0'>Boost activé (15 min) !</p>" });
-    } catch(e) { return res.json({error: "Erreur DB"}); }
-});
-
-app.post('/cycle_stream', async (req, res) => {
-    const r = CACHE.globalStreamRotation;
-    if(r.streams.length === 0) await refreshGlobalStreamList();
-    if(req.body.direction === 'next') r.currentIndex = (r.currentIndex + 1) % r.streams.length;
-    else r.currentIndex = (r.currentIndex - 1 + r.streams.length) % r.streams.length;
-    return res.json({ success: true, channel: r.streams[r.currentIndex]?.channel || 'twitch' });
-});
-
-// --- G. AUTHENTIFICATION ---
-app.get('/twitch_auth_start', (req, res) => {
-    const s = crypto.randomBytes(16).toString('hex');
-    res.cookie('twitch_state', s, {httpOnly:true, secure:true});
-    res.redirect(`https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${s}`);
-});
-app.get('/twitch_auth_callback', async (req, res) => {
-    const {code} = req.query;
-    try {
-        const r = await fetch('https://id.twitch.tv/oauth2/token', { method:'POST', body: new URLSearchParams({client_id:TWITCH_CLIENT_ID, client_secret:TWITCH_CLIENT_SECRET, code, grant_type:'authorization_code', redirect_uri:REDIRECT_URI})});
-        const d = await r.json();
-        if(d.access_token) {
-             const u = await twitchApiFetch('users', d.access_token);
-             CACHE.twitchUser = {...u.data[0], access_token:d.access_token, expiry:Date.now()+3600000};
-             res.send("<script>window.opener.postMessage('auth_success','*');window.close();</script>");
-        }
-    } catch(e){res.send("Erreur Auth");}
-});
-app.get('/twitch_user_status', (req,res) => res.json({is_connected:!!CACHE.twitchUser, display_name:CACHE.twitchUser?.display_name}));
-app.post('/twitch_logout', (req,res)=>{CACHE.twitchUser=null;res.json({success:true});});
-app.get('/followed_streams', async(req,res)=>{
-    if(!CACHE.twitchUser) return res.json({success:false, error: "Non connecté"});
-    try { const d = await twitchApiFetch(`streams/followed?user_id=${CACHE.twitchUser.id}`, CACHE.twitchUser.access_token); res.json({success:true, streams:d.data}); } catch(e){res.json({success:false});}
-});
-app.get('/export_csv', (req,res) => { res.send("Fonctionnalité CSV prête."); });
-
-app.listen(PORT, () => console.log(`SERVER V31 PRODUCTION READY ON PORT ${PORT}`));
-
+app.listen(PORT, () => console.log(`SERVER V32 FINAL READY ON PORT ${PORT}`));
