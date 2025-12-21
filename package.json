@@ -1,7 +1,6 @@
 {
   "name": "streamer-hub-v48-ultimate",
   "version": "2.0.0",
-  "description": "Streamer Hub V48 - Fusion V20/V46",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -14,7 +13,7 @@
     "cookie-parser": "^1.4.6",
     "firebase-admin": "^12.1.0",
     "dotenv": "^16.4.5",
-    "@google/genai": "latest"
+    "@google/generative-ai": "^0.21.0"
   },
   "engines": {
     "node": ">=18.0.0"
