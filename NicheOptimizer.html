@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer & Niche AI Hub - COCKPIT V18 (Full Data)</title>
+    <title>Streamer & Niche AI Hub - COCKPIT V19 (Node.js Real Data)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,25 +15,20 @@
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
             --color-bg-light: #111;
-            
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
             --color-time-gold: #ffd700; 
-            
             --color-ai-niche: #59d682;
             --color-ai-repurpose: #9933ff;
             --color-ai-growth: #ffcc00; 
             --color-ai-action: #e34a64; 
-            
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
-            
             --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
             --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
         }
 
-        /* Base */
         body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 0; }
         #twitch-lucky-main { max-width: 1400px; margin: 20px auto; padding: 10px; }
         
@@ -45,23 +40,21 @@
         .h1-blue-accent { color: var(--color-secondary-blue); }
         .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
 
-        /* Navigation (Onglets) */
+        /* Navigation */
         .tabs-nav-container { margin-bottom: 15px; }
         .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
-        
         .tab-btn { 
             font-family: 'Orbitron', sans-serif; padding: 12px 15px; background: var(--color-bg-light); 
             border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); 
             cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.3s; flex: 1; text-align: center; 
             font-size: 12px; white-space: nowrap; 
         }
-        .tab-btn:hover { color: #fff; background: #232323; }
         .tab-btn.active { 
             background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); 
             font-weight: bold; box-shadow: var(--shadow-pink); z-index: 10; 
         }
 
-        /* Lecteur (Zone Centrale) */
+        /* Player */
         .player-wrapper { 
             margin-bottom: 20px; padding: 15px; background: var(--color-bg-medium); 
             border-radius: 12px; border: 1px solid var(--color-border-dark); 
@@ -71,44 +64,32 @@
         .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); }
         #twitch-embed { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; }
         
-        .player-quick-input {
-            background: var(--color-bg-dark); border: 1px solid var(--color-border-medium); color: white;
-            padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 200px;
-        }
-        
-        .btn-cycle {
-            background: var(--color-bg-dark); color: var(--color-secondary-blue);
-            border: 1px solid var(--color-secondary-blue); padding: 5px 10px; border-radius: 4px;
-            font-size: 12px; transition: 0.2s; cursor: pointer;
-        }
+        .player-quick-input { background: var(--color-bg-dark); border: 1px solid var(--color-border-medium); color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 200px; }
+        .btn-cycle { background: var(--color-bg-dark); color: var(--color-secondary-blue); border: 1px solid var(--color-secondary-blue); padding: 5px 10px; border-radius: 4px; font-size: 12px; transition: 0.2s; cursor: pointer; }
         .btn-cycle:hover:not(:disabled) { background: var(--color-secondary-blue); color: var(--color-bg-dark); }
         .btn-cycle:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Contenu des Onglets */
+        /* Contenu */
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-radius: 10px; padding: 20px; min-height: 300px; }
         .tab-content.active { display: block; animation: fadeEffect 0.5s; }
         @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
 
-        /* STYLES DASHBOARD TWITCHTRACKER */
+        /* Dashboard Styles */
         .sub-tab-btn { transition: all 0.3s; padding-bottom: 4px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; margin-right: 15px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #888; }
         .sub-tab-btn:hover { color: white; }
         .active-sub { border-bottom: 2px solid var(--color-secondary-blue); color: white; }
         .hidden { display: none !important; }
         
-        .kpi-card { background: #111; padding: 15px; border-radius: 8px; border-left: 4px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .kpi-card { background: #111; padding: 15px; border-radius: 8px; border-left: 4px solid #333; box-shadow: 0 2px 5px rgba(0,0,0,0.5); position: relative; }
         .kpi-value { font-size: 24px; font-weight: bold; color: white; }
         .kpi-label { font-size: 10px; color: #888; text-transform: uppercase; margin-top: 4px; }
+        .loading-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; justify-content:center; align-items:center; border-radius:8px; display:none; }
         
-        /* Dashboard Grid Original */
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
-        .dashboard-box { 
-            background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; 
-            min-height: 250px; display: flex; flex-direction: column;
-        }
+        .dashboard-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 6px; padding: 15px; min-height: 250px; display: flex; flex-direction: column; }
         .box-stats { border-top: 2px solid var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
         .box-niche { border-top: 2px solid var(--color-ai-niche); box-shadow: 0 0 10px rgba(89, 214, 130, 0.2); }
         .box-vod { border-top: 2px solid var(--color-ai-repurpose); box-shadow: 0 0 10px rgba(153, 51, 255, 0.2); }
-
         .dashboard-title { font-family: 'Orbitron', sans-serif; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
 
         .ai-output-enhanced { color: #ddd; font-size: 13px; line-height: 1.5; }
@@ -117,13 +98,13 @@
         .btn-primary:hover:not(:disabled) { transform: scale(1.02); filter: brightness(1.1); }
         .btn-big-scan { width: 100%; background: linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose)); font-size: 14px; padding: 12px; margin-top: 10px; }
 
-        /* Listes de Streams */
+        /* Listes */
         #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; }
         .followed-stream-item { width: calc(20% - 12px); min-width: 150px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: 0.3s; }
         .followed-stream-item:hover { transform: translateY(-3px); border-color: var(--color-primary-pink); }
         .followed-stream-item img { width: 100%; border-radius: 4px; margin-bottom: 5px; }
 
-        /* Boites Spécifiques */
+        /* Specifics */
         .raid-target-box { padding: 15px; background: #111; border-radius: 8px; border: 2px solid var(--color-ai-action); display: flex; gap: 15px; align-items: center; box-shadow: var(--shadow-action); }
         .raid-target-box img { width: 100px; height: 56px; object-fit: cover; border-radius: 4px; }
         .schedule-box { border: 2px solid var(--color-time-gold); padding: 15px; background: #121212; border-radius: 8px; margin-top: 15px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
@@ -135,8 +116,8 @@
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V18 (Production)</h1>
-    <div class="subtitle-center">Cockpit Unifié • Intelligence Artificielle • Croissance</div>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V19 (Node.js)</h1>
+    <div class="subtitle-center">Cockpit Unifié • Données Réelles • Intelligence Artificielle</div>
 
     <div class="tabs-nav-container">
         <div class="flex flex-wrap flex-tabs">
@@ -157,7 +138,6 @@
             <div class="flex gap-2 items-center">
                 <button id="btn-prev-stream" class="btn-cycle" onclick="cycleStream('prev')" disabled><i class="fas fa-arrow-left"></i></button>
                 <button id="btn-next-stream" class="btn-cycle" onclick="cycleStream('next')" disabled><i class="fas fa-arrow-right"></i></button>
-                
                 <form id="mini-player-form" class="flex gap-2" onsubmit="event.preventDefault(); launchPlayer(document.getElementById('input-channel').value)">
                     <input id="input-channel" type="text" placeholder="Chaîne..." class="player-quick-input">
                     <button type="submit" class="btn-primary" style="padding: 5px 10px;">GO</button>
@@ -183,11 +163,8 @@
         </div>
 
         <div id="tab-dashboard" class="tab-content">
-            
             <div id="dashboard-sub-nav" class="flex gap-4 border-b border-gray-800 mb-6 overflow-x-auto pb-2">
                 <button onclick="showSubTab('overview', this)" class="sub-tab-btn active-sub">Overview</button>
-                <button onclick="showSubTab('viewers', this)" class="sub-tab-btn">Viewers</button>
-                <button onclick="showSubTab('channels', this)" class="sub-tab-btn">Channels</button>
                 <button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">🎮 Games</button>
                 <button onclick="showSubTab('languages', this)" class="sub-tab-btn text-pink-400">🌍 Languages</button>
                 <button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--color-ai-niche);">🔍 AI SCANNER</button>
@@ -196,117 +173,75 @@
             <div id="sub-overview" class="sub-content">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <div class="kpi-card" style="border-left-color: var(--color-secondary-blue);">
-                        <div class="kpi-value">6,585,035</div>
-                        <div class="kpi-label">Total streamers (Novembre)</div>
+                        <div class="loading-overlay" id="load-kpi-1"><i class="fas fa-spin fa-spinner text-white"></i></div>
+                        <div class="kpi-value" id="val-total-viewers">...</div>
+                        <div class="kpi-label">Global Viewers (Live)</div>
                     </div>
                     <div class="kpi-card" style="border-left-color: var(--color-ai-repurpose);">
-                        <div class="kpi-value">9,894,745</div>
-                        <div class="kpi-label">Record historique (Jan 2021)</div>
+                        <div class="loading-overlay" id="load-kpi-2"><i class="fas fa-spin fa-spinner text-white"></i></div>
+                        <div class="kpi-value" id="val-total-channels">...</div>
+                        <div class="kpi-label">Live Channels (Global)</div>
                     </div>
                     <div class="kpi-card" style="border-left-color: var(--color-ai-niche);">
-                        <div class="kpi-value">1,087,412</div>
-                        <div class="kpi-label">Streamers actifs / jour</div>
+                        <div class="loading-overlay" id="load-kpi-3"><i class="fas fa-spin fa-spinner text-white"></i></div>
+                        <div class="kpi-value" id="val-top-game">...</div>
+                        <div class="kpi-label">Top Category</div>
                     </div>
                     <div class="kpi-card" style="border-left-color: var(--color-primary-pink);">
-                        <div class="kpi-value">1,143,894</div>
-                        <div class="kpi-label">Streamers actifs hier</div>
+                        <div class="loading-overlay" id="load-kpi-4"><i class="fas fa-spin fa-spinner text-white"></i></div>
+                        <div class="kpi-value" id="val-uptime">...</div>
+                        <div class="kpi-label">Server Uptime</div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     <div class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800" style="height:300px;">
-                        <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">📈 Live Streams Chart</h4>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">📈 Viewer Trend (History)</h4>
                         <canvas id="liveStreamsChart"></canvas>
                     </div>
                     <div class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800" style="height:300px;">
-                        <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">📊 Active Channels YoY</h4>
+                        <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">📊 Channel Stats</h4>
                         <canvas id="yoyChannelsChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div id="sub-viewers" class="sub-content hidden">
-                 <h3 class="text-white font-bold uppercase text-sm mb-4">Audience Distribution</h3>
-                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800" style="height:350px;">
-                        <canvas id="viewersDistributionChart"></canvas>
-                    </div>
-                    <div class="kpi-card">
-                        <h4 class="text-blue-400 font-bold mb-4">Top Viewers Peak (24h)</h4>
-                        <ul class="text-xs space-y-3 text-gray-300">
-                            <li class="flex justify-between border-b border-gray-800 pb-2"><span>SpecialEvent</span> <span class="text-white font-bold">1.2M</span></li>
-                            <li class="flex justify-between border-b border-gray-800 pb-2"><span>KaiCenat</span> <span class="text-white font-bold">850k</span></li>
-                            <li class="flex justify-between border-b border-gray-800 pb-2"><span>RiotGames</span> <span class="text-white font-bold">420k</span></li>
-                            <li class="flex justify-between border-b border-gray-800 pb-2"><span>ibai</span> <span class="text-white font-bold">310k</span></li>
-                        </ul>
-                    </div>
-                 </div>
-            </div>
-
-            <div id="sub-channels" class="sub-content hidden">
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="kpi-card border-green-500">
-                        <div class="kpi-value text-green-400">54,000</div>
-                        <div class="kpi-label">Partners</div>
-                    </div>
-                    <div class="kpi-card border-blue-500">
-                        <div class="kpi-value text-blue-400">1.8M</div>
-                        <div class="kpi-label">Affiliates</div>
-                    </div>
-                    <div class="kpi-card border-gray-500">
-                        <div class="kpi-value text-gray-400">7.2M</div>
-                        <div class="kpi-label">Community</div>
-                    </div>
-                </div>
-                <div class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800" style="height:300px;">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">Channel Growth (New Streamers)</h4>
-                    <canvas id="channelsGrowthChart"></canvas>
-                </div>
-            </div>
-
             <div id="sub-games" class="sub-content hidden">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-blue-400 font-bold uppercase text-sm">Top Games</h3>
-                    <select onchange="sortGames(this.value)" class="bg-black border border-gray-700 text-xs p-1 rounded text-white">
-                        <option value="viewers">Trier par Viewers</option>
-                        <option value="streamers">Trier par Streamers</option>
-                    </select>
+                    <h3 class="text-blue-400 font-bold uppercase text-sm">Top Games (Twitch API)</h3>
+                    <button onclick="loadTopGames()" class="btn-primary" style="font-size:10px;"><i class="fas fa-sync"></i> REFRESH</button>
                 </div>
-                <div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                <div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <p class="text-gray-500">Chargement des données temps réel...</p>
+                </div>
             </div>
 
             <div id="sub-languages" class="sub-content hidden">
-                <h3 class="text-pink-400 font-bold uppercase text-sm mb-4">Part de Marché par Langue</h3>
-                <div id="languages-list-container" class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800 space-y-4"></div>
+                <h3 class="text-pink-400 font-bold uppercase text-sm mb-4">Top Languages (Live)</h3>
+                <div id="languages-list-container" class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800 space-y-4">
+                    <p class="text-gray-500">Chargement...</p>
+                </div>
             </div>
 
             <div id="sub-scanner" class="sub-content hidden">
                 <div style="text-align:center; margin-bottom:20px;">
-                    <h3 class="text-blue font-bold text-lg mb-2" style="color:var(--color-secondary-blue);">ANALYSE COMPLÈTE & IA</h3>
-                    <p style="color:#888; font-size:12px; margin-bottom:10px;">Analysez n'importe quel Streamer ou Jeu pour obtenir des données et conseils IA.</p>
+                    <h3 class="text-blue font-bold text-lg mb-2" style="color:var(--color-secondary-blue);">ANALYSEUR NODE.JS</h3>
                     <form id="form-global-scan">
-                        <input id="input-global-target" type="text" placeholder="Ex: Gotaga, Valorant, Squeezie..." class="action-input" style="font-size:16px; text-align:center;">
+                        <input id="input-global-target" type="text" placeholder="Ex: Gotaga, Valorant..." class="action-input" style="font-size:16px; text-align:center;">
                         <button type="submit" id="btn-global-scan" class="btn-primary btn-big-scan">🚀 LANCER L'ANALYSE</button>
                     </form>
                 </div>
-
                 <div class="dashboard-grid">
                     <div class="dashboard-box box-stats">
-                        <div class="dashboard-title" style="color:var(--color-secondary-blue)">📊 MÉTRIQUES</div>
-                        <div id="res-scan-content" style="font-size:13px; color:#ddd;">
-                            <p style="color:#777; text-align:center; margin-top:50px;">En attente de scan...</p>
-                        </div>
+                        <div class="dashboard-title" style="color:var(--color-secondary-blue)">📊 MÉTRIQUES API</div>
+                        <div id="res-scan-content" style="font-size:13px; color:#ddd;"><p style="color:#777; text-align:center; margin-top:50px;">...</p></div>
                     </div>
                     <div class="dashboard-box box-niche">
-                        <div class="dashboard-title" style="color:var(--color-ai-niche)">🧠 CRITIQUE NICHE (IA)</div>
-                        <div id="res-niche-content" style="font-size:13px; line-height:1.4;">
-                             <p style="color:#777; text-align:center; margin-top:50px;">L'IA générera un audit ici.</p>
-                        </div>
+                        <div class="dashboard-title" style="color:var(--color-ai-niche)">🧠 CRITIQUE IA</div>
+                        <div id="res-niche-content" style="font-size:13px;"><p style="color:#777; text-align:center; margin-top:50px;">...</p></div>
                     </div>
                     <div class="dashboard-box box-vod">
-                        <div class="dashboard-title" style="color:var(--color-ai-repurpose)">✂️ VOD & CLIPS</div>
-                        <div id="res-vod-content" style="font-size:13px;">
-                            <p style="color:#777; text-align:center; margin-top:50px;">Analyse de VOD pour TikTok/Shorts.</p>
-                        </div>
+                        <div class="dashboard-title" style="color:var(--color-ai-repurpose)">✂️ VOD</div>
+                        <div id="res-vod-content" style="font-size:13px;"><p style="color:#777; text-align:center; margin-top:50px;">...</p></div>
                     </div>
                 </div>
             </div>
@@ -314,12 +249,9 @@
 
         <div id="tab-time" class="tab-content">
             <h3 style="color:var(--color-time-gold); margin-bottom:10px;">⏰ OPTIMISATION DE L'HORAIRE</h3>
-            <p style="color:#888; font-size:12px; margin-bottom:15px;">L'IA analyse le ratio Viewers/Streamers actuel d'un jeu et prédit les meilleurs créneaux horaires.</p>
             <form id="form-schedule" class="flex gap-2">
-                <input id="input-schedule-game" type="text" placeholder="Nom du jeu (ex: League of Legends)" class="action-input" style="flex-grow:1;">
-                <button type="submit" id="btn-schedule" class="btn-primary" style="background:var(--color-time-gold); color:#000;">
-                    <i class="fas fa-hourglass-half"></i> CALCULER
-                </button>
+                <input id="input-schedule-game" type="text" placeholder="Nom du jeu..." class="action-input" style="flex-grow:1;">
+                <button type="submit" id="btn-schedule" class="btn-primary" style="background:var(--color-time-gold); color:#000;">CALCULER</button>
             </form>
             <div id="schedule-results" style="display:none;" class="schedule-box box-schedule">
                 <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
@@ -331,36 +263,24 @@
         </div>
 
         <div id="tab-boost" class="tab-content">
-            <h3 style="color:var(--color-primary-pink); margin-bottom:10px;">⚡ STREAM BOOST (15 Minutes)</h3>
-            <p style="color:#888; font-size:12px; margin-bottom:15px;">Mettez votre chaîne en avant pour tous les utilisateurs.</p>
+            <h3 style="color:var(--color-primary-pink); margin-bottom:10px;">⚡ STREAM BOOST</h3>
             <form id="form-boost" class="flex gap-2">
-                <input id="input-boost" type="text" placeholder="Votre Chaîne Twitch" class="action-input" style="flex-grow:1;">
-                <button type="submit" class="btn-primary" style="background:var(--color-primary-pink);"><i class="fas fa-arrow-circle-up"></i> ACTIVER</button>
+                <input id="input-boost" type="text" placeholder="Chaîne" class="action-input" style="flex-grow:1;">
+                <button type="submit" class="btn-primary" style="background:var(--color-primary-pink);">ACTIVER</button>
             </form>
-            <div id="boost-results" style="margin-top:15px; padding:10px; background:#111; border-radius:6px; min-height:50px; text-align:center;">
-                 <p style="color:#777;">Statut du dernier Boost...</p>
-            </div>
+            <div id="boost-results" style="margin-top:15px; padding:10px; background:#111; border-radius:6px; min-height:50px; text-align:center;"><p style="color:#777;">Statut...</p></div>
         </div>
 
         <div id="tab-raid" class="tab-content">
-            <h3 style="color:var(--color-ai-action); margin-bottom:10px;">💥 RAID OPTIMISÉ (Langue FR)</h3>
-            <p style="color:#888; font-size:12px; margin-bottom:15px;">Trouvez la meilleure cible francophone pour votre raid selon la taille de l'audience.</p>
+            <h3 style="color:var(--color-ai-action); margin-bottom:10px;">💥 RAID OPTIMISÉ</h3>
             <form id="form-raid" class="flex gap-2 flex-col sm:flex-row">
-                <input id="input-raid-game" type="text" placeholder="Jeu cible (Ex: Minecraft)" class="action-input" style="flex-grow:1;">
+                <input id="input-raid-game" type="text" placeholder="Jeu cible" class="action-input" style="flex-grow:1;">
                 <select id="select-raid-viewers" class="action-input" style="width:auto;">
-                    <option value="10">Max 10 Vues (Micro)</option>
-                    <option value="30">Max 30 Vues (Petit)</option>
-                    <option value="50">Max 50 Vues (Moyen)</option>
-                    <option value="70">Max 70 Vues (Intermédiaire)</option>
-                    <option value="100" selected>Max 100 Vues (Gros)</option>
+                    <option value="10">Max 10</option><option value="50" selected>Max 50</option><option value="100">Max 100</option>
                 </select>
-                <button type="submit" id="btn-start-raid" class="btn-primary" style="background:var(--color-ai-action);">
-                    <i class="fas fa-satellite-dish"></i> RECHERCHER
-                </button>
+                <button type="submit" id="btn-start-raid" class="btn-primary" style="background:var(--color-ai-action);">RECHERCHER</button>
             </form>
-            <div id="raid-results" style="margin-top:15px; padding:15px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:50px;">
-                 <p style="text-align:center; color:#777;">Les résultats s'afficheront ici.</p>
-            </div>
+            <div id="raid-results" style="margin-top:15px; padding:15px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:50px;"><p style="text-align:center; color:#777;">Résultats...</p></div>
         </div>
     </div>
 </div>
@@ -376,176 +296,133 @@
     let boostTimeout = null; 
     let isConnected = false;
 
-    // --- GESTION DES ONGLETS PRINCIPAUX ---
+    // --- TAB MANAGEMENT ---
     function openTab(tabId) {
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
-        
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         
         if (tabId === 'tab-followed') loadFollowedStreams();
-        if (tabId === 'tab-dashboard') initCharts();
+        if (tabId === 'tab-dashboard') loadDashboardData();
     }
 
-    // --- GESTION SOUS-ONGLETS DASHBOARD ---
     function showSubTab(subName, btnElement) {
         document.querySelectorAll('.sub-content').forEach(el => el.classList.add('hidden'));
         const target = document.getElementById('sub-' + subName);
         if(target) target.classList.remove('hidden');
-
         document.querySelectorAll('.sub-tab-btn').forEach(el => el.classList.remove('active-sub'));
         if(btnElement) btnElement.classList.add('active-sub');
 
         if(subName === 'games') loadTopGames();
         if(subName === 'languages') loadTopLanguages();
-        if(subName === 'viewers') initViewersChart();
-        if(subName === 'channels') initChannelsChart();
     }
 
-    // --- GRAPHICS CHART.JS (OVERVIEW) ---
-    let chartsInitialized = false;
+    // --- REAL DATA FETCHING (NODE.JS BACKEND REQUIRED) ---
+    async function loadDashboardData() {
+        initCharts(); // Init empty charts
+        
+        // Fetch Global Stats from Node
+        try {
+            document.querySelectorAll('.loading-overlay').forEach(el => el.style.display = 'flex');
+            
+            const res = await fetch(`${API_BASE}/api/stats/global`);
+            const data = await res.json();
+            
+            if(data.success) {
+                // Update KPI Cards
+                document.getElementById('val-total-viewers').innerText = safeFormat(data.total_viewers);
+                document.getElementById('val-total-channels').innerText = safeFormat(data.total_channels);
+                document.getElementById('val-top-game').innerText = data.top_game_name;
+                document.getElementById('val-uptime').innerText = data.uptime || "Online";
+                
+                // Update Charts if history data exists
+                if(data.history) updateCharts(data.history);
+            } else {
+                throw new Error("API Error");
+            }
+        } catch(e) {
+            console.log("Backend Stats not available yet - waiting for implementation");
+            document.getElementById('val-total-viewers').innerText = "N/A";
+            document.getElementById('val-total-channels').innerText = "N/A";
+            document.getElementById('val-top-game').innerText = "N/A";
+            document.getElementById('val-uptime').innerText = "Offline";
+        } finally {
+            document.querySelectorAll('.loading-overlay').forEach(el => el.style.display = 'none');
+        }
+    }
+
+    async function loadTopGames() {
+        const container = document.getElementById('games-list-container');
+        container.innerHTML = '<p class="text-gray-500"><i class="fas fa-spin fa-spinner"></i> Récupération depuis Twitch...</p>';
+        try {
+            const res = await fetch(`${API_BASE}/api/stats/top_games`);
+            const data = await res.json();
+            if(data.success && data.games) {
+                container.innerHTML = data.games.map((g, i) => `
+                    <div class="flex items-center gap-3 bg-[#111] p-2 rounded border border-gray-800">
+                        <span class="text-gray-500 font-bold w-6 text-center">#${i+1}</span>
+                        <img src="${g.box_art_url}" class="w-8 rounded">
+                        <div class="flex-grow">
+                            <div class="font-bold text-xs text-white">${g.name}</div>
+                            <div class="text-[10px] text-gray-400"><span class="text-blue-400">${safeFormat(g.viewer_count)}</span> viewers</div>
+                        </div>
+                    </div>`).join('');
+            } else { container.innerHTML = "Pas de données."; }
+        } catch(e) { container.innerHTML = "<p class='text-red-500 text-xs'>Erreur: Endpoint /api/stats/top_games manquant sur Node.</p>"; }
+    }
+
+    async function loadTopLanguages() {
+        const container = document.getElementById('languages-list-container');
+        container.innerHTML = '<p class="text-gray-500">Chargement...</p>';
+        try {
+            const res = await fetch(`${API_BASE}/api/stats/languages`);
+            const data = await res.json();
+            if(data.success && data.languages) {
+                container.innerHTML = data.languages.map(l => `
+                    <div class="mb-2">
+                        <div class="flex justify-between text-[11px] mb-1 text-gray-300"><span>${l.name}</span><span class="font-bold">${l.percent}%</span></div>
+                        <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden"><div class="h-2 rounded-full bg-blue-500" style="width: ${l.percent}%;"></div></div>
+                    </div>`).join('');
+            }
+        } catch(e) { container.innerHTML = "<p class='text-red-500 text-xs'>Erreur API Node.</p>"; }
+    }
+
+    // --- CHARTS CONFIG ---
+    let liveChart, yoyChart;
     function initCharts() {
-        if(chartsInitialized) return;
+        if(liveChart) return;
         
         const ctxLive = document.getElementById('liveStreamsChart');
         if(ctxLive) {
-            new Chart(ctxLive, {
+            liveChart = new Chart(ctxLive, {
                 type: 'line',
-                data: {
-                    labels: ['14 Dec', '15 Dec', '16 Dec', '17 Dec', '18 Dec', '19 Dec', '20 Dec'],
-                    datasets: [{
-                        label: 'Streams en direct',
-                        data: [85000, 92000, 88000, 105000, 98000, 115000, 1143894],
-                        borderColor: '#22c7ef',
-                        backgroundColor: 'rgba(34, 199, 239, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                data: { labels: [], datasets: [{ label: 'Viewers Live', data: [], borderColor: '#22c7ef', backgroundColor: 'rgba(34,199,239,0.1)', fill: true }] },
+                options: { responsive: true, maintainAspectRatio: false }
             });
         }
-
+        
         const ctxYoy = document.getElementById('yoyChannelsChart');
         if(ctxYoy) {
-            new Chart(ctxYoy, {
+            yoyChart = new Chart(ctxYoy, {
                 type: 'bar',
-                data: {
-                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
-                    datasets: [
-                        { label: '2024', data: [5.2, 5.8, 6.1, 5.9, 6.4, 6.8], backgroundColor: '#333' },
-                        { label: '2025', data: [6.5, 7.1, 7.8, 7.4, 8.2, 8.9], backgroundColor: '#ff0099' }
-                    ]
-                },
+                data: { labels: [], datasets: [{ label: 'Channels', data: [], backgroundColor: '#ff0099' }] },
                 options: { responsive: true, maintainAspectRatio: false }
             });
         }
-        chartsInitialized = true;
     }
-
-    // --- GRAPHIQUES SUPPLEMENTAIRES (VIEWERS & CHANNELS) ---
-    let viewersChartInit = false;
-    function initViewersChart() {
-        if(viewersChartInit) return;
-        const ctx = document.getElementById('viewersDistributionChart');
-        if(ctx) {
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['< 10 Viewers', '10-100 Viewers', '100-1k Viewers', '> 1k Viewers'],
-                    datasets: [{
-                        data: [92, 5, 2, 1],
-                        backgroundColor: ['#333', '#22c7ef', '#ffcc00', '#ff0099'],
-                        borderWidth: 0
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
-            });
-            viewersChartInit = true;
+    
+    function updateCharts(historyData) {
+        if(liveChart && historyData.live) {
+            liveChart.data.labels = historyData.live.labels;
+            liveChart.data.datasets[0].data = historyData.live.values;
+            liveChart.update();
         }
     }
 
-    let channelsChartInit = false;
-    function initChannelsChart() {
-        if(channelsChartInit) return;
-        const ctx = document.getElementById('channelsGrowthChart');
-        if(ctx) {
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
-                    datasets: [{
-                        label: 'New Affiliates',
-                        data: [12000, 15000, 19000, 22000],
-                        borderColor: '#59d682',
-                        tension: 0.3
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-            channelsChartInit = true;
-        }
-    }
-
-
-    // --- DONNÉES ET TRI JEUX ---
-    const gamesData = [
-        { name: "Just Chatting", viewers: 450200, streamers: 3200, img: "https://static-cdn.jtvnw.net/ttv-boxart/509658-52x72.jpg" },
-        { name: "League of Legends", viewers: 185000, streamers: 1200, img: "https://static-cdn.jtvnw.net/ttv-boxart/21779-52x72.jpg" },
-        { name: "GTA V", viewers: 210000, streamers: 850, img: "https://static-cdn.jtvnw.net/ttv-boxart/32982_IGDB-52x72.jpg" },
-        { name: "Valorant", viewers: 160000, streamers: 2100, img: "https://static-cdn.jtvnw.net/ttv-boxart/516575-52x72.jpg" },
-        { name: "Minecraft", viewers: 95000, streamers: 1500, img: "https://static-cdn.jtvnw.net/ttv-boxart/27471_IGDB-52x72.jpg" }
-    ];
-
-    function sortGames(criteria) {
-        const container = document.getElementById('games-list-container');
-        if(!container) return;
-        const sorted = [...gamesData].sort((a, b) => b[criteria] - a[criteria]);
-        container.innerHTML = sorted.map((game, index) => `
-            <div class="flex items-center gap-3 bg-[#111] p-2 rounded border border-gray-800 hover:border-gray-600 transition">
-                <span class="text-gray-500 font-bold w-6 text-center">#${index+1}</span>
-                <img src="${game.img}" class="w-8 rounded">
-                <div class="flex-grow">
-                    <div class="font-bold text-xs text-white">${game.name}</div>
-                    <div class="text-[10px] text-gray-400">
-                        <span class="text-blue-400">${game.viewers.toLocaleString()}</span> viewers • 
-                        <span class="text-green-400">${game.streamers.toLocaleString()}</span> streamers
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function loadTopGames() { sortGames('viewers'); }
-
-    function loadTopLanguages() {
-        const langs = [
-            { name: "English", percent: 45, color: "#22c7ef" },
-            { name: "Spanish", percent: 18, color: "#ffcc00" },
-            { name: "French", percent: 9, color: "#ff0099" },
-            { name: "Portuguese", percent: 7, color: "#59d682" },
-            { name: "German", percent: 6, color: "#e34a64" }
-        ];
-        const container = document.getElementById('languages-list-container');
-        if(!container) return;
-        container.innerHTML = langs.map(l => `
-            <div class="mb-2">
-                <div class="flex justify-between text-[11px] mb-1 text-gray-300">
-                    <span>${l.name}</span>
-                    <span class="font-bold">${l.percent}%</span>
-                </div>
-                <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden">
-                    <div class="h-2 rounded-full" style="width: ${l.percent}%; background-color: ${l.color}"></div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // --- UTILITAIRE FORMATTAGE ---
+    // --- UTILS & CORE ---
     const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString('fr-FR') : 'N/A';
 
-    // --- LECTEUR TWITCH ---
     window.launchPlayer = function(channelName, videoId = null) {
         if (embed && ((!videoId && embed.getChannel() === channelName) || (videoId && embed.getVideo() === videoId))) return;
         const hostWithoutPort = window.location.hostname;
@@ -559,7 +436,6 @@
         document.getElementById('input-channel').value = channelName;
     }
 
-    // --- LOGIQUE DE ROTATION & BOOST ---
     async function checkBoostAndPlay(manual = false) {
         const statusEl = document.getElementById('player-channel-status');
         const btnPrev = document.getElementById('btn-prev-stream');
@@ -587,15 +463,10 @@
             } else {
                 launchPlayer(DEFAULT_CHANNEL);
             }
-        } catch(e) { 
-            console.error(e);
-            launchPlayer(DEFAULT_CHANNEL); 
-        }
+        } catch(e) { console.error(e); launchPlayer(DEFAULT_CHANNEL); }
     }
     
     async function cycleStream(direction) {
-        document.getElementById('btn-prev-stream').disabled = true; 
-        document.getElementById('btn-next-stream').disabled = true;
         try {
             const res = await fetch(`${API_BASE}/cycle_stream`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ direction }) });
             const data = await res.json();
@@ -603,9 +474,9 @@
         } catch(e) { console.error(e); } finally { checkBoostAndPlay(true); }
     }
 
-    // --- AUTHENTIFICATION ---
     function startAuth() { window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login_popup', 'width=500,height=650'); }
     window.addEventListener('message', (event) => { if (event.data === 'auth_success') { window.location.reload(); } });
+    
     async function checkAuthStatus() {
         const btn = document.getElementById('btn-twitch-login');
         try {
@@ -619,7 +490,6 @@
                 loadFollowedStreams();
             } else {
                 btn.innerHTML = '🔒 CONNEXION TWITCH';
-                btn.style.background = '#6441a5';
                 btn.onclick = startAuth;
             }
         } catch (e) { console.error(e); }
@@ -642,7 +512,7 @@
         } catch(e) { list.innerHTML = "<p style='color:red;'>Erreur de chargement.</p>"; }
     }
 
-    // --- LOGIQUE IA & SCAN ---
+    // --- AI & SCAN FUNCTIONS ---
     async function runAIAnalysis(type, query, box, niche_score=null) {
         box.innerHTML = "<p class='text-center'><i class='fas fa-sync fa-spin'></i> Analyse de l'IA en cours...</p>";
         try {
@@ -682,10 +552,10 @@
     }
     document.getElementById('form-global-scan').addEventListener('submit', (e) => { e.preventDefault(); runGlobalScan(document.getElementById('input-global-target').value); });
     
-    // --- BEST TIME, BOOST, RAID, EXPORT (Identique V17) ---
+    // --- OTHERS ---
     document.getElementById('form-schedule').addEventListener('submit', async (e) => {
         e.preventDefault(); const game = document.getElementById('input-schedule-game').value; const btn = document.getElementById('btn-schedule'); const resBox = document.getElementById('schedule-results'); if(!game) return;
-        btn.disabled = true; btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> CALCUL EN COURS...';
+        btn.disabled = true; btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>...';
         try { const res = await fetch(`${API_BASE}/analyze_schedule`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ game }) }); const data = await res.json(); if(data.success) { resBox.style.display = 'block'; document.getElementById('schedule-img').src = data.box_art; document.getElementById('schedule-game-name').innerText = data.game_name; document.getElementById('schedule-ai-content').innerHTML = data.html_response; } else { alert('Erreur: ' + (data.error || 'Jeu introuvable')); } } catch(e) { alert('Erreur réseau'); } btn.disabled = false; btn.innerHTML = 'CALCULER';
     });
 
@@ -696,7 +566,7 @@
 
     document.getElementById('form-raid').addEventListener('submit', async (e) => {
         e.preventDefault(); const game = document.getElementById('input-raid-game').value; const max_viewers = document.getElementById('select-raid-viewers').value; const resBox = document.getElementById('raid-results'); const btn = document.getElementById('btn-start-raid'); if (!game) return;
-        btn.disabled = true; resBox.innerHTML = "<p style='text-align:center; color:var(--color-ai-action);'><i class='fas fa-sync fa-spin'></i> Recherche de la meilleure cible FR...</p>"; try { const res = await fetch(`${API_BASE}/start_raid`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game, max_viewers}) }); const data = await res.json(); if (data.success) { const t = data.target; resBox.innerHTML = `<div class="raid-target-box"><img src="${t.thumbnail_url}"><div><div style="font-weight:bold; font-size:16px;">${t.name}</div><div style="font-size:12px; color:#ccc;">${t.game}</div><div style="font-size:14px; color:var(--color-ai-niche); font-weight:bold;">🟢 ${t.viewers} spectateurs</div></div><button onclick="launchPlayer('${t.login}')" class="btn-primary" style="margin-left:auto; background:var(--color-ai-action);">LANCER LE RAID</button></div>`; } else { resBox.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`; } } catch(e) { resBox.innerHTML = "<p style='color:red;'>Erreur serveur.</p>"; } btn.disabled = false;
+        btn.disabled = true; resBox.innerHTML = "<p style='text-align:center; color:var(--color-ai-action);'><i class='fas fa-sync fa-spin'></i>..."; try { const res = await fetch(`${API_BASE}/start_raid`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game, max_viewers}) }); const data = await res.json(); if (data.success) { const t = data.target; resBox.innerHTML = `<div class="raid-target-box"><img src="${t.thumbnail_url}"><div><div style="font-weight:bold; font-size:16px;">${t.name}</div><div style="font-size:12px; color:#ccc;">${t.game}</div><div style="font-size:14px; color:var(--color-ai-niche); font-weight:bold;">🟢 ${t.viewers} spectateurs</div></div><button onclick="launchPlayer('${t.login}')" class="btn-primary" style="margin-left:auto; background:var(--color-ai-action);">LANCER LE RAID</button></div>`; } else { resBox.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`; } } catch(e) { resBox.innerHTML = "<p style='color:red;'>Erreur serveur.</p>"; } btn.disabled = false;
     });
 
     document.getElementById('btn-export-pdf').addEventListener('click', () => { window.open(`${API_BASE}/export_csv`, '_blank'); });
