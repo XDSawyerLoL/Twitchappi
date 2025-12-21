@@ -16,8 +16,15 @@ const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
 // [CORRECTION IMPORT] Import officiel de la librairie 0.21.0
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+// ✅ IMPORT DE LA NOUVELLE LIBRAIRIE (Celle qui marche)
+const { GoogleGenAI } = require('@google/genai');
 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// On utilise le modèle 2.5 Flash qui est très stable
+const GEMINI_MODEL = "gemini-2.5-flash"; 
+
+// Initialisation simplifiée
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 // --- AJOUT FIREBASE ---
 const admin = require('firebase-admin');
 
@@ -157,38 +164,33 @@ async function twitchAPI(endpoint, token = null) {
 
 // [DEBUG IA] AFFICHE L'ERREUR EXACTE SUR LE SITE
 async function runGeminiAnalysis(prompt) {
-    if (!geminiModel) {
-        return { success: false, html_response: "<p style='color:red; font-weight:bold;'>❌ ERREUR : Modèle IA non chargé. Vérifiez les logs Render pour la clé API.</p>" };
-    }
     try {
-        console.log("⏳ [IA] Envoi de la requête au modèle 'gemini-1.5-flash'...");
-        const result = await geminiModel.generateContent(prompt + " Réponds en HTML simple (<h4>, <ul>, <li>).");
-        const response = await result.response;
-        const text = response.text();
-        console.log("✅ [IA] Réponse reçue !");
-        return { success: true, html_response: text };
-    } catch (e) {
-        // Capture complète de l'erreur
-        console.error("🔥 [IA CRASH] Détails complets :", e);
+        console.log("⏳ [IA] Envoi requête Gemini 2.5...");
         
-        // Construction du message d'erreur pour le front-end
-        const errorMsg = e.message || "Erreur inconnue";
-        const errorStack = JSON.stringify(e, Object.getOwnPropertyNames(e), 2);
+        // ✅ NOUVELLE SYNTAXE (Celle de ton code qui marche)
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            config: {
+                systemInstruction: "Tu es un expert Twitch. Réponds UNIQUEMENT en HTML simple."
+            }
+        });
+        
+        // Dans la nouvelle lib, la réponse est souvent directement accessible via .text() ou .text
+        // Ton code fonctionnel utilise response.text
+        const text = response.text ? response.text.trim() : "";
+        
+        console.log("✅ [IA] Succès !");
+        return { success: true, html_response: text };
 
+    } catch (e) {
+        console.error("❌ [IA CRASH]:", e);
         return { 
             success: false, 
-            html_response: `
-            <div style="background-color: #450a0a; border: 2px solid #ef4444; color: #fecaca; padding: 15px; border-radius: 8px; font-family: monospace; text-align: left;">
-                <h3 style="margin-top:0; color: #ef4444;">⚠️ ERREUR GOOGLE GEMINI</h3>
-                <p><strong>Message :</strong> ${errorMsg}</p>
-                <hr style="border-color: #7f1d1d;">
-                <p><strong>Détails techniques (pour debug) :</strong></p>
-                <pre style="white-space: pre-wrap; font-size: 11px;">${errorStack}</pre>
-            </div>` 
+            html_response: `<p style="color:red">Erreur IA: ${e.message}</p>` 
         };
     }
 }
-
 // =========================================================
 // 4. AUTHENTIFICATION TWITCH
 // =========================================================
@@ -451,3 +453,4 @@ setInterval(recordStats, 30 * 60 * 1000);
 setTimeout(recordStats, 10000);
 
 app.listen(PORT, () => console.log(`🚀 SERVER V48 (STABLE EDITION) ON PORT ${PORT}`));
+
