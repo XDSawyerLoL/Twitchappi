@@ -97,8 +97,9 @@ let geminiModel;
 if (GEMINI_API_KEY) {
     try {
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        console.log("✅ [IA] Gemini 1.5 Flash chargé.");
+        // On utilise "gemini-pro" car il est reconnu à 100% par l'API v1beta
+        geminiModel = genAI.getGenerativeModel({ model: "gemini-pro" }); 
+        console.log("✅ [IA] Gemini Pro chargé (Mode Stable).");
     } catch (e) { console.error("❌ [IA] Erreur Init:", e.message); }
 } else {
     console.error("❌ [IA] GEMINI_API_KEY manquante dans les variables d'environnement !");
@@ -454,6 +455,7 @@ setTimeout(recordStats, 10000);
 
 // START
 app.listen(PORT, () => console.log(`🚀 SERVER V48 (ULTIMATE FUSION) ON PORT ${PORT}`));
+
 
 
 
