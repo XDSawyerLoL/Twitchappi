@@ -678,7 +678,7 @@ app.get('/export_csv', (req, res) => {
 });
 
 // Route Serveur de Fichier (Frontend)
-app.get('/', (req,res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/', (req,res) => res.sendFile(path.join(__dirname, 'NicheOptimizer.html')));
 
 
 // -------------------------------------------------------------------------
@@ -719,3 +719,4 @@ app.listen(PORT, () => {
     console.log(` 👉 URL: http://localhost:${PORT}`);
     console.log(`==================================================\n`);
 });
+
