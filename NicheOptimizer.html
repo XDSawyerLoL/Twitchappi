@@ -198,122 +198,71 @@
             </div>
         </div>
 
- <div id="tab-dashboard" class="tab-content">
-    <div class="flex gap-4 border-b border-gray-800 mb-6 overflow-x-auto pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-        <button class="hover:text-white border-b-2 border-blue-500 text-white pb-1">Overview</button>
-        <button class="hover:text-white pb-1">Viewers</button>
-        <button class="hover:text-white pb-1">Channels</button>
-        <button class="hover:text-white pb-1">Active Streamers</button>
-        <button class="hover:text-white pb-1">Watch Time</button>
-        <button class="hover:text-white pb-1">Stream Time</button>
-        <button class="hover:text-white pb-1">Games</button>
-        <button class="hover:text-white pb-1">Languages</button>
+<div id="tab-dashboard" class="tab-content">
+    <div id="dashboard-sub-nav" class="flex gap-4 border-b border-gray-800 mb-6 overflow-x-auto pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+        <button onclick="showSubTab('overview')" class="sub-tab-btn active-sub">Overview</button>
+        <button onclick="showSubTab('viewers')" class="sub-tab-btn">Viewers</button>
+        <button onclick="showSubTab('channels')" class="sub-tab-btn">Channels</button>
+        <button onclick="showSubTab('games')" class="sub-tab-btn text-blue-400">🎮 Games</button>
+        <button onclick="showSubTab('languages')" class="sub-tab-btn text-pink-400">🌍 Languages</button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div class="bg-[#111] p-5 rounded-lg border-l-4 border-blue-500 shadow-lg">
-            <div class="text-2xl font-bold text-white">6,585,035</div>
-            <div class="text-[10px] text-gray-400 uppercase mt-1">Total streamers (Novembre)</div>
-        </div>
-        <div class="bg-[#111] p-5 rounded-lg border-l-4 border-purple-500 shadow-lg">
-            <div class="text-2xl font-bold text-white">9,894,745</div>
-            <div class="text-[10px] text-gray-400 uppercase mt-1">Record historique (Jan 2021)</div>
-        </div>
-        <div class="bg-[#111] p-5 rounded-lg border-l-4 border-green-500 shadow-lg">
-            <div class="text-2xl font-bold text-white">1,087,412</div>
-            <div class="text-[10px] text-gray-400 uppercase mt-1">Streamers actifs / jour</div>
-        </div>
-        <div class="bg-[#111] p-5 rounded-lg border-l-4 border-pink-500 shadow-lg">
-            <div class="text-2xl font-bold text-white">1,143,894</div>
-            <div class="text-[10px] text-gray-400 uppercase mt-1">Streamers actifs hier</div>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800">
-            <h4 class="text-xs font-bold text-gray-400 uppercase mb-4 flex justify-between">
-                <span>📈 Live Streams Chart</span>
-                <span class="text-blue-400">Temps Réel</span>
-            </h4>
-            <div class="h-[250px] relative">
-                <canvas id="liveStreamsChart"></canvas>
+    <div id="sub-overview" class="sub-content">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-[#111] p-5 rounded-lg border-l-4 border-blue-500 shadow-lg">
+                <div class="text-2xl font-bold text-white">6,585,035</div>
+                <div class="text-[10px] text-gray-400 uppercase mt-1">Total streamers (Novembre)</div>
+            </div>
+            <div class="bg-[#111] p-5 rounded-lg border-l-4 border-purple-500 shadow-lg">
+                <div class="text-2xl font-bold text-white">9,894,745</div>
+                <div class="text-[10px] text-gray-400 uppercase mt-1">Record historique (Jan 2021)</div>
+            </div>
+            <div class="bg-[#111] p-5 rounded-lg border-l-4 border-green-500 shadow-lg">
+                <div class="text-2xl font-bold text-white">1,087,412</div>
+                <div class="text-[10px] text-gray-400 uppercase mt-1">Streamers actifs / jour</div>
+            </div>
+            <div class="bg-[#111] p-5 rounded-lg border-l-4 border-pink-500 shadow-lg">
+                <div class="text-2xl font-bold text-white">1,143,894</div>
+                <div class="text-[10px] text-gray-400 uppercase mt-1">Streamers actifs hier</div>
             </div>
         </div>
 
-        <div class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800">
-            <h4 class="text-xs font-bold text-gray-400 uppercase mb-4 flex justify-between">
-                <span>📊 Active Channels Year Over Year</span>
-                <span class="text-pink-500">2024 vs 2025</span>
-            </h4>
-            <div class="h-[250px] relative">
-                <canvas id="yoyChannelsChart"></canvas>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800">
+                <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">📈 Live Streams Chart</h4>
+                <div class="h-[250px]"><canvas id="liveStreamsChart"></canvas></div>
+            </div>
+            <div class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800">
+                <h4 class="text-xs font-bold text-gray-400 uppercase mb-4">📊 Active Channels YoY</h4>
+                <div class="h-[250px]"><canvas id="yoyChannelsChart"></canvas></div>
             </div>
         </div>
     </div>
 
-    <div class="bg-[#111] p-6 rounded-xl border border-blue-900/20">
-        <h3 class="text-sm font-bold text-blue-400 uppercase mb-4 tracking-tighter">Analyseur de Marché Avancé</h3>
-        <form id="form-global-scan" class="flex gap-2">
-            <input id="input-global-target" type="text" placeholder="Gotaga, Minecraft, ASMR..." class="action-input flex-grow bg-black">
-            <button type="submit" class="btn-primary" style="background:var(--color-secondary-blue)">Analyser</button>
-        </form>
+    <div id="sub-games" class="sub-content hidden">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-blue-400 font-bold uppercase text-sm">Top Games (Trié par Viewers)</h3>
+            <select onchange="sortGames(this.value)" class="bg-black border border-gray-700 text-xs p-1 rounded">
+                <option value="viewers">Trier par Viewers</option>
+                <option value="streamers">Trier par Streamers</option>
+            </select>
+        </div>
+        <div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            </div>
+    </div>
+
+    <div id="sub-languages" class="sub-content hidden">
+        <h3 class="text-pink-400 font-bold uppercase text-sm mb-4">Part de Marché par Langue</h3>
+        <div id="languages-list-container" class="bg-[#0a0a0a] p-4 rounded-xl border border-gray-800">
+            </div>
     </div>
 </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <div class="lg:col-span-2">
-            <div class="bg-[#111] p-6 rounded-xl border border-[#333] mb-6">
-                <h4 class="mb-4 text-sm font-bold uppercase tracking-widest text-blue-400">🔍 Analyseur de Cible</h4>
-                <form id="form-global-scan" class="flex gap-2">
-                    <input id="input-global-target" type="text" placeholder="Entrez un Streamer ou un Jeu..." class="action-input flex-grow">
-                    <button type="submit" class="btn-primary" style="background:var(--color-secondary-blue)">Lancer</button>
-                </form>
-                
-                <div class="dashboard-grid mt-6">
-                    <div id="res-scan-content" class="dashboard-box bg-[#050505] border-blue-900/30">
-                        <p class="text-gray-600 text-center mt-10">Métriques API</p>
-                    </div>
-                    <div id="res-niche-content" class="dashboard-box bg-[#050505] border-green-900/30">
-                        <p class="text-gray-600 text-center mt-10">Audit IA Niche</p>
-                    </div>
-                    <div id="res-vod-content" class="dashboard-box bg-[#050505] border-purple-900/30">
-                        <p class="text-gray-600 text-center mt-10">Analyse VOD</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="space-y-6">
-            <div class="bg-[#111] p-4 rounded-xl border border-[#333]">
-                <h4 class="mb-3 text-xs font-bold text-gray-400 uppercase">⚖️ Comparer (VS)</h4>
-                <div class="space-y-2">
-                    <input type="text" placeholder="Cible A" class="action-input text-xs">
-                    <div class="text-center text-gray-600 font-bold">VS</div>
-                    <input type="text" placeholder="Cible B" class="action-input text-xs">
-                    <button class="btn-primary w-full mt-2" style="background:#444">Comparer les Stats</button>
-                </div>
-            </div>
-
-            <div class="bg-[#111] p-4 rounded-xl border border-[#333]">
-                <h4 class="mb-3 text-xs font-bold text-gray-400 uppercase">🌍 Top Langues (Part d'audience)</h4>
-                <div class="space-y-3">
-                    <div>
-                        <div class="flex justify-between text-[10px] mb-1"><span>English</span><span>42%</span></div>
-                        <div class="w-full bg-gray-800 h-1 rounded-full"><div class="bg-blue-500 h-1 rounded-full" style="width:42%"></div></div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between text-[10px] mb-1"><span>Spanish</span><span>15%</span></div>
-                        <div class="w-full bg-gray-800 h-1 rounded-full"><div class="bg-yellow-500 h-1 rounded-full" style="width:15%"></div></div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between text-[10px] mb-1"><span>French</span><span>8%</span></div>
-                        <div class="w-full bg-gray-800 h-1 rounded-full"><div class="bg-pink-500 h-1 rounded-full" style="width:8%"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<style>
+    .sub-tab-btn { transition: all 0.3s; padding-bottom: 4px; border-bottom: 2px solid transparent; }
+    .active-sub { border-bottom: 2px solid var(--color-secondary-blue); color: white; }
+    .hidden { display: none; }
+</style>
 </div>
 
         <div id="tab-time" class="tab-content">
