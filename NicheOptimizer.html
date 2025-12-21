@@ -198,37 +198,100 @@
             </div>
         </div>
 
-        <div id="tab-dashboard" class="tab-content">
-            <div style="text-align:center; margin-bottom:20px;">
-                <h3 class="text-blue font-bold text-lg mb-2" style="color:var(--color-secondary-blue);">ANALYSE COMPLÈTE & IA</h3>
-                <p style="color:#888; font-size:12px; margin-bottom:10px;">Analysez n'importe quel Streamer ou Jeu pour obtenir des données et conseils IA.</p>
-                <form id="form-global-scan">
-                    <input id="input-global-target" type="text" placeholder="Ex: Gotaga, Valorant, Squeezie..." class="action-input" style="font-size:16px; text-align:center;">
-                    <button type="submit" id="btn-global-scan" class="btn-primary btn-big-scan">🚀 LANCER L'ANALYSE</button>
-                </form>
-            </div>
+ <div id="tab-dashboard" class="tab-content">
+    <div style="text-align:center; margin-bottom:25px;">
+        <h2 class="font-bold text-2xl" style="font-family:'Orbitron'; color:var(--color-secondary-blue);">GLOBAL MARKET INSIGHTS</h2>
+        <p style="color:#888; font-size:12px;">Données plateforme en temps réel • Analyse comparative</p>
+    </div>
 
-            <div class="dashboard-grid">
-                <div class="dashboard-box box-stats">
-                    <div class="dashboard-title" style="color:var(--color-secondary-blue)">📊 MÉTRIQUES</div>
-                    <div id="res-scan-content" style="font-size:13px; color:#ddd;">
-                        <p style="color:#777; text-align:center; margin-top:50px;">En attente de scan...</p>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div class="dashboard-box box-stats text-center p-4">
+            <span class="text-[10px] text-gray-400 uppercase">Viewers</span>
+            <div class="text-xl font-bold text-white">2,824,594</div>
+            <span class="text-[10px] text-green-400"><i class="fas fa-caret-up"></i> 5.2%</span>
+        </div>
+        <div class="dashboard-box box-stats text-center p-4">
+            <span class="text-[10px] text-gray-400 uppercase">Channels</span>
+            <div class="text-xl font-bold text-white">104,344</div>
+            <span class="text-[10px] text-red-400"><i class="fas fa-caret-down"></i> 1.1%</span>
+        </div>
+        <div class="dashboard-box box-stats text-center p-4">
+            <span class="text-[10px] text-gray-400 uppercase">Active Streamers</span>
+            <div class="text-xl font-bold text-white">90,475</div>
+            <span class="text-[10px] text-green-400"><i class="fas fa-caret-up"></i> 0.8%</span>
+        </div>
+        <div class="dashboard-box box-stats text-center p-4">
+            <span class="text-[10px] text-gray-400 uppercase">Watch Time (24h)</span>
+            <div class="text-xl font-bold text-white">51.6M h</div>
+            <span class="text-[10px] text-gray-500">Stable</span>
+        </div>
+        <div class="dashboard-box box-stats text-center p-4">
+            <span class="text-[10px] text-gray-400 uppercase">Games Live</span>
+            <div class="text-xl font-bold text-white">3,866</div>
+            <span class="text-[10px] text-blue-400">New +12</span>
+        </div>
+        <div class="dashboard-box box-stats text-center p-4" style="border-top-color:var(--color-primary-pink)">
+            <span class="text-[10px] text-gray-400 uppercase">Top Language</span>
+            <div class="text-xl font-bold text-white">English</div>
+            <span class="text-[10px] text-pink-500">FR #4</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2">
+            <div class="bg-[#111] p-6 rounded-xl border border-[#333] mb-6">
+                <h4 class="mb-4 text-sm font-bold uppercase tracking-widest text-blue-400">🔍 Analyseur de Cible</h4>
+                <form id="form-global-scan" class="flex gap-2">
+                    <input id="input-global-target" type="text" placeholder="Entrez un Streamer ou un Jeu..." class="action-input flex-grow">
+                    <button type="submit" class="btn-primary" style="background:var(--color-secondary-blue)">Lancer</button>
+                </form>
+                
+                <div class="dashboard-grid mt-6">
+                    <div id="res-scan-content" class="dashboard-box bg-[#050505] border-blue-900/30">
+                        <p class="text-gray-600 text-center mt-10">Métriques API</p>
                     </div>
-                </div>
-                <div class="dashboard-box box-niche">
-                    <div class="dashboard-title" style="color:var(--color-ai-niche)">🧠 CRITIQUE NICHE (IA)</div>
-                    <div id="res-niche-content" style="font-size:13px; line-height:1.4;">
-                         <p style="color:#777; text-align:center; margin-top:50px;">L'IA générera un audit ici.</p>
+                    <div id="res-niche-content" class="dashboard-box bg-[#050505] border-green-900/30">
+                        <p class="text-gray-600 text-center mt-10">Audit IA Niche</p>
                     </div>
-                </div>
-                <div class="dashboard-box box-vod">
-                    <div class="dashboard-title" style="color:var(--color-ai-repurpose)">✂️ VOD & CLIPS</div>
-                    <div id="res-vod-content" style="font-size:13px;">
-                        <p style="color:#777; text-align:center; margin-top:50px;">Analyse de VOD pour TikTok/Shorts.</p>
+                    <div id="res-vod-content" class="dashboard-box bg-[#050505] border-purple-900/30">
+                        <p class="text-gray-600 text-center mt-10">Analyse VOD</p>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="space-y-6">
+            <div class="bg-[#111] p-4 rounded-xl border border-[#333]">
+                <h4 class="mb-3 text-xs font-bold text-gray-400 uppercase">⚖️ Comparer (VS)</h4>
+                <div class="space-y-2">
+                    <input type="text" placeholder="Cible A" class="action-input text-xs">
+                    <div class="text-center text-gray-600 font-bold">VS</div>
+                    <input type="text" placeholder="Cible B" class="action-input text-xs">
+                    <button class="btn-primary w-full mt-2" style="background:#444">Comparer les Stats</button>
+                </div>
+            </div>
+
+            <div class="bg-[#111] p-4 rounded-xl border border-[#333]">
+                <h4 class="mb-3 text-xs font-bold text-gray-400 uppercase">🌍 Top Langues (Part d'audience)</h4>
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-1"><span>English</span><span>42%</span></div>
+                        <div class="w-full bg-gray-800 h-1 rounded-full"><div class="bg-blue-500 h-1 rounded-full" style="width:42%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-1"><span>Spanish</span><span>15%</span></div>
+                        <div class="w-full bg-gray-800 h-1 rounded-full"><div class="bg-yellow-500 h-1 rounded-full" style="width:15%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-1"><span>French</span><span>8%</span></div>
+                        <div class="w-full bg-gray-800 h-1 rounded-full"><div class="bg-pink-500 h-1 rounded-full" style="width:8%"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
         <div id="tab-time" class="tab-content">
             <h3 style="color:var(--color-time-gold); margin-bottom:10px;">⏰ OPTIMISATION DE L'HORAIRE</h3>
