@@ -20,7 +20,7 @@ const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
 // [EVOLUTION] Nouvelle librairie IA Stable (Remplace @google/genai de la V20)
-const { GoogleGenerativeAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require(''@google/generative-ai');
 
 // --- AJOUT FIREBASE (TA CONFIGURATION V20 EXACTE) ---
 const admin = require('firebase-admin');
@@ -443,4 +443,5 @@ setTimeout(recordStats, 10000);
 
 // START
 app.listen(PORT, () => console.log(`🚀 SERVER V48 (ULTIMATE FUSION) ON PORT ${PORT}`));
+
 
