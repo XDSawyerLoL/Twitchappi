@@ -1,8 +1,8 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V48 - ULTIMATE DEBUG EDITION)
+ * STREAMER & NICHE AI HUB - BACKEND (V48 - ULTIMATE STABLE EDITION)
  * =========================================================
- * Cette version est conçue pour afficher les erreurs IA directement
- * sur le site web pour le débogage.
+ * Version corrigée pour fonctionner avec @google/generative-ai ^0.21.0
+ * Modèle : gemini-1.5-flash
  */
 
 require('dotenv').config();
@@ -15,7 +15,7 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// [CORRECTION] Import propre pour la version 0.21.0
+// [CORRECTION IMPORT] Import officiel de la librairie 0.21.0
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // --- AJOUT FIREBASE ---
@@ -84,15 +84,17 @@ const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 
-// [IA CONFIGURATION]
+// [IA CONFIGURATION - MODELE CORRIGÉ]
 let geminiModel;
 if (GEMINI_API_KEY) {
     try {
         console.log("⚙️ [IA] Initialisation de Gemini...");
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        // Utilisation de "gemini-pro" pour stabilité maximale sur v1beta
-        geminiModel = genAI.getGenerativeModel({ model: "gemini-pro" });
-        console.log("✅ [IA] Gemini Pro chargé avec succès.");
+        
+        // Utilisation de gemini-1.5-flash (Modèle actuel standard)
+        geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        
+        console.log("✅ [IA] Modèle Gemini 1.5 Flash chargé.");
     } catch (e) { 
         console.error("❌ [IA] CRASH Initialisation :", e.message); 
     }
@@ -159,7 +161,7 @@ async function runGeminiAnalysis(prompt) {
         return { success: false, html_response: "<p style='color:red; font-weight:bold;'>❌ ERREUR : Modèle IA non chargé. Vérifiez les logs Render pour la clé API.</p>" };
     }
     try {
-        console.log("⏳ [IA] Envoi de la requête au modèle 'gemini-pro'...");
+        console.log("⏳ [IA] Envoi de la requête au modèle 'gemini-1.5-flash'...");
         const result = await geminiModel.generateContent(prompt + " Réponds en HTML simple (<h4>, <ul>, <li>).");
         const response = await result.response;
         const text = response.text();
@@ -448,4 +450,4 @@ async function recordStats() {
 setInterval(recordStats, 30 * 60 * 1000); 
 setTimeout(recordStats, 10000);
 
-app.listen(PORT, () => console.log(`🚀 SERVER V48 (DEBUG EDITION) ON PORT ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 SERVER V48 (STABLE EDITION) ON PORT ${PORT}`));
