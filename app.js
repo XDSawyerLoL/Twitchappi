@@ -1,8 +1,9 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V48 - ULTIMATE GOOGLE GENAI FIX)
- * =========================================================
- * Moteur : @google/genai (Nouvelle librairie officielle)
- * Logique : Streamer Hub (Rotation, Boost, Stats, Firebase)
+ * STREAMER & NICHE AI HUB - VERSION TWITCHAPPI ENGINE
+ * ===================================================
+ * Ce code combine :
+ * 1. Les fonctionnalités complètes de ton Streamer Hub (Boost, Stats, Firebase).
+ * 2. Le moteur IA de "twitchappi" (@google/genai) qui contourne le blocage région.
  */
 
 require('dotenv').config();
@@ -15,13 +16,13 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// ✅ IMPORT DE LA NOUVELLE LIBRAIRIE (Comme sur twitchappi)
+// ✅ LE SECRET DU SUCCÈS : La nouvelle librairie (comme sur twitchappi)
 const { GoogleGenAI } = require('@google/genai');
 
 const admin = require('firebase-admin');
 
 // =========================================================
-// 0. INITIALISATION FIREBASE (Robuste pour Render)
+// 0. INITIALISATION FIREBASE
 // =========================================================
 let serviceAccount;
 
@@ -31,18 +32,17 @@ if (process.env.FIREBASE_SERVICE_KEY) {
         if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
         if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
         rawJson = rawJson.replace(/\r\n/g, '\\n').replace(/\n/g, '\\n').replace(/\r/g, '\\n');
-
         serviceAccount = JSON.parse(rawJson);
-        console.log("✅ [FIREBASE] Clé chargée (Env Var).");
+        console.log("✅ [FIREBASE] Clé chargée.");
     } catch (error) {
-        console.error("❌ [FIREBASE] Erreur Parsing JSON :", error.message);
+        console.error("❌ [FIREBASE] Erreur JSON:", error.message);
     }
 } else {
     try {
         serviceAccount = require('./serviceAccountKey.json');
         console.log("✅ [FIREBASE] Clé locale chargée.");
     } catch (e) {
-        console.warn("⚠️ [FIREBASE] Mode sans base de données (Clé manquante).");
+        console.warn("⚠️ [FIREBASE] Mode sans base de données.");
     }
 }
 
@@ -52,49 +52,38 @@ if (serviceAccount) {
             credential: admin.credential.cert(serviceAccount),
             projectId: serviceAccount.project_id 
         });
-        console.log(`✅ [FIREBASE] Connecté : ${serviceAccount.project_id}`);
-    } catch (e) {
-        console.error("❌ [FIREBASE] Erreur init :", e.message);
-    }
+    } catch (e) { console.error("❌ [FIREBASE] Erreur Init:", e.message); }
 } else {
     try { admin.initializeApp(); } catch(e){}
 }
 
 const db = admin.firestore();
-
-if (serviceAccount) {
-    try {
-        db.settings({
-            projectId: serviceAccount.project_id || 'goodstreamer-7e87d',
-            ignoreUndefinedProperties: true
-        });
-    } catch(e) {}
-}
+if (serviceAccount) { try { db.settings({ projectId: serviceAccount.project_id, ignoreUndefinedProperties: true }); } catch(e){} }
 
 const app = express();
 
 // =========================================================
-// 1. CONFIGURATION
+// 1. CONFIGURATION ET IA (LE COEUR DU CHANGEMENT)
 // =========================================================
 const PORT = process.env.PORT || 10000;
-
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 
-// ✅ INITIALISATION IA (NOUVELLE MÉTHODE TWITCHAPPI)
+// ✅ MODELE PUISSANT ET NON BLOQUÉ (Comme sur twitchappi)
+const GEMINI_MODEL = "gemini-2.5-flash"; 
+
+// Initialisation IA Nouvelle Génération
 let aiClient = null;
 if (GEMINI_API_KEY) {
     try {
-        console.log("⚙️ [IA] Initialisation @google/genai...");
+        console.log(`⚙️ [IA] Initialisation du moteur @google/genai (${GEMINI_MODEL})...`);
         aiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-        console.log("✅ [IA] Client GoogleGenAI prêt.");
-    } catch (e) { 
-        console.error("❌ [IA] Erreur Init :", e.message); 
+        console.log("✅ [IA] Moteur prêt (Mode Twitchappi).");
+    } catch (e) {
+        console.error("❌ [IA] Erreur Init:", e.message);
     }
-} else {
-    console.error("❌ [IA] Clé API manquante !");
 }
 
 app.use(cors());
@@ -106,89 +95,63 @@ app.use(express.static(path.join(__dirname)));
 // 2. CACHE
 // =========================================================
 const CACHE = {
-    twitchTokens: {}, 
-    twitchUser: null, 
-    boostedStream: null, 
-    lastScanData: null, 
-    globalStreamRotation: {
-        streams: [], 
-        currentIndex: 0, 
-        lastFetchTime: 0, 
-        fetchCooldown: 3 * 60 * 1000 
-    },
+    twitchTokens: {}, twitchUser: null, boostedStream: null, lastScanData: null, 
+    globalStreamRotation: { streams: [], currentIndex: 0, lastFetchTime: 0, fetchCooldown: 3 * 60 * 1000 },
     statsCache: { global: null, topGames: null, languages: null, lastFetch: 0 }
 };
 
 // =========================================================
 // 3. HELPERS
 // =========================================================
-
 async function getTwitchToken(tokenType = 'app') {
-    if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) {
-        return CACHE.twitchTokens[tokenType].access_token;
-    }
-    const url = `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`;
+    if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) return CACHE.twitchTokens[tokenType].access_token;
     try {
-        const response = await fetch(url, { method: 'POST' });
-        const data = await response.json();
+        const res = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, { method: 'POST' });
+        const data = await res.json();
         if (data.access_token) {
             CACHE.twitchTokens[tokenType] = { access_token: data.access_token, expiry: Date.now() + (data.expires_in * 1000) - 300000 };
             return data.access_token;
         }
-        return null;
-    } catch (error) { return null; }
+    } catch (e) { return null; }
+    return null;
 }
 
 async function twitchAPI(endpoint, token = null) {
     const accessToken = token || await getTwitchToken('app');
     if (!accessToken) throw new Error("No Token.");
-    constPv = await fetch(`https://api.twitch.tv/helix/${endpoint}`, { headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` } });
     const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, { headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` } });
-    if (res.status === 401) {
-        if (token === CACHE.twitchTokens['app']?.access_token) CACHE.twitchTokens['app'] = null; 
-        throw new Error(`Token expiré.`);
-    }
+    if (res.status === 401) { if (token === CACHE.twitchTokens['app']?.access_token) CACHE.twitchTokens['app'] = null; throw new Error(`Token expiré.`); }
     return res.json();
 }
 
-// ✅ [FONCTION IA CORRIGÉE] : UTILISE LA MÉTHODE TWITCHAPPI
+// ✅ [NOUVELLE FONCTION IA] : Copiée de twitchappi
 async function runGeminiAnalysis(prompt) {
-    if (!aiClient) {
-        return { success: false, html_response: "<p style='color:red;'>❌ IA non initialisée (Clé API).</p>" };
-    }
+    if (!aiClient) return { success: false, html_response: "<p>❌ IA non initialisée.</p>" };
+    
     try {
-        console.log("⏳ [IA] Envoi requête (gemini-1.5-flash)...");
+        console.log(`⏳ [IA] Envoi requête vers ${GEMINI_MODEL}...`);
         
         // Nouvelle syntaxe @google/genai
         const response = await aiClient.models.generateContent({
-            model: "gemini-1.5-flash", // Modèle standard stable
+            model: GEMINI_MODEL,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             config: {
-                systemInstruction: "Réponds UNIQUEMENT en HTML simple (<h4>, <ul>, <li>, <p>, <strong>). Pas de markdown ```html."
+                systemInstruction: "Tu es un expert Twitch. Réponds UNIQUEMENT en HTML simple (<h4>, <ul>, <li>, <p>). Pas de markdown."
             }
         });
 
-        // Extraction du texte (nouvelle lib)
         const text = response.text ? response.text.trim() : "Réponse vide.";
-        
         console.log("✅ [IA] Succès !");
         return { success: true, html_response: text };
-        
-    } catch (e) {
-        console.error("🔥 [IA CRASH] :", e);
-        
-        let msg = e.message || "Erreur inconnue";
-        if(msg.includes('404')) msg += " (Vérifiez la région Render: US obligatoire)";
 
-        return { 
-            success: false, 
-            html_response: `<div style="background:#450a0a; color:#fecaca; padding:10px; border:1px solid red;">⚠️ ERREUR IA : ${msg}</div>` 
-        };
+    } catch (e) {
+        console.error("🔥 [IA CRASH]:", e);
+        return { success: false, html_response: `<p style="color:red">Erreur IA: ${e.message}</p>` };
     }
 }
 
 // =========================================================
-// 4. AUTH & ROUTES
+// 4. ROUTES
 // =========================================================
 
 app.get('/twitch_auth_start', (req, res) => {
@@ -202,9 +165,8 @@ app.get('/twitch_auth_callback', async (req, res) => {
     const { code, state } = req.query;
     if (state !== req.cookies.twitch_state) return res.send("Erreur Auth.");
     try {
-        const tokenRes = await fetch('[https://id.twitch.tv/oauth2/token](https://id.twitch.tv/oauth2/token)', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({ client_id: TWITCH_CLIENT_ID, client_secret: TWITCH_CLIENT_SECRET, code, grant_type: 'authorization_code', redirect_uri: REDIRECT_URI })
         });
         const tokenData = await tokenRes.json();
@@ -251,8 +213,7 @@ async function refreshGlobalStreamList() {
         if (suitable.length === 0) suitable = data.data.slice(-10);
         if (suitable.length > 0) {
             rot.streams = suitable.sort(() => 0.5 - Math.random()).map(s => ({ channel: s.user_login, viewers: s.viewer_count }));
-            rot.currentIndex = 0;
-            rot.lastFetchTime = now;
+            rot.currentIndex = 0; rot.lastFetchTime = now;
         }
     } catch (e) {}
 }
@@ -263,9 +224,8 @@ app.get('/get_default_stream', async (req, res) => {
     try {
         const q = await db.collection('boosts').where('endTime', '>', now).orderBy('endTime', 'desc').limit(1).get();
         if (!q.empty) { boost = q.docs[0].data(); CACHE.boostedStream = boost; }
-    } catch(e) { 
-        if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) boost = CACHE.boostedStream;
-    }
+    } catch(e) { if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) boost = CACHE.boostedStream; }
+    
     if (boost) return res.json({ success: true, channel: boost.channel, mode: 'BOOST', message: `⚡ BOOST ACTIF` });
     await refreshGlobalStreamList(); 
     const rot = CACHE.globalStreamRotation;
