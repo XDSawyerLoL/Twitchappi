@@ -1,25 +1,26 @@
 {
-  "name": "twitchappi",
+  "name": "streamer-hub-v40",
   "version": "1.0.0",
-  "main": "app.js",
+  "description": "Streamer Hub Ultimate Dashboard - Production",
+  "main": "server.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "express-session": "^1.18.0",
+    "cors": "^2.8.5",
     "node-fetch": "^2.6.1",
-    "firebase-admin": "^12.1.0",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
-    "@google/genai": "latest",
-    "dotenv": "^16.4.5"
+    "firebase-admin": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "@google/generative-ai": "^0.21.0"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
+
 
 
 
