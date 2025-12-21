@@ -1,9 +1,10 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V49 - FINAL POLISH)
- * ======================================================
- * - Moteur IA : @google/genai (Fonctionne !)
- * - Stats : Réactivées (Firestore)
- * - Profil : Enrichi (Description, Date, etc.)
+ * STREAMER & NICHE AI HUB - BACKEND (V50 - DATA & UI FIX)
+ * =======================================================
+ * - Moteur IA : @google/genai (Gemini 2.5 Flash)
+ * - Scan : Enrichi via endpoint /channels (Tags, Langue, Titre)
+ * - Raid : Correction images (Taille 320x180)
+ * - Planning : Prompt IA forcé pour donner des horaires précis
  */
 
 require('dotenv').config();
@@ -16,7 +17,7 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// ✅ MOTEUR IA (Celui qui marche)
+// ✅ MOTEUR IA
 const { GoogleGenAI } = require('@google/genai');
 
 const admin = require('firebase-admin');
@@ -64,7 +65,6 @@ const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 
-// Modèle IA Stable
 const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 let aiClient = null;
@@ -104,7 +104,6 @@ async function getTwitchToken(tokenType = 'app') {
 async function twitchAPI(endpoint, token = null) {
     const accessToken = token || await getTwitchToken('app');
     if (!accessToken) throw new Error("No Token.");
-    // Correction de la syntaxe fetch ici
     const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, { headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` } });
     if (res.status === 401) { if (token === CACHE.twitchTokens['app']?.access_token) CACHE.twitchTokens['app'] = null; throw new Error(`Token expiré.`); }
     return res.json();
@@ -116,7 +115,7 @@ async function runGeminiAnalysis(prompt) {
         const response = await aiClient.models.generateContent({
             model: GEMINI_MODEL,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            config: { systemInstruction: "Tu es un expert Twitch. Réponds UNIQUEMENT en HTML simple (<h4>, <ul>, <li>, <p>)." }
+            config: { systemInstruction: "Tu es un expert Data Twitch. Réponds UNIQUEMENT en HTML simple (<h4>, <ul>, <li>, <p>). Sois précis, donne des chiffres et des horaires concrets." }
         });
         const text = response.text ? response.text.trim() : "Réponse vide.";
         return { success: true, html_response: text };
@@ -180,7 +179,7 @@ app.get('/get_latest_vod', async (req, res) => {
 });
 
 // =========================================================
-// 4. PLAYER & ROTATION
+// 4. ROTATION & BOOST
 // =========================================================
 
 async function refreshGlobalStreamList() {
@@ -225,54 +224,35 @@ app.post('/cycle_stream', async (req, res) => {
 });
 
 // =========================================================
-// 5. STATS & GRAPHIQUE (CORRIGÉ !)
+// 5. STATS
 // =========================================================
 
 app.get('/api/stats/global', async (req, res) => {
     try {
-        // 1. Stats Temps Réel
         const data = await twitchAPI('streams?first=100');
         let v = 0; data.data.forEach(s => v += s.viewer_count);
-        const est = Math.floor(v * 3.8); // Estimation globale
+        const est = Math.floor(v * 3.8);
         const topGame = data.data[0]?.game_name || "N/A";
 
-        // 2. Historique pour le Graphique (RÉACTIVÉ)
         const history = { live: { labels:[], values:[] } };
-        
         try {
-            // Récupère les 10 derniers points de stats
-            const snaps = await db.collection('stats_history')
-                .orderBy('timestamp', 'desc')
-                .limit(12)
-                .get();
-            
+            const snaps = await db.collection('stats_history').orderBy('timestamp', 'desc').limit(12).get();
             if (!snaps.empty) {
-                // On inverse pour avoir l'ordre chronologique (gauche à droite)
                 snaps.docs.reverse().forEach(d => {
                     const stats = d.data();
                     if(stats.timestamp) {
                         const date = stats.timestamp.toDate();
-                        // Format Heure:Minute
                         const timeStr = `${date.getHours()}h${date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes()}`;
                         history.live.labels.push(timeStr);
                         history.live.values.push(stats.total_viewers);
                     }
                 });
             } else {
-                // Fallback si DB vide
-                history.live.labels = ["-1h", "Now"];
-                history.live.values = [est * 0.9, est];
+                history.live.labels = ["-1h", "Now"]; history.live.values = [est * 0.9, est];
             }
-        } catch(e) { console.error("Erreur DB Stats:", e); }
+        } catch(e) {}
 
-        res.json({ 
-            success: true, 
-            total_viewers: est, 
-            total_channels: "100k+", // Valeur statique pour l'instant ou issue d'une autre API
-            top_game_name: topGame,
-            history: history // Envoi des données du graphique
-        });
-
+        res.json({ success: true, total_viewers: est, total_channels: "98k+", top_game_name: topGame, history: history });
     } catch(e) { res.status(500).json({error:e.message}); }
 });
 
@@ -293,44 +273,59 @@ app.get('/api/stats/languages', async (req, res) => {
 });
 
 // =========================================================
-// 6. SCAN AVEC PROFIL COMPLET (ENRICHI)
+// 6. SCAN COMPLET (CORRECTION "N/A")
 // =========================================================
 
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body;
     try {
+        // 1. Récupération User
         const uRes = await twitchAPI(`users?login=${encodeURIComponent(query)}`);
         if(uRes.data.length) {
             const u = uRes.data[0];
-            const sRes = await twitchAPI(`streams?user_id=${u.id}`);
-            const isLive = sRes.data.length > 0;
             
-            // Calcul Score Niche
-            let score = 3.0; 
-            if(isLive && sRes.data[0].viewer_count < 50) score = 4.8;
-            if(!isLive) score = 2.5;
+            // 2. Récupération Info Chaine (PLUS FIABLE POUR TITRE/JEU)
+            let channelInfo = {};
+            try {
+                const cRes = await twitchAPI(`channels?broadcaster_id=${u.id}`);
+                if (cRes.data && cRes.data.length > 0) channelInfo = cRes.data[0];
+            } catch(e) {}
 
-            // Date de création (Formatée)
+            // 3. Récupération Stream Live
+            let streamInfo = null;
+            try {
+                const sRes = await twitchAPI(`streams?user_id=${u.id}`);
+                if(sRes.data.length > 0) streamInfo = sRes.data[0];
+            } catch(e) {}
+
+            const isLive = !!streamInfo;
             const createdDate = new Date(u.created_at).toLocaleDateString('fr-FR');
+            
+            // Logique d'affichage View Count (Souvent 0 sur l'API récente)
+            let viewDisplay = u.view_count;
+            if (viewDisplay === 0) viewDisplay = "Non public/0";
 
             const uData = { 
                 login: u.login, 
                 display_name: u.display_name, 
                 profile_image_url: u.profile_image_url, 
-                description: u.description || "Aucune description.", // Ajout
-                created_at: createdDate, // Ajout
-                broadcaster_type: u.broadcaster_type || "Affiliate/None", // Ajout
-                view_count: u.view_count, // Ajout
+                description: u.description || "Aucune bio.",
+                created_at: createdDate,
+                game_name: channelInfo.game_name || "Aucun jeu défini",
+                title: channelInfo.title || "Aucun titre",
+                tags: channelInfo.tags ? channelInfo.tags.slice(0,3).join(', ') : "Aucun",
+                language: channelInfo.broadcaster_language || "fr",
+                view_count: viewDisplay,
                 is_live: isLive, 
-                viewer_count: isLive ? sRes.data[0].viewer_count : 0, 
-                ai_calculated_niche_score: score 
+                viewer_count: isLive ? streamInfo.viewer_count : 0, 
+                ai_calculated_niche_score: isLive && streamInfo.viewer_count < 100 ? "4.8/5" : "3.0/5"
             };
             
             CACHE.lastScanData = { type: 'user', ...uData };
             return res.json({ success: true, type:'user', user_data: uData });
         }
         
-        // Fallback Game
+        // Fallback Game (Reste inchangé car il marchait)
         const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if(gRes.data.length) {
             const g = gRes.data[0];
@@ -360,24 +355,59 @@ app.post('/stream_boost', async (req, res) => {
     } catch(e) { res.status(500).json({error:"Erreur DB"}); }
 });
 
+// ✅ CORRECTION RAID (Image + Logique)
 app.post('/start_raid', async (req, res) => {
     const { game, max_viewers } = req.body;
     try {
         const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
         if(!gRes.data.length) return res.json({success:false});
         const sRes = await twitchAPI(`streams?game_id=${gRes.data[0].id}&first=100&language=fr`);
-        const target = sRes.data.filter(s => s.viewer_count <= parseInt(max_viewers)).sort((a,b)=>b.viewer_count-a.viewer_count)[0];
-        if(target) return res.json({ success: true, target: { name: target.user_name, login: target.user_login, viewers: target.viewer_count, thumbnail_url: target.thumbnail_url.replace('%{width}','100').replace('%{height}','56'), game: target.game_name } });
+        
+        // Filtre les chaînes
+        const target = sRes.data.filter(s => s.viewer_count <= parseInt(max_viewers))
+                                .sort((a,b)=>b.viewer_count-a.viewer_count)[0];
+        
+        if(target) {
+            // URL Image propre et dimensionnée HD
+            const thumb = target.thumbnail_url.replace('{width}','320').replace('{height}','180');
+            return res.json({ 
+                success: true, 
+                target: { 
+                    name: target.user_name, 
+                    login: target.user_login, 
+                    viewers: target.viewer_count, 
+                    thumbnail_url: thumb, 
+                    game: target.game_name 
+                } 
+            });
+        }
         res.json({ success: false });
     } catch(e) { res.status(500).json({error:e.message}); }
 });
 
+// ✅ CORRECTION PLANNING (Prompt IA Forcé)
 app.post('/analyze_schedule', async (req, res) => {
     const { game } = req.body;
     try {
         const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
-        const r = await runGeminiAnalysis(`Horaires stream ${game}.`);
-        res.json({ success: true, game_name: gRes.data[0].name, box_art: gRes.data[0].box_art_url.replace('{width}','60').replace('{height}','80'), html_response: r.html_response });
+        const gameName = gRes.data[0].name;
+        
+        // Prompt ultra-directif
+        const prompt = `
+            Analyse le jeu Twitch : "${gameName}".
+            Tu es un algorithme d'optimisation.
+            1. Estime la saturation actuelle (Faible/Moyenne/Haute).
+            2. Donne-moi EXPLICITEMENT 3 créneaux horaires (Jour + Tranche Heure) où il y a le plus de viewers potentiels pour le moins de concurrence.
+            Format HTML (<ul><li>). Sois concret, invente des horaires basés sur les tendances gaming si besoin.
+        `;
+        
+        const r = await runGeminiAnalysis(prompt);
+        res.json({ 
+            success: true, 
+            game_name: gameName, 
+            box_art: gRes.data[0].box_art_url.replace('{width}','60').replace('{height}','80'), 
+            html_response: r.html_response 
+        });
     } catch(e) { res.json({success:false}); }
 });
 
@@ -402,21 +432,14 @@ app.get('/', (req,res) => {
     res.sendFile(indexPath, (err) => { if(err) res.sendFile(nichePath); });
 });
 
-// CRON JOB STATS (Pour remplir le graphique)
 async function recordStats() {
     try {
         const data = await twitchAPI('streams?first=100');
         let v = 0; data.data.forEach(s => v += s.viewer_count);
-        // Ajout en DB pour l'historique
-        await db.collection('stats_history').add({ 
-            timestamp: admin.firestore.FieldValue.serverTimestamp(), 
-            total_viewers: Math.floor(v*3.8), 
-            top_game: data.data[0].game_name 
-        });
-        console.log(`⏱️ [CRON] Point stats ajouté.`);
+        await db.collection('stats_history').add({ timestamp: admin.firestore.FieldValue.serverTimestamp(), total_viewers: Math.floor(v*3.8), top_game: data.data[0].game_name });
     } catch(e) {}
 }
-setInterval(recordStats, 30 * 60 * 1000); // Toutes les 30 min
-setTimeout(recordStats, 10000); // Un point au démarrage
+setInterval(recordStats, 30 * 60 * 1000); 
+setTimeout(recordStats, 10000);
 
-app.listen(PORT, () => console.log(`🚀 SERVER V49 (FINAL) ON PORT ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 SERVER V50 (FINAL PATCH) ON PORT ${PORT}`));
