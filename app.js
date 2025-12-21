@@ -1,12 +1,10 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V48 - ULTIMATE FUSION)
+ * STREAMER & NICHE AI HUB - BACKEND (V48 - ULTIMATE FUSION - DEBUG MODE)
  * =========================================================
  * BASE : Ta version V20 (Certifiée fonctionnelle pour Firebase/Twitch).
- * AJOUTS : 
- * 1. Dashboard TwitchTracker (Routes /api/stats).
- * 2. IA Google Stable (@google/generative-ai) pour éviter les crashs 404/429.
- * 3. Rotation stricte de 3 minutes.
- * 4. Gestion d'erreur blindée.
+ * CORRECTIONS : 
+ * 1. Import GoogleGenerativeAI corrigé (Syntaxe valide).
+ * 2. Mode DEBUG activé pour les erreurs IA.
  */
 
 require('dotenv').config();
@@ -19,7 +17,7 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// [EVOLUTION] Nouvelle librairie IA Stable (Remplace @google/genai de la V20)
+// [CORRECTION IMPORT] Syntaxe validée pour package.json @google/generative-ai
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // --- AJOUT FIREBASE (TA CONFIGURATION V20 EXACTE) ---
@@ -101,7 +99,9 @@ if (GEMINI_API_KEY) {
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
         geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         console.log("✅ [IA] Gemini 1.5 Flash chargé.");
-    } catch (e) { console.error("❌ [IA] Erreur:", e.message); }
+    } catch (e) { console.error("❌ [IA] Erreur Init:", e.message); }
+} else {
+    console.error("❌ [IA] GEMINI_API_KEY manquante dans les variables d'environnement !");
 }
 
 app.use(cors());
@@ -161,16 +161,27 @@ async function twitchAPI(endpoint, token = null) {
     return res.json();
 }
 
-// [EVOLUTION] Wrapper IA Sécurisé
+// [EVOLUTION & DEBUG] Wrapper IA Sécurisé avec Logs Complets
 async function runGeminiAnalysis(prompt) {
-    if (!geminiModel) return { success: false, html_response: "<p>IA non configurée.</p>" };
+    if (!geminiModel) {
+        console.error("❌ [IA CRITIQUE] Le modèle est NULL. Vérifiez la clé API.");
+        return { success: false, html_response: "<p>IA non configurée (Clé manquante ou invalide).</p>" };
+    }
     try {
+        console.log("⏳ [IA] Envoi requête...");
         const result = await geminiModel.generateContent(prompt + " Réponds en HTML simple (<h4>, <ul>, <li>).");
         const response = await result.response;
-        return { success: true, html_response: response.text() };
+        const text = response.text();
+        console.log("✅ [IA] Réponse reçue.");
+        return { success: true, html_response: text };
     } catch (e) {
-        let msg = "Erreur IA.";
-        if (e.message.includes('429')) msg = "Quota dépassé (attendre 30s).";
+        // AFFICHE L'ERREUR EXACTE DANS LES LOGS RENDER
+        console.error("❌ [IA ERREUR FATALE] Détails :", e);
+        
+        let msg = "Erreur IA inconnue (Voir logs).";
+        if (e.message && e.message.includes('429')) msg = "Quota dépassé (Trop de requêtes).";
+        if (e.message && e.message.includes('API key')) msg = "Clé API invalide.";
+        
         return { success: false, html_response: `<p style="color:orange">⚠️ ${msg}</p>` };
     }
 }
@@ -443,6 +454,7 @@ setTimeout(recordStats, 10000);
 
 // START
 app.listen(PORT, () => console.log(`🚀 SERVER V48 (ULTIMATE FUSION) ON PORT ${PORT}`));
+
 
 
 
