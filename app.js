@@ -1,10 +1,8 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V48 - ULTIMATE FUSION - DEBUG MODE)
+ * STREAMER & NICHE AI HUB - BACKEND (V48 - ULTIMATE DEBUG EDITION)
  * =========================================================
- * BASE : Ta version V20 (Certifiée fonctionnelle pour Firebase/Twitch).
- * CORRECTIONS : 
- * 1. Import GoogleGenerativeAI corrigé (Syntaxe valide).
- * 2. Mode DEBUG activé pour les erreurs IA.
+ * Cette version est conçue pour afficher les erreurs IA directement
+ * sur le site web pour le débogage.
  */
 
 require('dotenv').config();
@@ -17,50 +15,45 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// [CORRECTION IMPORT] Syntaxe validée pour package.json @google/generative-ai
+// [CORRECTION] Import propre pour la version 0.21.0
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// --- AJOUT FIREBASE (TA CONFIGURATION V20 EXACTE) ---
+// --- AJOUT FIREBASE ---
 const admin = require('firebase-admin');
 
 // =========================================================
-// 0. INITIALISATION FIREBASE (TON CODE V20)
+// 0. INITIALISATION FIREBASE
 // =========================================================
 let serviceAccount;
 
-// Cas 1 : Environnement de Production (Render)
 if (process.env.FIREBASE_SERVICE_KEY) {
     try {
         let rawJson = process.env.FIREBASE_SERVICE_KEY;
-        // Nettoyage des guillemets et sauts de ligne (Ta méthode V20)
         if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
         if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
         rawJson = rawJson.replace(/\r\n/g, '\\n').replace(/\n/g, '\\n').replace(/\r/g, '\\n');
 
         serviceAccount = JSON.parse(rawJson);
-        console.log("✅ [FIREBASE] Clé chargée (Mode V20).");
+        console.log("✅ [FIREBASE] Clé chargée (Env).");
     } catch (error) {
         console.error("❌ [FIREBASE] Erreur Parsing JSON :", error.message);
     }
-} 
-// Cas 2 : Local
-else {
+} else {
     try {
         serviceAccount = require('./serviceAccountKey.json');
         console.log("✅ [FIREBASE] Clé locale chargée.");
     } catch (e) {
-        console.warn("⚠️ [FIREBASE] Aucune clé trouvée. Mode RAM activé.");
+        console.warn("⚠️ [FIREBASE] Aucune clé trouvée.");
     }
 }
 
-// Démarrage Firebase
 if (serviceAccount) {
     try {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             projectId: serviceAccount.project_id 
         });
-        console.log(`✅ [FIREBASE] Connecté au projet : ${serviceAccount.project_id}`);
+        console.log(`✅ [FIREBASE] Connecté : ${serviceAccount.project_id}`);
     } catch (e) {
         console.error("❌ [FIREBASE] Erreur init :", e.message);
     }
@@ -70,7 +63,6 @@ if (serviceAccount) {
 
 const db = admin.firestore();
 
-// Forçage ID Projet (Ta méthode V20)
 if (serviceAccount) {
     try {
         db.settings({
@@ -92,17 +84,20 @@ const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 
-// [EVOLUTION] Utilisation de gemini-1.5-flash via la nouvelle librairie
+// [IA CONFIGURATION]
 let geminiModel;
 if (GEMINI_API_KEY) {
     try {
+        console.log("⚙️ [IA] Initialisation de Gemini...");
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        // On utilise "gemini-pro" car il est reconnu à 100% par l'API v1beta
-        geminiModel = genAI.getGenerativeModel({ model: "gemini-pro" }); 
-        console.log("✅ [IA] Gemini Pro chargé (Mode Stable).");
-    } catch (e) { console.error("❌ [IA] Erreur Init:", e.message); }
+        // Utilisation de "gemini-pro" pour stabilité maximale sur v1beta
+        geminiModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+        console.log("✅ [IA] Gemini Pro chargé avec succès.");
+    } catch (e) { 
+        console.error("❌ [IA] CRASH Initialisation :", e.message); 
+    }
 } else {
-    console.error("❌ [IA] GEMINI_API_KEY manquante dans les variables d'environnement !");
+    console.error("❌ [IA] ATTENTION : GEMINI_API_KEY est introuvable sur Render !");
 }
 
 app.use(cors());
@@ -111,28 +106,24 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname))); 
 
 // =========================================================
-// 2. CACHE HYBRIDE
+// 2. CACHE
 // =========================================================
 const CACHE = {
     twitchTokens: {}, 
     twitchUser: null, 
     boostedStream: null, 
     lastScanData: null, 
-    
-    // [EVOLUTION] Rotation stricte 3 minutes
     globalStreamRotation: {
         streams: [], 
         currentIndex: 0, 
         lastFetchTime: 0, 
         fetchCooldown: 3 * 60 * 1000 
     },
-    
-    // [EVOLUTION] Cache Stats Dashboard
     statsCache: { global: null, topGames: null, languages: null, lastFetch: 0 }
 };
 
 // =========================================================
-// 3. HELPERS (TWITCH & IA)
+// 3. HELPERS
 // =========================================================
 
 async function getTwitchToken(tokenType = 'app') {
@@ -162,28 +153,37 @@ async function twitchAPI(endpoint, token = null) {
     return res.json();
 }
 
-// [EVOLUTION & DEBUG] Wrapper IA Sécurisé avec Logs Complets
+// [DEBUG IA] AFFICHE L'ERREUR EXACTE SUR LE SITE
 async function runGeminiAnalysis(prompt) {
     if (!geminiModel) {
-        console.error("❌ [IA CRITIQUE] Le modèle est NULL. Vérifiez la clé API.");
-        return { success: false, html_response: "<p>IA non configurée (Clé manquante ou invalide).</p>" };
+        return { success: false, html_response: "<p style='color:red; font-weight:bold;'>❌ ERREUR : Modèle IA non chargé. Vérifiez les logs Render pour la clé API.</p>" };
     }
     try {
-        console.log("⏳ [IA] Envoi requête...");
+        console.log("⏳ [IA] Envoi de la requête au modèle 'gemini-pro'...");
         const result = await geminiModel.generateContent(prompt + " Réponds en HTML simple (<h4>, <ul>, <li>).");
         const response = await result.response;
         const text = response.text();
-        console.log("✅ [IA] Réponse reçue.");
+        console.log("✅ [IA] Réponse reçue !");
         return { success: true, html_response: text };
     } catch (e) {
-        // AFFICHE L'ERREUR EXACTE DANS LES LOGS RENDER
-        console.error("❌ [IA ERREUR FATALE] Détails :", e);
+        // Capture complète de l'erreur
+        console.error("🔥 [IA CRASH] Détails complets :", e);
         
-        let msg = "Erreur IA inconnue (Voir logs).";
-        if (e.message && e.message.includes('429')) msg = "Quota dépassé (Trop de requêtes).";
-        if (e.message && e.message.includes('API key')) msg = "Clé API invalide.";
-        
-        return { success: false, html_response: `<p style="color:orange">⚠️ ${msg}</p>` };
+        // Construction du message d'erreur pour le front-end
+        const errorMsg = e.message || "Erreur inconnue";
+        const errorStack = JSON.stringify(e, Object.getOwnPropertyNames(e), 2);
+
+        return { 
+            success: false, 
+            html_response: `
+            <div style="background-color: #450a0a; border: 2px solid #ef4444; color: #fecaca; padding: 15px; border-radius: 8px; font-family: monospace; text-align: left;">
+                <h3 style="margin-top:0; color: #ef4444;">⚠️ ERREUR GOOGLE GEMINI</h3>
+                <p><strong>Message :</strong> ${errorMsg}</p>
+                <hr style="border-color: #7f1d1d;">
+                <p><strong>Détails techniques (pour debug) :</strong></p>
+                <pre style="white-space: pre-wrap; font-size: 11px;">${errorStack}</pre>
+            </div>` 
+        };
     }
 }
 
@@ -246,7 +246,7 @@ app.get('/get_latest_vod', async (req, res) => {
 });
 
 // =========================================================
-// 6. ROTATION 3 MINUTES (LOGIQUE V20 AMÉLIORÉE)
+// 6. ROTATION 3 MINUTES
 // =========================================================
 
 async function refreshGlobalStreamList() {
@@ -254,7 +254,7 @@ async function refreshGlobalStreamList() {
     const rot = CACHE.globalStreamRotation;
     if (now - rot.lastFetchTime < rot.fetchCooldown && rot.streams.length > 0) return;
     
-    console.log("🔄 [ROTATION] Mise à jour liste 0-100 vues...");
+    console.log("🔄 [ROTATION] Mise à jour liste...");
     try {
         const data = await twitchAPI(`streams?language=fr&first=100`);
         let suitable = data.data.filter(s => s.viewer_count <= 100);
@@ -272,7 +272,6 @@ app.get('/get_default_stream', async (req, res) => {
     const now = Date.now();
     let boost = null;
 
-    // 1. Check Boost DB (Code V20)
     try {
         const q = await db.collection('boosts').where('endTime', '>', now).orderBy('endTime', 'desc').limit(1).get();
         if (!q.empty) { boost = q.docs[0].data(); CACHE.boostedStream = boost; }
@@ -282,7 +281,6 @@ app.get('/get_default_stream', async (req, res) => {
 
     if (boost) return res.json({ success: true, channel: boost.channel, mode: 'BOOST', message: `⚡ BOOST ACTIF` });
 
-    // 2. Rotation Auto
     await refreshGlobalStreamList(); 
     const rot = CACHE.globalStreamRotation;
     if (rot.streams.length === 0) return res.json({ success: true, channel: 'twitch', mode: 'FALLBACK' });
@@ -305,7 +303,7 @@ app.post('/cycle_stream', async (req, res) => {
 });
 
 // =========================================================
-// 7. DASHBOARD ANALYTICS (EVOLUTION V46)
+// 7. DASHBOARD ANALYTICS
 // =========================================================
 
 app.get('/api/stats/global', async (req, res) => {
@@ -315,7 +313,6 @@ app.get('/api/stats/global', async (req, res) => {
         const est = Math.floor(v * 3.8);
         const history = { live: { labels:["-1h", "Now"], values:[est*0.9, est] } };
         
-        // Tentative lecture historique DB
         try {
             const snaps = await db.collection('stats_history').orderBy('timestamp', 'desc').limit(10).get();
             if (!snaps.empty) {
@@ -350,7 +347,7 @@ app.get('/api/stats/languages', async (req, res) => {
 });
 
 // =========================================================
-// 8. SCANNER, TOOLS & BOOST
+// 8. SCANNER & TOOLS
 // =========================================================
 
 app.post('/scan_target', async (req, res) => {
@@ -366,7 +363,6 @@ app.post('/scan_target', async (req, res) => {
             CACHE.lastScanData = { type: 'user', ...uData };
             return res.json({ success: true, type:'user', user_data: uData });
         }
-        // Fallback Game
         const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if(gRes.data.length) {
             const g = gRes.data[0];
@@ -432,7 +428,6 @@ app.get('/check_boost_status', async (req, res) => {
     return res.json({ is_boosted: false });
 });
 
-// ROUTE FICHIER HTML
 app.get('/', (req,res) => {
     const indexPath = path.join(__dirname, 'index.html');
     const nichePath = path.join(__dirname, 'NicheOptimizer.html');
@@ -453,10 +448,4 @@ async function recordStats() {
 setInterval(recordStats, 30 * 60 * 1000); 
 setTimeout(recordStats, 10000);
 
-// START
-app.listen(PORT, () => console.log(`🚀 SERVER V48 (ULTIMATE FUSION) ON PORT ${PORT}`));
-
-
-
-
-
+app.listen(PORT, () => console.log(`🚀 SERVER V48 (DEBUG EDITION) ON PORT ${PORT}`));
