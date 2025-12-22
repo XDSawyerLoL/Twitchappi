@@ -1,5 +1,5 @@
 {
-  "name": "streamer-hub-pro",
+  "name": "streamer-hub-v75",
   "version": "5.0.0",
   "description": "Streamer Hub Ultimate Fixed",
   "main": "app.js",
@@ -21,6 +21,7 @@
     "node": ">=18.0.0"
   }
 }
+
 
 
 
