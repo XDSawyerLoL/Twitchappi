@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Streamer & Niche AI Hub - Ultimate Cockpit Dashboard">
-    <title>Streamer & Niche AI Hub - COCKPIT MASTER V50 (ULTIMATE)</title>
+    <meta name="description" content="Streamer & Niche AI Hub - Ultimate Cockpit Dashboard V50">
+    <title>Streamer Hub V50 - COCKPIT MASTER (ULTIMATE)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
@@ -17,7 +17,7 @@
 
     <style>
         :root {
-            /* Palette Cyberpunk V50 */
+            /* PALETTE CYBERPUNK V50 */
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
             --color-bg-light: #111;
@@ -48,14 +48,13 @@
             margin: 0; padding: 0; overflow-x: hidden; 
         }
 
-        /* Conteneur principal élargi pour accueillir le chat */
         #twitch-lucky-main { 
-            max-width: 1600px; 
+            max-width: 1600px; /* Largeur augmentée pour le chat */
             margin: 20px auto; 
             padding: 10px; 
         }
         
-        /* --- TYPO --- */
+        /* --- TYPOGRAPHIE --- */
         h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); margin-bottom: 5px; text-align: center; text-shadow: 0 0 5px var(--color-primary-pink); }
         .h1-blue-accent { color: var(--color-secondary-blue); }
         .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 25px; text-align: center; letter-spacing: 1px; text-transform: uppercase; }
@@ -74,7 +73,7 @@
             font-size: 12px;
         }
 
-        /* --- NAVIGATION TABS (Mon Fil, Dashboard...) --- */
+        /* --- NAVIGATION TABS --- */
         .tabs-nav-container { margin-bottom: 20px; }
         .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
         .tab-btn { 
@@ -104,7 +103,7 @@
             position: relative; 
         }
 
-        /* --- ZONE LECTEUR + CHAT (SPLIT SCREEN) --- */
+        /* --- ZONE LECTEUR + CHAT (NOUVEAU LAYOUT) --- */
         .player-wrapper { 
             margin-bottom: 25px; 
             padding: 20px; 
@@ -127,7 +126,7 @@
             display: grid; 
             grid-template-columns: 1fr 350px; 
             gap: 10px; 
-            height: 600px; /* Hauteur fixe pour le confort */
+            height: 600px; 
         }
         
         /* Embed Twitch Vidéo */
@@ -199,7 +198,7 @@
             background: var(--color-bg-dark); color: #fff; font-size: 14px; transition: 0.3s; 
         }
 
-        /* --- ONGLETS DE CONTENU --- */
+        /* --- CONTENU ONGLETS --- */
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-radius: 10px; padding: 25px; min-height: 400px; }
         .tab-content.active { display: block; animation: fadeEffect 0.4s ease-in-out; }
         @keyframes fadeEffect { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -247,7 +246,7 @@
         }
         .raid-target-box img { width: 160px; height: 90px; object-fit: cover; border-radius: 6px; }
 
-        /* --- SCHEDULE & IA FORMAT --- */
+        /* --- IA OUTPUT --- */
         .schedule-box { 
             border: 2px solid var(--color-time-gold); padding: 20px; background: #121212; 
             border-radius: 8px; margin-top: 20px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); 
@@ -256,7 +255,7 @@
         .ai-output-enhanced h4 { font-family: 'Orbitron', sans-serif; margin-top: 20px; color: var(--color-secondary-blue); border-bottom: 1px solid #333; }
         .ai-output-enhanced li { margin-bottom: 5px; border-left: 3px solid #444; padding-left: 10px; background: #151515; }
         
-        /* --- RESPONSIVE MOBILE --- */
+        /* --- RESPONSIVE --- */
         @media (max-width: 1024px) { 
             .player-grid { grid-template-columns: 1fr; height: auto; }
             #twitch-embed { height: 400px; }
@@ -425,9 +424,7 @@
 
         <div id="tab-time" class="tab-content">
             <h3 style="color:var(--color-time-gold); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-hourglass-half mr-2"></i> OPTIMISATION DE L'HORAIRE</h3>
-            <p style="color:#888; font-size:13px; margin-bottom:20px;">
-                L'IA analyse la saturation du jeu pour prédire les meilleurs créneaux.
-            </p>
+            <p style="color:#888; font-size:13px; margin-bottom:20px;">L'IA analyse la saturation du jeu pour prédire les meilleurs créneaux.</p>
             <form id="form-schedule" class="flex gap-3">
                 <input id="input-schedule-game" type="text" placeholder="Nom du jeu (ex: League of Legends)" class="action-input" style="flex-grow:1;">
                 <button type="submit" id="btn-schedule" class="btn-primary" style="background:var(--color-time-gold); color:#000;">CALCULER</button>
@@ -443,9 +440,7 @@
 
         <div id="tab-boost" class="tab-content">
             <h3 style="color:var(--color-primary-pink); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-rocket mr-2"></i> STREAM BOOST (15 Minutes)</h3>
-            <p style="color:#888; font-size:13px; margin-bottom:20px;">
-                Force l'affichage de votre chaîne sur tous les lecteurs connectés au Hub.
-            </p>
+            <p style="color:#888; font-size:13px; margin-bottom:20px;">Force l'affichage de votre chaîne sur tous les lecteurs connectés au Hub.</p>
             <form id="form-boost" class="flex gap-3">
                 <input id="input-boost" type="text" placeholder="Votre Chaîne Twitch" class="action-input" style="flex-grow:1;">
                 <button type="submit" class="btn-primary" style="background:var(--color-primary-pink);">ACTIVER LE BOOST</button>
@@ -457,9 +452,7 @@
 
         <div id="tab-raid" class="tab-content">
             <h3 style="color:var(--color-ai-action); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-bullhorn mr-2"></i> RAID FINDER (FR)</h3>
-            <p style="color:#888; font-size:13px; margin-bottom:20px;">
-                Trouvez la meilleure cible francophone compatible.
-            </p>
+            <p style="color:#888; font-size:13px; margin-bottom:20px;">Trouvez la meilleure cible francophone compatible.</p>
             <form id="form-raid" class="flex gap-3 flex-col sm:flex-row">
                 <input id="input-raid-game" type="text" placeholder="Jeu cible (Ex: Minecraft)" class="action-input" style="flex-grow:1;">
                 <select id="select-raid-viewers" class="action-input" style="width:auto;">
@@ -477,7 +470,7 @@
 </div>
 
 <script>
-    // --- CONFIGURATION ---
+    // --- CONFIG V50 ---
     const API_BASE = window.location.origin; 
     const DEFAULT_CHANNEL = 'twitch';
     const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000; 
@@ -511,11 +504,9 @@
     });
 
     function switchChatTab(tab) {
-        // MAJ UI BOUTONS
         document.getElementById('btn-chat-twitch').className = 'chat-tab-btn' + (tab==='twitch' ? ' chat-twitch-active' : '');
         document.getElementById('btn-chat-hub').className = 'chat-tab-btn' + (tab==='hub' ? ' chat-hub-active' : '');
         
-        // MAJ VISIBILITE
         document.getElementById('chat-embed-frame').style.display = tab==='twitch' ? 'block' : 'none';
         document.getElementById('chat-hub-ui').style.display = tab==='hub' ? 'flex' : 'none';
         
@@ -526,7 +517,6 @@
         const input = document.getElementById('hub-input');
         const text = input.value.trim();
         if(!text) return;
-        // Si connecté à Twitch, on utilise le vrai pseudo
         if(isConnected) {
             const loginBtn = document.getElementById('btn-twitch-login').innerText;
             if(loginBtn.includes(' ')) myPseudo = loginBtn.split(' ')[1];
@@ -534,8 +524,6 @@
         socket.emit('send_message', { user: myPseudo, text: text, type: 'user' });
         input.value = "";
     }
-    
-    // Envoi avec Entrée
     document.getElementById('hub-input').addEventListener('keypress', (e) => { if(e.key==='Enter') sendHubMessage(); });
 
     function addMessageToUI(user, text, type) {
@@ -551,30 +539,19 @@
     }
     function scrollToBottom() { chatMsgs.scrollTop = chatMsgs.scrollHeight; }
 
-
-    // --- GESTION PLAYER & ROTATION ---
+    // --- PLAYER ---
     window.launchPlayer = function(channelName, videoId = null) {
-        // Anti-reload si même chaîne
         if (currentChannel === channelName && !videoId) return;
         currentChannel = channelName;
-
         document.getElementById('twitch-embed').innerHTML = '';
         
-        // Liste parents pour JustPlayer / Render / Localhost
         const parents = ["localhost", "127.0.0.1", "justplayer.fr", "justplayerstreamhubpro.onrender.com", window.location.hostname];
-        
-        const config = { 
-            width: "100%", height: "100%", 
-            layout: "video", // IMPORTANT: On ne met que la vidéo ici (Chat géré à côté)
-            parent: parents 
-        };
-        
+        const config = { width: "100%", height: "100%", layout: "video", parent: parents };
         if (videoId) config.video = videoId; else config.channel = channelName;
         
         embed = new Twitch.Embed("twitch-embed", config);
         document.getElementById('input-channel').value = channelName;
-
-        // Mise à jour de l'iframe chat Twitch
+        
         const chatUrl = `https://www.twitch.tv/embed/${channelName}/chat?parent=${window.location.hostname}&darkpopout`;
         document.getElementById('chat-embed-frame').src = chatUrl;
     }
@@ -587,10 +564,8 @@
             if (data.success) {
                 launchPlayer(data.channel);
                 document.getElementById('player-channel-status').innerText = data.message;
-                
                 const btnPrev = document.getElementById('btn-prev-stream');
                 const btnNext = document.getElementById('btn-next-stream');
-                
                 if (data.mode === 'BOOST') {
                     btnPrev.disabled = true; btnNext.disabled = true;
                 } else {
@@ -612,18 +587,17 @@
         } catch(e) {} 
     }
 
-    // --- NAVIGATION TABS ---
+    // --- TABS ---
     function openTab(tabId) {
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
-        
         if (tabId === 'tab-followed') isConnected ? loadFollowedStreams() : null;
         if (tabId === 'tab-dashboard') loadDashboardData();
     }
 
-    // --- DASHBOARD DATA & CHARTS ---
+    // --- DASHBOARD ---
     let liveChart, yoyChart;
     function initCharts() {
         if(liveChart) return; 
@@ -661,22 +635,18 @@
             }
         } catch(e) {} finally { document.querySelectorAll('.loading-overlay').forEach(el => el.style.display = 'none'); }
     }
-    
     const safeFormat = (val) => (val && val !== 'N/A' && !isNaN(val)) ? Number(val).toLocaleString('fr-FR') : 'N/A';
 
-    // --- SCANNER & IA ---
+    // --- SCANNER ---
     document.getElementById('form-global-scan').addEventListener('submit', async (e) => { 
         e.preventDefault(); 
         const query = document.getElementById('input-global-target').value;
         const boxS = document.getElementById('res-scan-content');
         const boxN = document.getElementById('res-niche-content');
-        
         boxS.innerHTML = "<i class='fas fa-spin fa-circle-notch'></i>";
-        
         try {
             const res = await fetch(`${API_BASE}/scan_target`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ query }) });
             const data = await res.json();
-            
             if(data.success && data.type === 'user') {
                 const u = data.user_data;
                 boxS.innerHTML = `
@@ -688,18 +658,14 @@
                         <div style="margin-top:10px; font-size:12px;">${u.description.substring(0,80)}...</div>
                         <div style="margin-top:5px; font-weight:bold; color:var(--color-secondary-blue);">Langue: ${u.language}</div>
                     </div>`;
-                
-                // Appel IA
                 const resIA = await fetch(`${API_BASE}/critique_ia`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type:'niche', query: u.display_name }) });
                 const dataIA = await resIA.json();
                 boxN.innerHTML = `<div class="ai-output-enhanced">${dataIA.html_response}</div>`;
-            } else {
-                 boxS.innerHTML = "Aucun résultat trouvé.";
-            }
+            } else { boxS.innerHTML = "Aucun résultat trouvé."; }
         } catch(e) { boxS.innerHTML = "Erreur."; }
     });
 
-    // --- AUTHENTIFICATION ---
+    // --- AUTH ---
     function startAuth() { window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login_popup', 'width=500,height=650'); }
     window.addEventListener('message', (event) => { if (event.data === 'auth_success') window.location.reload(); });
     async function checkAuthStatus() {
@@ -711,13 +677,11 @@
             if (isConnected) {
                 btn.innerHTML = `<i class="fas fa-check mr-1"></i> ${data.display_name}`;
                 btn.style.background = '#0e7e0e';
-            } else {
-                btn.onclick = startAuth;
-            }
+            } else btn.onclick = startAuth;
         } catch(e) {}
     }
 
-    // --- LOGIQUE SCHEDULE, BOOST, RAID ---
+    // --- FORMS ---
     document.getElementById('form-schedule').addEventListener('submit', async (e) => {
         e.preventDefault(); 
         const game = document.getElementById('input-schedule-game').value;
@@ -733,7 +697,6 @@
             }
         } catch(e){}
     });
-
     document.getElementById('form-boost').addEventListener('submit', async (e) => {
         e.preventDefault();
         const channel = document.getElementById('input-boost').value;
@@ -746,7 +709,6 @@
             if(data.success) checkBoostAndPlay(true);
         } catch(e) {}
     });
-
     document.getElementById('form-raid').addEventListener('submit', async (e) => {
         e.preventDefault();
         const game = document.getElementById('input-raid-game').value;
@@ -763,7 +725,6 @@
         } catch(e) {}
     });
 
-    // --- INIT ---
     window.onload = () => {
         checkAuthStatus();
         checkBoostAndPlay(); 
