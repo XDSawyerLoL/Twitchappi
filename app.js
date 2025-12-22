@@ -1,6 +1,6 @@
 /**
- * STREAMER HUB V75 - MOTEUR FINAL
- * Correctifs : Route HTML (NicheOptimizer), Firebase JSON, Chat Socket.io
+ * STREAMER HUB V80 - MOTEUR FINAL
+ * Correctifs : Firebase Parsing Robust, Route HTML, Socket.io
  */
 
 require('dotenv').config();
@@ -16,24 +16,47 @@ const { Server } = require("socket.io");
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
-// 1. INITIALISATION FIREBASE ROBUSTE
+// 1. INITIALISATION FIREBASE ROBUSTE (FIX JSON ERROR)
 let serviceAccount;
-if (process.env.FIREBASE_SERVICE_KEY) {
-    try {
-        let raw = process.env.FIREBASE_SERVICE_KEY.trim();
-        // Nettoyage des guillemets
-        if (raw.startsWith("'") || raw.startsWith('"')) raw = raw.slice(1, -1);
-        if (raw.endsWith("'") || raw.endsWith('"')) raw = raw.slice(0, -1);
-        // Remplacement des sauts de ligne pour éviter le SyntaxError
-        raw = raw.replace(/\\n/g, '\n'); 
-        serviceAccount = JSON.parse(raw);
-    } catch (e) { console.error("⚠️ Firebase Config Error (Mode limité):", e.message); }
-} else { try { serviceAccount = require('./serviceAccountKey.json'); } catch (e) {} }
+const rawKey = process.env.FIREBASE_SERVICE_KEY;
 
-if (serviceAccount) {
-    try { admin.initializeApp({ credential: admin.credential.cert(serviceAccount) }); } 
-    catch (e) { console.error("Firebase Init Error:", e.message); }
-} else { try { admin.initializeApp(); } catch(e){} }
+if (rawKey) {
+    try {
+        // Etape 1 : On enlève les espaces au début/fin
+        let cleanKey = rawKey.trim();
+        
+        // Etape 2 : On retire les guillemets simples ou doubles qui encadrent tout le JSON (fréquent sur Render)
+        if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
+            (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+            cleanKey = cleanKey.slice(1, -1);
+        }
+
+        // Etape 3 : On remplace les VRAIS retours à la ligne par des "\n" (échappés) pour le JSON
+        // C'est souvent ça qui cause l'erreur "Bad control character"
+        cleanKey = cleanKey.replace(/\n/g, '\\n').replace(/\r/g, '');
+
+        serviceAccount = JSON.parse(cleanKey);
+        
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        console.log("✅ [FIREBASE] Base de données connectée.");
+    } catch (e) {
+        console.error("⚠️ [FIREBASE ERROR] Impossible de lire la clé JSON :", e.message);
+        console.log("-> Le serveur continue sans base de données (Mode limité).");
+        // On initialise une app vide pour éviter le crash total
+        try { admin.initializeApp(); } catch(err){}
+    }
+} else {
+    // Cas local (fichier)
+    try { 
+        serviceAccount = require('./serviceAccountKey.json'); 
+        admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    } catch (e) {
+        console.log("⚠️ Pas de clé Firebase détectée. Mode limité.");
+        try { admin.initializeApp(); } catch(err){}
+    }
+}
 
 const db = admin.firestore();
 
@@ -223,9 +246,9 @@ app.post('/analyze_schedule', async (req, res) => res.json(await askIA(`Heure st
 app.post('/stream_boost', async (req, res) => { await db.collection('boosts').add({ channel: req.body.channel, endTime: Date.now() + 900000 }); res.json({ success: true, html_response: "Boost activé !" }); });
 app.get('/export_csv', (req, res) => res.send(`Type,Nom\nScan,Export`));
 
-// ✅ ROUTE HTML CORRIGÉE (Pointe sur NicheOptimizer.html)
+// ✅ ROUTE HTML OBLIGATOIRE (Pointe sur index.html)
 app.get('/', (req,res) => {
-    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-server.listen(PORT, () => console.log(`🚀 SERVEUR V75 (HTML FIXED) SUR LE PORT ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 SERVEUR V80 OK (PORT ${PORT})`));
