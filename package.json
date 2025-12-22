@@ -1,6 +1,7 @@
 {
-  "name": "streamer-hub-ultimate",
-  "version": "4.0.0",
+  "name": "streamer-hub-pro",
+  "version": "5.0.0",
+  "description": "Streamer Hub Ultimate Fixed",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -20,6 +21,7 @@
     "node": ">=18.0.0"
   }
 }
+
 
 
 
