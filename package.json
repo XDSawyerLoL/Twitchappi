@@ -1,5 +1,5 @@
 {
-  "name": "streamer-hub-v48-ultimate",
+  "name": "streamer-hub-v60-ultimate",
   "version": "3.0.0",
   "description": "Streamer Hub - Moteur Twitchappi",
   "main": "app.js",
@@ -14,12 +14,14 @@
     "cookie-parser": "^1.4.6",
     "firebase-admin": "^12.1.0",
     "dotenv": "^16.4.5",
-    "@google/genai": "latest"
+    "@google/genai": "latest",
+    "socket.io": "^4.7.5"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
+
 
 
 
