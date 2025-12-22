@@ -1,7 +1,7 @@
 {
-  "name": "streamer-hub-v80",
-  "version": "1.0.0",
-  "description": "Streamer Hub Ultimate",
+  "name": "streamer-hub-v50-fixed",
+  "version": "5.0.0",
+  "description": "Streamer Hub - Moteur Twitchappi",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -14,13 +14,14 @@
     "cookie-parser": "^1.4.6",
     "firebase-admin": "^12.1.0",
     "dotenv": "^16.4.5",
-    "@google/genai": "^0.1.1",
+    "@google/generative-ai": "^0.1.1",
     "socket.io": "^4.7.5"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
+
 
 
 
