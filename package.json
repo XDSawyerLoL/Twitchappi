@@ -1,7 +1,6 @@
 {
-  "name": "streamer-hub-v60-ultimate",
-  "version": "3.0.0",
-  "description": "Streamer Hub - Moteur Twitchappi",
+  "name": "streamer-hub-ultimate",
+  "version": "4.0.0",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -21,6 +20,7 @@
     "node": ">=18.0.0"
   }
 }
+
 
 
 
