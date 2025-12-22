@@ -9,7 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    
     <script src="https://embed.twitch.tv/embed/v1.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 
@@ -21,24 +20,21 @@
             --color-text-dimmed: #9aa3a8; --color-border-dark: #2e2e2e; --color-border-medium: #333;
             --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4); --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
         }
-        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
+        body { background-color: var(--color-bg-dark); color: #fff; font-family: 'Inter', sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
         #twitch-lucky-main { max-width: 1600px; margin: 20px auto; padding: 10px; }
         
         h1 { font-family: 'Orbitron', sans-serif; font-size: 28px; color: var(--color-primary-pink); text-align: center; text-shadow: 0 0 5px var(--color-primary-pink); margin-bottom: 5px; }
         .h1-blue-accent { color: var(--color-secondary-blue); }
         .subtitle-center { color: var(--color-text-dimmed); font-size: 12px; margin-bottom: 25px; text-align: center; letter-spacing: 1px; text-transform: uppercase; }
 
-        /* TICKER V50 */
         #activity-ticker { background: #000; color: #00ffcc; padding: 8px; overflow: hidden; white-space: nowrap; font-family: monospace; border-top: 1px solid #333; border-bottom: 1px solid #333; margin-bottom: 20px; font-size: 12px; }
 
-        /* TABS NAV */
         .tabs-nav-container { margin-bottom: 20px; }
         .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
-        .tab-btn { font-family: 'Orbitron', sans-serif; padding: 15px 20px; background: var(--color-bg-light); border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.3s; flex: 1; text-align: center; font-size: 12px; font-weight: 600; }
+        .tab-btn { font-family: 'Orbitron', sans-serif; padding: 15px 20px; background: var(--color-bg-light); border: 1px solid var(--color-border-medium); border-bottom: none; color: var(--color-text-dimmed); cursor: pointer; border-radius: 8px 8px 0 0; transition: all 0.3s ease; flex: 1; text-align: center; font-size: 12px; font-weight: 600; }
         .tab-btn:hover { color: #fff; background: #232323; }
-        .tab-btn.active { background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); font-weight: bold; box-shadow: var(--shadow-pink); position: relative; z-index: 10; }
+        .tab-btn.active { background: var(--color-bg-medium); color: #fff; border-top: 3px solid var(--color-primary-pink); font-weight: bold; box-shadow: var(--shadow-pink); z-index: 10; position: relative; }
 
-        /* --- PLAYER SPLIT (V50) --- */
         .player-wrapper { margin-bottom: 25px; padding: 20px; background: var(--color-bg-medium); border-radius: 12px; border: 1px solid var(--color-border-dark); box-shadow: var(--shadow-blue); }
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--color-border-medium); padding-bottom: 10px; }
         .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--color-secondary-blue); display: flex; align-items: center; gap: 10px; }
@@ -46,67 +42,52 @@
         .player-grid { display: grid; grid-template-columns: 1fr 350px; gap: 15px; height: 600px; }
         #twitch-embed { width: 100%; height: 100%; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid #222; }
         
-        /* CHAT STYLE */
         .chat-box { background: #0a0a0a; border: 1px solid #333; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
         .chat-tabs { display: flex; border-bottom: 1px solid #333; background: #111; }
         .chat-tab { flex: 1; padding: 10px; font-size: 11px; font-weight: bold; text-align: center; cursor: pointer; color: #666; font-family: 'Orbitron'; transition: 0.2s; }
         .chat-tab.active { color: white; background: #1a1a1a; border-bottom: 2px solid var(--color-secondary-blue); }
         .chat-content { flex: 1; position: relative; }
         .chat-frame { width: 100%; height: 100%; border: none; }
-        
         #hub-ui { display: none; flex-direction: column; height: 100%; }
         #hub-msgs { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; font-family: 'Inter'; scrollbar-width: thin; scrollbar-color: #333 #000; }
         #hub-msgs div { margin-bottom: 6px; word-wrap: break-word; }
         #hub-input-area { padding: 10px; border-top: 1px solid #333; display: flex; gap: 5px; background: #111; }
 
         .player-quick-input { background: var(--color-bg-dark); border: 1px solid var(--color-border-medium); color: white; padding: 8px 12px; border-radius: 4px; font-size: 13px; width: 220px; transition: 0.3s; }
-        .player-quick-input:focus { border-color: var(--color-secondary-blue); outline: none; }
-        .btn-cycle { background: var(--color-bg-dark); color: var(--color-secondary-blue); border: 1px solid var(--color-secondary-blue); padding: 8px 15px; border-radius: 4px; font-size: 12px; transition: 0.2s; cursor: pointer; }
-        .btn-cycle:hover:not(:disabled) { background: var(--color-secondary-blue); color: var(--color-bg-dark); }
+        .btn-cycle { background: var(--color-bg-dark); color: var(--color-secondary-blue); border: 1px solid var(--color-secondary-blue); padding: 8px 15px; border-radius: 4px; font-size: 12px; cursor: pointer; }
         .btn-primary { background: var(--color-primary-pink); color: #fff; border: 0; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: 700; text-transform: uppercase; font-size: 12px; transition: 0.2s; letter-spacing: 1px; }
-        .btn-primary:hover:not(:disabled) { transform: scale(1.02); box-shadow: var(--shadow-pink); }
-
-        /* DASHBOARD (V37) */
+        
         .tab-content { display: none; background: var(--color-bg-medium); border: 1px solid var(--color-border-dark); border-radius: 10px; padding: 25px; min-height: 400px; }
         .tab-content.active { display: block; animation: fadeEffect 0.4s; }
         @keyframes fadeEffect { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         .sub-tab-btn { transition: 0.3s; padding-bottom: 8px; border-bottom: 2px solid transparent; cursor: pointer; margin-right: 20px; color: #888; font-weight: bold; font-size: 11px; text-transform: uppercase; }
-        .sub-tab-btn:hover { color: #fff; }
         .active-sub { border-bottom: 2px solid var(--color-secondary-blue); color: white; }
         .hidden { display: none !important; }
 
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 25px; }
         .dashboard-box { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 8px; padding: 20px; min-height: 300px; display: flex; flex-direction: column; transition: transform 0.2s; }
-        .dashboard-box:hover { transform: translateY(-2px); }
-        .box-stats { border-top: 3px solid var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
-        .box-niche { border-top: 3px solid var(--color-ai-niche); box-shadow: 0 0 10px rgba(89, 214, 130, 0.2); }
-        .box-vod { border-top: 3px solid var(--color-ai-repurpose); box-shadow: 0 0 10px rgba(153, 51, 255, 0.2); }
-        .dashboard-title { font-family: 'Orbitron'; font-size: 16px; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; letter-spacing: 1px; }
+        .box-stats { border-top: 3px solid var(--color-secondary-blue); } .box-niche { border-top: 3px solid var(--color-ai-niche); } .box-vod { border-top: 3px solid var(--color-ai-repurpose); }
 
-        .kpi-card { background: #111; padding: 20px; border-radius: 8px; border-left: 4px solid #333; box-shadow: 0 4px 6px rgba(0,0,0,0.5); position: relative; }
+        .kpi-card { background: #111; padding: 20px; border-radius: 8px; border-left: 4px solid #333; position: relative; }
         .kpi-value { font-size: 28px; font-weight: 800; font-family: 'Orbitron'; line-height: 1.2; }
         .kpi-label { font-size: 11px; color: #888; text-transform: uppercase; margin-top: 5px; }
         .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; border-radius: 8px; display: none; z-index: 5; }
 
-        .followed-stream-item { width: calc(20% - 12px); min-width: 160px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; transition: 0.3s; }
-        .followed-stream-item:hover { transform: translateY(-5px); border-color: var(--color-primary-pink); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .followed-stream-item { width: calc(20% - 12px); min-width: 160px; padding: 10px; background: var(--color-bg-light); border-radius: 8px; border: 1px solid var(--color-border-dark); cursor: pointer; }
+        .followed-stream-item:hover { transform: translateY(-5px); border-color: var(--color-primary-pink); }
         .followed-stream-item img { width: 100%; border-radius: 6px; margin-bottom: 8px; aspect-ratio: 16/9; object-fit: cover; }
         .action-input { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--color-border-medium); background: var(--color-bg-dark); color: #fff; font-size: 14px; transition: 0.3s; }
-        .action-input:focus { border-color: var(--color-secondary-blue); outline: none; box-shadow: 0 0 5px rgba(34,199,239,0.3); }
-
-        .ai-output-enhanced { color: #ddd; font-size: 14px; line-height: 1.6; }
+        
         .ai-output-enhanced li { margin-bottom: 8px; border-left: 3px solid #444; padding-left: 10px; background: #151515; }
-        .stars { color: #333; margin-top: 8px; } .stars .filled { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.6); }
-
+        
         @media (max-width: 1024px) { .player-grid { grid-template-columns: 1fr; height: auto; } .chat-box { height: 400px; } .dashboard-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V60 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">MASTER</span></h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V60 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">ULTIMATE</span></h1>
     <div class="subtitle-center">Cockpit Unifié • Chat Global • Intelligence Artificielle • Rotation 3min</div>
 
     <div id="activity-ticker">
@@ -160,7 +141,6 @@
     </div>
 
     <div id="content-area">
-
         <div id="tab-followed" class="tab-content active">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h3 class="text-pink font-bold text-lg" style="color:var(--color-primary-pink);"><i class="fas fa-circle text-red-500 mr-2 animate-pulse"></i> Vos Chaînes Suivies LIVE</h3>
@@ -234,25 +214,22 @@
         </div>
 
         <div id="tab-time" class="tab-content">
-            <h3 style="color:var(--color-time-gold); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-hourglass-half mr-2"></i> OPTIMISATION</h3>
+            <h3 style="color:var(--color-time-gold); margin-bottom:15px; font-weight:bold;">OPTIMISATION HORAIRE</h3>
             <form id="form-schedule" class="flex gap-3"><input id="input-schedule-game" type="text" placeholder="Jeu..." class="action-input" style="flex-grow:1;"><button type="submit" id="btn-schedule" class="btn-primary">CALCULER</button></form>
-            <div id="schedule-results" style="display:none;" class="schedule-box box-schedule">
-                <div style="display:flex; align-items:center; gap:20px; margin-bottom:20px;">
-                    <img id="schedule-img" src="" style="width:60px; border-radius:6px; border:1px solid #444;">
-                    <div class="schedule-header" id="schedule-game-name">Jeu</div>
-                </div>
-                <div id="schedule-ai-content" class="ai-output-enhanced"></div>
+            <div id="schedule-results" style="display:none; margin-top:20px; padding:20px; background:#111; border-radius:8px;">
+                <div style="display:flex; gap:15px;"><img id="schedule-img" width="60"><div class="schedule-header" id="schedule-game-name">Jeu</div></div>
+                <div id="schedule-ai-content" class="ai-output-enhanced" style="margin-top:15px; color:#ddd;"></div>
             </div>
         </div>
-
+        
         <div id="tab-boost" class="tab-content">
-            <h3 style="color:var(--color-primary-pink); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-rocket mr-2"></i> STREAM BOOST</h3>
+            <h3 style="color:var(--color-primary-pink); margin-bottom:15px; font-weight:bold;">STREAM BOOST</h3>
             <form id="form-boost" class="flex gap-3"><input id="input-boost" type="text" placeholder="Votre Chaîne..." class="action-input" style="flex-grow:1;"><button type="submit" class="btn-primary">ACTIVER</button></form>
             <div id="boost-results" style="margin-top:20px; padding:15px; background:#111; border-radius:6px; min-height:60px; display:flex; align-items:center; justify-content:center;"><p style="color:#777;">En attente...</p></div>
         </div>
 
         <div id="tab-raid" class="tab-content">
-            <h3 style="color:var(--color-ai-action); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-bullhorn mr-2"></i> RAID FINDER</h3>
+            <h3 style="color:var(--color-ai-action); margin-bottom:15px; font-weight:bold;">RAID FINDER</h3>
             <form id="form-raid" class="flex gap-3 flex-col sm:flex-row">
                 <input id="input-raid-game" type="text" placeholder="Jeu cible..." class="action-input" style="flex-grow:1;">
                 <select id="select-raid-viewers" class="action-input" style="width:auto;"><option value="100">Max 100</option></select>
@@ -280,8 +257,9 @@
     }
     animateTicker();
 
-    // --- CHAT SOCKET.IO ---
+    // --- CHAT SOCKET.IO (LOGIQUE MISE À JOUR) ---
     const socket = io();
+    // Par défaut, c'est Guest
     let myPseudo = "Guest_" + Math.floor(Math.random()*1000);
     const chatMsgs = document.getElementById('hub-msgs');
 
@@ -295,16 +273,19 @@
         document.getElementById('hub-ui').style.display = t==='hub'?'flex':'none';
         if(t==='hub') chatMsgs.scrollTop = chatMsgs.scrollHeight;
     }
+    
     function sendMsg() {
         const i = document.getElementById('hub-in');
         if(!i.value) return;
-        if(isConnected) myPseudo = document.getElementById('btn-twitch-login').innerText.split(' ')[1] || myPseudo;
+        // On envoie le message avec le pseudo actuel (mis à jour si connecté)
         socket.emit('send_message', { user: myPseudo, text: i.value });
         i.value = "";
     }
     document.getElementById('hub-in').addEventListener('keypress', (e) => { if(e.key==='Enter') sendMsg(); });
+    
     function addMessageToUI(user, text) {
         const d = document.createElement('div');
+        // Si c'est moi, couleur cyan, sinon violet
         d.innerHTML = `<span style="color:${user===myPseudo?'#00ffcc':'#ff00ff'}; font-weight:bold;">${user}:</span> <span style="color:#ddd;">${text}</span>`;
         chatMsgs.appendChild(d);
         chatMsgs.scrollTop = chatMsgs.scrollHeight;
@@ -413,15 +394,20 @@
         if(res.success) document.getElementById('raid-results').innerHTML = `<div class="raid-target-box p-3 bg-[#111] rounded flex gap-3 items-center"><img src="${res.target.thumbnail_url}" width="100" class="rounded"><div><div class="font-bold">${res.target.name}</div><div class="text-xs text-green-400">${res.target.viewers} viewers</div></div><button onclick="launchPlayer('${res.target.login}')" class="btn-primary ml-auto text-xs">GO</button></div>`;
     });
 
-    // --- AUTH ---
+    // --- AUTH LOGIC (CORRECTIF NOM TCHAT) ---
     async function checkAuthStatus() {
         try {
             const d = await fetch(`${API_BASE}/twitch_user_status`).then(r=>r.json());
             isConnected = d.is_connected;
             const btn = document.getElementById('btn-twitch-login');
+            
             if (isConnected) {
                 btn.innerHTML = `<i class="fas fa-check"></i> ${d.display_name}`;
                 btn.style.background = '#0e7e0e';
+                
+                // ICI ON MET A JOUR LE PSEUDO DU TCHAT
+                myPseudo = d.display_name; 
+                
             } else btn.onclick = () => window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login_popup', 'width=500,height=650');
         } catch(e){}
     }
