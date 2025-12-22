@@ -1,6 +1,6 @@
 /**
- * STREAMER HUB V90 - MOTEUR FINAL
- * Correctifs : Raid Logic, Image URL Regex, Schedule Fix
+ * STREAMER HUB V95 - MOTEUR FINAL
+ * Correctifs : Route NicheOptimizer.html, Firebase JSON, Chat Socket.io
  */
 
 require('dotenv').config();
@@ -16,22 +16,40 @@ const { Server } = require("socket.io");
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
-// 1. INITIALISATION FIREBASE ROBUSTE
+// 1. INITIALISATION FIREBASE (FIX CRASH JSON)
 let serviceAccount;
-if (process.env.FIREBASE_SERVICE_KEY) {
-    try {
-        let raw = process.env.FIREBASE_SERVICE_KEY.trim();
-        if (raw.startsWith("'") || raw.startsWith('"')) raw = raw.slice(1, -1);
-        if (raw.endsWith("'") || raw.endsWith('"')) raw = raw.slice(0, -1);
-        raw = raw.replace(/\\n/g, '\n'); 
-        serviceAccount = JSON.parse(raw);
-    } catch (e) { console.error("⚠️ Firebase Config Error (Mode limité):", e.message); }
-} else { try { serviceAccount = require('./serviceAccountKey.json'); } catch (e) {} }
+const rawKey = process.env.FIREBASE_SERVICE_KEY;
 
-if (serviceAccount) {
-    try { admin.initializeApp({ credential: admin.credential.cert(serviceAccount) }); } 
-    catch (e) { console.error("Firebase Init Error:", e.message); }
-} else { try { admin.initializeApp(); } catch(e){} }
+if (rawKey) {
+    try {
+        // Nettoyage agressif pour Render
+        let cleanKey = rawKey.trim();
+        // Retire les guillemets simples ou doubles au début/fin si présents
+        if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
+            (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+            cleanKey = cleanKey.slice(1, -1);
+        }
+        // Remplace les vrais sauts de ligne par des \n échappés
+        cleanKey = cleanKey.replace(/\n/g, '\\n').replace(/\r/g, '');
+
+        serviceAccount = JSON.parse(cleanKey);
+        
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        console.log("✅ [FIREBASE] Base de données connectée.");
+    } catch (e) {
+        console.error("⚠️ [FIREBASE ERROR] Mode limité activé (Erreur JSON).");
+        // On lance une app vide pour éviter le crash total du site
+        try { admin.initializeApp(); } catch(err){}
+    }
+} else {
+    // Cas Local
+    try { 
+        serviceAccount = require('./serviceAccountKey.json'); 
+        admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    } catch (e) { try { admin.initializeApp(); } catch(err){} }
+}
 
 const db = admin.firestore();
 
@@ -53,7 +71,7 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
 
-// 3. LOGIQUE CHAT (AVATAR + PSEUDO)
+// 3. LOGIQUE CHAT (AVEC AVATAR)
 const chatHistory = [];
 io.on('connection', (socket) => {
     socket.emit('history', chatHistory);
@@ -65,7 +83,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// 4. HELPERS
+// 4. HELPERS TWITCH
 const CACHE = { token: null, rotation: { list: [], idx: 0, last: 0 }, twitchUser: null };
 
 async function getToken() {
@@ -151,25 +169,24 @@ app.get('/get_latest_vod', async (req, res) => {
         if(!u.data.length) return res.json({success:false});
         const v = await twitch(`videos?user_id=${u.data[0].id}&type=archive&first=1`);
         if(!v.data.length) return res.json({success:false});
-        // Regex pour remplacer width/height de manière sure
-        const thumb = v.data[0].thumbnail_url.replace(/%?{width}/g, '320').replace(/%?{height}/g, '180');
+        // Fix URL Image
+        const thumb = v.data[0].thumbnail_url.replace('%{width}', '320').replace('%{height}', '180');
         res.json({success:true, vod: { title: v.data[0].title, thumbnail_url: thumb, id: v.data[0].id }});
     } catch(e) { res.json({success:false}); }
 });
 
-// RAID (Cible unique optimisée)
+// RAID (Cible unique & Tri)
 app.post('/start_raid', async (req, res) => {
     try {
         const gRes = await twitch(`search/categories?query=${encodeURIComponent(req.body.game)}&first=1`);
         if(!gRes.data.length) return res.json({success:false});
         const sRes = await twitch(`streams?game_id=${gRes.data[0].id}&first=100&language=fr`);
         
-        // Logique de tri: Trouver le stream avec le plus de viewers MAIS inférieur au max
+        // Logique : On filtre ceux qui sont SOUS le max_viewers, et on prend le plus gros d'entre eux.
         const target = sRes.data.filter(s => s.viewer_count <= parseInt(req.body.max_viewers))
                                 .sort((a,b) => b.viewer_count - a.viewer_count)[0];
-        
         if(target) {
-            const thumb = target.thumbnail_url.replace(/%?{width}/g, '320').replace(/%?{height}/g, '180');
+            const thumb = target.thumbnail_url.replace('{width}','320').replace('{height}','180');
             return res.json({ success: true, target: { name: target.user_name, login: target.user_login, viewers: target.viewer_count, thumbnail_url: thumb, game: target.game_name } });
         }
         res.json({ success: false });
@@ -183,13 +200,13 @@ app.get('/followed_streams', async (req, res) => {
         const data = await twitch(`streams/followed?user_id=${CACHE.twitchUser.id}`, CACHE.twitchUser.access_token);
         return res.json({ success: true, streams: data.data.map(s => ({ 
             user_name: s.user_name, user_login: s.user_login, viewer_count: s.viewer_count, 
-            thumbnail_url: s.thumbnail_url.replace(/%?{width}/g, '320').replace(/%?{height}/g, '180'),
+            thumbnail_url: s.thumbnail_url.replace('{width}', '320').replace('{height}', '180'),
             game_name: s.game_name 
         }))});
     } catch (e) { return res.status(500).json({ success: false }); }
 });
 
-// PLAYER
+// PLAYER ROTATION
 app.get('/get_default_stream', async (req, res) => {
     const now = Date.now();
     try {
@@ -205,7 +222,7 @@ app.get('/get_default_stream', async (req, res) => {
 });
 app.post('/cycle_stream', (req, res) => { CACHE.rotation.idx++; res.json({ success: true, channel: CACHE.rotation.list[CACHE.rotation.idx % CACHE.rotation.list.length] || 'twitch' }); });
 
-// STATS & IA
+// STATS
 app.get('/api/stats/global', async (req, res) => {
     const d = await twitch('streams?first=100');
     let v = 0; d.data.forEach(s => v += s.viewer_count);
@@ -213,7 +230,7 @@ app.get('/api/stats/global', async (req, res) => {
 });
 app.get('/api/stats/top_games', async (req, res) => {
     const d = await twitch('games/top?first=9');
-    res.json({ games: d.data.map(g => ({ name: g.name, box_art_url: g.box_art_url.replace(/%?{width}/g,'52').replace(/%?{height}/g,'72') })) });
+    res.json({ games: d.data.map(g => ({ name: g.name, box_art_url: g.box_art_url.replace('{width}','52').replace('{height}','72') })) });
 });
 app.get('/api/stats/languages', async (req, res) => {
     const d = await twitch('streams?first=100');
@@ -221,14 +238,14 @@ app.get('/api/stats/languages', async (req, res) => {
     const sorted = Object.keys(l).map(k => ({name: k, percent: l[k]})).sort((a,b)=>b.percent-a.percent).slice(0,5);
     res.json({ languages: sorted });
 });
-app.post('/critique_ia', async (req, res) => res.json(await askIA(req.body.type === 'niche' ? `Audit de chaîne Twitch pour "${req.body.query}". Réponds en HTML court.` : `Donne moi une idée de clip viral pour "${req.body.query}". Réponds en HTML.`)));
-app.post('/analyze_schedule', async (req, res) => res.json(await askIA(`Quelle est la meilleure heure pour streamer du ${req.body.game}? Réponds en HTML court.`)));
+app.post('/critique_ia', async (req, res) => res.json(await askIA(req.body.type === 'niche' ? `Audit "${req.body.query}" Twitch.` : `Idée clip "${req.body.query}".`)));
+app.post('/analyze_schedule', async (req, res) => res.json(await askIA(`Heure stream ${req.body.game}? HTML.`)));
 app.post('/stream_boost', async (req, res) => { await db.collection('boosts').add({ channel: req.body.channel, endTime: Date.now() + 900000 }); res.json({ success: true, html_response: "Boost activé !" }); });
 app.get('/export_csv', (req, res) => res.send(`Type,Nom\nScan,Export`));
 
-// ROUTE HTML
+// ✅ ROUTE CORRIGÉE : POINTE SUR TON FICHIER HTML
 app.get('/', (req,res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
 });
 
-server.listen(PORT, () => console.log(`🚀 SERVEUR V90 (FINAL) SUR LE PORT ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 SERVEUR V95 (OK) SUR PORT ${PORT}`));
