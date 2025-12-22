@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V75 - MASTER</title>
+    <title>Streamer Hub V80 - MASTER</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -83,18 +83,21 @@
         
         .ai-output-enhanced li { margin-bottom: 8px; border-left: 3px solid #444; padding-left: 10px; background: #151515; }
         
+        .raid-target-box { background: #111; padding: 15px; border: 2px solid var(--color-ai-action); border-radius: 8px; display: flex; align-items: center; gap: 15px; }
+        .raid-target-box img { width: 120px; border-radius: 6px; }
+
         @media (max-width: 1024px) { .player-grid { grid-template-columns: 1fr; height: auto; } .chat-box { height: 400px; } .dashboard-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V75 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">MASTER</span></h1>
+    <h1 class="text-3xl"><span class="h1-blue-accent">STREAMER</span> HUB V80 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">MASTER</span></h1>
     <div class="subtitle-center">Cockpit Unifié • Chat Global • Intelligence Artificielle • Rotation 3min</div>
 
     <div id="activity-ticker">
         <span id="ticker-content" style="display: inline-block; padding-left: 100%;">
-            🚀 Bienvenue sur Streamer Hub V75 --- 🤖 L'IA Gemini est en ligne --- 💎 Boostez votre chaîne pour 15 min de gloire --- 👁️ Rotation automatique active (3min) --- ⚡ Rejoignez le Chat Global ---
+            🚀 Bienvenue sur Streamer Hub V80 --- 🤖 L'IA Gemini est en ligne --- 💎 Boostez votre chaîne pour 15 min de gloire --- 👁️ Rotation automatique active (3min) --- ⚡ Rejoignez le Chat Global ---
         </span>
     </div>
 
@@ -299,13 +302,9 @@
         if(currentChannel === c && !vid) return;
         currentChannel = c;
         document.getElementById('twitch-embed').innerHTML = '';
-        // AJOUT DE justplayer.fr
-        const parents = ["localhost", "127.0.0.1", "justplayer.fr", window.location.hostname];
-        
-        const config = { width: "100%", height: "100%", layout: "video", parent: parents };
-        if(vid) config.video = vid; else config.channel = c;
-        
-        embed = new Twitch.Embed("twitch-embed", config);
+        const opts = { width: "100%", height: "100%", layout: "video", parent: ["localhost", "127.0.0.1", "justplayer.fr", window.location.hostname] };
+        if(vid) opts.video = vid; else opts.channel = c;
+        embed = new Twitch.Embed("twitch-embed", opts);
         document.getElementById('input-channel').value = c;
         document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${c}/chat?parent=${window.location.hostname}&darkpopout`;
     }
@@ -374,7 +373,7 @@
         if(d.languages) c.innerHTML = d.languages.map(l => `<div class="mb-2"><div class="flex justify-between text-xs font-bold text-gray-400"><span>${l.name}</span><span>${l.percent}%</span></div><div class="h-1 bg-gray-800 rounded"><div class="h-1 bg-pink-500" style="width:${l.percent}%"></div></div></div>`).join('');
     }
 
-    // --- TOOLS ---
+    // --- TOOLS (FIX VOD & SCANNER DESIGN) ---
     document.getElementById('form-global-scan').addEventListener('submit', async(e)=>{
         e.preventDefault(); const q = document.getElementById('input-global-target').value;
         const boxS = document.getElementById('res-scan-content');
@@ -388,8 +387,17 @@
             boxS.innerHTML = `<div class="text-center"><img src="${u.profile_image_url}" width="60" class="rounded-full mx-auto mb-2 border-2 border-blue-500"><div class="font-bold text-lg">${u.display_name}</div><div class="text-xs text-gray-400">${u.game_name}</div><div class="text-xs ${u.is_live?'text-green-400':'text-gray-600'} mt-1">${u.is_live?'LIVE':'OFFLINE'}</div></div>`;
             const ia = await fetch(`${API_BASE}/critique_ia`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query:q}) }).then(r=>r.json());
             document.getElementById('res-niche-content').innerHTML = `<div class="ai-output-enhanced text-xs p-2 overflow-y-auto h-full">${ia.html_response}</div>`;
+            
+            // VOD FETCH
             const vRes = await fetch(`${API_BASE}/get_latest_vod?channel=${u.login}`).then(r=>r.json());
-            if(vRes.success) document.getElementById('res-vod-content').innerHTML = `<div class="relative group cursor-pointer" onclick="launchPlayer('${u.login}', '${vRes.vod.id}')"><img src="${vRes.vod.thumbnail_url}" class="w-full rounded border border-gray-700 opacity-80 hover:opacity-100 transition"><div class="absolute bottom-2 left-2 bg-black/80 px-2 rounded text-xs">VOD</div></div>`;
+            if(vRes.success) {
+                document.getElementById('res-vod-content').innerHTML = `
+                    <div class="relative group cursor-pointer" onclick="launchPlayer('${u.login}', '${vRes.vod.id}')">
+                        <img src="${vRes.vod.thumbnail_url}" class="w-full rounded border border-gray-700 opacity-80 hover:opacity-100 transition">
+                        <div class="absolute bottom-2 left-2 bg-black/80 px-2 rounded text-xs">VOD</div>
+                    </div>`;
+            } else { document.getElementById('res-vod-content').innerHTML = "<div class='text-center text-gray-500 mt-4'>Aucune VOD trouvée.</div>"; }
+            
         } else boxS.innerHTML = "Introuvable.";
     });
 
@@ -404,7 +412,16 @@
         e.preventDefault();
         const res = await fetch(`${API_BASE}/start_raid`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:document.getElementById('input-raid-game').value, max_viewers:100}) }).then(r=>r.json());
         if(res.success) {
-            document.getElementById('raid-results').innerHTML = `<div class="raid-target-box p-3 bg-[#111] rounded flex gap-3 items-center border border-pink-600 shadow-lg"><img src="${res.target.thumbnail_url}" width="100" class="rounded"><div><div class="font-bold text-white">${res.target.name}</div><div class="text-xs text-gray-400">${res.target.game}</div><div class="text-xs text-green-400 font-bold">🟢 ${res.target.viewers} viewers</div></div><button onclick="launchPlayer('${res.target.login}')" class="btn-primary ml-auto text-xs px-3 py-1">RAID</button></div>`;
+            document.getElementById('raid-results').innerHTML = `
+                <div class="raid-target-box p-3 bg-[#111] rounded flex gap-3 items-center border border-pink-600 shadow-lg">
+                    <img src="${res.target.thumbnail_url}" width="100" class="rounded">
+                    <div>
+                        <div class="font-bold text-white">${res.target.name}</div>
+                        <div class="text-xs text-gray-400">${res.target.game}</div>
+                        <div class="text-xs text-green-400 font-bold">🟢 ${res.target.viewers} viewers</div>
+                    </div>
+                    <button onclick="launchPlayer('${res.target.login}')" class="btn-primary ml-auto text-xs px-3 py-1">RAID</button>
+                </div>`;
         } else document.getElementById('raid-results').innerHTML = `<p style="color:red;">${res.error || "Rien trouvé"}</p>`;
     });
 
