@@ -438,8 +438,48 @@ async function recordStats() {
         let v = 0; data.data.forEach(s => v += s.viewer_count);
         await db.collection('stats_history').add({ timestamp: admin.firestore.FieldValue.serverTimestamp(), total_viewers: Math.floor(v*3.8), top_game: data.data[0].game_name });
     } catch(e) {}
+// --- NOUVELLE ROUTE : RECHERCHE INTELLIGENTE POUR VIEWERS ---
+app.post('/viewer_search', async (req, res) => {
+    const { mood } = req.body; // Ex: "Un stream drôle sur GTA RP"
+    
+    try {
+        // 1. On récupère une liste large de streams FR (ex: top 100 ou aléatoire)
+        const token = await getTwitchToken('app');
+        const streamsRes = await fetch(`https://api.twitch.tv/helix/streams?language=fr&first=50`, {
+            headers: { 'Client-ID': process.env.TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
+        });
+        const streamsData = await streamsRes.json();
+        
+        // 2. On prépare les données pour l'IA (Titre + Nom + Jeu)
+        const candidates = streamsData.data.map(s => `- ${s.user_name} (Jeu: ${s.game_name}) : "${s.title}"`).join('\n');
+
+        // 3. L'IA choisit le meilleur match
+        const prompt = `
+            Voici une liste de streams en direct :
+            ${candidates}
+            
+            Un spectateur cherche : "${mood}".
+            
+            Choisis LE meilleur stream qui correspond à cette demande.
+            Renvoie UNIQUEMENT le pseudo du streamer. Si aucun ne correspond parfaitement, prends le plus proche.
+        `;
+
+        const aiRes = await runGeminiAnalysis(prompt);
+        // Nettoyage de la réponse pour n'avoir que le pseudo
+        const bestChannel = aiRes.html_response.replace(/<[^>]*>?/gm, '').trim(); 
+
+        // 4. On renvoie les infos pour lancer le player
+        res.json({ success: true, channel: bestChannel, message: `🎯 L'IA a trouvé la pépite pour : "${mood}"` });
+
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+    
 }
 setInterval(recordStats, 30 * 60 * 1000); 
 setTimeout(recordStats, 10000);
 
 app.listen(PORT, () => console.log(`🚀 SERVER V50 (FINAL PATCH) ON PORT ${PORT}`));
+
