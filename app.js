@@ -481,5 +481,55 @@ app.post('/viewer_search', async (req, res) => {
 setInterval(recordStats, 30 * 60 * 1000); 
 setTimeout(recordStats, 10000);
 
+// --- NOUVELLE ROUTE : IA SOMMELIER (MODE VIEWER) ---
+app.post('/viewer_search', async (req, res) => {
+    const { mood } = req.body;
+    if (!mood) return res.json({ success: false, error: "Humeur manquante" });
+
+    try {
+        // 1. On récupère 50 streams français au hasard (Top streams)
+        const token = await getTwitchToken('app');
+        const streamsRes = await fetch(`https://api.twitch.tv/helix/streams?language=fr&first=50`, {
+            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }
+        });
+        const streamsData = await streamsRes.json();
+        
+        // 2. On prépare la liste pour l'IA
+        const candidates = streamsData.data.map(s => `- Streamer: ${s.user_name} | Jeu: ${s.game_name} | Titre: "${s.title}"`).join('\n');
+        
+        // 3. Prompt pour l'IA
+        const prompt = `
+            Voici une liste de streams en direct :
+            ${candidates}
+            
+            Un spectateur me dit : "${mood}".
+            
+            Ta mission : Choisis le stream le plus pertinent pour cette humeur.
+            Règles :
+            1. Analyse le titre et le jeu.
+            2. Renvoie UNIQUEMENT le pseudo exact du streamer (user_name). Rien d'autre.
+            3. Si rien ne correspond parfaitement, prends le plus proche.
+        `;
+
+        const aiRes = await runGeminiAnalysis(prompt);
+        
+        // 4. Nettoyage de la réponse (au cas où l'IA bavarde)
+        let bestChannel = aiRes.html_response.replace(/<[^>]*>?/gm, '').trim();
+        // Enlever la ponctuation finale éventuelle
+        if (bestChannel.endsWith('.')) bestChannel = bestChannel.slice(0, -1);
+
+        res.json({ 
+            success: true, 
+            channel: bestChannel, 
+            message: `🎯 L'IA a sélectionné ce stream pour l'ambiance : "${mood}"` 
+        });
+
+    } catch (e) {
+        console.error("Erreur Viewer:", e);
+        res.status(500).json({ success: false, error: "Erreur IA Sommelier" });
+    }
+});
+
 app.listen(PORT, () => console.log(`🚀 SERVER V50 (FINAL PATCH) ON PORT ${PORT}`));
+
 
