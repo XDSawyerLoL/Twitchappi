@@ -18,34 +18,24 @@
 
     <style>
         :root {
-            /* --- COULEURS DE FOND --- */
             --color-bg-dark: #0d0d0d;
             --color-bg-medium: #1a1a1a;
             --color-bg-light: #111;
-            
-            /* --- COULEURS D'ACCENTUATION --- */
             --color-primary-pink: #ff0099;
             --color-secondary-blue: #22c7ef;
             --color-time-gold: #ffd700;
-            
-            /* --- COULEURS IA & STATUS --- */
             --color-ai-niche: #59d682;
             --color-ai-repurpose: #9933ff;
             --color-ai-growth: #ffcc00; 
             --color-ai-action: #e34a64; 
-            
-            /* --- COULEURS TEXTE & BORDURES --- */
             --color-text-dimmed: #9aa3a8;
             --color-border-dark: #2e2e2e;
             --color-border-medium: #333;
-            
-            /* --- EFFETS DE LUMIÈRE (NEON) --- */
             --shadow-pink: 0 0 15px rgba(255, 0, 153, 0.4);
             --shadow-blue: 0 0 15px rgba(34, 199, 239, 0.4);
             --shadow-action: 0 0 15px rgba(227, 74, 100, 0.4);
         }
 
-        /* --- CONFIGURATION GLOBALE --- */
         body { 
             background-color: var(--color-bg-dark); 
             color: #fff; 
@@ -61,7 +51,6 @@
             padding: 10px; 
         }
         
-        /* --- TYPOGRAPHIE --- */
         h1 { 
             font-family: 'Orbitron', sans-serif; 
             font-size: 28px; 
@@ -71,10 +60,7 @@
             text-shadow: 0 0 5px var(--color-primary-pink);
         }
 
-        .h1-blue-accent { 
-            color: var(--color-secondary-blue); 
-        }
-
+        .h1-blue-accent { color: var(--color-secondary-blue); }
         .subtitle-center { 
             color: var(--color-text-dimmed); 
             font-size: 12px; 
@@ -84,16 +70,8 @@
             text-transform: uppercase;
         }
 
-        /* --- SYSTÈME D'ONGLETS --- */
-        .tabs-nav-container { 
-            margin-bottom: 20px; 
-        }
-
-        .flex-tabs { 
-            display: flex; 
-            gap: 5px; 
-            flex-wrap: wrap; 
-        }
+        .tabs-nav-container { margin-bottom: 20px; }
+        .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
         
         .tab-btn { 
             font-family: 'Orbitron', sans-serif; 
@@ -112,11 +90,7 @@
             font-weight: 600;
         }
 
-        .tab-btn:hover { 
-            color: #fff; 
-            background: #232323; 
-        }
-
+        .tab-btn:hover { color: #fff; background: #232323; }
         .tab-btn.active { 
             background: var(--color-bg-medium); 
             color: #fff; 
@@ -127,7 +101,6 @@
             position: relative;
         }
 
-        /* --- ZONE DU LECTEUR VIDÉO --- */
         .player-wrapper { 
             margin-bottom: 25px; 
             padding: 20px; 
@@ -203,7 +176,16 @@
             color: #555;
         }
 
-        /* --- CONTENU DES ONGLETS --- */
+        .player-mode-btn {
+            transition: all 0.2s;
+        }
+
+        .player-mode-active {
+            display: block;
+        }
+
+        .hidden { display: none !important; }
+
         .tab-content { 
             display: none; 
             background: var(--color-bg-medium); 
@@ -223,7 +205,6 @@
             to { opacity: 1; transform: translateY(0); } 
         }
 
-        /* --- SOUS-ONGLETS DASHBOARD --- */
         .sub-tab-btn { 
             transition: all 0.3s; 
             padding-bottom: 8px; 
@@ -237,20 +218,12 @@
             letter-spacing: 0.5px;
         }
 
-        .sub-tab-btn:hover {
-            color: #fff;
-        }
-
+        .sub-tab-btn:hover { color: #fff; }
         .active-sub { 
             border-bottom: 2px solid var(--color-secondary-blue); 
             color: white; 
         }
 
-        .hidden { 
-            display: none !important; 
-        }
-
-        /* --- DASHBOARD GRID --- */
         .dashboard-grid { 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
@@ -269,9 +242,7 @@
             transition: transform 0.2s;
         }
 
-        .dashboard-box:hover {
-            transform: translateY(-2px);
-        }
+        .dashboard-box:hover { transform: translateY(-2px); }
 
         .box-stats { border-top: 3px solid var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
         .box-niche { border-top: 3px solid var(--color-ai-niche); box-shadow: 0 0 10px rgba(89, 214, 130, 0.2); }
@@ -318,7 +289,6 @@
         .box-niche .ai-output-enhanced li { border-left-color: var(--color-ai-niche); }
         .box-schedule .ai-output-enhanced li { border-left-color: var(--color-time-gold); }
 
-        /* --- FORMULAIRES --- */
         .action-input { 
             width: 100%; 
             padding: 12px; 
@@ -364,7 +334,6 @@
             margin-top: 15px; 
         }
 
-        /* --- LISTE STREAMS SUIVIS --- */
         #followed-streams-list { 
             display: flex; 
             flex-wrap: wrap; 
@@ -396,7 +365,6 @@
             object-fit: cover;
         }
 
-        /* --- RAID / SCHEDULE / KPI --- */
         .raid-target-box { 
             padding: 20px; 
             background: #111; 
@@ -441,9 +409,7 @@
             transition: background 0.3s;
         }
         
-        .kpi-card:hover {
-            background: #151515;
-        }
+        .kpi-card:hover { background: #151515; }
 
         .kpi-value { 
             font-size: 28px; 
@@ -487,6 +453,59 @@
             text-shadow: 0 0 8px rgba(255, 215, 0, 0.6); 
         }
 
+        .chat-message-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            border-left: 2px solid var(--color-ai-repurpose);
+        }
+
+        .chat-message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--color-ai-repurpose);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .chat-message-content { flex: 1; }
+        .chat-message-header {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+
+        .chat-message-username {
+            font-weight: bold;
+            color: var(--color-secondary-blue);
+            font-size: 13px;
+        }
+
+        .chat-message-time {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .chat-message-text {
+            font-size: 13px;
+            color: #ddd;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .chat-message-item:hover { background: rgba(255, 255, 255, 0.06); }
+        #chat-messages-container { scroll-behavior: smooth; }
+
         @media (max-width: 1024px) { 
             .dashboard-grid { grid-template-columns: 1fr; } 
             .followed-stream-item { width: calc(50% - 10px); } 
@@ -498,7 +517,6 @@
 <body>
 
 <div id="twitch-lucky-main">
-    
     <h1 class="text-3xl">
         <span class="h1-blue-accent">STREAMER</span> HUB V37 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">MASTER</span>
     </h1>
@@ -544,11 +562,55 @@
                 </form>
             </div>
         </div>
-        <div id="twitch-embed"></div>
-    </div>
+
+        <div id="player-view" style="display:flex; gap:15px;">
+            <div id="twitch-embed" style="flex:1;"></div>
+        </div>
+
+        <!-- OVERLAY: Onglets + HUB Chat (par-dessus le chat Twitch natif) -->
+        <div style="position:absolute; right:20px; top:135px; width:350px; z-index:100;">
+            <!-- Onglets TWITCH / HUB -->
+            <div style="display:flex; gap:5px; background:var(--color-bg-light); border-radius:6px 6px 0 0; padding:4px;">
+                <button id="btn-chat-twitch" class="player-mode-btn" onclick="switchChatTab('twitch')" style="flex:1; padding:8px 12px; background:var(--color-secondary-blue); color:#000; border:none; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px; transition:0.2s;">
+                    <i class="fab fa-twitch mr-1"></i> TWITCH
+                </button>
+                <button id="btn-chat-hub" class="player-mode-btn" onclick="switchChatTab('hub')" style="flex:1; padding:8px 12px; background:transparent; color:var(--color-text-dimmed); border:none; cursor:pointer; font-weight:bold; font-size:11px; transition:0.2s;">
+                    <i class="fas fa-users mr-1"></i> HUB
+                </button>
+            </div>
+
+            <!-- CHAT HUB (caché par défaut, overlay par-dessus) -->
+            <div id="hub-chat-view" class="hidden" style="display:flex; flex-direction:column; height:550px; background:var(--color-bg-light); border-radius:0 0 8px 8px; border:1px solid var(--color-border-dark); border-top:none; overflow:hidden;">
+                <div style="padding:12px; background:var(--color-bg-medium); border-bottom:1px solid var(--color-border-dark); display:flex; align-items:center; gap:10px;">
+                    <img id="chat-user-avatar" src="" style="width:32px; height:32px; border-radius:50%; border:2px solid var(--color-ai-repurpose); background:#333;">
+                    <div>
+                        <div style="font-weight:bold; color:white; font-size:12px;" id="chat-user-name">Connectez-vous...</div>
+                        <div style="font-size:9px; color:var(--color-ai-repurpose);" id="chat-user-status">🔒 Non authentifié</div>
+                    </div>
+                </div>
+
+                <div id="chat-messages-container" style="flex:1; overflow-y:auto; padding:12px; background:#0a0a0a;">
+                    <p style="color:#555; text-align:center; padding:30px; font-size:12px;">
+                        <i class="fas fa-hourglass-start fa-2x mb-2"></i><br>
+                        Connectez-vous pour voir l'historique.
+                    </p>
+                </div>
+
+                <div style="border-top:1px solid var(--color-border-dark); padding:10px; background:var(--color-bg-medium);">
+                    <form id="form-chat" style="display:flex; gap:8px;">
+                        <input id="input-chat-message" type="text" placeholder="Message..." class="action-input" style="flex:1; padding:8px;" maxlength="500" disabled>
+                        <button type="submit" id="btn-send-chat" class="btn-primary" style="background:var(--color-ai-repurpose); padding:8px 14px; font-size:10px;" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    <p id="chat-status" style="font-size:9px; color:#888; margin:4px 0 0 0; text-align:right;">
+                        Connectez-vous
+                    </p>
+                </div>
+            </div>
+        </div>
 
     <div id="content-area">
-
         <div id="tab-followed" class="tab-content active">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h3 class="text-pink font-bold text-lg" style="color:var(--color-primary-pink);">
@@ -573,7 +635,6 @@
         </div>
 
         <div id="tab-dashboard" class="tab-content">
-            
             <div id="dashboard-sub-nav" class="flex gap-6 border-b border-gray-800 mb-8 overflow-x-auto pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
                 <button onclick="showSubTab('overview', this)" class="sub-tab-btn active-sub">Overview</button>
                 <button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">🎮 Games</button>
@@ -622,14 +683,12 @@
 
             <div id="sub-games" class="sub-content hidden">
                 <h3 class="text-blue-400 font-bold uppercase text-sm mb-6"><i class="fas fa-gamepad mr-2"></i> Top Games (Données Réelles)</h3>
-                <div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                </div>
+                <div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
 
             <div id="sub-languages" class="sub-content hidden">
                 <h3 class="text-pink-400 font-bold uppercase text-sm mb-6"><i class="fas fa-language mr-2"></i> Top Langues</h3>
-                <div id="languages-list-container" class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800 space-y-6">
-                </div>
+                <div id="languages-list-container" class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800 space-y-6"></div>
             </div>
 
             <div id="sub-scanner" class="sub-content hidden">
@@ -749,7 +808,6 @@
 </div>
 
 <script>
-    // --- CONFIGURATION ---
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch';
     const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000;
@@ -758,11 +816,12 @@
     let autoCycleTimer = null; 
     let boostTimeout = null; 
     let isConnected = false;
+    let chatPollingInterval = null;
+    let lastMessageCount = 0;
 
-    // --- GESTION DES ONGLETS ---
     function openTab(tabId) {
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        document.querySelector(\`.tab-btn[data-tab-id="\${tabId}"]\`).classList.add('active');
+        document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
         
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
@@ -786,13 +845,12 @@
         if(subName === 'languages') loadTopLanguages();
     }
 
-    // --- DASHBOARD DATA ---
     async function loadDashboardData() {
         initCharts();
         try {
             document.querySelectorAll('.loading-overlay').forEach(el => el.style.display = 'flex');
             
-            const res = await fetch(\`\${API_BASE}/api/stats/global\`);
+            const res = await fetch(`${API_BASE}/api/stats/global`);
             const data = await res.json();
             
             if(data.success) {
@@ -815,19 +873,19 @@
         container.innerHTML = "<p class='text-gray-500'>Chargement des données Twitch...</p>";
         
         try {
-            const res = await fetch(\`\${API_BASE}/api/stats/top_games\`);
+            const res = await fetch(`${API_BASE}/api/stats/top_games`);
             const data = await res.json();
             
             if(data.games) {
-                container.innerHTML = data.games.map((g, i) => \`
+                container.innerHTML = data.games.map((g, i) => `
                     <div class="flex items-center gap-3 bg-[#111] p-3 rounded border border-gray-800 hover:border-blue-500 transition-colors">
-                        <span class="text-gray-500 font-bold w-6 text-center text-lg">#\${i+1}</span>
-                        <img src="\${g.box_art_url.replace('{width}','52').replace('{height}','72')}" class="w-10 rounded shadow-sm">
+                        <span class="text-gray-500 font-bold w-6 text-center text-lg">#${i+1}</span>
+                        <img src="${g.box_art_url.replace('{width}','52').replace('{height}','72')}" class="w-10 rounded shadow-sm">
                         <div class="flex-grow">
-                            <div class="font-bold text-sm text-white">\${g.name}</div>
+                            <div class="font-bold text-sm text-white">${g.name}</div>
                             <div class="text-[10px] text-gray-400 flex items-center gap-1"><i class="fas fa-fire text-orange-500"></i> Trending</div>
                         </div>
-                    </div>\`).join('');
+                    </div>`).join('');
             }
         } catch(e) { container.innerHTML = "Erreur."; }
     }
@@ -837,25 +895,24 @@
         container.innerHTML = "Chargement...";
         
         try {
-            const res = await fetch(\`\${API_BASE}/api/stats/languages\`);
+            const res = await fetch(`${API_BASE}/api/stats/languages`);
             const data = await res.json();
             
             if(data.languages) {
-                container.innerHTML = data.languages.map(l => \`
+                container.innerHTML = data.languages.map(l => `
                     <div class="mb-3">
                         <div class="flex justify-between text-[11px] mb-1 text-gray-300 font-bold">
-                            <span>\${l.name}</span>
-                            <span class="text-white">\${l.percent}%</span>
+                            <span>${l.name}</span>
+                            <span class="text-white">${l.percent}%</span>
                         </div>
                         <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden">
-                            <div class="h-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style="width: \${l.percent}%;"></div>
+                            <div class="h-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style="width: ${l.percent}%;"></div>
                         </div>
-                    </div>\`).join('');
+                    </div>`).join('');
             }
         } catch(e) {}
     }
 
-    // --- GRAPHIQUES ---
     let liveChart, yoyChart;
     function initCharts() {
         if(liveChart) return;
@@ -922,25 +979,177 @@
         }
     }
 
-    const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString('fr-FR') : 'N/A';
+    async function loadChatHistory() {
+        const container = document.getElementById('chat-messages-container');
+        
+        try {
+            const res = await fetch(`${API_BASE}/chat/history`);
+            const data = await res.json();
+            
+            if (data.success && data.messages.length > 0) {
+                container.innerHTML = '';
+                data.messages.forEach(msg => appendChatMessage(msg));
+                lastMessageCount = data.messages.length;
+                scrollChatToBottom();
+            }
+        } catch(e) {
+            console.error("Erreur historique chat:", e);
+        }
+    }
 
-    // --- SCANNER / IA ---(raccourci ici, tu peux garder ta version complète) ---
+    function appendChatMessage(msg) {
+        const container = document.getElementById('chat-messages-container');
+        
+        const messageEl = document.createElement('div');
+        messageEl.className = 'chat-message-item';
+        messageEl.id = `msg-${msg.id}`;
+        
+        const initials = msg.username.substring(0, 2).toUpperCase();
+        const timestamp = new Date(msg.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        
+        messageEl.innerHTML = `
+            <div class="chat-message-avatar">${initials}</div>
+            <div class="chat-message-content">
+                <div class="chat-message-header">
+                    <span class="chat-message-username">${msg.username}</span>
+                    <span class="chat-message-time">${timestamp}</span>
+                </div>
+                <div class="chat-message-text">${escapeHtml(msg.message)}</div>
+            </div>
+        `;
+        
+        container.appendChild(messageEl);
+    }
+
+    function scrollChatToBottom() {
+        const container = document.getElementById('chat-messages-container');
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 50);
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;',
+            '"': '&quot;', "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    async function sendChatMessage(message) {
+        const inputEl = document.getElementById('input-chat-message');
+        const statusEl = document.getElementById('chat-status');
+        
+        if (!message.trim()) return;
+        
+        try {
+            const res = await fetch(`${API_BASE}/chat/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                inputEl.value = '';
+                appendChatMessage(data.msg);
+                scrollChatToBottom();
+                statusEl.innerText = '✅ Message envoyé';
+                setTimeout(() => statusEl.innerText = 'Chat actif', 2000);
+            } else {
+                statusEl.innerText = `❌ ${data.error}`;
+            }
+        } catch(e) {
+            statusEl.innerText = '❌ Erreur réseau';
+        }
+    }
+
+    function startChatPolling() {
+        if (chatPollingInterval) clearInterval(chatPollingInterval);
+        
+        chatPollingInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`${API_BASE}/chat/messages`);
+                const data = await res.json();
+                
+                if (data.success && data.messages.length > lastMessageCount) {
+                    const newMsg = data.messages[0];
+                    if (!document.getElementById(`msg-${newMsg.id}`)) {
+                        appendChatMessage(newMsg);
+                        scrollChatToBottom();
+                    }
+                    lastMessageCount = data.messages.length;
+                }
+            } catch(e) {}
+        }, 2000);
+    }
+
+    function stopChatPolling() {
+        if (chatPollingInterval) {
+            clearInterval(chatPollingInterval);
+            chatPollingInterval = null;
+        }
+    }
+
+    document.getElementById('form-chat').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const message = document.getElementById('input-chat-message').value;
+        if (message.trim()) {
+            sendChatMessage(message);
+        }
+    });
+
     async function runGlobalScan(query) {
         const boxS = document.getElementById('res-scan-content');
         boxS.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><i class='fas fa-circle-notch fa-spin text-2xl text-blue-500'></i><p class='mt-2'>Scan en cours...</p></div>";
-        // Appel à ton backend comme dans ton code original...
+        
+        try {
+            const res = await fetch(`${API_BASE}/scan_target`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ query }) 
+            });
+            const data = await res.json();
+            
+            if(!data.success) throw new Error(data.message || "Introuvable");
+            
+            let starsHtml = '';
+            const score = data.user_data?.ai_calculated_niche_score || data.game_data?.ai_calculated_niche_score || 3;
+            const numStars = (typeof score === 'string' && score.includes('partner')) ? 5 : (typeof score === 'number' ? Math.round(score) : 3);
+            
+            for(let i=1; i<=5; i++) {
+                starsHtml += i <= numStars ? '<i class="fas fa-star filled" style="color:#ffd700;"></i>' : '<i class="fas fa-star text-gray-700"></i>';
+            }
+            
+            if(data.type === 'user') {
+                const u = data.user_data;
+                boxS.innerHTML = `
+                    <div style="display:flex; gap:15px; align-items:center; margin-bottom:15px;">
+                        <img src="${u.profile_image_url}" style="width:60px; height:60px; border-radius:50%; border:2px solid var(--color-secondary-blue);">
+                        <div>
+                            <div style="font-weight:bold; font-size:18px;">${u.display_name}</div>
+                            <div style="font-size:12px; color:${u.is_live?'#00ff9d':'gray'}">
+                                ${u.is_live ? '🔴 EN DIRECT' : '⚫ HORS LIGNE'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stars mb-4 text-center">${starsHtml}</div>`;
+            }
+        } catch(e) { 
+            boxS.innerHTML = `<p style='color:red; text-align:center;'>Erreur: ${e.message}</p>`; 
+        }
     }
-
+    
     document.getElementById('form-global-scan').addEventListener('submit', (e) => { 
         e.preventDefault(); 
         runGlobalScan(document.getElementById('input-global-target').value); 
     });
 
-    // --- PLAYER TWITCH (VIDÉO + CHAT INTEGRÉS) ---
+    const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString('fr-FR') : 'N/A';
+
     window.launchPlayer = function(channelName, videoId = null) {
-        if (!channelName) channelName = DEFAULT_CHANNEL;
-        
-        if (embed && ((!videoId && embed.getChannel && embed.getChannel() === channelName) || (videoId && embed.getVideo && embed.getVideo() === videoId))) return;
+        if (embed && ((!videoId && embed.getChannel() === channelName) || (videoId && embed.getVideo() === videoId))) return;
         
         document.getElementById('twitch-embed').innerHTML = '';
         
@@ -964,7 +1173,7 @@
         if (autoCycleTimer) clearInterval(autoCycleTimer);
         
         try {
-            const res = await fetch(\`\${API_BASE}/get_default_stream\`);
+            const res = await fetch(`${API_BASE}/get_default_stream`);
             const data = await res.json();
             
             if (data.success) {
@@ -990,7 +1199,7 @@
     
     async function cycleStream(direction) {
         try {
-            const res = await fetch(\`\${API_BASE}/cycle_stream\`, { 
+            const res = await fetch(`${API_BASE}/cycle_stream`, { 
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
                 body: JSON.stringify({ direction }) 
@@ -1004,9 +1213,8 @@
         } catch(e) {} 
     }
 
-    // --- AUTH TWITCH ---
     function startAuth() { 
-        window.open(\`\${API_BASE}/twitch_auth_start\`, 'twitch_login_popup', 'width=500,height=650'); 
+        window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login_popup', 'width=500,height=650'); 
     }
     
     window.addEventListener('message', (event) => { 
@@ -1018,23 +1226,47 @@
     async function checkAuthStatus() {
         const btn = document.getElementById('btn-twitch-login');
         try {
-            const res = await fetch(\`\${API_BASE}/twitch_user_status\`);
+            const res = await fetch(`${API_BASE}/twitch_user_status`);
             const data = await res.json();
             isConnected = data.is_connected;
             
             if (isConnected) {
-                btn.innerHTML = \`<i class="fas fa-check mr-1"></i> \${data.display_name} (OUT)\`;
+                btn.innerHTML = `<i class="fas fa-check mr-1"></i> ${data.display_name} (OUT)`;
                 btn.style.background = '#0e7e0e';
                 btn.onclick = async () => { 
-                    if(!confirm(\`Déconnecter \${data.display_name} ?\`)) return;
-                    await fetch(\`\${API_BASE}/twitch_logout\`, {method:'POST'}); 
+                    if(!confirm(`Déconnecter ${data.display_name} ?`)) return;
+                    await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); 
                     window.location.reload(); 
                 };
+                
+                const avatarEl = document.getElementById('chat-user-avatar');
+                const nameEl = document.getElementById('chat-user-name');
+                const statusEl = document.getElementById('chat-user-status');
+                const inputEl = document.getElementById('input-chat-message');
+                const sendBtn = document.getElementById('btn-send-chat');
+                
+                if(avatarEl) avatarEl.src = data.profile_image_url || '';
+                if(nameEl) nameEl.innerText = data.display_name;
+                if(statusEl) statusEl.innerText = '✅ Connecté • Prêt à chatter';
+                if(inputEl) inputEl.disabled = false;
+                if(sendBtn) sendBtn.disabled = false;
                 
                 if(document.getElementById('tab-followed').classList.contains('active')) loadFollowedStreams();
             } else {
                 btn.innerHTML = '<i class="fas fa-lock mr-1"></i> CONNEXION';
                 btn.onclick = startAuth;
+                
+                const avatarEl = document.getElementById('chat-user-avatar');
+                const nameEl = document.getElementById('chat-user-name');
+                const statusEl = document.getElementById('chat-user-status');
+                const inputEl = document.getElementById('input-chat-message');
+                const sendBtn = document.getElementById('btn-send-chat');
+                
+                if(avatarEl) avatarEl.src = '';
+                if(nameEl) nameEl.innerText = 'Connectez-vous...';
+                if(statusEl) statusEl.innerText = '🔒 Non authentifié';
+                if(inputEl) inputEl.disabled = true;
+                if(sendBtn) sendBtn.disabled = true;
             }
         } catch (e) {}
     }
@@ -1043,10 +1275,10 @@
         const list = document.getElementById('followed-streams-list');
         if (!isConnected) return;
         
-        list.innerHTML = \`<p><i class='fas fa-sync fa-spin'></i> Chargement...</p>\`;
+        list.innerHTML = `<p><i class='fas fa-sync fa-spin'></i> Chargement...</p>`;
         
         try {
-            const res = await fetch(\`\${API_BASE}/followed_streams\`);
+            const res = await fetch(`${API_BASE}/followed_streams`);
             const data = await res.json();
             
             if (data.success && data.streams.length > 0) {
@@ -1054,19 +1286,19 @@
                 data.streams.forEach(s => {
                     const thumb = s.thumbnail_url.replace('{width}', '320').replace('{height}', '180');
                     
-                    list.innerHTML += \`
-                        <div class='followed-stream-item' onclick="launchPlayer('\${s.user_login}')">
+                    list.innerHTML += `
+                        <div class='followed-stream-item' onclick="launchPlayer('${s.user_login}')">
                             <div class="relative">
-                                <img src="\${thumb}">
+                                <img src="${thumb}">
                                 <div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1 rounded">LIVE</div>
                             </div>
                             <div class="mt-2">
-                                <div style="font-weight:bold; font-size:13px; color:white;">\${s.user_name}</div>
+                                <div style="font-weight:bold; font-size:13px; color:white;">${s.user_name}</div>
                                 <div style="font-size:10px; color:var(--color-primary-pink); margin-top:2px;">
-                                    <i class="fas fa-user mr-1"></i> \${s.viewer_count}
+                                    <i class="fas fa-user mr-1"></i> ${s.viewer_count}
                                 </div>
                             </div>
-                        </div>\`;
+                        </div>`;
                 });
             } else {
                 list.innerHTML = "<p style='color:#777; width:100%; text-align:center;'>Aucune chaîne suivie n'est en live.</p>";
@@ -1074,7 +1306,6 @@
         } catch(e) { list.innerHTML = "<p style='color:red;'>Erreur de chargement.</p>"; }
     }
 
-    // --- OUTILS ---
     document.getElementById('form-schedule').addEventListener('submit', async (e) => {
         e.preventDefault(); 
         const game = document.getElementById('input-schedule-game').value; 
@@ -1087,7 +1318,7 @@
         btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
         
         try {
-            const res = await fetch(\`\${API_BASE}/analyze_schedule\`, { 
+            const res = await fetch(`${API_BASE}/analyze_schedule`, { 
                 method: 'POST', 
                 headers: {'Content-Type':'application/json'}, 
                 body: JSON.stringify({ game }) 
@@ -1116,7 +1347,7 @@
         resBox.innerHTML = "<i class='fas fa-sync fa-spin'></i> Activation...";
         
         try {
-            const res = await fetch(\`\${API_BASE}/stream_boost\`, { 
+            const res = await fetch(`${API_BASE}/stream_boost`, { 
                 method:'POST', 
                 headers:{'Content-Type':'application/json'}, 
                 body:JSON.stringify({channel}) 
@@ -1141,7 +1372,7 @@
         resBox.innerHTML = "<p style='text-align:center; color:var(--color-ai-action);'><i class='fas fa-sync fa-spin'></i> Recherche...</p>";
         
         try {
-            const res = await fetch(\`\${API_BASE}/start_raid\`, { 
+            const res = await fetch(`${API_BASE}/start_raid`, { 
                 method:'POST', 
                 headers:{'Content-Type':'application/json'}, 
                 body:JSON.stringify({game, max_viewers}) 
@@ -1150,17 +1381,17 @@
             
             if (data.success) {
                 const t = data.target;
-                resBox.innerHTML = \`
+                resBox.innerHTML = `
                     <div class="raid-target-box">
-                        <img src="\${t.thumbnail_url}">
+                        <img src="${t.thumbnail_url}">
                         <div>
-                            <div style="font-weight:bold; font-size:16px; color:white;">\${t.name}</div>
-                            <div style="font-size:14px; color:var(--color-ai-niche); font-weight:bold;">🟢 \${t.viewers} spectateurs</div>
+                            <div style="font-weight:bold; font-size:16px; color:white;">${t.name}</div>
+                            <div style="font-size:14px; color:var(--color-ai-niche); font-weight:bold;">🟢 ${t.viewers} spectateurs</div>
                         </div>
-                        <button onclick="launchPlayer('\${t.login}')" class="btn-primary" style="margin-left:auto; background:var(--color-ai-action);">
+                        <button onclick="launchPlayer('${t.login}')" class="btn-primary" style="margin-left:auto; background:var(--color-ai-action);">
                             RAID
                         </button>
-                    </div>\`;
+                    </div>`;
             }
         } catch(e) { resBox.innerHTML = "<p style='color:red;'>Erreur serveur.</p>"; }
         
@@ -1168,10 +1399,9 @@
     });
 
     document.getElementById('btn-export-pdf').addEventListener('click', () => {
-        window.open(\`\${API_BASE}/export_csv\`, '_blank');
+        window.open(`${API_BASE}/export_csv`, '_blank');
     });
 
-    // --- INITIALISATION ---
     window.onload = () => {
         checkAuthStatus();
         checkBoostAndPlay();
