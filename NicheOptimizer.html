@@ -562,10 +562,6 @@
             <button class="tab-btn active" data-tab-id="tab-followed" onclick="openTab('tab-followed')">
                 <i class="fas fa-key mr-2"></i> MON FIL
             </button>
-            <!-- ✅ NOUVEAU BOUTON CHAT HUB -->
-            <button class="tab-btn" data-tab-id="tab-chat-hub" onclick="openTab('tab-chat-hub')" style="border-top: 3px solid var(--color-ai-repurpose);">
-                <i class="fas fa-comments mr-2"></i> CHAT HUB
-            </button>
             <button class="tab-btn" data-tab-id="tab-dashboard" onclick="openTab('tab-dashboard')" style="color:white; border-top: 3px solid var(--color-secondary-blue);">
                 <i class="fas fa-chart-line mr-2"></i> DASHBOARD
             </button>
@@ -671,6 +667,7 @@
                 <button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">🎮 Games</button>
                 <button onclick="showSubTab('languages', this)" class="sub-tab-btn text-pink-400">🌍 Languages</button>
                 <button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--color-ai-niche);">🔍 SCANNER & AUDIT</button>
+                <button onclick="showSubTab('chat', this)" class="sub-tab-btn" style="color:var(--color-ai-repurpose);"><i class="fas fa-comments mr-1"></i> CHAT</button>
             </div>
 
             <div id="sub-overview" class="sub-content">
@@ -721,6 +718,70 @@
             <div id="sub-languages" class="sub-content hidden">
                 <h3 class="text-pink-400 font-bold uppercase text-sm mb-6"><i class="fas fa-language mr-2"></i> Top Langues</h3>
                 <div id="languages-list-container" class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800 space-y-6">
+                </div>
+            </div>
+
+            <div id="sub-chat" class="sub-content hidden">
+                <!-- SWITCH TWITCH VS COMMUNITY -->
+                <div style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">
+                    <h3 style="color:var(--color-ai-repurpose); margin:0; font-size:18px; font-weight:bold;">
+                        <i class="fas fa-comments mr-2"></i> CHAT
+                    </h3>
+                    <div style="display:flex; gap:5px; margin-left:auto; background:var(--color-bg-light); border-radius:6px; padding:2px;">
+                        <button id="btn-chat-twitch" class="chat-mode-btn chat-mode-active" onclick="switchChatMode('twitch')" style="padding:8px 15px; background:var(--color-secondary-blue); color:#000; border:none; border-radius:4px; cursor:pointer; font-weight:bold; font-size:11px;">
+                            TWITCH CHAT
+                        </button>
+                        <button id="btn-chat-hub" class="chat-mode-btn" onclick="switchChatMode('hub')" style="padding:8px 15px; background:transparent; color:var(--color-text-dimmed); border:none; cursor:pointer; font-weight:bold; font-size:11px;">
+                            COMMUNITY HUB
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TWITCH CHAT MODE -->
+                <div id="twitch-chat-mode" style="display:block;">
+                    <p style="color:#888; font-size:13px; margin-bottom:15px;">
+                        <i class="fas fa-info-circle mr-2"></i> Chat Twitch intégré du canal en lecture.
+                    </p>
+                    <div id="twitch-chat-container" style="height:600px; background:var(--color-bg-light); border-radius:8px; border:1px solid var(--color-border-dark); overflow:hidden;">
+                        <div style="display:flex; justify-content:center; align-items:center; height:100%; color:#555;">
+                            <p><i class="fas fa-spinner fa-spin mr-2"></i> Chat Twitch en chargement...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMMUNITY CHAT MODE -->
+                <div id="hub-chat-mode" class="hidden">
+                    <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px; padding:15px; background:rgba(153,51,255,0.1); border-radius:8px; border:1px solid var(--color-ai-repurpose);">
+                        <img id="chat-user-avatar" src="" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--color-ai-repurpose);">
+                        <div>
+                            <div style="font-weight:bold; color:white;" id="chat-user-name">Connectez-vous...</div>
+                            <div style="font-size:11px; color:var(--color-ai-repurpose);" id="chat-user-status">🔒 Non authentifié</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; height:500px; background:var(--color-bg-light); border-radius:8px; border:1px solid var(--color-border-dark); overflow:hidden;">
+                        
+                        <!-- Messages -->
+                        <div id="chat-messages-container" style="flex:1; overflow-y:auto; padding:15px; background:#0a0a0a;">
+                            <p style="color:#555; text-align:center; padding:40px;">
+                                <i class="fas fa-hourglass-start fa-2x mb-2"></i><br>
+                                Connectez-vous pour voir l'historique.
+                            </p>
+                        </div>
+                        
+                        <!-- Input -->
+                        <div style="border-top:1px solid var(--color-border-dark); padding:15px; background:var(--color-bg-medium);">
+                            <form id="form-chat" style="display:flex; gap:10px;">
+                                <input id="input-chat-message" type="text" placeholder="Écrivez un message..." class="action-input" style="flex:1;" maxlength="500" disabled>
+                                <button type="submit" id="btn-send-chat" class="btn-primary" style="background:var(--color-ai-repurpose); padding:10px 20px;" disabled>
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
+                            <p id="chat-status" style="font-size:11px; color:#888; margin-top:8px; text-align:right;">
+                                Connectez-vous pour utiliser le chat.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -866,19 +927,6 @@
             else document.getElementById('followed-streams-list').innerHTML = '<p style="color:#777; padding:40px; text-align:center;">Veuillez vous connecter pour voir vos favoris.</p>';
         }
         if (tabId === 'tab-dashboard') loadDashboardData();
-        if (tabId === 'tab-chat-hub') {
-            if (isConnected) {
-                document.getElementById('input-chat-message').disabled = false;
-                document.getElementById('btn-send-chat').disabled = false;
-                document.getElementById('chat-status').innerText = '✅ Chat actif';
-                loadChatHistory();
-                startChatPolling();
-            } else {
-                document.getElementById('chat-status').innerText = '🔒 Connectez-vous d\'abord';
-            }
-        } else {
-            stopChatPolling();
-        }
     }
 
     function showSubTab(subName, btnElement) {
@@ -891,6 +939,44 @@
         
         if(subName === 'games') loadTopGames();
         if(subName === 'languages') loadTopLanguages();
+        if(subName === 'chat') {
+            if(isConnected) {
+                loadChatHistory();
+                startChatPolling();
+            }
+        }
+    }
+
+    function switchChatMode(mode) {
+        const twitchMode = document.getElementById('twitch-chat-mode');
+        const hubMode = document.getElementById('hub-chat-mode');
+        const btnTwitch = document.getElementById('btn-chat-twitch');
+        const btnHub = document.getElementById('btn-chat-hub');
+        
+        if(mode === 'twitch') {
+            twitchMode.style.display = 'block';
+            hubMode.classList.add('hidden');
+            btnTwitch.classList.add('chat-mode-active');
+            btnTwitch.style.background = 'var(--color-secondary-blue)';
+            btnTwitch.style.color = '#000';
+            btnHub.classList.remove('chat-mode-active');
+            btnHub.style.background = 'transparent';
+            btnHub.style.color = 'var(--color-text-dimmed)';
+            stopChatPolling();
+        } else {
+            twitchMode.style.display = 'none';
+            hubMode.classList.remove('hidden');
+            btnHub.classList.add('chat-mode-active');
+            btnHub.style.background = 'var(--color-ai-repurpose)';
+            btnHub.style.color = '#000';
+            btnTwitch.classList.remove('chat-mode-active');
+            btnTwitch.style.background = 'transparent';
+            btnTwitch.style.color = 'var(--color-text-dimmed)';
+            if(isConnected) {
+                loadChatHistory();
+                startChatPolling();
+            }
+        }
     }
 
     // --- MODULE 1: DASHBOARD REAL DATA ---
@@ -1306,10 +1392,24 @@
                     window.location.reload(); 
                 };
                 
+                // Mettre à jour le profil dans le chat hub
+                document.getElementById('chat-user-avatar').src = data.profile_image_url || '';
+                document.getElementById('chat-user-name').innerText = data.display_name;
+                document.getElementById('chat-user-status').innerText = '✅ Connecté • Prêt à chatter';
+                document.getElementById('input-chat-message').disabled = false;
+                document.getElementById('btn-send-chat').disabled = false;
+                
                 if(document.getElementById('tab-followed').classList.contains('active')) loadFollowedStreams();
             } else {
                 btn.innerHTML = '<i class="fas fa-lock mr-1"></i> CONNEXION';
                 btn.onclick = startAuth;
+                
+                // Chat désactivé
+                document.getElementById('chat-user-avatar').src = '';
+                document.getElementById('chat-user-name').innerText = 'Connectez-vous...';
+                document.getElementById('chat-user-status').innerText = '🔒 Non authentifié';
+                document.getElementById('input-chat-message').disabled = true;
+                document.getElementById('btn-send-chat').disabled = true;
             }
         } catch (e) {}
     }
