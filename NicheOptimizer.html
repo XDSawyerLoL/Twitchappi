@@ -724,7 +724,20 @@
             </div>
         </div>
 
-        <div id="tab-raid" class="tab-content">
+        <div id="tab-raid" class="tab-content"> 
+        <div id="raid-results" ...>
+                 <p ...>Les résultats s'afficheront ici.</p>
+            </div>
+        </div> <div id="tab-viewer" class="tab-content">
+            <h3 style="color:#00ffcc; margin-bottom:10px;">🤖 IA SOMMELIER (VIEWER)</h3>
+            <p style="color:#888; font-size:12px; margin-bottom:15px;">Décrivez votre envie, l'IA trouve le stream parfait.</p>
+            <form id="form-viewer" class="flex gap-2">
+                <input id="input-viewer-mood" type="text" placeholder="Ex: 'J'ai envie de rire', 'Ambiance chill'..." class="action-input" style="flex-grow:1;">
+                <button type="submit" class="btn-primary" style="background:#00ffcc; color:black;">TROUVE-MOI ÇA</button>
+            </form>
+            <div id="viewer-result" style="margin-top:20px; text-align:center;"></div>
+        </div>
+        </div> </div>
             <h3 style="color:var(--color-ai-action); margin-bottom:15px; font-size:18px; font-weight:bold;">
                 <i class="fas fa-bullhorn mr-2"></i> RAID FINDER (FR)
             </h3>
