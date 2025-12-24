@@ -12,7 +12,8 @@
     <!-- Tailwind, Chart.js, FontAwesome, Twitch -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://embed.twitch.tv/embed/v1.js"></script>
 
     <style>
@@ -74,9 +75,13 @@
             text-transform: uppercase;
         }
 
-        /* Onglets principaux */
         .tabs-nav-container { margin-bottom: 20px; }
-        .flex-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+
+        .flex-tabs {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
 
         .tab-btn {
             font-family: 'Orbitron', sans-serif;
@@ -110,7 +115,6 @@
             z-index: 10;
         }
 
-        /* Player */
         .player-wrapper {
             margin-bottom: 25px;
             padding: 20px;
@@ -186,7 +190,6 @@
             color: #555;
         }
 
-        /* Contenu onglets */
         .tab-content {
             display: none;
             background: var(--color-bg-medium);
@@ -206,7 +209,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Sous-onglets Dashboard */
         .sub-tab-btn {
             transition: all 0.3s;
             padding-bottom: 8px;
@@ -225,7 +227,6 @@
 
         .hidden { display: none !important; }
 
-        /* Dashboard */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -248,7 +249,7 @@
 
         .box-stats { border-top: 3px solid var(--color-secondary-blue); box-shadow: var(--shadow-blue); }
         .box-niche { border-top: 3px solid var(--color-ai-niche); box-shadow: 0 0 10px rgba(89, 214, 130, 0.2); }
-        .box-vod { border-top: 3px solid var(--color-ai-repurpose); box-shadow: 0 0 10px rgba(153, 51, 255, 0.2); }
+        .box-vod   { border-top: 3px solid var(--color-ai-repurpose); box-shadow: 0 0 10px rgba(153, 51, 255, 0.2); }
 
         .dashboard-title {
             font-family: 'Orbitron', sans-serif;
@@ -259,7 +260,6 @@
             letter-spacing: 1px;
         }
 
-        /* Output IA */
         .ai-output-enhanced {
             color: #ddd;
             font-size: 14px;
@@ -269,7 +269,7 @@
         .ai-output-enhanced h4 {
             font-family: 'Orbitron', sans-serif;
             margin: 20px 0 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             color: var(--color-secondary-blue);
             font-size: 14px;
         }
@@ -283,13 +283,12 @@
             margin-bottom: 8px;
             border-left: 3px solid #444;
             padding: 4px 0 4px 12px;
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255,255,255,0.02);
         }
 
         .box-niche .ai-output-enhanced li { border-left-color: var(--color-ai-niche); }
         .box-schedule .ai-output-enhanced li { border-left-color: var(--color-time-gold); }
 
-        /* Inputs / boutons génériques */
         .action-input {
             width: 100%;
             padding: 12px;
@@ -304,7 +303,7 @@
         .action-input:focus {
             border-color: var(--color-secondary-blue);
             outline: none;
-            box-shadow: 0 0 5px rgba(34, 199, 239, 0.3);
+            box-shadow: 0 0 5px rgba(34,199,239,0.3);
         }
 
         .btn-primary {
@@ -335,7 +334,6 @@
             margin-top: 15px;
         }
 
-        /* Streams suivis */
         #followed-streams-list {
             display: flex;
             flex-wrap: wrap;
@@ -356,7 +354,7 @@
         .followed-stream-item:hover {
             transform: translateY(-5px);
             border-color: var(--color-primary-pink);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
 
         .followed-stream-item img {
@@ -367,7 +365,6 @@
             object-fit: cover;
         }
 
-        /* Raid, schedule, KPI */
         .raid-target-box {
             padding: 20px;
             background: #111;
@@ -407,7 +404,7 @@
             padding: 20px;
             border-radius: 8px;
             border-left: 4px solid #333;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
             position: relative;
             transition: background 0.3s;
         }
@@ -433,7 +430,7 @@
         .loading-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0,0,0,0.85);
             display: none;
             justify-content: center;
             align-items: center;
@@ -452,7 +449,6 @@
             text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
         }
 
-        /* Responsive */
         @media (max-width: 1024px) {
             .dashboard-grid { grid-template-columns: 1fr; }
             .followed-stream-item { width: calc(50% - 10px); }
@@ -471,54 +467,69 @@
         Cockpit Unifié • Données Réelles • Intelligence Artificielle • Rotation 3min
     </div>
 
-    <!-- Navigation -->
+    <!-- NAVIGATION -->
     <div class="tabs-nav-container">
         <div class="flex flex-wrap flex-tabs">
             <button class="tab-btn active" data-tab-id="tab-followed">
                 <i class="fas fa-key mr-2"></i> MON FIL
             </button>
-            <button class="tab-btn" data-tab-id="tab-dashboard" style="color:#fff;border-top:3px solid var(--color-secondary-blue);">
+            <button class="tab-btn" data-tab-id="tab-dashboard"
+                    style="color:#fff;border-top:3px solid var(--color-secondary-blue);">
                 <i class="fas fa-chart-line mr-2"></i> DASHBOARD
             </button>
-            <button class="tab-btn" data-tab-id="tab-time" style="border-top:3px solid var(--color-time-gold);">
+            <button class="tab-btn" data-tab-id="tab-time"
+                    style="border-top:3px solid var(--color-time-gold);">
                 <i class="fas fa-clock mr-2"></i> BEST TIME
             </button>
             <button class="tab-btn" data-tab-id="tab-boost">
                 <i class="fas fa-bolt mr-2"></i> BOOST
             </button>
-            <button class="tab-btn" data-tab-id="tab-raid" style="border-top:3px solid var(--color-ai-action);">
+
+            <!-- NOUVEL ONGLET CHAT HUB -->
+            <button class="tab-btn" data-tab-id="tab-chat">
+                <i class="fas fa-comments mr-2"></i> CHAT HUB
+            </button>
+
+            <button class="tab-btn" data-tab-id="tab-raid"
+                    style="border-top:3px solid var(--color-ai-action);">
                 <i class="fas fa-users mr-2"></i> RAID
             </button>
         </div>
     </div>
 
-    <!-- Player -->
+    <!-- PLAYER -->
     <div class="player-wrapper">
         <div class="player-header">
             <h2 class="player-title">
                 <span><i class="fab fa-twitch"></i></span> LECTEUR
-                <span id="player-channel-status" style="font-size:12px;color:#888;margin-left:15px;font-weight:normal;">
+                <span id="player-channel-status"
+                      style="font-size:12px;color:#888;margin-left:15px;font-weight:normal;">
                     En attente de connexion...
                 </span>
             </h2>
             <div class="flex gap-2 items-center">
-                <button id="btn-prev-stream" class="btn-cycle" disabled title="Chaîne précédente">
+                <button id="btn-prev-stream" class="btn-cycle" disabled
+                        title="Chaîne précédente">
                     <i class="fas fa-arrow-left"></i>
                 </button>
-                <button id="btn-next-stream" class="btn-cycle" disabled title="Chaîne suivante">
+                <button id="btn-next-stream" class="btn-cycle" disabled
+                        title="Chaîne suivante">
                     <i class="fas fa-arrow-right"></i>
                 </button>
 
                 <form id="mini-player-form" class="flex gap-2">
-                    <input id="input-channel" type="text" placeholder="Chaîne..." class="player-quick-input">
-                    <button type="submit" class="btn-primary" style="padding:5px 15px;">GO</button>
+                    <input id="input-channel" type="text"
+                           placeholder="Chaîne..."
+                           class="player-quick-input">
+                    <button type="submit" class="btn-primary"
+                            style="padding:5px 15px;">GO</button>
                 </form>
             </div>
         </div>
         <div id="twitch-embed"></div>
     </div>
 
-    <!-- Contenu -->
+    <!-- CONTENU ONGLET -->
     <div id="content-area">
         <!-- MON FIL -->
         <div id="tab-followed" class="tab-content active">
@@ -527,10 +538,12 @@
                     <i class="fas fa-circle text-red-500 mr-2 animate-pulse"></i> Vos Chaînes Suivies LIVE
                 </h3>
                 <div class="flex gap-2 items-center">
-                    <button id="btn-export-csv" class="btn-primary" style="background:var(--color-ai-growth);font-size:10px;">
+                    <button id="btn-export-csv" class="btn-primary"
+                            style="background:var(--color-ai-growth);font-size:10px;">
                         <i class="fas fa-file-csv mr-1"></i> CSV
                     </button>
-                    <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5;font-size:10px;">
+                    <button id="btn-twitch-login" class="btn-primary"
+                            style="background:#6441a5;font-size:10px;">
                         <i class="fas fa-lock mr-1"></i> CONNEXION TWITCH
                     </button>
                 </div>
@@ -550,7 +563,9 @@
                 <button data-sub="overview" class="sub-tab-btn active-sub">Overview</button>
                 <button data-sub="games" class="sub-tab-btn text-blue-400">🎮 Games</button>
                 <button data-sub="languages" class="sub-tab-btn text-pink-400">🌍 Languages</button>
-                <button data-sub="scanner" class="sub-tab-btn" style="color:var(--color-ai-niche);">🔍 SCANNER & AUDIT</button>
+                <button data-sub="scanner" class="sub-tab-btn"
+                        style="color:var(--color-ai-niche);">🔍 SCANNER & AUDIT
+                </button>
             </div>
 
             <div id="sub-overview" class="sub-content">
@@ -620,7 +635,8 @@
 
             <div id="sub-scanner" class="sub-content hidden">
                 <div class="text-center mb-8">
-                    <h3 class="text-xl font-bold mb-3" style="color:var(--color-secondary-blue);">
+                    <h3 class="text-xl font-bold mb-3"
+                        style="color:var(--color-secondary-blue);">
                         SCANNER D'INTELLIGENCE
                     </h3>
                     <p class="text-gray-500 text-sm mb-6">
@@ -640,7 +656,8 @@
 
                 <div class="dashboard-grid">
                     <div id="res-scan-content" class="dashboard-box box-stats">
-                        <div class="dashboard-title" style="color:var(--color-secondary-blue);">
+                        <div class="dashboard-title"
+                             style="color:var(--color-secondary-blue);">
                             📊 PROFIL & SCORE
                         </div>
                         <div class="flex flex-col items-center justify-center h-full text-gray-600">
@@ -650,7 +667,8 @@
                     </div>
 
                     <div id="res-niche-content" class="dashboard-box box-niche">
-                        <div class="dashboard-title" style="color:var(--color-ai-niche);">
+                        <div class="dashboard-title"
+                             style="color:var(--color-ai-niche);">
                             🧠 CRITIQUE NICHE
                         </div>
                         <div class="flex flex-col items-center justify-center h-full text-gray-600">
@@ -660,7 +678,8 @@
                     </div>
 
                     <div id="res-vod-content" class="dashboard-box box-vod">
-                        <div class="dashboard-title" style="color:var(--color-ai-repurpose);">
+                        <div class="dashboard-title"
+                             style="color:var(--color-ai-repurpose);">
                             ✂️ VOD & CLIPS
                         </div>
                         <div class="flex flex-col items-center justify-center h-full text-gray-600">
@@ -728,6 +747,52 @@
             </div>
         </div>
 
+        <!-- CHAT HUB -->
+        <div id="tab-chat" class="tab-content">
+            <h3 style="color:var(--color-secondary-blue);margin-bottom:15px;font-size:18px;font-weight:bold;">
+                <i class="fas fa-comments mr-2"></i> CHAT HUB GLOBAL
+            </h3>
+            <p style="color:#888;font-size:13px;margin-bottom:15px;">
+                Discutez avec les autres streamers connectés au Hub en utilisant votre compte Twitch.
+            </p>
+
+            <div id="chathub-status"
+                 style="font-size:12px;color:#f87171;margin-bottom:10px;display:none;">
+                Vous devez être connecté à Twitch pour écrire dans le Chat Hub.
+            </div>
+
+            <div style="display:flex;gap:15px;align-items:flex-start;min-height:320px;">
+                <div id="chathub-messages"
+                     style="flex:1;background:#0a0a0a;border:1px solid #222;border-radius:8px;padding:12px;max-height:320px;overflow-y:auto;">
+                    <p style="color:#555;text-align:center;margin-top:30px;">
+                        <i class="fas fa-spinner fa-spin mr-1"></i> Chargement des messages...
+                    </p>
+                </div>
+
+                <div style="width:210px;background:#050505;border-radius:8px;border:1px solid #222;padding:12px;">
+                    <h4 style="font-size:12px;text-transform:uppercase;color:#888;margin-bottom:8px;">
+                        <i class="fas fa-user-circle mr-1"></i> Profil connecté
+                    </h4>
+                    <div id="chathub-user-card" style="text-align:center;color:#666;font-size:12px;">
+                        <p>Non connecté.</p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="chathub-form"
+                  style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+                <input id="chathub-input"
+                       type="text"
+                       placeholder="Écrivez un message..."
+                       class="action-input"
+                       style="flex:1;">
+                <button type="submit" class="btn-primary"
+                        style="background:var(--color-secondary-blue);">
+                    <i class="fas fa-paper-plane mr-1"></i> ENVOYER
+                </button>
+            </form>
+        </div>
+
         <!-- RAID -->
         <div id="tab-raid" class="tab-content">
             <h3 style="color:var(--color-ai-action);margin-bottom:15px;font-size:18px;font-weight:bold;">
@@ -773,6 +838,8 @@
     let autoCycleTimer = null;
     let isConnected = false;
     let liveChart, yoyChart;
+    let chathubUser = null;
+    let chathubPollTimer = null;
 
     const safeFormat = (val) =>
         val && val !== 'N/A' ? Number(val).toLocaleString('fr-FR') : 'N/A';
@@ -783,7 +850,6 @@
         });
     }
 
-    // Onglets principaux
     function handleTabs() {
         const tabs = document.querySelectorAll('.tab-btn');
         const contents = document.querySelectorAll('.tab-content');
@@ -806,14 +872,12 @@
                             "<p style='color:#777;padding:40px;text-align:center;'>Veuillez vous connecter pour voir vos favoris.</p>";
                     }
                 }
-                if (tabId === 'tab-dashboard') {
-                    loadDashboardData();
-                }
+                if (tabId === 'tab-dashboard') loadDashboardData();
+                if (tabId === 'tab-chat') wireChatHub();
             });
         });
     }
 
-    // Sous-onglets Dashboard
     function handleSubTabs() {
         const subButtons = document.querySelectorAll('#dashboard-sub-nav .sub-tab-btn');
         const subContents = document.querySelectorAll('.sub-content');
@@ -835,7 +899,6 @@
         });
     }
 
-    // Charts
     function initCharts() {
         if (liveChart) return;
 
@@ -981,7 +1044,6 @@
         }
     }
 
-    // Scanner / IA
     function buildStars(scoreRaw) {
         const score = typeof scoreRaw === 'string' && scoreRaw.includes('partner')
             ? 5
@@ -1112,7 +1174,11 @@
                         </div>
                     </div>
                 `;
-                runAIAnalysis('niche', `Jeu: ${g.name} | Stats: ${g.total_viewers} viewers`, boxN, g.ai_calculated_niche_score);
+                runAIAnalysis('niche',
+                    `Jeu: ${g.name} | Stats: ${g.total_viewers} viewers`,
+                    boxN,
+                    g.ai_calculated_niche_score
+                );
                 boxV.innerHTML =
                     "<p style='text-align:center;color:#777;margin-top:30px;'>L'analyse VOD est réservée aux chaînes.</p>";
             }
@@ -1121,7 +1187,6 @@
         }
     }
 
-    // Player & rotation
     window.launchPlayer = function (channelName, videoId = null) {
         if (embed && ((!videoId && embed.getChannel?.() === channelName) ||
             (videoId && embed.getVideo?.() === videoId))) {
@@ -1201,7 +1266,6 @@
         }
     }
 
-    // Auth
     function startAuth() {
         window.open(
             `${API_BASE}/twitch_auth_start`,
@@ -1210,8 +1274,17 @@
         );
     }
 
+    window.addEventListener('message', event => {
+        if (event.data === 'auth_success') {
+            window.location.reload();
+        }
+    });
+
     async function checkAuthStatus() {
         const btn = document.getElementById('btn-twitch-login');
+        const userCard = document.getElementById('chathub-user-card');
+        const statusBox = document.getElementById('chathub-status');
+
         try {
             const res = await fetch(`${API_BASE}/twitch_user_status`);
             const data = await res.json();
@@ -1226,23 +1299,37 @@
                     window.location.reload();
                 };
 
+                chathubUser = {
+                    login: data.login,
+                    display_name: data.display_name,
+                    avatar_url: data.avatar_url
+                };
+
+                if (userCard) {
+                    userCard.innerHTML = `
+                        <img src="${chathubUser.avatar_url}"
+                             style="width:64px;height:64px;border-radius:50%;border:2px solid var(--color-secondary-blue);margin-bottom:6px;">
+                        <div style="font-weight:bold;color:#fff;">${chathubUser.display_name}</div>
+                        <div style="font-size:11px;color:#888;">@${chathubUser.login}</div>
+                    `;
+                }
+                if (statusBox) statusBox.style.display = 'none';
+
                 if (document.getElementById('tab-followed').classList.contains('active')) {
                     loadFollowedStreams();
                 }
             } else {
                 btn.innerHTML = '<i class="fas fa-lock mr-1"></i> CONNEXION';
                 btn.onclick = startAuth;
+
+                chathubUser = null;
+                if (userCard) userCard.innerHTML = '<p>Non connecté.</p>';
+                if (statusBox) statusBox.style.display = 'block';
             }
         } catch (e) {
             console.error('Erreur auth:', e);
         }
     }
-
-    window.addEventListener('message', event => {
-        if (event.data === 'auth_success') {
-            window.location.reload();
-        }
-    });
 
     async function loadFollowedStreams() {
         const list = document.getElementById('followed-streams-list');
@@ -1284,7 +1371,88 @@
         }
     }
 
-    // Schedule, Boost, Raid, mini player, export
+    function renderChatMessages(messages) {
+        const box = document.getElementById('chathub-messages');
+        if (!box) return;
+
+        if (!messages || messages.length === 0) {
+            box.innerHTML =
+                "<p style='color:#555;text-align:center;margin-top:30px;'>Aucun message pour le moment.</p>";
+            return;
+        }
+
+        box.innerHTML = messages.map(m => `
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <img src="${m.avatar_url}"
+                     style="width:28px;height:28px;border-radius:50%;border:1px solid #222;margin-top:2px;">
+                <div style="flex:1;">
+                    <div style="font-size:12px;color:#fff;font-weight:bold;">
+                        ${m.display_name}
+                        <span style="font-size:10px;color:#777;">@${m.login}</span>
+                        <span style="font-size:10px;color:#555;float:right;">
+                            ${m.time || ''}
+                        </span>
+                    </div>
+                    <div style="font-size:13px;color:#ddd;">${m.text}</div>
+                </div>
+            </div>
+        `).join('');
+
+        box.scrollTop = box.scrollHeight;
+    }
+
+    async function fetchChatMessages() {
+        try {
+            const res = await fetch(`${API_BASE}/chathub/messages`);
+            const data = await res.json();
+            if (data.success) renderChatMessages(data.messages);
+        } catch (e) {
+            console.error('Erreur ChatHub:', e);
+        }
+    }
+
+    async function sendChatMessage(text) {
+        if (!chathubUser) {
+            alert('Connecte ton compte Twitch pour parler dans le Chat Hub.');
+            return;
+        }
+        if (!text.trim()) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/chathub/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                alert(data.error || 'Erreur lors de l’envoi.');
+                return;
+            }
+            document.getElementById('chathub-input').value = '';
+            fetchChatMessages();
+        } catch (e) {
+            alert('Erreur réseau.');
+        }
+    }
+
+    function wireChatHub() {
+        const form = document.getElementById('chathub-form');
+        const input = document.getElementById('chathub-input');
+
+        if (!form) return;
+
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            if (!input) return;
+            sendChatMessage(input.value);
+        });
+
+        fetchChatMessages();
+        if (chathubPollTimer) clearInterval(chathubPollTimer);
+        chathubPollTimer = setInterval(fetchChatMessages, 4000);
+    }
+
     function wireForms() {
         document.getElementById('form-global-scan').addEventListener('submit', e => {
             e.preventDefault();
