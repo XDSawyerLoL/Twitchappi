@@ -1313,6 +1313,47 @@
         checkBoostAndPlay(); // Lance la rotation auto ou le boost
         openTab('tab-followed'); // Ouvre l'onglet par défaut
     };
+<button class="tab-btn" onclick="openTab('tab-viewer')" style="color:#00ffcc; border-top: 3px solid #00ffcc;">🍿 MODE VIEWER</button>
+
+<div id="tab-viewer" class="tab-content">
+    <h3 style="color:#00ffcc; margin-bottom:10px;">🤖 IA SOMMELIER</h3>
+    <p style="color:#888; font-size:12px; margin-bottom:15px;">Décrivez votre envie, l'IA trouve le stream parfait.</p>
+    
+    <form id="form-viewer" class="flex gap-2">
+        <input id="input-viewer-mood" type="text" placeholder="Ex: 'J'ai envie de rire', 'Ambiance chill', 'Gros niveau sur LoL'..." class="action-input" style="flex-grow:1;">
+        <button type="submit" class="btn-primary" style="background:#00ffcc; color:black;">TROUVE-MOI ÇA</button>
+    </form>
+    
+    <div id="viewer-result" style="margin-top:20px; text-align:center;"></div>
+</div>
+
+<script>
+    // AJOUT DANS LE SCRIPT
+    document.getElementById('form-viewer').onsubmit = async (e) => {
+        e.preventDefault();
+        const mood = document.getElementById('input-viewer-mood').value;
+        const box = document.getElementById('viewer-result');
+        
+        box.innerHTML = "<i class='fas fa-magic fa-spin'></i> L'IA scanne les flux en direct...";
+        
+        const res = await fetch(`${API_BASE}/viewer_search`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ mood })
+        });
+        const data = await res.json();
+        
+        if(data.success) {
+            box.innerHTML = `<div style="color:#00ffcc; font-size:18px; margin-bottom:10px;">${data.message}</div>`;
+            launchPlayer(data.channel); // Lance directement le stream trouvé
+        } else {
+            box.innerHTML = "Aucun stream trouvé pour cette ambiance.";
+        }
+    };
+</script>
+
+
+    
 </script>
 </body>
 </html>
