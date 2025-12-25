@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Streamer & Niche AI Hub - Ultimate Cockpit Dashboard">
-<title>Streamer & Niche AI Hub - COCKPIT MASTER V41 (FINAL)</title>
+<title>Streamer & Niche AI Hub - COCKPIT MASTER V37 (SOCKET CHAT)</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,7 +12,7 @@
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <style>
-/* STYLE V37 ORIGINAL + AJOUTS TCHAT & TRACKER */
+/* STYLE V37 ORIGINAL */
 :root{--color-bg-dark:#0d0d0d;--color-bg-medium:#1a1a1a;--color-bg-light:#111;--color-primary-pink:#ff0099;--color-secondary-blue:#22c7ef;--color-time-gold:#ffd700;--color-ai-niche:#59d682;--color-ai-repurpose:#9933ff;--color-ai-growth:#ffcc00;--color-ai-action:#e34a64;--color-text-dimmed:#9aa3a8;--color-border-dark:#2e2e2e;--color-border-medium:#333;--shadow-pink:0 0 15px rgba(255, 0, 153, 0.4);--shadow-blue:0 0 15px rgba(34, 199, 239, 0.4);--shadow-action:0 0 15px rgba(227, 74, 100, 0.4);}
 body{background-color:var(--color-bg-dark);color:#fff;font-family:'Inter', Arial, sans-serif;margin:0;padding:0;overflow-x:hidden;}
 #twitch-lucky-main{max-width:1400px;margin:20px auto;padding:10px;}
@@ -25,36 +25,33 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 .tab-btn:hover{color:#fff;background:#232323;}
 .tab-btn.active{background:var(--color-bg-medium);color:#fff;border-top:3px solid var(--color-primary-pink);font-weight:bold;box-shadow:var(--shadow-pink);z-index:10;position:relative;}
 
-/* LECTEUR + TCHAT GRID */
+/* LECTEUR + TCHAT GRID (NOUVEAU) */
 .player-wrapper{margin-bottom:25px;padding:20px;background:var(--color-bg-medium);border-radius:12px;border:1px solid var(--color-border-dark);box-shadow:var(--shadow-blue);}
 .player-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:1px solid var(--color-border-medium);padding-bottom:10px;}
 .player-title{font-family:'Orbitron', sans-serif;font-size:20px;color:var(--color-secondary-blue);display:flex;align-items:center;gap:10px;}
 .player-grid { display: grid; grid-template-columns: 1fr 340px; gap: 15px; height: 550px; }
 #twitch-embed{width:100%;height:100%;border-radius:8px;overflow:hidden;background:#000;border:1px solid #222;}
 
-/* TCHAT STYLES */
+/* TCHAT STYLES (NOUVEAU) */
 .chat-container { background: #0a0a0a; border: 1px solid var(--color-border-medium); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
 .chat-header-tabs { display: flex; border-bottom: 1px solid var(--color-border-medium); }
 .chat-tab { flex: 1; padding: 10px; text-align: center; font-family: 'Orbitron', sans-serif; font-size: 10px; cursor: pointer; color: #666; background: #111; }
 .chat-tab.active { color: var(--color-secondary-blue); background: #1a1a1a; border-bottom: 2px solid var(--color-secondary-blue); }
 .chat-content { flex-grow: 1; position: relative; overflow: hidden; }
-#hub-messages { height: calc(100% - 50px); overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
-.msg-item { background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 4px; font-size: 12px; border-left: 2px solid var(--color-primary-pink); }
+#hub-messages { height: calc(100% - 40px); overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+.msg-item { background: rgba(255,255,255,0.05); padding: 5px 8px; border-radius: 4px; font-size: 12px; border-left: 2px solid var(--color-primary-pink); }
 .msg-user { color: var(--color-secondary-blue); font-weight: bold; margin-right: 5px; }
-.chat-input-area { height: 50px; padding: 8px; display: flex; gap: 5px; border-top: 1px solid #333; background: #111; }
-.chat-input { flex-grow: 1; background: #000; border: 1px solid #333; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; outline: none; }
+.chat-input-area { height: 40px; padding: 5px; display: flex; gap: 5px; border-top: 1px solid #333; }
+.chat-input { flex-grow: 1; background: #000; border: 1px solid #333; color: white; padding: 5px; border-radius: 4px; font-size: 12px; outline: none; }
 
 .player-quick-input{background:var(--color-bg-dark);border:1px solid var(--color-border-medium);color:white;padding:8px 12px;border-radius:4px;font-size:13px;width:220px;transition:border-color 0.3s;}
 .player-quick-input:focus{border-color:var(--color-secondary-blue);outline:none;}
 .btn-cycle{background:var(--color-bg-dark);color:var(--color-secondary-blue);border:1px solid var(--color-secondary-blue);padding:8px 15px;border-radius:4px;font-size:12px;transition:0.2s;cursor:pointer;}
 .btn-cycle:hover:not(:disabled){background:var(--color-secondary-blue);color:var(--color-bg-dark);}
 .btn-cycle:disabled{opacity:0.5;cursor:not-allowed;border-color:#555;color:#555;}
-
 .tab-content{display:none;background:var(--color-bg-medium);border:1px solid var(--color-border-dark);border-radius:10px;padding:25px;min-height:400px;}
 .tab-content.active{display:block;animation:fadeEffect 0.4s ease-in-out;}
 @keyframes fadeEffect{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
-
-/* DASHBOARD & TRACKER */
 .sub-tab-btn{transition:all 0.3s;padding-bottom:8px;border-bottom:2px solid transparent;cursor:pointer;margin-right:20px;color:#888;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
 .sub-tab-btn:hover{color:#fff;}
 .active-sub{border-bottom:2px solid var(--color-secondary-blue);color:white;}
@@ -65,9 +62,6 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 .box-stats{border-top:3px solid var(--color-secondary-blue);box-shadow:var(--shadow-blue);}
 .box-niche{border-top:3px solid var(--color-ai-niche);box-shadow:0 0 10px rgba(89, 214, 130, 0.2);}
 .box-vod{border-top:3px solid var(--color-ai-repurpose);box-shadow:0 0 10px rgba(153, 51, 255, 0.2);}
-.box-title-gen{border-top:2px solid var(--color-time-gold);}
-.box-chat-reply{border-top:2px solid var(--color-primary-pink);}
-
 .dashboard-title{font-family:'Orbitron', sans-serif;font-size:16px;margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:10px;letter-spacing:1px;}
 .ai-output-enhanced{color:#ddd;font-size:14px;line-height:1.6;}
 .ai-output-enhanced h4{font-family:'Orbitron', sans-serif;margin-top:20px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);color:var(--color-secondary-blue);font-size:14px;}
@@ -75,18 +69,15 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 .ai-output-enhanced li{margin-bottom:8px;border-left:3px solid #444;padding-left:12px;background:rgba(255,255,255,0.02);padding-top:4px;padding-bottom:4px;}
 .box-niche .ai-output-enhanced li{border-left-color:var(--color-ai-niche);}
 .box-schedule .ai-output-enhanced li{border-left-color:var(--color-time-gold);}
-
 .action-input{width:100%;padding:12px;border-radius:6px;border:1px solid var(--color-border-medium);background:var(--color-bg-dark);color:#fff;font-size:14px;transition:0.3s;}
 .action-input:focus{border-color:var(--color-secondary-blue);outline:none;box-shadow:0 0 5px rgba(34, 199, 239, 0.3);}
 .btn-primary{background:var(--color-primary-pink);color:#fff;border:0;padding:12px 20px;border-radius:6px;cursor:pointer;font-weight:700;text-transform:uppercase;font-size:12px;transition:all 0.2s;letter-spacing:1px;}
 .btn-primary:hover:not(:disabled){transform:scale(1.02);filter:brightness(1.1);box-shadow:var(--shadow-pink);}
 .btn-big-scan{width:100%;background:linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose));font-size:14px;padding:15px;margin-top:15px;}
-
 #followed-streams-list{display:flex;flex-wrap:wrap;gap:15px;}
 .followed-stream-item{width:calc(20% - 12px);min-width:160px;padding:10px;background:var(--color-bg-light);border-radius:8px;border:1px solid var(--color-border-dark);cursor:pointer;transition:0.3s;}
 .followed-stream-item:hover{transform:translateY(-5px);border-color:var(--color-primary-pink);box-shadow:0 5px 15px rgba(0,0,0,0.5);}
 .followed-stream-item img{width:100%;border-radius:6px;margin-bottom:8px;aspect-ratio:16/9;object-fit:cover;}
-
 .raid-target-box{padding:20px;background:#111;border-radius:8px;border:2px solid var(--color-ai-action);display:flex;gap:20px;align-items:center;box-shadow:var(--shadow-action);}
 .raid-target-box img{width:120px;height:68px;object-fit:cover;border-radius:6px;}
 .schedule-box{border:2px solid var(--color-time-gold);padding:20px;background:#121212;border-radius:8px;margin-top:20px;box-shadow:0 0 15px rgba(255, 215, 0, 0.2);}
@@ -98,28 +89,19 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 .loading-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;border-radius:8px;display:none;z-index:5;}
 .stars{color:#333;font-size:16px;margin-top:8px;}
 .stars .filled{color:#ffd700;text-shadow:0 0 8px rgba(255, 215, 0, 0.6);}
-.tracker-table { width: 100%; border-collapse: separate; border-spacing: 0 5px; font-size: 12px; }
-.tracker-table th { background: #0a0a0a; color: #666; padding: 12px; text-transform: uppercase; font-size: 9px; text-align: left; }
-.tracker-table td { background: #1a1a1a; padding: 12px; border-top: 1px solid #222; }
-.badge-rating { background: linear-gradient(45deg, var(--color-primary-pink), #9146FF); padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-
-@media (max-width:1024px){.player-grid{grid-template-columns:1fr;height:auto;}.chat-container{height:400px;}.dashboard-grid{grid-template-columns:1fr;}.followed-stream-item{width:calc(50% - 10px);}.kpi-card{padding:15px;}.kpi-value{font-size:20px;}}
-@keyframes slideIn{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+@media (max-width:1024px){.dashboard-grid{grid-template-columns:1fr;}.followed-stream-item{width:calc(50% - 10px);}.kpi-card{padding:15px;}.kpi-value{font-size:20px;} .player-grid{grid-template-columns:1fr;height:auto;} .chat-container{height:400px;}}
 </style>
 </head>
 <body>
 <div id="twitch-lucky-main">
 <h1 class="text-3xl">
-<span class="h1-blue-accent">STREAMER</span> HUB V41 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">MASTER</span>
+<span class="h1-blue-accent">STREAMER</span> HUB V37 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">MASTER</span>
 </h1>
 <div class="subtitle-center">Cockpit Unifié • Données Réelles • Intelligence Artificielle • Rotation 3min</div>
 <div class="tabs-nav-container">
 <div class="flex flex-wrap flex-tabs">
 <button class="tab-btn active" data-tab-id="tab-followed" onclick="openTab('tab-followed')">
 <i class="fas fa-key mr-2"></i> MON FIL
-</button>
-<button class="tab-btn" data-tab-id="tab-tracker" onclick="openTab('tab-tracker')" style="color:white; border-top: 3px solid var(--color-secondary-blue);">
-<i class="fas fa-chart-bar mr-2"></i> TRACKER STATS
 </button>
 <button class="tab-btn" data-tab-id="tab-dashboard" onclick="openTab('tab-dashboard')" style="color:white; border-top: 3px solid var(--color-secondary-blue);">
 <i class="fas fa-chart-line mr-2"></i> DASHBOARD
@@ -135,7 +117,6 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 </button>
 </div>
 </div>
-
 <div class="player-wrapper">
 <div class="player-header">
 <h2 class="player-title">
@@ -155,33 +136,34 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 </form>
 </div>
 </div>
+<!-- MODIFICATION ICI : GRID PLAYER + CHAT -->
 <div class="player-grid">
-<div id="twitch-embed"></div>
-<!-- CHAT DUAL -->
-<div class="chat-container">
-<div class="chat-header-tabs">
-<div id="tab-chat-live" class="chat-tab active" onclick="switchChat('live')">LIVE TCHAT</div>
-<div id="tab-chat-hub" class="chat-tab" onclick="switchChat('hub')">HUB TCHAT</div>
-</div>
-<div class="chat-content">
-<div id="live-chat-module" class="h-full">
-<iframe id="twitch-chat-iframe" src="" style="width:100%; height:100%; border:none;"></iframe>
-</div>
-<div id="hub-chat-module" class="h-full hidden">
-<div id="hub-messages"><div class="msg-item"><span class="msg-user">System:</span> Hub Chat Ready</div></div>
-<div class="chat-input-area">
-<input type="text" id="hub-msg-input" placeholder="Message..." onkeypress="if(event.key==='Enter') sendHubMsg()">
-<button onclick="sendHubMsg()" class="btn-primary" style="padding: 5px 10px;">></button>
-</div>
-</div>
-</div>
-</div>
+    <div id="twitch-embed"></div>
+    <!-- MODULE TCHAT -->
+    <div class="chat-container">
+        <div class="chat-header-tabs">
+            <div id="tab-chat-live" class="chat-tab active" onclick="switchChat('live')">LIVE</div>
+            <div id="tab-chat-hub" class="chat-tab" onclick="switchChat('hub')">HUB</div>
+        </div>
+        <div class="chat-content">
+            <div id="live-chat-module" class="h-full">
+                <iframe id="twitch-chat-iframe" src="" style="width:100%; height:100%; border:none;"></iframe>
+            </div>
+            <div id="hub-chat-module" class="h-full hidden">
+                <div id="hub-messages"><div class="msg-item"><span class="msg-user">System:</span> Hub Chat Ready</div></div>
+                <div class="chat-input-area">
+                    <input type="text" id="hub-msg-input" placeholder="Message..." onkeypress="if(event.key==='Enter') sendHubMsg()">
+                    <button onclick="sendHubMsg()" class="btn-primary" style="padding: 5px 10px;">></button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </div>
 
 <div id="content-area">
-<!-- 1. MON FIL -->
 <div id="tab-followed" class="tab-content active">
+<!-- CONTENU MON FIL INCHANGÉ -->
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
 <h3 class="text-pink font-bold text-lg" style="color:var(--color-primary-pink);">
 <i class="fas fa-circle text-red-500 mr-2 animate-pulse"></i> Vos Chaînes Suivies LIVE
@@ -202,24 +184,13 @@ Connectez-vous pour voir vos favoris en direct.
 </p>
 </div>
 </div>
-
-<!-- 2. TRACKER (NOUVEAU) -->
-<div id="tab-tracker" class="tab-content">
-<div class="overflow-x-auto bg-[#0a0a0a] rounded border border-[#222]">
-<table class="tracker-table">
-<thead><tr><th># Game</th><th>Unified Rating</th><th>Viewers</th><th>Channels</th><th>Hours Watched</th><th>Live Status</th><th>Peak Viewers</th><th>Recommend</th></tr></thead>
-<tbody id="tracker-body"></tbody>
-</table>
-</div>
-</div>
-
-<!-- 3. DASHBOARD (FUSION) -->
 <div id="tab-dashboard" class="tab-content">
+<!-- CONTENU DASHBOARD INCHANGÉ -->
 <div id="dashboard-sub-nav" class="flex gap-6 border-b border-gray-800 mb-8 overflow-x-auto pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
 <button onclick="showSubTab('overview', this)" class="sub-tab-btn active-sub">Overview</button>
 <button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">🎮 Games</button>
 <button onclick="showSubTab('languages', this)" class="sub-tab-btn text-pink-400">🌍 Languages</button>
-<button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--color-ai-niche);">🔍 SCANNER & IA</button>
+<button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--color-ai-niche);">🔍 SCANNER & AUDIT</button>
 </div>
 <div id="sub-overview" class="sub-content">
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -244,6 +215,7 @@ Connectez-vous pour voir vos favoris en direct.
 <div class="kpi-label">État du Serveur</div>
 </div>
 </div>
+<!-- GRAPHIQUES -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
 <div class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800" style="height:350px;">
 <h4 class="text-xs font-bold text-gray-400 uppercase mb-6 flex justify-between">
@@ -258,6 +230,7 @@ Connectez-vous pour voir vos favoris en direct.
 </div>
 </div>
 </div>
+<!-- SOUS ONGLETS -->
 <div id="sub-games" class="sub-content hidden">
 <h3 class="text-blue-400 font-bold uppercase text-sm mb-6"><i class="fas fa-gamepad mr-2"></i> Top Games (Données Réelles)</h3>
 <div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -270,15 +243,14 @@ Connectez-vous pour voir vos favoris en direct.
 </div>
 <div id="sub-scanner" class="sub-content hidden">
 <div style="text-align:center; margin-bottom:30px;">
-<h3 class="text-blue-400 font-bold text-xl mb-3" style="color:var(--color-secondary-blue);">SCANNER D'INTELLIGENCE & COMPARATEUR</h3>
-<div class="flex gap-4 justify-center items-center mb-6">
-<input id="input-global-target" type="text" placeholder="Cible 1 (Jeu/Streamer)" class="action-input" style="font-size:16px; text-align:center;">
-<span class="font-bold text-gray-500">VS</span>
-<input id="input-compare-target" type="text" placeholder="Cible 2 (Optionnel)" class="action-input" style="font-size:16px; text-align:center;">
-</div>
-<button onclick="runGlobalScan(document.getElementById('input-global-target').value, document.getElementById('input-compare-target').value)" id="btn-global-scan" class="btn-primary btn-big-scan">
-<i class="fas fa-radar mr-2"></i> LANCER L'ANALYSE
+<h3 class="text-blue-400 font-bold text-xl mb-3" style="color:var(--color-secondary-blue);">SCANNER D'INTELLIGENCE</h3>
+<p class="text-gray-500 text-sm mb-6">Analyse complète : Score 5 Étoiles + Audit IA + Idées VOD</p>
+<form id="form-global-scan" class="max-w-xl mx-auto">
+<input id="input-global-target" type="text" placeholder="Entrez un Streamer (ex: Kamet0) ou un Jeu..." class="action-input" style="font-size:16px; text-align:center;">
+<button type="submit" id="btn-global-scan" class="btn-primary btn-big-scan">
+<i class="fas fa-radar mr-2"></i> LANCER LE SCAN
 </button>
+</form>
 </div>
 <div class="dashboard-grid">
 <div id="res-scan-content" class="dashboard-box box-stats">
@@ -302,27 +274,16 @@ Connectez-vous pour voir vos favoris en direct.
 <p>Analyse de contenu...</p>
 </div>
 </div>
-<div class="dashboard-box box-title-gen">
-<div class="dashboard-title" style="color:var(--color-time-gold)">✨ TITRES VIRAUX</div>
-<input id="gen-title-game" type="text" placeholder="Sujet..." class="action-input mb-2">
-<button onclick="generateTitles()" class="btn-primary" style="width:100%;">GÉNÉRER</button>
-<div id="res-gen-titles" class="mt-2 text-xs text-gray-400"></div>
-</div>
-<div class="dashboard-box box-chat-reply">
-<div class="dashboard-title" style="color:var(--color-primary-pink)">💬 ASSISTANT TCHAT</div>
-<textarea id="chat-reply-input" placeholder="Message viewer..." class="action-input mb-2" style="height:60px; resize:none;"></textarea>
-<button onclick="suggestReply()" class="btn-primary" style="width:100%;">SUGGÉRER</button>
-<div id="res-chat-reply" class="mt-2 text-xs text-gray-400"></div>
 </div>
 </div>
 </div>
-</div>
-
-<!-- LE RESTE (TIME, BOOST, RAID) RESTE IDENTIQUE -->
 <div id="tab-time" class="tab-content">
 <h3 style="color:var(--color-time-gold); margin-bottom:15px; font-size:18px; font-weight:bold;">
 <i class="fas fa-hourglass-half mr-2"></i> OPTIMISATION DE L'HORAIRE
 </h3>
+<p style="color:#888; font-size:13px; margin-bottom:20px;">
+L'IA analyse le ratio Viewers/Streamers actuel d'un jeu et prédit les meilleurs créneaux horaires pour maximiser votre visibilité.
+</p>
 <form id="form-schedule" class="flex gap-3">
 <input id="input-schedule-game" type="text" placeholder="Nom du jeu (ex: League of Legends)" class="action-input" style="flex-grow:1;">
 <button type="submit" id="btn-schedule" class="btn-primary" style="background:var(--color-time-gold); color:#000;">
@@ -341,6 +302,9 @@ CALCULER
 <h3 style="color:var(--color-primary-pink); margin-bottom:15px; font-size:18px; font-weight:bold;">
 <i class="fas fa-rocket mr-2"></i> STREAM BOOST (15 Minutes)
 </h3>
+<p style="color:#888; font-size:13px; margin-bottom:20px;">
+Force l'affichage de votre chaîne sur tous les lecteurs connectés au Hub.
+</p>
 <form id="form-boost" class="flex gap-3">
 <input id="input-boost" type="text" placeholder="Votre Chaîne Twitch" class="action-input" style="flex-grow:1;">
 <button type="submit" class="btn-primary" style="background:var(--color-primary-pink);">
@@ -355,6 +319,9 @@ ACTIVER LE BOOST
 <h3 style="color:var(--color-ai-action); margin-bottom:15px; font-size:18px; font-weight:bold;">
 <i class="fas fa-bullhorn mr-2"></i> RAID FINDER (FR)
 </h3>
+<p style="color:#888; font-size:13px; margin-bottom:20px;">
+Trouvez la meilleure cible francophone pour votre raid selon la taille de l'audience.
+</p>
 <form id="form-raid" class="flex gap-3 flex-col sm:flex-row">
 <input id="input-raid-game" type="text" placeholder="Jeu cible (Ex: Minecraft)" class="action-input" style="flex-grow:1;">
 <select id="select-raid-viewers" class="action-input" style="width:auto;">
@@ -387,8 +354,6 @@ let isConnected = false;
 // ==================== CHAT DUAL SYSTEM ====================
 let socketChat = null;
 let currentChatMode = 'twitch';
-let socketMessages = [];
-
 const SOCKET_IO_URL = window.location.origin;
 
 function initSocketChat() {
@@ -396,114 +361,50 @@ function initSocketChat() {
     console.warn('Socket.io non chargé.');
     return;
   }
-
-  socketChat = io(SOCKET_IO_URL, {
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    reconnectionAttempts: 5
-  });
-
-  socketChat.on('connect', () => {
-    console.log('✅ Connecté à Socket.io');
-    document.getElementById('socket-send-btn').disabled = false;
-  });
-
-  socketChat.on('receive_message', (data) => {
-    addSocketMessage(data);
-  });
-
-  socketChat.on('disconnect', () => {
-    console.log('❌ Déconnecté de Socket.io');
-  });
+  socketChat = io(SOCKET_IO_URL, { reconnection: true });
+  socketChat.on('connect', () => { document.getElementById('socket-send-btn').disabled = false; });
+  socketChat.on('hub_chat_message', (data) => { addSocketMessage(data); });
 }
 
 function switchChatMode(mode) {
-  currentChatMode = mode;
-
   document.getElementById('chat-tab-twitch').style.borderBottomColor = mode === 'twitch' ? 'var(--color-secondary-blue)' : 'transparent';
   document.getElementById('chat-tab-twitch').style.color = mode === 'twitch' ? '#fff' : '#888';
-
   document.getElementById('chat-tab-socket').style.borderBottomColor = mode === 'socket' ? 'var(--color-secondary-blue)' : 'transparent';
   document.getElementById('chat-tab-socket').style.color = mode === 'socket' ? '#fff' : '#888';
-
   document.getElementById('chat-twitch-container').style.display = mode === 'twitch' ? 'block' : 'none';
   document.getElementById('chat-socket-container').style.display = mode === 'socket' ? 'flex' : 'none';
 }
 
-function sendSocketMessage() {
-  const username = document.getElementById('socket-username').value.trim() || 'Anonyme';
-  const message = document.getElementById('socket-message-input').value.trim();
-
-  if (!message) return;
-
-  localStorage.setItem('socket_username', username);
-
+function sendHubMsg() {
+  const input = document.getElementById('hub-msg-input');
+  if (!input.value.trim()) return;
   if (socketChat && socketChat.connected) {
-    socketChat.emit('send_message', {
-      username: username,
-      message: message
-    });
-    document.getElementById('socket-message-input').value = '';
-  } else {
-    addSocketMessage({
-      username: username,
-      message: message,
-      timestamp: new Date().toLocaleTimeString('fr-FR')
-    });
-    document.getElementById('socket-message-input').value = '';
+    socketChat.emit('send_hub_message', { text: input.value });
+    input.value = '';
   }
 }
 
 function addSocketMessage(data) {
-  const messagesContainer = document.getElementById('socket-messages');
-  
-  if (messagesContainer.innerHTML.includes('En attente de messages')) {
-    messagesContainer.innerHTML = '';
-  }
-
-  const time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
-  const escapedUsername = escapeHtml(data.username || 'Anonyme');
-  const escapedMessage = escapeHtml(data.message || '');
-
-  const messageEl = document.createElement('div');
-  messageEl.style.cssText = 'padding: 10px; border-bottom: 1px solid #222; animation: slideIn 0.3s ease-in-out;';
-  messageEl.innerHTML = `
-    <div style="font-size: 11px; color: #888; margin-bottom: 3px;">
-      <span style="color: var(--color-secondary-blue); font-weight: bold;">${escapedUsername}</span>
-      <span style="margin-left: 8px;">${time}</span>
-    </div>
-    <div style="font-size: 13px; color: #ddd;">${escapedMessage}</div>
-  `;
-
-  messagesContainer.appendChild(messageEl);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-  socketMessages.push(data);
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  const container = document.getElementById('hub-messages');
+  if (container.innerHTML.includes('En attente')) container.innerHTML = '';
+  const el = document.createElement('div');
+  el.style.cssText = 'padding:5px 10px; border-bottom:1px solid #222; font-size:12px;';
+  el.innerHTML = `<span style="color:#22c7ef; font-weight:bold;">${data.user || 'Anonyme'}:</span> <span style="color:#ddd;">${data.text}</span>`;
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
 }
 
 // --- GESTION DES ONGLETS PRINCIPAUX ---
 function openTab(tabId) {
 document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-const btn = document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`);
-if(btn) btn.classList.add('active'); // Security check
-
+document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
 document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-const tab = document.getElementById(tabId);
-if(tab) tab.classList.add('active');
-
+document.getElementById(tabId).classList.add('active');
 if (tabId === 'tab-followed') {
 if(isConnected) loadFollowedStreams();
 else document.getElementById('followed-streams-list').innerHTML = '<p style="color:#777; padding:40px; text-align:center;">Veuillez vous connecter pour voir vos favoris.</p>';
 }
 if (tabId === 'tab-dashboard') loadDashboardData();
-if (tabId === 'tab-tracker') loadTracker();
 }
 
 // --- GESTION DES SOUS-ONGLETS DASHBOARD ---
@@ -517,24 +418,26 @@ if(subName === 'games') loadTopGames();
 if(subName === 'languages') loadTopLanguages();
 }
 
-// --- MODULE 1: DASHBOARD REAL DATA ---
+// --- MODULE 1: DASHBOARD REAL DATA (TRACKER) ---
+const fsSafe = (val) => (val !== undefined && val !== null) ? Number(val).toLocaleString('fr-FR') : "0";
+
 async function loadDashboardData() {
 initCharts();
 try {
 document.querySelectorAll('.loading-overlay').forEach(el => el.style.display = 'flex');
-// CORRECTION : Appel à /tracker_stats pour les données globales
+// Appel au backend pour récupérer les stats globales (Tracker)
 const res = await fetch(`${API_BASE}/tracker_stats`);
 const data = await res.json();
 
 if(data.success && data.games) {
-// Calcul des totaux à partir du tracker
-const totalViewers = data.games.reduce((acc, g) => acc + g.viewers, 0);
-const totalChannels = data.games.reduce((acc, g) => acc + g.channels, 0);
-const topGame = data.games[0] ? data.games[0].name : "N/A";
+// Calcul des totaux pour le Dashboard à partir des données Tracker
+const totalV = data.games.reduce((acc, g) => acc + g.viewers, 0);
+const totalC = data.games.reduce((acc, g) => acc + g.channels, 0);
+const topG = data.games.length > 0 ? data.games[0].name : "N/A";
 
-document.getElementById('val-total-viewers').innerText = safeFormat(totalViewers);
-document.getElementById('val-total-channels').innerText = safeFormat(totalChannels);
-document.getElementById('val-top-game').innerText = topGame;
+document.getElementById('val-total-viewers').innerText = fsSafe(totalV);
+document.getElementById('val-total-channels').innerText = fsSafe(totalC);
+document.getElementById('val-top-game').innerText = topG;
 document.getElementById('val-uptime').innerText = "Online";
 
 if(data.history) updateCharts(data.history);
@@ -550,16 +453,16 @@ async function loadTopGames() {
 const container = document.getElementById('games-list-container');
 container.innerHTML = "<p class='text-gray-500'>Chargement des données Twitch...</p>";
 try {
-const res = await fetch(`${API_BASE}/tracker_stats`); // CORRECTION: Utilisation de /tracker_stats
+const res = await fetch(`${API_BASE}/tracker_stats`);
 const data = await res.json();
-if(data.games) {
+if(data.success) {
 container.innerHTML = data.games.slice(0, 12).map((g, i) => `
 <div class="flex items-center gap-3 bg-[#111] p-3 rounded border border-gray-800 hover:border-blue-500 transition-colors">
 <span class="text-gray-500 font-bold w-6 text-center text-lg">#${i+1}</span>
 <img src="${g.box_art}" class="w-10 rounded shadow-sm">
 <div class="flex-grow">
 <div class="font-bold text-sm text-white">${g.name}</div>
-<div class="text-[10px] text-gray-400 flex items-center gap-1"><i class="fas fa-fire text-orange-500"></i> Trending</div>
+<div class="text-[10px] text-gray-400 flex items-center gap-1"><i class="fas fa-fire text-orange-500"></i> ${fsSafe(g.viewers)} viewers</div>
 </div>
 </div>`).join('');
 }
@@ -570,9 +473,10 @@ async function loadTopLanguages() {
 const container = document.getElementById('languages-list-container');
 container.innerHTML = "Chargement...";
 try {
-// Mock data car pas d'API langue pour l'instant, évite l'erreur 404
-const langs = [{name:"English", p:55}, {name:"Spanish", p:12}, {name:"Portuguese", p:8}, {name:"German", p:6}, {name:"French", p:5}];
-container.innerHTML = langs.map(l => `
+const res = await fetch(`${API_BASE}/api/stats/languages`);
+const data = await res.json();
+if(data.languages) {
+container.innerHTML = data.languages.map(l => `
 <div class="mb-3">
 <div class="flex justify-between text-[11px] mb-1 text-gray-300 font-bold">
 <span>${l.name}</span>
@@ -582,6 +486,7 @@ container.innerHTML = langs.map(l => `
 <div class="h-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style="width: ${l.percent}%;"></div>
 </div>
 </div>`).join('');
+}
 } catch(e) {}
 }
 
@@ -649,8 +554,8 @@ liveChart.update();
 }
 }
 
-// --- MODULE 3: SCANNER & IA LOGIC (CORRIGÉE & RELIÉE) ---
-async function runGlobalScan(query, compareQuery) {
+// --- MODULE 3: SCANNER & IA LOGIC ---
+async function runGlobalScan(query) {
 const boxS = document.getElementById('res-scan-content');
 const boxN = document.getElementById('res-niche-content');
 const boxV = document.getElementById('res-vod-content');
@@ -663,12 +568,6 @@ body: JSON.stringify({ query })
 });
 const data = await res.json();
 if(!data.success) throw new Error(data.message || "Introuvable");
-
-// IA & Compare
-const type = compareQuery ? 'compare' : 'niche';
-const queryFull = compareQuery ? `${query} vs ${compareQuery}` : query;
-runAIAnalysis(type, queryFull, boxN, data.ai_calculated_niche_score, data);
-
 let starsHtml = '';
 const score = data.user_data?.ai_calculated_niche_score || data.game_data?.ai_calculated_niche_score || 3;
 const numStars = (typeof score === 'string' && score.includes('partner')) ? 5 : (typeof score === 'number' ? Math.round(score) : 3);
@@ -699,7 +598,7 @@ ${u.is_live ? '🔴 EN DIRECT' : '⚫ HORS LIGNE'}
 </div>
 </div>
 `;
-// Recherche VOD
+runAIAnalysis('niche', `${u.display_name} | ${u.game_name}`, boxN, u.ai_calculated_niche_score);
 const vRes = await fetch(`${API_BASE}/get_latest_vod?channel=${u.login}`);
 const vData = await vRes.json();
 if(vData.success) {
@@ -747,41 +646,40 @@ boxS.innerHTML = `<p style='color:red; text-align:center;'>Erreur: ${e.message}<
 
 document.getElementById('form-global-scan').addEventListener('submit', (e) => {
 e.preventDefault();
-runGlobalScan(document.getElementById('input-global-target').value, document.getElementById('input-compare-target').value);
+runGlobalScan(document.getElementById('input-global-target').value);
 });
 
-async function runAIAnalysis(type, query, box, niche_score=null, stats=null) {
+async function runAIAnalysis(type, query, box, niche_score=null) {
 box.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><i class='fas fa-brain fa-spin text-green-500 mb-2'></i><p class='text-xs'>L'IA réfléchit...</p></div>";
 try {
 const res = await fetch(`${API_BASE}/critique_ia`, {
 method: 'POST',
 headers: {'Content-Type': 'application/json'},
-body: JSON.stringify({ type, query, niche_score, stats })
+body: JSON.stringify({ type, query, niche_score })
 });
 const data = await res.json();
 box.innerHTML = `<div class="ai-output-enhanced fade-in">${data.html_response}</div>`;
 } catch(e) { box.innerHTML = "<p style='color:red;'>Erreur IA</p>"; }
 }
 
-const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString('fr-FR') : 'N/A';
-
 // --- MODULE 4: PLAYER & ROTATION 3MIN ---
 window.launchPlayer = function(channelName, videoId = null) {
 if (embed && ((!videoId && embed.getChannel() === channelName) || (videoId && embed.getVideo() === videoId))) return;
 document.getElementById('twitch-embed').innerHTML = '';
-// FIX: Parent list for iframe
-const parents = ["localhost", "justplayer.fr", "justplayerstreamhubpro.onrender.com", window.location.hostname];
+// PARENTS FIX POUR LE LECTEUR
+const parents = ["localhost", "127.0.0.1", "justplayer.fr", "justplayerstreamhubpro.onrender.com", window.location.hostname];
 const config = {
 width: "100%",
 height: "100%",
-layout: "video-and-chat",
+layout: "video-and-chat", // On garde layout video-and-chat pour le player natif
 parent: parents
 };
 if (videoId) config.video = videoId;
 else config.channel = channelName;
 embed = new Twitch.Embed("twitch-embed", config);
 document.getElementById('input-channel').value = channelName;
-// FIX: Tchat Twitch iframe
+
+// Mise à jour de l'iframe de tchat (Onglet Twitch Chat)
 document.getElementById('twitch-chat-iframe').src = `https://www.twitch.tv/embed/${channelName}/chat?parent=${window.location.hostname}&darkpopout`;
 }
 
@@ -888,60 +786,6 @@ list.innerHTML += `
 list.innerHTML = "<p style='color:#777; width:100%; text-align:center;'>Aucune chaîne suivie n'est en live.</p>";
 }
 } catch(e) { list.innerHTML = "<p style='color:red;'>Erreur de chargement.</p>"; }
-}
-
-// --- MODULE TRACKER ---
-async function loadTracker() {
-const body = document.getElementById('tracker-body');
-body.innerHTML = '<tr><td colspan="7" class="text-center py-20">Chargement...</td></tr>';
-try {
-const res = await fetch(`${API_BASE}/tracker_stats`);
-const data = await res.json();
-if(data.success) {
-body.innerHTML = '';
-data.games.forEach((g, i) => {
-body.innerHTML += `<tr>
-<td>${i+1} <img src="${g.box_art}" width="20" class="inline rounded"> <b>${g.name}</b></td>
-<td><span class="badge-rating">${g.rating}</span></td>
-<td class="text-white font-bold">${safeFormat(g.viewers)}</td>
-<td class="text-gray-400">${safeFormat(g.channels)}</td>
-<td class="text-gray-400">${safeFormat(g.hours_watched)}</td>
-<td class="text-red-500 font-bold">LIVE</td>
-<td class="text-gray-400">${safeFormat(g.peak_viewers)}</td>
-<td><span class="text-green-400 text-xs font-bold">${g.games_to_stream}</span></td>
-</tr>`;
-});
-}
-} catch(e) { body.innerHTML = '<tr><td colspan="7">Erreur Tracker.</td></tr>'; }
-}
-
-// --- IA GENERATORS ---
-window.generateTitles = async function() {
-const game = document.getElementById('gen-title-game').value;
-if(!game) return;
-document.getElementById('res-gen-titles').innerHTML = "Génération...";
-try {
-const res = await fetch(`${API_BASE}/critique_ia`, {
-method: 'POST', headers: {'Content-Type':'application/json'},
-body: JSON.stringify({ type: 'generate_titles', query: game })
-});
-const data = await res.json();
-document.getElementById('res-gen-titles').innerHTML = data.result;
-} catch(e) { document.getElementById('res-gen-titles').innerHTML = "Erreur."; }
-}
-
-window.suggestReply = async function() {
-const msg = document.getElementById('chat-reply-input').value;
-if(!msg) return;
-document.getElementById('res-chat-reply').innerHTML = "Réflexion...";
-try {
-const res = await fetch(`${API_BASE}/critique_ia`, {
-method: 'POST', headers: {'Content-Type':'application/json'},
-body: JSON.stringify({ type: 'chat_reply', query: msg })
-});
-const data = await res.json();
-document.getElementById('res-chat-reply').innerHTML = data.result;
-} catch(e) { document.getElementById('res-chat-reply').innerHTML = "Erreur."; }
 }
 
 // --- MODULE 6: OUTILS (SCHEDULE, BOOST, RAID) ---
