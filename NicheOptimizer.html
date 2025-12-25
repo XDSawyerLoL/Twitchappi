@@ -554,7 +554,7 @@
     <h1 class="text-3xl">
         <span class="h1-blue-accent">STREAMER</span> HUB V37 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">MASTER</span>
     </h1>
-    <div class="subtitle-center">Cockpit Unifié • Données Réelles • Intelligence Artificielle • Rotation 3min</div>
+    <div class="subtitle-center">Cockpit UnifiÃ© â€¢ DonnÃ©es RÃ©elles â€¢ Intelligence Artificielle â€¢ Rotation 3min</div>
 
     <!-- Onglets principaux -->
     <div class="tabs-nav-container">
@@ -589,15 +589,15 @@
                     <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:15px; font-weight:normal;">En attente de connexion...</span>
                 </h2>
                 <div class="flex gap-2 items-center">
-                    <button id="btn-prev-stream" class="btn-cycle" onclick="cycleStream('prev')" disabled title="Chaîne précédente">
+                    <button id="btn-prev-stream" class="btn-cycle" onclick="cycleStream('prev')" disabled title="ChaÃ®ne prÃ©cÃ©dente">
                         <i class="fas fa-arrow-left"></i>
                     </button>
-                    <button id="btn-next-stream" class="btn-cycle" onclick="cycleStream('next')" disabled title="Chaîne suivante">
+                    <button id="btn-next-stream" class="btn-cycle" onclick="cycleStream('next')" disabled title="ChaÃ®ne suivante">
                         <i class="fas fa-arrow-right"></i>
                     </button>
                     
                     <form id="mini-player-form" class="flex gap-2" onsubmit="event.preventDefault(); launchPlayer(document.getElementById('input-channel').value)">
-                        <input id="input-channel" type="text" placeholder="Chaîne..." class="player-quick-input">
+                        <input id="input-channel" type="text" placeholder="ChaÃ®ne..." class="player-quick-input">
                         <button type="submit" class="btn-primary" style="padding: 5px 15px;">GO</button>
                     </form>
                 </div>
@@ -634,13 +634,13 @@
                         <div id="hub-chat-messages" class="hub-chat-messages">
                             <div class="hub-chat-message">
                                 <div class="hub-chat-meta">
-                                    <span class="hub-chat-author">HUB</span> • Bienvenue dans le tchat du Hub.
+                                    <span class="hub-chat-author">HUB</span> â€¢ Bienvenue dans le tchat du Hub.
                                 </div>
                                 <div class="hub-chat-text">Bascule entre Twitch et Hub avec les onglets ci-dessus.</div>
                             </div>
                         </div>
                         <form id="hub-chat-form" class="hub-chat-input-row">
-                            <input id="hub-chat-input" type="text" class="hub-chat-input" placeholder="Écris un message pour le hub...">
+                            <input id="hub-chat-input" type="text" class="hub-chat-input" placeholder="Ã‰cris un message pour le hub...">
                             <button type="submit" class="hub-chat-send-btn">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
@@ -655,7 +655,7 @@
     <div id="tab-followed" class="tab-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h3 class="text-pink font-bold text-lg" style="color:var(--color-primary-pink);">
-                <i class="fas fa-circle text-red-500 mr-2 animate-pulse"></i> Vos Chaînes Suivies LIVE
+                <i class="fas fa-circle text-red-500 mr-2 animate-pulse"></i> Vos ChaÃ®nes Suivies LIVE
             </h3>
             <div class="flex gap-2 items-center">
                 <button id="btn-export-pdf" class="btn-primary" style="background:var(--color-ai-growth); font-size:10px;">
@@ -679,9 +679,9 @@
     <div id="tab-dashboard" class="tab-content">
         <div id="dashboard-sub-nav" class="flex gap-6 border-b border-gray-800 mb-8 overflow-x-auto pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
             <button onclick="showSubTab('overview', this)" class="sub-tab-btn active-sub">Overview</button>
-            <button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">🎮 Games</button>
-            <button onclick="showSubTab('languages', this)" class="sub-tab-btn text-pink-400">🌍 Languages</button>
-            <button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--color-ai-niche);">🔍 SCANNER & AUDIT</button>
+            <button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">ðŸŽ® Games</button>
+            <button onclick="showSubTab('languages', this)" class="sub-tab-btn text-pink-400">ðŸŒ Languages</button>
+            <button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--color-ai-niche);">ðŸ” SCANNER & AUDIT</button>
         </div>
 
         <div id="sub-overview" class="sub-content">
@@ -699,32 +699,32 @@
                 <div class="kpi-card" style="border-left-color: var(--color-ai-niche);">
                     <div class="loading-overlay" id="load-kpi-3" style="display:none;"><i class="fas fa-spinner fa-spin text-white text-2xl"></i></div>
                     <div id="val-top-game" class="kpi-value truncate text-xl">...</div>
-                    <div class="kpi-label">Top Catégorie</div>
+                    <div class="kpi-label">Top CatÃ©gorie</div>
                 </div>
                 <div class="kpi-card" style="border-left-color: var(--color-primary-pink);">
                     <div class="loading-overlay" id="load-kpi-4" style="display:none;"><i class="fas fa-spinner fa-spin text-white text-2xl"></i></div>
                     <div id="val-uptime" class="kpi-value">En Ligne</div>
-                    <div class="kpi-label">État du Serveur</div>
+                    <div class="kpi-label">Ã‰tat du Serveur</div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 <div class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800" style="height:350px;">
                     <h4 class="text-xs font-bold text-gray-400 uppercase mb-6 flex justify-between">
-                        <span>📈 Tendance Viewers (24h)</span>
-                        <span class="text-blue-400">● LIVE</span>
+                        <span>ðŸ“ˆ Tendance Viewers (24h)</span>
+                        <span class="text-blue-400">â— LIVE</span>
                     </h4>
                     <canvas id="liveStreamsChart"></canvas>
                 </div>
                 <div class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800" style="height:350px;">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-6">📊 Canaux Actifs (Estimation)</h4>
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-6">ðŸ“Š Canaux Actifs (Estimation)</h4>
                     <canvas id="yoyChannelsChart"></canvas>
                 </div>
             </div>
         </div>
 
         <div id="sub-games" class="sub-content hidden">
-            <h3 class="text-blue-400 font-bold uppercase text-sm mb-6"><i class="fas fa-gamepad mr-2"></i> Top Games (Données Réelles)</h3>
+            <h3 class="text-blue-400 font-bold uppercase text-sm mb-6"><i class="fas fa-gamepad mr-2"></i> Top Games (DonnÃ©es RÃ©elles)</h3>
             <div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             </div>
         </div>
@@ -738,7 +738,7 @@
         <div id="sub-scanner" class="sub-content hidden">
             <div style="text-align:center; margin-bottom:30px;">
                 <h3 class="text-blue-400 font-bold text-xl mb-3" style="color:var(--color-secondary-blue);">SCANNER D'INTELLIGENCE</h3>
-                <p class="text-gray-500 text-sm mb-6">Analyse complète : Score 5 Étoiles + Audit IA + Idées VOD</p>
+                <p class="text-gray-500 text-sm mb-6">Analyse complÃ¨te : Score 5 Ã‰toiles + Audit IA + IdÃ©es VOD</p>
                 
                 <form id="form-global-scan" class="max-w-xl mx-auto">
                     <input id="input-global-target" type="text" placeholder="Entrez un Streamer (ex: Kamet0) ou un Jeu..." class="action-input" style="font-size:16px; text-align:center;">
@@ -750,7 +750,7 @@
             
             <div class="dashboard-grid">
                 <div id="res-scan-content" class="dashboard-box box-stats">
-                    <div class="dashboard-title" style="color:var(--color-secondary-blue);">📊 PROFIL & SCORE</div>
+                    <div class="dashboard-title" style="color:var(--color-secondary-blue);">ðŸ“Š PROFIL & SCORE</div>
                     <div class="flex flex-col items-center justify-center h-full text-gray-600">
                         <i class="fas fa-user-astronaut fa-3x mb-4"></i>
                         <p>En attente de scan...</p>
@@ -758,7 +758,7 @@
                 </div>
                 
                 <div id="res-niche-content" class="dashboard-box box-niche">
-                    <div class="dashboard-title" style="color:var(--color-ai-niche);">🧠 CRITIQUE NICHE</div>
+                    <div class="dashboard-title" style="color:var(--color-ai-niche);">ðŸ§  CRITIQUE NICHE</div>
                     <div class="flex flex-col items-center justify-center h-full text-gray-600">
                         <i class="fas fa-brain fa-3x mb-4"></i>
                         <p>L'IA affichera l'audit ici.</p>
@@ -766,7 +766,7 @@
                 </div>
                 
                 <div id="res-vod-content" class="dashboard-box box-vod">
-                    <div class="dashboard-title" style="color:var(--color-ai-repurpose);">✂️ VOD & CLIPS</div>
+                    <div class="dashboard-title" style="color:var(--color-ai-repurpose);">âœ‚ï¸ VOD & CLIPS</div>
                     <div class="flex flex-col items-center justify-center h-full text-gray-600">
                         <i class="fas fa-cut fa-3x mb-4"></i>
                         <p>Analyse de contenu...</p>
@@ -782,7 +782,7 @@
             <i class="fas fa-hourglass-half mr-2"></i> OPTIMISATION DE L'HORAIRE
         </h3>
         <p style="color:#888; font-size:13px; margin-bottom:20px;">
-            L'IA analyse le ratio Viewers/Streamers actuel d'un jeu et prédit les meilleurs créneaux horaires pour maximiser votre visibilité.
+            L'IA analyse le ratio Viewers/Streamers actuel d'un jeu et prÃ©dit les meilleurs crÃ©neaux horaires pour maximiser votre visibilitÃ©.
         </p>
         
         <form id="form-schedule" class="flex gap-3">
@@ -807,11 +807,11 @@
             <i class="fas fa-rocket mr-2"></i> STREAM BOOST (15 Minutes)
         </h3>
         <p style="color:#888; font-size:13px; margin-bottom:20px;">
-            Force l'affichage de votre chaîne sur tous les lecteurs connectés au Hub.
+            Force l'affichage de votre chaÃ®ne sur tous les lecteurs connectÃ©s au Hub.
         </p>
         
         <form id="form-boost" class="flex gap-3">
-            <input id="input-boost" type="text" placeholder="Votre Chaîne Twitch" class="action-input" style="flex-grow:1;">
+            <input id="input-boost" type="text" placeholder="Votre ChaÃ®ne Twitch" class="action-input" style="flex-grow:1;">
             <button type="submit" class="btn-primary" style="background:var(--color-primary-pink);">
                 ACTIVER LE BOOST
             </button>
@@ -848,7 +848,7 @@
         </form>
         
         <div id="raid-results" style="margin-top:20px; padding:20px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:80px;">
-             <p style="text-align:center; color:#777; margin-top:10px;">Les résultats s'afficheront ici.</p>
+             <p style="text-align:center; color:#777; margin-top:10px;">Les rÃ©sultats s'afficheront ici.</p>
         </div>
     </div>
 
@@ -1026,7 +1026,7 @@
                 btn.style.background = '#0e7e0e';
                 window.hubDisplayName = data.display_name || 'HubUser';
                 btn.onclick = async () => { 
-                    if(!confirm(`Déconnecter ${data.display_name} ?`)) return;
+                    if(!confirm(`DÃ©connecter ${data.display_name} ?`)) return;
                     await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); 
                     window.location.reload(); 
                 };
@@ -1073,7 +1073,7 @@
                         </div>`;
                 });
             } else {
-                list.innerHTML = "<p style='color:#777; width:100%; text-align:center;'>Aucune chaîne suivie n'est en live.</p>";
+                list.innerHTML = "<p style='color:#777; width:100%; text-align:center;'>Aucune chaÃ®ne suivie n'est en live.</p>";
             }
         } catch(e) { list.innerHTML = "<p style='color:red;'>Erreur de chargement.</p>"; }
     }
@@ -1117,7 +1117,7 @@
             yoyChart = new Chart(ctxYoy, {
                 type: 'bar',
                 data: { 
-                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai'], 
+                    labels: ['Jan', 'FÃ©v', 'Mar', 'Avr', 'Mai'], 
                     datasets: [{ 
                         label: 'Channels', 
                         data: [6500, 7200, 6800, 7500, 8100], 
@@ -1171,7 +1171,7 @@
 
     async function loadTopGames() {
         const container = document.getElementById('games-list-container');
-        container.innerHTML = "<p class='text-gray-500'>Chargement des données Twitch...</p>";
+        container.innerHTML = "<p class='text-gray-500'>Chargement des donnÃ©es Twitch...</p>";
         
         try {
             const res = await fetch(`${API_BASE}/api/stats/top_games`);
@@ -1264,7 +1264,7 @@
                     if(vData.success) {
                         boxV.innerHTML = `
                             <div style="margin-bottom:10px; font-weight:bold; font-size:12px; color:var(--color-ai-repurpose);">
-                                <i class="fas fa-film mr-1"></i> Dernière VOD ${vData.vod.title.substring(0,30)}...
+                                <i class="fas fa-film mr-1"></i> DerniÃ¨re VOD ${vData.vod.title.substring(0,30)}...
                             </div>
                             <div class="relative group cursor-pointer" onclick="launchPlayer('${u.login}','${vData.vod.id}')">
                                 <img src="${vData.vod.thumbnail_url}" style="width:100%; border-radius:4px; opacity:0.8; transition:0.3s;">
@@ -1283,7 +1283,7 @@
                     <div style="margin-bottom:15px; text-align:center;">
                         <img src="${g.box_art_url.replace('{width}','100').replace('{height}','140')}" style="margin:0 auto 10px; border-radius:6px; box-shadow:0 0 10px rgba(0,0,0,0.5);">
                         <div style="font-weight:bold; font-size:18px; color:var(--color-secondary-blue);">${g.name}</div>
-                        <div style="font-size:12px; color:#aaa;">Catégorie Twitch</div>
+                        <div style="font-size:12px; color:#aaa;">CatÃ©gorie Twitch</div>
                     </div>
                     <div class="stars mt-2 text-center">${starsHtml}</div>
                     <div class="metric-grid bg-[#111] p-3 rounded text-[12px]">
@@ -1292,7 +1292,7 @@
                     </div>
                 `;
                 runAIAnalysis('niche', 'Jeu', g.name, boxN, g.ai_calculated_niche_score);
-                boxV.innerHTML = "<p style=\"text-align:center; color:#777; margin-top:30px;\">L'analyse VOD est réservée aux chaînes.</p>";
+                boxV.innerHTML = "<p style=\"text-align:center; color:#777; margin-top:30px;\">L'analyse VOD est rÃ©servÃ©e aux chaÃ®nes.</p>";
             }
         } catch(e) {
             boxS.innerHTML = `<p style="color:red; text-align:center;">Erreur: ${e.message}</p>`;
@@ -1300,7 +1300,7 @@
     }
 
     async function runAIAnalysis(type, query, query2, box, nichescore=null) {
-        box.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><i class='fas fa-brain fa-spin text-green-500 mb-2'></i><p class='text-xs'>L'IA réfléchit...</p></div>";
+        box.innerHTML = "<div class='flex flex-col items-center justify-center h-full'><i class='fas fa-brain fa-spin text-green-500 mb-2'></i><p class='text-xs'>L'IA rÃ©flÃ©chit...</p></div>";
         
         try {
             const res = await fetch(`${API_BASE}/critique_ia`, { 
@@ -1344,7 +1344,7 @@
                 document.getElementById('schedule-game-name').innerText = data.game_name;
                 document.getElementById('schedule-ai-content').innerHTML = data.html_response;
             } else alert(data.error || "Erreur lors de l'analyse.");
-        } catch(e) { alert("Erreur réseau."); }
+        } catch(e) { alert("Erreur rÃ©seau."); }
         btn.disabled = false;
         btn.innerHTML = 'CALCULER';
     });
@@ -1405,7 +1405,7 @@
         hubSocket = io('/hub-chat', { transports: ['websocket','polling'] });
 
         hubSocket.on('connect', () => {
-            appendHubMessage('HUB', 'Connecté au tchat Hub.');
+            appendHubMessage('HUB', 'ConnectÃ© au tchat Hub.');
             hubSocket.emit('join_room', { room: 'global', user: hubUserName });
         });
 
@@ -1418,7 +1418,7 @@
         });
 
         hubSocket.on('disconnect', () => {
-            appendHubMessage('HUB', 'Déconnecté du tchat Hub.');
+            appendHubMessage('HUB', 'DÃ©connectÃ© du tchat Hub.');
         });
 
         form.addEventListener('submit', (e) => {
@@ -1452,7 +1452,7 @@
         if (ts) {
             const date = new Date(ts);
             const timeSpan = document.createElement('span');
-            timeSpan.textContent = ` • ${date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+            timeSpan.textContent = ` â€¢ ${date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
             meta.appendChild(timeSpan);
         }
 
@@ -1483,4 +1483,3 @@
 </script>
 </body>
 </html>
-
