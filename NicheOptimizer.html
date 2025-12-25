@@ -8,44 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
-<style>:root{--color-bg-dark:#0d0d0d;--color-bg-medium:#1a1a1a;--color-bg-light:#111;--color-primary-pink:#ff0099;--color-secondary-blue:#22c7ef;--color-time-gold:#ffd700;--color-ai-niche:#59d682;--color-ai-repurpose:#9933ff;--color-ai-growth:#ffcc00;--color-ai-action:#e34a64;--color-text-dimmed:#9aa3a8;--color-border-dark:#2e2e2e;--color-border-medium:#333;--shadow-pink:0 0 15px rgba(255, 0, 153, 0.4);--shadow-blue:0 0 15px rgba(34, 199, 239, 0.4);--shadow-action:0 0 15px rgba(227, 74, 100, 0.4);}body{background-color:var(--color-bg-dark);color:#fff;font-family:'Inter', Arial, sans-serif;margin:0;padding:0;overflow-x:hidden;}#twitch-lucky-main{max-width:1400px;margin:20px auto;padding:10px;}h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-pink);margin-bottom:5px;text-align:center;text-shadow:0 0 5px var(--color-primary-pink);}.h1-blue-accent{color:var(--color-secondary-blue);}.subtitle-center{color:var(--color-text-dimmed);font-size:12px;margin-bottom:25px;text-align:center;letter-spacing:1px;text-transform:uppercase;}.tabs-nav-container{margin-bottom:20px;}.flex-tabs{display:flex;gap:5px;flex-wrap:wrap;}.tab-btn{font-family:'Orbitron', sans-serif;padding:15px 20px;background:var(--color-bg-light);border:1px solid var(--color-border-medium);border-bottom:none;color:var(--color-text-dimmed);cursor:pointer;border-radius:8px 8px 0 0;transition:all 0.3s ease;flex:1;text-align:center;font-size:12px;white-space:nowrap;font-weight:600;}.tab-btn:hover{color:#fff;background:#232323;}.tab-btn.active{background:var(--color-bg-medium);color:#fff;border-top:3px solid var(--color-primary-pink);font-weight:bold;box-shadow:var(--shadow-pink);z-index:10;position:relative;}.player-wrapper{margin-bottom:25px;padding:20px;background:var(--color-bg-medium);border-radius:12px;border:1px solid var(--color-border-dark);box-shadow:var(--shadow-blue);}.player-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:1px solid var(--color-border-medium);padding-bottom:10px;}.player-title{font-family:'Orbitron', sans-serif;font-size:20px;color:var(--color-secondary-blue);display:flex;align-items:center;gap:10px;}
-/* MODIFICATION LAYOUT POUR TCHAT */
-.player-grid-container { display: grid; grid-template-columns: 1fr 350px; gap: 15px; height: 550px; }
-#twitch-embed{width:100%;height:100%;border-radius:8px;overflow:hidden;background:#000;border:1px solid #222;}
-/* STYLES DU TCHAT SOCKET.IO AJOUTES */
-#socket-chat-wrapper { background: #0a0a0a; border: 1px solid var(--color-border-dark); border-radius: 8px; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-.chat-header { background: #111; padding: 10px; border-bottom: 1px solid #333; font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--color-ai-niche); display: flex; justify-content: space-between; align-items: center; }
-.chat-messages-area { flex-grow: 1; overflow-y: auto; padding: 10px; font-size: 13px; scrollbar-width: thin; scrollbar-color: #333 #111; }
-.chat-messages-area::-webkit-scrollbar { width: 6px; }
-.chat-messages-area::-webkit-scrollbar-thumb { background-color: #333; border-radius: 3px; }
-.chat-msg { margin-bottom: 8px; line-height: 1.4; word-wrap: break-word; }
-.chat-msg .username { font-weight: bold; color: var(--color-secondary-blue); margin-right: 5px; }
-.chat-msg .timestamp { font-size: 10px; color: #555; margin-right: 5px; }
-.chat-input-area { padding: 10px; background: #111; border-top: 1px solid #333; display: flex; gap: 5px; }
-.chat-input-field { background: #000; border: 1px solid #333; color: white; padding: 8px; border-radius: 4px; flex-grow: 1; font-size: 12px; outline: none; }
-.chat-input-field:focus { border-color: var(--color-secondary-blue); }
-.btn-chat-send { background: var(--color-secondary-blue); color: #000; border: none; padding: 0 15px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-.btn-chat-send:hover { background: #fff; }
-    .chat-panel {
-    display: none;
-    height: 100%;
-}
-
-.chat-panel.active {
-    display: flex;
-    flex-direction: column;
-}
-
-.chat-toggle-btn {
-    font-weight: bold;
-    font-size: 11px;
-}
-
-/* FIN STYLES TCHAT */
-.player-quick-input{background:var(--color-bg-dark);border:1px solid var(--color-border-medium);color:white;padding:8px 12px;border-radius:4px;font-size:13px;width:220px;transition:border-color 0.3s;}.player-quick-input:focus{border-color:var(--color-secondary-blue);outline:none;}.btn-cycle{background:var(--color-bg-dark);color:var(--color-secondary-blue);border:1px solid var(--color-secondary-blue);padding:8px 15px;border-radius:4px;font-size:12px;transition:0.2s;cursor:pointer;}.btn-cycle:hover:not(:disabled){background:var(--color-secondary-blue);color:var(--color-bg-dark);}.btn-cycle:disabled{opacity:0.5;cursor:not-allowed;border-color:#555;color:#555;}.tab-content{display:none;background:var(--color-bg-medium);border:1px solid var(--color-border-dark);border-radius:10px;padding:25px;min-height:400px;}.tab-content.active{display:block;animation:fadeEffect 0.4s ease-in-out;}@keyframes fadeEffect{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}.sub-tab-btn{transition:all 0.3s;padding-bottom:8px;border-bottom:2px solid transparent;cursor:pointer;margin-right:20px;color:#888;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}.sub-tab-btn:hover{color:#fff;}.active-sub{border-bottom:2px solid var(--color-secondary-blue);color:white;}.hidden{display:none !important;}.dashboard-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:20px;margin-top:25px;}.dashboard-box{background:#0a0a0a;border:1px solid var(--color-border-dark);border-radius:8px;padding:20px;min-height:300px;display:flex;flex-direction:column;transition:transform 0.2s;}.dashboard-box:hover{transform:translateY(-2px);}.box-stats{border-top:3px solid var(--color-secondary-blue);box-shadow:var(--shadow-blue);}.box-niche{border-top:3px solid var(--color-ai-niche);box-shadow:0 0 10px rgba(89, 214, 130, 0.2);}.box-vod{border-top:3px solid var(--color-ai-repurpose);box-shadow:0 0 10px rgba(153, 51, 255, 0.2);}.dashboard-title{font-family:'Orbitron', sans-serif;font-size:16px;margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:10px;letter-spacing:1px;}.ai-output-enhanced{color:#ddd;font-size:14px;line-height:1.6;}.ai-output-enhanced h4{font-family:'Orbitron', sans-serif;margin-top:20px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);color:var(--color-secondary-blue);font-size:14px;}.ai-output-enhanced ul{list-style:none;padding-left:5px;}.ai-output-enhanced li{margin-bottom:8px;border-left:3px solid #444;padding-left:12px;background:rgba(255,255,255,0.02);padding-top:4px;padding-bottom:4px;}.box-niche .ai-output-enhanced li{border-left-color:var(--color-ai-niche);}.box-schedule .ai-output-enhanced li{border-left-color:var(--color-time-gold);}.action-input{width:100%;padding:12px;border-radius:6px;border:1px solid var(--color-border-medium);background:var(--color-bg-dark);color:#fff;font-size:14px;transition:0.3s;}.action-input:focus{border-color:var(--color-secondary-blue);outline:none;box-shadow:0 0 5px rgba(34, 199, 239, 0.3);}.btn-primary{background:var(--color-primary-pink);color:#fff;border:0;padding:12px 20px;border-radius:6px;cursor:pointer;font-weight:700;text-transform:uppercase;font-size:12px;transition:all 0.2s;letter-spacing:1px;}.btn-primary:hover:not(:disabled){transform:scale(1.02);filter:brightness(1.1);box-shadow:var(--shadow-pink);}.btn-big-scan{width:100%;background:linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose));font-size:14px;padding:15px;margin-top:15px;}#followed-streams-list{display:flex;flex-wrap:wrap;gap:15px;}.followed-stream-item{width:calc(20% - 12px);min-width:160px;padding:10px;background:var(--color-bg-light);border-radius:8px;border:1px solid var(--color-border-dark);cursor:pointer;transition:0.3s;}.followed-stream-item:hover{transform:translateY(-5px);border-color:var(--color-primary-pink);box-shadow:0 5px 15px rgba(0,0,0,0.5);}.followed-stream-item img{width:100%;border-radius:6px;margin-bottom:8px;aspect-ratio:16/9;object-fit:cover;}.raid-target-box{padding:20px;background:#111;border-radius:8px;border:2px solid var(--color-ai-action);display:flex;gap:20px;align-items:center;box-shadow:var(--shadow-action);}.raid-target-box img{width:120px;height:68px;object-fit:cover;border-radius:6px;}.schedule-box{border:2px solid var(--color-time-gold);padding:20px;background:#121212;border-radius:8px;margin-top:20px;box-shadow:0 0 15px rgba(255, 215, 0, 0.2);}.schedule-header{color:var(--color-time-gold);font-family:'Orbitron', sans-serif;font-size:20px;margin-bottom:10px;}.kpi-card{background:#111;padding:20px;border-radius:8px;border-left:4px solid #333;box-shadow:0 4px 6px rgba(0,0,0,0.5);position:relative;transition:background 0.3s;}.kpi-card:hover{background:#151515;}.kpi-value{font-size:28px;font-weight:800;color:white;font-family:'Orbitron', sans-serif;line-height:1.2;}.kpi-label{font-size:11px;color:#888;text-transform:uppercase;margin-top:5px;letter-spacing:1px;}.loading-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;border-radius:8px;display:none;z-index:5;}.stars{color:#333;font-size:16px;margin-top:8px;}.stars .filled{color:#ffd700;text-shadow:0 0 8px rgba(255, 215, 0, 0.6);}@media (max-width:1024px){.dashboard-grid{grid-template-columns:1fr;}.followed-stream-item{width:calc(50% - 10px);}.kpi-card{padding:15px;}.kpi-value{font-size:20px;} .player-grid-container{grid-template-columns: 1fr; height: auto;} #twitch-embed{height: 350px;} #socket-chat-wrapper{height: 400px;}}</style>
+<style>:root{--color-bg-dark:#0d0d0d;--color-bg-medium:#1a1a1a;--color-bg-light:#111;--color-primary-pink:#ff0099;--color-secondary-blue:#22c7ef;--color-time-gold:#ffd700;--color-ai-niche:#59d682;--color-ai-repurpose:#9933ff;--color-ai-growth:#ffcc00;--color-ai-action:#e34a64;--color-text-dimmed:#9aa3a8;--color-border-dark:#2e2e2e;--color-border-medium:#333;--shadow-pink:0 0 15px rgba(255, 0, 153, 0.4);--shadow-blue:0 0 15px rgba(34, 199, 239, 0.4);--shadow-action:0 0 15px rgba(227, 74, 100, 0.4);}body{background-color:var(--color-bg-dark);color:#fff;font-family:'Inter', Arial, sans-serif;margin:0;padding:0;overflow-x:hidden;}#twitch-lucky-main{max-width:1400px;margin:20px auto;padding:10px;}h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-pink);margin-bottom:5px;text-align:center;text-shadow:0 0 5px var(--color-primary-pink);}.h1-blue-accent{color:var(--color-secondary-blue);}.subtitle-center{color:var(--color-text-dimmed);font-size:12px;margin-bottom:25px;text-align:center;letter-spacing:1px;text-transform:uppercase;}.tabs-nav-container{margin-bottom:20px;}.flex-tabs{display:flex;gap:5px;flex-wrap:wrap;}.tab-btn{font-family:'Orbitron', sans-serif;padding:15px 20px;background:var(--color-bg-light);border:1px solid var(--color-border-medium);border-bottom:none;color:var(--color-text-dimmed);cursor:pointer;border-radius:8px 8px 0 0;transition:all 0.3s ease;flex:1;text-align:center;font-size:12px;white-space:nowrap;font-weight:600;}.tab-btn:hover{color:#fff;background:#232323;}.tab-btn.active{background:var(--color-bg-medium);color:#fff;border-top:3px solid var(--color-primary-pink);font-weight:bold;box-shadow:var(--shadow-pink);z-index:10;position:relative;}.player-wrapper{margin-bottom:25px;padding:20px;background:var(--color-bg-medium);border-radius:12px;border:1px solid var(--color-border-dark);box-shadow:var(--shadow-blue);}.player-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:1px solid var(--color-border-medium);padding-bottom:10px;}.player-title{font-family:'Orbitron', sans-serif;font-size:20px;color:var(--color-secondary-blue);display:flex;align-items:center;gap:10px;}#twitch-embed{width:100%;height:550px;border-radius:8px;overflow:hidden;background:#000;border:1px solid #222;}.player-quick-input{background:var(--color-bg-dark);border:1px solid var(--color-border-medium);color:white;padding:8px 12px;border-radius:4px;font-size:13px;width:220px;transition:border-color 0.3s;}.player-quick-input:focus{border-color:var(--color-secondary-blue);outline:none;}.btn-cycle{background:var(--color-bg-dark);color:var(--color-secondary-blue);border:1px solid var(--color-secondary-blue);padding:8px 15px;border-radius:4px;font-size:12px;transition:0.2s;cursor:pointer;}.btn-cycle:hover:not(:disabled){background:var(--color-secondary-blue);color:var(--color-bg-dark);}.btn-cycle:disabled{opacity:0.5;cursor:not-allowed;border-color:#555;color:#555;}.tab-content{display:none;background:var(--color-bg-medium);border:1px solid var(--color-border-dark);border-radius:10px;padding:25px;min-height:400px;}.tab-content.active{display:block;animation:fadeEffect 0.4s ease-in-out;}@keyframes fadeEffect{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}.sub-tab-btn{transition:all 0.3s;padding-bottom:8px;border-bottom:2px solid transparent;cursor:pointer;margin-right:20px;color:#888;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}.sub-tab-btn:hover{color:#fff;}.active-sub{border-bottom:2px solid var(--color-secondary-blue);color:white;}.hidden{display:none !important;}.dashboard-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:20px;margin-top:25px;}.dashboard-box{background:#0a0a0a;border:1px solid var(--color-border-dark);border-radius:8px;padding:20px;min-height:300px;display:flex;flex-direction:column;transition:transform 0.2s;}.dashboard-box:hover{transform:translateY(-2px);}.box-stats{border-top:3px solid var(--color-secondary-blue);box-shadow:var(--shadow-blue);}.box-niche{border-top:3px solid var(--color-ai-niche);box-shadow:0 0 10px rgba(89, 214, 130, 0.2);}.box-vod{border-top:3px solid var(--color-ai-repurpose);box-shadow:0 0 10px rgba(153, 51, 255, 0.2);}.dashboard-title{font-family:'Orbitron', sans-serif;font-size:16px;margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:10px;letter-spacing:1px;}.ai-output-enhanced{color:#ddd;font-size:14px;line-height:1.6;}.ai-output-enhanced h4{font-family:'Orbitron', sans-serif;margin-top:20px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);color:var(--color-secondary-blue);font-size:14px;}.ai-output-enhanced ul{list-style:none;padding-left:5px;}.ai-output-enhanced li{margin-bottom:8px;border-left:3px solid #444;padding-left:12px;background:rgba(255,255,255,0.02);padding-top:4px;padding-bottom:4px;}.box-niche .ai-output-enhanced li{border-left-color:var(--color-ai-niche);}.box-schedule .ai-output-enhanced li{border-left-color:var(--color-time-gold);}.action-input{width:100%;padding:12px;border-radius:6px;border:1px solid var(--color-border-medium);background:var(--color-bg-dark);color:#fff;font-size:14px;transition:0.3s;}.action-input:focus{border-color:var(--color-secondary-blue);outline:none;box-shadow:0 0 5px rgba(34, 199, 239, 0.3);}.btn-primary{background:var(--color-primary-pink);color:#fff;border:0;padding:12px 20px;border-radius:6px;cursor:pointer;font-weight:700;text-transform:uppercase;font-size:12px;transition:all 0.2s;letter-spacing:1px;}.btn-primary:hover:not(:disabled){transform:scale(1.02);filter:brightness(1.1);box-shadow:var(--shadow-pink);}.btn-big-scan{width:100%;background:linear-gradient(90deg, var(--color-secondary-blue), var(--color-ai-repurpose));font-size:14px;padding:15px;margin-top:15px;}#followed-streams-list{display:flex;flex-wrap:wrap;gap:15px;}.followed-stream-item{width:calc(20% - 12px);min-width:160px;padding:10px;background:var(--color-bg-light);border-radius:8px;border:1px solid var(--color-border-dark);cursor:pointer;transition:0.3s;}.followed-stream-item:hover{transform:translateY(-5px);border-color:var(--color-primary-pink);box-shadow:0 5px 15px rgba(0,0,0,0.5);}.followed-stream-item img{width:100%;border-radius:6px;margin-bottom:8px;aspect-ratio:16/9;object-fit:cover;}.raid-target-box{padding:20px;background:#111;border-radius:8px;border:2px solid var(--color-ai-action);display:flex;gap:20px;align-items:center;box-shadow:var(--shadow-action);}.raid-target-box img{width:120px;height:68px;object-fit:cover;border-radius:6px;}.schedule-box{border:2px solid var(--color-time-gold);padding:20px;background:#121212;border-radius:8px;margin-top:20px;box-shadow:0 0 15px rgba(255, 215, 0, 0.2);}.schedule-header{color:var(--color-time-gold);font-family:'Orbitron', sans-serif;font-size:20px;margin-bottom:10px;}.kpi-card{background:#111;padding:20px;border-radius:8px;border-left:4px solid #333;box-shadow:0 4px 6px rgba(0,0,0,0.5);position:relative;transition:background 0.3s;}.kpi-card:hover{background:#151515;}.kpi-value{font-size:28px;font-weight:800;color:white;font-family:'Orbitron', sans-serif;line-height:1.2;}.kpi-label{font-size:11px;color:#888;text-transform:uppercase;margin-top:5px;letter-spacing:1px;}.loading-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;border-radius:8px;display:none;z-index:5;}.stars{color:#333;font-size:16px;margin-top:8px;}.stars .filled{color:#ffd700;text-shadow:0 0 8px rgba(255, 215, 0, 0.6);}@media (max-width:1024px){.dashboard-grid{grid-template-columns:1fr;}.followed-stream-item{width:calc(50% - 10px);}.kpi-card{padding:15px;}.kpi-value{font-size:20px;}}</style>
 </head>
 <body>
 <div id="twitch-lucky-main">
@@ -75,7 +40,7 @@
 <div class="player-wrapper">
 <div class="player-header">
 <h2 class="player-title">
-<span style="margin-right:8px;"><i class="fab fa-twitch"></i></span> LECTEUR & TCHAT
+<span style="margin-right:8px;"><i class="fab fa-twitch"></i></span> LECTEUR
 <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:15px; font-weight:normal;">En attente de connexion...</span>
 </h2>
 <div class="flex gap-2 items-center">
@@ -91,61 +56,7 @@
 </form>
 </div>
 </div>
-<div class="player-grid-container">
-    <div id="twitch-embed"></div>
-    
-    <div id="socket-chat-wrapper">
-
-    <!-- ligne ~291 -->
-    <div class="chat-header">
-        <span>
-            <i class="fas fa-comments mr-2"></i>
-            <span id="chat-mode-label">TWITCH CHAT</span>
-        </span>
-
-        <!-- ligne ~297 -->
-        <span id="chat-toggle"
-              class="chat-toggle-btn"
-              style="color:red; cursor:pointer;"
-              onclick="toggleChatMode()">
-            ● OFF
-        </span>
-    </div>
-
-    <!-- ligne ~305 -->
-    <div id="chat-twitch" class="chat-panel active">
-        <iframe
-            id="twitch-chat-iframe"
-            src=""
-            style="width:100%; height:100%; border:0;">
-        </iframe>
-    </div>
-
-    <!-- ligne ~315 -->
-    <div id="chat-hub" class="chat-panel">
-        <div id="chat-messages-area" class="chat-messages-area">
-            <div class="chat-msg" style="color:#666; text-align:center; margin-top:50px;">
-                Connexion au serveur de tchat...
-            </div>
-        </div>
-
-        <form id="socket-chat-form"
-              class="chat-input-area"
-              onsubmit="event.preventDefault(); sendChatMessage();">
-            <input id="chat-input-msg"
-                   type="text"
-                   class="chat-input-field"
-                   placeholder="Écrire un message..."
-                   autocomplete="off">
-            <button type="submit" class="btn-chat-send">
-                <i class="fas fa-paper-plane"></i>
-            </button>
-        </form>
-    </div>
-
-</div>
-
-
+<div id="twitch-embed"></div>
 </div>
 <div id="content-area">
 <div id="tab-followed" class="tab-content active">
@@ -332,11 +243,6 @@ let embed = null;
 let autoCycleTimer = null;
 let boostTimeout = null;
 let isConnected = false;
-
-// --- AJOUT CONFIGURATION SOCKET.IO ---
-let socket = null;
-let chatUsername = "Guest" + Math.floor(Math.random()*1000);
-
 // --- GESTION DES ONGLETS PRINCIPAUX ---
 function openTab(tabId) {
 // MAJ UI Boutons
@@ -613,12 +519,6 @@ parent: parents
 if (videoId) config.video = videoId;
 else config.channel = channelName;
 embed = new Twitch.Embed("twitch-embed", config);
-const twitchChatIframe = document.getElementById("twitch-chat-iframe");
-if (twitchChatIframe && channelName) {
-    twitchChatIframe.src =
-        `https://www.twitch.tv/embed/${channelName}/chat?parent=${window.location.hostname}`;
-}
-    
 document.getElementById('input-channel').value = channelName;
 }
 async function checkBoostAndPlay(manual = false) {
@@ -680,7 +580,6 @@ const res = await fetch(`${API_BASE}/twitch_user_status`);
 const data = await res.json();
 isConnected = data.is_connected;
 if (isConnected) {
-chatUsername = data.display_name; // Use Real Twitch Name for Chat
 btn.innerHTML = `<i class="fas fa-check mr-1"></i> ${data.display_name} (OUT)`;
 btn.style.background = '#0e7e0e';
 btn.onclick = async () => {
@@ -813,98 +712,10 @@ btn.disabled = false;
 document.getElementById('btn-export-pdf').addEventListener('click', () => {
 window.open(`${API_BASE}/export_csv`, '_blank');
 });
-
-// --- MODULE 7: SOCKET.IO CHAT LOGIC ---
-    let currentChatMode = "twitch";
-
-function toggleChatMode() {
-    const twitchPanel = document.getElementById("chat-twitch");
-    const hubPanel = document.getElementById("chat-hub");
-    const label = document.getElementById("chat-mode-label");
-    const toggle = document.getElementById("chat-toggle");
-
-    if (currentChatMode === "twitch") {
-        twitchPanel.classList.remove("active");
-        hubPanel.classList.add("active");
-
-        label.innerText = "HUB LIVE CHAT";
-        toggle.innerText = "● ON";
-        toggle.style.color = "#00ff9d";
-
-        currentChatMode = "hub";
-    } else {
-        hubPanel.classList.remove("active");
-        twitchPanel.classList.add("active");
-
-        label.innerText = "TWITCH CHAT";
-        toggle.innerText = "● OFF";
-        toggle.style.color = "red";
-
-        currentChatMode = "twitch";
-    }
-}
-
-function initSocketChat() {
-    try {
-        socket = io(API_BASE); // Connect to Backend
-        
-        socket.on('connect', () => {
-            const statusEl = document.getElementById('chat-status');
-            statusEl.innerHTML = "● Online";
-            statusEl.style.color = "#00ff9d";
-            document.getElementById('chat-messages-area').innerHTML = ""; // Clear loader
-            appendChatMessage("System", "Bienvenue sur le Hub Chat !");
-        });
-
-        socket.on('chat_message', (data) => {
-            appendChatMessage(data.username, data.message, data.timestamp);
-        });
-
-        socket.on('disconnect', () => {
-            const statusEl = document.getElementById('chat-status');
-            statusEl.innerHTML = "● Off";
-            statusEl.style.color = "red";
-        });
-    } catch(e) {
-        console.error("Socket Error:", e);
-    }
-}
-
-function sendChatMessage() {
-    const input = document.getElementById('chat-input-msg');
-    const msg = input.value.trim();
-    if(msg && socket) {
-        // Envoi au serveur (le backend doit gérer l'event 'send_message')
-        socket.emit('send_message', {
-            username: chatUsername,
-            message: msg
-        });
-        // Optimistic UI (on affiche tout de suite ou on attend le retour du serveur)
-        // Ici on attend le retour 'chat_message' du serveur pour éviter les doublons si broadcast
-        input.value = "";
-    }
-}
-
-function appendChatMessage(user, text, time=null) {
-    const area = document.getElementById('chat-messages-area');
-    const div = document.createElement('div');
-    div.className = 'chat-msg';
-    const timeStr = time ? new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    
-    div.innerHTML = `
-        <span class="timestamp">[${timeStr}]</span>
-        <span class="username">${user}:</span>
-        <span class="text">${text.replace(/</g, "&lt;")}</span>
-    `;
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight; // Auto scroll
-}
-
 // --- INITIALISATION AU CHARGEMENT ---
 window.onload = () => {
 checkAuthStatus();
 checkBoostAndPlay(); // Lance la rotation auto ou le boost
-initSocketChat(); // Lancement du Tchat
 openTab('tab-followed'); // Ouvre l'onglet par défaut
 };
 </script>
