@@ -613,6 +613,12 @@ parent: parents
 if (videoId) config.video = videoId;
 else config.channel = channelName;
 embed = new Twitch.Embed("twitch-embed", config);
+const twitchChatIframe = document.getElementById("twitch-chat-iframe");
+if (twitchChatIframe && channelName) {
+    twitchChatIframe.src =
+        `https://www.twitch.tv/embed/${channelName}/chat?parent=${window.location.hostname}`;
+}
+    
 document.getElementById('input-channel').value = channelName;
 }
 async function checkBoostAndPlay(manual = false) {
