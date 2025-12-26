@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Streamer & Niche AI Hub - Ultimate Cockpit Dashboard">
-    <title>Streamer & Niche AI Hub - COCKPIT MASTER V37 (UNCOMPRESSED)</title>
+    <title>Streamer & Niche AI Hub - COCKPIT MASTER V38 (SOCKET EDITION)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
     <script src="https://embed.twitch.tv/embed/v1.js"></script>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <style>
         :root {
@@ -135,6 +137,7 @@
             border-radius: 12px; 
             border: 1px solid var(--color-border-dark); 
             box-shadow: var(--shadow-blue); 
+            position: relative; /* IMPORTANT pour le Tchat Socket Overlay */
         }
 
         .player-header { 
@@ -202,6 +205,105 @@
             cursor: not-allowed; 
             border-color: #555;
             color: #555;
+        }
+
+        /* --- NOUVEAU : CSS DU TCHAT SOCKET & SWITCH --- */
+        .chat-toggle-group {
+            display: inline-flex;
+            background: #111;
+            border-radius: 4px;
+            padding: 2px;
+            border: 1px solid #333;
+            margin-left: 15px;
+            vertical-align: middle;
+        }
+
+        .chat-toggle-btn {
+            padding: 5px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 3px;
+            border: none;
+            background: transparent;
+            color: #777;
+            font-weight: bold;
+            transition: 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        .chat-toggle-btn:hover { color: #fff; }
+
+        /* État actif Twitch */
+        .chat-toggle-btn.active-twitch {
+            background: #6441a5;
+            color: white;
+        }
+
+        /* État actif Hub */
+        .chat-toggle-btn.active-hub {
+            background: var(--color-secondary-blue);
+            color: #000;
+        }
+
+        /* Le conteneur du Tchat Overlay */
+        #socket-chat-overlay {
+            position: absolute;
+            top: 20px; /* Ajusté selon le padding du wrapper */
+            right: 20px;
+            bottom: 20px;
+            width: 340px; /* Largeur standard du chat Twitch */
+            height: 550px; /* Même hauteur que le player */
+            background: #0e0e10;
+            border-left: 1px solid #333;
+            z-index: 100; /* Par dessus le player */
+            display: flex;
+            flex-direction: column;
+            transform: translateX(120%); /* Caché à droite par défaut */
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            pointer-events: none;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Quand le tchat est activé */
+        #socket-chat-overlay.visible {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Header du tchat */
+        .socket-chat-header {
+            padding: 10px 15px;
+            background: #18181b;
+            border-bottom: 1px solid #333;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            color: var(--color-secondary-blue);
+            display: flex; justify-content: space-between; align-items: center;
+            border-radius: 0 8px 0 0;
+        }
+
+        /* Zone des messages */
+        #socket-messages-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .socket-msg { font-size: 13px; line-height: 1.4; word-wrap: break-word; color: #efeff1; }
+        .socket-input-area {
+            padding: 15px;
+            background: #18181b;
+            border-top: 1px solid #333;
+            border-radius: 0 0 8px 0;
+        }
+        
+        @media (max-width: 1024px) {
+            #socket-chat-overlay { width: 100%; height: 100%; top:0; right:0; bottom:0; }
         }
 
         /* --- CONTENU DES ONGLETS (VISIBILITÉ) --- */
@@ -504,7 +606,7 @@
 <div id="twitch-lucky-main">
     
     <h1 class="text-3xl">
-        <span class="h1-blue-accent">STREAMER</span> HUB V37 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">MASTER</span>
+        <span class="h1-blue-accent">STREAMER</span> HUB V38 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">SOCKET</span>
     </h1>
     <div class="subtitle-center">Cockpit Unifié • Données Réelles • Intelligence Artificielle • Rotation 3min</div>
 
@@ -532,6 +634,15 @@
         <div class="player-header">
             <h2 class="player-title">
                 <span style="margin-right:8px;"><i class="fab fa-twitch"></i></span> LECTEUR
+                <div class="chat-toggle-group">
+                    <button class="chat-toggle-btn active-twitch" id="btn-chat-twitch" onclick="toggleChat('twitch')">
+                        <i class="fab fa-twitch"></i> TWITCH
+                    </button>
+                    <button class="chat-toggle-btn" id="btn-chat-hub" onclick="toggleChat('hub')">
+                        <i class="fas fa-network-wired"></i> HUB
+                    </button>
+                </div>
+                
                 <span id="player-channel-status" style="font-size:12px; color:#888; margin-left:15px; font-weight:normal;">En attente de connexion...</span>
             </h2>
             <div class="flex gap-2 items-center">
@@ -548,7 +659,31 @@
                 </form>
             </div>
         </div>
+        
         <div id="twitch-embed"></div>
+
+        <div id="socket-chat-overlay">
+            <div class="socket-chat-header">
+                <span><i class="fas fa-satellite-dish mr-2 text-green-400"></i> HUB SECURE</span>
+                <span id="socket-status" style="font-size:10px; color:#555;">Déconnecté</span>
+            </div>
+            
+            <div id="socket-messages-area">
+                <div class="socket-msg">
+                    <span style="color:#777;">[SYS] Canal chiffré établi. En attente...</span>
+                </div>
+            </div>
+
+            <div class="socket-input-area">
+                <form id="socket-form" class="flex gap-2" onsubmit="sendSocketMessage(event)">
+                    <input id="socket-input" type="text" placeholder="Message..." class="player-quick-input" style="width:100%;">
+                    <button type="submit" class="btn-primary" style="background:var(--color-secondary-blue); color:#000; padding:8px 12px;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
     </div>
 
     <div id="content-area">
@@ -953,7 +1088,6 @@
             // Calcul Étoiles (Affichage Visuel)
             let starsHtml = '';
             const score = data.user_data?.ai_calculated_niche_score || data.game_data?.ai_calculated_niche_score || 3;
-            // On simplifie la logique d'affichage des étoiles
             const numStars = (typeof score === 'string' && score.includes('partner')) ? 5 : (typeof score === 'number' ? Math.round(score) : 3); 
             
             for(let i=1; i<=5; i++) {
@@ -1306,6 +1440,64 @@
     document.getElementById('btn-export-pdf').addEventListener('click', () => {
         window.open(`${API_BASE}/export_csv`, '_blank');
     });
+
+    // --- LOGIQUE TCHAT HUB & SOCKET IO ---
+    let socket = null;
+    
+    // Tentative de connexion (ne plantera pas si pas de backend socket)
+    if (typeof io !== 'undefined') {
+        try {
+            socket = io(); 
+            socket.on('connect', () => {
+                const s = document.getElementById('socket-status');
+                if(s) { s.innerText = '🟢 Connecté'; s.style.color = '#59d682'; }
+            });
+            socket.on('chat message', (msg) => { 
+                addMessageToHub(msg.user || 'Anon', msg.text, false); 
+            });
+        } catch (e) { console.log("Socket backend absent"); }
+    }
+
+    function toggleChat(mode) {
+        const btnTwitch = document.getElementById('btn-chat-twitch');
+        const btnHub = document.getElementById('btn-chat-hub');
+        const overlay = document.getElementById('socket-chat-overlay');
+        
+        if (mode === 'hub') {
+            btnHub.classList.add('active-hub');
+            btnTwitch.classList.remove('active-twitch');
+            overlay.classList.add('visible');
+        } else {
+            btnTwitch.classList.add('active-twitch');
+            btnHub.classList.remove('active-hub');
+            overlay.classList.remove('visible');
+        }
+    }
+
+    function sendSocketMessage(e) {
+        e.preventDefault();
+        const input = document.getElementById('socket-input');
+        const text = input.value;
+        if (!text) return;
+        
+        // Affichage local immédiat
+        addMessageToHub('Moi', text, true);
+        
+        // Envoi au serveur
+        if (socket && socket.connected) socket.emit('chat message', text);
+        
+        input.value = '';
+    }
+
+    function addMessageToHub(user, text, isMe) {
+        const box = document.getElementById('socket-messages-area');
+        const div = document.createElement('div');
+        div.className = 'socket-msg';
+        const color = isMe ? '#22c7ef' : '#ff0099';
+        div.innerHTML = `<span style="color:${color}; font-weight:bold;">${user}:</span> ${text}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
 
     // --- INITIALISATION AU CHARGEMENT ---
     window.onload = () => {
