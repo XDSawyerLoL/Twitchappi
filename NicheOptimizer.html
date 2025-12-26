@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Streamer & Niche AI Hub - Ultimate Cockpit V44">
-    <title>Streamer Hub V44 - ULTIMATE PRODUCTION</title>
+    <title>Streamer Hub V45 - FIXED & COMPLETE</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,277 +14,113 @@
 
     <style>
         :root {
-            /* --- PALETTE CYBERPUNK --- */
             --bg-dark: #050505;
-            --glass-bg: rgba(18, 18, 23, 0.90);
+            --glass-bg: rgba(20, 20, 25, 0.90);
             --glass-border: 1px solid rgba(255, 255, 255, 0.08);
-            
             --neon-pink: #ff0055;
             --neon-blue: #00f3ff;
             --neon-purple: #bd00ff;
             --neon-green: #00ff9d;
             --neon-gold: #ffd700;
-            
             --shadow-glow: 0 0 20px rgba(0, 243, 255, 0.15);
         }
 
-        /* --- GLOBAL --- */
-        body { 
-            background-color: var(--bg-dark); 
-            color: #e0e0e0; 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; padding: 0; overflow-x: hidden; 
-            background-image: radial-gradient(circle at 50% -10%, #1a1a2e 0%, #000 70%);
-            min-height: 100vh;
-        }
-
+        body { background-color: var(--bg-dark); color: #e0e0e0; font-family: 'Inter', sans-serif; margin: 0; padding: 0; overflow-x: hidden; background-image: radial-gradient(circle at 50% -10%, #1a1a2e 0%, #000 70%); min-height: 100vh; }
         #twitch-lucky-main { max-width: 1600px; margin: 0 auto; padding: 20px; }
         
-        /* TYPOGRAPHIE */
-        h1 { 
-            font-family: 'Orbitron', sans-serif; font-size: 36px; letter-spacing: 3px; 
-            text-align: center; margin-bottom: 5px; 
-            background: linear-gradient(to right, #fff 20%, var(--neon-blue) 80%); 
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
-            filter: drop-shadow(0 0 15px rgba(0,243,255,0.4)); 
-        }
-        .subtitle-center { 
-            color: #666; font-size: 11px; text-align: center; letter-spacing: 4px; 
-            text-transform: uppercase; margin-bottom: 40px; opacity: 0.7; font-weight: 600;
-        }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 36px; letter-spacing: 3px; text-align: center; margin-bottom: 5px; background: linear-gradient(to right, #fff 20%, var(--neon-blue) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(0,243,255,0.4)); }
+        .subtitle-center { color: #666; font-size: 11px; text-align: center; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 40px; opacity: 0.7; font-weight: 600; }
 
-        /* --- NAVIGATION (TABS) --- */
+        /* TABS */
         .tabs-nav-container { margin-bottom: 30px; }
         .flex-tabs { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-        
-        .tab-btn { 
-            font-family: 'Orbitron', sans-serif; padding: 16px 28px; 
-            background: rgba(255,255,255,0.03); border: var(--glass-border); 
-            color: #888; cursor: pointer; border-radius: 12px; 
-            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
-            flex: 1; min-width: 140px; max-width: 250px;
-            text-align: center; font-size: 12px; font-weight: 800; letter-spacing: 1px;
-            position: relative; overflow: hidden;
-        }
-        
-        .tab-btn::after {
-            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
-            background: var(--neon-blue); transform: scaleX(0); transition: 0.4s;
-        }
-        
+        .tab-btn { font-family: 'Orbitron', sans-serif; padding: 16px 28px; background: rgba(255,255,255,0.03); border: var(--glass-border); color: #888; cursor: pointer; border-radius: 12px; transition: all 0.4s; flex: 1; min-width: 140px; max-width: 250px; text-align: center; font-size: 12px; font-weight: 800; position: relative; overflow: hidden; }
         .tab-btn:hover { background: rgba(255,255,255,0.07); color: #fff; transform: translateY(-3px); }
-        .tab-btn.active { 
-            background: rgba(255,255,255,0.07); color: #fff; 
-            box-shadow: var(--shadow-glow); border-color: rgba(255,255,255,0.2);
-        }
-        .tab-btn.active::after { transform: scaleX(1); }
+        .tab-btn.active { background: rgba(255,255,255,0.07); color: #fff; box-shadow: var(--shadow-glow); border-color: rgba(255,255,255,0.2); border-top: 2px solid var(--neon-blue); }
 
-        /* --- LECTEUR V44 (SPLIT ARCHITECTURE) --- */
-        .player-wrapper { 
-            background: var(--glass-bg); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; 
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6); 
-            overflow: hidden; display: flex; flex-direction: column; margin-bottom: 40px;
-        }
+        /* PLAYER */
+        .player-wrapper { background: var(--glass-bg); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; box-shadow: 0 30px 60px rgba(0,0,0,0.6); overflow: hidden; display: flex; flex-direction: column; margin-bottom: 40px; }
+        .player-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 30px; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .player-title { font-family: 'Orbitron', sans-serif; font-size: 20px; color: var(--neon-blue); display: flex; align-items: center; gap: 15px; }
 
-        .player-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 18px 30px; background: rgba(0,0,0,0.4); 
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .player-title { 
-            font-family: 'Orbitron', sans-serif; font-size: 20px; 
-            color: var(--neon-blue); display: flex; align-items: center; gap: 15px;
-            text-shadow: 0 0 10px rgba(0,243,255,0.3);
-        }
-
-        /* CONTENEUR SCINDÉ (VIDEO | TCHAT) */
         .split-container { display: flex; height: 680px; background: #000; position: relative; }
-        
-        /* GAUCHE : VIDEO */
-        .video-side { 
-            flex-grow: 1; background: #000; position: relative; 
-            border-right: 1px solid #222; 
-        }
+        .video-side { flex-grow: 1; background: #000; position: relative; border-right: 1px solid #222; }
         #twitch-embed-video { width: 100%; height: 100%; }
-
-        /* DROITE : TCHAT */
-        .chat-side { 
-            width: 380px; min-width: 380px; background: #0b0b0e; 
-            display: flex; flex-direction: column; position: relative; 
-        }
-        
-        .chat-layer { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            display: none; flex-direction: column; 
-        }
+        .chat-side { width: 380px; min-width: 380px; background: #0b0b0e; display: flex; flex-direction: column; position: relative; }
+        .chat-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .chat-layer.active-layer { display: flex; }
         iframe.chat-frame { width: 100%; height: 100%; border: none; }
 
-        /* --- SWITCH TCHAT --- */
-        .chat-toggle-group { 
-            display: inline-flex; background: rgba(0,0,0,0.6); border-radius: 8px; 
-            padding: 3px; border: 1px solid rgba(255,255,255,0.1); 
-            vertical-align: middle; margin-left: 10px;
-        }
-        .chat-toggle-btn { 
-            padding: 6px 14px; font-size: 10px; cursor: pointer; border-radius: 5px; 
-            border: none; background: transparent; color: #888; font-weight: 800; 
-            transition: 0.2s; display: flex; align-items: center; gap: 6px; letter-spacing: 0.5px;
-        }
-        .chat-toggle-btn:hover { color: #fff; }
-        .chat-toggle-btn.active-twitch { background: #9146FF; color: white; box-shadow: 0 0 10px rgba(145, 70, 255, 0.3); }
-        .chat-toggle-btn.active-hub { background: var(--neon-blue); color: #000; box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
-
-        /* --- TCHAT HUB (SOCKET/FIREBASE) --- */
+        /* SOCKET UI */
         #socket-ui { display: flex; flex-direction: column; height: 100%; width: 100%; background: #0b0b0e; }
-        
-        .socket-header-internal { 
-            padding: 15px; background: #131318; border-bottom: 1px solid #2a2a2a; 
-            display: flex; justify-content: space-between; align-items: center; 
-        }
+        .socket-header-internal { padding: 15px; background: #131318; border-bottom: 1px solid #2a2a2a; display: flex; justify-content: space-between; align-items: center; }
         .user-badge-area { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: bold; color: #fff; }
         .user-avatar-small { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--neon-green); object-fit: cover; }
-
-        #firebase-messages-area { 
-            flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; 
-            scrollbar-width: thin; scrollbar-color: #444 #111;
-            background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-        }
-        
-        .socket-msg { 
-            font-size: 13px; line-height: 1.5; color: #ccc; 
-            background: rgba(255,255,255,0.04); padding: 8px 12px; border-radius: 8px; 
-            border-left: 2px solid transparent; word-wrap: break-word; position: relative;
-            animation: fadeIn 0.2s ease-out; margin-bottom: 4px;
-        }
-        .socket-msg:hover { background: rgba(255,255,255,0.06); }
-        
+        #firebase-messages-area { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; scrollbar-color: #444 #111; background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); }
+        .socket-msg { font-size: 13px; line-height: 1.5; color: #ccc; background: rgba(255,255,255,0.04); padding: 8px 12px; border-radius: 8px; border-left: 2px solid transparent; word-wrap: break-word; animation: fadeIn 0.2s ease-out; margin-bottom: 4px; }
         .socket-msg.admin-msg { border-left-color: var(--neon-pink); background: linear-gradient(90deg, rgba(255,0,85,0.05), transparent); }
         .socket-msg.me-msg { border-left-color: var(--neon-green); align-self: flex-end; text-align: right; background: rgba(0, 255, 157, 0.05); }
-        
         .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 11px; color: #666; font-weight: 700; }
         .me-msg .msg-header { justify-content: flex-end; }
         .msg-avatar { width: 20px; height: 20px; border-radius: 50%; }
-        
-        .delete-btn { position: absolute; top: 8px; right: 8px; color: #444; cursor: pointer; font-size: 10px; opacity: 0; transition:0.2s; }
-        .socket-msg:hover .delete-btn { opacity: 1; }
-        .delete-btn:hover { color: var(--neon-pink); }
-
         .socket-input-area { padding: 15px; background: #131318; border-top: 1px solid #2a2a2a; position: relative; }
-        
-        /* EMOTE PICKER */
-        .emote-picker {
-            position: absolute; bottom: 75px; right: 15px; width: 300px; height: 220px;
-            background: #1a1a20; border: 1px solid #444; border-radius: 12px;
-            display: none; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; 
-            overflow-y: auto; z-index: 50; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
+        .emote-picker { position: absolute; bottom: 75px; right: 15px; width: 300px; height: 220px; background: #1a1a20; border: 1px solid #444; border-radius: 12px; display: none; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px; overflow-y: auto; z-index: 50; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
         .emote-picker.active { display: grid; }
         .emote-btn { font-size: 20px; cursor: pointer; padding: 5px; text-align: center; border-radius: 6px; transition:0.2s; }
         .emote-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
 
-        /* ELEMENTS DASHBOARD */
-        .player-quick-input { 
-            background: #000; border: 1px solid #333; color: white; 
-            padding: 10px 15px; border-radius: 6px; font-size: 13px; width: 220px; transition: 0.3s; 
-        }
-        .player-quick-input:focus { border-color: var(--neon-blue); outline: none; box-shadow: 0 0 15px rgba(0,243,255,0.1); }
-        
-        .btn-cycle { 
-            background: rgba(255,255,255,0.05); color: var(--neon-blue); 
-            border: 1px solid rgba(0, 243, 255, 0.2); padding: 10px 15px; 
-            border-radius: 6px; font-size: 12px; transition: 0.2s; cursor: pointer; 
-        }
-        .btn-cycle:hover:not(:disabled) { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px rgba(0,243,255,0.4); }
-        .btn-cycle:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        .btn-primary { 
-            background: var(--neon-pink); color: #fff; border: 0; 
-            padding: 12px 24px; border-radius: 8px; cursor: pointer; 
-            font-weight: 800; font-size: 12px; transition: 0.3s; letter-spacing: 1px; 
-            box-shadow: 0 0 15px rgba(255, 0, 85, 0.3);
-        }
+        /* UI ELEMENTS */
+        .chat-toggle-group { display: inline-flex; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 3px; border: 1px solid rgba(255,255,255,0.1); vertical-align: middle; margin-left: 10px; }
+        .chat-toggle-btn { padding: 6px 14px; font-size: 10px; cursor: pointer; border-radius: 5px; border: none; background: transparent; color: #888; font-weight: 800; transition: 0.2s; display: flex; align-items: center; gap: 6px; letter-spacing: 0.5px; }
+        .chat-toggle-btn:hover { color: #fff; }
+        .chat-toggle-btn.active-twitch { background: #9146FF; color: white; }
+        .chat-toggle-btn.active-hub { background: var(--neon-blue); color: #000; }
+        .player-quick-input { background: #000; border: 1px solid #333; color: white; padding: 10px 15px; border-radius: 6px; font-size: 13px; width: 220px; transition: 0.3s; }
+        .player-quick-input:focus { border-color: var(--neon-blue); outline: none; }
+        .btn-cycle { background: rgba(255,255,255,0.05); color: var(--neon-blue); border: 1px solid rgba(0, 243, 255, 0.2); padding: 10px 15px; border-radius: 6px; font-size: 12px; transition: 0.2s; cursor: pointer; }
+        .btn-cycle:hover:not(:disabled) { background: var(--neon-blue); color: #000; }
+        .btn-primary { background: var(--neon-pink); color: #fff; border: 0; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 12px; transition: 0.3s; letter-spacing: 1px; }
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 25px rgba(255, 0, 85, 0.6); }
-        
-        .action-input { 
-            width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid #333; 
-            background: #0a0a0c; color: #fff; font-size: 14px; transition: 0.3s; 
-        }
+        .action-input { width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid #333; background: #0a0a0c; color: #fff; font-size: 14px; transition: 0.3s; }
         .action-input:focus { border-color: var(--neon-blue); outline: none; }
 
         /* DASHBOARD CONTENT */
         .tab-content { display: none; padding: 30px; background: rgba(255,255,255,0.01); border-radius: 16px; border: 1px solid rgba(255,255,255,0.03); animation: fadeIn 0.4s; }
         .tab-content.active { display: block; }
-        
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 25px; margin-top:20px; }
-        .dashboard-box { 
-            background: #0e0e10; border: 1px solid #222; border-radius: 12px; 
-            padding: 25px; display: flex; flex-direction: column; min-height: 300px; 
-            transition: transform 0.3s; position: relative; overflow: hidden;
-        }
+        .dashboard-box { background: #0e0e10; border: 1px solid #222; border-radius: 12px; padding: 25px; display: flex; flex-direction: column; min-height: 300px; transition: transform 0.3s; position: relative; overflow: hidden; }
         .dashboard-box:hover { transform: translateY(-5px); border-color: #444; }
-        
         .box-stats { border-top: 2px solid var(--neon-blue); }
         .box-niche { border-top: 2px solid var(--neon-green); }
         .box-vod { border-top: 2px solid var(--neon-purple); }
         .box-schedule { border-top: 2px solid var(--neon-gold); }
-
-        .dashboard-title { 
-            font-family: 'Orbitron'; font-size: 14px; margin-bottom: 20px; 
-            border-bottom: 1px solid #222; padding-bottom: 10px; letter-spacing: 1px; color: #888;
-        }
-
-        .kpi-card { 
-            background: linear-gradient(145deg, #111, #0d0d0d); padding: 25px; 
-            border-radius: 12px; border-left: 4px solid #333; 
-            position: relative; overflow: hidden; transition: 0.3s;
-        }
-        .kpi-card:hover { background: #161616; }
+        .kpi-card { background: linear-gradient(145deg, #111, #0d0d0d); padding: 25px; border-radius: 12px; border-left: 4px solid #333; position: relative; overflow: hidden; transition: 0.3s; }
         .kpi-value { font-size: 36px; font-weight: 900; font-family: 'Orbitron'; color: #fff; margin-bottom: 5px; }
         .kpi-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
-        
-        /* ITEMS & LISTS */
+        .sub-tab-btn { transition: all 0.3s; padding-bottom: 8px; border-bottom: 2px solid transparent; cursor: pointer; margin-right: 20px; color: #888; font-weight: bold; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sub-tab-btn:hover { color: #fff; }
+        .active-sub { border-bottom: 2px solid var(--neon-blue); color: white; }
+        .hidden { display: none !important; }
+        .ai-output-enhanced { color: #ddd; font-size: 14px; line-height: 1.6; background: #111; padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        .ai-output-enhanced h4 { font-family: 'Orbitron'; margin-top: 15px; color: var(--neon-blue); border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .ai-output-enhanced li { margin-bottom: 8px; padding-left: 10px; border-left: 3px solid #444; background: rgba(255,255,255,0.02); }
+        .box-niche .ai-output-enhanced li { border-left-color: var(--neon-green); }
         #followed-streams-list { display: flex; flex-wrap: wrap; gap: 15px; }
-        .followed-stream-item { 
-            width: calc(20% - 12px); min-width: 200px; padding: 12px; 
-            background: #111; border-radius: 12px; border: 1px solid #222; 
-            cursor: pointer; transition: 0.3s; 
-        }
-        .followed-stream-item:hover { transform: translateY(-5px); border-color: var(--neon-pink); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .followed-stream-item { width: calc(20% - 12px); min-width: 200px; padding: 12px; background: #111; border-radius: 12px; border: 1px solid #222; cursor: pointer; transition: 0.3s; }
+        .followed-stream-item:hover { transform: translateY(-5px); border-color: var(--neon-pink); }
         .followed-stream-item img { width: 100%; border-radius: 8px; aspect-ratio: 16/9; object-fit: cover; margin-bottom: 12px; }
-        
-        .raid-target-box { 
-            display: flex; gap: 20px; align-items: center; background: #111; 
-            padding: 20px; border-radius: 10px; border: 1px solid var(--neon-pink); margin-top: 20px; 
-            box-shadow: 0 0 20px rgba(255, 0, 85, 0.1);
-        }
+        .raid-target-box { display: flex; gap: 20px; align-items: center; background: #111; padding: 20px; border-radius: 10px; border: 1px solid var(--neon-pink); margin-top: 20px; }
         .raid-target-box img { width: 140px; border-radius: 8px; }
-
-        .loading-overlay { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.9); display: flex; justify-content: center; 
-            align-items: center; border-radius: 8px; display: none; z-index: 5; 
-        }
-
+        .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; border-radius: 8px; display: none; z-index: 5; }
         .chat-emote { vertical-align: middle; height: 24px; margin: 0 2px; }
-
-        @media (max-width: 1024px) { 
-            .split-container { flex-direction: column; height: auto; }
-            .video-side { height: 56.25vw; width: 100%; }
-            .chat-side { width: 100%; height: 450px; border-left: none; border-top: 1px solid #333; }
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .followed-stream-item { width: calc(50% - 10px); }
-        }
+        @media (max-width: 1024px) { .split-container { flex-direction: column; height: auto; } .video-side { height: 56.25vw; width: 100%; } .chat-side { width: 100%; height: 450px; border-left: none; border-top: 1px solid #333; } .dashboard-grid { grid-template-columns: 1fr; } .followed-stream-item { width: calc(50% - 10px); } }
         @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div id="twitch-lucky-main">
-    
-    <h1>STREAMER <span class="h1-blue-accent">HUB</span> V44</h1>
+    <h1>STREAMER <span class="h1-blue-accent">HUB</span> V45</h1>
     <div class="subtitle-center">Cockpit Unifié • Firebase Connected • Engagement Max</div>
 
     <div class="tabs-nav-container">
@@ -308,12 +142,10 @@
                     <button class="chat-toggle-btn" id="btn-chat-hub" onclick="toggleChat('hub')"><i class="fas fa-fire"></i> HUB CHAT</button>
                 </div>
             </div>
-            
             <div class="flex gap-3 items-center">
                 <span id="player-channel-status" class="text-xs text-gray-400 font-mono hidden md:block">PRÊT</span>
                 <button id="btn-prev-stream" class="btn-cycle" onclick="cycleStream('prev')"><i class="fas fa-backward"></i></button>
                 <button id="btn-next-stream" class="btn-cycle" onclick="cycleStream('next')"><i class="fas fa-forward"></i></button>
-                
                 <form id="mini-player-form" class="flex gap-2" onsubmit="event.preventDefault(); launchPlayer(document.getElementById('input-channel').value)">
                     <input id="input-channel" type="text" placeholder="Chaîne..." class="player-quick-input text-center">
                     <button type="submit" class="btn-primary" style="padding: 10px 15px; margin:0;"><i class="fas fa-play"></i></button>
@@ -323,10 +155,8 @@
 
         <div class="split-container">
             <div class="video-side"><div id="twitch-embed-video"></div></div>
-
             <div class="chat-side">
                 <div id="chat-layer-twitch" class="chat-layer active-layer"><div id="twitch-chat-embed-container" style="width:100%; height:100%;"></div></div>
-                
                 <div id="chat-layer-hub" class="chat-layer">
                     <div id="socket-ui">
                         <div class="socket-header-internal">
@@ -337,10 +167,7 @@
                             </div>
                             <span id="firebase-status" class="text-xs font-mono text-gray-500">Connexion...</span>
                         </div>
-                        
-                        <div id="firebase-messages-area">
-                            </div>
-
+                        <div id="firebase-messages-area"></div>
                         <div id="emote-picker" class="emote-picker">
                             <div class="emote-btn" onclick="addEmote('Pepega')">🤪</div>
                             <div class="emote-btn" onclick="addEmote('PogChamp')">😲</div>
@@ -351,7 +178,6 @@
                             <div class="emote-btn" onclick="addEmote('GG')">🎮</div>
                             <div class="emote-btn" onclick="addEmote('CoolStory')">😎</div>
                         </div>
-
                         <div class="socket-input-area">
                             <form id="firebase-form" class="flex gap-2 items-center">
                                 <button type="button" class="text-gray-400 hover:text-white" onclick="toggleEmotes()"><i class="fas fa-smile text-xl"></i></button>
@@ -366,7 +192,6 @@
     </div>
 
     <div id="content-area">
-        
         <div id="tab-followed" class="tab-content active">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h3 class="text-pink font-bold text-lg" style="color:var(--neon-pink);"><i class="fas fa-circle text-red-500 mr-2 animate-pulse"></i> FIL LIVE</h3>
@@ -383,6 +208,8 @@
         <div id="tab-dashboard" class="tab-content">
             <div class="flex gap-4 mb-6 border-b border-gray-800 pb-2">
                 <button onclick="showSubTab('overview', this)" class="sub-tab-btn active-sub">Overview</button>
+                <button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">🎮 Games</button>
+                <button onclick="showSubTab('languages', this)" class="sub-tab-btn text-pink-400">🌍 Languages</button>
                 <button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--neon-green);">Scanner IA</button>
             </div>
 
@@ -399,6 +226,16 @@
                 </div>
             </div>
 
+            <div id="sub-games" class="sub-content hidden">
+                <h3 class="text-blue-400 font-bold uppercase text-sm mb-6">Top Games</h3>
+                <div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+
+            <div id="sub-languages" class="sub-content hidden">
+                <h3 class="text-pink-400 font-bold uppercase text-sm mb-6">Top Langues</h3>
+                <div id="languages-list-container" class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800 space-y-6"></div>
+            </div>
+
             <div id="sub-scanner" class="sub-content hidden">
                 <div class="dashboard-box box-stats">
                     <div class="dashboard-title text-blue-400" style="font-size:18px;"><i class="fas fa-radar"></i> SCANNER DE CONCURRENCE (IA)</div>
@@ -406,7 +243,6 @@
                         <input id="input-global-target" type="text" placeholder="Cible (ex: Gotaga, League of Legends)..." class="action-input" style="max-width:400px;">
                         <button type="submit" class="btn-primary">LANCER SCAN</button>
                     </form>
-                    
                     <div class="dashboard-grid">
                         <div id="res-scan-content" class="dashboard-box box-stats"><div class="dashboard-title">📊 PROFIL</div><div class="flex flex-col items-center justify-center h-full text-gray-600"><i class="fas fa-user-astronaut fa-3x mb-4"></i><p>En attente...</p></div></div>
                         <div id="res-niche-content" class="dashboard-box box-niche"><div class="dashboard-title">🧠 AUDIT IA</div><div class="flex flex-col items-center justify-center h-full text-gray-600"><i class="fas fa-brain fa-3x mb-4"></i><p>Analyse Niche...</p></div></div>
@@ -419,10 +255,7 @@
         <div id="tab-time" class="tab-content">
             <h3 class="text-xl font-bold text-yellow-400 mb-4">IA DE PLANIFICATION</h3>
             <form id="form-schedule" class="flex gap-3"><input id="input-schedule-game" type="text" placeholder="Jeu (ex: Valorant)..." class="action-input"><button type="submit" id="btn-schedule" class="btn-primary" style="background:var(--neon-gold); color:black;">CALCULER</button></form>
-            <div id="schedule-results" style="display:none;" class="dashboard-box box-schedule mt-6">
-                <div style="display:flex; align-items:center; gap:20px; margin-bottom:20px;"><img id="schedule-img" src="" style="width:60px; border-radius:6px;"><div class="schedule-header" id="schedule-game-name" style="font-family:'Orbitron'; font-size:20px; color:var(--neon-gold);">Jeu</div></div>
-                <div id="schedule-ai-content" class="ai-output-enhanced"></div>
-            </div>
+            <div id="schedule-results" style="display:none;" class="dashboard-box box-schedule mt-6"><div style="display:flex; align-items:center; gap:20px; margin-bottom:20px;"><img id="schedule-img" src="" style="width:60px; border-radius:6px;"><div class="schedule-header" id="schedule-game-name" style="font-family:'Orbitron'; font-size:20px; color:var(--neon-gold);">Jeu</div></div><div id="schedule-ai-content" class="ai-output-enhanced"></div></div>
         </div>
 
         <div id="tab-boost" class="tab-content">
@@ -433,27 +266,23 @@
 
         <div id="tab-raid" class="tab-content">
             <h3 class="text-xl font-bold text-red-500 mb-4">RAID COMMANDER</h3>
-            <form id="form-raid" class="flex gap-3 flex-col sm:flex-row">
-                <input id="input-raid-game" type="text" placeholder="Jeu cible..." class="action-input">
-                <select id="select-raid-viewers" class="action-input" style="width:auto; background:#111;"><option value="10">Micro (&lt;10)</option><option value="50" selected>Moyen (&lt;50)</option><option value="100">Gros (&lt;100)</option></select>
-                <button type="submit" id="btn-start-raid" class="btn-primary" style="background:var(--neon-pink);">CHERCHER CIBLE</button>
-            </form>
+            <form id="form-raid" class="flex gap-3 flex-col sm:flex-row"><input id="input-raid-game" type="text" placeholder="Jeu cible..." class="action-input"><select id="select-raid-viewers" class="action-input" style="width:auto; background:#111;"><option value="10">Micro (&lt;10)</option><option value="50" selected>Moyen (&lt;50)</option><option value="100">Gros (&lt;100)</option></select><button type="submit" id="btn-start-raid" class="btn-primary" style="background:var(--neon-pink);">CHERCHER CIBLE</button></form>
             <div id="raid-results" class="mt-6"></div>
         </div>
     </div>
 </div>
 <script type="module">
+    // --- FIREBASE CONFIG (REMPLIR VOS CLES) ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // 🔴 REMPLACEZ PAR VOS CLES FIREBASE ICI !
     const firebaseConfig = {
-        apiKey: "AIzaSy...",
-        authDomain: "votre-projet.firebaseapp.com",
-        projectId: "votre-projet",
-        storageBucket: "votre-projet.appspot.com",
-        messagingSenderId: "123456",
-        appId: "1:123456:web:abcdef"
+        apiKey: "VOTRE_API_KEY",
+        authDomain: "VOTRE_PROJET.firebaseapp.com",
+        projectId: "VOTRE_PROJET_ID",
+        storageBucket: "VOTRE_PROJET.appspot.com",
+        messagingSenderId: "XXX",
+        appId: "XXX"
     };
 
     let db;
@@ -464,7 +293,7 @@
         document.getElementById('firebase-status').className = "text-xs font-mono text-green-400 animate-pulse";
         listenToChat();
     } catch (e) {
-        console.error("Firebase Config Error:", e);
+        console.error("Firebase:", e);
         document.getElementById('firebase-status').innerText = "CONFIG ERR";
     }
 
@@ -485,7 +314,10 @@
         e.preventDefault();
         const text = chatInput.value;
         if (!text.trim()) return;
+        
+        // RECUPERATION IDENTITE
         const user = window.currentUser || { name: 'Anonyme', avatar: '', badge: 'Viewer' };
+        
         try {
             await addDoc(collection(db, "hub_chat"), {
                 text: window.parseEmotes(text),
@@ -495,7 +327,7 @@
                 createdAt: serverTimestamp()
             });
             chatInput.value = '';
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Envoi échoué:", e); }
     });
 
     function renderMessage(msg, docId) {
@@ -518,11 +350,10 @@
 </script>
 
 <script>
-    // CONFIG
+    // --- MAIN LOGIC (FIXED) ---
     const API_BASE = window.location.origin;
     const DEFAULT_CHANNEL = 'twitch';
     const AUTO_CYCLE_DURATION_MS = 3 * 60 * 1000;
-    // PARENT DOMAINS (CRUCIAL POUR JUSTPLAYER.FR)
     const PARENT_DOMAINS = ["justplayer.fr", "www.justplayer.fr", "localhost", "127.0.0.1", window.location.hostname];
 
     // STATE
@@ -557,18 +388,16 @@
         if(subName === 'languages') loadTopLanguages();
     }
 
-    // PLAYER LOGIC
+    // PLAYER (FIX PARENT)
     window.launchPlayer = function(channelName, videoId = null) {
         document.getElementById('input-channel').value = channelName;
         document.getElementById('player-channel-status').innerText = "LIVE : " + channelName.toUpperCase();
         
-        // VIDEO
         document.getElementById('twitch-embed-video').innerHTML = '';
         const config = { width: "100%", height: "100%", layout: "video", parent: PARENT_DOMAINS };
         if (videoId) config.video = videoId; else config.channel = channelName;
         videoEmbed = new Twitch.Embed("twitch-embed-video", config);
 
-        // TCHAT (FIX IFRAME)
         const container = document.getElementById('twitch-chat-embed-container');
         const uniqueParents = [...new Set(PARENT_DOMAINS.filter(Boolean))];
         const parentParams = uniqueParents.map(p => `parent=${p}`).join('&');
@@ -586,13 +415,12 @@
         else { tBtn.classList.add('active-twitch'); hBtn.classList.remove('active-hub'); hLayer.classList.remove('active-layer'); tLayer.classList.add('active-layer'); }
     }
 
-    // EMOTES
     const emotes = { 'Pepega': 'https://cdn.betterttv.net/emote/5aca62163e290877a25481ad/1x', 'PogChamp': 'https://static-cdn.jtvnw.net/emoticons/v2/84608/default/dark/1.0', 'Kappa': 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0', 'LUL': 'https://static-cdn.jtvnw.net/emoticons/v2/425618/default/dark/1.0', 'Fire': '🔥', 'Heart': '💜', 'GG': '🎮', 'CoolStory': '😎' };
     function toggleEmotes() { document.getElementById('emote-picker').classList.toggle('active'); }
     window.addEmote = function(code) { document.getElementById('chat-input').value += ` :${code}: `; toggleEmotes(); }
     window.parseEmotes = function(text) { return text.replace(/:(\w+):/g, (m, c) => emotes[c] ? (emotes[c].startsWith('http') ? `<img src="${emotes[c]}" class="chat-emote">` : emotes[c]) : m); }
 
-    // DATA LOGIC
+    // DATA LOGIC (RESTORED)
     const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString('fr-FR') : 'N/A';
     async function loadDashboardData() {
         initCharts();
@@ -609,22 +437,35 @@
         } catch(e) {} finally { document.querySelectorAll('.loading-overlay').forEach(el => el.style.display = 'none'); }
     }
 
+    // LISTS (SUB-TABS)
+    async function loadTopGames() {
+        const container = document.getElementById('games-list-container'); container.innerHTML = "<p>Chargement...</p>";
+        try {
+            const res = await fetch(`${API_BASE}/api/stats/top_games`); const data = await res.json();
+            if(data.games) container.innerHTML = data.games.map((g,i) => `<div class="flex items-center gap-3 bg-[#111] p-3 rounded"><span class="font-bold text-gray-500">#${i+1}</span><img src="${g.box_art_url.replace('{width}','50').replace('{height}','70')}" class="w-8 rounded"><div class="text-sm font-bold text-white">${g.name}</div></div>`).join('');
+        } catch(e){}
+    }
+    async function loadTopLanguages() {
+        const container = document.getElementById('languages-list-container'); container.innerHTML = "<p>Chargement...</p>";
+        try {
+            const res = await fetch(`${API_BASE}/api/stats/languages`); const data = await res.json();
+            if(data.languages) container.innerHTML = data.languages.map(l => `<div class="mb-2"><div class="flex justify-between text-xs mb-1"><span>${l.name}</span><span>${l.percent}%</span></div><div class="w-full bg-gray-900 h-1 rounded"><div class="h-1 bg-pink-500 rounded" style="width:${l.percent}%"></div></div></div>`).join('');
+        } catch(e){}
+    }
+
     // SCANNER
     document.getElementById('form-global-scan').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const query = document.getElementById('input-global-target').value;
-        const boxS = document.getElementById('res-scan-content');
-        boxS.innerHTML = "Scan...";
+        e.preventDefault(); const query = document.getElementById('input-global-target').value;
+        const boxS = document.getElementById('res-scan-content'); boxS.innerHTML = "Scan...";
         try {
             const res = await fetch(`${API_BASE}/scan_target`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ query }) });
             const data = await res.json();
             if(data.success) {
                 const u = data.user_data || data.game_data;
                 boxS.innerHTML = `<div class="text-center"><h3 class="text-xl font-bold text-blue-400">${u.display_name || u.name}</h3><p>${safeFormat(u.viewer_count || u.total_viewers)} Viewers</p></div>`;
-                const boxIA = document.getElementById('res-niche-content'); boxIA.innerHTML = "IA...";
                 const resIA = await fetch(`${API_BASE}/critique_ia`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type: 'niche', query: u.name || u.display_name }) });
                 const dataIA = await resIA.json();
-                boxIA.innerHTML = `<div class="ai-output-enhanced">${dataIA.html_response}</div>`;
+                document.getElementById('res-niche-content').innerHTML = `<div class="ai-output-enhanced">${dataIA.html_response}</div>`;
             } else { throw new Error(); }
         } catch(e) { boxS.innerHTML = "Erreur."; }
     });
@@ -640,7 +481,7 @@
     }
     function updateCharts(h) { if(liveChart && h?.live) { liveChart.data.labels=h.live.labels; liveChart.data.datasets[0].data=h.live.values; liveChart.update(); } }
 
-    // TOOLS (BOOST/RAID/TIME)
+    // TOOLS (BOOST/RAID/TIME) - LOGIQUE RENFORCEE
     document.getElementById('form-schedule').addEventListener('submit', async (e) => {
         e.preventDefault(); const game = document.getElementById('input-schedule-game').value;
         const resBox = document.getElementById('schedule-results');
@@ -671,26 +512,48 @@
         } catch(e) { resBox.innerHTML = "Erreur."; } btn.disabled=false;
     });
 
-    async function checkBoostAndPlay() {
+    document.getElementById('form-boost').addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        const channel = document.getElementById('input-boost').value;
+        const resBox = document.getElementById('boost-results');
+        if(!channel) return;
+        resBox.innerHTML = "Activation...";
+        try {
+            const res = await fetch(`${API_BASE}/stream_boost`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel}) });
+            const data = await res.json();
+            resBox.innerHTML = data.html_response || data.error;
+            if(data.success) checkBoostAndPlay(true);
+        } catch(e) { resBox.innerHTML = "Erreur technique."; }
+    });
+
+    // BOOST LOGIC & ERROR HANDLING
+    async function checkBoostAndPlay(manual = false) {
         if(autoCycleTimer) clearInterval(autoCycleTimer);
         try {
             const res = await fetch(`${API_BASE}/get_default_stream`);
+            if(!res.ok) throw new Error("API Boost Timeout");
             const data = await res.json();
             if(data.success) {
                 launchPlayer(data.channel);
                 if(data.mode !== 'BOOST') autoCycleTimer = setInterval(() => cycleStream('next'), AUTO_CYCLE_DURATION_MS);
-            } else launchPlayer(DEFAULT_CHANNEL);
-        } catch(e) { launchPlayer(DEFAULT_CHANNEL); }
+            } else { launchPlayer(DEFAULT_CHANNEL); }
+        } catch(e) { 
+            console.warn("Boost Error, Fallback Twitch"); 
+            launchPlayer(DEFAULT_CHANNEL); 
+        }
     }
     
     async function cycleStream(dir) {
         try {
-            const res = await fetch(`${API_BASE}/cycle_stream`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({direction:dir}) });
-            const data = await res.json();
-            if(data.success) { launchPlayer(data.channel); checkBoostAndPlay(); }
+            await fetch(`${API_BASE}/cycle_stream`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({direction:dir}) });
+            checkBoostAndPlay(); 
         } catch(e){}
     }
 
+    // AUTH LOGIC (REFRESH + AVATAR SYNC)
+    function startAuth() { window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login_popup', 'width=500,height=650'); }
+    window.addEventListener('message', (event) => { if (event.data === 'auth_success') window.location.reload(); });
+    
     async function checkAuthStatus() {
         const btn = document.getElementById('btn-twitch-login');
         try {
@@ -698,16 +561,20 @@
             const data = await res.json();
             isConnected = data.is_connected;
             if(isConnected) {
+                // MISE A JOUR IDENTITE GLOBALE
                 window.currentUser.name = data.display_name;
                 window.currentUser.avatar = data.profile_image_url;
+                
+                // MISE A JOUR UI TCHAT IMMEDIATEMENT
                 document.getElementById('my-avatar').src = window.currentUser.avatar;
                 document.getElementById('my-username').innerText = window.currentUser.name;
+                
                 btn.innerHTML = `<i class="fas fa-check"></i> ${data.display_name}`;
                 btn.style.background = '#00c853';
                 btn.onclick = async () => { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); window.location.reload(); };
                 if(document.getElementById('tab-followed').classList.contains('active')) loadFollowedStreams();
             } else {
-                btn.onclick = () => window.open(`${API_BASE}/twitch_auth_start`, 'twitch_login_popup', 'width=500,height=650');
+                btn.onclick = startAuth;
             }
         } catch(e){}
     }
@@ -726,10 +593,6 @@
             } else { list.innerHTML = "<p>Aucun live.</p>"; }
         } catch(e) {}
     }
-    
-    // Placeholders
-    async function loadTopGames() {}
-    async function loadTopLanguages() {}
 </script>
 </body>
 </html>
