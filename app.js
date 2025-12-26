@@ -1,11 +1,9 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V50 - DATA & UI FIX + CHAT HUB)
+ * STREAMER & NICHE AI HUB - BACKEND (V60 - SOCKET MASTER + MODERATION)
  * =======================================================
  * - Moteur IA : @google/genai (Gemini 2.5 Flash)
- * - Scan : Enrichi via endpoint /channels (Tags, Langue, Titre)
- * - Raid : Correction images (Taille 320x180)
- * - Planning : Prompt IA forcé pour donner des horaires précis
- * - CHAT HUB : Nouveau système de chat avec logins Twitch
+ * - Scan & Data : Enrichi via endpoint /channels
+ * - CHAT HUB : SOCKET.IO ACTIVÉ (Temps réel + Modération + XP)
  */
 
 require('dotenv').config();
@@ -17,6 +15,10 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
+
+// ✅ AJOUTS POUR SOCKET.IO
+const http = require('http');
+const { Server } = require('socket.io');
 
 // ✅ MOTEUR IA
 const { GoogleGenAI } = require('@google/genai');
@@ -57,6 +59,15 @@ if (serviceAccount) { try { db.settings({ projectId: serviceAccount.project_id, 
 
 const app = express();
 
+// ✅ CRÉATION DU SERVEUR HTTP & SOCKET.IO
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Accepte toutes les connexions (Localhost, Render, etc.)
+        methods: ["GET", "POST"]
+    }
+});
+
 // =========================================================
 // 1. CONFIGURATION
 // =========================================================
@@ -87,7 +98,7 @@ app.use(express.static(path.join(__dirname)));
 const CACHE = {
     twitchTokens: {}, twitchUser: null, boostedStream: null, lastScanData: null, 
     globalStreamRotation: { streams: [], currentIndex: 0, lastFetchTime: 0, fetchCooldown: 3 * 60 * 1000 },
-    chatMessages: [], // ✅ NOUVEAU : Cache des messages du chat
+    chatMessages: [], 
 };
 
 async function getTwitchToken(tokenType = 'app') {
@@ -150,7 +161,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
         if (tokenData.access_token) {
             const userRes = await twitchAPI('users', tokenData.access_token);
             const user = userRes.data[0];
-            CACHE.twitchUser = { display_name: user.display_name, id: user.id, access_token: tokenData.access_token, expiry: Date.now() + (tokenData.expires_in * 1000) };
+            CACHE.twitchUser = { display_name: user.display_name, id: user.id, access_token: tokenData.access_token, expiry: Date.now() + (tokenData.expires_in * 1000), profile_image_url: user.profile_image_url };
             res.send("<script>window.opener.postMessage('auth_success', '*');window.close();</script>");
         } else { res.send("Erreur Token."); }
     } catch (e) { res.send("Erreur Serveur."); }
@@ -158,7 +169,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
 
 app.post('/twitch_logout', (req, res) => { CACHE.twitchUser = null; res.json({ success: true }); });
 app.get('/twitch_user_status', (req, res) => {
-    if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) return res.json({ is_connected: true, display_name: CACHE.twitchUser.display_name });
+    if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) return res.json({ is_connected: true, display_name: CACHE.twitchUser.display_name, profile_image_url: CACHE.twitchUser.profile_image_url, login: CACHE.twitchUser.display_name.toLowerCase() });
     res.json({ is_connected: false });
 });
 
@@ -181,66 +192,64 @@ app.get('/get_latest_vod', async (req, res) => {
 });
 
 // =========================================================
-// 4. ✅ ROUTES CHAT HUB (NOUVEAU)
+// 4. ✅ LOGIQUE SOCKET.IO (TCHAT, MODÉRATION, XP)
 // =========================================================
 
-// Envoyer un message au chat
-app.post('/chat/send', (req, res) => {
-    const { message } = req.body;
-    
-    if (!CACHE.twitchUser) return res.status(401).json({ success: false, error: "Non connecté" });
-    if (!message || message.trim().length === 0) return res.status(400).json({ success: false, error: "Message vide" });
-    if (message.length > 500) return res.status(400).json({ success: false, error: "Message trop long" });
-    
-    const newMsg = {
-        id: crypto.randomBytes(8).toString('hex'),
-        username: CACHE.twitchUser.display_name,
-        message: message.trim(),
-        timestamp: Date.now(),
-        avatar: CACHE.twitchUser.avatar_url || null
-    };
-    
-    // Stock en cache (max 100 messages)
-    CACHE.chatMessages.unshift(newMsg);
-    if (CACHE.chatMessages.length > 100) CACHE.chatMessages.pop();
-    
-    // Sauvegarde en DB Firebase (async)
-    try {
-        db.collection('chat_messages').add({
-            username: newMsg.username,
-            message: newMsg.message,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            user_id: CACHE.twitchUser.id
-        }).catch(e => console.error("Erreur DB Chat:", e));
-    } catch(e) {}
-    
-    res.json({ success: true, msg: newMsg });
-});
+io.on('connection', (socket) => {
+    console.log(`⚡ Client connecté: ${socket.id}`);
 
-// Récupérer les messages du chat
-app.get('/chat/messages', (req, res) => {
-    res.json({ success: true, messages: CACHE.chatMessages });
-});
+    // RÉCEPTION D'UN MESSAGE TCHAT
+    socket.on('chat_message', async (data) => {
+        // 1. Vérification BANNISSEMENT
+        try {
+            const banRef = await db.collection('banned_users').doc(data.login).get();
+            if (banRef.exists) {
+                socket.emit('chat_error', "Vous êtes banni.");
+                return;
+            }
+        } catch(e) {}
 
-// Charger l'historique du chat depuis Firebase
-app.get('/chat/history', async (req, res) => {
-    try {
-        const snap = await db.collection('chat_messages').orderBy('timestamp', 'desc').limit(50).get();
-        let msgs = [];
-        snap.forEach(doc => {
-            const data = doc.data();
-            msgs.push({
-                id: doc.id,
-                username: data.username,
-                message: data.message,
-                timestamp: data.timestamp ? data.timestamp.toMillis() : 0
+        // 2. BROADCAST (Renvoi à tout le monde)
+        io.emit('chat_message', data);
+
+        // 3. SAUVEGARDE & XP (Async)
+        try {
+            // Sauvegarde message
+            await db.collection('hub_messages').add({
+                ...data,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
             });
-        });
-        msgs.reverse(); // Ordre chronologique
-        res.json({ success: true, messages: msgs });
-    } catch(e) {
-        res.json({ success: true, messages: [] });
-    }
+
+            // Gain XP (+10)
+            if (data.login && data.login !== 'guest') {
+                const userRef = db.collection('users').doc(data.login);
+                await userRef.set({
+                    username: data.user,
+                    avatar: data.avatar,
+                    xp: admin.firestore.FieldValue.increment(10),
+                    last_active: admin.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+        } catch(e) { console.error("Erreur DB/Socket:", e); }
+    });
+
+    // COMMANDE DE BANNISSEMENT
+    socket.on('ban_user', async (data) => {
+        console.log(`🔨 Ban requested for: ${data.target_login}`);
+        try {
+            await db.collection('banned_users').doc(data.target_login).set({
+                banned_by: data.admin_login,
+                reason: "Chat Moderation",
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+            // Notifier tout le monde (pour nettoyer le tchat si besoin ou kick)
+            io.emit('user_banned', { login: data.target_login });
+        } catch(e) { console.error("Erreur Ban:", e); }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client déconnecté');
+    });
 });
 
 // =========================================================
@@ -507,4 +516,5 @@ async function recordStats() {
 setInterval(recordStats, 30 * 60 * 1000); 
 setTimeout(recordStats, 10000);
 
-app.listen(PORT, () => console.log(`🚀 SERVER V50 + CHAT HUB ON PORT ${PORT}`));
+// ✅ DÉMARRAGE DU SERVEUR (HTTP + SOCKET)
+server.listen(PORT, () => console.log(`🚀 SERVER V60 + SOCKET HUB ON PORT ${PORT}`));
