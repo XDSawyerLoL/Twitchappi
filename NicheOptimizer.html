@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Streamer & Niche AI Hub - Ultimate Cockpit Dashboard">
-<title>Streamer & Niche AI Hub - COCKPIT MASTER V57 (CHAT FIX)</title>
+<title>Streamer & Niche AI Hub - COCKPIT MASTER V58 (FINAL SOCKET)</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -46,22 +47,23 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 .chat-view { display: none; width: 100%; height: 100%; }
 .chat-view.active { display: block; }
 
-/* --- STYLES HUB CHAT --- */
+/* --- STYLES HUB CHAT (UPDATE AVATAR & EMOTES & XP) --- */
 #hub-chat-interface { display: flex; flex-direction: column; height: 100%; background: #0e0e0e; }
 #hub-points-display { padding: 8px 15px; background: linear-gradient(90deg, #111, #0a0a0a); border-bottom: 1px solid #333; font-size: 11px; color: var(--color-time-gold); display: flex; justify-content: space-between; align-items: center; font-family: 'Orbitron', sans-serif; }
-#hub-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+#hub-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
 
-/* Message Design avec Avatar */
-.hub-msg-row { display: flex; gap: 10px; align-items: flex-start; animation: fadeIn 0.2s ease-out; }
-.hub-avatar { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #333; object-fit: cover; flex-shrink: 0; }
+/* Nouveau Style Message avec Avatar */
+.hub-msg-row { display: flex; gap: 10px; align-items: flex-start; opacity: 0; animation: msgFadeIn 0.3s forwards; }
+@keyframes msgFadeIn { to { opacity: 1; } }
+
+.hub-avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #333; object-fit: cover; flex-shrink: 0; }
 .hub-msg-content { background: #1a1a1a; padding: 8px 12px; border-radius: 0 10px 10px 10px; font-size: 13px; border-left: 2px solid var(--color-border-medium); word-wrap: break-word; line-height: 1.4; flex-grow: 1; color: #ddd; }
 
 .hub-msg-row.user-me { flex-direction: row-reverse; }
 .hub-msg-row.user-me .hub-msg-content { border-left-color: var(--color-primary-pink); background: #261019; border-radius: 10px 0 10px 10px; text-align: right; }
 .hub-msg-row.user-me .hub-avatar { border-color: var(--color-primary-pink); }
 .msg-author { font-size: 10px; color: #888; font-weight: bold; margin-bottom: 3px; display: block; text-transform: uppercase; }
-.chat-emote { vertical-align: middle; height: 28px; display: inline-block; margin: 0 2px; transition: transform 0.2s; }
-.chat-emote:hover { transform: scale(1.2); }
+.chat-emote { vertical-align: middle; height: 28px; display: inline-block; margin: 0 2px; }
 
 /* Barre d'émotes */
 .emote-bar { display: flex; gap: 5px; padding: 5px 10px; background: #151515; overflow-x: auto; border-top: 1px solid #333; }
@@ -71,8 +73,6 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 
 .hub-msg.system { border-left: 3px solid var(--color-secondary-blue); font-style: italic; color: #aaa; background: transparent; padding: 5px 10px; text-align: center; }
 .hub-input-area { padding: 10px; border-top: 1px solid var(--color-border-dark); background: #111; display: flex; gap: 5px; }
-
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 /* --- INPUTS & BUTTONS --- */
 .player-quick-input{background:var(--color-bg-dark);border:1px solid var(--color-border-medium);color:white;padding:8px 12px;border-radius:4px;font-size:13px;width:220px;transition:border-color 0.3s;}
@@ -133,7 +133,7 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 <body>
 <div id="twitch-lucky-main">
 <h1 class="text-3xl">
-<span class="h1-blue-accent">STREAMER</span> HUB V57 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">CHAT-FIX</span>
+<span class="h1-blue-accent">STREAMER</span> HUB V58 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">CHAT-FIXED</span>
 </h1>
 <div class="subtitle-center">Cockpit Unifié • Données Réelles • Intelligence Artificielle • Rotation 3min</div>
 <div class="tabs-nav-container">
@@ -267,7 +267,7 @@ let autoCycleTimer = null;
 let boostTimeout = null;
 let isConnected = false;
 
-// --- CONFIG FIREBASE (REMPLIR OBLIGATOIREMENT !!!) ---
+// --- CONFIG FIREBASE (A REMPLIR IMPERATIVEMENT) ---
 const firebaseConfig = {
     apiKey: "TA_CLE_API_ICI",
     authDomain: "TON_PROJET.firebaseapp.com",
@@ -278,6 +278,10 @@ const firebaseConfig = {
 };
 let db = null;
 let currentUserData = { login: 'guest', display_name: 'Invité', avatar: 'https://ui-avatars.com/api/?name=Invité&background=random' };
+
+// --- SOCKET IO ---
+let socket = null;
+try { socket = io(API_BASE); } catch(e) { console.warn("Socket.io non connecté"); }
 
 // --- DICTIONNAIRE EMOTES (VERSION HD) ---
 const EMOTES = {
@@ -310,7 +314,6 @@ function initFirebase() {
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
-            listenToMessages();
             listenToXP(); 
         } catch(e) { console.error("Firebase err:", e); }
     }
@@ -336,18 +339,16 @@ function switchChatTab(type, btn) {
     document.getElementById('chat-view-' + type).classList.add('active');
 }
 
-// --- LOGIQUE CHAT (XP + ENVOI + AVATAR + EMOTES + FIX AFFICHAGE) ---
+// --- LOGIQUE CHAT SOCKET.IO (AVATAR + EMOTES + XP + FIX AFFICHAGE) ---
 async function sendHubMessage(e) {
     e.preventDefault();
     const input = document.getElementById('hub-input-msg');
     const text = input.value.trim();
     if(!text) return;
     
-    // --- 1. AFFICHAGE IMMEDIAT (OPTIMISTIC UI) ---
-    // On affiche le message tout de suite pour l'utilisateur sans attendre le serveur
+    // 1. AFFICHAGE IMMÉDIAT (Pour éviter la disparition)
     const container = document.getElementById('hub-messages');
-    const processedText = parseText(text); // On parse les emotes direct
-    
+    const processedText = parseText(text); // Parse Emotes
     const div = document.createElement('div');
     div.className = 'hub-msg-row user-me';
     div.innerHTML = `
@@ -359,60 +360,59 @@ async function sendHubMessage(e) {
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
     
-    // Si pas de DB configurée, on s'arrête là (mode démo local)
-    if(!db) { input.value = ''; return; }
-    
-    try {
-        // --- 2. SAUVEGARDE DB ---
-        await db.collection("hub_messages").add({
-            text: text,
+    // 2. ENVOI SOCKET (SI DISPO)
+    if(socket) {
+        socket.emit('chat_message', {
             user: currentUserData.display_name,
-            login: currentUserData.login,
+            text: text,
             avatar: currentUserData.avatar,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            login: currentUserData.login
         });
-        
-        // --- 3. XP ---
-        if(currentUserData.login !== 'guest') {
-            const userRef = db.collection('users').doc(currentUserData.login);
-            await userRef.set({
-                username: currentUserData.display_name,
+    }
+    
+    // 3. ENREGISTREMENT XP & FIREBASE (SI DISPO)
+    if(db) {
+        try {
+            await db.collection("hub_messages").add({
+                text: text,
+                user: currentUserData.display_name,
+                login: currentUserData.login,
                 avatar: currentUserData.avatar,
-                xp: firebase.firestore.FieldValue.increment(10),
-                last_active: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        }
-
-        input.value = '';
-    } catch(err) { console.error("Erreur envoi:", err); }
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            if(currentUserData.login !== 'guest') {
+                const userRef = db.collection('users').doc(currentUserData.login);
+                await userRef.set({
+                    username: currentUserData.display_name,
+                    avatar: currentUserData.avatar,
+                    xp: firebase.firestore.FieldValue.increment(10),
+                    last_active: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+        } catch(err) { console.error("Save err:", err); }
+    }
+    input.value = '';
 }
 
-function listenToMessages() {
-    if(!db) return;
-    db.collection("hub_messages").orderBy("timestamp", "asc").limitToLast(50).onSnapshot((snapshot) => {
-        // Pour éviter les doublons avec l'affichage optimiste, on pourrait filtrer,
-        // mais pour l'instant on recharge tout pour être sûr de la synchro.
-        // Une méthode plus propre serait de n'ajouter que les nouveaux qui ne sont pas de "moi".
+// ÉCOUTE DES MESSAGES ENTRANTS (DES AUTRES)
+if(socket) {
+    socket.on('chat_message', (data) => {
+        // On n'affiche pas nos propres messages ici car déjà affichés en "optimistic"
+        if(data.login === currentUserData.login) return; 
         
         const container = document.getElementById('hub-messages');
-        container.innerHTML = '<div class="hub-msg system">Bienvenue dans le tchat des players!</div>';
-        
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            const isMe = data.login === currentUserData.login;
-            const userAvatar = data.avatar || `https://ui-avatars.com/api/?name=${data.user}&background=random`;
-            const processedText = parseText(data.text);
+        const userAvatar = data.avatar || `https://ui-avatars.com/api/?name=${data.user}&background=random`;
+        const processedText = parseText(data.text);
 
-            const div = document.createElement('div');
-            div.className = `hub-msg-row ${isMe ? 'user-me' : ''}`;
-            div.innerHTML = `
-                <img src="${userAvatar}" class="hub-avatar" alt="Avatar">
-                <div class="hub-msg-content">
-                    <span class="msg-author">${data.user}</span>
-                    ${processedText}
-                </div>`;
-            container.appendChild(div);
-        });
+        const div = document.createElement('div');
+        div.className = 'hub-msg-row';
+        div.innerHTML = `
+            <img src="${userAvatar}" class="hub-avatar" alt="Avatar">
+            <div class="hub-msg-content">
+                <span class="msg-author">${data.user}</span>
+                ${processedText}
+            </div>`;
+        container.appendChild(div);
         container.scrollTop = container.scrollHeight;
     });
 }
@@ -527,7 +527,6 @@ const safeFormat = (val) => val ? Number(val).toLocaleString('fr-FR') : '-';
 window.launchPlayer = function(channelName, videoId = null) {
     if(!channelName) return;
     
-    // 1. VIDEO
     if (embed) {
         if(!videoId && embed.getChannel() !== channelName) embed.setChannel(channelName);
         else if(videoId && embed.getVideo() !== videoId) embed.setVideo(videoId);
@@ -541,7 +540,6 @@ window.launchPlayer = function(channelName, videoId = null) {
         embed = new Twitch.Embed("twitch-embed", config);
     }
 
-    // 2. CHAT IFRAME (FIXED)
     const host = window.location.hostname || "localhost";
     let chatUrl = `https://www.twitch.tv/embed/${channelName}/chat?darkpopout&theme=dark`;
     chatUrl += `&parent=${host}`;
