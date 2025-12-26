@@ -1,5 +1,8 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND V69 (SOCKET + AUTH PERSISTANTE)
+ * STREAMER & NICHE AI HUB - BACKEND (V50 + CHAT MODULE)
+ * =======================================================
+ * - Base : V50 (Scan, Raid, Planning) INCHANGÉE
+ * - Ajout : Socket.io pour le Tchat Hub
  */
 
 require('dotenv').config();
@@ -12,14 +15,14 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// ✅ 1. MODULES SOCKET (REQUIS POUR LE TCHAT)
+// ✅ 1. AJOUT SOCKET.IO
 const http = require('http');
 const { Server } = require('socket.io');
 
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
-// --- INITIALISATION FIREBASE ---
+// --- FIREBASE ---
 let serviceAccount;
 let db = null;
 
@@ -47,17 +50,20 @@ if (serviceAccount) {
 
 const app = express();
 
-// ✅ 2. SERVEUR HTTP + SOCKET
+// ✅ 2. CONFIGURATION SERVEUR SOCKET
 const server = http.createServer(app); 
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
+// --- CONFIG ---
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
+
+const GEMINI_MODEL = "gemini-2.5-flash"; 
 
 let aiClient = null;
 if (GEMINI_API_KEY) {
@@ -77,9 +83,9 @@ const CACHE = {
     chatMessages: []
 };
 
-// ✅ 3. LOGIQUE TCHAT SOCKET.IO
+// ✅ 3. LOGIQUE TCHAT (INJECTÉE)
 io.on('connection', (socket) => {
-    // Envoi historique
+    // Envoi historique rapide
     socket.emit('history', CACHE.chatMessages.slice(-50));
 
     socket.on('chat_message', async (data) => {
@@ -99,7 +105,6 @@ io.on('connection', (socket) => {
                     ...data,
                     timestamp: admin.firestore.FieldValue.serverTimestamp()
                 });
-                // XP
                 if (data.login && data.login !== 'guest') {
                     db.collection('users').doc(data.login).set({
                         username: data.user,
@@ -115,18 +120,18 @@ io.on('connection', (socket) => {
     socket.on('ban_user', (data) => {
         CACHE.bannedUsers.add(data.target_login);
         io.emit('user_banned', { login: data.target_login });
-        if(db) db.collection('banned_users').doc(data.target_login).set({ banned: true }).catch(()=>{});
     });
 });
 
-// --- API TWITCH ---
+// --- API ROUTES (STRICTEMENT INCHANGÉES) ---
+
 async function getTwitchToken(tokenType = 'app') {
     if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) return CACHE.twitchTokens[tokenType].access_token;
     try {
         const res = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, { method: 'POST' });
         const data = await res.json();
         if (data.access_token) {
-            CACHE.twitchTokens[tokenType] = { access_token: data.access_token, expiry: Date.now() + (data.expires_in * 1000) };
+            CACHE.twitchTokens[tokenType] = { access_token: data.access_token, expiry: Date.now() + (data.expires_in * 1000) - 300000 };
             return data.access_token;
         }
     } catch (e) { return null; }
@@ -135,12 +140,25 @@ async function getTwitchToken(tokenType = 'app') {
 
 async function twitchAPI(endpoint, token = null) {
     const accessToken = token || await getTwitchToken('app');
-    if (!accessToken) return { data: [] };
+    if (!accessToken) throw new Error("No Token.");
     const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, { headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` } });
+    if (res.status === 401) { if (token === CACHE.twitchTokens['app']?.access_token) CACHE.twitchTokens['app'] = null; throw new Error(`Token expiré.`); }
     return res.json();
 }
 
-// ✅ 4. AUTHENTIFICATION RENFORCÉE (COOKIES)
+async function runGeminiAnalysis(prompt) {
+    if (!aiClient) return { success: false, html_response: "<p>❌ IA non initialisée.</p>" };
+    try {
+        const response = await aiClient.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            config: { systemInstruction: "Tu es un expert Data Twitch. Réponds UNIQUEMENT en HTML simple (<h4>, <ul>, <li>, <p>). Sois précis, donne des chiffres et des horaires concrets." }
+        });
+        const text = response.text ? response.text.trim() : "Réponse vide.";
+        return { success: true, html_response: text };
+    } catch (e) { return { success: false, html_response: `<p style="color:red">Erreur IA: ${e.message}</p>` }; }
+}
+
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
@@ -149,7 +167,7 @@ app.get('/twitch_auth_start', (req, res) => {
 });
 
 app.get('/twitch_auth_callback', async (req, res) => {
-    const { code } = req.query;
+    const { code, state } = req.query;
     try {
         const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
             method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -159,83 +177,26 @@ app.get('/twitch_auth_callback', async (req, res) => {
         if (tokenData.access_token) {
             const userRes = await twitchAPI('users', tokenData.access_token);
             const user = userRes.data[0];
-            
-            // Mise en cache mémoire
-            CACHE.twitchUser = { 
-                display_name: user.display_name, 
-                id: user.id, 
-                access_token: tokenData.access_token, 
-                profile_image_url: user.profile_image_url,
-                expiry: Date.now() + (tokenData.expires_in * 1000)
-            };
-            
-            // ✅ SAUVEGARDE COOKIE (POUR SURVIVRE AU RESTART)
-            res.cookie('user_token', tokenData.access_token, { httpOnly: true, secure: true, maxAge: 30 * 24 * 3600000 });
+            CACHE.twitchUser = { display_name: user.display_name, id: user.id, access_token: tokenData.access_token, expiry: Date.now() + (tokenData.expires_in * 1000), profile_image_url: user.profile_image_url };
             res.send("<script>window.opener.postMessage('auth_success', '*');window.close();</script>");
-        } else { res.send("Erreur Token"); }
-    } catch (e) { res.send("Erreur Serveur"); }
+        } else { res.send("Erreur Token."); }
+    } catch (e) { res.send("Erreur Serveur."); }
 });
 
-app.post('/twitch_logout', (req, res) => { 
-    CACHE.twitchUser = null; 
-    res.clearCookie('user_token');
-    res.json({ success: true }); 
-});
-
-// ✅ 5. ROUTES UTILISATEUR (AVEC FALLBACK COOKIE)
-app.get('/twitch_user_status', async (req, res) => {
-    const userToken = req.cookies.user_token;
-    
-    // Si pas en mémoire mais cookie présent -> On recharge depuis Twitch
-    if (!CACHE.twitchUser && userToken) {
-        try {
-            const uRes = await fetch('https://api.twitch.tv/helix/users', { headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${userToken}` }});
-            const uData = await uRes.json();
-            if(uData.data && uData.data.length > 0) {
-                const user = uData.data[0];
-                CACHE.twitchUser = { 
-                    display_name: user.display_name, 
-                    id: user.id, 
-                    access_token: userToken, 
-                    profile_image_url: user.profile_image_url,
-                    expiry: Date.now() + 3600000 
-                };
-            }
-        } catch(e){}
-    }
-
-    if (CACHE.twitchUser) {
-        return res.json({ 
-            is_connected: true, 
-            display_name: CACHE.twitchUser.display_name, 
-            profile_image_url: CACHE.twitchUser.profile_image_url, 
-            login: CACHE.twitchUser.display_name.toLowerCase() 
-        });
-    }
+app.post('/twitch_logout', (req, res) => { CACHE.twitchUser = null; res.json({ success: true }); });
+app.get('/twitch_user_status', (req, res) => {
+    if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) return res.json({ is_connected: true, display_name: CACHE.twitchUser.display_name, profile_image_url: CACHE.twitchUser.profile_image_url, login: CACHE.twitchUser.display_name.toLowerCase() });
     res.json({ is_connected: false });
 });
 
 app.get('/followed_streams', async (req, res) => {
-    const userToken = req.cookies.user_token;
-    if (!CACHE.twitchUser && !userToken) return res.status(401).json({ success: false });
-    
-    const token = CACHE.twitchUser?.access_token || userToken;
-    // Si on a le token mais pas l'ID user en cache, on le récupère
-    let userId = CACHE.twitchUser?.id;
-    
+    if (!CACHE.twitchUser) return res.status(401).json({ success: false });
     try {
-        if(!userId) {
-            const uRes = await fetch('https://api.twitch.tv/helix/users', { headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${token}` }});
-            const uData = await uRes.json();
-            userId = uData.data[0].id;
-        }
-
-        const data = await twitchAPI(`streams/followed?user_id=${userId}`, token);
+        const data = await twitchAPI(`streams/followed?user_id=${CACHE.twitchUser.id}`, CACHE.twitchUser.access_token);
         return res.json({ success: true, streams: data.data.map(s => ({ user_name: s.user_name, user_login: s.user_login, viewer_count: s.viewer_count, thumbnail_url: s.thumbnail_url })) });
     } catch (e) { return res.status(500).json({ success: false }); }
 });
 
-// --- AUTRES ROUTES (INCHANGÉES) ---
 app.get('/get_latest_vod', async (req, res) => {
     try {
         const u = await twitchAPI(`users?login=${req.query.channel}`);
@@ -293,8 +254,7 @@ app.get('/api/stats/global', async (req, res) => {
         let v = 0; data.data.forEach(s => v += s.viewer_count);
         const est = Math.floor(v * 3.8);
         const topGame = data.data[0]?.game_name || "N/A";
-        const history = { live: { labels:["-1h", "Now"], values:[est*0.9, est] } };
-        res.json({ success: true, total_viewers: est, total_channels: "98k+", top_game_name: topGame, history: history });
+        res.json({ success: true, total_viewers: est, total_channels: "98k+", top_game_name: topGame });
     } catch(e) { res.status(500).json({error:e.message}); }
 });
 
@@ -325,25 +285,14 @@ app.post('/scan_target', async (req, res) => {
             let streamInfo = null;
             try { const sRes = await twitchAPI(`streams?user_id=${u.id}`); if(sRes.data.length) streamInfo = sRes.data[0]; } catch(e) {}
             const isLive = !!streamInfo;
-            const createdDate = new Date(u.created_at).toLocaleDateString('fr-FR');
-            let viewDisplay = u.view_count === 0 ? "Non public" : u.view_count;
             const uData = { 
                 login: u.login, display_name: u.display_name, profile_image_url: u.profile_image_url, 
-                description: u.description || "Aucune bio.", created_at: createdDate,
-                game_name: channelInfo.game_name || "Aucun", title: channelInfo.title || "Aucun",
-                language: channelInfo.broadcaster_language || "fr", view_count: viewDisplay,
+                description: u.description, game_name: channelInfo.game_name || "N/A", 
                 is_live: isLive, viewer_count: isLive ? streamInfo.viewer_count : 0, 
                 ai_calculated_niche_score: "4.5/5"
             };
+            CACHE.lastScanData = { type: 'user', ...uData };
             return res.json({ success: true, type:'user', user_data: uData });
-        }
-        const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=1`);
-        if(gRes.data.length) {
-            const g = gRes.data[0];
-            const sRes = await twitchAPI(`streams?game_id=${g.id}&first=20`);
-            const total = sRes.data.reduce((a,b)=>a+b.viewer_count,0);
-            const gData = { name: g.name, box_art_url: g.box_art_url.replace('{width}','60').replace('{height}','80'), total_viewers: total, ai_calculated_niche_score: total < 5000 ? 4.0 : 2.0 };
-            return res.json({ success: true, type:'game', game_data: gData });
         }
         res.json({ success: false });
     } catch(e) { res.status(500).json({error:e.message}); }
@@ -397,6 +346,15 @@ app.get('/export_csv', (req, res) => {
     res.send(`Type,Nom\n${CACHE.lastScanData?.type},${CACHE.lastScanData?.login}`);
 });
 
+app.get('/check_boost_status', async (req, res) => {
+    const now = Date.now();
+    try {
+        const boostQuery = await db.collection('boosts').where('endTime', '>', now).limit(1).get();
+        if (!boostQuery.empty) return res.json({ is_boosted: true, channel: boostQuery.docs[0].data().channel, remaining_seconds: Math.ceil((boostQuery.docs[0].data().endTime - now) / 1000) });
+    } catch(e) {}
+    return res.json({ is_boosted: false });
+});
+
 app.get('/', (req,res) => {
     const indexPath = path.join(__dirname, 'index.html');
     const nichePath = path.join(__dirname, 'NicheOptimizer.html');
@@ -413,5 +371,5 @@ async function recordStats() {
 setInterval(recordStats, 30 * 60 * 1000); 
 setTimeout(recordStats, 10000);
 
-// ✅ 5. DEMARRAGE SERVEUR (LE FIX)
-server.listen(PORT, () => console.log(`🚀 SERVER V69 ON PORT ${PORT}`));
+// ✅ 4. DÉMARRAGE VIA SERVER.LISTEN (LE FIX POUR LE TCHAT)
+server.listen(PORT, () => console.log(`🚀 SERVER V50 + CHAT ON PORT ${PORT}`));
