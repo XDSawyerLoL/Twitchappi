@@ -4,19 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Streamer & Niche AI Hub - Ultimate Cockpit Dashboard">
-<title>Streamer & Niche AI Hub - COCKPIT MASTER V55 (XP & EMOTES)</title>
+<title>Streamer & Niche AI Hub - COCKPIT MASTER V37 (SOCKET IO CHAT)</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
 <style>
-/* --- STYLES EXISTANTS --- */
+/* --- STYLES EXISTANTS (INCHANGÉS) --- */
 :root{--color-bg-dark:#0d0d0d;--color-bg-medium:#1a1a1a;--color-bg-light:#111;--color-primary-pink:#ff0099;--color-secondary-blue:#22c7ef;--color-time-gold:#ffd700;--color-ai-niche:#59d682;--color-ai-repurpose:#9933ff;--color-ai-growth:#ffcc00;--color-ai-action:#e34a64;--color-text-dimmed:#9aa3a8;--color-border-dark:#2e2e2e;--color-border-medium:#333;--shadow-pink:0 0 15px rgba(255, 0, 153, 0.4);--shadow-blue:0 0 15px rgba(34, 199, 239, 0.4);--shadow-action:0 0 15px rgba(227, 74, 100, 0.4);}
 body{background-color:var(--color-bg-dark);color:#fff;font-family:'Inter', Arial, sans-serif;margin:0;padding:0;overflow-x:hidden;}
 #twitch-lucky-main{max-width:1400px;margin:20px auto;padding:10px;}
@@ -46,15 +48,16 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 .chat-view { display: none; width: 100%; height: 100%; }
 .chat-view.active { display: block; }
 
-/* --- STYLES HUB CHAT (UPDATE AVATAR & EMOTES & XP) --- */
+/* --- STYLES HUB CHAT (SOCKET IO) --- */
 #hub-chat-interface { display: flex; flex-direction: column; height: 100%; background: #0e0e0e; }
 #hub-points-display { padding: 8px 15px; background: linear-gradient(90deg, #111, #0a0a0a); border-bottom: 1px solid #333; font-size: 11px; color: var(--color-time-gold); display: flex; justify-content: space-between; align-items: center; font-family: 'Orbitron', sans-serif; }
 #hub-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
 
-/* Nouveau Style Message avec Avatar */
+/* Style Message avec Avatar */
 .hub-msg-row { display: flex; gap: 10px; align-items: flex-start; }
 .hub-avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #333; object-fit: cover; flex-shrink: 0; }
-.hub-msg-content { background: #1a1a1a; padding: 8px 12px; border-radius: 0 10px 10px 10px; font-size: 13px; border-left: 2px solid var(--color-border-medium); word-wrap: break-word; line-height: 1.4; flex-grow: 1; }
+.hub-msg-content { background: #1a1a1a; padding: 8px 12px; border-radius: 0 10px 10px 10px; font-size: 13px; border-left: 2px solid var(--color-border-medium); word-wrap: break-word; line-height: 1.4; flex-grow: 1; color: #ddd; }
+
 .hub-msg-row.user-me { flex-direction: row-reverse; }
 .hub-msg-row.user-me .hub-msg-content { border-left-color: var(--color-primary-pink); background: #261019; border-radius: 10px 0 10px 10px; text-align: right; }
 .hub-msg-row.user-me .hub-avatar { border-color: var(--color-primary-pink); }
@@ -67,11 +70,10 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 .emote-btn:hover { background: rgba(255,255,255,0.1); }
 .emote-btn img { height: 20px; }
 
-.hub-msg.system { border-left: 3px solid var(--color-secondary-blue); font-style: italic; color: #aaa; background: transparent; padding: 5px 10px; }
+.hub-msg.system { border-left: 3px solid var(--color-secondary-blue); font-style: italic; color: #aaa; background: transparent; padding: 5px 10px; text-align: center; }
 .hub-input-area { padding: 10px; border-top: 1px solid var(--color-border-dark); background: #111; display: flex; gap: 5px; }
 
-/* --- FIN NOUVEAUX STYLES --- */
-
+/* --- INPUTS & BUTTONS --- */
 .player-quick-input{background:var(--color-bg-dark);border:1px solid var(--color-border-medium);color:white;padding:8px 12px;border-radius:4px;font-size:13px;width:220px;transition:border-color 0.3s;}
 .player-quick-input:focus{border-color:var(--color-secondary-blue);outline:none;}
 .btn-cycle{background:var(--color-bg-dark);color:var(--color-secondary-blue);border:1px solid var(--color-secondary-blue);padding:8px 15px;border-radius:4px;font-size:12px;transition:0.2s;cursor:pointer;}
@@ -130,26 +132,16 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 <body>
 <div id="twitch-lucky-main">
 <h1 class="text-3xl">
-<span class="h1-blue-accent">STREAMER</span> HUB V55 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">XP & EMOTES</span>
+<span class="h1-blue-accent">STREAMER</span> HUB V37 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">CHAT-EDITION</span>
 </h1>
 <div class="subtitle-center">Cockpit Unifié • Données Réelles • Intelligence Artificielle • Rotation 3min</div>
 <div class="tabs-nav-container">
 <div class="flex flex-wrap flex-tabs">
-<button class="tab-btn active" data-tab-id="tab-followed" onclick="openTab('tab-followed')">
-<i class="fas fa-key mr-2"></i> MON FIL
-</button>
-<button class="tab-btn" data-tab-id="tab-dashboard" onclick="openTab('tab-dashboard')" style="color:white; border-top: 3px solid var(--color-secondary-blue);">
-<i class="fas fa-chart-line mr-2"></i> DASHBOARD
-</button>
-<button class="tab-btn" data-tab-id="tab-time" onclick="openTab('tab-time')" style="border-top: 3px solid var(--color-time-gold);">
-<i class="fas fa-clock mr-2"></i> BEST TIME
-</button>
-<button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')">
-<i class="fas fa-bolt mr-2"></i> BOOST
-</button>
-<button class="tab-btn" data-tab-id="tab-raid" onclick="openTab('tab-raid')" style="border-top: 3px solid var(--color-ai-action);">
-<i class="fas fa-users mr-2"></i> RAID
-</button>
+<button class="tab-btn active" data-tab-id="tab-followed" onclick="openTab('tab-followed')"><i class="fas fa-key mr-2"></i> MON FIL</button>
+<button class="tab-btn" data-tab-id="tab-dashboard" onclick="openTab('tab-dashboard')" style="color:white; border-top: 3px solid var(--color-secondary-blue);"><i class="fas fa-chart-line mr-2"></i> DASHBOARD</button>
+<button class="tab-btn" data-tab-id="tab-time" onclick="openTab('tab-time')" style="border-top: 3px solid var(--color-time-gold);"><i class="fas fa-clock mr-2"></i> BEST TIME</button>
+<button class="tab-btn" data-tab-id="tab-boost" onclick="openTab('tab-boost')"><i class="fas fa-bolt mr-2"></i> BOOST</button>
+<button class="tab-btn" data-tab-id="tab-raid" onclick="openTab('tab-raid')" style="border-top: 3px solid var(--color-ai-action);"><i class="fas fa-users mr-2"></i> RAID</button>
 </div>
 </div>
 
@@ -193,8 +185,9 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
                             </div>
                             <span><i class="fas fa-star text-yellow-500 mr-1"></i> <span id="hub-user-points">0</span> XP</span>
                         </div>
+                        
                         <div id="hub-messages">
-                            <div class="hub-msg system">Connectez-vous pour rejoindre le Hub Chat et gagner de l'XP !</div>
+                            <div class="hub-msg system">Bienvenue sur le Hub Chat (Socket.io).</div>
                         </div>
                         
                         <div class="emote-bar">
@@ -403,7 +396,10 @@ let autoCycleTimer = null;
 let boostTimeout = null;
 let isConnected = false;
 
-// --- CONFIG FIREBASE (A REMPLIR IMPERATIVEMENT) ---
+// --- SOCKET IO CLIENT (Pour le Chat Hub) ---
+const socket = io(API_BASE);
+
+// --- CONFIG FIREBASE (Optionnelle, mais gardée si besoin) ---
 const firebaseConfig = {
     apiKey: "TA_CLE_API_ICI",
     authDomain: "TON_PROJET.firebaseapp.com",
@@ -445,13 +441,11 @@ function initFirebase() {
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
-            listenToMessages();
-            listenToXP(); // Lancement écoute XP
         } catch(e) { console.error("Firebase err:", e); }
     }
 }
 
-// --- GESTION ONGLETS ---
+// --- GESTION DES ONGLETS ---
 function openTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.querySelector(`.tab-btn[data-tab-id="${tabId}"]`).classList.add('active');
@@ -471,73 +465,48 @@ function switchChatTab(type, btn) {
     document.getElementById('chat-view-' + type).classList.add('active');
 }
 
-// --- LOGIQUE CHAT (XP + ENVOI + AVATAR) ---
+// --- LOGIQUE CHAT SOCKET.IO (AVATAR + EMOTES + XP) ---
 async function sendHubMessage(e) {
     e.preventDefault();
     const input = document.getElementById('hub-input-msg');
     const text = input.value.trim();
     if(!text) return;
-    if(!db) { alert("Erreur: Firebase non connecté. Vérifiez les clés API."); return; }
     
-    try {
-        // 1. Sauvegarde Message
-        await db.collection("hub_messages").add({
-            text: text,
-            user: currentUserData.display_name,
-            login: currentUserData.login,
-            avatar: currentUserData.avatar,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // 2. Ajout XP
-        if(currentUserData.login !== 'guest') {
-            const userRef = db.collection('users').doc(currentUserData.login);
-            await userRef.set({
-                username: currentUserData.display_name,
-                avatar: currentUserData.avatar,
-                xp: firebase.firestore.FieldValue.increment(10), // +10 XP
-                last_active: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        }
-
-        input.value = '';
-    } catch(err) { console.error("Erreur envoi:", err); alert("Echec envoi message."); }
-}
-
-function listenToMessages() {
-    if(!db) return;
-    db.collection("hub_messages").orderBy("timestamp", "asc").limitToLast(50).onSnapshot((snapshot) => {
-        const container = document.getElementById('hub-messages');
-        container.innerHTML = '';
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            const isMe = data.login === currentUserData.login;
-            const userAvatar = data.avatar || `https://ui-avatars.com/api/?name=${data.user}&background=random`;
-            const processedText = parseText(data.text);
-
-            const div = document.createElement('div');
-            div.className = `hub-msg-row ${isMe ? 'user-me' : ''}`;
-            div.innerHTML = `
-                <img src="${userAvatar}" class="hub-avatar" alt="Avatar">
-                <div class="hub-msg-content">
-                    <span class="msg-author">${data.user}</span>
-                    ${processedText}
-                </div>`;
-            container.appendChild(div);
-        });
-        container.scrollTop = container.scrollHeight;
+    // ENVOI SOCKET AU LIEU DE FIREBASE
+    socket.emit('chat_message', {
+        user: currentUserData.display_name,
+        text: text,
+        avatar: currentUserData.avatar,
+        login: currentUserData.login
     });
+    
+    input.value = '';
 }
 
-function listenToXP() {
-    if(!db || currentUserData.login === 'guest') return;
-    db.collection('users').doc(currentUserData.login).onSnapshot((doc) => {
-        if(doc.exists) {
-            const data = doc.data();
-            document.getElementById('hub-user-points').innerText = data.xp || 0;
-        }
-    });
-}
+// RECEPTION DES MESSAGES VIA SOCKET
+socket.on('chat_message', (data) => {
+    const container = document.getElementById('hub-messages');
+    const isMe = data.login === currentUserData.login;
+    const userAvatar = data.avatar || `https://ui-avatars.com/api/?name=${data.user}&background=random`;
+    const processedText = parseText(data.text); // Parse Emotes
+
+    const div = document.createElement('div');
+    div.className = `hub-msg-row ${isMe ? 'user-me' : ''}`;
+    div.innerHTML = `
+        <img src="${userAvatar}" class="hub-avatar" alt="Avatar">
+        <div class="hub-msg-content">
+            <span class="msg-author">${data.user}</span>
+            ${processedText}
+        </div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    
+    // Mise à jour locale XP (simulation visuelle)
+    if(isMe) {
+        let xpEl = document.getElementById('hub-user-points');
+        xpEl.innerText = parseInt(xpEl.innerText) + 10;
+    }
+});
 
 function showSubTab(subName, btnElement) {
 document.querySelectorAll('.sub-content').forEach(el => el.classList.add('hidden'));
@@ -635,15 +604,17 @@ box.innerHTML = `<div class="ai-output-enhanced">${data.html_response}</div>`;
 }
 const safeFormat = (val) => val ? Number(val).toLocaleString('fr-FR') : '-';
 
-// --- PLAYER LOGIC (FIX MULTI-PARENTS) ---
+// --- PLAYER LOGIC (FIX PARENTS & DARK MODE) ---
 window.launchPlayer = function(channelName, videoId = null) {
     if(!channelName) return;
     
+    // 1. VIDEO
     if (embed) {
         if(!videoId && embed.getChannel() !== channelName) embed.setChannel(channelName);
         else if(videoId && embed.getVideo() !== videoId) embed.setVideo(videoId);
     } else {
         document.getElementById('twitch-embed').innerHTML = '';
+        // LISTE DE TOUS LES PARENTS POSSIBLES POUR EVITER LE BLOCAGE
         const parents = ["localhost", "127.0.0.1", "justplayer.fr", "justplayerstreamhubpro.onrender.com"];
         if(window.location.hostname) parents.push(window.location.hostname);
 
@@ -652,6 +623,7 @@ window.launchPlayer = function(channelName, videoId = null) {
         embed = new Twitch.Embed("twitch-embed", config);
     }
 
+    // 2. CHAT IFRAME (FIX)
     const host = window.location.hostname || "localhost";
     let chatUrl = `https://www.twitch.tv/embed/${channelName}/chat?darkpopout&theme=dark`;
     chatUrl += `&parent=${host}`;
@@ -692,7 +664,7 @@ const res = await fetch(`${API_BASE}/twitch_user_status`);
 const data = await res.json();
 isConnected = data.is_connected;
 if (isConnected) {
-    // RECUPERATION AVATAR & UPDATE UI
+    // RECUPERATION AVATAR TWITCH (PRIORITAIRE)
     const avatarUrl = data.profile_image_url || `https://ui-avatars.com/api/?name=${data.display_name}&background=random`;
     currentUserData = { login: data.login || 'user', display_name: data.display_name, avatar: avatarUrl };
     
@@ -703,7 +675,6 @@ if (isConnected) {
     btn.style.background = '#0e7e0e';
     btn.onclick = async () => { if(confirm('Déconnecter?')) { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); window.location.reload(); }};
     
-    listenToXP(); // Lance l'écouteur d'XP personnel
     if(document.getElementById('tab-followed').classList.contains('active')) loadFollowedStreams();
 } else {
     btn.onclick = startAuth;
