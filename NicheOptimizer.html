@@ -185,10 +185,10 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
                             <span><i class="fas fa-star text-yellow-500 mr-1"></i> <span id="hub-user-points">0</span> XP</span>
                         </div>
                         <div id="hub-messages">
-                            <div class="hub-msg system">Connectez-vous pour parler.</div>
+                            <div class="hub-msg system">Bienvenue sur le Hub Chat.</div>
                         </div>
                         <form class="hub-input-area" onsubmit="sendHubMessage(event)">
-                            <input id="hub-input-msg" type="text" placeholder="Message (ex: Kappa)..." class="action-input" style="padding:8px;">
+                            <input id="hub-input-msg" type="text" placeholder="Message..." class="action-input" style="padding:8px;">
                             <button type="submit" class="btn-primary" style="padding: 8px 12px; background:var(--color-secondary-blue);"><i class="fas fa-paper-plane"></i></button>
                         </form>
                     </div>
@@ -737,7 +737,7 @@ const safeFormat = (val) => (val && val !== 'N/A') ? Number(val).toLocaleString(
 window.launchPlayer = function(channelName, videoId = null) {
     if(!channelName) return;
     
-    // 1. MISE A JOUR DU LECTEUR VIDEO (GAUCHE)
+    // 1. VIDEO EMBED (GAUCHE)
     if (embed) {
         if(!videoId && embed.getChannel() !== channelName) embed.setChannel(channelName);
         else if(videoId && embed.getVideo() !== videoId) embed.setVideo(videoId);
@@ -745,24 +745,23 @@ window.launchPlayer = function(channelName, videoId = null) {
         document.getElementById('twitch-embed').innerHTML = '';
         // LISTE ROBUSTE DES PARENTS (FIX "REFUSED TO CONNECT")
         const parents = ["localhost", "127.0.0.1", "justplayer.fr", "justplayerstreamhubpro.onrender.com"];
-        if (window.location.hostname) parents.push(window.location.hostname);
-        
+        if(window.location.hostname) parents.push(window.location.hostname);
+
         const config = { width: "100%", height: "100%", layout: "video", channel: channelName, parent: parents };
         if (videoId) { delete config.channel; config.video = videoId; }
         embed = new Twitch.Embed("twitch-embed", config);
     }
 
-    // 2. MISE A JOUR DE L'IFRAME CHAT TWITCH (DROITE)
-    // FIX DARK MODE + PARENT
-    let chatUrl = `https://www.twitch.tv/embed/${channelName}/chat?darkpopout&theme=dark`;
+    // 2. CHAT IFRAME (DROITE) - FIX DARK MODE & PARENT
+    // On détecte le hostname actuel pour satisfaire la sécurité Twitch
+    const host = window.location.hostname || "localhost";
     
-    // Ajout dynamique du parent pour éviter le blocage
-    if (window.location.hostname) {
-        chatUrl += `&parent=${window.location.hostname}`;
-    } else {
-        // Fallback pour dev local ou file://
-        chatUrl += `&parent=localhost&parent=justplayer.fr`;
-    }
+    // URL avec paramètres forcés : darkpopout, theme=dark, parent
+    // On ajoute plusieurs fois parent pour couvrir les cas (dev vs prod)
+    let chatUrl = `https://www.twitch.tv/embed/${channelName}/chat?darkpopout&theme=dark`;
+    chatUrl += `&parent=${host}`;
+    if (host !== 'justplayer.fr') chatUrl += `&parent=justplayer.fr`;
+    if (host !== 'localhost') chatUrl += `&parent=localhost`;
 
     document.getElementById('chat-embed-frame').src = chatUrl;
     document.getElementById('input-channel').value = channelName;
