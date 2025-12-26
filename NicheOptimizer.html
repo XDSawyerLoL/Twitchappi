@@ -4,21 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Streamer & Niche AI Hub - Ultimate Cockpit Dashboard">
-<title>Streamer & Niche AI Hub - COCKPIT MASTER V37 (SOCKET IO CHAT)</title>
+<title>Streamer & Niche AI Hub - COCKPIT MASTER V57 (CHAT FIX)</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <script src="https://embed.twitch.tv/embed/v1.js"></script>
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
 <style>
-/* --- STYLES EXISTANTS (INCHANGÉS) --- */
+/* --- STYLES EXISTANTS --- */
 :root{--color-bg-dark:#0d0d0d;--color-bg-medium:#1a1a1a;--color-bg-light:#111;--color-primary-pink:#ff0099;--color-secondary-blue:#22c7ef;--color-time-gold:#ffd700;--color-ai-niche:#59d682;--color-ai-repurpose:#9933ff;--color-ai-growth:#ffcc00;--color-ai-action:#e34a64;--color-text-dimmed:#9aa3a8;--color-border-dark:#2e2e2e;--color-border-medium:#333;--shadow-pink:0 0 15px rgba(255, 0, 153, 0.4);--shadow-blue:0 0 15px rgba(34, 199, 239, 0.4);--shadow-action:0 0 15px rgba(227, 74, 100, 0.4);}
 body{background-color:var(--color-bg-dark);color:#fff;font-family:'Inter', Arial, sans-serif;margin:0;padding:0;overflow-x:hidden;}
 #twitch-lucky-main{max-width:1400px;margin:20px auto;padding:10px;}
@@ -48,30 +46,33 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 .chat-view { display: none; width: 100%; height: 100%; }
 .chat-view.active { display: block; }
 
-/* --- STYLES HUB CHAT (SOCKET IO) --- */
+/* --- STYLES HUB CHAT --- */
 #hub-chat-interface { display: flex; flex-direction: column; height: 100%; background: #0e0e0e; }
 #hub-points-display { padding: 8px 15px; background: linear-gradient(90deg, #111, #0a0a0a); border-bottom: 1px solid #333; font-size: 11px; color: var(--color-time-gold); display: flex; justify-content: space-between; align-items: center; font-family: 'Orbitron', sans-serif; }
 #hub-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
 
-/* Style Message avec Avatar */
-.hub-msg-row { display: flex; gap: 10px; align-items: flex-start; }
-.hub-avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #333; object-fit: cover; flex-shrink: 0; }
+/* Message Design avec Avatar */
+.hub-msg-row { display: flex; gap: 10px; align-items: flex-start; animation: fadeIn 0.2s ease-out; }
+.hub-avatar { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #333; object-fit: cover; flex-shrink: 0; }
 .hub-msg-content { background: #1a1a1a; padding: 8px 12px; border-radius: 0 10px 10px 10px; font-size: 13px; border-left: 2px solid var(--color-border-medium); word-wrap: break-word; line-height: 1.4; flex-grow: 1; color: #ddd; }
 
 .hub-msg-row.user-me { flex-direction: row-reverse; }
 .hub-msg-row.user-me .hub-msg-content { border-left-color: var(--color-primary-pink); background: #261019; border-radius: 10px 0 10px 10px; text-align: right; }
 .hub-msg-row.user-me .hub-avatar { border-color: var(--color-primary-pink); }
 .msg-author { font-size: 10px; color: #888; font-weight: bold; margin-bottom: 3px; display: block; text-transform: uppercase; }
-.chat-emote { vertical-align: middle; height: 22px; display: inline-block; margin: 0 2px; }
+.chat-emote { vertical-align: middle; height: 28px; display: inline-block; margin: 0 2px; transition: transform 0.2s; }
+.chat-emote:hover { transform: scale(1.2); }
 
 /* Barre d'émotes */
 .emote-bar { display: flex; gap: 5px; padding: 5px 10px; background: #151515; overflow-x: auto; border-top: 1px solid #333; }
 .emote-btn { cursor: pointer; padding: 2px; border-radius: 4px; transition: 0.2s; background: transparent; border: none; }
 .emote-btn:hover { background: rgba(255,255,255,0.1); }
-.emote-btn img { height: 20px; }
+.emote-btn img { height: 24px; }
 
 .hub-msg.system { border-left: 3px solid var(--color-secondary-blue); font-style: italic; color: #aaa; background: transparent; padding: 5px 10px; text-align: center; }
 .hub-input-area { padding: 10px; border-top: 1px solid var(--color-border-dark); background: #111; display: flex; gap: 5px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 /* --- INPUTS & BUTTONS --- */
 .player-quick-input{background:var(--color-bg-dark);border:1px solid var(--color-border-medium);color:white;padding:8px 12px;border-radius:4px;font-size:13px;width:220px;transition:border-color 0.3s;}
@@ -132,7 +133,7 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 <body>
 <div id="twitch-lucky-main">
 <h1 class="text-3xl">
-<span class="h1-blue-accent">STREAMER</span> HUB V37 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">CHAT-EDITION</span>
+<span class="h1-blue-accent">STREAMER</span> HUB V57 <span style="font-size:14px; vertical-align:middle; background:#222; padding:2px 6px; border-radius:4px;">CHAT-FIX</span>
 </h1>
 <div class="subtitle-center">Cockpit Unifié • Données Réelles • Intelligence Artificielle • Rotation 3min</div>
 <div class="tabs-nav-container">
@@ -187,16 +188,16 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
                         </div>
                         
                         <div id="hub-messages">
-                            <div class="hub-msg system">Bienvenue sur le Hub Chat (Socket.io).</div>
+                            <div class="hub-msg system">Bienvenue dans le tchat des players!</div>
                         </div>
                         
                         <div class="emote-bar">
-                            <button class="emote-btn" onclick="addEmote('Kappa')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0"></button>
-                            <button class="emote-btn" onclick="addEmote('PogChamp')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/88/default/dark/1.0"></button>
-                            <button class="emote-btn" onclick="addEmote('Kreygasm')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/41/default/dark/1.0"></button>
-                            <button class="emote-btn" onclick="addEmote('LUL')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/425618/default/dark/1.0"></button>
-                            <button class="emote-btn" onclick="addEmote('HeyGuys')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/30259/default/dark/1.0"></button>
-                            <button class="emote-btn" onclick="addEmote(':)')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/1/default/dark/1.0"></button>
+                            <button class="emote-btn" onclick="addEmote('Kappa')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/3.0"></button>
+                            <button class="emote-btn" onclick="addEmote('PogChamp')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/88/default/dark/3.0"></button>
+                            <button class="emote-btn" onclick="addEmote('Kreygasm')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/41/default/dark/3.0"></button>
+                            <button class="emote-btn" onclick="addEmote('LUL')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/425618/default/dark/3.0"></button>
+                            <button class="emote-btn" onclick="addEmote('HeyGuys')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/30259/default/dark/3.0"></button>
+                            <button class="emote-btn" onclick="addEmote('CoolCat')"><img src="https://static-cdn.jtvnw.net/emoticons/v2/58127/default/dark/3.0"></button>
                         </div>
 
                         <form class="hub-input-area" onsubmit="sendHubMessage(event)">
@@ -211,181 +212,51 @@ h1{font-family:'Orbitron', sans-serif;font-size:28px;color:var(--color-primary-p
 </div>
 
 <div id="content-area">
-<div id="tab-followed" class="tab-content active">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-<h3 class="text-pink font-bold text-lg" style="color:var(--color-primary-pink);">
-<i class="fas fa-circle text-red-500 mr-2 animate-pulse"></i> Vos Chaînes Suivies LIVE
-</h3>
-<div class="flex gap-2 items-center">
-<button id="btn-export-pdf" class="btn-primary" style="background:var(--color-ai-growth); font-size:10px;">
-<i class="fas fa-file-csv mr-1"></i> CSV
-</button>
-<button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; font-size:10px;">
-<i class="fas fa-lock mr-1"></i> CONNEXION TWITCH
-</button>
+    <div id="tab-followed" class="tab-content active">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 class="text-pink font-bold text-lg" style="color:var(--color-primary-pink);"><i class="fas fa-circle text-red-500 mr-2 animate-pulse"></i> Vos Chaînes Suivies LIVE</h3>
+            <div class="flex gap-2 items-center">
+                <button id="btn-export-pdf" class="btn-primary" style="background:var(--color-ai-growth); font-size:10px;"><i class="fas fa-file-csv mr-1"></i> CSV</button>
+                <button id="btn-twitch-login" class="btn-primary" style="background:#6441a5; font-size:10px;"><i class="fas fa-lock mr-1"></i> CONNEXION TWITCH</button>
+            </div>
+        </div>
+        <div id="followed-streams-list"><p style="color:#555; text-align:center; padding: 60px;"><i class="fas fa-plug fa-3x mb-4"></i><br>Connectez-vous pour voir vos favoris en direct.</p></div>
+    </div>
+    <div id="tab-dashboard" class="tab-content">
+        <div id="dashboard-sub-nav" class="flex gap-6 border-b border-gray-800 mb-8 overflow-x-auto pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+            <button onclick="showSubTab('overview', this)" class="sub-tab-btn active-sub">Overview</button>
+            <button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">🎮 Games</button>
+            <button onclick="showSubTab('languages', this)" class="sub-tab-btn text-pink-400">🌍 Languages</button>
+            <button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--color-ai-niche);">🔍 SCANNER & AUDIT</button>
+        </div>
+        <div id="sub-overview" class="sub-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="kpi-card" style="border-left-color: var(--color-secondary-blue);"><div class="loading-overlay" id="load-kpi-1"><i class="fas fa-spin fa-spinner text-white text-2xl"></i></div><div id="val-total-viewers" class="kpi-value">...</div><div class="kpi-label">Total Viewers (Live)</div></div>
+                <div class="kpi-card" style="border-left-color: var(--color-ai-repurpose);"><div class="loading-overlay" id="load-kpi-2"><i class="fas fa-spin fa-spinner text-white text-2xl"></i></div><div id="val-total-channels" class="kpi-value">...</div><div class="kpi-label">Total Channels</div></div>
+                <div class="kpi-card" style="border-left-color: var(--color-ai-niche);"><div class="loading-overlay" id="load-kpi-3"><i class="fas fa-spin fa-spinner text-white text-2xl"></i></div><div id="val-top-game" class="kpi-value truncate text-xl">...</div><div class="kpi-label">Top Catégorie</div></div>
+                <div class="kpi-card" style="border-left-color: var(--color-primary-pink);"><div class="loading-overlay" id="load-kpi-4"><i class="fas fa-spin fa-spinner text-white text-2xl"></i></div><div id="val-uptime" class="kpi-value">En Ligne</div><div class="kpi-label">État du Serveur</div></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800" style="height:350px;"><h4 class="text-xs font-bold text-gray-400 uppercase mb-6 flex justify-between"><span>📈 Tendance Viewers (24h)</span><span class="text-blue-400">● LIVE</span></h4><canvas id="liveStreamsChart"></canvas></div>
+                <div class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800" style="height:350px;"><h4 class="text-xs font-bold text-gray-400 uppercase mb-6">📊 Canaux Actifs (Estimation)</h4><canvas id="yoyChannelsChart"></canvas></div>
+            </div>
+        </div>
+        <div id="sub-games" class="sub-content hidden"><h3 class="text-blue-400 font-bold uppercase text-sm mb-6"><i class="fas fa-gamepad mr-2"></i> Top Games</h3><div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
+        <div id="sub-languages" class="sub-content hidden"><h3 class="text-pink-400 font-bold uppercase text-sm mb-6"><i class="fas fa-language mr-2"></i> Top Langues</h3><div id="languages-list-container" class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800 space-y-6"></div></div>
+        <div id="sub-scanner" class="sub-content hidden">
+            <div style="text-align:center; margin-bottom:30px;"><h3 class="text-blue-400 font-bold text-xl mb-3" style="color:var(--color-secondary-blue);">SCANNER D'INTELLIGENCE</h3><p class="text-gray-500 text-sm mb-6">Analyse complète : Score 5 Étoiles + Audit IA + Idées VOD</p><form id="form-global-scan" class="max-w-xl mx-auto"><input id="input-global-target" type="text" placeholder="Entrez un Streamer (ex: Kamet0) ou un Jeu..." class="action-input" style="font-size:16px; text-align:center;"><button type="submit" id="btn-global-scan" class="btn-primary btn-big-scan"><i class="fas fa-radar mr-2"></i> LANCER LE SCAN</button></form></div>
+            <div class="dashboard-grid">
+                <div id="res-scan-content" class="dashboard-box box-stats"><div class="dashboard-title" style="color:var(--color-secondary-blue)">📊 PROFIL & SCORE</div><div class="flex flex-col items-center justify-center h-full text-gray-600"><i class="fas fa-user-astronaut fa-3x mb-4"></i><p>En attente de scan...</p></div></div>
+                <div id="res-niche-content" class="dashboard-box box-niche"><div class="dashboard-title" style="color:var(--color-ai-niche)">🧠 CRITIQUE NICHE</div><div class="flex flex-col items-center justify-center h-full text-gray-600"><i class="fas fa-brain fa-3x mb-4"></i><p>L'IA affichera l'audit ici.</p></div></div>
+                <div id="res-vod-content" class="dashboard-box box-vod"><div class="dashboard-title" style="color:var(--color-ai-repurpose)">✂️ VOD & CLIPS</div><div class="flex flex-col items-center justify-center h-full text-gray-600"><i class="fas fa-cut fa-3x mb-4"></i><p>Analyse de contenu...</p></div></div>
+            </div>
+        </div>
+    </div>
+    <div id="tab-time" class="tab-content"><h3 style="color:var(--color-time-gold); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-hourglass-half mr-2"></i> OPTIMISATION DE L'HORAIRE</h3><form id="form-schedule" class="flex gap-3"><input id="input-schedule-game" type="text" placeholder="Jeu" class="action-input" style="flex-grow:1;"><button type="submit" id="btn-schedule" class="btn-primary" style="background:var(--color-time-gold); color:#000;">CALCULER</button></form><div id="schedule-results" style="display:none;" class="schedule-box box-schedule"><div style="display:flex; align-items:center; gap:20px; margin-bottom:20px;"><img id="schedule-img" src="" style="width:60px; border-radius:6px; border:1px solid #444;"><div class="schedule-header" id="schedule-game-name">Jeu</div></div><div id="schedule-ai-content" class="ai-output-enhanced"></div></div></div>
+    <div id="tab-boost" class="tab-content"><h3 style="color:var(--color-primary-pink); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-rocket mr-2"></i> STREAM BOOST (15 Minutes)</h3><form id="form-boost" class="flex gap-3"><input id="input-boost" type="text" placeholder="Chaîne" class="action-input" style="flex-grow:1;"><button type="submit" class="btn-primary" style="background:var(--color-primary-pink);">ACTIVER</button></form><div id="boost-results" style="margin-top:20px; padding:15px; background:#111; border-radius:6px; min-height:60px; display:flex; align-items:center; justify-content:center;"><p style="color:#777;">En attente...</p></div></div>
+    <div id="tab-raid" class="tab-content"><h3 style="color:var(--color-ai-action); margin-bottom:15px; font-size:18px; font-weight:bold;"><i class="fas fa-bullhorn mr-2"></i> RAID FINDER (FR)</h3><form id="form-raid" class="flex gap-3 flex-col sm:flex-row"><input id="input-raid-game" type="text" placeholder="Jeu" class="action-input" style="flex-grow:1;"><select id="select-raid-viewers" class="action-input" style="width:auto;"><option value="10">Max 10 Vues</option><option value="100" selected>Max 100 Vues</option></select><button type="submit" id="btn-start-raid" class="btn-primary" style="background:var(--color-ai-action);">RECHERCHER</button></form><div id="raid-results" style="margin-top:20px; padding:20px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:80px;"><p style="text-align:center; color:#777;">Résultats ici.</p></div></div>
 </div>
-</div>
-<div id="followed-streams-list">
-<p style="color:#555; text-align:center; padding: 60px;">
-<i class="fas fa-plug fa-3x mb-4"></i><br>
-Connectez-vous pour voir vos favoris en direct.
-</p>
-</div>
-</div>
-<div id="tab-dashboard" class="tab-content">
-<div id="dashboard-sub-nav" class="flex gap-6 border-b border-gray-800 mb-8 overflow-x-auto pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-<button onclick="showSubTab('overview', this)" class="sub-tab-btn active-sub">Overview</button>
-<button onclick="showSubTab('games', this)" class="sub-tab-btn text-blue-400">🎮 Games</button>
-<button onclick="showSubTab('languages', this)" class="sub-tab-btn text-pink-400">🌍 Languages</button>
-<button onclick="showSubTab('scanner', this)" class="sub-tab-btn" style="color:var(--color-ai-niche);">🔍 SCANNER & AUDIT</button>
-</div>
-<div id="sub-overview" class="sub-content">
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-<div class="kpi-card" style="border-left-color: var(--color-secondary-blue);">
-<div class="loading-overlay" id="load-kpi-1"><i class="fas fa-spin fa-spinner text-white text-2xl"></i></div>
-<div id="val-total-viewers" class="kpi-value">...</div>
-<div class="kpi-label">Total Viewers (Live)</div>
-</div>
-<div class="kpi-card" style="border-left-color: var(--color-ai-repurpose);">
-<div class="loading-overlay" id="load-kpi-2"><i class="fas fa-spin fa-spinner text-white text-2xl"></i></div>
-<div id="val-total-channels" class="kpi-value">...</div>
-<div class="kpi-label">Total Channels</div>
-</div>
-<div class="kpi-card" style="border-left-color: var(--color-ai-niche);">
-<div class="loading-overlay" id="load-kpi-3"><i class="fas fa-spin fa-spinner text-white text-2xl"></i></div>
-<div id="val-top-game" class="kpi-value truncate text-xl">...</div>
-<div class="kpi-label">Top Catégorie</div>
-</div>
-<div class="kpi-card" style="border-left-color: var(--color-primary-pink);">
-<div class="loading-overlay" id="load-kpi-4"><i class="fas fa-spin fa-spinner text-white text-2xl"></i></div>
-<div id="val-uptime" class="kpi-value">En Ligne</div>
-<div class="kpi-label">État du Serveur</div>
-</div>
-</div>
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-<div class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800" style="height:350px;">
-<h4 class="text-xs font-bold text-gray-400 uppercase mb-6 flex justify-between">
-<span>📈 Tendance Viewers (24h)</span>
-<span class="text-blue-400">● LIVE</span>
-</h4>
-<canvas id="liveStreamsChart"></canvas>
-</div>
-<div class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800" style="height:350px;">
-<h4 class="text-xs font-bold text-gray-400 uppercase mb-6">📊 Canaux Actifs (Estimation)</h4>
-<canvas id="yoyChannelsChart"></canvas>
-</div>
-</div>
-</div>
-<div id="sub-games" class="sub-content hidden">
-<h3 class="text-blue-400 font-bold uppercase text-sm mb-6"><i class="fas fa-gamepad mr-2"></i> Top Games (Données Réelles)</h3>
-<div id="games-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-</div>
-</div>
-<div id="sub-languages" class="sub-content hidden">
-<h3 class="text-pink-400 font-bold uppercase text-sm mb-6"><i class="fas fa-language mr-2"></i> Top Langues</h3>
-<div id="languages-list-container" class="bg-[#0a0a0a] p-6 rounded-xl border border-gray-800 space-y-6">
-</div>
-</div>
-<div id="sub-scanner" class="sub-content hidden">
-<div style="text-align:center; margin-bottom:30px;">
-<h3 class="text-blue-400 font-bold text-xl mb-3" style="color:var(--color-secondary-blue);">SCANNER D'INTELLIGENCE</h3>
-<p class="text-gray-500 text-sm mb-6">Analyse complète : Score 5 Étoiles + Audit IA + Idées VOD</p>
-<form id="form-global-scan" class="max-w-xl mx-auto">
-<input id="input-global-target" type="text" placeholder="Entrez un Streamer (ex: Kamet0) ou un Jeu..." class="action-input" style="font-size:16px; text-align:center;">
-<button type="submit" id="btn-global-scan" class="btn-primary btn-big-scan">
-<i class="fas fa-radar mr-2"></i> LANCER LE SCAN
-</button>
-</form>
-</div>
-<div class="dashboard-grid">
-<div id="res-scan-content" class="dashboard-box box-stats">
-<div class="dashboard-title" style="color:var(--color-secondary-blue)">📊 PROFIL & SCORE</div>
-<div class="flex flex-col items-center justify-center h-full text-gray-600">
-<i class="fas fa-user-astronaut fa-3x mb-4"></i>
-<p>En attente de scan...</p>
-</div>
-</div>
-<div id="res-niche-content" class="dashboard-box box-niche">
-<div class="dashboard-title" style="color:var(--color-ai-niche)">🧠 CRITIQUE NICHE</div>
-<div class="flex flex-col items-center justify-center h-full text-gray-600">
-<i class="fas fa-brain fa-3x mb-4"></i>
-<p>L'IA affichera l'audit ici.</p>
-</div>
-</div>
-<div id="res-vod-content" class="dashboard-box box-vod">
-<div class="dashboard-title" style="color:var(--color-ai-repurpose)">✂️ VOD & CLIPS</div>
-<div class="flex flex-col items-center justify-center h-full text-gray-600">
-<i class="fas fa-cut fa-3x mb-4"></i>
-<p>Analyse de contenu...</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div id="tab-time" class="tab-content">
-<h3 style="color:var(--color-time-gold); margin-bottom:15px; font-size:18px; font-weight:bold;">
-<i class="fas fa-hourglass-half mr-2"></i> OPTIMISATION DE L'HORAIRE
-</h3>
-<p style="color:#888; font-size:13px; margin-bottom:20px;">
-L'IA analyse le ratio Viewers/Streamers actuel d'un jeu et prédit les meilleurs créneaux horaires pour maximiser votre visibilité.
-</p>
-<form id="form-schedule" class="flex gap-3">
-<input id="input-schedule-game" type="text" placeholder="Nom du jeu (ex: League of Legends)" class="action-input" style="flex-grow:1;">
-<button type="submit" id="btn-schedule" class="btn-primary" style="background:var(--color-time-gold); color:#000;">
-CALCULER
-</button>
-</form>
-<div id="schedule-results" style="display:none;" class="schedule-box box-schedule">
-<div style="display:flex; align-items:center; gap:20px; margin-bottom:20px;">
-<img id="schedule-img" src="" style="width:60px; border-radius:6px; border:1px solid #444;">
-<div class="schedule-header" id="schedule-game-name">Jeu</div>
-</div>
-<div id="schedule-ai-content" class="ai-output-enhanced"></div>
-</div>
-</div>
-<div id="tab-boost" class="tab-content">
-<h3 style="color:var(--color-primary-pink); margin-bottom:15px; font-size:18px; font-weight:bold;">
-<i class="fas fa-rocket mr-2"></i> STREAM BOOST (15 Minutes)
-</h3>
-<p style="color:#888; font-size:13px; margin-bottom:20px;">
-Force l'affichage de votre chaîne sur tous les lecteurs connectés au Hub.
-</p>
-<form id="form-boost" class="flex gap-3">
-<input id="input-boost" type="text" placeholder="Votre Chaîne Twitch" class="action-input" style="flex-grow:1;">
-<button type="submit" class="btn-primary" style="background:var(--color-primary-pink);">
-ACTIVER LE BOOST
-</button>
-</form>
-<div id="boost-results" style="margin-top:20px; padding:15px; background:#111; border-radius:6px; min-height:60px; display:flex; align-items:center; justify-content:center;">
-<p style="color:#777;">En attente d'activation...</p>
-</div>
-</div>
-<div id="tab-raid" class="tab-content">
-<h3 style="color:var(--color-ai-action); margin-bottom:15px; font-size:18px; font-weight:bold;">
-<i class="fas fa-bullhorn mr-2"></i> RAID FINDER (FR)
-</h3>
-<p style="color:#888; font-size:13px; margin-bottom:20px;">
-Trouvez la meilleure cible francophone pour votre raid selon la taille de l'audience.
-</p>
-<form id="form-raid" class="flex gap-3 flex-col sm:flex-row">
-<input id="input-raid-game" type="text" placeholder="Jeu cible (Ex: Minecraft)" class="action-input" style="flex-grow:1;">
-<select id="select-raid-viewers" class="action-input" style="width:auto;">
-<option value="10">Max 10 Vues (Micro)</option>
-<option value="30">Max 30 Vues (Petit)</option>
-<option value="50">Max 50 Vues (Moyen)</option>
-<option value="70">Max 70 Vues (Inter)</option>
-<option value="100" selected>Max 100 Vues (Gros)</option>
-</select>
-<button type="submit" id="btn-start-raid" class="btn-primary" style="background:var(--color-ai-action);">
-RECHERCHER
-</button>
-</form>
-<div id="raid-results" style="margin-top:20px; padding:20px; border:1px solid var(--color-ai-action); border-radius:6px; min-height:80px;">
-<p style="text-align:center; color:#777; margin-top:10px;">Les résultats s'afficheront ici.</p>
-</div>
-</div>
-</div>
-</div>
+
 <script>
 // --- CONFIGURATION ---
 const API_BASE = window.location.origin; 
@@ -396,10 +267,7 @@ let autoCycleTimer = null;
 let boostTimeout = null;
 let isConnected = false;
 
-// --- SOCKET IO CLIENT (Pour le Chat Hub) ---
-const socket = io(API_BASE);
-
-// --- CONFIG FIREBASE (Optionnelle, mais gardée si besoin) ---
+// --- CONFIG FIREBASE (REMPLIR OBLIGATOIREMENT !!!) ---
 const firebaseConfig = {
     apiKey: "TA_CLE_API_ICI",
     authDomain: "TON_PROJET.firebaseapp.com",
@@ -411,14 +279,15 @@ const firebaseConfig = {
 let db = null;
 let currentUserData = { login: 'guest', display_name: 'Invité', avatar: 'https://ui-avatars.com/api/?name=Invité&background=random' };
 
-// --- DICTIONNAIRE EMOTES ---
+// --- DICTIONNAIRE EMOTES (VERSION HD) ---
 const EMOTES = {
-    "Kappa": "https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0",
-    "PogChamp": "https://static-cdn.jtvnw.net/emoticons/v2/88/default/dark/1.0",
-    "Kreygasm": "https://static-cdn.jtvnw.net/emoticons/v2/41/default/dark/1.0",
-    "LUL": "https://static-cdn.jtvnw.net/emoticons/v2/425618/default/dark/1.0",
-    "HeyGuys": "https://static-cdn.jtvnw.net/emoticons/v2/30259/default/dark/1.0",
-    ":)": "https://static-cdn.jtvnw.net/emoticons/v2/1/default/dark/1.0"
+    "Kappa": "https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/3.0",
+    "PogChamp": "https://static-cdn.jtvnw.net/emoticons/v2/88/default/dark/3.0",
+    "Kreygasm": "https://static-cdn.jtvnw.net/emoticons/v2/41/default/dark/3.0",
+    "LUL": "https://static-cdn.jtvnw.net/emoticons/v2/425618/default/dark/3.0",
+    "HeyGuys": "https://static-cdn.jtvnw.net/emoticons/v2/30259/default/dark/3.0",
+    "CoolCat": "https://static-cdn.jtvnw.net/emoticons/v2/58127/default/dark/3.0",
+    ":)": "https://static-cdn.jtvnw.net/emoticons/v2/1/default/dark/3.0"
 };
 
 function parseText(text) {
@@ -441,6 +310,8 @@ function initFirebase() {
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
+            listenToMessages();
+            listenToXP(); 
         } catch(e) { console.error("Firebase err:", e); }
     }
 }
@@ -465,48 +336,96 @@ function switchChatTab(type, btn) {
     document.getElementById('chat-view-' + type).classList.add('active');
 }
 
-// --- LOGIQUE CHAT SOCKET.IO (AVATAR + EMOTES + XP) ---
+// --- LOGIQUE CHAT (XP + ENVOI + AVATAR + EMOTES + FIX AFFICHAGE) ---
 async function sendHubMessage(e) {
     e.preventDefault();
     const input = document.getElementById('hub-input-msg');
     const text = input.value.trim();
     if(!text) return;
     
-    // ENVOI SOCKET AU LIEU DE FIREBASE
-    socket.emit('chat_message', {
-        user: currentUserData.display_name,
-        text: text,
-        avatar: currentUserData.avatar,
-        login: currentUserData.login
-    });
-    
-    input.value = '';
-}
-
-// RECEPTION DES MESSAGES VIA SOCKET
-socket.on('chat_message', (data) => {
+    // --- 1. AFFICHAGE IMMEDIAT (OPTIMISTIC UI) ---
+    // On affiche le message tout de suite pour l'utilisateur sans attendre le serveur
     const container = document.getElementById('hub-messages');
-    const isMe = data.login === currentUserData.login;
-    const userAvatar = data.avatar || `https://ui-avatars.com/api/?name=${data.user}&background=random`;
-    const processedText = parseText(data.text); // Parse Emotes
-
+    const processedText = parseText(text); // On parse les emotes direct
+    
     const div = document.createElement('div');
-    div.className = `hub-msg-row ${isMe ? 'user-me' : ''}`;
+    div.className = 'hub-msg-row user-me';
     div.innerHTML = `
-        <img src="${userAvatar}" class="hub-avatar" alt="Avatar">
+        <img src="${currentUserData.avatar}" class="hub-avatar" alt="Avatar">
         <div class="hub-msg-content">
-            <span class="msg-author">${data.user}</span>
+            <span class="msg-author">${currentUserData.display_name}</span>
             ${processedText}
         </div>`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
     
-    // Mise à jour locale XP (simulation visuelle)
-    if(isMe) {
-        let xpEl = document.getElementById('hub-user-points');
-        xpEl.innerText = parseInt(xpEl.innerText) + 10;
-    }
-});
+    // Si pas de DB configurée, on s'arrête là (mode démo local)
+    if(!db) { input.value = ''; return; }
+    
+    try {
+        // --- 2. SAUVEGARDE DB ---
+        await db.collection("hub_messages").add({
+            text: text,
+            user: currentUserData.display_name,
+            login: currentUserData.login,
+            avatar: currentUserData.avatar,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // --- 3. XP ---
+        if(currentUserData.login !== 'guest') {
+            const userRef = db.collection('users').doc(currentUserData.login);
+            await userRef.set({
+                username: currentUserData.display_name,
+                avatar: currentUserData.avatar,
+                xp: firebase.firestore.FieldValue.increment(10),
+                last_active: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
+
+        input.value = '';
+    } catch(err) { console.error("Erreur envoi:", err); }
+}
+
+function listenToMessages() {
+    if(!db) return;
+    db.collection("hub_messages").orderBy("timestamp", "asc").limitToLast(50).onSnapshot((snapshot) => {
+        // Pour éviter les doublons avec l'affichage optimiste, on pourrait filtrer,
+        // mais pour l'instant on recharge tout pour être sûr de la synchro.
+        // Une méthode plus propre serait de n'ajouter que les nouveaux qui ne sont pas de "moi".
+        
+        const container = document.getElementById('hub-messages');
+        container.innerHTML = '<div class="hub-msg system">Bienvenue dans le tchat des players!</div>';
+        
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            const isMe = data.login === currentUserData.login;
+            const userAvatar = data.avatar || `https://ui-avatars.com/api/?name=${data.user}&background=random`;
+            const processedText = parseText(data.text);
+
+            const div = document.createElement('div');
+            div.className = `hub-msg-row ${isMe ? 'user-me' : ''}`;
+            div.innerHTML = `
+                <img src="${userAvatar}" class="hub-avatar" alt="Avatar">
+                <div class="hub-msg-content">
+                    <span class="msg-author">${data.user}</span>
+                    ${processedText}
+                </div>`;
+            container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function listenToXP() {
+    if(!db || currentUserData.login === 'guest') return;
+    db.collection('users').doc(currentUserData.login).onSnapshot((doc) => {
+        if(doc.exists) {
+            const data = doc.data();
+            document.getElementById('hub-user-points').innerText = data.xp || 0;
+        }
+    });
+}
 
 function showSubTab(subName, btnElement) {
 document.querySelectorAll('.sub-content').forEach(el => el.classList.add('hidden'));
@@ -614,7 +533,6 @@ window.launchPlayer = function(channelName, videoId = null) {
         else if(videoId && embed.getVideo() !== videoId) embed.setVideo(videoId);
     } else {
         document.getElementById('twitch-embed').innerHTML = '';
-        // LISTE DE TOUS LES PARENTS POSSIBLES POUR EVITER LE BLOCAGE
         const parents = ["localhost", "127.0.0.1", "justplayer.fr", "justplayerstreamhubpro.onrender.com"];
         if(window.location.hostname) parents.push(window.location.hostname);
 
@@ -623,7 +541,7 @@ window.launchPlayer = function(channelName, videoId = null) {
         embed = new Twitch.Embed("twitch-embed", config);
     }
 
-    // 2. CHAT IFRAME (FIX)
+    // 2. CHAT IFRAME (FIXED)
     const host = window.location.hostname || "localhost";
     let chatUrl = `https://www.twitch.tv/embed/${channelName}/chat?darkpopout&theme=dark`;
     chatUrl += `&parent=${host}`;
@@ -664,7 +582,6 @@ const res = await fetch(`${API_BASE}/twitch_user_status`);
 const data = await res.json();
 isConnected = data.is_connected;
 if (isConnected) {
-    // RECUPERATION AVATAR TWITCH (PRIORITAIRE)
     const avatarUrl = data.profile_image_url || `https://ui-avatars.com/api/?name=${data.display_name}&background=random`;
     currentUserData = { login: data.login || 'user', display_name: data.display_name, avatar: avatarUrl };
     
@@ -675,6 +592,7 @@ if (isConnected) {
     btn.style.background = '#0e7e0e';
     btn.onclick = async () => { if(confirm('Déconnecter?')) { await fetch(`${API_BASE}/twitch_logout`, {method:'POST'}); window.location.reload(); }};
     
+    listenToXP();
     if(document.getElementById('tab-followed').classList.contains('active')) loadFollowedStreams();
 } else {
     btn.onclick = startAuth;
