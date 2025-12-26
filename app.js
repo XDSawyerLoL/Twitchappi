@@ -1,9 +1,9 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (V60 - SOCKET MASTER + MODERATION)
+ * STREAMER & NICHE AI HUB - BACKEND (V63 - SOCKET MASTER FIX)
  * =======================================================
  * - Moteur IA : @google/genai (Gemini 2.5 Flash)
- * - Scan & Data : Enrichi via endpoint /channels
- * - CHAT HUB : SOCKET.IO ACTIVÉ (Temps réel + Modération + XP)
+ * - Tchat Hub : SOCKET.IO ACTIVÉ & MODÉRATION
+ * - Fix : Utilisation de server.listen pour activer les sockets
  */
 
 require('dotenv').config();
@@ -16,7 +16,7 @@ const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 
-// ✅ AJOUTS POUR SOCKET.IO
+// ✅ 1. IMPORTATION SOCKET.IO & HTTP
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -29,6 +29,7 @@ const admin = require('firebase-admin');
 // 0. INITIALISATION FIREBASE
 // =========================================================
 let serviceAccount;
+let db = null; // Déclaration globale
 
 if (process.env.FIREBASE_SERVICE_KEY) {
     try {
@@ -48,22 +49,22 @@ if (serviceAccount) {
             credential: admin.credential.cert(serviceAccount),
             projectId: serviceAccount.project_id 
         });
+        db = admin.firestore(); // Connexion DB
         console.log("✅ [FIREBASE] Base de données connectée.");
     } catch (e) { console.error("❌ [FIREBASE] Erreur Init:", e.message); }
 } else {
-    try { admin.initializeApp(); } catch(e){}
+    try { admin.initializeApp(); db = admin.firestore(); } catch(e){}
 }
 
-const db = admin.firestore();
-if (serviceAccount) { try { db.settings({ projectId: serviceAccount.project_id, ignoreUndefinedProperties: true }); } catch(e){} }
+if (serviceAccount && db) { try { db.settings({ projectId: serviceAccount.project_id, ignoreUndefinedProperties: true }); } catch(e){} }
 
 const app = express();
 
-// ✅ CRÉATION DU SERVEUR HTTP & SOCKET.IO
-const server = http.createServer(app);
+// ✅ 2. CRÉATION DU SERVEUR COMPATIBLE SOCKET
+const server = http.createServer(app); 
 const io = new Server(server, {
     cors: {
-        origin: "*", // Accepte toutes les connexions (Localhost, Render, etc.)
+        origin: "*", // Autorise toutes les connexions (Localhost, Render, etc.)
         methods: ["GET", "POST"]
     }
 });
@@ -98,8 +99,74 @@ app.use(express.static(path.join(__dirname)));
 const CACHE = {
     twitchTokens: {}, twitchUser: null, boostedStream: null, lastScanData: null, 
     globalStreamRotation: { streams: [], currentIndex: 0, lastFetchTime: 0, fetchCooldown: 3 * 60 * 1000 },
-    chatMessages: [], 
+    bannedUsers: new Set() // ✅ Cache des bannis pour bloquer instantanément
 };
+
+// =========================================================
+// ✅ 3. LOGIQUE SOCKET.IO (LE TCHAT QUI MARCHE)
+// =========================================================
+io.on('connection', (socket) => {
+    console.log(`🔌 Nouveau client connecté: ${socket.id}`);
+
+    // RECEPTION MESSAGE
+    socket.on('chat_message', async (data) => {
+        // 1. Vérification Ban (Mémoire rapide)
+        if (CACHE.bannedUsers.has(data.login)) return;
+
+        // 2. Renvoi immédiat à tout le monde (Broadcast)
+        // Note: socket.broadcast envoie à tout le monde SAUF l'expéditeur (qui l'a déjà affiché en JS)
+        // io.emit envoie à TOUT LE MONDE y compris l'expéditeur. 
+        // On utilise broadcast car le front l'affiche déjà pour réactivité max.
+        socket.broadcast.emit('chat_message', data);
+
+        // 3. Sauvegarde DB & XP (Arrière-plan)
+        if (db) {
+            try {
+                // Save Message
+                await db.collection('hub_messages').add({
+                    ...data,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Save XP (+10)
+                if (data.login && data.login !== 'guest') {
+                    const userRef = db.collection('users').doc(data.login);
+                    await userRef.set({
+                        username: data.user,
+                        avatar: data.avatar,
+                        xp: admin.firestore.FieldValue.increment(10),
+                        last_active: admin.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+            } catch (e) { console.error("Erreur DB Chat:", e.message); }
+        }
+    });
+
+    // RECEPTION BAN
+    socket.on('ban_user', async (data) => {
+        console.log(`🚫 BANNISSEMENT: ${data.target_login}`);
+        CACHE.bannedUsers.add(data.target_login); // Ban Mémoire
+        io.emit('user_banned', { login: data.target_login }); // Kick du Front
+
+        if (db) {
+            try {
+                await db.collection('banned_users').doc(data.target_login).set({
+                    banned_by: data.admin_login,
+                    reason: "Moderation Socket",
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+            } catch(e){}
+        }
+    });
+
+    socket.on('disconnect', () => {
+        // Client parti
+    });
+});
+
+// =========================================================
+// 4. API TWITCH & OUTILS (CODE EXISTANT CONSERVÉ)
+// =========================================================
 
 async function getTwitchToken(tokenType = 'app') {
     if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) return CACHE.twitchTokens[tokenType].access_token;
@@ -138,10 +205,6 @@ async function runGeminiAnalysis(prompt) {
     }
 }
 
-// =========================================================
-// 3. ROUTES AUTH & VOD
-// =========================================================
-
 app.get('/twitch_auth_start', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
@@ -161,15 +224,30 @@ app.get('/twitch_auth_callback', async (req, res) => {
         if (tokenData.access_token) {
             const userRes = await twitchAPI('users', tokenData.access_token);
             const user = userRes.data[0];
-            CACHE.twitchUser = { display_name: user.display_name, id: user.id, access_token: tokenData.access_token, expiry: Date.now() + (tokenData.expires_in * 1000), profile_image_url: user.profile_image_url };
+            // On stocke l'avatar ici pour le renvoyer au front
+            CACHE.twitchUser = { 
+                display_name: user.display_name, 
+                id: user.id, 
+                access_token: tokenData.access_token, 
+                expiry: Date.now() + (tokenData.expires_in * 1000),
+                profile_image_url: user.profile_image_url // ✅ Ajout Avatar
+            };
             res.send("<script>window.opener.postMessage('auth_success', '*');window.close();</script>");
         } else { res.send("Erreur Token."); }
     } catch (e) { res.send("Erreur Serveur."); }
 });
 
 app.post('/twitch_logout', (req, res) => { CACHE.twitchUser = null; res.json({ success: true }); });
+
 app.get('/twitch_user_status', (req, res) => {
-    if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) return res.json({ is_connected: true, display_name: CACHE.twitchUser.display_name, profile_image_url: CACHE.twitchUser.profile_image_url, login: CACHE.twitchUser.display_name.toLowerCase() });
+    if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
+        return res.json({ 
+            is_connected: true, 
+            display_name: CACHE.twitchUser.display_name,
+            profile_image_url: CACHE.twitchUser.profile_image_url, // Envoi au front
+            login: CACHE.twitchUser.display_name.toLowerCase()
+        });
+    }
     res.json({ is_connected: false });
 });
 
@@ -190,71 +268,6 @@ app.get('/get_latest_vod', async (req, res) => {
         res.json({success:true, vod: { title: v.data[0].title, thumbnail_url: v.data[0].thumbnail_url.replace('%{width}','320').replace('%{height}','180'), id: v.data[0].id }});
     } catch(e) { res.json({success:false}); }
 });
-
-// =========================================================
-// 4. ✅ LOGIQUE SOCKET.IO (TCHAT, MODÉRATION, XP)
-// =========================================================
-
-io.on('connection', (socket) => {
-    console.log(`⚡ Client connecté: ${socket.id}`);
-
-    // RÉCEPTION D'UN MESSAGE TCHAT
-    socket.on('chat_message', async (data) => {
-        // 1. Vérification BANNISSEMENT
-        try {
-            const banRef = await db.collection('banned_users').doc(data.login).get();
-            if (banRef.exists) {
-                socket.emit('chat_error', "Vous êtes banni.");
-                return;
-            }
-        } catch(e) {}
-
-        // 2. BROADCAST (Renvoi à tout le monde)
-        io.emit('chat_message', data);
-
-        // 3. SAUVEGARDE & XP (Async)
-        try {
-            // Sauvegarde message
-            await db.collection('hub_messages').add({
-                ...data,
-                timestamp: admin.firestore.FieldValue.serverTimestamp()
-            });
-
-            // Gain XP (+10)
-            if (data.login && data.login !== 'guest') {
-                const userRef = db.collection('users').doc(data.login);
-                await userRef.set({
-                    username: data.user,
-                    avatar: data.avatar,
-                    xp: admin.firestore.FieldValue.increment(10),
-                    last_active: admin.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-            }
-        } catch(e) { console.error("Erreur DB/Socket:", e); }
-    });
-
-    // COMMANDE DE BANNISSEMENT
-    socket.on('ban_user', async (data) => {
-        console.log(`🔨 Ban requested for: ${data.target_login}`);
-        try {
-            await db.collection('banned_users').doc(data.target_login).set({
-                banned_by: data.admin_login,
-                reason: "Chat Moderation",
-                timestamp: admin.firestore.FieldValue.serverTimestamp()
-            });
-            // Notifier tout le monde (pour nettoyer le tchat si besoin ou kick)
-            io.emit('user_banned', { login: data.target_login });
-        } catch(e) { console.error("Erreur Ban:", e); }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Client déconnecté');
-    });
-});
-
-// =========================================================
-// 5. ROTATION & BOOST
-// =========================================================
 
 async function refreshGlobalStreamList() {
     const now = Date.now();
@@ -296,10 +309,6 @@ app.post('/cycle_stream', async (req, res) => {
     else rot.currentIndex = (rot.currentIndex - 1 + rot.streams.length) % rot.streams.length;
     return res.json({ success: true, channel: rot.streams[rot.currentIndex].channel });
 });
-
-// =========================================================
-// 6. STATS
-// =========================================================
 
 app.get('/api/stats/global', async (req, res) => {
     try {
@@ -346,39 +355,26 @@ app.get('/api/stats/languages', async (req, res) => {
     } catch(e) { res.status(500).json({error:e.message}); }
 });
 
-// =========================================================
-// 7. SCAN COMPLET (CORRECTION "N/A")
-// =========================================================
-
 app.post('/scan_target', async (req, res) => {
     const { query } = req.body;
     try {
-        // 1. Récupération User
         const uRes = await twitchAPI(`users?login=${encodeURIComponent(query)}`);
         if(uRes.data.length) {
             const u = uRes.data[0];
-            
-            // 2. Récupération Info Chaine (PLUS FIABLE POUR TITRE/JEU)
             let channelInfo = {};
             try {
                 const cRes = await twitchAPI(`channels?broadcaster_id=${u.id}`);
                 if (cRes.data && cRes.data.length > 0) channelInfo = cRes.data[0];
             } catch(e) {}
-
-            // 3. Récupération Stream Live
             let streamInfo = null;
             try {
                 const sRes = await twitchAPI(`streams?user_id=${u.id}`);
                 if(sRes.data.length > 0) streamInfo = sRes.data[0];
             } catch(e) {}
-
             const isLive = !!streamInfo;
             const createdDate = new Date(u.created_at).toLocaleDateString('fr-FR');
-            
-            // Logique d'affichage View Count (Souvent 0 sur l'API récente)
             let viewDisplay = u.view_count;
             if (viewDisplay === 0) viewDisplay = "Non public/0";
-
             const uData = { 
                 login: u.login, 
                 display_name: u.display_name, 
@@ -394,12 +390,9 @@ app.post('/scan_target', async (req, res) => {
                 viewer_count: isLive ? streamInfo.viewer_count : 0, 
                 ai_calculated_niche_score: isLive && streamInfo.viewer_count < 100 ? "4.8/5" : "3.0/5"
             };
-            
             CACHE.lastScanData = { type: 'user', ...uData };
             return res.json({ success: true, type:'user', user_data: uData });
         }
-        
-        // Fallback Game (Reste inchangé car il marchait)
         const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=1`);
         if(gRes.data.length) {
             const g = gRes.data[0];
@@ -429,44 +422,30 @@ app.post('/stream_boost', async (req, res) => {
     } catch(e) { res.status(500).json({error:"Erreur DB"}); }
 });
 
-// ✅ CORRECTION RAID (Image + Logique)
 app.post('/start_raid', async (req, res) => {
     const { game, max_viewers } = req.body;
     try {
         const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
         if(!gRes.data.length) return res.json({success:false});
         const sRes = await twitchAPI(`streams?game_id=${gRes.data[0].id}&first=100&language=fr`);
-        
-        // Filtre les chaînes
         const target = sRes.data.filter(s => s.viewer_count <= parseInt(max_viewers))
                                 .sort((a,b)=>b.viewer_count-a.viewer_count)[0];
-        
         if(target) {
-            // URL Image propre et dimensionnée HD
             const thumb = target.thumbnail_url.replace('{width}','320').replace('{height}','180');
             return res.json({ 
                 success: true, 
-                target: { 
-                    name: target.user_name, 
-                    login: target.user_login, 
-                    viewers: target.viewer_count, 
-                    thumbnail_url: thumb, 
-                    game: target.game_name 
-                } 
+                target: { name: target.user_name, login: target.user_login, viewers: target.viewer_count, thumbnail_url: thumb, game: target.game_name } 
             });
         }
         res.json({ success: false });
     } catch(e) { res.status(500).json({error:e.message}); }
 });
 
-// ✅ CORRECTION PLANNING (Prompt IA Forcé)
 app.post('/analyze_schedule', async (req, res) => {
     const { game } = req.body;
     try {
         const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
         const gameName = gRes.data[0].name;
-        
-        // Prompt ultra-directif
         const prompt = `
             Analyse le jeu Twitch : "${gameName}".
             Tu es un algorithme d'optimisation.
@@ -474,14 +453,8 @@ app.post('/analyze_schedule', async (req, res) => {
             2. Donne-moi EXPLICITEMENT 3 créneaux horaires (Jour + Tranche Heure) où il y a le plus de viewers potentiels pour le moins de concurrence.
             Format HTML (<ul><li>). Sois concret, invente des horaires basés sur les tendances gaming si besoin.
         `;
-        
         const r = await runGeminiAnalysis(prompt);
-        res.json({ 
-            success: true, 
-            game_name: gameName, 
-            box_art: gRes.data[0].box_art_url.replace('{width}','60').replace('{height}','80'), 
-            html_response: r.html_response 
-        });
+        res.json({ success: true, game_name: gameName, box_art: gRes.data[0].box_art_url.replace('{width}','60').replace('{height}','80'), html_response: r.html_response });
     } catch(e) { res.json({success:false}); }
 });
 
@@ -516,5 +489,6 @@ async function recordStats() {
 setInterval(recordStats, 30 * 60 * 1000); 
 setTimeout(recordStats, 10000);
 
-// ✅ DÉMARRAGE DU SERVEUR (HTTP + SOCKET)
-server.listen(PORT, () => console.log(`🚀 SERVER V60 + SOCKET HUB ON PORT ${PORT}`));
+// ✅ DÉMARRAGE DU SERVEUR VIA LE WRAPPER HTTP (INDISPENSABLE POUR SOCKET.IO)
+server.listen(PORT, () => console.log(`🚀 SERVER V63 + SOCKET HUB ON PORT ${PORT}`));
+
