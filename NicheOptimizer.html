@@ -234,7 +234,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="video-container" class="flex-grow bg-black relative w-full h-full"></div>
+                <div id="video-container" class="flex-grow bg-black relative w-full h-full" style="min-height: 300px;"></div>
             </div>
         </div>
 
@@ -422,15 +422,17 @@
                 currentChannel = data.channel;
                 document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
                 document.getElementById('player-mode-badge').innerText = data.mode;
-                const opts = {
-                    width: '100%',
-                    height: '100%',
-                    channel: currentChannel,
-                    layout: 'video',
-                    parent: PARENT_DOMAINS
-                };
-                player = new Twitch.Embed('video-container', opts);
-                updateTwitchChatFrame(currentChannel);
+                setTimeout(() => {
+                    const opts = {
+                        width: '100%',
+                        height: '100%',
+                        channel: currentChannel,
+                        layout: 'video',
+                        parent: PARENT_DOMAINS
+                    };
+                    player = new Twitch.Embed('video-container', opts);
+                    updateTwitchChatFrame(currentChannel);
+                }, 500);
             }
         }
 
@@ -449,10 +451,23 @@
             const data = await res.json();
             if (data.success) {
                 currentChannel = data.channel;
-                if (player) player.setChannel(currentChannel);
+                destroyAndRecreatePlayer(currentChannel);
                 document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
                 updateTwitchChatFrame(currentChannel);
             }
+        }
+
+        function destroyAndRecreatePlayer(channel) {
+            const container = document.getElementById('video-container');
+            container.innerHTML = '';
+            const opts = {
+                width: '100%',
+                height: '100%',
+                channel: channel,
+                layout: 'video',
+                parent: PARENT_DOMAINS
+            };
+            player = new Twitch.Embed('video-container', opts);
         }
 
         // ==================== CAROUSEL ====================
