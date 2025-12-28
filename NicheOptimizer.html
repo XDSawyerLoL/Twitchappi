@@ -3,353 +3,925 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V68 - FINAL</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://embed.twitch.tv/embed/v1.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-
+    <title>Niche Optimizer - Twitch AI Hub</title>
     <style>
-        :root { --bg: #050505; --panel: #0b0b0d; --cyan: #00f2ea; --pink: #ff0099; }
-        body { background-color: var(--bg); color: #e0e0e0; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        .glass { background: var(--panel); border: 1px solid #1f1f23; border-radius: 6px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding: 10px; scrollbar-width: none; }
-        .stream-card { flex: 0 0 280px; height: 157px; background: #111; border: 1px solid #333; border-radius: 10px; position: relative; cursor: pointer; transition: 0.2s; }
-        .stream-card:hover { border-color: var(--cyan); transform: translateY(-4px); }
-        .stream-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
-        .stream-card:hover img { opacity: 1; }
+        :root {
+            --primary: #9146ff;
+            --primary-dark: #772ce8;
+            --secondary: #18181b;
+            --surface: #0e0e10;
+            --text: #efeff1;
+            --text-secondary: #adadb8;
+            --success: #31a24c;
+            --error: #e74c3c;
+            --warning: #f39c12;
+        }
 
-        .tab-btn { flex: 1; padding: 12px; text-align: center; font-family: 'Orbitron'; font-size: 11px; font-weight: bold; cursor: pointer; background: #080808; border-bottom: 2px solid transparent; color: #666; }
-        .tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); background: #151515; }
-        .tab-content { display: none; height: 100%; flex-direction: column; }
-        .tab-content.active { display: flex; animation: fadeIn 0.3s; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--surface);
+            color: var(--text);
+            line-height: 1.6;
+        }
 
-        /* TEXTE IA LISIBLE */
-        .ai-text { font-size: 14px; line-height: 1.6; color: #d1d5db; margin-top: 5px; }
-        .ai-text ul { list-style: disc; padding-left: 20px; }
-        .ai-text strong { color: var(--cyan); }
+        /* ==================== HEADER ==================== */
+        header {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary);
+            box-shadow: 0 4px 20px rgba(145, 70, 255, 0.3);
+        }
 
-        .hub-msg { padding: 6px 10px; margin-bottom: 4px; border-radius: 4px; background: rgba(255,255,255,0.05); font-size: 13px; }
-        .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; background: #222; padding: 8px; position: absolute; bottom: 50px; left: 10px; border: 1px solid #444; z-index: 50; border-radius: 6px; }
-        .emoji-btn { cursor: pointer; text-align: center; padding: 5px; font-size: 20px; }
-        
-        .cyber-input { background: #111; border: 1px solid #333; color: white; padding: 10px; border-radius: 4px; width: 100%; font-size: 13px; outline: none; }
-        .cyber-input:focus { border-color: var(--cyan); }
-        .cyber-btn { background: var(--cyan); color: black; font-weight: bold; padding: 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-family: 'Orbitron'; }
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            text-align: right;
+            font-size: 0.9rem;
+        }
+
+        .user-name {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(145, 70, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: var(--text);
+            border: 1px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        /* ==================== CONTAINER ==================== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--secondary);
+            border: 1px solid rgba(145, 70, 255, 0.2);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 25px rgba(145, 70, 255, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .card-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+
+        /* ==================== TABS ==================== */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid rgba(145, 70, 255, 0.2);
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 0.8rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            position: relative;
+            bottom: -2px;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ==================== FORM ==================== */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: var(--surface);
+            color: var(--text);
+            border: 1px solid rgba(145, 70, 255, 0.3);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(145, 70, 255, 0.3);
+        }
+
+        /* ==================== LOADING & ALERTS ==================== */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(145, 70, 255, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background-color: rgba(49, 162, 76, 0.2);
+            color: var(--success);
+            border-left-color: var(--success);
+        }
+
+        .alert-error {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--error);
+            border-left-color: var(--error);
+        }
+
+        .alert-info {
+            background-color: rgba(145, 70, 255, 0.2);
+            color: var(--primary);
+            border-left-color: var(--primary);
+        }
+
+        /* ==================== STATS GRID ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--secondary);
+            border: 1px solid rgba(145, 70, 255, 0.2);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        /* ==================== CHAT/LIST ==================== */
+        .chat-container {
+            background-color: var(--secondary);
+            border: 1px solid rgba(145, 70, 255, 0.2);
+            border-radius: 10px;
+            padding: 1.5rem;
+            height: 500px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            background-color: rgba(145, 70, 255, 0.1);
+            border-left: 3px solid var(--primary);
+            border-radius: 4px;
+        }
+
+        .message-author {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .message-text {
+            margin-top: 0.3rem;
+            color: var(--text);
+        }
+
+        /* ==================== STREAM CARD ==================== */
+        .stream-card {
+            background-color: var(--secondary);
+            border: 1px solid rgba(145, 70, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stream-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 25px rgba(145, 70, 255, 0.2);
+        }
+
+        .stream-thumbnail {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background-color: var(--surface);
+        }
+
+        .stream-info {
+            padding: 1rem;
+        }
+
+        .stream-title {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stream-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* ==================== FOOTER ==================== */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            border-top: 1px solid rgba(145, 70, 255, 0.2);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
-
-    <header class="h-14 flex justify-between items-center px-4 border-b border-[#222] bg-black shrink-0">
-        <div class="flex items-center gap-4">
-            <h1 class="text-xl font-orbitron italic tracking-widest text-white">
-                <span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-[10px] ml-2 not-italic">V68</span>
-            </h1>
-            <div id="socket-status" class="text-[10px] font-bold text-gray-500 border border-gray-700 px-2 rounded uppercase">Connecting...</div>
+    <!-- ==================== HEADER ==================== -->
+    <header>
+        <div class="logo">
+            🎮 Niche Optimizer
         </div>
-        <div class="flex items-center gap-3">
-             <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-4 py-1.5 rounded font-bold text-xs font-orbitron border border-[#7d5bbe]">CONNEXION</button>
-            <div id="user-area" class="hidden flex items-center gap-3 bg-[#111] px-3 py-1 rounded border border-[#333]">
-                <img id="user-avatar" src="" class="w-6 h-6 rounded-full border border-[#00f2ea] object-cover">
-                <span id="user-name" class="font-bold text-white text-xs"></span>
-                <button onclick="logout()" class="text-gray-500 hover:text-white ml-2"><i class="fas fa-sign-out-alt"></i></button>
+        <div class="user-section">
+            <div class="user-info" id="userInfo" style="display: none;">
+                <div>Bienvenue</div>
+                <div class="user-name" id="userName"></div>
             </div>
+            <button class="btn btn-primary" id="loginBtn" onclick="loginTwitch()">Se connecter Twitch</button>
+            <button class="btn btn-danger" id="logoutBtn" onclick="logoutTwitch()" style="display: none;">Déconnexion</button>
         </div>
     </header>
 
-    <div class="h-48 bg-[#080808] border-b border-[#222] relative shrink-0 group">
-        <button onclick="document.getElementById('carousel').scrollLeft -= 300" class="absolute left-0 top-0 h-full w-10 bg-black/60 hover:bg-black/80 z-10 text-white flex items-center justify-center"><i class="fas fa-chevron-left"></i></button>
-        <button onclick="document.getElementById('carousel').scrollLeft += 300" class="absolute right-0 top-0 h-full w-10 bg-black/60 hover:bg-black/80 z-10 text-white flex items-center justify-center"><i class="fas fa-chevron-right"></i></button>
-        <div id="carousel" class="carousel-track h-full items-center" onwheel="this.scrollLeft += event.deltaY; event.preventDefault();"></div>
-    </div>
-
-    <div class="flex-grow grid grid-cols-12 gap-0 overflow-hidden">
-        
-        <div class="col-span-8 bg-black flex flex-col border-r border-[#222]">
-            <div class="h-10 bg-[#0e0e10] border-b border-[#222] flex justify-between items-center px-3">
-                <span id="current-chan" class="font-orbitron text-[#00f2ea] text-xs">OFFLINE</span>
-                <div class="flex gap-2">
-                    <button onclick="cycle('prev')" class="text-white hover:text-[#00f2ea]"><i class="fas fa-step-backward"></i></button>
-                    <button onclick="cycle('next')" class="text-white hover:text-[#00f2ea]"><i class="fas fa-step-forward"></i></button>
-                </div>
-            </div>
-            <div id="twitch-embed" class="flex-grow w-full h-full bg-black relative"></div>
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <div class="container">
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('scanner')">🔍 Scanner</button>
+            <button class="tab-btn" onclick="switchTab('raid')">⚡ Raid</button>
+            <button class="tab-btn" onclick="switchTab('planning')">📅 Planning</button>
+            <button class="tab-btn" onclick="switchTab('chat')">💬 Chat Hub</button>
         </div>
 
-        <div class="col-span-4 bg-[#0e0e10] flex flex-col h-full overflow-hidden">
-            <div class="flex border-b border-[#222]">
-                <button class="tab-btn active" onclick="openTab('chat')">TCHAT</button>
-                <button class="tab-btn" onclick="openTab('stats')">STATS</button>
-                <button class="tab-btn" onclick="openTab('tools')">OUTILS</button>
-            </div>
+        <!-- ==================== TAB: DASHBOARD ==================== -->
+        <div id="dashboard" class="tab-content active">
+            <h2 style="margin-bottom: 2rem; color: var(--primary);">📊 Statistiques Globales</h2>
 
-            <div id="tab-chat" class="tab-content active">
-                <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
-                    <button onclick="toggleChat('twitch')" class="flex-1 py-1 text-[10px] font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
-                    <button onclick="toggleChat('hub')" class="flex-1 py-1 text-[10px] font-bold bg-[#222] text-gray-300 rounded hover:bg-[#333]">HUB SECURE</button>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="card-subtitle">Total Viewers</div>
+                    <div class="stat-value" id="totalViewers">0</div>
+                    <div class="card-subtitle">Estimation</div>
                 </div>
-                <div id="chat-twitch" class="flex-grow relative h-full">
-                    <iframe id="twitch-frame" src="" width="100%" height="100%" frameborder="0"></iframe>
+                <div class="stat-card">
+                    <div class="card-subtitle">Canaux Actifs</div>
+                    <div class="stat-value" id="totalChannels">0</div>
                 </div>
-                <div id="chat-hub" class="flex-grow hidden flex-col bg-[#111] h-full relative">
-                    <div id="hub-msgs" class="flex-grow overflow-y-auto p-3 scrollbar-thin"></div>
-                    <div id="emoji-picker" class="emoji-grid hidden"></div>
-                    <form onsubmit="sendMsg(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] relative">
-                        <button type="button" onclick="document.getElementById('emoji-picker').classList.toggle('hidden')" class="text-gray-400 hover:text-yellow-400 px-1 text-lg"><i class="far fa-smile"></i></button>
-                        <input id="hub-in" class="bg-[#222] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]" placeholder="Message...">
-                        <button class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
-                    </form>
+                <div class="stat-card">
+                    <div class="card-subtitle">Top Game</div>
+                    <div style="color: var(--primary); margin-top: 0.5rem;" id="topGame">N/A</div>
                 </div>
             </div>
 
-            <div id="tab-stats" class="tab-content p-4 overflow-y-auto space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="glass p-3 border-l-2 border-[#00f2ea]">
-                        <div class="text-[9px] text-gray-500 uppercase font-bold">Viewers</div>
-                        <div id="stat-viewers" class="text-xl font-orbitron text-white">--</div>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--primary);">Top Jeux</h3>
+            <div class="grid" id="topGamesContainer">
+                <!-- Sera rempli par JS -->
+            </div>
+
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--primary);">Langues Populaires</h3>
+            <div class="grid" id="languagesContainer">
+                <!-- Sera rempli par JS -->
+            </div>
+
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--primary);">Stream par Défaut</h3>
+            <div class="card">
+                <div id="defaultStreamInfo">Chargement...</div>
+                <button class="btn btn-secondary" onclick="cycleStream('prev')" style="margin-top: 1rem;">← Précédent</button>
+                <button class="btn btn-secondary" onclick="cycleStream('next')" style="margin-top: 1rem; margin-left: 0.5rem;">Suivant →</button>
+            </div>
+        </div>
+
+        <!-- ==================== TAB: SCANNER ==================== -->
+        <div id="scanner" class="tab-content">
+            <h2 style="margin-bottom: 2rem; color: var(--primary);">🔍 Scanner Twitch</h2>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">Rechercher un Streamer</div>
+                    <div class="form-group">
+                        <label>Nom du Streamer ou Jeu</label>
+                        <input type="text" id="scanQuery" placeholder="ex: Kamet0, League of Legends...">
                     </div>
-                    <div class="glass p-3 border-l-2 border-[#ff0099]">
-                        <div class="text-[9px] text-gray-500 uppercase font-bold">Chaînes</div>
-                        <div id="stat-channels" class="text-xl font-orbitron text-white">--</div>
+                    <button class="btn btn-primary" onclick="scanTarget()">Scanner</button>
+                    <div id="scanLoading" style="display: none; margin-top: 1rem;">
+                        <div class="loading"></div> Analyse en cours...
                     </div>
-                </div>
-                <div class="glass p-3">
-                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Tendance</h4>
-                    <div class="h-32"><canvas id="chart1"></canvas></div>
-                </div>
-                <div class="glass p-3">
-                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Top Jeux</h4>
-                    <div class="h-32"><canvas id="chart2"></canvas></div>
-                </div>
-                <div class="glass p-3">
-                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Langues</h4>
-                    <div class="h-32"><canvas id="chart3"></canvas></div>
                 </div>
             </div>
 
-            <div id="tab-tools" class="tab-content p-4 overflow-y-auto space-y-5">
-                
-                <div class="glass p-3">
-                    <h3 class="text-[#00f2ea] font-orbitron text-xs mb-2 border-b border-[#222] pb-1"><i class="fas fa-search mr-1"></i> SCANNER & AUDIT IA</h3>
-                    <div class="flex gap-2 mb-2">
-                        <input id="scan-in" type="text" placeholder="Pseudo..." class="cyber-input">
-                        <button onclick="runScan()" class="cyber-btn"><i class="fas fa-arrow-right"></i></button>
+            <div id="scanResults" style="margin-top: 2rem;">
+                <!-- Résultats du scanner -->
+            </div>
+
+            <div id="iaResults" style="margin-top: 2rem;">
+                <!-- Résultats IA -->
+            </div>
+        </div>
+
+        <!-- ==================== TAB: RAID ==================== -->
+        <div id="raid" class="tab-content">
+            <h2 style="margin-bottom: 2rem; color: var(--primary);">⚡ Raid Builder</h2>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">Configurer le Raid</div>
+                    <div class="form-group">
+                        <label>Jeu à Raider</label>
+                        <input type="text" id="raidGame" placeholder="ex: League of Legends, Valorant...">
                     </div>
-                    <div id="scan-res" class="hidden bg-[#151515] p-3 rounded">
-                        <div class="flex gap-2 items-center mb-2">
-                            <img id="scan-img" src="" class="w-10 h-10 rounded-full border border-[#00f2ea]">
-                            <div class="font-bold text-white text-sm" id="scan-name"></div>
+                    <div class="form-group">
+                        <label>Viewers Max à Cibler</label>
+                        <input type="number" id="maxViewers" placeholder="ex: 100" value="100">
+                    </div>
+                    <button class="btn btn-primary" onclick="startRaid()">🚀 Lancer Raid</button>
+                    <div id="raidLoading" style="display: none; margin-top: 1rem;">
+                        <div class="loading"></div> Recherche de cible...
+                    </div>
+                </div>
+            </div>
+
+            <div id="raidResults" style="margin-top: 2rem;">
+                <!-- Résultats du raid -->
+            </div>
+        </div>
+
+        <!-- ==================== TAB: PLANNING ==================== -->
+        <div id="planning" class="tab-content">
+            <h2 style="margin-bottom: 2rem; color: var(--primary);">📅 Planning Optimal</h2>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">Analyser Planning</div>
+                    <div class="form-group">
+                        <label>Jeu à Analyser</label>
+                        <input type="text" id="planningGame" placeholder="ex: Elden Ring, Fortnite...">
+                    </div>
+                    <button class="btn btn-primary" onclick="analyzeSchedule()">📊 Analyser</button>
+                    <div id="planningLoading" style="display: none; margin-top: 1rem;">
+                        <div class="loading"></div> Analyse en cours...
+                    </div>
+                </div>
+            </div>
+
+            <div id="planningResults" style="margin-top: 2rem;">
+                <!-- Résultats du planning -->
+            </div>
+        </div>
+
+        <!-- ==================== TAB: CHAT HUB ==================== -->
+        <div id="chat" class="tab-content">
+            <h2 style="margin-bottom: 2rem; color: var(--primary);">💬 Chat Hub Community</h2>
+
+            <div class="card">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message">
+                            <div class="message-author">🤖 Système</div>
+                            <div class="message-text">Bienvenue dans le Chat Hub ! Partagez vos stratégies et tips.</div>
                         </div>
-                        <div id="scan-ai" class="ai-text bg-black/30 p-2 rounded border border-[#222]"></div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <input type="text" id="chatInput" placeholder="Écrivez votre message..." onkeypress="handleChatKey(event)">
+                        <button class="btn btn-primary" onclick="sendChatMessage()" style="margin-top: 0.5rem; width: 100%;">Envoyer</button>
                     </div>
                 </div>
-
-                <div class="glass p-3">
-                    <h3 class="text-[#ffd700] font-orbitron text-xs mb-2 border-b border-[#222] pb-1"><i class="fas fa-clock mr-1"></i> PLANNING OPTIMIZER</h3>
-                    <div class="flex gap-2">
-                        <input id="plan-in" type="text" placeholder="Jeu..." class="cyber-input">
-                        <button onclick="runPlan()" class="cyber-btn" style="background:#ffd700; color:black"><i class="fas fa-magic"></i></button>
-                    </div>
-                    <div id="plan-res" class="hidden mt-2 bg-[#151515] p-3 rounded ai-text"></div>
-                </div>
-
-                <div class="glass p-3">
-                    <h3 class="text-[#10b981] font-orbitron text-xs mb-2 border-b border-[#222] pb-1"><i class="fas fa-crosshairs mr-1"></i> RAID FINDER</h3>
-                    <div class="flex gap-2 mb-2">
-                        <input id="raid-game" type="text" placeholder="Jeu..." class="cyber-input">
-                        <input id="raid-max" type="number" placeholder="Max" value="50" class="cyber-input" style="width:60px">
-                    </div>
-                    <button onclick="runRaid()" class="cyber-btn w-full mb-2" style="background:#10b981">TROUVER</button>
-                    
-                    <div id="raid-res" class="hidden mt-2 bg-[#151515] p-2 rounded text-center border border-green-900 cursor-pointer" onclick="if(window.raidTarget) setChannel(window.raidTarget)">
-                        <img id="raid-img" src="" class="w-full h-24 object-cover rounded mb-2">
-                        <div id="raid-name" class="font-bold text-white text-sm"></div>
-                        <div id="raid-meta" class="text-[10px] text-green-400 mb-2"></div>
-                        <button class="w-full bg-green-700 text-white text-[10px] font-bold py-1 rounded uppercase hover:bg-green-600 transition">LANCER LE RAID</button>
-                    </div>
-                </div>
-
             </div>
         </div>
     </div>
 
+    <!-- ==================== FOOTER ==================== -->
+    <footer>
+        <p>🎮 Niche Optimizer v50 - Powered by Twitch API & Gemini AI</p>
+        <p>© 2025 - Tous droits réservés</p>
+    </footer>
+
+    <!-- ==================== SCRIPTS ==================== -->
     <script>
-        const HOST = window.location.hostname;
-        const PARENTS = ["localhost", "127.0.0.1", "justplayer.fr", "www.justplayer.fr"];
-        if(!PARENTS.includes(HOST)) PARENTS.push(HOST);
+        // ==================== CONFIG ==================== 
+        const API_BASE = window.location.origin;
+        const CHAT_MESSAGES = [];
 
-        let player, socket, charts={};
-        window.raidTarget = "";
+        // ==================== INIT ==================== 
+        document.addEventListener('DOMContentLoaded', () => {
+            checkUserStatus();
+            loadDashboard();
+            setInterval(loadDashboard, 5 * 60 * 1000); // Refresh toutes les 5 min
+        });
 
-        window.onload = () => {
-            initSocket();
-            initEmojis();
-            loadCarousel();
-            loadStats();
-            initPlayer();
-            checkAuth();
-            window.addEventListener("message", (e) => { if(e.data === "auth_success") location.reload(); });
-        };
-
-        // 1. PLAYER
-        async function initPlayer() {
-            try {
-                const res = await fetch('/get_default_stream');
-                const d = await res.json();
-                setChannel(d.channel || 'twitch');
-            } catch(e) {}
-        }
-        function setChannel(c) {
-            document.getElementById('current-chan').innerText = c.toUpperCase();
-            document.getElementById('twitch-embed').innerHTML = "";
-            player = new Twitch.Embed("twitch-embed", { width: "100%", height: "100%", channel: c, layout: "video", parent: PARENTS });
-            const p = PARENTS.map(d=>`parent=${d}`).join('&');
-            document.getElementById('twitch-frame').src = `https://www.twitch.tv/embed/${c}/chat?${p}&darkpopout`;
-        }
-        async function cycle(dir) {
-            const res = await fetch('/cycle_stream', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({direction:dir})});
-            const d = await res.json();
-            if(d.success) setChannel(d.channel);
-        }
-
-        // 2. CAROUSEL
-        async function loadCarousel() {
-            try {
-                const res = await fetch('/followed_streams');
-                const d = await res.json();
-                const el = document.getElementById('carousel');
-                el.innerHTML = "";
-                if(d.streams) {
-                    d.streams.forEach(s => {
-                        const thumb = s.thumbnail_url.replace('{width}','320').replace('{height}','180');
-                        el.innerHTML += `<div class="stream-card flex-shrink-0" onclick="setChannel('${s.user_login}')"><img src="${thumb}"><div class="absolute bottom-0 left-0 w-full bg-black/60 p-2"><div class="font-bold text-white text-xs truncate">${s.user_name}</div></div></div>`;
-                    });
+        // ==================== AUTH ==================== 
+        async function loginTwitch() {
+            const popup = window.open(`${API_BASE}/twitch_auth_start`, 'twitch_auth', 'width=500,height=600');
+            
+            // Vérifier la connexion toutes les 500ms
+            const checkLogin = setInterval(async () => {
+                if (popup && popup.closed) {
+                    clearInterval(checkLogin);
+                    await new Promise(r => setTimeout(r, 500));
+                    checkUserStatus();
                 }
-            } catch(e) {}
+            }, 500);
         }
 
-        // 3. STATS (FIX VALEURS MANQUANTES)
-        async function loadStats() {
-            try {
-                // Global
-                const r1 = await fetch('/api/stats/global'); const d1 = await r1.json();
-                document.getElementById('kpi-viewers').innerText = d1.total_viewers.toLocaleString();
-                document.getElementById('kpi-channels').innerText = d1.total_channels;
-                if(d1.history && d1.history.live) createChart('chart1', 'line', d1.history.live.labels, d1.history.live.values, '#00f2ea', true);
-
-                // Games - Backend V65 renvoie des objets {name}, pas de value. On génère des valeurs fictives si besoin.
-                const r2 = await fetch('/api/stats/top_games'); const d2 = await r2.json();
-                const gameLabels = d2.games.map(g => g.name);
-                const gameValues = [100, 80, 60, 40, 20]; // Valeurs par défaut pour que le graph s'affiche
-                createChart('chart2', 'bar', gameLabels, gameValues, '#ff0099', false);
-
-                // Langs
-                const r3 = await fetch('/api/stats/languages'); const d3 = await r3.json();
-                const langLabels = d3.languages.map(l => l.name || l.language || 'Autre');
-                const langValues = d3.languages.map(l => l.percent || 10);
-                createChart('chart3', 'doughnut', langLabels, langValues, ['#00f2ea','#ff0099','#ffd700','#fff'], false);
-            } catch(e) { console.log("Stats error", e); }
-        }
-
-        function createChart(id, type, l, d, c, f) {
-            if(charts[id]) charts[id].destroy();
-            const ctx = document.getElementById(id).getContext('2d');
-            charts[id] = new Chart(ctx, {type:type, data:{labels:l, datasets:[{data:d, backgroundColor:type==='line'?'rgba(0,242,234,0.1)':c, borderColor:Array.isArray(c)?'#000':c, fill:f, tension:0.4}]}, options:{plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}, maintainAspectRatio:false}});
-        }
-
-        // 4. TOOLS (FIX RAID)
-        async function runScan() {
-            const q = document.getElementById('scan-in').value;
-            const r = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q})});
-            const d = await r.json();
-            if(d.success) {
-                document.getElementById('scan-res').classList.remove('hidden');
-                document.getElementById('scan-name').innerText = d.user_data.display_name;
-                document.getElementById('scan-img').src = d.user_data.profile_image_url;
-                const ai = await fetch('/critique_ia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query:q})});
-                const dai = await ai.json();
-                document.getElementById('scan-ai').innerHTML = dai.html_response;
-            }
-        }
-        async function runPlan() {
-            const g = document.getElementById('plan-in').value;
-            const r = await fetch('/analyze_schedule', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g})});
-            const d = await r.json();
-            document.getElementById('plan-res').classList.remove('hidden');
-            document.getElementById('plan-res').innerHTML = d.html_response;
-        }
-        async function runRaid() {
-            const g = document.getElementById('raid-game').value;
-            const m = document.getElementById('raid-max').value;
-            const r = await fetch('/start_raid', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g, max_viewers:m})});
-            const d = await r.json();
-            if(d.success) {
-                window.raidTarget = d.target.login;
-                document.getElementById('raid-res').classList.remove('hidden');
-                document.getElementById('raid-name').innerText = d.target.name;
-                document.getElementById('raid-img').src = d.target.thumbnail_url;
-                document.getElementById('raid-meta').innerText = d.target.viewers + " Viewers";
+        async function logoutTwitch() {
+            const res = await fetch(`${API_BASE}/twitch_logout`, { method: 'POST' });
+            if (res.ok) {
+                checkUserStatus();
+                location.reload(); // Rafraîchir la page
             }
         }
 
-        // 5. SYSTEM
-        function initSocket() {
+        async function checkUserStatus() {
             try {
-                socket = io();
-                socket.on('connect', ()=>{document.getElementById('socket-status').innerText="ONLINE"; document.getElementById('socket-status').className="text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded uppercase";});
-                socket.on('chat message', (m)=>{
-                    const b = document.getElementById('hub-msgs');
-                    b.innerHTML+=`<div class="hub-msg"><strong class="text-[#00f2ea]">${m.user}:</strong> ${m.text}</div>`;
-                    b.scrollTop=b.scrollHeight;
+                const res = await fetch(`${API_BASE}/twitch_user_status`);
+                const data = await res.json();
+
+                if (data.is_connected) {
+                    document.getElementById('userInfo').style.display = 'block';
+                    document.getElementById('userName').textContent = data.display_name;
+                    document.getElementById('loginBtn').style.display = 'none';
+                    document.getElementById('logoutBtn').style.display = 'block';
+                } else {
+                    document.getElementById('userInfo').style.display = 'none';
+                    document.getElementById('loginBtn').style.display = 'block';
+                    document.getElementById('logoutBtn').style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Erreur check status:', e);
+            }
+        }
+
+        // ==================== TABS ==================== 
+        function switchTab(tabName) {
+            // Masquer tous les tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Désactiver tous les boutons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Afficher le tab sélectionné
+            document.getElementById(tabName).classList.add('active');
+
+            // Activer le bouton
+            event.target.classList.add('active');
+        }
+
+        // ==================== DASHBOARD ==================== 
+        async function loadDashboard() {
+            try {
+                // Stats Global
+                const statsRes = await fetch(`${API_BASE}/api/stats/global`);
+                const stats = await statsRes.json();
+
+                if (stats.success) {
+                    document.getElementById('totalViewers').textContent = stats.total_viewers.toLocaleString();
+                    document.getElementById('totalChannels').textContent = stats.total_channels;
+                    document.getElementById('topGame').textContent = stats.top_game_name || 'N/A';
+                }
+
+                // Top Games
+                const gamesRes = await fetch(`${API_BASE}/api/stats/top_games`);
+                const games = await gamesRes.json();
+
+                const gamesContainer = document.getElementById('topGamesContainer');
+                gamesContainer.innerHTML = '';
+                games.games.slice(0, 5).forEach(game => {
+                    gamesContainer.innerHTML += `
+                        <div class="stream-card">
+                            <img src="${game.box_art_url}" alt="${game.name}" class="stream-thumbnail">
+                            <div class="stream-info">
+                                <div class="stream-title">${game.name}</div>
+                            </div>
+                        </div>
+                    `;
                 });
-            } catch(e){}
-        }
-        function initEmojis() {
-            const em = ['😀','😂','🔥','❤️','👍','🎉','😭','👀','🚀','💀','💩','🤡'];
-            const c = document.getElementById('emoji-picker');
-            em.forEach(e=>{ const d=document.createElement('div'); d.className="emoji-btn"; d.innerText=e; d.onclick=()=>{document.getElementById('hub-in').value+=e; c.classList.add('hidden');}; c.appendChild(d); });
-        }
-        function sendMsg(e) {
-            e.preventDefault(); const i = document.getElementById('hub-in');
-            if(i.value && socket){ socket.emit('chat message', i.value); 
-            document.getElementById('hub-msgs').innerHTML+=`<div class="hub-msg border-l-2 border-[#ff0099]"><strong class="text-[#ff0099]">Moi:</strong> ${i.value}</div>`;
-            i.value=""; }
-        }
-        async function checkAuth() {
-            try {
-                const r = await fetch('/twitch_user_status'); const d = await r.json();
-                if(d.is_connected) {
-                    document.getElementById('btn-auth').classList.add('hidden');
-                    document.getElementById('user-area').classList.remove('hidden');
-                    document.getElementById('user-name').innerText = d.display_name;
-                    const s = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:d.display_name})});
-                    const sd = await s.json();
-                    if(sd.success) document.getElementById('user-avatar').src = sd.user_data.profile_image_url;
-                    loadCarousel();
+
+                // Languages
+                const langRes = await fetch(`${API_BASE}/api/stats/languages`);
+                const langs = await langRes.json();
+
+                const langsContainer = document.getElementById('languagesContainer');
+                langsContainer.innerHTML = '';
+                langs.languages.forEach(lang => {
+                    langsContainer.innerHTML += `
+                        <div class="stat-card">
+                            <div class="card-subtitle">${lang.name}</div>
+                            <div class="stat-value">${lang.percent}</div>
+                        </div>
+                    `;
+                });
+
+                // Default Stream
+                const streamRes = await fetch(`${API_BASE}/get_default_stream`);
+                const stream = await streamRes.json();
+
+                if (stream.success) {
+                    document.getElementById('defaultStreamInfo').innerHTML = `
+                        <div><strong>Canal:</strong> ${stream.channel}</div>
+                        <div><strong>Mode:</strong> ${stream.mode}</div>
+                        <div><strong>Viewers:</strong> ${stream.viewers || 'N/A'}</div>
+                        <div style="color: var(--success); margin-top: 0.5rem;">${stream.message || ''}</div>
+                    `;
                 }
-            } catch(e){}
+            } catch (e) {
+                console.error('Erreur dashboard:', e);
+            }
         }
-        function startAuth() { window.open('/twitch_auth_start', 'login', 'width=500,height=700'); }
-        function logout() { fetch('/twitch_logout', {method:'POST'}).then(()=>location.reload()); }
-        function openTab(id) {
-            document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.add('active');
+
+        async function cycleStream(direction) {
+            try {
+                const res = await fetch(`${API_BASE}/cycle_stream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ direction })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadDashboard();
+                }
+            } catch (e) {
+                console.error('Erreur cycle:', e);
+            }
         }
-        function toggleChat(m) {
-            if(m==='hub'){document.getElementById('chat-twitch').classList.add('hidden');document.getElementById('chat-hub').classList.remove('hidden');document.getElementById('chat-hub').classList.add('flex');}
-            else{document.getElementById('chat-hub').classList.add('hidden');document.getElementById('chat-hub').classList.remove('flex');document.getElementById('chat-twitch').classList.remove('hidden');}
+
+        // ==================== SCANNER ==================== 
+        async function scanTarget() {
+            const query = document.getElementById('scanQuery').value;
+            if (!query) {
+                alert('Entrez un nom de streamer ou jeu');
+                return;
+            }
+
+            document.getElementById('scanLoading').style.display = 'block';
+            document.getElementById('scanResults').innerHTML = '';
+
+            try {
+                const res = await fetch(`${API_BASE}/scan_target`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await res.json();
+
+                document.getElementById('scanLoading').style.display = 'none';
+
+                if (data.success) {
+                    let html = '';
+                    if (data.type === 'user') {
+                        const user = data.user_data;
+                        html = `
+                            <div class="card">
+                                <h3>${user.display_name}</h3>
+                                <img src="${user.profile_image_url}" style="width: 80px; height: 80px; border-radius: 50%; margin: 1rem 0;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <p><strong>Login:</strong> ${user.login}</p>
+                                    <p><strong>Bio:</strong> ${user.description}</p>
+                                    <p><strong>Créé:</strong> ${user.created_at}</p>
+                                    <p><strong>Jeu:</strong> ${user.game_name}</p>
+                                    <p><strong>Titre:</strong> ${user.title}</p>
+                                    <p><strong>Tags:</strong> ${user.tags}</p>
+                                    <p><strong>Langue:</strong> ${user.language}</p>
+                                    <p><strong>Views:</strong> ${user.view_count}</p>
+                                    <p><strong>En direct:</strong> ${user.is_live ? '✅ OUI' : '❌ NON'}</p>
+                                    <p><strong>Viewers:</strong> ${user.viewer_count}</p>
+                                    <p><strong>Score Niche:</strong> <span style="color: var(--success);">${user.ai_calculated_niche_score}</span></p>
+                                </div>
+                            </div>
+                        `;
+                    } else if (data.type === 'game') {
+                        const game = data.game_data;
+                        html = `
+                            <div class="card">
+                                <h3>${game.name}</h3>
+                                <img src="${game.box_art_url}" style="width: 120px; height: 160px; margin: 1rem 0; border-radius: 6px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <p><strong>Total Viewers:</strong> ${game.total_viewers.toLocaleString()}</p>
+                                    <p><strong>Score Niche:</strong> <span style="color: var(--success);">${game.ai_calculated_niche_score}/5</span></p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    document.getElementById('scanResults').innerHTML = html;
+
+                    // Critique IA
+                    const critRes = await fetch(`${API_BASE}/critique_ia`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'niche', query })
+                    });
+                    const critData = await critRes.json();
+                    if (critData.success) {
+                        document.getElementById('iaResults').innerHTML = `
+                            <div class="card">
+                                <div class="card-title">Critique IA</div>
+                                <div>${critData.html_response}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    document.getElementById('scanResults').innerHTML = '<div class="alert alert-error">❌ Pas de résultats trouvés</div>';
+                }
+            } catch (e) {
+                console.error('Erreur scan:', e);
+                document.getElementById('scanLoading').style.display = 'none';
+                document.getElementById('scanResults').innerHTML = '<div class="alert alert-error">❌ Erreur serveur</div>';
+            }
+        }
+
+        // ==================== RAID ==================== 
+        async function startRaid() {
+            const game = document.getElementById('raidGame').value;
+            const maxViewers = document.getElementById('maxViewers').value;
+
+            if (!game) {
+                alert('Entrez un jeu');
+                return;
+            }
+
+            document.getElementById('raidLoading').style.display = 'block';
+            document.getElementById('raidResults').innerHTML = '';
+
+            try {
+                const res = await fetch(`${API_BASE}/start_raid`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game, max_viewers: maxViewers })
+                });
+                const data = await res.json();
+
+                document.getElementById('raidLoading').style.display = 'none';
+
+                if (data.success && data.target) {
+                    const target = data.target;
+                    document.getElementById('raidResults').innerHTML = `
+                        <div class="card">
+                            <h3>🎯 Cible Raid Trouvée!</h3>
+                            <img src="${target.thumbnail_url}" style="width: 100%; height: auto; border-radius: 6px; margin: 1rem 0;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <p><strong>Streamer:</strong> ${target.name}</p>
+                                <p><strong>Login:</strong> ${target.login}</p>
+                                <p><strong>Viewers:</strong> ${target.viewers}</p>
+                                <p><strong>Jeu:</strong> ${target.game}</p>
+                                <button class="btn btn-primary" onclick="goToTwitch('${target.login}')" style="margin-top: 1rem; width: 100%;">
+                                    🎮 Aller sur Twitch
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('raidResults').innerHTML = '<div class="alert alert-error">❌ Aucune cible trouvée</div>';
+                }
+            } catch (e) {
+                console.error('Erreur raid:', e);
+                document.getElementById('raidLoading').style.display = 'none';
+                document.getElementById('raidResults').innerHTML = '<div class="alert alert-error">❌ Erreur serveur</div>';
+            }
+        }
+
+        function goToTwitch(login) {
+            window.open(`https://twitch.tv/${login}`, '_blank');
+        }
+
+        // ==================== PLANNING ==================== 
+        async function analyzeSchedule() {
+            const game = document.getElementById('planningGame').value;
+            if (!game) {
+                alert('Entrez un jeu');
+                return;
+            }
+
+            document.getElementById('planningLoading').style.display = 'block';
+            document.getElementById('planningResults').innerHTML = '';
+
+            try {
+                const res = await fetch(`${API_BASE}/analyze_schedule`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game })
+                });
+                const data = await res.json();
+
+                document.getElementById('planningLoading').style.display = 'none';
+
+                if (data.success) {
+                    document.getElementById('planningResults').innerHTML = `
+                        <div class="card">
+                            <div class="card-title">📊 Analyse Planning - ${game}</div>
+                            <div>${data.html_response}</div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('planningResults').innerHTML = '<div class="alert alert-error">❌ Erreur analyse</div>';
+                }
+            } catch (e) {
+                console.error('Erreur planning:', e);
+                document.getElementById('planningLoading').style.display = 'none';
+                document.getElementById('planningResults').innerHTML = '<div class="alert alert-error">❌ Erreur serveur</div>';
+            }
+        }
+
+        // ==================== CHAT HUB ==================== 
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            messageEl.innerHTML = `
+                <div class="message-author">👤 Vous</div>
+                <div class="message-text">${message}</div>
+            `;
+
+            messagesDiv.appendChild(messageEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            input.value = '';
+
+            // Réponse aléatoire du système
+            setTimeout(() => {
+                const responses = [
+                    '✅ Message bien reçu!',
+                    '💬 Merci pour ce partage!',
+                    '🎮 Super stratégie!',
+                    '👍 D\'accord avec toi!',
+                    '🔥 Bien vu!'
+                ];
+                const respEl = document.createElement('div');
+                respEl.className = 'message';
+                respEl.innerHTML = `
+                    <div class="message-author">🤖 Hub Bot</div>
+                    <div class="message-text">${responses[Math.floor(Math.random() * responses.length)]}</div>
+                `;
+                messagesDiv.appendChild(respEl);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 500);
+        }
+
+        function handleChatKey(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
         }
     </script>
 </body>
