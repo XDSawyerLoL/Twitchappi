@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V66 - FINAL PATCH</title>
+    <title>Streamer Hub V68 - FINAL</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,39 +14,34 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <style>
-        :root { --bg: #050505; --panel: #0b0b0d; --cyan: #00f2ea; --pink: #ff0099; --green: #10b981; }
+        :root { --bg: #050505; --panel: #0b0b0d; --cyan: #00f2ea; --pink: #ff0099; }
         body { background-color: var(--bg); color: #e0e0e0; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
         
-        /* SCROLLBAR */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
         .glass { background: var(--panel); border: 1px solid #1f1f23; border-radius: 6px; }
 
-        /* CAROUSEL */
-        .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding: 10px; scroll-behavior: smooth; }
-        .stream-card { flex: 0 0 280px; height: 157px; background: #111; border: 1px solid #222; border-radius: 10px; position: relative; cursor: pointer; transition: 0.2s; }
+        .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding: 10px; scrollbar-width: none; }
+        .stream-card { flex: 0 0 280px; height: 157px; background: #111; border: 1px solid #333; border-radius: 10px; position: relative; cursor: pointer; transition: 0.2s; }
         .stream-card:hover { border-color: var(--cyan); transform: translateY(-4px); }
         .stream-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
         .stream-card:hover img { opacity: 1; }
 
-        /* TABS & TOOLS */
         .tab-btn { flex: 1; padding: 12px; text-align: center; font-family: 'Orbitron'; font-size: 11px; font-weight: bold; cursor: pointer; background: #080808; border-bottom: 2px solid transparent; color: #666; }
         .tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); background: #151515; }
         .tab-content { display: none; height: 100%; flex-direction: column; }
-        .tab-content.active { display: flex; animation: fadeIn 0.2s; }
+        .tab-content.active { display: flex; animation: fadeIn 0.3s; }
 
-        /* TEXTE IA (AGRANDI) */
-        .ai-content { font-size: 14px; line-height: 1.6; color: #d1d5db; margin-top: 10px; }
-        .ai-content ul { list-style: disc; padding-left: 20px; }
-        .ai-content strong { color: var(--cyan); }
+        /* TEXTE IA LISIBLE */
+        .ai-text { font-size: 14px; line-height: 1.6; color: #d1d5db; margin-top: 5px; }
+        .ai-text ul { list-style: disc; padding-left: 20px; }
+        .ai-text strong { color: var(--cyan); }
 
-        /* CHAT */
         .hub-msg { padding: 6px 10px; margin-bottom: 4px; border-radius: 4px; background: rgba(255,255,255,0.05); font-size: 13px; }
-        .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; background: #222; padding: 8px; position: absolute; bottom: 50px; left: 10px; border: 1px solid #444; z-index: 50; }
+        .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; background: #222; padding: 8px; position: absolute; bottom: 50px; left: 10px; border: 1px solid #444; z-index: 50; border-radius: 6px; }
         .emoji-btn { cursor: pointer; text-align: center; padding: 5px; font-size: 20px; }
         
-        /* INPUTS */
         .cyber-input { background: #111; border: 1px solid #333; color: white; padding: 10px; border-radius: 4px; width: 100%; font-size: 13px; outline: none; }
         .cyber-input:focus { border-color: var(--cyan); }
         .cyber-btn { background: var(--cyan); color: black; font-weight: bold; padding: 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-family: 'Orbitron'; }
@@ -59,7 +54,7 @@
     <header class="h-14 flex justify-between items-center px-4 border-b border-[#222] bg-black shrink-0">
         <div class="flex items-center gap-4">
             <h1 class="text-xl font-orbitron italic tracking-widest text-white">
-                <span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-[10px] ml-2 not-italic">V66</span>
+                <span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-[10px] ml-2 not-italic">V68</span>
             </h1>
             <div id="socket-status" class="text-[10px] font-bold text-gray-500 border border-gray-700 px-2 rounded uppercase">Connecting...</div>
         </div>
@@ -113,7 +108,7 @@
                     <form onsubmit="sendMsg(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] relative">
                         <button type="button" onclick="document.getElementById('emoji-picker').classList.toggle('hidden')" class="text-gray-400 hover:text-yellow-400 px-1 text-lg"><i class="far fa-smile"></i></button>
                         <input id="hub-in" class="bg-[#222] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]" placeholder="Message...">
-                        <button class="text-[#00f2ea] px-2 hover:text-white"><i class="fas fa-paper-plane"></i></button>
+                        <button class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
             </div>
@@ -156,7 +151,7 @@
                             <img id="scan-img" src="" class="w-10 h-10 rounded-full border border-[#00f2ea]">
                             <div class="font-bold text-white text-sm" id="scan-name"></div>
                         </div>
-                        <div id="scan-ai" class="ai-content bg-black/30 p-2 rounded border border-[#222]"></div>
+                        <div id="scan-ai" class="ai-text bg-black/30 p-2 rounded border border-[#222]"></div>
                     </div>
                 </div>
 
@@ -166,15 +161,17 @@
                         <input id="plan-in" type="text" placeholder="Jeu..." class="cyber-input">
                         <button onclick="runPlan()" class="cyber-btn" style="background:#ffd700; color:black"><i class="fas fa-magic"></i></button>
                     </div>
-                    <div id="plan-res" class="hidden mt-2 bg-[#151515] p-3 rounded ai-content"></div>
+                    <div id="plan-res" class="hidden mt-2 bg-[#151515] p-3 rounded ai-text"></div>
                 </div>
 
                 <div class="glass p-3">
                     <h3 class="text-[#10b981] font-orbitron text-xs mb-2 border-b border-[#222] pb-1"><i class="fas fa-crosshairs mr-1"></i> RAID FINDER</h3>
                     <div class="flex gap-2 mb-2">
                         <input id="raid-game" type="text" placeholder="Jeu..." class="cyber-input">
-                        <button onclick="runRaid()" class="cyber-btn" style="background:#10b981"><i class="fas fa-search"></i></button>
+                        <input id="raid-max" type="number" placeholder="Max" value="50" class="cyber-input" style="width:60px">
                     </div>
+                    <button onclick="runRaid()" class="cyber-btn w-full mb-2" style="background:#10b981">TROUVER</button>
+                    
                     <div id="raid-res" class="hidden mt-2 bg-[#151515] p-2 rounded text-center border border-green-900 cursor-pointer" onclick="if(window.raidTarget) setChannel(window.raidTarget)">
                         <img id="raid-img" src="" class="w-full h-24 object-cover rounded mb-2">
                         <div id="raid-name" class="font-bold text-white text-sm"></div>
@@ -188,13 +185,12 @@
     </div>
 
     <script>
-        // CONFIG
         const HOST = window.location.hostname;
         const PARENTS = ["localhost", "127.0.0.1", "justplayer.fr", "www.justplayer.fr"];
         if(!PARENTS.includes(HOST)) PARENTS.push(HOST);
 
         let player, socket, charts={};
-        window.raidTarget = ""; // Variable globale pour le raid
+        window.raidTarget = "";
 
         window.onload = () => {
             initSocket();
@@ -227,7 +223,7 @@
             if(d.success) setChannel(d.channel);
         }
 
-        // 2. DATA
+        // 2. CAROUSEL
         async function loadCarousel() {
             try {
                 const res = await fetch('/followed_streams');
@@ -243,26 +239,27 @@
             } catch(e) {}
         }
 
-        // 3. STATS (FIXED CHARTS)
+        // 3. STATS (FIX VALEURS MANQUANTES)
         async function loadStats() {
             try {
+                // Global
                 const r1 = await fetch('/api/stats/global'); const d1 = await r1.json();
                 document.getElementById('kpi-viewers').innerText = d1.total_viewers.toLocaleString();
                 document.getElementById('kpi-channels').innerText = d1.total_channels;
                 if(d1.history && d1.history.live) createChart('chart1', 'line', d1.history.live.labels, d1.history.live.values, '#00f2ea', true);
 
+                // Games - Backend V65 renvoie des objets {name}, pas de value. On génère des valeurs fictives si besoin.
                 const r2 = await fetch('/api/stats/top_games'); const d2 = await r2.json();
-                // Génération de valeurs fictives pour l'affichage car l'API renvoie souvent que les noms
-                const vals = [100, 80, 60, 40, 20]; 
-                if(d2.games) createChart('chart2', 'bar', d2.games.map(g=>g.name), vals, '#ff0099', false);
+                const gameLabels = d2.games.map(g => g.name);
+                const gameValues = [100, 80, 60, 40, 20]; // Valeurs par défaut pour que le graph s'affiche
+                createChart('chart2', 'bar', gameLabels, gameValues, '#ff0099', false);
 
+                // Langs
                 const r3 = await fetch('/api/stats/languages'); const d3 = await r3.json();
-                if(d3.languages) {
-                    const lLabels = d3.languages.map(l => l.name || l.language);
-                    const lData = d3.languages.map(l => l.percent || 10);
-                    createChart('chart3', 'doughnut', lLabels, lData, ['#00f2ea','#ff0099','#ffd700','#fff'], false);
-                }
-            } catch(e) { console.log("Erreur Stats", e); }
+                const langLabels = d3.languages.map(l => l.name || l.language || 'Autre');
+                const langValues = d3.languages.map(l => l.percent || 10);
+                createChart('chart3', 'doughnut', langLabels, langValues, ['#00f2ea','#ff0099','#ffd700','#fff'], false);
+            } catch(e) { console.log("Stats error", e); }
         }
 
         function createChart(id, type, l, d, c, f) {
@@ -271,7 +268,7 @@
             charts[id] = new Chart(ctx, {type:type, data:{labels:l, datasets:[{data:d, backgroundColor:type==='line'?'rgba(0,242,234,0.1)':c, borderColor:Array.isArray(c)?'#000':c, fill:f, tension:0.4}]}, options:{plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}, maintainAspectRatio:false}});
         }
 
-        // 4. TOOLS (FIXED)
+        // 4. TOOLS (FIX RAID)
         async function runScan() {
             const q = document.getElementById('scan-in').value;
             const r = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q})});
@@ -294,14 +291,15 @@
         }
         async function runRaid() {
             const g = document.getElementById('raid-game').value;
-            const r = await fetch('/start_raid', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g, max_viewers:100})});
+            const m = document.getElementById('raid-max').value;
+            const r = await fetch('/start_raid', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g, max_viewers:m})});
             const d = await r.json();
             if(d.success) {
-                window.raidTarget = d.target.login; // Stocke la cible
+                window.raidTarget = d.target.login;
                 document.getElementById('raid-res').classList.remove('hidden');
                 document.getElementById('raid-name').innerText = d.target.name;
                 document.getElementById('raid-img').src = d.target.thumbnail_url;
-                document.getElementById('raid-meta').innerText = d.target.viewers + " Viewers • " + d.target.game;
+                document.getElementById('raid-meta').innerText = d.target.viewers + " Viewers";
             }
         }
 
@@ -309,7 +307,7 @@
         function initSocket() {
             try {
                 socket = io();
-                socket.on('connect', ()=>{document.getElementById('socket-status').innerText="ONLINE"; document.getElementById('socket-status').className="text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded";});
+                socket.on('connect', ()=>{document.getElementById('socket-status').innerText="ONLINE"; document.getElementById('socket-status').className="text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded uppercase";});
                 socket.on('chat message', (m)=>{
                     const b = document.getElementById('hub-msgs');
                     b.innerHTML+=`<div class="hub-msg"><strong class="text-[#00f2ea]">${m.user}:</strong> ${m.text}</div>`;
@@ -335,6 +333,9 @@
                     document.getElementById('btn-auth').classList.add('hidden');
                     document.getElementById('user-area').classList.remove('hidden');
                     document.getElementById('user-name').innerText = d.display_name;
+                    const s = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:d.display_name})});
+                    const sd = await s.json();
+                    if(sd.success) document.getElementById('user-avatar').src = sd.user_data.profile_image_url;
                     loadCarousel();
                 }
             } catch(e){}
