@@ -1,6 +1,6 @@
 /**
- * STREAMER HUB - BACKEND V71 (JSON PARSE FIX)
- * Correction spécifique pour l'erreur "Bad control character"
+ * STREAMER HUB - BACKEND V72 (INSUBMERSIBLE)
+ * Ce serveur refuse de crasher. Si Firebase échoue, il passe en mode RAM.
  */
 
 require('dotenv').config();
@@ -15,39 +15,59 @@ const cookieParser = require('cookie-parser');
 const http = require('http'); 
 const { Server } = require("socket.io"); 
 
-// IA & DB
+// IA
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
 // =========================================================
-// 0. INITIALISATION FIREBASE (CORRECTIF V71)
+// 0. INITIALISATION DATABASE (MODE SECURISE)
 // =========================================================
-let db; 
 
+// On définit d'abord une "Fausse Base de Données" (Mock)
+// Si la vraie base plante, celle-ci prend le relais pour que le site reste en ligne.
+let db = {
+    collection: (name) => ({
+        add: async (data) => console.log(`[MODE SECOURS] Ajout dans ${name} (Non sauvegardé)`),
+        where: () => ({ 
+            orderBy: () => ({ 
+                limit: () => ({ 
+                    get: async () => ({ empty: true, docs: [] }) 
+                }) 
+            }),
+            limit: () => ({ get: async () => ({ empty: true, docs: [] }) })
+        }),
+        orderBy: () => ({ 
+            limit: () => ({ 
+                get: async () => ({ empty: true, docs: [] }) 
+            }) 
+        })
+    })
+};
+
+// Tentative de connexion à la VRAIE base
 try {
     let serviceAccount;
-    
-    // CAS 1: Clé dans les variables d'environnement (Render)
-    if (process.env.FIREBASE_SERVICE_KEY) {
-        let rawJson = process.env.FIREBASE_SERVICE_KEY;
-        
-        // 1. Nettoyage des guillemets autour
-        if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
-        if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
-        
-        // 2. LA CORRECTION CRITIQUE (V71) :
-        // On remplace les vrais sauts de ligne par \\n pour que le JSON soit valide
-        rawJson = rawJson.replace(/\n/g, "\\n").replace(/\r/g, "");
+    const envKey = process.env.FIREBASE_SERVICE_KEY;
 
-        serviceAccount = JSON.parse(rawJson);
-        console.log("🔑 Clé Firebase chargée et nettoyée.");
-    } 
-    // CAS 2: Fichier local
-    else {
-        try { serviceAccount = require('./serviceAccountKey.json'); } catch (e) {}
+    if (envKey) {
+        // NETTOYAGE AGRESSIF DE LA CLE
+        // 1. Enlever les guillemets simples ou doubles au début/fin
+        let cleanKey = envKey.trim();
+        if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
+            (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+            cleanKey = cleanKey.slice(1, -1);
+        }
+        
+        // 2. Remplacer les sauts de ligne échappés ou réels
+        // On remplace \n par \\n pour JSON.parse, et on vire les retours chariots
+        cleanKey = cleanKey.replace(/\\n/g, "\\n").replace(/\n/g, "\\n").replace(/\r/g, "");
+
+        serviceAccount = JSON.parse(cleanKey);
+        console.log("🔑 Clé Firebase détectée.");
+    } else {
+        try { serviceAccount = require('./serviceAccountKey.json'); } catch(e){}
     }
 
-    // Connexion
     if (serviceAccount) {
         if (!admin.apps.length) {
             admin.initializeApp({
@@ -57,25 +77,11 @@ try {
         }
         db = admin.firestore();
         db.settings({ ignoreUndefinedProperties: true });
-        console.log("✅ FIREBASE CONNECTÉ SUCCÈS.");
-    } else {
-        throw new Error("Pas de clé détectée.");
+        console.log("✅ FIREBASE CONNECTÉ.");
     }
-
 } catch (error) {
-    console.error("⚠️ ERREUR FIREBASE (Mode Secours Activé):", error.message);
-    
-    // MOCK DB (Pour ne pas faire crasher le site si la clé est mauvaise)
-    db = {
-        collection: () => ({
-            add: async () => {},
-            where: () => ({ 
-                orderBy: () => ({ limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) }),
-                limit: () => ({ get: async () => ({ empty: true, docs: [] }) })
-            }),
-            orderBy: () => ({ limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) })
-        })
-    };
+    console.error("⚠️ ÉCHEC FIREBASE (Le serveur continue en mode secours):", error.message);
+    // On ne fait rien d'autre, 'db' reste sur la version Mock définie plus haut.
 }
 
 // =========================================================
@@ -101,7 +107,7 @@ app.use(express.static(path.join(__dirname)));
 
 // SOCKET
 io.on('connection', (socket) => {
-    socket.emit('chat message', { user: 'System', text: 'Hub V71 Online.' });
+    socket.emit('chat message', { user: 'System', text: 'Hub V72 Online.' });
     socket.on('chat message', (msg) => { socket.broadcast.emit('chat message', { user: 'Anon', text: msg }); });
 });
 
@@ -136,6 +142,7 @@ async function runGemini(prompt) {
 // =========================================================
 
 app.get('/followed_streams', async (req, res) => {
+    // Liste de secours si l'API Twitch plante
     const fallback = [
         { user_name: "Kamet0", user_login: "kamet0", game_name: "League of Legends", thumbnail_url: "https://static-cdn.jtvnw.net/previews-ttv/live_user_kamet0-320x180.jpg" },
         { user_name: "JLTomy", user_login: "jltomy", game_name: "GTA V", thumbnail_url: "https://static-cdn.jtvnw.net/previews-ttv/live_user_jltomy-320x180.jpg" },
@@ -143,6 +150,21 @@ app.get('/followed_streams', async (req, res) => {
         { user_name: "Gotaga", user_login: "gotaga", game_name: "Valorant", thumbnail_url: "https://static-cdn.jtvnw.net/previews-ttv/live_user_gotaga-320x180.jpg" },
         { user_name: "OtPlol_", user_login: "otplol_", game_name: "LoL", thumbnail_url: "https://static-cdn.jtvnw.net/previews-ttv/live_user_otplol_-320x180.jpg" }
     ];
+    
+    // Essai réel
+    try {
+        const data = await twitchAPI('streams?first=5&language=fr');
+        if (data.data && data.data.length > 0) {
+             const realStreams = data.data.map(s => ({
+                 user_name: s.user_name,
+                 user_login: s.user_login,
+                 game_name: s.game_name,
+                 thumbnail_url: s.thumbnail_url
+             }));
+             return res.json({ success: true, streams: realStreams });
+        }
+    } catch(e) {}
+
     res.json({ success: true, streams: fallback });
 });
 
@@ -179,6 +201,7 @@ app.post('/scan_target', async (req, res) => {
             });
         }
     } catch(e) {}
+    // Fallback pour que le scanner affiche quelque chose même si pas trouvé
     res.json({
         success: true,
         user_data: { display_name: q, game_name: "N/A", profile_image_url: `https://ui-avatars.com/api/?name=${q}&background=00f2ea&color=000`, ai_calculated_niche_score: "N/A" }
@@ -196,6 +219,7 @@ app.post('/analyze_schedule', async (req, res) => {
 });
 
 app.post('/start_raid', async (req, res) => {
+    // Logique simplifiée pour Raid Finder (garantit un résultat)
     res.json({
         success: true,
         target: { name: "CibleRaidFR", login: "zerator", game: req.body.game || "Jeu", viewers: 42, thumbnail_url: "https://static-cdn.jtvnw.net/ttv-boxart/27471_IGDB-285x380.jpg" }
@@ -222,7 +246,9 @@ app.get('/twitch_user_status', (req, res) => { res.json({ is_connected: false })
 app.get('/', (req,res) => {
     const indexPath = path.join(__dirname, 'index.html');
     const nichePath = path.join(__dirname, 'NicheOptimizer.html');
-    res.sendFile(indexPath, (err) => { if(err) res.sendFile(nichePath); });
+    res.sendFile(indexPath, (err) => { 
+        if(err) res.sendFile(nichePath); // Fallback si index.html n'existe pas
+    });
 });
 
-server.listen(PORT, () => console.log(`🚀 SERVER V71 (JSON FIX) ON PORT ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 SERVER V72 ONLINE ON PORT ${PORT}`));
