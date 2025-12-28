@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V52 - ULTIMATE PERFORMANCE</title>
+    <title>Streamer Hub V53 - POLISHED DIAMOND</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,28 +11,28 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://embed.twitch.tv/embed/v1.js"></script>
-    <script src="/socket.io/socket.io.js"></script> <style>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
         :root {
             --bg-dark: #050505;
             --bg-panel: #0b0b0d;
             --primary: #ff0099;
             --secondary: #00f2ea;
             --text-main: #e0e0e0;
-            --border-color: #1f1f23;
         }
 
         body { background-color: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; overflow-x: hidden; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
 
-        /* SCROLLBAR CUSTOM */
+        /* SCROLLBAR */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #000; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
 
         /* CAROUSEL */
-        .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding: 10px 5px; scroll-behavior: smooth; cursor: grab; }
-        .carousel-track:active { cursor: grabbing; }
+        .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding: 10px 5px; scroll-behavior: smooth; }
         .stream-card { 
             flex: 0 0 300px; height: 170px;
             background: #111; border: 1px solid #222; border-radius: 12px; 
@@ -41,43 +41,36 @@
         .stream-card:hover { border-color: var(--secondary); transform: translateY(-4px); box-shadow: 0 5px 20px rgba(0, 242, 234, 0.15); }
         .card-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; transition: 0.3s; }
         .stream-card:hover .card-img { opacity: 1; }
-        
-        /* LAYOUT */
-        .glass-panel { background: var(--bg-panel); border: 1px solid var(--border-color); }
-        
-        /* TABS */
-        .tab-nav { display: flex; background: #080808; border-bottom: 1px solid var(--border-color); }
+
+        /* UI ELEMENTS */
+        .glass-panel { background: var(--bg-panel); border: 1px solid #1f1f23; }
         .tab-btn { flex: 1; padding: 14px; text-align: center; color: #666; font-family: 'Orbitron'; font-size: 11px; font-weight: bold; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.3s; }
-        .tab-btn:hover { color: white; background: #111; }
         .tab-btn.active { color: var(--secondary); border-bottom-color: var(--secondary); background: #151515; }
-        
-        /* CONTENT AREAS */
         .tab-content { display: none; height: 100%; flex-direction: column; }
         .tab-content.active { display: flex; }
 
-        /* INPUTS */
-        .cyber-input { background: #151515; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-family: 'Inter'; font-size: 13px; outline: none; transition: 0.3s; width: 100%; }
-        .cyber-input:focus { border-color: var(--secondary); box-shadow: 0 0 10px rgba(0, 242, 234, 0.2); }
+        /* CHAT HUB */
+        .hub-msg { padding: 6px 10px; margin-bottom: 4px; border-radius: 4px; background: rgba(255,255,255,0.03); font-size: 13px; line-height: 1.4; animation: fadeIn 0.2s ease; }
+        .emoji-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; padding: 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; position: absolute; bottom: 50px; right: 10px; z-index: 50; width: 220px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
+        .emoji-btn { cursor: pointer; font-size: 18px; text-align: center; padding: 5px; border-radius: 4px; transition: 0.2s; }
+        .emoji-btn:hover { background: #333; transform: scale(1.2); }
         
-        /* HUB CHAT */
-        .hub-msg { padding: 8px; border-bottom: 1px solid #1a1a1a; font-size: 13px; line-height: 1.4; }
-        .hub-msg strong { font-family: 'Orbitron'; font-size: 11px; }
-
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
 
     <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
         <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-orbitron italic tracking-widest"><span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">V52</span></h1>
-            <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">HUB DISCONNECTED</div>
+            <h1 class="text-2xl font-orbitron italic tracking-widest"><span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">V53</span></h1>
+            <div id="socket-status" class="hidden md:block text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">HUB OFF</div>
         </div>
         <div>
              <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
                 <i class="fab fa-twitch"></i> CONNEXION
             </button>
             <div id="user-area" class="hidden flex items-center gap-3">
-                <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
+                <img id="user-avatar" src="https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-70x70.png" class="w-8 h-8 rounded-full border border-[#00f2ea] object-cover">
                 <span id="user-name" class="font-bold text-white text-sm"></span>
                 <button onclick="logout()" class="text-gray-500 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
             </div>
@@ -85,9 +78,9 @@
     </header>
 
     <div class="mb-4 relative group">
-        <div id="carousel" class="carousel-track">
-            <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
-                <i class="fas fa-satellite-dish mb-2"></i><br>Connectez-vous pour voir vos chaînes.
+        <div id="carousel" class="carousel-track" onwheel="this.scrollLeft += event.deltaY; event.preventDefault();">
+            <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500 text-sm">
+                <i class="fas fa-satellite-dish mb-2 text-[#ff0099]"></i><br>Connectez-vous pour voir vos chaînes.
             </div>
         </div>
         <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
@@ -120,23 +113,28 @@
                 <button class="tab-btn" onclick="openTab('tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
             </div>
 
-            <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
+            <div id="tab-chat" class="tab-content active bg-[#0e0e10] relative">
                 <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
-                    <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
-                    <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">HUB SECURE</button>
+                    <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded transition">TWITCH</button>
+                    <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition">HUB SECURE</button>
                 </div>
                 
-                <div id="chat-container-twitch" class="flex-grow relative">
+                <div id="chat-container-twitch" class="flex-grow relative h-full">
                     <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0"></iframe>
                 </div>
 
-                <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
-                    <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
+                <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d] h-full">
+                    <div id="hub-messages" class="flex-grow overflow-y-auto p-3 scrollbar-thin">
                         <div class="text-center text-gray-600 text-xs mt-4">Bienvenue sur le Hub Sécurisé.</div>
                     </div>
-                    <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
-                        <input id="hub-input" type="text" placeholder="Message crypté..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-                        <button class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
+                    
+                    <div id="emoji-picker" class="emoji-picker hidden">
+                        </div>
+
+                    <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] relative">
+                        <button type="button" onclick="document.getElementById('emoji-picker').classList.toggle('hidden')" class="text-gray-400 hover:text-yellow-400 px-1"><i class="far fa-smile"></i></button>
+                        <input id="hub-input" type="text" placeholder="Message..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+                        <button class="text-[#00f2ea] px-2 hover:text-white"><i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
             </div>
@@ -148,36 +146,28 @@
                         <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
                     </div>
                     <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
-                        <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
+                        <div class="text-[10px] text-gray-500 uppercase">Chaînes</div>
                         <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
                     </div>
                 </div>
-
                 <div class="space-y-6">
                     <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance (12h)</h4>
+                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">Tendance</h4>
                         <div class="h-40"><canvas id="chartViewers"></canvas></div>
                     </div>
-                    
                     <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
+                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">Top Jeux</h4>
                         <div class="h-48"><canvas id="chartGames"></canvas></div>
-                    </div>
-
-                    <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
-                        <div class="h-40"><canvas id="chartLangs"></canvas></div>
                     </div>
                 </div>
             </div>
 
             <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6">
-                
                 <div>
                     <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
                     <div class="flex gap-2 mb-3">
-                        <input id="scan-query" type="text" placeholder="Pseudo (ex: ZeratoR)" class="cyber-input">
-                        <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white"><i class="fas fa-search"></i></button>
+                        <input id="scan-query" type="text" placeholder="Pseudo..." class="flex-grow bg-[#151515] border border-[#333] text-white p-2 rounded text-xs outline-none focus:border-[#00f2ea]">
+                        <button onclick="runScan()" class="bg-[#00f2ea] text-black px-3 rounded font-bold hover:bg-white"><i class="fas fa-search"></i></button>
                     </div>
                     <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
                         <div class="flex gap-3 items-center mb-3">
@@ -190,62 +180,78 @@
                         <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
                     </div>
                 </div>
-
-                <div>
-                    <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
-                    <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
-                    <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">ACTIVER</button>
-                    <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
-                </div>
-
             </div>
 
         </div>
     </div>
 
     <script>
-        // CONFIGURATION
-        const DOMAINS = ["justplayer.fr", "www.justplayer.fr", "localhost", "127.0.0.1"];
+        // --- 1. CONFIGURATION DYNAMIQUE (LE FIX CRITIQUE) ---
         const API_BASE = window.location.origin;
         
-        // GLOBAL VARS
+        // AUTO-DETECTION DU DOMAINE pour Twitch
+        const hostname = window.location.hostname;
+        const PARENTS = ["justplayer.fr", "www.justplayer.fr", "localhost", "127.0.0.1"];
+        if (!PARENTS.includes(hostname)) PARENTS.push(hostname);
+
         let player;
         let socket;
         let currentChannel = "twitch";
-        let charts = {}; // Store chart instances
+        let charts = {};
 
-        // --- 1. INITIALISATION ---
+        // --- 2. INIT ---
         window.onload = () => {
-            // Force HTTPS (Twitch Embed requirement)
             if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
                 location.replace(`https:${location.href.substring(location.protocol.length)}`);
             }
-
+            
+            initEmojis();
             checkAuth();
             initSocket();
             initPlayer();
             loadStatsDashboard();
-            initCarouselScroll();
 
-            // Auth Listener
             window.addEventListener("message", (e) => {
                 if(e.data === "auth_success") window.location.reload();
             });
         };
 
-        // --- 2. SOCKET.IO (HUB CHAT) ---
+        // --- 3. FIX AVATAR & AUTH ---
+        async function checkAuth() {
+            try {
+                const res = await fetch('/twitch_user_status');
+                const data = await res.json();
+                if(data.is_connected) {
+                    document.getElementById('btn-auth').classList.add('hidden');
+                    document.getElementById('user-area').classList.remove('hidden');
+                    document.getElementById('user-name').innerText = data.display_name;
+                    
+                    // Astuce pour l'image : on utilise le scanner interne pour récupérer l'avatar
+                    fetchScanAvatar(data.display_name);
+                    
+                    loadFollowed();
+                }
+            } catch(e) {}
+        }
+
+        async function fetchScanAvatar(username) {
+            try {
+                const res = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:username})});
+                const d = await res.json();
+                if(d.success && d.user_data.profile_image_url) {
+                    document.getElementById('user-avatar').src = d.user_data.profile_image_url;
+                }
+            } catch(e) {}
+        }
+
+        // --- 4. FIX HUB CHAT & EMOJIS ---
         function initSocket() {
             try {
-                socket = io();
+                socket = io(); // Auto-connect
                 socket.on('connect', () => {
                     const el = document.getElementById('socket-status');
-                    el.innerText = "HUB SECURE";
+                    el.innerText = "HUB ONLINE";
                     el.className = "text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded shadow-[0_0_5px_#00f2ea]";
-                });
-                socket.on('disconnect', () => {
-                    const el = document.getElementById('socket-status');
-                    el.innerText = "DISCONNECTED";
-                    el.className = "text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded";
                 });
                 socket.on('chat message', (msg) => {
                     const box = document.getElementById('hub-messages');
@@ -254,7 +260,23 @@
                     box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${user}:</strong> <span class="text-gray-300">${text}</span></div>`;
                     box.scrollTop = box.scrollHeight;
                 });
-            } catch(e) { console.error("Socket Error", e); }
+            } catch(e) {}
+        }
+
+        function initEmojis() {
+            const emojis = ['😂','😭','🔥','❤️','👍','👀','🎉','💀','💩','🤡','🚀','🤬','👋','🤔','😎','💜','✨','💯'];
+            const picker = document.getElementById('emoji-picker');
+            emojis.forEach(e => {
+                const btn = document.createElement('div');
+                btn.className = 'emoji-btn';
+                btn.innerText = e;
+                btn.onclick = () => {
+                    document.getElementById('hub-input').value += e;
+                    picker.classList.add('hidden');
+                    document.getElementById('hub-input').focus();
+                };
+                picker.appendChild(btn);
+            });
         }
 
         function sendHubMessage(e) {
@@ -262,22 +284,71 @@
             const input = document.getElementById('hub-input');
             if(input.value && socket) {
                 socket.emit('chat message', input.value);
+                // Feedback instantané
                 const box = document.getElementById('hub-messages');
-                box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">Moi:</strong> <span class="text-gray-300">${input.value}</span></div>`;
+                box.innerHTML += `<div class="hub-msg border-l-2 border-[#ff0099]"><strong class="text-[#ff0099]">Moi:</strong> <span class="text-gray-300">${input.value}</span></div>`;
                 box.scrollTop = box.scrollHeight;
                 input.value = "";
             }
         }
 
-        // --- 3. CAROUSEL SCROLL (MOUSE WHEEL) ---
-        function initCarouselScroll() {
-            const el = document.getElementById('carousel');
-            el.addEventListener('wheel', (evt) => {
-                evt.preventDefault();
-                el.scrollLeft += evt.deltaY;
-            });
+        // --- 5. PLAYER & TWITCH CHAT FIX ---
+        async function initPlayer() {
+            try {
+                const res = await fetch('/get_default_stream');
+                const data = await res.json();
+                if(data.success) {
+                    currentChannel = data.channel;
+                    document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+                    document.getElementById('player-mode-badge').innerText = data.mode;
+                    
+                    document.getElementById('video-container').innerHTML = "";
+                    const opts = { width: "100%", height: "100%", channel: currentChannel, layout: "video", parent: PARENTS };
+                    player = new Twitch.Embed("video-container", opts);
+                    
+                    updateTwitchChatFrame(currentChannel);
+                }
+            } catch(e) {}
         }
 
+        function updateTwitchChatFrame(channel) {
+            // Construit l'URL avec TOUS les parents possibles pour éviter le blocage
+            const parentParams = PARENTS.map(d => `parent=${d}`).join('&');
+            const url = `https://www.twitch.tv/embed/${channel}/chat?${parentParams}&darkpopout`;
+            document.getElementById('twitch-chat-frame').src = url;
+        }
+
+        function toggleChatMode(mode) {
+            const tw = document.getElementById('chat-container-twitch');
+            const hb = document.getElementById('chat-container-hub');
+            const btnTw = document.getElementById('btn-mode-twitch');
+            const btnHb = document.getElementById('btn-mode-hub');
+
+            if(mode === 'hub') {
+                tw.classList.add('hidden');
+                hb.classList.remove('hidden'); hb.classList.add('flex');
+                btnHb.className = "flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded transition";
+                btnTw.className = "flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition";
+            } else {
+                hb.classList.add('hidden'); hb.classList.remove('flex');
+                tw.classList.remove('hidden');
+                btnTw.className = "flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded transition";
+                btnHb.className = "flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition";
+            }
+        }
+
+        async function cycle(dir) {
+            const res = await fetch('/cycle_stream', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({direction:dir}) });
+            const data = await res.json();
+            if(data.success) {
+                currentChannel = data.channel;
+                player.setChannel(currentChannel);
+                document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+                updateTwitchChatFrame(currentChannel);
+            }
+        }
+
+        // --- 6. STATS & CAROUSEL ---
         async function loadFollowed() {
             const el = document.getElementById('carousel');
             el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
@@ -302,191 +373,63 @@
             } catch(e) { el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Erreur.</div>'; }
         }
 
-        // --- 4. PLAYER & CHAT LOGIC ---
-        async function initPlayer() {
+        function changeChannel(c) {
+            currentChannel = c;
+            player.setChannel(c);
+            document.getElementById('current-channel-display').innerText = c.toUpperCase();
+            updateTwitchChatFrame(c);
+        }
+
+        async function loadStatsDashboard() {
             try {
-                const res = await fetch('/get_default_stream');
-                const data = await res.json();
-                if(data.success) {
-                    currentChannel = data.channel;
-                    document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
-                    document.getElementById('player-mode-badge').innerText = data.mode;
-                    
-                    document.getElementById('video-container').innerHTML = "";
-                    const opts = { width: "100%", height: "100%", channel: currentChannel, layout: "video", parent: DOMAINS };
-                    player = new Twitch.Embed("video-container", opts);
-                    
-                    updateTwitchChatFrame(currentChannel);
+                const res = await fetch('/api/stats/global');
+                const d = await res.json();
+                if(d.success) {
+                    document.getElementById('kpi-viewers').innerText = Number(d.total_viewers).toLocaleString();
+                    document.getElementById('kpi-channels').innerText = d.total_channels;
+                    renderChart('chartViewers', 'line', d.history.live.labels, d.history.live.values, 'Viewers', '#00f2ea');
+                    renderChart('chartGames', 'bar', ['Just Chatting', 'LoL', 'GTA V', 'CS2'], [120, 90, 80, 50], 'Popularité', '#ff0099');
                 }
             } catch(e) {}
         }
 
-        function changeChannel(channel) {
-            currentChannel = channel;
-            player.setChannel(channel);
-            document.getElementById('current-channel-display').innerText = channel.toUpperCase();
-            updateTwitchChatFrame(channel);
-        }
-
-        function updateTwitchChatFrame(channel) {
-            // CRUCIAL : Construit la liste des parents pour l'URL
-            const parentParams = DOMAINS.map(d => `parent=${d}`).join('&');
-            const url = `https://www.twitch.tv/embed/${channel}/chat?${parentParams}&darkpopout`;
-            document.getElementById('twitch-chat-frame').src = url;
-        }
-
-        function toggleChatMode(mode) {
-            const twContainer = document.getElementById('chat-container-twitch');
-            const hubContainer = document.getElementById('chat-container-hub');
-            const btnTw = document.getElementById('btn-mode-twitch');
-            const btnHb = document.getElementById('btn-mode-hub');
-
-            if(mode === 'hub') {
-                twContainer.classList.add('hidden');
-                hubContainer.classList.remove('hidden');
-                hubContainer.classList.add('flex');
-                
-                btnHb.className = "flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded";
-                btnTw.className = "flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white";
-            } else {
-                hubContainer.classList.add('hidden');
-                hubContainer.classList.remove('flex');
-                twContainer.classList.remove('hidden');
-
-                btnTw.className = "flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded";
-                btnHb.className = "flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white";
-            }
-        }
-
-        async function cycle(dir) {
-            const res = await fetch('/cycle_stream', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({direction:dir}) });
-            const data = await res.json();
-            if(data.success) changeChannel(data.channel);
-        }
-
-        // --- 5. ADVANCED STATS ---
-        async function loadStatsDashboard() {
-            try {
-                // 5a. Global KPIs & History
-                const resGlobal = await fetch('/api/stats/global');
-                const dGlobal = await resGlobal.json();
-                if(dGlobal.success) {
-                    document.getElementById('kpi-viewers').innerText = Number(dGlobal.total_viewers).toLocaleString();
-                    document.getElementById('kpi-channels').innerText = dGlobal.total_channels;
-                    
-                    renderChart('chartViewers', 'line', dGlobal.history.live.labels, dGlobal.history.live.values, 'Viewers', '#00f2ea');
-                }
-
-                // 5b. Top Games (Requires Backend Endpoint /api/stats/top_games or mock)
-                // Note: Assuming endpoint exists from Backend V50 provided previously or mocking for UI if missing
-                try {
-                    const resGames = await fetch('/api/stats/top_games');
-                    const dGames = await resGames.json();
-                    const labels = dGames.games.map(g => g.name);
-                    const data = [45, 30, 25, 15, 10]; // Mock numeric data if API doesn't send viewers per game
-                    renderChart('chartGames', 'bar', labels, data, 'Popularité', '#ff0099');
-                } catch(e) { /* Fallback mock */ 
-                    renderChart('chartGames', 'bar', ['Just Chatting', 'LoL', 'GTA V', 'Valorant', 'CS2'], [120, 90, 80, 60, 50], 'Popularité', '#ff0099');
-                }
-
-                // 5c. Languages
-                try {
-                    const resLang = await fetch('/api/stats/languages');
-                    const dLang = await resLang.json();
-                    const lLabels = dLang.languages.map(l => l.name);
-                    const lData = dLang.languages.map(l => l.percent);
-                    renderChart('chartLangs', 'doughnut', lLabels, lData, 'Part', ['#00f2ea', '#ff0099', '#ffd700', '#fff', '#666']);
-                } catch(e) { /* Fallback mock */
-                    renderChart('chartLangs', 'doughnut', ['FR', 'EN', 'ES', 'DE', 'Other'], [60, 20, 10, 5, 5], 'Part', ['#00f2ea', '#ff0099', '#ffd700', '#fff', '#666']);
-                }
-
-            } catch(e) { console.error("Stats Error", e); }
-        }
-
         function renderChart(id, type, labels, data, label, color) {
+            if(charts[id]) charts[id].destroy();
             const ctx = document.getElementById(id).getContext('2d');
-            if(charts[id]) charts[id].destroy(); // Destroy old chart
-            
-            const bgColors = Array.isArray(color) ? color : type === 'line' ? 'rgba(0, 242, 234, 0.1)' : color;
-            const borderColors = Array.isArray(color) ? color : color;
-
             charts[id] = new Chart(ctx, {
                 type: type,
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: label,
-                        data: data,
-                        backgroundColor: bgColors,
-                        borderColor: borderColors,
-                        borderWidth: 1,
-                        fill: type === 'line',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: type === 'doughnut', position:'right', labels:{color:'white', boxWidth:10} } },
-                    scales: { 
-                        x: { display: type !== 'doughnut', ticks:{color:'#666'} }, 
-                        y: { display: type !== 'doughnut', grid:{color:'#222'}, ticks:{color:'#666'} } 
-                    }
-                }
+                data: { labels: labels, datasets: [{ label: label, data: data, backgroundColor: type==='line'?'rgba(0,242,234,0.1)':color, borderColor: color, fill: type==='line', tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
             });
         }
-
-        // --- 6. TOOLS & AUTH ---
+        
+        // --- 7. UTILS ---
         function openTab(id) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-'+id).classList.add('active');
-            // Active button highlight logic...
+            // Logic to highlight correct button
             const btns = document.querySelectorAll('.tab-btn');
             btns.forEach(b => { if(b.innerText.toLowerCase().includes(id) || (id === 'tools' && b.innerText.includes('OUTILS'))) b.classList.add('active'); });
         }
-
+        function startAuth() { window.open('/twitch_auth_start', 'login', 'width=500,height=700'); }
+        function logout() { fetch('/twitch_logout', {method:'POST'}).then(()=>location.reload()); }
         async function runScan() {
             const q = document.getElementById('scan-query').value;
             const box = document.getElementById('scan-res');
             box.classList.remove('hidden');
-            document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse IA...';
-            
+            document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i>...';
             const res = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q})});
-            const data = await res.json();
-            if(data.success) {
-                const u = data.user_data;
-                document.getElementById('scan-name').innerText = u.display_name;
-                document.getElementById('scan-game').innerText = u.game_name;
-                document.getElementById('scan-img').src = u.profile_image_url;
-                
-                const ai = await fetch('/critique_ia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query:u.display_name})});
+            const d = await res.json();
+            if(d.success) {
+                document.getElementById('scan-name').innerText = d.user_data.display_name;
+                document.getElementById('scan-game').innerText = d.user_data.game_name;
+                document.getElementById('scan-img').src = d.user_data.profile_image_url;
+                const ai = await fetch('/critique_ia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query:d.user_data.display_name})});
                 const aiD = await ai.json();
                 document.getElementById('scan-ai').innerHTML = aiD.html_response;
             }
         }
-
-        async function runBoost() {
-            const c = document.getElementById('boost-query').value;
-            const res = await fetch('/stream_boost', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel:c})});
-            const d = await res.json();
-            if(d.success) { document.getElementById('boost-msg').innerText = "Boost Activé !"; setTimeout(()=>location.reload(), 2000); }
-        }
-
-        async function checkAuth() {
-            const res = await fetch('/twitch_user_status');
-            const data = await res.json();
-            if(data.is_connected) {
-                document.getElementById('btn-auth').classList.add('hidden');
-                document.getElementById('user-area').classList.remove('hidden');
-                document.getElementById('user-name').innerText = data.display_name;
-                // Fetch user avatar separately or store it in backend session
-                loadFollowed();
-            }
-        }
-        function startAuth() { window.open('/twitch_auth_start', 'login', 'width=500,height=700'); }
-        function logout() { fetch('/twitch_logout', {method:'POST'}).then(()=>location.reload()); }
-
     </script>
 </body>
 </html>
