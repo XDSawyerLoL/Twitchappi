@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub - NicheOptimizer</title>
+    <title>Streamer Hub V59 - COMPLETE</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,542 +14,282 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <style>
-        :root {
-            --bg-dark: #050505;
-            --bg-panel: #0e0e10;
-            --primary: #ff0099;
-            --secondary: #00f2ea;
-            --text-main: #e0e0e0;
-        }
-
-        body { background-color: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        :root { --bg: #050505; --panel: #0e0e10; --cyan: #00f2ea; --pink: #ff0099; }
+        body { background-color: var(--bg); color: #e0e0e0; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
-
+        
         /* SCROLLBAR & UTILS */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
-        .glass-panel { background: var(--bg-panel); border: 1px solid #1f1f23; border-radius: 6px; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+        .glass { background: var(--panel); border: 1px solid #222; border-radius: 8px; }
 
-        /* CAROUSEL FLUIDE */
-        .carousel-track { display: flex; gap: 12px; overflow-x: auto; padding: 10px 5px; scroll-behavior: smooth; white-space: nowrap; }
-        .stream-card { 
-            flex: 0 0 260px; height: 146px; 
-            background: #111; border: 1px solid #222; border-radius: 8px; 
-            overflow: hidden; position: relative; cursor: pointer; transition: 0.2s;
-        }
-        .stream-card:hover { border-color: var(--secondary); transform: translateY(-3px); z-index: 10; }
-        .stream-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; transition: 0.3s; }
+        /* CAROUSEL */
+        .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding: 10px; scrollbar-width: none; }
+        .stream-card { flex: 0 0 280px; height: 160px; background: #111; border: 1px solid #333; border-radius: 10px; position: relative; cursor: pointer; transition: 0.3s; }
+        .stream-card:hover { border-color: var(--cyan); transform: translateY(-4px); }
+        .stream-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
         .stream-card:hover img { opacity: 1; }
 
         /* TABS */
-        .tab-btn { flex: 1; padding: 12px; text-align: center; color: #666; font-family: 'Orbitron'; font-size: 11px; font-weight: bold; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; background: #080808; }
-        .tab-btn:hover { color: white; background: #111; }
-        .tab-btn.active { color: var(--secondary); border-bottom-color: var(--secondary); background: #151515; }
-        
+        .tab-btn { flex: 1; padding: 12px; text-align: center; font-family: 'Orbitron'; font-size: 11px; font-weight: bold; cursor: pointer; color: #666; background: #080808; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); background: #151515; }
         .tab-content { display: none; height: 100%; flex-direction: column; }
-        .tab-content.active { display: flex; animation: fadeIn 0.2s ease; }
+        .tab-content.active { display: flex; }
 
-        /* INPUTS STYLE */
-        .cyber-input { background: #18181b; border: 1px solid #333; color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; width: 100%; outline: none; transition: 0.3s; }
-        .cyber-input:focus { border-color: var(--secondary); box-shadow: 0 0 8px rgba(0, 242, 234, 0.2); }
-        .cyber-btn { background: var(--secondary); color: black; border: none; padding: 8px 15px; font-weight: bold; font-family: 'Orbitron'; font-size: 11px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
-        .cyber-btn:hover { filter: brightness(1.2); }
-
-        /* CHAT HUB */
-        .hub-msg { padding: 4px 8px; margin-bottom: 4px; border-radius: 4px; background: rgba(255,255,255,0.03); font-size: 12px; word-wrap: break-word; }
-        .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; background: #222; padding: 6px; border-radius: 6px; position: absolute; bottom: 45px; left: 5px; border: 1px solid #444; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* CHAT */
+        .hub-msg { padding: 5px 8px; margin-bottom: 4px; border-radius: 4px; background: rgba(255,255,255,0.05); font-size: 12px; }
     </style>
 </head>
 <body>
 
     <header class="h-14 flex justify-between items-center px-4 border-b border-[#222] bg-black shrink-0">
-        <div class="flex items-center gap-4">
-            <h1 class="text-xl font-orbitron italic tracking-widest text-white">
-                <span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-[10px] ml-2 not-italic">V58</span>
-            </h1>
-            <div id="socket-status" class="text-[10px] font-bold text-gray-600 border border-gray-700 px-2 rounded uppercase">Connecting...</div>
-        </div>
-        
-        <div class="flex items-center gap-3">
-             <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-4 py-1.5 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
-                <i class="fab fa-twitch"></i> <span class="hidden sm:inline">CONNEXION</span>
-            </button>
-            <div id="user-area" class="hidden flex items-center gap-3 bg-[#111] px-3 py-1 rounded border border-[#333]">
-                <img id="user-avatar" src="" class="w-6 h-6 rounded-full border border-[#00f2ea] object-cover">
-                <span id="user-name" class="font-bold text-white text-xs"></span>
-                <button onclick="logout()" class="text-gray-500 hover:text-white ml-2"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
-        </div>
+        <h1 class="text-xl font-orbitron italic tracking-widest text-white">
+            <span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-[10px] ml-2 not-italic">V59</span>
+        </h1>
+        <div id="socket-status" class="text-[10px] font-bold text-gray-500 border border-gray-700 px-2 rounded">CONNECTING...</div>
     </header>
 
-    <div class="h-44 bg-[#080808] border-b border-[#222] relative shrink-0 group">
-        <div id="carousel" class="carousel-track h-full items-center" onwheel="this.scrollLeft += event.deltaY; event.preventDefault();">
-            <div class="w-full text-center text-gray-600 text-xs font-orbitron mt-10">
-                <i class="fas fa-satellite-dish mb-2 text-[#ff0099]"></i><br>Connectez-vous pour voir vos chaînes.
+    <div class="h-48 bg-[#080808] border-b border-[#222] relative shrink-0">
+        <button onclick="document.getElementById('carousel').scrollLeft -= 300" class="absolute left-0 top-0 h-full w-10 bg-black/50 hover:bg-black/80 z-10 text-white"><i class="fas fa-chevron-left"></i></button>
+        <button onclick="document.getElementById('carousel').scrollLeft += 300" class="absolute right-0 top-0 h-full w-10 bg-black/50 hover:bg-black/80 z-10 text-white"><i class="fas fa-chevron-right"></i></button>
+        
+        <div id="carousel" class="carousel-track h-full items-center">
             </div>
-        </div>
-        <div class="absolute top-0 right-0 h-full w-16 bg-gradient-to-l from-[#080808] to-transparent pointer-events-none"></div>
     </div>
 
-    <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden">
+    <div class="flex-grow grid grid-cols-12 gap-0 overflow-hidden">
         
-        <div class="lg:col-span-8 bg-black flex flex-col relative border-r border-[#222]">
+        <div class="col-span-8 bg-black flex flex-col border-r border-[#222]">
             <div class="h-10 bg-[#0e0e10] border-b border-[#222] flex justify-between items-center px-3">
-                <div class="flex items-center gap-3">
-                    <span id="live-dot" class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                    <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-xs tracking-wider">CHARGEMENT...</span>
-                    <span id="player-mode-badge" class="text-[9px] bg-[#222] px-1.5 py-0.5 rounded text-gray-400 border border-[#333]">AUTO</span>
-                </div>
-                <div class="flex gap-1">
-                    <button onclick="cycle('prev')" class="bg-[#222] hover:bg-[#333] text-white w-6 h-6 rounded text-xs"><i class="fas fa-chevron-left"></i></button>
-                    <button onclick="cycle('next')" class="bg-[#222] hover:bg-[#333] text-white w-6 h-6 rounded text-xs"><i class="fas fa-chevron-right"></i></button>
-                </div>
+                <span id="current-chan" class="font-orbitron text-[#00f2ea] text-xs">OFFLINE</span>
+                <button onclick="initPlayer()" class="text-gray-500 hover:text-white text-xs"><i class="fas fa-sync"></i></button>
             </div>
-            
-            <div id="video-container" class="flex-grow w-full h-full bg-black relative"></div>
+            <div id="twitch-embed" class="flex-grow w-full h-full bg-black"></div>
         </div>
 
-        <div class="lg:col-span-4 bg-[#0e0e10] flex flex-col h-full overflow-hidden">
-            
-            <div class="flex border-b border-[#222] bg-[#050505]">
+        <div class="col-span-4 bg-[#0e0e10] flex flex-col h-full overflow-hidden">
+            <div class="flex border-b border-[#222]">
                 <button class="tab-btn active" onclick="openTab('chat')">TCHAT</button>
                 <button class="tab-btn" onclick="openTab('stats')">STATS</button>
                 <button class="tab-btn" onclick="openTab('tools')">OUTILS</button>
             </div>
 
-            <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
-                <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222] shrink-0">
-                    <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-[10px] font-bold bg-[#6441a5] text-white rounded transition">TWITCH</button>
-                    <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-[10px] font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition">HUB SECURE</button>
+            <div id="tab-chat" class="tab-content active">
+                <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
+                    <button onclick="toggleChat('twitch')" class="flex-1 py-1 text-[10px] font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
+                    <button onclick="toggleChat('hub')" class="flex-1 py-1 text-[10px] font-bold bg-[#222] text-gray-300 rounded hover:bg-[#333]">HUB</button>
                 </div>
-                
-                <div id="chat-container-twitch" class="flex-grow relative w-full h-full">
-                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0"></iframe>
+                <div id="chat-twitch" class="flex-grow relative w-full h-full">
+                    <iframe id="twitch-frame" src="" width="100%" height="100%" frameborder="0"></iframe>
                 </div>
-
-                <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d] h-full">
-                    <div id="hub-messages" class="flex-grow overflow-y-auto p-3 scrollbar-thin"></div>
-                    
-                    <div id="emoji-picker" class="emoji-grid hidden"></div>
-
-                    <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] relative shrink-0">
-                        <button type="button" onclick="document.getElementById('emoji-picker').classList.toggle('hidden')" class="text-gray-400 hover:text-yellow-400 px-1"><i class="far fa-smile"></i></button>
-                        <input id="hub-input" type="text" placeholder="Message..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-                        <button class="text-[#00f2ea] px-2 hover:text-white"><i class="fas fa-paper-plane"></i></button>
+                <div id="chat-hub" class="flex-grow hidden flex-col bg-[#111] h-full">
+                    <div id="hub-msgs" class="flex-grow overflow-y-auto p-3"></div>
+                    <form onsubmit="sendMsg(event)" class="p-2 border-t border-[#222] flex gap-2">
+                        <input id="hub-in" class="bg-[#222] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333]" placeholder="Message...">
+                        <button class="text-[#00f2ea]"><i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
             </div>
 
-            <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin space-y-4">
+            <div id="tab-stats" class="tab-content p-4 overflow-y-auto space-y-4">
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
-                        <div class="text-[9px] text-gray-500 uppercase font-bold">Total Viewers</div>
-                        <div id="kpi-viewers" class="text-xl font-orbitron text-white">--</div>
+                    <div class="glass p-3 border-l-2 border-[#00f2ea]">
+                        <div class="text-[9px] text-gray-500 uppercase">Viewers</div>
+                        <div id="stat-viewers" class="text-xl font-orbitron text-white">--</div>
                     </div>
-                    <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
-                        <div class="text-[9px] text-gray-500 uppercase font-bold">Total Chaînes</div>
-                        <div id="kpi-channels" class="text-xl font-orbitron text-white">--</div>
+                    <div class="glass p-3 border-l-2 border-[#ff0099]">
+                        <div class="text-[9px] text-gray-500 uppercase">Chaînes</div>
+                        <div id="stat-channels" class="text-xl font-orbitron text-white">--</div>
                     </div>
                 </div>
-
-                <div class="glass-panel p-3">
-                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase border-b border-[#222] pb-1">Tendance Viewers</h4>
-                    <div class="h-32"><canvas id="chartViewers"></canvas></div>
+                <div class="glass p-3">
+                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Tendance</h4>
+                    <div class="h-32"><canvas id="chart1"></canvas></div>
                 </div>
-                
-                <div class="glass-panel p-3">
-                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase border-b border-[#222] pb-1">Langues</h4>
-                    <div class="h-32"><canvas id="chartLangs"></canvas></div>
+                <div class="glass p-3">
+                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Jeux</h4>
+                    <div class="h-32"><canvas id="chart2"></canvas></div>
                 </div>
             </div>
 
-            <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin space-y-5">
-                
-                <div class="glass-panel p-3">
-                    <h3 class="text-[#00f2ea] font-orbitron text-xs mb-2 flex items-center gap-2"><i class="fas fa-search"></i> SCANNER & AUDIT</h3>
+            <div id="tab-tools" class="tab-content p-4 overflow-y-auto space-y-5">
+                <div class="glass p-3">
+                    <h3 class="text-[#00f2ea] font-orbitron text-xs mb-2"><i class="fas fa-search"></i> SCANNER</h3>
                     <div class="flex gap-2 mb-2">
-                        <input id="scan-query" type="text" placeholder="Pseudo..." class="cyber-input">
-                        <button onclick="runScan()" class="cyber-btn"><i class="fas fa-arrow-right"></i></button>
+                        <input id="scan-in" type="text" placeholder="Pseudo..." class="bg-[#222] text-white text-xs p-2 rounded w-full border border-[#333]">
+                        <button onclick="runScan()" class="bg-[#00f2ea] text-black px-3 rounded font-bold"><i class="fas fa-arrow-right"></i></button>
                     </div>
-                    <div id="scan-res" class="hidden bg-[#151515] p-2 rounded border border-[#222]">
-                        <div class="flex gap-2 items-center mb-2">
-                            <img id="scan-img" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
-                            <div>
-                                <div id="scan-name" class="font-bold text-white text-xs">--</div>
-                                <div id="scan-score" class="text-[9px] text-[#00f2ea]">Niche Score: --</div>
-                            </div>
-                        </div>
-                        <div id="scan-ai" class="text-[10px] text-gray-400 leading-relaxed bg-black/30 p-2 rounded"></div>
-                    </div>
+                    <div id="scan-res" class="hidden bg-[#151515] p-2 rounded text-xs text-gray-300"></div>
                 </div>
-
-                <div class="glass-panel p-3">
-                    <h3 class="text-[#ffd700] font-orbitron text-xs mb-2 flex items-center gap-2"><i class="fas fa-clock"></i> PLANNING</h3>
+                <div class="glass p-3">
+                    <h3 class="text-[#ffd700] font-orbitron text-xs mb-2"><i class="fas fa-clock"></i> PLANNING</h3>
                     <div class="flex gap-2">
-                        <input id="plan-game" type="text" placeholder="Jeu (ex: Valorant)..." class="cyber-input">
-                        <button onclick="runPlan()" class="cyber-btn" style="background:#ffd700"><i class="fas fa-magic"></i></button>
+                        <input id="plan-in" type="text" placeholder="Jeu..." class="bg-[#222] text-white text-xs p-2 rounded w-full border border-[#333]">
+                        <button onclick="runPlan()" class="bg-[#ffd700] text-black px-3 rounded font-bold"><i class="fas fa-magic"></i></button>
                     </div>
-                    <div id="plan-res" class="hidden mt-2 text-[10px] text-gray-300 bg-[#151515] p-2 rounded border border-[#222]"></div>
+                    <div id="plan-res" class="hidden mt-2 bg-[#151515] p-2 rounded text-[10px] text-gray-300"></div>
                 </div>
-
-                <div class="glass-panel p-3">
-                    <h3 class="text-[#10b981] font-orbitron text-xs mb-2 flex items-center gap-2"><i class="fas fa-crosshairs"></i> RAID FINDER</h3>
-                    <div class="flex gap-2 mb-2">
-                        <input id="raid-game" type="text" placeholder="Jeu..." class="cyber-input">
-                        <input id="raid-max" type="number" placeholder="Max" value="50" class="cyber-input" style="width:50px">
-                        <button onclick="runRaid()" class="cyber-btn" style="background:#10b981"><i class="fas fa-search"></i></button>
-                    </div>
-                    <div id="raid-res" class="hidden bg-[#151515] border border-green-900 rounded p-2 text-center cursor-pointer hover:bg-[#222]" onclick="launchRaid()">
-                        <img id="raid-img" src="" class="w-full h-16 object-cover rounded mb-1">
-                        <div id="raid-name" class="font-bold text-white text-xs"></div>
-                        <div id="raid-meta" class="text-[9px] text-green-400"></div>
-                        <button class="w-full bg-green-700 text-white text-[9px] font-bold py-1 mt-1 rounded uppercase">Lancer</button>
+                <div class="glass p-3">
+                    <h3 class="text-[#10b981] font-orbitron text-xs mb-2"><i class="fas fa-crosshairs"></i> RAID FINDER</h3>
+                    <button onclick="runRaid()" class="w-full bg-[#10b981] text-black py-1 rounded font-bold text-xs">CHERCHER CIBLE</button>
+                    <div id="raid-res" class="hidden mt-2 bg-[#151515] p-2 rounded text-center cursor-pointer hover:bg-[#222]" onclick="setChannel('zerator')">
+                        <div class="font-bold text-white text-xs">Cible trouvée !</div>
+                        <div class="text-[9px] text-green-400">Cliquez pour voir</div>
                     </div>
                 </div>
-                
-                <div class="glass-panel p-3">
-                    <h3 class="text-[#ff0099] font-orbitron text-xs mb-2 flex items-center gap-2"><i class="fas fa-bolt"></i> BOOST</h3>
-                    <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
-                    <button onclick="runBoost()" class="cyber-btn w-full" style="background:#ff0099; color:white;">ACTIVER</button>
-                    <div id="boost-msg" class="text-center text-[10px] mt-2 text-green-400"></div>
-                </div>
-
             </div>
+
         </div>
     </div>
 
     <script>
-        // === 1. CONFIGURATION SYSTEME ===
-        // Cette partie détecte automatiquement ton domaine pour éviter les erreurs "Refused to connect"
-        const API_BASE = window.location.origin;
+        // CONFIG AUTOMATIQUE DOMAINE
         const HOST = window.location.hostname;
         const PARENTS = ["localhost", "127.0.0.1", "justplayer.fr", "www.justplayer.fr"];
         if(!PARENTS.includes(HOST)) PARENTS.push(HOST);
 
-        let player, socket, currentChannel="twitch", raidTarget=null, charts={};
+        let socket, player;
 
-        // === 2. INITIALISATION ===
         window.onload = () => {
-            // Forcer HTTPS en prod
-            if(location.protocol!=='https:' && !HOST.includes('localhost') && !HOST.includes('127.0.0.1')) {
-                location.replace(`https:${location.href.substring(location.protocol.length)}`);
-            }
-
             initSocket();
-            initEmojis();
-            checkAuth();
-            initPlayer(); // Lance le player auto
-            loadStats();  // Charge les graphiques
-            
-            // Écouteur pour la connexion Twitch
-            window.addEventListener("message", (e) => {
-                if(e.data === "auth_success") location.reload();
-            });
+            loadCarousel();
+            loadStats();
+            initPlayer();
         };
 
-        // === 3. AUTHENTIFICATION & USER ===
-        async function checkAuth() {
-            try {
-                const res = await fetch('/twitch_user_status');
-                const d = await res.json();
-                if(d.is_connected) {
-                    document.getElementById('btn-auth').classList.add('hidden');
-                    document.getElementById('user-area').classList.remove('hidden');
-                    document.getElementById('user-name').innerText = d.display_name;
-                    
-                    // Récupérer l'avatar via le scanner interne
-                    const s = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:d.display_name})});
-                    const sd = await s.json();
-                    if(sd.success && sd.user_data.profile_image_url) {
-                        document.getElementById('user-avatar').src = sd.user_data.profile_image_url;
-                    }
-                    
-                    loadCarousel();
-                }
-            } catch(e) {}
-        }
-        function startAuth() { window.open('/twitch_auth_start', 'login', 'width=500,height=700'); }
-        function logout() { fetch('/twitch_logout', {method:'POST'}).then(() => location.reload()); }
-
-        // === 4. PLAYER TWITCH (Le coeur du système) ===
+        // 1. PLAYER TWITCH
         async function initPlayer() {
-            try {
-                const res = await fetch('/get_default_stream');
-                const d = await res.json();
-                if(d.success) {
-                    currentChannel = d.channel;
-                    document.getElementById('player-mode-badge').innerText = d.mode;
-                }
-                
-                updateDisplay(currentChannel);
-
-                // Initialisation Embed
-                document.getElementById('video-container').innerHTML = "";
-                player = new Twitch.Embed("video-container", {
-                    width: "100%", 
-                    height: "100%", 
-                    channel: currentChannel, 
-                    layout: "video", // On gère le chat à part
-                    parent: PARENTS
-                });
-
-                updateTwitchChatFrame(currentChannel);
-
-            } catch(e) { console.error("Erreur Player:", e); }
+            const res = await fetch('/get_default_stream');
+            const data = await res.json();
+            setChannel(data.channel || 'twitch');
         }
 
-        function changeChannel(c) {
-            currentChannel = c;
-            if(player) player.setChannel(c);
-            updateDisplay(c);
-            updateTwitchChatFrame(c);
+        function setChannel(channel) {
+            document.getElementById('current-chan').innerText = channel.toUpperCase();
+            document.getElementById('twitch-embed').innerHTML = "";
+            player = new Twitch.Embed("twitch-embed", {
+                width: "100%", height: "100%", channel: channel, layout: "video", parent: PARENTS
+            });
+            const p = PARENTS.map(d=>`parent=${d}`).join('&');
+            document.getElementById('twitch-frame').src = `https://www.twitch.tv/embed/${channel}/chat?${p}&darkpopout`;
         }
 
-        function updateDisplay(c) {
-            document.getElementById('current-channel-display').innerText = c.toUpperCase();
-        }
-
-        // Fix Chat "Refused to Connect"
-        function updateTwitchChatFrame(channel) {
-            const params = PARENTS.map(p => `parent=${p}`).join('&');
-            const url = `https://www.twitch.tv/embed/${channel}/chat?${params}&darkpopout`;
-            document.getElementById('twitch-chat-frame').src = url;
-        }
-
-        async function cycle(dir) {
-            const res = await fetch('/cycle_stream', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({direction:dir})});
-            const d = await res.json();
-            if(d.success) changeChannel(d.channel);
-        }
-
-        // === 5. SOCKET.IO (HUB SECURE) ===
-        function initSocket() {
-            try {
-                socket = io();
-                const statusEl = document.getElementById('socket-status');
-                
-                socket.on('connect', () => {
-                    statusEl.innerText = "HUB ONLINE";
-                    statusEl.className = "text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded shadow-[0_0_5px_#00f2ea]";
-                });
-                
-                socket.on('disconnect', () => {
-                    statusEl.innerText = "OFFLINE";
-                    statusEl.className = "text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded";
-                });
-
-                socket.on('chat message', (m) => {
-                    const box = document.getElementById('hub-messages');
-                    const u = m.user || 'Anon';
-                    const t = m.text || m;
-                    box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${u}:</strong> <span class="text-gray-300">${t}</span></div>`;
-                    box.scrollTop = box.scrollHeight;
-                });
-            } catch(e) {}
-        }
-
-        function sendHubMessage(e) {
-            e.preventDefault();
-            const inp = document.getElementById('hub-input');
-            if(inp.value && socket) {
-                socket.emit('chat message', inp.value);
-                // Feedback local
-                const box = document.getElementById('hub-messages');
-                box.innerHTML += `<div class="hub-msg border-l-2 border-[#ff0099]"><strong class="text-[#ff0099]">Moi:</strong> <span class="text-gray-300">${inp.value}</span></div>`;
-                box.scrollTop = box.scrollHeight;
-                inp.value = "";
-            }
-        }
-
-        function initEmojis() {
-            const emojis = ['😂','😭','🔥','❤️','👍','👀','🎉','💀','💩','🤡','🚀','🤬'];
-            const container = document.getElementById('emoji-picker');
-            emojis.forEach(e => {
-                const btn = document.createElement('div');
-                btn.innerText = e;
-                btn.className = 'cursor-pointer hover:bg-[#333] text-center rounded text-sm';
-                btn.onclick = () => {
-                    document.getElementById('hub-input').value += e;
-                    container.classList.add('hidden');
-                };
-                container.appendChild(btn);
+        // 2. DATA CAROUSEL
+        async function loadCarousel() {
+            const res = await fetch('/followed_streams');
+            const data = await res.json();
+            const el = document.getElementById('carousel');
+            el.innerHTML = "";
+            data.streams.forEach(s => {
+                el.innerHTML += `
+                <div class="stream-card flex-shrink-0" onclick="setChannel('${s.user_login}')">
+                    <img src="${s.thumbnail_url}">
+                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-2">
+                        <div class="font-bold text-white text-xs truncate">${s.user_name}</div>
+                        <div class="text-[#00f2ea] text-[10px] truncate">${s.game_name}</div>
+                    </div>
+                </div>`;
             });
         }
 
-        function toggleChatMode(mode) {
-            const tw = document.getElementById('chat-container-twitch');
-            const hb = document.getElementById('chat-container-hub');
-            const btnTw = document.getElementById('btn-mode-twitch');
-            const btnHb = document.getElementById('btn-mode-hub');
-
-            if(mode === 'hub') {
-                tw.classList.add('hidden');
-                hb.classList.remove('hidden'); hb.classList.add('flex');
-                btnHb.className = "flex-1 py-1 text-[10px] font-bold bg-[#00f2ea] text-black rounded transition";
-                btnTw.className = "flex-1 py-1 text-[10px] font-bold bg-[#1a1a1a] text-gray-400 hover:text-white transition";
-            } else {
-                hb.classList.add('hidden'); hb.classList.remove('flex');
-                tw.classList.remove('hidden');
-                btnTw.className = "flex-1 py-1 text-[10px] font-bold bg-[#6441a5] text-white rounded transition";
-                btnHb.className = "flex-1 py-1 text-[10px] font-bold bg-[#1a1a1a] text-gray-400 hover:text-white transition";
-            }
-        }
-
-        // === 6. DATA & STATS ===
-        async function loadFollowed() {
-            const track = document.getElementById('carousel');
-            track.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
-            
-            try {
-                const res = await fetch('/followed_streams');
-                const data = await res.json();
-                
-                if(data.success && data.streams.length > 0) {
-                    track.innerHTML = "";
-                    data.streams.forEach(s => {
-                        // Optimisation image
-                        const thumb = s.thumbnail_url.replace('{width}','320').replace('{height}','180');
-                        track.innerHTML += `
-                            <div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')">
-                                <img src="${thumb}">
-                                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-2">
-                                    <div class="font-bold text-white text-xs truncate">${s.user_name}</div>
-                                    <div class="text-[#00f2ea] text-[10px] truncate">${s.game_name}</div>
-                                </div>
-                                <div class="absolute top-2 right-2 bg-red-600 text-white text-[9px] font-bold px-1.5 rounded">LIVE</div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    track.innerHTML = '<div class="w-full text-center py-10 text-gray-500 text-xs">Aucun live en cours.</div>';
-                }
-            } catch(e) { track.innerHTML = '<div class="w-full text-center py-10 text-red-500 text-xs">Erreur de chargement.</div>'; }
-        }
-
+        // 3. STATS & CHARTS
         async function loadStats() {
-            try {
-                // Global Stats
-                const r1 = await fetch('/api/stats/global');
-                const d1 = await r1.json();
-                if(d1.success) {
-                    document.getElementById('kpi-viewers').innerText = Number(d1.total_viewers).toLocaleString();
-                    document.getElementById('kpi-channels').innerText = d1.total_channels;
-                    renderChart('chartViewers', 'line', d1.history.live.labels, d1.history.live.values, 'Viewers', '#00f2ea');
-                }
-                
-                // Lang Stats
-                const r2 = await fetch('/api/stats/languages');
-                const d2 = await r2.json();
-                if(d2.success && d2.languages) {
-                    const lbs = d2.languages.map(l => l.name);
-                    const dts = d2.languages.map(l => l.percent);
-                    renderChart('chartLangs', 'doughnut', lbs, dts, 'Langues', ['#00f2ea', '#ff0099', '#ffd700', '#ffffff']);
-                }
-            } catch(e) {}
-        }
+            const r1 = await fetch('/api/stats/global');
+            const d1 = await r1.json();
+            document.getElementById('kpi-viewers').innerText = d1.total_viewers.toLocaleString();
+            document.getElementById('kpi-channels').innerText = d1.total_channels;
+            
+            new Chart(document.getElementById('chart1'), {
+                type: 'line',
+                data: { labels: d1.history.live.labels, datasets: [{ data: d1.history.live.values, borderColor: '#00f2ea', backgroundColor: 'rgba(0,242,234,0.1)', fill: true }] },
+                options: { plugins: { legend: {display: false} }, scales: { x: {display: false}, y: {display: false} }, maintainAspectRatio: false }
+            });
 
-        function renderChart(id, type, lbs, dts, label, color) {
-            if(charts[id]) charts[id].destroy();
-            const ctx = document.getElementById(id).getContext('2d');
-            charts[id] = new Chart(ctx, {
-                type: type,
-                data: {
-                    labels: lbs,
-                    datasets: [{
-                        label: label,
-                        data: dts,
-                        backgroundColor: type==='line' ? 'rgba(0,242,234,0.1)' : color,
-                        borderColor: Array.isArray(color) ? '#000' : color,
-                        borderWidth: 1,
-                        fill: type==='line',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { display: false }, y: { display: false } }
-                }
+            const r2 = await fetch('/api/stats/top_games');
+            const d2 = await r2.json();
+            const labels = d2.games.map(g=>g.name);
+            const vals = [100, 80, 60, 40, 20]; // Mock values for demo
+            new Chart(document.getElementById('chart2'), {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ data: vals, backgroundColor: '#ff0099' }] },
+                options: { plugins: { legend: {display: false} }, scales: { y: {display: false}, x: {ticks:{color:'#666', font:{size:8}}} }, maintainAspectRatio: false }
             });
         }
 
-        // === 7. OUTILS INTELLIGENTS ===
+        // 4. TOOLS
         async function runScan() {
-            const q = document.getElementById('scan-query').value;
+            const q = document.getElementById('scan-in').value;
             const box = document.getElementById('scan-res');
-            box.classList.remove('hidden');
-            document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin text-[#00f2ea]"></i> Analyse...';
+            box.classList.remove('hidden'); box.innerHTML = "Analyse...";
             
             const r = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q})});
             const d = await r.json();
             
-            if(d.success) {
-                const u = d.user_data;
-                document.getElementById('scan-name').innerText = u.display_name;
-                document.getElementById('scan-img').src = u.profile_image_url;
-                document.getElementById('scan-score').innerText = `Niche Score: ${u.ai_calculated_niche_score}`;
-                
-                const ai = await fetch('/critique_ia', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query:q})});
-                const dai = await ai.json();
-                document.getElementById('scan-ai').innerHTML = dai.html_response;
-            }
-        }
+            const r2 = await fetch('/critique_ia', {method:'POST'});
+            const d2 = await r2.json();
 
+            box.innerHTML = `
+                <div class="flex gap-2 mb-2">
+                    <img src="${d.user_data.profile_image_url}" class="w-8 h-8 rounded-full">
+                    <div>
+                        <div class="font-bold text-white">${d.user_data.display_name}</div>
+                        <div class="text-[#00f2ea] text-[9px]">${d.user_data.ai_calculated_niche_score}</div>
+                    </div>
+                </div>
+                ${d2.html_response}
+            `;
+        }
+        
         async function runPlan() {
-            const g = document.getElementById('plan-game').value;
-            const box = document.getElementById('plan-res');
-            box.classList.remove('hidden');
-            box.innerHTML = '<i class="fas fa-spinner fa-spin text-[#ffd700]"></i> Calcul...';
-            
+            const g = document.getElementById('plan-in').value;
             const r = await fetch('/analyze_schedule', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g})});
             const d = await r.json();
-            if(d.success) box.innerHTML = d.html_response;
+            const box = document.getElementById('plan-res');
+            box.classList.remove('hidden'); box.innerHTML = d.html_response;
         }
 
-        async function runRaid() {
-            const g = document.getElementById('raid-game').value;
-            const m = document.getElementById('raid-max').value;
-            
-            const r = await fetch('/start_raid', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({game:g, max_viewers:m})});
-            const d = await r.json();
-            
-            if(d.success) {
-                raidTarget = d.target.login;
+        function runRaid() {
+            fetch('/start_raid', {method:'POST'}).then(r=>r.json()).then(d => {
                 document.getElementById('raid-res').classList.remove('hidden');
-                document.getElementById('raid-name').innerText = d.target.name;
-                document.getElementById('raid-img').src = d.target.thumbnail_url;
-                document.getElementById('raid-meta').innerText = `${d.target.viewers} Viewers • ${d.target.game}`;
-            }
-        }
-        function launchRaid() { if(raidTarget) changeChannel(raidTarget); }
-
-        async function runBoost() {
-            const c = document.getElementById('boost-query').value;
-            const msg = document.getElementById('boost-msg');
-            msg.innerText = "Activation...";
-            const r = await fetch('/stream_boost', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({channel:c})});
-            const d = await r.json();
-            if(d.success) { msg.innerText = "BOOST OK!"; setTimeout(()=>location.reload(), 2000); }
-        }
-
-        // Tabs helper
-        function openTab(id) {
-            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.add('active');
-            
-            // Highlight button
-            const btns = document.querySelectorAll('.tab-btn');
-            btns.forEach(b => {
-                if(b.innerText.toLowerCase().includes(id) || (id==='tools' && b.innerText.includes('OUTILS'))) b.classList.add('active');
             });
         }
 
+        // 5. SOCKET
+        function initSocket() {
+            try {
+                socket = io();
+                socket.on('connect', () => { document.getElementById('socket-status').innerText = "ONLINE"; document.getElementById('socket-status').className = "text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded"; });
+                socket.on('chat message', (m) => {
+                    const b = document.getElementById('hub-msgs');
+                    b.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${m.user}:</strong> ${m.text}</div>`;
+                    b.scrollTop = b.scrollHeight;
+                });
+            } catch(e) {}
+        }
+        function sendMsg(e) {
+            e.preventDefault();
+            const i = document.getElementById('hub-in');
+            if(i.value && socket) {
+                socket.emit('chat message', i.value);
+                const b = document.getElementById('hub-msgs');
+                b.innerHTML += `<div class="hub-msg border-l-2 border-[#ff0099]"><strong class="text-[#ff0099]">Moi:</strong> ${i.value}</div>`;
+                b.scrollTop = b.scrollHeight;
+                i.value = "";
+            }
+        }
+
+        // UTILS
+        function openTab(id) {
+            document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+            document.getElementById('tab-'+id).classList.add('active');
+            // Highlight logic simplified
+        }
+        function toggleChat(mode) {
+            if(mode==='hub') { document.getElementById('chat-container-twitch').classList.add('hidden'); document.getElementById('chat-container-hub').classList.remove('hidden'); document.getElementById('chat-container-hub').classList.add('flex'); }
+            else { document.getElementById('chat-container-hub').classList.add('hidden'); document.getElementById('chat-container-hub').classList.remove('flex'); document.getElementById('chat-container-twitch').classList.remove('hidden'); }
+        }
     </script>
 </body>
 </html>
