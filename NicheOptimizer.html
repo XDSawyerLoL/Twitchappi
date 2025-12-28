@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://embed.twitch.tv/embed.v1.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         :root {
@@ -172,7 +171,7 @@
         }
 
         #twitch-chat-frame {
-            background: #000;
+            background: #0b0b0d !important;
             border: none;
         }
     </style>
@@ -268,8 +267,8 @@
                         HUB SECURE
                     </button>
                 </div>
-                <div id="chat-container-twitch" class="flex-grow relative bg-black overflow-hidden">
-                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay"></iframe>
+                <div id="chat-container-twitch" class="flex-grow relative bg-[#0b0b0d] overflow-hidden">
+                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
                 </div>
                 <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
                     <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
@@ -436,22 +435,10 @@
 
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
-            container.innerHTML = '';
+            const parentParam = PARENT_DOMAINS.join('&parent=');
+            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&dark=popout`;
             
-            setTimeout(() => {
-                const opts = {
-                    width: '100%',
-                    height: '100%',
-                    channel: channel,
-                    layout: 'video',
-                    parent: PARENT_DOMAINS
-                };
-                try {
-                    player = new Twitch.Embed('video-container', opts);
-                } catch (e) {
-                    console.error('Twitch.Embed error:', e);
-                }
-            }, 300);
+            container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
         }
 
         function updateTwitchChatFrame(channel) {
