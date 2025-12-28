@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V54 - INTEGRAL</title>
+    <title>Streamer Hub V57 - TITAN EDITION</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,416 +13,468 @@
     <script src="https://embed.twitch.tv/embed/v1.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 
-    <style>
-        :root {
-            --bg-dark: #050505;
-            --bg-panel: #0b0b0d;
-            --primary: #ff0099;
-            --secondary: #00f2ea;
-            --accent: #ffd700;
-            --text-main: #e0e0e0;
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            dark: '#050505',
+                            panel: '#0e0e11',
+                            border: '#1f1f23',
+                            primary: '#ff0099',
+                            secondary: '#00f2ea',
+                            accent: '#ffd700'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        orbitron: ['Orbitron', 'sans-serif'],
+                    }
+                }
+            }
         }
+    </script>
 
-        body { background-color: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-
-        /* SCROLLBAR & UTILS */
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
+    <style>
+        /* CSS CUSTOM AVANCÉ */
+        body { background-color: #050505; color: #efeff1; overflow: hidden; }
+        
+        /* Scrollbar Cyberpunk */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #000; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
-        .glass-panel { background: var(--bg-panel); border: 1px solid #1f1f23; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f2ea; }
 
-        /* CAROUSEL */
-        .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding: 10px 5px; scroll-behavior: smooth; }
-        .stream-card { 
-            flex: 0 0 280px; height: 157px;
-            background: #111; border: 1px solid #222; border-radius: 12px; 
-            overflow: hidden; position: relative; cursor: pointer; transition: 0.2s;
+        /* Effets de Verre (Glassmorphism) */
+        .glass-panel {
+            background: rgba(14, 14, 17, 0.95);
+            border: 1px solid #1f1f23;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
-        .stream-card:hover { border-color: var(--secondary); transform: translateY(-4px); }
-        .card-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; transition: 0.3s; }
-        .stream-card:hover .card-img { opacity: 1; }
 
-        /* TABS */
-        .tab-btn { flex: 1; padding: 12px; text-align: center; color: #666; font-family: 'Orbitron'; font-size: 11px; font-weight: bold; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.3s; }
-        .tab-btn.active { color: var(--secondary); border-bottom-color: var(--secondary); background: #151515; }
+        /* Animations */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scan-effect::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 242, 234, 0.05) 51%, transparent 51%);
+            background-size: 100% 4px; pointer-events: none; z-index: 50;
+        }
+
+        /* Carousel Styles */
+        .stream-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stream-card:hover {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 242, 234, 0.2);
+            border-color: #00f2ea;
+            z-index: 10;
+        }
+
+        /* Tabs Logic */
+        .tab-btn.active {
+            color: #00f2ea;
+            border-bottom: 2px solid #00f2ea;
+            background: linear-gradient(to top, rgba(0,242,234,0.1), transparent);
+        }
         .tab-content { display: none; height: 100%; flex-direction: column; }
-        .tab-content.active { display: flex; }
-
-        /* TOOLS ACCORDION STYLE */
-        .tool-section { border: 1px solid #222; background: #0f0f11; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
-        .tool-title { font-family: 'Orbitron'; color: var(--secondary); font-size: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-        .cyber-input { background: #1a1a1a; border: 1px solid #333; color: white; padding: 8px; border-radius: 4px; width: 100%; font-size: 12px; outline: none; transition: 0.3s; }
-        .cyber-input:focus { border-color: var(--secondary); }
-        .cyber-btn { background: var(--secondary); color: black; font-weight: bold; padding: 8px 15px; border-radius: 4px; font-size: 11px; cursor: pointer; transition: 0.2s; }
-        .cyber-btn:hover { background: white; }
-
-        /* CHAT */
-        .hub-msg { padding: 5px 8px; margin-bottom: 4px; border-radius: 4px; background: rgba(255,255,255,0.03); font-size: 12px; }
-        .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; background: #222; padding: 5px; border-radius: 5px; position: absolute; bottom: 45px; left: 5px; }
+        .tab-content.active { display: flex; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4">
+<body class="h-screen w-screen flex flex-col scan-effect">
 
-    <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
+    <header class="h-16 border-b border-cyber-border bg-cyber-panel flex justify-between items-center px-6 shrink-0 z-50">
         <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-orbitron italic tracking-widest"><span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">V54 INTEGRAL</span></h1>
-            <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">HUB OFF</div>
+            <h1 class="text-2xl font-orbitron italic font-black tracking-widest text-white">
+                <span class="text-cyber-secondary drop-shadow-[0_0_10px_rgba(0,242,234,0.8)]">JUST</span>PLAYER 
+                <span class="bg-cyber-primary text-[10px] px-2 py-0.5 rounded ml-2 not-italic text-white font-sans align-middle">TITAN V57</span>
+            </h1>
+            <div id="connection-pill" class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-red-500/50 bg-red-500/10 text-xs text-red-500 font-bold transition-all duration-500">
+                <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                <span id="conn-text">OFFLINE</span>
+            </div>
         </div>
-        <div class="flex items-center gap-3">
-             <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
+
+        <div class="flex items-center gap-4">
+            <div id="boost-timer" class="hidden text-cyber-primary font-mono text-xs animate-pulse">BOOST ACTIF</div>
+            <button id="btn-login" onclick="fakeLogin()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#8b63d6] shadow-[0_0_15px_rgba(100,65,165,0.4)]">
                 <i class="fab fa-twitch"></i> CONNEXION
             </button>
-            <div id="user-area" class="hidden flex items-center gap-3">
-                <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea] object-cover">
-                <span id="user-name" class="font-bold text-white text-sm"></span>
-                <button onclick="logout()" class="text-gray-500 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
+            <div id="user-profile" class="hidden flex items-center gap-3 bg-black/30 pr-4 rounded-full border border-cyber-border">
+                <img src="https://ui-avatars.com/api/?name=User&background=00f2ea&color=fff" class="w-8 h-8 rounded-full border border-cyber-secondary">
+                <div class="flex flex-col">
+                    <span class="text-xs font-bold text-white leading-tight">Commander</span>
+                    <span class="text-[10px] text-gray-400 leading-tight">Connected</span>
+                </div>
             </div>
         </div>
     </header>
 
-    <div class="mb-4 relative group">
-        <div id="carousel" class="carousel-track" onwheel="this.scrollLeft += event.deltaY; event.preventDefault();">
-            <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500 text-sm">
-                <i class="fas fa-satellite-dish mb-2 text-[#ff0099]"></i><br>Connectez-vous pour voir vos chaînes.
-            </div>
-        </div>
-        <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
-    </div>
-
-    <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+    <section class="h-48 border-b border-cyber-border bg-black/50 relative shrink-0 group">
+        <button onclick="scrollCarousel(-300)" class="absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-black to-transparent z-20 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition"><i class="fas fa-chevron-left text-2xl"></i></button>
+        <button onclick="scrollCarousel(300)" class="absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-black to-transparent z-20 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition"><i class="fas fa-chevron-right text-2xl"></i></button>
         
-        <div class="lg:col-span-8 flex flex-col gap-4 h-full">
-            <div class="glass-panel flex-grow relative overflow-hidden flex flex-col shadow-2xl">
-                <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
-                    <div class="flex items-center gap-3">
-                        <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
-                        <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider">OFFLINE</span>
-                        <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400">AUTO</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center"><i class="fas fa-chevron-left"></i></button>
-                        <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center"><i class="fas fa-chevron-right"></i></button>
-                    </div>
+        <div id="carousel-track" class="flex items-center h-full overflow-x-auto gap-4 px-6 hide-scrollbar scroll-smooth">
+            <div class="w-full text-center text-gray-500 text-sm font-orbitron animate-pulse mt-10">INITIALISATION DU FLUX LIVE...</div>
+        </div>
+    </section>
+
+    <main class="flex-grow grid grid-cols-12 gap-0 min-h-0 overflow-hidden">
+        
+        <div class="col-span-12 lg:col-span-8 bg-black relative flex flex-col border-r border-cyber-border">
+            <div class="h-10 bg-cyber-panel border-b border-cyber-border flex justify-between items-center px-4">
+                <div class="flex items-center gap-3">
+                    <span id="player-status-dot" class="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span id="current-channel-name" class="text-cyber-secondary font-orbitron text-sm tracking-wider">NO SIGNAL</span>
                 </div>
-                <div id="video-container" class="flex-grow bg-black relative w-full h-full"></div>
+                <div class="flex gap-2 text-xs">
+                    <button onclick="refreshPlayer()" class="hover:text-white text-gray-500"><i class="fas fa-sync"></i></button>
+                    <button onclick="toggleFullscreen()" class="hover:text-white text-gray-500"><i class="fas fa-expand"></i></button>
+                </div>
+            </div>
+            
+            <div id="twitch-embed" class="flex-grow w-full h-full bg-black relative">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
+                    <i class="fas fa-spinner fa-spin text-4xl mb-4 text-cyber-secondary"></i>
+                    <p class="font-orbitron text-xs">WAITING FOR STREAM FEED...</p>
+                </div>
             </div>
         </div>
 
-        <div class="lg:col-span-4 flex flex-col glass-panel overflow-hidden h-full">
+        <div class="col-span-12 lg:col-span-4 bg-cyber-panel flex flex-col h-full overflow-hidden">
             
-            <div class="tab-nav">
-                <button class="tab-btn active" onclick="openTab('chat')">TCHAT</button>
-                <button class="tab-btn" onclick="openTab('stats')">STATS</button>
-                <button class="tab-btn" onclick="openTab('tools')">OUTILS</button>
-            </div>
+            <nav class="flex border-b border-cyber-border h-12 shrink-0 bg-black">
+                <button onclick="switchTab('chat')" id="tab-btn-chat" class="tab-btn active flex-1 font-orbitron text-xs font-bold text-gray-400 hover:text-white transition">TCHAT</button>
+                <button onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn flex-1 font-orbitron text-xs font-bold text-gray-400 hover:text-white transition">STATS</button>
+                <button onclick="switchTab('tools')" id="tab-btn-tools" class="tab-btn flex-1 font-orbitron text-xs font-bold text-gray-400 hover:text-white transition">TOOLS</button>
+            </nav>
 
-            <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
-                <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
-                    <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
-                    <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">HUB SECURE</button>
-                </div>
-                
-                <div id="chat-container-twitch" class="flex-grow relative h-full">
-                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0"></iframe>
+            <div id="tab-chat" class="tab-content active bg-[#0e0e0e] relative">
+                <div class="flex p-2 gap-2 bg-black border-b border-cyber-border shrink-0">
+                    <button onclick="setChatMode('twitch')" id="chat-mode-twitch" class="flex-1 py-1.5 rounded text-[10px] font-bold bg-[#6441a5] text-white transition">TWITCH.TV</button>
+                    <button onclick="setChatMode('hub')" id="chat-mode-hub" class="flex-1 py-1.5 rounded text-[10px] font-bold bg-[#222] text-gray-400 hover:text-white transition">HUB SECURE</button>
                 </div>
 
-                <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d] h-full">
-                    <div id="hub-messages" class="flex-grow overflow-y-auto p-3 scrollbar-thin"></div>
-                    <div id="emoji-picker" class="emoji-grid hidden"></div>
-                    <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] relative">
-                        <button type="button" onclick="document.getElementById('emoji-picker').classList.toggle('hidden')" class="text-gray-400 hover:text-yellow-400 px-1"><i class="far fa-smile"></i></button>
-                        <input id="hub-input" type="text" placeholder="Message..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-                        <button class="text-[#00f2ea] px-2 hover:text-white"><i class="fas fa-paper-plane"></i></button>
+                <div id="container-twitch" class="flex-grow relative w-full h-full">
+                    <iframe id="chat-frame" src="" class="w-full h-full border-none"></iframe>
+                </div>
+
+                <div id="container-hub" class="flex-grow hidden flex-col w-full h-full bg-[#111] relative">
+                    <div id="hub-history" class="flex-grow overflow-y-auto p-4 space-y-3 font-sans text-sm scrollbar-thin">
+                        <div class="text-center text-gray-600 text-xs py-4">Connexion au canal sécurisé établie.</div>
+                    </div>
+                    <form onsubmit="sendMessage(event)" class="p-3 bg-black border-t border-cyber-border flex gap-2 shrink-0">
+                        <input id="hub-msg-input" type="text" placeholder="Message crypté..." class="flex-grow bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-xs text-white focus:border-cyber-secondary outline-none transition">
+                        <button type="submit" class="bg-cyber-secondary text-black px-3 rounded font-bold hover:bg-white transition"><i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
             </div>
 
-            <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
-                        <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
-                        <div id="kpi-viewers" class="text-xl font-orbitron text-white">--</div>
+            <div id="tab-stats" class="tab-content p-4 overflow-y-auto space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-panel p-4 rounded-lg border-l-4 border-cyber-secondary">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Total Viewers</div>
+                        <div id="stat-viewers" class="text-2xl font-orbitron text-white mt-1">--</div>
                     </div>
-                    <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
-                        <div class="text-[10px] text-gray-500 uppercase">Chaînes</div>
-                        <div id="kpi-channels" class="text-xl font-orbitron text-white">--</div>
+                    <div class="glass-panel p-4 rounded-lg border-l-4 border-cyber-primary">
+                        <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Canaux Actifs</div>
+                        <div id="stat-channels" class="text-2xl font-orbitron text-white mt-1">--</div>
                     </div>
-                </div>
-                
-                <div class="bg-[#111] p-3 rounded border border-[#222] mb-4">
-                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Tendance (24h)</h4>
-                    <div class="h-32"><canvas id="chartViewers"></canvas></div>
-                </div>
-                
-                <div class="bg-[#111] p-3 rounded border border-[#222] mb-4">
-                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Top Jeux</h4>
-                    <div class="h-32"><canvas id="chartGames"></canvas></div>
                 </div>
 
-                 <div class="bg-[#111] p-3 rounded border border-[#222]">
-                    <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Langues</h4>
-                    <div class="h-32"><canvas id="chartLangs"></canvas></div>
+                <div class="glass-panel p-4 rounded-lg">
+                    <h3 class="text-xs font-bold text-gray-400 mb-4 uppercase"><i class="fas fa-chart-area mr-2"></i>Trafic Global</h3>
+                    <div class="h-40"><canvas id="chart-trend"></canvas></div>
+                </div>
+                
+                <div class="glass-panel p-4 rounded-lg">
+                    <h3 class="text-xs font-bold text-gray-400 mb-4 uppercase"><i class="fas fa-gamepad mr-2"></i>Top Jeux</h3>
+                    <div class="h-40"><canvas id="chart-games"></canvas></div>
                 </div>
             </div>
 
-            <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
+            <div id="tab-tools" class="tab-content p-4 overflow-y-auto space-y-6">
                 
-                <div class="tool-section">
-                    <div class="tool-title"><i class="fas fa-search"></i> SCANNER & AUDIT IA</div>
-                    <div class="flex gap-2 mb-3">
-                        <input id="scan-query" type="text" placeholder="Pseudo (ex: Kamet0)..." class="cyber-input">
-                        <button onclick="runScan()" class="cyber-btn"><i class="fas fa-arrow-right"></i></button>
+                <div class="glass-panel p-4 rounded-lg">
+                    <h3 class="text-cyber-secondary font-orbitron text-sm mb-4 border-b border-gray-800 pb-2"><i class="fas fa-search mr-2"></i>SCANNER & AUDIT</h3>
+                    <div class="flex gap-2 mb-4">
+                        <input id="scan-input" type="text" placeholder="Pseudo du streamer..." class="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-xs text-white focus:border-cyber-secondary outline-none">
+                        <button onclick="runScan()" class="bg-cyber-secondary text-black px-4 rounded font-bold hover:bg-white transition"><i class="fas fa-arrow-right"></i></button>
                     </div>
-                    <div id="scan-res" class="hidden bg-[#1a1a1a] p-3 rounded mt-2 border border-[#333]">
-                        <div class="flex gap-3 items-center mb-2">
-                            <img id="scan-img" src="" class="w-10 h-10 rounded-full border border-[#00f2ea]">
+                    <div id="scan-result" class="hidden animate-pulse">
+                        <div class="flex items-center gap-3 mb-3">
+                            <img id="scan-avatar" src="" class="w-10 h-10 rounded-full border border-cyber-secondary">
                             <div>
-                                <div id="scan-name" class="font-bold text-white text-sm">--</div>
-                                <div id="scan-score" class="text-[10px] text-[#00f2ea]">--</div>
+                                <div id="scan-name" class="font-bold text-white text-sm"></div>
+                                <div id="scan-score" class="text-[10px] text-cyber-secondary">Score IA: --</div>
                             </div>
                         </div>
-                        <div id="scan-ai" class="text-[10px] text-gray-400 leading-relaxed max-h-32 overflow-y-auto"></div>
+                        <div id="scan-ai-text" class="text-[11px] text-gray-400 bg-black/50 p-2 rounded border border-[#222]"></div>
                     </div>
                 </div>
 
-                <div class="tool-section">
-                    <div class="tool-title" style="color:#ffd700"><i class="fas fa-clock"></i> PLANNING OPTIMIZER</div>
-                    <div class="flex gap-2 mb-3">
-                        <input id="plan-game" type="text" placeholder="Jeu (ex: Valorant)..." class="cyber-input">
-                        <button onclick="runPlan()" class="cyber-btn" style="background:#ffd700"><i class="fas fa-magic"></i></button>
-                    </div>
-                    <div id="plan-res" class="hidden text-[10px] text-gray-300 bg-[#1a1a1a] p-2 rounded mt-2 border border-[#333]"></div>
-                </div>
-
-                <div class="tool-section">
-                    <div class="tool-title" style="color:#10b981"><i class="fas fa-crosshairs"></i> RAID FINDER</div>
-                    <div class="flex gap-2 mb-2">
-                        <input id="raid-game" type="text" placeholder="Catégorie..." class="cyber-input">
-                        <input id="raid-max" type="number" placeholder="Max Viewers" value="50" class="cyber-input" style="width:60px">
-                        <button onclick="runRaid()" class="cyber-btn" style="background:#10b981"><i class="fas fa-search"></i></button>
-                    </div>
-                    <div id="raid-res" class="hidden mt-2 bg-[#1a1a1a] border border-green-900 rounded p-2 text-center cursor-pointer hover:bg-[#222]" onclick="launchRaid()">
-                        <img id="raid-img" src="" class="w-full h-20 object-cover rounded mb-1">
-                        <div id="raid-name" class="font-bold text-white text-sm"></div>
-                        <div id="raid-meta" class="text-[10px] text-green-400"></div>
-                        <button class="w-full bg-green-700 text-white text-[10px] font-bold py-1 mt-1 rounded">LANCER RAID</button>
-                    </div>
-                </div>
-
-                <div class="tool-section">
-                    <div class="tool-title" style="color:#ff0099"><i class="fas fa-bolt"></i> STREAM BOOST</div>
-                    <input id="boost-query" type="text" placeholder="Chaîne à booster..." class="cyber-input mb-2">
-                    <button onclick="runBoost()" class="cyber-btn w-full" style="background:#ff0099; color:white;">ACTIVER</button>
+                <div class="glass-panel p-4 rounded-lg">
+                    <h3 class="text-cyber-primary font-orbitron text-sm mb-4 border-b border-gray-800 pb-2"><i class="fas fa-bolt mr-2"></i>BOOST CHANNEL</h3>
+                    <input id="boost-input" type="text" placeholder="Chaîne cible..." class="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-xs text-white focus:border-cyber-primary outline-none mb-3">
+                    <button onclick="runBoost()" class="w-full bg-cyber-primary text-white py-2 rounded font-bold text-xs uppercase tracking-wider hover:bg-white hover:text-black transition">ACTIVER LE BOOST</button>
                     <div id="boost-msg" class="text-center text-[10px] mt-2 text-green-400"></div>
                 </div>
 
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
+        // --- CONFIGURATION ---
         const API_BASE = window.location.origin;
-        // AUTO-DETECT DOMAINS FOR TWITCH
-        const h = window.location.hostname;
-        const PARENTS = ["justplayer.fr", "www.justplayer.fr", "localhost", "127.0.0.1"];
-        if(!PARENTS.includes(h)) PARENTS.push(h);
+        // Parents dynamiques pour Twitch (Evite l'écran blanc)
+        const HOST = window.location.hostname;
+        const PARENTS = ["localhost", "127.0.0.1", HOST];
 
-        let player, socket, currentChannel="twitch", raidTarget=null, charts={};
+        // --- VARIABLES GLOBALES ---
+        let socket;
+        let player;
+        let currentChannel = "";
+        let charts = {};
 
+        // --- 1. INITIALISATION ---
         window.onload = () => {
-            if(location.protocol!=='https:' && !h.includes('localhost') && !h.includes('127.0.0.1')) location.replace(`https:${location.href.substring(location.protocol.length)}`);
-            
-            checkAuth();
+            console.log("🚀 SYSTEM INIT...");
             initSocket();
-            initEmojis();
-            initPlayer();
-            loadStats();
+            loadCarousel();
+            initStats();
+            initPlayer(); // Lance le player auto
             
-            window.addEventListener("message", (e)=>{ if(e.data==="auth_success") location.reload(); });
+            // Animation d'intro
+            setTimeout(() => document.body.classList.remove('opacity-0'), 100);
         };
 
-        // --- AUTH & AVATAR ---
-        async function checkAuth() {
+        // --- 2. SOCKET.IO (HUB) ---
+        function initSocket() {
             try {
-                const res = await fetch('/twitch_user_status');
-                const d = await res.json();
-                if(d.is_connected) {
-                    document.getElementById('btn-auth').classList.add('hidden');
-                    document.getElementById('user-area').classList.remove('hidden');
-                    document.getElementById('user-name').innerText = d.display_name;
-                    // Avatar trick via scanner
-                    const s = await fetch('/scan_target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:d.display_name})});
-                    const sd = await s.json();
-                    if(sd.success) document.getElementById('user-avatar').src = sd.user_data.profile_image_url;
-                    loadFollowed();
-                }
-            } catch(e){}
-        }
-        function startAuth(){ window.open('/twitch_auth_start','','width=500,height=700'); }
-        function logout(){ fetch('/twitch_logout',{method:'POST'}).then(()=>location.reload()); }
+                socket = io();
+                const pill = document.getElementById('connection-pill');
+                const txt = document.getElementById('conn-text');
 
-        // --- PLAYER & CHAT ---
-        async function initPlayer() {
-            try {
-                const res = await fetch('/get_default_stream');
-                const d = await res.json();
-                if(d.success) {
-                    changeChannel(d.channel);
-                    document.getElementById('player-mode-badge').innerText = d.mode;
-                }
-                // Init Embed
-                document.getElementById('video-container').innerHTML = "";
-                player = new Twitch.Embed("video-container", {width:"100%", height:"100%", channel:currentChannel, layout:"video", parent:PARENTS});
-            } catch(e){}
+                socket.on('connect', () => {
+                    pill.className = "flex items-center gap-2 px-3 py-1 rounded-full border border-green-500/50 bg-green-500/10 text-xs text-green-500 font-bold";
+                    pill.children[0].className = "w-2 h-2 rounded-full bg-green-500";
+                    txt.innerText = "SECURE";
+                });
+
+                socket.on('disconnect', () => {
+                    pill.className = "flex items-center gap-2 px-3 py-1 rounded-full border border-red-500/50 bg-red-500/10 text-xs text-red-500 font-bold";
+                    pill.children[0].className = "w-2 h-2 rounded-full bg-red-500 animate-pulse";
+                    txt.innerText = "OFFLINE";
+                });
+
+                socket.on('chat message', (msg) => {
+                    addHubMessage(msg.user, msg.text, false);
+                });
+            } catch(e) { console.error("Socket Error", e); }
         }
 
-        function changeChannel(c) {
-            currentChannel = c;
-            if(player) player.setChannel(c);
-            document.getElementById('current-channel-display').innerText = c.toUpperCase();
-            const p = PARENTS.map(x=>`parent=${x}`).join('&');
-            document.getElementById('twitch-chat-frame').src = `https://www.twitch.tv/embed/${c}/chat?${p}&darkpopout`;
-        }
-
-        async function cycle(dir) {
-            const res = await fetch('/cycle_stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({direction:dir})});
-            const d = await res.json();
-            if(d.success) changeChannel(d.channel);
-        }
-
-        // --- SOCKET & CHAT ---
-        function initSocket(){
-            socket = io();
-            socket.on('connect', ()=>{ document.getElementById('socket-status').innerText="HUB ONLINE"; document.getElementById('socket-status').className="text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded"; });
-            socket.on('chat message', (m)=>{ 
-                const box = document.getElementById('hub-messages');
-                box.innerHTML+=`<div class="hub-msg"><strong class="text-[#00f2ea]">${m.user||'Anon'}:</strong> <span class="text-gray-300">${m.text||m}</span></div>`;
-                box.scrollTop=box.scrollHeight;
-            });
-        }
-        function sendHubMessage(e){
+        function sendMessage(e) {
             e.preventDefault();
-            const i = document.getElementById('hub-input');
-            if(i.value && socket) {
-                socket.emit('chat message', i.value);
-                const box = document.getElementById('hub-messages');
-                box.innerHTML+=`<div class="hub-msg border-l-2 border-[#ff0099]"><strong class="text-[#ff0099]">Moi:</strong> <span class="text-gray-300">${i.value}</span></div>`;
-                box.scrollTop=box.scrollHeight;
-                i.value="";
+            const input = document.getElementById('hub-msg-input');
+            if(input.value && socket) {
+                socket.emit('chat message', { text: input.value, user: 'Moi' });
+                addHubMessage('Moi', input.value, true);
+                input.value = "";
             }
         }
-        function initEmojis(){
-            const em = ['😂','😭','🔥','❤️','👍','👀','🎉','💀','💩','🤡','🚀','🤬'];
-            const p = document.getElementById('emoji-picker');
-            em.forEach(e=>{
-                const b = document.createElement('div'); b.innerText=e; b.className='cursor-pointer hover:bg-[#333] text-center rounded';
-                b.onclick=()=>{ document.getElementById('hub-input').value+=e; p.classList.add('hidden'); };
-                p.appendChild(b);
+
+        function addHubMessage(user, text, isMe) {
+            const box = document.getElementById('hub-history');
+            const div = document.createElement('div');
+            const color = isMe ? 'text-cyber-secondary' : 'text-cyber-primary';
+            const align = isMe ? 'items-end' : 'items-start';
+            const bg = isMe ? 'bg-[#1a1a1a] border-cyber-secondary/30' : 'bg-[#111] border-cyber-primary/30';
+            
+            div.className = `flex flex-col ${align} animate-fade-in`;
+            div.innerHTML = `
+                <div class="max-w-[85%] ${bg} border rounded p-2 text-xs text-gray-200 shadow-sm">
+                    <span class="font-bold ${color} text-[10px] mb-1 block">${user}</span>
+                    ${text}
+                </div>
+            `;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // --- 3. CAROUSEL ---
+        async function loadCarousel() {
+            const track = document.getElementById('carousel-track');
+            try {
+                const res = await fetch('/api/live-feed');
+                const data = await res.json();
+                
+                track.innerHTML = ""; // Clear loader
+                data.streams.forEach(s => {
+                    const card = document.createElement('div');
+                    card.className = "stream-card flex-shrink-0 w-72 h-40 bg-[#111] border border-[#222] rounded-lg relative overflow-hidden cursor-pointer group";
+                    card.onclick = () => setPlayerChannel(s.user);
+                    card.innerHTML = `
+                        <img src="${s.thumb}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90"></div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h4 class="text-white font-bold text-sm truncate w-40 font-orbitron">${s.user}</h4>
+                                    <p class="text-cyber-secondary text-xs truncate w-40">${s.game}</p>
+                                </div>
+                                <div class="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded font-bold">LIVE</div>
+                            </div>
+                        </div>
+                    `;
+                    track.appendChild(card);
+                });
+            } catch(e) {
+                track.innerHTML = '<div class="text-red-500 text-sm">Erreur de chargement du flux.</div>';
+            }
+        }
+        function scrollCarousel(amt) { document.getElementById('carousel-track').scrollLeft += amt; }
+
+        // --- 4. PLAYER ---
+        async function initPlayer() {
+            const res = await fetch('/api/player-state');
+            const data = await res.json();
+            setPlayerChannel(data.channel);
+        }
+
+        function setPlayerChannel(channel) {
+            currentChannel = channel;
+            const container = document.getElementById('twitch-embed');
+            container.innerHTML = ""; // Reset
+            
+            document.getElementById('current-channel-name').innerText = channel.toUpperCase();
+            document.getElementById('player-status-dot').className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#00ff00]";
+
+            const options = {
+                width: "100%",
+                height: "100%",
+                channel: channel,
+                layout: "video", // Cache le chat Twitch dans le player (on l'a à côté)
+                parent: PARENTS
+            };
+            player = new Twitch.Embed("twitch-embed", options);
+            
+            updateTwitchChatUrl(channel);
+        }
+
+        // --- 5. CHAT TABS ---
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${id}`).classList.add('active');
+            document.getElementById(`tab-btn-${id}`).classList.add('active');
+        }
+
+        function setChatMode(mode) {
+            const tw = document.getElementById('container-twitch');
+            const hb = document.getElementById('container-hub');
+            const btnTw = document.getElementById('chat-mode-twitch');
+            const btnHb = document.getElementById('chat-mode-hub');
+
+            if(mode === 'hub') {
+                tw.classList.add('hidden');
+                hb.classList.remove('hidden'); hb.classList.add('flex');
+                btnHb.className = "flex-1 py-1.5 rounded text-[10px] font-bold bg-cyber-secondary text-black transition";
+                btnTw.className = "flex-1 py-1.5 rounded text-[10px] font-bold bg-[#1a1a1a] text-gray-400 hover:text-white transition";
+            } else {
+                hb.classList.add('hidden'); hb.classList.remove('flex');
+                tw.classList.remove('hidden');
+                btnTw.className = "flex-1 py-1.5 rounded text-[10px] font-bold bg-[#6441a5] text-white transition";
+                btnHb.className = "flex-1 py-1.5 rounded text-[10px] font-bold bg-[#1a1a1a] text-gray-400 hover:text-white transition";
+            }
+        }
+
+        function updateTwitchChatUrl(channel) {
+            const parentsParams = PARENTS.map(p => `parent=${p}`).join('&');
+            const url = `https://www.twitch.tv/embed/${channel}/chat?${parentsParams}&darkpopout`;
+            document.getElementById('chat-frame').src = url;
+        }
+
+        // --- 6. STATS & CHARTS ---
+        async function initStats() {
+            const res = await fetch('/api/stats');
+            const d = await res.json();
+            
+            // KPIs
+            document.getElementById('stat-viewers').innerText = d.kpi.total_viewers.toLocaleString();
+            document.getElementById('stat-channels').innerText = d.kpi.total_channels;
+
+            // Chart Trend
+            new Chart(document.getElementById('chart-trend'), {
+                type: 'line',
+                data: {
+                    labels: d.charts.trend.map(i => i.label),
+                    datasets: [{
+                        label: 'Viewers',
+                        data: d.charts.trend.map(i => i.value),
+                        borderColor: '#00f2ea',
+                        backgroundColor: 'rgba(0, 242, 234, 0.1)',
+                        fill: true, tension: 0.4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+            });
+
+            // Chart Games
+            new Chart(document.getElementById('chart-games'), {
+                type: 'bar',
+                data: {
+                    labels: d.charts.games.labels,
+                    datasets: [{
+                        label: 'Popularité',
+                        data: d.charts.games.data,
+                        backgroundColor: '#ff0099',
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666', font: {size: 9} } }, y: { display: false } } }
             });
         }
-        function toggleChatMode(m) {
-            if(m==='hub'){ document.getElementById('chat-container-twitch').classList.add('hidden'); document.getElementById('chat-container-hub').classList.remove('hidden'); document.getElementById('chat-container-hub').classList.add('flex'); }
-            else { document.getElementById('chat-container-hub').classList.add('hidden'); document.getElementById('chat-container-hub').classList.remove('flex'); document.getElementById('chat-container-twitch').classList.remove('hidden'); }
-        }
 
-        // --- STATS & CAROUSEL ---
-        async function loadStats() {
-            try {
-                // Global
-                const r1 = await fetch('/api/stats/global'); const d1 = await r1.json();
-                if(d1.success) {
-                    document.getElementById('kpi-viewers').innerText = d1.total_viewers;
-                    document.getElementById('kpi-channels').innerText = d1.total_channels;
-                    renderChart('chartViewers','line',d1.history.live.labels, d1.history.live.values, 'Viewers', '#00f2ea');
-                }
-                // Games
-                const r2 = await fetch('/api/stats/top_games'); const d2 = await r2.json();
-                const lb2 = d2.games ? d2.games.map(g=>g.name) : ['LoL','GTA','Valo'];
-                const dt2 = d2.games ? [100,80,60,40,20] : [100,80,60,40,20];
-                renderChart('chartGames','bar',lb2, dt2, 'Popularité', '#ff0099');
-                // Langs
-                const r3 = await fetch('/api/stats/languages'); const d3 = await r3.json();
-                const lb3 = d3.languages ? d3.languages.map(l=>l.name) : ['FR','EN'];
-                const dt3 = d3.languages ? d3.languages.map(l=>l.percent) : [80,20];
-                renderChart('chartLangs','doughnut',lb3, dt3, '%', ['#00f2ea','#ff0099','#ffd700','#fff']);
-            } catch(e){}
-        }
-        function renderChart(id,type,lbs,dts,lbl,clr){
-            if(charts[id]) charts[id].destroy();
-            const ctx = document.getElementById(id).getContext('2d');
-            charts[id] = new Chart(ctx, {type:type, data:{labels:lbs,datasets:[{label:lbl,data:dts,backgroundColor:type==='line'?'rgba(0,242,234,0.1)':clr,borderColor:clr,fill:type==='line'}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}});
-        }
-
-        async function loadFollowed() {
-            const c = document.getElementById('carousel');
-            c.innerHTML = '<div class="text-center w-full py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
-            try {
-                const r = await fetch('/followed_streams'); const d = await r.json();
-                if(d.success && d.streams.length){
-                    c.innerHTML="";
-                    d.streams.forEach(s=>{
-                        const t = s.thumbnail_url.replace('{width}','320').replace('{height}','180');
-                        c.innerHTML+=`<div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')"><img src="${t}" class="card-img"><div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-2"><div class="font-bold text-white text-sm truncate">${s.user_name}</div><div class="text-[#00f2ea] text-xs truncate">${s.game_name}</div></div></div>`;
-                    });
-                } else c.innerHTML='<div class="text-center w-full py-10 text-gray-500">Aucun live.</div>';
-            } catch(e){}
-        }
-
-        // --- TOOLS ---
+        // --- 7. TOOLS ---
         async function runScan() {
-            const q = document.getElementById('scan-query').value;
-            document.getElementById('scan-res').classList.remove('hidden');
-            document.getElementById('scan-ai').innerHTML='<i class="fas fa-spinner fa-spin"></i>...';
-            const r = await fetch('/scan_target',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});
-            const d = await r.json();
-            if(d.success) {
-                document.getElementById('scan-name').innerText = d.user_data.display_name;
-                document.getElementById('scan-img').src = d.user_data.profile_image_url;
-                document.getElementById('scan-score').innerText = d.user_data.ai_calculated_niche_score;
-                const r2 = await fetch('/critique_ia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'niche',query:q})});
-                const d2 = await r2.json();
-                document.getElementById('scan-ai').innerHTML = d2.html_response;
-            }
+            const q = document.getElementById('scan-input').value;
+            const resBox = document.getElementById('scan-result');
+            resBox.classList.remove('hidden');
+            
+            const res = await fetch('/api/scan', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query: q})});
+            const data = await res.json();
+            
+            document.getElementById('scan-name').innerText = data.profile.name;
+            document.getElementById('scan-avatar').src = data.profile.avatar;
+            document.getElementById('scan-score').innerText = `Score IA: ${data.profile.score}/5`;
+            document.getElementById('scan-ai-text').innerHTML = data.ai_analysis;
         }
-        async function runPlan() {
-            const g = document.getElementById('plan-game').value;
-            const r = await fetch('/analyze_schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({game:g})});
-            const d = await r.json();
-            if(d.success) {
-                document.getElementById('plan-res').classList.remove('hidden');
-                document.getElementById('plan-res').innerHTML = d.html_response;
-            }
-        }
-        async function runRaid() {
-            const g = document.getElementById('raid-game').value;
-            const m = document.getElementById('raid-max').value;
-            const r = await fetch('/start_raid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({game:g,max_viewers:m})});
-            const d = await r.json();
-            if(d.success) {
-                raidTarget = d.target.login;
-                document.getElementById('raid-res').classList.remove('hidden');
-                document.getElementById('raid-name').innerText = d.target.name;
-                document.getElementById('raid-img').src = d.target.thumbnail_url;
-                document.getElementById('raid-meta').innerText = `${d.target.viewers} Viewers • ${d.target.game}`;
-            }
-        }
-        function launchRaid(){ if(raidTarget) changeChannel(raidTarget); }
+
         async function runBoost() {
-            const c = document.getElementById('boost-query').value;
-            const r = await fetch('/stream_boost',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({channel:c})});
-            const d = await r.json();
-            if(d.success) { document.getElementById('boost-msg').innerText="BOOST OK!"; setTimeout(()=>location.reload(),2000); }
+            const c = document.getElementById('boost-input').value;
+            const res = await fetch('/api/boost', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({channel: c})});
+            const d = await res.json();
+            if(d.success) {
+                document.getElementById('boost-msg').innerText = "BOOST ACTIVÉ !";
+                setTimeout(() => location.reload(), 2000);
+            }
         }
-        function openTab(id) {
-            document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.add('active');
-            // Highlight Logic
-            const btns = document.querySelectorAll('.tab-btn');
-            btns.forEach(b=>{ if(b.innerText.toLowerCase().includes(id) || (id==='tools' && b.innerText.includes('OUTILS'))) b.classList.add('active'); });
+
+        function fakeLogin() {
+            document.getElementById('btn-login').classList.add('hidden');
+            document.getElementById('user-profile').classList.remove('hidden');
+            document.getElementById('user-profile').classList.add('flex');
         }
     </script>
-</body>
+    
+    </body>
 </html>
