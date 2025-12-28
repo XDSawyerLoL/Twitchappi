@@ -169,11 +169,6 @@
         .scrollbar-thin::-webkit-scrollbar {
             width: 4px;
         }
-
-        #twitch-chat-frame {
-            background: #0b0b0d !important;
-            border: none;
-        }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
@@ -220,16 +215,19 @@
             <!-- PLAYER -->
             <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl">
                 <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
                         <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
-                        <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider">
+                        <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate">
                             OFFLINE
                         </span>
-                        <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400">
+                        <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0">
                             AUTO
                         </span>
+                        <span id="viewer-count" class="text-[10px] text-[#ff0099] font-bold flex-shrink-0">
+                            0 viewers
+                        </span>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-shrink-0">
                         <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
                             <i class="fas fa-chevron-left"></i>
                         </button>
@@ -267,7 +265,7 @@
                         HUB SECURE
                     </button>
                 </div>
-                <div id="chat-container-twitch" class="flex-grow relative bg-[#0b0b0d] overflow-hidden">
+                <div id="chat-container-twitch" class="flex-grow relative bg-[#0a0a0a] overflow-hidden">
                     <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
                 </div>
                 <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
@@ -436,14 +434,42 @@
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
             const parentParam = PARENT_DOMAINS.join('&parent=');
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&dark=popout`;
+            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
             
             container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
+            
+            // Charger les infos du live
+            loadStreamInfo(channel);
+        }
+
+        function loadStreamInfo(channel) {
+            fetch(`${API_BASE}/stream_info`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channel: channel })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.stream) {
+                    const title = data.stream.title || 'Sans titre';
+                    const viewers = data.stream.viewer_count || 0;
+                    
+                    // Mettre à jour le titre
+                    const display = document.getElementById('current-channel-display');
+                    const titleText = title.length > 40 ? title.substring(0, 40) + '...' : title;
+                    display.innerText = `${channel.toUpperCase()} • ${titleText}`;
+                    display.title = title;
+                    
+                    // Mettre à jour les viewers
+                    document.getElementById('viewer-count').innerText = `${viewers.toLocaleString()} viewers`;
+                }
+            })
+            .catch(e => console.error('Stream info error:', e));
         }
 
         function updateTwitchChatFrame(channel) {
             const parentParam = PARENT_DOMAINS.join('&parent=');
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&dark=popout`;
+            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
             if (frame) {
                 frame.src = url;
@@ -460,6 +486,7 @@
             if (data.success) {
                 currentChannel = data.channel;
                 document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+                document.getElementById('viewer-count').innerText = '-- viewers';
                 
                 loadPlayerEmbed(currentChannel);
                 updateTwitchChatFrame(currentChannel);
@@ -505,6 +532,7 @@
         function changeChannel(channel) {
             currentChannel = channel;
             document.getElementById('current-channel-display').innerText = channel.toUpperCase();
+            document.getElementById('viewer-count').innerText = '-- viewers';
             
             loadPlayerEmbed(channel);
             updateTwitchChatFrame(channel);
