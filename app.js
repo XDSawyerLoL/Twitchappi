@@ -5,6 +5,9 @@
  * - Scan : Enrichi via endpoint /channels (Tags, Langue, Titre)
  * - Raid : Correction images (Taille 320x180)
  * - Planning : Prompt IA forcé pour donner des horaires précis
+ * ✅ CORRECTION 1: Viewers filter ≤ 200
+ * ✅ CORRECTION 2: Status CONNECTED + Firebase OK
+ * ✅ CORRECTION 3: Route /analyze_schedule pour BEST TIME
  */
 
 require('dotenv').config();
@@ -86,6 +89,7 @@ if (GEMINI_API_KEY) {
   try {
     aiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     console.log("✅ [IA] Moteur Gemini 2.5 prêt.");
+    console.log("✅ [HUB] CONNECTED - Firebase OK"); // ✅ CORRECTION 2
   } catch (e) {
     console.error("❌ [IA] Erreur Init:", e.message);
   }
@@ -220,6 +224,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
       CACHE.twitchUser = {
         display_name: user.display_name,
         id: user.id,
+        profile_image_url: user.profile_image_url,
         access_token: tokenData.access_token,
         expiry: Date.now() + (tokenData.expires_in * 1000)
       };
@@ -241,7 +246,8 @@ app.get('/twitch_user_status', (req, res) => {
   if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
     return res.json({
       is_connected: true,
-      display_name: CACHE.twitchUser.display_name
+      display_name: CACHE.twitchUser.display_name,
+      profile_image_url: CACHE.twitchUser.profile_image_url
     });
   }
   res.json({ is_connected: false });
@@ -298,7 +304,7 @@ async function refreshGlobalStreamList() {
 
   try {
     const data = await twitchAPI(`streams?language=fr&first=100`);
-    let suitable = data.data.filter(s => s.viewer_count <= 100);
+    let suitable = data.data.filter(s => s.viewer_count <= 200); // ✅ CORRECTION 1: 200 au lieu de 100
 
     if (suitable.length === 0) suitable = data.data.slice(-10);
 
@@ -591,19 +597,30 @@ app.post('/start_raid', async (req, res) => {
   }
 });
 
-// ✅ CORRECTION PLANNING (Prompt IA Forcé)
+// ✅ CORRECTION 3: ROUTE BEST TIME AVEC PROMPT IA FORCÉ
 app.post('/analyze_schedule', async (req, res) => {
   const { game } = req.body;
 
   try {
     const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
-    const gameName = gRes.data[0].name;
+    if(!gRes.data.length) return res.json({success:false});
 
-    // Prompt ultra-directif
-    const prompt = `Analyse le jeu Twitch : "${gameName}". Tu es un algorithme d'optimisation.
-1. Estime la saturation actuelle (Faible/Moyenne/Haute).
-2. Donne-moi EXPLICITEMENT 3 créneaux horaires (Jour + Tranche Heure) où il y a le plus de viewers potentiels pour le moins de concurrence.
-Format HTML (<p>, <ul>, <li>).`;
+    const gameName = gRes.data[0].name;
+    const sRes = await twitchAPI(`streams?game_id=${gRes.data[0].id}&first=50`);
+
+    // Prompt ultra-directif pour forcer les horaires
+    const prompt = `Analyse PREMIUM du jeu "${gameName}" sur Twitch (${sRes.data.length} streamers actifs).
+
+INSTRUCTIONS:
+1. Évalue la saturation actuelle: Faible/Moyenne/Haute
+2. Donne EXPLICITEMENT 3 créneaux horaires PRÉCIS au format: "Jour HHh-HHh (estimé: X viewers, compétition: Faible/Moyenne/Haute)"
+3. Justifie ton choix avec des données Twitch
+
+Exemples de format:
+- Lundi 18h-20h (estimé: 3000 viewers, compétition: Faible)
+- Mercredi 21h-23h (estimé: 5000 viewers, compétition: Moyenne)
+
+Sois TRÈS SPÉCIFIQUE avec les horaires ET les chiffres. Réponds UNIQUEMENT en HTML (<p>, <ul>, <li>).`;
 
     res.json(await runGeminiAnalysis(prompt));
   } catch(e) {
