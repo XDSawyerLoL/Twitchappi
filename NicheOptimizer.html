@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V60 - ULTIMATE</title>
+    <title>Streamer Hub V61 - SAFE LAUNCH</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,18 +11,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://embed.twitch.tv/embed/v1.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    
+    <script>
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+    </script>
 
     <style>
         :root { --bg: #050505; --panel: #0e0e10; --cyan: #00f2ea; --pink: #ff0099; }
         body { background-color: var(--bg); color: #e0e0e0; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
         
-        /* UTILS */
+        /* SCROLLBAR */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        
+        /* LAYOUT */
         .glass { background: var(--panel); border: 1px solid #222; }
-
+        
         /* CAROUSEL */
         .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding: 10px; scrollbar-width: none; }
         .stream-card { flex: 0 0 280px; height: 157px; background: #111; border: 1px solid #333; border-radius: 8px; position: relative; cursor: pointer; transition: 0.2s; }
@@ -30,22 +43,31 @@
         .stream-card img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
         .stream-card:hover img { opacity: 1; }
 
-        /* SIDEBAR TABS */
+        /* TABS */
         .nav-btn { width: 100%; text-align: left; padding: 12px 15px; font-family: 'Orbitron'; font-size: 11px; color: #888; border-left: 3px solid transparent; transition: 0.2s; background: #080808; display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
         .nav-btn:hover { background: #151515; color: white; }
         .nav-btn.active { background: #1a1a1a; color: var(--cyan); border-left-color: var(--cyan); }
-        .nav-header { font-size: 10px; color: #555; font-weight: bold; padding: 15px 15px 5px; text-transform: uppercase; }
 
         .tab-content { display: none; height: 100%; flex-direction: column; }
         .tab-content.active { display: flex; animation: fadeIn 0.2s; }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+        /* ERROR SCREEN */
+        #fatal-error { display: none; position: fixed; inset: 0; background: black; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
 
+    <div id="fatal-error">
+        <h1 class="text-3xl text-red-500 font-bold mb-4">⚠️ ERREUR DE CONNEXION</h1>
+        <p class="text-white mb-2">Le serveur Node.js n'est pas détecté ou le fichier est ouvert en local.</p>
+        <p class="text-gray-400 text-sm mb-6">Assurez-vous de lancer <code>node server.js</code> et d'ouvrir <code>http://localhost:3000</code></p>
+        <button onclick="location.reload()" class="bg-red-600 text-white px-4 py-2 rounded font-bold">RÉESSAYER</button>
+    </div>
+
     <header class="h-14 flex justify-between items-center px-4 border-b border-[#222] bg-black shrink-0">
         <h1 class="text-xl font-orbitron italic tracking-widest text-white">
-            <span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-[10px] ml-2 not-italic">V60</span>
+            <span class="text-[#00f2ea]">STREAMER</span> HUB <span class="bg-[#222] text-[#ff0099] px-2 rounded text-[10px] ml-2 not-italic">V61</span>
         </h1>
         <div id="socket-status" class="text-[10px] font-bold text-gray-500 border border-gray-700 px-2 rounded">CONNECTING...</div>
     </header>
@@ -69,7 +91,7 @@
             
             <div class="flex h-full">
                 <div class="w-14 bg-black border-r border-[#222] flex flex-col items-center py-4 gap-4 shrink-0">
-                    <button onclick="openTab('chat')" id="btn-chat" class="text-gray-500 hover:text-white active-icon text-xl" title="Tchat"><i class="fas fa-comments"></i></button>
+                    <button onclick="openTab('chat')" id="btn-chat" class="text-white text-xl" title="Tchat"><i class="fas fa-comments"></i></button>
                     <button onclick="openTab('stats')" id="btn-stats" class="text-gray-500 hover:text-white text-xl" title="Stats"><i class="fas fa-chart-pie"></i></button>
                     <div class="w-8 h-[1px] bg-[#333]"></div>
                     <button onclick="openTab('scanner')" id="btn-scanner" class="text-gray-500 hover:text-[#00f2ea] text-xl" title="Scanner"><i class="fas fa-search"></i></button>
@@ -98,7 +120,6 @@
 
                     <div id="tab-stats" class="tab-content p-4 overflow-y-auto space-y-4">
                         <h3 class="font-orbitron text-white text-sm border-b border-[#222] pb-2">DASHBOARD ANALYTICS</h3>
-                        
                         <div class="grid grid-cols-2 gap-3">
                             <div class="glass p-3 border-l-2 border-[#00f2ea]">
                                 <div class="text-[9px] text-gray-500 uppercase">Viewers</div>
@@ -109,17 +130,14 @@
                                 <div id="stat-channels" class="text-xl font-orbitron text-white">--</div>
                             </div>
                         </div>
-
                         <div class="glass p-3">
-                            <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Tendance (24h)</h4>
+                            <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Tendance</h4>
                             <div class="h-32"><canvas id="chartTrend"></canvas></div>
                         </div>
-                        
                         <div class="glass p-3">
-                            <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Top Jeux</h4>
+                            <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Jeux</h4>
                             <div class="h-32"><canvas id="chartGames"></canvas></div>
                         </div>
-
                         <div class="glass p-3">
                             <h4 class="text-[10px] text-gray-400 mb-2 font-bold uppercase">Langues</h4>
                             <div class="h-32"><canvas id="chartLangs"></canvas></div>
@@ -147,7 +165,7 @@
                     <div id="tab-planning" class="tab-content p-4 space-y-4">
                         <h3 class="font-orbitron text-[#ffd700] text-sm border-b border-[#222] pb-2"><i class="fas fa-clock mr-2"></i>PLANNING OPTIMIZER</h3>
                         <div class="flex gap-2">
-                            <input id="plan-in" type="text" placeholder="Jeu (ex: Valorant)..." class="bg-[#222] text-white text-xs p-2 rounded w-full border border-[#333]">
+                            <input id="plan-in" type="text" placeholder="Jeu..." class="bg-[#222] text-white text-xs p-2 rounded w-full border border-[#333]">
                             <button onclick="runPlan()" class="bg-[#ffd700] text-black px-3 rounded font-bold"><i class="fas fa-magic"></i></button>
                         </div>
                         <div id="plan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222] text-[11px]"></div>
@@ -173,15 +191,25 @@
     </div>
 
     <script>
-        // CONFIG AUTO DOMAINE (CRITIQUE POUR TWITCH)
+        // CONFIG
         const HOST = window.location.hostname;
         const PARENTS = ["localhost", "127.0.0.1", "justplayer.fr", "www.justplayer.fr"];
         if(!PARENTS.includes(HOST)) PARENTS.push(HOST);
 
         let socket, player, charts = {};
 
-        window.onload = () => {
-            initSocket();
+        // INITIALISATION SÉCURISÉE
+        window.onload = async () => {
+            // Tentative de chargement Socket.io
+            try {
+                await loadScript('/socket.io/socket.io.js');
+                initSocket();
+            } catch (e) {
+                // SI ECHEC -> ECRAN ERREUR
+                document.getElementById('fatal-error').style.display = 'flex';
+                return; 
+            }
+
             loadCarousel();
             initPlayer();
             loadStats();
@@ -189,58 +217,56 @@
 
         // --- 1. PLAYER & CHAT ---
         async function initPlayer() {
-            const res = await fetch('/api/player');
-            const data = await res.json();
-            setChannel(data.channel);
+            try {
+                const res = await fetch('/api/player');
+                const data = await res.json();
+                setChannel(data.channel);
+            } catch(e) { console.log("Erreur serveur, mode offline"); }
         }
 
         function setChannel(channel) {
             document.getElementById('current-chan').innerText = channel.toUpperCase();
             document.getElementById('twitch-embed').innerHTML = "";
-            
-            // LECTEUR VIDEO
             player = new Twitch.Embed("twitch-embed", {
                 width: "100%", height: "100%", channel: channel, layout: "video", parent: PARENTS
             });
-
-            // TCHAT IFRAME (Solution robuste)
             const p = PARENTS.map(d=>`parent=${d}`).join('&');
             document.getElementById('twitch-frame').src = `https://www.twitch.tv/embed/${channel}/chat?${p}&darkpopout`;
         }
 
         // --- 2. CAROUSEL ---
         async function loadCarousel() {
-            const res = await fetch('/api/live-feed');
-            const data = await res.json();
-            const el = document.getElementById('carousel');
-            el.innerHTML = "";
-            data.streams.forEach(s => {
-                el.innerHTML += `
-                <div class="stream-card flex-shrink-0" onclick="setChannel('${s.user}')">
-                    <img src="${s.thumb}">
-                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-2">
-                        <div class="font-bold text-white text-xs truncate">${s.user}</div>
-                        <div class="text-[#00f2ea] text-[10px]">${s.viewers} Viewers</div>
-                    </div>
-                </div>`;
-            });
+            try {
+                const res = await fetch('/api/live-feed');
+                const data = await res.json();
+                const el = document.getElementById('carousel');
+                el.innerHTML = "";
+                data.streams.forEach(s => {
+                    el.innerHTML += `
+                    <div class="stream-card flex-shrink-0" onclick="setChannel('${s.user}')">
+                        <img src="${s.thumb}">
+                        <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-2">
+                            <div class="font-bold text-white text-xs truncate">${s.user}</div>
+                            <div class="text-[#00f2ea] text-[10px]">${s.viewers} Viewers</div>
+                        </div>
+                    </div>`;
+                });
+            } catch(e) { /* Ignore offline */ }
         }
 
-        // --- 3. STATS GRAPHIQUES ---
+        // --- 3. STATS ---
         async function loadStats() {
-            const res = await fetch('/api/stats/full');
-            const d = await res.json();
+            try {
+                const res = await fetch('/api/stats/full');
+                const d = await res.json();
 
-            // KPI
-            document.getElementById('stat-viewers').innerText = d.kpi.total_viewers.toLocaleString();
-            document.getElementById('stat-channels').innerText = d.kpi.total_channels;
+                document.getElementById('kpi-viewers').innerText = d.kpi.total_viewers.toLocaleString();
+                document.getElementById('kpi-channels').innerText = d.kpi.total_channels;
 
-            // Trend Chart
-            createChart('chartTrend', 'line', d.charts.trend.labels, d.charts.trend.data, '#00f2ea', true);
-            // Games Chart
-            createChart('chartGames', 'bar', d.charts.games.labels, d.charts.games.data, '#ff0099', false);
-            // Langs Chart
-            createChart('chartLangs', 'doughnut', d.charts.langs.labels, d.charts.langs.data, ['#00f2ea', '#ff0099', '#ffd700', '#fff'], false);
+                createChart('chartTrend', 'line', d.charts.trend.labels, d.charts.trend.data, '#00f2ea', true);
+                createChart('chartGames', 'bar', d.charts.games.labels, d.charts.games.data, '#ff0099', false);
+                createChart('chartLangs', 'doughnut', d.charts.langs.labels, d.charts.langs.data, ['#00f2ea', '#ff0099', '#ffd700', '#fff'], false);
+            } catch(e) { console.log("Stats non disponibles"); }
         }
 
         function createChart(id, type, labels, data, colors, fill) {
@@ -262,7 +288,7 @@
             });
         }
 
-        // --- 4. OUTILS ---
+        // --- 4. TOOLS ---
         async function runScan() {
             const q = document.getElementById('scan-in').value;
             const box = document.getElementById('scan-res');
@@ -294,17 +320,15 @@
             document.getElementById('raid-meta').innerText = d.target.viewers + " Viewers";
         }
 
-        // --- 5. SYSTEME ---
+        // --- 5. SYSTEM ---
         function initSocket() {
-            try {
-                socket = io();
-                socket.on('connect', () => { document.getElementById('socket-status').innerText="ONLINE"; document.getElementById('socket-status').className="text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded"; });
-                socket.on('chat message', (m) => {
-                    const b = document.getElementById('hub-msgs');
-                    b.innerHTML+=`<div class="hub-msg"><strong class="text-[#00f2ea]">${m.user}:</strong> ${m.text}</div>`;
-                    b.scrollTop=b.scrollHeight;
-                });
-            } catch(e){}
+            socket = io();
+            socket.on('connect', () => { document.getElementById('socket-status').innerText="ONLINE"; document.getElementById('socket-status').className="text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded"; });
+            socket.on('chat message', (m) => {
+                const b = document.getElementById('hub-msgs');
+                b.innerHTML+=`<div class="hub-msg"><strong class="text-[#00f2ea]">${m.user}:</strong> ${m.text}</div>`;
+                b.scrollTop=b.scrollHeight;
+            });
         }
         function sendMsg(e) {
             e.preventDefault();
@@ -314,14 +338,14 @@
         function openTab(id) {
             document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
             document.getElementById('tab-'+id).classList.add('active');
-            // Highlight icon
-            document.querySelectorAll('#btn-chat, #btn-stats, #btn-scanner, #btn-planning, #btn-raid').forEach(b=>b.style.color="#888");
-            const activeBtn = document.querySelector(`button[onclick="openTab('${id}')"]`);
-            if(activeBtn) activeBtn.style.color = "white";
+            
+            // Highlight Icon
+            document.querySelectorAll('#btn-chat, #btn-stats, #btn-scanner, #btn-planning, #btn-raid').forEach(b => b.style.color="#888");
+            document.getElementById('btn-'+id).style.color = "white";
         }
         function toggleChat(m){
-            if(m==='hub'){document.getElementById('chat-container-twitch').classList.add('hidden');document.getElementById('chat-container-hub').classList.remove('hidden');document.getElementById('chat-container-hub').classList.add('flex');}
-            else{document.getElementById('chat-container-hub').classList.add('hidden');document.getElementById('chat-container-hub').classList.remove('flex');document.getElementById('chat-container-twitch').classList.remove('hidden');}
+            if(m==='hub'){document.getElementById('chat-twitch').classList.add('hidden');document.getElementById('chat-hub').classList.remove('hidden');document.getElementById('chat-hub').classList.add('flex');}
+            else{document.getElementById('chat-hub').classList.add('hidden');document.getElementById('chat-hub').classList.remove('flex');document.getElementById('chat-twitch').classList.remove('hidden');}
         }
     </script>
 </body>
