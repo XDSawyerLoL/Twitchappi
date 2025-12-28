@@ -169,6 +169,12 @@
         .scrollbar-thin::-webkit-scrollbar {
             width: 4px;
         }
+
+        /* Force dark theme on Twitch iframe */
+        #twitch-chat-frame {
+            color-scheme: dark;
+            filter: invert(0);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
@@ -265,8 +271,8 @@
                         HUB SECURE
                     </button>
                 </div>
-                <div id="chat-container-twitch" class="flex-grow relative bg-[#0a0a0a] overflow-hidden">
-                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
+                <div id="chat-container-twitch" class="flex-grow relative overflow-hidden">
+                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="background: #0a0a0a !important;"></iframe>
                 </div>
                 <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
                     <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
@@ -570,17 +576,38 @@
         // ==================== SOCKET.IO ====================
         function initSocket() {
             try {
-                socket = io();
+                console.log('Initializing socket.io...');
+                
+                socket = io(API_BASE, {
+                    reconnection: true,
+                    reconnectionDelay: 1000,
+                    reconnectionDelayMax: 5000,
+                    reconnectionAttempts: 5,
+                    transports: ['websocket', 'polling']
+                });
+                
                 socket.on('connect', () => {
+                    console.log('✅ Socket connected:', socket.id);
                     const el = document.getElementById('socket-status');
                     el.innerText = 'HUB SECURE';
                     el.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded shadow-[0_0_5px_#00f2ea]';
                 });
-                socket.on('disconnect', () => {
+                
+                socket.on('disconnect', (reason) => {
+                    console.log('❌ Socket disconnected:', reason);
                     const el = document.getElementById('socket-status');
-                    el.innerText = 'DISCONNECTED';
+                    el.innerText = 'HUB DISCONNECTED';
                     el.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
                 });
+                
+                socket.on('connect_error', (error) => {
+                    console.error('❌ Socket connection error:', error);
+                });
+                
+                socket.on('error', (error) => {
+                    console.error('❌ Socket error:', error);
+                });
+                
                 socket.on('chat message', (msg) => {
                     const box = document.getElementById('hub-messages');
                     const user = msg.user || 'Anon';
@@ -589,7 +616,7 @@
                     box.scrollTop = box.scrollHeight;
                 });
             } catch (e) {
-                console.error('Socket error:', e);
+                console.error('Socket init error:', e);
             }
         }
 
