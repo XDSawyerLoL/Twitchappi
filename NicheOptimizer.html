@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V2 - ULTIMATE PERFORMANCE</title>
+    <title>Streamer Hub V52 - ULTIMATE PERFORMANCE</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -169,6 +169,12 @@
         .scrollbar-thin::-webkit-scrollbar {
             width: 4px;
         }
+
+        /* Force dark theme for Twitch iframe */
+        #twitch-chat-frame {
+            background: #0a0a0a !important;
+            color-scheme: dark;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
@@ -179,8 +185,8 @@
                 <span class="text-[#00f2ea]">STREAMER</span> HUB 
                 <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">V52</span>
             </h1>
-            <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded whitespace-nowrap">
-                HUB DISCONNECTED
+            <div id="socket-status" class="text-[10px] font-bold text-orange-500 border border-orange-500 px-2 rounded whitespace-nowrap">
+                HUB LOCAL ONLY
             </div>
         </div>
         <div>
@@ -262,8 +268,8 @@
                         HUB SECURE
                     </button>
                 </div>
-                <div id="chat-container-twitch" class="flex-grow relative overflow-hidden" style="background: #0a0a0a;">
-                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="background: #0a0a0a !important; border: none;"></iframe>
+                <div id="chat-container-twitch" class="flex-grow relative overflow-hidden bg-[#0a0a0a]">
+                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
                 </div>
                 <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
                     <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
@@ -379,7 +385,7 @@
             initPlayer();
             loadStatsDashboard();
             initCarouselScroll();
-            setTimeout(initSocket, 1000);
+            initSocket();
             setInterval(loadStatsDashboard, 5 * 60 * 1000);
         });
 
@@ -566,56 +572,41 @@
         // ==================== SOCKET.IO ====================
         function initSocket() {
             try {
-                console.log('🔌 Initializing socket.io at:', API_BASE);
+                console.log('🔌 Socket.io: Mode LOCAL ONLY (serveur sans socket.io)');
                 
-                socket = io(API_BASE, {
-                    reconnection: true,
-                    reconnectionDelay: 1000,
-                    reconnectionDelayMax: 5000,
-                    reconnectionAttempts: 10,
-                    transports: ['websocket', 'polling'],
-                    forceNew: true
-                });
+                // Afficher le status local only
+                const el = document.getElementById('socket-status');
+                el.innerText = 'HUB LOCAL ONLY';
+                el.className = 'text-[10px] font-bold text-orange-500 border border-orange-500 px-2 rounded whitespace-nowrap';
                 
-                socket.on('connect', () => {
-                    console.log('✅ Socket connected:', socket.id);
-                    const el = document.getElementById('socket-status');
-                    el.innerText = 'HUB SECURE';
-                    el.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded shadow-[0_0_5px_#00f2ea] whitespace-nowrap';
-                });
-                
-                socket.on('disconnect', (reason) => {
-                    console.log('❌ Socket disconnected:', reason);
-                    const el = document.getElementById('socket-status');
-                    el.innerText = 'HUB DISCONNECTED';
-                    el.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded whitespace-nowrap';
-                });
-                
-                socket.on('connect_error', (error) => {
-                    console.error('❌ Socket connection error:', error);
-                });
-                
-                socket.on('error', (error) => {
-                    console.error('❌ Socket error:', error);
-                });
-                
-                socket.on('chat message', (msg) => {
-                    const box = document.getElementById('hub-messages');
-                    const user = msg.user || 'Anon';
-                    const text = msg.text || msg;
-                    box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${user}</strong> <span class="text-gray-300">${text}</span></div>`;
-                    box.scrollTop = box.scrollHeight;
-                });
+                // Hub Secure fonctionnera en localStorage pour les messages
+                loadHubMessagesFromStorage();
             } catch (e) {
                 console.error('Socket init error:', e);
             }
+        }
+
+        function loadHubMessagesFromStorage() {
+            const messages = JSON.parse(localStorage.getItem('hubMessages') || '[]');
+            const box = document.getElementById('hub-messages');
+            messages.forEach(msg => {
+                box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${msg.user}</strong> <span class="text-gray-300">${msg.text}</span></div>`;
+            });
+            box.scrollTop = box.scrollHeight;
         }
 
         function sendHubMessage(e) {
             e.preventDefault();
             const input = document.getElementById('hub-input');
             if (input.value) {
-                if (socket) socket.emit('chat message', { user: currentUser || 'Anon', text: input.value });
+                const msg = { user: currentUser || 'Anon', text: input.value };
+                
+                // Sauvegarder en localStorage
+                const messages = JSON.parse(localStorage.getItem('hubMessages') || '[]');
+                messages.push(msg);
+                localStorage.setItem('hubMessages', JSON.stringify(messages));
+                
+                // Afficher le message
                 const box = document.getElementById('hub-messages');
                 box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${currentUser || 'Anon'}</strong> <span class="text-gray-300">${input.value}</span></div>`;
                 box.scrollTop = box.scrollHeight;
