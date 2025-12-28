@@ -1,28 +1,9 @@
+cd /opt/render/project && cat > package.json << 'EOF'
 {
   "name": "streamer-niche-ai-hub",
   "version": "51.0.0",
-  "description": "Streamer & Niche AI Hub - Twitch Analytics & IA Engine",
   "main": "app.js",
-  "type": "commonjs",
-  "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "twitch",
-    "streaming",
-    "niche",
-    "analytics",
-    "ai",
-    "gemini"
-  ],
-  "author": "StreamerHub Team",
-  "license": "MIT",
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
+  "scripts": {"start": "node app.js"},
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -34,8 +15,8 @@
     "node-fetch": "^2.7.0",
     "firebase-admin": "^12.1.0",
     "@google/genai": "^0.5.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
   }
 }
+EOF
+
+
