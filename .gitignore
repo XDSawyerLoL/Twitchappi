@@ -1,8 +1,5 @@
-# Ignorer le dossier des dépendances Node.js
 node_modules/
-
-# Ignorer les variables d'environnement (si vous en avez)
 .env
-
-# Ignorer les fichiers de logs
-*.log
+package-lock.json
+.DS_Store
+.vscode/
