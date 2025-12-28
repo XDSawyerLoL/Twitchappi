@@ -1,26 +1,34 @@
 {
-  "name": "streamer-hub-v95-final",
-  "version": "5.0.0",
-  "description": "Streamer Hub - Moteur Twitchappi",
+  "name": "streamer-niche-ai-hub",
+  "version": "51.0.0",
   "main": "app.js",
+  "type": "commonjs",
+  "description": "Streamer & Niche AI Hub - Twitch Analytics & IA Engine",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "dependencies": {
     "express": "^4.19.2",
     "cors": "^2.8.5",
-    "node-fetch": "^2.6.1",
+    "dotenv": "^16.4.5",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
+    "node-fetch": "^2.7.0",
     "firebase-admin": "^12.1.0",
-    "dotenv": "^16.4.5",
-    "@google/genai": "latest",
-    "socket.io": "^4.7.5"
+    "@google/genai": "^0.5.0",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5"
   },
-  "engines": {
-    "node": ">=18.0.0"
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
+
 
 
 
