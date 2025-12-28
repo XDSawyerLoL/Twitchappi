@@ -442,4 +442,5 @@ async function recordStats() {
 setInterval(recordStats, 30 * 60 * 1000); 
 setTimeout(recordStats, 10000);
 
-app.listen(PORT, () => console.log(`🚀 SERVER V50 (FINAL PATCH) ON PORT ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 SERVER V50 ON PORT ${PORT}`));
+
