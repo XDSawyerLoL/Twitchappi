@@ -3,15 +3,7 @@
   "version": "51.0.0",
   "main": "app.js",
   "type": "commonjs",
-  "description": "Streamer & Niche AI Hub - Twitch Analytics & IA Engine",
-  "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
+  "scripts": {"start": "node app.js"},
   "dependencies": {
     "express": "^4.19.2",
     "cors": "^2.8.5",
@@ -23,11 +15,10 @@
     "@google/genai": "^0.5.0",
     "helmet": "^7.1.0",
     "express-rate-limit": "^7.1.5"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
   }
 }
+
+
 
 
 
