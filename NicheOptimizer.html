@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://embed.twitch.tv/embed.v1.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         :root {
             --bg-dark: #050505;
@@ -30,7 +31,6 @@
             font-family: 'Orbitron', sans-serif;
         }
 
-        /* SCROLLBAR CUSTOM */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -49,7 +49,6 @@
             background: var(--secondary);
         }
 
-        /* CAROUSEL */
         .carousel-track {
             display: flex;
             gap: 15px;
@@ -93,13 +92,11 @@
             opacity: 1;
         }
 
-        /* GLASS PANEL */
         .glass-panel {
             background: var(--bg-panel);
             border: 1px solid var(--border-color);
         }
 
-        /* TABS */
         .tab-nav {
             display: flex;
             background: #080808;
@@ -130,7 +127,6 @@
             background: #151515;
         }
 
-        /* CONTENT AREAS */
         .tab-content {
             display: none;
             height: 100%;
@@ -141,7 +137,6 @@
             display: flex;
         }
 
-        /* INPUTS */
         .cyber-input {
             background: #151515;
             border: 1px solid #333;
@@ -160,7 +155,6 @@
             box-shadow: 0 0 10px rgba(0, 242, 234, 0.2);
         }
 
-        /* HUB CHAT */
         .hub-msg {
             padding: 8px;
             border-bottom: 1px solid #1a1a1a;
@@ -173,7 +167,6 @@
             font-size: 11px;
         }
 
-        /* SCROLLBAR THIN */
         .scrollbar-thin::-webkit-scrollbar {
             width: 4px;
         }
@@ -218,7 +211,7 @@
 
     <!-- MAIN GRID -->
     <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
-        <!-- VIDEO PLAYER & CHAT -->
+        <!-- VIDEO PLAYER -->
         <div class="lg:col-span-8 flex flex-col gap-4 h-full">
             <!-- PLAYER -->
             <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl">
@@ -245,7 +238,7 @@
             </div>
         </div>
 
-        <!-- RIGHT PANEL: CHAT & STATS & TOOLS -->
+        <!-- RIGHT PANEL -->
         <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full max-h-[calc(100vh-280px)] lg:max-h-full">
             <!-- TAB NAV -->
             <div class="tab-nav">
@@ -276,7 +269,7 @@
                 <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
                     <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
                         <div class="text-center text-gray-600 text-xs mt-4">
-                            Bienvenue sur le Hub Sécurisé.
+                            Bienvenue sur le Hub Sécurisé - Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
                         </div>
                     </div>
                     <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
@@ -292,47 +285,26 @@
             <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
                 <div class="grid grid-cols-2 gap-3 mb-6">
                     <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
-                        <div class="text-[10px] text-gray-500 uppercase">
-                            Viewers Totaux
-                        </div>
-                        <div id="kpi-viewers" class="text-2xl font-orbitron text-white">
-                            --
-                        </div>
+                        <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
+                        <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
                     </div>
                     <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
-                        <div class="text-[10px] text-gray-500 uppercase">
-                            Chaînes FR
-                        </div>
-                        <div id="kpi-channels" class="text-2xl font-orbitron text-white">
-                            --
-                        </div>
+                        <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
+                        <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
                     </div>
                 </div>
-
                 <div class="space-y-6">
                     <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                            <i class="fas fa-chart-line mr-1"></i> Tendance 12h
-                        </h4>
-                        <div class="h-40">
-                            <canvas id="chartViewers"></canvas>
-                        </div>
+                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance 12h</h4>
+                        <div class="h-40"><canvas id="chartViewers"></canvas></div>
                     </div>
                     <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                            <i class="fas fa-gamepad mr-1"></i> Top Jeux
-                        </h4>
-                        <div class="h-48">
-                            <canvas id="chartGames"></canvas>
-                        </div>
+                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
+                        <div class="h-48"><canvas id="chartGames"></canvas></div>
                     </div>
                     <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                            <i class="fas fa-globe mr-1"></i> Langues
-                        </h4>
-                        <div class="h-40">
-                            <canvas id="chartLangs"></canvas>
-                        </div>
+                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
+                        <div class="h-40"><canvas id="chartLangs"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -341,9 +313,7 @@
             <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6">
                 <!-- SCANNER -->
                 <div>
-                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">
-                        SCANNER IA
-                    </h3>
+                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
                     <div class="flex gap-2 mb-3">
                         <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
                         <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
@@ -362,11 +332,28 @@
                     </div>
                 </div>
 
+                <!-- RAID -->
+                <div>
+                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
+                        <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
+                    </div>
+                    <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">
+                        🔍 CHERCHER
+                    </button>
+                    <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
+                        <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
+                        <div id="raid-info" class="text-xs text-gray-300"></div>
+                        <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white">
+                            🎮 ALLER AU RAID
+                        </button>
+                    </div>
+                </div>
+
                 <!-- BOOST -->
                 <div>
-                    <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">
-                        BOOST
-                    </h3>
+                    <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
                     <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
                     <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">
                         ACTIVER
@@ -377,13 +364,15 @@
         </div>
     </div>
 
-    <!-- SCRIPTS -->
     <script>
         const API_BASE = window.location.origin;
+        const PARENT_DOMAINS = ['localhost', '127.0.0.1', window.location.hostname, 'justplayer.fr', 'www.justplayer.fr'];
         let player;
         let socket;
         let currentChannel = 'twitch';
+        let currentUser = null;
         let charts = {};
+        let raidTarget = null;
 
         // ==================== INIT ====================
         window.addEventListener('load', async () => {
@@ -400,6 +389,8 @@
             const res = await fetch(`${API_BASE}/twitch_user_status`);
             const data = await res.json();
             if (data.is_connected) {
+                currentUser = data.display_name;
+                document.getElementById('hub-user-display').innerText = data.display_name;
                 document.getElementById('btn-auth').classList.add('hidden');
                 document.getElementById('user-area').classList.remove('hidden');
                 document.getElementById('user-name').innerText = data.display_name;
@@ -436,7 +427,7 @@
                     height: '100%',
                     channel: currentChannel,
                     layout: 'video',
-                    parent: ['localhost', '127.0.0.1', window.location.hostname]
+                    parent: PARENT_DOMAINS
                 };
                 player = new Twitch.Embed('video-container', opts);
                 updateTwitchChatFrame(currentChannel);
@@ -444,7 +435,8 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${window.location.hostname}&dark=popout`;
+            const parentParam = PARENT_DOMAINS.join('&parent=');
+            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&dark=popout`;
             document.getElementById('twitch-chat-frame').src = url;
         }
 
@@ -457,7 +449,7 @@
             const data = await res.json();
             if (data.success) {
                 currentChannel = data.channel;
-                player.setChannel(currentChannel);
+                if (player) player.setChannel(currentChannel);
                 document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
                 updateTwitchChatFrame(currentChannel);
             }
@@ -481,10 +473,10 @@
                 if (data.success && data.streams.length > 0) {
                     el.innerHTML = '';
                     data.streams.forEach(s => {
-                        const thumb = s.thumbnail_url.replace('{width}', '400').replace('{height}', '225');
+                        const thumb = (s.thumbnail_url || '').replace('{width}', '400').replace('{height}', '225');
                         el.innerHTML += `
                             <div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')">
-                                <img src="${thumb}" class="card-img">
+                                <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
                                 <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
                                     <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
                                 </div>
@@ -494,13 +486,14 @@
                     });
                 }
             } catch (e) {
+                console.error('Carousel error:', e);
                 el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Erreur</div>';
             }
         }
 
         function changeChannel(channel) {
             currentChannel = channel;
-            player.setChannel(channel);
+            if (player) player.setChannel(channel);
             document.getElementById('current-channel-display').innerText = channel.toUpperCase();
             updateTwitchChatFrame(channel);
         }
@@ -537,29 +530,24 @@
         // ==================== SOCKET.IO ====================
         function initSocket() {
             try {
-                const script = document.createElement('script');
-                script.src = `${API_BASE}/socket.io/socket.io.js`;
-                document.head.appendChild(script);
-                script.onload = () => {
-                    socket = io();
-                    socket.on('connect', () => {
-                        const el = document.getElementById('socket-status');
-                        el.innerText = 'HUB SECURE';
-                        el.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded shadow-[0_0_5px_#00f2ea]';
-                    });
-                    socket.on('disconnect', () => {
-                        const el = document.getElementById('socket-status');
-                        el.innerText = 'DISCONNECTED';
-                        el.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
-                    });
-                    socket.on('chat message', (msg) => {
-                        const box = document.getElementById('hub-messages');
-                        const user = msg.user || 'Anon';
-                        const text = msg.text || msg;
-                        box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${user}</strong> <span class="text-gray-300">${text}</span></div>`;
-                        box.scrollTop = box.scrollHeight;
-                    });
-                };
+                socket = io();
+                socket.on('connect', () => {
+                    const el = document.getElementById('socket-status');
+                    el.innerText = 'HUB SECURE';
+                    el.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded shadow-[0_0_5px_#00f2ea]';
+                });
+                socket.on('disconnect', () => {
+                    const el = document.getElementById('socket-status');
+                    el.innerText = 'DISCONNECTED';
+                    el.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
+                });
+                socket.on('chat message', (msg) => {
+                    const box = document.getElementById('hub-messages');
+                    const user = msg.user || 'Anon';
+                    const text = msg.text || msg;
+                    box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${user}</strong> <span class="text-gray-300">${text}</span></div>`;
+                    box.scrollTop = box.scrollHeight;
+                });
             } catch (e) {
                 console.error('Socket error:', e);
             }
@@ -568,10 +556,10 @@
         function sendHubMessage(e) {
             e.preventDefault();
             const input = document.getElementById('hub-input');
-            if (input.value && socket) {
-                socket.emit('chat message', input.value);
+            if (input.value) {
+                if (socket) socket.emit('chat message', { user: currentUser || 'Anon', text: input.value });
                 const box = document.getElementById('hub-messages');
-                box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">Moi</strong> <span class="text-gray-300">${input.value}</span></div>`;
+                box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${currentUser || 'Anon'}</strong> <span class="text-gray-300">${input.value}</span></div>`;
                 box.scrollTop = box.scrollHeight;
                 input.value = '';
             }
@@ -591,7 +579,7 @@
                 const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
                 const dGames = await resGames.json();
                 const labels = dGames.games.map(g => g.name);
-                const values = dGames.games.map(g => Math.random() * 100);
+                const values = dGames.games.map((g, i) => (i + 1) * 20);
                 renderChart('chartGames', 'bar', labels.slice(0, 5), values.slice(0, 5), 'Popularité', '#ff0099');
 
                 const resLang = await fetch(`${API_BASE}/api/stats/languages`);
@@ -653,9 +641,10 @@
         // ==================== TOOLS ====================
         async function runScan() {
             const q = document.getElementById('scan-query').value;
+            if (!q) return;
             const box = document.getElementById('scan-res');
             box.classList.remove('hidden');
-            document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse IA...';
+            document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse Twitch + IA...';
 
             try {
                 const res = await fetch(`${API_BASE}/scan_target`, {
@@ -664,7 +653,7 @@
                     body: JSON.stringify({ query: q })
                 });
                 const data = await res.json();
-                if (data.success) {
+                if (data.success && data.user_data) {
                     const u = data.user_data;
                     document.getElementById('scan-name').innerText = u.display_name;
                     document.getElementById('scan-game').innerText = u.game_name;
@@ -676,15 +665,52 @@
                         body: JSON.stringify({ type: 'niche', query: u.display_name })
                     });
                     const aiD = await ai.json();
-                    document.getElementById('scan-ai').innerHTML = aiD.html_response;
+                    document.getElementById('scan-ai').innerHTML = aiD.html_response || 'Pas de critique disponible';
                 }
             } catch (e) {
                 console.error('Scan error:', e);
             }
         }
 
+        async function runRaid() {
+            const game = document.getElementById('raid-game').value;
+            const maxViewers = document.getElementById('raid-viewers').value;
+            if (!game) return;
+
+            document.getElementById('raid-res').classList.add('hidden');
+
+            try {
+                const res = await fetch(`${API_BASE}/start_raid`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game, max_viewers: maxViewers })
+                });
+                const data = await res.json();
+                if (data.success && data.target) {
+                    raidTarget = data.target;
+                    const box = document.getElementById('raid-res');
+                    box.classList.remove('hidden');
+                    document.getElementById('raid-img').src = data.target.thumbnail_url;
+                    document.getElementById('raid-info').innerHTML = `
+                        <p class="font-bold text-white">${data.target.name}</p>
+                        <p>Viewers: ${data.target.viewers}</p>
+                        <p>Jeu: ${data.target.game}</p>
+                    `;
+                }
+            } catch (e) {
+                console.error('Raid error:', e);
+            }
+        }
+
+        function goToRaid() {
+            if (raidTarget) {
+                window.open(`https://twitch.tv/${raidTarget.login}`, '_blank');
+            }
+        }
+
         async function runBoost() {
             const c = document.getElementById('boost-query').value;
+            if (!c) return;
             const res = await fetch(`${API_BASE}/stream_boost`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -697,7 +723,6 @@
             }
         }
 
-        // ==================== WINDOW MESSAGE FOR AUTH ====================
         window.addEventListener('message', (e) => {
             if (e.data === 'auth_success') {
                 location.reload();
