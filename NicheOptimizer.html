@@ -3,472 +3,479 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V44 - INFINITY EDITION</title>
+    <title>Streamer Hub V50 - Master Interface</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://embed.twitch.tv/embed/v1.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
 
     <style>
         :root {
             --bg-dark: #050505;
-            --bg-panel: #111111;
+            --bg-panel: #0f0f11;
             --primary: #ff0099;
             --secondary: #00f2ea;
             --accent: #ffd700;
         }
-        
-        body { background-color: var(--bg-dark); color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+        body { background-color: var(--bg-dark); color: #eee; font-family: 'Inter', sans-serif; overflow-x: hidden; }
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
-
-        /* SCROLLBARS CACHÉES MAIS SCROLLABLE */
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* CAROUSEL STYLES */
-        .carousel-track { display: flex; gap: 20px; overflow-x: auto; padding: 20px 0; scroll-behavior: smooth; }
-        .stream-card-large { 
-            flex: 0 0 320px; /* Largeur fixe des cartes */
-            background: #1a1a1a; 
-            border: 1px solid #333; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            transition: transform 0.3s, border-color 0.3s;
-            position: relative;
-        }
-        .stream-card-large:hover { transform: scale(1.05); border-color: var(--secondary); z-index: 10; box-shadow: 0 10px 30px rgba(0, 242, 234, 0.2); }
-        .card-thumb { height: 180px; width: 100%; object-fit: cover; }
-        .live-badge { position: absolute; top: 10px; left: 10px; background: #ff0000; color: white; font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 10px; box-shadow: 0 0 10px rgba(255,0,0,0.5); }
         
-        /* SCANNER AVATAR FIX */
-        .profile-avatar-centered {
-            width: 100px; height: 100px; 
-            border-radius: 50%; 
-            border: 4px solid var(--bg-panel); 
-            position: absolute; 
-            bottom: -50px; 
-            left: 50%; 
-            transform: translateX(-50%); /* C'est ça qui centre parfaitement */
-            background: #333; 
-            object-fit: cover;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-        }
+        /* UI ELEMENTS */
+        .glass-panel { background: rgba(15, 15, 17, 0.95); border: 1px solid #222; backdrop-filter: blur(10px); }
+        .glow-text { text-shadow: 0 0 10px rgba(0, 242, 234, 0.4); }
+        .neon-border { border-color: var(--secondary); box-shadow: 0 0 10px rgba(0, 242, 234, 0.2); }
 
-        /* NAVIGATION */
-        .nav-btn { background: transparent; color: #888; padding: 10px 20px; font-family: 'Orbitron'; font-weight: bold; text-transform: uppercase; border-bottom: 2px solid transparent; transition: 0.3s; }
-        .nav-btn.active { color: white; border-bottom-color: var(--secondary); text-shadow: 0 0 10px rgba(0, 242, 234, 0.5); }
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
 
-        /* DASHBOARD TOOLS */
-        .tool-panel { background: #111; border: 1px solid #222; border-radius: 8px; padding: 20px; min-height: 300px; }
-        .input-glow:focus { box-shadow: 0 0 15px rgba(0, 242, 234, 0.3); border-color: var(--secondary); }
+        /* TABS */
+        .tab-btn { padding: 10px 20px; color: #666; font-weight: bold; border-bottom: 2px solid transparent; transition: 0.3s; font-family: 'Orbitron'; text-transform: uppercase; font-size: 0.8rem; }
+        .tab-btn:hover { color: #fff; }
+        .tab-btn.active { color: white; border-bottom-color: var(--secondary); text-shadow: 0 0 8px rgba(0,242,234,0.5); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+
+        /* CAROUSEL */
+        .stream-card { transition: transform 0.2s, border-color 0.2s; min-width: 260px; cursor: pointer; border: 1px solid #222; background: #111; border-radius: 8px; overflow: hidden; }
+        .stream-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+
+        /* GEMINI OUTPUT STYLES */
+        .ai-output h4 { color: var(--secondary); font-family: 'Orbitron'; margin-bottom: 8px; margin-top: 10px; font-size: 1rem; }
+        .ai-output ul { padding-left: 20px; margin-bottom: 10px; }
+        .ai-output li { margin-bottom: 5px; color: #ccc; list-style-type: square; }
+        .ai-output p { margin-bottom: 8px; font-size: 0.9rem; line-height: 1.5; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col p-4">
 
-<div class="max-w-[1600px] mx-auto p-6">
-    
-    <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+    <header class="flex justify-between items-center mb-6 pb-4 border-b border-gray-800">
         <div>
-            <h1 class="text-4xl font-orbitron"><span class="text-[#00f2ea]">STREAMER</span> HUB <span class="text-sm bg-[#ff0099] px-2 rounded align-middle ml-2">V44 INFINITY</span></h1>
+            <h1 class="text-3xl font-orbitron font-black italic tracking-wider">
+                <span class="text-[#00f2ea]">STREAMER</span> HUB <span class="text-[#ff0099] text-sm align-middle px-2 bg-[#222] rounded ml-2">V50 AI</span>
+            </h1>
         </div>
         <div class="flex items-center gap-4">
-            <div id="socket-indicator" class="flex items-center gap-2 px-3 py-1 rounded bg-[#1a1a1a] border border-gray-800">
-                <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse" id="dot-status"></div>
-                <span class="text-xs font-bold text-gray-400" id="text-status">DISCONNECTED</span>
+            <div id="boost-status" class="hidden px-3 py-1 bg-gradient-to-r from-yellow-600 to-yellow-800 rounded text-xs font-bold text-white border border-yellow-500 animate-pulse">
+                <i class="fas fa-bolt mr-1"></i> BOOST ACTIF
             </div>
-            <button id="btn-login" onclick="handleTwitchLogin()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-6 py-2 rounded font-bold transition flex items-center gap-2 shadow-[0_0_15px_rgba(100,65,165,0.4)]">
+            <button id="btn-login" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-sm">
                 <i class="fab fa-twitch"></i> CONNEXION
+            </button>
+            <button id="btn-logout" onclick="doLogout()" class="hidden bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded transition">
+                <i class="fas fa-sign-out-alt"></i>
             </button>
         </div>
     </header>
 
-    <section class="mb-8">
-        <div class="flex justify-between items-end mb-4">
-            <h2 class="text-xl font-orbitron text-white"><i class="fas fa-satellite-dish text-[#ff0099] mr-2"></i> CHAÎNES EN DIRECT</h2>
-            <div class="flex gap-2">
-                <button onclick="scrollCarousel('left')" class="w-8 h-8 rounded bg-[#222] hover:bg-[#333] text-white"><i class="fas fa-chevron-left"></i></button>
-                <button onclick="scrollCarousel('right')" class="w-8 h-8 rounded bg-[#222] hover:bg-[#333] text-white"><i class="fas fa-chevron-right"></i></button>
-            </div>
-        </div>
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
         
-        <div id="carousel-container" class="carousel-track hide-scrollbar group">
-            <div class="w-full h-[200px] flex flex-col justify-center items-center border border-dashed border-gray-800 rounded-xl text-gray-500 bg-[#0a0a0a]">
-                <i class="fab fa-twitch text-4xl mb-2 opacity-50"></i>
-                <p>Connectez-vous pour voir vos chaînes suivies.</p>
-            </div>
-        </div>
-    </section>
-
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        
-        <div class="xl:col-span-2 flex flex-col gap-4">
-            <div class="flex gap-2 border-b border-gray-800">
-                <button class="nav-btn active" onclick="switchTab('tab-player', this)">COCKPIT</button>
-                <button class="nav-btn" onclick="switchTab('tab-stats', this)">STATS</button>
-            </div>
-
-            <div id="tab-player" class="active-tab-content">
-                <div class="bg-[#111] border border-[#222] rounded-xl overflow-hidden shadow-2xl relative" style="aspect-ratio: 16/9;">
-                    <div id="video-container" class="w-full h-full bg-black flex items-center justify-center">
-                        <span class="text-gray-600 font-orbitron">WAITING FOR SIGNAL...</span>
-                    </div>
-                </div>
-            </div>
-
-            <div id="tab-stats" class="hidden active-tab-content bg-[#111] border border-[#222] rounded-xl p-6 min-h-[500px]">
-                <h3 class="text-[#00f2ea] font-orbitron mb-4">MÉTRIQUES GLOBALES</h3>
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="p-4 bg-[#0a0a0a] border-l-4 border-[#ff0099] rounded"><div class="text-gray-500 text-xs">VIEWERS</div><div id="kpi-viewers" class="text-2xl font-bold">--</div></div>
-                    <div class="p-4 bg-[#0a0a0a] border-l-4 border-[#00f2ea] rounded"><div class="text-gray-500 text-xs">CHANNELS</div><div id="kpi-channels" class="text-2xl font-bold">--</div></div>
-                    <div class="p-4 bg-[#0a0a0a] border-l-4 border-[#ffd700] rounded"><div class="text-gray-500 text-xs">UPTIME</div><div id="kpi-uptime" class="text-xl font-bold">--</div></div>
-                </div>
-                <div class="h-[300px] w-full"><canvas id="chart-stats"></canvas></div>
-            </div>
-        </div>
-
-        <div class="flex flex-col gap-4 h-full">
+        <div class="lg:col-span-8 flex flex-col gap-6">
             
-            <div class="bg-[#111] border border-[#222] rounded-xl p-2 flex gap-1 justify-between">
-                <button onclick="showTool('chat')" class="flex-1 py-2 text-xs font-bold bg-[#222] hover:bg-[#333] rounded text-gray-300">CHAT</button>
-                <button onclick="showTool('scanner')" class="flex-1 py-2 text-xs font-bold hover:bg-[#333] rounded text-gray-300">SCAN</button>
-                <button onclick="showTool('boost')" class="flex-1 py-2 text-xs font-bold hover:bg-[#333] rounded text-gray-300">BOOST</button>
-                <button onclick="showTool('raid')" class="flex-1 py-2 text-xs font-bold hover:bg-[#333] rounded text-gray-300">RAID</button>
-            </div>
-
-            <div id="tool-chat" class="tool-panel flex flex-col p-0 overflow-hidden flex-1 h-[600px]">
-                <div class="flex border-b border-[#333]">
-                    <button id="chat-tab-twitch" onclick="toggleChatSource('twitch')" class="flex-1 py-2 text-xs bg-[#6441a5] text-white font-bold">TWITCH</button>
-                    <button id="chat-tab-hub" onclick="toggleChatSource('hub')" class="flex-1 py-2 text-xs bg-[#111] text-gray-400 font-bold hover:text-white">HUB SECURE</button>
+            <div class="glass-panel rounded-xl overflow-hidden shadow-2xl relative aspect-video group">
+                <div id="twitch-embed" class="w-full h-full bg-black flex items-center justify-center">
+                    <span class="text-gray-500 font-orbitron animate-pulse">INITIALISATION DU SIGNAL...</span>
                 </div>
-                <div class="relative flex-1 bg-[#0e0e10]">
-                    <div id="chat-layer-twitch" class="absolute inset-0 z-10"><div id="twitch-chat-embed" class="w-full h-full"></div></div>
-                    <div id="chat-layer-hub" class="absolute inset-0 z-0 bg-[#050505] flex flex-col hidden">
-                        <div id="hub-msgs" class="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-sm"></div>
-                        <form onsubmit="sendHubMsg(event)" class="p-2 border-t border-[#333] flex gap-2">
-                            <input id="hub-input" type="text" class="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-white focus:border-[#00f2ea] outline-none">
-                        </form>
-                    </div>
+                <div class="absolute top-4 left-4 bg-black/80 px-3 py-1 rounded text-xs text-[#00f2ea] border border-[#00f2ea]/30 font-bold backdrop-blur">
+                    <i class="fas fa-satellite-dish mr-2"></i> <span id="player-mode">AUTO</span>
                 </div>
             </div>
 
-            <div id="tool-scanner" class="tool-panel hidden">
-                <h3 class="text-[#00f2ea] font-orbitron mb-4 text-center">SCANNER D'INTELLIGENCE</h3>
-                <form onsubmit="runScan(event)" class="mb-6 relative">
-                    <input id="scan-query" type="text" placeholder="Pseudo..." class="w-full bg-[#0a0a0a] border border-[#333] rounded-full py-3 px-4 text-center input-glow text-white outline-none">
-                    <button class="absolute right-2 top-2 w-8 h-8 bg-[#00f2ea] rounded-full text-black font-bold hover:bg-white"><i class="fas fa-search"></i></button>
-                </form>
-                
-                <div id="scan-result" class="hidden">
-                    <div class="relative bg-[#1a1a1a] border border-[#333] rounded-xl pt-16 pb-4 px-4 text-center mt-12">
-                        <div class="h-20 bg-gradient-to-r from-purple-900 to-blue-900 absolute top-0 left-0 w-full rounded-t-xl"></div>
-                        <img id="scan-avatar" src="" class="profile-avatar-centered">
-                        
-                        <h2 id="scan-name" class="text-xl font-bold mt-8 text-white">Pseudo</h2>
-                        <div id="scan-game" class="text-[#00f2ea] text-sm mb-4">Jeu</div>
-                        
-                        <div class="text-left bg-[#050505] p-3 rounded border border-[#333] text-xs text-gray-300 leading-relaxed" id="scan-ai">
-                            Analyse en cours...
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-panel p-4 rounded-xl flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-orbitron text-gray-400 text-sm">CHANNEL CONTROL</h3>
+                        <div class="flex gap-2">
+                            <button onclick="cycleStream('prev')" class="w-8 h-8 rounded bg-[#222] hover:bg-[#333] text-white"><i class="fas fa-chevron-left"></i></button>
+                            <button onclick="cycleStream('next')" class="w-8 h-8 rounded bg-[#222] hover:bg-[#333] text-white"><i class="fas fa-chevron-right"></i></button>
                         </div>
                     </div>
+                    <div id="current-stream-info" class="text-xl font-bold text-white truncate">Chargement...</div>
+                    <div class="text-xs text-gray-500 mt-1" id="current-stream-stats">-- Viewers</div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-xl h-40">
+                    <canvas id="miniChart"></canvas>
                 </div>
             </div>
 
-            <div id="tool-boost" class="tool-panel hidden flex flex-col items-center text-center">
-                <i class="fas fa-bolt text-5xl text-[#ff0099] mb-4 mt-8"></i>
-                <h3 class="text-white font-orbitron text-lg mb-2">CHANNEL BOOST</h3>
-                <p class="text-gray-500 text-sm mb-6 px-4">Propulsez une chaîne sur l'écran principal de tous les utilisateurs connectés.</p>
-                
-                <form onsubmit="activateBoost(event)" class="w-full px-6">
-                    <input id="boost-input" type="text" placeholder="Chaîne à booster..." class="w-full bg-[#222] border border-[#333] p-3 rounded text-white mb-4 focus:border-[#ff0099] outline-none">
-                    <button type="submit" id="btn-boost-action" class="w-full py-3 bg-[#ff0099] text-white font-bold rounded uppercase tracking-widest hover:brightness-110 transition">
-                        ACTIVER LE BOOST
-                    </button>
-                </form>
-                <div id="boost-feedback" class="mt-4 text-sm font-bold hidden"></div>
-            </div>
-
-            <div id="tool-raid" class="tool-panel hidden">
-                <h3 class="text-[#ffd700] font-orbitron mb-4 text-center"><i class="fas fa-users mr-2"></i> RAID FINDER</h3>
-                <div class="text-xs text-gray-500 text-center mb-4">Trouvez des cibles compatibles.</div>
-                
-                <form onsubmit="findRaid(event)" class="flex gap-2 mb-4">
-                    <input id="raid-game" type="text" placeholder="Jeu (ex: Minecraft)..." class="flex-1 bg-[#222] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none">
-                    <button class="bg-[#ffd700] text-black font-bold px-3 rounded"><i class="fas fa-search"></i></button>
-                </form>
-
-                <div id="raid-results" class="space-y-2 overflow-y-auto h-[200px] pr-2">
-                    <div class="text-center text-gray-600 mt-10">Entrez un jeu pour chercher.</div>
+            <div class="glass-panel p-4 rounded-xl">
+                <h3 class="font-orbitron text-sm text-[#ff0099] mb-3"><i class="fas fa-heart mr-2"></i> ABONNEMENTS EN LIVE</h3>
+                <div id="followed-container" class="flex gap-4 overflow-x-auto pb-2">
+                    <div class="text-gray-500 text-sm italic w-full text-center py-4">Connectez-vous pour voir vos favoris.</div>
                 </div>
             </div>
-
         </div>
-    </div>
 
-</div>
-
-<script>
-    // --- CONFIG ---
-    const API_BASE = window.location.origin;
-    const PARENT_DOMAINS = ["justplayer.fr", "www.justplayer.fr", "localhost", "127.0.0.1", window.location.hostname];
-    let socket = null;
-    
-    // --- INIT ---
-    window.onload = () => {
-        checkAuth(); // Vérifie si on est connecté au chargement
-        initSocket(); // Lance socket.io
-        loadStats(); // Charge les graphes
-    };
-
-    // --- 1. AUTH & REFRESH LOGIC (FIXED) ---
-    async function checkAuth() {
-        try {
-            const res = await fetch('/twitch_user_status');
-            const data = await res.json();
-            if(data.is_connected) {
-                const btn = document.getElementById('btn-login');
-                btn.innerHTML = `<img src="${data.profile_image_url}" class="w-6 h-6 rounded-full border border-white"> ${data.display_name}`;
-                btn.className = "bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center gap-2";
-                btn.onclick = () => { fetch('/twitch_logout', {method:'POST'}).then(()=>window.location.reload()); };
-                
-                // Si connecté, on charge le carousel
-                loadFollowedStreams();
-            }
-        } catch(e) { console.log("Non connecté"); }
-    }
-
-    function handleTwitchLogin() {
-        // Ouvre la popup
-        const width = 500, height = 700;
-        const left = (screen.width/2)-(width/2);
-        const top = (screen.height/2)-(height/2);
-        const authWindow = window.open('/twitch_auth_start', 'twitch_login', `width=${width},height=${height},top=${top},left=${left}`);
-
-        // FIX: Boucle de vérification pour détecter la fermeture de la fenêtre
-        const checkTimer = setInterval(() => {
-            if (authWindow.closed) {
-                clearInterval(checkTimer);
-                // La fenêtre est fermée, on recharge la page pour mettre à jour l'état
-                window.location.reload(); 
-            }
-        }, 1000);
-    }
-
-    // --- 2. CAROUSEL INFINITY (FIXED) ---
-    async function loadFollowedStreams() {
-        const container = document.getElementById('carousel-container');
-        container.innerHTML = `<div class="w-full text-center py-10"><i class="fas fa-circle-notch fa-spin text-[#00f2ea] text-3xl"></i></div>`;
-
-        try {
-            const res = await fetch('/followed_streams');
-            const data = await res.json();
+        <div class="lg:col-span-4 flex flex-col gap-4 h-full">
             
-            if(data.success && data.streams.length > 0) {
-                container.innerHTML = ""; // Clear
-                data.streams.forEach(s => {
-                    const thumb = s.thumbnail_url.replace('{width}', '640').replace('{height}', '360');
-                    container.innerHTML += `
-                        <div class="stream-card-large cursor-pointer group" onclick="launchPlayer('${s.user_login}')">
-                            <div class="live-badge">LIVE</div>
-                            <img src="${thumb}" class="card-thumb group-hover:brightness-110">
-                            <div class="p-3">
-                                <h4 class="font-bold text-white truncate text-sm">${s.user_name}</h4>
-                                <p class="text-[#00f2ea] text-xs truncate">${s.game_name}</p>
-                                <p class="text-gray-500 text-xs mt-1 text-right">${s.viewer_count} Viewers</p>
+            <div class="flex border-b border-gray-800 bg-[#0f0f11] rounded-t-xl overflow-x-auto">
+                <button onclick="openTab('scanner')" class="tab-btn active" id="tab-scanner">SCANNER</button>
+                <button onclick="openTab('planning')" class="tab-btn" id="tab-planning">PLANNING</button>
+                <button onclick="openTab('raid')" class="tab-btn" id="tab-raid">RAID</button>
+                <button onclick="openTab('boost')" class="tab-btn" id="tab-boost">BOOST</button>
+            </div>
+
+            <div id="content-scanner" class="tab-content active glass-panel p-5 rounded-b-xl flex-grow">
+                <div class="relative mb-6">
+                    <input type="text" id="scan-input" placeholder="Pseudo Streamer..." class="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 pl-4 rounded outline-none focus:border-[#00f2ea] transition font-mono text-sm">
+                    <button onclick="runScan()" class="absolute right-1 top-1 bottom-1 px-4 bg-[#00f2ea] hover:bg-white text-black font-bold rounded transition">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+
+                <div id="scan-result" class="hidden fade-in">
+                    <div class="flex items-center gap-4 mb-4">
+                        <img id="scan-img" src="" class="w-16 h-16 rounded-full border-2 border-[#00f2ea]">
+                        <div>
+                            <h3 id="scan-name" class="font-bold text-lg text-white">Pseudo</h3>
+                            <div class="text-xs text-gray-400" id="scan-game">Jeu</div>
+                            <div class="flex gap-2 mt-1">
+                                <span id="scan-score" class="text-[10px] bg-gray-800 px-2 py-0.5 rounded text-[#00f2ea] border border-[#00f2ea]/30">Score: N/A</span>
+                                <span id="scan-viewers" class="text-[10px] bg-gray-800 px-2 py-0.5 rounded text-white">Views: 0</span>
                             </div>
                         </div>
-                    `;
-                });
-            } else {
-                container.innerHTML = `<div class="w-full text-center text-gray-500">Aucun live en cours.</div>`;
-            }
-        } catch(e) {
-            container.innerHTML = `<div class="w-full text-center text-red-500">Erreur chargement.</div>`;
-        }
-    }
+                    </div>
+                    
+                    <div class="border-t border-gray-800 pt-4">
+                        <h4 class="font-orbitron text-xs text-[#ff0099] mb-2">GEMINI ANALYSIS</h4>
+                        <div id="scan-ai-content" class="ai-output text-sm bg-[#111] p-3 rounded border border-gray-800 h-64 overflow-y-auto">
+                            </div>
+                    </div>
+                </div>
+            </div>
 
-    function scrollCarousel(dir) {
-        const c = document.getElementById('carousel-container');
-        const scrollAmount = 340; // Card width + gap
-        c.scrollBy({ left: dir === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
-    }
+            <div id="content-planning" class="tab-content glass-panel p-5 rounded-b-xl flex-grow hidden">
+                <h3 class="text-[#ffd700] font-orbitron mb-2">OPTIMISATION HORAIRE</h3>
+                <p class="text-xs text-gray-500 mb-4">L'IA analyse la saturation pour trouver le créneau parfait.</p>
+                
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="schedule-input" placeholder="Jeu (ex: Valorant)..." class="flex-grow bg-[#1a1a1a] border border-[#333] text-white p-2 rounded text-sm">
+                    <button onclick="runSchedule()" class="bg-[#ffd700] text-black font-bold px-4 rounded hover:bg-white"><i class="fas fa-clock"></i></button>
+                </div>
 
-    // --- 3. TOOLS LOGIC (BOOST & RAID FIXED) ---
-    function showTool(id) {
-        document.querySelectorAll('.tool-panel').forEach(el => el.classList.add('hidden'));
-        document.getElementById('tool-' + id).classList.remove('hidden');
-    }
+                <div id="schedule-result" class="hidden">
+                    <div class="flex items-center gap-3 mb-3">
+                        <img id="sched-img" src="" class="w-10 h-14 object-cover rounded">
+                        <div class="font-bold text-[#ffd700]" id="sched-game">Jeu</div>
+                    </div>
+                    <div id="sched-ai-content" class="ai-output text-sm bg-[#111] p-3 rounded border border-gray-800 text-gray-300"></div>
+                </div>
+            </div>
 
-    // BOOST
-    async function activateBoost(e) {
-        e.preventDefault();
-        const input = document.getElementById('boost-input');
-        const feedback = document.getElementById('boost-feedback');
-        const btn = document.getElementById('btn-boost-action');
-        
-        if(!input.value) return;
+            <div id="content-raid" class="tab-content glass-panel p-5 rounded-b-xl flex-grow hidden">
+                <h3 class="text-green-400 font-orbitron mb-2">RAID FINDER</h3>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="raid-game-input" placeholder="Catégorie..." class="flex-grow bg-[#1a1a1a] border border-[#333] text-white p-2 rounded text-sm">
+                    <input type="number" id="raid-max-viewers" placeholder="Max Viewers" value="50" class="w-20 bg-[#1a1a1a] border border-[#333] text-white p-2 rounded text-sm text-center">
+                    <button onclick="runRaid()" class="bg-green-600 text-white font-bold px-3 rounded hover:bg-green-500"><i class="fas fa-crosshairs"></i></button>
+                </div>
 
-        // UI Loading state
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> CHARGEMENT...';
-        
-        try {
-            // Tentative d'appel réel, sinon fallback mock pour la démo
-            let data;
+                <div id="raid-result" class="hidden text-center">
+                    <div class="bg-[#111] border border-green-900 rounded-lg p-3 overflow-hidden group cursor-pointer hover:border-green-500 transition relative">
+                        <img id="raid-img" src="" class="w-full h-32 object-cover rounded mb-2 opacity-80 group-hover:opacity-100 transition">
+                        <h3 id="raid-name" class="font-bold text-lg text-white">Nom</h3>
+                        <p id="raid-meta" class="text-xs text-green-400">0 Viewers • Jeu</p>
+                        <button class="mt-3 w-full bg-green-700 text-white py-1 rounded text-xs font-bold uppercase" onclick="launchRaidPlayer()">Lancer le Raid</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-boost" class="tab-content glass-panel p-5 rounded-b-xl flex-grow hidden">
+                <div class="text-center py-10">
+                    <i class="fas fa-bolt text-5xl text-[#ff0099] mb-4 animate-pulse"></i>
+                    <h3 class="font-orbitron text-white text-lg">STREAM BOOST</h3>
+                    <p class="text-gray-500 text-xs mb-6 px-4">Propulsez votre chaîne sur le player principal pour 15 minutes.</p>
+                    
+                    <input type="text" id="boost-input" placeholder="Nom de la chaîne..." class="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 rounded mb-3 text-center focus:border-[#ff0099] outline-none">
+                    <button onclick="activateBoost()" class="w-full py-3 bg-[#ff0099] hover:bg-white hover:text-black text-white font-bold rounded uppercase transition tracking-widest text-sm">
+                        ACTIVER (1 Crédit)
+                    </button>
+                    <div id="boost-msg" class="mt-4 text-xs font-bold"></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const PARENT_DOMAINS = ["localhost", "127.0.0.1", window.location.hostname];
+        let currentStream = "";
+        let player;
+
+        // --- INIT ---
+        window.onload = async () => {
+            checkLogin();
+            loadStats();
+            initPlayer();
+            // Check auth callback via postMessage
+            window.addEventListener("message", (event) => {
+                if (event.data === "auth_success") {
+                    window.location.reload();
+                }
+            }, false);
+        };
+
+        // --- AUTH ---
+        async function checkLogin() {
             try {
-                const res = await fetch('/api/boost', { 
+                const res = await fetch('/twitch_user_status');
+                const data = await res.json();
+                if (data.is_connected) {
+                    document.getElementById('btn-login').classList.add('hidden');
+                    document.getElementById('btn-logout').classList.remove('hidden');
+                    document.getElementById('btn-logout').innerHTML = `<i class="fas fa-user-check text-green-400 mr-2"></i> ${data.display_name} <i class="fas fa-sign-out-alt ml-2"></i>`;
+                    loadFollowed();
+                }
+            } catch (e) {}
+        }
+
+        function startAuth() {
+            window.open('/twitch_auth_start', 'twitch_auth', 'width=500,height=700');
+        }
+
+        async function doLogout() {
+            await fetch('/twitch_logout', { method: 'POST' });
+            window.location.reload();
+        }
+
+        // --- PLAYER ---
+        async function initPlayer() {
+            try {
+                const res = await fetch('/get_default_stream');
+                const data = await res.json();
+                if(data.success) {
+                    currentStream = data.channel;
+                    updatePlayerUI(data);
+                    
+                    const options = { width: "100%", height: "100%", channel: currentStream, layout: "video", parent: PARENT_DOMAINS };
+                    document.getElementById('twitch-embed').innerHTML = "";
+                    player = new Twitch.Embed("twitch-embed", options);
+                }
+            } catch(e) {}
+        }
+
+        async function cycleStream(dir) {
+            try {
+                const res = await fetch('/cycle_stream', { 
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ channel: input.value }) 
+                    body: JSON.stringify({ direction: dir }) 
                 });
-                if(res.ok) data = await res.json();
-                else throw new Error("API Route not found");
-            } catch(err) {
-                // Fallback si la route n'existe pas encore
-                await new Promise(r => setTimeout(r, 1500)); // Fake delay
-                data = { success: true, message: `Boost activé pour ${input.value} !` };
-            }
-
-            feedback.classList.remove('hidden', 'text-red-500');
-            feedback.classList.add('text-green-500');
-            feedback.innerHTML = `<i class="fas fa-check"></i> ${data.message || "Boost Réussi"}`;
-            launchPlayer(input.value); // Lance le player automatiquement
-        } catch(err) {
-            feedback.classList.remove('hidden', 'text-green-500');
-            feedback.classList.add('text-red-500');
-            feedback.innerHTML = "Erreur technique.";
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "ACTIVER LE BOOST";
+                const data = await res.json();
+                if(data.success) {
+                    currentStream = data.channel;
+                    player.setChannel(currentStream);
+                    
+                    // Update UI Info manually via Fetch channel info or generic
+                    document.getElementById('current-stream-info').innerText = currentStream;
+                }
+            } catch(e) {}
         }
-    }
 
-    // RAID
-    async function findRaid(e) {
-        e.preventDefault();
-        const game = document.getElementById('raid-game').value;
-        const box = document.getElementById('raid-results');
-        
-        box.innerHTML = '<div class="text-center mt-4"><i class="fas fa-spinner fa-spin text-[#ffd700]"></i> Recherche...</div>';
-        
-        // Simulation intelligente ou appel API
-        setTimeout(() => {
-            // Mock data pour l'exemple (à remplacer par fetch réel)
-            const mockRes = [
-                { name: "Joueur_A", viewers: 120, tags: "Cool, FR" },
-                { name: "LaTeam", viewers: 85, tags: "Tryhard" },
-                { name: "Newbie", viewers: 45, tags: "Chill" }
-            ];
+        function updatePlayerUI(data) {
+            document.getElementById('current-stream-info').innerText = data.channel.toUpperCase();
+            document.getElementById('player-mode').innerText = data.mode;
+            document.getElementById('current-stream-stats').innerText = (data.viewers || "Unknown") + " Viewers";
             
-            box.innerHTML = "";
-            mockRes.forEach(r => {
-                box.innerHTML += `
-                    <div class="flex justify-between items-center bg-[#222] p-3 rounded border border-[#333]">
-                        <div>
-                            <div class="font-bold text-white">${r.name}</div>
-                            <div class="text-xs text-gray-500">${r.tags}</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-[#ffd700] font-bold">${r.viewers} <i class="fas fa-eye"></i></div>
-                            <button onclick="launchPlayer('${r.name}')" class="text-[10px] bg-white text-black px-2 rounded mt-1 hover:bg-[#ffd700]">VOIR</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }, 1000);
-    }
-
-    // SCANNER
-    async function runScan(e) {
-        e.preventDefault();
-        const q = document.getElementById('scan-query').value;
-        document.getElementById('scan-result').classList.remove('hidden');
-        document.getElementById('scan-ai').innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Analyse IA...';
-        
-        // Appels API existants
-        try {
-            const res = await fetch('/scan_target', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:q}) });
-            const data = await res.json();
-            if(data.success) {
-                const u = data.user_data;
-                document.getElementById('scan-name').innerText = u.display_name;
-                document.getElementById('scan-avatar').src = u.profile_image_url;
-                document.getElementById('scan-game').innerText = u.game_name || "Hors Ligne";
-                
-                const resIA = await fetch('/critique_ia', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'niche', query:u.display_name}) });
-                const iaData = await resIA.json();
-                document.getElementById('scan-ai').innerHTML = iaData.html_response;
+            if(data.mode === 'BOOST') {
+                document.getElementById('boost-status').classList.remove('hidden');
             }
-        } catch(e) { document.getElementById('scan-ai').innerText = "Introuvable."; }
-    }
+        }
 
-    // --- 4. PLAYER & CHAT ---
-    function launchPlayer(channel) {
-        document.getElementById('video-container').innerHTML = "";
-        new Twitch.Embed("video-container", { width:"100%", height:"100%", channel: channel, layout:"video", parent:PARENT_DOMAINS });
+        // --- FOLLOWED STREAMS ---
+        async function loadFollowed() {
+            const container = document.getElementById('followed-container');
+            container.innerHTML = `<i class="fas fa-spinner fa-spin text-white m-auto"></i>`;
+            
+            try {
+                const res = await fetch('/followed_streams');
+                const data = await res.json();
+                if (data.success && data.streams.length > 0) {
+                    container.innerHTML = "";
+                    data.streams.forEach(s => {
+                        const thumb = s.thumbnail_url.replace('{width}', '320').replace('{height}', '180');
+                        container.innerHTML += `
+                            <div class="stream-card w-64 flex-shrink-0" onclick="player.setChannel('${s.user_login}')">
+                                <div class="relative">
+                                    <img src="${thumb}" class="w-full h-32 object-cover">
+                                    <div class="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-1 rounded font-bold">LIVE</div>
+                                    <div class="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-1 rounded">${s.viewer_count} Views</div>
+                                </div>
+                                <div class="p-2">
+                                    <div class="font-bold text-sm text-white truncate">${s.user_name}</div>
+                                    <div class="text-xs text-gray-500 truncate">Jeu inconnu</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = `<div class="text-gray-500 text-sm italic w-full text-center py-4">Aucun streamer suivi en live.</div>`;
+                }
+            } catch(e) { container.innerHTML = "Erreur."; }
+        }
+
+        // --- TABS LOGIC ---
+        function openTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('content-' + id).classList.add('active');
+            document.getElementById('tab-' + id).classList.add('active');
+        }
+
+        // --- TOOLS: SCANNER ---
+        async function runScan() {
+            const query = document.getElementById('scan-input').value;
+            if(!query) return;
+            
+            const resDiv = document.getElementById('scan-result');
+            const aiDiv = document.getElementById('scan-ai-content');
+            
+            resDiv.classList.remove('hidden');
+            document.getElementById('scan-name').innerText = "Analyse...";
+            aiDiv.innerHTML = '<i class="fas fa-circle-notch fa-spin text-[#00f2ea]"></i> Connexion Gemini 2.5...';
+
+            try {
+                // 1. Data Twitch
+                const res = await fetch('/scan_target', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ query })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    const u = data.user_data;
+                    document.getElementById('scan-name').innerText = u.display_name;
+                    document.getElementById('scan-img').src = u.profile_image_url;
+                    document.getElementById('scan-game').innerText = u.game_name;
+                    document.getElementById('scan-score').innerText = "Niche: " + u.ai_calculated_niche_score;
+                    document.getElementById('scan-viewers').innerText = "Viewers: " + u.viewer_count;
+
+                    // 2. IA Analysis
+                    const resIA = await fetch('/critique_ia', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ type: 'niche', query: u.display_name })
+                    });
+                    const dataIA = await resIA.json();
+                    aiDiv.innerHTML = dataIA.html_response;
+                } else {
+                    aiDiv.innerHTML = "Streamer introuvable.";
+                }
+            } catch(e) { aiDiv.innerHTML = "Erreur Backend."; }
+        }
+
+        // --- TOOLS: PLANNING ---
+        async function runSchedule() {
+            const game = document.getElementById('schedule-input').value;
+            const resDiv = document.getElementById('schedule-result');
+            const aiDiv = document.getElementById('sched-ai-content');
+
+            resDiv.classList.remove('hidden');
+            aiDiv.innerHTML = "Calcul des créneaux...";
+
+            try {
+                const res = await fetch('/analyze_schedule', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ game })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('sched-game').innerText = data.game_name;
+                    document.getElementById('sched-img').src = data.box_art;
+                    aiDiv.innerHTML = data.html_response; // HTML from Gemini
+                }
+            } catch(e) {}
+        }
+
+        // --- TOOLS: RAID ---
+        async function runRaid() {
+            const game = document.getElementById('raid-game-input').value;
+            const max = document.getElementById('raid-max-viewers').value;
+            
+            try {
+                const res = await fetch('/start_raid', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ game, max_viewers: max })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    document.getElementById('raid-result').classList.remove('hidden');
+                    document.getElementById('raid-img').src = data.target.thumbnail_url;
+                    document.getElementById('raid-name').innerText = data.target.name;
+                    document.getElementById('raid-meta').innerText = `${data.target.viewers} Viewers • ${data.target.game}`;
+                    // Store target for button click
+                    window.raidTarget = data.target.login;
+                }
+            } catch(e) {}
+        }
         
-        const parents = PARENT_DOMAINS.map(p => `parent=${p}`).join('&');
-        document.getElementById('twitch-chat-embed').innerHTML = `<iframe src="https://www.twitch.tv/embed/${channel}/chat?${parents}&darkpopout" width="100%" height="100%" frameborder="0"></iframe>`;
-    }
-
-    function toggleChatSource(source) {
-        const tw = document.getElementById('chat-layer-twitch');
-        const hb = document.getElementById('chat-layer-hub');
-        if(source === 'hub') {
-            tw.classList.add('hidden'); hb.classList.remove('hidden');
-            document.getElementById('chat-tab-hub').classList.replace('text-gray-400', 'text-white');
-            document.getElementById('chat-tab-hub').classList.add('bg-[#222]');
-        } else {
-            hb.classList.add('hidden'); tw.classList.remove('hidden');
+        function launchRaidPlayer() {
+            if(window.raidTarget) player.setChannel(window.raidTarget);
         }
-    }
 
-    // --- 5. SOCKET (Reel) ---
-    function initSocket() {
-        try {
-            socket = io();
-            socket.on('connect', () => {
-                document.getElementById('text-status').innerText = "CONNECTED";
-                document.getElementById('text-status').classList.replace('text-gray-400', 'text-green-500');
-                document.getElementById('dot-status').classList.replace('bg-red-500', 'bg-green-500');
-            });
-            socket.on('chat message', (msg) => {
-                const box = document.getElementById('hub-msgs');
-                const txt = typeof msg === 'string' ? msg : msg.text;
-                const usr = msg.user || 'Anon';
-                box.innerHTML += `<div class="break-words"><span class="text-[#00f2ea] font-bold">${usr}:</span> ${txt}</div>`;
-                box.scrollTop = box.scrollHeight;
-            });
-        } catch(e) {}
-    }
-
-    function sendHubMsg(e) {
-        e.preventDefault();
-        const inp = document.getElementById('hub-input');
-        if(inp.value && socket) {
-            socket.emit('chat message', inp.value);
-            // Optimistic update
-            const box = document.getElementById('hub-msgs');
-            box.innerHTML += `<div class="break-words"><span class="text-[#ff0099] font-bold">Moi:</span> ${inp.value}</div>`;
-            box.scrollTop = box.scrollHeight;
-            inp.value = "";
+        // --- TOOLS: BOOST ---
+        async function activateBoost() {
+            const channel = document.getElementById('boost-input').value;
+            const msg = document.getElementById('boost-msg');
+            msg.innerHTML = "Activation...";
+            
+            try {
+                const res = await fetch('/stream_boost', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ channel })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    msg.className = "mt-4 text-xs font-bold text-green-400";
+                    msg.innerHTML = "BOOST ACTIVÉ ! Rafraichissement...";
+                    setTimeout(() => window.location.reload(), 2000);
+                }
+            } catch(e) { msg.innerHTML = "Erreur."; }
         }
-    }
+
+        // --- STATS CHART ---
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats/global');
+                const data = await res.json();
+                if(data.success) {
+                    const ctx = document.getElementById('miniChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.history.live.labels,
+                            datasets: [{
+                                label: 'Tendance',
+                                data: data.history.live.values,
+                                borderColor: '#00f2ea',
+                                borderWidth: 2,
+                                fill: true,
+                                backgroundColor: 'rgba(0, 242, 234, 0.1)',
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { x: { display: false }, y: { display: false } }
+                        }
+                    });
+                }
+            } catch(e) {}
+        }
+
+    </script>
     
-    // UI Helpers
-    function switchTab(t, btn) {
-        document.querySelectorAll('.active-tab-content').forEach(el => el.classList.add('hidden'));
-        document.getElementById(t).classList.remove('hidden');
-        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-        btn.classList.add('active');
-    }
-    async function loadStats() {
-        // Mock ou Call API existant
-        // Ici on laisse vide ou on met un Chart simple pour l'exemple
-    }
-</script>
-</body>
+    </body>
 </html>
