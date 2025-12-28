@@ -170,6 +170,11 @@
         .scrollbar-thin::-webkit-scrollbar {
             width: 4px;
         }
+
+        #twitch-chat-frame {
+            background: #000;
+            border: none;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
@@ -234,7 +239,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="video-container" class="flex-grow bg-black relative w-full h-full" style="min-height: 300px;"></div>
+                <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden"></div>
             </div>
         </div>
 
@@ -263,8 +268,8 @@
                         HUB SECURE
                     </button>
                 </div>
-                <div id="chat-container-twitch" class="flex-grow relative">
-                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0"></iframe>
+                <div id="chat-container-twitch" class="flex-grow relative bg-black overflow-hidden">
+                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay"></iframe>
                 </div>
                 <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
                     <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
@@ -394,6 +399,7 @@
                 document.getElementById('btn-auth').classList.add('hidden');
                 document.getElementById('user-area').classList.remove('hidden');
                 document.getElementById('user-name').innerText = data.display_name;
+                document.getElementById('user-avatar').src = data.profile_image_url;
                 await loadFollowed();
             }
         }
@@ -422,24 +428,39 @@
                 currentChannel = data.channel;
                 document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
                 document.getElementById('player-mode-badge').innerText = data.mode;
-                setTimeout(() => {
-                    const opts = {
-                        width: '100%',
-                        height: '100%',
-                        channel: currentChannel,
-                        layout: 'video',
-                        parent: PARENT_DOMAINS
-                    };
-                    player = new Twitch.Embed('video-container', opts);
-                    updateTwitchChatFrame(currentChannel);
-                }, 500);
+                
+                loadPlayerEmbed(currentChannel);
+                updateTwitchChatFrame(currentChannel);
             }
+        }
+
+        function loadPlayerEmbed(channel) {
+            const container = document.getElementById('video-container');
+            container.innerHTML = '';
+            
+            setTimeout(() => {
+                const opts = {
+                    width: '100%',
+                    height: '100%',
+                    channel: channel,
+                    layout: 'video',
+                    parent: PARENT_DOMAINS
+                };
+                try {
+                    player = new Twitch.Embed('video-container', opts);
+                } catch (e) {
+                    console.error('Twitch.Embed error:', e);
+                }
+            }, 300);
         }
 
         function updateTwitchChatFrame(channel) {
             const parentParam = PARENT_DOMAINS.join('&parent=');
             const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&dark=popout`;
-            document.getElementById('twitch-chat-frame').src = url;
+            const frame = document.getElementById('twitch-chat-frame');
+            if (frame) {
+                frame.src = url;
+            }
         }
 
         async function cycle(dir) {
@@ -451,23 +472,11 @@
             const data = await res.json();
             if (data.success) {
                 currentChannel = data.channel;
-                destroyAndRecreatePlayer(currentChannel);
                 document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+                
+                loadPlayerEmbed(currentChannel);
                 updateTwitchChatFrame(currentChannel);
             }
-        }
-
-        function destroyAndRecreatePlayer(channel) {
-            const container = document.getElementById('video-container');
-            container.innerHTML = '';
-            const opts = {
-                width: '100%',
-                height: '100%',
-                channel: channel,
-                layout: 'video',
-                parent: PARENT_DOMAINS
-            };
-            player = new Twitch.Embed('video-container', opts);
         }
 
         // ==================== CAROUSEL ====================
@@ -508,8 +517,9 @@
 
         function changeChannel(channel) {
             currentChannel = channel;
-            if (player) player.setChannel(channel);
             document.getElementById('current-channel-display').innerText = channel.toUpperCase();
+            
+            loadPlayerEmbed(channel);
             updateTwitchChatFrame(channel);
         }
 
@@ -608,13 +618,15 @@
         }
 
         function renderChart(id, type, labels, data, label, color) {
-            const ctx = document.getElementById(id).getContext('2d');
+            const ctx = document.getElementById(id);
+            if (!ctx) return;
+            
             if (charts[id]) charts[id].destroy();
 
             const bgColors = Array.isArray(color) ? color : (type === 'line' ? 'rgba(0, 242, 234, 0.1)' : color);
             const borderColors = Array.isArray(color) ? color : color;
 
-            charts[id] = new Chart(ctx, {
+            charts[id] = new Chart(ctx.getContext('2d'), {
                 type: type,
                 data: {
                     labels: labels,
