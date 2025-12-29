@@ -169,12 +169,6 @@
         .scrollbar-thin::-webkit-scrollbar {
             width: 4px;
         }
-
-        /* DARK MODE FORCÉ POUR TWITCH CHAT */
-        #twitch-chat-frame {
-            filter: invert(0) !important;
-            color-scheme: dark !important;
-        }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
@@ -374,7 +368,6 @@
 
     <script>
         const API_BASE = window.location.origin;
-        const PARENT_DOMAINS = ['localhost', '127.0.0.1', window.location.hostname, 'justplayer.fr', 'www.justplayer.fr'];
         let player;
         let socket;
         let currentChannel = 'twitch';
@@ -439,8 +432,11 @@
 
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
+            // Récupère le parent depuis l'URL
+            const params = new URLSearchParams(window.location.search);
+            const parentHost = params.get('parent_host') || window.location.hostname;
+            
+            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentHost}&theme=dark`;
             
             container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
             
@@ -474,8 +470,11 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
+            // Récupère le parent depuis l'URL ou utilise justplayer.fr par défaut
+            const params = new URLSearchParams(window.location.search);
+            const parentHost = params.get('parent_host') || 'justplayer.fr';
+            
+            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentHost}&theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
             if (frame) {
                 frame.src = url;
