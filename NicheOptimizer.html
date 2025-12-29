@@ -433,16 +433,8 @@
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
             
-            // Récupère le parent depuis l'URL ou depuis le document.referrer
-            const params = new URLSearchParams(window.location.search);
-            let parentHost = params.get('parent_host');
-            
-            // Si pas de parent_host en paramètre, utilise le hostname actuel
-            if (!parentHost) {
-                parentHost = window.location.hostname;
-            }
-            
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentHost}&theme=dark`;
+            // SANS PARENT - Twitch déterminera le parent automatiquement
+            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&theme=dark`;
             
             container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
             
@@ -461,13 +453,11 @@
                     const title = data.stream.title || 'Sans titre';
                     const viewers = data.stream.viewer_count || 0;
                     
-                    // Mettre à jour le titre
                     const display = document.getElementById('current-channel-display');
                     const titleText = title.length > 40 ? title.substring(0, 40) + '...' : title;
                     display.innerText = `${channel.toUpperCase()} • ${titleText}`;
                     display.title = title;
                     
-                    // Mettre à jour les viewers
                     document.getElementById('viewer-count').innerText = `${viewers.toLocaleString()} viewers`;
                 }
             })
@@ -475,14 +465,9 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            const params = new URLSearchParams(window.location.search);
-            let parentHost = params.get('parent_host');
-            
-            if (!parentHost) {
-                parentHost = window.location.hostname;
-            }
-            
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentHost}&theme=dark`;
+            // SANS PARENT - Twitch déterminera le parent automatiquement
+            // DARK MODE FORCÉ avec theme=dark
+            const url = `https://www.twitch.tv/embed/${channel}/chat?theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
             if (frame) {
                 frame.src = url;
