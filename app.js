@@ -187,6 +187,7 @@ async function runGeminiAnalysis(prompt) {
     };
   }
 }
+
 // =========================================================
 // 2B. CRON ANALYTICS – COLLECTE HISTORIQUE
 // =========================================================
@@ -558,6 +559,7 @@ app.get('/api/stats/languages', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 // =========================================================
 // 6B. ANALYTICS PRO – HISTORIQUE CHAÎNE
 // =========================================================
@@ -578,11 +580,13 @@ app.get('/api/analytics/channel/:id', async (req, res) => {
     }
 
     const sorted = snaps.docs
-  .map(d => d.data())
-  .sort((a, b) => a.timestamp - b.timestamp);
+      .map(d => d.data())
+      .sort((a, b) => a.timestamp - b.timestamp);
 
-const viewers = sorted.map(d => d.viewers);
-
+    const viewers = sorted.map(d => d.viewers);
+    const sum = viewers.reduce((a, v) => a + v, 0);
+    const avg = Math.round(sum / viewers.length);
+    const peak = Math.max(...viewers);
 
     const volatility = Math.round(
       Math.sqrt(
@@ -801,6 +805,13 @@ Format HTML STRICT: utilise <p>, <h4>, <ul>, <li>, <strong>. Pas de markdown, pa
 });
 
 // =========================================================
+// 0B. ROUTE PRINCIPALE -> NICHEOPTIMIZER
+// =========================================================
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
+
+// =========================================================
 // 11. SERVER START
 // =========================================================
 app.listen(PORT, () => {
@@ -811,6 +822,3 @@ app.listen(PORT, () => {
   console.log(" - /scan_target, /start_raid, /stream_boost");
   console.log(" - Et 20+ autres endpoints\n");
 });
-
-
-
