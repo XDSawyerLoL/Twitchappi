@@ -433,8 +433,8 @@
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
             
-            // SANS PARENT - Twitch déterminera le parent automatiquement
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&theme=dark`;
+            // PARENT = justplayerstreamhubpro.onrender.com avec DARK MODE FORCÉ
+            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=justplayerstreamhubpro.onrender.com&theme=dark`;
             
             container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
             
@@ -465,9 +465,8 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            // SANS PARENT - Twitch déterminera le parent automatiquement
-            // DARK MODE FORCÉ avec theme=dark
-            const url = `https://www.twitch.tv/embed/${channel}/chat?theme=dark`;
+            // PARENT = justplayerstreamhubpro.onrender.com avec DARK MODE FORCÉ
+            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=justplayerstreamhubpro.onrender.com&theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
             if (frame) {
                 frame.src = url;
