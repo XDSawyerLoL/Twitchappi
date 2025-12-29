@@ -187,6 +187,65 @@ async function runGeminiAnalysis(prompt) {
     };
   }
 }
+// =========================================================
+// 2B. CRON ANALYTICS – COLLECTE HISTORIQUE
+// =========================================================
+
+async function collectAnalyticsSnapshot() {
+  const now = Date.now();
+
+  try {
+    const data = await twitchAPI('streams?first=100&language=fr');
+    let totalViewers = 0;
+
+    for (const s of data.data) {
+      totalViewers += s.viewer_count;
+
+      // CHANNEL TIME SERIES
+      await db
+        .collection('channels')
+        .doc(s.user_id)
+        .collection('hourly_stats')
+        .doc(String(now))
+        .set({
+          viewers: s.viewer_count,
+          game_id: s.game_id,
+          game_name: s.game_name,
+          title: s.title,
+          language: s.language,
+          timestamp: now
+        });
+
+      // GAME TIME SERIES
+      if (s.game_id) {
+        await db
+          .collection('games')
+          .doc(s.game_id)
+          .collection('hourly_stats')
+          .doc(`${s.user_id}_${now}`)
+          .set({
+            channel_id: s.user_id,
+            viewers: s.viewer_count,
+            timestamp: now
+          });
+      }
+    }
+
+    // GLOBAL SNAPSHOT
+    await db.collection('stats_history').doc(String(now)).set({
+      total_viewers: totalViewers,
+      channels_live: data.data.length,
+      timestamp: admin.firestore.Timestamp.fromMillis(now)
+    });
+
+    console.log('📊 [CRON] Analytics snapshot saved');
+  } catch (e) {
+    console.error('❌ [CRON] Snapshot error:', e.message);
+  }
+}
+
+// ▶️ CRON toutes les 5 minutes
+setInterval(collectAnalyticsSnapshot, 5 * 60 * 1000);
 
 // =========================================================
 // 3. ROUTES AUTH & VOD
@@ -701,3 +760,4 @@ app.listen(PORT, () => {
   console.log(" - /scan_target, /start_raid, /stream_boost");
   console.log(" - Et 20+ autres endpoints\n");
 });
+
