@@ -368,6 +368,7 @@
 
     <script>
         const API_BASE = window.location.origin;
+        const PARENT_DOMAINS = ['localhost', '127.0.0.1', window.location.hostname, 'justplayer.fr', 'www.justplayer.fr'];
         let player;
         let socket;
         let currentChannel = 'twitch';
@@ -432,12 +433,12 @@
 
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
-            
-            // PARENT = justplayerstreamhubpro.onrender.com avec DARK MODE FORCÉ
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=justplayerstreamhubpro.onrender.com&theme=dark`;
+            const parentParam = PARENT_DOMAINS.join('&parent=');
+            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
             
             container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
             
+            // Charger les infos du live
             loadStreamInfo(channel);
         }
 
@@ -453,11 +454,13 @@
                     const title = data.stream.title || 'Sans titre';
                     const viewers = data.stream.viewer_count || 0;
                     
+                    // Mettre à jour le titre
                     const display = document.getElementById('current-channel-display');
                     const titleText = title.length > 40 ? title.substring(0, 40) + '...' : title;
                     display.innerText = `${channel.toUpperCase()} • ${titleText}`;
                     display.title = title;
                     
+                    // Mettre à jour les viewers
                     document.getElementById('viewer-count').innerText = `${viewers.toLocaleString()} viewers`;
                 }
             })
@@ -465,8 +468,8 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            // PARENT = justplayerstreamhubpro.onrender.com avec DARK MODE FORCÉ
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=justplayerstreamhubpro.onrender.com&theme=dark`;
+            const parentParam = PARENT_DOMAINS.join('&parent=');
+            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
             if (frame) {
                 frame.src = url;
