@@ -70,13 +70,13 @@
             overflow: hidden;
             position: relative;
             cursor: pointer;
-            transition: 0.2s;
+            transition: all 0.3s ease;
         }
 
         .stream-card:hover {
             border-color: var(--secondary);
-            transform: translateY(-4px);
-            box-shadow: 0 5px 20px rgba(0, 242, 234, 0.15);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 242, 234, 0.25);
         }
 
         .card-img {
@@ -89,6 +89,37 @@
 
         .stream-card:hover .card-img {
             opacity: 1;
+        }
+
+        .stream-card-badge {
+            position: absolute;
+            top-2 right-2;
+            background: #ff0000;
+            color: white;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            animation: badge-pulse 1.5s infinite;
+        }
+
+        .stream-card-time {
+            position: absolute;
+            bottom-10 right-2;
+            background: rgba(0, 242, 234, 0.9);
+            color: black;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 3px 6px;
+            border-radius: 3px;
+        }
+
+        @keyframes badge-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .glass-panel {
@@ -112,7 +143,7 @@
             font-weight: bold;
             cursor: pointer;
             border-bottom: 2px solid transparent;
-            transition: 0.3s;
+            transition: all 0.3s;
         }
 
         .tab-btn:hover {
@@ -145,13 +176,13 @@
             font-family: 'Inter';
             font-size: 13px;
             outline: none;
-            transition: 0.3s;
+            transition: all 0.3s;
             width: 100%;
         }
 
         .cyber-input:focus {
             border-color: var(--secondary);
-            box-shadow: 0 0 10px rgba(0, 242, 234, 0.2);
+            box-shadow: 0 0 15px rgba(0, 242, 234, 0.4);
         }
 
         .hub-msg {
@@ -159,6 +190,12 @@
             border-bottom: 1px solid #1a1a1a;
             font-size: 13px;
             line-height: 1.4;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .hub-msg strong {
@@ -175,18 +212,29 @@
             text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded;
             transition: all 0.3s ease;
             animation: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #socket-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
         }
 
         #socket-status.connected {
             color: #00f2ea;
             border-color: #00f2ea;
-            box-shadow: 0 0 8px rgba(0, 242, 234, 0.6);
-            animation: hub-pulse 2s infinite;
+            box-shadow: 0 0 12px rgba(0, 242, 234, 0.7);
+            animation: hub-pulse 1.5s infinite;
         }
 
         @keyframes hub-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+            0%, 100% { box-shadow: 0 0 12px rgba(0, 242, 234, 0.7); }
+            50% { box-shadow: 0 0 20px rgba(0, 242, 234, 0.4); }
         }
 
         /* ===== BEST TIME TOOL STYLES ===== */
@@ -197,6 +245,11 @@
             padding: 16px;
             margin-bottom: 16px;
             box-shadow: inset 0 0 10px rgba(0, 242, 234, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .best-time-tool:hover {
+            box-shadow: inset 0 0 15px rgba(0, 242, 234, 0.2), 0 0 10px rgba(0, 242, 234, 0.1);
         }
 
         .best-time-tool h4 {
@@ -206,6 +259,9 @@
             margin-bottom: 10px;
             border-bottom: 1px solid #00f2ea;
             padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .best-time-tool .form-group {
@@ -221,11 +277,12 @@
             border-radius: 4px;
             font-size: 12px;
             margin-bottom: 8px;
+            transition: all 0.3s;
         }
 
         .best-time-tool input:focus {
             border-color: #00f2ea;
-            box-shadow: 0 0 8px rgba(0, 242, 234, 0.2);
+            box-shadow: 0 0 12px rgba(0, 242, 234, 0.3);
             outline: none;
         }
 
@@ -245,8 +302,8 @@
 
         .best-time-tool button:hover:not(:disabled) {
             background: white;
-            box-shadow: 0 0 15px rgba(0, 242, 234, 0.4);
-            transform: translateY(-1px);
+            box-shadow: 0 0 20px rgba(0, 242, 234, 0.5);
+            transform: translateY(-2px);
         }
 
         .best-time-tool button:disabled {
@@ -261,14 +318,21 @@
             padding: 12px;
             margin-top: 12px;
             font-size: 12px;
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 250px; }
         }
 
         .best-time-results h5 {
             color: #00f2ea;
             margin-bottom: 8px;
             font-weight: bold;
+            font-size: 11px;
         }
 
         .best-time-results ul {
@@ -279,7 +343,37 @@
         .best-time-results li {
             margin-bottom: 6px;
             color: #e0e0e0;
-            line-height: 1.3;
+            line-height: 1.4;
+        }
+
+        .saturation-bar {
+            width: 100%;
+            height: 6px;
+            background: #222;
+            border-radius: 3px;
+            margin: 6px 0;
+            overflow: hidden;
+        }
+
+        .saturation-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        .saturation-bar-fill.low {
+            background: #00ff00;
+            width: 30%;
+        }
+
+        .saturation-bar-fill.medium {
+            background: #ffaa00;
+            width: 60%;
+        }
+
+        .saturation-bar-fill.high {
+            background: #ff3333;
+            width: 90%;
         }
 
         .best-time-spinner {
@@ -297,6 +391,162 @@
         @keyframes bt-spin {
             to { transform: rotate(360deg); }
         }
+
+        /* ===== TOAST NOTIFICATIONS ===== */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #00f2ea;
+            color: black;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 12px;
+            z-index: 9999;
+            animation: toastIn 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 242, 234, 0.4);
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast.success {
+            background: #00ff00;
+        }
+
+        .toast.error {
+            background: #ff3333;
+            color: white;
+        }
+
+        /* ===== BOOST COUNTDOWN ===== */
+        .boost-countdown {
+            position: absolute;
+            bottom-2 left-2;
+            background: rgba(255, 0, 153, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            font-family: 'Orbitron';
+        }
+
+        /* ===== COLLAPSIBLE SECTIONS ===== */
+        .tool-section {
+            background: #151515;
+            border: 1px solid #222;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .tool-section-header {
+            background: #0a0a0a;
+            padding: 10px 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .tool-section-header:hover {
+            background: #1a1a1a;
+            color: #00f2ea;
+        }
+
+        .tool-section-header h3 {
+            font-family: 'Orbitron';
+            font-size: 12px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tool-section-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+
+        .tool-section.collapsed .tool-section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .tool-section-content {
+            padding: 12px;
+            max-height: 500px;
+            transition: max-height 0.3s ease;
+        }
+
+        .tool-section.collapsed .tool-section-content {
+            max-height: 0;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* ===== KPI CARDS ===== */
+        .kpi-card {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .kpi-label {
+            color: #999;
+            font-size: 10px;
+            margin-bottom: 3px;
+        }
+
+        .kpi-value {
+            color: #00f2ea;
+            font-family: 'Orbitron';
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* ===== MICRO ANIMATIONS ===== */
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .scale-in {
+            animation: scaleIn 0.3s ease;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* ===== BUTTON STYLES ===== */
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+
+        .btn-icon:hover {
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
@@ -308,7 +558,7 @@
                 <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">V52+</span>
             </h1>
             <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">
-                HUB DISCONNECTED
+                DISCONNECTED
             </div>
         </div>
         <div>
@@ -356,10 +606,10 @@
                         </span>
                     </div>
                     <div class="flex gap-2 flex-shrink-0">
-                        <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
+                        <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center transition">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
+                        <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center transition">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
@@ -386,10 +636,10 @@
             <!-- TAB: CHAT -->
             <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
                 <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
-                    <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">
+                    <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded transition">
                         TWITCH
                     </button>
-                    <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">
+                    <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition">
                         HUB SECURE
                     </button>
                 </div>
@@ -404,7 +654,7 @@
                     </div>
                     <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
                         <input id="hub-input" type="text" placeholder="Message crypté..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-                        <button type="submit" class="text-[#00f2ea] px-2">
+                        <button type="submit" class="text-[#00f2ea] px-2 hover:text-white transition">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </form>
@@ -440,70 +690,102 @@
             </div>
 
             <!-- TAB: TOOLS -->
-            <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6">
-                <!-- BEST TIME TOOL (NEW) -->
-                <div class="best-time-tool">
-                    <h4>🎯 BEST TIME TO STREAM</h4>
-                    <div class="form-group">
-                        <input id="best-time-game" type="text" placeholder="Jeu ex: League of Legends..." />
+            <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-4">
+                <!-- BEST TIME TOOL (ENHANCED) -->
+                <div class="tool-section">
+                    <div class="tool-section-header" onclick="toggleToolSection(this)">
+                        <h3><i class="fas fa-clock"></i> 🎯 BEST TIME TO STREAM</h3>
+                        <div class="tool-section-toggle"><i class="fas fa-chevron-down"></i></div>
                     </div>
-                    <button id="analyze-schedule-btn" onclick="analyzeBestTime()">
-                        <i class="fas fa-clock"></i> ANALYSER
-                    </button>
-                    <div id="best-time-loading" style="display: none; text-align: center; margin-top: 10px; color: #00f2ea;">
-                        <span class="best-time-spinner"></span>Analyse en cours...
-                    </div>
-                    <div id="best-time-results" class="best-time-results" style="display: none;"></div>
-                </div>
-
-                <!-- SCANNER -->
-                <div>
-                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
-                    <div class="flex gap-2 mb-3">
-                        <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
-                        <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                    <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
-                        <div class="flex gap-3 items-center mb-3">
-                            <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
-                            <div>
-                                <div id="scan-name" class="font-bold text-white">--</div>
-                                <div id="scan-game" class="text-xs text-gray-500">--</div>
-                            </div>
+                    <div class="tool-section-content">
+                        <div class="form-group">
+                            <input id="best-time-game" type="text" placeholder="Jeu ex: League of Legends..." />
                         </div>
-                        <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
-                    </div>
-                </div>
-
-                <!-- RAID -->
-                <div>
-                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
-                    <div class="flex gap-2 mb-3">
-                        <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
-                        <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
-                    </div>
-                    <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">
-                        🔍 CHERCHER
-                    </button>
-                    <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
-                        <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
-                        <div id="raid-info" class="text-xs text-gray-300"></div>
-                        <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white">
-                            🎮 ALLER AU RAID
+                        <button id="analyze-schedule-btn" onclick="analyzeBestTime()" class="w-full btn-icon">
+                            <i class="fas fa-clock"></i> ANALYSER
                         </button>
+                        <div id="best-time-loading" style="display: none; text-align: center; margin-top: 10px; color: #00f2ea;">
+                            <span class="best-time-spinner"></span>Analyse en cours...
+                        </div>
+                        <div id="best-time-results" class="best-time-results" style="display: none;"></div>
                     </div>
                 </div>
 
-                <!-- BOOST -->
-                <div>
-                    <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
-                    <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
-                    <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">
-                        ACTIVER
-                    </button>
-                    <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
+                <!-- SCANNER (COLLAPSIBLE) -->
+                <div class="tool-section">
+                    <div class="tool-section-header" onclick="toggleToolSection(this)">
+                        <h3><i class="fas fa-search"></i> SCANNER IA</h3>
+                        <div class="tool-section-toggle"><i class="fas fa-chevron-down"></i></div>
+                    </div>
+                    <div class="tool-section-content">
+                        <div id="scanner-kpi" class="kpi-card">
+                            <div class="kpi-label">Niche Score</div>
+                            <div class="kpi-value">--</div>
+                        </div>
+                        <div class="flex gap-2 mb-3">
+                            <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
+                            <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white transition btn-icon">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222] fade-in">
+                            <div class="flex gap-3 items-center mb-3">
+                                <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
+                                <div>
+                                    <div id="scan-name" class="font-bold text-white">--</div>
+                                    <div id="scan-game" class="text-xs text-gray-500">--</div>
+                                </div>
+                            </div>
+                            <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RAID (COLLAPSIBLE) -->
+                <div class="tool-section">
+                    <div class="tool-section-header" onclick="toggleToolSection(this)">
+                        <h3><i class="fas fa-swords"></i> RAID FINDER</h3>
+                        <div class="tool-section-toggle"><i class="fas fa-chevron-down"></i></div>
+                    </div>
+                    <div class="tool-section-content">
+                        <div id="raid-kpi" class="kpi-card">
+                            <div class="kpi-label">Chaînes trouvées</div>
+                            <div class="kpi-value">--</div>
+                        </div>
+                        <div class="flex gap-2 mb-3">
+                            <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
+                            <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
+                        </div>
+                        <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3 transition btn-icon">
+                            🔍 CHERCHER
+                        </button>
+                        <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222] fade-in">
+                            <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
+                            <div id="raid-info" class="text-xs text-gray-300"></div>
+                            <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white transition">
+                                🎮 ALLER AU RAID
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOOST (COLLAPSIBLE) -->
+                <div class="tool-section">
+                    <div class="tool-section-header" onclick="toggleToolSection(this)">
+                        <h3><i class="fas fa-bolt"></i> BOOST</h3>
+                        <div class="tool-section-toggle"><i class="fas fa-chevron-down"></i></div>
+                    </div>
+                    <div class="tool-section-content">
+                        <div id="boost-kpi" class="kpi-card">
+                            <div class="kpi-label">Boosts actifs</div>
+                            <div class="kpi-value" id="boost-count">0</div>
+                        </div>
+                        <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
+                        <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">
+                            ACTIVER
+                        </button>
+                        <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -511,13 +793,28 @@
 
     <script>
         const API_BASE = window.location.origin;
-        const PARENT_DOMAINS = ['localhost', '127.0.0.1', window.location.hostname, 'justplayer.fr', 'www.justplayer.fr'];
+        const PARENT_DOMAIN = 'justplayerstreamhubpro.onrender.com';
         let player;
         let socket;
         let currentChannel = 'twitch';
         let currentUser = null;
         let charts = {};
         let raidTarget = null;
+        let activeBoosts = 0;
+
+        // ==================== UTILITIES ====================
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function toggleToolSection(header) {
+            const section = header.parentElement;
+            section.classList.toggle('collapsed');
+        }
 
         // ==================== INIT ====================
         window.addEventListener('load', async () => {
@@ -530,6 +827,15 @@
             setInterval(loadStatsDashboard, 5 * 60 * 1000);
         });
 
+        // Keyboard shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.altKey) {
+                if (e.key === 's') { document.getElementById('scan-query').focus(); showToast('Scanner activé'); }
+                if (e.key === 'r') { document.getElementById('raid-game').focus(); showToast('Raid Finder activé'); }
+                if (e.key === 'b') { document.getElementById('boost-query').focus(); showToast('Boost activé'); }
+            }
+        });
+
         // ==================== FIREBASE STATUS ====================
         async function initFirebaseStatus() {
             async function checkStatus() {
@@ -540,10 +846,10 @@
                     
                     if (data.connected) {
                         statusEl.innerText = 'HUB SECURE';
-                        statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
+                        statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected flex items-center gap-1';
                     } else {
-                        statusEl.innerText = 'HUB DISCONNECTED';
-                        statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
+                        statusEl.innerText = 'DISCONNECTED';
+                        statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded flex items-center gap-1';
                     }
                 } catch (error) {
                     console.error('Firebase status error:', error);
@@ -601,10 +907,13 @@
 
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
+            const iframeUrl =
+                `https://player.twitch.tv/?channel=${channel}` +
+                `&parent=${PARENT_DOMAIN}&theme=dark`;
             
-            container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
+            container.innerHTML =
+                `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" ` +
+                `allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
             
             loadStreamInfo(channel);
         }
@@ -633,8 +942,9 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
+            const url =
+                `https://www.twitch.tv/embed/${channel}/chat` +
+                `?parent=${PARENT_DOMAIN}&theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
             if (frame) {
                 frame.src = url;
@@ -678,12 +988,12 @@
                     data.streams.forEach(s => {
                         const thumb = (s.thumbnail_url || '').replace('{width}', '400').replace('{height}', '225');
                         el.innerHTML += `
-                            <div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')">
+                            <div class="stream-card flex-shrink-0 scale-in" onclick="changeChannel('${s.user_login}')">
                                 <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
                                 <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
                                     <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
                                 </div>
-                                <div class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1 rounded">LIVE</div>
+                                <div class="stream-card-badge"><i class="fas fa-dot-circle"></i> LIVE</div>
                             </div>
                         `;
                     });
@@ -721,14 +1031,14 @@
                 twitch.classList.add('hidden');
                 hub.classList.remove('hidden');
                 hub.classList.add('flex');
-                btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded';
-                btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
+                btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded transition';
+                btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition';
             } else {
                 hub.classList.add('hidden');
                 hub.classList.remove('flex');
                 twitch.classList.remove('hidden');
-                btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded';
-                btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
+                btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded transition';
+                btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition';
             }
         }
 
@@ -771,7 +1081,7 @@
             const gameInput = document.getElementById('best-time-game').value.trim();
             
             if (!gameInput) {
-                alert('Veuillez entrer un nom de jeu');
+                showToast('Entrez un nom de jeu', 'error');
                 return;
             }
             
@@ -796,6 +1106,7 @@
                 if (data.html_response) {
                     results.innerHTML = data.html_response;
                     results.style.display = 'block';
+                    showToast('Analyse complète !');
                 } else {
                     results.innerHTML = '<p style="color: #ff6666;">❌ Erreur lors de l\'analyse</p>';
                     results.style.display = 'block';
@@ -804,6 +1115,7 @@
                 console.error('Error:', error);
                 results.innerHTML = '<p style="color: #ff6666;">❌ Erreur réseau</p>';
                 results.style.display = 'block';
+                showToast('Erreur réseau', 'error');
             } finally {
                 btn.disabled = false;
                 loading.style.display = 'none';
@@ -892,6 +1204,7 @@
             const box = document.getElementById('scan-res');
             box.classList.remove('hidden');
             document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse Twitch + IA...';
+            showToast('Scan en cours...');
 
             try {
                 const res = await fetch(`${API_BASE}/scan_target`, {
@@ -905,6 +1218,7 @@
                     document.getElementById('scan-name').innerText = u.display_name;
                     document.getElementById('scan-game').innerText = u.game_name;
                     document.getElementById('scan-img').src = u.profile_image_url;
+                    document.getElementById('scanner-kpi').innerHTML = `<div class="kpi-label">Niche Score</div><div class="kpi-value">${u.ai_calculated_niche_score}</div>`;
 
                     const ai = await fetch(`${API_BASE}/critique_ia`, {
                         method: 'POST',
@@ -913,9 +1227,11 @@
                     });
                     const aiD = await ai.json();
                     document.getElementById('scan-ai').innerHTML = aiD.html_response || 'Pas de critique disponible';
+                    showToast('Scan complété !');
                 }
             } catch (e) {
                 console.error('Scan error:', e);
+                showToast('Erreur lors du scan', 'error');
             }
         }
 
@@ -925,6 +1241,7 @@
             if (!game) return;
 
             document.getElementById('raid-res').classList.add('hidden');
+            showToast('Recherche de raid...');
 
             try {
                 const res = await fetch(`${API_BASE}/start_raid`, {
@@ -943,21 +1260,28 @@
                         <p>Viewers: ${data.target.viewers}</p>
                         <p>Jeu: ${data.target.game}</p>
                     `;
+                    document.getElementById('raid-kpi').innerHTML = `<div class="kpi-label">Trouvé</div><div class="kpi-value">${data.target.name}</div>`;
+                    showToast('Raid trouvé !');
+                } else {
+                    showToast('Aucun raid trouvé', 'error');
                 }
             } catch (e) {
                 console.error('Raid error:', e);
+                showToast('Erreur lors de la recherche', 'error');
             }
         }
 
         function goToRaid() {
             if (raidTarget) {
                 window.open(`https://twitch.tv/${raidTarget.login}`, '_blank');
+                showToast('Raid lancé !');
             }
         }
 
         async function runBoost() {
             const c = document.getElementById('boost-query').value;
             if (!c) return;
+            showToast('Activation du boost...');
             const res = await fetch(`${API_BASE}/stream_boost`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -965,8 +1289,17 @@
             });
             const d = await res.json();
             if (d.success) {
-                document.getElementById('boost-msg').innerText = '✅ Boost Activé !';
-                setTimeout(() => location.reload(), 2000);
+                activeBoosts++;
+                document.getElementById('boost-count').innerText = activeBoosts;
+                document.getElementById('boost-msg').innerText = '✅ Boost activé ! (15 min)';
+                showToast('Boost activé pour 15 minutes !');
+                setTimeout(() => {
+                    activeBoosts--;
+                    document.getElementById('boost-count').innerText = activeBoosts;
+                    document.getElementById('boost-msg').innerText = '';
+                }, 15 * 60 * 1000);
+            } else {
+                showToast('Erreur lors de l\'activation', 'error');
             }
         }
 
