@@ -432,15 +432,20 @@
 
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
-            // Récupère le parent depuis l'URL
+            
+            // Récupère le parent depuis l'URL ou depuis le document.referrer
             const params = new URLSearchParams(window.location.search);
-            const parentHost = params.get('parent_host') || window.location.hostname;
+            let parentHost = params.get('parent_host');
+            
+            // Si pas de parent_host en paramètre, utilise le hostname actuel
+            if (!parentHost) {
+                parentHost = window.location.hostname;
+            }
             
             const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentHost}&theme=dark`;
             
             container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
             
-            // Charger les infos du live
             loadStreamInfo(channel);
         }
 
@@ -470,9 +475,12 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            // Récupère le parent depuis l'URL ou utilise justplayer.fr par défaut
             const params = new URLSearchParams(window.location.search);
-            const parentHost = params.get('parent_host') || 'justplayer.fr';
+            let parentHost = params.get('parent_host');
+            
+            if (!parentHost) {
+                parentHost = window.location.hostname;
+            }
             
             const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentHost}&theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
