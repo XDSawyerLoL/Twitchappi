@@ -556,6 +556,52 @@ app.get('/api/stats/languages', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// =========================================================
+// 6B. ANALYTICS PRO – HISTORIQUE CHAÎNE
+// =========================================================
+app.get('/api/analytics/channel/:id', async (req, res) => {
+  const channelId = req.params.id;
+  const since = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 jours
+
+  try {
+    const snaps = await db
+      .collection('channels')
+      .doc(channelId)
+      .collection('hourly_stats')
+      .where('timestamp', '>', since)
+      .get();
+
+    if (snaps.empty) {
+      return res.json({ success: false, message: 'Pas assez de données' });
+    }
+
+    const viewers = snaps.docs.map(d => d.data().viewers);
+    const avg = Math.round(viewers.reduce((a, b) => a + b, 0) / viewers.length);
+    const peak = Math.max(...viewers);
+
+    const volatility = Math.round(
+      Math.sqrt(
+        viewers.reduce((a, v) => a + Math.pow(v - avg, 2), 0) / viewers.length
+      )
+    );
+
+    const first = viewers[0];
+    const last = viewers[viewers.length - 1];
+    const growth =
+      first > 0 ? Math.round(((last - first) / first) * 100) : 0;
+
+    res.json({
+      success: true,
+      avg_viewers: avg,
+      peak_viewers: peak,
+      volatility,
+      growth_percent: growth,
+      samples: viewers.length
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 
 // =========================================================
 // 7. SCAN COMPLET
@@ -760,4 +806,5 @@ app.listen(PORT, () => {
   console.log(" - /scan_target, /start_raid, /stream_boost");
   console.log(" - Et 20+ autres endpoints\n");
 });
+
 
