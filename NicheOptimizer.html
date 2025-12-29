@@ -818,4 +818,163 @@
                 if (data.success) {
                     document.getElementById('kpi-viewers').innerText = data.total_viewers.toLocaleString();
                     document.getElementById('kpi-channels').innerText = data.total_channels;
-                    renderChart('chartViewers
+                    renderChart('chartViewers', 'line', data.history.live.labels, data.history.live.values, 'Viewers', '#00f2ea');
+                }
+
+                const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
+                const dGames = await resGames.json();
+                const labels = dGames.games.map(g => g.name);
+                const values = dGames.games.map((g, i) => (i + 1) * 20);
+                renderChart('chartGames', 'bar', labels.slice(0, 5), values.slice(0, 5), 'Popularité', '#ff0099');
+
+                const resLang = await fetch(`${API_BASE}/api/stats/languages`);
+                const dLang = await resLang.json();
+                const lLabels = dLang.languages.map(l => l.name);
+                const lValues = dLang.languages.map(l => l.percent);
+                renderChart('chartLangs', 'doughnut', lLabels, lValues, 'Part', ['#00f2ea', '#ff0099', '#ffd700', '#fff', '#666']);
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
+        }
+
+        function renderChart(id, type, labels, data, label, color) {
+            const ctx = document.getElementById(id);
+            if (!ctx) return;
+            
+            if (charts[id]) charts[id].destroy();
+
+            const bgColors = Array.isArray(color) ? color : (type === 'line' ? 'rgba(0, 242, 234, 0.1)' : color);
+            const borderColors = Array.isArray(color) ? color : color;
+
+            charts[id] = new Chart(ctx.getContext('2d'), {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: bgColors,
+                        borderColor: borderColors,
+                        borderWidth: 1,
+                        fill: type === 'line',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: type === 'doughnut',
+                            position: 'right',
+                            labels: { color: 'white', boxWidth: 10 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: type !== 'doughnut',
+                            ticks: { color: '#666' }
+                        },
+                        y: {
+                            display: type !== 'doughnut',
+                            grid: { color: '#222' },
+                            ticks: { color: '#666' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==================== TOOLS ====================
+        async function runScan() {
+            const q = document.getElementById('scan-query').value;
+            if (!q) return;
+            const box = document.getElementById('scan-res');
+            box.classList.remove('hidden');
+            document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse Twitch + IA...';
+
+            try {
+                const res = await fetch(`${API_BASE}/scan_target`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: q })
+                });
+                const data = await res.json();
+                if (data.success && data.user_data) {
+                    const u = data.user_data;
+                    document.getElementById('scan-name').innerText = u.display_name;
+                    document.getElementById('scan-game').innerText = u.game_name;
+                    document.getElementById('scan-img').src = u.profile_image_url;
+
+                    const ai = await fetch(`${API_BASE}/critique_ia`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'niche', query: u.display_name })
+                    });
+                    const aiD = await ai.json();
+                    document.getElementById('scan-ai').innerHTML = aiD.html_response || 'Pas de critique disponible';
+                }
+            } catch (e) {
+                console.error('Scan error:', e);
+            }
+        }
+
+        async function runRaid() {
+            const game = document.getElementById('raid-game').value;
+            const maxViewers = document.getElementById('raid-viewers').value;
+            if (!game) return;
+
+            document.getElementById('raid-res').classList.add('hidden');
+
+            try {
+                const res = await fetch(`${API_BASE}/start_raid`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game, max_viewers: maxViewers })
+                });
+                const data = await res.json();
+                if (data.success && data.target) {
+                    raidTarget = data.target;
+                    const box = document.getElementById('raid-res');
+                    box.classList.remove('hidden');
+                    document.getElementById('raid-img').src = data.target.thumbnail_url;
+                    document.getElementById('raid-info').innerHTML = `
+                        <p class="font-bold text-white">${data.target.name}</p>
+                        <p>Viewers: ${data.target.viewers}</p>
+                        <p>Jeu: ${data.target.game}</p>
+                    `;
+                }
+            } catch (e) {
+                console.error('Raid error:', e);
+            }
+        }
+
+        function goToRaid() {
+            if (raidTarget) {
+                window.open(`https://twitch.tv/${raidTarget.login}`, '_blank');
+            }
+        }
+
+        async function runBoost() {
+            const c = document.getElementById('boost-query').value;
+            if (!c) return;
+            const res = await fetch(`${API_BASE}/stream_boost`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channel: c })
+            });
+            const d = await res.json();
+            if (d.success) {
+                document.getElementById('boost-msg').innerText = '✅ Boost Activé !';
+                setTimeout(() => location.reload(), 2000);
+            }
+        }
+
+        window.addEventListener('message', (e) => {
+            if (e.data === 'auth_success') {
+                location.reload();
+            }
+        });
+    </script>
+</body>
+</html>
