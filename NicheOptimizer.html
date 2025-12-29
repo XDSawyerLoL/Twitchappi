@@ -106,17 +106,6 @@
             animation: badge-pulse 1.5s infinite;
         }
 
-        .stream-card-time {
-            position: absolute;
-            bottom-10 right-2;
-            background: rgba(0, 242, 234, 0.9);
-            color: black;
-            font-size: 9px;
-            font-weight: bold;
-            padding: 3px 6px;
-            border-radius: 3px;
-        }
-
         @keyframes badge-pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -346,36 +335,6 @@
             line-height: 1.4;
         }
 
-        .saturation-bar {
-            width: 100%;
-            height: 6px;
-            background: #222;
-            border-radius: 3px;
-            margin: 6px 0;
-            overflow: hidden;
-        }
-
-        .saturation-bar-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.4s ease;
-        }
-
-        .saturation-bar-fill.low {
-            background: #00ff00;
-            width: 30%;
-        }
-
-        .saturation-bar-fill.medium {
-            background: #ffaa00;
-            width: 60%;
-        }
-
-        .saturation-bar-fill.high {
-            background: #ff3333;
-            width: 90%;
-        }
-
         .best-time-spinner {
             display: inline-block;
             width: 14px;
@@ -420,19 +379,6 @@
         .toast.error {
             background: #ff3333;
             color: white;
-        }
-
-        /* ===== BOOST COUNTDOWN ===== */
-        .boost-countdown {
-            position: absolute;
-            bottom-2 left-2;
-            background: rgba(255, 0, 153, 0.9);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: bold;
-            font-family: 'Orbitron';
         }
 
         /* ===== COLLAPSIBLE SECTIONS ===== */
@@ -691,7 +637,7 @@
 
             <!-- TAB: TOOLS -->
             <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-4">
-                <!-- BEST TIME TOOL (ENHANCED) -->
+                <!-- BEST TIME TOOL -->
                 <div class="tool-section">
                     <div class="tool-section-header" onclick="toggleToolSection(this)">
                         <h3><i class="fas fa-clock"></i> 🎯 BEST TIME TO STREAM</h3>
@@ -711,7 +657,7 @@
                     </div>
                 </div>
 
-                <!-- SCANNER (COLLAPSIBLE) -->
+                <!-- SCANNER -->
                 <div class="tool-section">
                     <div class="tool-section-header" onclick="toggleToolSection(this)">
                         <h3><i class="fas fa-search"></i> SCANNER IA</h3>
@@ -741,7 +687,7 @@
                     </div>
                 </div>
 
-                <!-- RAID (COLLAPSIBLE) -->
+                <!-- RAID -->
                 <div class="tool-section">
                     <div class="tool-section-header" onclick="toggleToolSection(this)">
                         <h3><i class="fas fa-swords"></i> RAID FINDER</h3>
@@ -769,7 +715,7 @@
                     </div>
                 </div>
 
-                <!-- BOOST (COLLAPSIBLE) -->
+                <!-- BOOST -->
                 <div class="tool-section">
                     <div class="tool-section-header" onclick="toggleToolSection(this)">
                         <h3><i class="fas fa-bolt"></i> BOOST</h3>
@@ -907,13 +853,9 @@
 
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
-            const iframeUrl =
-                `https://player.twitch.tv/?channel=${channel}` +
-                `&parent=${PARENT_DOMAIN}&theme=dark`;
+            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${PARENT_DOMAIN}&theme=dark`;
             
-            container.innerHTML =
-                `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" ` +
-                `allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
+            container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
             
             loadStreamInfo(channel);
         }
@@ -942,9 +884,7 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            const url =
-                `https://www.twitch.tv/embed/${channel}/chat` +
-                `?parent=${PARENT_DOMAIN}&theme=dark`;
+            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${PARENT_DOMAIN}&theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
             if (frame) {
                 frame.src = url;
