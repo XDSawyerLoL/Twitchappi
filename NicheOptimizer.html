@@ -1,980 +1,1303 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V52 - ULTIMATE PERFORMANCE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <style>
-        :root {
-            --bg-dark: #050505;
-            --bg-panel: #0b0b0d;
-            --primary: #ff0099;
-            --secondary: #00f2ea;
-            --text-main: #e0e0e0;
-            --border-color: #1f1f23;
-        }
+  <meta charset="UTF-8">
+  <title>Streamer & Niche AI Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-        }
+  <style>
+    :root {
+      --bg-dark: #050505;
+      --bg-panel: #0b0b0d;
+      --primary: #ff0099;
+      --secondary: #00f2ea;
+      --text-main: #e0e0e0;
+      --border-color: #1f1f23;
+    }
 
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
 
-        ::-webkit-scrollbar-track {
-            background: #000;
-        }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
 
-        ::-webkit-scrollbar-thumb {
-            background: #333;
-            border-radius: 3px;
-        }
+    ::-webkit-scrollbar-track {
+      background: #000;
+    }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary);
-        }
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
 
-        .carousel-track {
-            display: flex;
-            gap: 15px;
-            overflow-x: auto;
-            padding: 10px 5px;
-            scroll-behavior: smooth;
-            cursor: grab;
-        }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary);
+    }
 
-        .carousel-track.active {
-            cursor: grabbing;
-        }
+    .carousel-track {
+      display: flex;
+      gap: 15px;
+      overflow-x: auto;
+      padding: 10px 5px;
+      scroll-behavior: smooth;
+      cursor: grab;
+    }
 
-        .stream-card {
-            flex: 0 0 300px;
-            height: 170px;
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+    .carousel-track.active {
+      cursor: grabbing;
+    }
 
-        .stream-card:hover {
-            border-color: var(--secondary);
-            transform: translateY(-4px);
-            box-shadow: 0 5px 20px rgba(0, 242, 234, 0.15);
-        }
+    .stream-card {
+      flex: 0 0 300px;
+      height: 170px;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
 
-        .card-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.7;
-            transition: 0.3s;
-        }
+    .stream-card:hover {
+      border-color: var(--secondary);
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(0, 242, 234, 0.25);
+    }
 
-        .stream-card:hover .card-img {
-            opacity: 1;
-        }
+    .card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.7;
+      transition: 0.3s;
+    }
 
-        .glass-panel {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-        }
+    .stream-card:hover .card-img {
+      opacity: 1;
+    }
 
-        .tab-nav {
-            display: flex;
-            background: #080808;
-            border-bottom: 1px solid var(--border-color);
-        }
+    .stream-card-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #ff0000;
+      color: white;
+      font-size: 9px;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      animation: badge-pulse 1.5s infinite;
+    }
 
-        .tab-btn {
-            flex: 1;
-            padding: 14px;
-            text-align: center;
-            color: #666;
-            font-family: 'Orbitron';
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: 0.3s;
-        }
+    @keyframes badge-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
 
-        .tab-btn:hover {
-            color: white;
-            background: #111;
-        }
+    .glass-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+    }
 
-        .tab-btn.active {
-            color: var(--secondary);
-            border-bottom-color: var(--secondary);
-            background: #151515;
-        }
+    .tab-nav {
+      display: flex;
+      background: #080808;
+      border-bottom: 1px solid var(--border-color);
+    }
 
-        .tab-content {
-            display: none;
-            height: 100%;
-            flex-direction: column;
-        }
+    .tab-btn {
+      flex: 1;
+      padding: 14px;
+      text-align: center;
+      color: #666;
+      font-family: 'Orbitron';
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.3s;
+    }
 
-        .tab-content.active {
-            display: flex;
-        }
+    .tab-btn:hover {
+      color: white;
+      background: #111;
+    }
 
-        .cyber-input {
-            background: #151515;
-            border: 1px solid #333;
-            color: white;
-            padding: 12px;
-            border-radius: 4px;
-            font-family: 'Inter';
-            font-size: 13px;
-            outline: none;
-            transition: 0.3s;
-            width: 100%;
-        }
+    .tab-btn.active {
+      color: var(--secondary);
+      border-bottom-color: var(--secondary);
+      background: #151515;
+    }
 
-        .cyber-input:focus {
-            border-color: var(--secondary);
-            box-shadow: 0 0 10px rgba(0, 242, 234, 0.2);
-        }
+    .tab-content {
+      display: none;
+      height: 100%;
+      flex-direction: column;
+    }
 
-        .hub-msg {
-            padding: 8px;
-            border-bottom: 1px solid #1a1a1a;
-            font-size: 13px;
-            line-height: 1.4;
-        }
+    .tab-content.active {
+      display: flex;
+    }
 
-        .hub-msg strong {
-            font-family: 'Orbitron';
-            font-size: 11px;
-        }
+    .cyber-input {
+      background: #151515;
+      border: 1px solid #333;
+      color: white;
+      padding: 12px;
+      border-radius: 4px;
+      font-family: 'Inter';
+      font-size: 13px;
+      outline: none;
+      transition: all 0.3s;
+      width: 100%;
+    }
 
-        .scrollbar-thin::-webkit-scrollbar {
-            width: 4px;
-        }
+    .cyber-input:focus {
+      border-color: var(--secondary);
+      box-shadow: 0 0 15px rgba(0, 242, 234, 0.4);
+    }
 
-        /* ===== FIREBASE HUB STATUS ===== */
-        #socket-status {
-            text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded;
-            transition: all 0.3s ease;
-            animation: none;
-        }
+    .hub-msg {
+      padding: 8px;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 13px;
+      line-height: 1.4;
+      animation: slideIn 0.3s ease;
+    }
 
-        #socket-status.connected {
-            color: #00f2ea;
-            border-color: #00f2ea;
-            box-shadow: 0 0 8px rgba(0, 242, 234, 0.6);
-            animation: hub-pulse 2s infinite;
-        }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
 
-        @keyframes hub-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
+    .hub-msg strong {
+      font-family: 'Orbitron';
+      font-size: 11px;
+    }
 
-        /* ===== BEST TIME TOOL STYLES ===== */
-        .best-time-tool {
-            background: #151515;
-            border: 1px solid #00f2ea;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: inset 0 0 10px rgba(0, 242, 234, 0.1);
-        }
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 4px;
+    }
 
-        .best-time-tool h4 {
-            color: #00f2ea;
-            font-family: 'Orbitron';
-            font-size: 12px;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #00f2ea;
-            padding-bottom: 8px;
-        }
+    /* ===== FIREBASE HUB STATUS ===== */
+    #socket-status {
+      font-size: 10px;
+      font-weight: bold;
+      color: #ff4b4b;
+      border: 1px solid #ff4b4b;
+      padding: 2px 8px;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      animation: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-        .best-time-tool .form-group {
-            margin-bottom: 10px;
-        }
+    #socket-status::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
 
-        .best-time-tool input {
-            width: 100%;
-            padding: 10px;
-            background: #0a0a0a;
-            border: 1px solid #333;
-            color: white;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-bottom: 8px;
-        }
+    #socket-status.connected {
+      color: #00f2ea;
+      border-color: #00f2ea;
+      box-shadow: 0 0 12px rgba(0, 242, 234, 0.7);
+      animation: hub-pulse 1.5s infinite;
+    }
 
-        .best-time-tool input:focus {
-            border-color: #00f2ea;
-            box-shadow: 0 0 8px rgba(0, 242, 234, 0.2);
-            outline: none;
-        }
+    @keyframes hub-pulse {
+      0%, 100% { box-shadow: 0 0 12px rgba(0, 242, 234, 0.7); }
+      50% { box-shadow: 0 0 20px rgba(0, 242, 234, 0.4); }
+    }
 
-        .best-time-tool button {
-            width: 100%;
-            background: #00f2ea;
-            color: black;
-            padding: 10px;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            font-family: 'Orbitron';
-            font-size: 11px;
-            transition: all 0.3s ease;
-        }
+    /* ===== BEST TIME TOOL STYLES ===== */
+    .best-time-tool {
+      background: #151515;
+      border: 1px solid #00f2ea;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: inset 0 0 10px rgba(0, 242, 234, 0.1);
+      transition: all 0.3s ease;
+    }
 
-        .best-time-tool button:hover:not(:disabled) {
-            background: white;
-            box-shadow: 0 0 15px rgba(0, 242, 234, 0.4);
-            transform: translateY(-1px);
-        }
+    .best-time-tool:hover {
+      box-shadow:
+        inset 0 0 15px rgba(0, 242, 234, 0.2),
+        0 0 10px rgba(0, 242, 234, 0.1);
+    }
 
-        .best-time-tool button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+    .best-time-tool h4 {
+      color: #00f2ea;
+      font-family: 'Orbitron';
+      font-size: 12px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #00f2ea;
+      padding-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-        .best-time-results {
-            background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 4px;
-            padding: 12px;
-            margin-top: 12px;
-            font-size: 12px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
+    .best-time-tool .form-group {
+      margin-bottom: 10px;
+    }
 
-        .best-time-results h5 {
-            color: #00f2ea;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
+    .best-time-tool input {
+      width: 100%;
+      padding: 10px;
+      background: #0a0a0a;
+      border: 1px solid #333;
+      color: white;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 8px;
+      transition: all 0.3s;
+    }
 
-        .best-time-results ul {
-            margin: 8px 0;
-            padding-left: 20px;
-        }
+    .best-time-tool input:focus {
+      border-color: #00f2ea;
+      box-shadow: 0 0 12px rgba(0, 242, 234, 0.3);
+      outline: none;
+    }
 
-        .best-time-results li {
-            margin-bottom: 6px;
-            color: #e0e0e0;
-            line-height: 1.3;
-        }
+    .best-time-tool button {
+      width: 100%;
+      background: #00f2ea;
+      color: black;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: 'Orbitron';
+      font-size: 11px;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
 
-        .best-time-spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(0, 242, 234, 0.3);
-            border-radius: 50%;
-            border-top-color: #00f2ea;
-            animation: bt-spin 1s linear infinite;
-            margin-right: 6px;
-            vertical-align: middle;
-        }
+    .best-time-tool button:hover:not(:disabled) {
+      background: white;
+      box-shadow: 0 0 20px rgba(0, 242, 234, 0.5);
+      transform: translateY(-2px);
+    }
 
-        @keyframes bt-spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
+    .best-time-tool button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .best-time-results {
+      background: #0a0a0a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 12px;
+      max-height: 250px;
+      overflow-y: auto;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; max-height: 0; }
+      to   { opacity: 1; max-height: 250px; }
+    }
+
+    .best-time-results h5 {
+      color: #00f2ea;
+      margin-bottom: 8px;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .best-time-results ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .best-time-results li {
+      margin-bottom: 6px;
+      color: #e0e0e0;
+      line-height: 1.4;
+    }
+
+    .saturation-bar {
+      width: 100%;
+      height: 6px;
+      background: #222;
+      border-radius: 3px;
+      margin: 6px 0;
+      overflow: hidden;
+    }
+
+    .saturation-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .saturation-bar-fill.low {
+      background: #00ff00;
+      width: 30%;
+    }
+
+    .saturation-bar-fill.medium {
+      background: #ffaa00;
+      width: 60%;
+    }
+
+    .saturation-bar-fill.high {
+      background: #ff3333;
+      width: 90%;
+    }
+
+    .best-time-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0, 242, 234, 0.3);
+      border-radius: 50%;
+      border-top-color: #00f2ea;
+      animation: bt-spin 1s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    @keyframes bt-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== TOAST NOTIFICATIONS ===== */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #00f2ea;
+      color: black;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 12px;
+      z-index: 9999;
+      animation: toastIn 0.3s ease;
+      box-shadow: 0 5px 20px rgba(0, 242, 234, 0.4);
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .toast.success {
+      background: #00ff00;
+    }
+
+    .toast.error {
+      background: #ff3333;
+      color: white;
+    }
+
+    /* ===== COLLAPSIBLE SECTIONS ===== */
+    .tool-section {
+      background: #151515;
+      border: 1px solid #222;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .tool-section-header {
+      background: #0a0a0a;
+      padding: 10px 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s;
+    }
+
+    .tool-section-header:hover {
+      background: #1a1a1a;
+      color: #00f2ea;
+    }
+
+    .tool-section-header h3 {
+      font-family: 'Orbitron';
+      font-size: 12px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-section-toggle {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s;
+    }
+
+    .tool-section.collapsed .tool-section-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .tool-section-content {
+      padding: 12px;
+      max-height: 500px;
+      transition: max-height 0.3s ease;
+    }
+
+    .tool-section.collapsed .tool-section-content {
+      max-height: 0;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    /* ===== KPI CARDS ===== */
+    .kpi-card {
+      background: #0a0a0a;
+      border: 1px solid #222;
+      padding: 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .kpi-label {
+      color: #999;
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+
+    .kpi-value {
+      color: #00f2ea;
+      font-family: 'Orbitron';
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    /* ===== MICRO ANIMATIONS ===== */
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .scale-in {
+      animation: scaleIn 0.3s ease;
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.3s;
+    }
+
+    .btn-icon:hover {
+      transform: translateY(-1px);
+    }
+  </style>
 </head>
+
 <body class="h-screen flex flex-col p-4">
-    <!-- HEADER -->
-    <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
-        <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-orbitron italic tracking-widest">
-                <span class="text-[#00f2ea]">STREAMER</span> HUB 
-                <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">V52+</span>
-            </h1>
-            <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">
-                HUB DISCONNECTED
-            </div>
-        </div>
-        <div>
-            <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
-                <i class="fab fa-twitch"></i> CONNEXION
+  <!-- HEADER -->
+  <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
+    <div class="flex items-center gap-4">
+      <h1 class="text-2xl font-orbitron italic tracking-widest">
+        <span class="text-[#00f2ea]">STREAMER</span> HUB
+        <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">V52+</span>
+      </h1>
+      <div id="socket-status" class="text-[10px] font-bold border px-2 rounded">
+        DISCONNECTED
+      </div>
+    </div>
+    <div>
+      <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
+        <i class="fab fa-twitch"></i> CONNEXION
+      </button>
+      <div id="user-area" class="hidden flex items-center gap-3">
+        <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
+        <span id="user-name" class="font-bold text-white text-sm"></span>
+        <button onclick="logout()" class="text-gray-500 hover:text-white">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CAROUSEL -->
+  <div class="mb-4 relative group">
+    <div id="carousel" class="carousel-track">
+      <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
+        <i class="fas fa-satellite-dish mb-2"></i><br>
+        Connectez-vous pour voir vos chaînes.
+      </div>
+    </div>
+    <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+    <!-- VIDEO PLAYER -->
+    <div class="lg:col-span-8 flex flex-col gap-4 h-full">
+      <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl">
+        <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
+            <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate">
+              OFFLINE
+            </span>
+            <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0">
+              AUTO
+            </span>
+            <span id="viewer-count" class="text-[10px] text-[#ff0099] font-bold flex-shrink-0">
+              0 viewers
+            </span>
+          </div>
+          <div class="flex gap-2 flex-shrink-0">
+            <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center transition">
+              <i class="fas fa-chevron-left"></i>
             </button>
-            <div id="user-area" class="hidden flex items-center gap-3">
-                <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
-                <span id="user-name" class="font-bold text-white text-sm"></span>
-                <button onclick="logout()" class="text-gray-500 hover:text-white">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>
+            <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center transition">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
-    </header>
-
-    <!-- CAROUSEL -->
-    <div class="mb-4 relative group">
-        <div id="carousel" class="carousel-track">
-            <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
-                <i class="fas fa-satellite-dish mb-2"></i><br>
-                Connectez-vous pour voir vos chaînes.
-            </div>
-        </div>
-        <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
+        <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden"></div>
+      </div>
     </div>
 
-    <!-- MAIN GRID -->
-    <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
-        <!-- VIDEO PLAYER -->
-        <div class="lg:col-span-8 flex flex-col gap-4 h-full">
-            <!-- PLAYER -->
-            <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl">
-                <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
-                    <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
-                        <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate">
-                            OFFLINE
-                        </span>
-                        <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0">
-                            AUTO
-                        </span>
-                        <span id="viewer-count" class="text-[10px] text-[#ff0099] font-bold flex-shrink-0">
-                            0 viewers
-                        </span>
-                    </div>
-                    <div class="flex gap-2 flex-shrink-0">
-                        <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
-                <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden"></div>
+    <!-- RIGHT PANEL -->
+    <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full max-h-[calc(100vh-280px)] lg:max-h-full">
+      <!-- TAB NAV -->
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="openTab('chat')">
+          <i class="fas fa-comments mr-1"></i> CHAT
+        </button>
+        <button class="tab-btn" onclick="openTab('stats')">
+          <i class="fas fa-chart-pie mr-1"></i> STATS
+        </button>
+        <button class="tab-btn" onclick="openTab('tools')">
+          <i class="fas fa-toolbox mr-1"></i> OUTILS
+        </button>
+      </div>
+
+      <!-- TAB: CHAT -->
+      <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
+        <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
+          <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded transition">
+            TWITCH
+          </button>
+          <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition">
+            HUB SECURE
+          </button>
+        </div>
+        <div id="chat-container-twitch" class="flex-grow relative bg-[#0a0a0a] overflow-hidden">
+          <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
+        </div>
+        <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
+          <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
+            <div class="text-center text-gray-600 text-xs mt-4">
+              Bienvenue sur le Hub Sécurisé - Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
             </div>
+          </div>
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
+            <input id="hub-input" type="text" placeholder="Message crypté..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+            <button type="submit" class="text-[#00f2ea] px-2 hover:text-white transition">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- TAB: STATS -->
+      <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
+            <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
+            <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
+          </div>
+          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
+            <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
+            <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
+          </div>
+        </div>
+        <div class="space-y-6">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+              <i class="fas fa-chart-line mr-1"></i> Tendance 12h
+            </h4>
+            <div class="h-40"><canvas id="chartViewers"></canvas></div>
+          </div>
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+              <i class="fas fa-gamepad mr-1"></i> Top Jeux
+            </h4>
+            <div class="h-48"><canvas id="chartGames"></canvas></div>
+          </div>
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+              <i class="fas fa-globe mr-1"></i> Langues
+            </h4>
+            <div class="h-40"><canvas id="chartLangs"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: TOOLS -->
+      <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-4">
+        <!-- BEST TIME TOOL -->
+        <div class="tool-section">
+          <div class="tool-section-header" onclick="toggleToolSection(this)">
+            <h3><i class="fas fa-clock"></i> 🎯 BEST TIME TO STREAM</h3>
+            <div class="tool-section-toggle"><i class="fas fa-chevron-down"></i></div>
+          </div>
+          <div class="tool-section-content">
+            <div class="best-time-tool">
+              <div class="form-group">
+                <input id="best-time-game" type="text" placeholder="Jeu ex: League of Legends..." />
+              </div>
+              <button id="analyze-schedule-btn" onclick="analyzeBestTime()">
+                <i class="fas fa-clock"></i> ANALYSER
+              </button>
+              <div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
+                <span class="best-time-spinner"></span>Analyse en cours...
+              </div>
+              <div id="best-time-results" class="best-time-results" style="display:none;"></div>
+            </div>
+          </div>
         </div>
 
-        <!-- RIGHT PANEL -->
-        <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full max-h-[calc(100vh-280px)] lg:max-h-full">
-            <!-- TAB NAV -->
-            <div class="tab-nav">
-                <button class="tab-btn active" onclick="openTab('chat')">
-                    <i class="fas fa-comments mr-1"></i> CHAT
-                </button>
-                <button class="tab-btn" onclick="openTab('stats')">
-                    <i class="fas fa-chart-pie mr-1"></i> STATS
-                </button>
-                <button class="tab-btn" onclick="openTab('tools')">
-                    <i class="fas fa-toolbox mr-1"></i> OUTILS
-                </button>
+        <!-- SCANNER IA -->
+        <div class="tool-section">
+          <div class="tool-section-header" onclick="toggleToolSection(this)">
+            <h3><i class="fas fa-search"></i> SCANNER IA</h3>
+            <div class="tool-section-toggle"><i class="fas fa-chevron-down"></i></div>
+          </div>
+          <div class="tool-section-content">
+            <div id="scanner-kpi" class="kpi-card">
+              <div class="kpi-label">Niche Score</div>
+              <div class="kpi-value">--</div>
             </div>
-
-            <!-- TAB: CHAT -->
-            <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
-                <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
-                    <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">
-                        TWITCH
-                    </button>
-                    <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">
-                        HUB SECURE
-                    </button>
-                </div>
-                <div id="chat-container-twitch" class="flex-grow relative bg-[#0a0a0a] overflow-hidden">
-                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
-                </div>
-                <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
-                    <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
-                        <div class="text-center text-gray-600 text-xs mt-4">
-                            Bienvenue sur le Hub Sécurisé - Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
-                        </div>
-                    </div>
-                    <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
-                        <input id="hub-input" type="text" placeholder="Message crypté..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-                        <button type="submit" class="text-[#00f2ea] px-2">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </form>
-                </div>
+            <div class="flex gap-2 mb-3">
+              <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
+              <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white transition btn-icon">
+                <i class="fas fa-search"></i>
+              </button>
             </div>
-
-            <!-- TAB: STATS -->
-            <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
-                        <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
-                        <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
-                    </div>
-                    <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
-                        <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
-                        <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
-                    </div>
-                </div>
-                <div class="space-y-6">
-                    <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance 12h</h4>
-                        <div class="h-40"><canvas id="chartViewers"></canvas></div>
-                    </div>
-                    <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
-                        <div class="h-48"><canvas id="chartGames"></canvas></div>
-                    </div>
-                    <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
-                        <div class="h-40"><canvas id="chartLangs"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB: TOOLS -->
-            <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6">
-                <!-- BEST TIME TOOL (NEW) -->
-                <div class="best-time-tool">
-                    <h4>🎯 BEST TIME TO STREAM</h4>
-                    <div class="form-group">
-                        <input id="best-time-game" type="text" placeholder="Jeu ex: League of Legends..." />
-                    </div>
-                    <button id="analyze-schedule-btn" onclick="analyzeBestTime()">
-                        <i class="fas fa-clock"></i> ANALYSER
-                    </button>
-                    <div id="best-time-loading" style="display: none; text-align: center; margin-top: 10px; color: #00f2ea;">
-                        <span class="best-time-spinner"></span>Analyse en cours...
-                    </div>
-                    <div id="best-time-results" class="best-time-results" style="display: none;"></div>
-                </div>
-
-                <!-- SCANNER -->
+            <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222] fade-in">
+              <div class="flex gap-3 items-center mb-3">
+                <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
                 <div>
-                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
-                    <div class="flex gap-2 mb-3">
-                        <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
-                        <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                    <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
-                        <div class="flex gap-3 items-center mb-3">
-                            <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
-                            <div>
-                                <div id="scan-name" class="font-bold text-white">--</div>
-                                <div id="scan-game" class="text-xs text-gray-500">--</div>
-                            </div>
-                        </div>
-                        <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
-                    </div>
+                  <div id="scan-name" class="font-bold text-white">--</div>
+                  <div id="scan-game" class="text-xs text-gray-500">--</div>
                 </div>
-
-                <!-- RAID -->
-                <div>
-                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
-                    <div class="flex gap-2 mb-3">
-                        <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
-                        <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
-                    </div>
-                    <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">
-                        🔍 CHERCHER
-                    </button>
-                    <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
-                        <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
-                        <div id="raid-info" class="text-xs text-gray-300"></div>
-                        <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white">
-                            🎮 ALLER AU RAID
-                        </button>
-                    </div>
-                </div>
-
-                <!-- BOOST -->
-                <div>
-                    <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
-                    <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
-                    <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">
-                        ACTIVER
-                    </button>
-                    <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
-                </div>
+              </div>
+              <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
             </div>
+          </div>
         </div>
+
+        <!-- RAID FINDER -->
+        <div class="tool-section">
+          <div class="tool-section-header" onclick="toggleToolSection(this)">
+            <h3><i class="fas fa-swords"></i> RAID FINDER</h3>
+            <div class="tool-section-toggle"><i class="fas fa-chevron-down"></i></div>
+          </div>
+          <div class="tool-section-content">
+            <div id="raid-kpi" class="kpi-card">
+              <div class="kpi-label">Chaînes trouvées</div>
+              <div class="kpi-value">--</div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
+              <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
+            </div>
+            <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3 transition btn-icon">
+              🔍 CHERCHER
+            </button>
+            <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222] fade-in">
+              <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
+              <div id="raid-info" class="text-xs text-gray-300"></div>
+              <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white transition">
+                🎮 ALLER AU RAID
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOOST -->
+        <div class="tool-section">
+          <div class="tool-section-header" onclick="toggleToolSection(this)">
+            <h3><i class="fas fa-bolt"></i> BOOST</h3>
+            <div class="tool-section-toggle"><i class="fas fa-chevron-down"></i></div>
+          </div>
+          <div class="tool-section-content">
+            <div id="boost-kpi" class="kpi-card">
+              <div class="kpi-label">Boosts actifs</div>
+              <div class="kpi-value" id="boost-count">0</div>
+            </div>
+            <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
+            <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">
+              ACTIVER
+            </button>
+            <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+  <script>
+    const API_BASE = window.location.origin;
+    const PARENT_DOMAIN = 'justplayerstreamhubpro.onrender.com';
+    let socket;
+    let currentChannel = 'twitch';
+    let currentUser = null;
+    let charts = {};
+    let raidTarget = null;
+    let activeBoosts = 0;
 
-    <script>
-        const API_BASE = window.location.origin;
-        const PARENT_DOMAINS = ['localhost', '127.0.0.1', window.location.hostname, 'justplayer.fr', 'www.justplayer.fr'];
-        let player;
-        let socket;
-        let currentChannel = 'twitch';
-        let currentUser = null;
-        let charts = {};
-        let raidTarget = null;
+    // ==================== UTILITIES (NOUVEAU) ====================
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
 
-        // ==================== INIT ====================
-        window.addEventListener('load', async () => {
-            await checkAuth();
-            initPlayer();
-            loadStatsDashboard();
-            initCarouselScroll();
-            initSocket();
-            initFirebaseStatus();
-            setInterval(loadStatsDashboard, 5 * 60 * 1000);
+    function toggleToolSection(headerEl) {
+      const section = headerEl.closest('.tool-section');
+      if (section) section.classList.toggle('collapsed');
+    }
+
+    // ==================== INIT ====================
+    window.addEventListener('load', async () => {
+      await checkAuth();
+      initPlayer();
+      loadStatsDashboard();
+      initCarouselScroll();
+      initSocket();
+      initFirebaseStatus();
+      setInterval(loadStatsDashboard, 5 * 60 * 1000);
+    });
+
+    // Shortcuts clavier Alt+S / Alt+R / Alt+B
+    window.addEventListener('keydown', (e) => {
+      if (!e.altKey) return;
+      if (e.key === 's') {
+        const el = document.getElementById('scan-query');
+        if (el) { el.focus(); showToast('Scanner IA prêt'); }
+      }
+      if (e.key === 'r') {
+        const el = document.getElementById('raid-game');
+        if (el) { el.focus(); showToast('Raid Finder prêt'); }
+      }
+      if (e.key === 'b') {
+        const el = document.getElementById('boost-query');
+        if (el) { el.focus(); showToast('Boost prêt'); }
+      }
+    });
+
+    // ==================== FIREBASE STATUS ====================
+    async function initFirebaseStatus() {
+      async function checkStatus() {
+        try {
+          const res = await fetch(`${API_BASE}/firebase_status`);
+          const data = await res.json();
+          const el = document.getElementById('socket-status');
+          if (!el) return;
+          if (data.connected) {
+            el.textContent = 'HUB SECURE';
+            el.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
+          } else {
+            el.textContent = 'DISCONNECTED';
+            el.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
+          }
+        } catch (e) {
+          console.error('Firebase status error:', e);
+        }
+      }
+      checkStatus();
+      setInterval(checkStatus, 5000);
+    }
+
+    // ==================== AUTH ====================
+    async function checkAuth() {
+      const res = await fetch(`${API_BASE}/twitch_user_status`);
+      const data = await res.json();
+      if (data.is_connected) {
+        currentUser = data.display_name;
+        const hubUser = document.getElementById('hub-user-display');
+        if (hubUser) hubUser.textContent = data.display_name;
+        document.getElementById('btn-auth')?.classList.add('hidden');
+        document.getElementById('user-area')?.classList.remove('hidden');
+        document.getElementById('user-name').textContent = data.display_name;
+        document.getElementById('user-avatar').src = data.profile_image_url;
+        await loadFollowed();
+      }
+    }
+
+    function startAuth() {
+      window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
+      const check = setInterval(async () => {
+        const res = await fetch(`${API_BASE}/twitch_user_status`);
+        const data = await res.json();
+        if (data.is_connected) {
+          clearInterval(check);
+          location.reload();
+        }
+      }, 1000);
+    }
+
+    function logout() {
+      fetch(`${API_BASE}/twitch_logout`, { method: 'POST' }).then(() => location.reload());
+    }
+
+    // ==================== PLAYER / TWITCH ====================
+    async function initPlayer() {
+      try {
+        const res = await fetch(`${API_BASE}/get_default_stream`);
+        const data = await res.json();
+        if (data.success) {
+          currentChannel = data.channel;
+          document.getElementById('current-channel-display').textContent = currentChannel.toUpperCase();
+          document.getElementById('player-mode-badge').textContent = data.mode;
+          loadPlayerEmbed(currentChannel);
+          updateTwitchChatFrame(currentChannel);
+        }
+      } catch (e) {
+        console.error('initPlayer error:', e);
+      }
+    }
+
+    function loadPlayerEmbed(channel) {
+      const container = document.getElementById('video-container');
+      const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${PARENT_DOMAIN}&theme=dark`;
+      container.innerHTML =
+        `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
+      loadStreamInfo(channel);
+    }
+
+    function loadStreamInfo(channel) {
+      fetch(`${API_BASE}/stream_info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.stream) {
+            const title = data.stream.title || 'Sans titre';
+            const viewers = data.stream.viewer_count || 0;
+            const display = document.getElementById('current-channel-display');
+            const short = title.length > 40 ? title.slice(0, 40) + '...' : title;
+            display.textContent = `${channel.toUpperCase()} • ${short}`;
+            display.title = title;
+            document.getElementById('viewer-count').textContent = `${viewers.toLocaleString()} viewers`;
+          }
+        })
+        .catch(e => console.error('Stream info error:', e));
+    }
+
+    function updateTwitchChatFrame(channel) {
+      const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${PARENT_DOMAIN}&theme=dark`;
+      const frame = document.getElementById('twitch-chat-frame');
+      if (frame) frame.src = url;
+    }
+
+    async function cycle(direction) {
+      try {
+        const res = await fetch(`${API_BASE}/cycle_stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction })
         });
-
-        // ==================== FIREBASE STATUS ====================
-        async function initFirebaseStatus() {
-            async function checkStatus() {
-                try {
-                    const response = await fetch(`${API_BASE}/firebase_status`);
-                    const data = await response.json();
-                    const statusEl = document.getElementById('socket-status');
-                    
-                    if (data.connected) {
-                        statusEl.innerText = 'HUB SECURE';
-                        statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
-                    } else {
-                        statusEl.innerText = 'HUB DISCONNECTED';
-                        statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
-                    }
-                } catch (error) {
-                    console.error('Firebase status error:', error);
-                }
-            }
-            
-            checkStatus();
-            setInterval(checkStatus, 5000);
+        const data = await res.json();
+        if (data.success) {
+          currentChannel = data.channel;
+          document.getElementById('current-channel-display').textContent = currentChannel.toUpperCase();
+          document.getElementById('viewer-count').textContent = '-- viewers';
+          loadPlayerEmbed(currentChannel);
+          updateTwitchChatFrame(currentChannel);
         }
+      } catch (e) {
+        console.error('cycle error:', e);
+      }
+    }
 
-        // ==================== AUTH ====================
-        async function checkAuth() {
-            const res = await fetch(`${API_BASE}/twitch_user_status`);
-            const data = await res.json();
-            if (data.is_connected) {
-                currentUser = data.display_name;
-                document.getElementById('hub-user-display').innerText = data.display_name;
-                document.getElementById('btn-auth').classList.add('hidden');
-                document.getElementById('user-area').classList.remove('hidden');
-                document.getElementById('user-name').innerText = data.display_name;
-                document.getElementById('user-avatar').src = data.profile_image_url;
-                await loadFollowed();
-            }
+    // ==================== CAROUSEL ====================
+    function initCarouselScroll() {
+      const el = document.getElementById('carousel');
+      if (!el) return;
+      el.addEventListener('wheel', (evt) => {
+        evt.preventDefault();
+        el.scrollLeft += evt.deltaY;
+      });
+    }
+
+    async function loadFollowed() {
+      const el = document.getElementById('carousel');
+      el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
+      try {
+        const res = await fetch(`${API_BASE}/followed_streams`);
+        const data = await res.json();
+        if (data.success && data.streams.length > 0) {
+          el.innerHTML = '';
+          data.streams.forEach(s => {
+            const thumb = (s.thumbnail_url || '').replace('{width}', '400').replace('{height}', '225');
+            el.innerHTML += `
+              <div class="stream-card flex-shrink-0 scale-in" onclick="changeChannel('${s.user_login}')">
+                <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
+                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
+                  <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
+                </div>
+                <div class="stream-card-badge"><i class="fas fa-dot-circle"></i> LIVE</div>
+              </div>
+            `;
+          });
         }
+      } catch (e) {
+        console.error('carousel error:', e);
+        el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Erreur</div>';
+      }
+    }
 
-        function startAuth() {
-            window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
-            const check = setInterval(async () => {
-                const res = await fetch(`${API_BASE}/twitch_user_status`);
-                const data = await res.json();
-                if (data.is_connected) {
-                    clearInterval(check);
-                    location.reload();
-                }
-            }, 1000);
-        }
+    function changeChannel(channel) {
+      currentChannel = channel;
+      document.getElementById('current-channel-display').textContent = channel.toUpperCase();
+      document.getElementById('viewer-count').textContent = '-- viewers';
+      loadPlayerEmbed(channel);
+      updateTwitchChatFrame(channel);
+    }
 
-        function logout() {
-            fetch(`${API_BASE}/twitch_logout`, { method: 'POST' }).then(() => location.reload());
-        }
+    // ==================== TABS ====================
+    function openTab(id) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${id}`).classList.add('active');
+      (event.target.closest('.tab-btn') || event.target).classList.add('active');
+    }
 
-        // ==================== PLAYER ====================
-        async function initPlayer() {
-            const res = await fetch(`${API_BASE}/get_default_stream`);
-            const data = await res.json();
-            if (data.success) {
-                currentChannel = data.channel;
-                document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
-                document.getElementById('player-mode-badge').innerText = data.mode;
-                
-                loadPlayerEmbed(currentChannel);
-                updateTwitchChatFrame(currentChannel);
-            }
-        }
+    function toggleChatMode(mode) {
+      const twitch = document.getElementById('chat-container-twitch');
+      const hub = document.getElementById('chat-container-hub');
+      const btnTw = document.getElementById('btn-mode-twitch');
+      const btnHb = document.getElementById('btn-mode-hub');
 
-        function loadPlayerEmbed(channel) {
-            const container = document.getElementById('video-container');
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
-            
-            container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
-            
-            loadStreamInfo(channel);
-        }
+      if (mode === 'hub') {
+        twitch.classList.add('hidden');
+        hub.classList.remove('hidden');
+        hub.classList.add('flex');
+        btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded transition';
+        btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition';
+      } else {
+        hub.classList.add('hidden');
+        hub.classList.remove('flex');
+        twitch.classList.remove('hidden');
+        btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded transition';
+        btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white transition';
+      }
+    }
 
-        function loadStreamInfo(channel) {
-            fetch(`${API_BASE}/stream_info`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ channel: channel })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.stream) {
-                    const title = data.stream.title || 'Sans titre';
-                    const viewers = data.stream.viewer_count || 0;
-                    
-                    const display = document.getElementById('current-channel-display');
-                    const titleText = title.length > 40 ? title.substring(0, 40) + '...' : title;
-                    display.innerText = `${channel.toUpperCase()} • ${titleText}`;
-                    display.title = title;
-                    
-                    document.getElementById('viewer-count').innerText = `${viewers.toLocaleString()} viewers`;
-                }
-            })
-            .catch(e => console.error('Stream info error:', e));
-        }
-
-        function updateTwitchChatFrame(channel) {
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
-            const frame = document.getElementById('twitch-chat-frame');
-            if (frame) {
-                frame.src = url;
-            }
-        }
-
-        async function cycle(dir) {
-            const res = await fetch(`${API_BASE}/cycle_stream`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ direction: dir })
-            });
-            const data = await res.json();
-            if (data.success) {
-                currentChannel = data.channel;
-                document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
-                document.getElementById('viewer-count').innerText = '-- viewers';
-                
-                loadPlayerEmbed(currentChannel);
-                updateTwitchChatFrame(currentChannel);
-            }
-        }
-
-        // ==================== CAROUSEL ====================
-        function initCarouselScroll() {
-            const el = document.getElementById('carousel');
-            el.addEventListener('wheel', (evt) => {
-                evt.preventDefault();
-                el.scrollLeft += evt.deltaY;
-            });
-        }
-
-        async function loadFollowed() {
-            const el = document.getElementById('carousel');
-            el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
-            try {
-                const res = await fetch(`${API_BASE}/followed_streams`);
-                const data = await res.json();
-                if (data.success && data.streams.length > 0) {
-                    el.innerHTML = '';
-                    data.streams.forEach(s => {
-                        const thumb = (s.thumbnail_url || '').replace('{width}', '400').replace('{height}', '225');
-                        el.innerHTML += `
-                            <div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')">
-                                <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
-                                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
-                                    <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
-                                </div>
-                                <div class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1 rounded">LIVE</div>
-                            </div>
-                        `;
-                    });
-                }
-            } catch (e) {
-                console.error('Carousel error:', e);
-                el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Erreur</div>';
-            }
-        }
-
-        function changeChannel(channel) {
-            currentChannel = channel;
-            document.getElementById('current-channel-display').innerText = channel.toUpperCase();
-            document.getElementById('viewer-count').innerText = '-- viewers';
-            
-            loadPlayerEmbed(channel);
-            updateTwitchChatFrame(channel);
-        }
-
-        // ==================== TABS ====================
-        function openTab(id) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${id}`).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        function toggleChatMode(mode) {
-            const twitch = document.getElementById('chat-container-twitch');
-            const hub = document.getElementById('chat-container-hub');
-            const btnTw = document.getElementById('btn-mode-twitch');
-            const btnHb = document.getElementById('btn-mode-hub');
-
-            if (mode === 'hub') {
-                twitch.classList.add('hidden');
-                hub.classList.remove('hidden');
-                hub.classList.add('flex');
-                btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded';
-                btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
-            } else {
-                hub.classList.add('hidden');
-                hub.classList.remove('flex');
-                twitch.classList.remove('hidden');
-                btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded';
-                btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
-            }
-        }
-
-        // ==================== SOCKET.IO ====================
-        function initSocket() {
-            try {
-                socket = io();
-                socket.on('connect', () => {
-                    console.log('Socket connected');
-                });
-                socket.on('disconnect', () => {
-                    console.log('Socket disconnected');
-                });
-                socket.on('chat message', (msg) => {
-                    const box = document.getElementById('hub-messages');
-                    const user = msg.user || 'Anon';
-                    const text = msg.text || msg;
-                    box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${user}</strong> <span class="text-gray-300">${text}</span></div>`;
-                    box.scrollTop = box.scrollHeight;
-                });
-            } catch (e) {
-                console.error('Socket error:', e);
-            }
-        }
-
-        function sendHubMessage(e) {
-            e.preventDefault();
-            const input = document.getElementById('hub-input');
-            if (input.value) {
-                if (socket) socket.emit('chat message', { user: currentUser || 'Anon', text: input.value });
-                const box = document.getElementById('hub-messages');
-                box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${currentUser || 'Anon'}</strong> <span class="text-gray-300">${input.value}</span></div>`;
-                box.scrollTop = box.scrollHeight;
-                input.value = '';
-            }
-        }
-
-        // ==================== BEST TIME TOOL ====================
-        async function analyzeBestTime() {
-            const gameInput = document.getElementById('best-time-game').value.trim();
-            
-            if (!gameInput) {
-                alert('Veuillez entrer un nom de jeu');
-                return;
-            }
-            
-            const btn = document.getElementById('analyze-schedule-btn');
-            const loading = document.getElementById('best-time-loading');
-            const results = document.getElementById('best-time-results');
-            
-            btn.disabled = true;
-            loading.style.display = 'block';
-            results.style.display = 'none';
-            results.innerHTML = '';
-            
-            try {
-                const response = await fetch(`${API_BASE}/analyze_schedule`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ game: gameInput })
-                });
-                
-                const data = await response.json();
-                
-                if (data.html_response) {
-                    results.innerHTML = data.html_response;
-                    results.style.display = 'block';
-                } else {
-                    results.innerHTML = '<p style="color: #ff6666;">❌ Erreur lors de l\'analyse</p>';
-                    results.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                results.innerHTML = '<p style="color: #ff6666;">❌ Erreur réseau</p>';
-                results.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                loading.style.display = 'none';
-            }
-        }
-
-        // ==================== STATS ====================
-        async function loadStatsDashboard() {
-            try {
-                const res = await fetch(`${API_BASE}/api/stats/global`);
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('kpi-viewers').innerText = data.total_viewers.toLocaleString();
-                    document.getElementById('kpi-channels').innerText = data.total_channels;
-                    renderChart('chartViewers', 'line', data.history.live.labels, data.history.live.values, 'Viewers', '#00f2ea');
-                }
-
-                const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
-                const dGames = await resGames.json();
-                const labels = dGames.games.map(g => g.name);
-                const values = dGames.games.map((g, i) => (i + 1) * 20);
-                renderChart('chartGames', 'bar', labels.slice(0, 5), values.slice(0, 5), 'Popularité', '#ff0099');
-
-                const resLang = await fetch(`${API_BASE}/api/stats/languages`);
-                const dLang = await resLang.json();
-                const lLabels = dLang.languages.map(l => l.name);
-                const lValues = dLang.languages.map(l => l.percent);
-                renderChart('chartLangs', 'doughnut', lLabels, lValues, 'Part', ['#00f2ea', '#ff0099', '#ffd700', '#fff', '#666']);
-            } catch (e) {
-                console.error('Stats error:', e);
-            }
-        }
-
-        function renderChart(id, type, labels, data, label, color) {
-            const ctx = document.getElementById(id);
-            if (!ctx) return;
-            
-            if (charts[id]) charts[id].destroy();
-
-            const bgColors = Array.isArray(color) ? color : (type === 'line' ? 'rgba(0, 242, 234, 0.1)' : color);
-            const borderColors = Array.isArray(color) ? color : color;
-
-            charts[id] = new Chart(ctx.getContext('2d'), {
-                type: type,
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: label,
-                        data: data,
-                        backgroundColor: bgColors,
-                        borderColor: borderColors,
-                        borderWidth: 1,
-                        fill: type === 'line',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: type === 'doughnut',
-                            position: 'right',
-                            labels: { color: 'white', boxWidth: 10 }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: type !== 'doughnut',
-                            ticks: { color: '#666' }
-                        },
-                        y: {
-                            display: type !== 'doughnut',
-                            grid: { color: '#222' },
-                            ticks: { color: '#666' }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ==================== TOOLS ====================
-        async function runScan() {
-            const q = document.getElementById('scan-query').value;
-            if (!q) return;
-            const box = document.getElementById('scan-res');
-            box.classList.remove('hidden');
-            document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse Twitch + IA...';
-
-            try {
-                const res = await fetch(`${API_BASE}/scan_target`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: q })
-                });
-                const data = await res.json();
-                if (data.success && data.user_data) {
-                    const u = data.user_data;
-                    document.getElementById('scan-name').innerText = u.display_name;
-                    document.getElementById('scan-game').innerText = u.game_name;
-                    document.getElementById('scan-img').src = u.profile_image_url;
-
-                    const ai = await fetch(`${API_BASE}/critique_ia`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'niche', query: u.display_name })
-                    });
-                    const aiD = await ai.json();
-                    document.getElementById('scan-ai').innerHTML = aiD.html_response || 'Pas de critique disponible';
-                }
-            } catch (e) {
-                console.error('Scan error:', e);
-            }
-        }
-
-        async function runRaid() {
-            const game = document.getElementById('raid-game').value;
-            const maxViewers = document.getElementById('raid-viewers').value;
-            if (!game) return;
-
-            document.getElementById('raid-res').classList.add('hidden');
-
-            try {
-                const res = await fetch(`${API_BASE}/start_raid`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ game, max_viewers: maxViewers })
-                });
-                const data = await res.json();
-                if (data.success && data.target) {
-                    raidTarget = data.target;
-                    const box = document.getElementById('raid-res');
-                    box.classList.remove('hidden');
-                    document.getElementById('raid-img').src = data.target.thumbnail_url;
-                    document.getElementById('raid-info').innerHTML = `
-                        <p class="font-bold text-white">${data.target.name}</p>
-                        <p>Viewers: ${data.target.viewers}</p>
-                        <p>Jeu: ${data.target.game}</p>
-                    `;
-                }
-            } catch (e) {
-                console.error('Raid error:', e);
-            }
-        }
-
-        function goToRaid() {
-            if (raidTarget) {
-                window.open(`https://twitch.tv/${raidTarget.login}`, '_blank');
-            }
-        }
-
-        async function runBoost() {
-            const c = document.getElementById('boost-query').value;
-            if (!c) return;
-            const res = await fetch(`${API_BASE}/stream_boost`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ channel: c })
-            });
-            const d = await res.json();
-            if (d.success) {
-                document.getElementById('boost-msg').innerText = '✅ Boost Activé !';
-                setTimeout(() => location.reload(), 2000);
-            }
-        }
-
-        window.addEventListener('message', (e) => {
-            if (e.data === 'auth_success') {
-                location.reload();
-            }
+    // ==================== SOCKET HUB CHAT ====================
+    function initSocket() {
+      try {
+        socket = io();
+        socket.on('connect', () => console.log('Socket connected'));
+        socket.on('disconnect', () => console.log('Socket disconnected'));
+        socket.on('chat message', (msg) => {
+          const box = document.getElementById('hub-messages');
+          const user = msg.user || 'Anon';
+          const text = msg.text || msg;
+          box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${user}</strong> <span class="text-gray-300">${text}</span></div>`;
+          box.scrollTop = box.scrollHeight;
         });
-    </script>
+      } catch (e) {
+        console.error('Socket error:', e);
+      }
+    }
+
+    function sendHubMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('hub-input');
+      if (!input.value) return;
+      if (socket) socket.emit('chat message', { user: currentUser || 'Anon', text: input.value });
+      const box = document.getElementById('hub-messages');
+      box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${currentUser || 'Anon'}</strong> <span class="text-gray-300">${input.value}</span></div>`;
+      box.scrollTop = box.scrollHeight;
+      input.value = '';
+    }
+
+    // ==================== BEST TIME TOOL ====================
+    async function analyzeBestTime() {
+      const gameInput = document.getElementById('best-time-game').value.trim();
+      if (!gameInput) {
+        showToast('Entrez un nom de jeu', 'error');
+        return;
+      }
+      const btn = document.getElementById('analyze-schedule-btn');
+      const loading = document.getElementById('best-time-loading');
+      const results = document.getElementById('best-time-results');
+
+      btn.disabled = true;
+      loading.style.display = 'block';
+      results.style.display = 'none';
+      results.innerHTML = '';
+
+      try {
+        const response = await fetch(`${API_BASE}/analyze_schedule`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game: gameInput })
+        });
+        const data = await response.json();
+        if (data.html_response) {
+          results.innerHTML = data.html_response;
+          results.style.display = 'block';
+          showToast('Analyse complète !');
+        } else {
+          results.innerHTML = '<p style="color:#ff6666;">❌ Erreur lors de l\'analyse</p>';
+          results.style.display = 'block';
+        }
+      } catch (e) {
+        console.error('Best time error:', e);
+        results.innerHTML = '<p style="color:#ff6666;">❌ Erreur réseau</p>';
+        results.style.display = 'block';
+        showToast('Erreur réseau', 'error');
+      } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    // ==================== STATS ====================
+    async function loadStatsDashboard() {
+      try {
+        const res = await fetch(`${API_BASE}/api/stats/global`);
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('kpi-viewers').textContent = data.total_viewers.toLocaleString();
+          document.getElementById('kpi-channels').textContent = data.total_channels;
+          renderChart('chartViewers', 'line', data.history.live.labels, data.history.live.values, 'Viewers', '#00f2ea');
+        }
+
+        const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
+        const dGames = await resGames.json();
+        const labels = dGames.games.map(g => g.name);
+        const values = dGames.games.map((g, i) => (i + 1) * 20);
+        renderChart('chartGames', 'bar', labels.slice(0, 5), values.slice(0, 5), 'Popularité', '#ff0099');
+
+        const resLang = await fetch(`${API_BASE}/api/stats/languages`);
+        const dLang = await resLang.json();
+        const lLabels = dLang.languages.map(l => l.name);
+        const lValues = dLang.languages.map(l => l.percent);
+        renderChart('chartLangs', 'doughnut', lLabels, lValues, 'Part', ['#00f2ea', '#ff0099', '#ffd700', '#fff', '#666']);
+      } catch (e) {
+        console.error('Stats error:', e);
+      }
+    }
+
+    function renderChart(id, type, labels, data, label, color) {
+      const ctx = document.getElementById(id);
+      if (!ctx) return;
+      if (charts[id]) charts[id].destroy();
+
+      const bgColors = Array.isArray(color) ? color : (type === 'line' ? 'rgba(0,242,234,0.1)' : color);
+      const borderColors = Array.isArray(color) ? color : color;
+
+      charts[id] = new Chart(ctx.getContext('2d'), {
+        type,
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
+            borderWidth: 1,
+            fill: type === 'line',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: type === 'doughnut',
+              position: 'right',
+              labels: { color: 'white', boxWidth: 10 }
+            }
+          },
+          scales: {
+            x: {
+              display: type !== 'doughnut',
+              ticks: { color: '#666' }
+            },
+            y: {
+              display: type !== 'doughnut',
+              grid: { color: '#222' },
+              ticks: { color: '#666' }
+            }
+          }
+        }
+      });
+    }
+
+    // ==================== TOOLS (SCAN / RAID / BOOST) ====================
+    async function runScan() {
+      const q = document.getElementById('scan-query').value.trim();
+      if (!q) return;
+      const box = document.getElementById('scan-res');
+      box.classList.remove('hidden');
+      document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse Twitch + IA...';
+      showToast('Scan en cours...');
+
+      try {
+        const res = await fetch(`${API_BASE}/scan_target`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q })
+        });
+        const data = await res.json();
+        if (data.success && data.user_data) {
+          const u = data.user_data;
+          document.getElementById('scan-name').textContent = u.display_name;
+          document.getElementById('scan-game').textContent = u.game_name;
+          document.getElementById('scan-img').src = u.profile_image_url;
+          document.getElementById('scanner-kpi').innerHTML =
+            `<div class="kpi-label">Niche Score</div><div class="kpi-value">${u.ai_calculated_niche_score}</div>`;
+
+          const aiRes = await fetch(`${API_BASE}/critique_ia`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'niche', query: u.display_name })
+          });
+          const aiData = await aiRes.json();
+          document.getElementById('scan-ai').innerHTML = aiData.html_response || 'Pas de critique disponible';
+          showToast('Scan complété !');
+        }
+      } catch (e) {
+        console.error('Scan error:', e);
+        showToast('Erreur lors du scan', 'error');
+      }
+    }
+
+    async function runRaid() {
+      const game = document.getElementById('raid-game').value.trim();
+      const maxViewers = document.getElementById('raid-viewers').value;
+      if (!game) return;
+      document.getElementById('raid-res').classList.add('hidden');
+      showToast('Recherche de raid...');
+
+      try {
+        const res = await fetch(`${API_BASE}/start_raid`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game, max_viewers: maxViewers })
+        });
+        const data = await res.json();
+        if (data.success && data.target) {
+          raidTarget = data.target;
+          document.getElementById('raid-res').classList.remove('hidden');
+          document.getElementById('raid-img').src = data.target.thumbnail_url;
+          document.getElementById('raid-info').innerHTML = `
+            <p class="font-bold text-white">${data.target.name}</p>
+            <p>Viewers: ${data.target.viewers}</p>
+            <p>Jeu: ${data.target.game}</p>
+          `;
+          document.getElementById('raid-kpi').innerHTML =
+            `<div class="kpi-label">Trouvé</div><div class="kpi-value">${data.target.name}</div>`;
+          showToast('Raid trouvé !');
+        } else {
+          showToast('Aucun raid trouvé', 'error');
+        }
+      } catch (e) {
+        console.error('Raid error:', e);
+        showToast('Erreur lors de la recherche', 'error');
+      }
+    }
+
+    function goToRaid() {
+      if (!raidTarget) return;
+      window.open(`https://twitch.tv/${raidTarget.login}`, '_blank');
+      showToast('Raid lancé !');
+    }
+
+    async function runBoost() {
+      const c = document.getElementById('boost-query').value.trim();
+      if (!c) return;
+      showToast('Activation du boost...');
+      try {
+        const res = await fetch(`${API_BASE}/stream_boost`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel: c })
+        });
+        const data = await res.json();
+        if (data.success) {
+          activeBoosts++;
+          document.getElementById('boost-count').textContent = activeBoosts;
+          document.getElementById('boost-msg').textContent = '✅ Boost activé ! (15 min)';
+          showToast('Boost activé pour 15 minutes !');
+          setTimeout(() => {
+            activeBoosts--;
+            document.getElementById('boost-count').textContent = activeBoosts;
+            document.getElementById('boost-msg').textContent = '';
+          }, 15 * 60 * 1000);
+        } else {
+          showToast('Erreur lors de l’activation', 'error');
+        }
+      } catch (e) {
+        console.error('Boost error:', e);
+        showToast('Erreur lors de l’activation', 'error');
+      }
+    }
+
+    // Auth popup callback
+    window.addEventListener('message', (e) => {
+      if (e.data === 'auth_success') location.reload();
+    });
+  </script>
 </body>
 </html>
