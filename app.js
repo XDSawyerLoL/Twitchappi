@@ -245,7 +245,9 @@ async function collectAnalyticsSnapshot() {
 }
 
 // ▶️ CRON toutes les 5 minutes
-setInterval(collectAnalyticsSnapshot, 5 * 60 * 1000);
+if (process.env.ENABLE_CRON === 'true') {
+  setInterval(collectAnalyticsSnapshot, 5 * 60 * 1000);
+}
 
 // =========================================================
 // 3. ROUTES AUTH & VOD
@@ -575,9 +577,12 @@ app.get('/api/analytics/channel/:id', async (req, res) => {
       return res.json({ success: false, message: 'Pas assez de données' });
     }
 
-    const viewers = snaps.docs.map(d => d.data().viewers);
-    const avg = Math.round(viewers.reduce((a, b) => a + b, 0) / viewers.length);
-    const peak = Math.max(...viewers);
+    const sorted = snaps.docs
+  .map(d => d.data())
+  .sort((a, b) => a.timestamp - b.timestamp);
+
+const viewers = sorted.map(d => d.viewers);
+
 
     const volatility = Math.round(
       Math.sqrt(
@@ -806,5 +811,6 @@ app.listen(PORT, () => {
   console.log(" - /scan_target, /start_raid, /stream_boost");
   console.log(" - Et 20+ autres endpoints\n");
 });
+
 
 
