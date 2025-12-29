@@ -3,771 +3,841 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streamer Hub V52 - ULTIMATE PERFORMANCE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <title>Niche Optimizer - Streamer AI Hub</title>
     <style>
-        :root {
-            --bg-dark: #050505;
-            --bg-panel: #0b0b0d;
-            --primary: #ff0099;
-            --secondary: #00f2ea;
-            --text-main: #e0e0e0;
-            --border-color: #1f1f23;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
         }
 
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #000;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #333;
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary);
-        }
-
-        .carousel-track {
+        /* ===== HEADER ===== */
+        header {
             display: flex;
-            gap: 15px;
-            overflow-x: auto;
-            padding: 10px 5px;
-            scroll-behavior: smooth;
-            cursor: grab;
-        }
-
-        .carousel-track.active {
-            cursor: grabbing;
-        }
-
-        .stream-card {
-            flex: 0 0 300px;
-            height: 170px;
-            background: #111;
-            border: 1px solid #222;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-            cursor: pointer;
-            transition: 0.2s;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
         }
 
-        .stream-card:hover {
-            border-color: var(--secondary);
-            transform: translateY(-4px);
-            box-shadow: 0 5px 20px rgba(0, 242, 234, 0.15);
-        }
-
-        .card-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.7;
-            transition: 0.3s;
-        }
-
-        .stream-card:hover .card-img {
-            opacity: 1;
-        }
-
-        .glass-panel {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-        }
-
-        .tab-nav {
+        header h1 {
+            font-size: 28px;
             display: flex;
-            background: #080808;
-            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            gap: 10px;
         }
 
-        .tab-btn {
-            flex: 1;
-            padding: 14px;
-            text-align: center;
-            color: #666;
-            font-family: 'Orbitron';
-            font-size: 11px;
+        /* ===== FIREBASE HUB STATUS STYLES ===== */
+        .hub-status-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-weight: bold;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: 0.3s;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .tab-btn:hover {
-            color: white;
-            background: #111;
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ffcc00;
+            animation: pulse 2s infinite;
+            display: block;
         }
 
-        .tab-btn.active {
-            color: var(--secondary);
-            border-bottom-color: var(--secondary);
-            background: #151515;
+        .status-text {
+            font-size: 12px;
+            color: #ffffff;
         }
 
-        .tab-content {
-            display: none;
-            height: 100%;
-            flex-direction: column;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
-        .tab-content.active {
+        /* ===== MAIN CONTENT ===== */
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
             display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .cyber-input {
-            background: #151515;
-            border: 1px solid #333;
-            color: white;
-            padding: 12px;
-            border-radius: 4px;
-            font-family: 'Inter';
+        .card p {
+            opacity: 0.8;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        /* ===== FORM STYLES ===== */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
             font-size: 13px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
-            transition: 0.3s;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* ===== BUTTON STYLES ===== */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             width: 100%;
         }
 
-        .cyber-input:focus {
-            border-color: var(--secondary);
-            box-shadow: 0 0 10px rgba(0, 242, 234, 0.2);
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
 
-        .hub-msg {
-            padding: 8px;
-            border-bottom: 1px solid #1a1a1a;
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ===== BEST TIME TOOL STYLES ===== */
+        .best-time-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            color: white;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border-left: 4px solid #ffd700;
+        }
+
+        .best-time-section h3 {
+            margin-top: 0;
+            font-size: 20px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .best-time-section > p {
+            opacity: 0.9;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .best-time-section .form-group {
+            margin-bottom: 16px;
+        }
+
+        .best-time-section label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
             font-size: 13px;
-            line-height: 1.4;
         }
 
-        .hub-msg strong {
-            font-family: 'Orbitron';
-            font-size: 11px;
+        .best-time-section .input-field {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
         }
 
-        .scrollbar-thin::-webkit-scrollbar {
-            width: 4px;
+        .best-time-section .input-field:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .best-time-section .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .best-time-section .btn-primary {
+            background: #ffffff;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .best-time-section .btn-primary:hover:not(:disabled) {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+        }
+
+        .best-time-section .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #best-time-content {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+            border-left: 4px solid #ffd700;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        #best-time-content h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+
+        #best-time-content ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        #best-time-content li {
+            margin-bottom: 8px;
+        }
+
+        #best-time-loading {
+            text-align: center;
+            color: #ffd700;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffd700;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== RESULTS SECTION ===== */
+        .results-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .results-container h3 {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 3px solid #667eea;
+        }
+
+        .result-item h4 {
+            margin-bottom: 8px;
+            color: #667eea;
+        }
+
+        .result-item p {
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            header h1 {
+                font-size: 20px;
+            }
+
+            .hub-status-container {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4">
-    <!-- HEADER -->
-    <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
-        <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-orbitron italic tracking-widest">
-                <span class="text-[#00f2ea]">STREAMER</span> HUB 
-                <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">V52</span>
-            </h1>
-            <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">
-                HUB DISCONNECTED
+<body>
+    <div class="container">
+        <!-- ===== HEADER ===== -->
+        <header>
+            <h1>🎮 Niche Optimizer - Streamer AI Hub</h1>
+            <div class="hub-status-container">
+                <span class="status-dot" id="hub-status-dot"></span>
+                <span class="status-text" id="hub-status">CONNECTING...</span>
+            </div>
+        </header>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <div class="content">
+            <!-- ===== CARD 1: SCAN TARGET ===== -->
+            <div class="card">
+                <h2>🔍 Scan Target</h2>
+                <p>Analysez une chaîne Twitch ou un jeu pour obtenir des insights complets.</p>
+                
+                <div class="form-group">
+                    <label for="scan-input">Chaîne ou Jeu :</label>
+                    <input 
+                        type="text" 
+                        id="scan-input" 
+                        placeholder="Ex: xQcOW ou League of Legends"
+                    />
+                </div>
+                
+                <button class="btn btn-primary" onclick="scanTarget()">
+                    ⚡ Scanner
+                </button>
+                
+                <div id="scan-results" style="margin-top: 20px; display: none;">
+                    <div id="scan-content"></div>
+                </div>
+            </div>
+
+            <!-- ===== CARD 2: START RAID ===== -->
+            <div class="card">
+                <h2>⚔️ Start Raid</h2>
+                <p>Trouvez les meilleures chaînes à raidir selon le jeu et la taille d'audience.</p>
+                
+                <div class="form-group">
+                    <label for="raid-game">Jeu :</label>
+                    <input 
+                        type="text" 
+                        id="raid-game" 
+                        placeholder="Ex: Valorant, Fortnite..."
+                    />
+                </div>
+                
+                <div class="form-group">
+                    <label for="raid-viewers">Max Viewers :</label>
+                    <input 
+                        type="number" 
+                        id="raid-viewers" 
+                        placeholder="500" 
+                        value="500"
+                    />
+                </div>
+                
+                <button class="btn btn-primary" onclick="startRaid()">
+                    🎯 Trouver Target
+                </button>
+                
+                <div id="raid-results" style="margin-top: 20px; display: none;">
+                    <div id="raid-content"></div>
+                </div>
+            </div>
+
+            <!-- ===== CARD 3: STREAM STATS ===== -->
+            <div class="card">
+                <h2>📊 Stream Stats</h2>
+                <p>Consultez les statistiques globales de Twitch en temps réel.</p>
+                
+                <button class="btn btn-primary" onclick="loadStats()">
+                    📈 Charger Stats
+                </button>
+                
+                <div id="stats-results" style="margin-top: 20px; display: none;">
+                    <div id="stats-content"></div>
+                </div>
+            </div>
+
+            <!-- ===== CARD 4: BOOST STREAM ===== -->
+            <div class="card">
+                <h2>⚡ Boost Stream</h2>
+                <p>Activez un boost de 15 minutes pour votre chaîne (Firebase).</p>
+                
+                <div class="form-group">
+                    <label for="boost-channel">Votre Chaîne :</label>
+                    <input 
+                        type="text" 
+                        id="boost-channel" 
+                        placeholder="Ex: votrechannel"
+                    />
+                </div>
+                
+                <button class="btn btn-primary" onclick="boostStream()">
+                    ✨ Activer Boost
+                </button>
+                
+                <div id="boost-results" style="margin-top: 20px; display: none;">
+                    <div id="boost-content"></div>
+                </div>
             </div>
         </div>
-        <div>
-            <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
-                <i class="fab fa-twitch"></i> CONNEXION
+
+        <!-- ===== BEST TIME TOOL SECTION ===== -->
+        <div class="best-time-section">
+            <h3>🎯 Best Time to Stream</h3>
+            <p>Trouvez le meilleur moment pour streamer un jeu en analysant la concurrence et le ratio présence/viewers</p>
+            
+            <div class="form-group">
+                <label for="best-time-game">Nom du Jeu :</label>
+                <input 
+                    type="text" 
+                    id="best-time-game" 
+                    placeholder="Ex: League of Legends, Valorant, Fortnite..." 
+                    class="input-field"
+                />
+            </div>
+            
+            <button 
+                id="analyze-schedule-btn" 
+                class="btn-primary"
+                onclick="analyzeBestTime()"
+            >
+                ⚙️ Analyser les meilleurs créneaux
             </button>
-            <div id="user-area" class="hidden flex items-center gap-3">
-                <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
-                <span id="user-name" class="font-bold text-white text-sm"></span>
-                <button onclick="logout()" class="text-gray-500 hover:text-white">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
+            
+            <div id="best-time-results" style="margin-top: 20px; display: none;">
+                <div id="best-time-content"></div>
             </div>
-        </div>
-    </header>
-
-    <!-- CAROUSEL -->
-    <div class="mb-4 relative group">
-        <div id="carousel" class="carousel-track">
-            <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
-                <i class="fas fa-satellite-dish mb-2"></i><br>
-                Connectez-vous pour voir vos chaînes.
-            </div>
-        </div>
-        <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
-    </div>
-
-    <!-- MAIN GRID -->
-    <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
-        <!-- VIDEO PLAYER -->
-        <div class="lg:col-span-8 flex flex-col gap-4 h-full">
-            <!-- PLAYER -->
-            <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl">
-                <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
-                    <div class="flex items-center gap-3 flex-1 min-w-0">
-                        <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
-                        <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate">
-                            OFFLINE
-                        </span>
-                        <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0">
-                            AUTO
-                        </span>
-                        <span id="viewer-count" class="text-[10px] text-[#ff0099] font-bold flex-shrink-0">
-                            0 viewers
-                        </span>
-                    </div>
-                    <div class="flex gap-2 flex-shrink-0">
-                        <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
-                <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden"></div>
+            
+            <div id="best-time-loading" style="margin-top: 20px; display: none;">
+                <span class="spinner"></span>
+                <p>Analyse en cours...</p>
             </div>
         </div>
 
-        <!-- RIGHT PANEL -->
-        <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full max-h-[calc(100vh-280px)] lg:max-h-full">
-            <!-- TAB NAV -->
-            <div class="tab-nav">
-                <button class="tab-btn active" onclick="openTab('chat')">
-                    <i class="fas fa-comments mr-1"></i> CHAT
-                </button>
-                <button class="tab-btn" onclick="openTab('stats')">
-                    <i class="fas fa-chart-pie mr-1"></i> STATS
-                </button>
-                <button class="tab-btn" onclick="openTab('tools')">
-                    <i class="fas fa-toolbox mr-1"></i> OUTILS
-                </button>
+        <!-- ===== CRITIQUE IA SECTION ===== -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>🤖 Critique IA</h2>
+            <p>Obtenez une analyse IA ou des idées de clips pour un niche/jeu.</p>
+            
+            <div class="form-group">
+                <label for="critique-query">Query :</label>
+                <input 
+                    type="text" 
+                    id="critique-query" 
+                    placeholder="Ex: League of Legends"
+                />
             </div>
-
-            <!-- TAB: CHAT -->
-            <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
-                <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
-                    <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">
-                        TWITCH
-                    </button>
-                    <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">
-                        HUB SECURE
-                    </button>
-                </div>
-                <div id="chat-container-twitch" class="flex-grow relative bg-[#0a0a0a] overflow-hidden">
-                    <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
-                </div>
-                <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
-                    <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
-                        <div class="text-center text-gray-600 text-xs mt-4">
-                            Bienvenue sur le Hub Sécurisé - Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
-                        </div>
-                    </div>
-                    <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
-                        <input id="hub-input" type="text" placeholder="Message crypté..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-                        <button type="submit" class="text-[#00f2ea] px-2">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </form>
-                </div>
+            
+            <div class="form-group">
+                <label for="critique-type">Type :</label>
+                <select id="critique-type">
+                    <option value="niche">Audit Niche</option>
+                    <option value="clips">Idées Clips</option>
+                </select>
             </div>
-
-            <!-- TAB: STATS -->
-            <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
-                        <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
-                        <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
-                    </div>
-                    <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
-                        <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
-                        <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
-                    </div>
-                </div>
-                <div class="space-y-6">
-                    <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance 12h</h4>
-                        <div class="h-40"><canvas id="chartViewers"></canvas></div>
-                    </div>
-                    <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
-                        <div class="h-48"><canvas id="chartGames"></canvas></div>
-                    </div>
-                    <div class="bg-[#111] p-3 rounded border border-[#222]">
-                        <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
-                        <div class="h-40"><canvas id="chartLangs"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB: TOOLS -->
-            <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6">
-                <!-- SCANNER -->
-                <div>
-                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
-                    <div class="flex gap-2 mb-3">
-                        <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
-                        <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                    <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
-                        <div class="flex gap-3 items-center mb-3">
-                            <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
-                            <div>
-                                <div id="scan-name" class="font-bold text-white">--</div>
-                                <div id="scan-game" class="text-xs text-gray-500">--</div>
-                            </div>
-                        </div>
-                        <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
-                    </div>
-                </div>
-
-                <!-- RAID -->
-                <div>
-                    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
-                    <div class="flex gap-2 mb-3">
-                        <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
-                        <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
-                    </div>
-                    <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">
-                        🔍 CHERCHER
-                    </button>
-                    <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
-                        <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
-                        <div id="raid-info" class="text-xs text-gray-300"></div>
-                        <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white">
-                            🎮 ALLER AU RAID
-                        </button>
-                    </div>
-                </div>
-
-                <!-- BOOST -->
-                <div>
-                    <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
-                    <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
-                    <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">
-                        ACTIVER
-                    </button>
-                    <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
-                </div>
+            
+            <button class="btn btn-primary" onclick="runCritique()">
+                ✨ Analyser
+            </button>
+            
+            <div id="critique-results" style="margin-top: 20px; display: none;">
+                <div id="critique-content"></div>
             </div>
         </div>
     </div>
 
+    <!-- ===== JAVASCRIPT ===== -->
     <script>
-        const API_BASE = window.location.origin;
-        const PARENT_DOMAINS = ['localhost', '127.0.0.1', window.location.hostname, 'justplayer.fr', 'www.justplayer.fr'];
-        let player;
-        let socket;
-        let currentChannel = 'twitch';
-        let currentUser = null;
-        let charts = {};
-        let raidTarget = null;
+        // ========== FIREBASE STATUS LISTENER ==========
+        let firebaseStatusCheckInterval = null;
 
-        // ==================== INIT ====================
-        window.addEventListener('load', async () => {
-            await checkAuth();
-            initPlayer();
-            loadStatsDashboard();
-            initCarouselScroll();
-            initSocket();
-            setInterval(loadStatsDashboard, 5 * 60 * 1000);
-        });
-
-        // ==================== AUTH ====================
-        async function checkAuth() {
-            const res = await fetch(`${API_BASE}/twitch_user_status`);
-            const data = await res.json();
-            if (data.is_connected) {
-                currentUser = data.display_name;
-                document.getElementById('hub-user-display').innerText = data.display_name;
-                document.getElementById('btn-auth').classList.add('hidden');
-                document.getElementById('user-area').classList.remove('hidden');
-                document.getElementById('user-name').innerText = data.display_name;
-                document.getElementById('user-avatar').src = data.profile_image_url;
-                await loadFollowed();
-            }
-        }
-
-        function startAuth() {
-            window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
-            const check = setInterval(async () => {
-                const res = await fetch(`${API_BASE}/twitch_user_status`);
-                const data = await res.json();
-                if (data.is_connected) {
-                    clearInterval(check);
-                    location.reload();
-                }
-            }, 1000);
-        }
-
-        function logout() {
-            fetch(`${API_BASE}/twitch_logout`, { method: 'POST' }).then(() => location.reload());
-        }
-
-        // ==================== PLAYER ====================
-        async function initPlayer() {
-            const res = await fetch(`${API_BASE}/get_default_stream`);
-            const data = await res.json();
-            if (data.success) {
-                currentChannel = data.channel;
-                document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
-                document.getElementById('player-mode-badge').innerText = data.mode;
+        async function initFirebaseStatusListener() {
+            try {
+                const response = await fetch('/firebase_status');
+                const data = await response.json();
                 
-                loadPlayerEmbed(currentChannel);
-                updateTwitchChatFrame(currentChannel);
-            }
-        }
-
-        function loadPlayerEmbed(channel) {
-            const container = document.getElementById('video-container');
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
-            
-            container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
-            
-            // Charger les infos du live
-            loadStreamInfo(channel);
-        }
-
-        function loadStreamInfo(channel) {
-            fetch(`${API_BASE}/stream_info`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ channel: channel })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.stream) {
-                    const title = data.stream.title || 'Sans titre';
-                    const viewers = data.stream.viewer_count || 0;
-                    
-                    // Mettre à jour le titre
-                    const display = document.getElementById('current-channel-display');
-                    const titleText = title.length > 40 ? title.substring(0, 40) + '...' : title;
-                    display.innerText = `${channel.toUpperCase()} • ${titleText}`;
-                    display.title = title;
-                    
-                    // Mettre à jour les viewers
-                    document.getElementById('viewer-count').innerText = `${viewers.toLocaleString()} viewers`;
-                }
-            })
-            .catch(e => console.error('Stream info error:', e));
-        }
-
-        function updateTwitchChatFrame(channel) {
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
-            const frame = document.getElementById('twitch-chat-frame');
-            if (frame) {
-                frame.src = url;
-            }
-        }
-
-        async function cycle(dir) {
-            const res = await fetch(`${API_BASE}/cycle_stream`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ direction: dir })
-            });
-            const data = await res.json();
-            if (data.success) {
-                currentChannel = data.channel;
-                document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
-                document.getElementById('viewer-count').innerText = '-- viewers';
+                const statusElement = document.getElementById('hub-status');
+                const dotElement = document.getElementById('hub-status-dot');
                 
-                loadPlayerEmbed(currentChannel);
-                updateTwitchChatFrame(currentChannel);
-            }
-        }
-
-        // ==================== CAROUSEL ====================
-        function initCarouselScroll() {
-            const el = document.getElementById('carousel');
-            el.addEventListener('wheel', (evt) => {
-                evt.preventDefault();
-                el.scrollLeft += evt.deltaY;
-            });
-        }
-
-        async function loadFollowed() {
-            const el = document.getElementById('carousel');
-            el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
-            try {
-                const res = await fetch(`${API_BASE}/followed_streams`);
-                const data = await res.json();
-                if (data.success && data.streams.length > 0) {
-                    el.innerHTML = '';
-                    data.streams.forEach(s => {
-                        const thumb = (s.thumbnail_url || '').replace('{width}', '400').replace('{height}', '225');
-                        el.innerHTML += `
-                            <div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')">
-                                <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
-                                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
-                                    <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
-                                </div>
-                                <div class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1 rounded">LIVE</div>
-                            </div>
-                        `;
-                    });
-                }
-            } catch (e) {
-                console.error('Carousel error:', e);
-                el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Erreur</div>';
-            }
-        }
-
-        function changeChannel(channel) {
-            currentChannel = channel;
-            document.getElementById('current-channel-display').innerText = channel.toUpperCase();
-            document.getElementById('viewer-count').innerText = '-- viewers';
-            
-            loadPlayerEmbed(channel);
-            updateTwitchChatFrame(channel);
-        }
-
-        // ==================== TABS ====================
-        function openTab(id) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${id}`).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        function toggleChatMode(mode) {
-            const twitch = document.getElementById('chat-container-twitch');
-            const hub = document.getElementById('chat-container-hub');
-            const btnTw = document.getElementById('btn-mode-twitch');
-            const btnHb = document.getElementById('btn-mode-hub');
-
-            if (mode === 'hub') {
-                twitch.classList.add('hidden');
-                hub.classList.remove('hidden');
-                hub.classList.add('flex');
-                btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded';
-                btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
-            } else {
-                hub.classList.add('hidden');
-                hub.classList.remove('flex');
-                twitch.classList.remove('hidden');
-                btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded';
-                btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
-            }
-        }
-
-        // ==================== SOCKET.IO ====================
-        function initSocket() {
-            try {
-                socket = io();
-                socket.on('connect', () => {
-                    const el = document.getElementById('socket-status');
-                    el.innerText = 'HUB SECURE';
-                    el.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded shadow-[0_0_5px_#00f2ea]';
-                });
-                socket.on('disconnect', () => {
-                    const el = document.getElementById('socket-status');
-                    el.innerText = 'DISCONNECTED';
-                    el.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
-                });
-                socket.on('chat message', (msg) => {
-                    const box = document.getElementById('hub-messages');
-                    const user = msg.user || 'Anon';
-                    const text = msg.text || msg;
-                    box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${user}</strong> <span class="text-gray-300">${text}</span></div>`;
-                    box.scrollTop = box.scrollHeight;
-                });
-            } catch (e) {
-                console.error('Socket error:', e);
-            }
-        }
-
-        function sendHubMessage(e) {
-            e.preventDefault();
-            const input = document.getElementById('hub-input');
-            if (input.value) {
-                if (socket) socket.emit('chat message', { user: currentUser || 'Anon', text: input.value });
-                const box = document.getElementById('hub-messages');
-                box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${currentUser || 'Anon'}</strong> <span class="text-gray-300">${input.value}</span></div>`;
-                box.scrollTop = box.scrollHeight;
-                input.value = '';
-            }
-        }
-
-        // ==================== STATS ====================
-        async function loadStatsDashboard() {
-            try {
-                const res = await fetch(`${API_BASE}/api/stats/global`);
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('kpi-viewers').innerText = data.total_viewers.toLocaleString();
-                    document.getElementById('kpi-channels').innerText = data.total_channels;
-                    renderChart('chartViewers', 'line', data.history.live.labels, data.history.live.values, 'Viewers', '#00f2ea');
-                }
-
-                const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
-                const dGames = await resGames.json();
-                const labels = dGames.games.map(g => g.name);
-                const values = dGames.games.map((g, i) => (i + 1) * 20);
-                renderChart('chartGames', 'bar', labels.slice(0, 5), values.slice(0, 5), 'Popularité', '#ff0099');
-
-                const resLang = await fetch(`${API_BASE}/api/stats/languages`);
-                const dLang = await resLang.json();
-                const lLabels = dLang.languages.map(l => l.name);
-                const lValues = dLang.languages.map(l => l.percent);
-                renderChart('chartLangs', 'doughnut', lLabels, lValues, 'Part', ['#00f2ea', '#ff0099', '#ffd700', '#fff', '#666']);
-            } catch (e) {
-                console.error('Stats error:', e);
-            }
-        }
-
-        function renderChart(id, type, labels, data, label, color) {
-            const ctx = document.getElementById(id);
-            if (!ctx) return;
-            
-            if (charts[id]) charts[id].destroy();
-
-            const bgColors = Array.isArray(color) ? color : (type === 'line' ? 'rgba(0, 242, 234, 0.1)' : color);
-            const borderColors = Array.isArray(color) ? color : color;
-
-            charts[id] = new Chart(ctx.getContext('2d'), {
-                type: type,
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: label,
-                        data: data,
-                        backgroundColor: bgColors,
-                        borderColor: borderColors,
-                        borderWidth: 1,
-                        fill: type === 'line',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: type === 'doughnut',
-                            position: 'right',
-                            labels: { color: 'white', boxWidth: 10 }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: type !== 'doughnut',
-                            ticks: { color: '#666' }
-                        },
-                        y: {
-                            display: type !== 'doughnut',
-                            grid: { color: '#222' },
-                            ticks: { color: '#666' }
-                        }
+                if (statusElement && dotElement) {
+                    if (data.connected) {
+                        statusElement.textContent = 'CONNECTED';
+                        statusElement.style.color = '#00ff00';
+                        dotElement.style.backgroundColor = '#00ff00';
+                        dotElement.style.boxShadow = '0 0 10px rgba(0, 255, 0, 0.6)';
+                    } else {
+                        statusElement.textContent = 'DISCONNECTED';
+                        statusElement.style.color = '#ff0000';
+                        dotElement.style.backgroundColor = '#ff0000';
+                        dotElement.style.boxShadow = '0 0 10px rgba(255, 0, 0, 0.6)';
                     }
                 }
-            });
-        }
-
-        // ==================== TOOLS ====================
-        async function runScan() {
-            const q = document.getElementById('scan-query').value;
-            if (!q) return;
-            const box = document.getElementById('scan-res');
-            box.classList.remove('hidden');
-            document.getElementById('scan-ai').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse Twitch + IA...';
-
-            try {
-                const res = await fetch(`${API_BASE}/scan_target`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: q })
-                });
-                const data = await res.json();
-                if (data.success && data.user_data) {
-                    const u = data.user_data;
-                    document.getElementById('scan-name').innerText = u.display_name;
-                    document.getElementById('scan-game').innerText = u.game_name;
-                    document.getElementById('scan-img').src = u.profile_image_url;
-
-                    const ai = await fetch(`${API_BASE}/critique_ia`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'niche', query: u.display_name })
-                    });
-                    const aiD = await ai.json();
-                    document.getElementById('scan-ai').innerHTML = aiD.html_response || 'Pas de critique disponible';
+            } catch (error) {
+                console.error('❌ Firebase status check failed:', error);
+                const statusElement = document.getElementById('hub-status');
+                if (statusElement) {
+                    statusElement.textContent = 'ERROR';
+                    statusElement.style.color = '#ff6600';
                 }
-            } catch (e) {
-                console.error('Scan error:', e);
             }
         }
 
-        async function runRaid() {
-            const game = document.getElementById('raid-game').value;
-            const maxViewers = document.getElementById('raid-viewers').value;
-            if (!game) return;
+        // ========== SCAN TARGET ==========
+        async function scanTarget() {
+            const query = document.getElementById('scan-input').value.trim();
+            if (!query) {
+                alert('Veuillez entrer une chaîne ou un jeu');
+                return;
+            }
 
-            document.getElementById('raid-res').classList.add('hidden');
-
+            const resultsDiv = document.getElementById('scan-results');
+            const contentDiv = document.getElementById('scan-content');
+            
             try {
-                const res = await fetch(`${API_BASE}/start_raid`, {
+                const response = await fetch('/scan_target', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ game, max_viewers: maxViewers })
+                    body: JSON.stringify({ query })
                 });
-                const data = await res.json();
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.type === 'user') {
+                        const u = data.user_data;
+                        contentDiv.innerHTML = `
+                            <div class="result-item">
+                                <h4>${u.display_name}</h4>
+                                <p><strong>Login:</strong> ${u.login}</p>
+                                <p><strong>Jeu:</strong> ${u.game_name}</p>
+                                <p><strong>Titre:</strong> ${u.title}</p>
+                                <p><strong>Live:</strong> ${u.is_live ? '✅ OUI' : '❌ NON'}</p>
+                                <p><strong>Viewers:</strong> ${u.viewer_count}</p>
+                                <p><strong>Score:</strong> ${u.ai_calculated_niche_score}</p>
+                            </div>
+                        `;
+                    } else {
+                        const g = data.game_data;
+                        contentDiv.innerHTML = `
+                            <div class="result-item">
+                                <h4>${g.name}</h4>
+                                <p><strong>Total Viewers:</strong> ${g.total_viewers}</p>
+                                <p><strong>Score:</strong> ${g.ai_calculated_niche_score}/5</p>
+                            </div>
+                        `;
+                    }
+                    resultsDiv.style.display = 'block';
+                } else {
+                    contentDiv.innerHTML = '<p style="color:red;">❌ Non trouvé</p>';
+                    resultsDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                contentDiv.innerHTML = '<p style="color:red;">❌ Erreur réseau</p>';
+                resultsDiv.style.display = 'block';
+            }
+        }
+
+        // ========== START RAID ==========
+        async function startRaid() {
+            const game = document.getElementById('raid-game').value.trim();
+            const max_viewers = document.getElementById('raid-viewers').value;
+            
+            if (!game) {
+                alert('Veuillez entrer un jeu');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('raid-results');
+            const contentDiv = document.getElementById('raid-content');
+            
+            try {
+                const response = await fetch('/start_raid', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game, max_viewers })
+                });
+                const data = await response.json();
+                
                 if (data.success && data.target) {
-                    raidTarget = data.target;
-                    const box = document.getElementById('raid-res');
-                    box.classList.remove('hidden');
-                    document.getElementById('raid-img').src = data.target.thumbnail_url;
-                    document.getElementById('raid-info').innerHTML = `
-                        <p class="font-bold text-white">${data.target.name}</p>
-                        <p>Viewers: ${data.target.viewers}</p>
-                        <p>Jeu: ${data.target.game}</p>
+                    const t = data.target;
+                    contentDiv.innerHTML = `
+                        <div class="result-item">
+                            <h4>${t.name}</h4>
+                            <p><strong>Jeu:</strong> ${t.game}</p>
+                            <p><strong>Viewers:</strong> ${t.viewers}</p>
+                            <img src="${t.thumbnail_url}" style="width:100%; border-radius:6px; margin-top:12px;">
+                        </div>
                     `;
+                } else {
+                    contentDiv.innerHTML = '<p style="color:red;">❌ Aucune chaîne trouvée</p>';
                 }
-            } catch (e) {
-                console.error('Raid error:', e);
+                resultsDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+                contentDiv.innerHTML = '<p style="color:red;">❌ Erreur réseau</p>';
+                resultsDiv.style.display = 'block';
             }
         }
 
-        function goToRaid() {
-            if (raidTarget) {
-                window.open(`https://twitch.tv/${raidTarget.login}`, '_blank');
+        // ========== LOAD STATS ==========
+        async function loadStats() {
+            const resultsDiv = document.getElementById('stats-results');
+            const contentDiv = document.getElementById('stats-content');
+            
+            try {
+                const response = await fetch('/api/stats/global');
+                const data = await response.json();
+                
+                if (data.success) {
+                    contentDiv.innerHTML = `
+                        <div class="result-item">
+                            <h4>Statistiques Globales Twitch</h4>
+                            <p><strong>Viewers Totaux (estimés):</strong> ${data.total_viewers.toLocaleString()}</p>
+                            <p><strong>Chaînes:</strong> ${data.total_channels}</p>
+                            <p><strong>Top Jeu:</strong> ${data.top_game_name}</p>
+                        </div>
+                    `;
+                } else {
+                    contentDiv.innerHTML = '<p style="color:red;">❌ Erreur chargement</p>';
+                }
+                resultsDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+                contentDiv.innerHTML = '<p style="color:red;">❌ Erreur réseau</p>';
+                resultsDiv.style.display = 'block';
             }
         }
 
-        async function runBoost() {
-            const c = document.getElementById('boost-query').value;
-            if (!c) return;
-            const res = await fetch(`${API_BASE}/stream_boost`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ channel: c })
+        // ========== BOOST STREAM ==========
+        async function boostStream() {
+            const channel = document.getElementById('boost-channel').value.trim();
+            
+            if (!channel) {
+                alert('Veuillez entrer le nom de votre chaîne');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('boost-results');
+            const contentDiv = document.getElementById('boost-content');
+            
+            try {
+                const response = await fetch('/stream_boost', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    contentDiv.innerHTML = data.html_response || '<p style="color:green;">✅ Boost activé!</p>';
+                } else {
+                    contentDiv.innerHTML = '<p style="color:red;">❌ Erreur</p>';
+                }
+                resultsDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+                contentDiv.innerHTML = '<p style="color:red;">❌ Erreur réseau</p>';
+                resultsDiv.style.display = 'block';
+            }
+        }
+
+        // ========== BEST TIME TOOL ==========
+        async function analyzeBestTime() {
+            const gameInput = document.getElementById('best-time-game').value.trim();
+            
+            if (!gameInput) {
+                alert('🎮 Veuillez entrer un nom de jeu');
+                return;
+            }
+            
+            const btn = document.getElementById('analyze-schedule-btn');
+            const loading = document.getElementById('best-time-loading');
+            const results = document.getElementById('best-time-results');
+            const content = document.getElementById('best-time-content');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            
+            try {
+                const response = await fetch('/analyze_schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game: gameInput })
+                });
+                
+                const data = await response.json();
+                
+                if (data.html_response) {
+                    content.innerHTML = data.html_response;
+                    results.style.display = 'block';
+                } else {
+                    content.innerHTML = '<p style="color:red;">❌ Erreur lors de l\'analyse. Veuillez réessayer.</p>';
+                    results.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                content.innerHTML = '<p style="color:red;">❌ Erreur réseau. Vérifiez votre connexion.</p>';
+                results.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        // ========== RUN CRITIQUE ==========
+        async function runCritique() {
+            const query = document.getElementById('critique-query').value.trim();
+            const type = document.getElementById('critique-type').value;
+            
+            if (!query) {
+                alert('Veuillez entrer une query');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('critique-results');
+            const contentDiv = document.getElementById('critique-content');
+            
+            try {
+                const response = await fetch('/critique_ia', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, query })
+                });
+                const data = await response.json();
+                
+                if (data.html_response) {
+                    contentDiv.innerHTML = data.html_response;
+                } else {
+                    contentDiv.innerHTML = '<p style="color:red;">❌ Erreur IA</p>';
+                }
+                resultsDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Error:', error);
+                contentDiv.innerHTML = '<p style="color:red;">❌ Erreur réseau</p>';
+                resultsDiv.style.display = 'block';
+            }
+        }
+
+        // ========== INITIALISATION AU CHARGEMENT ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialiser le statut Firebase
+            initFirebaseStatusListener();
+            
+            // Vérifier le statut toutes les 5 secondes
+            firebaseStatusCheckInterval = setInterval(initFirebaseStatusListener, 5000);
+            
+            // Permettre Entrée dans les champs
+            const inputs = ['scan-input', 'raid-game', 'best-time-game', 'critique-query'];
+            inputs.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            if (id === 'scan-input') scanTarget();
+                            else if (id === 'raid-game') startRaid();
+                            else if (id === 'best-time-game') analyzeBestTime();
+                            else if (id === 'critique-query') runCritique();
+                        }
+                    });
+                }
             });
-            const d = await res.json();
-            if (d.success) {
-                document.getElementById('boost-msg').innerText = '✅ Boost Activé !';
-                setTimeout(() => location.reload(), 2000);
-            }
-        }
+        });
 
-        window.addEventListener('message', (e) => {
-            if (e.data === 'auth_success') {
-                location.reload();
+        // Nettoyer les intervalles à la fermeture
+        window.addEventListener('beforeunload', () => {
+            if (firebaseStatusCheckInterval) {
+                clearInterval(firebaseStatusCheckInterval);
             }
         });
     </script>
