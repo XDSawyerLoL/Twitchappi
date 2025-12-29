@@ -189,16 +189,6 @@
             50% { opacity: 0.6; }
         }
 
-        /* ===== TWITCH IFRAME FIX ===== */
-        #chat-container-twitch {
-            background: #0a0a0a !important;
-            filter: invert(1) hue-rotate(180deg);
-        }
-
-        #twitch-chat-frame {
-            filter: invert(1) hue-rotate(180deg);
-        }
-
         /* ===== BEST TIME TOOL STYLES ===== */
         .best-time-tool {
             background: #151515;
@@ -518,10 +508,9 @@
             </div>
         </div>
     </div>
-
     <script>
         const API_BASE = window.location.origin;
-        const PARENT_DOMAINS = ['localhost', '127.0.0.1', window.location.hostname, 'justplayer.fr', 'www.justplayer.fr'];
+        const PARENT_DOMAIN = 'justplayerstreamhubpro.onrender.com';
         let player;
         let socket;
         let currentChannel = 'twitch';
@@ -580,7 +569,7 @@
         }
 
         function startAuth() {
-            window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
+            window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700`);
             const check = setInterval(async () => {
                 const res = await fetch(`${API_BASE}/twitch_user_status`);
                 const data = await res.json();
@@ -611,10 +600,13 @@
 
         function loadPlayerEmbed(channel) {
             const container = document.getElementById('video-container');
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
+            const iframeUrl =
+                `https://player.twitch.tv/?channel=${channel}` +
+                `&parent=${PARENT_DOMAIN}&theme=dark`;
             
-            container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
+            container.innerHTML =
+                `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" ` +
+                `allow="autoplay" scrolling="no" style="border:none; width:100%; height:100%;"></iframe>`;
             
             loadStreamInfo(channel);
         }
@@ -643,8 +635,9 @@
         }
 
         function updateTwitchChatFrame(channel) {
-            const parentParam = PARENT_DOMAINS.join('&parent=');
-            const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
+            const url =
+                `https://www.twitch.tv/embed/${channel}/chat` +
+                `?parent=${PARENT_DOMAIN}&theme=dark`;
             const frame = document.getElementById('twitch-chat-frame');
             if (frame) {
                 frame.src = url;
