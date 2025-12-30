@@ -297,6 +297,10 @@
         @keyframes bt-spin {
             to { transform: rotate(360deg); }
         }
+
+        #video-container { min-height: 520px; }
+        .player-shell { min-height: 620px; }
+        .under-shell { max-height: 420px; }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
@@ -341,7 +345,7 @@
         <!-- VIDEO PLAYER -->
         <div class="lg:col-span-9 flex flex-col gap-4 h-full">
             <!-- PLAYER -->
-            <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl">
+            <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
                 <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                         <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
@@ -423,7 +427,7 @@
             </div>
 
             <!-- PRO ANALYTICS PANEL (UNDER PLAYER) -->
-            <div class="glass-panel rounded-lg overflow-hidden border border-[#222]">
+            <div class="glass-panel rounded-lg overflow-hidden border border-[#222] under-shell">
                 <div class="tab-nav">
                     <button class="tab-btn active" onclick="openUnderTab('overview')"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
                     <button class="tab-btn" onclick="openUnderTab('analytics')"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
@@ -457,6 +461,11 @@
                     </div>
 
                     <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="bg-[#111] p-3 rounded border border-[#222]">
+                            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-bell mr-1"></i> Alertes automatiques</h4>
+                            <div id="alerts-box"></div>
+                        </div>
+                        
                         <div class="bg-[#111] p-3 rounded border border-[#222]">
                             <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-wave-square mr-1"></i> Courbe (daily)</h4>
                             <div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
@@ -691,6 +700,17 @@
                     </button>
                     <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
                 </div>
+
+
+<!-- CO-STREAM MATCHMAKER -->
+<div>
+    <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO‑STREAM MATCHMAKER</h3>
+    <button id="costream-btn" onclick="loadCoStreamer(currentChannel)" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">
+        🤝 Trouver le meilleur co‑streamer
+    </button>
+    <div id="costream-out" class="bg-[#151515] p-3 rounded border border-[#222]" style="display:none;"></div>
+</div>
+
             </div>
         </div>
     </div>
@@ -1308,83 +1328,204 @@
         let currentGameName = null;
 
         async function loadChannelProData(login) {
-            if (!login || login === 'twitch') return;
+    if (!login || login === 'twitch') return;
 
-            try {
-                // Analytics by login (backend resolves id + daily rollups)
-                const res = await fetch(`${API_BASE}/api/analytics/channel_by_login/${encodeURIComponent(login)}?days=30`);
-                const data = await res.json();
-                if (!data.success) return;
-
-                currentChannelId = data.channel_id || null;
-
-                // KPI
-                const k = data.kpis || {};
-                document.getElementById('kpi-avg').innerText = (k.avg_viewers ?? '--').toLocaleString?.() || k.avg_viewers || '--';
-                document.getElementById('kpi-peak').innerText = (k.peak_viewers ?? '--').toLocaleString?.() || k.peak_viewers || '--';
-                document.getElementById('kpi-growth').innerText = (k.growth_percent != null ? `${k.growth_percent}%` : '--');
-                document.getElementById('kpi-volatility').innerText = (k.volatility ?? '--');
-                document.getElementById('kpi-hours').innerText = (k.hours_per_week_est != null ? `${k.hours_per_week_est}h` : '--');
-                document.getElementById('kpi-samples').innerText = (data.series?.labels?.length ?? '--');
-
-                // Growth Score
-                const gs = k.growth_score;
-                document.getElementById('kpi-growth-score').innerText = (gs != null ? `${gs}/100` : '--');
-                document.getElementById('kpi-growth-label').innerText =
-                    gs == null ? '--' :
-                    gs >= 80 ? '🔥 En forte accélération' :
-                    gs >= 60 ? '✅ Bonne dynamique' :
-                    gs >= 40 ? '🟡 Stable (optimisable)' :
-                    '🔴 À relancer';
-
-                // Chart daily
-                if (data.series?.labels && data.series?.values) {
-                    renderChart('chartChannelDaily', 'line', data.series.labels, data.series.values, 'Viewers moyens/jour', '#00f2ea');
-                }
-
-                // Try compare channel vs game if we have a game id (from stream_info)
-                if (currentGameId) {
-                    await loadNicheCompare(currentChannelId, currentGameId, currentGameName);
-                    await loadGameHours(currentGameId);
-                }
-            } catch (e) {
-                console.error('loadChannelProData error:', e);
-            }
+    try {
+        // 1) analytics pro (daily_stats + KPIs)
+        const res = await fetch(`${API_BASE}/api/analytics/channel_by_login/${encodeURIComponent(login)}?days=30`);
+        const data = await res.json();
+        if (!data.success) {
+            // Affiche un hint si daily_stats pas encore prêt
+            document.getElementById('kpi-avg').innerText = '--';
+            document.getElementById('kpi-peak').innerText = '--';
+            document.getElementById('kpi-growth').innerText = '--';
+            document.getElementById('kpi-hours').innerText = '--';
+            document.getElementById('kpi-samples').innerText = '--';
+            document.getElementById('kpi-growth-score').innerText = '--';
+            document.getElementById('kpi-growth-label').innerText = data.message || 'Pas assez de données (attends l’agrégation).';
+            return;
         }
 
-        async function loadNicheCompare(channelId, gameId, gameName) {
-            try {
-                const url = `${API_BASE}/api/compare/channel_vs_game?channel_id=${encodeURIComponent(channelId)}&game_id=${encodeURIComponent(gameId)}&days=30`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (!data.success) return;
+        currentChannelId = data.channel_id || null;
 
-                document.getElementById('niche-sat').innerText = `${data.saturation_score}/10`;
-                document.getElementById('niche-discover').innerText = `${data.discoverability_score}/10`;
-                document.getElementById('niche-position').innerText = data.position_label || '--';
-                document.getElementById('niche-verdict').innerText = data.verdict || '--';
-                document.getElementById('niche-details').innerText = `${gameName || 'Jeu'} • ${data.details || ''}`;
-            } catch (e) {
-                console.error('loadNicheCompare error:', e);
-            }
+        const k = data.kpis || {};
+        const fmt = (v) => (v == null ? '--' : Number(v).toLocaleString());
+
+        document.getElementById('kpi-avg').innerText = fmt(k.avg_viewers);
+        document.getElementById('kpi-peak').innerText = fmt(k.peak_viewers);
+        document.getElementById('kpi-growth').innerText = (k.growth_percent != null ? `${k.growth_percent}%` : '--');
+        document.getElementById('kpi-hours').innerText = (k.hours_per_week_est != null ? `${k.hours_per_week_est}h` : '--');
+        document.getElementById('kpi-samples').innerText = fmt(k.days);
+
+        // Growth Score
+        const gs = k.growth_score;
+        document.getElementById('kpi-growth-score').innerText = (gs != null ? `${gs}/100` : '--');
+        document.getElementById('kpi-growth-label').innerText =
+            gs == null ? '--' :
+            gs >= 80 ? '🔥 En forte accélération' :
+            gs >= 60 ? '✅ Bonne dynamique' :
+            gs >= 40 ? '🟡 Stable (optimisable)' :
+            '🔴 À relancer';
+
+        // Chart daily
+        if (data.series?.labels && data.series?.values) {
+            renderChart('chartChannelDaily', 'line', data.series.labels, data.series.values, 'Viewers moyens/jour', '#00f2ea');
         }
 
-        async function loadGameHours(gameId) {
-            try {
-                const res = await fetch(`${API_BASE}/api/analytics/game/${encodeURIComponent(gameId)}?days=14`);
-                const data = await res.json();
-                if (!data.success) return;
+        // 2) Alerts: on tente de les charger (et générer si vide)
+        await loadPlayerInsights(login);
 
-                // Expect labels like ["Lun 08h", ...] and values opportunity
-                if (data.hours?.labels && data.hours?.values) {
-                    renderChart('chartGameHours', 'bar', data.hours.labels, data.hours.values, 'Opportunité', '#ff0099');
-                }
-            } catch (e) {
-                console.error('loadGameHours error:', e);
-            }
+        // 3) Niche compare (si on a un game)
+        if (currentGameId) {
+            await loadNicheCompare(currentChannelId, currentGameId, currentGameName);
+            await loadGameHours(currentGameId, currentGameName);
+        }
+    } catch (e) {
+        console.error('loadChannelProData error:', e);
+    }
+}
+
+async function loadNicheCompare(channelId, gameId, gameName) {
+    try {
+        const url = `${API_BASE}/api/compare/channel_vs_game?channel_id=${encodeURIComponent(channelId)}&game_id=${encodeURIComponent(gameId)}&days=30`;
+        const r = await fetch(url);
+        const data = await r.json();
+        if (!data.success) return;
+
+        // KPIs niche
+        const fmt = (v) => (v == null ? '--' : Number(v).toLocaleString());
+
+        const n = data.niche || {};
+        document.getElementById('niche-game-name').innerText = gameName || n.game_name || 'Jeu';
+        document.getElementById('niche-avg-game').innerText = fmt(n.game_avg_viewers);
+        document.getElementById('niche-avg-channel').innerText = fmt(n.channel_avg_viewers);
+        document.getElementById('niche-index').innerText = (n.index != null ? `${n.index}` : '--');
+        document.getElementById('niche-saturation').innerText = (n.saturation_score != null ? `${n.saturation_score}/100` : '--');
+        document.getElementById('niche-discover').innerText = (n.discoverability_score != null ? `${n.discoverability_score}/100` : '--');
+
+        // mini chart: channel vs game avg (bar)
+        renderChart('chartNicheCompare', 'bar',
+            ['Chaîne', 'Niche (jeu)'],
+            [n.channel_avg_viewers || 0, n.game_avg_viewers || 0],
+            'Moyenne viewers', '#ff0099'
+        );
+    } catch (e) {
+        console.error('loadNicheCompare error:', e);
+    }
+}
+
+async function loadGameHours(gameId, gameName) {
+    try {
+        const r = await fetch(`${API_BASE}/api/games/hours?game_id=${encodeURIComponent(gameId)}&days=7`);
+        const data = await r.json();
+        if (!data.success) return;
+
+        const labels = data.hours.map(x => `${String(x.hour).padStart(2,'0')}h`);
+        const sat = data.hours.map(x => x.saturation_score || 0);
+
+        renderChart('chartGameSaturation', 'line', labels, sat, 'Saturation (0-100)', '#00f2ea');
+
+        const best = data.best_hour_utc;
+        document.getElementById('niche-best-hour').innerText =
+            best == null ? '--' : `Meilleur créneau (UTC): ${String(best).padStart(2,'0')}h–${String((best+2)%24).padStart(2,'0')}h`;
+    } catch (e) {
+        console.error('loadGameHours error:', e);
+    }
+}
+
+async function loadPlayerInsights(login) {
+    // charge les alertes + propose un bouton "générer"
+    try {
+        const box = document.getElementById('alerts-box');
+        if (!box) return;
+
+        box.innerHTML = '<div class="text-gray-500 text-xs"><i class="fas fa-spinner fa-spin"></i> Chargement des alertes...</div>';
+
+        let r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+        let data = await r.json();
+
+        // si vide -> on génère puis on recharge
+        if (!data.success || !data.items || data.items.length === 0) {
+            await fetch(`${API_BASE}/api/alerts/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ login, days: 30 })
+            }).catch(()=>{});
+
+            r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+            data = await r.json();
         }
 
-        async function loadAIReco() {
+        if (!data.success || !data.items) {
+            box.innerHTML = '<div class="text-gray-500 text-xs">Aucune alerte pour le moment.</div>';
+            return;
+        }
+
+        box.innerHTML = '';
+        data.items.forEach(a => {
+            box.innerHTML += `
+                <div class="bg-[#0a0a0a] border border-[#222] rounded p-2 mb-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="text-xs font-bold text-white">${a.title || 'Alerte'}</div>
+                        <div class="text-[10px] text-gray-500">${a.day || ''}</div>
+                    </div>
+                    <div class="text-[11px] text-gray-300 mt-1 leading-snug">${a.message || ''}</div>
+                </div>
+            `;
+        });
+    } catch (e) {
+        console.error('loadPlayerInsights:', e);
+    }
+}
+
+async function loadCoStreamer(login) {
+    const out = document.getElementById('costream-out');
+    const btn = document.getElementById('costream-btn');
+    if (!out || !btn) return;
+
+    try {
+        btn.disabled = true;
+        out.style.display = 'block';
+        out.innerHTML = '<div class="text-gray-500 text-xs"><i class="fas fa-spinner fa-spin"></i> Analyse des co-streamers...</div>';
+
+        const r = await fetch(`${API_BASE}/api/costream/best?login=${encodeURIComponent(login)}&days=14`);
+        const data = await r.json();
+
+        if (!data.success) {
+            out.innerHTML = `<p style="color:#ff6666;">❌ ${data.message || 'Impossible de trouver un co-streamer'}</p>`;
+            return;
+        }
+
+        const best = data.best || null;
+        const list = data.candidates || [];
+
+        out.innerHTML = `
+            <div class="flex items-center gap-3 mb-2">
+                <img src="${best?.profile_image_url || ''}" onerror="this.style.display='none'" class="w-10 h-10 rounded-full border border-[#00f2ea]">
+                <div>
+                    <div class="text-white font-bold text-sm">${best?.display_name || '—'}</div>
+                    <div class="text-[11px] text-gray-400">Score co-stream: <span class="text-[#00f2ea] font-bold">${best?.score ?? '--'}</span></div>
+                </div>
+                <div class="ml-auto">
+                    <a class="text-[11px] bg-[#00f2ea] text-black px-2 py-1 rounded font-bold" target="_blank" href="https://twitch.tv/${best?.login || ''}">Voir</a>
+                </div>
+            </div>
+            <div class="text-[11px] text-gray-300">${best?.why || ''}</div>
+            <div class="mt-3 text-[11px] text-gray-400 font-bold uppercase">Autres options</div>
+            <ul class="mt-1 text-[11px] text-gray-300 list-disc pl-5">
+                ${list.slice(0,5).map(x=>`<li>${x.display_name} — score ${x.score}</li>`).join('')}
+            </ul>
+        `;
+    } catch (e) {
+        console.error('loadCoStreamer:', e);
+        out.innerHTML = '<p style="color:#ff6666;">❌ Erreur réseau</p>';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function loadAIReco() {
+async function loadAIReco() {
             if (!currentChannel || currentChannel === 'twitch') return;
             const box = document.getElementById('ai-reco-box');
             box.classList.add('hidden');
