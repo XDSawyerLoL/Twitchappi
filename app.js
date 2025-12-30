@@ -16,6 +16,8 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
+const http = require('http');
+const { Server } = require('socket.io');
 
 // ✅ MOTEUR IA
 const { GoogleGenAI } = require('@google/genai');
@@ -98,6 +100,12 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
+
+// Page principale (ton UI)
+app.get('/', (req, res) => {
+  // IMPORTANT: le fichier UI s'appelle NicheOptimizer.html dans ton repo
+  res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+});
 
 // =========================================================
 // 2. CACHE & HELPERS
@@ -1056,6 +1064,68 @@ app.get('/api/resolve_channel_id', async (req, res) => {
   }
 });
 
+// Analytics directement depuis un login (plus simple côté UI)
+app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
+  const login = String(req.params.login || '').trim().toLowerCase();
+  if (!login) return res.status(400).json({ success: false, error: 'login manquant' });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data || uRes.data.length === 0) return res.json({ success: false, error: 'introuvable' });
+    const channelId = uRes.data[0].id;
+
+    // On réutilise l'endpoint existant en appelant directement la fonction (même logique)
+    // Ici on copie une logique minimaliste: stats 30j + série (points)
+    const since = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const snaps = await db
+      .collection('channels')
+      .doc(channelId)
+      .collection('hourly_stats')
+      .where('timestamp', '>', since)
+      .get();
+
+    if (snaps.empty) {
+      return res.json({ success: false, error: 'pas_de_donnees', id: channelId, login });
+    }
+
+    const sorted = snaps.docs.map(d => d.data()).sort((a, b) => a.timestamp - b.timestamp);
+    const viewers = sorted.map(d => Number(d.viewers || 0));
+    const avg = Math.round(viewers.reduce((a, b) => a + b, 0) / (viewers.length || 1));
+    const peak = Math.max(...viewers);
+
+    const volatility = Math.round(
+      Math.sqrt(viewers.reduce((a, v) => a + Math.pow(v - avg, 2), 0) / (viewers.length || 1))
+    );
+
+    const first = viewers[0] || 0;
+    const last = viewers[viewers.length - 1] || 0;
+    const growth = first > 0 ? Math.round(((last - first) / first) * 100) : 0;
+
+    // Série compacte (max 60 points) pour l'UI
+    const step = Math.max(1, Math.floor(sorted.length / 60));
+    const series = [];
+    for (let i = 0; i < sorted.length; i += step) {
+      const it = sorted[i];
+      series.push({ t: it.timestamp, v: Number(it.viewers || 0) });
+    }
+
+    return res.json({
+      success: true,
+      id: channelId,
+      login,
+      display_name: uRes.data[0].display_name,
+      avg_viewers: avg,
+      peak_viewers: peak,
+      volatility,
+      growth_percent: growth,
+      samples: viewers.length,
+      series
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 app.get('/api/resolve_game_id', async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (!q) return res.status(400).json({ success: false, error: 'q manquant' });
@@ -1343,12 +1413,44 @@ OBJECTIF:
 });
 
 // =========================================================
-// 10. SERVER START
+// 10. SERVER START + SOCKET.IO (Hub Secure Chat)
 // =========================================================
-app.listen(PORT, () => {
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    methods: ['GET', 'POST']
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('🔌 [SOCKET] client connected');
+
+  socket.on('chat message', (msg) => {
+    // message attendu: { user, text }
+    const safe = {
+      user: String(msg?.user || 'Anon').slice(0, 40),
+      text: String(msg?.text || '').slice(0, 500)
+    };
+    if (!safe.text) return;
+    io.emit('chat message', safe);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔌 [SOCKET] client disconnected');
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
-  console.log("✅ Toutes les routes sont prêtes");
-  console.log("   - /firebase_status");
-  console.log("   - /analyze_schedule (Best Time Tool)");
-  console.log("   - Et 20+ autres endpoints\n");
+  console.log("✅ Routes prêtes");
+  console.log(" - UI: / (NicheOptimizer.html)");
+  console.log(" - /firebase_status");
+  console.log(" - /analyze_schedule");
+  console.log(" - /scan_target, /start_raid, /stream_boost");
+  console.log(" - /api/analytics/channel/:id");
+  console.log(" - /api/analytics/channel_by_login/:login");
+  console.log(` - CRON ENABLED = ${ENABLE_CRON ? 'true' : 'false'}`);
 });
