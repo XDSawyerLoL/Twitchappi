@@ -14,6 +14,7 @@ const cors = require('cors');
 const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const http = require('http');
@@ -103,8 +104,18 @@ app.use(express.static(path.join(__dirname)));
 
 // Page principale (ton UI)
 app.get('/', (req, res) => {
-  // IMPORTANT: le fichier UI s'appelle NicheOptimizer.html dans ton repo
-  res.sendFile(path.join(__dirname, 'NicheOptimizer_v53.html'));
+  // Sert automatiquement la dernière UI présente dans le repo (évite les erreurs ENOENT)
+  const candidates = [
+    process.env.UI_FILE,               // optionnel (Render env var)
+    'NicheOptimizer_v56.html',
+    'NicheOptimizer_v55.html',
+    'NicheOptimizer_v53.html',
+    'NicheOptimizer.html'
+  ].filter(Boolean);
+
+  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
+  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
+  return res.sendFile(path.join(__dirname, found));
 });
 
 // =========================================================
@@ -813,10 +824,13 @@ if (ENABLE_CRON) {
   setInterval(collectAnalyticsSnapshot, SNAPSHOT_EVERY_MIN * 60 * 1000);
   // tick immédiat au démarrage pour remplir plus vite
   collectAnalyticsSnapshot().catch(() => {});
-  // daily aggregation tick immédiat
-  dailyAggregationTick().catch(() => {});
-  // daily aggregation toutes les heures
-  setInterval(dailyAggregationTick, 10 * 60 * 1000);
+  // Daily aggregation "collectionGroup" peut exiger des index -> désactivée par défaut.
+  // Les daily_stats sont déjà produits en temps réel par updateDailyRollupsForStream().
+  const ENABLE_DAILY_AGG = (process.env.ENABLE_DAILY_AGG || 'false').toLowerCase() === 'true';
+  if (ENABLE_DAILY_AGG) {
+    dailyAggregationTick().catch(() => {});
+    setInterval(dailyAggregationTick, 60 * 60 * 1000);
+  }
 } else {
   console.log(` - CRON ENABLED = false`);
 }
