@@ -290,6 +290,97 @@ async function upsertGameMeta(gameId, gameName) {
   } catch (e) {}
 }
 
+
+// =========================================================
+// 2C. ROLLUPS JOURNALIERS (daily_stats) – INCRÉMENTAL
+// =========================================================
+// Objectif: créer / mettre à jour daily_stats dès les premières minutes,
+// sans dépendre d'index collectionGroup (souvent bloquant sur Firestore).
+// On fait des transactions légères (max 100 streams / 5 min).
+
+async function updateDailyRollupsForStream(stream, nowMs) {
+  const viewers = Number(stream.viewer_count || 0);
+  const dayKey = yyyy_mm_dd_from_ms(nowMs);
+
+  const chDailyRef = db.collection('channels').doc(String(stream.user_id))
+    .collection('daily_stats').doc(dayKey);
+
+  const gDailyRef = stream.game_id
+    ? db.collection('games').doc(String(stream.game_id))
+      .collection('daily_stats').doc(dayKey)
+    : null;
+
+  const globalDailyRef = db.collection('global_daily').doc(dayKey);
+
+  // Transaction channel daily
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(chDailyRef);
+      const prev = snap.exists ? snap.data() : {};
+      const prevPeak = Number(prev.peak_viewers || 0);
+      const prevSamples = Number(prev.samples || 0);
+      const prevSum = Number(prev.total_viewers_sum || 0);
+
+      const nextSamples = prevSamples + 1;
+      const nextSum = prevSum + viewers;
+      const nextPeak = viewers > prevPeak ? viewers : prevPeak;
+
+      tx.set(chDailyRef, {
+        day: dayKey,
+        samples: nextSamples,
+        total_viewers_sum: nextSum,
+        avg_viewers: Math.round(nextSum / nextSamples),
+        peak_viewers: nextPeak,
+        minutes_live_est: nextSamples * SNAPSHOT_EVERY_MIN,
+        top_game_id: stream.game_id || null,
+        top_game_name: stream.game_name || null,
+        updated_at: admin.firestore.Timestamp.fromMillis(nowMs)
+      }, { merge: true });
+    });
+  } catch (e) {
+    console.error("❌ [DAILY] channel rollup:", e.message);
+  }
+
+  // Transaction game daily (optionnel)
+  if (gDailyRef) {
+    try {
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(gDailyRef);
+        const prev = snap.exists ? snap.data() : {};
+        const prevPeak = Number(prev.peak_viewers_total || 0);
+        const prevSamples = Number(prev.samples || 0);
+        const prevSum = Number(prev.total_viewers_sum || 0);
+        const prevUnique = Number(prev.unique_channels || 0);
+
+        const nextSamples = prevSamples + 1;
+        const nextSum = prevSum + viewers;
+        const nextPeak = viewers > prevPeak ? viewers : prevPeak;
+
+        // On ne peut pas compter "unique_channels" parfaitement ici sans set,
+        // mais on se contente d'un compteur approché: on incrémente seulement à la création.
+        // Le vrai chiffre (unique_channels) est recalculable via agrégation si besoin.
+        const nextUnique = snap.exists ? prevUnique : Math.max(prevUnique, 1);
+
+        tx.set(gDailyRef, {
+          day: dayKey,
+          game_id: String(stream.game_id),
+          game_name: stream.game_name || null,
+          samples: nextSamples,
+          total_viewers_sum: nextSum,
+          avg_viewers_total: Math.round(nextSum / nextSamples),
+          peak_viewers_total: nextPeak,
+          unique_channels: nextUnique,
+          updated_at: admin.firestore.Timestamp.fromMillis(nowMs)
+        }, { merge: true });
+      });
+    } catch (e) {
+      console.error("❌ [DAILY] game rollup:", e.message);
+    }
+  }
+
+}
+
+
 async function collectAnalyticsSnapshot() {
   const now = Date.now();
   try {
@@ -298,6 +389,8 @@ async function collectAnalyticsSnapshot() {
     console.log(`[CRON] streams récupérés: ${streams.length}`);
 
     let totalViewers = 0;
+
+    const rollupPromises = [];
 
     // batch pour limiter le coût
     let batch = db.batch();
@@ -316,6 +409,9 @@ async function collectAnalyticsSnapshot() {
       // doc parent + meta
       await upsertChannelMetaFromStream(s, now);
       await upsertGameMeta(s.game_id, s.game_name);
+
+      // daily rollups (non bloquant)
+      rollupPromises.push(updateDailyRollupsForStream(s, now));
 
       // time-series channel
       const chRef = db.collection('channels').doc(String(s.user_id))
@@ -355,6 +451,34 @@ async function collectAnalyticsSnapshot() {
     ops++; await commitIfNeeded();
 
     await batch.commit();
+
+
+    // global_daily rollup (1 fois par snapshot)
+    try {
+      const dayKey = yyyy_mm_dd_from_ms(now);
+      const globalDailyRef = db.collection('global_daily').doc(dayKey);
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(globalDailyRef);
+        const prev = snap.exists ? snap.data() : {};
+        const prevSamples = Number(prev.samples || 0);
+        const prevSum = Number(prev.total_viewers_sum || 0);
+        const nextSamples = prevSamples + 1;
+        const nextSum = prevSum + totalViewers;
+        tx.set(globalDailyRef, {
+          day: dayKey,
+          samples: nextSamples,
+          total_viewers_sum: nextSum,
+          avg_viewers_total: Math.round(nextSum / nextSamples),
+          updated_at: admin.firestore.Timestamp.fromMillis(now)
+        }, { merge: true });
+      });
+    } catch (e) {
+      console.error("❌ [DAILY] global rollup:", e.message);
+    }
+
+
+    // attendre les rollups journaliers (best effort)
+    await Promise.allSettled(rollupPromises);
 
     console.log(`📊 [CRON] Snapshot saved: viewers=${totalViewers}, live=${streams.length}`);
   } catch (e) {
