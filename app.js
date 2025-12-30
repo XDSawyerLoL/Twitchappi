@@ -104,7 +104,7 @@ app.use(express.static(path.join(__dirname)));
 // Page principale (ton UI)
 app.get('/', (req, res) => {
   // IMPORTANT: le fichier UI s'appelle NicheOptimizer.html dans ton repo
-  res.sendFile(path.join(__dirname, 'NicheOptimizer.html'));
+  res.sendFile(path.join(__dirname, 'NicheOptimizer_v53.html'));
 });
 
 // =========================================================
@@ -493,10 +493,13 @@ async function runDailyAggregation(dayKey) {
 
 // Daily job: toutes les heures, on tente d’agréger "hier" (idempotent)
 async function dailyAggregationTick() {
+  // On agrège à la fois "aujourd'hui" (partiel) et "hier" (complet).
+  // Objectif: obtenir des daily_stats rapidement même au démarrage du produit.
   const now = Date.now();
-  const yesterdayMs = now - 24 * 60 * 60 * 1000;
-  const key = yyyy_mm_dd_from_ms(yesterdayMs);
-  await runDailyAggregation(key);
+  const todayKey = yyyy_mm_dd_from_ms(now);
+  const yesterdayKey = yyyy_mm_dd_from_ms(now - 24 * 60 * 60 * 1000);
+  await runDailyAggregation(todayKey);
+  if (yesterdayKey !== todayKey) await runDailyAggregation(yesterdayKey);
 }
 
 if (ENABLE_CRON) {
@@ -610,9 +613,13 @@ app.get('/followed_streams', async (req, res) => {
     return res.json({
       success: true,
       streams: data.data.map(s => ({
+        user_id: s.user_id,
         user_name: s.user_name,
         user_login: s.user_login,
         viewer_count: s.viewer_count,
+        game_id: s.game_id || null,
+        game_name: s.game_name || null,
+        title: s.title || null,
         thumbnail_url: s.thumbnail_url
       }))
     });
@@ -867,6 +874,7 @@ app.post('/scan_target', async (req, res) => {
       if (viewDisplay === 0) viewDisplay = "Non public/0";
 
       const uData = {
+        id: u.id,
         login: u.login,
         display_name: u.display_name,
         profile_image_url: u.profile_image_url,
@@ -1083,7 +1091,8 @@ app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
 
     // On réutilise l'endpoint existant en appelant directement la fonction (même logique)
     // Ici on copie une logique minimaliste: stats 30j + série (points)
-    const since = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const days = clamp(parseInt(req.query.days || '30', 10), 1, 90);
+    const since = Date.now() - (days * 24 * 60 * 60 * 1000);
     const snaps = await db
       .collection('channels')
       .doc(channelId)
@@ -1324,10 +1333,20 @@ app.get('/api/compare/channel_vs_game', async (req, res) => {
 
 // Simulation (estimation, pas une promesse)
 app.get('/api/simulate/growth', async (req, res) => {
-  const channelId = String(req.query.channel_id || '').trim();
+  // Accepte channel_id OU login
+  let channelId = String(req.query.channel_id || '').trim();
+  const login = String(req.query.login || '').trim().toLowerCase();
   const hoursPerWeek = clamp(parseFloat(req.query.hours_per_week || '0'), 0, 80);
   const days = clamp(parseInt(req.query.days || '30', 10), 7, 90);
-  if (!channelId || !hoursPerWeek) return res.status(400).json({ success: false, error: 'channel_id et hours_per_week requis' });
+
+  if (!channelId && login) {
+    try {
+      const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+      if (uRes.data && uRes.data.length) channelId = String(uRes.data[0].id);
+    } catch (e) {}
+  }
+
+  if (!channelId || !hoursPerWeek) return res.status(400).json({ success: false, error: 'channel_id (ou login) et hours_per_week requis' });
 
   try {
     const snaps = await db.collection('channels').doc(channelId)
@@ -1371,9 +1390,21 @@ app.get('/api/simulate/growth', async (req, res) => {
 
 // IA – reco personnalisée (HTML) à partir des KPIs
 app.get('/api/ai/reco', async (req, res) => {
-  const channelId = String(req.query.channel_id || '').trim();
+  // Accepte channel_id OU login (plus simple côté front)
+  let channelId = String(req.query.channel_id || '').trim();
+  const login = String(req.query.login || '').trim().toLowerCase();
   const days = clamp(parseInt(req.query.days || '30', 10), 7, 90);
-  if (!channelId) return res.status(400).json({ success: false, html_response: "<p style='color:red;'>channel_id requis</p>" });
+
+  if (!channelId && login) {
+    try {
+      const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+      if (uRes.data && uRes.data.length) channelId = String(uRes.data[0].id);
+    } catch (e) {}
+  }
+
+  if (!channelId) {
+    return res.status(400).json({ success: false, html_response: "<p style='color:red;'>channel_id (ou login) requis</p>" });
+  }
 
   try {
     const aRes = await db.collection('channels').doc(channelId).collection('daily_stats')
