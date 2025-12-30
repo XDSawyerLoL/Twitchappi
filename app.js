@@ -502,13 +502,197 @@ async function dailyAggregationTick() {
   if (yesterdayKey !== todayKey) await runDailyAggregation(yesterdayKey);
 }
 
+
+
+// =========================================================
+// 2D. ALERTES IA AUTOMATIQUES + GAME HOURS (PRO)
+// =========================================================
+
+// Petite formule "growth score" propriétaire (0-100) basée sur daily_stats
+function computeGrowthScore({ avg_viewers=0, peak_viewers=0, growth_percent=0, days=1, minutes_live_est=0 } = {}) {
+  const base = Math.log10(avg_viewers + 1) * 25;              // 0..~60
+  const peakBoost = Math.log10(peak_viewers + 1) * 10;        // 0..~40
+  const growthBoost = Math.max(-50, Math.min(200, growth_percent)) * 0.15; // -7.5..30
+  const cadence = Math.min(20, (minutes_live_est / 60) * 1.2); // 0..20 (heures)
+  const raw = base + peakBoost + growthBoost + cadence;
+  return Math.max(0, Math.min(100, Math.round(raw)));
+}
+
+// Enregistre une alerte (idempotente) dans alerts/{channelId}/items/{dayKey_type}
+async function saveAlert(channelId, dayKey, type, payload) {
+  try {
+    const ref = db.collection('alerts').doc(String(channelId))
+      .collection('items').doc(`${dayKey}_${type}`);
+    await ref.set({
+      channel_id: String(channelId),
+      day: dayKey,
+      type,
+      ...payload,
+      created_at: admin.firestore.Timestamp.fromMillis(Date.now())
+    }, { merge: true });
+  } catch (e) {
+    console.error("❌ [ALERT] saveAlert:", e.message);
+  }
+}
+
+// Génère des alertes simples (sans magie) + option IA (Gemini) si présent
+async function generateAlertsForLogin(login, days=30) {
+  try {
+    // resolve twitch id
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data || !uRes.data.length) return { success:false, message:"introuvable" };
+    const user = uRes.data[0];
+    const channelId = String(user.id);
+
+    // daily stats récents
+    const snaps = await db.collection('channels').doc(channelId)
+      .collection('daily_stats').orderBy('day', 'desc').limit(days).get();
+    if (snaps.empty) return { success:false, message:"pas de daily_stats" };
+
+    const series = snaps.docs.map(d => d.data()).reverse();
+    const first = series[0]?.avg_viewers || 0;
+    const last = series[series.length-1]?.avg_viewers || 0;
+    const growth_percent = first > 0 ? Math.round(((last-first)/first)*100) : (last>0?100:0);
+
+    const avg = Math.round(series.reduce((a,x)=>a+(x.avg_viewers||0),0)/series.length);
+    const peak = Math.max(...series.map(x=>x.peak_viewers||0));
+    const minutes_live_est = Math.round(series.reduce((a,x)=>a+(x.minutes_live_est||0),0)/series.length);
+
+    const growth_score = computeGrowthScore({ avg_viewers: avg, peak_viewers: peak, growth_percent, minutes_live_est });
+    const dayKey = yyyy_mm_dd_from_ms(Date.now());
+
+    // Alertes déterministes
+    if (growth_percent >= 25 && growth_score >= 60) {
+      await saveAlert(channelId, dayKey, "acceleration", {
+        title: "🚀 Accélération détectée",
+        message: `Ta moyenne grimpe (+${growth_percent}%). Renforce les formats qui performent (clips + rediff).`,
+        score: growth_score
+      });
+    }
+    if (avg < 10 && minutes_live_est >= 180) {
+      await saveAlert(channelId, dayKey, "format", {
+        title: "🧪 Ajuste ton format",
+        message: "Tu streams beaucoup mais la moyenne reste basse. Teste: titres plus clairs, catégories moins saturées, intro plus courte.",
+        score: growth_score
+      });
+    }
+
+    // Option IA: 1 alerte premium / jour
+    if (aiClient) {
+      const prompt = `Tu es un coach Twitch. Pour la chaîne ${user.display_name} (${login}), propose 1 alerte courte et actionnable pour AUJOURD'HUI (FR), basée sur: moyenne=${avg}, pic=${peak}, croissance=${growth_percent}%, score=${growth_score}/100. Réponds en JSON strict: {"title":"...","message":"...","tag":"..."} (tag = growth|niche|schedule|content).`;
+      const out = await runGeminiAnalysis(prompt);
+      // runGeminiAnalysis renvoie html, on veut json -> on tente parse
+      const raw = (out.html_response || "").trim();
+      try {
+        const jsonStart = raw.indexOf('{');
+        const jsonEnd = raw.lastIndexOf('}');
+        if (jsonStart >= 0 && jsonEnd > jsonStart) {
+          const obj = JSON.parse(raw.slice(jsonStart, jsonEnd+1));
+          if (obj?.title && obj?.message) {
+            await saveAlert(channelId, dayKey, "ia", {
+              title: obj.title,
+              message: obj.message,
+              tag: obj.tag || "growth",
+              score: growth_score
+            });
+          }
+        }
+      } catch (_) {}
+    }
+
+    return { success:true, channel_id: channelId, growth_score, growth_percent, avg_viewers: avg, peak_viewers: peak };
+  } catch (e) {
+    return { success:false, error: e.message };
+  }
+}
+
+// Endpoint: récupère les alertes d'un streamer (par login)
+app.get('/api/alerts/channel_by_login/:login', async (req, res) => {
+  const login = String(req.params.login||'').trim().toLowerCase();
+  const limit = clamp(parseInt(req.query.limit||'10',10), 1, 50);
+  if (!login) return res.status(400).json({ success:false, error:"login manquant" });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data || !uRes.data.length) return res.json({ success:false, error:"introuvable" });
+    const channelId = String(uRes.data[0].id);
+
+    const q = await db.collection('alerts').doc(channelId)
+      .collection('items').orderBy('created_at','desc').limit(limit).get();
+
+    const items = q.docs.map(d => d.data());
+    return res.json({ success:true, channel_id: channelId, items });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Endpoint: heatmap / saturation par heure pour un jeu (basé sur games/{gameId}/hourly_stats)
+
+
+app.post('/api/alerts/generate', async (req, res) => {
+  const login = String(req.body?.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.body?.days || '30', 10), 1, 180);
+  if (!login) return res.status(400).json({ success:false, error:"login manquant" });
+  const r = await generateAlertsForLogin(login, days);
+  return res.json(r);
+});
+
+app.get('/api/games/hours', async (req, res) => {
+  const gameId = String(req.query.game_id || '').trim();
+  const days = clamp(parseInt(req.query.days || '7', 10), 1, 30);
+  if (!gameId) return res.status(400).json({ success:false, error:"game_id requis" });
+
+  try {
+    const since = Date.now() - days*24*60*60*1000;
+    const snaps = await db.collection('games').doc(gameId)
+      .collection('hourly_stats').where('timestamp','>=', since).get();
+
+    const hours = Array.from({length:24},(_,h)=>({ hour:h, total_viewers:0, channels: new Set(), samples:0 }));
+    snaps.forEach(d => {
+      const x = d.data();
+      const ts = x.timestamp || 0;
+      const h = new Date(ts).getUTCHours(); // UTC pour cohérence serveur
+      const viewers = x.viewers || 0;
+      hours[h].total_viewers += viewers;
+      if (x.channel_id) hours[h].channels.add(String(x.channel_id));
+      hours[h].samples += 1;
+    });
+
+    const out = hours.map(o => {
+      const ch = o.channels.size;
+      const avgPerChan = ch ? Math.round(o.total_viewers / ch) : 0;
+      // saturation: plus il y a de chaînes pour peu de viewers/chan, plus c'est saturé
+      const saturation = ch ? Math.min(100, Math.round((ch / Math.max(1, avgPerChan)) * 35)) : 0;
+      const discoverability = avgPerChan ? Math.min(100, Math.round((avgPerChan / (avgPerChan + ch)) * 200)) : 0;
+      return {
+        hour: o.hour,
+        channels: ch,
+        total_viewers: o.total_viewers,
+        avg_viewers_per_channel: avgPerChan,
+        saturation_score: saturation,
+        discoverability_score: discoverability
+      };
+    });
+
+    // top slot = discoverability max (avec viewers suffisants)
+    const best = [...out].sort((a,b)=> (b.discoverability_score - a.discoverability_score) || (b.total_viewers - a.total_viewers))[0];
+
+    return res.json({ success:true, game_id: gameId, days, hours: out, best_hour_utc: best?.hour ?? null });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 if (ENABLE_CRON) {
   console.log(` - CRON ENABLED = true`);
   setInterval(collectAnalyticsSnapshot, SNAPSHOT_EVERY_MIN * 60 * 1000);
   // tick immédiat au démarrage pour remplir plus vite
   collectAnalyticsSnapshot().catch(() => {});
+  // daily aggregation tick immédiat
+  dailyAggregationTick().catch(() => {});
   // daily aggregation toutes les heures
-  setInterval(dailyAggregationTick, 60 * 60 * 1000);
+  setInterval(dailyAggregationTick, 10 * 60 * 1000);
 } else {
   console.log(` - CRON ENABLED = false`);
 }
