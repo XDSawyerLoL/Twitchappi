@@ -166,6 +166,13 @@ async function twitchAPI(endpoint, token = null) {
   return res.json();
 }
 
+
+async function fetchLocalJson(pathname) {
+  const url = `http://localhost:${PORT}${pathname}`;
+  const r = await fetch(url);
+  return r.json();
+}
+
 async function runGeminiAnalysis(prompt) {
   if (!aiClient) {
     return {
@@ -1454,3 +1461,88 @@ server.listen(PORT, () => {
   console.log(" - /api/analytics/channel_by_login/:login");
   console.log(` - CRON ENABLED = ${ENABLE_CRON ? 'true' : 'false'}`);
 });
+// =========================================================
+// X. CO-STREAM RECOMMENDER (BEST MATCH)
+// =========================================================
+app.get('/api/costream/best', async (req, res) => {
+  const login = String(req.query.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.query.days || '14', 10), 1, 60);
+  if (!login) return res.status(400).json({ success: false, message: 'login manquant' });
+
+  try {
+    // 1) Resolve user + current stream/game
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data || uRes.data.length === 0) return res.json({ success: false, message: 'Chaîne introuvable' });
+    const me = uRes.data[0];
+
+    let myStream = null;
+    try {
+      const sRes = await twitchAPI(`streams?user_id=${me.id}`);
+      if (sRes.data && sRes.data.length) myStream = sRes.data[0];
+    } catch (e) {}
+
+    // fallback: last known game from Firestore meta
+    let gameId = myStream?.game_id || null;
+    let gameName = myStream?.game_name || null;
+    let myViewers = myStream?.viewer_count || null;
+
+    if (!gameId) {
+      try {
+        const metaSnap = await db.collection('channels').doc(String(me.id)).get();
+        if (metaSnap.exists) {
+          const meta = metaSnap.data();
+          gameId = meta.current_game_id || null;
+          gameName = meta.current_game_name || null;
+        }
+      } catch (e) {}
+    }
+
+    if (!gameId) {
+      return res.json({ success: false, message: 'Chaîne offline et jeu inconnu (pas assez de data). Lance un live ou attends le cron.' });
+    }
+
+    // 2) Estimate target viewers if offline
+    if (myViewers == null) {
+      try {
+        const ana = await fetchLocalJson(`/api/analytics/channel/${me.id}?days=${days}`);
+        if (ana?.success) myViewers = ana.kpis?.avg_viewers || 50;
+      } catch (e) {
+        myViewers = 50;
+      }
+    }
+
+    // 3) Find candidates live in same game (FR), close audience size
+    const sGame = await twitchAPI(`streams?game_id=${encodeURIComponent(gameId)}&first=100&language=fr`);
+    const candidates = (sGame.data || []).filter(s => s.user_login && s.user_login.toLowerCase() !== login);
+
+    if (!candidates.length) {
+      return res.json({ success: false, message: 'Aucun co-streamer FR live trouvé sur ce jeu.' });
+    }
+
+    const target = Math.max(5, Number(myViewers) || 50);
+    const best = candidates
+      .map(s => ({ s, diff: Math.abs((s.viewer_count || 0) - target) }))
+      .sort((a, b) => a.diff - b.diff)[0]?.s;
+
+    if (!best) return res.json({ success: false, message: 'Pas de match' });
+
+    // 4) Fetch profile
+    let prof = null;
+    try {
+      const uu = await twitchAPI(`users?login=${encodeURIComponent(best.user_login)}`);
+      if (uu.data && uu.data.length) prof = uu.data[0];
+    } catch (e) {}
+
+    return res.json({
+      success: true,
+      login: best.user_login,
+      display_name: best.user_name,
+      profile_image_url: prof?.profile_image_url || null,
+      reason: `Même jeu (${gameName || best.game_name}), audience proche (${best.viewer_count} vs ~${target}). Idéal pour un co-stream/raid croisé.`
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+
