@@ -20,11 +20,13 @@
       --text-main:#e0e0e0;
       --border-color:#1f1f23;
     }
+
+    html, body { height: 100%; }
     body{
       background:var(--bg-dark);
       color:var(--text-main);
       font-family:Inter, sans-serif;
-      overflow-x:hidden;
+      overflow:hidden; /* ✅ pas de scroll page */
     }
     .font-orbitron{ font-family:Orbitron, sans-serif; }
 
@@ -61,7 +63,7 @@
     }
     .tab-btn:hover{ color:#fff; background:#111; }
     .tab-btn.active{ color:var(--secondary); border-bottom-color:var(--secondary); background:#151515; }
-    .tab-content{ display:none; height:100%; flex-direction:column; }
+    .tab-content{ display:none; height:100%; flex-direction:column; min-height:0; }
     .tab-content.active{ display:flex; }
 
     .cyber-input{
@@ -106,7 +108,8 @@
     .best-time-tool button:disabled{ opacity:.5; cursor:not-allowed; }
     .best-time-results{
       background:#0a0a0a; border:1px solid #333; border-radius:6px;
-      padding:12px; margin-top:12px; font-size:12px; max-height:220px; overflow-y:auto;
+      padding:12px; margin-top:12px; font-size:12px;
+      max-height:220px; overflow-y:auto;
     }
     .best-time-spinner{
       display:inline-block; width:14px; height:14px;
@@ -116,11 +119,16 @@
     }
     @keyframes bt-spin{ to{ transform:rotate(360deg) } }
 
-    /* PLAYER sizing (grand) */
-    .player-shell{ min-height:72vh; }
-    #video-container{ min-height:62vh; }
+    /* ====== Bas plein écran: on répartit player + modules sur toute la hauteur ====== */
+    .left-stack{ flex:1; min-height:0; }
+    .player-shell{ flex: 1 1 55%; min-height:0; }
+    #video-container{ min-height:0; }
 
-    /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
+    .under-shell{ flex: 1 1 45%; min-height:0; display:flex; flex-direction:column; }
+    .under-panels{ flex:1; min-height:0; overflow:hidden; } /* évite scroll page */
+    .under-panel-body{ height:100%; overflow:auto; } /* scroll interne si besoin */
+
+    /* ====== Onglets sous le live ====== */
     .u-nav{ display:flex; background:#080808; border-bottom:1px solid #1f1f23; }
     .u-tab-btn{
       flex:1; padding:12px; text-align:center; color:#666;
@@ -129,16 +137,16 @@
     }
     .u-tab-btn:hover{ color:#fff; background:#111; }
     .u-tab-btn.active{ color:var(--secondary); border-bottom-color:var(--secondary); background:#151515; }
-
-    .u-tab-panel{ display:none; }
+    .u-tab-panel{ display:none; height:100%; }
     .u-tab-panel.active{ display:block; }
+
   </style>
 </head>
 
 <body class="h-screen flex flex-col p-4">
 
   <!-- HEADER -->
-  <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
+  <header class="flex justify-between items-center mb-3 pb-2 border-b border-[#222] flex-shrink-0">
     <div class="flex items-center gap-4">
       <h1 class="text-2xl font-orbitron italic tracking-widest">
         <span class="text-[#00f2ea]">STREAMER</span> HUB
@@ -165,7 +173,7 @@
   </header>
 
   <!-- CAROUSEL -->
-  <div class="mb-4 relative group">
+  <div class="mb-3 relative group flex-shrink-0">
     <div id="carousel" class="carousel-track">
       <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
         <i class="fas fa-satellite-dish mb-2"></i><br>
@@ -175,15 +183,15 @@
     <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
   </div>
 
-  <!-- MAIN GRID -->
-  <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+  <!-- MAIN GRID (flex-1) -->
+  <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
 
     <!-- VIDEO + SOUS LIVE -->
-    <div class="lg:col-span-8 flex flex-col gap-4 min-h-0">
+    <div class="lg:col-span-8 flex flex-col gap-4 min-h-0 left-stack">
 
       <!-- PLAYER -->
-      <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
-        <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
+      <div class="glass-panel relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
+        <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222] flex-shrink-0">
           <div class="flex items-center gap-3 flex-1 min-w-0">
             <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
             <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate">OFFLINE</span>
@@ -201,135 +209,137 @@
           </div>
         </div>
 
-        <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden"></div>
+        <div id="video-container" class="flex-1 bg-black relative w-full overflow-hidden"></div>
       </div>
 
-      <!-- SOUS LE LIVE (PRO) -->
-      <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
-        <div class="u-nav" id="under-tabs-nav">
+      <!-- SOUS LE LIVE (PLEIN) -->
+      <div class="glass-panel rounded-lg overflow-hidden under-shell">
+        <div class="u-nav flex-shrink-0" id="under-tabs-nav">
           <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
           <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
           <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
         </div>
 
-        <!-- OVERVIEW -->
-        <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Growth Score</div>
-              <div id="kpi-growth-score" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
-              <div id="kpi-growth-label" class="text-[10px] text-gray-400 mt-1">--</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Moy. viewers (30j)</div>
-              <div id="kpi-avg" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">données Firestore</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Pic viewers</div>
-              <div id="kpi-peak" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">sur période</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Croissance</div>
-              <div id="kpi-growth" class="text-2xl font-orbitron text-[#ff0099]">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">début → fin</div>
-            </div>
-          </div>
-
-          <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-bell mr-1"></i> Alertes automatiques
-              </h4>
-              <div id="alerts-box" class="text-xs text-gray-400">—</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-wave-square mr-1"></i> Courbe daily
-              </h4>
-              <div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-magic mr-1"></i> IA – plan d’action
-              </h4>
-              <button id="btn-ai-reco" onclick="loadAIReco()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
-                ⚡ Générer des recommandations
-              </button>
-              <div id="ai-reco-box" class="mt-3 text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto bg-[#0a0a0a] border border-[#222] rounded p-2 hidden"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ANALYTICS -->
-        <div id="under-analytics" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
-              <div id="kpi-volatility" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">plus bas = plus stable</div>
-            </div>
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Heures / semaine (estim.)</div>
-              <div id="kpi-hours" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">basé sur snapshots</div>
-            </div>
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Échantillons</div>
-              <div id="kpi-samples" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
-            </div>
-          </div>
-
-          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
-              <input id="sim-hours" type="number" min="1" max="80" value="12" class="cyber-input" placeholder="Heures / semaine">
-              <button onclick="runSimulation()" class="bg-[#ff0099] text-white px-4 rounded font-bold hover:bg-white hover:text-black transition font-orbitron text-xs">
-                SIMULER
-              </button>
-              <div id="sim-result" class="text-xs text-gray-300 flex items-center bg-[#0a0a0a] border border-[#222] rounded px-3">--</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- NICHE -->
-        <div id="under-niche" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
-
+        <div class="under-panels">
+          <!-- OVERVIEW -->
+          <div id="under-overview" class="u-tab-panel active under-panel-body p-4 bg-[#0b0b0d]">
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Saturation</div>
-                <div id="niche-sat" class="text-xl font-orbitron text-[#00f2ea]">--</div>
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <div class="text-[10px] text-gray-500 uppercase">Growth Score</div>
+                <div id="kpi-growth-score" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
+                <div id="kpi-growth-label" class="text-[10px] text-gray-400 mt-1">--</div>
               </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Découvrabilité</div>
-                <div id="niche-discover" class="text-xl font-orbitron text-[#ff0099]">--</div>
+
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <div class="text-[10px] text-gray-500 uppercase">Moy. viewers (30j)</div>
+                <div id="kpi-avg" class="text-2xl font-orbitron text-white">--</div>
+                <div class="text-[10px] text-gray-500 mt-1">données Firestore</div>
               </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Position</div>
-                <div id="niche-position" class="text-xl font-orbitron text-white">--</div>
+
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <div class="text-[10px] text-gray-500 uppercase">Pic viewers</div>
+                <div id="kpi-peak" class="text-2xl font-orbitron text-white">--</div>
+                <div class="text-[10px] text-gray-500 mt-1">sur période</div>
               </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Verdict</div>
-                <div id="niche-verdict" class="text-xl font-orbitron text-white">--</div>
+
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <div class="text-[10px] text-gray-500 uppercase">Croissance</div>
+                <div id="kpi-growth" class="text-2xl font-orbitron text-[#ff0099]">--</div>
+                <div class="text-[10px] text-gray-500 mt-1">début → fin</div>
               </div>
             </div>
 
-            <div class="mt-3 text-xs text-gray-300" id="niche-details">—</div>
+            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                  <i class="fas fa-bell mr-1"></i> Alertes automatiques
+                </h4>
+                <div id="alerts-box" class="text-xs text-gray-400">—</div>
+              </div>
+
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                  <i class="fas fa-wave-square mr-1"></i> Courbe daily
+                </h4>
+                <div class="h-36"><canvas id="chartChannelDaily"></canvas></div>
+              </div>
+
+              <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
+                <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                  <i class="fas fa-magic mr-1"></i> IA – plan d’action
+                </h4>
+                <button id="btn-ai-reco" onclick="loadAIReco()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+                  ⚡ Générer des recommandations
+                </button>
+                <div id="ai-reco-box" class="mt-3 text-xs text-gray-300 leading-relaxed bg-[#0a0a0a] border border-[#222] rounded p-2 hidden"></div>
+              </div>
+            </div>
           </div>
 
-          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
-            <div class="h-44"><canvas id="chartGameHours"></canvas></div>
-            <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
+          <!-- ANALYTICS -->
+          <div id="under-analytics" class="u-tab-panel under-panel-body p-4 bg-[#0b0b0d]">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
+                <div id="kpi-volatility" class="text-2xl font-orbitron text-white">--</div>
+                <div class="text-[10px] text-gray-500 mt-1">plus bas = plus stable</div>
+              </div>
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <div class="text-[10px] text-gray-500 uppercase">Heures / semaine (estim.)</div>
+                <div id="kpi-hours" class="text-2xl font-orbitron text-white">--</div>
+                <div class="text-[10px] text-gray-500 mt-1">basé sur snapshots</div>
+              </div>
+              <div class="bg-[#111] p-3 rounded border border-[#222]">
+                <div class="text-[10px] text-gray-500 uppercase">Échantillons</div>
+                <div id="kpi-samples" class="text-2xl font-orbitron text-white">--</div>
+                <div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
+              </div>
+            </div>
+
+            <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                <input id="sim-hours" type="number" min="1" max="80" value="12" class="cyber-input" placeholder="Heures / semaine">
+                <button onclick="runSimulation()" class="bg-[#ff0099] text-white px-4 rounded font-bold hover:bg-white hover:text-black transition font-orbitron text-xs">
+                  SIMULER
+                </button>
+                <div id="sim-result" class="text-xs text-gray-300 flex items-center bg-[#0a0a0a] border border-[#222] rounded px-3">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NICHE -->
+          <div id="under-niche" class="u-tab-panel under-panel-body p-4 bg-[#0b0b0d]">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
+
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                  <div class="text-[10px] text-gray-500 uppercase">Saturation</div>
+                  <div id="niche-sat" class="text-xl font-orbitron text-[#00f2ea]">--</div>
+                </div>
+                <div>
+                  <div class="text-[10px] text-gray-500 uppercase">Découvrabilité</div>
+                  <div id="niche-discover" class="text-xl font-orbitron text-[#ff0099]">--</div>
+                </div>
+                <div>
+                  <div class="text-[10px] text-gray-500 uppercase">Position</div>
+                  <div id="niche-position" class="text-xl font-orbitron text-white">--</div>
+                </div>
+                <div>
+                  <div class="text-[10px] text-gray-500 uppercase">Verdict</div>
+                  <div id="niche-verdict" class="text-xl font-orbitron text-white">--</div>
+                </div>
+              </div>
+
+              <div class="mt-3 text-xs text-gray-300" id="niche-details">—</div>
+            </div>
+
+            <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
+              <div class="h-36"><canvas id="chartGameHours"></canvas></div>
+              <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
+            </div>
           </div>
         </div>
       </div>
@@ -337,30 +347,30 @@
 
     <!-- RIGHT PANEL -->
     <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
-      <div class="tab-nav">
+      <div class="tab-nav flex-shrink-0">
         <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
         <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
         <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
       </div>
 
       <!-- CHAT -->
-      <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
-        <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
+      <div id="tab-chat" class="tab-content active bg-[#0e0e10] min-h-0">
+        <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222] flex-shrink-0">
           <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
           <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">HUB SECURE</button>
         </div>
 
-        <div id="chat-container-twitch" class="flex-grow relative bg-[#0a0a0a] overflow-hidden">
+        <div id="chat-container-twitch" class="flex-1 relative bg-[#0a0a0a] overflow-hidden min-h-0">
           <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
         </div>
 
-        <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
-          <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
+        <div id="chat-container-hub" class="flex-1 hidden flex-col relative bg-[#0b0b0d] min-h-0">
+          <div id="hub-messages" class="flex-1 overflow-y-auto p-2 scrollbar-thin min-h-0">
             <div class="text-center text-gray-600 text-xs mt-4">
               Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
             </div>
           </div>
-          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] flex-shrink-0">
             <input id="hub-input" type="text" placeholder="Message..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
             <button type="submit" class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
           </form>
@@ -368,7 +378,7 @@
       </div>
 
       <!-- STATS -->
-      <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
+      <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin min-h-0">
         <div class="grid grid-cols-2 gap-3 mb-6">
           <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
             <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
@@ -397,7 +407,7 @@
       </div>
 
       <!-- OUTILS -->
-      <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6 scrollbar-thin">
+      <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6 scrollbar-thin min-h-0">
 
         <!-- BEST TIME -->
         <div class="best-time-tool">
@@ -428,7 +438,7 @@
                 <div id="scan-game" class="text-xs text-gray-500">--</div>
               </div>
             </div>
-            <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
+            <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto"></div>
           </div>
         </div>
 
@@ -484,7 +494,6 @@
     let currentGameId = null;
     let currentGameName = null;
 
-    // INIT
     window.addEventListener('load', async () => {
       initUnderTabs();
       await checkAuth();
@@ -511,7 +520,6 @@
       });
     }
 
-    // FIREBASE STATUS
     async function initFirebaseStatus() {
       async function checkStatus() {
         try {
@@ -533,7 +541,6 @@
       setInterval(checkStatus, 5000);
     }
 
-    // AUTH
     async function checkAuth() {
       const res = await fetch(`${API_BASE}/twitch_user_status`);
       const data = await res.json();
@@ -562,7 +569,6 @@
 
     function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
 
-    // PLAYER
     async function initPlayer() {
       const res = await fetch(`${API_BASE}/get_default_stream`);
       const data = await res.json();
@@ -605,7 +611,6 @@
           currentGameId = data.stream.game_id || null;
           currentGameName = data.stream.game_name || null;
 
-          // 🔥 Pro data sous le live
           loadChannelProData(channel);
         } else {
           document.getElementById('viewer-count').innerText = `0 viewers`;
@@ -637,10 +642,8 @@
       }
     }
 
-    // CAROUSEL
     function initCarouselScroll(){
       const el = document.getElementById('carousel');
-      if (!el) return;
       el.addEventListener('wheel',(evt)=>{ evt.preventDefault(); el.scrollLeft += evt.deltaY; }, { passive:false });
     }
 
@@ -664,7 +667,7 @@
               </div>`;
           });
         } else {
-          el.innerHTML = '<div class="w-full text-center py-10 text-gray-500">Aucune chaîne suivie en live.</div>';
+          el.innerHTML = '<div class="w-full text-center py-10 text-gray-500">Aucune chaîne live suivie.</div>';
         }
       }catch(e){
         console.error('Carousel error:', e);
@@ -680,7 +683,6 @@
       updateTwitchChatFrame(channel);
     }
 
-    // RIGHT TABS
     function openTab(e, id){
       document.querySelectorAll('#tab-chat,#tab-stats,#tab-tools').forEach(el=>el.classList.remove('active'));
       document.querySelectorAll('.tab-nav .tab-btn').forEach(el=>el.classList.remove('active'));
@@ -707,7 +709,6 @@
       }
     }
 
-    // SOCKET.IO
     function initSocket(){
       try{
         socket = io();
@@ -715,7 +716,7 @@
           const box = document.getElementById('hub-messages');
           const user = msg.user || 'Anon';
           const text = msg.text || msg;
-          box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${escapeHtml(user)}</strong> <span class="text-gray-300">${escapeHtml(text)}</span></div>`;
+          box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${user}</strong> <span class="text-gray-300">${text}</span></div>`;
           box.scrollTop = box.scrollHeight;
         });
       }catch(e){ console.error('Socket error:', e); }
@@ -727,18 +728,11 @@
       if (!input.value) return;
       if (socket) socket.emit('chat message',{ user: currentUser || 'Anon', text: input.value });
       const box = document.getElementById('hub-messages');
-      box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${escapeHtml(currentUser || 'Anon')}</strong> <span class="text-gray-300">${escapeHtml(input.value)}</span></div>`;
+      box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${currentUser || 'Anon'}</strong> <span class="text-gray-300">${input.value}</span></div>`;
       box.scrollTop = box.scrollHeight;
       input.value = '';
     }
 
-    function escapeHtml(str){
-      return String(str||'').replace(/[&<>"']/g, (m) => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
-      }[m]));
-    }
-
-    // BEST TIME
     async function analyzeBestTime(){
       const gameInput = document.getElementById('best-time-game').value.trim();
       if (!gameInput) return alert('Veuillez entrer un nom de jeu');
@@ -770,7 +764,6 @@
       }
     }
 
-    // STATS DASH
     async function loadStatsDashboard(){
       try{
         const res = await fetch(`${API_BASE}/api/stats/global`);
@@ -815,7 +808,7 @@
       });
     }
 
-    // ===== Sous le live (données backend) =====
+    // ===== Sous le live (routes backend alignées) =====
     async function loadChannelProData(login){
       if (!login || login === 'twitch') return;
 
@@ -824,8 +817,7 @@
         const data = await res.json();
 
         if (!data.success){
-          document.getElementById('kpi-growth-label').innerText =
-            data.message || data.error || "Pas assez de données (laisse tourner le cron).";
+          document.getElementById('kpi-growth-label').innerText = data.message || data.error || "Pas assez de données.";
           return;
         }
 
@@ -837,9 +829,9 @@
         document.getElementById('kpi-avg').innerText = fmt(k.avg_viewers);
         document.getElementById('kpi-peak').innerText = fmt(k.peak_viewers);
         document.getElementById('kpi-growth').innerText = (k.growth_percent!=null ? `${k.growth_percent}%` : '--');
-        document.getElementById('kpi-volatility').innerText = fmt(k.volatility);
         document.getElementById('kpi-hours').innerText = (k.hours_per_week_est!=null ? `${k.hours_per_week_est}h` : '--');
         document.getElementById('kpi-samples').innerText = fmt(k.days);
+        document.getElementById('kpi-volatility').innerText = (k.volatility!=null ? fmt(k.volatility) : '--');
 
         const gs = k.growth_score;
         document.getElementById('kpi-growth-score').innerText = (gs!=null ? `${gs}/100` : '--');
@@ -859,6 +851,7 @@
         if (currentGameId){
           await loadGameHours(currentGameId);
         }
+
       }catch(e){
         console.error('loadChannelProData error:', e);
       }
@@ -894,10 +887,10 @@
           box.innerHTML += `
             <div class="bg-[#0a0a0a] border border-[#222] rounded p-2 mb-2">
               <div class="flex items-center justify-between gap-2">
-                <div class="text-xs font-bold text-white">${escapeHtml(a.title || 'Alerte')}</div>
-                <div class="text-[10px] text-gray-500">${escapeHtml(a.day || '')}</div>
+                <div class="text-xs font-bold text-white">${a.title || 'Alerte'}</div>
+                <div class="text-[10px] text-gray-500">${a.day || ''}</div>
               </div>
-              <div class="text-[11px] text-gray-300 mt-1 leading-snug">${escapeHtml(a.message || '')}</div>
+              <div class="text-[11px] text-gray-300 mt-1 leading-snug">${a.message || ''}</div>
             </div>`;
         });
 
@@ -917,7 +910,7 @@
         const values = data.hours.map(x => (x.discoverability_score || 0));
         renderChart('chartGameHours','line',labels,values,'Opportunité');
 
-        const best = data.best || data.hours.slice().sort((a,b)=>(b.discoverability_score||0)-(a.discoverability_score||0))[0];
+        const best = data.hours.slice().sort((a,b)=>(b.discoverability_score||0)-(a.discoverability_score||0))[0];
         document.getElementById('niche-sat').innerText = best?.saturation_score!=null ? `${best.saturation_score}/100` : '--';
         document.getElementById('niche-discover').innerText = best?.discoverability_score!=null ? `${best.discoverability_score}/100` : '--';
         document.getElementById('niche-position').innerText = best ? `${String(best.hour).padStart(2,'0')}h UTC` : '--';
@@ -963,11 +956,7 @@
         const res = await fetch(`${API_BASE}/api/simulate/growth?channel_id=${encodeURIComponent(currentChannelId)}&hours_per_week=${encodeURIComponent(hours)}&days=30`);
         const data = await res.json();
         if (!data.success){ out.innerText = data.message || 'Pas assez de data'; return; }
-        const delta = data.target?.expected_change_percent ?? null;
-        const expected = data.target?.expected_avg_viewers ?? null;
-        out.innerText = (delta==null || expected==null)
-          ? 'OK'
-          : `${delta >= 0 ? '+' : ''}${delta}% • ~${expected} avg viewers`;
+        out.innerText = `≈ ${data.target.expected_avg_viewers} avg • (${data.target.expected_change_percent}% est.)`;
       }catch(e){
         out.innerText = 'Erreur';
       }
@@ -987,29 +976,26 @@
         const data = await r.json();
 
         if (!data.success){
-          out.innerHTML = `<p style="color:#ff6666;">❌ ${escapeHtml(data.message || 'Impossible')}</p>`;
+          out.innerHTML = `<p style="color:#ff6666;">❌ ${data.message || 'Impossible'}</p>`;
           return;
         }
 
-        const best = data.best;
+        const best = data.best || null;
         const list = data.candidates || [];
-
         out.innerHTML = `
           <div class="flex items-center gap-3 mb-2">
             <img src="${best?.profile_image_url || ''}" onerror="this.style.display='none'" class="w-10 h-10 rounded-full border border-[#00f2ea]">
             <div class="min-w-0">
-              <div class="text-white font-bold text-sm">${escapeHtml(best?.display_name || '—')} <span class="text-gray-500">@${escapeHtml(best?.login || '')}</span></div>
+              <div class="text-white font-bold text-sm">${best?.display_name || '—'} <span class="text-gray-500">@${best?.login || ''}</span></div>
               <div class="text-[11px] text-gray-400">Score: <span class="text-[#00f2ea] font-bold">${best?.score ?? '--'}</span></div>
             </div>
             <a class="ml-auto text-[11px] bg-[#00f2ea] text-black px-2 py-1 rounded font-bold" target="_blank" href="https://twitch.tv/${best?.login || ''}">Voir</a>
           </div>
-          <div class="text-[11px] text-gray-300">${escapeHtml(best?.why || '')}</div>
-          ${list.length ? `
-            <div class="mt-3 text-[11px] text-gray-400 font-bold uppercase">Autres options</div>
-            <ul class="mt-1 text-[11px] text-gray-300 list-disc pl-5">
-              ${list.slice(0,5).map(x=>`<li>${escapeHtml(x.display_name)} — score ${x.score}</li>`).join('')}
-            </ul>` : '' }
-        `;
+          <div class="text-[11px] text-gray-300">${best?.why || ''}</div>
+          <div class="mt-3 text-[11px] text-gray-400 font-bold uppercase">Autres options</div>
+          <ul class="mt-1 text-[11px] text-gray-300 list-disc pl-5">
+            ${list.slice(0,5).map(x=>`<li>${x.display_name} — score ${x.score}</li>`).join('')}
+          </ul>`;
       }catch(e){
         out.innerHTML = '<p style="color:#ff6666;">❌ Erreur réseau</p>';
       }finally{
@@ -1017,66 +1003,54 @@
       }
     }
 
-    // ====== SCAN / RAID / BOOST (réparés) ======
+    // ===== OUTILS manquants (Scan / Raid / Boost) =====
     async function runScan(){
       const q = document.getElementById('scan-query').value.trim();
       if (!q) return;
-
-      const box = document.getElementById('scan-res');
-      box.classList.remove('hidden');
-      document.getElementById('scan-ai').innerHTML = `<span class="best-time-spinner"></span> Scan...`;
 
       try{
         const r = await fetch(`${API_BASE}/scan_target`,{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ query:q })
+          body:JSON.stringify({ query: q })
         });
         const data = await r.json();
-        if (!data.success){
-          document.getElementById('scan-ai').innerHTML = `<p style="color:#ff6666;">❌ Introuvable</p>`;
-          return;
-        }
+        if (!data.success) return alert('Introuvable');
+
+        document.getElementById('scan-res').classList.remove('hidden');
 
         if (data.type === 'user'){
           const u = data.user_data;
           document.getElementById('scan-img').src = u.profile_image_url || '';
           document.getElementById('scan-name').innerText = `${u.display_name} (@${u.login})`;
-          document.getElementById('scan-game').innerText = `${u.game_name || '—'} • ${u.is_live ? (u.viewer_count+' viewers') : 'offline'}`;
+          document.getElementById('scan-game').innerText = `${u.game_name} • ${u.is_live ? (u.viewer_count + ' viewers') : 'offline'}`;
 
-          // mini critique IA (optionnel)
           const ai = await fetch(`${API_BASE}/critique_ia`,{
             method:'POST',
             headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({ type:'niche', query: u.game_name || q })
+            body:JSON.stringify({ type:'niche', query: u.game_name })
           }).then(x=>x.json()).catch(()=>null);
 
-          document.getElementById('scan-ai').innerHTML =
-            `<p><strong>Titre:</strong> ${escapeHtml(u.title||'—')}</p>
-             <p><strong>Tags:</strong> ${escapeHtml(u.tags||'—')}</p>
-             <p><strong>Lang:</strong> ${escapeHtml(u.language||'—')}</p>
-             <hr style="border-color:#222;margin:8px 0;">
-             ${ai?.html_response || '<p class="text-gray-400">IA indisponible.</p>'}`;
+          document.getElementById('scan-ai').innerHTML = ai?.html_response || '<p>—</p>';
         } else {
           const g = data.game_data;
           document.getElementById('scan-img').src = g.box_art_url || '';
-          document.getElementById('scan-name').innerText = `${g.name}`;
-          document.getElementById('scan-game').innerText = `Total viewers (snapshot): ${g.total_viewers||0}`;
-          document.getElementById('scan-ai').innerHTML = `<p>Score niche estimé: <strong>${g.ai_calculated_niche_score}</strong></p>`;
+          document.getElementById('scan-name').innerText = g.name;
+          document.getElementById('scan-game').innerText = `${g.total_viewers} viewers`;
+          document.getElementById('scan-ai').innerHTML = `<p>Score niche: <strong>${g.ai_calculated_niche_score}</strong></p>`;
         }
       }catch(e){
-        document.getElementById('scan-ai').innerHTML = `<p style="color:#ff6666;">❌ Erreur</p>`;
+        alert('Erreur réseau');
       }
     }
 
     async function runRaid(){
       const game = document.getElementById('raid-game').value.trim();
-      const max_viewers = parseInt(document.getElementById('raid-viewers').value||'100',10);
+      const max_viewers = parseInt(document.getElementById('raid-viewers').value || '100',10);
       if (!game) return;
 
       const box = document.getElementById('raid-res');
-      box.classList.remove('hidden');
-      document.getElementById('raid-info').innerHTML = `<span class="best-time-spinner"></span> Recherche...`;
+      box.classList.add('hidden');
 
       try{
         const r = await fetch(`${API_BASE}/start_raid`,{
@@ -1085,31 +1059,29 @@
           body:JSON.stringify({ game, max_viewers })
         });
         const data = await r.json();
-        if (!data.success || !data.target){
-          document.getElementById('raid-info').innerHTML = `<p style="color:#ff6666;">❌ Aucun raid trouvé</p>`;
-          return;
-        }
+        if (!data.success) return alert('Aucun raid trouvé');
+
         raidTarget = data.target;
-        document.getElementById('raid-img').src = raidTarget.thumbnail_url || '';
-        document.getElementById('raid-info').innerHTML =
-          `<p><strong>${escapeHtml(raidTarget.name)}</strong> (@${escapeHtml(raidTarget.login)})</p>
-           <p>${escapeHtml(raidTarget.game)} • ${raidTarget.viewers} viewers</p>`;
+        document.getElementById('raid-img').src = raidTarget.thumbnail_url;
+        document.getElementById('raid-info').innerHTML = `
+          <div><strong>${raidTarget.name}</strong> (@${raidTarget.login})</div>
+          <div class="text-gray-400">${raidTarget.game} • ${raidTarget.viewers} viewers</div>
+        `;
+        box.classList.remove('hidden');
       }catch(e){
-        document.getElementById('raid-info').innerHTML = `<p style="color:#ff6666;">❌ Erreur</p>`;
+        alert('Erreur réseau');
       }
     }
 
-    function goToRaid(){
-      if (raidTarget) window.open(`https://twitch.tv/${raidTarget.login}`, '_blank');
-    }
+    function goToRaid(){ if (raidTarget) window.open(`https://twitch.tv/${raidTarget.login}`, '_blank'); }
 
     async function runBoost(){
-      const channel = document.getElementById('boost-query').value.trim();
-      const msg = document.getElementById('boost-msg');
-      msg.innerText = '';
+      const channel = document.getElementById('boost-query').value.trim().toLowerCase();
       if (!channel) return;
 
+      const msg = document.getElementById('boost-msg');
       msg.innerText = '...';
+
       try{
         const r = await fetch(`${API_BASE}/stream_boost`,{
           method:'POST',
@@ -1117,11 +1089,10 @@
           body:JSON.stringify({ channel })
         });
         const data = await r.json();
-        msg.innerText = data.success ? '✅ Boost activé (15 min)' : '❌ Boost refusé';
+        msg.innerText = (data?.html_response ? data.html_response.replace(/<[^>]*>/g,'') : '✅ Boost OK');
       }catch(e){
         msg.innerText = '❌ Erreur';
       }
-      setTimeout(()=>{ msg.innerText=''; }, 4000);
     }
   </script>
 </body>
