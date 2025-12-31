@@ -153,7 +153,6 @@
       <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
         <i class="fab fa-twitch"></i> CONNEXION
       </button>
-
       <div id="user-area" class="hidden flex items-center gap-3">
         <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
         <span id="user-name" class="font-bold text-white text-sm"></span>
@@ -257,7 +256,7 @@
 
             <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
               <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-magic mr-1"></i> IA – plan d’action
+                <i class="fas fa-magic mr-1"></i> IA – plan d'action
               </h4>
               <button id="btn-ai-reco" onclick="loadAIReco()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
                 ⚡ Générer des recommandations
@@ -286,7 +285,6 @@
               <div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
             </div>
           </div>
-
           <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
             <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
@@ -329,7 +327,7 @@
           <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
             <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
             <div class="h-44"><canvas id="chartGameHours"></canvas></div>
-            <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
+            <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d'opportunité (viewers / concurrence).</div>
           </div>
         </div>
       </div>
@@ -382,7 +380,7 @@
 
         <div class="space-y-6">
           <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance</h4>
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance (24h)</h4>
             <div class="h-40"><canvas id="chartViewers"></canvas></div>
           </div>
           <div class="bg-[#111] p-3 rounded border border-[#222]">
@@ -594,7 +592,6 @@
         if (data.success && data.stream) {
           const title = data.stream.title || 'Sans titre';
           const viewers = data.stream.viewer_count || 0;
-
           const display = document.getElementById('current-channel-display');
           const titleText = title.length > 40 ? title.substring(0,40) + '...' : title;
           display.innerText = `${channel.toUpperCase()} • ${titleText}`;
@@ -693,7 +690,6 @@
       const hub = document.getElementById('chat-container-hub');
       const btnTw = document.getElementById('btn-mode-twitch');
       const btnHb = document.getElementById('btn-mode-hub');
-
       if (mode === 'hub'){
         twitch.classList.add('hidden');
         hub.classList.remove('hidden'); hub.classList.add('flex');
@@ -770,15 +766,16 @@
       }
     }
 
-    // STATS DASH
+    // STATS DASH avec intraday 24h
     async function loadStatsDashboard(){
       try{
-        const res = await fetch(`${API_BASE}/api/stats/global`);
+        // Global stats + intraday 24h
+        const res = await fetch(`${API_BASE}/api/stats/global_intraday?hours=24`);
         const data = await res.json();
         if (data.success){
-          document.getElementById('kpi-viewers').innerText = Number(data.total_viewers||0).toLocaleString();
-          document.getElementById('kpi-channels').innerText = data.total_channels;
-          renderChart('chartViewers','line',data.history.live.labels,data.history.live.values,'Viewers');
+          document.getElementById('kpi-viewers').innerText = Number(data.current_total_viewers||0).toLocaleString();
+          document.getElementById('kpi-channels').innerText = Number(data.current_channels_live||0).toLocaleString();
+          renderChart('chartViewers','line',data.series.labels,data.series.values,'Viewers (24h)');
         }
 
         const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
@@ -895,4 +892,196 @@
             <div class="bg-[#0a0a0a] border border-[#222] rounded p-2 mb-2">
               <div class="flex items-center justify-between gap-2">
                 <div class="text-xs font-bold text-white">${escapeHtml(a.title || 'Alerte')}</div>
-                <div class="text-[10px] text-gray-500">${escapeHtml(a.day || ''
+                <div class="text-[10px] text-gray-500">${escapeHtml(a.day || '')}</div>
+              </div>
+              <div class="text-[10px] text-gray-400 mt-1">${escapeHtml(a.message || '')}</div>
+            </div>`;
+        });
+      }catch(e){
+        box.innerHTML = '<div class="text-red-500 text-xs">Erreur alertes</div>';
+      }
+    }
+
+    async function loadGameHours(gameId){
+      try{
+        const res = await fetch(`${API_BASE}/api/games/hours?game_id=${encodeURIComponent(gameId)}&days=7`);
+        const data = await res.json();
+        if (data.success && data.hours){
+          const labels = data.hours.map(h => `${h.hour}h`);
+          const values = data.hours.map(h => h.discoverability_score);
+          renderChart('chartGameHours','bar',labels,values,'Découvrabilité par heure');
+        }
+      }catch(e){
+        console.error('Game hours error:', e);
+      }
+    }
+
+    async function runSimulation(){
+      const hours = parseFloat(document.getElementById('sim-hours').value) || 0;
+      if (!currentChannelId || !hours) return;
+
+      try{
+        const res = await fetch(`${API_BASE}/api/simulate/growth?channel_id=${currentChannelId}&hours_per_week=${hours}&days=30`);
+        const data = await res.json();
+        if (data.success){
+          const change = data.target.expected_change_percent;
+          const delta = change >= 0 ? `+${change}` : `${change}`;
+          document.getElementById('sim-result').innerText = `Objectif: ${data.target.expected_avg_viewers} viewers (${delta}%)`;
+        }
+      }catch(e){
+        document.getElementById('sim-result').innerText = 'Erreur simulation';
+      }
+    }
+
+    async function loadAIReco(){
+      if (!currentChannel || currentChannel === 'twitch') return;
+      const btn = document.getElementById('btn-ai-reco');
+      const box = document.getElementById('ai-reco-box');
+      btn.disabled = true;
+      btn.innerText = '⚡ Chargement...';
+
+      try{
+        const res = await fetch(`${API_BASE}/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);
+        const data = await res.json();
+        box.innerHTML = data.html_response || 'Aucune recommandation';
+        box.classList.remove('hidden');
+      }catch(e){
+        box.innerHTML = '<p style="color:red;">Erreur IA</p>';
+        box.classList.remove('hidden');
+      }finally{
+        btn.disabled = false;
+        btn.innerText = '⚡ Générer des recommandations';
+      }
+    }
+
+    // SCANNER
+    async function runScan(){
+      const query = document.getElementById('scan-query').value.trim();
+      if (!query) return alert('Veuillez entrer un pseudo ou un jeu');
+
+      try{
+        const res = await fetch(`${API_BASE}/scan_target`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ query })
+        });
+        const data = await res.json();
+        const scanRes = document.getElementById('scan-res');
+
+        if (!data.success) {
+          scanRes.classList.add('hidden');
+          return;
+        }
+
+        if (data.type === 'user') {
+          const u = data.user_data;
+          document.getElementById('scan-img').src = u.profile_image_url || '';
+          document.getElementById('scan-name').innerText = u.display_name;
+          document.getElementById('scan-game').innerText = u.game_name;
+          document.getElementById('scan-ai').innerText = `Bio: ${u.description}\nScore niche: ${u.ai_calculated_niche_score}`;
+        } else if (data.type === 'game') {
+          const g = data.game_data;
+          document.getElementById('scan-img').src = g.box_art_url || '';
+          document.getElementById('scan-name').innerText = g.name;
+          document.getElementById('scan-game').innerText = `${g.total_viewers} viewers`;
+          document.getElementById('scan-ai').innerText = `Score: ${g.ai_calculated_niche_score}/5`;
+        }
+
+        scanRes.classList.remove('hidden');
+      }catch(e){
+        console.error('Scan error:', e);
+      }
+    }
+
+    // RAID
+    let raidData = null;
+    async function runRaid(){
+      const game = document.getElementById('raid-game').value.trim();
+      const maxViewers = parseInt(document.getElementById('raid-viewers').value) || 100;
+      if (!game) return alert('Veuillez entrer un jeu');
+
+      try{
+        const res = await fetch(`${API_BASE}/start_raid`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ game, max_viewers: maxViewers })
+        });
+        const data = await res.json();
+        const raidRes = document.getElementById('raid-res');
+
+        if (data.success && data.target) {
+          raidData = data.target;
+          document.getElementById('raid-img').src = data.target.thumbnail_url;
+          document.getElementById('raid-info').innerText = `${data.target.name} (${data.target.viewers} viewers) - ${data.target.game}`;
+          raidRes.classList.remove('hidden');
+        } else {
+          raidRes.classList.add('hidden');
+        }
+      }catch(e){
+        console.error('Raid error:', e);
+      }
+    }
+
+    function goToRaid(){
+      if (raidData) window.open(`https://twitch.tv/${raidData.login}`,'_blank');
+    }
+
+    // CO-STREAM
+    async function loadCoStreamer(){
+      if (!currentGameId) return alert('Pas de jeu détecté');
+      const btn = document.getElementById('costream-btn');
+      const out = document.getElementById('costream-out');
+      btn.disabled = true;
+
+      try{
+        const res = await fetch(`${API_BASE}/api/costream/best?game_id=${encodeURIComponent(currentGameId)}`);
+        const data = await res.json();
+
+        if (data.success && data.best) {
+          const b = data.best;
+          out.innerHTML = `
+            <div class="flex gap-3 items-center">
+              <img src="${b.profile_image_url}" class="w-12 h-12 rounded-full">
+              <div>
+                <div class="font-bold text-white">${b.display_name}</div>
+                <div class="text-xs text-gray-400">${b.viewer_count} viewers • ${b.game_name}</div>
+              </div>
+            </div>
+            <button onclick="window.open('https://twitch.tv/${b.login}','_blank')" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white text-xs">Visiter</button>
+          `;
+          out.style.display = 'block';
+        }
+      }catch(e){
+        out.innerHTML = '<p style="color:red;">Erreur co-stream</p>';
+        out.style.display = 'block';
+      }finally{
+        btn.disabled = false;
+      }
+    }
+
+    // BOOST
+    async function runBoost(){
+      const channel = document.getElementById('boost-query').value.trim();
+      if (!channel) return alert('Veuillez entrer une chaîne');
+
+      try{
+        const res = await fetch(`${API_BASE}/stream_boost`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ channel })
+        });
+        const data = await res.json();
+        const msg = document.getElementById('boost-msg');
+
+        if (data.success) {
+          msg.innerText = '✅ Boost activé 15min !';
+          msg.style.color = '#00f2ea';
+          setTimeout(()=>{ msg.innerText = ''; }, 3000);
+        }
+      }catch(e){
+        console.error('Boost error:', e);
+      }
+    }
+  </script>
+</body>
+</html>
