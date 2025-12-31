@@ -1,1464 +1,1806 @@
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Niche Optimizer</title>
-  <style>
-    :root{
-      --bg:#0b0f17;
-      --panel:#0f172a;
-      --card:#111c33;
-      --card2:#0b1226;
-      --text:#e6eefc;
-      --muted:#99a7c2;
-      --border:rgba(255,255,255,.08);
-      --accent:#6ee7ff;
-      --good:#22c55e;
-      --warn:#f59e0b;
-      --bad:#ef4444;
-      --shadow: 0 12px 30px rgba(0,0,0,.35);
-      --radius:14px;
-      --radius2:18px;
-      --h: 100vh;
+from pathlib import Path
+import re, textwrap, json, datetime
+
+# ---------- Build backend app.js ----------
+backend = r"""/**
+ * STREAMER & NICHE AI HUB - BACKEND (V58 - routes cohérentes + stats pédagogiques + sélection <=100 viewers)
+ * ================================================================================================
+ * Objectifs:
+ * - Garder tes routes existantes + compat avec l'ancien front
+ * - Ajouter des routes "random streamer" (global et par jeu) avec cap viewers (0..100 par défaut)
+ * - Assurer que daily_stats existe (rollup journalier via cron snapshot) pour analytics/alerts
+ * - Remplir games/{gameId}/hourly_stats pour l'outil /api/games/hours
+ * - Socket.IO stable (websocket only)
+ *
+ * Env requis:
+ * - TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_REDIRECT_URI
+ * - (optionnel) FIREBASE_SERVICE_KEY (json string) ou serviceAccountKey.json
+ * - (optionnel) GEMINI_API_KEY
+ */
+
+require('dotenv').config();
+
+const express = require('express');
+const cors = require('cors');
+const fetch = require('node-fetch');
+const bodyParser = require('body-parser');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const cookieParser = require('cookie-parser');
+const http = require('http');
+const { Server } = require('socket.io');
+
+// IA
+const { GoogleGenAI } = require('@google/genai');
+
+// Firebase
+const admin = require('firebase-admin');
+
+// =========================================================
+// 0) CONFIG
+// =========================================================
+const PORT = process.env.PORT || 10000;
+
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
+// Cron snapshots
+const ENABLE_CRON = (process.env.ENABLE_CRON || 'true').toLowerCase() !== 'false';
+const SNAPSHOT_EVERY_MIN = Math.max(1, parseInt(process.env.SNAPSHOT_EVERY_MIN || '5', 10));
+
+// Hard guard: éviter de proposer des "mastodontes"
+const DEFAULT_MAX_VIEWERS = Math.max(1, parseInt(process.env.DEFAULT_MAX_VIEWERS || '100', 10));
+const DEFAULT_MIN_VIEWERS = Math.max(0, parseInt(process.env.DEFAULT_MIN_VIEWERS || '0', 10));
+
+// =========================================================
+// 1) INIT APP
+// =========================================================
+const app = express();
+const server = http.createServer(app);
+
+app.use(cors());
+app.use(bodyParser.json({ limit: '1mb' }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname)));
+
+// =========================================================
+// 2) FIREBASE INIT
+// =========================================================
+let serviceAccount = null;
+
+if (process.env.FIREBASE_SERVICE_KEY) {
+  try {
+    let rawJson = process.env.FIREBASE_SERVICE_KEY;
+    if ((rawJson.startsWith("'") && rawJson.endsWith("'")) || (rawJson.startsWith('"') && rawJson.endsWith('"'))) {
+      rawJson = rawJson.slice(1, -1);
     }
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; margin:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; overflow:hidden; }
-    a{ color:inherit; text-decoration:none; }
-    button, input, select { font:inherit; }
-    .app{
-      height:var(--h);
-      display:flex;
-      flex-direction:column;
-    }
-    .topbar{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding:12px 14px;
-      border-bottom:1px solid var(--border);
-      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:8px 10px;
-      border:1px solid var(--border);
-      border-radius:999px;
-      background:rgba(255,255,255,.02);
-    }
-    .dot{ width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 6px rgba(110,231,255,.10); }
-    .brand b{ letter-spacing:.3px; }
-    .topbar .spacer{ flex:1; }
-    .chip{
-      display:flex; align-items:center; gap:8px;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.02);
-      padding:8px 10px;
-      border-radius:999px;
-      color:var(--muted);
-      max-width:55vw;
-      overflow:hidden;
-      white-space:nowrap;
-      text-overflow:ellipsis;
-    }
-    .btn{
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.03);
-      color:var(--text);
-      padding:9px 12px;
-      border-radius:999px;
-      cursor:pointer;
-      transition:.15s;
-    }
-    .btn:hover{ transform:translateY(-1px); background:rgba(255,255,255,.06); }
-    .btn.primary{ border-color: rgba(110,231,255,.35); background: rgba(110,231,255,.10); }
-    .btn.good{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); }
-    .btn.warn{ border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.12); }
-    .btn.bad{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.12); }
-    .layout{
-      flex:1;
-      display:flex;
-      min-height:0;
-    }
-    .left{
-      flex:1.4;
-      min-width:0;
-      display:flex;
-      flex-direction:column;
-      border-right:1px solid var(--border);
-      background: radial-gradient(600px 260px at 20% 0%, rgba(110,231,255,.08), rgba(0,0,0,0));
-    }
-    .playerControls{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding:12px 14px;
-      border-bottom:1px solid var(--border);
-    }
-    .playerControls .group{ display:flex; gap:8px; flex-wrap:wrap; }
-    .playerControls .right{ margin-left:auto; display:flex; gap:8px; }
-    .select{
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.02);
-      color:var(--text);
-      padding:9px 12px;
-      border-radius:999px;
-      outline:none;
-    }
-    .playerWrap{
-      flex:1;
-      min-height:0;
-      padding:14px;
-      display:flex;
-    }
-    .playerCard{
-      width:100%;
-      border:1px solid var(--border);
-      border-radius:var(--radius2);
-      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-    }
-    .playerHeader{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding:12px 14px;
-      border-bottom:1px solid var(--border);
-      background:rgba(0,0,0,.12);
-    }
-    .pill{
-      padding:4px 10px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      color:var(--muted);
-      background:rgba(255,255,255,.02);
-      font-size:12px;
-    }
-    .playerBody{
-      flex:1;
-      min-height:0;
-      background:#000;
-      position:relative;
-    }
-    .playerBody iframe{
-      width:100%;
-      height:100%;
-      border:0;
-      display:block;
-    }
-    .placeholder{
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      gap:10px;
-      color:var(--muted);
-      padding:18px;
-      text-align:center;
-    }
-
-    .right{
-      flex:1;
-      min-width:380px;
-      max-width:540px;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-      background: radial-gradient(700px 260px at 80% 0%, rgba(110,231,255,.06), rgba(0,0,0,0));
-    }
-    .scroll{
-      flex:1;
-      min-height:0;
-      overflow:auto;
-      padding:14px;
-      scrollbar-width:thin;
-      scrollbar-color: rgba(255,255,255,.12) rgba(255,255,255,.02);
-    }
-    .scroll::-webkit-scrollbar{ width:10px; }
-    .scroll::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.10); border-radius:999px; border:2px solid rgba(0,0,0,0); background-clip:padding-box; }
-    .card{
-      border:1px solid var(--border);
-      border-radius:var(--radius2);
-      background: rgba(255,255,255,.02);
-      box-shadow: var(--shadow);
-      padding:12px;
-      margin-bottom:12px;
-    }
-    .card h3{
-      margin:0 0 10px 0;
-      font-size:14px;
-      letter-spacing:.25px;
-      color:#d9e7ff;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .row{
-      display:flex; gap:10px; flex-wrap:wrap;
-    }
-    .field{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .input{
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.02);
-      color:var(--text);
-      padding:9px 12px;
-      border-radius:999px;
-      outline:none;
-      width:100%;
-      max-width:260px;
-    }
-    .kpiGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-    }
-    .kpi{
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:10px;
-      background: rgba(0,0,0,.12);
-    }
-    .kpi .label{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      color:var(--muted);
-      font-size:12px;
-      margin-bottom:6px;
-    }
-    .kpi .value{
-      font-weight:700;
-      font-size:18px;
-      letter-spacing:.2px;
-    }
-    .kpi .sub{ color:var(--muted); font-size:12px; margin-top:6px; }
-    .chart{
-      margin-top:10px;
-      border:1px solid var(--border);
-      border-radius:14px;
-      background: rgba(0,0,0,.14);
-      overflow:hidden;
-    }
-    .chart svg{ display:block; width:100%; height:160px; }
-    .small{ font-size:12px; color:var(--muted); }
-
-    /* Tooltip (bulle info) */
-    .info{
-      position:relative;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      width:18px; height:18px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.03);
-      color:#cfe7ff;
-      font-size:12px;
-      cursor:help;
-      flex:0 0 auto;
-    }
-    .info:hover .tip{ opacity:1; transform:translateY(0); pointer-events:auto; }
-    .tip{
-      position:absolute;
-      z-index:50;
-      left:50%;
-      top:110%;
-      transform:translate(-50%, 6px);
-      opacity:0;
-      pointer-events:none;
-      transition:.14s;
-      width:min(320px, 75vw);
-      padding:10px 10px;
-      border-radius:12px;
-      border:1px solid rgba(110,231,255,.22);
-      background: rgba(6,10,18,.96);
-      box-shadow: 0 18px 50px rgba(0,0,0,.45);
-      color:var(--text);
-      text-align:left;
-      line-height:1.35;
-      font-size:12px;
-    }
-    .tip b{ color:#d9f7ff; }
-    .tip .why{ color:var(--muted); margin-top:6px; }
-
-    /* Modal Netflix-like */
-    .modal{
-      position:fixed; inset:0;
-      background: rgba(0,0,0,.62);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:14px;
-      z-index:1000;
-    }
-    .modal.open{ display:flex; }
-    .modalCard{
-      width:min(980px, 96vw);
-      height:min(640px, 88vh);
-      border-radius:22px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(12,18,33,.96);
-      box-shadow: 0 30px 80px rgba(0,0,0,.55);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-    }
-    .modalHeader{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding:12px 14px;
-      border-bottom:1px solid var(--border);
-    }
-    .modalHeader .title{ font-weight:700; }
-    .modalHeader .spacer{ flex:1; }
-    .grid{
-      padding:14px;
-      overflow:auto;
-      min-height:0;
-      display:grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap:12px;
-    }
-    @media (max-width: 980px){
-      .grid{ grid-template-columns: repeat(4, 1fr); }
-      .right{ min-width:340px; }
-    }
-    @media (max-width: 720px){
-      .layout{ flex-direction:column; }
-      .right{ max-width:none; min-width:0; border-top:1px solid var(--border); }
-      .grid{ grid-template-columns: repeat(3, 1fr); }
-      html,body{ overflow:auto; }
-      .app{ height:auto; min-height:100vh; }
-      .playerWrap{ min-height:50vh; }
-    }
-    .gameCard{
-      border-radius:16px;
-      border:1px solid var(--border);
-      background: rgba(255,255,255,.02);
-      overflow:hidden;
-      cursor:pointer;
-      transition:.15s;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-    }
-    .gameCard:hover{ transform:translateY(-2px); border-color: rgba(110,231,255,.26); }
-    .gameThumb{
-      width:100%;
-      aspect-ratio: 3/4;
-      background:#000;
-      display:block;
-      object-fit:cover;
-    }
-    .gameName{
-      padding:8px 10px;
-      font-size:12px;
-      color:#dbe9ff;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      border-top:1px solid var(--border);
-    }
-
-    /* Toast */
-    .toast{
-      position:fixed;
-      left:14px;
-      bottom:14px;
-      z-index:2000;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      pointer-events:none;
-    }
-    .toastItem{
-      pointer-events:auto;
-      border:1px solid var(--border);
-      background: rgba(10,14,24,.92);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:14px;
-      box-shadow: var(--shadow);
-      width:min(420px, 92vw);
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-    }
-    .toastItem .t{ font-weight:700; }
-    .toastItem .m{ color:var(--muted); font-size:12px; margin-top:2px; line-height:1.35; }
-    .toastItem .x{ margin-left:auto; cursor:pointer; opacity:.8; }
-    .muted{ color:var(--muted); }
-    .hr{ height:1px; background:var(--border); margin:10px 0; }
-
-    /* Chat */
-    .chatBox{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .chatLog{
-      border:1px solid var(--border);
-      border-radius:14px;
-      background: rgba(0,0,0,.12);
-      padding:10px;
-      height:140px;
-      overflow:auto;
-      font-size:12px;
-      color:#dbe9ff;
-    }
-    .chatLog .line{ margin:0 0 6px 0; color:#dbe9ff; }
-    .chatInputRow{ display:flex; gap:8px; }
-    .chatInputRow input{
-      flex:1;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.02);
-      color:var(--text);
-      padding:9px 12px;
-      border-radius:999px;
-      outline:none;
-    }
-  </style>
-</head>
-<body>
-<div class="app">
-  <div class="topbar">
-    <div class="brand">
-      <span class="dot"></span>
-      <b>Streamer Hub</b>
-      <span class="pill" id="firebasePill">Firebase: …</span>
-    </div>
-
-    <div class="chip" id="statusChip">Prêt. Choisis un streamer ou clique “J’ai de la chance”.</div>
-
-    <div class="spacer"></div>
-
-    <button class="btn" id="btnAuth">🔐 Connexion Twitch</button>
-    <button class="btn" id="btnLogout" style="display:none">🚪 Déconnexion</button>
-  </div>
-
-  <div class="layout">
-    <!-- LEFT: Player -->
-    <div class="left">
-      <div class="playerControls">
-        <div class="group">
-          <button class="btn" id="btnPrev">◀</button>
-          <button class="btn" id="btnNext">▶</button>
-
-          <button class="btn primary" id="btnLucky">🍀 J’ai de la chance</button>
-
-          <button class="btn" id="btnChooseGame">🎬 Choisir un jeu</button>
-
-          <select class="select" id="maxViewersSelect" title="Limite d'audience">
-            <option value="25">≤ 25 viewers</option>
-            <option value="50">≤ 50 viewers</option>
-            <option value="100" selected>≤ 100 viewers</option>
-          </select>
-        </div>
-
-        <div class="right">
-          <button class="btn warn" id="btnBoost">⚡ BOOST 15 min</button>
-          <a class="btn" id="btnOpenTwitch" href="#" target="_blank" rel="noreferrer">↗ Ouvrir sur Twitch</a>
-        </div>
-      </div>
-
-      <div class="playerWrap">
-        <div class="playerCard">
-          <div class="playerHeader">
-            <span class="pill" id="pillChannel">Chaîne: —</span>
-            <span class="pill" id="pillGame">Jeu: —</span>
-            <span class="pill" id="pillViewers">Viewers: —</span>
-            <span class="spacer"></span>
-            <span class="pill" id="pillMode">Mode: —</span>
-          </div>
-          <div class="playerBody" id="playerBody">
-            <div class="placeholder">
-              <div style="font-size:18px;font-weight:800;color:#dbe9ff;">Prêt à découvrir des petits streamers ✨</div>
-              <div class="muted">Choisis un jeu (🎬), puis clique “🍀 J’ai de la chance” pour tomber sur un streamer FR dans cette catégorie (0–100 viewers).</div>
-              <div class="muted small">Objectif : une expérience cool pour les viewers + utile pour les streamers (analyse + coaching).</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Tools -->
-    <div class="right">
-      <div class="scroll">
-
-        <!-- GLOBAL INTRADAY -->
-        <div class="card">
-          <h3>
-            📈 Tendance Twitch FR (24h)
-            <span class="info">?
-              <span class="tip">
-                <b>Ce que c’est :</b> l’évolution de l’audience totale des streams FR dans le temps (courbe).
-                <div class="why"><b>Pourquoi c’est utile :</b> tu repères les heures “chaudes” (plus de viewers) et les creux (moins de concurrence). Idéal pour placer tes lives.</div>
-              </span>
-            </span>
-          </h3>
-
-          <div class="row">
-            <button class="btn" id="btnRefreshGlobal">🔄 Actualiser</button>
-            <select class="select" id="globalHours">
-              <option value="6">6h</option>
-              <option value="12">12h</option>
-              <option value="24" selected>24h</option>
-              <option value="48">48h</option>
-            </select>
-            <span class="small">Mis à jour automatiquement.</span>
-          </div>
-
-          <div class="hr"></div>
-
-          <div class="kpiGrid">
-            <div class="kpi">
-              <div class="label">
-                Viewers FR (actuel)
-                <span class="info">?
-                  <span class="tip">
-                    <b>Ce que c’est :</b> estimation du total de viewers sur les streams FR suivis par le système.
-                    <div class="why"><b>Utile :</b> si c’est haut, c’est souvent une meilleure fenêtre pour “être découvert”.</div>
-                  </span>
-                </span>
-              </div>
-              <div class="value" id="g_total">—</div>
-              <div class="sub" id="g_total_sub">—</div>
-            </div>
-            <div class="kpi">
-              <div class="label">
-                Chaînes live (actuel)
-                <span class="info">?
-                  <span class="tip">
-                    <b>Ce que c’est :</b> nombre de chaînes live observées (FR).
-                    <div class="why"><b>Utile :</b> plus c’est haut, plus la concurrence est forte. Combine avec les viewers pour décider.</div>
-                  </span>
-                </span>
-              </div>
-              <div class="value" id="g_live">—</div>
-              <div class="sub" id="g_live_sub">—</div>
-            </div>
-          </div>
-
-          <div class="chart" id="chartGlobal"></div>
-          <div class="small" id="g_hint">Astuce : vise les moments où la courbe monte (plus d’arrivée de viewers).</div>
-        </div>
-
-        <!-- CHANNEL INTRADAY -->
-        <div class="card">
-          <h3>
-            🧭 Tendance de ta chaîne (24h)
-            <span class="info">?
-              <span class="tip">
-                <b>Ce que c’est :</b> la courbe de tes viewers (par snapshot) sur les dernières heures.
-                <div class="why"><b>Utile :</b> tu vois si ça progresse en temps réel et à quels moments tu gagnes/perds du monde (intro, changement de jeu, raids…).</div>
-              </span>
-            </span>
-          </h3>
-
-          <div class="field">
-            <input class="input" id="loginInput" placeholder="Ton login Twitch (ex: sansa)" />
-            <button class="btn primary" id="btnLoadChannel">Charger</button>
-            <select class="select" id="channelHours">
-              <option value="6">6h</option>
-              <option value="12">12h</option>
-              <option value="24" selected>24h</option>
-              <option value="48">48h</option>
-            </select>
-          </div>
-
-          <div class="hr"></div>
-
-          <div class="kpiGrid">
-            <div class="kpi">
-              <div class="label">
-                Moyenne viewers
-                <span class="info">?
-                  <span class="tip">
-                    <b>Ce que c’est :</b> moyenne sur la période affichée.
-                    <div class="why"><b>Utile :</b> c’est ton “niveau stable”. Pratique pour comparer tes formats d’un jour à l’autre.</div>
-                  </span>
-                </span>
-              </div>
-              <div class="value" id="c_avg">—</div>
-              <div class="sub">Sur la période sélectionnée.</div>
-            </div>
-            <div class="kpi">
-              <div class="label">
-                Pic viewers
-                <span class="info">?
-                  <span class="tip">
-                    <b>Ce que c’est :</b> meilleur moment de la période.
-                    <div class="why"><b>Utile :</b> c’est souvent lié à un segment fort (jeu, sujet, raid, clip). À reproduire.</div>
-                  </span>
-                </span>
-              </div>
-              <div class="value" id="c_peak">—</div>
-              <div class="sub" id="c_peak_sub">—</div>
-            </div>
-
-            <div class="kpi">
-              <div class="label">
-                Croissance (%)
-                <span class="info">?
-                  <span class="tip">
-                    <b>Ce que c’est :</b> évolution entre le début et la fin de la période.
-                    <div class="why"><b>Utile :</b> positive = ton live “prend”. Négative = tu perds du monde (intro trop longue, jeu saturé…).</div>
-                  </span>
-                </span>
-              </div>
-              <div class="value" id="c_growth">—</div>
-              <div class="sub">Début → fin de courbe.</div>
-            </div>
-            <div class="kpi">
-              <div class="label">
-                Volatilité
-                <span class="info">?
-                  <span class="tip">
-                    <b>Ce que c’est :</b> à quel point ton audience bouge (instable vs stable).
-                    <div class="why"><b>Utile :</b> si c’est très haut, travaille la rétention (promesse, rythme, segments, overlay clair).</div>
-                  </span>
-                </span>
-              </div>
-              <div class="value" id="c_vol">—</div>
-              <div class="sub">Plus haut = plus irrégulier.</div>
-            </div>
-
-            <div class="kpi">
-              <div class="label">
-                Heures / semaine (estim.)
-                <span class="info">?
-                  <span class="tip">
-                    <b>Ce que c’est :</b> estimation basée sur tes stats journalières.
-                    <div class="why"><b>Utile :</b> trop bas = difficile de grandir, trop haut = risque de fatigue. Trouver ton rythme.</div>
-                  </span>
-                </span>
-              </div>
-              <div class="value" id="c_hours">—</div>
-              <div class="sub">Si dispo dans Firestore.</div>
-            </div>
-            <div class="kpi">
-              <div class="label">
-                Score de croissance (0–100)
-                <span class="info">?
-                  <span class="tip">
-                    <b>Ce que c’est :</b> score combinant moyenne, croissance, régularité et volume.
-                    <div class="why"><b>Utile :</b> te donne une lecture rapide : <b>où tu en es</b> et si tes efforts payent.</div>
-                  </span>
-                </span>
-              </div>
-              <div class="value" id="c_score">—</div>
-              <div class="sub">Plus haut = meilleures conditions.</div>
-            </div>
-          </div>
-
-          <div class="chart" id="chartChannel"></div>
-          <div class="small" id="c_hint">Lis la courbe : montée régulière = bon rythme. Chutes brutales = un moment à améliorer.</div>
-        </div>
-
-        <!-- BEST TIME TOOL -->
-        <div class="card">
-          <h3>
-            🗓️ Horaires & niche (IA)
-            <span class="info">?
-              <span class="tip">
-                <b>Ce que c’est :</b> une lecture “coach” : saturation + créneaux + score niche.
-                <div class="why"><b>Utile :</b> choisir les bonnes fenêtres = plus de découvertes et moins de concurrence.</div>
-              </span>
-            </span>
-          </h3>
-
-          <div class="field">
-            <input class="input" id="gameInput" placeholder="Nom du jeu (ex: Hades)" />
-            <button class="btn primary" id="btnAnalyzeGame">Analyser</button>
-          </div>
-          <div class="small muted" id="gameSelectedHint">Jeu sélectionné : <b id="chosenGameLabel">—</b></div>
-
-          <div class="hr"></div>
-          <div id="gameAnalysis" class="small muted">Clique “Analyser” pour obtenir des créneaux concrets.</div>
-        </div>
-
-        <!-- ALERTS -->
-        <div class="card">
-          <h3>
-            🚨 Alertes & actions
-            <span class="info">?
-              <span class="tip">
-                <b>Ce que c’est :</b> des alertes basées sur tes stats (ex: accélération, format à ajuster).
-                <div class="why"><b>Utile :</b> c’est ta “liste d’actions du jour”. Tu sais quoi faire sans te noyer dans les chiffres.</div>
-              </span>
-            </span>
-          </h3>
-
-          <div class="field">
-            <button class="btn" id="btnLoadAlerts">Voir mes alertes</button>
-            <button class="btn good" id="btnGenerateAlerts">Générer (IA + règles)</button>
-          </div>
-          <div class="hr"></div>
-          <div id="alertsBox" class="small muted">Charge un login dans “Tendance de ta chaîne”, puis clique ici.</div>
-        </div>
-
-        <!-- AI RECO -->
-        <div class="card">
-          <h3>
-            💡 Recommandations IA (coach)
-            <span class="info">?
-              <span class="tip">
-                <b>Ce que c’est :</b> conseils basés sur tes KPIs (moyenne, pic, croissance…).
-                <div class="why"><b>Utile :</b> tu obtiens des tests concrets (format, titre, rythme) à essayer dès la semaine prochaine.</div>
-              </span>
-            </span>
-          </h3>
-
-          <div class="field">
-            <button class="btn primary" id="btnReco">Générer des recommandations</button>
-          </div>
-          <div class="hr"></div>
-          <div id="recoBox" class="small muted">Tu veux du concret : ça te donne une to-do list “streamer friendly”.</div>
-        </div>
-
-        <!-- CO-STREAM -->
-        <div class="card">
-          <h3>
-            🤝 Co-stream suggéré
-            <span class="info">?
-              <span class="tip">
-                <b>Ce que c’est :</b> propose une chaîne FR live sur le même jeu avec une audience proche.
-                <div class="why"><b>Utile :</b> collab = échange d’audience. Plus facile quand les tailles sont compatibles.</div>
-              </span>
-            </span>
-          </h3>
-
-          <div class="field">
-            <button class="btn" id="btnCostream">Trouver un co-stream</button>
-          </div>
-          <div class="hr"></div>
-          <div id="costreamBox" class="small muted">Nécessite que la chaîne soit live (ou que le cron ait vu le jeu).</div>
-        </div>
-
-        <!-- RAID -->
-        <div class="card">
-          <h3>
-            🧨 Raid target (petits streamers)
-            <span class="info">?
-              <span class="tip">
-                <b>Ce que c’est :</b> trouve une cible FR sur un jeu, sous un seuil de viewers.
-                <div class="why"><b>Utile :</b> raids “compatibles” = meilleur accueil, meilleure conversion, meilleure vibe.</div>
-              </span>
-            </span>
-          </h3>
-
-          <div class="field">
-            <button class="btn primary" id="btnRaid">Trouver une cible</button>
-            <select class="select" id="raidMax">
-              <option value="25">≤ 25 viewers</option>
-              <option value="50">≤ 50 viewers</option>
-              <option value="100" selected>≤ 100 viewers</option>
-            </select>
-          </div>
-          <div class="hr"></div>
-          <div id="raidBox" class="small muted">Utilise le jeu sélectionné (🎬). Tu peux ensuite lancer le player dessus.</div>
-        </div>
-
-        <!-- CHAT -->
-        <div class="card">
-          <h3>
-            💬 Chat de la room (socket)
-            <span class="info">?
-              <span class="tip">
-                <b>Ce que c’est :</b> un mini chat interne (pas le chat Twitch).
-                <div class="why"><b>Utile :</b> tests, watch party, commentaires pendant la découverte de streamers.</div>
-              </span>
-            </span>
-          </h3>
-
-          <div class="chatBox">
-            <div class="chatLog" id="chatLog"></div>
-            <div class="chatInputRow">
-              <input id="chatUser" placeholder="Pseudo" value="Viewer"/>
-              <input id="chatText" placeholder="Message…"/>
-              <button class="btn" id="chatSend">Envoyer</button>
-            </div>
-            <div class="small muted" id="socketState">Socket: …</div>
-          </div>
-        </div>
-
-        <div class="small muted" style="padding-bottom:10px;">
-          ✅ Tout est conçu pour être <b>compréhensible</b> : survole les <b>?</b> pour le “quoi / comment / pourquoi”.
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Netflix -->
-<div class="modal" id="gameModal" aria-hidden="true">
-  <div class="modalCard">
-    <div class="modalHeader">
-      <div class="title">🎬 Choisis un jeu (style Netflix)</div>
-      <div class="spacer"></div>
-      <input class="input" id="gameSearch" style="max-width:320px" placeholder="Rechercher (ex: valorant)" />
-      <button class="btn" id="btnGameSearch">Rechercher</button>
-      <button class="btn" id="btnCloseModal">✕</button>
-    </div>
-    <div class="small muted" style="padding:0 14px 8px 14px;">
-      Astuce : clique une cover pour sélectionner le jeu. Ensuite “🍀 J’ai de la chance” te propose un streamer <b>0–100 viewers</b> dans ce jeu.
-    </div>
-    <div class="grid" id="gameGrid"></div>
-  </div>
-</div>
-
-<!-- Toast container -->
-<div class="toast" id="toast"></div>
-
-<!-- Socket.IO -->
-<script src="/socket.io/socket.io.js"></script>
-
-<script>
-/* =========================================================
-   UTILITAIRES UI
-========================================================= */
-const $ = (sel) => document.querySelector(sel);
-
-function toast(title, message, kind="info"){
-  const wrap = $("#toast");
-  const el = document.createElement("div");
-  el.className = "toastItem";
-  const icon = kind==="good" ? "✅" : kind==="warn" ? "⚠️" : kind==="bad" ? "⛔" : "ℹ️";
-  el.innerHTML = `
-    <div>${icon}</div>
-    <div>
-      <div class="t">${escapeHtml(title)}</div>
-      <div class="m">${escapeHtml(message)}</div>
-    </div>
-    <div class="x" title="Fermer">✕</div>
-  `;
-  el.querySelector(".x").onclick = () => el.remove();
-  wrap.appendChild(el);
-  setTimeout(()=>{ if(el.isConnected) el.remove(); }, 5200);
+    rawJson = rawJson
+      .replace(/\\r\\n/g, '\\n')
+      .replace(/\\n/g, '\\n')
+      .replace(/\\r/g, '\\n');
+    serviceAccount = JSON.parse(rawJson);
+  } catch (error) {
+    console.error('❌ Erreur JSON Firebase:', error.message);
+  }
+} else {
+  try { serviceAccount = require('./serviceAccountKey.json'); } catch (_) {}
 }
 
-function escapeHtml(s){
-  return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-
-function setStatus(text){
-  $("#statusChip").textContent = text;
-}
-
-/* =========================================================
-   API FETCH WRAPPER
-========================================================= */
-async function api(url, options={}){
-  try{
-    const res = await fetch(url, {
-      headers: { "Content-Type":"application/json" },
-      ...options
+try {
+  if (serviceAccount) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: serviceAccount.project_id
     });
-    const isJson = (res.headers.get("content-type")||"").includes("application/json");
-    const data = isJson ? await res.json() : await res.text();
-    if(!res.ok){
-      throw new Error(typeof data === "string" ? data : (data?.error || data?.message || "Erreur"));
-    }
-    return data;
-  }catch(e){
-    throw e;
+    console.log('✅ [FIREBASE] connecté (service account).');
+  } else {
+    admin.initializeApp();
+    console.log('✅ [FIREBASE] init default.');
+  }
+} catch (e) {
+  console.error('❌ [FIREBASE] init:', e.message);
+}
+
+const db = admin.firestore();
+try {
+  if (serviceAccount) {
+    db.settings({ projectId: serviceAccount.project_id, ignoreUndefinedProperties: true });
+  } else {
+    db.settings({ ignoreUndefinedProperties: true });
+  }
+} catch (_) {}
+
+// =========================================================
+// 3) IA INIT
+// =========================================================
+let aiClient = null;
+if (GEMINI_API_KEY) {
+  try {
+    aiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    console.log('✅ [IA] Gemini prêt.');
+  } catch (e) {
+    console.error('❌ [IA] init:', e.message);
   }
 }
 
-/* =========================================================
-   TWITCH PLAYER
-========================================================= */
-let currentChannel = null;
-let currentGameName = null;
-let currentMode = null;
-
-function twitchParent(){
-  // Twitch exige le param parent= (hostname sans port)
-  return location.hostname || "localhost";
+async function runGeminiAnalysis(prompt) {
+  if (!aiClient) {
+    return { success: false, html_response: "<p style='color:red;'>❌ IA non initialisée.</p>" };
+  }
+  try {
+    const response = await aiClient.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction:
+          "Tu es un coach Twitch data. Réponds UNIQUEMENT en HTML simple (<p>, <h4>, <ul>, <li>, <strong>). " +
+          "Pas de markdown, pas de backticks. Sois clair, concret et actionnable."
+      }
+    });
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return { success: true, html_response: text };
+  } catch (e) {
+    console.error("❌ Erreur IA:", e.message);
+    return { success: false, html_response: `<p style='color:red;'>❌ Erreur IA: ${e.message}</p>` };
+  }
 }
 
-function buildPlayerUrl(channel){
-  const parent = encodeURIComponent(twitchParent());
-  return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${parent}&muted=false`;
-}
+// =========================================================
+// 4) SOCKET.IO (websocket only => stop spam)
+// =========================================================
+const io = new Server(server, {
+  cors: { origin: true, methods: ['GET', 'POST'] },
+  transports: ['websocket'],
+  allowUpgrades: false,
+  pingInterval: 25000,
+  pingTimeout: 20000
+});
 
-function loadChannelInPlayer(channel, meta={}){
-  currentChannel = channel;
-  $("#pillChannel").textContent = `Chaîne: ${channel || "—"}`;
-  $("#pillGame").textContent = `Jeu: ${meta.game_name || meta.game || currentGameName || "—"}`;
-  $("#pillViewers").textContent = `Viewers: ${meta.viewer_count ?? meta.viewers ?? "—"}`;
-  $("#pillMode").textContent = `Mode: ${currentMode || "—"}`;
-  $("#btnOpenTwitch").href = channel ? `https://twitch.tv/${channel}` : "#";
+io.on('connection', (socket) => {
+  console.log('🔌 [SOCKET] client connected', socket.id);
 
-  const body = $("#playerBody");
-  body.innerHTML = "";
-  const iframe = document.createElement("iframe");
-  iframe.allowFullscreen = true;
-  iframe.allow = "autoplay; fullscreen";
-  iframe.src = buildPlayerUrl(channel);
-  body.appendChild(iframe);
-
-  setStatus(`Lecture: ${channel} • Jeu: ${meta.game_name || meta.game || "—"} • Viewers: ${meta.viewer_count ?? meta.viewers ?? "—"}`);
-}
-
-/* =========================================================
-   MINI CHART (SVG)
-========================================================= */
-function renderLineChart(containerEl, labels=[], values=[], options={}){
-  const w = 1000, h = 160;
-  const padL = 36, padR = 12, padT = 12, padB = 26;
-  const minV = Math.min(...(values.length?values:[0]));
-  const maxV = Math.max(...(values.length?values:[1]));
-  const span = (maxV - minV) || 1;
-
-  const x = (i) => padL + (i*(w-padL-padR))/Math.max(1,(values.length-1));
-  const y = (v) => padT + ((maxV - v)/span)*(h-padT-padB);
-
-  let d = "";
-  values.forEach((v,i)=>{
-    d += (i===0?`M ${x(i)} ${y(v)}`:` L ${x(i)} ${y(v)}`);
+  socket.on('chat message', (msg) => {
+    const safe = {
+      user: String(msg?.user || 'Anon').slice(0, 40),
+      text: String(msg?.text || '').slice(0, 500)
+    };
+    if (!safe.text) return;
+    io.emit('chat message', safe);
   });
 
-  const ticks = 4;
-  let grid = "";
-  for(let t=0;t<=ticks;t++){
-    const yy = padT + (t*(h-padT-padB))/ticks;
-    grid += `<line x1="${padL}" y1="${yy}" x2="${w-padR}" y2="${yy}" stroke="rgba(255,255,255,.06)" stroke-width="1" />`;
-  }
-
-  const lastLabel = labels[labels.length-1] || "";
-  const firstLabel = labels[0] || "";
-
-  const svg = `
-    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-      <rect x="0" y="0" width="${w}" height="${h}" fill="rgba(0,0,0,.0)"></rect>
-      ${grid}
-      <path d="${d}" fill="none" stroke="rgba(110,231,255,.9)" stroke-width="2.5" />
-      ${values.length ? `<circle cx="${x(values.length-1)}" cy="${y(values[values.length-1])}" r="4.5" fill="rgba(110,231,255,.95)"></circle>` : ""}
-
-      <text x="${padL}" y="${h-8}" fill="rgba(255,255,255,.55)" font-size="16">${escapeHtml(firstLabel)}</text>
-      <text x="${w-padR}" y="${h-8}" fill="rgba(255,255,255,.55)" font-size="16" text-anchor="end">${escapeHtml(lastLabel)}</text>
-    </svg>
-  `;
-  containerEl.innerHTML = svg;
-}
-
-/* =========================================================
-   ROUTES BRANCHÉES
-========================================================= */
-async function loadFirebaseStatus(){
-  try{
-    const d = await api("/firebase_status");
-    $("#firebasePill").textContent = `Firebase: ${d.connected ? "OK" : "KO"}`;
-    $("#firebasePill").style.borderColor = d.connected ? "rgba(34,197,94,.35)" : "rgba(239,68,68,.35)";
-  }catch{
-    $("#firebasePill").textContent = "Firebase: ?";
-  }
-}
-
-async function loadTwitchUserStatus(){
-  try{
-    const d = await api("/twitch_user_status");
-    if(d.is_connected){
-      $("#btnAuth").style.display = "none";
-      $("#btnLogout").style.display = "inline-flex";
-      toast("Connecté à Twitch", `Bonjour ${d.display_name}`, "good");
-    }else{
-      $("#btnAuth").style.display = "inline-flex";
-      $("#btnLogout").style.display = "none";
-    }
-  }catch{}
-}
-
-/* ---------- Global intraday ---------- */
-async function loadGlobalIntraday(){
-  const hours = $("#globalHours").value;
-  try{
-    const d = await api(`/api/stats/global_intraday?hours=${encodeURIComponent(hours)}`);
-    $("#g_total").textContent = d.current_total_viewers ?? "—";
-    $("#g_live").textContent = d.current_channels_live ?? "—";
-    $("#g_total_sub").textContent = "Audience totale FR (snapshot)";
-    $("#g_live_sub").textContent = "Nombre de chaînes FR observées";
-
-    renderLineChart($("#chartGlobal"), d.series?.labels || [], d.series?.values || []);
-  }catch(e){
-    toast("Global intraday", e.message, "bad");
-  }
-}
-
-/* ---------- Channel intraday ---------- */
-async function loadChannelIntraday(){
-  const login = ($("#loginInput").value||"").trim().toLowerCase();
-  const hours = $("#channelHours").value;
-  if(!login){
-    toast("Login requis", "Renseigne ton login Twitch (ex: sansa).", "warn");
-    return;
-  }
-  try{
-    const d = await api(`/api/analytics/channel_intraday_by_login/${encodeURIComponent(login)}?hours=${encodeURIComponent(hours)}`);
-    $("#c_avg").textContent = d.kpis?.avg_viewers ?? "—";
-    $("#c_peak").textContent = d.kpis?.peak_viewers ?? "—";
-    $("#c_growth").textContent = (d.kpis?.growth_percent ?? "—") + (typeof d.kpis?.growth_percent === "number" ? "%" : "");
-    $("#c_vol").textContent = d.kpis?.volatility ?? "—";
-    $("#c_hours").textContent = d.kpis?.hours_per_week_est ?? "—";
-    $("#c_score").textContent = d.kpis?.growth_score ?? "—";
-    $("#c_peak_sub").textContent = `Échantillons: ${d.kpis?.samples ?? "—"}`;
-
-    renderLineChart($("#chartChannel"), d.series?.labels || [], d.series?.values || []);
-    toast("Chaîne chargée", `Intraday OK pour ${login}`, "good");
-  }catch(e){
-    toast("Intraday chaîne", e.message, "bad");
-  }
-}
-
-/* ---------- Best time (IA) ---------- */
-async function analyzeGame(){
-  const game = ($("#gameInput").value||"").trim() || (currentGameName || "");
-  if(!game){
-    toast("Jeu requis", "Choisis un jeu (🎬) ou écris-en un (ex: Hades).", "warn");
-    return;
-  }
-  $("#gameAnalysis").innerHTML = "<span class='muted'>Analyse en cours…</span>";
-  try{
-    const d = await api("/analyze_schedule", {
-      method:"POST",
-      body: JSON.stringify({ game })
-    });
-    $("#gameAnalysis").innerHTML = d.html_response || "<p class='muted'>Aucune réponse.</p>";
-    toast("Analyse horaire", "Conseils générés.", "good");
-  }catch(e){
-    $("#gameAnalysis").innerHTML = `<p class="muted">⛔ ${escapeHtml(e.message)}</p>`;
-  }
-}
-
-/* ---------- Alerts ---------- */
-async function loadAlerts(){
-  const login = ($("#loginInput").value||"").trim().toLowerCase();
-  if(!login){ toast("Login requis", "Charge un login dans la section chaîne.", "warn"); return; }
-  $("#alertsBox").innerHTML = "<span class='muted'>Chargement…</span>";
-  try{
-    const d = await api(`/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=10`);
-    const items = d.items || [];
-    if(!items.length){
-      $("#alertsBox").innerHTML = "<span class='muted'>Aucune alerte pour le moment. Clique “Générer”.</span>";
-      return;
-    }
-    $("#alertsBox").innerHTML = items.map(it => `
-      <div style="border:1px solid var(--border);border-radius:14px;padding:10px;background:rgba(0,0,0,.12);margin-bottom:8px;">
-        <div style="font-weight:800;">${escapeHtml(it.title || it.type || "Alerte")}</div>
-        <div class="muted" style="margin-top:4px;">${escapeHtml(it.message || "")}</div>
-        <div class="small muted" style="margin-top:6px;">Score: <b>${escapeHtml(it.score ?? "—")}</b> • Jour: ${escapeHtml(it.day ?? "—")}</div>
-      </div>
-    `).join("");
-  }catch(e){
-    $("#alertsBox").innerHTML = `<span class="muted">⛔ ${escapeHtml(e.message)}</span>`;
-  }
-}
-
-async function generateAlerts(){
-  const login = ($("#loginInput").value||"").trim().toLowerCase();
-  if(!login){ toast("Login requis", "Charge un login dans la section chaîne.", "warn"); return; }
-  toast("Génération", "Création des alertes…", "info");
-  try{
-    await api("/api/alerts/generate", {
-      method:"POST",
-      body: JSON.stringify({ login, days: 30 })
-    });
-    toast("Alertes", "Alertes générées.", "good");
-    await loadAlerts();
-  }catch(e){
-    toast("Alertes", e.message, "bad");
-  }
-}
-
-/* ---------- AI reco ---------- */
-async function loadReco(){
-  const login = ($("#loginInput").value||"").trim().toLowerCase();
-  if(!login){ toast("Login requis", "Charge un login dans la section chaîne.", "warn"); return; }
-  $("#recoBox").innerHTML = "<span class='muted'>Génération…</span>";
-  try{
-    const d = await api(`/api/ai/reco?login=${encodeURIComponent(login)}&days=30`);
-    $("#recoBox").innerHTML = d.html_response || "<span class='muted'>Aucune réponse.</span>";
-    toast("Reco IA", "Conseils prêts.", "good");
-  }catch(e){
-    $("#recoBox").innerHTML = `<span class="muted">⛔ ${escapeHtml(e.message)}</span>`;
-  }
-}
-
-/* ---------- Co-stream ---------- */
-async function loadCostream(){
-  const login = ($("#loginInput").value||"").trim().toLowerCase();
-  if(!login){ toast("Login requis", "Charge un login dans la section chaîne.", "warn"); return; }
-  $("#costreamBox").innerHTML = "<span class='muted'>Recherche…</span>";
-  try{
-    const d = await api(`/api/costream/best?login=${encodeURIComponent(login)}&days=14`);
-    if(!d.success){
-      $("#costreamBox").innerHTML = `<span class="muted">⛔ ${escapeHtml(d.message || "Impossible")}</span>`;
-      return;
-    }
-    const b = d.best;
-    $("#costreamBox").innerHTML = `
-      <div style="border:1px solid var(--border);border-radius:14px;padding:10px;background:rgba(0,0,0,.12);">
-        <div style="font-weight:900;">✨ ${escapeHtml(b.display_name)} <span class="muted">(@${escapeHtml(b.login)})</span></div>
-        <div class="muted" style="margin-top:6px;">${escapeHtml(b.why || "")}</div>
-        <div class="small muted" style="margin-top:8px;">Score compatibilité: <b>${escapeHtml(b.score ?? "—")}</b></div>
-        <div class="row" style="margin-top:10px;">
-          <button class="btn primary" onclick="window.open('https://twitch.tv/${escapeHtml(b.login)}','_blank')">Ouvrir</button>
-          <button class="btn" onclick="loadChannelInPlayer('${escapeHtml(b.login)}', {game_name:'', viewer_count:''}); currentMode='COSTREAM'; $('#pillMode').textContent='Mode: COSTREAM';">Lire dans le player</button>
-        </div>
-      </div>
-    `;
-  }catch(e){
-    $("#costreamBox").innerHTML = `<span class="muted">⛔ ${escapeHtml(e.message)}</span>`;
-  }
-}
-
-/* ---------- RAID + LUCKY (petits streamers) ---------- */
-async function raidOrLucky(maxViewers, random=true){
-  const game = currentGameName || ($("#gameInput").value||"").trim();
-  if(!game){
-    toast("Choisis un jeu", "Clique “🎬 Choisir un jeu” puis “🍀 J’ai de la chance”.", "warn");
-    return;
-  }
-  const box = $("#raidBox");
-  if(box) box.innerHTML = "<span class='muted'>Recherche…</span>";
-  try{
-    // On réutilise /start_raid (backend), max viewers configurable
-    const d = await api("/start_raid", {
-      method:"POST",
-      body: JSON.stringify({ game, max_viewers: Number(maxViewers || 100) })
-    });
-    if(!d.success || !d.target){
-      if(box) box.innerHTML = "<span class='muted'>Aucune cible trouvée.</span>";
-      toast("Raid/Lucky", "Aucune cible trouvée dans cette catégorie.", "warn");
-      return;
-    }
-
-    const t = d.target;
-    const html = `
-      <div style="display:flex; gap:10px; align-items:center;">
-        <img src="${escapeHtml(t.thumbnail_url||"")}" style="width:120px;border-radius:12px;border:1px solid var(--border);" alt="thumb"/>
-        <div style="min-width:0;">
-          <div style="font-weight:900;">🎯 ${escapeHtml(t.name)} <span class="muted">(@${escapeHtml(t.login)})</span></div>
-          <div class="muted" style="margin-top:4px;">Jeu: <b>${escapeHtml(t.game||game)}</b> • Viewers: <b>${escapeHtml(t.viewers)}</b></div>
-          <div class="small muted" style="margin-top:6px;">Conseil : raid = meilleure ambiance quand les audiences sont proches.</div>
-          <div class="row" style="margin-top:10px;">
-            <button class="btn primary" id="btnPlayRaid">Lire dans le player</button>
-            <button class="btn" id="btnOpenRaid">Ouvrir sur Twitch</button>
-          </div>
-        </div>
-      </div>
-    `;
-    if(box) box.innerHTML = html;
-
-    const playBtn = $("#btnPlayRaid");
-    const openBtn = $("#btnOpenRaid");
-    if(playBtn) playBtn.onclick = () => {
-      currentMode = random ? "LUCKY" : "RAID";
-      loadChannelInPlayer(t.login, { game_name: t.game, viewer_count: t.viewers });
-      toast("Lecture", `On regarde ${t.login} (≤ ${maxViewers} viewers)`, "good");
-    };
-    if(openBtn) openBtn.onclick = () => window.open(`https://twitch.tv/${t.login}`, "_blank");
-
-    if(random){
-      currentMode = "LUCKY";
-      loadChannelInPlayer(t.login, { game_name: t.game, viewer_count: t.viewers });
-    }
-  }catch(e){
-    if(box) box.innerHTML = `<span class="muted">⛔ ${escapeHtml(e.message)}</span>`;
-    toast("Raid/Lucky", e.message, "bad");
-  }
-}
-
-/* ---------- Default rotation (AUTO / BOOST) ---------- */
-async function loadDefaultStream(){
-  try{
-    const d = await api("/get_default_stream");
-    if(!d.success){ throw new Error("Impossible de récupérer un stream par défaut."); }
-    currentMode = d.mode || "AUTO";
-    loadChannelInPlayer(d.channel, { viewer_count: d.viewers ?? "—", game_name: currentGameName || "—" });
-    $("#pillMode").textContent = `Mode: ${currentMode}`;
-  }catch(e){
-    toast("Default stream", e.message, "bad");
-  }
-}
-
-async function cycle(direction){
-  try{
-    const d = await api("/cycle_stream", {
-      method:"POST",
-      body: JSON.stringify({ direction })
-    });
-    if(!d.success){ toast("Rotation", "Impossible (boost actif ?)", "warn"); return; }
-    currentMode = "AUTO";
-    loadChannelInPlayer(d.channel, { viewer_count: "—", game_name: currentGameName || "—" });
-    $("#pillMode").textContent = `Mode: AUTO`;
-  }catch(e){
-    toast("Rotation", e.message, "bad");
-  }
-}
-
-async function boostCurrent(){
-  if(!currentChannel){
-    toast("Boost", "Lance un streamer d’abord.", "warn");
-    return;
-  }
-  try{
-    const d = await api("/stream_boost", {
-      method:"POST",
-      body: JSON.stringify({ channel: currentChannel })
-    });
-    toast("Boost", "Boost activé 15 minutes (rotation bloquée).", "good");
-  }catch(e){
-    toast("Boost", e.message, "bad");
-  }
-}
-
-/* ---------- stream_info (metas live) ---------- */
-async function refreshStreamInfo(){
-  if(!currentChannel) return;
-  try{
-    const d = await api("/stream_info", {
-      method:"POST",
-      body: JSON.stringify({ channel: currentChannel })
-    });
-    if(d.success){
-      const s = d.stream;
-      if(s){
-        $("#pillGame").textContent = `Jeu: ${s.game_name || "—"}`;
-        $("#pillViewers").textContent = `Viewers: ${s.viewer_count ?? "—"}`;
-      }else{
-        $("#pillViewers").textContent = `Viewers: offline`;
-      }
-    }
-  }catch{}
-}
-
-/* =========================================================
-   MODAL GAMES (Netflix-like)
-========================================================= */
-let modalLoaded = false;
-
-async function openGameModal(){
-  $("#gameModal").classList.add("open");
-  $("#gameModal").setAttribute("aria-hidden","false");
-  if(!modalLoaded){
-    await loadTopGamesIntoModal();
-    modalLoaded = true;
-  }
-}
-
-function closeGameModal(){
-  $("#gameModal").classList.remove("open");
-  $("#gameModal").setAttribute("aria-hidden","true");
-}
-
-function setChosenGame(name){
-  currentGameName = name;
-  $("#chosenGameLabel").textContent = name || "—";
-  $("#pillGame").textContent = `Jeu: ${name || "—"}`;
-  $("#gameInput").value = name || "";
-  toast("Jeu sélectionné", name, "good");
-  closeGameModal();
-}
-
-async function loadTopGamesIntoModal(){
-  const grid = $("#gameGrid");
-  grid.innerHTML = "<div class='muted'>Chargement des covers…</div>";
-  try{
-    const d = await api("/api/stats/top_games");
-    const games = d.games || [];
-    if(!games.length){
-      grid.innerHTML = "<div class='muted'>Aucun jeu récupéré.</div>";
-      return;
-    }
-    grid.innerHTML = games.map(g => `
-      <div class="gameCard" data-game="${escapeHtml(g.name)}" title="${escapeHtml(g.name)}">
-        <img class="gameThumb" src="${escapeHtml(g.box_art_url)}" alt="${escapeHtml(g.name)}"/>
-        <div class="gameName">${escapeHtml(g.name)}</div>
-      </div>
-    `).join("");
-    grid.querySelectorAll(".gameCard").forEach(el=>{
-      el.onclick = () => setChosenGame(el.getAttribute("data-game"));
-    });
-  }catch(e){
-    grid.innerHTML = `<div class='muted'>⛔ ${escapeHtml(e.message)}</div>`;
-  }
-}
-
-async function searchGameInModal(){
-  const q = ($("#gameSearch").value||"").trim();
-  if(!q){ toast("Recherche", "Tape un nom de jeu.", "warn"); return; }
-  const grid = $("#gameGrid");
-  grid.innerHTML = "<div class='muted'>Recherche…</div>";
-  try{
-    // /scan_target peut renvoyer type=game (mais sans ID). On l’utilise juste pour sélectionner le nom + cover.
-    const d = await api("/scan_target", { method:"POST", body: JSON.stringify({ query: q }) });
-    if(d.success && d.type === "game" && d.game_data){
-      const g = d.game_data;
-      const name = g.name;
-      const cover = g.box_art_url;
-      grid.innerHTML = `
-        <div class="gameCard" data-game="${escapeHtml(name)}" title="${escapeHtml(name)}">
-          <img class="gameThumb" src="${escapeHtml(cover)}" alt="${escapeHtml(name)}"/>
-          <div class="gameName">${escapeHtml(name)}</div>
-        </div>
-      `;
-      grid.querySelector(".gameCard").onclick = () => setChosenGame(name);
-      toast("Jeu trouvé", name, "good");
-    }else{
-      grid.innerHTML = "<div class='muted'>Aucun résultat fiable. Essaie un autre nom.</div>";
-    }
-  }catch(e){
-    grid.innerHTML = `<div class='muted'>⛔ ${escapeHtml(e.message)}</div>`;
-  }
-}
-
-/* =========================================================
-   SOCKET CHAT (stable, single instance)
-========================================================= */
-let socket = null;
-
-function initSocket(){
-  try{
-    socket = io({
-      transports: ["websocket"],
-      upgrade: false,
-      reconnection: true,
-      reconnectionAttempts: 8,
-      reconnectionDelay: 600
-    });
-
-    const st = $("#socketState");
-    const log = $("#chatLog");
-
-    const addLine = (txt) => {
-      const p = document.createElement("div");
-      p.className = "line";
-      p.textContent = txt;
-      log.appendChild(p);
-      log.scrollTop = log.scrollHeight;
-    };
-
-    socket.on("connect", () => {
-      st.textContent = "Socket: connecté ✅";
-      addLine("🔌 connecté.");
-    });
-
-    socket.on("disconnect", (reason) => {
-      st.textContent = "Socket: déconnecté…";
-      addLine("🔌 déconnecté (" + reason + ")");
-    });
-
-    socket.on("chat message", (msg) => {
-      const user = msg?.user || "Anon";
-      const text = msg?.text || "";
-      addLine(`${user}: ${text}`);
-    });
-
-    $("#chatSend").onclick = () => {
-      const user = ($("#chatUser").value||"Viewer").trim().slice(0,40);
-      const text = ($("#chatText").value||"").trim().slice(0,500);
-      if(!text) return;
-      socket.emit("chat message", { user, text });
-      $("#chatText").value = "";
-    };
-
-    $("#chatText").addEventListener("keydown", (e)=>{
-      if(e.key==="Enter") $("#chatSend").click();
-    });
-
-  }catch(e){
-    $("#socketState").textContent = "Socket: indisponible";
-  }
-}
-
-/* =========================================================
-   EVENTS / BOOT
-========================================================= */
-$("#btnAuth").onclick = () => {
-  // OAuth popup
-  window.open("/twitch_auth_start", "twitch_auth", "width=520,height=720");
-};
-
-$("#btnLogout").onclick = async () => {
-  try{
-    await api("/twitch_logout", { method:"POST", body:"{}" });
-    toast("Déconnexion", "OK", "good");
-    await loadTwitchUserStatus();
-  }catch(e){
-    toast("Déconnexion", e.message, "bad");
-  }
-};
-
-$("#btnPrev").onclick = () => cycle("prev");
-$("#btnNext").onclick = () => cycle("next");
-$("#btnBoost").onclick = boostCurrent;
-
-$("#btnRefreshGlobal").onclick = loadGlobalIntraday;
-$("#globalHours").onchange = loadGlobalIntraday;
-
-$("#btnLoadChannel").onclick = loadChannelIntraday;
-$("#channelHours").onchange = loadChannelIntraday;
-
-$("#btnAnalyzeGame").onclick = analyzeGame;
-
-$("#btnLoadAlerts").onclick = loadAlerts;
-$("#btnGenerateAlerts").onclick = generateAlerts;
-
-$("#btnReco").onclick = loadReco;
-$("#btnCostream").onclick = loadCostream;
-
-$("#btnRaid").onclick = () => raidOrLucky($("#raidMax").value, false);
-
-$("#btnLucky").onclick = () => {
-  const mv = $("#maxViewersSelect").value || 100;
-  raidOrLucky(mv, true);
-};
-
-$("#btnChooseGame").onclick = openGameModal;
-$("#btnCloseModal").onclick = closeGameModal;
-$("#gameModal").addEventListener("click", (e)=>{
-  if(e.target === $("#gameModal")) closeGameModal();
+  socket.on('disconnect', (reason) => {
+    console.log('🔌 [SOCKET] client disconnected', socket.id, reason);
+  });
 });
-$("#btnGameSearch").onclick = searchGameInModal;
-$("#gameSearch").addEventListener("keydown",(e)=>{ if(e.key==="Enter") searchGameInModal(); });
 
-/* Auto refresh of stream_info */
-setInterval(refreshStreamInfo, 35_000);
+// =========================================================
+// 5) HELPERS & CACHE
+// =========================================================
+const CACHE = {
+  twitchTokens: { app: null },
+  twitchUser: null,
+  boostedStream: null,
+  globalStreamRotation: { streams: [], currentIndex: 0, lastFetchTime: 0, fetchCooldown: 3 * 60 * 1000 }
+};
 
-/* Auto refresh global + channel */
-setInterval(()=>{ loadGlobalIntraday().catch(()=>{}); }, 90_000);
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
-/* Boot */
-(async function boot(){
-  await loadFirebaseStatus();
-  await loadTwitchUserStatus();
-  initSocket();
+function yyyy_mm_dd_from_ms(ms) {
+  const d = new Date(ms);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
-  // Charge tendance globale direct
-  loadGlobalIntraday().catch(()=>{});
+function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hoursPerWeek = 0 }) {
+  const logPart = Math.log10(avgViewers + 1) * 22;
+  const growthPart = clamp(growthPct, -50, 200) * 0.22;
+  const volPenalty = clamp(volatility, 0, 200) * 0.18;
+  const hoursPart = clamp(hoursPerWeek, 0, 80) * 0.25;
+  const raw = 15 + logPart + growthPart + hoursPart - volPenalty;
+  return Math.round(clamp(raw, 0, 100));
+}
 
-  // Propose un stream par défaut (petit streamer) dès l'ouverture
-  loadDefaultStream().catch(()=>{});
+async function getTwitchToken() {
+  if (CACHE.twitchTokens.app && CACHE.twitchTokens.app.expiry > Date.now()) {
+    return CACHE.twitchTokens.app.access_token;
+  }
+  try {
+    const res = await fetch(
+      `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
+      { method: 'POST' }
+    );
+    const data = await res.json();
+    if (!data.access_token) return null;
 
-  // UI hint game
-  $("#chosenGameLabel").textContent = currentGameName || "—";
+    CACHE.twitchTokens.app = {
+      access_token: data.access_token,
+      expiry: Date.now() + (data.expires_in * 1000) - 300000
+    };
+    return data.access_token;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function twitchAPI(endpoint, token = null) {
+  const accessToken = token || await getTwitchToken();
+  if (!accessToken) throw new Error("No Token.");
+
+  const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, {
+    headers: {
+      'Client-ID': TWITCH_CLIENT_ID,
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+
+  if (res.status === 401) {
+    CACHE.twitchTokens.app = null;
+    throw new Error("Token expiré.");
+  }
+  return res.json();
+}
+
+// =========================================================
+// 6) UI ROUTE
+// =========================================================
+app.get('/', (req, res) => {
+  const candidates = [process.env.UI_FILE, 'NicheOptimizer.html'].filter(Boolean);
+  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
+  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
+  return res.sendFile(path.join(__dirname, found));
+});
+
+// =========================================================
+// 7) STATUS ROUTES
+// =========================================================
+app.get('/firebase_status', (req, res) => {
+  try {
+    res.json({
+      connected: !!db && admin.apps.length > 0,
+      hasServiceAccount: !!serviceAccount
+    });
+  } catch (e) {
+    res.json({ connected: false, error: e.message });
+  }
+});
+
+// =========================================================
+// 8) AUTH ROUTES
+// =========================================================
+app.get('/twitch_auth_start', (req, res) => {
+  const state = crypto.randomBytes(16).toString('hex');
+  const url =
+    `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&response_type=code&scope=user:read:follows&state=${state}`;
+
+  // secure cookie ok in prod https; en local, si besoin, mettre secure:false
+  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
+  res.redirect(url);
+});
+
+app.get('/twitch_auth_callback', async (req, res) => {
+  const { code, state } = req.query;
+  if (state !== req.cookies.twitch_state) return res.send("Erreur Auth.");
+
+  try {
+    const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: TWITCH_CLIENT_ID,
+        client_secret: TWITCH_CLIENT_SECRET,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: REDIRECT_URI
+      })
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) return res.send("Erreur Token.");
+
+    const userRes = await twitchAPI('users', tokenData.access_token);
+    const user = userRes.data?.[0];
+    if (!user) return res.send("Erreur User.");
+
+    CACHE.twitchUser = {
+      display_name: user.display_name,
+      id: user.id,
+      profile_image_url: user.profile_image_url || null,
+      access_token: tokenData.access_token,
+      expiry: Date.now() + (tokenData.expires_in * 1000)
+    };
+
+    res.send("<script>window.close();</script>");
+  } catch (_) {
+    res.send("Erreur Serveur.");
+  }
+});
+
+app.post('/twitch_logout', (req, res) => {
+  CACHE.twitchUser = null;
+  res.json({ success: true });
+});
+
+app.get('/twitch_user_status', (req, res) => {
+  if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
+    return res.json({
+      is_connected: true,
+      display_name: CACHE.twitchUser.display_name,
+      profile_image_url: CACHE.twitchUser.profile_image_url || null
+    });
+  }
+  res.json({ is_connected: false });
+});
+
+// =========================================================
+// 9) STREAMS ROUTES
+// =========================================================
+app.get('/followed_streams', async (req, res) => {
+  if (!CACHE.twitchUser) return res.status(401).json({ success: false });
+
+  try {
+    const data = await twitchAPI(
+      `streams/followed?user_id=${CACHE.twitchUser.id}`,
+      CACHE.twitchUser.access_token
+    );
+    return res.json({
+      success: true,
+      streams: (data.data || []).map(s => ({
+        user_id: s.user_id,
+        user_name: s.user_name,
+        user_login: s.user_login,
+        viewer_count: s.viewer_count,
+        game_id: s.game_id || null,
+        game_name: s.game_name || null,
+        title: s.title || null,
+        thumbnail_url: s.thumbnail_url
+      }))
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ✅ front l’utilise
+app.post('/stream_info', async (req, res) => {
+  const channel = String(req.body?.channel || '').trim().toLowerCase();
+  if (!channel || channel === 'twitch') return res.json({ success: false });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(channel)}`);
+    if (!uRes.data?.length) return res.json({ success: false });
+
+    const userId = uRes.data[0].id;
+    const sRes = await twitchAPI(`streams?user_id=${encodeURIComponent(userId)}`);
+    return res.json({ success: true, stream: sRes.data?.[0] || null }); // null => offline
+  } catch (e) {
+    return res.json({ success: false, error: e.message });
+  }
+});
+
+// =========================================================
+// 10) ROTATION & BOOST
+// =========================================================
+async function refreshGlobalStreamList() {
+  const now = Date.now();
+  const rot = CACHE.globalStreamRotation;
+
+  if (now - rot.lastFetchTime < rot.fetchCooldown && rot.streams.length > 0) return;
+
+  try {
+    const data = await twitchAPI(`streams?language=fr&first=100`);
+    const suitable = (data.data || []).filter(s => {
+      const v = Number(s.viewer_count || 0);
+      return v >= DEFAULT_MIN_VIEWERS && v <= DEFAULT_MAX_VIEWERS;
+    });
+
+    const fallback = (data.data || []).slice(-10);
+    const list = suitable.length ? suitable : fallback;
+
+    rot.streams = list.sort(() => 0.5 - Math.random()).map(s => ({
+      channel: s.user_login,
+      viewers: s.viewer_count || 0,
+      game_id: s.game_id || null,
+      game_name: s.game_name || null
+    }));
+    rot.currentIndex = 0;
+    rot.lastFetchTime = now;
+  } catch (e) {
+    console.error("Erreur refresh streams:", e.message);
+  }
+}
+
+app.get('/get_default_stream', async (req, res) => {
+  const now = Date.now();
+  let boost = null;
+
+  try {
+    const q = await db.collection('boosts')
+      .where('endTime', '>', now)
+      .orderBy('endTime', 'desc')
+      .limit(1)
+      .get();
+
+    if (!q.empty) {
+      boost = q.docs[0].data();
+      CACHE.boostedStream = boost;
+    }
+  } catch (_) {
+    if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) boost = CACHE.boostedStream;
+  }
+
+  if (boost) {
+    return res.json({ success: true, channel: boost.channel, mode: 'BOOST', message: `⚡ BOOST ACTIF` });
+  }
+
+  await refreshGlobalStreamList();
+  const rot = CACHE.globalStreamRotation;
+  if (!rot.streams.length) return res.json({ success: true, channel: 'twitch', mode: 'FALLBACK' });
+
+  const cur = rot.streams[rot.currentIndex];
+  return res.json({ success: true, channel: cur.channel, mode: 'AUTO', viewers: cur.viewers, game_name: cur.game_name || null });
+});
+
+app.post('/cycle_stream', async (req, res) => {
+  const direction = String(req.body?.direction || 'next');
+
+  if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
+    return res.json({ success: false, error: 'boost_active' });
+  }
+
+  await refreshGlobalStreamList();
+  const rot = CACHE.globalStreamRotation;
+  if (!rot.streams.length) return res.json({ success: false });
+
+  if (direction === 'next') rot.currentIndex = (rot.currentIndex + 1) % rot.streams.length;
+  else rot.currentIndex = (rot.currentIndex - 1 + rot.streams.length) % rot.streams.length;
+
+  return res.json({ success: true, channel: rot.streams[rot.currentIndex].channel });
+});
+
+app.post('/stream_boost', async (req, res) => {
+  const channel = String(req.body?.channel || '').trim().toLowerCase();
+  const minutes = clamp(parseInt(req.body?.minutes || '15', 10), 1, 60);
+  if (!channel) return res.status(400).json({ success: false });
+
+  const now = Date.now();
+  try {
+    await db.collection('boosts').add({
+      channel,
+      startTime: now,
+      endTime: now + minutes * 60 * 1000
+    });
+
+    CACHE.boostedStream = { channel, endTime: now + minutes * 60 * 1000 };
+
+    res.json({ success: true, html_response: "<p style='color:green;'>✅ Boost activé !</p>" });
+  } catch (e) {
+    res.status(500).json({ success: false, error: "Erreur DB" });
+  }
+});
+
+// =========================================================
+// 11) STATS (Top games / languages) + GLOBAL INTRADAY
+// =========================================================
+app.get('/api/stats/top_games', async (req, res) => {
+  try {
+    const d = await twitchAPI('games/top?first=12');
+    res.json({
+      games: (d.data || []).map(g => ({
+        id: g.id,
+        name: g.name,
+        box_art_url: g.box_art_url.replace('{width}', '180').replace('{height}', '240')
+      }))
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/stats/languages', async (req, res) => {
+  try {
+    const d = await twitchAPI('streams?first=100');
+    const l = {};
+    (d.data || []).forEach(s => {
+      const key = String(s.language || '??');
+      l[key] = (l[key] || 0) + 1;
+    });
+
+    const sorted = Object.keys(l)
+      .map(k => ({ name: k.toUpperCase(), percent: l[k] }))
+      .sort((a, b) => b.percent - a.percent)
+      .slice(0, 5);
+
+    res.json({ languages: sorted });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ✅ intraday global 24h depuis stats_history
+app.get('/api/stats/global_intraday', async (req, res) => {
+  const hours = clamp(parseInt(req.query.hours || '24', 10), 1, 48);
+  const since = Date.now() - hours * 60 * 60 * 1000;
+
+  try {
+    const snaps = await db.collection('stats_history')
+      .where('timestamp_ms', '>=', since)
+      .orderBy('timestamp_ms', 'asc')
+      .get();
+
+    if (snaps.empty) {
+      // fallback live
+      const live = await twitchAPI('streams?first=100');
+      let v = 0; (live.data || []).forEach(s => v += (s.viewer_count || 0));
+      return res.json({
+        success: true,
+        current_total_viewers: Math.floor(v * 3.8),
+        current_channels_live: (live.data || []).length,
+        series: { labels: ['maintenant'], values: [Math.floor(v * 3.8)] }
+      });
+    }
+
+    const labels = [];
+    const values = [];
+    let curViewers = 0;
+    let curChannels = 0;
+
+    snaps.forEach(d => {
+      const x = d.data();
+      const ts = x.timestamp_ms || 0;
+      const dt = new Date(ts);
+      const label = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+      labels.push(label);
+      values.push(Number(x.total_viewers || 0));
+      curViewers = Number(x.total_viewers || 0);
+      curChannels = Number(x.channels_live || 0);
+    });
+
+    res.json({
+      success: true,
+      current_total_viewers: curViewers,
+      current_channels_live: curChannels,
+      series: { labels, values }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Compat: certains fronts appellent /api/stats/global
+app.get('/api/stats/global', async (req, res) => {
+  try {
+    const g = await db.collection('stats_history').orderBy('timestamp_ms', 'desc').limit(12).get();
+    if (g.empty) {
+      const live = await twitchAPI('streams?first=100');
+      let v = 0; (live.data || []).forEach(s => v += (s.viewer_count || 0));
+      return res.json({ success: true, total_viewers: Math.floor(v * 3.8), total_channels: '—', top_game_name: live.data?.[0]?.game_name || '—', history: { live: { labels: ['maintenant'], values: [Math.floor(v * 3.8)] } } });
+    }
+
+    const labels = [];
+    const values = [];
+    let latest = g.docs[0].data();
+    g.docs.slice().reverse().forEach(doc => {
+      const x = doc.data();
+      const ts = x.timestamp_ms || 0;
+      const dt = new Date(ts);
+      labels.push(`${String(dt.getHours()).padStart(2,'0')}h${String(dt.getMinutes()).padStart(2,'0')}`);
+      values.push(Number(x.total_viewers || 0));
+    });
+
+    res.json({
+      success: true,
+      total_viewers: Number(latest.total_viewers || 0),
+      total_channels: Number(latest.channels_live || 0),
+      top_game_name: latest.top_game || '—',
+      history: { live: { labels, values } }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// =========================================================
+// 12) RANDOM STREAMER (<=100 viewers) - global + par jeu
+// =========================================================
+async function pickRandomStreamFromList(streams, minV, maxV) {
+  const pool = (streams || []).filter(s => {
+    const v = Number(s.viewer_count || 0);
+    return v >= minV && v <= maxV && s.user_login;
+  });
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+app.get('/api/streams/random_global', async (req, res) => {
+  const language = String(req.query.language || 'fr').trim() || 'fr';
+  const maxV = clamp(parseInt(req.query.max_viewers || String(DEFAULT_MAX_VIEWERS), 10), 1, 5000);
+  const minV = clamp(parseInt(req.query.min_viewers || String(DEFAULT_MIN_VIEWERS), 10), 0, maxV);
+
+  try {
+    const data = await twitchAPI(`streams?first=100&language=${encodeURIComponent(language)}`);
+    const picked = await pickRandomStreamFromList(data.data, minV, maxV);
+    if (!picked) return res.json({ success: false, message: 'aucun_stream_correspondant' });
+
+    // profil (pour avatar)
+    let prof = null;
+    try {
+      const u = await twitchAPI(`users?login=${encodeURIComponent(picked.user_login)}`);
+      prof = u.data?.[0] || null;
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      stream: {
+        login: picked.user_login,
+        display_name: picked.user_name,
+        viewers: picked.viewer_count || 0,
+        game_id: picked.game_id || null,
+        game_name: picked.game_name || null,
+        title: picked.title || null,
+        thumbnail_url: picked.thumbnail_url || null,
+        profile_image_url: prof?.profile_image_url || null
+      }
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// par jeu : accepte game_id OU game (nom)
+app.get('/api/streams/random_for_game', async (req, res) => {
+  const maxV = clamp(parseInt(req.query.max_viewers || String(DEFAULT_MAX_VIEWERS), 10), 1, 5000);
+  const minV = clamp(parseInt(req.query.min_viewers || String(DEFAULT_MIN_VIEWERS), 10), 0, maxV);
+  const language = String(req.query.language || 'fr').trim() || 'fr';
+
+  let gameId = String(req.query.game_id || '').trim();
+  const gameName = String(req.query.game || '').trim();
+
+  try {
+    if (!gameId && gameName) {
+      const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(gameName)}&first=1`);
+      gameId = gRes.data?.[0]?.id ? String(gRes.data[0].id) : '';
+    }
+    if (!gameId) return res.status(400).json({ success: false, message: 'game_id_ou_nom_requis' });
+
+    const sRes = await twitchAPI(`streams?game_id=${encodeURIComponent(gameId)}&first=100&language=${encodeURIComponent(language)}`);
+    const picked = await pickRandomStreamFromList(sRes.data, minV, maxV);
+    if (!picked) return res.json({ success: false, message: 'aucun_stream_correspondant' });
+
+    let prof = null;
+    try {
+      const u = await twitchAPI(`users?login=${encodeURIComponent(picked.user_login)}`);
+      prof = u.data?.[0] || null;
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      stream: {
+        login: picked.user_login,
+        display_name: picked.user_name,
+        viewers: picked.viewer_count || 0,
+        game_id: picked.game_id || null,
+        game_name: picked.game_name || null,
+        title: picked.title || null,
+        thumbnail_url: picked.thumbnail_url || null,
+        profile_image_url: prof?.profile_image_url || null
+      }
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Optionnel: recherche de jeux (utile pour une pop-up type Netflix)
+app.get('/api/games/search', async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  const first = clamp(parseInt(req.query.first || '12', 10), 1, 50);
+  if (!q) return res.status(400).json({ success: false, message: 'q_requis' });
+
+  try {
+    const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=${first}`);
+    return res.json({
+      success: true,
+      games: (gRes.data || []).map(g => ({
+        id: g.id,
+        name: g.name,
+        box_art_url: (g.box_art_url || '').replace('{width}', '180').replace('{height}', '240')
+      }))
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// =========================================================
+// 13) SCAN / RAID (compat)
+// =========================================================
+app.post('/scan_target', async (req, res) => {
+  const query = String(req.body?.query || '').trim().toLowerCase();
+  if (!query) return res.status(400).json({ success: false });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(query)}`);
+    if (uRes.data?.length) {
+      const u = uRes.data[0];
+
+      let channelInfo = {};
+      try {
+        const cRes = await twitchAPI(`channels?broadcaster_id=${u.id}`);
+        if (cRes.data?.length) channelInfo = cRes.data[0];
+      } catch (_) {}
+
+      let streamInfo = null;
+      try {
+        const sRes = await twitchAPI(`streams?user_id=${u.id}`);
+        if (sRes.data?.length) streamInfo = sRes.data[0];
+      } catch (_) {}
+
+      const isLive = !!streamInfo;
+
+      const uData = {
+        id: u.id,
+        login: u.login,
+        display_name: u.display_name,
+        profile_image_url: u.profile_image_url,
+        description: u.description || "Aucune bio.",
+        created_at: new Date(u.created_at).toLocaleDateString('fr-FR'),
+        game_name: channelInfo.game_name || "Aucun jeu défini",
+        title: channelInfo.title || "Aucun titre",
+        tags: channelInfo.tags ? channelInfo.tags.slice(0, 3).join(', ') : "Aucun",
+        language: channelInfo.broadcaster_language || "fr",
+        view_count: u.view_count || 0,
+        is_live: isLive,
+        viewer_count: isLive ? streamInfo.viewer_count : 0
+      };
+
+      return res.json({ success: true, type: 'user', user_data: uData });
+    }
+
+    // fallback game
+    const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=1`);
+    if (gRes.data?.length) {
+      const g = gRes.data[0];
+      const sRes = await twitchAPI(`streams?game_id=${g.id}&first=20`);
+      const total = (sRes.data || []).reduce((a, b) => a + (b.viewer_count || 0), 0);
+
+      const gData = {
+        id: g.id,
+        name: g.name,
+        box_art_url: g.box_art_url.replace('{width}', '180').replace('{height}', '240'),
+        total_viewers: total
+      };
+
+      return res.json({ success: true, type: 'game', game_data: gData });
+    }
+
+    res.json({ success: false });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/start_raid', async (req, res) => {
+  const game = String(req.body?.game || '').trim();
+  const maxViewers = clamp(parseInt(req.body?.max_viewers || String(DEFAULT_MAX_VIEWERS), 10), 1, 5000);
+  const minViewers = clamp(parseInt(req.body?.min_viewers || String(DEFAULT_MIN_VIEWERS), 10), 0, maxViewers);
+
+  if (!game) return res.status(400).json({ success: false });
+
+  try {
+    const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
+    if (!gRes.data?.length) return res.json({ success: false });
+
+    const sRes = await twitchAPI(`streams?game_id=${gRes.data[0].id}&first=100&language=fr`);
+    const pool = (sRes.data || [])
+      .filter(s => {
+        const v = Number(s.viewer_count || 0);
+        return v >= minViewers && v <= maxViewers;
+      })
+      .sort((a, b) => (b.viewer_count || 0) - (a.viewer_count || 0));
+
+    const target = pool[0] || null;
+    if (!target) return res.json({ success: false });
+
+    return res.json({
+      success: true,
+      target: {
+        name: target.user_name,
+        login: target.user_login,
+        viewers: target.viewer_count,
+        thumbnail_url: target.thumbnail_url.replace('{width}', '320').replace('{height}', '180'),
+        game: target.game_name
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// =========================================================
+// 14) BEST TIME (IA)
+// =========================================================
+app.post('/analyze_schedule', async (req, res) => {
+  const game = String(req.body?.game || '').trim();
+  if (!game) return res.status(400).json({ success:false, html_response:'<p style="color:red;">❌ Nom du jeu manquant</p>' });
+
+  try {
+    const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
+    if (!gRes.data?.length) {
+      return res.json({ success:false, html_response:`<p style="color:red;"><strong>❌ Jeu "${game}" non trouvé</strong></p>` });
+    }
+
+    const gameName = gRes.data[0].name;
+    const gameId = gRes.data[0].id;
+
+    const sRes = await twitchAPI(`streams?game_id=${gameId}&first=100&language=fr`);
+    const totalViewers = (sRes.data || []).reduce((a, b) => a + (b.viewer_count||0), 0);
+    const channelCount = (sRes.data || []).length;
+    const avgViewers = Math.round(totalViewers / (channelCount || 1));
+
+    const prompt = `Tu es expert en optimisation streaming Twitch pour le jeu "${gameName}".
+
+Données du moment:
+- Chaînes live: ${channelCount}
+- Viewers totaux: ${totalViewers}
+- Moyenne viewers/chaîne: ${avgViewers}
+
+Réponds en HTML STRICT (<h4>, <ul>, <li>, <p>, <strong>):
+1) Saturation (faible/moyenne/haute) + explication courte
+2) 3 créneaux concrets (jour + heure) et pourquoi
+3) Score niche 1..10 (et comment l'améliorer)
+4) 1 action immédiate pour gagner des viewers.`;
+
+    const aiResponse = await runGeminiAnalysis(prompt);
+    return res.json({ success: aiResponse.success !== false, html_response: aiResponse.html_response || '<p style="color:red;">❌ Erreur IA</p>' });
+  } catch (e) {
+    return res.json({ success:false, html_response:`<p style="color:red;">❌ Erreur: ${e.message}</p>` });
+  }
+});
+
+// =========================================================
+// 15) ANALYTICS (daily + intraday) + ALERTS + GAMES/HOURS
+// =========================================================
+app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
+  const login = String(req.params.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.query.days || '30', 10), 1, 90);
+  if (!login) return res.status(400).json({ success: false, message: 'login manquant' });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data?.length) return res.json({ success: false, message: 'introuvable' });
+    const channelId = String(uRes.data[0].id);
+
+    const sinceKey = yyyy_mm_dd_from_ms(Date.now() - days * 24 * 60 * 60 * 1000);
+    const snaps = await db.collection('channels').doc(channelId)
+      .collection('daily_stats')
+      .where('day', '>=', sinceKey)
+      .orderBy('day', 'asc')
+      .get();
+
+    if (snaps.empty) return res.json({ success: false, message: 'pas_de_donnees', channel_id: channelId });
+
+    const seriesDays = snaps.docs.map(d => d.data());
+    const labels = seriesDays.map(x => x.day);
+    const values = seriesDays.map(x => Number(x.avg_viewers || 0));
+
+    const avg = Math.round(values.reduce((a,b)=>a+b,0) / (values.length || 1));
+    const peak = Math.max(...seriesDays.map(x => Number(x.peak_viewers || 0)));
+
+    const first = values[0] || 0;
+    const last = values[values.length - 1] || 0;
+    const growthPct = first > 0 ? Math.round(((last - first) / first) * 100) : (last > 0 ? 100 : 0);
+
+    const mean = avg;
+    const variance = values.reduce((a, v) => a + Math.pow(v - mean, 2), 0) / (values.length || 1);
+    const volatility = Math.round(Math.sqrt(variance));
+
+    const totalMinutes = seriesDays.reduce((a, x) => a + Number(x.minutes_live_est || 0), 0);
+    const hoursPerWeek = Math.round((totalMinutes / 60) / (days / 7));
+
+    const growthScore = computeGrowthScore({ avgViewers: avg, growthPct, volatility, hoursPerWeek });
+
+    return res.json({
+      success: true,
+      channel_id: channelId,
+      login,
+      kpis: {
+        avg_viewers: avg,
+        peak_viewers: peak,
+        growth_percent: growthPct,
+        volatility,
+        hours_per_week_est: hoursPerWeek,
+        growth_score: growthScore,
+        days: labels.length
+      },
+      series: { labels, values }
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// intraday (24h) depuis hourly_stats + KPIs
+app.get('/api/analytics/channel_intraday_by_login/:login', async (req, res) => {
+  const login = String(req.params.login || '').trim().toLowerCase();
+  const hours = clamp(parseInt(req.query.hours || '24', 10), 1, 48);
+  if (!login) return res.status(400).json({ success:false, message:'login manquant' });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data?.length) return res.json({ success:false, message:'introuvable' });
+    const channelId = String(uRes.data[0].id);
+
+    const since = Date.now() - hours * 60 * 60 * 1000;
+
+    const q = await db.collection('channels').doc(channelId)
+      .collection('hourly_stats')
+      .where('timestamp', '>=', since)
+      .get();
+
+    if (q.empty) return res.json({ success:false, message:'pas_de_donnees', channel_id: channelId });
+
+    const points = q.docs.map(d => d.data()).sort((a,b)=> (a.timestamp||0) - (b.timestamp||0));
+    const labels = [];
+    const values = [];
+
+    let sum = 0;
+    let peak = 0;
+    const viewersArr = [];
+
+    let current_game_id = null;
+    let current_game_name = null;
+
+    points.forEach(p => {
+      const ts = p.timestamp || 0;
+      const dt = new Date(ts);
+      labels.push(`${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`);
+      const v = Number(p.viewers || 0);
+      values.push(v);
+      viewersArr.push(v);
+      sum += v;
+      if (v > peak) peak = v;
+      if (p.game_id) { current_game_id = p.game_id; current_game_name = p.game_name || null; }
+    });
+
+    const avg = Math.round(sum / (viewersArr.length || 1));
+    const first = viewersArr[0] || 0;
+    const last = viewersArr[viewersArr.length - 1] || 0;
+    const growth = first > 0 ? Math.round(((last - first) / first) * 100) : (last>0 ? 100 : 0);
+
+    const mean = avg;
+    const variance = viewersArr.reduce((a, v) => a + Math.pow(v - mean, 2), 0) / (viewersArr.length || 1);
+    const volatility = Math.round(Math.sqrt(variance));
+
+    let hoursPerWeek = null;
+    try {
+      const ds = await db.collection('channels').doc(channelId).collection('daily_stats')
+        .orderBy('day','desc').limit(14).get();
+      if (!ds.empty) {
+        const series = ds.docs.map(d=>d.data());
+        const minutes = series.reduce((a,x)=>a+(x.minutes_live_est||0),0);
+        const days = series.length || 1;
+        hoursPerWeek = Math.round((minutes/60) / (days/7));
+      }
+    } catch(_) {}
+
+    const growth_score = computeGrowthScore({ avgViewers: avg, growthPct: growth, volatility, hoursPerWeek: hoursPerWeek || 0 });
+
+    return res.json({
+      success:true,
+      channel_id: channelId,
+      login,
+      current_game_id,
+      current_game_name,
+      kpis:{
+        avg_viewers: avg,
+        peak_viewers: peak,
+        growth_percent: growth,
+        volatility,
+        hours_per_week_est: hoursPerWeek,
+        growth_score,
+        samples: viewersArr.length
+      },
+      series:{ labels, values }
+    });
+  } catch (e) {
+    return res.status(500).json({ success:false, message:e.message });
+  }
+});
+
+// Alerts
+async function saveAlert(channelId, dayKey, type, payload) {
+  try {
+    const ref = db.collection('alerts').doc(String(channelId))
+      .collection('items').doc(`${dayKey}_${type}`);
+    await ref.set({
+      channel_id: String(channelId),
+      day: dayKey,
+      type,
+      ...payload,
+      created_at: admin.firestore.Timestamp.fromMillis(Date.now())
+    }, { merge: true });
+  } catch (e) {
+    console.error("❌ [ALERT] saveAlert:", e.message);
+  }
+}
+
+function computeGrowthScoreSimple({ avg_viewers=0, peak_viewers=0, growth_percent=0, minutes_live_est=0 } = {}) {
+  const base = Math.log10(avg_viewers + 1) * 25;
+  const peakBoost = Math.log10(peak_viewers + 1) * 10;
+  const growthBoost = clamp(growth_percent, -50, 200) * 0.15;
+  const cadence = Math.min(20, (minutes_live_est / 60) * 1.2);
+  const raw = base + peakBoost + growthBoost + cadence;
+  return Math.max(0, Math.min(100, Math.round(raw)));
+}
+
+async function generateAlertsForLogin(login, days=30) {
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data?.length) return { success:false, message:"introuvable" };
+    const user = uRes.data[0];
+    const channelId = String(user.id);
+
+    const snaps = await db.collection('channels').doc(channelId)
+      .collection('daily_stats').orderBy('day', 'desc').limit(days).get();
+    if (snaps.empty) return { success:false, message:"pas de daily_stats" };
+
+    const series = snaps.docs.map(d => d.data()).reverse();
+    const first = series[0]?.avg_viewers || 0;
+    const last = series[series.length-1]?.avg_viewers || 0;
+    const growth_percent = first > 0 ? Math.round(((last-first)/first)*100) : (last>0?100:0);
+
+    const avg = Math.round(series.reduce((a,x)=>a+(x.avg_viewers||0),0)/series.length);
+    const peak = Math.max(...series.map(x=>x.peak_viewers||0));
+    const minutes_live_est = Math.round(series.reduce((a,x)=>a+(x.minutes_live_est||0),0)/series.length);
+
+    const growth_score = computeGrowthScoreSimple({ avg_viewers: avg, peak_viewers: peak, growth_percent, minutes_live_est });
+    const dayKey = yyyy_mm_dd_from_ms(Date.now());
+
+    if (growth_percent >= 25 && growth_score >= 60) {
+      await saveAlert(channelId, dayKey, "acceleration", {
+        title: "🚀 Accélération détectée",
+        message: `Ta moyenne grimpe (+${growth_percent}%). Double les formats qui performent: titres clairs, clips, rediff ciblées.`,
+        score: growth_score
+      });
+    }
+    if (avg < 10 && minutes_live_est >= 180) {
+      await saveAlert(channelId, dayKey, "format", {
+        title: "🧪 Ajuste ton format",
+        message: "Tu streams longtemps mais la moyenne reste basse: intro plus courte, objectif clair, catégories moins saturées.",
+        score: growth_score
+      });
+    }
+
+    if (aiClient) {
+      const prompt = `Pour ${user.display_name} (${login}), propose 1 alerte très courte, actionnable, pour aujourd'hui.
+Données: moyenne=${avg}, pic=${peak}, croissance=${growth_percent}%, minutes live estimées=${minutes_live_est}, score=${growth_score}/100.`;
+      const out = await runGeminiAnalysis(prompt);
+      await saveAlert(channelId, dayKey, "ia", {
+        title: "💡 Suggestion IA",
+        message: (out.html_response || '').replace(/<\/?[^>]+(>|$)/g, '').slice(0, 320),
+        score: growth_score
+      });
+    }
+
+    return { success:true, channel_id: channelId, growth_score, growth_percent, avg_viewers: avg, peak_viewers: peak };
+  } catch (e) {
+    return { success:false, error: e.message };
+  }
+}
+
+app.get('/api/alerts/channel_by_login/:login', async (req, res) => {
+  const login = String(req.params.login||'').trim().toLowerCase();
+  const limit = clamp(parseInt(req.query.limit||'10',10), 1, 50);
+  if (!login) return res.status(400).json({ success:false, error:"login manquant" });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data?.length) return res.json({ success:false, error:"introuvable" });
+    const channelId = String(uRes.data[0].id);
+
+    const q = await db.collection('alerts').doc(channelId)
+      .collection('items').orderBy('created_at','desc').limit(limit).get();
+
+    const items = q.docs.map(d => d.data());
+    return res.json({ success:true, channel_id: channelId, items });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/alerts/generate', async (req, res) => {
+  const login = String(req.body?.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.body?.days || '30', 10), 1, 180);
+  if (!login) return res.status(400).json({ success:false, error:"login manquant" });
+  const r = await generateAlertsForLogin(login, days);
+  return res.json(r);
+});
+
+// Games hours
+app.get('/api/games/hours', async (req, res) => {
+  const gameId = String(req.query.game_id || '').trim();
+  const days = clamp(parseInt(req.query.days || '7', 10), 1, 30);
+  if (!gameId) return res.status(400).json({ success:false, error:"game_id requis" });
+
+  try {
+    const since = Date.now() - days*24*60*60*1000;
+    const snaps = await db.collection('games').doc(gameId)
+      .collection('hourly_stats').where('timestamp','>=', since).get();
+
+    const hours = Array.from({length:24},(_,h)=>({ hour:h, total_viewers:0, channels: new Set(), samples:0 }));
+    snaps.forEach(d => {
+      const x = d.data();
+      const ts = x.timestamp || 0;
+      const h = new Date(ts).getUTCHours();
+      const viewers = Number(x.viewers || 0);
+      hours[h].total_viewers += viewers;
+      if (x.channel_id) hours[h].channels.add(String(x.channel_id));
+      hours[h].samples += 1;
+    });
+
+    const out = hours.map(o => {
+      const ch = o.channels.size;
+      const avgPerChan = ch ? Math.round(o.total_viewers / ch) : 0;
+
+      // scores "pédagogiques" (0..100) : plus c'est haut, plus c'est tendu (saturation)
+      const saturation = ch ? Math.min(100, Math.round((ch / Math.max(1, avgPerChan)) * 35)) : 0;
+
+      // discoverability : mélange simple (plus d'audience par chaîne + moins de concurrence => mieux)
+      const discoverability = avgPerChan ? Math.min(100, Math.round((avgPerChan / (avgPerChan + ch)) * 200)) : 0;
+
+      return {
+        hour: o.hour,
+        channels: ch,
+        total_viewers: o.total_viewers,
+        avg_viewers_per_channel: avgPerChan,
+        saturation_score: saturation,
+        discoverability_score: discoverability
+      };
+    });
+
+    const best = [...out].sort((a,b)=> (b.discoverability_score - a.discoverability_score) || (b.total_viewers - a.total_viewers))[0];
+    return res.json({ success:true, game_id: gameId, days, hours: out, best_hour_utc: best?.hour ?? null });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// IA reco
+app.get('/api/ai/reco', async (req, res) => {
+  const login = String(req.query.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.query.days || '30', 10), 7, 90);
+  if (!login) return res.status(400).json({ success:false, html_response:"<p style='color:red;'>login requis</p>" });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data?.length) return res.json({ success:false, html_response:"<p style='color:red;'>introuvable</p>" });
+    const channelId = String(uRes.data[0].id);
+
+    const sinceKey = yyyy_mm_dd_from_ms(Date.now() - days * 24 * 60 * 60 * 1000);
+    const snaps = await db.collection('channels').doc(channelId)
+      .collection('daily_stats').where('day','>=', sinceKey).orderBy('day','asc').get();
+
+    if (snaps.empty) return res.json({ success:false, html_response:"<p style='color:red;'>Pas assez de données daily_stats.</p>" });
+
+    const series = snaps.docs.map(d => d.data());
+    const values = series.map(x=>Number(x.avg_viewers||0));
+    const avg = Math.round(values.reduce((a,b)=>a+b,0)/(values.length||1));
+    const peak = Math.max(...series.map(x=>Number(x.peak_viewers||0)));
+
+    const first = values[0]||0;
+    const last = values[values.length-1]||0;
+    const growthPct = first>0 ? Math.round(((last-first)/first)*100) : (last>0?100:0);
+
+    const mean = avg;
+    const variance = values.reduce((a, v) => a + Math.pow(v - mean, 2), 0) / (values.length || 1);
+    const volatility = Math.round(Math.sqrt(variance));
+
+    const totalMinutes = series.reduce((a,x)=>a+Number(x.minutes_live_est||0),0);
+    const hoursPerWeek = Math.round((totalMinutes/60)/(days/7));
+    const growthScore = computeGrowthScore({ avgViewers: avg, growthPct, volatility, hoursPerWeek });
+
+    const prompt = `Tu es un coach Twitch DATA-DRIVEN. Réponds UNIQUEMENT en HTML (<h4>, <ul>, <li>, <p>, <strong>).
+
+DONNÉES:
+- moyenne viewers: ${avg}
+- pic viewers: ${peak}
+- croissance: ${growthPct}%
+- volatilité: ${volatility}
+- heures/sem estimées: ${hoursPerWeek}
+- score croissance: ${growthScore}/100
+
+OBJECTIF:
+- 5 recommandations concrètes (avec "quoi faire aujourd'hui")
+- 3 expériences à tester semaine prochaine (format/horaires/titre/catégorie)
+- 1 phrase motivante réaliste.`;
+
+    const ai = await runGeminiAnalysis(prompt);
+    return res.json(ai);
+  } catch (e) {
+    return res.status(500).json({ success:false, html_response:`<p style='color:red;'>${e.message}</p>` });
+  }
+});
+
+// CO-STREAM
+app.get('/api/costream/best', async (req, res) => {
+  const login = String(req.query.login || '').trim().toLowerCase();
+  if (!login) return res.status(400).json({ success:false, message:'login manquant' });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data?.length) return res.json({ success:false, message:'Chaîne introuvable' });
+    const me = uRes.data[0];
+
+    const sMe = await twitchAPI(`streams?user_id=${me.id}`);
+    const myStream = sMe.data?.[0] || null;
+
+    const gameId = myStream?.game_id || null;
+    const gameName = myStream?.game_name || null;
+    const myViewers = Number(myStream?.viewer_count || 50);
+
+    if (!gameId) return res.json({ success:false, message:'Chaîne offline (jeu inconnu). Lance un live.' });
+
+    const sGame = await twitchAPI(`streams?game_id=${encodeURIComponent(gameId)}&first=100&language=fr`);
+    const candidatesRaw = (sGame.data || []).filter(s => s.user_login && s.user_login.toLowerCase() !== login);
+
+    if (!candidatesRaw.length) return res.json({ success:false, message:'Aucun co-streamer FR live sur ce jeu.' });
+
+    const target = Math.max(5, myViewers);
+    const scored = candidatesRaw.map(s=>{
+      const v = Number(s.viewer_count || 0);
+      const diff = Math.abs(v - target);
+      const score = Math.max(1, 100 - diff);
+      return { s, score };
+    }).sort((a,b)=>b.score-a.score);
+
+    const bestS = scored[0].s;
+    let prof = null;
+    try {
+      const bestProfile = await twitchAPI(`users?login=${encodeURIComponent(bestS.user_login)}`);
+      prof = bestProfile.data?.[0] || null;
+    } catch(_) {}
+
+    const candidates = scored.slice(0, 8).map(x=>({
+      login: x.s.user_login,
+      display_name: x.s.user_name,
+      score: x.score
+    }));
+
+    return res.json({
+      success:true,
+      best: {
+        login: bestS.user_login,
+        display_name: bestS.user_name,
+        profile_image_url: prof?.profile_image_url || null,
+        score: scored[0].score,
+        why: `Même jeu (${gameName || bestS.game_name}) + audience proche (${bestS.viewer_count} vs ~${target}).`
+      },
+      candidates
+    });
+  } catch (e) {
+    return res.status(500).json({ success:false, message:e.message });
+  }
+});
+
+// =========================================================
+// 16) CRON SNAPSHOTS + ROLLUPS (daily_stats + games hourly_stats)
+// =========================================================
+async function upsertChannelMetaFromStream(stream, nowMs) {
+  const ref = db.collection('channels').doc(String(stream.user_id));
+  try {
+    const snap = await ref.get();
+    const payload = {
+      login: stream.user_login || null,
+      display_name: stream.user_name || null,
+      language: stream.language || null,
+      current_game_id: stream.game_id || null,
+      current_game_name: stream.game_name || null,
+      last_seen_live: admin.firestore.Timestamp.fromMillis(nowMs)
+    };
+    if (!snap.exists) payload.first_seen = admin.firestore.Timestamp.fromMillis(nowMs);
+    await ref.set(payload, { merge: true });
+  } catch (e) {
+    console.error("❌ [FIRESTORE] upsertChannelMetaFromStream:", e.message);
+  }
+}
+
+async function upsertGameMeta(gameId, gameName) {
+  if (!gameId) return;
+  try {
+    await db.collection('games').doc(String(gameId)).set({
+      name: gameName || null,
+      last_seen: admin.firestore.Timestamp.fromMillis(Date.now())
+    }, { merge: true });
+  } catch (_) {}
+}
+
+async function collectAnalyticsSnapshot() {
+  const now = Date.now();
+  const dayKey = yyyy_mm_dd_from_ms(now);
+  const inc = admin.firestore.FieldValue.increment;
+
+  try {
+    const data = await twitchAPI('streams?first=100&language=fr');
+    const streams = data?.data || [];
+    let totalViewers = 0;
+
+    let batch = db.batch();
+    let ops = 0;
+    const commitIfNeeded = async () => {
+      if (ops >= 430) { await batch.commit(); batch = db.batch(); ops = 0; }
+    };
+
+    for (const s of streams) {
+      totalViewers += (s.viewer_count || 0);
+
+      await upsertChannelMetaFromStream(s, now);
+      await upsertGameMeta(s.game_id, s.game_name);
+
+      // intraday channel point
+      const chRef = db.collection('channels').doc(String(s.user_id))
+        .collection('hourly_stats').doc(String(now));
+
+      batch.set(chRef, {
+        timestamp: now,
+        viewers: s.viewer_count || 0,
+        game_id: s.game_id || null,
+        game_name: s.game_name || null,
+        title: s.title || null,
+        language: s.language || null
+      }, { merge: false });
+      ops++; await commitIfNeeded();
+
+      // games hourly_stats (pour /api/games/hours)
+      if (s.game_id) {
+        const gRef = db.collection('games').doc(String(s.game_id))
+          .collection('hourly_stats').doc(`${now}_${s.user_id}`);
+        batch.set(gRef, {
+          timestamp: now,
+          viewers: s.viewer_count || 0,
+          channel_id: String(s.user_id),
+          channel_login: s.user_login || null
+        }, { merge: false });
+        ops++; await commitIfNeeded();
+      }
+
+      // daily rollup per channel (accumulé)
+      const dRef = db.collection('channels').doc(String(s.user_id))
+        .collection('daily_stats').doc(dayKey);
+
+      batch.set(dRef, {
+        day: dayKey,
+        // cumuls (on stocke pour recalculer proprement)
+        samples: inc(1),
+        sum_viewers: inc(Number(s.viewer_count || 0)),
+        peak_viewers: admin.firestore.FieldValue.maximum ? admin.firestore.FieldValue.maximum(Number(s.viewer_count || 0)) : undefined,
+        minutes_live_est: inc(SNAPSHOT_EVERY_MIN),
+        // meta
+        last_game_id: s.game_id || null,
+        last_game_name: s.game_name || null,
+        updated_at: admin.firestore.Timestamp.fromMillis(now)
+      }, { merge: true });
+      ops++; await commitIfNeeded();
+    }
+
+    // global stats_history point
+    const globalRef = db.collection('stats_history').doc(String(now));
+    batch.set(globalRef, {
+      timestamp: admin.firestore.Timestamp.fromMillis(now),
+      timestamp_ms: now,
+      total_viewers: totalViewers,
+      channels_live: streams.length,
+      top_game: streams[0]?.game_name || null
+    }, { merge: false });
+    ops++; await commitIfNeeded();
+
+    await batch.commit();
+
+    // post-process: recompute avg_viewers for daily_stats docs touched (simple, few docs)
+    // On garde ça léger: uniquement pour les streams dans le top 100 => max 100 docs.
+    // (et ça reste "merge" => pas bloquant si ça rate)
+    const updates = streams.map(async (s) => {
+      const ref = db.collection('channels').doc(String(s.user_id)).collection('daily_stats').doc(dayKey);
+      try {
+        const snap = await ref.get();
+        if (!snap.exists) return;
+        const x = snap.data();
+        const samples = Number(x.samples || 0);
+        const sum = Number(x.sum_viewers || 0);
+        const peak = Number(x.peak_viewers || 0);
+        const avg = samples ? Math.round(sum / samples) : 0;
+        await ref.set({ avg_viewers: avg, peak_viewers: peak }, { merge: true });
+      } catch (_) {}
+    });
+
+    await Promise.allSettled(updates);
+
+    console.log(`📊 [CRON] Snapshot saved: viewers=${totalViewers}, live=${streams.length}`);
+  } catch (e) {
+    console.error("❌ [CRON] Snapshot error:", e.message);
+  }
+}
+
+// NOTE: FieldValue.maximum est récent; si indispo, on fait un fallback sans max (on recalculera via post-process)
+if (!admin.firestore.FieldValue.maximum) {
+  // fallback: on ne set pas peak via max atomique
+}
+
+if (ENABLE_CRON) {
+  console.log(`✅ CRON ENABLED = true (every ${SNAPSHOT_EVERY_MIN}min)`);
+  setInterval(collectAnalyticsSnapshot, SNAPSHOT_EVERY_MIN * 60 * 1000);
+  collectAnalyticsSnapshot().catch(() => {});
+} else {
+  console.log(`ℹ️ CRON ENABLED = false`);
+}
+
+// =========================================================
+// 17) START
+// =========================================================
+server.listen(PORT, () => {
+  console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
+  console.log("✅ Routes prêtes");
+  console.log(" - UI: / (NicheOptimizer.html)");
+  console.log(" - /firebase_status");
+  console.log(" - /stream_info");
+  console.log(" - /api/stats/global_intraday (+ compat /api/stats/global)");
+  console.log(" - /api/analytics/channel_intraday_by_login/:login");
+  console.log(" - /api/streams/random_global  (<=100 viewers)");
+  console.log(" - /api/streams/random_for_game (<=100 viewers)");
+  console.log(` - CRON ENABLED = ${ENABLE_CRON ? 'true' : 'false'}`);
+});
+"""
+Path("/mnt/data/app_FIXED.js").write_text(backend, encoding="utf-8")
+
+# ---------- Patch the uploaded HTML without changing the visual ----------
+html_path = Path("/mnt/data/NicheOptimizer.html")
+orig_html = html_path.read_text(encoding="utf-8", errors="ignore")
+
+# Injection blocks
+style_block = r"""
+<!-- STREAMER_HUB_HELP_STYLE_START -->
+<style id="streamerHubHelpStyle">
+/* Ajouts très discrets: tooltip + petit (i) sans casser ton visuel */
+.sh-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 16px;
+  cursor: help;
+  user-select: none;
+  opacity: .75;
+}
+.sh-help:hover { opacity: 1; }
+.sh-help[data-tooltip] { position: relative; }
+.sh-help[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: 125%;
+  transform: translateX(-50%);
+  min-width: 220px;
+  max-width: 360px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+  z-index: 9999;
+  box-shadow: 0 10px 25px rgba(0,0,0,.18);
+  background: rgba(20,20,24,.96);
+  color: #fff;
+}
+.sh-help[data-tooltip]:hover::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 114%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: rgba(20,20,24,.96);
+}
+</style>
+<!-- STREAMER_HUB_HELP_STYLE_END -->
+""".strip()
+
+enhancer_script = r"""
+<!-- STREAMER_HUB_ENHANCER_START -->
+<script>
+(() => {
+  // -----------------------------
+  // Paramètres
+  // -----------------------------
+  const MAX_VIEWERS = 100;          // anti-mastodontes
+  const MIN_VIEWERS = 0;
+  const LANG = 'fr';
+
+  const HELP = {
+    "moyenne": "Moyenne de viewers sur la période. Utile pour mesurer ta base réelle (pas juste un pic).",
+    "pic": "Le maximum de viewers atteint sur la période. Utile pour identifier un moment fort à reproduire.",
+    "croissance": "Évolution entre le début et la fin de la période. Utile pour voir si ton live 'monte' ou 's'essouffle'.",
+    "volatilite": "Variations autour de la moyenne. Plus c'est haut, plus c'est instable (attention aux formats qui font fuir).",
+    "heures": "Estimation de ton volume de live. Utile pour comparer effort vs résultat.",
+    "score": "Score (0-100) qui résume potentiel + régularité. Utile pour prioriser ce qui marche.",
+    "saturation": "Plus c'est haut, plus il y a de concurrence pour une audience similaire. Cherche les créneaux moins saturés.",
+    "decouvrabilite": "Plus c'est haut, plus tu as de chances d'être trouvé (ratio audience / concurrence)."
+  };
+
+  // -----------------------------
+  // Utilitaires
+  // -----------------------------
+  async function fetchJSON(url, opts) {
+    const res = await fetch(url, opts);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || data?.message || 'Erreur API');
+    return data;
+  }
+
+  function removeLuckButtonIfAny() {
+    const buttons = Array.from(document.querySelectorAll('button'));
+    buttons.forEach(b => {
+      const txt = (b.textContent || '').toLowerCase();
+      const id = (b.id || '').toLowerCase();
+      if (txt.includes("j'ai de la chance") || txt.includes("chance") || id.includes("lucky") || id.includes("chance")) {
+        b.remove();
+      }
+    });
+  }
+
+  function getParentParam() {
+    // Twitch embed exige le param parent = domaine
+    return window.location.hostname || 'localhost';
+  }
+
+  function findTwitchIframe() {
+    return document.querySelector('iframe[src*="player.twitch.tv"]') || document.getElementById('twitchPlayer') || null;
+  }
+
+  function updateIframeChannel(channel) {
+    const iframe = findTwitchIframe();
+    if (!iframe) return false;
+    const parent = getParentParam();
+    const muted = "false";
+    iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${encodeURIComponent(parent)}&muted=${muted}`;
+    return true;
+  }
+
+  // Si ton HTML utilise le Twitch Embed officiel dans un <div id="twitch-embed">,
+  // on essaie de le piloter (sans casser le visuel).
+  function updateTwitchEmbedChannel(channel) {
+    const embedDiv = document.getElementById('twitch-embed') || document.getElementById('twitchEmbed') || null;
+    if (!embedDiv) return false;
+
+    // réutilise un embed si existant
+    if (window.__SH_EMBED && window.__SH_EMBED.getPlayer) {
+      try {
+        const p = window.__SH_EMBED.getPlayer();
+        if (p && p.setChannel) { p.setChannel(channel); return true; }
+      } catch (_) {}
+    }
+
+    // crée un embed si possible (script twitch déjà chargé dans ton HTML)
+    if (window.Twitch && window.Twitch.Embed) {
+      try {
+        window.__SH_EMBED = new window.Twitch.Embed(embedDiv.id, {
+          width: "100%",
+          height: "100%",
+          channel,
+          parent: [getParentParam()],
+          layout: "video"
+        });
+        return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
+  function setCurrentChannelLabel(channel, meta) {
+    // optionnel: si tu as un endroit qui affiche la chaine
+    const el =
+      document.querySelector('[data-current-channel]') ||
+      document.getElementById('currentChannel') ||
+      document.getElementById('current_channel') ||
+      null;
+    if (el) {
+      const game = meta?.game_name ? ` · ${meta.game_name}` : '';
+      const viewers = (meta?.viewers != null) ? ` · ${meta.viewers} viewers` : '';
+      el.textContent = `${channel}${game}${viewers}`;
+    }
+  }
+
+  async function loadRandomGlobal() {
+    const data = await fetchJSON(`/api/streams/random_global?language=${encodeURIComponent(LANG)}&min_viewers=${MIN_VIEWERS}&max_viewers=${MAX_VIEWERS}`);
+    if (!data.success || !data.stream?.login) throw new Error('Aucun streamer trouvé (0..100 viewers).');
+    const login = data.stream.login;
+    // essaie embed, sinon iframe
+    const ok = updateTwitchEmbedChannel(login) || updateIframeChannel(login);
+    setCurrentChannelLabel(login, data.stream);
+    return ok;
+  }
+
+  async function loadRandomForGame(gameNameOrId) {
+    const data = await fetchJSON(`/api/streams/random_for_game?game=${encodeURIComponent(gameNameOrId)}&language=${encodeURIComponent(LANG)}&min_viewers=${MIN_VIEWERS}&max_viewers=${MAX_VIEWERS}`);
+    if (!data.success || !data.stream?.login) throw new Error('Aucun streamer trouvé sur ce jeu (0..100 viewers).');
+    const login = data.stream.login;
+    const ok = updateTwitchEmbedChannel(login) || updateIframeChannel(login);
+    setCurrentChannelLabel(login, data.stream);
+    return ok;
+  }
+
+  function enhanceTopGamesClick() {
+    // On écoute globalement les clics sur des cards de jeux, sans présumer ton HTML.
+    // Règles: si on clique sur un élément qui a data-game / data-game-name / alt d'image => on charge un streamer.
+    document.addEventListener('click', async (e) => {
+      const t = e.target;
+      if (!t) return;
+
+      // Cherche game name dans data attributes
+      const node = t.closest ? (t.closest('[data-game],[data-game-name],[data-gamename]') || t) : t;
+      const dn =
+        (node && node.dataset && (node.dataset.game || node.dataset.gameName || node.dataset.gamename)) ||
+        (t && t.dataset && (t.dataset.game || t.dataset.gameName || t.dataset.gamename)) ||
+        null;
+
+      // alt d'image (souvent le nom du jeu)
+      const alt = (t.tagName === 'IMG' && t.alt) ? t.alt.trim() : null;
+
+      // Texte proche (si la card contient un <span> avec le nom)
+      let nearbyText = null;
+      try {
+        const card = t.closest && t.closest('.game, .game-card, .gameCard, .top-game, .topGame, [data-game-card]') ? t.closest('.game, .game-card, .gameCard, .top-game, .topGame, [data-game-card]') : null;
+        if (card) {
+          const txt = (card.textContent || '').trim();
+          if (txt && txt.length < 80) nearbyText = txt;
+        }
+      } catch(_) {}
+
+      const gameName = dn || alt || nearbyText;
+      if (!gameName) return;
+
+      // éviter de trigger sur des clicks partout: on n'active que si ça ressemble à un jeu (et pas un gros bloc)
+      if (gameName.length < 2 || gameName.length > 80) return;
+
+      // Ici: clic sur un jeu => charger direct un streamer du jeu
+      try {
+        // (optionnel) feedback: tu peux afficher un loader si ton UI en a un.
+        await loadRandomForGame(gameName);
+      } catch(err) {
+        // fallback: random global
+        try { await loadRandomGlobal(); } catch(_) {}
+        console.warn('[Game->Stream]', err?.message || err);
+      }
+    }, true);
+  }
+
+  function addHelpBubbles() {
+    // Ajoute des petits (i) près des labels si on reconnaît des mots clés.
+    // Zéro impact si tes éléments n'existent pas.
+    const patterns = [
+      { re: /moyenne/i, key: "moyenne" },
+      { re: /\bpic\b|peak|max/i, key: "pic" },
+      { re: /croissance|growth/i, key: "croissance" },
+      { re: /volatil/i, key: "volatilite" },
+      { re: /heures|hours/i, key: "heures" },
+      { re: /score/i, key: "score" },
+      { re: /saturation/i, key: "saturation" },
+      { re: /découvr|discover/i, key: "decouvrabilite" }
+    ];
+
+    const candidates = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,label,span,div,p,strong'))
+      .filter(el => el && el.childElementCount === 0)
+      .slice(0, 2500); // garde perf
+
+    candidates.forEach(el => {
+      const txt = (el.textContent || '').trim();
+      if (!txt || txt.length > 60) return;
+      if (el.querySelector && el.querySelector('.sh-help')) return;
+
+      const found = patterns.find(p => p.re.test(txt));
+      if (!found) return;
+
+      // si title déjà présent, ne pas ajouter
+      if (el.getAttribute('title')) return;
+
+      // Ajoute un "i" discret
+      const info = document.createElement('span');
+      info.className = 'sh-help';
+      info.textContent = 'i';
+      info.setAttribute('aria-label', 'Info');
+      info.setAttribute('data-tooltip', HELP[found.key] || '');
+      el.appendChild(info);
+    });
+  }
+
+  function translateSomeLabelsToFrench() {
+    // Si certaines labels sont en anglais, on les remplace (sans changer le style)
+    const map = [
+      [/Average Viewers/i, 'Moyenne viewers'],
+      [/Peak Viewers/i, 'Pic viewers'],
+      [/Growth/i, 'Croissance'],
+      [/Volatility/i, 'Volatilité'],
+      [/Hours per week/i, 'Heures / semaine'],
+      [/Growth score/i, 'Score de croissance'],
+      [/Discoverability/i, 'Découvrabilité'],
+      [/Saturation/i, 'Saturation']
+    ];
+
+    const nodes = Array.from(document.querySelectorAll('body *'))
+      .filter(el => el.childElementCount === 0)
+      .slice(0, 5000);
+
+    nodes.forEach(el => {
+      const t = el.textContent;
+      if (!t || t.length > 40) return;
+      for (const [re, fr] of map) {
+        if (re.test(t)) { el.textContent = fr; break; }
+      }
+    });
+  }
+
+  function lockSocketToWebsocketIfAny() {
+    // Si ton HTML crée un socket.io client, on ne peut pas forcément l'empêcher ici.
+    // MAIS on peut te proposer un patch "client" plus tard si tu veux.
+  }
+
+  async function ensureInitialStream() {
+    // Si le lecteur démarre sur "twitch" ou vide, on propose direct un petit streamer (0..100).
+    // On ne force pas si tu as déjà un channel chargé.
+    const iframe = findTwitchIframe();
+    if (iframe && iframe.src && iframe.src.includes('channel=')) return;
+
+    try {
+      await loadRandomGlobal();
+    } catch (e) {
+      console.warn('No initial stream:', e?.message || e);
+    }
+  }
+
+  // -----------------------------
+  // BOOT
+  // -----------------------------
+  window.addEventListener('DOMContentLoaded', () => {
+    removeLuckButtonIfAny();
+    translateSomeLabelsToFrench();
+    addHelpBubbles();
+    enhanceTopGamesClick();
+    ensureInitialStream();
+    lockSocketToWebsocketIfAny();
+  });
 })();
 </script>
-</body>
-</html>
+<!-- STREAMER_HUB_ENHANCER_END -->
+""".strip()
+
+def upsert_block(html_text, start_marker, end_marker, new_block, insert_before_pattern):
+    # Remove existing block if present
+    pattern = re.compile(re.escape(start_marker) + r".*?" + re.escape(end_marker), re.DOTALL)
+    html_text = re.sub(pattern, new_block, html_text)
+    if start_marker in html_text and end_marker in html_text:
+        return html_text
+    # else insert
+    m = re.search(insert_before_pattern, html_text, flags=re.IGNORECASE)
+    if not m:
+        return html_text + "\n" + new_block + "\n"
+    idx = m.start()
+    return html_text[:idx] + new_block + "\n" + html_text[idx:]
+
+# Insert style in head (before </head>)
+patched = orig_html
+if "STREAMER_HUB_HELP_STYLE_START" not in patched:
+    patched = upsert_block(
+        patched,
+        "<!-- STREAMER_HUB_HELP_STYLE_START -->",
+       
