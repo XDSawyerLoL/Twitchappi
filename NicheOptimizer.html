@@ -1,339 +1,898 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Streamer Hub</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Streamer Hub – Pro Analytics</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
   <style>
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    body{background:#0b0b10;color:#eaeaf2;overflow:hidden}
-
-    .app{
-      height:100vh;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      padding:10px;
+    :root{
+      --bg-dark:#050505;
+      --bg-panel:#0b0b0d;
+      --primary:#ff0099;
+      --secondary:#00f2ea;
+      --text-main:#e0e0e0;
+      --border-color:#1f1f23;
     }
-
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px 12px;
-      border-radius:12px;
-      background:#141421;
+    body{
+      background:var(--bg-dark);
+      color:var(--text-main);
+      font-family:Inter, sans-serif;
+      overflow-x:hidden;
     }
+    .font-orbitron{ font-family:Orbitron, sans-serif; }
 
-    .grid{
-      flex:1;
-      display:grid;
-      grid-template-columns: 1.35fr 1fr;
-      gap:10px;
-      min-height:0;
-    }
+    ::-webkit-scrollbar{ width:6px; height:6px; }
+    ::-webkit-scrollbar-track{ background:#000; }
+    ::-webkit-scrollbar-thumb{ background:#333; border-radius:3px; }
+    ::-webkit-scrollbar-thumb:hover{ background:var(--secondary); }
 
-    .card{
-      background:#141421;
-      border-radius:12px;
-      padding:10px;
-      min-height:0;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      overflow:hidden;
-    }
+    .glass-panel{ background:var(--bg-panel); border:1px solid var(--border-color); }
 
-    .playerWrap{
-      flex:1;
-      min-height:0;
-      border-radius:12px;
-      overflow:hidden;
-      background:#0f0f18;
+    .carousel-track{
+      display:flex; gap:15px; overflow-x:auto; padding:10px 5px;
+      scroll-behavior:smooth; cursor:grab;
     }
+    .stream-card{
+      flex:0 0 300px; height:170px; background:#111;
+      border:1px solid #222; border-radius:12px; overflow:hidden;
+      position:relative; cursor:pointer; transition:.2s;
+    }
+    .stream-card:hover{
+      border-color:var(--secondary);
+      transform:translateY(-4px);
+      box-shadow:0 5px 20px rgba(0,242,234,.15);
+    }
+    .card-img{ width:100%; height:100%; object-fit:cover; opacity:.7; transition:.3s; }
+    .stream-card:hover .card-img{ opacity:1; }
 
-    iframe{width:100%;height:100%;border:0}
+    /* onglets DROITE */
+    .tab-nav{ display:flex; background:#080808; border-bottom:1px solid var(--border-color); }
+    .tab-btn{
+      flex:1; padding:14px; text-align:center; color:#666;
+      font-family:Orbitron; font-size:11px; font-weight:bold;
+      cursor:pointer; border-bottom:2px solid transparent; transition:.3s;
+    }
+    .tab-btn:hover{ color:#fff; background:#111; }
+    .tab-btn.active{ color:var(--secondary); border-bottom-color:var(--secondary); background:#151515; }
+    .tab-content{ display:none; height:100%; flex-direction:column; }
+    .tab-content.active{ display:flex; }
 
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    input,button{
-      border-radius:10px;border:1px solid #2a2a3b;
-      background:#0f0f18;color:#eaeaf2;
-      padding:10px 12px;font-size:14px;
+    .cyber-input{
+      background:#151515; border:1px solid #333; color:#fff;
+      padding:12px; border-radius:6px; font-size:13px; outline:none; transition:.3s; width:100%;
     }
-    button{cursor:pointer}
-    button:hover{background:#171726}
+    .cyber-input:focus{ border-color:var(--secondary); box-shadow:0 0 10px rgba(0,242,234,.2); }
 
-    .charts{
-      flex:1;
-      display:grid;
-      grid-template-rows: 1fr 1fr;
-      gap:10px;
-      min-height:0;
-    }
-    .chartBox{background:#0f0f18;border:1px solid #2a2a3b;border-radius:12px;padding:10px;min-height:0}
-    .chartBox canvas{width:100% !important;height:100% !important}
+    .hub-msg{ padding:8px; border-bottom:1px solid #1a1a1a; font-size:13px; line-height:1.4; }
+    .hub-msg strong{ font-family:Orbitron; font-size:11px; }
+    .scrollbar-thin::-webkit-scrollbar{ width:4px; }
 
-    .chat{
-      flex:1;
-      min-height:0;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
+    /* badge statut */
+    #socket-status{ transition:all .3s ease; }
+    #socket-status.connected{
+      color:#00f2ea; border-color:#00f2ea;
+      box-shadow:0 0 8px rgba(0,242,234,.6);
+      animation:hub-pulse 2s infinite;
     }
-    .chatLog{
-      flex:1;
-      min-height:0;
-      overflow:auto;
-      padding:10px;
-      border-radius:12px;
-      background:#0f0f18;
-      border:1px solid #2a2a3b;
+    @keyframes hub-pulse{ 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* BEST TIME TOOL */
+    .best-time-tool{
+      background:#151515; border:1px solid #00f2ea; border-radius:10px;
+      padding:16px; margin-bottom:16px; box-shadow:inset 0 0 10px rgba(0,242,234,.1);
     }
-    .msg{padding:6px 8px;border-bottom:1px solid #1f1f2e}
-    .msg b{color:#8fd3ff}
-    .muted{opacity:.75;font-size:12px}
+    .best-time-tool h4{
+      color:#00f2ea; font-family:Orbitron; font-size:12px;
+      margin-bottom:10px; border-bottom:1px solid #00f2ea; padding-bottom:8px;
+    }
+    .best-time-tool input{
+      width:100%; padding:10px; background:#0a0a0a; border:1px solid #333;
+      color:#fff; border-radius:6px; font-size:12px; margin-bottom:8px;
+    }
+    .best-time-tool input:focus{ border-color:#00f2ea; box-shadow:0 0 8px rgba(0,242,234,.2); outline:none; }
+    .best-time-tool button{
+      width:100%; background:#00f2ea; color:#000; padding:10px;
+      border:none; border-radius:6px; font-weight:bold; cursor:pointer;
+      font-family:Orbitron; font-size:11px; transition:all .3s ease;
+    }
+    .best-time-tool button:hover:not(:disabled){ background:#fff; box-shadow:0 0 15px rgba(0,242,234,.4); transform:translateY(-1px); }
+    .best-time-tool button:disabled{ opacity:.5; cursor:not-allowed; }
+    .best-time-results{
+      background:#0a0a0a; border:1px solid #333; border-radius:6px;
+      padding:12px; margin-top:12px; font-size:12px; max-height:220px; overflow-y:auto;
+    }
+    .best-time-spinner{
+      display:inline-block; width:14px; height:14px;
+      border:2px solid rgba(0,242,234,.3); border-radius:50%;
+      border-top-color:#00f2ea; animation:bt-spin 1s linear infinite;
+      margin-right:6px; vertical-align:middle;
+    }
+    @keyframes bt-spin{ to{ transform:rotate(360deg) } }
+
+    /* PLAYER sizing (grand) */
+    .player-shell{ min-height:72vh; }
+    #video-container{ min-height:62vh; }
+
+    /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
+    .u-nav{ display:flex; background:#080808; border-bottom:1px solid #1f1f23; }
+    .u-tab-btn{
+      flex:1; padding:12px; text-align:center; color:#666;
+      font-family:Orbitron; font-size:11px; font-weight:bold;
+      cursor:pointer; border-bottom:2px solid transparent; transition:.25s;
+    }
+    .u-tab-btn:hover{ color:#fff; background:#111; }
+    .u-tab-btn.active{ color:var(--secondary); border-bottom-color:var(--secondary); background:#151515; }
+
+    .u-tab-panel{ display:none; }
+    .u-tab-panel.active{ display:block; }
   </style>
 </head>
-<body>
-  <div class="app">
-    <header>
-      <div>
-        <div style="font-weight:700">Streamer Hub</div>
-        <div class="muted">Intraday temps réel (live=1) + snapshots Firestore</div>
-      </div>
 
-      <div class="row">
-        <input id="channelInput" placeholder="login twitch (ex: gotaga)" />
-        <button id="loadBtn">Charger</button>
-        <button id="nextBtn">Next auto</button>
-      </div>
-    </header>
+<body class="h-screen flex flex-col p-4">
 
-    <div class="grid">
-      <!-- LEFT: player -->
-      <div class="card">
-        <div class="row">
-          <div id="playerTitle" style="font-weight:700">Player</div>
-          <div id="playerStatus" class="muted"></div>
-        </div>
-        <div class="playerWrap">
-          <iframe id="twitchPlayer" allowfullscreen></iframe>
-        </div>
+  <!-- HEADER -->
+  <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
+    <div class="flex items-center gap-4">
+      <h1 class="text-2xl font-orbitron italic tracking-widest">
+        <span class="text-[#00f2ea]">STREAMER</span> HUB
+        <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">PRO</span>
+      </h1>
+      <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">
+        HUB DISCONNECTED
       </div>
+    </div>
 
-      <!-- RIGHT: charts + chat -->
-      <div class="card">
-        <div class="charts">
-          <div class="chartBox">
-            <div class="row" style="justify-content:space-between">
-              <b>Global viewers (24h)</b>
-              <span class="muted" id="globalKpi"></span>
-            </div>
-            <canvas id="globalChart"></canvas>
+    <div>
+      <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
+        <i class="fab fa-twitch"></i> CONNEXION
+      </button>
+
+      <div id="user-area" class="hidden flex items-center gap-3">
+        <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
+        <span id="user-name" class="font-bold text-white text-sm"></span>
+        <button onclick="logout()" class="text-gray-500 hover:text-white">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CAROUSEL -->
+  <div class="mb-4 relative group">
+    <div id="carousel" class="carousel-track">
+      <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
+        <i class="fas fa-satellite-dish mb-2"></i><br>
+        Connectez-vous pour voir vos chaînes.
+      </div>
+    </div>
+    <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+
+    <!-- VIDEO + SOUS LIVE -->
+    <div class="lg:col-span-8 flex flex-col gap-4 min-h-0">
+
+      <!-- PLAYER -->
+      <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
+        <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
+            <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate">OFFLINE</span>
+            <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0">AUTO</span>
+            <span id="viewer-count" class="text-[10px] text-[#ff0099] font-bold flex-shrink-0">0 viewers</span>
           </div>
 
-          <div class="chartBox">
-            <div class="row" style="justify-content:space-between">
-              <b>Channel viewers (24h)</b>
-              <span class="muted" id="channelKpi"></span>
-            </div>
-            <canvas id="channelChart"></canvas>
+          <div class="flex gap-2 flex-shrink-0">
+            <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
+              <i class="fas fa-chevron-right"></i>
+            </button>
           </div>
         </div>
 
-        <div class="chat">
-          <b>Chat (Socket.IO)</b>
-          <div class="chatLog" id="chatLog"></div>
-          <div class="row">
-            <input id="chatUser" placeholder="Pseudo" style="flex:1" />
-            <input id="chatText" placeholder="Message" style="flex:3" />
-            <button id="chatSend">Envoyer</button>
+        <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden"></div>
+      </div>
+
+      <!-- SOUS LE LIVE (PRO) -->
+      <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
+        <div class="u-nav" id="under-tabs-nav">
+          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
+          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
+          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Growth Score</div>
+              <div id="kpi-growth-score" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
+              <div id="kpi-growth-label" class="text-[10px] text-gray-400 mt-1">--</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Moy. viewers (30j)</div>
+              <div id="kpi-avg" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">données Firestore</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Pic viewers</div>
+              <div id="kpi-peak" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">sur période</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Croissance</div>
+              <div id="kpi-growth" class="text-2xl font-orbitron text-[#ff0099]">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">début → fin</div>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-bell mr-1"></i> Alertes automatiques
+              </h4>
+              <div id="alerts-box" class="text-xs text-gray-400">—</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-wave-square mr-1"></i> Courbe daily
+              </h4>
+              <div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-magic mr-1"></i> IA – plan d’action
+              </h4>
+              <button id="btn-ai-reco" onclick="loadAIReco()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+                ⚡ Générer des recommandations
+              </button>
+              <div id="ai-reco-box" class="mt-3 text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto bg-[#0a0a0a] border border-[#222] rounded p-2 hidden"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANALYTICS -->
+        <div id="under-analytics" class="u-tab-panel p-4 bg-[#0b0b0d]">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
+              <div id="kpi-volatility" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">plus bas = plus stable</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Heures / semaine (estim.)</div>
+              <div id="kpi-hours" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">basé sur snapshots</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Échantillons</div>
+              <div id="kpi-samples" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
+            </div>
+          </div>
+
+          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
+              <input id="sim-hours" type="number" min="1" max="80" value="12" class="cyber-input" placeholder="Heures / semaine">
+              <button onclick="runSimulation()" class="bg-[#ff0099] text-white px-4 rounded font-bold hover:bg-white hover:text-black transition font-orbitron text-xs">
+                SIMULER
+              </button>
+              <div id="sim-result" class="text-xs text-gray-300 flex items-center bg-[#0a0a0a] border border-[#222] rounded px-3">--</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NICHE -->
+        <div id="under-niche" class="u-tab-panel p-4 bg-[#0b0b0d]">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Saturation</div>
+                <div id="niche-sat" class="text-xl font-orbitron text-[#00f2ea]">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Découvrabilité</div>
+                <div id="niche-discover" class="text-xl font-orbitron text-[#ff0099]">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Position</div>
+                <div id="niche-position" class="text-xl font-orbitron text-white">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Verdict</div>
+                <div id="niche-verdict" class="text-xl font-orbitron text-white">--</div>
+              </div>
+            </div>
+
+            <div class="mt-3 text-xs text-gray-300" id="niche-details">—</div>
+          </div>
+
+          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
+            <div class="h-44"><canvas id="chartGameHours"></canvas></div>
+            <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
+        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
+        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
+      </div>
+
+      <!-- CHAT -->
+      <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
+        <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
+          <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
+          <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">HUB SECURE</button>
+        </div>
+
+        <div id="chat-container-twitch" class="flex-grow relative bg-[#0a0a0a] overflow-hidden">
+          <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
+        </div>
+
+        <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
+          <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
+            <div class="text-center text-gray-600 text-xs mt-4">
+              Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
+            </div>
+          </div>
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
+            <input id="hub-input" type="text" placeholder="Message..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+            <button type="submit" class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
+          </form>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
+            <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
+            <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
+          </div>
+          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
+            <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
+            <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance</h4>
+            <div class="h-40"><canvas id="chartViewers"></canvas></div>
+          </div>
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
+            <div class="h-48"><canvas id="chartGames"></canvas></div>
+          </div>
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
+            <div class="h-40"><canvas id="chartLangs"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OUTILS -->
+      <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6 scrollbar-thin">
+
+        <!-- BEST TIME -->
+        <div class="best-time-tool">
+          <h4>🎯 BEST TIME TO STREAM</h4>
+          <input id="best-time-game" type="text" placeholder="Jeu ex: League of Legends...">
+          <button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
+          <div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
+            <span class="best-time-spinner"></span>Analyse en cours...
+          </div>
+          <div id="best-time-results" class="best-time-results" style="display:none;"></div>
+        </div>
+
+        <!-- SCANNER -->
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
+          <div class="flex gap-2 mb-3">
+            <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
+            <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+
+          <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
+            <div class="flex gap-3 items-center mb-3">
+              <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
+              <div>
+                <div id="scan-name" class="font-bold text-white">--</div>
+                <div id="scan-game" class="text-xs text-gray-500">--</div>
+              </div>
+            </div>
+            <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <!-- RAID -->
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
+          <div class="flex gap-2 mb-3">
+            <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
+            <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
+          </div>
+          <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">🔍 CHERCHER</button>
+
+          <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
+            <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
+            <div id="raid-info" class="text-xs text-gray-300"></div>
+            <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white">🎮 ALLER AU RAID</button>
+          </div>
+        </div>
+
+        <!-- CO-STREAM -->
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
+          <div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
+          <button id="costream-btn" onclick="loadCoStreamer()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+            🤝 TROUVER
+          </button>
+          <div id="costream-out" class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" style="display:none;"></div>
+        </div>
+
+        <!-- BOOST -->
+        <div>
+          <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
+          <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
+          <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">ACTIVER</button>
+          <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
-<script>
-  // ==========
-  // Twitch embed
-  // ==========
-  function setPlayer(channel){
-    const parent = encodeURIComponent(location.hostname);
-    const url = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${parent}&muted=true`;
-    document.getElementById('twitchPlayer').src = url;
-    document.getElementById('playerTitle').textContent = `Player: ${channel}`;
-  }
+  <script>
+    const API_BASE = window.location.origin;
+    const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
-  // ==========
-  // Charts (Chart.js)
-  // ==========
-  const globalCtx = document.getElementById('globalChart');
-  const channelCtx = document.getElementById('channelChart');
+    let socket;
+    let currentChannel = 'twitch';
+    let currentUser = null;
+    let charts = {};
+    let raidTarget = null;
 
-  const globalChart = new Chart(globalCtx, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Viewers', data: [], tension: 0.25 }] },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      plugins: { legend: { display:false } },
-      scales: {
-        x: { ticks: { maxTicksLimit: 8 } },
-        y: { beginAtZero: true }
-      }
-    }
-  });
+    let currentChannelId = null;
+    let currentGameId = null;
+    let currentGameName = null;
 
-  const channelChart = new Chart(channelCtx, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Viewers', data: [], tension: 0.25 }] },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      plugins: { legend: { display:false } },
-      scales: {
-        x: { ticks: { maxTicksLimit: 8 } },
-        y: { beginAtZero: true }
-      }
-    }
-  });
-
-  function setChart(chart, labels, values){
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = values;
-    chart.update('none');
-  }
-
-  // ==========
-  // Fetch helpers
-  // ==========
-  async function postJSON(url, body){
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(body)
+    // INIT
+    window.addEventListener('load', async () => {
+      initUnderTabs();
+      await checkAuth();
+      initPlayer();
+      loadStatsDashboard();
+      initCarouselScroll();
+      initSocket();
+      initFirebaseStatus();
+      setInterval(loadStatsDashboard, 5 * 60 * 1000);
     });
-    return r.json();
-  }
 
-  async function getJSON(url){
-    const r = await fetch(url);
-    return r.json();
-  }
-
-  // ==========
-  // Data refresh
-  // ==========
-  let currentChannel = 'twitch';
-  let refreshTimer = null;
-
-  async function refreshGlobal(){
-    const d = await getJSON('/api/stats/global_intraday?hours=24&live=1');
-    if (!d.success) return;
-    setChart(globalChart, d.series.labels, d.series.values);
-    document.getElementById('globalKpi').textContent =
-      `now: ${d.current_total_viewers} viewers • live: ${d.current_channels_live}`;
-  }
-
-  async function refreshChannel(login){
-    const d = await getJSON(`/api/analytics/channel_intraday_by_login/${encodeURIComponent(login)}?hours=24&live=1`);
-    if (!d.success) {
-      document.getElementById('channelKpi').textContent = d.message || 'no data';
-      setChart(channelChart, [], []);
-      return;
-    }
-    setChart(channelChart, d.series.labels, d.series.values);
-
-    const k = d.kpis || {};
-    document.getElementById('channelKpi').textContent =
-      `avg ${k.avg_viewers} • peak ${k.peak_viewers} • growth ${k.growth_percent}% • score ${k.growth_score}`;
-  }
-
-  async function loadChannel(login){
-    currentChannel = login;
-
-    // player + status live/offline
-    const info = await postJSON('/stream_info', { channel: login });
-    if (info.success) {
-      document.getElementById('playerStatus').textContent = info.stream
-        ? `LIVE • ${info.stream.viewer_count} viewers • ${info.stream.game_name || ''}`
-        : `OFFLINE`;
-    } else {
-      document.getElementById('playerStatus').textContent = `Erreur stream_info`;
+    function initUnderTabs(){
+      const nav = document.getElementById('under-tabs-nav');
+      if (!nav) return;
+      nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const id = btn.getAttribute('data-ut');
+          nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('#under-overview,#under-analytics,#under-niche').forEach(p=>p.classList.remove('active'));
+          const panel = document.getElementById(`under-${id}`);
+          if (panel) panel.classList.add('active');
+        });
+      });
     }
 
-    setPlayer(login);
-    await refreshGlobal();
-    await refreshChannel(login);
-
-    if (refreshTimer) clearInterval(refreshTimer);
-    refreshTimer = setInterval(async () => {
-      await refreshGlobal();
-      await refreshChannel(currentChannel);
-    }, 30000); // 30s
-  }
-
-  // ==========
-  // Buttons
-  // ==========
-  document.getElementById('loadBtn').addEventListener('click', async () => {
-    const login = (document.getElementById('channelInput').value || '').trim().toLowerCase();
-    if (!login) return;
-    loadChannel(login);
-  });
-
-  document.getElementById('nextBtn').addEventListener('click', async () => {
-    const d = await getJSON('/get_default_stream');
-    if (d.success && d.channel) {
-      document.getElementById('channelInput').value = d.channel;
-      loadChannel(d.channel);
+    // FIREBASE STATUS
+    async function initFirebaseStatus() {
+      async function checkStatus() {
+        try {
+          const response = await fetch(`${API_BASE}/firebase_status`);
+          const data = await response.json();
+          const statusEl = document.getElementById('socket-status');
+          if (data.connected) {
+            statusEl.innerText = 'HUB SECURE';
+            statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
+          } else {
+            statusEl.innerText = 'HUB DISCONNECTED';
+            statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
+          }
+        } catch (error) {
+          console.error('Firebase status error:', error);
+        }
+      }
+      checkStatus();
+      setInterval(checkStatus, 5000);
     }
-  });
 
-  // ==========
-  // Socket Chat (single connection)
-  // ==========
-  const socket = io({
-    transports: ['websocket'],
-    upgrade: false,
-    reconnectionAttempts: 5
-  });
+    // AUTH
+    async function checkAuth() {
+      const res = await fetch(`${API_BASE}/twitch_user_status`);
+      const data = await res.json();
+      if (data.is_connected) {
+        currentUser = data.display_name;
+        document.getElementById('hub-user-display').innerText = data.display_name;
 
-  const chatLog = document.getElementById('chatLog');
-  function addMsg(user, text){
-    const div = document.createElement('div');
-    div.className = 'msg';
-    div.innerHTML = `<b>${user}</b> : ${text}`;
-    chatLog.appendChild(div);
-    chatLog.scrollTop = chatLog.scrollHeight;
-  }
+        document.getElementById('btn-auth').classList.add('hidden');
+        document.getElementById('user-area').classList.remove('hidden');
 
-  socket.on('connect', () => addMsg('SYSTEM', '✅ connecté'));
-  socket.on('disconnect', () => addMsg('SYSTEM', '❌ déconnecté'));
-  socket.on('chat message', (m) => addMsg(m.user, m.text));
+        document.getElementById('user-name').innerText = data.display_name;
+        if (data.profile_image_url) document.getElementById('user-avatar').src = data.profile_image_url;
 
-  document.getElementById('chatSend').addEventListener('click', () => {
-    const user = (document.getElementById('chatUser').value || 'Anon').trim();
-    const text = (document.getElementById('chatText').value || '').trim();
-    if (!text) return;
-    socket.emit('chat message', { user, text });
-    document.getElementById('chatText').value = '';
-  });
+        await loadFollowed();
+      }
+    }
 
-  // Auto start with default
-  (async () => {
-    const d = await getJSON('/get_default_stream');
-    const ch = (d && d.channel) ? d.channel : 'twitch';
-    document.getElementById('channelInput').value = ch;
-    loadChannel(ch);
-  })();
-</script>
-</body>
-</html>
+    function startAuth() {
+      window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
+      const check = setInterval(async () => {
+        const res = await fetch(`${API_BASE}/twitch_user_status`);
+        const data = await res.json();
+        if (data.is_connected) { clearInterval(check); location.reload(); }
+      }, 1000);
+    }
+
+    function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
+
+    // PLAYER
+    async function initPlayer() {
+      const res = await fetch(`${API_BASE}/get_default_stream`);
+      const data = await res.json();
+      if (data.success) {
+        currentChannel = data.channel;
+        document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+        document.getElementById('player-mode-badge').innerText = data.mode || 'AUTO';
+        loadPlayerEmbed(currentChannel);
+        updateTwitchChatFrame(currentChannel);
+      }
+    }
+
+    function loadPlayerEmbed(channel) {
+      const container = document.getElementById('video-container');
+      const parentParam = PARENT_DOMAINS.join('&parent=');
+      const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
+      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+      loadStreamInfo(channel);
+    }
+
+    function loadStreamInfo(channel) {
+      fetch(`${API_BASE}/stream_info`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ channel })
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        if (data.success && data.stream) {
+          const title = data.stream.title || 'Sans titre';
+          const viewers = data.stream.viewer_count || 0;
+
+          const display = document.getElementById('current-channel-display');
+          const titleText = title.length > 40 ? title.substring(0,40) + '...' : title;
+          display.innerText = `${channel.toUpperCase()} • ${titleText}`;
+          display.title = title;
+
+          document.getElementById('viewer-count').innerText = `${viewers.toLocaleString()} viewers`;
+
+          currentGameId = data.stream.game_id || null;
+          currentGameName = data.stream.game_name || null;
+
+          // 🔥 Pro data sous le live
+          loadChannelProData(channel);
+        } else {
+          document.getElementById('viewer-count').innerText = `0 viewers`;
+        }
+      })
+      .catch(e=>console.error('Stream info error:', e));
+    }
+
+    function updateTwitchChatFrame(channel){
+      const parentParam = PARENT_DOMAINS.join('&parent=');
+      const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
+      const frame = document.getElementById('twitch-chat-frame');
+      if (frame) frame.src = url;
+    }
+
+    async function cycle(dir){
+      const res = await fetch(`${API_BASE}/cycle_stream`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ direction: dir })
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentChannel = data.channel;
+        document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+        document.getElementById('viewer-count').innerText = '-- viewers';
+        loadPlayerEmbed(currentChannel);
+        updateTwitchChatFrame(currentChannel);
+      }
+    }
+
+    // CAROUSEL
+    function initCarouselScroll(){
+      const el = document.getElementById('carousel');
+      if (!el) return;
+      el.addEventListener('wheel',(evt)=>{ evt.preventDefault(); el.scrollLeft += evt.deltaY; }, { passive:false });
+    }
+
+    async function loadFollowed(){
+      const el = document.getElementById('carousel');
+      el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
+      try{
+        const res = await fetch(`${API_BASE}/followed_streams`);
+        const data = await res.json();
+        if (data.success && data.streams.length > 0){
+          el.innerHTML = '';
+          data.streams.forEach(s=>{
+            const thumb = (s.thumbnail_url||'').replace('{width}','400').replace('{height}','225');
+            el.innerHTML += `
+              <div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')">
+                <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
+                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
+                  <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
+                </div>
+                <div class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1 rounded">LIVE</div>
+              </div>`;
+          });
+        } else {
+          el.innerHTML = '<div class="w-full text-center py-10 text-gray-500">Aucune chaîne suivie en live.</div>';
+        }
+      }catch(e){
+        console.error('Carousel error:', e);
+        el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Erreur</div>';
+      }
+    }
+
+    function changeChannel(channel){
+      currentChannel = channel;
+      document.getElementById('current-channel-display').innerText = channel.toUpperCase();
+      document.getElementById('viewer-count').innerText = '-- viewers';
+      loadPlayerEmbed(channel);
+      updateTwitchChatFrame(channel);
+    }
+
+    // RIGHT TABS
+    function openTab(e, id){
+      document.querySelectorAll('#tab-chat,#tab-stats,#tab-tools').forEach(el=>el.classList.remove('active'));
+      document.querySelectorAll('.tab-nav .tab-btn').forEach(el=>el.classList.remove('active'));
+      document.getElementById(`tab-${id}`).classList.add('active');
+      if (e?.currentTarget) e.currentTarget.classList.add('active');
+    }
+
+    function toggleChatMode(mode){
+      const twitch = document.getElementById('chat-container-twitch');
+      const hub = document.getElementById('chat-container-hub');
+      const btnTw = document.getElementById('btn-mode-twitch');
+      const btnHb = document.getElementById('btn-mode-hub');
+
+      if (mode === 'hub'){
+        twitch.classList.add('hidden');
+        hub.classList.remove('hidden'); hub.classList.add('flex');
+        btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded';
+        btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
+      } else {
+        hub.classList.add('hidden'); hub.classList.remove('flex');
+        twitch.classList.remove('hidden');
+        btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded';
+        btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
+      }
+    }
+
+    // SOCKET.IO
+    function initSocket(){
+      try{
+        socket = io();
+        socket.on('chat message',(msg)=>{
+          const box = document.getElementById('hub-messages');
+          const user = msg.user || 'Anon';
+          const text = msg.text || msg;
+          box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${escapeHtml(user)}</strong> <span class="text-gray-300">${escapeHtml(text)}</span></div>`;
+          box.scrollTop = box.scrollHeight;
+        });
+      }catch(e){ console.error('Socket error:', e); }
+    }
+
+    function sendHubMessage(e){
+      e.preventDefault();
+      const input = document.getElementById('hub-input');
+      if (!input.value) return;
+      if (socket) socket.emit('chat message',{ user: currentUser || 'Anon', text: input.value });
+      const box = document.getElementById('hub-messages');
+      box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${escapeHtml(currentUser || 'Anon')}</strong> <span class="text-gray-300">${escapeHtml(input.value)}</span></div>`;
+      box.scrollTop = box.scrollHeight;
+      input.value = '';
+    }
+
+    function escapeHtml(str){
+      return String(str||'').replace(/[&<>"']/g, (m) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+      }[m]));
+    }
+
+    // BEST TIME
+    async function analyzeBestTime(){
+      const gameInput = document.getElementById('best-time-game').value.trim();
+      if (!gameInput) return alert('Veuillez entrer un nom de jeu');
+
+      const btn = document.getElementById('analyze-schedule-btn');
+      const loading = document.getElementById('best-time-loading');
+      const results = document.getElementById('best-time-results');
+
+      btn.disabled = true;
+      loading.style.display = 'block';
+      results.style.display = 'none';
+      results.innerHTML = '';
+
+      try{
+        const response = await fetch(`${API_BASE}/analyze_schedule`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ game: gameInput })
+        });
+        const data = await response.json();
+        results.innerHTML = data.html_response || '<p style="color:#ff6666;">❌ Erreur</p>';
+        results.style.display = 'block';
+      }catch(e){
+        results.innerHTML = '<p style="color:#ff6666;">❌ Erreur réseau</p>';
+        results.style.display = 'block';
+      }finally{
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    // STATS DASH
+    async function loadStatsDashboard(){
+      try{
+        const res = await fetch(`${API_BASE}/api/stats/global`);
+        const data = await res.json();
+        if (data.success){
+          document.getElementById('kpi-viewers').innerText = Number(data.total_viewers||0).toLocaleString();
+          document.getElementById('kpi-channels').innerText = data.total_channels;
+          renderChart('chartViewers','line',data.history.live.labels,data.history.live.values,'Viewers');
+        }
+
+        const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
+        const dGames = await resGames.json();
+        const labels = (dGames.games||[]).map(g=>g.name);
+        const values = (dGames.games||[]).map((g,i)=>(i+1)*20);
+        renderChart('chartGames','bar',labels.slice(0,5),values.slice(0,5),'Popularité');
+
+        const resLang = await fetch(`${API_BASE}/api/stats/languages`);
+        const dLang = await resLang.json();
+        const lLabels = (dLang.languages||[]).map(l=>l.name);
+        const lValues = (dLang.languages||[]).map(l=>l.percent);
+        renderChart('chartLangs','doughnut',lLabels,lValues,'Part');
+      }catch(e){ console.error('Stats error:', e); }
+    }
+
+    function renderChart(id,type,labels,data,label){
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (charts[id]) charts[id].destroy();
+
+      charts[id] = new Chart(el.getContext('2d'),{
+        type,
+        data:{ labels, datasets:[{ label, data, borderWidth:1, fill:(type==='line'), tension:.35 }]},
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{ legend:{ display:(type==='doughnut'), position:'right', labels:{ color:'white', boxWidth:10 } } },
+          scales:{
+            x:{ display:(type!=='doughnut'), ticks:{ color:'#666' } },
+            y:{ display:(type!=='doughnut'), grid:{ color:'#222' }, ticks:{ color:'#666' } }
+          }
+        }
+      });
+    }
+
+    // ===== Sous le live (données backend) =====
+    async function loadChannelProData(login){
+      if (!login || login === 'twitch') return;
+
+      try{
+        const res = await fetch(`${API_BASE}/api/analytics/channel_by_login/${encodeURIComponent(login)}?days=30`);
+        const data = await res.json();
+
+        if (!data.success){
+          document.getElementById('kpi-growth-label').innerText =
+            data.message || data.error || "Pas assez de données (laisse tourner le cron).";
+          return;
+        }
+
+        currentChannelId = data.channel_id || null;
+
+        const k = data.kpis || {};
+        const fmt = v => (v==null ? '--' : Number(v).toLocaleString());
+
+        document.getElementById('kpi-avg').innerText = fmt(k.avg_viewers);
+        document.getElementById('kpi-peak').innerText = fmt(k.peak_viewers);
+        document.getElementById('kpi-growth').innerText = (k.growth_percent!=null ? `${k.growth_percent}%` : '--');
+        document.getElementById('kpi-volatility').innerText = fmt(k.volatility);
+        document.getElementById('kpi-hours').innerText = (k.hours_per_week_est!=null ? `${k.hours_per_week_est}h` : '--');
+        document.getElementById('kpi-samples').innerText = fmt(k.days);
+
+        const gs = k.growth_score;
+        document.getElementById('kpi-growth-score').innerText = (gs!=null ? `${gs}/100` : '--');
+        document.getElementById('kpi-growth-label').innerText =
+          gs==null ? '--' :
+          gs>=80 ? '🔥 En forte accélération' :
+          gs>=60 ? '✅ Bonne dynamique' :
+          gs>=40 ? '🟡 Stable (optimisable)' :
+          '🔴 À relancer';
+
+        if (data.series?.labels?.length){
+          renderChart('chartChannelDaily','line',data.series.labels,data.series.values,'Viewers moyens/jour');
+        }
+
+        await loadAlerts(login);
+
+        if (currentGameId){
+          await loadGameHours(currentGameId);
+        }
+      }catch(e){
+        console.error('loadChannelProData error:', e);
+      }
+    }
+
+    async function loadAlerts(login){
+      const box = document.getElementById('alerts-box');
+      if (!box) return;
+      box.innerHTML = '<div class="text-gray-500 text-xs"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
+
+      try{
+        let r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+        let data = await r.json();
+
+        if (!data.success || !data.items || data.items.length === 0){
+          await fetch(`${API_BASE}/api/alerts/generate`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({ login, days:30 })
+          }).catch(()=>{});
+
+          r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+          data = await r.json();
+        }
+
+        if (!data.success || !data.items){
+          box.innerHTML = '<div class="text-gray-500 text-xs">Aucune alerte.</div>';
+          return;
+        }
+
+        box.innerHTML = '';
+        data.items.forEach(a=>{
+          box.innerHTML += `
+            <div class="bg-[#0a0a0a] border border-[#222] rounded p-2 mb-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-xs font-bold text-white">${escapeHtml(a.title || 'Alerte')}</div>
+                <div class="text-[10px] text-gray-500">${escapeHtml(a.day || ''
