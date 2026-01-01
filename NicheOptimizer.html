@@ -1,769 +1,1087 @@
-/**
- * STREAMER & NICHE AI HUB - BACKEND (CLEAN + FIX ROUTES CONTRACT)
- * =========================================================
- * Fixes:
- * - /stream_info ajouté (front l'appelait)
- * - /api/analytics/channel_by_login/:login renvoie {kpis, series:{labels,values}}
- * - /api/costream/best renvoie {best, candidates} (contrat front)
- * - computeGrowthScore dédoublonné
- */
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Streamer Hub – Pro Analytics</title>
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
-const bodyParser = require('body-parser');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-const cookieParser = require('cookie-parser');
-const http = require('http');
-const { Server } = require('socket.io');
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
-const { GoogleGenAI } = require('@google/genai');
-const admin = require('firebase-admin');
-
-// =========================================================
-// 0. INITIALISATION FIREBASE
-// =========================================================
-let serviceAccount;
-
-if (process.env.FIREBASE_SERVICE_KEY) {
-  try {
-    let rawJson = process.env.FIREBASE_SERVICE_KEY;
-    if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
-    if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
-    rawJson = rawJson.replace(/\\r\\n/g, '\\n').replace(/\\n/g, '\\n').replace(/\\r/g, '\\n');
-    serviceAccount = JSON.parse(rawJson);
-  } catch (error) {
-    console.error("❌ Erreur JSON Firebase:", error.message);
-  }
-} else {
-  try { serviceAccount = require('./serviceAccountKey.json'); } catch (e) {}
-}
-
-try {
-  if (serviceAccount) {
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount), projectId: serviceAccount.project_id });
-    console.log("✅ [FIREBASE] Base connectée (serviceAccount).");
-  } else {
-    admin.initializeApp();
-    console.log("✅ [FIREBASE] init default.");
-  }
-} catch (e) {
-  console.error("❌ [FIREBASE] init error:", e.message);
-}
-
-const db = admin.firestore();
-try {
-  if (serviceAccount) {
-    db.settings({ projectId: serviceAccount.project_id, ignoreUndefinedProperties: true });
-  } else {
-    db.settings({ ignoreUndefinedProperties: true });
-  }
-} catch (e) {}
-
-// =========================================================
-// 1. CONFIGURATION
-// =========================================================
-const app = express();
-
-const PORT = process.env.PORT || 10000;
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-2.5-flash";
-
-let aiClient = null;
-if (GEMINI_API_KEY) {
-  try {
-    aiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    console.log("✅ [IA] Gemini prêt.");
-  } catch (e) {
-    console.error("❌ [IA] init error:", e.message);
-  }
-}
-
-app.use(cors());
-app.use(bodyParser.json());
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname)));
-
-// Page principale (UI)
-app.get('/', (req, res) => {
-  const candidates = [
-    process.env.UI_FILE,
-    'NicheOptimizer.html',
-    'NicheOptimizer_v56.html',
-    'NicheOptimizer_v55.html',
-    'NicheOptimizer_v53.html',
-  ].filter(Boolean);
-
-  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
-  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
-  return res.sendFile(path.join(__dirname, found));
-});
-
-// =========================================================
-// 2. CACHE & HELPERS
-// =========================================================
-const CACHE = {
-  twitchTokens: {},
-  twitchUser: null,
-  boostedStream: null,
-  lastScanData: null,
-  globalStreamRotation: {
-    streams: [],
-    currentIndex: 0,
-    lastFetchTime: 0,
-    fetchCooldown: 3 * 60 * 1000
-  }
-};
-
-function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
-
-function yyyy_mm_dd_from_ms(ms) {
-  const d = new Date(ms);
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(d.getUTCDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-async function getTwitchToken(tokenType = 'app') {
-  if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) {
-    return CACHE.twitchTokens[tokenType].access_token;
-  }
-
-  try {
-    const res = await fetch(
-      `https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
-      { method: 'POST' }
-    );
-    const data = await res.json();
-    if (data.access_token) {
-      CACHE.twitchTokens[tokenType] = {
-        access_token: data.access_token,
-        expiry: Date.now() + (data.expires_in * 1000) - 300000
-      };
-      return data.access_token;
+  <style>
+    :root{
+      --bg-dark:#050505;
+      --bg-panel:#0b0b0d;
+      --primary:#ff0099;
+      --secondary:#00f2ea;
+      --text-main:#e0e0e0;
+      --border-color:#1f1f23;
     }
-  } catch (e) {
-    return null;
-  }
-  return null;
-}
-
-async function twitchAPI(endpoint, token = null) {
-  const accessToken = token || await getTwitchToken('app');
-  if (!accessToken) throw new Error("No Token.");
-
-  const res = await fetch(`https://api.twitch.tv/helix/${endpoint}`, {
-    headers: {
-      'Client-ID': TWITCH_CLIENT_ID,
-      'Authorization': `Bearer ${accessToken}`
+    body{
+      background:var(--bg-dark);
+      color:var(--text-main);
+      font-family:Inter, sans-serif;
+      overflow-x:hidden;
     }
-  });
+    .font-orbitron{ font-family:Orbitron, sans-serif; }
 
-  if (res.status === 401) {
-    CACHE.twitchTokens['app'] = null;
-    throw new Error(`Token expiré.`);
-  }
+    ::-webkit-scrollbar{ width:6px; height:6px; }
+    ::-webkit-scrollbar-track{ background:#000; }
+    ::-webkit-scrollbar-thumb{ background:#333; border-radius:3px; }
+    ::-webkit-scrollbar-thumb:hover{ background:var(--secondary); }
 
-  return res.json();
-}
+    .glass-panel{ background:var(--bg-panel); border:1px solid var(--border-color); }
 
-async function runGeminiAnalysis(prompt) {
-  if (!aiClient) {
-    return { success: false, html_response: "<p style='color:red;'>❌ IA non initialisée.</p>" };
-  }
+    .carousel-track{
+      display:flex; gap:15px; overflow-x:auto; padding:10px 5px;
+      scroll-behavior:smooth; cursor:grab;
+    }
+    .stream-card{
+      flex:0 0 300px; height:170px; background:#111;
+      border:1px solid #222; border-radius:12px; overflow:hidden;
+      position:relative; cursor:pointer; transition:.2s;
+    }
+    .stream-card:hover{
+      border-color:var(--secondary);
+      transform:translateY(-4px);
+      box-shadow:0 5px 20px rgba(0,242,234,.15);
+    }
+    .card-img{ width:100%; height:100%; object-fit:cover; opacity:.7; transition:.3s; }
+    .stream-card:hover .card-img{ opacity:1; }
 
-  try {
-    const response = await aiClient.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction: "Tu es un expert Data Twitch. Réponds UNIQUEMENT en HTML simple (<p>, <h4>, <ul>, <li>, <strong>). Pas de markdown, pas de backticks."
-      }
+    /* onglets DROITE */
+    .tab-nav{ display:flex; background:#080808; border-bottom:1px solid var(--border-color); }
+    .tab-btn{
+      flex:1; padding:14px; text-align:center; color:#666;
+      font-family:Orbitron; font-size:11px; font-weight:bold;
+      cursor:pointer; border-bottom:2px solid transparent; transition:.3s;
+    }
+    .tab-btn:hover{ color:#fff; background:#111; }
+    .tab-btn.active{ color:var(--secondary); border-bottom-color:var(--secondary); background:#151515; }
+    .tab-content{ display:none; height:100%; flex-direction:column; }
+    .tab-content.active{ display:flex; }
+
+    .cyber-input{
+      background:#151515; border:1px solid #333; color:#fff;
+      padding:12px; border-radius:6px; font-size:13px; outline:none; transition:.3s; width:100%;
+    }
+    .cyber-input:focus{ border-color:var(--secondary); box-shadow:0 0 10px rgba(0,242,234,.2); }
+
+    .hub-msg{ padding:8px; border-bottom:1px solid #1a1a1a; font-size:13px; line-height:1.4; }
+    .hub-msg strong{ font-family:Orbitron; font-size:11px; }
+    .scrollbar-thin::-webkit-scrollbar{ width:4px; }
+
+    /* badge statut */
+    #socket-status{ transition:all .3s ease; }
+    #socket-status.connected{
+      color:#00f2ea; border-color:#00f2ea;
+      box-shadow:0 0 8px rgba(0,242,234,.6);
+      animation:hub-pulse 2s infinite;
+    }
+    @keyframes hub-pulse{ 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* BEST TIME TOOL */
+    .best-time-tool{
+      background:#151515; border:1px solid #00f2ea; border-radius:10px;
+      padding:16px; margin-bottom:16px; box-shadow:inset 0 0 10px rgba(0,242,234,.1);
+    }
+    .best-time-tool h4{
+      color:#00f2ea; font-family:Orbitron; font-size:12px;
+      margin-bottom:10px; border-bottom:1px solid #00f2ea; padding-bottom:8px;
+    }
+    .best-time-tool input{
+      width:100%; padding:10px; background:#0a0a0a; border:1px solid #333;
+      color:#fff; border-radius:6px; font-size:12px; margin-bottom:8px;
+    }
+    .best-time-tool input:focus{ border-color:#00f2ea; box-shadow:0 0 8px rgba(0,242,234,.2); outline:none; }
+    .best-time-tool button{
+      width:100%; background:#00f2ea; color:#000; padding:10px;
+      border:none; border-radius:6px; font-weight:bold; cursor:pointer;
+      font-family:Orbitron; font-size:11px; transition:all .3s ease;
+    }
+    .best-time-tool button:hover:not(:disabled){ background:#fff; box-shadow:0 0 15px rgba(0,242,234,.4); transform:translateY(-1px); }
+    .best-time-tool button:disabled{ opacity:.5; cursor:not-allowed; }
+    .best-time-results{
+      background:#0a0a0a; border:1px solid #333; border-radius:6px;
+      padding:12px; margin-top:12px; font-size:12px; max-height:220px; overflow-y:auto;
+    }
+    .best-time-spinner{
+      display:inline-block; width:14px; height:14px;
+      border:2px solid rgba(0,242,234,.3); border-radius:50%;
+      border-top-color:#00f2ea; animation:bt-spin 1s linear infinite;
+      margin-right:6px; vertical-align:middle;
+    }
+    @keyframes bt-spin{ to{ transform:rotate(360deg) } }
+
+    /* PLAYER sizing (grand) */
+    .player-shell{ min-height:72vh; }
+    #video-container{ min-height:62vh; }
+
+    /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
+    .u-nav{ display:flex; background:#080808; border-bottom:1px solid #1f1f23; }
+    .u-tab-btn{
+      flex:1; padding:12px; text-align:center; color:#666;
+      font-family:Orbitron; font-size:11px; font-weight:bold;
+      cursor:pointer; border-bottom:2px solid transparent; transition:.25s;
+    }
+    .u-tab-btn:hover{ color:#fff; background:#111; }
+    .u-tab-btn.active{ color:var(--secondary); border-bottom-color:var(--secondary); background:#151515; }
+
+    .u-tab-panel{ display:none; }
+    .u-tab-panel.active{ display:block; }
+  </style>
+</head>
+
+<body class="h-screen flex flex-col p-4">
+
+  <!-- HEADER -->
+  <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
+    <div class="flex items-center gap-4">
+      <h1 class="text-2xl font-orbitron italic tracking-widest">
+        <span class="text-[#00f2ea]">STREAMER</span> HUB
+        <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">PRO</span>
+      </h1>
+      <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">
+        HUB DISCONNECTED
+      </div>
+    </div>
+
+    <div>
+      <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
+        <i class="fab fa-twitch"></i> CONNEXION
+      </button>
+      <div id="user-area" class="hidden flex items-center gap-3">
+        <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
+        <span id="user-name" class="font-bold text-white text-sm"></span>
+        <button onclick="logout()" class="text-gray-500 hover:text-white">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CAROUSEL -->
+  <div class="mb-4 relative group">
+    <div id="carousel" class="carousel-track">
+      <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
+        <i class="fas fa-satellite-dish mb-2"></i><br>
+        Connectez-vous pour voir vos chaînes.
+      </div>
+    </div>
+    <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+
+    <!-- VIDEO + SOUS LIVE -->
+    <div class="lg:col-span-8 flex flex-col gap-4 min-h-0">
+
+      <!-- PLAYER -->
+      <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
+        <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
+            <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate">OFFLINE</span>
+            <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0">AUTO</span>
+            <span id="viewer-count" class="text-[10px] text-[#ff0099] font-bold flex-shrink-0">0 viewers</span>
+          </div>
+
+          <div class="flex gap-2 flex-shrink-0">
+            <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden"></div>
+      </div>
+
+      <!-- SOUS LE LIVE (PRO) -->
+      <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
+        <div class="u-nav" id="under-tabs-nav">
+          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
+          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
+          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Growth Score</div>
+              <div id="kpi-growth-score" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
+              <div id="kpi-growth-label" class="text-[10px] text-gray-400 mt-1">--</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Moy. viewers (30j)</div>
+              <div id="kpi-avg" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">données Firestore</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Pic viewers</div>
+              <div id="kpi-peak" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">sur période</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Croissance</div>
+              <div id="kpi-growth" class="text-2xl font-orbitron text-[#ff0099]">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">début → fin</div>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-bell mr-1"></i> Alertes automatiques
+              </h4>
+              <div id="alerts-box" class="text-xs text-gray-400">—</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-wave-square mr-1"></i> Courbe daily
+              </h4>
+              <div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-magic mr-1"></i> IA – plan d'action
+              </h4>
+              <button id="btn-ai-reco" onclick="loadAIReco()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+                ⚡ Générer des recommandations
+              </button>
+              <div id="ai-reco-box" class="mt-3 text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto bg-[#0a0a0a] border border-[#222] rounded p-2 hidden"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANALYTICS -->
+        <div id="under-analytics" class="u-tab-panel p-4 bg-[#0b0b0d]">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
+              <div id="kpi-volatility" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">plus bas = plus stable</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Heures / semaine (estim.)</div>
+              <div id="kpi-hours" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">basé sur snapshots</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Échantillons</div>
+              <div id="kpi-samples" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
+            </div>
+          </div>
+          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
+              <input id="sim-hours" type="number" min="1" max="80" value="12" class="cyber-input" placeholder="Heures / semaine">
+              <button onclick="runSimulation()" class="bg-[#ff0099] text-white px-4 rounded font-bold hover:bg-white hover:text-black transition font-orbitron text-xs">
+                SIMULER
+              </button>
+              <div id="sim-result" class="text-xs text-gray-300 flex items-center bg-[#0a0a0a] border border-[#222] rounded px-3">--</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NICHE -->
+        <div id="under-niche" class="u-tab-panel p-4 bg-[#0b0b0d]">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Saturation</div>
+                <div id="niche-sat" class="text-xl font-orbitron text-[#00f2ea]">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Découvrabilité</div>
+                <div id="niche-discover" class="text-xl font-orbitron text-[#ff0099]">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Position</div>
+                <div id="niche-position" class="text-xl font-orbitron text-white">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Verdict</div>
+                <div id="niche-verdict" class="text-xl font-orbitron text-white">--</div>
+              </div>
+            </div>
+
+            <div class="mt-3 text-xs text-gray-300" id="niche-details">—</div>
+          </div>
+
+          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
+            <div class="h-44"><canvas id="chartGameHours"></canvas></div>
+            <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d'opportunité (viewers / concurrence).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
+        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
+        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
+      </div>
+
+      <!-- CHAT -->
+      <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
+        <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
+          <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
+          <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">HUB SECURE</button>
+        </div>
+
+        <div id="chat-container-twitch" class="flex-grow relative bg-[#0a0a0a] overflow-hidden">
+          <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
+        </div>
+
+        <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
+          <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
+            <div class="text-center text-gray-600 text-xs mt-4">
+              Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
+            </div>
+          </div>
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
+            <input id="hub-input" type="text" placeholder="Message..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+            <button type="submit" class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
+          </form>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
+            <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
+            <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
+          </div>
+          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
+            <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
+            <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance (24h)</h4>
+            <div class="h-40"><canvas id="chartViewers"></canvas></div>
+          </div>
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
+            <div class="h-48"><canvas id="chartGames"></canvas></div>
+          </div>
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
+            <div class="h-40"><canvas id="chartLangs"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OUTILS -->
+      <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6 scrollbar-thin">
+
+        <!-- BEST TIME -->
+        <div class="best-time-tool">
+          <h4>🎯 BEST TIME TO STREAM</h4>
+          <input id="best-time-game" type="text" placeholder="Jeu ex: League of Legends...">
+          <button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
+          <div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
+            <span class="best-time-spinner"></span>Analyse en cours...
+          </div>
+          <div id="best-time-results" class="best-time-results" style="display:none;"></div>
+        </div>
+
+        <!-- SCANNER -->
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
+          <div class="flex gap-2 mb-3">
+            <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
+            <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+
+          <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
+            <div class="flex gap-3 items-center mb-3">
+              <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
+              <div>
+                <div id="scan-name" class="font-bold text-white">--</div>
+                <div id="scan-game" class="text-xs text-gray-500">--</div>
+              </div>
+            </div>
+            <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <!-- RAID -->
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
+          <div class="flex gap-2 mb-3">
+            <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
+            <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
+          </div>
+          <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">🔍 CHERCHER</button>
+
+          <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
+            <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
+            <div id="raid-info" class="text-xs text-gray-300"></div>
+            <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white">🎮 ALLER AU RAID</button>
+          </div>
+        </div>
+
+        <!-- CO-STREAM -->
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
+          <div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
+          <button id="costream-btn" onclick="loadCoStreamer()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+            🤝 TROUVER
+          </button>
+          <div id="costream-out" class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" style="display:none;"></div>
+        </div>
+
+        <!-- BOOST -->
+        <div>
+          <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
+          <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
+          <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">ACTIVER</button>
+          <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
+
+    let socket;
+    let currentChannel = 'twitch';
+    let currentUser = null;
+    let charts = {};
+    let raidTarget = null;
+
+    let currentChannelId = null;
+    let currentGameId = null;
+    let currentGameName = null;
+
+    // INIT
+    window.addEventListener('load', async () => {
+      initUnderTabs();
+      await checkAuth();
+      initPlayer();
+      loadStatsDashboard();
+      initCarouselScroll();
+      initSocket();
+      initFirebaseStatus();
+      setInterval(loadStatsDashboard, 5 * 60 * 1000);
     });
 
-    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return { success: true, html_response: text };
-  } catch (e) {
-    console.error("❌ Erreur IA:", e);
-    return { success: false, html_response: `<p style='color:red;'>❌ Erreur IA: ${e.message}</p>` };
-  }
-}
-
-// =========================================================
-// 2B. ANALYTICS SCORE (unique)
-// =========================================================
-function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hoursPerWeek = 0 }) {
-  const logPart = Math.log10(avgViewers + 1) * 22;             // ~0..66
-  const growthPart = clamp(growthPct, -50, 200) * 0.22;        // ~-11..44
-  const volPenalty = clamp(volatility, 0, 200) * 0.18;         // ~0..36
-  const hoursPart = clamp(hoursPerWeek, 0, 80) * 0.25;         // ~0..20
-  const raw = 15 + logPart + growthPart + hoursPart - volPenalty;
-  return Math.round(clamp(raw, 0, 100));
-}
-
-// =========================================================
-// 2C. CRON SNAPSHOTS -> Firestore
-// =========================================================
-const ENABLE_CRON = (process.env.ENABLE_CRON || 'true').toLowerCase() !== 'false';
-const SNAPSHOT_EVERY_MIN = parseInt(process.env.SNAPSHOT_EVERY_MIN || '5', 10);
-
-async function upsertChannelMetaFromStream(stream, nowMs) {
-  const ref = db.collection('channels').doc(String(stream.user_id));
-  try {
-    const snap = await ref.get();
-    const payload = {
-      login: stream.user_login || null,
-      display_name: stream.user_name || null,
-      language: stream.language || null,
-      current_game_id: stream.game_id || null,
-      current_game_name: stream.game_name || null,
-      last_seen_live: admin.firestore.Timestamp.fromMillis(nowMs)
-    };
-    if (!snap.exists) payload.first_seen = admin.firestore.Timestamp.fromMillis(nowMs);
-    await ref.set(payload, { merge: true });
-  } catch (e) {
-    console.error("❌ [FIRESTORE] upsertChannelMetaFromStream:", e.message);
-  }
-}
-
-async function upsertGameMeta(gameId, gameName) {
-  if (!gameId) return;
-  try {
-    await db.collection('games').doc(String(gameId)).set({
-      name: gameName || null,
-      last_seen: admin.firestore.Timestamp.fromMillis(Date.now())
-    }, { merge: true });
-  } catch (e) {}
-}
-
-async function updateDailyRollupsForStream(stream, nowMs) {
-  const viewers = Number(stream.viewer_count || 0);
-  const dayKey = yyyy_mm_dd_from_ms(nowMs);
-
-  const chDailyRef = db.collection('channels').doc(String(stream.user_id))
-    .collection('daily_stats').doc(dayKey);
-
-  try {
-    await db.runTransaction(async (tx) => {
-      const snap = await tx.get(chDailyRef);
-      const prev = snap.exists ? snap.data() : {};
-      const prevPeak = Number(prev.peak_viewers || 0);
-      const prevSamples = Number(prev.samples || 0);
-      const prevSum = Number(prev.total_viewers_sum || 0);
-
-      const nextSamples = prevSamples + 1;
-      const nextSum = prevSum + viewers;
-      const nextPeak = viewers > prevPeak ? viewers : prevPeak;
-
-      tx.set(chDailyRef, {
-        day: dayKey,
-        samples: nextSamples,
-        total_viewers_sum: nextSum,
-        avg_viewers: Math.round(nextSum / nextSamples),
-        peak_viewers: nextPeak,
-        minutes_live_est: nextSamples * SNAPSHOT_EVERY_MIN,
-        top_game_id: stream.game_id || null,
-        top_game_name: stream.game_name || null,
-        updated_at: admin.firestore.Timestamp.fromMillis(nowMs)
-      }, { merge: true });
-    });
-  } catch (e) {
-    console.error("❌ [DAILY] channel rollup:", e.message);
-  }
-
-  // game hourly aggregation kept in your previous code style (optional)
-}
-
-async function collectAnalyticsSnapshot() {
-  const now = Date.now();
-  try {
-    const data = await twitchAPI('streams?first=100&language=fr');
-    const streams = data?.data || [];
-    console.log(`[CRON] streams récupérés: ${streams.length}`);
-
-    let totalViewers = 0;
-    const rollupPromises = [];
-
-    let batch = db.batch();
-    let ops = 0;
-    const commitIfNeeded = async () => {
-      if (ops >= 450) {
-        await batch.commit();
-        batch = db.batch();
-        ops = 0;
-      }
-    };
-
-    for (const s of streams) {
-      totalViewers += (s.viewer_count || 0);
-
-      await upsertChannelMetaFromStream(s, now);
-      await upsertGameMeta(s.game_id, s.game_name);
-      rollupPromises.push(updateDailyRollupsForStream(s, now));
-
-      const chRef = db.collection('channels').doc(String(s.user_id))
-        .collection('hourly_stats').doc(String(now));
-      batch.set(chRef, {
-        timestamp: now,
-        viewers: s.viewer_count || 0,
-        game_id: s.game_id || null,
-        game_name: s.game_name || null,
-        title: s.title || null,
-        language: s.language || null
-      }, { merge: false });
-      ops++; await commitIfNeeded();
-
-      if (s.game_id) {
-        const gRef = db.collection('games').doc(String(s.game_id))
-          .collection('hourly_stats').doc(`${s.user_id}_${now}`);
-        batch.set(gRef, {
-          timestamp: now,
-          channel_id: String(s.user_id),
-          viewers: s.viewer_count || 0
-        }, { merge: false });
-        ops++; await commitIfNeeded();
-      }
-    }
-
-    const globalRef = db.collection('stats_history').doc(String(now));
-    batch.set(globalRef, {
-      timestamp: admin.firestore.Timestamp.fromMillis(now),
-      timestamp_ms: now,
-      total_viewers: totalViewers,
-      channels_live: streams.length,
-      top_game: streams[0]?.game_name || null
-    }, { merge: false });
-    ops++; await commitIfNeeded();
-
-    await batch.commit();
-    await Promise.allSettled(rollupPromises);
-
-    console.log(`📊 [CRON] Snapshot saved: viewers=${totalViewers}, live=${streams.length}`);
-  } catch (e) {
-    console.error("❌ [CRON] Snapshot error:", e.message);
-  }
-}
-
-if (ENABLE_CRON) {
-  console.log(` - CRON ENABLED = true`);
-  setInterval(collectAnalyticsSnapshot, SNAPSHOT_EVERY_MIN * 60 * 1000);
-  collectAnalyticsSnapshot().catch(() => {});
-} else {
-  console.log(` - CRON ENABLED = false`);
-}
-
-// =========================================================
-// 3. AUTH
-// =========================================================
-app.get('/twitch_auth_start', (req, res) => {
-  const state = crypto.randomBytes(16).toString('hex');
-  const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
-  res.redirect(url);
-});
-
-app.get('/twitch_auth_callback', async (req, res) => {
-  const { code, state } = req.query;
-  if (state !== req.cookies.twitch_state) return res.send("Erreur Auth.");
-
-  try {
-    const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: TWITCH_CLIENT_ID,
-        client_secret: TWITCH_CLIENT_SECRET,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: REDIRECT_URI
-      })
-    });
-
-    const tokenData = await tokenRes.json();
-    if (tokenData.access_token) {
-      const userRes = await twitchAPI('users', tokenData.access_token);
-      const user = userRes.data[0];
-      CACHE.twitchUser = {
-        display_name: user.display_name,
-        id: user.id,
-        access_token: tokenData.access_token,
-        expiry: Date.now() + (tokenData.expires_in * 1000),
-        profile_image_url: user.profile_image_url
-      };
-      res.send("<script>window.close();</script>");
-    } else {
-      res.send("Erreur Token.");
-    }
-  } catch (e) {
-    res.send("Erreur Serveur.");
-  }
-});
-
-app.post('/twitch_logout', (req, res) => {
-  CACHE.twitchUser = null;
-  res.json({ success: true });
-});
-
-app.get('/twitch_user_status', (req, res) => {
-  if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
-    return res.json({
-      is_connected: true,
-      display_name: CACHE.twitchUser.display_name,
-      profile_image_url: CACHE.twitchUser.profile_image_url
-    });
-  }
-  res.json({ is_connected: false });
-});
-
-// =========================================================
-// 3A. FIREBASE STATUS
-// =========================================================
-app.get('/firebase_status', (req, res) => {
-  try {
-    if (db && admin.apps.length > 0) {
-      res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
-    } else {
-      res.json({ connected: false, message: 'Firebase not initialized' });
-    }
-  } catch (error) {
-    res.json({ connected: false, error: error.message });
-  }
-});
-
-// =========================================================
-// 4. STREAM INFO (FIX: FRONT NEEDS THIS)
-// =========================================================
-app.post('/stream_info', async (req, res) => {
-  const channel = String(req.body?.channel || '').trim().toLowerCase();
-  if (!channel) return res.status(400).json({ success:false, error:'channel manquant' });
-
-  try {
-    const u = await twitchAPI(`users?login=${encodeURIComponent(channel)}`);
-    if (!u.data || !u.data.length) return res.json({ success:false, error:'introuvable' });
-
-    const user = u.data[0];
-    const s = await twitchAPI(`streams?user_id=${encodeURIComponent(user.id)}`);
-    const stream = s.data && s.data.length ? s.data[0] : null;
-
-    // normalize
-    const out = stream ? {
-      id: stream.id,
-      user_id: stream.user_id,
-      user_login: stream.user_login,
-      user_name: stream.user_name,
-      game_id: stream.game_id || null,
-      game_name: stream.game_name || null,
-      title: stream.title || null,
-      viewer_count: stream.viewer_count || 0,
-      started_at: stream.started_at || null
-    } : null;
-
-    return res.json({ success:true, user, stream: out });
-  } catch (e) {
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-// =========================================================
-// 5. STREAMS FOLLOWED + ROTATION + BOOST
-// =========================================================
-app.get('/followed_streams', async (req, res) => {
-  if (!CACHE.twitchUser) return res.status(401).json({ success: false });
-
-  try {
-    const data = await twitchAPI(
-      `streams/followed?user_id=${CACHE.twitchUser.id}`,
-      CACHE.twitchUser.access_token
-    );
-    return res.json({
-      success: true,
-      streams: (data.data || []).map(s => ({
-        user_id: s.user_id,
-        user_name: s.user_name,
-        user_login: s.user_login,
-        viewer_count: s.viewer_count,
-        game_id: s.game_id || null,
-        game_name: s.game_name || null,
-        title: s.title || null,
-        thumbnail_url: s.thumbnail_url
-      }))
-    });
-  } catch (e) {
-    return res.status(500).json({ success: false, error:e.message });
-  }
-});
-
-async function refreshGlobalStreamList() {
-  const now = Date.now();
-  const rot = CACHE.globalStreamRotation;
-
-  if (now - rot.lastFetchTime < rot.fetchCooldown && rot.streams.length > 0) return;
-
-  try {
-    const data = await twitchAPI(`streams?language=fr&first=100`);
-    let suitable = (data.data || []).filter(s => (s.viewer_count || 0) <= 100);
-
-    if (suitable.length === 0) suitable = (data.data || []).slice(-10);
-
-    if (suitable.length > 0) {
-      rot.streams = suitable.sort(() => 0.5 - Math.random()).map(s => ({
-        channel: s.user_login,
-        viewers: s.viewer_count
-      }));
-      rot.currentIndex = 0;
-      rot.lastFetchTime = now;
-    }
-  } catch (e) {
-    console.error("Erreur refresh streams:", e.message);
-  }
-}
-
-app.get('/get_default_stream', async (req, res) => {
-  const now = Date.now();
-  let boost = null;
-
-  try {
-    const q = await db.collection('boosts')
-      .where('endTime', '>', now)
-      .orderBy('endTime', 'desc')
-      .limit(1)
-      .get();
-
-    if (!q.empty) {
-      boost = q.docs[0].data();
-      CACHE.boostedStream = boost;
-    }
-  } catch (e) {
-    if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) {
-      boost = CACHE.boostedStream;
-    }
-  }
-
-  if (boost) {
-    return res.json({ success: true, channel: boost.channel, mode: 'BOOST', message: `⚡ BOOST ACTIF` });
-  }
-
-  await refreshGlobalStreamList();
-  const rot = CACHE.globalStreamRotation;
-
-  if (rot.streams.length === 0) {
-    return res.json({ success: true, channel: 'twitch', mode: 'FALLBACK' });
-  }
-
-  return res.json({
-    success: true,
-    channel: rot.streams[rot.currentIndex].channel,
-    mode: 'AUTO',
-    viewers: rot.streams[rot.currentIndex].viewers,
-    message: `👁️ AUTO`
-  });
-});
-
-app.post('/cycle_stream', async (req, res) => {
-  const { direction } = req.body;
-
-  if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
-    return res.json({ success: false, error:'boost_active' });
-  }
-
-  await refreshGlobalStreamList();
-  const rot = CACHE.globalStreamRotation;
-
-  if (rot.streams.length === 0) return res.json({ success: false, error:'no_streams' });
-
-  if (direction === 'next') rot.currentIndex = (rot.currentIndex + 1) % rot.streams.length;
-  else rot.currentIndex = (rot.currentIndex - 1 + rot.streams.length) % rot.streams.length;
-
-  return res.json({ success: true, channel: rot.streams[rot.currentIndex].channel });
-});
-
-app.post('/stream_boost', async (req, res) => {
-  const channel = String(req.body?.channel || '').trim().toLowerCase();
-  if (!channel) return res.status(400).json({ success:false, error:'channel manquant' });
-
-  const now = Date.now();
-  try {
-    await db.collection('boosts').add({
-      channel,
-      startTime: now,
-      endTime: now + 900000 // 15 min
-    });
-
-    CACHE.boostedStream = { channel, endTime: now + 900000 };
-
-    res.json({ success: true, html_response: "<p style='color:green;'>✅ Boost activé pendant 15 minutes!</p>" });
-  } catch (e) {
-    res.status(500).json({ success:false, error: "Erreur DB" });
-  }
-});
-
-// =========================================================
-// 6. STATS
-// =========================================================
-app.get('/api/stats/global', async (req, res) => {
-  try {
-    const data = await twitchAPI('streams?first=100');
-    let v = 0;
-    (data.data || []).forEach(s => v += (s.viewer_count || 0));
-
-    const est = Math.floor(v * 3.8);
-    const topGame = data.data?.[0]?.game_name || "N/A";
-
-    const history = { live: { labels: [], values: [] } };
-
-    try {
-      const snaps = await db.collection('stats_history').orderBy('timestamp', 'desc').limit(12).get();
-      if (!snaps.empty) {
-        snaps.docs.reverse().forEach(d => {
-          const stats = d.data();
-          if (stats.timestamp) {
-            const date = stats.timestamp.toDate();
-            const timeStr = `${date.getHours()}h${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`;
-            history.live.labels.push(timeStr);
-            history.live.values.push(stats.total_viewers);
-          }
+    function initUnderTabs(){
+      const nav = document.getElementById('under-tabs-nav');
+      if (!nav) return;
+      nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const id = btn.getAttribute('data-ut');
+          nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('#under-overview,#under-analytics,#under-niche').forEach(p=>p.classList.remove('active'));
+          const panel = document.getElementById(`under-${id}`);
+          if (panel) panel.classList.add('active');
         });
-      } else {
-        history.live.labels = ["-1h", "Now"];
-        history.live.values = [est * 0.9, est];
+      });
+    }
+
+    // FIREBASE STATUS
+    async function initFirebaseStatus() {
+      async function checkStatus() {
+        try {
+          const response = await fetch(`${API_BASE}/firebase_status`);
+          const data = await response.json();
+          const statusEl = document.getElementById('socket-status');
+          if (data.connected) {
+            statusEl.innerText = 'HUB SECURE';
+            statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
+          } else {
+            statusEl.innerText = 'HUB DISCONNECTED';
+            statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
+          }
+        } catch (error) {
+          console.error('Firebase status error:', error);
+        }
       }
-    } catch (e) {
-      console.error("Erreur stats history:", e.message);
+      checkStatus();
+      setInterval(checkStatus, 5000);
     }
 
-    res.json({
-      success: true,
-      total_viewers: est,
-      total_channels: "98k+",
-      top_game_name: topGame,
-      history
-    });
-  } catch (e) {
-    res.status(500).json({ success:false, error: e.message });
-  }
-});
+    // AUTH
+    async function checkAuth() {
+      const res = await fetch(`${API_BASE}/twitch_user_status`);
+      const data = await res.json();
+      if (data.is_connected) {
+        currentUser = data.display_name;
+        document.getElementById('hub-user-display').innerText = data.display_name;
 
-app.get('/api/stats/top_games', async (req, res) => {
-  try {
-    const d = await twitchAPI('games/top?first=10');
-    res.json({
-      games: (d.data || []).map(g => ({
-        name: g.name,
-        box_art_url: g.box_art_url.replace('{width}', '52').replace('{height}', '72')
-      }))
-    });
-  } catch (e) {
-    res.status(500).json({ success:false, error: e.message });
-  }
-});
+        document.getElementById('btn-auth').classList.add('hidden');
+        document.getElementById('user-area').classList.remove('hidden');
 
-app.get('/api/stats/languages', async (req, res) => {
-  try {
-    const d = await twitchAPI('streams?first=100');
-    const l = {};
-    (d.data || []).forEach(s => l[s.language] = (l[s.language] || 0) + 1);
+        document.getElementById('user-name').innerText = data.display_name;
+        if (data.profile_image_url) document.getElementById('user-avatar').src = data.profile_image_url;
 
-    const sorted = Object.keys(l)
-      .map(k => ({ name: k.toUpperCase(), percent: l[k] }))
-      .sort((a, b) => b.percent - a.percent)
-      .slice(0, 5);
-
-    res.json({ languages: sorted });
-  } catch (e) {
-    res.status(500).json({ success:false, error: e.message });
-  }
-});
-
-// =========================================================
-// 7. SCAN + CRITIQUE IA
-// =========================================================
-app.post('/scan_target', async (req, res) => {
-  const query = String(req.body?.query || '').trim().toLowerCase();
-  if (!query) return res.status(400).json({ success:false, error:'query manquant' });
-
-  try {
-    const uRes = await twitchAPI(`users?login=${encodeURIComponent(query)}`);
-    if (uRes.data && uRes.data.length) {
-      const u = uRes.data[0];
-
-      let channelInfo = {};
-      try {
-        const cRes = await twitchAPI(`channels?broadcaster_id=${u.id}`);
-        if (cRes.data && cRes.data.length) channelInfo = cRes.data[0];
-      } catch (e) {}
-
-      let streamInfo = null;
-      try {
-        const sRes = await twitchAPI(`streams?user_id=${u.id}`);
-        if (sRes.data && sRes.data.length) streamInfo = sRes.data[0];
-      } catch (e) {}
-
-      const isLive = !!streamInfo;
-      const createdDate = new Date(u.created_at).toLocaleDateString('fr-FR');
-
-      const uData = {
-        id: u.id,
-        login: u.login,
-        display_name: u.display_name,
-        profile_image_url: u.profile_image_url,
-        description: u.description || "Aucune bio.",
-        created_at: createdDate,
-        game_name: channelInfo.game_name || "Aucun jeu défini",
-        title: channelInfo.title || "Aucun titre",
-        tags: channelInfo.tags ? channelInfo.tags.slice(0, 3).join(', ') : "Aucun",
-        language: channelInfo.broadcaster_language || "fr",
-        view_count: u.view_count || 0,
-        is_live: isLive,
-        viewer_count: isLive ? streamInfo.viewer_count : 0
-      };
-
-      CACHE.lastScanData = { type: 'user', ...uData };
-      return res.json({ success: true, type: 'user', user_data: uData });
+        await loadFollowed();
+      }
     }
 
-    const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=1`);
-    if (gRes.data && gRes.data.length) {
-      const g = gRes.data[0];
-      const sRes = await twitchAPI(`streams?game_id=${g.id}&first=20`);
-      const total = (sRes.data || []).reduce((a, b) => a + (b.viewer_count || 0), 0);
-
-      const gData = {
-        name: g.name,
-        box_art_url: g.box_art_url.replace('{width}', '60').replace('{height}', '80'),
-        total_viewers: total,
-        ai_calculated_niche_score: total < 5000 ? 4.0 : 2.0
-      };
-
-      CACHE.lastScanData = { type: 'game', ...gData };
-      return res.json({ success: true, type: 'game', game_data: gData });
+    function startAuth() {
+      window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
+      const check = setInterval(async () => {
+        const res = await fetch(`${API_BASE}/twitch_user_status`);
+        const data = await res.json();
+        if (data.is_connected) { clearInterval(check); location.reload(); }
+      }, 1000);
     }
 
-    return res.json({ success: false });
-  } catch (e) {
-    res.status(500).json({ success:false, error: e.message });
-  }
-});
+    function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
 
-app.post('/critique_ia', async (req, res) => {
-  const type = String(req.body?.type || '').trim();
-  const query = String(req.body?.query || '').trim();
+    // PLAYER
+    async function initPlayer() {
+      const res = await fetch(`${API_BASE}/get_default_stream`);
+      const data = await res.json();
+      if (data.success) {
+        currentChannel = data.channel;
+        document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+        document.getElementById('player-mode-badge').innerText = data.mode || 'AUTO';
+        loadPlayerEmbed(currentChannel);
+        updateTwitchChatFrame(currentChannel);
+      }
+    }
 
-  const prompt = type === 'niche'
-    ? `Analyse critique du niche "${query}" sur Twitch. Saturation? Opportunités? Réponds en HTML.`
-    : `Donne-moi 5 idées de clips viraux pour "${query}". Réponds en HTML avec <ul><li>.`;
+    function loadPlayerEmbed(channel) {
+      const container = document.getElementById('video-container');
+      const parentParam = PARENT_DOMAINS.join('&parent=');
+      const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
+      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+      loadStreamInfo(channel);
+    }
 
-  res.json(await runGeminiAnalysis(prompt));
-});
+    function loadStreamInfo(channel) {
+      fetch(`${API_BASE}/stream_info`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ channel })
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        if (data.success && data.stream) {
+          const title = data.stream.title || 'Sans titre';
+          const viewers = data.stream.viewer_count || 0;
+          const display = document.getElementById('current-channel-display');
+          const titleText = title.length > 40 ? title.substring(0,40) + '...' : title;
+          display.innerText = `${channel.toUpperCase()} • ${titleText}`;
+          display.title = title;
 
-// =========================================================
-// 8. RAID
-// =========================================================
-app.post('/start_raid', async (req, res) => {
-  const gam
+          document.getElementById('viewer-count').innerText = `${viewers.toLocaleString()} viewers`;
+
+          currentGameId = data.stream.game_id || null;
+          currentGameName = data.stream.game_name || null;
+
+          // 🔥 Pro data sous le live
+          loadChannelProData(channel);
+        } else {
+          document.getElementById('viewer-count').innerText = `0 viewers`;
+        }
+      })
+      .catch(e=>console.error('Stream info error:', e));
+    }
+
+    function updateTwitchChatFrame(channel){
+      const parentParam = PARENT_DOMAINS.join('&parent=');
+      const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark`;
+      const frame = document.getElementById('twitch-chat-frame');
+      if (frame) frame.src = url;
+    }
+
+    async function cycle(dir){
+      const res = await fetch(`${API_BASE}/cycle_stream`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ direction: dir })
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentChannel = data.channel;
+        document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+        document.getElementById('viewer-count').innerText = '-- viewers';
+        loadPlayerEmbed(currentChannel);
+        updateTwitchChatFrame(currentChannel);
+      }
+    }
+
+    // CAROUSEL
+    function initCarouselScroll(){
+      const el = document.getElementById('carousel');
+      if (!el) return;
+      el.addEventListener('wheel',(evt)=>{ evt.preventDefault(); el.scrollLeft += evt.deltaY; }, { passive:false });
+    }
+
+    async function loadFollowed(){
+      const el = document.getElementById('carousel');
+      el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
+      try{
+        const res = await fetch(`${API_BASE}/followed_streams`);
+        const data = await res.json();
+        if (data.success && data.streams.length > 0){
+          el.innerHTML = '';
+          data.streams.forEach(s=>{
+            const thumb = (s.thumbnail_url||'').replace('{width}','400').replace('{height}','225');
+            el.innerHTML += `
+              <div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')">
+                <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
+                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
+                  <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
+                </div>
+                <div class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1 rounded">LIVE</div>
+              </div>`;
+          });
+        } else {
+          el.innerHTML = '<div class="w-full text-center py-10 text-gray-500">Aucune chaîne suivie en live.</div>';
+        }
+      }catch(e){
+        console.error('Carousel error:', e);
+        el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Erreur</div>';
+      }
+    }
+
+    function changeChannel(channel){
+      currentChannel = channel;
+      document.getElementById('current-channel-display').innerText = channel.toUpperCase();
+      document.getElementById('viewer-count').innerText = '-- viewers';
+      loadPlayerEmbed(channel);
+      updateTwitchChatFrame(channel);
+    }
+
+    // RIGHT TABS
+    function openTab(e, id){
+      document.querySelectorAll('#tab-chat,#tab-stats,#tab-tools').forEach(el=>el.classList.remove('active'));
+      document.querySelectorAll('.tab-nav .tab-btn').forEach(el=>el.classList.remove('active'));
+      document.getElementById(`tab-${id}`).classList.add('active');
+      if (e?.currentTarget) e.currentTarget.classList.add('active');
+    }
+
+    function toggleChatMode(mode){
+      const twitch = document.getElementById('chat-container-twitch');
+      const hub = document.getElementById('chat-container-hub');
+      const btnTw = document.getElementById('btn-mode-twitch');
+      const btnHb = document.getElementById('btn-mode-hub');
+      if (mode === 'hub'){
+        twitch.classList.add('hidden');
+        hub.classList.remove('hidden'); hub.classList.add('flex');
+        btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#00f2ea] text-black rounded';
+        btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
+      } else {
+        hub.classList.add('hidden'); hub.classList.remove('flex');
+        twitch.classList.remove('hidden');
+        btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded';
+        btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
+      }
+    }
+
+    // SOCKET.IO
+    function initSocket(){
+      try{
+        socket = io();
+        socket.on('chat message',(msg)=>{
+          const box = document.getElementById('hub-messages');
+          const user = msg.user || 'Anon';
+          const text = msg.text || msg;
+          box.innerHTML += `<div class="hub-msg"><strong class="text-[#00f2ea]">${escapeHtml(user)}</strong> <span class="text-gray-300">${escapeHtml(text)}</span></div>`;
+          box.scrollTop = box.scrollHeight;
+        });
+      }catch(e){ console.error('Socket error:', e); }
+    }
+
+    function sendHubMessage(e){
+      e.preventDefault();
+      const input = document.getElementById('hub-input');
+      if (!input.value) return;
+      if (socket) socket.emit('chat message',{ user: currentUser || 'Anon', text: input.value });
+      const box = document.getElementById('hub-messages');
+      box.innerHTML += `<div class="hub-msg"><strong class="text-[#ff0099]">${escapeHtml(currentUser || 'Anon')}</strong> <span class="text-gray-300">${escapeHtml(input.value)}</span></div>`;
+      box.scrollTop = box.scrollHeight;
+      input.value = '';
+    }
+
+    function escapeHtml(str){
+      return String(str||'').replace(/[&<>"']/g, (m) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+      }[m]));
+    }
+
+    // BEST TIME
+    async function analyzeBestTime(){
+      const gameInput = document.getElementById('best-time-game').value.trim();
+      if (!gameInput) return alert('Veuillez entrer un nom de jeu');
+
+      const btn = document.getElementById('analyze-schedule-btn');
+      const loading = document.getElementById('best-time-loading');
+      const results = document.getElementById('best-time-results');
+
+      btn.disabled = true;
+      loading.style.display = 'block';
+      results.style.display = 'none';
+      results.innerHTML = '';
+
+      try{
+        const response = await fetch(`${API_BASE}/analyze_schedule`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ game: gameInput })
+        });
+        const data = await response.json();
+        results.innerHTML = data.html_response || '<p style="color:#ff6666;">❌ Erreur</p>';
+        results.style.display = 'block';
+      }catch(e){
+        results.innerHTML = '<p style="color:#ff6666;">❌ Erreur réseau</p>';
+        results.style.display = 'block';
+      }finally{
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    // STATS DASH avec intraday 24h
+    async function loadStatsDashboard(){
+      try{
+        // Global stats + intraday 24h
+        const res = await fetch(`${API_BASE}/api/stats/global_intraday?hours=24`);
+        const data = await res.json();
+        if (data.success){
+          document.getElementById('kpi-viewers').innerText = Number(data.current_total_viewers||0).toLocaleString();
+          document.getElementById('kpi-channels').innerText = Number(data.current_channels_live||0).toLocaleString();
+          renderChart('chartViewers','line',data.series.labels,data.series.values,'Viewers (24h)');
+        }
+
+        const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
+        const dGames = await resGames.json();
+        const labels = (dGames.games||[]).map(g=>g.name);
+        const values = (dGames.games||[]).map((g,i)=>(i+1)*20);
+        renderChart('chartGames','bar',labels.slice(0,5),values.slice(0,5),'Popularité');
+
+        const resLang = await fetch(`${API_BASE}/api/stats/languages`);
+        const dLang = await resLang.json();
+        const lLabels = (dLang.languages||[]).map(l=>l.name);
+        const lValues = (dLang.languages||[]).map(l=>l.percent);
+        renderChart('chartLangs','doughnut',lLabels,lValues,'Part');
+      }catch(e){ console.error('Stats error:', e); }
+    }
+
+    function renderChart(id,type,labels,data,label){
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (charts[id]) charts[id].destroy();
+
+      charts[id] = new Chart(el.getContext('2d'),{
+        type,
+        data:{ labels, datasets:[{ label, data, borderWidth:1, fill:(type==='line'), tension:.35 }]},
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{ legend:{ display:(type==='doughnut'), position:'right', labels:{ color:'white', boxWidth:10 } } },
+          scales:{
+            x:{ display:(type!=='doughnut'), ticks:{ color:'#666' } },
+            y:{ display:(type!=='doughnut'), grid:{ color:'#222' }, ticks:{ color:'#666' } }
+          }
+        }
+      });
+    }
+
+    // ===== Sous le live (données backend) =====
+    async function loadChannelProData(login){
+      if (!login || login === 'twitch') return;
+
+      try{
+        const res = await fetch(`${API_BASE}/api/analytics/channel_by_login/${encodeURIComponent(login)}?days=30`);
+        const data = await res.json();
+
+        if (!data.success){
+          document.getElementById('kpi-growth-label').innerText =
+            data.message || data.error || "Pas assez de données (laisse tourner le cron).";
+          return;
+        }
+
+        currentChannelId = data.channel_id || null;
+
+        const k = data.kpis || {};
+        const fmt = v => (v==null ? '--' : Number(v).toLocaleString());
+
+        document.getElementById('kpi-avg').innerText = fmt(k.avg_viewers);
+        document.getElementById('kpi-peak').innerText = fmt(k.peak_viewers);
+        document.getElementById('kpi-growth').innerText = (k.growth_percent!=null ? `${k.growth_percent}%` : '--');
+        document.getElementById('kpi-volatility').innerText = fmt(k.volatility);
+        document.getElementById('kpi-hours').innerText = (k.hours_per_week_est!=null ? `${k.hours_per_week_est}h` : '--');
+        document.getElementById('kpi-samples').innerText = fmt(k.days);
+
+        const gs = k.growth_score;
+        document.getElementById('kpi-growth-score').innerText = (gs!=null ? `${gs}/100` : '--');
+        document.getElementById('kpi-growth-label').innerText =
+          gs==null ? '--' :
+          gs>=80 ? '🔥 En forte accélération' :
+          gs>=60 ? '✅ Bonne dynamique' :
+          gs>=40 ? '🟡 Stable (optimisable)' :
+          '🔴 À relancer';
+
+        if (data.series?.labels?.length){
+          renderChart('chartChannelDaily','line',data.series.labels,data.series.values,'Viewers moyens/jour');
+        }
+
+        await loadAlerts(login);
+
+        if (currentGameId){
+          await loadGameHours(currentGameId);
+        }
+      }catch(e){
+        console.error('loadChannelProData error:', e);
+      }
+    }
+
+    async function loadAlerts(login){
+      const box = document.getElementById('alerts-box');
+      if (!box) return;
+      box.innerHTML = '<div class="text-gray-500 text-xs"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
+
+      try{
+        let r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+        let data = await r.json();
+
+        if (!data.success || !data.items || data.items.length === 0){
+          await fetch(`${API_BASE}/api/alerts/generate`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({ login, days:30 })
+          }).catch(()=>{});
+
+          r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+          data = await r.json();
+        }
+
+        if (!data.success || !data.items){
+          box.innerHTML = '<div class="text-gray-500 text-xs">Aucune alerte.</div>';
+          return;
+        }
+
+        box.innerHTML = '';
+        data.items.forEach(a=>{
+          box.innerHTML += `
+            <div class="bg-[#0a0a0a] border border-[#222] rounded p-2 mb-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-xs font-bold text-white">${escapeHtml(a.title || 'Alerte')}</div>
+                <div class="text-[10px] text-gray-500">${escapeHtml(a.day || '')}</div>
+              </div>
+              <div class="text-[10px] text-gray-400 mt-1">${escapeHtml(a.message || '')}</div>
+            </div>`;
+        });
+      }catch(e){
+        box.innerHTML = '<div class="text-red-500 text-xs">Erreur alertes</div>';
+      }
+    }
+
+    async function loadGameHours(gameId){
+      try{
+        const res = await fetch(`${API_BASE}/api/games/hours?game_id=${encodeURIComponent(gameId)}&days=7`);
+        const data = await res.json();
+        if (data.success && data.hours){
+          const labels = data.hours.map(h => `${h.hour}h`);
+          const values = data.hours.map(h => h.discoverability_score);
+          renderChart('chartGameHours','bar',labels,values,'Découvrabilité par heure');
+        }
+      }catch(e){
+        console.error('Game hours error:', e);
+      }
+    }
+
+    async function runSimulation(){
+      const hours = parseFloat(document.getElementById('sim-hours').value) || 0;
+      if (!currentChannelId || !hours) return;
+
+      try{
+        const res = await fetch(`${API_BASE}/api/simulate/growth?channel_id=${currentChannelId}&hours_per_week=${hours}&days=30`);
+        const data = await res.json();
+        if (data.success){
+          const change = data.target.expected_change_percent;
+          const delta = change >= 0 ? `+${change}` : `${change}`;
+          document.getElementById('sim-result').innerText = `Objectif: ${data.target.expected_avg_viewers} viewers (${delta}%)`;
+        }
+      }catch(e){
+        document.getElementById('sim-result').innerText = 'Erreur simulation';
+      }
+    }
+
+    async function loadAIReco(){
+      if (!currentChannel || currentChannel === 'twitch') return;
+      const btn = document.getElementById('btn-ai-reco');
+      const box = document.getElementById('ai-reco-box');
+      btn.disabled = true;
+      btn.innerText = '⚡ Chargement...';
+
+      try{
+        const res = await fetch(`${API_BASE}/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);
+        const data = await res.json();
+        box.innerHTML = data.html_response || 'Aucune recommandation';
+        box.classList.remove('hidden');
+      }catch(e){
+        box.innerHTML = '<p style="color:red;">Erreur IA</p>';
+        box.classList.remove('hidden');
+      }finally{
+        btn.disabled = false;
+        btn.innerText = '⚡ Générer des recommandations';
+      }
+    }
+
+    // SCANNER
+    async function runScan(){
+      const query = document.getElementById('scan-query').value.trim();
+      if (!query) return alert('Veuillez entrer un pseudo ou un jeu');
+
+      try{
+        const res = await fetch(`${API_BASE}/scan_target`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ query })
+        });
+        const data = await res.json();
+        const scanRes = document.getElementById('scan-res');
+
+        if (!data.success) {
+          scanRes.classList.add('hidden');
+          return;
+        }
+
+        if (data.type === 'user') {
+          const u = data.user_data;
+          document.getElementById('scan-img').src = u.profile_image_url || '';
+          document.getElementById('scan-name').innerText = u.display_name;
+          document.getElementById('scan-game').innerText = u.game_name;
+          document.getElementById('scan-ai').innerText = `Bio: ${u.description}\nScore niche: ${u.ai_calculated_niche_score}`;
+        } else if (data.type === 'game') {
+          const g = data.game_data;
+          document.getElementById('scan-img').src = g.box_art_url || '';
+          document.getElementById('scan-name').innerText = g.name;
+          document.getElementById('scan-game').innerText = `${g.total_viewers} viewers`;
+          document.getElementById('scan-ai').innerText = `Score: ${g.ai_calculated_niche_score}/5`;
+        }
+
+        scanRes.classList.remove('hidden');
+      }catch(e){
+        console.error('Scan error:', e);
+      }
+    }
+
+    // RAID
+    let raidData = null;
+    async function runRaid(){
+      const game = document.getElementById('raid-game').value.trim();
+      const maxViewers = parseInt(document.getElementById('raid-viewers').value) || 100;
+      if (!game) return alert('Veuillez entrer un jeu');
+
+      try{
+        const res = await fetch(`${API_BASE}/start_raid`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ game, max_viewers: maxViewers })
+        });
+        const data = await res.json();
+        const raidRes = document.getElementById('raid-res');
+
+        if (data.success && data.target) {
+          raidData = data.target;
+          document.getElementById('raid-img').src = data.target.thumbnail_url;
+          document.getElementById('raid-info').innerText = `${data.target.name} (${data.target.viewers} viewers) - ${data.target.game}`;
+          raidRes.classList.remove('hidden');
+        } else {
+          raidRes.classList.add('hidden');
+        }
+      }catch(e){
+        console.error('Raid error:', e);
+      }
+    }
+
+    function goToRaid(){
+      if (raidData) window.open(`https://twitch.tv/${raidData.login}`,'_blank');
+    }
+
+    // CO-STREAM
+    async function loadCoStreamer(){
+      if (!currentGameId) return alert('Pas de jeu détecté');
+      const btn = document.getElementById('costream-btn');
+      const out = document.getElementById('costream-out');
+      btn.disabled = true;
+
+      try{
+        const res = await fetch(`${API_BASE}/api/costream/best?game_id=${encodeURIComponent(currentGameId)}`);
+        const data = await res.json();
+
+        if (data.success && data.best) {
+          const b = data.best;
+          out.innerHTML = `
+            <div class="flex gap-3 items-center">
+              <img src="${b.profile_image_url}" class="w-12 h-12 rounded-full">
+              <div>
+                <div class="font-bold text-white">${b.display_name}</div>
+                <div class="text-xs text-gray-400">${b.viewer_count} viewers • ${b.game_name}</div>
+              </div>
+            </div>
+            <button onclick="window.open('https://twitch.tv/${b.login}','_blank')" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white text-xs">Visiter</button>
+          `;
+          out.style.display = 'block';
+        }
+      }catch(e){
+        out.innerHTML = '<p style="color:red;">Erreur co-stream</p>';
+        out.style.display = 'block';
+      }finally{
+        btn.disabled = false;
+      }
+    }
+
+    // BOOST
+    async function runBoost(){
+      const channel = document.getElementById('boost-query').value.trim();
+      if (!channel) return alert('Veuillez entrer une chaîne');
+
+      try{
+        const res = await fetch(`${API_BASE}/stream_boost`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ channel })
+        });
+        const data = await res.json();
+        const msg = document.getElementById('boost-msg');
+
+        if (data.success) {
+          msg.innerText = '✅ Boost activé 15min !';
+          msg.style.color = '#00f2ea';
+          setTimeout(()=>{ msg.innerText = ''; }, 3000);
+        }
+      }catch(e){
+        console.error('Boost error:', e);
+      }
+    }
+  </script>
+</body>
+</html>
