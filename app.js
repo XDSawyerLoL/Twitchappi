@@ -1,9 +1,9 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (ULTIMATE AUDIO + INFINITE SCROLL)
+ * STREAMER & NICHE AI HUB - BACKEND (TWITFLIX CATEGORIES + TOOLTIPS SUPPORT)
  * =========================================================
  * Updates:
- * - /api/categories/top : Supporte pagination (cursor) + fetch 100 items
- * - Chat force dark mode param check
+ * - /api/twitflix/catalog : Renvoie des "Rayons" (Rows) comme Netflix (Top, FPS, RPG...)
+ * - Structure optimisée pour le frontend V2
  */
 
 require('dotenv').config();
@@ -115,7 +115,8 @@ const CACHE = {
     currentIndex: 0,
     lastFetchTime: 0,
     fetchCooldown: 3 * 60 * 1000
-  }
+  },
+  twitflixCatalog: { data: null, expires: 0 } // Cache pour le catalogue
 };
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
@@ -430,7 +431,7 @@ app.get('/firebase_status', (req, res) => {
 });
 
 // =========================================================
-// 4. STREAM INFO & TWITFLIX
+// 4. STREAM INFO & TWITFLIX CATALOG
 // =========================================================
 app.post('/stream_info', async (req, res) => {
   const channel = String(req.body?.channel || '').trim().toLowerCase();
@@ -462,34 +463,48 @@ app.post('/stream_info', async (req, res) => {
   }
 });
 
-// --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
+// --- NEW ROUTE: TWITFLIX CATALOG (Rows like Netflix) ---
+app.get('/api/twitflix/catalog', async (req, res) => {
+  const now = Date.now();
+  
+  // Cache check (5 minutes)
+  if (CACHE.twitflixCatalog.data && CACHE.twitflixCatalog.expires > now) {
+    return res.json({ success: true, catalog: CACHE.twitflixCatalog.data });
+  }
 
-app.get('/api/categories/top', async (req, res) => {
   try {
-    // On supporte la pagination via "cursor"
-    const cursor = req.query.cursor;
-    
-    // On demande 100 catégories d'un coup (max Twitch)
-    let url = 'games/top?first=100';
-    if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
+    // On lance plusieurs requêtes en parallèle pour avoir des "genres"
+    // Note: Twitch n'a pas d'API "Genre" propre, on utilise des recherches de catégories
+    const [topGames, shooters, rpg, strategy, simulation] = await Promise.all([
+      twitchAPI('games/top?first=20'),
+      twitchAPI('search/categories?query=shooter&first=20'),
+      twitchAPI('search/categories?query=rpg&first=20'),
+      twitchAPI('search/categories?query=strategy&first=20'),
+      twitchAPI('search/categories?query=simulation&first=20')
+    ]);
 
-    const d = await twitchAPI(url);
-    if (!d.data) return res.json({ success: false });
-    
-    const categories = d.data.map(g => ({
-      id: g.id,
-      name: g.name,
-      box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
+    const format = (list) => (list || []).map(g => ({
+       id: g.id,
+       name: g.name,
+       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
     }));
 
-    // On renvoie aussi le curseur pour la page suivante
-    const nextCursor = d.pagination ? d.pagination.cursor : null;
+    const catalog = {
+       "🔥 Tendances Actuelles": format(topGames.data),
+       "🔫 FPS & Shooters": format(shooters.data),
+       "⚔️ RPG & Aventure": format(rpg.data),
+       "🧠 Stratégie": format(strategy.data),
+       "🚜 Simulation & Chill": format(simulation.data)
+    };
 
-    res.json({ success: true, categories, cursor: nextCursor });
+    CACHE.twitflixCatalog = { data: catalog, expires: now + 300000 };
+    res.json({ success: true, catalog });
+
   } catch (e) {
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
 
 app.post('/api/stream/by_category', async (req, res) => {
   const gameId = String(req.body?.game_id || '');
