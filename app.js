@@ -1,11 +1,9 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (CLEAN + FIX ROUTES CONTRACT)
+ * STREAMER & NICHE AI HUB - BACKEND (TWITFLIX EDITION)
  * =========================================================
- * Fixes:
- * - /stream_info ajouté (front l'appelait)
- * - /api/analytics/channel_by_login/:login renvoie {kpis, series:{labels,values}}
- * - /api/costream/best renvoie {best, candidates} (contrat front)
- * - computeGrowthScore dédoublonné
+ * Updates:
+ * - Added /api/categories/top (TwitFlix Catalog)
+ * - Added /api/stream/by_category (TwitFlix Player Logic < 100 viewers)
  */
 
 require('dotenv').config();
@@ -96,8 +94,7 @@ app.get('/', (req, res) => {
     process.env.UI_FILE,
     'NicheOptimizer.html',
     'NicheOptimizer_v56.html',
-    'NicheOptimizer_v55.html',
-    'NicheOptimizer_v53.html',
+    'index.html'
   ].filter(Boolean);
 
   const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
@@ -277,8 +274,6 @@ async function updateDailyRollupsForStream(stream, nowMs) {
   } catch (e) {
     console.error("❌ [DAILY] channel rollup:", e.message);
   }
-
-  // game hourly aggregation kept in your previous code style (optional)
 }
 
 async function collectAnalyticsSnapshot() {
@@ -422,9 +417,6 @@ app.get('/twitch_user_status', (req, res) => {
   res.json({ is_connected: false });
 });
 
-// =========================================================
-// 3A. FIREBASE STATUS
-// =========================================================
 app.get('/firebase_status', (req, res) => {
   try {
     if (db && admin.apps.length > 0) {
@@ -438,7 +430,7 @@ app.get('/firebase_status', (req, res) => {
 });
 
 // =========================================================
-// 4. STREAM INFO (FIX: FRONT NEEDS THIS)
+// 4. STREAM INFO & TWITFLIX
 // =========================================================
 app.post('/stream_info', async (req, res) => {
   const channel = String(req.body?.channel || '').trim().toLowerCase();
@@ -452,7 +444,6 @@ app.post('/stream_info', async (req, res) => {
     const s = await twitchAPI(`streams?user_id=${encodeURIComponent(user.id)}`);
     const stream = s.data && s.data.length ? s.data[0] : null;
 
-    // normalize
     const out = stream ? {
       id: stream.id,
       user_id: stream.user_id,
@@ -468,6 +459,69 @@ app.post('/stream_info', async (req, res) => {
     return res.json({ success:true, user, stream: out });
   } catch (e) {
     return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// --- ROUTES TWITFLIX ---
+
+app.get('/api/categories/top', async (req, res) => {
+  try {
+    // Récupère le top 30 des jeux
+    const d = await twitchAPI('games/top?first=30');
+    if (!d.data) return res.json({ success: false });
+    
+    const categories = d.data.map(g => ({
+      id: g.id,
+      name: g.name,
+      box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
+    }));
+
+    res.json({ success: true, categories });
+  } catch (e) {
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/stream/by_category', async (req, res) => {
+  const gameId = String(req.body?.game_id || '');
+  if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
+
+  try {
+    // On cherche les streams de ce jeu, language FR si possible, ou global
+    // On prend 100 streams max
+    let sRes = await twitchAPI(`streams?game_id=${gameId}&language=fr&first=100`);
+    let streams = sRes.data || [];
+
+    // Si pas assez de streams FR, on tente en global
+    if (streams.length < 5) {
+      const gRes = await twitchAPI(`streams?game_id=${gameId}&first=100`);
+      streams = [...streams, ...(gRes.data || [])];
+    }
+
+    // Filtre: entre 0 et 100 viewers (TwitFlix logic: découvrir les petits)
+    const candidates = streams.filter(s => (s.viewer_count || 0) <= 100);
+
+    if (candidates.length === 0) {
+      // Fallback: si aucun < 100, on prend juste les moins vus de la liste
+      streams.sort((a, b) => (a.viewer_count || 0) - (b.viewer_count || 0));
+      if (streams.length > 0) candidates.push(streams[0]);
+    }
+
+    if (candidates.length === 0) {
+      return res.json({ success: false, message: 'Aucun stream trouvé dans cette catégorie.' });
+    }
+
+    // Pick random
+    const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
+    
+    return res.json({ 
+      success: true, 
+      channel: randomStream.user_login,
+      game_name: randomStream.game_name
+    });
+
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
@@ -851,7 +905,7 @@ HTML STRICT: <h4>, <ul>, <li>, <p>, <strong>.`;
 });
 
 // =========================================================
-// 10. ALERTS (ton code existant peut rester, ici minimal)
+// 10. ALERTS
 // =========================================================
 async function saveAlert(channelId, dayKey, type, payload) {
   try {
@@ -1005,7 +1059,7 @@ app.get('/api/games/hours', async (req, res) => {
 });
 
 // =========================================================
-// 12. ANALYTICS PRO (FIX: CONTRACT FOR FRONT UNDER LIVE)
+// 12. ANALYTICS PRO
 // =========================================================
 app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
   const login = String(req.params.login || '').trim().toLowerCase();
@@ -1072,7 +1126,7 @@ app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
   }
 });
 
-// Simulation & IA reco (tu peux garder tes versions — ici minimal compatible front)
+// Simulation & IA reco
 app.get('/api/simulate/growth', async (req, res) => {
   const channelId = String(req.query.channel_id || '').trim();
   const hoursPerWeek = clamp(parseFloat(req.query.hours_per_week || '0'), 0, 80);
@@ -1142,7 +1196,7 @@ Donne 5 recommandations concrètes + 3 expériences à tester.`;
 });
 
 // =========================================================
-// 13. CO-STREAM (FIX: RETURN best + candidates FOR FRONT)
+// 13. CO-STREAM
 // =========================================================
 app.get('/api/costream/best', async (req, res) => {
   const login = String(req.query.login || '').trim().toLowerCase();
