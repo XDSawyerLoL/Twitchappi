@@ -4,10 +4,6 @@
  * Updates:
  * - /api/categories/top : Supporte pagination (cursor) + fetch 100 items
  * - Chat force dark mode param check
- *
- * NOTE:
- * - PAS de helmet ici (évite MODULE_NOT_FOUND sur Render si non installé)
- * - Ajout d’un middleware headers sécurité "light" (sans dépendances)
  */
 
 require('dotenv').config();
@@ -24,6 +20,21 @@ const { Server } = require('socket.io');
 
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
+
+// =========================================================
+// 0. OPTIONAL SECURITY MIDDLEWARES (NE DOIT PAS CRASH)
+// =========================================================
+// NOTE: ton Render crashe parce que helmet n'est pas installé.
+// Ici: helmet devient OPTIONNEL. Si tu l'installes -> il s'active.
+// Sinon -> pas de crash.
+let helmet = null;
+try {
+  // eslint-disable-next-line import/no-extraneous-dependencies
+  helmet = require('helmet');
+  console.log("✅ [SECURITY] helmet chargé.");
+} catch (e) {
+  console.log("ℹ️ [SECURITY] helmet non installé (OK). Ajoute-le si tu veux la sécurité: npm i helmet");
+}
 
 // =========================================================
 // 0. INITIALISATION FIREBASE
@@ -88,27 +99,21 @@ if (GEMINI_API_KEY) {
 }
 
 // =========================================================
-// 1B. HEADERS SÉCURITÉ (sans helmet)
+// 1B. MIDDLEWARES
 // =========================================================
-app.disable('x-powered-by');
-
-// Si tu es derrière Render/Proxy, utile pour secure cookies + IP
-app.set('trust proxy', 1);
-
-// Headers "light" (pas aussi complet que helmet, mais solide et sans dépendances)
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  // CSP minimale (tu utilises des CDN dans le HTML => une CSP stricte casserait tout)
-  // Si tu veux une CSP "Netflix-like" plus stricte ensuite, on la fera après refacto HTML.
-  next();
-});
-
 app.use(cors());
-app.use(bodyParser.json({ limit: '1mb' }));
+app.use(bodyParser.json());
 app.use(cookieParser());
+
+// helmet OPTIONNEL (ne doit pas casser si non installé)
+if (helmet) {
+  app.use(helmet({
+    contentSecurityPolicy: false, // évite les soucis avec iframes Twitch / CDN
+    crossOriginEmbedderPolicy: false
+  }));
+}
+
+// servir le frontend statique
 app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
@@ -383,7 +388,7 @@ if (ENABLE_CRON) {
 app.get('/twitch_auth_start', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
   const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-  res.cookie('twitch_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600000 });
+  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
   res.redirect(url);
 });
 
@@ -533,6 +538,7 @@ app.post('/api/stream/by_category', async (req, res) => {
     }
 
     const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
+
     return res.json({
       success: true,
       channel: randomStream.user_login,
@@ -1070,7 +1076,6 @@ app.get('/api/games/hours', async (req, res) => {
     });
 
     const best = [...out].sort((a,b)=> (b.discoverability_score - a.discoverability_score) || (b.total_viewers - a.total_viewers))[0];
-
     return res.json({ success:true, game_id: gameId, days, hours: out, best });
   } catch (e) {
     return res.status(500).json({ success:false, error:e.message });
