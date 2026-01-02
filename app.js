@@ -1,10 +1,9 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (TWITFLIX ULTIMATE EDITION)
+ * STREAMER & NICHE AI HUB - BACKEND (ULTIMATE AUDIO + INFINITE SCROLL)
  * =========================================================
- * - Gestion du catalogue par rangées (Rows)
- * - Gestion des trailers (Clips)
- * - Recherche intégrée
- * - Données de secours pour les stats (Mock Data)
+ * Updates:
+ * - /api/categories/top : Supporte pagination (cursor) + fetch 100 items
+ * - Chat force dark mode param check
  */
 
 require('dotenv').config();
@@ -116,9 +115,7 @@ const CACHE = {
     currentIndex: 0,
     lastFetchTime: 0,
     fetchCooldown: 3 * 60 * 1000
-  },
-  twitflixCatalog: { data: null, expires: 0 },
-  clipCache: {} // Cache pour les trailers (id_jeu -> url_clip)
+  }
 };
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
@@ -209,6 +206,155 @@ function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hou
 }
 
 // =========================================================
+// 2C. CRON SNAPSHOTS -> Firestore
+// =========================================================
+const ENABLE_CRON = (process.env.ENABLE_CRON || 'true').toLowerCase() !== 'false';
+const SNAPSHOT_EVERY_MIN = parseInt(process.env.SNAPSHOT_EVERY_MIN || '5', 10);
+
+async function upsertChannelMetaFromStream(stream, nowMs) {
+  const ref = db.collection('channels').doc(String(stream.user_id));
+  try {
+    const snap = await ref.get();
+    const payload = {
+      login: stream.user_login || null,
+      display_name: stream.user_name || null,
+      language: stream.language || null,
+      current_game_id: stream.game_id || null,
+      current_game_name: stream.game_name || null,
+      last_seen_live: admin.firestore.Timestamp.fromMillis(nowMs)
+    };
+    if (!snap.exists) payload.first_seen = admin.firestore.Timestamp.fromMillis(nowMs);
+    await ref.set(payload, { merge: true });
+  } catch (e) {
+    console.error("❌ [FIRESTORE] upsertChannelMetaFromStream:", e.message);
+  }
+}
+
+async function upsertGameMeta(gameId, gameName) {
+  if (!gameId) return;
+  try {
+    await db.collection('games').doc(String(gameId)).set({
+      name: gameName || null,
+      last_seen: admin.firestore.Timestamp.fromMillis(Date.now())
+    }, { merge: true });
+  } catch (e) {}
+}
+
+async function updateDailyRollupsForStream(stream, nowMs) {
+  const viewers = Number(stream.viewer_count || 0);
+  const dayKey = yyyy_mm_dd_from_ms(nowMs);
+
+  const chDailyRef = db.collection('channels').doc(String(stream.user_id))
+    .collection('daily_stats').doc(dayKey);
+
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(chDailyRef);
+      const prev = snap.exists ? snap.data() : {};
+      const prevPeak = Number(prev.peak_viewers || 0);
+      const prevSamples = Number(prev.samples || 0);
+      const prevSum = Number(prev.total_viewers_sum || 0);
+
+      const nextSamples = prevSamples + 1;
+      const nextSum = prevSum + viewers;
+      const nextPeak = viewers > prevPeak ? viewers : prevPeak;
+
+      tx.set(chDailyRef, {
+        day: dayKey,
+        samples: nextSamples,
+        total_viewers_sum: nextSum,
+        avg_viewers: Math.round(nextSum / nextSamples),
+        peak_viewers: nextPeak,
+        minutes_live_est: nextSamples * SNAPSHOT_EVERY_MIN,
+        top_game_id: stream.game_id || null,
+        top_game_name: stream.game_name || null,
+        updated_at: admin.firestore.Timestamp.fromMillis(nowMs)
+      }, { merge: true });
+    });
+  } catch (e) {
+    console.error("❌ [DAILY] channel rollup:", e.message);
+  }
+}
+
+async function collectAnalyticsSnapshot() {
+  const now = Date.now();
+  try {
+    const data = await twitchAPI('streams?first=100&language=fr');
+    const streams = data?.data || [];
+    console.log(`[CRON] streams récupérés: ${streams.length}`);
+
+    let totalViewers = 0;
+    const rollupPromises = [];
+
+    let batch = db.batch();
+    let ops = 0;
+    const commitIfNeeded = async () => {
+      if (ops >= 450) {
+        await batch.commit();
+        batch = db.batch();
+        ops = 0;
+      }
+    };
+
+    for (const s of streams) {
+      totalViewers += (s.viewer_count || 0);
+
+      await upsertChannelMetaFromStream(s, now);
+      await upsertGameMeta(s.game_id, s.game_name);
+      rollupPromises.push(updateDailyRollupsForStream(s, now));
+
+      const chRef = db.collection('channels').doc(String(s.user_id))
+        .collection('hourly_stats').doc(String(now));
+      batch.set(chRef, {
+        timestamp: now,
+        viewers: s.viewer_count || 0,
+        game_id: s.game_id || null,
+        game_name: s.game_name || null,
+        title: s.title || null,
+        language: s.language || null
+      }, { merge: false });
+      ops++; await commitIfNeeded();
+
+      if (s.game_id) {
+        const gRef = db.collection('games').doc(String(s.game_id))
+          .collection('hourly_stats').doc(`${s.user_id}_${now}`);
+        batch.set(gRef, {
+          timestamp: now,
+          channel_id: String(s.user_id),
+          viewers: s.viewer_count || 0
+        }, { merge: false });
+        ops++; await commitIfNeeded();
+      }
+    }
+
+    const globalRef = db.collection('stats_history').doc(String(now));
+    batch.set(globalRef, {
+      timestamp: admin.firestore.Timestamp.fromMillis(now),
+      timestamp_ms: now,
+      total_viewers: totalViewers,
+      channels_live: streams.length,
+      top_game: streams[0]?.game_name || null
+    }, { merge: false });
+    ops++; await commitIfNeeded();
+
+    await batch.commit();
+    await Promise.allSettled(rollupPromises);
+
+    console.log(`📊 [CRON] Snapshot saved: viewers=${totalViewers}, live=${streams.length}`);
+  } catch (e) {
+    console.error("❌ [CRON] Snapshot error:", e.message);
+  }
+}
+
+if (ENABLE_CRON) {
+  console.log(` - CRON ENABLED = true`);
+  setInterval(collectAnalyticsSnapshot, SNAPSHOT_EVERY_MIN * 60 * 1000);
+  collectAnalyticsSnapshot().catch(() => {});
+} else {
+  console.log(` - CRON ENABLED = false`);
+}
+
+// =========================================================
 // 3. AUTH
 // =========================================================
 app.get('/twitch_auth_start', (req, res) => {
@@ -284,7 +430,7 @@ app.get('/firebase_status', (req, res) => {
 });
 
 // =========================================================
-// 4. STREAM INFO & TWITFLIX CATALOG
+// 4. STREAM INFO & TWITFLIX
 // =========================================================
 app.post('/stream_info', async (req, res) => {
   const channel = String(req.body?.channel || '').trim().toLowerCase();
@@ -316,89 +462,33 @@ app.post('/stream_info', async (req, res) => {
   }
 });
 
-// --- ROUTES TWITFLIX (Catalogue et Recherche) ---
+// --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
 
-app.get('/api/twitflix/catalog', async (req, res) => {
-  const now = Date.now();
-  
-  if (CACHE.twitflixCatalog.data && CACHE.twitflixCatalog.expires > now) {
-    return res.json({ success: true, catalog: CACHE.twitflixCatalog.data });
-  }
-
+app.get('/api/categories/top', async (req, res) => {
   try {
-    const [topGames, shooters, rpg, strategy, simulation] = await Promise.all([
-      twitchAPI('games/top?first=20'),
-      twitchAPI('search/categories?query=shooter&first=20'),
-      twitchAPI('search/categories?query=rpg&first=20'),
-      twitchAPI('search/categories?query=strategy&first=20'),
-      twitchAPI('search/categories?query=simulation&first=20')
-    ]);
+    // On supporte la pagination via "cursor"
+    const cursor = req.query.cursor;
+    
+    // On demande 100 catégories d'un coup (max Twitch)
+    let url = 'games/top?first=100';
+    if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
 
-    const format = (list) => (list || []).map(g => ({
-       id: g.id,
-       name: g.name,
-       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
+    const d = await twitchAPI(url);
+    if (!d.data) return res.json({ success: false });
+    
+    const categories = d.data.map(g => ({
+      id: g.id,
+      name: g.name,
+      box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
     }));
 
-    const catalog = {
-       "🔥 Tendances Actuelles": format(topGames.data),
-       "🔫 FPS & Shooters": format(shooters.data),
-       "⚔️ RPG & Aventure": format(rpg.data),
-       "🧠 Stratégie": format(strategy.data),
-       "🚜 Simulation & Chill": format(simulation.data)
-    };
+    // On renvoie aussi le curseur pour la page suivante
+    const nextCursor = d.pagination ? d.pagination.cursor : null;
 
-    CACHE.twitflixCatalog = { data: catalog, expires: now + 300000 };
-    res.json({ success: true, catalog });
-
+    res.json({ success: true, categories, cursor: nextCursor });
   } catch (e) {
     res.status(500).json({ success:false, error:e.message });
   }
-});
-
-app.post('/api/twitflix/search', async (req, res) => {
-  const query = String(req.body.query || '').trim();
-  if(!query) return res.json({ success:false });
-
-  try {
-    const d = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=20`);
-    const results = (d.data || []).map(g => ({
-       id: g.id,
-       name: g.name,
-       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
-    }));
-    res.json({ success:true, results });
-  } catch (e) {
-    res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-// --- TRAILER (CLIPS) ---
-app.post('/api/game/trailer', async (req, res) => {
-    const gameId = String(req.body.game_id || '');
-    if(!gameId) return res.json({ success:false });
-
-    if(CACHE.clipCache[gameId]) {
-        return res.json({ success:true, embed_url: CACHE.clipCache[gameId] });
-    }
-
-    try {
-        // Cherche le clip le plus populaire de la semaine pour ce jeu
-        const now = new Date();
-        const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        
-        const r = await twitchAPI(`clips?game_id=${gameId}&first=1&started_at=${lastWeek}`);
-        
-        if(r.data && r.data.length > 0) {
-            const clip = r.data[0];
-            const embedUrl = clip.embed_url; // L'url de base
-            CACHE.clipCache[gameId] = embedUrl;
-            return res.json({ success:true, embed_url: embedUrl });
-        }
-        res.json({ success:false });
-    } catch(e) {
-        res.status(500).json({ success:false });
-    }
 });
 
 app.post('/api/stream/by_category', async (req, res) => {
@@ -406,6 +496,7 @@ app.post('/api/stream/by_category', async (req, res) => {
   if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
 
   try {
+    // 100 streams max, FR ou global
     let sRes = await twitchAPI(`streams?game_id=${gameId}&language=fr&first=100`);
     let streams = sRes.data || [];
 
@@ -414,15 +505,17 @@ app.post('/api/stream/by_category', async (req, res) => {
       streams = [...streams, ...(gRes.data || [])];
     }
 
+    // Filtre < 100 viewers
     const candidates = streams.filter(s => (s.viewer_count || 0) <= 100);
 
     if (candidates.length === 0) {
+      // Fallback
       streams.sort((a, b) => (a.viewer_count || 0) - (b.viewer_count || 0));
       if (streams.length > 0) candidates.push(streams[0]);
     }
 
     if (candidates.length === 0) {
-      return res.json({ success: false, message: 'Aucun stream trouvé.' });
+      return res.json({ success: false, message: 'Aucun stream trouvé dans cette catégorie.' });
     }
 
     const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
@@ -583,14 +676,11 @@ app.get('/api/stats/global', async (req, res) => {
     const est = Math.floor(v * 3.8);
     const topGame = data.data?.[0]?.game_name || "N/A";
 
-    // Si DB vide, on renvoie des stats par défaut
-    const history = { live: { labels: ["10h", "11h", "12h", "13h", "Now"], values: [est*0.8, est*0.9, est*0.85, est*0.95, est] } };
+    const history = { live: { labels: [], values: [] } };
 
     try {
       const snaps = await db.collection('stats_history').orderBy('timestamp', 'desc').limit(12).get();
-      if (!snaps.empty && snaps.docs.length > 2) {
-        history.live.labels = [];
-        history.live.values = [];
+      if (!snaps.empty) {
         snaps.docs.reverse().forEach(d => {
           const stats = d.data();
           if (stats.timestamp) {
@@ -600,8 +690,13 @@ app.get('/api/stats/global', async (req, res) => {
             history.live.values.push(stats.total_viewers);
           }
         });
+      } else {
+        history.live.labels = ["-1h", "Now"];
+        history.live.values = [est * 0.9, est];
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Erreur stats history:", e.message);
+    }
 
     res.json({
       success: true,
@@ -990,11 +1085,10 @@ app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
       .get();
 
     if (q.empty) {
-      // Return fake data for display
       return res.json({
         success:false,
         channel_id: channelId,
-        message:"Calcul en cours..."
+        message:"Pas assez de données daily_stats (laisse tourner le cron quelques minutes/heures)."
       });
     }
 
@@ -1038,6 +1132,7 @@ app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
   }
 });
 
+// Simulation & IA reco
 app.get('/api/simulate/growth', async (req, res) => {
   const channelId = String(req.query.channel_id || '').trim();
   const hoursPerWeek = clamp(parseFloat(req.query.hours_per_week || '0'), 0, 80);
@@ -1143,6 +1238,7 @@ app.get('/api/costream/best', async (req, res) => {
     if (!gameId) return res.json({ success:false, message:'Chaîne offline et jeu inconnu (pas assez de data).' });
 
     if (myViewers == null) {
+      // fallback: use daily avg if exists
       try {
         const snaps = await db.collection('channels').doc(String(me.id)).collection('daily_stats').orderBy('day','desc').limit(days).get();
         if (!snaps.empty) {
@@ -1162,7 +1258,7 @@ app.get('/api/costream/best', async (req, res) => {
 
     const scored = candidatesLive.map(s => {
       const diff = Math.abs((s.viewer_count || 0) - target);
-      const score = Math.max(0, 100 - Math.round(diff * 2));
+      const score = Math.max(0, 100 - Math.round(diff * 2)); // simple
       return { s, diff, score };
     }).sort((a,b)=> b.score - a.score);
 
