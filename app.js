@@ -1,9 +1,9 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (TWITFLIX EDITION)
+ * STREAMER & NICHE AI HUB - BACKEND (ULTIMATE AUDIO + INFINITE SCROLL)
  * =========================================================
  * Updates:
- * - Added /api/categories/top (TwitFlix Catalog)
- * - Added /api/stream/by_category (TwitFlix Player Logic < 100 viewers)
+ * - /api/categories/top : Supporte pagination (cursor) + fetch 100 items
+ * - Chat force dark mode param check
  */
 
 require('dotenv').config();
@@ -194,7 +194,7 @@ async function runGeminiAnalysis(prompt) {
 }
 
 // =========================================================
-// 2B. ANALYTICS SCORE (unique)
+// 2B. ANALYTICS SCORE
 // =========================================================
 function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hoursPerWeek = 0 }) {
   const logPart = Math.log10(avgViewers + 1) * 22;             // ~0..66
@@ -462,12 +462,18 @@ app.post('/stream_info', async (req, res) => {
   }
 });
 
-// --- ROUTES TWITFLIX ---
+// --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
 
 app.get('/api/categories/top', async (req, res) => {
   try {
-    // Récupère le top 30 des jeux
-    const d = await twitchAPI('games/top?first=30');
+    // On supporte la pagination via "cursor"
+    const cursor = req.query.cursor;
+    
+    // On demande 100 catégories d'un coup (max Twitch)
+    let url = 'games/top?first=100';
+    if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
+
+    const d = await twitchAPI(url);
     if (!d.data) return res.json({ success: false });
     
     const categories = d.data.map(g => ({
@@ -476,7 +482,10 @@ app.get('/api/categories/top', async (req, res) => {
       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
     }));
 
-    res.json({ success: true, categories });
+    // On renvoie aussi le curseur pour la page suivante
+    const nextCursor = d.pagination ? d.pagination.cursor : null;
+
+    res.json({ success: true, categories, cursor: nextCursor });
   } catch (e) {
     res.status(500).json({ success:false, error:e.message });
   }
@@ -487,22 +496,20 @@ app.post('/api/stream/by_category', async (req, res) => {
   if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
 
   try {
-    // On cherche les streams de ce jeu, language FR si possible, ou global
-    // On prend 100 streams max
+    // 100 streams max, FR ou global
     let sRes = await twitchAPI(`streams?game_id=${gameId}&language=fr&first=100`);
     let streams = sRes.data || [];
 
-    // Si pas assez de streams FR, on tente en global
     if (streams.length < 5) {
       const gRes = await twitchAPI(`streams?game_id=${gameId}&first=100`);
       streams = [...streams, ...(gRes.data || [])];
     }
 
-    // Filtre: entre 0 et 100 viewers (TwitFlix logic: découvrir les petits)
+    // Filtre < 100 viewers
     const candidates = streams.filter(s => (s.viewer_count || 0) <= 100);
 
     if (candidates.length === 0) {
-      // Fallback: si aucun < 100, on prend juste les moins vus de la liste
+      // Fallback
       streams.sort((a, b) => (a.viewer_count || 0) - (b.viewer_count || 0));
       if (streams.length > 0) candidates.push(streams[0]);
     }
@@ -511,7 +518,6 @@ app.post('/api/stream/by_category', async (req, res) => {
       return res.json({ success: false, message: 'Aucun stream trouvé dans cette catégorie.' });
     }
 
-    // Pick random
     const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
     
     return res.json({ 
