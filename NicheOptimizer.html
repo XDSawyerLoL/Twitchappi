@@ -5,15 +5,15 @@
  * - /api/categories/top : Supporte pagination (cursor) + fetch 100 items
  * - Chat force dark mode param check
  *
- * NOTE IMPORTANT:
- * - Pas de dépendance obligatoire à "helmet" (évite le crash Render).
- * - fetch compatible Node 18+ (Node 25 sur Render) => utilise globalThis.fetch,
- *   sinon fallback vers node-fetch si dispo.
+ * NOTE:
+ * - PAS de helmet ici (évite MODULE_NOT_FOUND sur Render si non installé)
+ * - Ajout d’un middleware headers sécurité "light" (sans dépendances)
  */
 
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
@@ -24,26 +24,6 @@ const { Server } = require('socket.io');
 
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
-
-// =========================================================
-// 0. FETCH (Node 18+ a fetch natif, sinon fallback)
-// =========================================================
-let fetchFn = globalThis.fetch;
-if (!fetchFn) {
-  try {
-    // node-fetch v2 (commonjs) => require ok
-    // node-fetch v3 (esm) => require peut échouer ; dans ce cas, installe v2 ou passe Node fetch natif.
-    // Ici on tente quand même.
-    // eslint-disable-next-line import/no-extraneous-dependencies
-    const nf = require('node-fetch');
-    fetchFn = nf.default || nf;
-  } catch (e) {
-    throw new Error(
-      "Aucun fetch disponible. Utilise Node >= 18 (fetch natif) ou installe node-fetch v2."
-    );
-  }
-}
-const fetch = (...args) => fetchFn(...args);
 
 // =========================================================
 // 0. INITIALISATION FIREBASE
@@ -107,8 +87,27 @@ if (GEMINI_API_KEY) {
   }
 }
 
+// =========================================================
+// 1B. HEADERS SÉCURITÉ (sans helmet)
+// =========================================================
+app.disable('x-powered-by');
+
+// Si tu es derrière Render/Proxy, utile pour secure cookies + IP
+app.set('trust proxy', 1);
+
+// Headers "light" (pas aussi complet que helmet, mais solide et sans dépendances)
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // CSP minimale (tu utilises des CDN dans le HTML => une CSP stricte casserait tout)
+  // Si tu veux une CSP "Netflix-like" plus stricte ensuite, on la fera après refacto HTML.
+  next();
+});
+
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
 
@@ -384,7 +383,7 @@ if (ENABLE_CRON) {
 app.get('/twitch_auth_start', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
   const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
+  res.cookie('twitch_state', state, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 600000 });
   res.redirect(url);
 });
 
@@ -490,7 +489,6 @@ app.post('/stream_info', async (req, res) => {
 app.get('/api/categories/top', async (req, res) => {
   try {
     const cursor = req.query.cursor;
-
     let url = 'games/top?first=100';
     if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
 
@@ -504,7 +502,6 @@ app.get('/api/categories/top', async (req, res) => {
     }));
 
     const nextCursor = d.pagination ? d.pagination.cursor : null;
-
     res.json({ success: true, categories, cursor: nextCursor });
   } catch (e) {
     res.status(500).json({ success:false, error:e.message });
@@ -536,7 +533,6 @@ app.post('/api/stream/by_category', async (req, res) => {
     }
 
     const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
-
     return res.json({
       success: true,
       channel: randomStream.user_login,
@@ -928,7 +924,7 @@ HTML STRICT: <h4>, <ul>, <li>, <p>, <strong>.`;
 });
 
 // =========================================================
-// 10. ALERTS (placeholder minimal - ton code complet peut rester tel quel)
+// 10. ALERTS
 // =========================================================
 async function saveAlert(channelId, dayKey, type, payload) {
   try {
@@ -937,36 +933,403 @@ async function saveAlert(channelId, dayKey, type, payload) {
       channel_id: String(channelId),
       day: dayKey,
       type,
-      payload: payload || {},
+      ...payload,
       created_at: admin.firestore.Timestamp.fromMillis(Date.now())
     }, { merge: true });
   } catch (e) {
-    console.error("❌ saveAlert:", e.message);
+    console.error("❌ [ALERT] saveAlert:", e.message);
   }
 }
 
+async function generateAlertsForLogin(login, days=30) {
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data || !uRes.data.length) return { success:false, message:"introuvable" };
+    const channelId = String(uRes.data[0].id);
+
+    const snaps = await db.collection('channels').doc(channelId)
+      .collection('daily_stats').orderBy('day', 'desc').limit(days).get();
+    if (snaps.empty) return { success:false, message:"pas de daily_stats" };
+
+    const series = snaps.docs.map(d => d.data()).reverse();
+    const first = series[0]?.avg_viewers || 0;
+    const last = series[series.length-1]?.avg_viewers || 0;
+    const growth_percent = first > 0 ? Math.round(((last-first)/first)*100) : (last>0?100:0);
+
+    const avg = Math.round(series.reduce((a,x)=>a+(x.avg_viewers||0),0)/series.length);
+    const peak = Math.max(...series.map(x=>x.peak_viewers||0));
+    const minutes_live_est = Math.round(series.reduce((a,x)=>a+(x.minutes_live_est||0),0)/series.length);
+    const hoursPerWeek = Math.round((minutes_live_est/60)/(days/7));
+
+    const volatility = 0; // simplifié
+    const growth_score = computeGrowthScore({ avgViewers: avg, growthPct: growth_percent, volatility, hoursPerWeek });
+    const dayKey = yyyy_mm_dd_from_ms(Date.now());
+
+    if (growth_percent >= 25 && growth_score >= 60) {
+      await saveAlert(channelId, dayKey, "acceleration", {
+        title: "🚀 Accélération détectée",
+        message: `Ta moyenne grimpe (+${growth_percent}%). Double down sur les formats qui performent.`,
+        score: growth_score
+      });
+    }
+
+    if (aiClient) {
+      const prompt = `Tu es un coach Twitch. Propose 1 alerte courte et actionnable pour AUJOURD'HUI (FR) pour ${login}.
+Données: avg=${avg}, peak=${peak}, growth=${growth_percent}%, score=${growth_score}/100.
+Réponds en JSON strict: {"title":"...","message":"...","tag":"..."} (tag = growth|niche|schedule|content).`;
+      const out = await runGeminiAnalysis(prompt);
+      const raw = (out.html_response || "").trim();
+      try {
+        const jsonStart = raw.indexOf('{');
+        const jsonEnd = raw.lastIndexOf('}');
+        if (jsonStart >= 0 && jsonEnd > jsonStart) {
+          const obj = JSON.parse(raw.slice(jsonStart, jsonEnd+1));
+          if (obj?.title && obj?.message) {
+            await saveAlert(channelId, dayKey, "ia", {
+              title: obj.title,
+              message: obj.message,
+              tag: obj.tag || "growth",
+              score: growth_score
+            });
+          }
+        }
+      } catch (_) {}
+    }
+
+    return { success:true, channel_id: channelId, growth_score, growth_percent, avg_viewers: avg, peak_viewers: peak };
+  } catch (e) {
+    return { success:false, error: e.message };
+  }
+}
+
+app.get('/api/alerts/channel_by_login/:login', async (req, res) => {
+  const login = String(req.params.login||'').trim().toLowerCase();
+  const limit = clamp(parseInt(req.query.limit||'10',10), 1, 50);
+  if (!login) return res.status(400).json({ success:false, error:"login manquant" });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data || !uRes.data.length) return res.json({ success:false, error:"introuvable" });
+    const channelId = String(uRes.data[0].id);
+
+    const q = await db.collection('alerts').doc(channelId).collection('items')
+      .orderBy('created_at','desc').limit(limit).get();
+
+    const items = q.docs.map(d => d.data());
+    return res.json({ success:true, channel_id: channelId, items });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/alerts/generate', async (req, res) => {
+  const login = String(req.body?.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.body?.days || '30', 10), 1, 180);
+  if (!login) return res.status(400).json({ success:false, error:"login manquant" });
+  const r = await generateAlertsForLogin(login, days);
+  return res.json(r);
+});
+
 // =========================================================
-// 11. SOCKET / HUB SECURE
+// 11. GAME HOURS (heatmap)
+// =========================================================
+app.get('/api/games/hours', async (req, res) => {
+  const gameId = String(req.query.game_id || '').trim();
+  const days = clamp(parseInt(req.query.days || '7', 10), 1, 30);
+  if (!gameId) return res.status(400).json({ success:false, error:"game_id requis" });
+
+  try {
+    const since = Date.now() - days*24*60*60*1000;
+    const snaps = await db.collection('games').doc(gameId)
+      .collection('hourly_stats').where('timestamp','>=', since).get();
+
+    const hours = Array.from({length:24},(_,h)=>({ hour:h, total_viewers:0, channels: new Set(), samples:0 }));
+    snaps.forEach(d => {
+      const x = d.data();
+      const ts = x.timestamp || 0;
+      const h = new Date(ts).getUTCHours();
+      const viewers = x.viewers || 0;
+      hours[h].total_viewers += viewers;
+      if (x.channel_id) hours[h].channels.add(String(x.channel_id));
+      hours[h].samples += 1;
+    });
+
+    const out = hours.map(o => {
+      const ch = o.channels.size;
+      const avgPerChan = ch ? Math.round(o.total_viewers / ch) : 0;
+      const saturation = ch ? Math.min(100, Math.round((ch / Math.max(1, avgPerChan)) * 35)) : 0;
+      const discoverability = avgPerChan ? Math.min(100, Math.round((avgPerChan / (avgPerChan + ch)) * 200)) : 0;
+      return {
+        hour: o.hour,
+        channels: ch,
+        total_viewers: o.total_viewers,
+        avg_viewers_per_channel: avgPerChan,
+        saturation_score: saturation,
+        discoverability_score: discoverability
+      };
+    });
+
+    const best = [...out].sort((a,b)=> (b.discoverability_score - a.discoverability_score) || (b.total_viewers - a.total_viewers))[0];
+
+    return res.json({ success:true, game_id: gameId, days, hours: out, best });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// =========================================================
+// 12. ANALYTICS PRO
+// =========================================================
+app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
+  const login = String(req.params.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.query.days || '30', 10), 1, 90);
+  if (!login) return res.status(400).json({ success:false, error:'login manquant' });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data || !uRes.data.length) return res.json({ success:false, error:'introuvable' });
+    const channelId = String(uRes.data[0].id);
+
+    const since = Date.now() - (days * 24 * 60 * 60 * 1000);
+    const q = await db.collection('channels').doc(channelId)
+      .collection('daily_stats')
+      .where('day', '>=', yyyy_mm_dd_from_ms(since))
+      .orderBy('day', 'asc')
+      .get();
+
+    if (q.empty) {
+      return res.json({
+        success:false,
+        channel_id: channelId,
+        message:"Pas assez de données daily_stats (laisse tourner le cron quelques minutes/heures)."
+      });
+    }
+
+    const rows = q.docs.map(d => d.data());
+    const labels = rows.map(r => r.day?.slice(5) || '—'); // MM-DD
+    const values = rows.map(r => Number(r.avg_viewers || 0));
+
+    const avg = Math.round(values.reduce((a,b)=>a+b,0) / (values.length || 1));
+    const peak = Math.max(...rows.map(r => Number(r.peak_viewers || 0)));
+
+    const first = values[0] || 0;
+    const last = values[values.length-1] || 0;
+    const growth = first > 0 ? Math.round(((last - first) / first) * 100) : (last>0?100:0);
+
+    const mean = avg;
+    const variance = values.reduce((a, v) => a + Math.pow(v - mean, 2), 0) / (values.length || 1);
+    const volatility = Math.round(Math.sqrt(variance));
+
+    const totalMinutes = rows.reduce((a,r)=>a + Number(r.minutes_live_est || 0), 0);
+    const hoursPerWeek = Math.round((totalMinutes / 60) / (Math.max(1, rows.length) / 7));
+
+    const growth_score = computeGrowthScore({ avgViewers: avg, growthPct: growth, volatility, hoursPerWeek });
+
+    return res.json({
+      success:true,
+      channel_id: channelId,
+      days,
+      kpis: {
+        avg_viewers: avg,
+        peak_viewers: peak,
+        growth_percent: growth,
+        volatility,
+        hours_per_week_est: hoursPerWeek,
+        days: rows.length,
+        growth_score
+      },
+      series: { labels, values }
+    });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Simulation & IA reco
+app.get('/api/simulate/growth', async (req, res) => {
+  const channelId = String(req.query.channel_id || '').trim();
+  const hoursPerWeek = clamp(parseFloat(req.query.hours_per_week || '0'), 0, 80);
+  const days = clamp(parseInt(req.query.days || '30', 10), 7, 90);
+
+  if (!channelId || !hoursPerWeek) return res.status(400).json({ success:false, error:'channel_id et hours_per_week requis' });
+
+  try {
+    const snaps = await db.collection('channels').doc(channelId)
+      .collection('daily_stats')
+      .orderBy('day', 'desc')
+      .limit(days)
+      .get();
+
+    if (snaps.empty) return res.json({ success:false, message:'Pas assez de données daily_stats.' });
+
+    const series = snaps.docs.map(d => d.data()).reverse();
+    const avg = Math.round(series.reduce((a, x) => a + (x.avg_viewers || 0), 0) / series.length);
+
+    const totalMinutes = series.reduce((a, x) => a + (x.minutes_live_est || 0), 0);
+    const curHoursPerWeek = Math.max(1, (totalMinutes / 60) / (series.length / 7));
+
+    const ratio = hoursPerWeek / curHoursPerWeek;
+    const k = 0.22;
+    const expectedMultiplier = clamp(1 + k * Math.log(ratio), 0.6, 1.8);
+
+    const expectedAvg = Math.round(avg * expectedMultiplier);
+
+    return res.json({
+      success:true,
+      current:{ avg_viewers: avg, hours_per_week_est: Math.round(curHoursPerWeek * 10) / 10 },
+      target:{ hours_per_week: hoursPerWeek, expected_avg_viewers: expectedAvg, expected_change_percent: Math.round((expectedMultiplier - 1) * 100) }
+    });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.get('/api/ai/reco', async (req, res) => {
+  const login = String(req.query.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.query.days || '30', 10), 7, 90);
+  if (!login) return res.status(400).json({ success:false, html_response:"<p style='color:red;'>login requis</p>" });
+
+  try {
+    const a = await fetch(`http://localhost:${PORT}/api/analytics/channel_by_login/${encodeURIComponent(login)}?days=${days}`).then(r=>r.json());
+    if (!a.success) return res.json({ success:false, html_response:"<p style='color:red;'>Pas assez de data.</p>" });
+
+    const k = a.kpis || {};
+    const prompt = `Tu es un coach Twitch DATA-DRIVEN.
+Réponds UNIQUEMENT en HTML (<h4>, <ul>, <li>, <p>, <strong>).
+
+KPIs:
+- avg_viewers: ${k.avg_viewers}
+- peak_viewers: ${k.peak_viewers}
+- growth_percent: ${k.growth_percent}%
+- volatility: ${k.volatility}
+- hours_per_week_est: ${k.hours_per_week_est}
+- growth_score: ${k.growth_score}/100
+
+Donne 5 recommandations concrètes + 3 expériences à tester.`;
+
+    const ai = await runGeminiAnalysis(prompt);
+    return res.json(ai);
+  } catch (e) {
+    return res.status(500).json({ success:false, html_response:`<p style="color:red;">${e.message}</p>` });
+  }
+});
+
+// =========================================================
+// 13. CO-STREAM
+// =========================================================
+app.get('/api/costream/best', async (req, res) => {
+  const login = String(req.query.login || '').trim().toLowerCase();
+  const days = clamp(parseInt(req.query.days || '14', 10), 1, 60);
+  if (!login) return res.status(400).json({ success:false, message:'login manquant' });
+
+  try {
+    const uRes = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    if (!uRes.data || !uRes.data.length) return res.json({ success:false, message:'Chaîne introuvable' });
+    const me = uRes.data[0];
+
+    let myStream = null;
+    try {
+      const sRes = await twitchAPI(`streams?user_id=${me.id}`);
+      if (sRes.data && sRes.data.length) myStream = sRes.data[0];
+    } catch (e) {}
+
+    let gameId = myStream?.game_id || null;
+    let gameName = myStream?.game_name || null;
+    let myViewers = myStream?.viewer_count ?? null;
+
+    if (!gameId) {
+      try {
+        const metaSnap = await db.collection('channels').doc(String(me.id)).get();
+        if (metaSnap.exists) {
+          const meta = metaSnap.data();
+          gameId = meta.current_game_id || null;
+          gameName = meta.current_game_name || null;
+        }
+      } catch (e) {}
+    }
+
+    if (!gameId) return res.json({ success:false, message:'Chaîne offline et jeu inconnu (pas assez de data).' });
+
+    if (myViewers == null) {
+      try {
+        const snaps = await db.collection('channels').doc(String(me.id)).collection('daily_stats').orderBy('day','desc').limit(days).get();
+        if (!snaps.empty) {
+          const vals = snaps.docs.map(d=>Number(d.data().avg_viewers||0));
+          myViewers = Math.round(vals.reduce((a,b)=>a+b,0)/(vals.length||1));
+        }
+      } catch (e) {}
+      if (myViewers == null) myViewers = 50;
+    }
+
+    const sGame = await twitchAPI(`streams?game_id=${encodeURIComponent(gameId)}&first=100&language=fr`);
+    const candidatesLive = (sGame.data || []).filter(s => s.user_login && s.user_login.toLowerCase() !== login);
+
+    if (!candidatesLive.length) return res.json({ success:false, message:'Aucun co-streamer FR live trouvé sur ce jeu.' });
+
+    const target = Math.max(5, Number(myViewers) || 50);
+
+    const scored = candidatesLive.map(s => {
+      const diff = Math.abs((s.viewer_count || 0) - target);
+      const score = Math.max(0, 100 - Math.round(diff * 2));
+      return { s, diff, score };
+    }).sort((a,b)=> b.score - a.score);
+
+    const bestS = scored[0].s;
+    const bestScore = scored[0].score;
+
+    let prof = null;
+    try {
+      const uu = await twitchAPI(`users?login=${encodeURIComponent(bestS.user_login)}`);
+      if (uu.data && uu.data.length) prof = uu.data[0];
+    } catch (e) {}
+
+    const best = {
+      login: bestS.user_login,
+      display_name: bestS.user_name,
+      profile_image_url: prof?.profile_image_url || null,
+      score: bestScore,
+      why: `Même jeu (${gameName || bestS.game_name}), audience proche (${bestS.viewer_count} vs ~${target}).`
+    };
+
+    const candidates = scored.slice(1, 8).map(x => ({
+      login: x.s.user_login,
+      display_name: x.s.user_name,
+      score: x.score
+    }));
+
+    return res.json({ success:true, best, candidates });
+  } catch (e) {
+    return res.status(500).json({ success:false, message:e.message });
+  }
+});
+
+// =========================================================
+// 14. SERVER START + SOCKET.IO
 // =========================================================
 const server = http.createServer(app);
+
 const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] }
+  cors: { origin: true, methods: ['GET', 'POST'] }
 });
 
 io.on('connection', (socket) => {
-  socket.on('hub_message', (msg) => {
+  console.log('🔌 [SOCKET] client connected');
+
+  socket.on('chat message', (msg) => {
     const safe = {
-      user: String(msg?.user || 'Anonyme').slice(0, 40),
-      text: String(msg?.text || '').slice(0, 500),
-      ts: Date.now()
+      user: String(msg?.user || 'Anon').slice(0, 40),
+      text: String(msg?.text || '').slice(0, 500)
     };
-    io.emit('hub_message', safe);
+    if (!safe.text) return;
+    io.emit('chat message', safe);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔌 [SOCKET] client disconnected');
   });
 });
 
-// =========================================================
-// 12. START
-// =========================================================
 server.listen(PORT, () => {
-  console.log(`✅ Server listening on port ${PORT}`);
+  console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
+  console.log("✅ Routes prêtes");
 });
