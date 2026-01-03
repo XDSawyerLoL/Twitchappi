@@ -1319,20 +1319,108 @@ app.get('/api/costream/best', async (req, res) => {
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'] }
+  cors: { origin: true, methods: ['GET', 'POST'] },
+  transports: ['websocket', 'polling'],
+  pingInterval: 25000,
+  pingTimeout: 20000
 });
+
+// ---- HUB CHAT: gamification + anti-dup + anti-spam (in-memory) ----
+const hubUsers = new Map(); // key: socket.id -> { user, xp, grade, color, lastMsgAt, msgCountWindow, windowStart }
+
+function gradeForXP(xp){
+  if (xp >= 1200) return { grade: 'LEGEND',     color: '#ffd166' };
+  if (xp >= 700)  return { grade: 'CATALYST',   color: '#06d6a0' };
+  if (xp >= 350)  return { grade: 'STRATEGIST', color: '#00f2ea' };
+  if (xp >= 120)  return { grade: 'CURATOR',    color: '#8a5cff' };
+  return { grade: 'NEWCOMER', color: '#9b9ba3' };
+}
+
+function normalizeUser(u){
+  const name = String(u || 'Anon').trim().slice(0, 40);
+  return name || 'Anon';
+}
 
 io.on('connection', (socket) => {
   console.log('🔌 [SOCKET] client connected');
 
+  hubUsers.set(socket.id, {
+    user: 'Anon',
+    xp: 0,
+    ...gradeForXP(0),
+    lastMsgAt: 0,
+    msgCountWindow: 0,
+    windowStart: Date.now()
+  });
+
+  socket.on('hub hello', (payload) => {
+    const st = hubUsers.get(socket.id);
+    if (!st) return;
+    st.user = normalizeUser(payload?.user);
+    const g = gradeForXP(st.xp);
+    st.grade = g.grade; st.color = g.color;
+    socket.emit('hub profile', { user: st.user, xp: st.xp, grade: st.grade, color: st.color });
+  });
+
   socket.on('chat message', (msg) => {
+    const st = hubUsers.get(socket.id);
+    if (!st) return;
+
+    const now = Date.now();
+
+    // Simple rate limit: max 6 msgs / 10s + 900ms cooldown
+    if (now - st.lastMsgAt < 900) return;
+    if (now - st.windowStart > 10000) { st.windowStart = now; st.msgCountWindow = 0; }
+    st.msgCountWindow += 1;
+    if (st.msgCountWindow > 6) return;
+
+    const user = normalizeUser(msg?.user || st.user);
+    const text = String(msg?.text || '').slice(0, 500).trim();
+    const id = String(msg?.id || '').slice(0, 120);
+    const clientId = String(msg?.clientId || '').slice(0, 120);
+
+    if (!text) return;
+
+    // XP rules (anti-spam): +5 per message, +2 if contains emote code like :kappa:
+    const hasEmote = /:[a-z0-9_+-]+:/i.test(text);
+    let add = 5 + (hasEmote ? 2 : 0);
+
+    // Bonus for longer helpful messages (capped)
+    if (text.length >= 80) add += 1;
+    if (text.length >= 160) add += 1;
+
+    // Hard cap per message
+    if (add > 9) add = 9;
+
+    st.xp += add;
+    st.lastMsgAt = now;
+
+    const g = gradeForXP(st.xp);
+    st.grade = g.grade; st.color = g.color;
+    st.user = user;
+
+    // Send updated profile back to sender
+    socket.emit('hub profile', { user: st.user, xp: st.xp, grade: st.grade, color: st.color });
+
     const safe = {
-      user: String(msg?.user || 'Anon').slice(0, 40),
-      text: String(msg?.text || '').slice(0, 500)
+      id: id || `${socket.id}:${now}`,
+      clientId,
+      user: st.user,
+      text,
+      ts: now,
+      xp: st.xp,
+      grade: st.grade,
+      color: st.color
     };
-    if (!safe.text) return;
+
     io.emit('chat message', safe);
   });
+
+  socket.on('disconnect', () => {
+    hubUsers.delete(socket.id);
+    console.log('🔌 [SOCKET] client disconnected');
+  });
+});
 
   socket.on('disconnect', () => {
     console.log('🔌 [SOCKET] client disconnected');
