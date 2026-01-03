@@ -242,6 +242,56 @@
     .tf-error{ background:rgba(255,0,153,.12); color:#ff0099; border:1px solid rgba(255,0,153,.22); cursor:pointer; }
     .tf-empty{ padding: 18px 4px; color:#cfcfe4; text-align:center; }
 
+
+    /* Hub chat: GIF + reactions + lightbox */
+    .hub-gif{ max-width:260px; border-radius:10px; margin-top:6px; cursor:pointer; box-shadow:0 0 16px rgba(0,0,0,.35); }
+    .hub-msg{ position:relative; padding-bottom:12px; }
+    .hub-reaction-bar{
+      position:absolute; right:10px; top:6px;
+      display:flex; gap:6px; opacity:0; transform:translateY(-4px);
+      transition:.15s ease; pointer-events:none;
+    }
+    .hub-msg:hover .hub-reaction-bar{ opacity:1; transform:translateY(0); pointer-events:auto; }
+    .hub-react-btn{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.35);
+      color:#fff;
+      border-radius:999px;
+      font-size:12px;
+      padding:4px 8px;
+      cursor:pointer;
+      backdrop-filter: blur(8px);
+    }
+    .hub-react-btn:hover{ border-color:#00f2ea; box-shadow:0 0 10px rgba(0,242,234,.2); }
+    .hub-react-counts{ margin-top:6px; display:flex; gap:8px; flex-wrap:wrap; }
+    .hub-react-pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:3px 8px; border-radius:999px;
+      font-size:12px; border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      color:#eaeaf0;
+    }
+    #gif-lightbox{
+      position:fixed; inset:0; z-index:99999;
+      display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.78);
+      backdrop-filter: blur(6px);
+      padding:24px;
+    }
+    #gif-lightbox.active{ display:flex; }
+    #gif-lightbox img{ max-width:min(92vw, 720px); max-height:86vh; border-radius:14px; box-shadow:0 0 30px rgba(0,0,0,.6); }
+    #gif-lightbox .close{
+      position:absolute; top:18px; right:18px;
+      width:38px; height:38px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.35);
+      color:#fff; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px;
+    }
+
+
+    .tf-play-toggle{ display:flex; gap:6px; background:#0a0a0a; border:1px solid #2b2b31; padding:4px; border-radius:12px; }
 </style>
 
 <style>
@@ -267,6 +317,17 @@
 .gif-item img{width:100%;height:130px;object-fit:cover;display:block}
 .gif-loading{grid-column:1/-1;color:#777;text-align:center;padding:40px 0;font-size:12px}
 .hub-msg .hub-gif{margin-top:6px;border-radius:12px;max-width:220px;border:1px solid #222}
+
+/* Emote Picker (Hub) */
+.emote-picker{position:absolute;left:10px;right:10px;bottom:64px;background:rgba(10,10,10,.98);border:1px solid #26262b;border-radius:16px;box-shadow:0 18px 60px rgba(0,0,0,.55);padding:10px;z-index:60}
+.emote-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.emote-title{font-family:Orbitron, sans-serif;font-size:11px;letter-spacing:.1em;color:#eaeaf0;display:flex;gap:8px;align-items:center}
+.emote-close{background:#141416;border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:6px 10px;cursor:pointer}
+.emote-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;max-height:180px;overflow:auto;padding:6px}
+.emote-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:8px 0;cursor:pointer;font-size:18px;line-height:1}
+.emote-btn:hover{border-color:#00f2ea;box-shadow:0 0 0 2px rgba(0,242,234,.12)}
+@media (max-width:520px){.emote-grid{grid-template-columns:repeat(6,1fr)}}
+
 </style>
 
 </head>
@@ -493,9 +554,19 @@
           </div>
           <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
             <input id="hub-input" type="text" placeholder="Message..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-            <button type="submit" class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
+            <button type="button" class="text-gray-200 px-2" onclick="toggleEmotePicker()" title="Emotes"><i class="far fa-smile"></i></button>
+            <button type="button" class="text-gray-200 px-2" onclick="openGifPicker()" title="GIF"><i class="fas fa-gift"></i></button>
+            <button type="submit" class="text-[#00f2ea] px-2" title="Envoyer"><i class="fas fa-paper-plane"></i></button>
           </form>
-        </div>
+        
+          <div id="emote-picker" class="emote-picker hidden">
+            <div class="emote-head">
+              <div class="emote-title"><i class="far fa-smile"></i> Emotes</div>
+              <button class="emote-close" type="button" onclick="toggleEmotePicker(false)"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="emote-grid" id="emote-grid"></div>
+          </div>
+</div>
       </div>
 
       <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
@@ -611,6 +682,11 @@
           <div class="tf-view-toggle">
             <button id="tf-btn-rows" class="tf-toggle-btn active" type="button" onclick="setTwitFlixView('rows')">LIGNES</button>
             <button id="tf-btn-az" class="tf-toggle-btn" type="button" onclick="setTwitFlixView('az')">A–Z</button>
+          </div>
+
+          <div class="tf-play-toggle">
+            <button id="tf-play-live" class="tf-toggle-btn active" type="button" onclick="setTwitFlixPlayMode('live')">LIVE</button>
+            <button id="tf-play-vod" class="tf-toggle-btn" type="button" onclick="setTwitFlixPlayMode('vod')">VOD</button>
           </div>
 
           <i class="fas fa-times tf-close" onclick="closeTwitFlix()"></i>
@@ -772,6 +848,27 @@
       loadStreamInfo(channel);
     }
 
+    function loadVodEmbed(videoId) {
+      const container = document.getElementById('video-container');
+      const parentParam = PARENT_DOMAINS.join('&parent=');
+      const vid = String(videoId || '');
+      const vParam = vid.startsWith('v') ? vid : `v${vid}`;
+      const iframeUrl = `https://player.twitch.tv/?video=${vParam}&parent=${parentParam}&autoplay=true&muted=false&theme=dark`;
+      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allowfullscreen="true" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+      document.getElementById('viewer-count').innerText = 'VOD';
+    }
+
+    function playVod(videoId, title){
+      currentChannel = '';
+      document.getElementById('current-channel-display').innerText = (title || 'VOD').toString().slice(0, 40).toUpperCase();
+      loadVodEmbed(videoId);
+      try{
+        const twitch = document.getElementById('chat-container-twitch');
+        if (twitch) twitch.innerHTML = '<div style="padding:12px;color:#a7a7b2;">Chat indisponible en mode VOD.</div>';
+      }catch(e){}
+    }
+
+
     function loadStreamInfo(channel) {
       fetch(`${API_BASE}/stream_info`, {
         method:'POST',
@@ -918,25 +1015,67 @@
       const user = msg.user || 'Anon';
       const text = msg.text || '';
       const gif = msg.gif || '';
+      const mid = msg.id || '';
 
       const nameColor = isSelf ? '#ff0099' : '#00f2ea';
-      let html = `<div class="hub-msg" data-mid="${escapeHtml(msg.id||'')}">`
+
+      let html = `<div class="hub-msg" data-mid="${escapeHtml(mid)}">`
+        + `<div class="hub-reaction-bar">`
+        + `<button class="hub-react-btn" onclick="reactToMsg(event,'${escapeHtml(mid)}','🔥')">🔥</button>`
+        + `<button class="hub-react-btn" onclick="reactToMsg(event,'${escapeHtml(mid)}','😂')">😂</button>`
+        + `<button class="hub-react-btn" onclick="reactToMsg(event,'${escapeHtml(mid)}','💖')">💖</button>`
+        + `<button class="hub-react-btn" onclick="reactToMsg(event,'${escapeHtml(mid)}','👍')">👍</button>`
+        + `</div>`
         + `<strong style="color:${nameColor}">${escapeHtml(user)}</strong> `;
 
       if (text){
-        html += `<span class="text-gray-300">${escapeHtml(text)}</span>`;
+        html += `<span class="text-gray-300">${formatHubText(text)}</span>`;
       }
       if (gif){
         const safeGif = escapeHtml(gif);
-        html += `<div><img class="hub-gif" src="${safeGif}" loading="lazy" alt="GIF"></div>`;
+        html += `<div><img class="hub-gif" src="${safeGif}" loading="lazy" alt="GIF" onclick="openGifLightbox('${safeGif}')"></div>`;
       }
+
+      html += `<div class="hub-react-counts" data-rc="${escapeHtml(mid)}"></div>`;
       html += `</div>`;
 
-      box.innerHTML += html;
+      box.insertAdjacentHTML('beforeend', html);
       box.scrollTop = box.scrollHeight;
     }
 
-    function initSocket(){
+    
+    // === Hub chat: reactions + GIF lightbox ===
+    function openGifLightbox(url){
+      const lb = document.getElementById('gif-lightbox');
+      const img = document.getElementById('gif-lightbox-img');
+      if (!lb || !img) return;
+      img.src = url;
+      lb.classList.add('active');
+    }
+    function closeGifLightbox(e){
+      if (e) e.stopPropagation();
+      const lb = document.getElementById('gif-lightbox');
+      const img = document.getElementById('gif-lightbox-img');
+      if (!lb || !img) return;
+      lb.classList.remove('active');
+      img.src = '';
+    }
+
+    function reactToMsg(e, mid, emoji){
+      if (e) e.stopPropagation();
+      if (!mid || !emoji || !socket) return;
+      socket.emit('chat reaction', { id: mid, emoji, user: currentUser || 'Anon' });
+    }
+
+    function applyReactionCounts(mid, counts){
+      const wrap = document.querySelector(`.hub-react-counts[data-rc="${CSS.escape(mid)}"]`);
+      if (!wrap) return;
+      const entries = Object.entries(counts || {}).filter(([k,v]) => v>0).sort((a,b)=>b[1]-a[1]);
+      if (!entries.length){ wrap.innerHTML = ''; return; }
+      wrap.innerHTML = entries.map(([emo, n]) => `<span class="hub-react-pill">${escapeHtml(emo)} <b>${n}</b></span>`).join('');
+    }
+
+function initSocket(){
       try{
         if (window.__hubSocketInited) return;
         window.__hubSocketInited = true;
@@ -974,20 +1113,20 @@
             }, false);
           }catch(e){}
         });
+        socket.on('chat reaction update',(p)=>{ try{ applyReactionCounts(String(p?.id||''), p?.counts||{}); }catch(e){} });
+
       }catch(e){ console.error('Socket error:', e); }
     }
 
     function sendHubMessage(e){
       e.preventDefault();
       const input = document.getElementById('hub-input');
-      const text = String(input?.value || '').trim();
-      if (!text) return;
+      const textRaw = String(input?.value || '').trim();
+      if (!textRaw) return;
 
+      // anti double: on n'affiche PAS en local, on attend l'echo serveur (dedup par id)
       const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-      const payload = { id, user: currentUser || 'Anon', text };
-
-      rememberMsgId(id);
-      renderHubMessage(payload, true);
+      const payload = { id, user: currentUser || 'Anon', text: textRaw };
 
       if (socket) socket.emit('chat message', payload);
       input.value = '';
@@ -1039,7 +1178,68 @@
         setTimeout(()=>input.focus(), 60);
       }
       gifLoadTrending();
+    
+    // ===== HUB Emotes =====
+    const HUB_EMOTES = [
+      { code: ':kappa:', emoji: '😏' }, { code: ':pog:', emoji: '😮' }, { code: ':lurk:', emoji: '👀' },
+      { code: ':gg:', emoji: '🏆' }, { code: ':love:', emoji: '❤️' }, { code: ':sad:', emoji: '😢' },
+      { code: ':hype:', emoji: '🔥' }, { code: ':clap:', emoji: '👏' }, { code: ':wow:', emoji: '🤯' },
+      { code: ':brain:', emoji: '🧠' }, { code: ':ez:', emoji: '😎' }, { code: ':sus:', emoji: '🕵️' },
+      { code: ':aim:', emoji: '🎯' }, { code: ':tv:', emoji: '📺' }, { code: ':star:', emoji: '⭐' },
+      { code: ':crown:', emoji: '👑' }, { code: ':skull:', emoji: '💀' }, { code: ':party:', emoji: '🥳' },
+      { code: ':100:', emoji: '💯' }, { code: ':rocket:', emoji: '🚀' }, { code: ':zap:', emoji: '⚡' },
+      { code: ':heart:', emoji: '💖' }, { code: ':laugh:', emoji: '😂' }, { code: ':okay:', emoji: '👌' }
+    ];
+
+    function toggleEmotePicker(force){
+      const box = document.getElementById('emote-picker');
+      if (!box) return;
+      const show = (typeof force === 'boolean') ? force : box.classList.contains('hidden');
+      box.classList.toggle('hidden', !show);
+      if (show) renderEmotePicker();
     }
+
+    function renderEmotePicker(){
+      const grid = document.getElementById('emote-grid');
+      if (!grid) return;
+      if (grid.dataset.ready === '1') return;
+
+      grid.innerHTML = HUB_EMOTES.map(e => 
+        `<button type="button" class="emote-btn" title="${escapeHtml(e.code)}" onclick="insertEmote('${escapeHtml(e.code)}')">${e.emoji}</button>`
+      ).join('');
+      grid.dataset.ready = '1';
+    }
+
+    function insertEmote(code){
+      const input = document.getElementById('hub-input');
+      if (!input) return;
+      const before = input.value;
+      const sep = before && !before.endsWith(' ') ? ' ' : '';
+      input.value = before + sep + code + ' ';
+      input.focus();
+    }
+
+    function formatHubText(text){
+      let safe = escapeHtml(String(text||''));
+      // replace codes after escaping (safe, ":" unaffected)
+      for (const e of HUB_EMOTES){
+        const code = escapeRegExp(e.code);
+        safe = safe.replace(new RegExp(code, 'g'), e.emoji);
+      }
+      return safe;
+    }
+
+    function escapeRegExp(str){ return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+    // send GIF as message
+    function sendHubGif(gifUrl){
+      const url = String(gifUrl||'').trim();
+      if (!url) return;
+      const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      const payload = { id, user: currentUser || 'Anon', gif: url };
+      if (socket) socket.emit('chat message', payload);
+    }
+}
 
     function closeGifPicker(){
       const modal = document.getElementById('gif-modal');
@@ -1133,7 +1333,9 @@
     let tfLoading = false;
     let tfHasMore = true;
 
-    let tfViewMode = 'rows'; // 'rows' | 'az'
+    let tfViewMode = 'rows';
+      tfPlayMode = 'live';
+    let tfPlayMode = 'live'; // live | vod // 'rows' | 'az'
     let tfSearchQuery = '';
     let tfSearchResults = [];
     let tfObserver = null;
@@ -1142,6 +1344,16 @@
     const tfPreviewCache = new Map();
     const tfPreviewInflight = new Map();
     const TF_PREVIEW_TTL = 10 * 60 * 1000;
+
+    function setTwitFlixPlayMode(mode){
+      tfPlayMode = (mode === 'vod') ? 'vod' : 'live';
+      const bl = document.getElementById('tf-play-live');
+      const bv = document.getElementById('tf-play-vod');
+      if (bl && bv){
+        bl.classList.toggle('active', tfPlayMode === 'live');
+        bv.classList.toggle('active', tfPlayMode === 'vod');
+      }
+    }
 
     function setTwitFlixView(mode){
       tfViewMode = (mode === 'az') ? 'az' : 'rows';
@@ -1606,16 +1818,42 @@
       return p;
     }
 
-    async function playTwitFlixCategory(gameId, gameName){
+    async function playTwitFlixCategory(gameId, gameName) {
       closeTwitFlix();
       document.getElementById('current-channel-display').innerText = "TWITFLIX…";
+      const badge = document.getElementById('player-mode-badge');
+      if (badge) badge.innerText = (tfPlayMode === 'vod') ? "VOD" : "TWITFLIX";
 
-      try{
+      try {
+        if (tfPlayMode === 'vod') {
+          const r = await fetch(`${API_BASE}/api/vod/by_category?game_id=${encodeURIComponent(gameId)}&type=archive`);
+          const d = await r.json();
+          if (d && d.success && d.video_id) {
+            playVod(d.video_id, d.title || gameName);
+            return;
+          }
+          alert("Aucune VOD trouvée pour ce jeu.");
+          document.getElementById('current-channel-display').innerText = "OFFLINE";
+          return;
+        }
+
         const res = await fetch(`${API_BASE}/api/stream/by_category`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ game_id: gameId })
         });
+        const data = await res.json();
+
+        if (data && data.success && data.channel) {
+          changeChannel(data.channel);
+        } else {
+          alert("Aucun stream trouvé pour ce jeu.");
+          document.getElementById('current-channel-display').innerText = "OFFLINE";
+        }
+      } catch (_) {
+        alert("Erreur lors de la recherche TwitFlix.");
+      }
+    });
         const data = await res.json();
 
         if (data && data.success && data.channel){
@@ -2047,6 +2285,12 @@
         <div class="gif-loading"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>
       </div>
     </div>
+  </div>
+
+
+  <div id="gif-lightbox" onclick="closeGifLightbox(event)">
+    <div class="close" title="Fermer" onclick="closeGifLightbox(event)"><i class="fas fa-times"></i></div>
+    <img id="gif-lightbox-img" src="" alt="GIF">
   </div>
 
 </body>
