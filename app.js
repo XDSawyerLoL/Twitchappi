@@ -15,11 +15,6 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const session = require('express-session');
-let MemoryStoreFactory = null;
-try { MemoryStoreFactory = require('memorystore'); } catch (e) { /* optional */ }
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -92,55 +87,6 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
-
-// --- Security middleware (iframe-safe for Fourthwall/justplayer.fr) ---
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  frameguard: false
-}));
-
-// Rate limit (API only)
-app.use('/api/', rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false
-}));
-
-// Sessions (multi-user)
-// SESSION_SECRET is required in production
-let SESSION_SECRET = process.env.SESSION_SECRET;
-if (!SESSION_SECRET) {
-  console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod).');
-  // fallback dev to avoid crash
-  SESSION_SECRET = crypto.randomBytes(32).toString('hex');
-}
-
-app.set('trust proxy', 1);
-
-let sessionStore;
-try {
-  if (MemoryStoreFactory) {
-    const MemoryStore = MemoryStoreFactory(session);
-    sessionStore = new MemoryStore({ checkPeriod: 86400000 });
-  }
-} catch (e) {
-  sessionStore = undefined;
-}
-
-app.use(session({
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: sessionStore,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
-  }
-}));
-
 
 // Page principale (UI)
 app.get('/', (req, res) => {
@@ -545,23 +491,27 @@ app.get('/api/categories/top', async (req, res) => {
   }
 });
 
+
+// Search categories (pour la barre de recherche TwitFlix)
+// - retourne un tableau de catégories (mêmes champs que /api/categories/top)
 app.get('/api/categories/search', async (req, res) => {
   try {
     const q = String(req.query.q || '').trim();
     if (!q) return res.json({ success: true, categories: [] });
 
+    // Twitch: search/categories?query=...&first=100
     const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
     const categories = (d.data || []).map(g => ({
       id: g.id,
       name: g.name,
       box_art_url: (g.box_art_url || '').replace('{width}', '285').replace('{height}', '380')
     }));
-
     return res.json({ success: true, categories });
   } catch (e) {
     return res.status(500).json({ success: false, error: e.message });
   }
 });
+
 
 app.post('/api/stream/by_category', async (req, res) => {
   const gameId = String(req.body?.game_id || '');
@@ -1369,10 +1319,7 @@ app.get('/api/costream/best', async (req, res) => {
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'] },
-  transports: ['websocket', 'polling'],
-  pingInterval: 25000,
-  pingTimeout: 20000
+  cors: { origin: true, methods: ['GET', 'POST'] }
 });
 
 io.on('connection', (socket) => {
