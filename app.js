@@ -4,12 +4,6 @@
  * Updates:
  * - /api/categories/top : Supporte pagination (cursor) + fetch 100 items
  * - Chat force dark mode param check
- *
- * Additions demandées (SANS changer le reste) :
- * - helmet
- * - express-rate-limit
- * - express-session
- * - SESSION_SECRET (warning si manquant)
  */
 
 require('dotenv').config();
@@ -26,11 +20,6 @@ const { Server } = require('socket.io');
 
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
-
-// ✅ Ajouts demandés
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const session = require('express-session');
 
 // =========================================================
 // 0. INITIALISATION FIREBASE
@@ -77,43 +66,12 @@ try {
 // =========================================================
 const app = express();
 
-// ✅ Render/Proxy (important pour cookies secure / IP rate-limit)
-app.set('trust proxy', 1);
-
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash";
-
-// ✅ SESSION_SECRET demandé — on WARNING si absent, mais on ne casse pas le serveur
-let SESSION_SECRET = process.env.SESSION_SECRET;
-if (!SESSION_SECRET) {
-  console.warn("⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod).");
-  // fallback pour éviter que l’app ne refuse de démarrer
-  // (⚠️ en prod, mets une vraie valeur stable dans Render)
-  SESSION_SECRET = crypto.randomBytes(32).toString('hex');
-}
-
-// ✅ Helmet (CSP assouplie pour autoriser les CDN utilisés par ton HTML: tailwindcdn, chartjs, socket.io cdn, fonts, fontawesome…)
-app.use(helmet({
-  contentSecurityPolicy: false, // on désactive CSP par défaut (sinon ton UI peut devenir "blanche")
-  crossOriginEmbedderPolicy: false
-}));
-
-// ✅ Sessions (multi-user)
-app.use(session({
-  name: 'hub.sid',
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
-  }
-}));
 
 let aiClient = null;
 if (GEMINI_API_KEY) {
@@ -125,31 +83,12 @@ if (GEMINI_API_KEY) {
   }
 }
 
-// ✅ Rate limit (simple, safe)
-// - on limite surtout /api et endpoints sensibles
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 240, // 240 req/min/IP (assez large pour ton dashboard)
-  standardHeaders: true,
-  legacyHeaders: false
-});
-app.use('/api', apiLimiter);
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-app.use(['/twitch_auth_start', '/twitch_auth_callback', '/twitch_user_status'], authLimiter);
-
-// ✅ Middlewares existants (inchangés)
 app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
 
-// Page principale (UI) (inchangé)
+// Page principale (UI)
 app.get('/', (req, res) => {
   const candidates = [
     process.env.UI_FILE,
@@ -524,22 +463,28 @@ app.post('/stream_info', async (req, res) => {
 });
 
 // --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
+
 app.get('/api/categories/top', async (req, res) => {
   try {
+    // On supporte la pagination via "cursor"
     const cursor = req.query.cursor;
+    
+    // On demande 100 catégories d'un coup (max Twitch)
     let url = 'games/top?first=100';
     if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
 
     const d = await twitchAPI(url);
     if (!d.data) return res.json({ success: false });
-
+    
     const categories = d.data.map(g => ({
       id: g.id,
       name: g.name,
       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
     }));
 
+    // On renvoie aussi le curseur pour la page suivante
     const nextCursor = d.pagination ? d.pagination.cursor : null;
+
     res.json({ success: true, categories, cursor: nextCursor });
   } catch (e) {
     res.status(500).json({ success:false, error:e.message });
@@ -551,6 +496,7 @@ app.post('/api/stream/by_category', async (req, res) => {
   if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
 
   try {
+    // 100 streams max, FR ou global
     let sRes = await twitchAPI(`streams?game_id=${gameId}&language=fr&first=100`);
     let streams = sRes.data || [];
 
@@ -559,9 +505,11 @@ app.post('/api/stream/by_category', async (req, res) => {
       streams = [...streams, ...(gRes.data || [])];
     }
 
+    // Filtre < 100 viewers
     const candidates = streams.filter(s => (s.viewer_count || 0) <= 100);
 
     if (candidates.length === 0) {
+      // Fallback
       streams.sort((a, b) => (a.viewer_count || 0) - (b.viewer_count || 0));
       if (streams.length > 0) candidates.push(streams[0]);
     }
@@ -571,9 +519,9 @@ app.post('/api/stream/by_category', async (req, res) => {
     }
 
     const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
-
-    return res.json({
-      success: true,
+    
+    return res.json({ 
+      success: true, 
       channel: randomStream.user_login,
       game_name: randomStream.game_name
     });
@@ -1145,7 +1093,7 @@ app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
     }
 
     const rows = q.docs.map(d => d.data());
-    const labels = rows.map(r => r.day?.slice(5) || '—');
+    const labels = rows.map(r => r.day?.slice(5) || '—'); // MM-DD
     const values = rows.map(r => Number(r.avg_viewers || 0));
 
     const avg = Math.round(values.reduce((a,b)=>a+b,0) / (values.length || 1));
@@ -1184,6 +1132,7 @@ app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
   }
 });
 
+// Simulation & IA reco
 app.get('/api/simulate/growth', async (req, res) => {
   const channelId = String(req.query.channel_id || '').trim();
   const hoursPerWeek = clamp(parseFloat(req.query.hours_per_week || '0'), 0, 80);
@@ -1289,6 +1238,7 @@ app.get('/api/costream/best', async (req, res) => {
     if (!gameId) return res.json({ success:false, message:'Chaîne offline et jeu inconnu (pas assez de data).' });
 
     if (myViewers == null) {
+      // fallback: use daily avg if exists
       try {
         const snaps = await db.collection('channels').doc(String(me.id)).collection('daily_stats').orderBy('day','desc').limit(days).get();
         if (!snaps.empty) {
@@ -1308,7 +1258,7 @@ app.get('/api/costream/best', async (req, res) => {
 
     const scored = candidatesLive.map(s => {
       const diff = Math.abs((s.viewer_count || 0) - target);
-      const score = Math.max(0, 100 - Math.round(diff * 2));
+      const score = Math.max(0, 100 - Math.round(diff * 2)); // simple
       return { s, diff, score };
     }).sort((a,b)=> b.score - a.score);
 
