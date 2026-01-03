@@ -25,7 +25,6 @@
       color:var(--text-main);
       font-family:Inter, sans-serif;
       overflow-x:hidden;
-      padding-top: calc(18px + env(safe-area-inset-top));
     }
     .font-orbitron{ font-family:Orbitron, sans-serif; }
 
@@ -195,11 +194,10 @@
     .tf-rows{
       flex:1;
       overflow-y:auto;
-      overflow-x: hidden;
       padding: 10px 18px 18px 18px;
     }
 
-    .tf-row{ margin-top: 18px; position: relative; }
+    .tf-row{ margin-top: 18px; }
     .tf-row-title{
       font-family: Orbitron, sans-serif;
       font-size: 12px;
@@ -215,9 +213,6 @@
       display:flex;
       gap: 14px;
       overflow-x:auto;
-      overflow-y: visible;
-      padding-top: 6px;
-      padding-bottom: 14px; 
       padding-bottom: 10px;
       scroll-behavior:smooth;
       -webkit-overflow-scrolling: touch;
@@ -300,10 +295,17 @@
       transform: translateY(-1px);
     }
 
-</style>
+
+    /* Embed top spacer (Fourthwall) */
+    #embed-top-spacer{ height: 28px; }
+    @media (max-width: 640px){ #embed-top-spacer{ height: 34px; } }
+
+  </style>
 </head>
 
 <body class="h-screen flex flex-col p-4">
+
+  <div id=\"embed-top-spacer\"></div>
 
   <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
     <div class="flex items-center gap-4">
@@ -912,19 +914,8 @@
         window.__socket = io();
         socket = window.__socket;
 
-                // logs anti-spam (iframe reconnect)
-        let __lastSockLog = 0;
-        function sockLogOncePer(ms, msg){
-          const now = Date.now();
-          if (now - __lastSockLog > ms){
-            __lastSockLog = now;
-            console.log(msg);
-          }
-        }
-
-        socket.on('connect', () => sockLogOncePer(8000, '🔌 [SOCKET] connected'));
-        socket.on('disconnect', (reason) => sockLogOncePer(8000, `🔌 [SOCKET] disconnected (${reason})`));
-        socket.on('connect_error', () => sockLogOncePer(8000, '🔌 [SOCKET] connect_error'));
+        socket.on('connect', () => console.log('🔌 [SOCKET] client connected'));
+        socket.on('disconnect', () => console.log('🔌 [SOCKET] client disconnected'));
 
         socket.on('chat message',(msg)=>{
           const box = document.g// TWITFLIX (Netflix-like) — CATALOGUE ONLY
@@ -1735,12 +1726,6 @@
       }
       setTimeout(()=>{ msg.innerText=''; }, 4000);
     }
-  
-    window.addEventListener('beforeunload', () => {
-      if (window.__socket) {
-        try { window.__socket.disconnect(); } catch(e){}
-      }
-    });
-</script>
+  </script>
 </body>
 </html>
