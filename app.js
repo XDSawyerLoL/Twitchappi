@@ -15,6 +15,9 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const session = require('express-session');
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -67,6 +70,7 @@ try {
 const app = express();
 
 const PORT = process.env.PORT || 10000;
+const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
@@ -83,11 +87,45 @@ if (GEMINI_API_KEY) {
   }
 }
 
+app.set('trust proxy', 1);
+
+// Sécurité (sans casser Twitch embeds)
+// - CSP désactivée ici pour éviter de bloquer player.twitch.tv et autres iframes externes.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false
+}));
+
+// Rate limit (API + auth). Ajuste si besoin.
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 400,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use(limiter);
+
+// Sessions (OBLIGATOIRE en prod)
+if (!SESSION_SECRET) {
+  console.warn("⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod).");
+}
+app.use(session({
+  name: 'hub.sid',
+  secret: SESSION_SECRET || 'dev-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: true
+  }
+}));
+
 app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
-
 // Page principale (UI)
 app.get('/', (req, res) => {
   const candidates = [
