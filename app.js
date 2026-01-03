@@ -18,6 +18,7 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
+const MemoryStore = require('memorystore')(session);
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -113,13 +114,14 @@ if (!SESSION_SECRET) {
 }
 app.use(session({
   name: 'hub.sid',
+  store: new MemoryStore({ checkPeriod: 86400000 }),
   secret: SESSION_SECRET || 'dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
-    secure: true
+    secure: process.env.NODE_ENV === 'production'
   }
 }));
 
@@ -399,7 +401,7 @@ if (ENABLE_CRON) {
 app.get('/twitch_auth_start', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
   const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
+  res.cookie('twitch_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 600000 });
   res.redirect(url);
 });
 
@@ -495,7 +497,26 @@ app.post('/stream_info', async (req, res) => {
       started_at: stream.started_at || null
     } : null;
 
-    return res.json({ success:true, user, stream: out });
+    return res.json({ success:true, us
+app.get('/api/categories/search', async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (!q) return res.json({ success: true, categories: [] });
+
+    const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
+    const categories = (d.data || []).map(g => ({
+      id: g.id,
+      name: g.name,
+      box_art_url: (g.box_art_url || '').replace('{width}', '285').replace('{height}', '380')
+    }));
+
+    return res.json({ success: true, categories });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+er, stream: out });
   } catch (e) {
     return res.status(500).json({ success:false, error:e.message });
   }
