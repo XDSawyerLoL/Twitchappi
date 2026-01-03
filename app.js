@@ -15,9 +15,6 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const session = require('express-session');
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -69,12 +66,7 @@ try {
 // =========================================================
 const app = express();
 
-// Trust proxy (Render/Reverse proxy) for secure cookies
-app.set('trust proxy', 1);
-
-
 const PORT = process.env.PORT || 10000;
-const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
@@ -92,38 +84,6 @@ if (GEMINI_API_KEY) {
 }
 
 app.use(cors());
-
-// Basic hardening (kept gentle so it doesn't break embeds/iframes)
-app.use(helmet({
-  contentSecurityPolicy: false, // UI uses external resources/iframes
-  crossOriginEmbedderPolicy: false
-}));
-
-// Session (required for multi-user auth). SESSION_SECRET MUST be set in Render.
-if (!SESSION_SECRET) {
-  console.warn("⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod). Ajoute-le dans Render > Environment.");
-}
-app.use(session({
-  name: 'jp.sid',
-  secret: SESSION_SECRET || 'dev-unsafe-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
-  }
-}));
-
-// Rate limit (API only)
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 180,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-app.use('/api', apiLimiter);
-
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
@@ -570,6 +530,84 @@ app.post('/api/stream/by_category', async (req, res) => {
     res.status(500).json({ success: false, error: e.message });
   }
 });
+
+// =========================================================
+// 4.b VOD BY CATEGORY (TwitFlix VOD mode)
+// =========================================================
+app.post('/api/vod/by_category', async (req, res) => {
+  try {
+    const game_id = String(req.body?.game_id || '').trim();
+    if (!game_id) return res.json({ success:false, error:'game_id missing' });
+
+    const d = await twitchAPI(`videos?game_id=${encodeURIComponent(game_id)}&first=20&sort=views&period=month&type=archive`);
+    const videos = Array.isArray(d?.data) ? d.data : [];
+    const pick = videos.find(v => v?.id) || null;
+    if (!pick) return res.json({ success:false, error:'no vod found' });
+
+    return res.json({
+      success:true,
+      video_id: pick.id,
+      title: pick.title || '',
+      user_name: pick.user_name || '',
+      thumbnail_url: (pick.thumbnail_url || '').replace('%{width}','640').replace('%{height}','360'),
+      url: pick.url || ''
+    });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+// =========================================================
+// 4.c GIPHY (HUB GIFs) — proxy sécurisé
+// =========================================================
+app.get('/api/gifs/trending', async (req, res) => {
+  try {
+    const key = process.env.GIPHY_API_KEY;
+    if (!key) return res.status(501).json({ success:false, error:'GIPHY_API_KEY missing' });
+
+    const limit = Math.min(30, Math.max(1, parseInt(req.query.limit || '24', 10)));
+    const r = await fetch(`https://api.giphy.com/v1/gifs/trending?api_key=${encodeURIComponent(key)}&limit=${limit}&rating=pg-13`);
+    const j = await r.json();
+
+    const gifs = (j?.data || []).map(g => ({
+      id: g.id,
+      title: g.title || '',
+      url: g.images?.original?.url || '',
+      preview: g.images?.fixed_width?.url || g.images?.downsized?.url || ''
+    })).filter(x => x.url);
+
+    res.json({ success:true, gifs });
+  } catch (e) {
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.get('/api/gifs/search', async (req, res) => {
+  try {
+    const key = process.env.GIPHY_API_KEY;
+    if (!key) return res.status(501).json({ success:false, error:'GIPHY_API_KEY missing' });
+
+    const q = String(req.query.q || '').trim();
+    if (!q) return res.json({ success:true, gifs: [] });
+
+    const limit = Math.min(30, Math.max(1, parseInt(req.query.limit || '24', 10)));
+    const r = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(key)}&q=${encodeURIComponent(q)}&limit=${limit}&rating=pg-13&lang=fr`);
+    const j = await r.json();
+
+    const gifs = (j?.data || []).map(g => ({
+      id: g.id,
+      title: g.title || '',
+      url: g.images?.original?.url || '',
+      preview: g.images?.fixed_width?.url || g.images?.downsized?.url || ''
+    })).filter(x => x.url);
+
+    res.json({ success:true, gifs });
+  } catch (e) {
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 
 // =========================================================
 // 5. STREAMS FOLLOWED + ROTATION + BOOST
@@ -1331,65 +1369,140 @@ app.get('/api/costream/best', async (req, res) => {
   }
 });
 
-
-// =========================================================
-// 13.X TWITFLIX PREVIEW (hover simulation)
-// =========================================================
-app.get('/api/twitflix/preview', async (req, res) => {
-  try {
-    const gameId = String(req.query.game_id || '').trim();
-    if (!gameId) return res.status(400).json({ success:false, message:'game_id manquant' });
-
-    const sGame = await twitchAPI(`streams?game_id=${encodeURIComponent(gameId)}&first=1&language=fr`);
-    const top = (sGame.data || [])[0];
-    if (!top) return res.json({ success:false });
-
-    const thumb = String(top.thumbnail_url || '')
-      .replace('{width}', '640')
-      .replace('{height}', '360');
-
-    return res.json({
-      success: true,
-      channel: top.user_login,
-      title: top.title || '',
-      viewers: top.viewer_count || 0,
-      thumbnail_url: thumb
-    });
-  } catch (e) {
-    return res.status(500).json({ success:false, message:e.message });
-  }
-});
-
 // =========================================================
 // 14. SERVER START + SOCKET.IO
 // =========================================================
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'] }
+  cors: { origin: true, methods: ['GET', 'POST'] },
+  transports: ['websocket', 'polling'],
+  pingInterval: 25000,
+  pingTimeout: 20000
 });
 
 io.on('connection', (socket) => {
   console.log('🔌 [SOCKET] client connected');
 
-  socket.on('chat message', (msg) => {
-    // Supported payload:
-    //  { user, text, type: 'text' }
-    //  { user, url,  type: 'gif'  }
-    const type = String(msg?.type || 'text');
-    const user = String(msg?.user || 'Anon').slice(0, 40);
+  // Anti-spam simple par socket
+  let lastMsgAt = 0;
 
-    if (type === 'gif') {
-      const url = String(msg?.url || '').slice(0, 800);
-      // very basic allowlist: only http(s) urls, reject javascript:
-      if (!/^https?:\/\//i.test(url)) return;
-      io.emit('chat message', { type: 'gif', user, url });
-      return;
+  // In-memory caches (fallback si Firestore indisponible)
+  global.__HUB_STATS__ = global.__HUB_STATS__ || new Map(); // userKey -> {xp, msgCount, grade}
+  global.__HUB_REACTIONS__ = global.__HUB_REACTIONS__ || new Map(); // msgId -> {emoji:count}
+
+  const GRADES = [
+    { name: 'NEWCOMER', min: 0 },
+    { name: 'CURATOR', min: 50 },
+    { name: 'STRATEGIST', min: 150 },
+    { name: 'CATALYST', min: 350 },
+    { name: 'LEGEND', min: 700 }
+  ];
+  const gradeForXP = (xp) => {
+    let g = GRADES[0];
+    for (const it of GRADES) if (xp >= it.min) g = it;
+    return g;
+  };
+
+  const normUser = (u) => String(u || 'Anon').trim().slice(0, 40) || 'Anon';
+
+  async function upsertUserXP(userKey, deltaXP) {
+    const map = global.__HUB_STATS__;
+    const cur = map.get(userKey) || { xp: 0, msgCount: 0, grade: 'NEWCOMER' };
+    cur.xp = Math.max(0, (cur.xp || 0) + deltaXP);
+    cur.msgCount = (cur.msgCount || 0) + 1;
+    cur.grade = gradeForXP(cur.xp).name;
+    map.set(userKey, cur);
+
+    // Firestore si dispo
+    try {
+      if (admin?.apps?.length) {
+        const db = admin.firestore();
+        const ref = db.collection('hub_users').doc(userKey.toLowerCase());
+        await ref.set({
+          user: userKey,
+          xp: cur.xp,
+          msgCount: cur.msgCount,
+          grade: cur.grade,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+    } catch (_) {}
+
+    return cur;
+  }
+
+  socket.on('chat message', async (msg) => {
+    try {
+      const now = Date.now();
+      const user = normUser(msg?.user);
+      const type = (msg?.type === 'gif') ? 'gif' : 'text';
+
+      if (now - lastMsgAt < 600) return;
+      lastMsgAt = now;
+
+      let text = '';
+      let gif_url = '';
+      if (type === 'gif') {
+        gif_url = String(msg?.gif_url || '').slice(0, 500);
+        if (!gif_url) return;
+      } else {
+        text = String(msg?.text || '').slice(0, 500);
+        if (!text.trim()) return;
+      }
+
+      const delta = 5 + (type === 'gif' ? 2 : 0) + (text.length > 80 ? 1 : 0);
+      const stats = await upsertUserXP(user, delta);
+
+      const payload = {
+        id: (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(now) + Math.random().toString(16).slice(2),
+        ts: now,
+        user,
+        grade: stats.grade,
+        xp: stats.xp,
+        type,
+        text,
+        gif_url
+      };
+
+      io.emit('chat message', payload);
+    } catch (_) {}
+  });
+
+  socket.on('chat reaction', (data) => {
+    try {
+      const msgId = String(data?.id || '').slice(0, 80);
+      const emoji = String(data?.emoji || '').slice(0, 12);
+      if (!msgId || !emoji) return;
+
+      const rxMap = global.__HUB_REACTIONS__;
+      const cur = rxMap.get(msgId) || {};
+      cur[emoji] = (cur[emoji] || 0) + 1;
+      rxMap.set(msgId, cur);
+
+      io.emit('chat reaction', { id: msgId, reactions: cur });
+    } catch (_) {}
+  });
+
+  socket.on('hub leaderboard', async () => {
+    try {
+      let top = [];
+      if (admin?.apps?.length) {
+        const db = admin.firestore();
+        const snap = await db.collection('hub_users').orderBy('xp', 'desc').limit(10).get();
+        top = snap.docs.map(d => d.data()).map(x => ({
+          user: x.user, xp: x.xp || 0, grade: x.grade || 'NEWCOMER'
+        }));
+      } else {
+        const map = global.__HUB_STATS__;
+        top = Array.from(map.entries())
+          .map(([user, v]) => ({ user, xp: v.xp || 0, grade: v.grade || 'NEWCOMER' }))
+          .sort((a,b)=>b.xp-a.xp).slice(0,10);
+      }
+      socket.emit('hub leaderboard', { top });
+    } catch (_) {
+      socket.emit('hub leaderboard', { top: [] });
     }
-
-    const text = String(msg?.text || '').slice(0, 500);
-    if (!text) return;
-    io.emit('chat message', { type: 'text', user, text });
   });
 
   socket.on('disconnect', () => {
