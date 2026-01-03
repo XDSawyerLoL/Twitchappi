@@ -181,433 +181,32 @@
     .tf-card:hover .tf-overlay { opacity: 1; }
     .tf-name { font-size: 12px; font-weight: bold; color: white; text-align: center; }
   
-    /* ====== TWITFLIX — Netflix rows (catalogue only, sans toucher le reste) ====== */
-    .tf-controls{
-      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-      padding: 0 16px 12px 16px;
-      border-bottom:1px solid #1f1f23;
-      background: rgba(11,11,13,.92);
-    }
-    .tf-view-toggle{
-      display:flex; gap:6px; padding:4px; border-radius:12px;
-      border:1px solid #2b2b31; background:#0a0a0a;
-    }
-    .tf-toggle-btn{
-      border:0; background:transparent; color:#a7a7b2;
-      font-family:Orbitron; font-size:10px; font-weight:900;
-      letter-spacing:.10em;
-      padding:8px 10px; border-radius:10px; cursor:pointer; transition:.2s;
-    }
-    .tf-toggle-btn:hover{ color:#fff; background:#151515; }
-    .tf-toggle-btn.active{ color:#000; background:#00f2ea; box-shadow:0 0 12px rgba(0,242,234,.18); }
-
-    .tf-grid{ padding: 14px 16px 18px 16px; }
-    .tf-section{ margin-top: 18px; }
-    .tf-section-title{
-      font-family: Orbitron, sans-serif;
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: #eaeaf0;
-      margin: 8px 0 10px 2px;
-      display:flex; align-items:center; justify-content:space-between;
-    }
-    .tf-section-title .hint{ color:#7f7f8a; font-size:10px; letter-spacing:.06em; text-transform:none; font-family:Inter; font-weight:700; }
-
-    .tf-row-track{
-      display:flex;
-      gap: 14px;
-      overflow-x:auto;
-      padding-bottom: 10px;
-      scroll-behavior:smooth;
-      -webkit-overflow-scrolling: touch;
-    }
-    .tf-row-track::-webkit-scrollbar{ height: 6px; }
-    .tf-row-track::-webkit-scrollbar-thumb{ background:#2a2a2f; border-radius:999px; }
-    .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#00f2ea; }
-
-    /* Card sizing for rows (lisible) */
-    .tf-card{ flex: 0 0 170px; aspect-ratio: 2/3; }
-    .tf-card:hover{ transform: scale(1.06); } /* moins agressif pour éviter le clipping */
-    .tf-name{ font-size: 11px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* A–Z bar */
-    .tf-azbar{
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      display:flex;
-      flex-wrap:wrap;
-      gap: 6px;
-      padding: 10px 0 8px 0;
-      background: linear-gradient(180deg, rgba(11,11,13,.98), rgba(11,11,13,.74));
-      border-bottom: 1px solid #1f1f23;
-      margin-bottom: 8px;
-    }
-    .tf-azlink{
-      font-family: Orbitron, sans-serif;
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      color:#a7a7b2;
-      text-decoration:none;
-      padding: 6px 8px;
-      border-radius: 10px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.12);
-      transition:.2s;
-    }
-    .tf-azlink:hover{
-      color:#000;
-      background:#00f2ea;
-      border-color:#00f2ea;
-    }
-
-
-    /* ====== TWITFLIX — performance + Netflix rows ====== */
-    .tf-rows{
-      flex: 1;
-      overflow-y: auto;
-      padding: 18px;
-      display: block;
-    }
-    .tf-row{ margin-bottom: 22px; }
-    .tf-row-title{
-      font-family: Orbitron, sans-serif;
-      font-size: 12px;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color:#eaeaf0;
-      margin: 8px 0 10px 2px;
-    }
-    .tf-row-title span{ color:#00f2ea; }
-    .tf-row-track{
-      display:flex;
-      gap: 14px;
-      overflow-x:auto;
-      padding-bottom: 10px;
-      scroll-behavior:smooth;
-      -webkit-overflow-scrolling: touch;
-    }
-    .tf-row-track::-webkit-scrollbar{ height: 6px; }
-    .tf-row-track::-webkit-scrollbar-thumb{ background:#2a2a2f; border-radius:999px; }
-    .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#00f2ea; }
-
-    .tf-az{
-      flex: 1;
-      overflow-y: auto;
-      padding: 18px;
-      display:block;
-    }
-    .tf-azbar{
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      display:flex;
-      flex-wrap:wrap;
-      gap: 6px;
-      padding: 10px 0 8px 0;
-      background: linear-gradient(180deg, rgba(11,11,13,.98), rgba(11,11,13,.78));
-      border-bottom: 1px solid #1f1f23;
-      margin-bottom: 10px;
-    }
-    .tf-azlink{
-      font-family: Orbitron, sans-serif;
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      color:#a7a7b2;
-      text-decoration:none;
-      padding: 6px 8px;
-      border-radius: 10px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.12);
-      transition:.2s;
-    }
-    .tf-azlink:hover{
-      color:#000;
-      background:#00f2ea;
-      border-color:#00f2ea;
-    }
-
-    .tf-sentinel{
-      padding: 18px 0 4px 0;
-      display:flex;
-      justify-content:center;
-    }
-    .tf-sentinel-inner{
-      font-size: 12px;
-      color:#9b9ba3;
-      background:#0a0a0a;
-      border:1px solid #2b2b31;
-      border-radius: 12px;
-      padding: 10px 14px;
-    }
-    .tf-sentinel-inner.done{
-      color:#00f2ea;
-      border-color:#00f2ea;
-      background: rgba(0,242,234,.06);
-    }
-    .tf-retry{
-      background:#151515;
-      border:1px solid #2b2b31;
-      color:#fff;
-      padding:10px 14px;
-      border-radius: 12px;
-      font-weight:900;
-      font-size:12px;
-      cursor:pointer;
-      transition:.2s;
-    }
-    .tf-retry:hover{
-      border-color:#00f2ea;
-      box-shadow:0 0 18px rgba(0,242,234,.18);
-      transform: translateY(-1px);
-    }
-
-
-    /* TwitFlix search (Netflix style) */
-    .tf-search-wrap{ position:relative; width:min(520px, 100%); }
-    .tf-search{
-      width:100%;
-      background:#0a0a0a;
-      border:1px solid #2b2b31;
-      color:#fff;
-      border-radius:10px;
-      padding:10px 12px 10px 36px;
-      font-size:13px;
-      outline:none;
-      transition:.2s;
-    }
-    .tf-search:focus{
-      border-color:#00f2ea;
-      box-shadow:0 0 0 3px rgba(0,242,234,.12);
-    }
-    .tf-search-ico{
-      position:absolute;
-      left:12px;
-      top:50%;
-      transform:translateY(-50%);
-      color:#777;
-      font-size:13px;
-      pointer-events:none;
-    }
-
-
-/* === TwitFlix UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
-#twitflix-modal .tf-modal-content{ max-width: 1400px; }
-
-#twitflix-modal .tf-topbar{ position: sticky; top:0; z-index: 60; }
-#twitflix-modal .tf-actions{ gap: 12px; }
-#twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
-
-#twitflix-modal .tf-grid{
-  display:flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 14px 18px 24px 18px;
-}
-
-#twitflix-modal .tf-hero{
-  position: relative;
-  height: 220px;
-  border-radius: 14px;
-  overflow:hidden;
-  border:1px solid #1f1f23;
-  background: #0a0a0a;
-}
-#twitflix-modal .tf-hero::before{
-  content:"";
-  position:absolute; inset:0;
-  background: radial-gradient(circle at 30% 20%, rgba(0,242,234,.18), transparent 60%),
-              radial-gradient(circle at 80% 30%, rgba(255,0,153,.14), transparent 55%),
-              linear-gradient(to top, rgba(0,0,0,.92), rgba(0,0,0,.20));
-  z-index:2;
-}
-#twitflix-modal .tf-hero-bg{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  object-fit: cover;
-  filter: saturate(1.05) contrast(1.05);
-  opacity:.55;
-}
-#twitflix-modal .tf-hero-content{
-  position:absolute; inset:0;
-  z-index:3;
-  display:flex;
-  align-items:flex-end;
-  padding: 18px;
-}
-#twitflix-modal .tf-hero-title{
-  font-family: Orbitron, sans-serif;
-  letter-spacing: .08em;
-  font-size: 18px;
-  font-weight: 900;
-  color:#fff;
-  text-shadow: 0 6px 24px rgba(0,0,0,.8);
-}
-#twitflix-modal .tf-hero-sub{
-  margin-top: 6px;
-  font-size: 12px;
-  color:#cfcfda;
-  max-width: 70ch;
-  line-height: 1.35;
-}
-
-#twitflix-modal .tf-row{ display:flex; flex-direction:column; gap: 10px; }
-#twitflix-modal .tf-row-title{
-  font-family: Orbitron, sans-serif;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  font-size: 12px;
-  color:#eaeaf0;
-  display:flex; align-items:center; justify-content:space-between;
-}
-#twitflix-modal .tf-row-title span{ color:#00f2ea; }
-#twitflix-modal .tf-row-track{
-  display:flex;
-  gap: 16px;
-  overflow-x:auto;
-  padding-bottom: 10px;
-  scroll-behavior:smooth;
-  -webkit-overflow-scrolling: touch;
-}
-#twitflix-modal .tf-row-track::-webkit-scrollbar{ height: 6px; }
-#twitflix-modal .tf-row-track::-webkit-scrollbar-thumb{ background:#2a2a2f; border-radius:999px; }
-#twitflix-modal .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#00f2ea; }
-
-#twitflix-modal .tf-card{
-  flex: 0 0 170px;
-  border-radius: 12px;
-  overflow:hidden;
-  background:#101013;
-  border:1px solid #1d1d22;
-  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
-}
-#twitflix-modal .tf-card:hover{
-  transform: scale(1.06);
-  z-index: 40;
-  border-color:#00f2ea;
-  box-shadow: 0 18px 45px rgba(0,0,0,.55), 0 0 18px rgba(0,242,234,.18);
-}
-#twitflix-modal .tf-poster{
-  width:100%; height:100%;
-  object-fit: cover;
-  transform: scale(1.02);
-  opacity:.95;
-}
-#twitflix-modal .tf-card:hover .tf-poster{ opacity:.35; }
-
-#twitflix-modal .tf-overlay{
-  padding: 10px 10px 12px 10px;
-}
-#twitflix-modal .tf-name{
-  font-size: 12px;
-  font-weight: 900;
-  white-space: nowrap;
-  overflow:hidden;
-  text-overflow: ellipsis;
-}
-#twitflix-modal .tf-meta{ display:none; } /* cache le texte “Survol…” */
-#twitflix-modal .tf-actions-row{
-  display:flex;
-  gap:8px;
-  justify-content:center;
-  margin-top: 10px;
-}
-#twitflix-modal .tf-pill{
-  display:inline-flex; align-items:center; gap:6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 900;
-  color:#000;
-  background:#00f2ea;
-}
-#twitflix-modal .tf-pill.ghost{
-  background: rgba(255,255,255,.08);
-  color:#e8e8ee;
-  border:1px solid rgba(255,255,255,.14);
-}
-
-#twitflix-modal .tf-search-grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 16px;
-  padding-top: 10px;
-}
-
-#twitflix-modal .tf-azbar{
-  position: sticky;
-  top: 66px; /* sous la topbar */
-  z-index: 55;
-  display:flex;
-  flex-wrap:wrap;
-  gap: 6px;
-  padding: 10px 0 8px 0;
-  background: linear-gradient(180deg, rgba(11,11,13,.96), rgba(11,11,13,.72));
-  border-bottom: 1px solid #1f1f23;
-}
-#twitflix-modal .tf-azlink{
-  font-family: Orbitron, sans-serif;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: .12em;
-  color:#a7a7b2;
-  text-decoration:none;
-  padding: 6px 8px;
-  border-radius: 10px;
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.12);
-  transition:.2s;
-}
-#twitflix-modal .tf-azlink:hover{ color:#000; background:#00f2ea; border-color:#00f2ea; }
-
-#twitflix-modal .tf-end{
-  text-align:center;
-  color:#9b9ba3;
-  padding: 18px 0 6px 0;
-}
-#twitflix-modal .tf-retry{
-  margin-top: 10px;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:10px 14px;
-  border-radius:12px;
-  border:1px solid #2b2b31;
-  background:#151515;
-  color:#fff;
-  font-weight:900;
-  cursor:pointer;
-}
-#twitflix-modal .tf-retry:hover{ border-color:#00f2ea; box-shadow:0 0 18px rgba(0,242,234,.18); transform: translateY(-1px); }
-
-
-
-/* HUB reactions buttons */
-.hub-rxbtn{
-  background: rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.10);
-  border-radius: 999px;
-  padding: 2px 8px;
-  color: #e5e7eb;
-  cursor: pointer;
-}
-.hub-rxbtn:hover{
-  border-color:#00f2ea;
-  box-shadow:0 0 12px rgba(0,242,234,.15);
-}
+    /* ====== TWITFLIX NETFLIX-LIKE ====== */
+    .tf-controls{ padding: 14px 18px 6px; display:flex; flex-direction:column; gap:10px; }
+    .tf-search{ width:100%; background:#111; color:#fff; border:1px solid #333; border-radius:12px; padding:12px 14px; outline:none; }
+    .tf-search:focus{ border-color:#00f2ea; }
+    .tf-hint{ height:0; overflow:hidden; }
+    .tf-scroll{ overflow-y:auto; max-height:72vh; padding: 0 0 18px; }
+    .tf-empty{ padding:28px 18px; text-align:center; color:#9aa0a6; }
+    .tf-row{ padding: 0 18px 18px; }
+    .tf-row-title{ font-weight:800; letter-spacing:0.12em; font-size:12px; color:#e5e5e5; margin: 14px 0 10px; }
+    .tf-rail{ display:flex; gap:12px; overflow-x:auto; padding-bottom:10px; scrollbar-width:thin; }
+    .tf-rail::-webkit-scrollbar{ height:8px; }
+    .tf-rail::-webkit-scrollbar-thumb{ background:#222; border-radius:10px; }
+    .tf-card{ position:relative; width:150px; min-width:150px; height:210px; border-radius:14px; overflow:hidden; background:#0f0f11; border:1px solid #222; cursor:pointer; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+    .tf-card:hover{ transform: scale(1.08); z-index: 5; border-color:#00f2ea; box-shadow: 0 18px 50px rgba(0,0,0,.55); }
+    .tf-poster{ width:100%; height:100%; object-fit:cover; display:block; filter: saturate(1.05) contrast(1.05); }
+    .tf-overlay{ position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.88) 100%); display:flex; align-items:flex-end; justify-content:center; padding: 10px; }
+    .tf-name{ font-size:12px; font-weight:800; color:#fff; text-align:center; text-shadow: 0 2px 10px rgba(0,0,0,.85); line-height:1.2; max-height: 2.6em; overflow:hidden; }
+    .tf-more{ padding: 12px 18px; color:#777; text-align:center; font-size:12px; }
+    .tf-grid-results{ display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:12px; padding: 0 18px 18px; }
+    .tf-results-head{ padding: 10px 18px 6px; }
+    .tf-results-title{ color:#e5e5e5; font-weight:800; font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
 
 </style>
 </head>
 
 <body class="h-screen flex flex-col p-4">
-
-  <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
-  <div style="height:18px;"></div>
-
 
   <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
     <div class="flex items-center gap-4">
@@ -827,30 +426,50 @@
               Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
             </div>
           </div>
-          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] items-center relative">
-  <button type="button" id="hub-emoji-btn" class="px-2 text-gray-300 hover:text-white" title="Emotes"><i class="far fa-smile"></i></button>
-  <button type="button" id="hub-gif-btn" class="px-2 text-gray-300 hover:text-white font-black" title="GIF">GIF</button>
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] relative items-center">
+            <button type="button" onclick="toggleEmotePicker()" title="Emotes" class="text-gray-300 hover:text-[#00f2ea] px-2">
+              <i class="far fa-smile"></i>
+            </button>
+            <button type="button" onclick="openGifPanel()" title="GIF" class="text-gray-300 hover:text-[#00f2ea] px-2">
+              GIF
+            </button>
 
-  <input id="hub-input" type="text" placeholder="Message..." class="bg-[#0b0b0d] text-white px-3 py-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+            <input id="hub-input" type="text" placeholder="Message..." class="bg-[#111] text-white text-sm rounded px-3 py-2 flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
 
-  <button type="submit" class="text-[#00f2ea] px-2" title="Envoyer"><i class="fas fa-paper-plane"></i></button>
+            <button type="submit" title="Envoyer" class="text-[#00f2ea] px-2">
+              <i class="fas fa-paper-plane"></i>
+            </button>
 
-  <!-- Emotes panel -->
-  <div id="hub-emoji-panel" class="hidden absolute bottom-14 left-2 w-[260px] bg-[#0b0b0d] border border-[#222] rounded-xl p-2 shadow-xl z-50">
-    <div class="text-xs text-gray-400 px-1 pb-2">Emotes</div>
-    <div id="hub-emoji-grid" class="grid grid-cols-8 gap-1"></div>
-  </div>
+            <!-- Emote picker -->
+            <div id="hub-emote-picker" class="hidden absolute bottom-14 left-2 bg-[#0f0f11] border border-[#333] rounded-lg p-2 shadow-xl z-50">
+              <div class="grid grid-cols-7 gap-1">
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('😀')">😀</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('😂')">😂</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('😍')">😍</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('😭')">😭</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('😤')">😤</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('🔥')">🔥</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('💯')">💯</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('🤝')">🤝</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('🚀')">🚀</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('🎮')">🎮</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('✨')">✨</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('👀')">👀</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('🙏')">🙏</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('🏆')">🏆</button>
+                <button type="button" class="p-1 hover:bg-[#1a1a1d] rounded" onclick="insertEmote('❤️')">❤️</button>
+              </div>
+            </div>
 
-  <!-- GIF panel -->
-  <div id="hub-gif-panel" class="hidden absolute bottom-14 left-2 w-[360px] bg-[#0b0b0d] border border-[#222] rounded-xl p-2 shadow-xl z-50">
-    <div class="flex items-center gap-2 mb-2">
-      <div class="text-xs text-gray-400 font-bold">GIF</div>
-      <input id="hub-gif-search" class="flex-grow bg-[#080808] border border-[#222] rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-[#00f2ea]" placeholder="Rechercher un GIF...">
-    </div>
-    <div id="hub-gif-grid" class="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto scrollbar-thin"></div>
-    <div id="hub-gif-hint" class="text-[11px] text-gray-500 mt-2"></div>
-  </div>
-</form>
+            <!-- GIF panel (paste URL) -->
+            <div id="hub-gif-panel" class="hidden absolute bottom-14 left-14 bg-[#0f0f11] border border-[#333] rounded-lg p-3 shadow-xl z-50 w-[320px]">
+              <div class="text-xs text-gray-400 mb-2">Colle un lien direct vers un GIF (Giphy/Tenor/Discord/CDN…).</div>
+              <div class="flex gap-2">
+                <input id="hub-gif-url" type="url" placeholder="https://...gif" class="bg-[#111] text-white text-xs rounded px-2 py-2 flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+                <button type="button" onclick="sendHubGif()" class="bg-[#00f2ea] text-black text-xs font-bold px-3 rounded">Envoyer</button>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -952,45 +571,22 @@
 
   <div id="twitflix-modal" class="tf-modal-overlay">
     <div class="tf-modal-content">
-      <div class="tf-topbar">
-        <div class="tf-brand"><span class="dot"></span><span><span style="color:#00f2ea;">TWIT</span>FLIX</span></div>
-
-        <div class="tf-actions">
-          <div class="tf-search-wrap">
-            <i class="fas fa-search tf-search-ico"></i>
-            <input id="twitflix-search" class="tf-search" type="text" placeholder="Rechercher un jeu (ex: Minecraft, Valorant...)" autocomplete="off">
-          </div>
-
-          <div class="tf-view-toggle">
-            <button id="tf-btn-rows" class="tf-toggle-btn active" type="button" onclick="setTwitFlixView('rows')">LIGNES</button>
-            <button id="tf-btn-az" class="tf-toggle-btn" type="button" onclick="setTwitFlixView('az')">A–Z</button>
-          </div>
-
-          <div class="tf-view-toggle" style="margin-left:8px;">
-            <button id="tf-btn-live" class="tf-toggle-btn active" type="button" onclick="setTwitFlixPlayMode('live')">LIVE</button>
-            <button id="tf-btn-vod" class="tf-toggle-btn" type="button" onclick="setTwitFlixPlayMode('vod')">VOD</button>
-          </div>
-
-          <i class="fas fa-times tf-close onclick="closeTwitFlix()"></i>
-        </div>
+      <div class="tf-header">
+        <h2 class="tf-title"><span>TWIT</span>FLIX CATALOG</h2>
+        <i class="fas fa-times tf-close" onclick="closeTwitFlix()"></i>
       </div>
-
-      <div class="tf-sub" style="display:none;"></div>
-
-      <div class="tf-hero"><img id="tf-hero-bg" class="tf-hero-bg" src="" alt=""><div class="tf-hero-content"><div><div id="tf-hero-title" class="tf-hero-title">TWITFLIX</div><div id="tf-hero-sub" class="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
-
-      <div id="twitflix-grid" class="tf-grid">
-        <div id="tf-loading" class="text-center w-full text-gray-500 py-20">
-          <i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...
-        </div>
+      <div class="tf-controls">
+        <input id="twitflix-search" type="text" placeholder="Rechercher un jeu…" class="tf-search" />
+        <div class="tf-hint"></div>
+      </div>
+      <div id="twitflix-grid" class="tf-grid tf-scroll">
+        <div class="text-center w-full text-gray-500 py-20"><i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...</div>
       </div>
     </div>
-  </div></div>
+  </div>
 
   <script>
     const API_BASE = window.location.origin;
-    const __urlParams = new URLSearchParams(window.location.search);
-    const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
     // --- SFX (Base64 short sounds) ---
@@ -1033,8 +629,6 @@
       loadStatsDashboard();
       initCarouselScroll();
       initSocket();
-    initHubEmojiUI();
-    initHubGifUI();
       initFirebaseStatus();
       setInterval(loadStatsDashboard, 5 * 60 * 1000);
       
@@ -1261,244 +855,124 @@
       }
     }
 
-    // SOCKET.IO
+    // SOCKET.IO (Hub Secure Chat)
     function initSocket(){
       try{
         if (window.__hubSocketInited) return;
         window.__hubSocketInited = true;
 
+        // In iframe environments, websocket can be flaky => keep polling fallback
         socket = io(undefined, {
           transports: ['websocket','polling'],
           reconnection: true,
           reconnectionAttempts: Infinity,
-          reconnectionDelay: 500,
-          reconnectionDelayMax: 4000,
+          reconnectionDelay: 600,
+          reconnectionDelayMax: 5000,
           timeout: 20000
         });
 
-        let _lastSockLog = 0;
-        const sockLog = (msg)=>{
-          const now = Date.now();
-          if (now - _lastSockLog > 8000){
-            _lastSockLog = now;
-            console.log(msg);
-          }
+        const statusEl = document.getElementById('socket-status');
+        const setStatus = (txt, ok) => {
+          if (!statusEl) return;
+          statusEl.innerText = txt;
+          statusEl.className = ok
+            ? 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected'
+            : 'text-[10px] font-bold text-red-400 border border-red-400 px-2 rounded';
         };
-        socket.on('connect', ()=> sockLog('🔌 [SOCKET] connected'));
-        socket.on('disconnect', ()=> sockLog('🔌 [SOCKET] disconnected'));
 
-        socket.on('chat message',(msg)=>{ renderHubMessage(msg); });
+        socket.on('connect', ()=> setStatus('HUB SECURE', true));
+        socket.on('disconnect', ()=> setStatus('HUB OFFLINE', false));
+        socket.on('connect_error', ()=> setStatus('HUB OFFLINE', false));
+
+        socket.on('chat message',(msg)=>{
+          const box = document.getElementById('hub-messages');
+          if (!box) return;
+          renderHubMessage(box, msg);
+        });
       }catch(e){ console.error('Socket error:', e); }
+    }
+
+    // ---- Chat UI helpers (emotes + gifs) ----
+    const HUB_EMOTES = ['😀','😂','😍','😭','😤','🔥','💯','🤝','🚀','🎮','✨','👀','🙏','🏆','❤️'];
+
+    function toggleEmotePicker(){
+      const p = document.getElementById('hub-emote-picker');
+      if (!p) return;
+      p.classList.toggle('hidden');
+      const g = document.getElementById('hub-gif-panel');
+      if (g) g.classList.add('hidden');
+    }
+
+    function openGifPanel(){
+      const g = document.getElementById('hub-gif-panel');
+      if (!g) return;
+      g.classList.toggle('hidden');
+      const p = document.getElementById('hub-emote-picker');
+      if (p) p.classList.add('hidden');
+      const urlInput = document.getElementById('hub-gif-url');
+      if (urlInput) urlInput.focus();
+    }
+
+    function insertEmote(e){
+      const input = document.getElementById('hub-input');
+      if (!input) return;
+      input.value = (input.value || '') + e;
+      input.focus();
+    }
+
+    function renderHubMessage(box, msg){
+      const user = (msg && msg.user) ? msg.user : 'Anon';
+      const type = (msg && msg.type) ? msg.type : 'text';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'hub-msg';
+
+      const name = document.createElement('strong');
+      name.className = 'text-[#00f2ea]';
+      name.textContent = user;
+      wrap.appendChild(name);
+
+      const spacer = document.createElement('span');
+      spacer.textContent = ' ';
+      wrap.appendChild(spacer);
+
+      if (type === 'gif' && msg.url){
+        const img = document.createElement('img');
+        img.src = String(msg.url);
+        img.alt = 'GIF';
+        img.loading = 'lazy';
+        img.referrerPolicy = 'no-referrer';
+        img.className = 'mt-1 max-w-[220px] rounded border border-[#333]';
+        wrap.appendChild(img);
+      } else {
+        const text = document.createElement('span');
+        text.className = 'text-gray-300';
+        text.textContent = (msg && msg.text) ? msg.text : '';
+        wrap.appendChild(text);
+      }
+
+      box.appendChild(wrap);
+      box.scrollTop = box.scrollHeight;
     }
 
     function sendHubMessage(e){
       e.preventDefault();
       const input = document.getElementById('hub-input');
-      const text = String(input.value || '').trim();
+      const text = String(input?.value || '').trim();
       if (!text) return;
-      if (socket) socket.emit('chat message', { user: currentUser || 'Anon', text }// ===== HUB: Emotes + GIF + Reactions (safe) =====
-const HUB_EMOTES = {
-  ':kappa:':'😏', ':pog:':'😮', ':gg:':'🏆', ':hype:':'⚡', ':love:':'💖', ':lol:':'😂',
-  ':wow:':'🤯', ':clap:':'👏', ':rip:':'🪦', ':fire:':'🔥', ':ok:':'👌', ':sad:':'😢'
-};
-
-function hubParseEmotes(text){
-  let out = String(text || '');
-  for (const [k,v] of Object.entries(HUB_EMOTES)){
-    out = out.split(k).join(v);
-  }
-  return out;
-}
-
-const HUB_SEEN = new Set();
-const HUB_REACTIONS = new Map(); // msgId -> {emoji:count}
-
-function renderHubMessage(msg){
-  try{
-    if (!msg) return;
-    if (msg.id && HUB_SEEN.has(msg.id)) return;
-    if (msg.id) HUB_SEEN.add(msg.id);
-
-    const box = document.getElementById('hub-messages');
-    if (!box) return;
-
-    const user = hubParseEmotes(msg.user || 'Anon');
-    const grade = msg.grade || '';
-    const text = msg.type === 'gif' ? '' : hubParseEmotes(msg.text || '');
-    const gifUrl = msg.type === 'gif' ? (msg.gif_url || '') : '';
-
-    const idAttr = msg.id ? `data-mid="${escapeHtml(msg.id)}"` : '';
-    const badge = grade ? `<span class="ml-2 text-[10px] font-black px-2 py-[2px] rounded-full border border-[#222] bg-[#101012]">${escapeHtml(grade)}</span>` : '';
-
-    const content = gifUrl
-      ? `<img src="${escapeHtml(gifUrl)}" class="hub-gif rounded-lg max-w-[240px] border border-[#222] cursor-pointer hover:border-[#00f2ea]" onclick="openGifLightbox('${escapeHtml(gifUrl)}')">`
-      : `<span class="text-gray-300">${escapeHtml(text)}</span>`;
-
-    const reactionsBar = `
-      <div class="hub-rx mt-1 flex items-center gap-1 text-xs" ${idAttr}>
-        <button class="hub-rxbtn" onclick="sendHubReaction('${escapeHtml(msg.id||'')}', '🔥')">🔥</button>
-        <button class="hub-rxbtn" onclick="sendHubReaction('${escapeHtml(msg.id||'')}', '😂')">😂</button>
-        <button class="hub-rxbtn" onclick="sendHubReaction('${escapeHtml(msg.id||'')}', '💖')">💖</button>
-        <button class="hub-rxbtn" onclick="sendHubReaction('${escapeHtml(msg.id||'')}', '👍')">👍</button>
-        <span class="hub-rxcounts ml-2 text-gray-400"></span>
-      </div>
-    `;
-
-    box.innerHTML += `
-      <div class="hub-msg mb-2">
-        <div><strong class="text-[#00f2ea]">${escapeHtml(user)}</strong>${badge}</div>
-        <div class="mt-1">${content}</div>
-        ${msg.id ? reactionsBar : ''}
-      </div>
-    `;
-    box.scrollTop = box.scrollHeight;
-  }catch(e){}
-}
-
-function sendHubReaction(id, emoji){
-  if (!id || !socket) return;
-  socket.emit('chat reaction', { id, emoji });
-}
-
-// receive reactions
-if (typeof socket !== 'undefined' && socket){
-  socket.on('chat reaction', (data)=>{
-    const id = data?.id;
-    if (!id) return;
-    HUB_REACTIONS.set(id, data.reactions || {});
-    const el = document.querySelector(`.hub-rx[data-mid="${CSS.escape(id)}"] .hub-rxcounts`);
-    if (!el) return;
-    const rx = data.reactions || {};
-    const parts = Object.entries(rx).map(([k,v])=>`${k} ${v}`).slice(0,6);
-    el.textContent = parts.join('  ');
-  });
-}
-
-// Emoji panel init
-function initHubEmojiUI(){
-  const btn = document.getElementById('hub-emoji-btn');
-  const panel = document.getElementById('hub-emoji-panel');
-  const grid = document.getElementById('hub-emoji-grid');
-  if (!btn || !panel || !grid) return;
-
-  grid.innerHTML = '';
-  const uniq = Array.from(new Set(Object.values(HUB_EMOTES))).concat(['😀','😁','😎','🤩','🥳','😈','🤝','💯']);
-  uniq.slice(0,64).forEach(em=>{
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'w-7 h-7 rounded hover:bg-[#151515]';
-    b.textContent = em;
-    b.onclick = ()=> insertHubText(em);
-    grid.appendChild(b);
-  });
-
-  btn.onclick = ()=>{
-    panel.classList.toggle('hidden');
-    document.getElementById('hub-gif-panel')?.classList.add('hidden');
-  };
-
-  document.addEventListener('click', (e)=>{
-    if (!panel.contains(e.target) && e.target !== btn) panel.classList.add('hidden');
-  });
-}
-
-// GIF panel init
-function initHubGifUI(){
-  const btn = document.getElementById('hub-gif-btn');
-  const panel = document.getElementById('hub-gif-panel');
-  const grid = document.getElementById('hub-gif-grid');
-  const search = document.getElementById('hub-gif-search');
-  const hint = document.getElementById('hub-gif-hint');
-  if (!btn || !panel || !grid || !search || !hint) return;
-
-  async function loadTrending(){
-    hint.textContent = '';
-    grid.innerHTML = '<div class="col-span-3 text-gray-500 text-xs">Chargement…</div>';
-    try{
-      const r = await fetch(`${API_BASE}/api/gifs/trending?limit=24`);
-      const d = await r.json();
-      if (!d.success) { grid.innerHTML = '<div class="col-span-3 text-gray-500 text-xs">GIF indisponibles.</div>'; return; }
-      renderGifs(d.gifs || []);
-    }catch(e){
-      grid.innerHTML = '<div class="col-span-3 text-gray-500 text-xs">Erreur GIF.</div>';
+      if (socket) socket.emit('chat message',{ user: currentUser || 'Anon', type:'text', text });
+      if (input) input.value = '';
     }
-  }
 
-  async function doSearch(q){
-    hint.textContent = '';
-    grid.innerHTML = '<div class="col-span-3 text-gray-500 text-xs">Recherche…</div>';
-    try{
-      const r = await fetch(`${API_BASE}/api/gifs/search?limit=24&q=${encodeURIComponent(q)}`);
-      const d = await r.json();
-      if (!d.success) { grid.innerHTML = '<div class="col-span-3 text-gray-500 text-xs">GIF indisponibles.</div>'; return; }
-      renderGifs(d.gifs || []);
-    }catch(e){
-      grid.innerHTML = '<div class="col-span-3 text-gray-500 text-xs">Erreur GIF.</div>';
-    }
-  }
-
-  function renderGifs(list){
-    grid.innerHTML = '';
-    if (!list.length){
-      grid.innerHTML = '<div class="col-span-3 text-gray-500 text-xs">Aucun résultat.</div>';
-      return;
-    }
-    list.slice(0,24).forEach(g=>{
-      const img = document.createElement('img');
-      img.src = g.preview || g.url;
-      img.title = g.title || '';
-      img.className = 'w-full h-[90px] object-cover rounded-lg border border-[#222] cursor-pointer hover:border-[#00f2ea]';
-      img.onclick = ()=> sendHubGif(g.url);
-      grid.appendChild(img);
-    });
-  }
-
-  btn.onclick = ()=>{
-    panel.classList.toggle('hidden');
-    document.getElementById('hub-emoji-panel')?.classList.add('hidden');
-    if (!panel.classList.contains('hidden')) loadTrending();
-  };
-
-  let t=null;
-  search.oninput = ()=>{
-    clearTimeout(t);
-    const q = search.value.trim();
-    t=setTimeout(()=>{ if(!q) loadTrending(); else doSearch(q); }, 220);
-  };
-
-  document.addEventListener('click', (e)=>{
-    if (!panel.contains(e.target) && e.target !== btn) panel.classList.add('hidden');
-  });
-}
-
-function insertHubText(txt){
-  const input = document.getElementById('hub-input');
-  if (!input) return;
-  const start = input.selectionStart || input.value.length;
-  const end = input.selectionEnd || input.value.length;
-  input.value = input.value.slice(0,start) + txt + input.value.slice(end);
-  input.focus();
-  input.selectionStart = input.selectionEnd = start + txt.length;
-}
-
-function sendHubGif(url){
-  if (!socket || !url) return;
-  socket.emit('chat message', { user: currentUser || 'Anon', type: 'gif', gif_url: url });
-  document.getElementById('hub-gif-panel')?.classList.add('hidden');
-}
-
-function openGifLightbox(url){
-  const lb = document.getElementById('hub-gif-lightbox');
-  const img = document.getElementById('hub-gif-lightbox-img');
-  if (!lb || !img) return;
-  img.src = url;
-  lb.classList.remove('hidden');
-}
-function closeGifLightbox(){
-  const lb = document.getElementById('hub-gif-lightbox');
-  if (lb) lb.classList.add('hidden');
-});
-      input.value = '';
+    function sendHubGif(){
+      const urlInput = document.getElementById('hub-gif-url');
+      const url = String(urlInput?.value || '').trim();
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) return alert('Colle un lien http(s) valide vers un GIF.');
+      if (socket) socket.emit('chat message', { user: currentUser || 'Anon', type:'gif', url });
+      urlInput.value = '';
+      const g = document.getElementById('hub-gif-panel');
+      if (g) g.classList.add('hidden');
     }
 
     function escapeHtml(str){
@@ -1507,184 +981,73 @@ function closeGifLightbox(){
       }[m]));
     }
 
-    // TWITFLIX — Netflix-like catalogue (only). Does NOT touch the rest of the app.
-    // Requires:
-    //  - GET  /api/categories/top?cursor=...
-    //  - (optional) GET /api/categories/search?q=...
-    //  - POST /api/stream/by_category { game_id } -> { channel }
-
-    let tfModalOpen = false;
-    let tfViewMode = 'rows'; // rows | az
+    // TWITFLIX LOGIC (Netflix-like rows + search + hover preview)
     let tfAllCategories = [];
     let tfCursor = null;
     let tfLoading = false;
     let tfHasMore = true;
-    let tfLastLoadAt = 0;
-
-    let tfSearchQuery = '';
-    let tfSearchResults = [];
+    let tfModalOpen = false;
     let tfSearchTimer = null;
+    let tfSearchQuery = '';
 
-    let tfObserver = null;
-
-    // Preview cache
-    const tfPreviewCache = new Map(); // gameId -> {channel, t}
-    const tfPreviewInflight = new Map();
-    const TF_PREVIEW_TTL = 10 * 60 * 1000;
-
-    function tfNormalizeBoxArt(url){
-      // request higher res to avoid blur, then we downscale in CSS
-      const u = String(url || '');
-      if (!u) return '';
-      return u.replace('{width}','600').replace('{height}','800');
-    }
-
-    function setTwitFlixView(mode){
-      tfViewMode = (mode === 'az') ? 'az' : 'rows';
-      const bRows = document.getElementById('tf-btn-rows');
-      const bAz = document.getElementById('tf-btn-az');
-      if (bRows && bAz){
-        bRows.classList.toggle('active', tfViewMode === 'rows');
-        bAz.classList.toggle('active', tfViewMode === 'az');
-      }
-
-function setTwitFlixPlayMode(mode){
-  tfPlayMode = (mode === 'vod') ? 'vod' : 'live';
-  const bL = document.getElementById('tf-btn-live');
-  const bV = document.getElementById('tf-btn-vod');
-  if (bL && bV){
-    bL.classList.toggle('active', tfPlayMode === 'live');
-    bV.classList.toggle('active', tfPlayMode === 'vod');
-  }
-}
-      renderTwitFlix();
-    }
+    // hover preview timers per card
+    const tfHoverTimers = new Map();
 
     async function openTwitFlix(){
       const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
       const search = document.getElementById('twitflix-search');
+      playSound('open');
 
       tfModalOpen = true;
       modal.classList.add('active');
 
-      // reset
-      tfViewMode = 'rows';
       tfAllCategories = [];
       tfCursor = null;
       tfLoading = false;
       tfHasMore = true;
       tfSearchQuery = '';
-      tfSearchResults = [];
       if (search) search.value = '';
 
-      // hero default
-      tfSetHero({ title: 'TWITFLIX', sub: 'Découvre des jeux, survole pour une preview, clique pour lancer un stream.' });
-
-      // empty ui
       if (host){
         host.innerHTML = '<div id="tf-loading" class="tf-empty"><i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...</div>';
       }
 
-      setTwitFlixView('rows');
-
-      // search handler (server if possible, fallback local)
       if (search){
-        search.oninput = (e) => {
-          const v = String(e.target.value || '').trim();
+        search.oninput = (e)=>{
+          const v = String(e.target.value||'').trim();
           tfSearchQuery = v;
-
           if (tfSearchTimer) clearTimeout(tfSearchTimer);
-          tfSearchTimer = setTimeout(async () => {
-            await tfRunSearch(v);
-          }, 180);
+          tfSearchTimer = setTimeout(()=> renderTwitFlix(), 150);
         };
       }
 
-      // sentinel observer for infinite loading
-      tfSetupObserver();
-
-      // warm load (2 pages)
+      // initial load (2 pages to feel instant)
       await tfLoadMore(true);
       await tfLoadMore(true);
       renderTwitFlix();
+
+      // infinite load when scrolling near bottom
+      if (host){
+        host.onscroll = async ()=>{
+          if (!tfModalOpen || tfSearchQuery) return;
+          if (!tfHasMore || tfLoading) return;
+          const nearBottom = (host.scrollTop + host.clientHeight) >= (host.scrollHeight - 300);
+          if (nearBottom){
+            await tfLoadMore(false);
+            renderTwitFlix();
+          }
+        };
+      }
     }
 
     function closeTwitFlix(){
       tfModalOpen = false;
+      // stop any previews
       document.querySelectorAll('.tf-card.previewing').forEach(tfStopPreview);
-      if (tfObserver){
-        try{ tfObserver.disconnect(); }catch(_){}
-        tfObserver = null;
-      }
       const modal = document.getElementById('twitflix-modal');
       modal.classList.remove('active');
-    }
-
-    function tfSetupObserver(){
-      const host = document.getElementById('twitflix-grid');
-      if (!host) return;
-
-      let sentinel = document.getElementById('tf-sentinel');
-      if (!sentinel){
-        sentinel = document.createElement('div');
-        sentinel.id = 'tf-sentinel';
-        sentinel.style.height = '1px';
-        host.appendChild(sentinel);
-      }
-
-      if (tfObserver){
-        try{ tfObserver.disconnect(); }catch(_){}
-      }
-
-      tfObserver = new IntersectionObserver(async (entries) => {
-        if (!tfModalOpen) return;
-        if (tfSearchQuery) return; // no infinite scroll while searching
-        if (!tfHasMore) return;
-        const entry = entries && entries[0];
-        if (entry && entry.isIntersecting){
-          await tfLoadMore(false);
-          renderTwitFlix();
-        }
-      }, { root: host, threshold: 0.1 });
-
-      tfObserver.observe(sentinel);
-    }
-
-    async function tfRunSearch(query){
-      const q = String(query || '').trim();
-      const host = document.getElementById('twitflix-grid');
-      if (!host) return;
-
-      if (!q){
-        tfSearchResults = [];
-        renderTwitFlix();
-        return;
-      }
-
-      // Try server search (best)
-      try{
-        const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
-        if (r.ok){
-          const d = await r.json();
-          if (d && d.success && Array.isArray(d.categories)){
-            tfSearchResults = d.categories.map(c => ({
-              id: c.id,
-              name: c.name,
-              box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
-            }));
-            renderTwitFlix();
-            return;
-          }
-        }
-      }catch(_){}
-
-      // Fallback: local filter on already loaded catalogue
-      const low = q.toLowerCase();
-      tfSearchResults = tfAllCategories
-        .filter(c => (c.name||'').toLowerCase().includes(low))
-        .slice(0, 120);
-      renderTwitFlix();
+      playSound('close');
     }
 
     async function tfLoadMore(force){
@@ -1692,16 +1055,10 @@ function setTwitFlixPlayMode(mode){
       if (tfLoading) return;
       if (!tfHasMore) return;
 
-      const now = Date.now();
-      if (!force && (now - tfLastLoadAt) < 650) return; // throttle
-      tfLastLoadAt = now;
-
       tfLoading = true;
-
       try{
         let url = `${API_BASE}/api/categories/top`;
         if (tfCursor) url += `?cursor=${encodeURIComponent(tfCursor)}`;
-
         const res = await fetch(url);
         const data = await res.json();
 
@@ -1709,351 +1066,218 @@ function setTwitFlixPlayMode(mode){
         if (loader) loader.remove();
 
         if (data && data.success && Array.isArray(data.categories)){
+          const incoming = data.categories.map(c=>({
+            id: c.id,
+            name: c.name,
+            // request a bigger cover to avoid blur
+            box_art_url: String(c.box_art_url||'')
+              .replace('{width}','300')
+              .replace('{height}','400')
+          }));
+          tfAllCategories = tfMergeUnique(tfAllCategories, incoming);
           tfCursor = data.cursor || null;
-
-          // If no cursor returned => end
-          if (!tfCursor) tfHasMore = false;
-
-          for (const cat of data.categories){
-            if (!cat || !cat.id) continue;
-            // prevent duplicates
-            if (tfAllCategories.find(x => x.id === cat.id)) continue;
-            tfAllCategories.push({
-              id: cat.id,
-              name: cat.name,
-              box_art_url: tfNormalizeBoxArt(cat.box_art_url || '')
-            });
-          }
+          tfHasMore = !!data.cursor; // if no cursor => end
+          if (!incoming.length) tfHasMore = false;
         } else {
-          // stop to avoid looping “in the void”
           tfHasMore = false;
-          tfRenderError('Erreur chargement du catalogue.');
+          tfRenderEmpty('Catalogue indisponible.');
         }
-      } catch (e){
+      } catch(e){
         tfHasMore = false;
-        tfRenderError('Erreur réseau TwitFlix.');
-      } finally {
+        tfRenderEmpty('Erreur réseau TwitFlix.');
+      } finally{
         tfLoading = false;
       }
     }
 
-    function tfRenderError(msg){
-      const host = document.getElementById('twitflix-grid');
-      if (!host) return;
-      host.innerHTML = `
-        <div class="tf-empty" style="color:#ff8080;">
-          ${escapeHtml(msg || 'Erreur')}
-          <div><button class="tf-retry" type="button" onclick="tfRetryLoad()">Réessayer</button></div>
-        </div>
-      `;
+    function tfMergeUnique(base, add){
+      const map = new Map(base.map(x=>[x.id,x]));
+      for (const it of add){
+        if (!map.has(it.id)) map.set(it.id, it);
+      }
+      return Array.from(map.values());
     }
 
-    async function tfRetryLoad(){
-      tfHasMore = true;
-      await tfLoadMore(true);
-      await tfLoadMore(true);
-      renderTwitFlix();
-      tfSetupObserver();
+    function tfNormalizeName(n){
+      return String(n||'').trim();
+    }
+
+    function tfSortAZ(list){
+      return list.slice().sort((a,b)=> tfNormalizeName(a.name).localeCompare(tfNormalizeName(b.name), 'fr', { sensitivity:'base' }));
     }
 
     function renderTwitFlix(){
       const host = document.getElementById('twitflix-grid');
       if (!host) return;
 
-      // Keep sentinel at bottom
-      const sentinel = document.getElementById('tf-sentinel');
+      const q = String(tfSearchQuery||'').trim().toLowerCase();
+      const list = tfSortAZ(tfAllCategories);
 
-      // SEARCH MODE
-      if (tfSearchQuery && tfSearchQuery.trim()){
-        host.innerHTML = '';
-        const q = tfSearchQuery.trim();
-        tfSetHero({ title: q, sub: 'Résultats de recherche' });
-
-        if (!tfSearchResults.length){
-          host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
-          if (sentinel) host.appendChild(sentinel);
+      // SEARCH MODE: simple responsive grid
+      if (q){
+        const filtered = list.filter(c=> (c.name||'').toLowerCase().includes(q));
+        host.innerHTML = `
+          <div class="tf-results-head">
+            <div class="tf-results-title">Résultats (${filtered.length})</div>
+          </div>
+          <div class="tf-grid-results"></div>
+        `;
+        const grid = host.querySelector('.tf-grid-results');
+        if (!filtered.length){
+          grid.innerHTML = `<div class="tf-empty">Aucun résultat.</div>`;
           return;
         }
-
-        const grid = document.createElement('div');
-        grid.className = 'tf-search-grid';
-        tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
-        host.appendChild(grid);
-        if (sentinel) host.appendChild(sentinel);
+        for (const cat of filtered.slice(0, 240)){
+          grid.appendChild(tfCreateCard(cat));
+        }
         return;
       }
 
-      // CATALOG MODE
+      // ROWS MODE: A-Z rows like Netflix
       host.innerHTML = '';
-      tfSetHero({ title: 'TWITFLIX', sub: 'Survole un jeu pour la preview, clique pour lancer un stream.' });
-
-      const list = tfAllCategories.slice(0);
       if (!list.length){
-        host.innerHTML = '<div class="tf-empty"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
-        if (sentinel) host.appendChild(sentinel);
+        tfRenderEmpty('Catalogue vide.');
         return;
       }
 
-      if (tfViewMode === 'az'){
-        tfRenderAZ(host, list);
-      } else {
-        tfRenderRows(host, list);
-      }
-
-      if (!tfHasMore){
-        const end = document.createElement('div');
-        end.className = 'tf-end';
-        end.innerHTML = 'Fin du catalogue.';
-        host.appendChild(end);
-      } else if (tfLoading){
-        const loading = document.createElement('div');
-        loading.className = 'tf-empty';
-        loading.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement...';
-        host.appendChild(loading);
-      }
-
-      if (sentinel) host.appendChild(sentinel);
-    }
-
-    function tfRenderRows(host, list){
-      const picks1 = list.slice(0, 28);
-      const picks2 = list.slice(28, 56);
-      const picks3 = tfShuffle(list).slice(0, 28);
-      const picks4 = tfShuffle(list).slice(28, 56);
-
-      host.appendChild(tfBuildRow('Top du moment <span>(Twitch)</span>', picks1));
-      host.appendChild(tfBuildRow('Tendances <span>FR</span>', picks2));
-      host.appendChild(tfBuildRow('Découverte <span>(aléatoire)</span>', picks3));
-      host.appendChild(tfBuildRow('À essayer <span>ce soir</span>', picks4));
-    }
-
-    function tfRenderAZ(host, list){
-      // group
       const groups = {};
       for (const c of list){
-        const n = (c.name || '').trim();
-        if (!n) continue;
-        const first = n[0].toUpperCase();
-        const key = /[A-Z]/.test(first) ? first : (/[0-9]/.test(first) ? '0-9' : '#');
+        const letter = tfNormalizeName(c.name).charAt(0).toUpperCase() || '#';
+        const key = /[A-Z]/.test(letter) ? letter : '#';
         (groups[key] ||= []).push(c);
       }
-      const keys = Object.keys(groups).sort((a,b)=>{
-        if (a==='0-9') return -1;
-        if (b==='0-9') return 1;
-        if (a==='#') return 1;
-        if (b==='#') return -1;
-        return a.localeCompare(b);
-      });
 
-      const bar = document.createElement('div');
-      bar.className = 'tf-azbar';
-      bar.innerHTML = keys.map(k => `<a class="tf-azlink" href="#tf-${k.replace(/[^a-z0-9]/ig,'_')}">${k}</a>`).join('');
-      host.appendChild(bar);
+      const letters = Object.keys(groups).sort((a,b)=> a.localeCompare(b,'fr',{sensitivity:'base'}));
+      for (const l of letters){
+        const rowWrap = document.createElement('div');
+        rowWrap.className = 'tf-row';
 
-      keys.forEach(k => {
-        groups[k].sort((x,y)=> (x.name||'').localeCompare(y.name||''));
-        const row = tfBuildRow(`<span>${k}</span>`, groups[k], `tf-${k.replace(/[^a-z0-9]/ig,'_')}`);
-        host.appendChild(row);
-      });
+        const h = document.createElement('div');
+        h.className = 'tf-row-title';
+        h.textContent = l;
+        rowWrap.appendChild(h);
+
+        const rail = document.createElement('div');
+        rail.className = 'tf-rail';
+        for (const cat of groups[l]){
+          rail.appendChild(tfCreateCard(cat));
+        }
+        rowWrap.appendChild(rail);
+        host.appendChild(rowWrap);
+      }
+
+      if (tfHasMore){
+        const more = document.createElement('div');
+        more.className = 'tf-more';
+        more.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Chargement...`;
+        host.appendChild(more);
+      } else {
+        const end = document.createElement('div');
+        end.className = 'tf-more';
+        end.textContent = 'Fin du catalogue.';
+        host.appendChild(end);
+      }
     }
 
-    function tfBuildRow(titleHtml, items, id){
-      const row = document.createElement('div');
-      row.className = 'tf-row';
-      if (id) row.id = id;
-
-      const title = document.createElement('div');
-      title.className = 'tf-row-title';
-      title.innerHTML = titleHtml;
-
-      const track = document.createElement('div');
-      track.className = 'tf-row-track';
-
-      (items || []).forEach(cat => track.appendChild(tfBuildCard(cat)));
-
-      row.appendChild(title);
-      row.appendChild(track);
-      return row;
+    function tfRenderEmpty(msg){
+      const host = document.getElementById('twitflix-grid');
+      if (!host) return;
+      host.innerHTML = `<div class="tf-empty">${escapeHtml(msg)}</div>`;
     }
 
-    function tfBuildCard(cat){
-      const div = document.createElement('div');
+    function tfCreateCard(cat){
+      const div = document.createElement('button');
+      div.type = 'button';
       div.className = 'tf-card';
-      div.dataset.gameId = cat.id;
-      div.dataset.gameName = cat.name;
+      div.setAttribute('data-game-id', cat.id);
 
-      const poster = tfNormalizeBoxArt(cat.box_art_url || '');
+      const img = document.createElement('img');
+      img.className = 'tf-poster';
+      img.loading = 'lazy';
+      img.alt = cat.name;
+      img.src = cat.box_art_url;
+      div.appendChild(img);
 
-      div.innerHTML = `
-        <img class="tf-poster" src="${poster}" loading="lazy" alt="">
-        <div class="tf-preview" aria-hidden="true"></div>
-        <div class="tf-overlay">
-          <div class="tf-name" title="${escapeHtml(cat.name)}">${escapeHtml(cat.name)}</div>
-          <div class="tf-actions-row">
-            <span class="tf-pill"><i class="fas fa-play"></i> Lire</span>
-            <span class="tf-pill ghost"><i class="fas fa-volume-mute"></i> Preview</span>
-          </div>
-        </div>
-      `;
+      const overlay = document.createElement('div');
+      overlay.className = 'tf-overlay';
+      overlay.innerHTML = `<span class="tf-name">${escapeHtml(cat.name)}</span>`;
+      div.appendChild(overlay);
 
-      // hero update on hover/focus
-      div.addEventListener('mouseenter', () => tfSetHero({ title: cat.name, poster }));
-      div.addEventListener('focus', () => tfSetHero({ title: cat.name, poster }));
+      div.addEventListener('click', ()=> playTwitFlixCategory(cat.id, cat.name));
 
-      // click play
-      div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
-
-      // Hover preview (Netflix-like delay)
-      let t = null;
-      div.addEventListener('mouseenter', () => { t = setTimeout(() => tfStartPreview(div), 420); });
-      div.addEventListener('mouseleave', () => { if (t) clearTimeout(t); tfStopPreview(div); });
+      div.addEventListener('mouseenter', ()=> tfStartPreview(div, cat));
+      div.addEventListener('mouseleave', ()=> tfStopPreview(div));
 
       return div;
     }
 
-    function tfSetHero({ title, sub, poster }){
-      const bg = document.getElementById('tf-hero-bg');
-      const t = document.getElementById('tf-hero-title');
-      const s = document.getElementById('tf-hero-sub');
-      if (t) t.textContent = String(title || 'TWITFLIX');
-      if (s) s.textContent = String(sub || '');
-      if (bg){
-        if (poster) { bg.src = poster; bg.style.opacity = '.55'; }
-        else { bg.removeAttribute('src'); bg.style.opacity = '.15'; }
+    async function tfStartPreview(card, cat){
+      if (!card || card.classList.contains('previewing')) return;
+      card.classList.add('previewing');
+
+      // load one preview thumbnail (top live stream)
+      const img = card.querySelector('img.tf-poster');
+      if (!img) return;
+      const original = img.src;
+
+      try{
+        const res = await fetch(`${API_BASE}/api/twitflix/preview?game_id=${encodeURIComponent(cat.id)}`);
+        const data = await res.json();
+        if (!data || !data.success || !data.thumbnail_url) return;
+
+        // simulate "video preview" by refreshing thumbnail a few times
+        let ticks = 0;
+        img.src = data.thumbnail_url + `?t=${Date.now()}`;
+        const timer = setInterval(()=>{
+          if (!card.classList.contains('previewing')) { clearInterval(timer); return; }
+          ticks++;
+          img.src = data.thumbnail_url + `?t=${Date.now()}`;
+          if (ticks >= 6) { clearInterval(timer); }
+        }, 900);
+        tfHoverTimers.set(card, { timer, original });
+      }catch(e){}
+    }
+
+    function tfStopPreview(card){
+      if (!card) return;
+      card.classList.remove('previewing');
+      const st = tfHoverTimers.get(card);
+      if (st){
+        clearInterval(st.timer);
+        const img = card.querySelector('img.tf-poster');
+        if (img && st.original) img.src = st.original;
+        tfHoverTimers.delete(card);
       }
-    }
-
-    async function tfStartPreview(cardEl){
-      try{
-        if (!cardEl || cardEl.classList.contains('previewing')) return;
-        const gameId = String(cardEl.dataset.gameId || '');
-        if (!gameId) return;
-
-        const host = cardEl.querySelector('.tf-preview');
-        if (!host) return;
-
-        const channel = await tfGetPreviewChannel(gameId);
-        if (!channel) return;
-
-        const parent = encodeURIComponent(TWITCH_PARENT || window.location.hostname);
-        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${parent}&muted=true&autoplay=true`;
-
-        const iframe = document.createElement('iframe');
-        iframe.src = src;
-        iframe.width = '100%';
-        iframe.height = '100%';
-        iframe.allow = 'autoplay; fullscreen';
-        iframe.frameBorder = '0';
-
-        host.innerHTML = '';
-        host.appendChild(iframe);
-        cardEl.classList.add('previewing');
-      }catch(_){}
-    }
-
-    function tfStopPreview(cardEl){
-      try{
-        if (!cardEl) return;
-        const host = cardEl.querySelector('.tf-preview');
-        if (host) host.innerHTML = '';
-        cardEl.classList.remove('previewing');
-      }catch(_){}
-    }
-
-    async function tfGetPreviewChannel(gameId){
-      const now = Date.now();
-      const cached = tfPreviewCache.get(gameId);
-      if (cached && (now - cached.t) < TF_PREVIEW_TTL) return cached.channel;
-
-      if (tfPreviewInflight.has(gameId)) return tfPreviewInflight.get(gameId);
-
-      const p = (async () => {
-        try{
-          const res = await fetch(`${API_BASE}/api/stream/by_category`,{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ game_id: gameId })
-          });
-          const data = await res.json();
-          const channel = data && data.success ? data.channel : null;
-          if (channel) tfPreviewCache.set(gameId,{ channel, t: Date.now() });
-          return channel;
-        }catch(_){
-          return null;
-        }finally{
-          tfPreviewInflight.delete(gameId);
-        }
-      })();
-
-      tfPreviewInflight.set(gameId, p);
-      return p;
     }
 
     async function playTwitFlixCategory(gameId, gameName){
-      closeTwitFlix();
+      playSound('select');
 
-      // LIVE (stream) vs VOD
-      if (tfPlayMode === 'vod'){
-        document.getElementById('current-channel-display').innerText = "TWITFLIX VOD…";
-        try{
-          const res = await fetch(`${API_BASE}/api/vod/by_category`,{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ game_id: gameId })
-          });
-          const data = await res.json();
-          if (data && data.success && data.video_id){
-            const parent = encodeURIComponent(TWITCH_PARENT || window.location.hostname);
-            const src = `https://player.twitch.tv/?video=v${encodeURIComponent(data.video_id)}&parent=${parent}&autoplay=true&muted=false`;
-            const iframe = document.getElementById('twitch-player');
-            if (iframe) iframe.src = src;
-            const badge = document.getElementById('player-mode-badge');
-            if (badge) badge.innerText = "TWITFLIX VOD";
-            return;
-          }
-          alert("Aucune VOD trouvée pour ce jeu.");
-          document.getElementById('current-channel-display').innerText = "OFFLINE";
-        }catch(e){
-          alert("Erreur lors de la recherche VOD.");
-        }
-        return;
-      }
-
-      // LIVE par défaut
-      document.getElementById('current-channel-display').innerText = "TWITFLIX…";
-      try{
-        const res = await fetch(`${API_BASE}/api/stream/by_category`,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
+      document.getElementById('current-channel-display').innerText = "TWITFLIX...";
+      try {
+        const res = await fetch(`${API_BASE}/api/stream/by_category`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ game_id: gameId })
         });
         const data = await res.json();
-        if (data && data.success && data.channel){
-          changeChannel(data.channel);
-          const badge = document.getElementById('player-mode-badge');
-          if (badge) badge.innerText = "TWITFLIX";
-        }else{
-          alert("Aucun stream trouvé pour ce jeu.");
-          document.getElementById('current-channel-display').innerText = "OFFLINE";
+
+        if (data.success && data.channel) {
+           changeChannel(data.channel);
+           document.getElementById('player-mode-badge').innerText = "TWITFLIX";
+        } else {
+           alert("Aucun stream FR trouvé sur ce jeu.");
         }
-      }catch(e){
-        alert("Erreur lors de la recherche TwitFlix.");
+      } catch (e){
+        alert("Erreur réseau.");
       }
-    }      }catch(_){
+    }
+      } catch(e) {
         alert("Erreur lors de la recherche TwitFlix.");
       }
     }
 
-    function tfShuffle(arr){
-      const a = arr.slice();
-      for (let i=a.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [a[i],a[j]] = [a[j],a[i]];
-      }
-      return a;
-    }
-// BEST TIME
-
+    // BEST TIME
     async function analyzeBestTime(){
       const gameInput = document.getElementById('best-time-game').value.trim();
       if (!gameInput) return alert('Veuillez entrer un nom de jeu');
