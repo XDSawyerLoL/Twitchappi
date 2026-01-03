@@ -1454,12 +1454,6 @@ io.on('connection', (socket) => {
   });
 });
 
-
-  socket.on('disconnect', () => {
-    console.log('🔌 [SOCKET] client disconnected');
-  });
-});
-
 server.listen(PORT, () => {
   console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
   console.log("✅ Routes prêtes");
