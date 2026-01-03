@@ -1,3 +1,93 @@
+
+
+// =========================================================
+// HUB XP / GRADES (Firestore + fallback mémoire)
+// =========================================================
+const HUB_GRADES = [
+  { name: "NEWCOMER", min: 0 },
+  { name: "CURATOR", min: 150 },
+  { name: "STRATEGIST", min: 450 },
+  { name: "CATALYST", min: 900 },
+  { name: "LEGEND", min: 1600 }
+];
+
+function hubGradeFromXp(xp){
+  let g = HUB_GRADES[0].name;
+  for (const it of HUB_GRADES){
+    if (xp >= it.min) g = it.name;
+  }
+  return g;
+}
+
+// Firestore disponible ?
+let hubDb = null;
+try{
+  if (admin.apps && admin.apps.length) hubDb = admin.firestore();
+}catch(e){ hubDb = null; }
+
+// fallback mémoire si Firestore indispo
+const hubMemUsers = new Map(); // key -> {xp, grade, updatedAt}
+let hubLastLeaderboardEmit = 0;
+
+async function hubGetUser(key, user){
+  if (hubDb){
+    try{
+      const ref = hubDb.collection('hub_users').doc(key);
+      const snap = await ref.get();
+      if (snap.exists) return snap.data();
+      const init = { user, xp: 0, grade: hubGradeFromXp(0), createdAt: Date.now(), updatedAt: Date.now() };
+      await ref.set(init, { merge:true });
+      return init;
+    }catch(e){
+      // Firestore error -> fallback mémoire
+      hubDb = null;
+    }
+  }
+  const v = hubMemUsers.get(key) || { user, xp: 0, grade: hubGradeFromXp(0), createdAt: Date.now(), updatedAt: Date.now() };
+  hubMemUsers.set(key, v);
+  return v;
+}
+
+async function hubAddXp(key, user, delta){
+  delta = Math.max(0, Number(delta||0));
+  if (hubDb){
+    try{
+      const ref = hubDb.collection('hub_users').doc(key);
+      await hubDb.runTransaction(async (tx)=>{
+        const snap = await tx.get(ref);
+        const cur = snap.exists ? snap.data() : { user, xp: 0 };
+        const nextXp = Math.max(0, (cur.xp||0) + delta);
+        const next = { user, xp: nextXp, grade: hubGradeFromXp(nextXp), updatedAt: Date.now() };
+        if (!snap.exists) next.createdAt = Date.now();
+        tx.set(ref, next, { merge:true });
+      });
+      const s = await ref.get();
+      return s.data();
+    }catch(e){
+      hubDb = null;
+    }
+  }
+  const cur = hubMemUsers.get(key) || { user, xp: 0, grade: hubGradeFromXp(0), createdAt: Date.now() };
+  const nextXp = Math.max(0, (cur.xp||0) + delta);
+  const next = { ...cur, user, xp: nextXp, grade: hubGradeFromXp(nextXp), updatedAt: Date.now() };
+  hubMemUsers.set(key, next);
+  return next;
+}
+
+async function hubTop(n=10){
+  if (hubDb){
+    try{
+      const snap = await hubDb.collection('hub_users').orderBy('xp','desc').limit(n).get();
+      return snap.docs.map(d => ({ user: d.data().user, xp: d.data().xp||0, grade: d.data().grade||hubGradeFromXp(d.data().xp||0) }));
+    }catch(e){
+      hubDb = null;
+    }
+  }
+  const arr = Array.from(hubMemUsers.values()).map(x => ({ user:x.user, xp:x.xp||0, grade:x.grade||hubGradeFromXp(x.xp||0) }));
+  arr.sort((a,b)=> (b.xp||0) - (a.xp||0));
+  return arr.slice(0,n);
+}
+
 /**
  * STREAMER & NICHE AI HUB - BACKEND (ULTIMATE AUDIO + INFINITE SCROLL)
  * =========================================================
@@ -1300,153 +1390,73 @@ const io = new Server(server, {
   cors: { origin: true, methods: ['GET', 'POST'] }
 });
 
-
-// =========================================================
-// HUB XP / GRADES (Firestore persist)
-// =========================================================
-function getGradeFromXp(xp) {
-  const tiers = [
-    { key: 'newcomer',  label: 'Newcomer',  min: 0,    color: '#7e7e8a' },
-    { key: 'curator',   label: 'Curator',   min: 150,  color: '#00f2ea' },
-    { key: 'strategist',label: 'Strategist',min: 500,  color: '#7c5cff' },
-    { key: 'catalyst',  label: 'Catalyst',  min: 1200, color: '#ffb020' },
-    { key: 'legend',    label: 'Legend',    min: 2500, color: '#ff3d6e' },
-  ];
-  let best = tiers[0];
-  for (const t of tiers) if (xp >= t.min) best = t;
-  return best;
-}
-
-
-// =========================================================
-// HUB API (leaderboard + user)
-// =========================================================
-app.get('/api/hub/leaderboard', async (req, res) => {
-  try {
-    const limit = Math.min(Number(req.query.limit || 10), 50);
-    const snap = await db.collection('hub_users').orderBy('xp', 'desc').limit(limit).get();
-    const users = snap.docs.map(d => ({
-      userId: d.id,
-      name: d.data().name || d.id,
-      xp: d.data().xp || 0,
-      grade: d.data().grade || 'newcomer',
-      gradeLabel: d.data().gradeLabel || 'Newcomer',
-      gradeColor: d.data().gradeColor || '#7e7e8a',
-      msgCount: d.data().msgCount || 0
-    }));
-    res.json({ success: true, users });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.get('/api/hub/user', async (req, res) => {
-  try {
-    const name = String(req.query.name || '').trim();
-    if (!name) return res.json({ success: true, user: null });
-    const userId = name.toLowerCase().replace(/[^a-z0-9_ -]/g, '').replace(/\s+/g, '_').slice(0, 40);
-    const doc = await db.collection('hub_users').doc(userId).get();
-    if (!doc.exists) return res.json({ success: true, user: null });
-    const d = doc.data() || {};
-    res.json({ success: true, user: {
-      userId: doc.id,
-      name: d.name || name,
-      xp: d.xp || 0,
-      grade: d.grade || 'newcomer',
-      gradeLabel: d.gradeLabel || 'Newcomer',
-      gradeColor: d.gradeColor || '#7e7e8a',
-      msgCount: d.msgCount || 0
-    }});
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
 io.on('connection', (socket) => {
-  console.log('🔌 [SOCKET] client connected', socket.id);
+  console.log('🔌 [SOCKET] client connected');
 
-  // per-socket anti-spam (in-memory)
-  socket.data.lastMsgAt = 0;
+  // rate-limit per socket (anti spam)
+  let lastMsgAt = 0;
+
+  socket.on('hub:leaderboard:request', async () => {
+    try{
+      const top = await hubTop(10);
+      socket.emit('hub:leaderboard', top);
+    }catch(_){}
+  });
 
   socket.on('chat message', async (msg) => {
-    try {
-      const rawUser = String(msg?.user || 'Anon').trim().slice(0, 40);
-      const rawText = String(msg?.text || '').trim().slice(0, 500);
-      if (!rawText) return;
+    try{
+      const user = String(msg?.user || 'Anon').slice(0, 40);
+      const text = String(msg?.text || '').slice(0, 500);
+      if (!text.trim()) return;
 
-      // simple cooldown (2s) per socket
       const now = Date.now();
-      if (now - (socket.data.lastMsgAt || 0) < 1800) return;
-      socket.data.lastMsgAt = now;
+      const dt = now - lastMsgAt;
+      lastMsgAt = now;
 
-      // normalize user id for persistence
-      const userId = rawUser
-        .toLowerCase()
-        .replace(/[^a-z0-9_ -]/g, '')
-        .replace(/\s+/g, '_')
-        .slice(0, 40) || `anon_${socket.id.slice(0, 6)}`;
+      // XP rules (anti-farm)
+      let delta = 5;
+      if (text.includes(':')) delta += 1;            // emote-ish
+      if (text.length >= 40) delta += 1;            // effort
+      if (dt < 900) delta = 0;                      // trop rapide => pas d'XP
+      if (dt < 1400) delta = Math.min(delta, 2);    // cooldown léger
 
-      // message id
-      const msgId = (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : require('crypto').randomUUID());
+      const key = user.toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,32) || ('anon_' + socket.id.slice(-6));
 
-      // XP system (anti-spam + emote bonus)
-      const hasEmoteCode = /:[a-z0-9_]{2,24}:/i.test(rawText);
-      const baseXp = 5;
-      const emoteBonus = hasEmoteCode ? 2 : 0;
-      const lenBonus = rawText.length >= 80 ? 2 : (rawText.length >= 40 ? 1 : 0);
-      let gain = baseXp + emoteBonus + lenBonus;
+      const updated = await hubAddXp(key, user, delta);
+      const payload = {
+        id: `${now}_${Math.random().toString(16).slice(2)}`,
+        user,
+        text,
+        xp: updated?.xp ?? 0,
+        grade: updated?.grade ?? hubGradeFromXp(updated?.xp ?? 0),
+        t: now
+      };
 
-      // Server-side anti-farm: if user is spamming (last message < 6s), cut XP
-      const userRef = db.collection('hub_users').doc(userId);
+      io.emit('chat message', payload);
 
-      let updated = null;
-      await db.runTransaction(async (tx) => {
-        const snap = await tx.get(userRef);
-        const data = snap.exists ? snap.data() : {};
+      // emit "me" back to sender so UI updates instantly
+      socket.emit('hub:me', { user, xp: payload.xp, grade: payload.grade });
 
-        const last = typeof data.lastMessageAt === 'number' ? data.lastMessageAt : 0;
-        const tooFast = (now - last) < 6000;
-        const appliedGain = tooFast ? 1 : gain;
+      // leaderboard broadcast throttled (every ~4s max)
+      if (now - hubLastLeaderboardEmit > 4000){
+        hubLastLeaderboardEmit = now;
+        const top = await hubTop(10);
+        io.emit('hub:leaderboard', top);
+      }
 
-        const nextXp = (data.xp || 0) + appliedGain;
-        const nextMsgCount = (data.msgCount || 0) + 1;
-
-        const grade = getGradeFromXp(nextXp);
-
-        tx.set(userRef, {
-          name: rawUser,
-          xp: nextXp,
-          msgCount: nextMsgCount,
-          grade: grade.key,
-          gradeLabel: grade.label,
-          gradeColor: grade.color,
-          lastMessageAt: now,
-          updatedAt: now,
-          createdAt: data.createdAt || now
-        }, { merge: true });
-
-        updated = {
-          id: msgId,
-          user: rawUser,
-          userId,
-          text: rawText,
-          ts: now,
-          xp: nextXp,
-          gain: appliedGain,
-          grade: grade.key,
-          gradeLabel: grade.label,
-          gradeColor: grade.color
-        };
-      });
-
-      if (updated) io.emit('chat message', updated);
-    } catch (e) {
-      console.error('chat message error:', e.message);
+    }catch(e){
+      console.error('hub chat error:', e.message);
     }
   });
 
-  socket.on('disconnect', (reason) => {
-    console.log('🔌 [SOCKET] client disconnected', socket.id, reason || '');
+  socket.on('disconnect', () => {
+    console.log('🔌 [SOCKET] client disconnected');
+  });
+});
+
+
+  socket.on('disconnect', () => {
+    console.log('🔌 [SOCKET] client disconnected');
   });
 });
 
