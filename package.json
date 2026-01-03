@@ -17,13 +17,14 @@
     "@google/genai": "latest",
     "socket.io": "^4.7.5",
     "helmet": "^7.1.0",
-    "express-rate-limit": "^7.2.0",
-    "express-session": "^1.17.3"
+    "express-rate-limit": "^7.4.1",
+    "express-session": "^1.18.0"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
+
 
 
 
