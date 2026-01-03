@@ -16,14 +16,15 @@
     "dotenv": "^16.4.5",
     "@google/genai": "latest",
     "socket.io": "^4.7.5",
-
     "helmet": "^7.1.0",
-    "express-rate-limit": "^7.4.0"
+    "express-rate-limit": "^7.4.0",
+    "express-session": "^1.18.0"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
+
 
 
 
