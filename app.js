@@ -17,11 +17,10 @@ const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const { Server } = require('socket.io');
-
-// Security / sessions
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
+const MemoryStore = require('memorystore')(session);
 
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
@@ -71,42 +70,6 @@ try {
 // =========================================================
 const app = express();
 
-// Trust proxy (Render / reverse proxies) so secure cookies + real IP work
-app.set('trust proxy', 1);
-
-// Basic hardening
-app.use(helmet({
-  contentSecurityPolicy: false, // keep iframes (Twitch) working without CSP headaches
-  crossOriginEmbedderPolicy: false
-}));
-
-// Rate limit (safe defaults)
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 240, // 240 req/min per IP (adjust later)
-  standardHeaders: true,
-  legacyHeaders: false
-});
-app.use('/api/', apiLimiter);
-
-// Sessions (required for multi-user auth later)
-const SESSION_SECRET = process.env.SESSION_SECRET || null;
-if (!SESSION_SECRET) {
-  console.warn("⚠️ SESSION_SECRET manquant (recommandé/OBLIGATOIRE en prod). Ajoute-le dans Render > Environment.");
-}
-app.use(session({
-  name: 'jp_sid',
-  secret: SESSION_SECRET || ('dev_' + crypto.randomBytes(24).toString('hex')),
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: (process.env.NODE_ENV === 'production')
-  }
-}));
-
-
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
@@ -124,9 +87,39 @@ if (GEMINI_API_KEY) {
   }
 }
 
-app.use(cors());
-app.use(bodyParser.json());
+// ================== SECURITY / SESSIONS (prod-safe + iframe-safe) ==================
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  frameguard: false // IMPORTANT: autorise l'app à être affichée en iframe (Fourthwall / Shopify / etc.)
+}));
+
+app.use(cors({ origin: true, credentials: true }));
+
+// Rate limit uniquement sur les endpoints API (évite de limiter le chargement du HTML/CSS)
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 300 });
+app.use('/api', apiLimiter);
+
+app.use(bodyParser.json({ limit: '1mb' }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Sessions multi-user (supprime le warning MemoryStore)
+if (!process.env.SESSION_SECRET) {
+  console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod).');
+}
+app.use(session({
+  name: 'streamerhub.sid',
+  store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }), // purge auto 24h
+  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  }
+}));
 app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
@@ -1360,10 +1353,10 @@ app.get('/api/costream/best', async (req, res) => {
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'] },
+  cors: { origin: true, methods: ['GET', 'POST'], credentials: true },
   transports: ['websocket', 'polling'],
-  pingTimeout: 20000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  pingTimeout: 20000
 });
 
 io.on('connection', (socket) => {
@@ -1371,10 +1364,19 @@ io.on('connection', (socket) => {
 
   socket.on('chat message', (msg) => {
     const safe = {
+      id: String(msg?.id || (Date.now() + '-' + Math.random().toString(36).slice(2, 10))),
+      ts: Date.now(),
       user: String(msg?.user || 'Anon').slice(0, 40),
-      text: String(msg?.text || '').slice(0, 500)
+      text: String(msg?.text || '').slice(0, 500),
+      type: String(msg?.type || 'text').slice(0, 10),
+      gif: msg?.gif ? String(msg.gif).slice(0, 800) : null
     };
-    if (!safe.text) return;
+    if (!safe.text && !safe.gif) return;
+    // Validation minimale GIF (lien direct) — refuse schémas non sûrs
+    if (safe.gif) {
+      const g = safe.gif;
+      if (!(g.startsWith('https://') || g.startsWith('http://'))) safe.gif = null;
+    }
     io.emit('chat message', safe);
   });
 
