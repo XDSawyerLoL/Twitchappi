@@ -180,20 +180,7 @@
     }
     .tf-card:hover .tf-overlay { opacity: 1; }
     .tf-name { font-size: 12px; font-weight: bold; color: white; text-align: center; }
-  
-    /* ===== HUB CHAT (premium + viral) ===== */
-    .hub-msg-row{ display:flex; gap:10px; align-items:flex-start; }
-    .hub-avatar{ width:28px; height:28px; border-radius:999px; background:#151515; border:1px solid #2b2b31; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px; color:#fff; flex:0 0 auto; }
-    .hub-bubble{ flex:1; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:8px 10px; }
-    .hub-meta{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:2px; }
-    .hub-name{ font-weight:900; font-size:12px; }
-    .hub-badge{ font-size:10px; font-weight:900; padding:2px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.18); }
-    .hub-xpmini{ font-size:10px; font-weight:900; padding:2px 8px; border-radius:999px; background:#00f2ea; color:#000; }
-    .hub-text{ color:#e8e8ee; font-size:13px; line-height:1.25rem; word-break:break-word; }
-    .hub-gain{ font-size:10px; color:#00f2ea; font-weight:900; margin-left:auto; }
-    .hub-emo{ font-size:15px; vertical-align:-2px; }
-
-</style>
+  </style>
 </head>
 
 <body class="h-screen flex flex-col p-4">
@@ -411,56 +398,60 @@
         </div>
 
         <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
-          <!-- HUB header (viral: grade + XP + leaderboard) -->
-          <div class="flex items-center justify-between gap-2 px-3 py-2 bg-[#070707] border-b border-[#1f1f23]">
+          <div id="hub-topbar" class="px-2 py-2 border-b border-[#222] bg-[#070707] flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
-              <div id="hub-grade-dot" class="w-2.5 h-2.5 rounded-full" style="background:#7e7e8a;"></div>
-              <div class="min-w-0">
-                <div class="text-[10px] text-gray-400 uppercase tracking-wider leading-none">Hub Secure</div>
-                <div class="flex items-center gap-2 min-w-0">
-                  <button type="button" id="hub-name-btn" class="text-white font-bold text-sm truncate hover:text-[#00f2ea]"></button>
-                  <span id="hub-user-display" class="hidden"></span>
-                  <span id="hub-grade-badge" class="text-[10px] font-extrabold px-2 py-[2px] rounded-full border border-[#2b2b31] bg-[#101013] text-gray-200">Newcomer</span>
-                  <span id="hub-xp-badge" class="text-[10px] font-extrabold px-2 py-[2px] rounded-full bg-[#00f2ea] text-black">0 XP</span>
-                </div>
+              <span id="hub-grade-badge" class="px-2 py-1 rounded-full text-[10px] font-black tracking-widest bg-[#00f2ea] text-black">NEWCOMER</span>
+              <div class="text-xs text-gray-300 truncate">
+                <span class="text-gray-500">Profil:</span>
+                <span id="hub-user-display2" class="text-[#00f2ea] font-bold">Anonyme</span>
+                <span class="text-gray-500">• XP</span>
+                <span id="hub-xp" class="text-white font-bold">0</span>
               </div>
             </div>
-
             <div class="flex items-center gap-2">
-              <button type="button" id="hub-leaderboard-btn" class="text-[10px] font-extrabold px-2 py-1 rounded bg-[#111] border border-[#222] text-gray-200 hover:border-[#00f2ea]">
-                <i class="fas fa-trophy mr-1"></i> Classement
+              <button type="button" onclick="toggleHubLeaderboard()" class="px-2 py-1 rounded bg-[#111] border border-[#222] text-xs text-gray-300 hover:text-white">
+                <i class="fas fa-trophy text-[#00f2ea]"></i>
               </button>
             </div>
           </div>
 
-          <div class="flex flex-1 min-h-0">
-            <div id="hub-messages" class="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin"></div>
-
-            <!-- Leaderboard (viral) -->
-            <div id="hub-leaderboard" class="w-[240px] hidden border-l border-[#1f1f23] bg-[#08080a]">
-              <div class="px-3 py-2 border-b border-[#1f1f23] text-xs font-bold text-gray-200 flex items-center justify-between">
-                <span><i class="fas fa-trophy mr-1 text-[#ffb020]"></i> Top Hub</span>
-                <button type="button" class="text-gray-400 hover:text-white" onclick="toggleHubLeaderboard(false)"><i class="fas fa-times"></i></button>
-              </div>
-              <div id="hub-leaderboard-list" class="p-2 space-y-2"></div>
-              <div class="px-3 pb-3 pt-1 text-[10px] text-gray-500">
-                Gagne de l’XP en discutant. Les grades débloquent des badges (bientôt: emotes exclusives).
-              </div>
+          <div id="hub-leaderboard" class="hidden px-2 py-2 border-b border-[#222] bg-[#060606]">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-black tracking-widest text-gray-300">TOP HUB</div>
+              <button type="button" onclick="toggleHubLeaderboard()" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
+            <div id="hub-leaderboard-list" class="mt-2 space-y-1 text-xs"></div>
           </div>
 
-          <!-- Emotes picker -->
-          <div id="hub-emotes" class="hidden absolute bottom-16 left-3 z-50 w-[280px] bg-[#0e0e10] border border-[#2b2b31] rounded-xl shadow-xl p-2">
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-[10px] font-extrabold tracking-wider text-gray-300 uppercase">Emotes</div>
-              <button type="button" class="text-gray-400 hover:text-white" onclick="toggleHubEmotes(false)"><i class="fas fa-times"></i></button>
+          <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
+            <div class="text-center text-gray-600 text-xs mt-4">
+              Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
             </div>
-            <div id="hub-emotes-grid" class="grid grid-cols-5 gap-2"></div>
           </div>
+          
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] items-center">
+            <button type="button" onclick="toggleEmotePicker()" class="text-gray-300 hover:text-white px-2">
+              <i class="far fa-smile"></i>
+            </button>
+            <div id="hub-emote-picker" class="hidden absolute bottom-14 left-2 bg-[#0b0b0d] border border-[#222] rounded-lg p-2 w-[260px] shadow-xl">
+              <div class="text-[10px] text-gray-400 font-black tracking-widest mb-2">EMOTES</div>
+              <div class="grid grid-cols-6 gap-2 text-lg">
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote(':kappa:')">😏</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote(':pog:')">🤯</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote(':lul:')">😂</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote(':gg:')">🏆</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote(':love:')">💖</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote(':fire:')">🔥</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote('😀')">😀</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote('😎')">😎</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote('😭')">😭</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote('😡')">😡</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote('✨')">✨</button>
+                <button type="button" class="hover:scale-110 transition" onclick="insertEmote('🎬')">🎬</button>
+              </div>
+            </div>
 
-          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#1f1f23] flex gap-2 bg-[#070707]">
-            <button type="button" class="text-gray-300 px-2 hover:text-[#00f2ea]" onclick="toggleHubEmotes()"><i class="far fa-smile"></i></button>
-            <input id="hub-input" type="text" placeholder="Message..." class="bg-black text-white px-3 py-2 rounded w-full flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+            <input id="hub-input" type="text" placeholder="Message..." class="bg-[#111] text-white px-3 py-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
             <button type="submit" class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
           </form>
         </div>
@@ -849,85 +840,85 @@
 
     // SOCKET.IO
     function initSocket(){
-      // évite multi-connexions (iframe reload / double init)
-      if (window.__socketInited) return;
-      window.__socketInited = true;
-
       try{
-        setHubNameUI();
-        const nameBtn = document.getElementById('hub-name-btn');
-        if (nameBtn) nameBtn.onclick = editHubName;
+        // one-shot init (avoid multiple connections in embeds)
+        if (window.__hubSocketInited) return;
+        window.__hubSocketInited = true;
 
-        const lbBtn = document.getElementById('hub-leaderboard-btn');
-        if (lbBtn) lbBtn.onclick = () => toggleHubLeaderboard();
+        socket = io({ transports: ['websocket','polling'] });
 
-        if (window.__socket) {
-          try { window.__socket.disconnect(); } catch(e){}
-          window.__socket = null;
-        }
+        const seen = new Set();
 
-        window.__socket = io({
-          transports: ['websocket','polling'],
-          reconnection: true,
-          reconnectionAttempts: Infinity,
-          reconnectionDelay: 800,
-          reconnectionDelayMax: 3000
-        });
-        socket = window.__socket;
-
-        // initial load
-        refreshHubSelf();
-        refreshHubLeaderboard();
-        setInterval(refreshHubLeaderboard, 25000);
-
-        socket.on('connect', () => {});
-        socket.on('disconnect', () => {});
-        socket.on('connect_error', () => {});
-
-        socket.on('chat message', (msg) => {
-          if (!msg) return;
-          if (msg.id && !hubRemember(msg.id)) return;
-
-          const box = document.getElementById('hub-messages');
-          if (!box) return;
-
-          const user = String(msg.user || 'Anon');
-          const gradeLabel = msg.gradeLabel || 'Newcomer';
-          const gradeColor = msg.gradeColor || '#7e7e8a';
-          const xp = typeof msg.xp === 'number' ? msg.xp : null;
-          const gain = typeof msg.gain === 'number' ? msg.gain : null;
-
-          const avatarLetter = user.trim().slice(0,1).toUpperCase() || '?';
-          const isMe = (msg.userId && msg.userId === HUB_USER_ID);
-
-          const row = document.createElement('div');
-          row.className = 'hub-msg-row';
-
-          row.innerHTML = `
-            <div class="hub-avatar" style="border-color:${gradeColor}55">${escapeHtml(avatarLetter)}</div>
-            <div class="hub-bubble">
-              <div class="hub-meta">
-                <span class="hub-name" style="color:${gradeColor}">${escapeHtml(user)}</span>
-                <span class="hub-badge" style="border-color:${gradeColor}55">${escapeHtml(gradeLabel)}</span>
-                ${xp !== null ? `<span class="hub-xpmini">${xp} XP</span>` : ''}
-                ${gain !== null ? `<span class="hub-gain">+${gain}</span>` : ''}
-              </div>
-              <div class="hub-text">${hubParseEmotes(escapeHtml(String(msg.text || '')))}</div>
-            </div>
-          `;
-
-          box.appendChild(row);
-          box.scrollTop = box.scrollHeight;
-
-          // update my badges when my message comes back
-          if (isMe && typeof msg.xp === 'number') {
-            applyHubSelfBadges({
-              xp: msg.xp,
-              gradeLabel: gradeLabel,
-              gradeColor: gradeColor
-            });
+        socket.on('hub:me', (me)=>{
+          if (!me) return;
+          if (me.user){
+            document.getElementById('hub-user-display').innerText = me.user;
+            const u2 = document.getElementById('hub-user-display2');
+            if (u2) u2.innerText = me.user;
+          }
+          if (me.xp != null){
+            const xpEl = document.getElementById('hub-xp');
+            if (xpEl) xpEl.innerText = me.xp;
+          }
+          if (me.grade){
+            const b = document.getElementById('hub-grade-badge');
+            if (b) b.innerText = me.grade;
           }
         });
+
+        socket.on('hub:leaderboard', (rows)=>{
+          renderHubLeaderboard(rows || []);
+        });
+
+        socket.on('chat message',(msg)=>{
+          if (!msg) return;
+          // anti-duplicate display
+          if (msg.id){
+            if (seen.has(msg.id)) return;
+            seen.add(msg.id);
+            if (seen.size > 600) {
+              // prune
+              const arr = Array.from(seen);
+              seen.clear();
+              arr.slice(-250).forEach(x=>seen.add(x));
+            }
+          }
+
+          const box = document.getElementById('hub-messages');
+          const user = msg.user || 'Anon';
+          const text = renderEmotes(msg.text || '');
+          const grade = msg.grade || '';
+          const xp = (msg.xp != null) ? msg.xp : null;
+
+          const badge = grade ? `<span class="ml-2 px-2 py-[2px] rounded-full text-[9px] font-black tracking-widest bg-[#111] border border-[#222] text-[#00f2ea]">${escapeHtml(grade)}</span>` : '';
+          const xpTag = (xp!=null) ? `<span class="ml-2 text-[10px] text-gray-500">XP <span class="text-gray-300 font-bold">${escapeHtml(xp)}</span></span>` : '';
+
+          box.innerHTML += `
+            <div class="hub-msg mt-2">
+              <div class="flex items-center gap-2">
+                <strong class="text-[#00f2ea]">${escapeHtml(user)}</strong>
+                ${badge}
+                ${xpTag}
+              </div>
+              <div class="text-gray-300 leading-snug">${text}</div>
+            </div>`;
+          box.scrollTop = box.scrollHeight;
+
+          // update self badge if it's me
+          if (user === (currentUser || 'Anon')) {
+            if (xp!=null) {
+              const xpEl = document.getElementById('hub-xp');
+              if (xpEl) xpEl.innerText = xp;
+            }
+            if (grade) {
+              const b = document.getElementById('hub-grade-badge');
+              if (b) b.innerText = grade;
+            }
+          }
+        });
+
+        socket.on('connect', ()=>{ /* quiet */ });
+        socket.on('disconnect', ()=>{ /* quiet */ });
 
       }catch(e){ console.error('Socket error:', e); }
     });
@@ -936,20 +927,15 @@
 
     function sendHubMessage(e){
       e.preventDefault();
-      try{
-        const input = document.getElementById('hub-input');
-        if (!input) return;
-        const text = String(input.value || '').trim();
-        if (!text) return;
-        if (!socket) initSocket();
-        if (!socket) return;
+      const input = document.getElementById('hub-input');
+      const val = String(input.value || '').trim();
+      if (!val) return;
 
-        socket.emit('chat message', { user: HUB_NAME, text });
-        input.value = '';
-        toggleHubEmotes(false);
-      }catch(err){
-        console.error(err);
-      }
+      // send only; do NOT append locally (server will echo once)
+      if (socket) socket.emit('chat message',{ user: currentUser || 'Anon', text: val });
+
+      input.value = '';
+      hideEmotePicker();
     }
 
     function escapeHtml(str){
@@ -957,159 +943,71 @@
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
       }
 
-    // =========================================================
-    // HUB CHAT — name, emotes, XP/grades, leaderboard (Firestore)
-    // =========================================================
+    // ===== HUB EMOTES + LEADERBOARD + GRADES =====
     const HUB_EMOTES = {
-      kappa: "😏", pog: "😱", pogchamp: "🤯", pepe: "🐸", love: "💖",
-      lul: "😂", wow: "😮", gg: "🏆", rip: "💀", hype: "🔥",
-      chill: "🧊", clap: "👏", heart: "❤️", star: "⭐", ok: "👌"
+      ':kappa:':'😏',
+      ':pog:':'🤯',
+      ':lul:':'😂',
+      ':gg:':'🏆',
+      ':love:':'💖',
+      ':fire:':'🔥'
     };
 
-    function hubNormalizeUserId(name){
-      return String(name || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9_ -]/g, '')
-        .replace(/\s+/g, '_')
-        .slice(0, 40) || 'anon';
-    }
-
-    function hubParseEmotes(text){
-      return String(text || '').replace(/:([a-z0-9_]{2,24}):/gi, (m, code) => {
-        const k = String(code || '').toLowerCase();
-        const emo = HUB_EMOTES[k];
-        return emo ? `<span class="hub-emo">${emo}</span>` : m;
-      });
-    }
-
-    function getOrCreateHubName(){
-      let n = localStorage.getItem('hub_name');
-      if (!n || n.length < 2){
-        n = `User${Math.floor(1000 + Math.random()*9000)}`;
-        localStorage.setItem('hub_name', n);
+    function renderEmotes(text){
+      let t = escapeHtml(String(text||''));
+      for (const k in HUB_EMOTES){
+        const v = HUB_EMOTES[k];
+        t = t.split(escapeHtml(k)).join(v);
       }
-      return n.slice(0, 40);
+      return t.replace(/\n/g,'<br>');
     }
 
-    let HUB_NAME = getOrCreateHubName();
-    let HUB_USER_ID = hubNormalizeUserId(HUB_NAME);
-
-    function setHubNameUI(){
-      const btn = document.getElementById('hub-name-btn');
-      const disp = document.getElementById('hub-user-display');
-      if (btn) btn.textContent = HUB_NAME;
-      if (disp) disp.textContent = HUB_NAME;
+    function toggleEmotePicker(){
+      const p = document.getElementById('hub-emote-picker');
+      if (!p) return;
+      p.classList.toggle('hidden');
+    }
+    function hideEmotePicker(){
+      const p = document.getElementById('hub-emote-picker');
+      if (!p) return;
+      p.classList.add('hidden');
+    }
+    function insertEmote(code){
+      const input = document.getElementById('hub-input');
+      if (!input) return;
+      input.value = (input.value || '') + code + ' ';
+      input.focus();
     }
 
-    async function editHubName(){
-      const next = prompt("Choisis ton pseudo Hub (2-20 caractères) :", HUB_NAME);
-      if (!next) return;
-      const clean = String(next).trim().slice(0, 20);
-      if (clean.length < 2) return;
-      HUB_NAME = clean;
-      HUB_USER_ID = hubNormalizeUserId(HUB_NAME);
-      localStorage.setItem('hub_name', HUB_NAME);
-      setHubNameUI();
-      await refreshHubSelf();
-      await refreshHubLeaderboard();
+    function toggleHubLeaderboard(){
+      const el = document.getElementById('hub-leaderboard');
+      if (!el) return;
+      el.classList.toggle('hidden');
+      if (socket && !el.classList.contains('hidden')) socket.emit('hub:leaderboard:request');
     }
 
-    function toggleHubEmotes(force){
-      const box = document.getElementById('hub-emotes');
-      if (!box) return;
-      const show = (typeof force === 'boolean') ? force : box.classList.contains('hidden');
-      box.classList.toggle('hidden', !show);
-      if (show) renderHubEmotes();
-    }
-
-    function renderHubEmotes(){
-      const grid = document.getElementById('hub-emotes-grid');
-      if (!grid) return;
-      grid.innerHTML = '';
-      Object.keys(HUB_EMOTES).forEach(k => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = "bg-[#111] border border-[#222] rounded-lg p-2 hover:border-[#00f2ea] text-lg";
-        b.innerHTML = HUB_EMOTES[k];
-        b.onclick = () => {
-          const input = document.getElementById('hub-input');
-          if (!input) return;
-          input.value = (input.value + ` :${k}: `).replace(/\s+/g,' ').trimStart();
-          input.focus();
-        };
-        grid.appendChild(b);
-      });
-    }
-
-    function toggleHubLeaderboard(force){
-      const panel = document.getElementById('hub-leaderboard');
-      if (!panel) return;
-      const show = (typeof force === 'boolean') ? force : panel.classList.contains('hidden');
-      panel.classList.toggle('hidden', !show);
-      if (show) refreshHubLeaderboard();
-    }
-
-    async function refreshHubLeaderboard(){
-      try{
-        const r = await fetch(`${API_BASE}/api/hub/leaderboard?limit=10`);
-        const d = await r.json();
-        const list = document.getElementById('hub-leaderboard-list');
-        if (!list) return;
-        if (!d || !d.success) throw new Error('leaderboard');
-        list.innerHTML = '';
-        (d.users || []).forEach((u, i) => {
-          const row = document.createElement('div');
-          row.className = "flex items-center gap-2 p-2 rounded-lg bg-[#0f0f12] border border-[#1f1f23]";
-          row.innerHTML = `
-            <div class="text-xs font-extrabold text-[#ffb020] w-5 text-center">${i+1}</div>
-            <div class="w-2.5 h-2.5 rounded-full" style="background:${u.gradeColor || '#7e7e8a'}"></div>
-            <div class="min-w-0 flex-1">
-              <div class="text-xs font-bold text-white truncate">${escapeHtml(u.name || u.userId)}</div>
-              <div class="text-[10px] text-gray-400">${escapeHtml(u.gradeLabel || 'Newcomer')} • ${u.xp || 0} XP</div>
-            </div>
-          `;
-          list.appendChild(row);
-        });
-      }catch(_){}
-    }
-
-    async function refreshHubSelf(){
-      try{
-        const r = await fetch(`${API_BASE}/api/hub/user?name=${encodeURIComponent(HUB_NAME)}`);
-        const d = await r.json();
-        const u = d && d.success ? d.user : null;
-        if (!u) return;
-        applyHubSelfBadges(u);
-      }catch(_){}
-    }
-
-    function applyHubSelfBadges(u){
-      const dot = document.getElementById('hub-grade-dot');
-      const badge = document.getElementById('hub-grade-badge');
-      const xp = document.getElementById('hub-xp-badge');
-      if (dot) dot.style.background = u.gradeColor || '#7e7e8a';
-      if (badge) {
-        badge.textContent = u.gradeLabel || 'Newcomer';
-        badge.style.borderColor = (u.gradeColor || '#7e7e8a') + "55";
+    function renderHubLeaderboard(rows){
+      const list = document.getElementById('hub-leaderboard-list');
+      if (!list) return;
+      if (!rows.length){
+        list.innerHTML = '<div class="text-gray-500 text-xs">Aucun classement pour le moment.</div>';
+        return;
       }
-      if (xp) xp.textContent = `${u.xp || 0} XP`;
+      list.innerHTML = rows.slice(0,10).map((r, i)=>{
+        const rank = i+1;
+        const name = escapeHtml(r.user || 'Anon');
+        const xp = escapeHtml(r.xp ?? 0);
+        const grade = escapeHtml(r.grade || '');
+        return `<div class="flex items-center justify-between px-2 py-1 rounded bg-[#0b0b0d] border border-[#111]">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-[#00f2ea] font-black w-10">#${rank}</span>
+            <span class="text-gray-200 font-bold truncate">${name}</span>
+            ${grade ? `<span class="px-2 py-[2px] rounded-full text-[9px] font-black tracking-widest bg-[#111] border border-[#222] text-[#00f2ea]">${grade}</span>`:''}
+          </div>
+          <div class="text-gray-400 font-bold">XP ${xp}</div>
+        </div>`;
+      }).join('');
     }
-
-    // Anti-dup (server sends message once, but we guard anyway)
-    const HUB_SEEN = new Set();
-    function hubRemember(id){
-      if (!id) return false;
-      if (HUB_SEEN.has(id)) return false;
-      HUB_SEEN.add(id);
-      if (HUB_SEEN.size > 600){
-        // drop oldest by rebuilding (cheap)
-        const arr = Array.from(HUB_SEEN).slice(-400);
-        HUB_SEEN.clear();
-        arr.forEach(x => HUB_SEEN.add(x));
-      }
-      return true;
-    }
-
 [m]));
     }
 
