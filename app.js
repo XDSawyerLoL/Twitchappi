@@ -1369,7 +1369,10 @@ app.get('/api/costream/best', async (req, res) => {
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'] }
+  cors: { origin: true, methods: ['GET', 'POST'] },
+  transports: ['websocket', 'polling'],
+  pingInterval: 25000,
+  pingTimeout: 20000
 });
 
 io.on('connection', (socket) => {
