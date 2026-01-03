@@ -1,93 +1,3 @@
-
-
-// =========================================================
-// HUB XP / GRADES (Firestore + fallback mémoire)
-// =========================================================
-const HUB_GRADES = [
-  { name: "NEWCOMER", min: 0 },
-  { name: "CURATOR", min: 150 },
-  { name: "STRATEGIST", min: 450 },
-  { name: "CATALYST", min: 900 },
-  { name: "LEGEND", min: 1600 }
-];
-
-function hubGradeFromXp(xp){
-  let g = HUB_GRADES[0].name;
-  for (const it of HUB_GRADES){
-    if (xp >= it.min) g = it.name;
-  }
-  return g;
-}
-
-// Firestore disponible ?
-let hubDb = null;
-try{
-  if (admin.apps && admin.apps.length) hubDb = admin.firestore();
-}catch(e){ hubDb = null; }
-
-// fallback mémoire si Firestore indispo
-const hubMemUsers = new Map(); // key -> {xp, grade, updatedAt}
-let hubLastLeaderboardEmit = 0;
-
-async function hubGetUser(key, user){
-  if (hubDb){
-    try{
-      const ref = hubDb.collection('hub_users').doc(key);
-      const snap = await ref.get();
-      if (snap.exists) return snap.data();
-      const init = { user, xp: 0, grade: hubGradeFromXp(0), createdAt: Date.now(), updatedAt: Date.now() };
-      await ref.set(init, { merge:true });
-      return init;
-    }catch(e){
-      // Firestore error -> fallback mémoire
-      hubDb = null;
-    }
-  }
-  const v = hubMemUsers.get(key) || { user, xp: 0, grade: hubGradeFromXp(0), createdAt: Date.now(), updatedAt: Date.now() };
-  hubMemUsers.set(key, v);
-  return v;
-}
-
-async function hubAddXp(key, user, delta){
-  delta = Math.max(0, Number(delta||0));
-  if (hubDb){
-    try{
-      const ref = hubDb.collection('hub_users').doc(key);
-      await hubDb.runTransaction(async (tx)=>{
-        const snap = await tx.get(ref);
-        const cur = snap.exists ? snap.data() : { user, xp: 0 };
-        const nextXp = Math.max(0, (cur.xp||0) + delta);
-        const next = { user, xp: nextXp, grade: hubGradeFromXp(nextXp), updatedAt: Date.now() };
-        if (!snap.exists) next.createdAt = Date.now();
-        tx.set(ref, next, { merge:true });
-      });
-      const s = await ref.get();
-      return s.data();
-    }catch(e){
-      hubDb = null;
-    }
-  }
-  const cur = hubMemUsers.get(key) || { user, xp: 0, grade: hubGradeFromXp(0), createdAt: Date.now() };
-  const nextXp = Math.max(0, (cur.xp||0) + delta);
-  const next = { ...cur, user, xp: nextXp, grade: hubGradeFromXp(nextXp), updatedAt: Date.now() };
-  hubMemUsers.set(key, next);
-  return next;
-}
-
-async function hubTop(n=10){
-  if (hubDb){
-    try{
-      const snap = await hubDb.collection('hub_users').orderBy('xp','desc').limit(n).get();
-      return snap.docs.map(d => ({ user: d.data().user, xp: d.data().xp||0, grade: d.data().grade||hubGradeFromXp(d.data().xp||0) }));
-    }catch(e){
-      hubDb = null;
-    }
-  }
-  const arr = Array.from(hubMemUsers.values()).map(x => ({ user:x.user, xp:x.xp||0, grade:x.grade||hubGradeFromXp(x.xp||0) }));
-  arr.sort((a,b)=> (b.xp||0) - (a.xp||0));
-  return arr.slice(0,n);
-}
-
 /**
  * STREAMER & NICHE AI HUB - BACKEND (ULTIMATE AUDIO + INFINITE SCROLL)
  * =========================================================
@@ -1384,6 +1294,110 @@ app.get('/api/costream/best', async (req, res) => {
 // =========================================================
 // 14. SERVER START + SOCKET.IO
 // =========================================================
+
+
+// =========================================================
+// 8. GIFs (Hub chat) — GIPHY proxy (safe)
+// =========================================================
+// Ajoute GIPHY_API_KEY dans Render > Environment pour activer.
+// Sans clé, l'API renvoie success=false (le reste de l'app continue).
+const GIPHY_API_KEY = process.env.GIPHY_API_KEY || '';
+
+function isSafeGifUrl(u) {
+  try {
+    const url = new URL(String(u));
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.toLowerCase();
+    // Whitelist (GIPHY + Tenor CDN)
+    const ok =
+      host.endsWith('giphy.com') ||
+      host.endsWith('giphyusercontent.com') ||
+      host.endsWith('tenor.com') ||
+      host.endsWith('media.tenor.com');
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+function clampStr(s, max) {
+  return String(s || '').trim().slice(0, max);
+}
+
+app.get('/api/gifs/search', async (req, res) => {
+  const q = clampStr(req.query.q, 80);
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit || '24', 10) || 24, 50));
+
+  if (!GIPHY_API_KEY) {
+    return res.json({ success: false, message: 'GIPHY_API_KEY manquant (Render > Environment).' });
+  }
+  if (!q) return res.json({ success: true, gifs: [] });
+
+  try {
+    const url = new URL('https://api.giphy.com/v1/gifs/search');
+    url.searchParams.set('api_key', GIPHY_API_KEY);
+    url.searchParams.set('q', q);
+    url.searchParams.set('limit', String(limit));
+    url.searchParams.set('rating', 'pg-13');
+    url.searchParams.set('lang', 'fr');
+
+    const r = await fetch(url.toString());
+    const j = await r.json();
+
+    const gifs = (j.data || []).map((g) => {
+      const images = g.images || {};
+      const fixed = images.fixed_width_small || images.fixed_width || images.preview_gif || images.original || {};
+      const preview = images.preview_gif || images.fixed_height_small || images.fixed_width_small || fixed || {};
+      return {
+        id: String(g.id || ''),
+        title: clampStr(g.title, 120),
+        url: String(fixed.url || ''),
+        preview: String(preview.url || fixed.url || '')
+      };
+    }).filter((x) => isSafeGifUrl(x.url || x.preview));
+
+    res.json({ success: true, gifs });
+  } catch (e) {
+    console.error('❌ /api/gifs/search', e.message);
+    res.json({ success: false, message: 'Erreur API GIF.' });
+  }
+});
+
+app.get('/api/gifs/trending', async (req, res) => {
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit || '24', 10) || 24, 50));
+
+  if (!GIPHY_API_KEY) {
+    return res.json({ success: false, message: 'GIPHY_API_KEY manquant (Render > Environment).' });
+  }
+
+  try {
+    const url = new URL('https://api.giphy.com/v1/gifs/trending');
+    url.searchParams.set('api_key', GIPHY_API_KEY);
+    url.searchParams.set('limit', String(limit));
+    url.searchParams.set('rating', 'pg-13');
+
+    const r = await fetch(url.toString());
+    const j = await r.json();
+
+    const gifs = (j.data || []).map((g) => {
+      const images = g.images || {};
+      const fixed = images.fixed_width_small || images.fixed_width || images.preview_gif || images.original || {};
+      const preview = images.preview_gif || images.fixed_height_small || images.fixed_width_small || fixed || {};
+      return {
+        id: String(g.id || ''),
+        title: clampStr(g.title, 120),
+        url: String(fixed.url || ''),
+        preview: String(preview.url || fixed.url || '')
+      };
+    }).filter((x) => isSafeGifUrl(x.url || x.preview));
+
+    res.json({ success: true, gifs });
+  } catch (e) {
+    console.error('❌ /api/gifs/trending', e.message);
+    res.json({ success: false, message: 'Erreur API GIF.' });
+  }
+});
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -1393,60 +1407,18 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   console.log('🔌 [SOCKET] client connected');
 
-  // rate-limit per socket (anti spam)
-  let lastMsgAt = 0;
-
-  socket.on('hub:leaderboard:request', async () => {
-    try{
-      const top = await hubTop(10);
-      socket.emit('hub:leaderboard', top);
-    }catch(_){}
-  });
-
-  socket.on('chat message', async (msg) => {
-    try{
-      const user = String(msg?.user || 'Anon').slice(0, 40);
-      const text = String(msg?.text || '').slice(0, 500);
-      if (!text.trim()) return;
-
-      const now = Date.now();
-      const dt = now - lastMsgAt;
-      lastMsgAt = now;
-
-      // XP rules (anti-farm)
-      let delta = 5;
-      if (text.includes(':')) delta += 1;            // emote-ish
-      if (text.length >= 40) delta += 1;            // effort
-      if (dt < 900) delta = 0;                      // trop rapide => pas d'XP
-      if (dt < 1400) delta = Math.min(delta, 2);    // cooldown léger
-
-      const key = user.toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,32) || ('anon_' + socket.id.slice(-6));
-
-      const updated = await hubAddXp(key, user, delta);
-      const payload = {
-        id: `${now}_${Math.random().toString(16).slice(2)}`,
-        user,
-        text,
-        xp: updated?.xp ?? 0,
-        grade: updated?.grade ?? hubGradeFromXp(updated?.xp ?? 0),
-        t: now
-      };
-
-      io.emit('chat message', payload);
-
-      // emit "me" back to sender so UI updates instantly
-      socket.emit('hub:me', { user, xp: payload.xp, grade: payload.grade });
-
-      // leaderboard broadcast throttled (every ~4s max)
-      if (now - hubLastLeaderboardEmit > 4000){
-        hubLastLeaderboardEmit = now;
-        const top = await hubTop(10);
-        io.emit('hub:leaderboard', top);
-      }
-
-    }catch(e){
-      console.error('hub chat error:', e.message);
-    }
+  socket.on('chat message', (msg) => {
+    const safe = {
+      id: String(msg?.id || '').slice(0, 80),
+      user: String(msg?.user || 'Anon').slice(0, 40),
+      text: String(msg?.text || '').slice(0, 500),
+      gif: String(msg?.gif || '').slice(0, 700),
+      ts: Date.now()
+    };
+    // autorise message texte OU gif
+    if (!safe.text && !safe.gif) return;
+    if (safe.gif && !isSafeGifUrl(safe.gif)) safe.gif = '';
+    io.emit('chat message', safe);
   });
 
   socket.on('disconnect', () => {
