@@ -585,28 +585,70 @@
 #twitflix-modal .tf-retry:hover{ border-color:#00f2ea; box-shadow:0 0 18px rgba(0,242,234,.18); transform: translateY(-1px); }
 
 
-    /* ===== HUB CHAT polish (GIF + emotes) ===== */
-    .hub-msg{ padding:10px 10px; margin:8px 0; border:1px solid rgba(255,255,255,.06); border-radius:14px; background: rgba(0,0,0,.18); }
-    .hub-line{ display:flex; align-items:baseline; gap:8px; }
-    .hub-user{ color:#00f2ea; font-weight:900; }
-    .hub-time{ font-size:10px; color:#6b7280; }
-    .hub-text{ color:#e5e7eb; margin-top:6px; line-height:1.35; word-break:break-word; }
-    .hub-link{ color:#00f2ea; text-decoration:underline; }
-    .hub-emote{ font-size:16px; vertical-align:-2px; }
-    .hub-gifwrap{ margin-top:8px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,.08); }
-    .hub-gif{ width:100%; height:auto; display:block; }
-
-    .hub-toolbtn{ color:#a7a7b2; padding:0 8px; display:flex; align-items:center; }
-    .hub-toolbtn:hover{ color:#00f2ea; }
-
-    #hub-tools{ position:absolute; left:10px; right:10px; bottom:62px; background: rgba(10,10,12,.98); border:1px solid #222; border-radius:16px; padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.45); z-index:50; }
-    .hub-tools-title{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#a7a7b2; margin-bottom:10px; font-family:Orbitron, sans-serif; }
-    .hub-emotes-grid{ display:flex; flex-wrap:wrap; gap:8px; }
-    .hub-emote-chip{ padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.04); color:#e5e7eb; cursor:pointer; font-weight:800; font-size:12px; }
-    .hub-emote-chip:hover{ border-color:#00f2ea; }
-    .hub-gif-row{ display:flex; gap:8px; }
-    .hub-gif-row input{ flex:1; background:#0b0b0d; border:1px solid #333; border-radius:12px; padding:10px; color:#fff; outline:none; }
-    .hub-gif-row button{ background:#00f2ea; color:#000; font-weight:900; padding:10px 12px; border-radius:12px; }
+    /* HUB extras (emotes, gifs, réactions) */
+    .hub-emo{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color:#e8e8ee;
+      padding:6px 10px;
+      border-radius: 10px;
+      font-weight:900;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .hub-emo:hover{ border-color:#00f2ea; box-shadow:0 0 12px rgba(0,242,234,.15); }
+    .hub-msg{
+      padding:8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .hub-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-weight:900;
+      font-size:10px;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      margin-left:6px;
+    }
+    .hub-gif{
+      margin-top:6px;
+      border-radius: 12px;
+      max-width: 260px;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .hub-reactions{
+      display:flex;
+      gap:6px;
+      margin-top:6px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .hub-react-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color:#fff;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .hub-react-btn:hover{ border-color:#00f2ea; }
+    .hub-react-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      color:#e8e8ee;
+      font-size:12px;
+    }
 
 </style>
 </head>
@@ -830,43 +872,42 @@
         </div>
 
         <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
-          <div id="hub-tools" class="hidden">
-            <div id="hub-emotes-panel" class="hidden">
-              <div class="hub-tools-title">Emotes</div>
-              <div class="hub-emotes-grid">
-                <button type="button" class="hub-emote-chip" onclick="insertHubEmote(':kappa:')">:kappa: 😏</button>
-                <button type="button" class="hub-emote-chip" onclick="insertHubEmote(':pog:')">:pog: 😮</button>
-                <button type="button" class="hub-emote-chip" onclick="insertHubEmote(':gg:')">:gg: 🏆</button>
-                <button type="button" class="hub-emote-chip" onclick="insertHubEmote(':love:')">:love: 💖</button>
-                <button type="button" class="hub-emote-chip" onclick="insertHubEmote(':hype:')">:hype: 🔥</button>
-                <button type="button" class="hub-emote-chip" onclick="insertHubEmote(':lol:')">:lol: 😂</button>
-                <button type="button" class="hub-emote-chip" onclick="insertHubEmote(':clap:')">:clap: 👏</button>
-                <button type="button" class="hub-emote-chip" onclick="insertHubEmote(':sad:')">:sad: 😢</button>
-              </div>
-            </div>
-
-            <div id="hub-gif-panel" class="hidden">
-              <div class="hub-tools-title">Envoyer un GIF</div>
-              <div class="text-xs text-gray-400 mb-2">Colle un lien direct (Giphy / Tenor / Discord CDN...). Astuce: tu peux aussi taper <b>/gif URL</b>.</div>
-              <div class="hub-gif-row">
-                <input id="hub-gif-url" type="text" placeholder="https://media.giphy.com/media/.../giphy.gif" />
-                <button type="button" onclick="sendHubGif()">Envoyer</button>
-                <button type="button" class="hub-toolbtn" onclick="toggleHubTool('close')" title="Fermer"><i class="fas fa-times"></i></button>
-              </div>
-            </div>
-          </div>
-
           <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
             <div class="text-center text-gray-600 text-xs mt-4">
               Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
             </div>
           </div>
-          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808]">
-            <input id="hub-input" type="text" placeholder="Message..." class="bg-[#1a1a1a] text-white text-xs p-2 rounded flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-                        <button type="button" class="hub-toolbtn" onclick="toggleHubTool('emotes')" title="Emotes"><i class="far fa-smile"></i></button>
-            <button type="button" class="hub-toolbtn" onclick="toggleHubTool('gif')" title="GIF"><i class="fas fa-gift"></i></button>
-<button type="submit" class="text-[#00f2ea] px-2"><i class="fas fa-paper-plane"></i></button>
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] items-center">
+            <button type="button" id="hub-emoji-btn" class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" title="Emotes">🙂</button>
+            <button type="button" id="hub-gif-btn" class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" title="GIF">🎁</button>
+            <input id="hub-input" type="text" placeholder="Message / /gif / stickers..." class="bg-[#0b0b0d] text-white px-3 py-2 rounded-lg flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+            <button type="submit" class="text-[#0b0b0d] bg-[#00f2ea] px-4 py-2 rounded-lg font-black hover:opacity-90">Envoyer</button>
           </form>
+          <div id="hub-emoji-panel" class="hidden absolute bottom-14 left-2 z-50 bg-[#0b0b0d] border border-[#222] rounded-xl p-2 shadow-2xl">
+            <div class="flex flex-wrap gap-2 text-sm">
+              <button type="button" class="hub-emo">:kappa:</button>
+              <button type="button" class="hub-emo">:pog:</button>
+              <button type="button" class="hub-emo">:gg:</button>
+              <button type="button" class="hub-emo">:love:</button>
+              <button type="button" class="hub-emo">:hype:</button>
+              <button type="button" class="hub-emo">:rip:</button>
+              <button type="button" class="hub-emo">:clap:</button>
+              <button type="button" class="hub-emo">:fire:</button>
+            </div>
+            <div class="text-[10px] text-gray-500 mt-2">Clique pour insérer dans ton message.</div>
+          </div>
+
+          <div id="hub-gif-modal" class="hidden fixed inset-0 z-[9999] bg-black/70">
+            <div class="max-w-3xl w-[92%] mx-auto mt-10 bg-[#0b0b0d] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
+              <div class="p-3 flex items-center gap-2 border-b border-[#222]">
+                <div class="font-black text-white tracking-widest">GIF</div>
+                <input id="hub-gif-search" class="flex-grow bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" placeholder="Rechercher un GIF...">
+                <button id="hub-gif-close" class="px-3 py-2 rounded-lg border border-[#222] text-white hover:border-[#00f2ea]">Fermer</button>
+              </div>
+              <div id="hub-gif-grid" class="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[70vh] overflow-y-auto"></div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -1272,102 +1313,90 @@
 
     // SOCKET.IO
     function initSocket(){
+      if (window.__hubSocketInited) return;
+      window.__hubSocketInited = true;
+
       try{
-        if (window.__hubSocketInited) return;
-        window.__hubSocketInited = true;
-
-        // set up dedupe for messages
-        window.__hubSeenMsgIds = window.__hubSeenMsgIds || new Set();
-
-        socket = io(undefined, {
-          transports: ['websocket','polling'],
-          reconnection: true,
-          reconnectionAttempts: Infinity,
-          reconnectionDelay: 500,
-          reconnectionDelayMax: 4000,
-          timeout: 20000
-        });
+        socket = io(undefined, { transports: ['websocket','polling'] });
 
         const status = document.getElementById('socket-status');
-
-        let _lastSockLog = 0;
-        const sockLog = (msg)=>{
-          const now = Date.now();
-          if (now - _lastSockLog > 8000){
-            _lastSockLog = now;
-            console.log(msg);
-          }
-        };
-
-        const setStatus = (ok)=>{
+        const setStatus = (ok) => {
           if (!status) return;
-          if (ok){
-            status.textContent = 'HUB CONNECTED';
-            status.classList.remove('text-red-500','border-red-500');
-            status.classList.add('text-green-400','border-green-400');
-          } else {
-            status.textContent = 'HUB DISCONNECTED';
-            status.classList.remove('text-green-400','border-green-400');
-            status.classList.add('text-red-500','border-red-500');
-          }
+          status.textContent = ok ? 'HUB CONNECTÉ' : 'HUB DÉCONNECTÉ';
+          status.className = ok
+            ? 'text-xs font-bold px-2 py-1 rounded bg-[#00f2ea] text-black'
+            : 'text-xs font-bold px-2 py-1 rounded bg-red-600 text-white';
         };
 
-        socket.on('connect', ()=>{ sockLog('🔌 [SOCKET] connected'); setStatus(true); });
-        socket.on('disconnect', ()=>{ sockLog('🔌 [SOCKET] disconnected'); setStatus(false); });
-        socket.on('connect_error', ()=>{ setStatus(false); });
+        setStatus(false);
 
-        socket.on('chat message',(msg)=>{
-          const box = document.getElementById('hub-messages');
-          if (!box) return;
+        socket.on('connect', () => setStatus(true));
+        socket.on('disconnect', () => setStatus(false));
+        socket.on('connect_error', () => setStatus(false));
 
-          // normalize
-          const m = (msg && typeof msg === 'object') ? msg : { text: String(msg || '') };
-          const id = m.id || (m.user + '|' + (m.ts||'') + '|' + (m.text||m.gif||'')); // fallback
-          if (window.__hubSeenMsgIds.has(id)) return;
-          window.__hubSeenMsgIds.add(id);
-          // cap set size
-          if (window.__hubSeenMsgIds.size > 1500){
-            window.__hubSeenMsgIds = new Set(Array.from(window.__hubSeenMsgIds).slice(-800));
-          }
+        // Anti-doublon
+        const seen = new Set();
 
-          const user = m.user || 'Anon';
-          const ts = m.ts ? new Date(m.ts) : null;
-          const time = ts ? `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}` : '';
-          const text = (m.text || '').toString();
+        // Init: historique + profil
+        socket.on('hub:init', (data) => {
+          try{
+            const box = document.getElementById('hub-messages');
+            if (!box) return;
 
-          const rendered = renderHubText(text);
+            const msgs = (data && data.messages) ? data.messages : [];
+            box.innerHTML = '';
+            msgs.forEach(m => renderHubMessage(m));
+            box.scrollTop = box.scrollHeight;
 
-          let html = `<div class="hub-msg"><div class="hub-line"><strong class="hub-user">${escapeHtml(user)}</strong>${time ? `<span class="hub-time">${time}</span>`:''}</div>`;
-          if (m.gif){
-            const url = String(m.gif);
-            html += `<div class="hub-gifwrap"><img class="hub-gif" src="${escapeHtml(url)}" alt="gif" loading="lazy"></div>`;
-          }
-          if (rendered){
-            html += `<div class="hub-text">${rendered}</div>`;
-          }
-          html += `</div>`;
-
-          box.insertAdjacentHTML('beforeend', html);
-          box.scrollTop = box.scrollHeight;
+            if (data && data.profile){
+              window.__hubProfile = data.profile;
+              renderHubProfile();
+            }
+          }catch(_){}
         });
-      }catch(e){ console.error('Socket error:', e); }
+
+        // Nouveau message
+        socket.on('hub:message', (msg) => {
+          if (!msg || !msg.id) return;
+          if (seen.has(msg.id)) return;
+          seen.add(msg.id);
+          if (seen.size > 800) { // limite mémoire
+            const arr = Array.from(seen);
+            for (let i=0;i<200;i++) seen.delete(arr[i]);
+          }
+          renderHubMessage(msg);
+        });
+
+        // Réactions
+        socket.on('hub:react', ({ messageId, reactions }) => {
+          const el = document.querySelector(`[data-msg-id="${cssEscape(messageId)}"] .hub-reactions`);
+          if (!el) return;
+          el.innerHTML = renderReactionsHtml(reactions || {});
+        });
+
+      }catch(e){
+        console.error('Socket init error', e);
+      }
     }
 
     function sendHubMessage(e){
       e.preventDefault();
       const input = document.getElementById('hub-input');
-      if (!input) return;
       const raw = (input.value || '').trim();
       if (!raw) return;
 
-      // /gif <url> shortcut (direct link)
-      let payload = { user: currentUser || 'Anon', text: raw };
+      // Commande rapide: /gif <url>
+      let gif = '';
+      let text = raw;
+
       const m = raw.match(/^\/gif\s+(https?:\/\/\S+)/i);
       if (m){
-        payload = { user: currentUser || 'Anon', gif: m[1], text: '' };
+        gif = m[1];
+        text = '';
       }
 
-      if (socket) socket.emit('chat message', payload);
+      if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text, gif });
+
       input.value = '';
     }
 
@@ -1376,69 +1405,176 @@
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
       }[m]));
     }
-    // HUB CHAT — emotes + render helpers
-    const HUB_EMOTES = {
-      ':kappa:':'😏', ':pog:':'😮', ':gg:':'🏆', ':love:':'💖', ':hype:':'🔥',
-      ':lol:':'😂', ':sad:':'😢', ':clap:':'👏', ':rip:':'💀', ':star:':'⭐'
+    // ================== HUB UI (persistant + emotes + gifs + réactions) ==================
+    const EMOTE_MAP = {
+      ':kappa:':'😏', ':pog:':'🤯', ':gg:':'🏆', ':love:':'💖',
+      ':hype:':'🚀', ':rip:':'🪦', ':clap:':'👏', ':fire:':'🔥'
     };
 
-    function renderHubText(text){
-      const raw = String(text || '');
-      if (!raw) return '';
-      // escape first
-      let safe = escapeHtml(raw);
-
-      // auto-link urls (keep short)
-      safe = safe.replace(/(https?:\/\/[^\s<]+)/g, (u)=>{
-        const short = u.length > 42 ? (u.slice(0,39) + '…') : u;
-        return `<a href="${u}" target="_blank" rel="noopener noreferrer" class="hub-link">${short}</a>`;
+    function parseEmotes(text){
+      let out = String(text||'');
+      Object.keys(EMOTE_MAP).forEach(k => {
+        out = out.split(k).join(EMOTE_MAP[k]);
       });
-
-      // emote codes
-      safe = safe.replace(/(:[a-z0-9_+\-]+:)/gi, (m)=>{
-        const key = m.toLowerCase();
-        return HUB_EMOTES[key] ? `<span class="hub-emote" title="${key}">${HUB_EMOTES[key]}</span>` : m;
-      });
-
-      return safe;
+      return out;
     }
 
-    function toggleHubTool(which){
-      const tools = document.getElementById('hub-tools');
-      const em = document.getElementById('hub-emotes-panel');
-      const gf = document.getElementById('hub-gif-panel');
-      if (!tools || !em || !gf) return;
-
-      tools.classList.remove('hidden');
-      em.classList.add('hidden');
-      gf.classList.add('hidden');
-
-      if (which === 'emotes') em.classList.remove('hidden');
-      else if (which === 'gif') gf.classList.remove('hidden');
-      else tools.classList.add('hidden');
+    function cssEscape(s){
+      return String(s||'').replace(/[^a-zA-Z0-9_-]/g, '_');
     }
 
-    function insertHubEmote(code){
-      const input = document.getElementById('hub-input');
-      if (!input) return;
-      const v = input.value || '';
-      input.value = (v + (v && !v.endsWith(' ') ? ' ' : '') + code + ' ').replace(/\s+/g,' ');
+    function renderHubProfile(){
+      // Optionnel : affiche grade / XP dans le header si tu as des éléments dédiés
+      // On garde simple pour ne pas casser ton layout
+    }
+
+    function renderReactionsHtml(reactions){
+      const entries = Object.entries(reactions||{}).sort((a,b)=>b[1]-a[1]);
+      return entries.map(([emo,count]) => `<span class="hub-react-pill">${escapeHtml(emo)} <span class="text-gray-400">${count}</span></span>`).join('');
+    }
+
+    function renderHubMessage(msg){
+      const box = document.getElementById('hub-messages');
+      if (!box) return;
+
+      const id = msg.id || (Date.now()+'-'+Math.random().toString(36).slice(2));
+      const user = escapeHtml(msg.user || 'Anon');
+      const grade = msg.grade?.label || msg.grade?.key || '';
+      const badgeColor = msg.grade?.color || '#9ca3af';
+      const text = msg.text ? escapeHtml(parseEmotes(msg.text)) : '';
+      const gif = msg.gif ? String(msg.gif) : '';
+      const ts = msg.ts ? new Date(msg.ts) : new Date();
+
+      const el = document.createElement('div');
+      el.className = 'hub-msg';
+      el.setAttribute('data-msg-id', id);
+
+      el.innerHTML = `
+        <div class="flex items-center gap-2">
+          <strong class="text-[#00f2ea]">${user}</strong>
+          ${grade ? `<span class="hub-badge" style="border-color:${badgeColor}; color:${badgeColor};">${escapeHtml(grade)}</span>` : ``}
+          <span class="text-[10px] text-gray-600 ml-auto">${ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+        </div>
+        ${text ? `<div class="text-gray-200 mt-1">${text}</div>` : ``}
+        ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy">` : ``}
+        <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
+        <div class="flex gap-2 mt-2">
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','🔥')">🔥</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','😂')">😂</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','💖')">💖</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','👍')">👍</button>
+        </div>
+      `;
+
+      box.appendChild(el);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function reactToMsg(messageIdEscaped, emoji){
+      // On retrouve l'id original via dataset
+      const el = document.querySelector(`[data-msg-id]`);
+      // On envoie directement l'id passé (déjà safe côté serveur)
+      if (socket) socket.emit('hub:react', { messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
+    }
+
+    function insertAtCursor(input, text){
+      const start = input.selectionStart || 0;
+      const end = input.selectionEnd || 0;
+      const val = input.value || '';
+      input.value = val.slice(0,start) + text + val.slice(end);
       input.focus();
+      const pos = start + text.length;
+      input.setSelectionRange(pos,pos);
     }
 
-    function sendHubGif(){
-      const urlEl = document.getElementById('hub-gif-url');
-      if (!urlEl) return;
-      const url = (urlEl.value || '').trim();
-      if (!url) return;
+    async function openGifModal(){
+      const modal = document.getElementById('hub-gif-modal');
+      const grid = document.getElementById('hub-gif-grid');
+      const search = document.getElementById('hub-gif-search');
+      if (!modal || !grid || !search) return;
 
-      // basic allowlist: http(s) and likely gif/image
-      if (!/^https?:\/\//i.test(url)) return alert('URL invalide');
-      if (socket) socket.emit('chat message', { user: currentUser || 'Anon', gif: url, text: '' });
+      modal.classList.remove('hidden');
+      grid.innerHTML = `<div class="col-span-full text-gray-400 text-sm">Chargement...</div>`;
 
-      urlEl.value = '';
-      toggleHubTool('close');
+      async function loadTrending(){
+        const r = await fetch(`${API_BASE}/api/gifs/trending?limit=28`);
+        const j = await r.json();
+        if (!j.success) {
+          grid.innerHTML = `<div class="col-span-full text-red-400 text-sm">GIF indisponibles (ajoute GIPHY_API_KEY côté serveur).</div>`;
+          return;
+        }
+        renderGifGrid(j.gifs || []);
+      }
+
+      function renderGifGrid(items){
+        grid.innerHTML = '';
+        items.forEach(g => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'rounded-xl overflow-hidden border border-[#222] hover:border-[#00f2ea] bg-black';
+          b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy">`;
+          b.onclick = () => {
+            if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text:'', gif: g.url });
+            modal.classList.add('hidden');
+          };
+          grid.appendChild(b);
+        });
+      }
+
+      let t = null;
+      search.oninput = () => {
+        clearTimeout(t);
+        const q = (search.value || '').trim();
+        t = setTimeout(async () => {
+          if (!q) return loadTrending();
+          grid.innerHTML = `<div class="col-span-full text-gray-400 text-sm">Recherche...</div>`;
+          const r = await fetch(`${API_BASE}/api/gifs/search?q=${encodeURIComponent(q)}&limit=28`);
+          const j = await r.json();
+          if (!j.success) {
+            grid.innerHTML = `<div class="col-span-full text-red-400 text-sm">GIF indisponibles.</div>`;
+            return;
+          }
+          renderGifGrid(j.gifs || []);
+        }, 220);
+      };
+
+      await loadTrending();
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const emojiBtn = document.getElementById('hub-emoji-btn');
+      const emojiPanel = document.getElementById('hub-emoji-panel');
+      const gifBtn = document.getElementById('hub-gif-btn');
+      const gifClose = document.getElementById('hub-gif-close');
+      const gifModal = document.getElementById('hub-gif-modal');
+      const input = document.getElementById('hub-input');
+
+      if (emojiBtn && emojiPanel){
+        emojiBtn.onclick = () => emojiPanel.classList.toggle('hidden');
+        emojiPanel.querySelectorAll('.hub-emo').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (!input) return;
+            insertAtCursor(input, btn.textContent + ' ');
+            emojiPanel.classList.add('hidden');
+          });
+        });
+        document.addEventListener('click', (e) => {
+          if (!emojiPanel.contains(e.target) && e.target !== emojiBtn) emojiPanel.classList.add('hidden');
+        });
+      }
+
+      if (gifBtn){
+        gifBtn.onclick = openGifModal;
+      }
+      if (gifClose && gifModal){
+        gifClose.onclick = () => gifModal.classList.add('hidden');
+      }
+      if (gifModal){
+        gifModal.addEventListener('click', (e) => {
+          if (e.target === gifModal) gifModal.classList.add('hidden');
+        });
+      }
+    });
 
 
     // TWITFLIX — Netflix-like catalogue (only). Does NOT touch the rest of the app.
