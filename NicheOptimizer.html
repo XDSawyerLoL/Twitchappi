@@ -651,12 +651,38 @@
     }
 
 
-    /* Hub chat UX polish */
-    .hub-gif-wrap{ max-width: 280px; }
-    .hub-gif{ width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); }
-    .hub-reactbar{ display:flex; gap:8px; opacity:0; transform: translateY(4px); pointer-events:none; transition:.15s; }
-    .hub-msg:hover .hub-reactbar{ opacity:1; transform: translateY(0); pointer-events:auto; }
-    .hub-msg.show-reactbar .hub-reactbar{ opacity:1; transform: translateY(0); pointer-events:auto; }
+
+/* === EXTRAORDINAIRES (SAFE) === */
+.hub-msg .hub-react-row{ opacity:0; max-height:0; overflow:hidden; transition: .18s ease; }
+.hub-msg:hover .hub-react-row{ opacity:1; max-height:40px; }
+.hub-msg.is-tapped .hub-react-row{ opacity:1; max-height:40px; }
+
+.hub-gif{ max-width: 240px; border-radius: 10px; margin-top: 8px; border:1px solid rgba(255,255,255,.10); display:block; }
+
+#ambilight{
+  position:absolute; inset:-14px;
+  filter: blur(26px);
+  opacity:.55;
+  z-index:0;
+  pointer-events:none;
+  transition: background .25s ease;
+}
+#player-wrap{ position:relative; }
+#player-wrap > *{ position:relative; z-index:1; }
+
+.mosaic-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+.mosaic-grid iframe{ width:100%; height:100%; border:0; border-radius:14px; }
+
+.vibe-chill{ border:1px solid rgba(34,197,94,.55)!important; box-shadow: 0 0 0 1px rgba(34,197,94,.25) inset; }
+.vibe-hype{ border:1px solid rgba(0,242,234,.70)!important; box-shadow: 0 0 0 1px rgba(0,242,234,.25) inset; }
+.vibe-toxic{ border:1px solid rgba(239,68,68,.60)!important; box-shadow: 0 0 0 1px rgba(239,68,68,.22) inset; }
 
 </style>
 </head>
@@ -1364,17 +1390,6 @@
         });
 
         // Nouveau message
-        socket.on('hub:history', (msgs)=> {
-          try{
-            const box = document.getElementById('hub-messages');
-            if (!box) return;
-            box.innerHTML = '';
-            const arr = Array.isArray(msgs) ? msgs : [];
-            arr.forEach(m => { if (m && m.id) { seen.add(m.id); renderHubMessage(m); } });
-            box.scrollTop = box.scrollHeight;
-          }catch(_){}
-        });
-
         socket.on('hub:message', (msg) => {
           if (!msg || !msg.id) return;
           if (seen.has(msg.id)) return;
@@ -1456,64 +1471,34 @@
       const box = document.getElementById('hub-messages');
       if (!box) return;
 
-      const id = String(msg.id || (Date.now()+'-'+Math.random().toString(36).slice(2)));
+      const id = msg.id || (Date.now()+'-'+Math.random().toString(36).slice(2));
       const user = escapeHtml(msg.user || 'Anon');
-
-      const gradeLabel = msg.grade?.label || msg.grade?.key || '';
+      const grade = msg.grade?.label || msg.grade?.key || '';
       const badgeColor = msg.grade?.color || '#9ca3af';
-
+      const text = msg.text ? escapeHtml(parseEmotes(msg.text)) : '';
+      const gif = msg.gif ? String(msg.gif) : '';
       const ts = msg.ts ? new Date(msg.ts) : new Date();
 
-      // text: escape first, then emote replace (keeps emoji and prevents HTML injection)
-      const safeText = msg.text ? escapeHtml(String(msg.text)) : '';
-      const text = safeText ? parseEmotes(safeText) : '';
-
-      // gif: force https, basic sanity
-      let gif = msg.gif ? String(msg.gif).trim() : '';
-      if (gif && gif.startsWith('http://')) gif = 'https://' + gif.slice(7);
-
       const el = document.createElement('div');
-      el.className = 'hub-msg group';
+      el.className = 'hub-msg';
       el.setAttribute('data-msg-id', id);
 
       el.innerHTML = `
         <div class="flex items-center gap-2">
           <strong class="text-[#00f2ea]">${user}</strong>
-          ${gradeLabel ? `<span class="hub-badge" style="border-color:${badgeColor}; color:${badgeColor};">${escapeHtml(gradeLabel)}</span>` : ``}
+          ${grade ? `<span class="hub-badge" style="border-color:${badgeColor}; color:${badgeColor};">${escapeHtml(grade)}</span>` : ``}
           <span class="text-[10px] text-gray-600 ml-auto">${ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
         </div>
-
-        ${text ? `<div class="text-gray-200 mt-1 leading-relaxed break-words">${text}</div>` : ``}
-
-        ${gif ? `
-          <div class="hub-gif-wrap mt-2">
-            <img src="${escapeHtml(gif)}"
-                 class="hub-gif"
-                 loading="lazy"
-                 referrerpolicy="no-referrer"
-                 crossorigin="anonymous"
-                 onerror="this.style.display='none';"
-                 onclick="openGifLightbox('${cssEscape(gif)}')">
-          </div>
-        ` : ``}
-
-        <div class="hub-reactions mt-2">${renderReactionsHtml(msg.reactions || {})}</div>
-
-        <!-- Messenger-like reactions: hidden until hover/tap -->
-        <div class="hub-reactbar mt-2">
+        ${text ? `<div class="text-gray-200 mt-1">${text}</div>` : ``}
+        ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
+        <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
+        <div class="hub-react-row flex gap-2 mt-2">
           <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','🔥')">🔥</button>
           <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','😂')">😂</button>
           <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','💖')">💖</button>
           <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','👍')">👍</button>
         </div>
       `;
-
-      // Tap on mobile: toggle reaction bar
-      el.addEventListener('click', (ev) => {
-        const t = ev.target;
-        if (t && (t.classList?.contains('hub-react-btn') || t.classList?.contains('hub-gif'))) return;
-        el.classList.toggle('show-reactbar');
-      });
 
       box.appendChild(el);
       box.scrollTop = box.scrollHeight;
@@ -2517,6 +2502,235 @@
       }
       setTimeout(()=>{ msg.innerText=''; }, 4000);
     }
-  </script>
+  
+    // Messenger-style reactions: tap message to reveal on mobile
+    document.addEventListener('click', (e) => {
+      const msgEl = e.target.closest('.hub-msg');
+      if(!msgEl) return;
+      // if clicked on button, keep
+      if(e.target.closest('.hub-react-btn')) return;
+      msgEl.classList.toggle('is-tapped');
+    });
+
+</script>
+
+<script>
+(function(){
+  // ===== Ambilight =====
+  const ambi = document.createElement('div');
+  ambi.id = 'ambilight';
+  const wrap = document.getElementById('player-wrap') || document.getElementById('player-container') || document.querySelector('.player-wrap') || document.body;
+  if(wrap && !document.getElementById('ambilight')){
+    wrap.prepend(ambi);
+  }
+  function avgColorFromImage(url){
+    return new Promise((resolve)=>{
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.referrerPolicy = 'no-referrer';
+      img.onload = ()=>{
+        const c = document.createElement('canvas');
+        const w = c.width = 64, h = c.height = 36;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0,0,w,h);
+        const d = ctx.getImageData(0,0,w,h).data;
+        let r=0,g=0,b=0,n=0;
+        for(let i=0;i<d.length;i+=16){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; }
+        r=Math.round(r/n); g=Math.round(g/n); b=Math.round(b/n);
+        resolve(`rgb(${r},${g},${b})`);
+      };
+      img.onerror = ()=>resolve('rgba(0,242,234,.18)');
+      img.src = url + (url.includes('?')?'&':'?') + 'rand=' + Date.now();
+    });
+  }
+  async function updateAmbilight(channel){
+    if(!channel) return;
+    const color = await avgColorFromImage(`https://static-cdn.jtvnw.net/previews-ttv/live_user_${encodeURIComponent(channel)}-440x248.jpg`);
+    const el = document.getElementById('ambilight');
+    if(el) el.style.background = `radial-gradient(circle at 30% 25%, ${color}, rgba(0,0,0,0) 55%), radial-gradient(circle at 70% 70%, rgba(0,242,234,.18), rgba(0,0,0,0) 60%)`;
+  }
+  // Hook into existing channel change if present
+  const _set = window.setChannel || window.setTwitchChannel || null;
+  if(_set){
+    const fnName = _set.name;
+    const original = _set;
+    window[fnName] = function(ch){
+      const r = original.apply(this, arguments);
+      updateAmbilight(ch);
+      return r;
+    };
+  } else {
+    // fallback: observe current channel variable if exists
+    setInterval(()=>{ 
+      const ch = window.currentChannel || window.selectedChannel; 
+      if(ch && window.__lastAmbiCh !== ch){ window.__lastAmbiCh = ch; updateAmbilight(ch); }
+    }, 1500);
+  }
+
+  // ===== Vibe Check (deterministic) =====
+  function vibeFor(name){
+    const s = String(name||'');
+    let h=0;
+    for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; }
+    const r = h % 3;
+    return r===0 ? 'vibe-chill' : r===1 ? 'vibe-hype' : 'vibe-toxic';
+  }
+  // apply vibe to any TwitFlix card that has data-game or title
+  function applyVibes(){
+    document.querySelectorAll('[data-tf-card]').forEach(card=>{
+      if(card.dataset.vibeApplied) return;
+      const name = card.getAttribute('data-name') || card.querySelector('.tf-name')?.textContent || '';
+      card.classList.add(vibeFor(name));
+      card.dataset.vibeApplied = '1';
+    });
+  }
+  setInterval(applyVibes, 1200);
+
+  // ===== Mosaic Mode (Squad) =====
+  function ensureMosaicBtn(){
+    if(document.getElementById('mosaic-btn')) return;
+    const host = document.querySelector('#player-controls') || document.querySelector('.player-controls') || document.querySelector('#player-wrap') || null;
+    if(!host) return;
+    const btn = document.createElement('button');
+    btn.id = 'mosaic-btn';
+    btn.type = 'button';
+    btn.textContent = '📺 Mosaic';
+    btn.style.cssText = 'margin-left:8px; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff; font-weight:900; font-size:12px; cursor:pointer;';
+    host.appendChild(btn);
+
+    btn.addEventListener('click', ()=>{
+      const playerHost = document.getElementById('twitch-player') || document.getElementById('player') || document.querySelector('iframe[src*="player.twitch.tv"]')?.parentElement;
+      if(!playerHost) return;
+      const isOn = playerHost.dataset.mosaic === '1';
+      if(isOn){
+        // restore single
+        const single = playerHost.dataset.singleHtml;
+        if(single){ playerHost.innerHTML = single; }
+        playerHost.dataset.mosaic = '0';
+        return;
+      }
+      playerHost.dataset.singleHtml = playerHost.innerHTML;
+      playerHost.dataset.mosaic = '1';
+      const parent = new URLSearchParams(location.search).get('parent_host') || new URLSearchParams(location.search).get('parent') || location.hostname;
+      const ch = window.currentChannel || window.selectedChannel || 'twitch';
+      const tpl = (c)=>`https://player.twitch.tv/?channel=${encodeURIComponent(c)}&parent=${encodeURIComponent(parent)}&muted=true`;
+      playerHost.innerHTML = `
+        <div class="mosaic-grid">
+          <iframe src="${tpl(ch)}" allowfullscreen></iframe>
+          <iframe src="${tpl(ch)}" allowfullscreen></iframe>
+          <iframe src="${tpl(ch)}" allowfullscreen></iframe>
+          <iframe src="${tpl(ch)}" allowfullscreen></iframe>
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <input id="mosaic-channels" placeholder="channels (ex: ninja,shroud,...)"
+            style="flex:1; min-width:220px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff;">
+          <button id="mosaic-apply" style="padding:8px 10px; border-radius:10px; border:1px solid rgba(0,242,234,.35); background:#00f2ea; color:#000; font-weight:900; cursor:pointer;">Appliquer</button>
+        </div>`;
+      const applyBtn = playerHost.querySelector('#mosaic-apply');
+      applyBtn?.addEventListener('click', ()=>{
+        const raw = playerHost.querySelector('#mosaic-channels')?.value || '';
+        const list = raw.split(',').map(x=>x.trim()).filter(Boolean).slice(0,4);
+        while(list.length<4) list.push(ch);
+        const ifr = playerHost.querySelectorAll('iframe');
+        ifr.forEach((f,i)=> f.src = tpl(list[i]));
+      });
+    });
+  }
+  setInterval(ensureMosaicBtn, 1200);
+
+  // ===== Fantasy League UI (simple modal) =====
+  function ensureFantasy(){
+    if(document.getElementById('fantasy-open')) return;
+    const nav = document.querySelector('#left-menu') || document.querySelector('.left-menu') || document.querySelector('#sidebar') || null;
+    if(!nav) return;
+    const b = document.createElement('button');
+    b.id = 'fantasy-open';
+    b.textContent = '🏆 Fantasy';
+    b.style.cssText = 'width:100%; margin-top:8px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.18); color:#fff; font-weight:900; cursor:pointer;';
+    nav.appendChild(b);
+
+    const modal = document.createElement('div');
+    modal.id = 'fantasy-modal';
+    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:9999;';
+    modal.innerHTML = `
+      <div style="width:min(920px,92vw); max-height:86vh; overflow:auto; background:#0b0b0d; border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:16px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-weight:1000; letter-spacing:.12em; font-size:14px;">FANTASY LEAGUE</div>
+          <div style="margin-left:auto;"></div>
+          <button id="fantasy-close" style="padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:#fff; cursor:pointer;">Fermer</button>
+        </div>
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1.2fr .8fr; gap:14px;">
+          <div style="border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px;">
+            <div style="font-weight:900; margin-bottom:8px;">Portefeuille</div>
+            <div id="fantasy-summary" style="color:#cbd5e1; font-size:12px;">Chargement…</div>
+            <div id="fantasy-holdings" style="margin-top:10px;"></div>
+            <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+              <input id="fantasy-streamer" placeholder="streamer login (ex: ninja)" style="flex:1; min-width:220px; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff;">
+              <input id="fantasy-amount" placeholder="montant (ex: 500)" type="number" style="width:160px; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff;">
+              <button id="fantasy-buy" style="padding:8px 10px; border-radius:12px; border:1px solid rgba(0,242,234,.35); background:#00f2ea; color:#000; font-weight:900; cursor:pointer;">Investir</button>
+            </div>
+            <div id="fantasy-msg" style="margin-top:8px; font-size:12px; color:#94a3b8;"></div>
+          </div>
+          <div style="border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px;">
+            <div style="font-weight:900; margin-bottom:8px;">Top Hub</div>
+            <div id="fantasy-leaderboard" style="font-size:12px; color:#cbd5e1;">Chargement…</div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    function getUser(){
+      return (window.currentUser && window.currentUser.name) || localStorage.getItem('hubUser') || 'Anon';
+    }
+    async function loadProfile(){
+      const user = getUser();
+      const r = await fetch(`/api/fantasy/profile?user=${encodeURIComponent(user)}`);
+      const j = await r.json();
+      if(!j.success) throw new Error(j.error||'Erreur');
+      const sum = document.getElementById('fantasy-summary');
+      sum.textContent = `Utilisateur: ${j.user} • Cash: ${Math.round(j.cash)} • Net Worth: ${Math.round(j.netWorth)}`;
+      const hold = document.getElementById('fantasy-holdings');
+      if(!j.holdings.length){ hold.innerHTML = '<div style="color:#64748b;">Aucune position.</div>'; return; }
+      hold.innerHTML = j.holdings.map(h=>`
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.06);">
+          <div><strong>${h.login}</strong> <span style="color:#64748b;">(${h.shares} parts)</span></div>
+          <div style="color:#a7f3d0;">${Math.round(h.value)}</div>
+        </div>`).join('');
+    }
+    async function loadLeaderboard(){
+      const r = await fetch('/api/fantasy/leaderboard?limit=15');
+      const j = await r.json();
+      const box = document.getElementById('fantasy-leaderboard');
+      if(!j.success){ box.textContent = j.error||'Erreur'; return; }
+      box.innerHTML = j.leaderboard.map((x,i)=>`
+        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,.06);">
+          <div>${i+1}. <strong>${x.user}</strong></div>
+          <div style="color:#fde68a;">${Math.round(x.netWorth)}</div>
+        </div>`).join('');
+    }
+    async function buy(){
+      const user = getUser();
+      const streamer = document.getElementById('fantasy-streamer').value.trim();
+      const amount = Number(document.getElementById('fantasy-amount').value||0);
+      const msg = document.getElementById('fantasy-msg');
+      msg.textContent = '...';
+      const r = await fetch('/api/fantasy/invest',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user, streamer, amount})});
+      const j = await r.json();
+      msg.textContent = j.success ? `✅ Achat: ${j.shares} parts @ ${j.price} (coût ${j.cost})` : `❌ ${j.error||'Erreur'}`;
+      await loadProfile(); await loadLeaderboard();
+    }
+
+    b.addEventListener('click', async ()=>{
+      modal.style.display = 'flex';
+      try{ await loadProfile(); await loadLeaderboard(); }catch(e){ document.getElementById('fantasy-msg').textContent = e.message; }
+    });
+    modal.querySelector('#fantasy-close').addEventListener('click', ()=> modal.style.display='none');
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) modal.style.display='none'; });
+    modal.querySelector('#fantasy-buy').addEventListener('click', buy);
+  }
+  setInterval(ensureFantasy, 1400);
+})();
+</script>
+
 </body>
 </html>
