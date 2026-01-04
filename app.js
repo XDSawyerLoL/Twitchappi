@@ -61,86 +61,6 @@ try {
   }
 } catch (e) {}
 
-
-// =========================================================
-// 0.B HUB CHAT PERSISTENCE + GIF PROXY (SAFE)
-// =========================================================
-const CHAT_COLLECTION = 'hub_messages';
-const USER_COLLECTION = 'hub_users';
-const MAX_INMEM_HISTORY = 200;
-
-let firestoreOk = true;
-try { db.collection('_ping').limit(1); } catch (e) { firestoreOk = false; }
-
-const inMemHistory = []; // fallback if firestore not available
-
-function sanitizeText(s, max=500){
-  return String(s || '').replace(/\s+/g,' ').trim().slice(0, max);
-}
-function sanitizeName(s, max=40){
-  return String(s || 'Anon').replace(/[\r\n\t]/g,' ').trim().slice(0, max) || 'Anon';
-}
-function isValidHttpUrl(u){
-  try{
-    const url = new URL(u);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  }catch(_){ return false; }
-}
-function makeId(){
-  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10);
-}
-
-async function loadRecentMessages(limit=50){
-  if (firestoreOk){
-    try{
-      const snap = await db.collection(CHAT_COLLECTION).orderBy('ts','desc').limit(limit).get();
-      const out = [];
-      snap.forEach(doc => out.push(doc.data()));
-      return out.reverse();
-    }catch(e){
-      console.warn('⚠️ [CHAT] Firestore load failed, fallback memory:', e.message);
-      firestoreOk = false;
-      return inMemHistory.slice(-limit);
-    }
-  }
-  return inMemHistory.slice(-limit);
-}
-
-async function saveMessage(msg){
-  // msg: {id,user,text,gif,ts,reactions}
-  if (firestoreOk){
-    try{
-      await db.collection(CHAT_COLLECTION).doc(msg.id).set(msg, { merge: true });
-      return;
-    }catch(e){
-      console.warn('⚠️ [CHAT] Firestore save failed, fallback memory:', e.message);
-      firestoreOk = false;
-    }
-  }
-  inMemHistory.push(msg);
-  if (inMemHistory.length > MAX_INMEM_HISTORY) inMemHistory.splice(0, inMemHistory.length - MAX_INMEM_HISTORY);
-}
-
-async function addXP(user, delta){
-  if (!firestoreOk) return { xp: 0, grade: 'NEWCOMER' };
-  try{
-    const ref = db.collection(USER_COLLECTION).doc(user.toLowerCase());
-    const snap = await ref.get();
-    const cur = snap.exists ? snap.data() : { xp: 0 };
-    const xp = Math.max(0, (cur.xp || 0) + delta);
-    const grade =
-      xp >= 2000 ? 'LEGEND' :
-      xp >= 900  ? 'CATALYST' :
-      xp >= 350  ? 'STRATEGIST' :
-      xp >= 120  ? 'CURATOR' : 'NEWCOMER';
-    await ref.set({ xp, grade, updatedAt: Date.now(), name: user }, { merge: true });
-    return { xp, grade };
-  }catch(e){
-    console.warn('⚠️ [CHAT] XP update failed:', e.message);
-    return { xp: 0, grade: 'NEWCOMER' };
-  }
-}
-
 // =========================================================
 // 1. CONFIGURATION
 // =========================================================
@@ -167,6 +87,59 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname)));
+
+
+// =========================================================
+// 0.C GIF PROXY (GIPHY) — pour le picker GIF du Hub (safe)
+// =========================================================
+const GIPHY_API_KEY = process.env.GIPHY_API_KEY || '';
+
+app.get('/api/gifs/trending', async (req, res) => {
+  try{
+    if (!GIPHY_API_KEY) return res.json({ success:false, gifs:[], error:'missing_giphy_api_key' });
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit || '24', 10), 50));
+    const url = `https://api.giphy.com/v1/gifs/trending?api_key=${encodeURIComponent(GIPHY_API_KEY)}&limit=${limit}&rating=pg-13`;
+    const r = await fetch(url);
+    const j = await r.json();
+    const gifs = (j.data || []).map(x => ({
+      id: x.id,
+      url: x.url,
+      preview: x.images?.fixed_width_small?.mp4 || x.images?.fixed_width_small?.url || '',
+      still: x.images?.fixed_width_small_still?.url || x.images?.fixed_width_still?.url || '',
+      mp4: x.images?.fixed_width?.mp4 || '',
+      width: x.images?.fixed_width?.width || '',
+      height: x.images?.fixed_width?.height || ''
+    }));
+    return res.json({ success:true, gifs });
+  }catch(e){
+    return res.status(500).json({ success:false, gifs:[], error:e.message });
+  }
+});
+
+app.get('/api/gifs/search', async (req, res) => {
+  try{
+    if (!GIPHY_API_KEY) return res.json({ success:false, gifs:[], error:'missing_giphy_api_key' });
+    const q = String(req.query.q || '').trim();
+    if (!q) return res.json({ success:true, gifs:[] });
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit || '24', 10), 50));
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(q)}&limit=${limit}&rating=pg-13&lang=fr`;
+    const r = await fetch(url);
+    const j = await r.json();
+    const gifs = (j.data || []).map(x => ({
+      id: x.id,
+      url: x.url,
+      preview: x.images?.fixed_width_small?.mp4 || x.images?.fixed_width_small?.url || '',
+      still: x.images?.fixed_width_small_still?.url || x.images?.fixed_width_still?.url || '',
+      mp4: x.images?.fixed_width?.mp4 || '',
+      width: x.images?.fixed_width?.width || '',
+      height: x.images?.fixed_width?.height || ''
+    }));
+    return res.json({ success:true, gifs });
+  }catch(e){
+    return res.status(500).json({ success:false, gifs:[], error:e.message });
+  }
+});
+
 
 // Page principale (UI)
 app.get('/', (req, res) => {
@@ -570,28 +543,6 @@ app.get('/api/categories/top', async (req, res) => {
     res.status(500).json({ success:false, error:e.message });
   }
 });
-
-
-// Search categories (pour la barre de recherche TwitFlix)
-// - retourne un tableau de catégories (mêmes champs que /api/categories/top)
-app.get('/api/categories/search', async (req, res) => {
-  try {
-    const q = String(req.query.q || '').trim();
-    if (!q) return res.json({ success: true, categories: [] });
-
-    // Twitch: search/categories?query=...&first=100
-    const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
-    const categories = (d.data || []).map(g => ({
-      id: g.id,
-      name: g.name,
-      box_art_url: (g.box_art_url || '').replace('{width}', '285').replace('{height}', '380')
-    }));
-    return res.json({ success: true, categories });
-  } catch (e) {
-    return res.status(500).json({ success: false, error: e.message });
-  }
-});
-
 
 app.post('/api/stream/by_category', async (req, res) => {
   const gameId = String(req.body?.game_id || '');
@@ -1396,140 +1347,82 @@ app.get('/api/costream/best', async (req, res) => {
 // =========================================================
 // 14. SERVER START + SOCKET.IO
 // =========================================================
+
+// =========================================================
+// 99. SOCKET.IO — HUB CHAT (history + reactions + anti-spam)
+// =========================================================
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'] }
+  cors: { origin: true, credentials: true },
+  transports: ['websocket', 'polling']
 });
 
+const HUB_MAX_HISTORY = 200;
+const hubHistory = [];
 
-// =========================================================
-// HUB: GIF picker proxy (GIPHY) + chat history
-// =========================================================
-app.get('/api/chat/history', async (req, res) => {
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+function sanitizeText(s, max=500){
+  return String(s || '').replace(/\s+/g,' ').trim().slice(0, max);
+}
+function sanitizeName(s, max=40){
+  return String(s || 'Anon').replace(/[\r\n\t]/g,' ').trim().slice(0, max) || 'Anon';
+}
+function safeUrl(u){
   try{
-    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || '50', 10)));
-    const msgs = await loadRecentMessages(limit);
-    return res.json({ success:true, messages: msgs, firestoreOk });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
+    const url = new URL(String(u||''));
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.toString();
+  }catch(_){}
+  return '';
+}
+function makeId(){
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10);
+}
 
-app.get('/api/gifs/trending', async (req, res) => {
-  try{
-    if (!process.env.GIPHY_API_KEY) return res.status(400).json({ success:false, error:'GIPHY_API_KEY missing' });
-    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '24', 10)));
-    const url = `https://api.giphy.com/v1/gifs/trending?api_key=${encodeURIComponent(process.env.GIPHY_API_KEY)}&limit=${limit}&rating=pg-13`;
-    const r = await fetch(url);
-    const d = await r.json();
-    const gifs = (d.data || []).map(g => ({
-      id: g.id,
-      title: g.title,
-      url: g.images?.original?.url || g.images?.downsized_large?.url || g.images?.downsized?.url,
-      preview: g.images?.fixed_width?.url || g.images?.fixed_width_small?.url || g.images?.downsized?.url
-    })).filter(x => x.url);
-    return res.json({ success:true, gifs });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
+function pushHistory(msg){
+  hubHistory.push(msg);
+  if (hubHistory.length > HUB_MAX_HISTORY) hubHistory.splice(0, hubHistory.length - HUB_MAX_HISTORY);
+}
 
-app.get('/api/gifs/search', async (req, res) => {
-  try{
-    if (!process.env.GIPHY_API_KEY) return res.status(400).json({ success:false, error:'GIPHY_API_KEY missing' });
-    const q = String(req.query.q || '').trim();
-    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '24', 10)));
-    if (!q) return res.json({ success:true, gifs: [] });
-
-    const url = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(process.env.GIPHY_API_KEY)}&q=${encodeURIComponent(q)}&limit=${limit}&rating=pg-13&lang=fr`;
-    const r = await fetch(url);
-    const d = await r.json();
-    const gifs = (d.data || []).map(g => ({
-      id: g.id,
-      title: g.title,
-      url: g.images?.original?.url || g.images?.downsized_large?.url || g.images?.downsized?.url,
-      preview: g.images?.fixed_width?.url || g.images?.fixed_width_small?.url || g.images?.downsized?.url
-    })).filter(x => x.url);
-    return res.json({ success:true, gifs });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-
-io.on('connection', async (socket) => {
+io.on('connection', (socket) => {
   console.log('🔌 [SOCKET] client connected');
 
-  // send recent history on connect
-  try{
-    const msgs = await loadRecentMessages(60);
-    socket.emit('chat history', msgs);
-  }catch(e){}
+  // send history on connect
+  socket.emit('chat history', hubHistory.slice(-80));
 
-  // simple anti-spam per socket
-  let lastMsgAt = 0;
-
-  socket.on('chat message', async (msg) => {
-    const now = Date.now();
-    if (now - lastMsgAt < 650) return; // cooldown
-    lastMsgAt = now;
-
-    const user = sanitizeName(msg?.user);
-    const text = sanitizeText(msg?.text, 800);
-
-    let gif = '';
-    if (msg?.gif && typeof msg.gif === 'string' && isValidHttpUrl(msg.gif)) {
-      gif = msg.gif.slice(0, 800);
-    }
-
+  // incoming chat message (text + optional gif)
+  socket.on('chat message', (msg) => {
+    const user = sanitizeName(msg?.user, 40);
+    const text = sanitizeText(msg?.text, 500);
+    const gif = safeUrl(msg?.gif);
     if (!text && !gif) return;
 
     const out = {
       id: makeId(),
       user,
       text,
-      gif,
-      ts: now,
-      reactions: {}
+      gif: gif || null,
+      ts: Date.now(),
+      reactions: {} // emoji -> count
     };
 
-    // XP: only if non-empty text (avoid farming with empty)
-    if (text) await addXP(user, 5);
-
-    await saveMessage(out);
+    pushHistory(out);
     io.emit('chat message', out);
   });
 
-  socket.on('chat react', async (payload) => {
-    try{
-      const msgId = String(payload?.id || '');
-      const emo = String(payload?.emoji || '').slice(0, 16);
-      if (!msgId || !emo) return;
+  // reactions
+  socket.on('chat react', (payload) => {
+    const id = String(payload?.id || '');
+    const emoji = sanitizeText(payload?.emoji, 6);
+    if (!id || !emoji) return;
 
-      // Update in Firestore if possible; else update memory history
-      if (firestoreOk){
-        const ref = db.collection(CHAT_COLLECTION).doc(msgId);
-        await db.runTransaction(async (t) => {
-          const snap = await t.get(ref);
-          if (!snap.exists) return;
-          const data = snap.data() || {};
-          const reactions = data.reactions || {};
-          reactions[emo] = (reactions[emo] || 0) + 1;
-          t.set(ref, { reactions }, { merge: true });
-        });
-        const updated = (await db.collection(CHAT_COLLECTION).doc(msgId).get()).data();
-        if (updated) io.emit('chat update', { id: msgId, reactions: updated.reactions || {} });
-        return;
-      }
+    const msg = hubHistory.find(m => m.id === id);
+    if (!msg) return;
 
-      const item = inMemHistory.find(m => m.id === msgId);
-      if (item){
-        item.reactions = item.reactions || {};
-        item.reactions[emo] = (item.reactions[emo] || 0) + 1;
-        io.emit('chat update', { id: msgId, reactions: item.reactions });
-      }
-    }catch(_){}
+    msg.reactions = msg.reactions || {};
+    msg.reactions[emoji] = clamp((msg.reactions[emoji] || 0) + 1, 0, 999);
+
+    io.emit('chat update', { id: msg.id, reactions: msg.reactions });
   });
 
   socket.on('disconnect', () => {
@@ -1541,3 +1434,4 @@ server.listen(PORT, () => {
   console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
   console.log("✅ Routes prêtes");
 });
+
