@@ -728,6 +728,32 @@
     body { overflow-y: auto; }
     .page-wrap { padding-bottom: 40px; }
 
+
+/* === Extras: Ambilight + Vibe + Modals === */
+#ambilight{
+  position:absolute; inset:-30px;
+  pointer-events:none;
+  opacity:.0;
+  filter: blur(40px);
+  transition: opacity .25s ease, background .25s ease;
+  background: radial-gradient(circle at 30% 30%, rgba(0,242,234,.55), transparent 60%),
+              radial-gradient(circle at 70% 70%, rgba(255,0,153,.45), transparent 55%);
+  z-index:0;
+}
+#video-container > iframe, #video-container > div.player-embed, #video-container > *{
+  position:relative; z-index:1;
+}
+.ambilight-on #ambilight{ opacity:.85; }
+
+.tf-card.vibe-chill .tf-poster{ box-shadow: 0 0 0 2px rgba(0,242,234,.55), 0 0 28px rgba(0,242,234,.18); }
+.tf-card.vibe-hype  .tf-poster{ box-shadow: 0 0 0 2px rgba(255,0,153,.55), 0 0 28px rgba(255,0,153,.18); }
+.tf-card.vibe-toxic .tf-poster{ box-shadow: 0 0 0 2px rgba(255,193,7,.55), 0 0 28px rgba(255,193,7,.18); }
+
+/* Messenger-style reactions: hidden until hover/tap */
+.msg-reactions{ opacity:0; transform: translateY(6px); pointer-events:none; transition:.18s; }
+.chat-msg:hover .msg-reactions{ opacity:1; transform: translateY(0); pointer-events:auto; }
+.chat-msg.reactions-open .msg-reactions{ opacity:1; transform: translateY(0); pointer-events:auto; }
+
 </style>
 </head>
 
@@ -2837,6 +2863,281 @@
       });
     })();
 
+
+/* ===================== Extras wiring (Mosaic / Fantasy / Ambilight / Vibe) ===================== */
+(function(){
+  // Helper: stable hash -> 0..1
+  function hash01(str){
+    let h=2166136261;
+    for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h,16777619); }
+    return (h>>>0)/4294967295;
+  }
+
+  // --- Ambilight toggle ---
+  const ambBtn = document.getElementById('ambilight-btn');
+  if(ambBtn){
+    ambBtn.addEventListener('click', ()=>{
+      document.body.classList.toggle('ambilight-on');
+      // set glow colors based on current channel
+      const ch = (document.getElementById('current-channel-display')?.textContent || 'OFFLINE').trim();
+      const x = hash01(ch);
+      const c1 = x < .33 ? 'rgba(0,242,234,.55)' : (x < .66 ? 'rgba(255,0,153,.50)' : 'rgba(255,193,7,.50)');
+      const c2 = x < .33 ? 'rgba(255,0,153,.40)' : (x < .66 ? 'rgba(255,193,7,.40)' : 'rgba(0,242,234,.45)');
+      const amb = document.getElementById('ambilight');
+      if(amb){
+        amb.style.background = `radial-gradient(circle at 30% 30%, ${c1}, transparent 60%), radial-gradient(circle at 70% 70%, ${c2}, transparent 55%)`;
+      }
+    });
+  }
+
+  // --- Vibe Check toggle (deterministic on card title) ---
+  const vibeBtn = document.getElementById('vibe-btn');
+  let vibeOn = true;
+  function applyVibes(){
+    const cards = document.querySelectorAll('.tf-card');
+    cards.forEach(card=>{
+      card.classList.remove('vibe-chill','vibe-hype','vibe-toxic');
+      if(!vibeOn) return;
+      const name = (card.querySelector('.tf-name')?.textContent || card.getAttribute('data-name') || '').trim();
+      const r = hash01(name);
+      if(r < .34) card.classList.add('vibe-chill');
+      else if(r < .67) card.classList.add('vibe-hype');
+      else card.classList.add('vibe-toxic');
+    });
+  }
+  if(vibeBtn){
+    vibeBtn.addEventListener('click', ()=>{
+      vibeOn = !vibeOn;
+      applyVibes();
+      vibeBtn.style.opacity = vibeOn ? '1' : '.6';
+    });
+  }
+  // hook after twitflix renders
+  window.__applyVibes = applyVibes;
+  setTimeout(applyVibes, 1200);
+
+  // --- Mosaic Mode ---
+  const mosaicBtn = document.getElementById('mosaic-btn');
+  const mosaicModal = document.getElementById('mosaic-modal');
+  const mosaicClose = document.getElementById('mosaic-close');
+  const mosaicGrid = document.getElementById('mosaic-grid');
+
+  function getCurrentPlayerHTML(){
+    // video-container is where iframe is injected by existing code
+    const vc = document.getElementById('video-container');
+    if(!vc) return '';
+    const iframe = vc.querySelector('iframe');
+    if(!iframe) return '';
+    return iframe.outerHTML;
+  }
+  function openMosaic(){
+    if(!mosaicModal || !mosaicGrid) return;
+    mosaicGrid.innerHTML = '';
+    const base = getCurrentPlayerHTML();
+    if(!base){
+      mosaicGrid.innerHTML = '<div class="text-white/70 text-sm">Aucun player actif. Lance un stream puis réessaie.</div>';
+    } else {
+      for(let i=0;i<4;i++){
+        const cell = document.createElement('div');
+        cell.className = 'aspect-video bg-black rounded-xl overflow-hidden border border-white/10 cursor-pointer';
+        cell.innerHTML = base;
+        const ifr = cell.querySelector('iframe');
+        if(ifr){
+          ifr.style.width='100%'; ifr.style.height='100%';
+        }
+        cell.addEventListener('click', ()=>{
+          // focus: swap clicked iframe into main video-container
+          const vc = document.getElementById('video-container');
+          const current = vc?.querySelector('iframe');
+          const clicked = cell.querySelector('iframe');
+          if(vc && clicked){
+            vc.innerHTML = '<div id="ambilight" aria-hidden="true"></div>' + clicked.outerHTML;
+          }
+        });
+        mosaicGrid.appendChild(cell);
+      }
+    }
+    mosaicModal.classList.remove('hidden');
+    mosaicModal.classList.add('flex');
+  }
+  function closeMosaic(){
+    if(!mosaicModal) return;
+    mosaicModal.classList.add('hidden');
+    mosaicModal.classList.remove('flex');
+  }
+  if(mosaicBtn) mosaicBtn.addEventListener('click', openMosaic);
+  if(mosaicClose) mosaicClose.addEventListener('click', closeMosaic);
+  if(mosaicModal) mosaicModal.addEventListener('click', (e)=>{ if(e.target===mosaicModal) closeMosaic(); });
+
+  // --- Fantasy League (API + fallback localStorage) ---
+  const fBtn = document.getElementById('fantasy-btn');
+  const fModal = document.getElementById('fantasy-modal');
+  const fClose = document.getElementById('fantasy-close');
+  const fCredits = document.getElementById('fantasy-credits');
+  const fValue = document.getElementById('fantasy-value');
+  const fStreamer = document.getElementById('fantasy-streamer');
+  const fAmount = document.getElementById('fantasy-amount');
+  const fBuy = document.getElementById('fantasy-buy');
+  const fSell = document.getElementById('fantasy-sell');
+  const fLb = document.getElementById('fantasy-leaderboard');
+  const fRefresh = document.getElementById('fantasy-refresh');
+  const fMsg = document.getElementById('fantasy-msg');
+
+  const LS_KEY = 'fantasy_v1';
+  function loadLocalFantasy(){
+    try{
+      return JSON.parse(localStorage.getItem(LS_KEY) || '{"credits":10000,"holdings":{}}');
+    }catch{ return {credits:10000, holdings:{}}; }
+  }
+  function saveLocalFantasy(st){ localStorage.setItem(LS_KEY, JSON.stringify(st)); }
+  function updateFantasyUI(st){
+    if(fCredits) fCredits.textContent = String(st.credits||0);
+    const holdings = st.holdings||{};
+    const val = Object.values(holdings).reduce((a,b)=>a+(b||0),0);
+    if(fValue) fValue.textContent = String(val);
+  }
+  async function apiJSON(url, opts){
+    const r = await fetch(url, {headers:{'Content-Type':'application/json'}, ...(opts||{})});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }
+  async function refreshFantasy(){
+    if(!fLb) return;
+    fLb.innerHTML = '<div class="text-gray-400 text-sm">Chargement…</div>';
+    // try server leaderboard
+    try{
+      const data = await apiJSON('/api/fantasy/leaderboard');
+      const rows = (data.leaderboard||[]).slice(0,20);
+      fLb.innerHTML = rows.map((r,i)=>`
+        <div class="flex items-center justify-between p-2 rounded-lg bg-black/30 border border-white/10">
+          <div class="text-white font-bold text-sm">#${i+1} ${r.user||'Anon'}</div>
+          <div class="text-[#00f2ea] font-black">${r.value||0}</div>
+        </div>
+      `).join('') || '<div class="text-gray-400 text-sm">Aucun classement.</div>';
+      return;
+    }catch(e){
+      // fallback local (single user)
+      const st = loadLocalFantasy();
+      fLb.innerHTML = '<div class="text-gray-400 text-sm">Leaderboard indisponible (offline). Tes stats sont en local.</div>';
+      updateFantasyUI(st);
+    }
+  }
+  function openFantasy(){
+    if(!fModal) return;
+    const st = loadLocalFantasy();
+    updateFantasyUI(st);
+    refreshFantasy();
+    fModal.classList.remove('hidden'); fModal.classList.add('flex');
+  }
+  function closeFantasy(){
+    if(!fModal) return;
+    fModal.classList.add('hidden'); fModal.classList.remove('flex');
+  }
+  if(fBtn) fBtn.addEventListener('click', openFantasy);
+  if(fClose) fClose.addEventListener('click', closeFantasy);
+  if(fModal) fModal.addEventListener('click', (e)=>{ if(e.target===fModal) closeFantasy(); });
+  if(fRefresh) fRefresh.addEventListener('click', refreshFantasy);
+
+  async function doInvest(kind){
+    const user = (window.HUB_USERNAME || 'Anon');
+    const streamer = (fStreamer?.value||'').trim();
+    const amount = parseInt((fAmount?.value||'').trim(),10);
+    if(!streamer){ if(fMsg) fMsg.textContent='Entre un streamer.'; return; }
+    if(!amount || amount<=0){ if(fMsg) fMsg.textContent='Montant invalide.'; return; }
+
+    // try server
+    try{
+      const data = await apiJSON('/api/fantasy/'+(kind==='buy'?'invest':'sell'), {
+        method:'POST',
+        body: JSON.stringify({ user, streamer, amount })
+      });
+      if(fMsg) fMsg.textContent = data.message || 'OK';
+      // refresh profile
+      const prof = await apiJSON('/api/fantasy/profile?user='+encodeURIComponent(user));
+      if(fCredits) fCredits.textContent = String(prof.credits||0);
+      if(fValue) fValue.textContent = String(prof.value||0);
+      await refreshFantasy();
+      return;
+    }catch(e){
+      // local fallback
+      const st = loadLocalFantasy();
+      if(kind==='buy'){
+        if(st.credits < amount){ if(fMsg) fMsg.textContent='Crédits insuffisants (local).'; return; }
+        st.credits -= amount;
+        st.holdings[streamer] = (st.holdings[streamer]||0)+amount;
+        if(fMsg) fMsg.textContent='Investi (local).';
+      } else {
+        const have = st.holdings[streamer]||0;
+        if(have < amount){ if(fMsg) fMsg.textContent='Tu n’as pas assez de parts (local).'; return; }
+        st.holdings[streamer] = have-amount;
+        st.credits += amount;
+        if(fMsg) fMsg.textContent='Vendu (local).';
+      }
+      saveLocalFantasy(st);
+      updateFantasyUI(st);
+    }
+  }
+  if(fBuy) fBuy.addEventListener('click', ()=>doInvest('buy'));
+  if(fSell) fSell.addEventListener('click', ()=>doInvest('sell'));
+})();
+
 </script>
+
+<!-- Fantasy League Modal -->
+<div id="fantasy-modal" class="fixed inset-0 hidden items-center justify-center z-[9999]">
+  <div class="absolute inset-0 bg-black/70"></div>
+  <div class="relative w-[min(920px,92vw)] max-h-[82vh] overflow-auto rounded-2xl border border-white/10 bg-[#0b0b0d] shadow-2xl p-4">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div class="font-orbitron font-black tracking-widest text-sm text-white">🏆 FANTASY LEAGUE</div>
+      <button id="fantasy-close" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold">Fermer</button>
+    </div>
+    <div class="grid md:grid-cols-3 gap-3">
+      <div class="md:col-span-1 p-3 rounded-xl border border-white/10 bg-white/5">
+        <div class="text-xs text-gray-300 font-bold mb-2">Portefeuille</div>
+        <div class="flex items-end justify-between">
+          <div>
+            <div class="text-[10px] text-gray-400">Crédits</div>
+            <div id="fantasy-credits" class="text-xl font-black text-[#00f2ea]">10 000</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-gray-400">Valeur</div>
+            <div id="fantasy-value" class="text-xl font-black text-[#ff0099]">0</div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <div class="text-[10px] text-gray-400 mb-1">Streamer</div>
+          <input id="fantasy-streamer" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="ex: gotaga" />
+          <div class="flex gap-2 mt-2">
+            <input id="fantasy-amount" type="number" min="1" class="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="Montant" />
+            <button id="fantasy-buy" class="px-3 py-2 rounded-lg bg-[#00f2ea] text-black font-black">Investir</button>
+          </div>
+          <button id="fantasy-sell" class="mt-2 w-full px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-black">Vendre</button>
+          <div id="fantasy-msg" class="mt-2 text-[11px] text-gray-400"></div>
+        </div>
+      </div>
+      <div class="md:col-span-2 p-3 rounded-xl border border-white/10 bg-white/5">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs text-gray-300 font-bold">Leaderboard</div>
+          <button id="fantasy-refresh" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs">Rafraîchir</button>
+        </div>
+        <div id="fantasy-leaderboard" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mosaic Modal -->
+<div id="mosaic-modal" class="fixed inset-0 hidden items-center justify-center z-[9999]">
+  <div class="absolute inset-0 bg-black/70"></div>
+  <div class="relative w-[min(980px,92vw)] rounded-2xl border border-white/10 bg-[#0b0b0d] shadow-2xl p-4">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div class="font-orbitron font-black tracking-widest text-sm text-white">📺 MOSAIC MODE</div>
+      <button id="mosaic-close" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold">Fermer</button>
+    </div>
+    <div class="text-[11px] text-gray-400 mb-3">Astuce: clique une case pour la mettre en focus.</div>
+    <div id="mosaic-grid" class="grid grid-cols-2 gap-2"></div>
+  </div>
+</div>
+
 </body>
 </html>
