@@ -685,30 +685,117 @@
 .vibe-toxic{ border:1px solid rgba(239,68,68,.60)!important; box-shadow: 0 0 0 1px rgba(239,68,68,.22) inset; }
 
 
-/* Tools overlay */
-#video-container{ position: relative; overflow: visible !important; }
+    /* ==== HUB Chat UX fixes ==== */
+    #chat-container-hub { min-height: 520px; }
+    #hub-messages { scroll-behavior: smooth; padding-bottom: 90px; }
+    /* Keep input always visible */
+    #chat-container-hub form { position: sticky; bottom: 0; z-index: 20; }
+
+    /* Messenger-like reactions: hidden until hover/tap */
+    .hub-react-row{ 
+      opacity: 0; 
+      max-height: 0; 
+      overflow: hidden;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: opacity .15s ease, max-height .15s ease, transform .15s ease;
+    }
+    .hub-msg:hover .hub-react-row, .hub-msg.show-reactions .hub-react-row{
+      opacity: 1;
+      max-height: 44px;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .hub-react-btn{
+      width: 34px; height: 34px;
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .hub-react-btn:hover{ border-color:#00f2ea; }
+    .hub-reactions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+    .hub-reaction-pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+
+    /* Ensure modules below player aren't clipped inside iframe */
+    body { overflow-y: auto; }
+    .page-wrap { padding-bottom: 40px; }
+
+
+/* === Tools overlay (safe) === */
+#video-container{ position:relative; overflow: visible !important; }
 .toolbtn{
   width:38px;height:34px;border-radius:12px;
-  background:rgba(16,16,18,.8);
+  background:rgba(16,16,18,.86);
   border:1px solid rgba(255,255,255,.18);
   color:#fff;font-weight:900;cursor:pointer;
 }
 .toolbtn:hover{ border-color:#00f2ea; transform: translateY(-1px); }
-.toolbtn.active{ border-color:#00f2ea; box-shadow: 0 0 0 2px rgba(0,242,234,.22) inset; }
+.toolbtn.active{ border-color:#00f2ea; box-shadow:0 0 0 2px rgba(0,242,234,.22) inset; }
+
 #ambilight{
-  position:absolute; inset:-80px; z-index:0;
-  filter: blur(55px);
+  position:absolute; inset:-90px; z-index:0;
+  filter: blur(60px);
   opacity:0;
   pointer-events:none;
   transition: opacity .2s ease;
 }
-#ambilight.on{ opacity:.75; }
+#ambilight.on{ opacity:.78; }
+
 #video-container iframe, #video-container .player-wrap, #video-container #player{ position:relative; z-index:2; }
+
+/* Vibe borders */
+.vibe-chill{ box-shadow: 0 0 0 2px rgba(0,242,234,.35) inset, 0 0 18px rgba(0,242,234,.18); }
+.vibe-hype{ box-shadow: 0 0 0 2px rgba(255,0,153,.35) inset, 0 0 18px rgba(255,0,153,.18); }
+.vibe-toxic{ box-shadow: 0 0 0 2px rgba(255,214,0,.35) inset, 0 0 18px rgba(255,214,0,.18); }
+
+/* Modals (reuse if not already) */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.75);
+  display:none; align-items:center; justify-content:center;
+  z-index:99999;
+}
+.modal-overlay.active{ display:flex; }
+.modal-card{
+  width:min(1100px,94vw);
+  max-height:92vh;
+  overflow:auto;
+  background:#0b0b0d;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  box-shadow: 0 0 40px rgba(0,0,0,.6);
+  padding:14px;
+}
+.modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 6px 12px; }
+.modal-title{ font-family:Orbitron, sans-serif; letter-spacing:.12em; font-weight:900; font-size:12px; color:#eaeaf0; text-transform:uppercase; }
+.modal-close{
+  background:#151515; border:1px solid #2b2b31; color:#fff;
+  width:36px; height:36px; border-radius:12px; cursor:pointer;
+}
+.modal-close:hover{ border-color:#00f2ea; }
+
+.mosaic-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.mosaic-tile{ background:#000; border:1px solid rgba(255,255,255,.12); border-radius:14px; overflow:hidden; position:relative; aspect-ratio:16/9; }
+.mosaic-tile button{
+  position:absolute; top:10px; right:10px;
+  background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff; border-radius:12px;
+  padding:6px 10px; font-weight:900; cursor:pointer;
+}
+.mosaic-tile button:hover{ border-color:#00f2ea; }
 
 </style>
 </head>
 
-<body class="h-screen flex flex-col p-4">
+<body class="min-h-screen flex flex-col p-4">
 
   <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
   <div style="height:18px;"></div>
@@ -1392,24 +1479,68 @@
         };
 
         setStatus(false);
-
         socket.on('connect', () => setStatus(true));
         socket.on('disconnect', () => setStatus(false));
         socket.on('connect_error', () => setStatus(false));
 
-        // Anti-doublon
+        // Anti-doublon (évite le double affichage quand le serveur renvoie la même chose via 2 events)
         const seen = new Set();
 
-        // Init: historique + profil
+        // Helpers: émettre "nouvelle" ET "ancienne" API (compat)
+        window.emitHubMessage = (payload) => {
+          if (!socket) return;
+          socket.emit('chat message', payload);
+          socket.emit('hub:message', payload); // compat si backend ancien
+        };
+        window.emitHubReact = (payload) => {
+          if (!socket) return;
+          socket.emit('chat react', payload);
+          socket.emit('hub:react', payload); // compat si backend ancien
+        };
+
+        const box = document.getElementById('hub-messages');
+
+        const replaceAllMessages = (msgs) => {
+          if (!box) return;
+          box.innerHTML = '';
+          (msgs || []).forEach(m => {
+            if (m && m.id) seen.add(m.id);
+            renderHubMessage(m);
+          });
+          box.scrollTop = box.scrollHeight;
+        };
+
+        // === API actuelle (app.js): historique + messages + updates réactions
+        socket.on('chat history', (msgs) => {
+          try { replaceAllMessages(msgs); } catch(_){}
+        });
+
+        socket.on('chat message', (msg) => {
+          try{
+            if (!msg || !msg.id) return;
+            if (seen.has(msg.id)) return;
+            seen.add(msg.id);
+            if (seen.size > 1200) {
+              const arr = Array.from(seen);
+              for (let i=0;i<400;i++) seen.delete(arr[i]);
+            }
+            renderHubMessage(msg);
+          }catch(_){}
+        });
+
+        socket.on('chat update', ({ id, reactions }) => {
+          try{
+            const el = document.querySelector(`[data-msg-id="${cssEscape(id)}"] .hub-reactions`);
+            if (!el) return;
+            el.innerHTML = renderReactionsHtml(reactions || {});
+          }catch(_){}
+        });
+
+        // === API legacy (si jamais): hub:init / hub:message / hub:react
         socket.on('hub:init', (data) => {
           try{
-            const box = document.getElementById('hub-messages');
-            if (!box) return;
-
             const msgs = (data && data.messages) ? data.messages : [];
-            box.innerHTML = '';
-            msgs.forEach(m => renderHubMessage(m));
-            box.scrollTop = box.scrollHeight;
+            replaceAllMessages(msgs);
 
             if (data && data.profile){
               window.__hubProfile = data.profile;
@@ -1418,35 +1549,21 @@
           }catch(_){}
         });
 
-        // Fallback: fetch history via HTTP if socket history not received
-        fetch('/api/chat/history?limit=60').then(r=>r.json()).then(d=>{
-          if(d && d.success && Array.isArray(d.messages)){
-            d.messages.forEach(renderHubMessage);
-          }
-        }).catch(()=>{});
-
-        // Compat server events
-        socket.on('chat history', (msgs)=>{ try{ (msgs||[]).forEach(renderHubMessage); }catch(e){} });
-        socket.on('chat message', (msg)=>{ try{ renderHubMessage(msg); }catch(e){} });
-        socket.on('chat update', (msg)=>{ try{ updateHubMessage(msg); }catch(e){} });
-
-        // Nouveau message
         socket.on('hub:message', (msg) => {
-          if (!msg || !msg.id) return;
-          if (seen.has(msg.id)) return;
-          seen.add(msg.id);
-          if (seen.size > 800) { // limite mémoire
-            const arr = Array.from(seen);
-            for (let i=0;i<200;i++) seen.delete(arr[i]);
-          }
-          renderHubMessage(msg);
+          try{
+            if (!msg || !msg.id) return;
+            if (seen.has(msg.id)) return;
+            seen.add(msg.id);
+            renderHubMessage(msg);
+          }catch(_){}
         });
 
-        // Réactions
         socket.on('hub:react', ({ messageId, reactions }) => {
-          const el = document.querySelector(`[data-msg-id="${cssEscape(messageId)}"] .hub-reactions`);
-          if (!el) return;
-          el.innerHTML = renderReactionsHtml(reactions || {});
+          try{
+            const el = document.querySelector(`[data-msg-id="${cssEscape(messageId)}"] .hub-reactions`);
+            if (!el) return;
+            el.innerHTML = renderReactionsHtml(reactions || {});
+          }catch(_){}
         });
 
       }catch(e){
@@ -1457,22 +1574,19 @@
     function sendHubMessage(e){
       e.preventDefault();
       const input = document.getElementById('hub-input');
-      const raw = (input.value || '').trim();
+      const raw = (input?.value || '').trim();
       if (!raw) return;
 
-      // Commande rapide: /gif <url>
+      // /gif <url>
       let gif = '';
       let text = raw;
-
       const m = raw.match(/^\/gif\s+(https?:\/\/\S+)/i);
       if (m){
         gif = m[1];
         text = '';
       }
 
-      if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text, gif });
-      try{ socket.emit('chat message', { user: currentUser || 'Anon', text, gif }); }catch(e){}
-
+      if (window.emitHubMessage) window.emitHubMessage({ user: currentUser || 'Anon', text, gif });
       input.value = '';
     }
 
@@ -1535,10 +1649,10 @@
         ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
         <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
         <div class="hub-react-row flex gap-2 mt-2">
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','🔥')">🔥</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','😂')">😂</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','💖')">💖</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','👍')">👍</button>
+          <button type="button" class="hub-react-btn" data-react="🔥" data-msg="${'${encodeURIComponent(id)}'}">🔥</button>
+          <button type="button" class="hub-react-btn" data-react="😂" data-msg="${'${encodeURIComponent(id)}'}">😂</button>
+          <button type="button" class="hub-react-btn" data-react="💖" data-msg="${'${encodeURIComponent(id)}'}">💖</button>
+          <button type="button" class="hub-react-btn" data-react="👍" data-msg="${'${encodeURIComponent(id)}'}">👍</button>
         </div>
       `;
 
@@ -1550,7 +1664,7 @@
       // On retrouve l'id original via dataset
       const el = document.querySelector(`[data-msg-id]`);
       // On envoie directement l'id passé (déjà safe côté serveur)
-      if (socket) socket.emit('hub:react', { messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
+      if (socket) if (window.emitHubReact) window.emitHubReact({ messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
     }
 
     function insertAtCursor(input, text){
@@ -1588,9 +1702,9 @@
           const b = document.createElement('button');
           b.type = 'button';
           b.className = 'rounded-xl overflow-hidden border border-[#222] hover:border-[#00f2ea] bg-black';
-          b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy">`;
+          b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">`;
           b.onclick = () => {
-            if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text:'', gif: g.url });
+            if (socket) if (window.emitHubMessage) window.emitHubMessage({ user: currentUser || 'Anon', text:'', gif: g.url });
             modal.classList.add('hidden');
           };
           grid.appendChild(b);
@@ -2773,44 +2887,71 @@
   setInterval(ensureFantasy, 1400);
 })();
 
+    // ==== Messenger-like reactions handlers (hover/tap) ====
+    (function(){
+      const hubBox = document.getElementById('hub-messages');
+      if(!hubBox) return;
+
+      // Tap/click on a message toggles reaction bar (mobile-friendly)
+      hubBox.addEventListener('click', (e)=>{
+        const msgEl = e.target.closest('.hub-msg');
+        if(msgEl && !e.target.closest('.hub-react-btn')) {
+          msgEl.classList.toggle('show-reactions');
+          return;
+        }
+        const btn = e.target.closest('.hub-react-btn');
+        if(btn){
+          const emoji = btn.getAttribute('data-react');
+          const idEnc = btn.getAttribute('data-msg') || '';
+          const msgId = decodeURIComponent(idEnc);
+          if(window.emitHubReact) window.emitHubReact({ messageId: msgId, emoji });
+        }
+      });
+    })();
+
+
 
 // ===== Extra tools logic (Fantasy/Mosaic/Ambilight/Vibe) =====
-let __ambOn = false;
-let __vibeOn = false;
+let __ambOn = localStorage.getItem('jp_amb_on') === '1';
+let __vibeOn = localStorage.getItem('jp_vibe_on') === '1';
 
 function getParentParam(){
   const sp = new URLSearchParams(location.search);
   return sp.get('parent_host') || sp.get('parent') || location.hostname;
 }
 
+function toast(msg){
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;z-index:999999;font-weight:900;';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 1400);
+}
+
 function hashColor(str){
   str = String(str||'');
   let h=0; for(let i=0;i<str.length;i++) h=(h*31 + str.charCodeAt(i))>>>0;
-  // convert to nice teal/pink range
-  const a = 180 + (h % 75);
-  const b = 120 + ((h>>8)%110);
-  return `radial-gradient(circle at 25% 25%, rgba(0,242,234,.85), transparent 55%), radial-gradient(circle at 75% 75%, rgba(255,0,153,.70), transparent 55%), radial-gradient(circle at 50% 10%, rgba(${a},${b},255,.50), transparent 60%)`;
+  const a = 120 + (h % 120);
+  const b = 90 + ((h>>8)%140);
+  return `radial-gradient(circle at 25% 25%, rgba(0,242,234,.90), transparent 55%), radial-gradient(circle at 75% 75%, rgba(255,0,153,.78), transparent 55%), radial-gradient(circle at 50% 10%, rgba(${a},${b},255,.55), transparent 60%)`;
+}
+
+function refreshAmbilight(){
+  const amb = document.getElementById('ambilight');
+  if(!amb) return;
+  const ch = (window.currentChannel || document.getElementById('current-channel-display')?.innerText || '').trim();
+  amb.style.background = hashColor(ch || 'twitch');
 }
 
 function toggleAmbilight(){
   __ambOn = !__ambOn;
+  localStorage.setItem('jp_amb_on', __ambOn ? '1' : '0');
   const btn = document.getElementById('tool-ambilight');
   const amb = document.getElementById('ambilight');
   if(btn) btn.classList.toggle('active', __ambOn);
-  if(amb) {
-    amb.classList.toggle('on', __ambOn);
-    const ch = (window.currentChannel || document.getElementById('current-channel-display')?.innerText || '').trim();
-    amb.style.background = hashColor(ch || 'twitch');
-  }
+  if(amb) amb.classList.toggle('on', __ambOn);
+  refreshAmbilight();
   toast(`Ambilight ${__ambOn ? 'activé' : 'désactivé'}`);
-}
-
-function toggleVibe(){
-  __vibeOn = !__vibeOn;
-  const btn = document.getElementById('tool-vibe');
-  if(btn) btn.classList.toggle('active', __vibeOn);
-  applyVibe();
-  toast(`Vibe Check ${__vibeOn ? 'activé' : 'désactivé'}`);
 }
 
 function vibeClass(name){
@@ -2827,9 +2968,17 @@ function applyVibe(){
     card.classList.add(vibeClass(name));
   });
 }
-// Attempt to reapply after content updates
-const __mo = new MutationObserver(()=>{ if(__vibeOn) applyVibe(); });
-__mo.observe(document.body, { childList:true, subtree:true });
+function toggleVibe(){
+  __vibeOn = !__vibeOn;
+  localStorage.setItem('jp_vibe_on', __vibeOn ? '1' : '0');
+  const btn = document.getElementById('tool-vibe');
+  if(btn) btn.classList.toggle('active', __vibeOn);
+  applyVibe();
+  toast(`Vibe Check ${__vibeOn ? 'activé' : 'désactivé'}`);
+}
+
+// reapply vibe on mutations
+new MutationObserver(()=>{ if(__vibeOn) applyVibe(); }).observe(document.body, {childList:true, subtree:true});
 
 // Mosaic
 function openMosaic(){
@@ -2842,7 +2991,7 @@ function openMosaic(){
   if(current) list.push(current);
   if(Array.isArray(window.recentChannels)) list.push(...window.recentChannels);
   while(list.length < 4) list.push(current || 'twitch');
-  const channels = [...new Set(list)].slice(0,4);
+  const channels = list.filter(Boolean).slice(0,4);
 
   grid.innerHTML = '';
   channels.forEach(ch=>{
@@ -2859,13 +3008,15 @@ function closeMosaic(e){ if(e) e.preventDefault(); document.getElementById('mosa
 function focusChannel(enc){
   const ch = decodeURIComponent(enc);
   if(typeof changeChannel === 'function') changeChannel(ch);
-  toggleAmbilight(); toggleAmbilight(); // refresh background
+  refreshAmbilight();
   closeMosaic(new Event('click'));
 }
 
 // Fantasy API + chart
 function openFantasy(){ document.getElementById('fantasyModal')?.classList.add('active'); refreshFantasy(); }
 function closeFantasy(e){ if(e) e.preventDefault(); document.getElementById('fantasyModal')?.classList.remove('active'); }
+
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
 async function refreshFantasy(){
   const user = (window.currentUser || 'Anon');
@@ -2894,17 +3045,12 @@ async function refreshFantasy(){
         </div>`).join('') || `<div style="color:#a7a7b2;">Aucun classement.</div>`;
     }
   }
-
-  // auto-load market for current input if any
-  const input = document.getElementById('fantasyStreamer');
-  if(input && input.value.trim()) loadMarket(input.value.trim());
 }
 
 async function loadMarket(login){
   if(!login) return;
   const d = await fetch(`/api/fantasy/market?streamer=${encodeURIComponent(login)}`).then(r=>r.json()).catch(()=>null);
-  if(!d || !d.success) return;
-
+  if(!d || !d.success) return toast('Marché indisponible');
   const m = d.market;
   const info = document.getElementById('marketInfo');
   if(info){
@@ -2916,17 +3062,17 @@ async function loadMarket(login){
     `;
   }
   drawChart(d.history || [], m.price);
+  document.getElementById('fantasyStreamer').value = login;
 }
 
 function drawChart(history, last){
   const c = document.getElementById('marketChart');
   if(!c) return;
   const ctx = c.getContext('2d');
-  const W = c.width, H = c.height;
+  const W=c.width, H=c.height;
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = '#0b0b0d';
   ctx.fillRect(0,0,W,H);
-
   const pts = (history||[]).map(x=>Number(x.price||0)).filter(x=>x>0);
   if(pts.length < 2){
     ctx.fillStyle = '#a7a7b2';
@@ -2934,26 +3080,22 @@ function drawChart(history, last){
     ctx.fillText('Historique insuffisant (2+ points requis)', 16, 30);
     return;
   }
-
-  const minP = Math.min(...pts), maxP = Math.max(...pts);
-  const pad = 18;
-  const sx = (W - pad*2) / (pts.length - 1);
-  const sy = (H - pad*2) / (maxP - minP || 1);
-
-  ctx.strokeStyle = 'rgba(0,242,234,.85)';
-  ctx.lineWidth = 3;
+  const minP=Math.min(...pts), maxP=Math.max(...pts);
+  const pad=18;
+  const sx=(W-pad*2)/(pts.length-1);
+  const sy=(H-pad*2)/(maxP-minP||1);
+  ctx.strokeStyle='rgba(0,242,234,.85)';
+  ctx.lineWidth=3;
   ctx.beginPath();
   pts.forEach((p,i)=>{
-    const x = pad + i*sx;
-    const y = H - pad - (p - minP)*sy;
+    const x=pad+i*sx;
+    const y=H-pad-(p-minP)*sy;
     if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
   });
   ctx.stroke();
-
-  // last price label
-  ctx.fillStyle = '#00f2ea';
-  ctx.font = 'bold 16px system-ui';
-  ctx.fillText(String(last||pts[pts.length-1]), W - 70, 26);
+  ctx.fillStyle='#00f2ea';
+  ctx.font='bold 16px system-ui';
+  ctx.fillText(String(last||pts[pts.length-1]), W-70, 26);
 }
 
 async function fantasyBuy(){
@@ -2968,7 +3110,6 @@ async function fantasyBuy(){
   await refreshFantasy();
   await loadMarket(login);
 }
-
 async function fantasySell(){
   const user = (window.currentUser || 'Anon');
   const login = document.getElementById('fantasyStreamer')?.value?.trim();
@@ -2982,8 +3123,13 @@ async function fantasySell(){
   await loadMarket(login);
 }
 
-</script>
+// initialize buttons state
+document.getElementById('tool-ambilight')?.classList.toggle('active', __ambOn);
+document.getElementById('ambilight')?.classList.toggle('on', __ambOn);
+document.getElementById('tool-vibe')?.classList.toggle('active', __vibeOn);
+setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 700);
 
+</script>
 
 <div id="mosaicModal" class="modal-overlay" onclick="closeMosaic(event)">
   <div class="modal-card" onclick="event.stopPropagation()">
