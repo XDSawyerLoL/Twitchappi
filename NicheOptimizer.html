@@ -1363,24 +1363,68 @@
         };
 
         setStatus(false);
-
         socket.on('connect', () => setStatus(true));
         socket.on('disconnect', () => setStatus(false));
         socket.on('connect_error', () => setStatus(false));
 
-        // Anti-doublon
+        // Anti-doublon (évite le double affichage quand le serveur renvoie la même chose via 2 events)
         const seen = new Set();
 
-        // Init: historique + profil
+        // Helpers: émettre "nouvelle" ET "ancienne" API (compat)
+        window.emitHubMessage = (payload) => {
+          if (!socket) return;
+          socket.emit('chat message', payload);
+          socket.emit('hub:message', payload); // compat si backend ancien
+        };
+        window.emitHubReact = (payload) => {
+          if (!socket) return;
+          socket.emit('chat react', payload);
+          socket.emit('hub:react', payload); // compat si backend ancien
+        };
+
+        const box = document.getElementById('hub-messages');
+
+        const replaceAllMessages = (msgs) => {
+          if (!box) return;
+          box.innerHTML = '';
+          (msgs || []).forEach(m => {
+            if (m && m.id) seen.add(m.id);
+            renderHubMessage(m);
+          });
+          box.scrollTop = box.scrollHeight;
+        };
+
+        // === API actuelle (app.js): historique + messages + updates réactions
+        socket.on('chat history', (msgs) => {
+          try { replaceAllMessages(msgs); } catch(_){}
+        });
+
+        socket.on('chat message', (msg) => {
+          try{
+            if (!msg || !msg.id) return;
+            if (seen.has(msg.id)) return;
+            seen.add(msg.id);
+            if (seen.size > 1200) {
+              const arr = Array.from(seen);
+              for (let i=0;i<400;i++) seen.delete(arr[i]);
+            }
+            renderHubMessage(msg);
+          }catch(_){}
+        });
+
+        socket.on('chat update', ({ id, reactions }) => {
+          try{
+            const el = document.querySelector(`[data-msg-id="${cssEscape(id)}"] .hub-reactions`);
+            if (!el) return;
+            el.innerHTML = renderReactionsHtml(reactions || {});
+          }catch(_){}
+        });
+
+        // === API legacy (si jamais): hub:init / hub:message / hub:react
         socket.on('hub:init', (data) => {
           try{
-            const box = document.getElementById('hub-messages');
-            if (!box) return;
-
             const msgs = (data && data.messages) ? data.messages : [];
-            box.innerHTML = '';
-            msgs.forEach(m => renderHubMessage(m));
-            box.scrollTop = box.scrollHeight;
+            replaceAllMessages(msgs);
 
             if (data && data.profile){
               window.__hubProfile = data.profile;
@@ -1389,23 +1433,21 @@
           }catch(_){}
         });
 
-        // Nouveau message
         socket.on('hub:message', (msg) => {
-          if (!msg || !msg.id) return;
-          if (seen.has(msg.id)) return;
-          seen.add(msg.id);
-          if (seen.size > 800) { // limite mémoire
-            const arr = Array.from(seen);
-            for (let i=0;i<200;i++) seen.delete(arr[i]);
-          }
-          renderHubMessage(msg);
+          try{
+            if (!msg || !msg.id) return;
+            if (seen.has(msg.id)) return;
+            seen.add(msg.id);
+            renderHubMessage(msg);
+          }catch(_){}
         });
 
-        // Réactions
         socket.on('hub:react', ({ messageId, reactions }) => {
-          const el = document.querySelector(`[data-msg-id="${cssEscape(messageId)}"] .hub-reactions`);
-          if (!el) return;
-          el.innerHTML = renderReactionsHtml(reactions || {});
+          try{
+            const el = document.querySelector(`[data-msg-id="${cssEscape(messageId)}"] .hub-reactions`);
+            if (!el) return;
+            el.innerHTML = renderReactionsHtml(reactions || {});
+          }catch(_){}
         });
 
       }catch(e){
@@ -1416,21 +1458,19 @@
     function sendHubMessage(e){
       e.preventDefault();
       const input = document.getElementById('hub-input');
-      const raw = (input.value || '').trim();
+      const raw = (input?.value || '').trim();
       if (!raw) return;
 
-      // Commande rapide: /gif <url>
+      // /gif <url>
       let gif = '';
       let text = raw;
-
       const m = raw.match(/^\/gif\s+(https?:\/\/\S+)/i);
       if (m){
         gif = m[1];
         text = '';
       }
 
-      if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text, gif });
-
+      if (window.emitHubMessage) window.emitHubMessage({ user: currentUser || 'Anon', text, gif });
       input.value = '';
     }
 
@@ -1493,10 +1533,10 @@
         ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
         <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
         <div class="hub-react-row flex gap-2 mt-2">
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','🔥')">🔥</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','😂')">😂</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','💖')">💖</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','👍')">👍</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${encodeURIComponent(id)}','🔥')">🔥</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${encodeURIComponent(id)}','😂')">😂</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${encodeURIComponent(id)}','💖')">💖</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${encodeURIComponent(id)}','👍')">👍</button>
         </div>
       `;
 
@@ -1508,7 +1548,7 @@
       // On retrouve l'id original via dataset
       const el = document.querySelector(`[data-msg-id]`);
       // On envoie directement l'id passé (déjà safe côté serveur)
-      if (socket) socket.emit('hub:react', { messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
+      if (socket) if (window.emitHubReact) window.emitHubReact({ messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
     }
 
     function insertAtCursor(input, text){
@@ -1548,7 +1588,7 @@
           b.className = 'rounded-xl overflow-hidden border border-[#222] hover:border-[#00f2ea] bg-black';
           b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy">`;
           b.onclick = () => {
-            if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text:'', gif: g.url });
+            if (socket) if (window.emitHubMessage) window.emitHubMessage({ user: currentUser || 'Anon', text:'', gif: g.url });
             modal.classList.add('hidden');
           };
           grid.appendChild(b);
