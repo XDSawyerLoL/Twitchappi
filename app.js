@@ -19,7 +19,6 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
-
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -150,34 +149,17 @@ async function addXP(user, delta){
 // 1. CONFIGURATION
 // =========================================================
 const app = express();
+app.set('trust proxy', 1);
 
-// ===== Security / iframe-safe headers =====
+// Helmet: iframe-safe (NE BLOQUE PAS Fourthwall/iframe)
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
-  frameguard: false
+  frameguard: false,
 }));
 
-// ===== Rate limit (API only) =====
+// Rate limit léger sur /api (évite spam)
 app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 300 }));
-
-// ===== Sessions (memorystore) =====
-if (!process.env.SESSION_SECRET) {
-  console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod).');
-}
-app.use(session({
-  name: 'streamerhub.sid',
-  store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
-  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
-  }
-}));
-
 
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -196,9 +178,28 @@ if (GEMINI_API_KEY) {
   }
 }
 
-app.use(cors());
-app.use(bodyParser.json());
+app.use(cors({ origin: true, credentials: true }));
+app.use(bodyParser.json({ limit: '2mb' }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Sessions (memorystore) — supprime le warning MemoryStore
+if (!process.env.SESSION_SECRET) {
+  console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod)');
+}
+app.use(session({
+  name: 'streamerhub.sid',
+  store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
+  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  }
+}));
+
 app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
@@ -1470,21 +1471,40 @@ app.get('/api/gifs/trending', async (req, res) => {
 
 app.get('/api/gifs/search', async (req, res) => {
   try{
-    if (!process.env.GIPHY_API_KEY) return res.status(400).json({ success:falseio.on('connection', async (socket) => {
+    if (!process.env.GIPHY_API_KEY) return res.status(400).json({ success:false, error:'GIPHY_API_KEY missing' });
+    const q = String(req.query.q || '').trim();
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '24', 10)));
+    if (!q) return res.json({ success:true, gifs: [] });
+
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(process.env.GIPHY_API_KEY)}&q=${encodeURIComponent(q)}&limit=${limit}&rating=pg-13&lang=fr`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const gifs = (d.data || []).map(g => ({
+      id: g.id,
+      title: g.title,
+      url: g.images?.original?.url || g.images?.downsized_large?.url || g.images?.downsized?.url,
+      preview: g.images?.fixed_width?.url || g.images?.fixed_width_small?.url || g.images?.downsized?.url
+    })).filter(x => x.url);
+    return res.json({ success:true, gifs });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+io.on('connection', async (socket) => {
   console.log('🔌 [SOCKET] client connected');
 
   // send recent history on connect
   try{
     const msgs = await loadRecentMessages(60);
     socket.emit('chat history', msgs);
-    socket.emit('hub:history', msgs);
   }catch(e){}
 
   // simple anti-spam per socket
   let lastMsgAt = 0;
 
-  const handleChatMessage = async (msg) => {
-
+  socket.on('chat message', async (msg) => {
     const now = Date.now();
     if (now - lastMsgAt < 650) return; // cooldown
     lastMsgAt = now;
@@ -1513,10 +1533,7 @@ app.get('/api/gifs/search', async (req, res) => {
 
     await saveMessage(out);
     io.emit('chat message', out);
-  };
-
-  socket.on('chat message', handleChatMessage);
-  socket.on('hub:send', handleChatMessage);
+  });
 
   socket.on('chat react', async (payload) => {
     try{
@@ -1528,33 +1545,6 @@ app.get('/api/gifs/search', async (req, res) => {
       if (firestoreOk){
         const ref = db.collection(CHAT_COLLECTION).doc(msgId);
         await db.runTransaction(async (t) => {
-          const snap = await t.get(ref);
-          if (!snap.exists) return;
-          const data = snap.data() || {};
-          const reactions = data.reactions || {};
-          reactions[emo] = (reactions[emo] || 0) + 1;
-          t.set(ref, { reactions }, { merge: true });
-        });
-        const updated = (await db.collection(CHAT_COLLECTION).doc(msgId).get()).data();
-        if (updated) io.emit('chat update', { id: msgId, reactions: updated.reactions || {} });
-        return;
-      }
-
-      const item = inMemHistory.find(m => m.id === msgId);
-      if (item){
-        item.reactions = item.reactions || {};
-        item.reactions[emo] = (item.reactions[emo] || 0) + 1;
-        io.emit('chat update', { id: msgId, reactions: item.reactions });
-      }
-    }catch(_){}
-  });
-
-  socket.on('disconnect', () => {
-    console.log('🔌 [SOCKET] client disconnected');
-  });
-});
-
-.runTransaction(async (t) => {
           const snap = await t.get(ref);
           if (!snap.exists) return;
           const data = snap.data() || {};
