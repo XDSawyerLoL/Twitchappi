@@ -730,6 +730,20 @@
 
 
 /* === Tools overlay (safe) === */
+
+#player-tools{
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:99999 !important;
+  display:flex;
+  gap:8px;
+  pointer-events:auto;
+}
+#player-tools .toolbtn{ pointer-events:auto; }
+#video-container iframe{ position:relative; z-index:1 !important; }
+#video-container .player-wrap, #video-container #player{ position:relative; z-index:1 !important; }
+
 #video-container{ position:relative; overflow: visible !important; }
 .toolbtn{
   width:38px;height:34px;border-radius:12px;
@@ -2942,6 +2956,49 @@ function refreshAmbilight(){
   const ch = (window.currentChannel || document.getElementById('current-channel-display')?.innerText || '').trim();
   amb.style.background = hashColor(ch || 'twitch');
 }
+
+
+function ensurePlayerTools(){
+  const vc = document.getElementById('video-container');
+  if(!vc) return;
+  let tools = document.getElementById('player-tools');
+  if(!tools){
+    tools = document.createElement('div');
+    tools.id = 'player-tools';
+    tools.innerHTML = `
+      <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
+      <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
+      <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
+      <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
+    `;
+    vc.appendChild(tools);
+  }else{
+    // Move to end so it stays above the player in DOM order
+    vc.appendChild(tools);
+  }
+
+  // Ensure ambilight layer exists and is behind the player
+  if(!document.getElementById('ambilight')){
+    const amb = document.createElement('div');
+    amb.id = 'ambilight';
+    vc.prepend(amb);
+  }
+
+  // If Twitch embed recreated the player container, re-apply z-index safety
+  const iframes = vc.querySelectorAll('iframe');
+  iframes.forEach(f=>{ try{ f.style.zIndex = '1'; f.style.position='relative'; }catch(e){} });
+}
+// Re-inject tools if Twitch replaces the player DOM
+(function(){
+  const vc = document.getElementById('video-container');
+  if(!vc) return;
+  ensurePlayerTools();
+  const obs = new MutationObserver(()=>ensurePlayerTools());
+  obs.observe(vc, { childList:true, subtree:false });
+  // Also run after load
+  setTimeout(ensurePlayerTools, 800);
+  setTimeout(ensurePlayerTools, 2000);
+})();
 
 function toggleAmbilight(){
   __ambOn = !__ambOn;
