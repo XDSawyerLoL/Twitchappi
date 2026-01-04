@@ -684,10 +684,54 @@
 .vibe-hype{ border:1px solid rgba(0,242,234,.70)!important; box-shadow: 0 0 0 1px rgba(0,242,234,.25) inset; }
 .vibe-toxic{ border:1px solid rgba(239,68,68,.60)!important; box-shadow: 0 0 0 1px rgba(239,68,68,.22) inset; }
 
+
+    /* ==== HUB Chat UX fixes ==== */
+    #chat-container-hub { min-height: 520px; }
+    #hub-messages { scroll-behavior: smooth; padding-bottom: 90px; }
+    /* Keep input always visible */
+    #chat-container-hub form { position: sticky; bottom: 0; z-index: 20; }
+
+    /* Messenger-like reactions: hidden until hover/tap */
+    .hub-react-row{ 
+      opacity: 0; 
+      max-height: 0; 
+      overflow: hidden;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: opacity .15s ease, max-height .15s ease, transform .15s ease;
+    }
+    .hub-msg:hover .hub-react-row, .hub-msg.show-reactions .hub-react-row{
+      opacity: 1;
+      max-height: 44px;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .hub-react-btn{
+      width: 34px; height: 34px;
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .hub-react-btn:hover{ border-color:#00f2ea; }
+    .hub-reactions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+    .hub-reaction-pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+
+    /* Ensure modules below player aren't clipped inside iframe */
+    body { overflow-y: auto; }
+    .page-wrap { padding-bottom: 40px; }
+
 </style>
 </head>
 
-<body class="h-screen flex flex-col p-4">
+<body class="min-h-screen flex flex-col p-4">
 
   <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
   <div style="height:18px;"></div>
@@ -1533,10 +1577,10 @@
         ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
         <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
         <div class="hub-react-row flex gap-2 mt-2">
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${encodeURIComponent(id)}','🔥')">🔥</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${encodeURIComponent(id)}','😂')">😂</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${encodeURIComponent(id)}','💖')">💖</button>
-          <button type="button" class="hub-react-btn" onclick="reactToMsg('${encodeURIComponent(id)}','👍')">👍</button>
+          <button type="button" class="hub-react-btn" data-react="🔥" data-msg="${'${encodeURIComponent(id)}'}">🔥</button>
+          <button type="button" class="hub-react-btn" data-react="😂" data-msg="${'${encodeURIComponent(id)}'}">😂</button>
+          <button type="button" class="hub-react-btn" data-react="💖" data-msg="${'${encodeURIComponent(id)}'}">💖</button>
+          <button type="button" class="hub-react-btn" data-react="👍" data-msg="${'${encodeURIComponent(id)}'}">👍</button>
         </div>
       `;
 
@@ -1586,7 +1630,7 @@
           const b = document.createElement('button');
           b.type = 'button';
           b.className = 'rounded-xl overflow-hidden border border-[#222] hover:border-[#00f2ea] bg-black';
-          b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy">`;
+          b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">`;
           b.onclick = () => {
             if (socket) if (window.emitHubMessage) window.emitHubMessage({ user: currentUser || 'Anon', text:'', gif: g.url });
             modal.classList.add('hidden');
@@ -2770,7 +2814,29 @@
   }
   setInterval(ensureFantasy, 1400);
 })();
-</script>
 
+    // ==== Messenger-like reactions handlers (hover/tap) ====
+    (function(){
+      const hubBox = document.getElementById('hub-messages');
+      if(!hubBox) return;
+
+      // Tap/click on a message toggles reaction bar (mobile-friendly)
+      hubBox.addEventListener('click', (e)=>{
+        const msgEl = e.target.closest('.hub-msg');
+        if(msgEl && !e.target.closest('.hub-react-btn')) {
+          msgEl.classList.toggle('show-reactions');
+          return;
+        }
+        const btn = e.target.closest('.hub-react-btn');
+        if(btn){
+          const emoji = btn.getAttribute('data-react');
+          const idEnc = btn.getAttribute('data-msg') || '';
+          const msgId = decodeURIComponent(idEnc);
+          if(window.emitHubReact) window.emitHubReact({ messageId: msgId, emoji });
+        }
+      });
+    })();
+
+</script>
 </body>
 </html>
