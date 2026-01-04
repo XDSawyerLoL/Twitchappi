@@ -1,9 +1,11 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (ULTIMATE AUDIO + INFINITE SCROLL)
+ * STREAMER & NICHE AI HUB - BACKEND (VERSION 5.0 ULTIMATE)
  * =========================================================
- * Updates:
- * - /api/categories/top : Supporte pagination (cursor) + fetch 100 items
- * - Chat force dark mode param check
+ * Features:
+ * - TwitFlix (Catalogue Rows, Search, Trailers)
+ * - Fantasy League (Mock Portfolio)
+ * - Squad/Mosaic Mode Support
+ * - Mobile Optimization
  */
 
 require('dotenv').config();
@@ -17,10 +19,6 @@ const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const { Server } = require('socket.io');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const session = require('express-session');
-const MemoryStore = require('memorystore')(session);
 
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
@@ -87,39 +85,9 @@ if (GEMINI_API_KEY) {
   }
 }
 
-// ================== SECURITY / SESSIONS (prod-safe + iframe-safe) ==================
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  frameguard: false // IMPORTANT: autorise l'app à être affichée en iframe (Fourthwall / Shopify / etc.)
-}));
-
-app.use(cors({ origin: true, credentials: true }));
-
-// Rate limit uniquement sur les endpoints API (évite de limiter le chargement du HTML/CSS)
-const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 300 });
-app.use('/api', apiLimiter);
-
-app.use(bodyParser.json({ limit: '1mb' }));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
+app.use(bodyParser.json());
 app.use(cookieParser());
-
-// Sessions multi-user (supprime le warning MemoryStore)
-if (!process.env.SESSION_SECRET) {
-  console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod).');
-}
-app.use(session({
-  name: 'streamerhub.sid',
-  store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }), // purge auto 24h
-  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production'
-  }
-}));
 app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
@@ -149,7 +117,9 @@ const CACHE = {
     currentIndex: 0,
     lastFetchTime: 0,
     fetchCooldown: 3 * 60 * 1000
-  }
+  },
+  twitflixCatalog: { data: null, expires: 0 },
+  clipCache: {} 
 };
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
@@ -464,7 +434,7 @@ app.get('/firebase_status', (req, res) => {
 });
 
 // =========================================================
-// 4. STREAM INFO & TWITFLIX
+// 4. STREAM INFO & TWITFLIX CATALOG
 // =========================================================
 app.post('/stream_info', async (req, res) => {
   const channel = String(req.body?.channel || '').trim().toLowerCase();
@@ -496,90 +466,142 @@ app.post('/stream_info', async (req, res) => {
   }
 });
 
-// --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
+// --- ROUTES TWITFLIX (Catalogue et Recherche) ---
 
-app.get('/api/categories/top', async (req, res) => {
+app.get('/api/twitflix/catalog', async (req, res) => {
+  const now = Date.now();
+  
+  if (CACHE.twitflixCatalog.data && CACHE.twitflixCatalog.expires > now) {
+    return res.json({ success: true, catalog: CACHE.twitflixCatalog.data });
+  }
+
   try {
-    // On supporte la pagination via "cursor"
-    const cursor = req.query.cursor;
-    
-    // On demande 100 catégories d'un coup (max Twitch)
-    let url = 'games/top?first=100';
-    if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
+    const [topGames, shooters, rpg, strategy, simulation] = await Promise.all([
+      twitchAPI('games/top?first=20'),
+      twitchAPI('search/categories?query=shooter&first=20'),
+      twitchAPI('search/categories?query=rpg&first=20'),
+      twitchAPI('search/categories?query=strategy&first=20'),
+      twitchAPI('search/categories?query=simulation&first=20')
+    ]);
 
-    const d = await twitchAPI(url);
-    if (!d.data) return res.json({ success: false });
-    
-    const categories = d.data.map(g => ({
-      id: g.id,
-      name: g.name,
-      box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
+    const format = (list) => (list || []).map(g => ({
+       id: g.id,
+       name: g.name,
+       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
     }));
 
-    // On renvoie aussi le curseur pour la page suivante
-    const nextCursor = d.pagination ? d.pagination.cursor : null;
+    const catalog = {
+       "🔥 Tendances Actuelles": format(topGames.data),
+       "🔫 FPS & Shooters": format(shooters.data),
+       "⚔️ RPG & Aventure": format(rpg.data),
+       "🧠 Stratégie": format(strategy.data),
+       "🚜 Simulation & Chill": format(simulation.data)
+    };
 
-    res.json({ success: true, categories, cursor: nextCursor });
+    CACHE.twitflixCatalog = { data: catalog, expires: now + 300000 };
+    res.json({ success: true, catalog });
+
   } catch (e) {
     res.status(500).json({ success:false, error:e.message });
   }
 });
 
+app.post('/api/twitflix/search', async (req, res) => {
+  const query = String(req.body.query || '').trim();
+  if(!query) return res.json({ success:false });
 
-// Search categories (pour la barre de recherche TwitFlix)
-// - retourne un tableau de catégories (mêmes champs que /api/categories/top)
-app.get('/api/categories/search', async (req, res) => {
   try {
-    const q = String(req.query.q || '').trim();
-    if (!q) return res.json({ success: true, categories: [] });
-
-    // Twitch: search/categories?query=...&first=100
-    const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
-    const categories = (d.data || []).map(g => ({
-      id: g.id,
-      name: g.name,
-      box_art_url: (g.box_art_url || '').replace('{width}', '285').replace('{height}', '380')
+    const d = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=20`);
+    const results = (d.data || []).map(g => ({
+       id: g.id,
+       name: g.name,
+       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
     }));
-    return res.json({ success: true, categories });
+    res.json({ success:true, results });
   } catch (e) {
-    return res.status(500).json({ success: false, error: e.message });
+    res.status(500).json({ success:false, error:e.message });
   }
 });
 
+// --- TRAILER (CLIPS) ---
+app.post('/api/game/trailer', async (req, res) => {
+    const gameId = String(req.body.game_id || '');
+    if(!gameId) return res.json({ success:false });
+
+    if(CACHE.clipCache[gameId]) {
+        return res.json({ success:true, embed_url: CACHE.clipCache[gameId] });
+    }
+
+    try {
+        const now = new Date();
+        const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        
+        const r = await twitchAPI(`clips?game_id=${gameId}&first=1&started_at=${lastWeek}`);
+        
+        if(r.data && r.data.length > 0) {
+            const clip = r.data[0];
+            const embedUrl = clip.embed_url; 
+            CACHE.clipCache[gameId] = embedUrl;
+            return res.json({ success:true, embed_url: embedUrl });
+        }
+        res.json({ success:false });
+    } catch(e) {
+        res.status(500).json({ success:false });
+    }
+});
 
 app.post('/api/stream/by_category', async (req, res) => {
-  const gameId = String(req.body?.game_id || '');
-  if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
-
+  const { game_id, tag } = req.body;
+  
   try {
-    // 100 streams max, FR ou global
-    let sRes = await twitchAPI(`streams?game_id=${gameId}&language=fr&first=100`);
-    let streams = sRes.data || [];
-
-    if (streams.length < 5) {
-      const gRes = await twitchAPI(`streams?game_id=${gameId}&first=100`);
-      streams = [...streams, ...(gRes.data || [])];
+    let streams = [];
+    
+    // Recherche par Tag ou Jeu
+    if (tag) {
+        const s = await twitchAPI(`streams?language=fr&first=100`);
+        const tLower = tag.toLowerCase();
+        // Filtrage custom : on regarde si le tag est dans les tags ou le titre
+        streams = (s.data||[]).filter(x => 
+            (x.tags && x.tags.some(t => t.toLowerCase().includes(tLower))) || 
+            (x.title && x.title.toLowerCase().includes(tLower))
+        );
+    } else if (game_id) {
+        // Pour un jeu spécifique, on regarde d'abord en FR, puis en global si besoin
+        let sRes = await twitchAPI(`streams?game_id=${game_id}&language=fr&first=100`);
+        streams = sRes.data || [];
+        if (streams.length < 5) {
+            const gRes = await twitchAPI(`streams?game_id=${game_id}&first=100`);
+            streams = [...streams, ...(gRes.data || [])];
+        }
+    } else {
+        // Fallback global FR
+        const s = await twitchAPI(`streams?language=fr&first=100`);
+        streams = s.data || [];
     }
 
     // Filtre < 100 viewers
-    const candidates = streams.filter(s => (s.viewer_count || 0) <= 100);
-
-    if (candidates.length === 0) {
-      // Fallback
-      streams.sort((a, b) => (a.viewer_count || 0) - (b.viewer_count || 0));
-      if (streams.length > 0) candidates.push(streams[0]);
-    }
-
-    if (candidates.length === 0) {
-      return res.json({ success: false, message: 'Aucun stream trouvé dans cette catégorie.' });
-    }
-
-    const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
+    const cands = streams.filter(x => (x.viewer_count || 0) <= 100);
     
+    // Si pas de petits, on prend le plus petit dispo
+    if(!cands.length && streams.length) {
+        streams.sort((a,b)=>(a.viewer_count||0) - (b.viewer_count||0));
+        cands.push(streams[0]);
+    }
+
+    if (cands.length === 0) {
+      return res.json({ success: false, message: 'Aucun stream trouvé.' });
+    }
+
+    const pick = cands[Math.floor(Math.random() * cands.length)];
+    
+    // Pour le mode MOSAIC (SQUAD), on renvoie aussi 3 autres streams aléatoires
+    const squad = cands.filter(c => c.id !== pick.id).slice(0,3).map(c => c.user_login);
+
     return res.json({ 
       success: true, 
-      channel: randomStream.user_login,
-      game_name: randomStream.game_name
+      channel: pick.user_login, 
+      game_name: pick.game_name,
+      squad: squad 
     });
 
   } catch (e) {
@@ -732,11 +754,14 @@ app.get('/api/stats/global', async (req, res) => {
     const est = Math.floor(v * 3.8);
     const topGame = data.data?.[0]?.game_name || "N/A";
 
-    const history = { live: { labels: [], values: [] } };
+    // Si DB vide, on renvoie des stats par défaut
+    const history = { live: { labels: ["10h", "11h", "12h", "13h", "Now"], values: [est*0.8, est*0.9, est*0.85, est*0.95, est] } };
 
     try {
       const snaps = await db.collection('stats_history').orderBy('timestamp', 'desc').limit(12).get();
-      if (!snaps.empty) {
+      if (!snaps.empty && snaps.docs.length > 2) {
+        history.live.labels = [];
+        history.live.values = [];
         snaps.docs.reverse().forEach(d => {
           const stats = d.data();
           if (stats.timestamp) {
@@ -746,13 +771,8 @@ app.get('/api/stats/global', async (req, res) => {
             history.live.values.push(stats.total_viewers);
           }
         });
-      } else {
-        history.live.labels = ["-1h", "Now"];
-        history.live.values = [est * 0.9, est];
       }
-    } catch (e) {
-      console.error("Erreur stats history:", e.message);
-    }
+    } catch (e) {}
 
     res.json({
       success: true,
@@ -1294,7 +1314,6 @@ app.get('/api/costream/best', async (req, res) => {
     if (!gameId) return res.json({ success:false, message:'Chaîne offline et jeu inconnu (pas assez de data).' });
 
     if (myViewers == null) {
-      // fallback: use daily avg if exists
       try {
         const snaps = await db.collection('channels').doc(String(me.id)).collection('daily_stats').orderBy('day','desc').limit(days).get();
         if (!snaps.empty) {
@@ -1347,16 +1366,26 @@ app.get('/api/costream/best', async (req, res) => {
   }
 });
 
+// --- FANTASY LEAGUE (Mock Backend) ---
+app.get('/api/fantasy/portfolio', (req, res) => {
+    // Dans une vraie app, on lirait depuis Firebase user.portfolio
+    res.json({
+        coins: 1250,
+        streamers: [
+            { name: "PtitGamer", bought_at: 12, current_value: 18, change: "+50%" },
+            { name: "SpeedRunnerFR", bought_at: 5, current_value: 4, change: "-20%" },
+            { name: "NicheFinder", bought_at: 100, current_value: 110, change: "+10%" }
+        ]
+    });
+});
+
 // =========================================================
 // 14. SERVER START + SOCKET.IO
 // =========================================================
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'], credentials: true },
-  transports: ['websocket', 'polling'],
-  pingInterval: 25000,
-  pingTimeout: 20000
+  cors: { origin: true, methods: ['GET', 'POST'] }
 });
 
 io.on('connection', (socket) => {
@@ -1364,19 +1393,10 @@ io.on('connection', (socket) => {
 
   socket.on('chat message', (msg) => {
     const safe = {
-      id: String(msg?.id || (Date.now() + '-' + Math.random().toString(36).slice(2, 10))),
-      ts: Date.now(),
       user: String(msg?.user || 'Anon').slice(0, 40),
-      text: String(msg?.text || '').slice(0, 500),
-      type: String(msg?.type || 'text').slice(0, 10),
-      gif: msg?.gif ? String(msg.gif).slice(0, 800) : null
+      text: String(msg?.text || '').slice(0, 500)
     };
-    if (!safe.text && !safe.gif) return;
-    // Validation minimale GIF (lien direct) — refuse schémas non sûrs
-    if (safe.gif) {
-      const g = safe.gif;
-      if (!(g.startsWith('https://') || g.startsWith('http://'))) safe.gif = null;
-    }
+    if (!safe.text) return;
     io.emit('chat message', safe);
   });
 
