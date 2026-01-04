@@ -650,6 +650,14 @@
       font-size:12px;
     }
 
+
+    /* Hub chat UX polish */
+    .hub-gif-wrap{ max-width: 280px; }
+    .hub-gif{ width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); }
+    .hub-reactbar{ display:flex; gap:8px; opacity:0; transform: translateY(4px); pointer-events:none; transition:.15s; }
+    .hub-msg:hover .hub-reactbar{ opacity:1; transform: translateY(0); pointer-events:auto; }
+    .hub-msg.show-reactbar .hub-reactbar{ opacity:1; transform: translateY(0); pointer-events:auto; }
+
 </style>
 </head>
 
@@ -1331,17 +1339,6 @@
         setStatus(false);
 
         socket.on('connect', () => setStatus(true));
-
-        // Historique (envoyé à la connexion)
-        socket.on('chat history', (items) => {
-          try{
-            const arr = Array.isArray(items) ? items : [];
-            arr.forEach(m => {
-              if (m && m.id && !seen.has(m.id)) { seen.add(m.id); renderHubMessage(m); }
-            });
-          }catch(_){ }
-        });
-
         socket.on('disconnect', () => setStatus(false));
         socket.on('connect_error', () => setStatus(false));
 
@@ -1367,7 +1364,18 @@
         });
 
         // Nouveau message
-        socket.on('chat message', (msg) => {
+        socket.on('hub:history', (msgs)=> {
+          try{
+            const box = document.getElementById('hub-messages');
+            if (!box) return;
+            box.innerHTML = '';
+            const arr = Array.isArray(msgs) ? msgs : [];
+            arr.forEach(m => { if (m && m.id) { seen.add(m.id); renderHubMessage(m); } });
+            box.scrollTop = box.scrollHeight;
+          }catch(_){}
+        });
+
+        socket.on('hub:message', (msg) => {
           if (!msg || !msg.id) return;
           if (seen.has(msg.id)) return;
           seen.add(msg.id);
@@ -1379,7 +1387,7 @@
         });
 
         // Réactions
-        socket.on('chat update', ({ messageId, reactions }) => {
+        socket.on('hub:react', ({ messageId, reactions }) => {
           const el = document.querySelector(`[data-msg-id="${cssEscape(messageId)}"] .hub-reactions`);
           if (!el) return;
           el.innerHTML = renderReactionsHtml(reactions || {});
@@ -1406,7 +1414,7 @@
         text = '';
       }
 
-      if (socket) socket.emit('chat message', { user: currentUser || 'Anon', text, gif });
+      if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text, gif });
 
       input.value = '';
     }
@@ -1448,28 +1456,51 @@
       const box = document.getElementById('hub-messages');
       if (!box) return;
 
-      const id = msg.id || (Date.now()+'-'+Math.random().toString(36).slice(2));
+      const id = String(msg.id || (Date.now()+'-'+Math.random().toString(36).slice(2)));
       const user = escapeHtml(msg.user || 'Anon');
-      const grade = msg.grade?.label || msg.grade?.key || '';
+
+      const gradeLabel = msg.grade?.label || msg.grade?.key || '';
       const badgeColor = msg.grade?.color || '#9ca3af';
-      const text = msg.text ? escapeHtml(parseEmotes(msg.text)) : '';
-      const gif = msg.gif ? String(msg.gif) : '';
+
       const ts = msg.ts ? new Date(msg.ts) : new Date();
 
+      // text: escape first, then emote replace (keeps emoji and prevents HTML injection)
+      const safeText = msg.text ? escapeHtml(String(msg.text)) : '';
+      const text = safeText ? parseEmotes(safeText) : '';
+
+      // gif: force https, basic sanity
+      let gif = msg.gif ? String(msg.gif).trim() : '';
+      if (gif && gif.startsWith('http://')) gif = 'https://' + gif.slice(7);
+
       const el = document.createElement('div');
-      el.className = 'hub-msg';
+      el.className = 'hub-msg group';
       el.setAttribute('data-msg-id', id);
 
       el.innerHTML = `
         <div class="flex items-center gap-2">
           <strong class="text-[#00f2ea]">${user}</strong>
-          ${grade ? `<span class="hub-badge" style="border-color:${badgeColor}; color:${badgeColor};">${escapeHtml(grade)}</span>` : ``}
+          ${gradeLabel ? `<span class="hub-badge" style="border-color:${badgeColor}; color:${badgeColor};">${escapeHtml(gradeLabel)}</span>` : ``}
           <span class="text-[10px] text-gray-600 ml-auto">${ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
         </div>
-        ${text ? `<div class="text-gray-200 mt-1">${text}</div>` : ``}
-        ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy">` : ``}
-        <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
-        <div class="flex gap-2 mt-2">
+
+        ${text ? `<div class="text-gray-200 mt-1 leading-relaxed break-words">${text}</div>` : ``}
+
+        ${gif ? `
+          <div class="hub-gif-wrap mt-2">
+            <img src="${escapeHtml(gif)}"
+                 class="hub-gif"
+                 loading="lazy"
+                 referrerpolicy="no-referrer"
+                 crossorigin="anonymous"
+                 onerror="this.style.display='none';"
+                 onclick="openGifLightbox('${cssEscape(gif)}')">
+          </div>
+        ` : ``}
+
+        <div class="hub-reactions mt-2">${renderReactionsHtml(msg.reactions || {})}</div>
+
+        <!-- Messenger-like reactions: hidden until hover/tap -->
+        <div class="hub-reactbar mt-2">
           <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','🔥')">🔥</button>
           <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','😂')">😂</button>
           <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','💖')">💖</button>
@@ -1477,14 +1508,22 @@
         </div>
       `;
 
+      // Tap on mobile: toggle reaction bar
+      el.addEventListener('click', (ev) => {
+        const t = ev.target;
+        if (t && (t.classList?.contains('hub-react-btn') || t.classList?.contains('hub-gif'))) return;
+        el.classList.toggle('show-reactbar');
+      });
+
       box.appendChild(el);
       box.scrollTop = box.scrollHeight;
     }
 
-    function reactToMsg(messageId, emoji){
-      const id = String(messageId || '').trim();
-      if (!id || !emoji) return;
-      if (socket) socket.emit('chat react', { id, emoji });
+    function reactToMsg(messageIdEscaped, emoji){
+      // On retrouve l'id original via dataset
+      const el = document.querySelector(`[data-msg-id]`);
+      // On envoie directement l'id passé (déjà safe côté serveur)
+      if (socket) socket.emit('hub:react', { messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
     }
 
     function insertAtCursor(input, text){
@@ -1524,7 +1563,7 @@
           b.className = 'rounded-xl overflow-hidden border border-[#222] hover:border-[#00f2ea] bg-black';
           b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy">`;
           b.onclick = () => {
-            if (socket) socket.emit('chat message', { user: currentUser || 'Anon', text:'', gif: g.url });
+            if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text:'', gif: g.url });
             modal.classList.add('hidden');
           };
           grid.appendChild(b);
