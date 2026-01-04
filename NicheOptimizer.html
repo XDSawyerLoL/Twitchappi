@@ -685,79 +685,68 @@
 .vibe-toxic{ border:1px solid rgba(239,68,68,.60)!important; box-shadow: 0 0 0 1px rgba(239,68,68,.22) inset; }
 
 
-    /* ==== HUB Chat UX fixes ==== */
-    #chat-container-hub { min-height: 520px; }
-    #hub-messages { scroll-behavior: smooth; padding-bottom: 90px; }
-    /* Keep input always visible */
-    #chat-container-hub form { position: sticky; bottom: 0; z-index: 20; }
-
-    /* Messenger-like reactions: hidden until hover/tap */
-    .hub-react-row{ 
-      opacity: 0; 
-      max-height: 0; 
-      overflow: hidden;
-      pointer-events: none;
-      transform: translateY(-4px);
-      transition: opacity .15s ease, max-height .15s ease, transform .15s ease;
-    }
-    .hub-msg:hover .hub-react-row, .hub-msg.show-reactions .hub-react-row{
-      opacity: 1;
-      max-height: 44px;
-      pointer-events: auto;
-      transform: translateY(0);
-    }
-    .hub-react-btn{
-      width: 34px; height: 34px;
-      display:inline-flex; align-items:center; justify-content:center;
-      border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-    }
-    .hub-react-btn:hover{ border-color:#00f2ea; }
-    .hub-reactions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-    .hub-reaction-pill{
-      display:inline-flex; align-items:center; gap:6px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-    }
-
-    /* Ensure modules below player aren't clipped inside iframe */
-    body { overflow-y: auto; }
-    .page-wrap { padding-bottom: 40px; }
-
-
-/* === Extras: Ambilight + Vibe + Modals === */
-#ambilight{
-  position:absolute; inset:-30px;
-  pointer-events:none;
-  opacity:.0;
+/* === EXTRA FEATURES UI (SAFE) === */
+#ambilight-glow{
+  position:absolute; inset:-40px;
   filter: blur(40px);
-  transition: opacity .25s ease, background .25s ease;
-  background: radial-gradient(circle at 30% 30%, rgba(0,242,234,.55), transparent 60%),
-              radial-gradient(circle at 70% 70%, rgba(255,0,153,.45), transparent 55%);
+  opacity:0;
+  transition: opacity .25s ease;
+  pointer-events:none;
   z-index:0;
 }
-#video-container > iframe, #video-container > div.player-embed, #video-container > *{
-  position:relative; z-index:1;
+#ambilight-glow.active{ opacity:.55; }
+#video-container > *{ position:relative; z-index:1; }
+
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.75);
+  display:none; align-items:center; justify-content:center;
+  z-index:99999;
 }
-.ambilight-on #ambilight{ opacity:.85; }
+.modal-overlay.active{ display:flex; }
+.modal-card{
+  width:min(1100px,94vw);
+  max-height:92vh;
+  overflow:auto;
+  background:#0b0b0d;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  box-shadow: 0 0 40px rgba(0,0,0,.6);
+  padding:14px;
+}
+.modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 6px 12px; }
+.modal-title{ font-family:Orbitron, sans-serif; letter-spacing:.12em; font-weight:900; font-size:12px; color:#eaeaf0; text-transform:uppercase; }
+.modal-close{
+  background:#151515; border:1px solid #2b2b31; color:#fff;
+  width:36px; height:36px; border-radius:12px; cursor:pointer;
+}
+.modal-close:hover{ border-color:#00f2ea; }
 
-.tf-card.vibe-chill .tf-poster{ box-shadow: 0 0 0 2px rgba(0,242,234,.55), 0 0 28px rgba(0,242,234,.18); }
-.tf-card.vibe-hype  .tf-poster{ box-shadow: 0 0 0 2px rgba(255,0,153,.55), 0 0 28px rgba(255,0,153,.18); }
-.tf-card.vibe-toxic .tf-poster{ box-shadow: 0 0 0 2px rgba(255,193,7,.55), 0 0 28px rgba(255,193,7,.18); }
+.mosaic-grid{
+  display:grid; grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:10px;
+}
+.mosaic-tile{
+  background:#000; border:1px solid rgba(255,255,255,.12);
+  border-radius:14px; overflow:hidden; position:relative;
+  aspect-ratio: 16/9;
+}
+.mosaic-tile button{
+  position:absolute; top:10px; right:10px;
+  background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff; border-radius:12px;
+  padding:6px 10px; font-weight:900; cursor:pointer;
+}
+.mosaic-tile button:hover{ border-color:#00f2ea; }
 
-/* Messenger-style reactions: hidden until hover/tap */
-.msg-reactions{ opacity:0; transform: translateY(6px); pointer-events:none; transition:.18s; }
-.chat-msg:hover .msg-reactions{ opacity:1; transform: translateY(0); pointer-events:auto; }
-.chat-msg.reactions-open .msg-reactions{ opacity:1; transform: translateY(0); pointer-events:auto; }
+.vibe-chill{ box-shadow: 0 0 0 2px rgba(0,242,234,.35) inset, 0 0 18px rgba(0,242,234,.18); }
+.vibe-hype{ box-shadow: 0 0 0 2px rgba(255,0,153,.35) inset, 0 0 18px rgba(255,0,153,.18); }
+.vibe-toxic{ box-shadow: 0 0 0 2px rgba(255,214,0,.35) inset, 0 0 18px rgba(255,214,0,.18); }
 
 </style>
 </head>
 
-<body class="min-h-screen flex flex-col p-4">
+<body class="h-screen flex flex-col p-4">
 
   <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
   <div style="height:18px;"></div>
@@ -825,6 +814,20 @@
             <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
               <i class="fas fa-chevron-right"></i>
             </button>
+          
+            <button id="btn-mosaic" onclick="openMosaic()" class="bg-[#1a1a1a] border border-[#2b2b31] hover:border-[#00f2ea] text-white px-3 h-8 rounded flex items-center gap-2 text-xs font-bold">
+              <span>📺</span><span class="hidden sm:inline">Mosaic</span>
+            </button>
+            <button id="btn-fantasy" onclick="openFantasy()" class="bg-[#1a1a1a] border border-[#2b2b31] hover:border-[#00f2ea] text-white px-3 h-8 rounded flex items-center gap-2 text-xs font-bold">
+              <span>🏆</span><span class="hidden sm:inline">Fantasy</span>
+            </button>
+            <button id="btn-ambilight" onclick="toggleAmbilight()" class="bg-[#1a1a1a] border border-[#2b2b31] hover:border-[#00f2ea] text-white w-10 h-8 rounded flex items-center justify-center" title="Ambilight">
+              <span>💡</span>
+            </button>
+            <button id="btn-vibe" onclick="toggleVibeCheck()" class="bg-[#1a1a1a] border border-[#2b2b31] hover:border-[#00f2ea] text-white w-10 h-8 rounded flex items-center justify-center" title="Vibe Check">
+              <span>🧠</span>
+            </button>
+
           </div>
         </div>
 
@@ -1433,68 +1436,24 @@
         };
 
         setStatus(false);
+
         socket.on('connect', () => setStatus(true));
         socket.on('disconnect', () => setStatus(false));
         socket.on('connect_error', () => setStatus(false));
 
-        // Anti-doublon (évite le double affichage quand le serveur renvoie la même chose via 2 events)
+        // Anti-doublon
         const seen = new Set();
 
-        // Helpers: émettre "nouvelle" ET "ancienne" API (compat)
-        window.emitHubMessage = (payload) => {
-          if (!socket) return;
-          socket.emit('chat message', payload);
-          socket.emit('hub:message', payload); // compat si backend ancien
-        };
-        window.emitHubReact = (payload) => {
-          if (!socket) return;
-          socket.emit('chat react', payload);
-          socket.emit('hub:react', payload); // compat si backend ancien
-        };
-
-        const box = document.getElementById('hub-messages');
-
-        const replaceAllMessages = (msgs) => {
-          if (!box) return;
-          box.innerHTML = '';
-          (msgs || []).forEach(m => {
-            if (m && m.id) seen.add(m.id);
-            renderHubMessage(m);
-          });
-          box.scrollTop = box.scrollHeight;
-        };
-
-        // === API actuelle (app.js): historique + messages + updates réactions
-        socket.on('chat history', (msgs) => {
-          try { replaceAllMessages(msgs); } catch(_){}
-        });
-
-        socket.on('chat message', (msg) => {
-          try{
-            if (!msg || !msg.id) return;
-            if (seen.has(msg.id)) return;
-            seen.add(msg.id);
-            if (seen.size > 1200) {
-              const arr = Array.from(seen);
-              for (let i=0;i<400;i++) seen.delete(arr[i]);
-            }
-            renderHubMessage(msg);
-          }catch(_){}
-        });
-
-        socket.on('chat update', ({ id, reactions }) => {
-          try{
-            const el = document.querySelector(`[data-msg-id="${cssEscape(id)}"] .hub-reactions`);
-            if (!el) return;
-            el.innerHTML = renderReactionsHtml(reactions || {});
-          }catch(_){}
-        });
-
-        // === API legacy (si jamais): hub:init / hub:message / hub:react
+        // Init: historique + profil
         socket.on('hub:init', (data) => {
           try{
+            const box = document.getElementById('hub-messages');
+            if (!box) return;
+
             const msgs = (data && data.messages) ? data.messages : [];
-            replaceAllMessages(msgs);
+            box.innerHTML = '';
+            msgs.forEach(m => renderHubMessage(m));
+            box.scrollTop = box.scrollHeight;
 
             if (data && data.profile){
               window.__hubProfile = data.profile;
@@ -1503,21 +1462,23 @@
           }catch(_){}
         });
 
+        // Nouveau message
         socket.on('hub:message', (msg) => {
-          try{
-            if (!msg || !msg.id) return;
-            if (seen.has(msg.id)) return;
-            seen.add(msg.id);
-            renderHubMessage(msg);
-          }catch(_){}
+          if (!msg || !msg.id) return;
+          if (seen.has(msg.id)) return;
+          seen.add(msg.id);
+          if (seen.size > 800) { // limite mémoire
+            const arr = Array.from(seen);
+            for (let i=0;i<200;i++) seen.delete(arr[i]);
+          }
+          renderHubMessage(msg);
         });
 
+        // Réactions
         socket.on('hub:react', ({ messageId, reactions }) => {
-          try{
-            const el = document.querySelector(`[data-msg-id="${cssEscape(messageId)}"] .hub-reactions`);
-            if (!el) return;
-            el.innerHTML = renderReactionsHtml(reactions || {});
-          }catch(_){}
+          const el = document.querySelector(`[data-msg-id="${cssEscape(messageId)}"] .hub-reactions`);
+          if (!el) return;
+          el.innerHTML = renderReactionsHtml(reactions || {});
         });
 
       }catch(e){
@@ -1528,19 +1489,21 @@
     function sendHubMessage(e){
       e.preventDefault();
       const input = document.getElementById('hub-input');
-      const raw = (input?.value || '').trim();
+      const raw = (input.value || '').trim();
       if (!raw) return;
 
-      // /gif <url>
+      // Commande rapide: /gif <url>
       let gif = '';
       let text = raw;
+
       const m = raw.match(/^\/gif\s+(https?:\/\/\S+)/i);
       if (m){
         gif = m[1];
         text = '';
       }
 
-      if (window.emitHubMessage) window.emitHubMessage({ user: currentUser || 'Anon', text, gif });
+      if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text, gif });
+
       input.value = '';
     }
 
@@ -1603,10 +1566,10 @@
         ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
         <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
         <div class="hub-react-row flex gap-2 mt-2">
-          <button type="button" class="hub-react-btn" data-react="🔥" data-msg="${'${encodeURIComponent(id)}'}">🔥</button>
-          <button type="button" class="hub-react-btn" data-react="😂" data-msg="${'${encodeURIComponent(id)}'}">😂</button>
-          <button type="button" class="hub-react-btn" data-react="💖" data-msg="${'${encodeURIComponent(id)}'}">💖</button>
-          <button type="button" class="hub-react-btn" data-react="👍" data-msg="${'${encodeURIComponent(id)}'}">👍</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','🔥')">🔥</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','😂')">😂</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','💖')">💖</button>
+          <button type="button" class="hub-react-btn" onclick="reactToMsg('${cssEscape(id)}','👍')">👍</button>
         </div>
       `;
 
@@ -1618,7 +1581,7 @@
       // On retrouve l'id original via dataset
       const el = document.querySelector(`[data-msg-id]`);
       // On envoie directement l'id passé (déjà safe côté serveur)
-      if (socket) if (window.emitHubReact) window.emitHubReact({ messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
+      if (socket) socket.emit('hub:react', { messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
     }
 
     function insertAtCursor(input, text){
@@ -1656,9 +1619,9 @@
           const b = document.createElement('button');
           b.type = 'button';
           b.className = 'rounded-xl overflow-hidden border border-[#222] hover:border-[#00f2ea] bg-black';
-          b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">`;
+          b.innerHTML = `<img src="${escapeHtml(g.url)}" class="w-full h-auto block" loading="lazy">`;
           b.onclick = () => {
-            if (socket) if (window.emitHubMessage) window.emitHubMessage({ user: currentUser || 'Anon', text:'', gif: g.url });
+            if (socket) socket.emit('hub:message', { user: currentUser || 'Anon', text:'', gif: g.url });
             modal.classList.add('hidden');
           };
           grid.appendChild(b);
@@ -2841,301 +2804,194 @@
   setInterval(ensureFantasy, 1400);
 })();
 
-    // ==== Messenger-like reactions handlers (hover/tap) ====
-    (function(){
-      const hubBox = document.getElementById('hub-messages');
-      if(!hubBox) return;
 
-      // Tap/click on a message toggles reaction bar (mobile-friendly)
-      hubBox.addEventListener('click', (e)=>{
-        const msgEl = e.target.closest('.hub-msg');
-        if(msgEl && !e.target.closest('.hub-react-btn')) {
-          msgEl.classList.toggle('show-reactions');
-          return;
-        }
-        const btn = e.target.closest('.hub-react-btn');
-        if(btn){
-          const emoji = btn.getAttribute('data-react');
-          const idEnc = btn.getAttribute('data-msg') || '';
-          const msgId = decodeURIComponent(idEnc);
-          if(window.emitHubReact) window.emitHubReact({ messageId: msgId, emoji });
-        }
-      });
-    })();
+// === EXTRA FEATURES (SAFE) ===
+let __ambilightOn = false;
+let __vibeOn = false;
 
+function ensureAmbilightLayer(){
+  const vc = document.getElementById('video-container');
+  if (!vc) return;
+  if (!document.getElementById('ambilight-glow')){
+    const glow = document.createElement('div');
+    glow.id = 'ambilight-glow';
+    glow.style.background = 'radial-gradient(circle at 30% 30%, rgba(0,242,234,.75), transparent 55%), radial-gradient(circle at 70% 70%, rgba(255,0,153,.65), transparent 55%)';
+    vc.prepend(glow);
+  }
+}
 
-/* ===================== Extras wiring (Mosaic / Fantasy / Ambilight / Vibe) ===================== */
-(function(){
-  // Helper: stable hash -> 0..1
-  function hash01(str){
-    let h=2166136261;
-    for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h,16777619); }
-    return (h>>>0)/4294967295;
-  }
+function toggleAmbilight(){
+  __ambilightOn = !__ambilightOn;
+  ensureAmbilightLayer();
+  const glow = document.getElementById('ambilight-glow');
+  if (glow) glow.classList.toggle('active', __ambilightOn);
+  const btn = document.getElementById('btn-ambilight');
+  if (btn) btn.style.borderColor = __ambilightOn ? '#00f2ea' : '#2b2b31';
+}
 
-  // --- Ambilight toggle ---
-  const ambBtn = document.getElementById('ambilight-btn');
-  if(ambBtn){
-    ambBtn.addEventListener('click', ()=>{
-      document.body.classList.toggle('ambilight-on');
-      // set glow colors based on current channel
-      const ch = (document.getElementById('current-channel-display')?.textContent || 'OFFLINE').trim();
-      const x = hash01(ch);
-      const c1 = x < .33 ? 'rgba(0,242,234,.55)' : (x < .66 ? 'rgba(255,0,153,.50)' : 'rgba(255,193,7,.50)');
-      const c2 = x < .33 ? 'rgba(255,0,153,.40)' : (x < .66 ? 'rgba(255,193,7,.40)' : 'rgba(0,242,234,.45)');
-      const amb = document.getElementById('ambilight');
-      if(amb){
-        amb.style.background = `radial-gradient(circle at 30% 30%, ${c1}, transparent 60%), radial-gradient(circle at 70% 70%, ${c2}, transparent 55%)`;
-      }
-    });
-  }
+function hashVibe(str){
+  const s = String(str||'');
+  let h = 0;
+  for (let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+  const v = h % 3;
+  return v === 0 ? 'chill' : (v===1 ? 'hype' : 'toxic');
+}
 
-  // --- Vibe Check toggle (deterministic on card title) ---
-  const vibeBtn = document.getElementById('vibe-btn');
-  let vibeOn = true;
-  function applyVibes(){
-    const cards = document.querySelectorAll('.tf-card');
-    cards.forEach(card=>{
-      card.classList.remove('vibe-chill','vibe-hype','vibe-toxic');
-      if(!vibeOn) return;
-      const name = (card.querySelector('.tf-name')?.textContent || card.getAttribute('data-name') || '').trim();
-      const r = hash01(name);
-      if(r < .34) card.classList.add('vibe-chill');
-      else if(r < .67) card.classList.add('vibe-hype');
-      else card.classList.add('vibe-toxic');
-    });
-  }
-  if(vibeBtn){
-    vibeBtn.addEventListener('click', ()=>{
-      vibeOn = !vibeOn;
-      applyVibes();
-      vibeBtn.style.opacity = vibeOn ? '1' : '.6';
-    });
-  }
-  // hook after twitflix renders
-  window.__applyVibes = applyVibes;
-  setTimeout(applyVibes, 1200);
+function applyVibeCheck(){
+  const cards = document.querySelectorAll('.tf-card');
+  cards.forEach(c=>{
+    c.classList.remove('vibe-chill','vibe-hype','vibe-toxic');
+    if (!__vibeOn) return;
+    const name = c.dataset.gameName || c.getAttribute('data-game-name') || '';
+    const vibe = hashVibe(name);
+    c.classList.add('vibe-'+vibe);
+  });
+}
+function toggleVibeCheck(){
+  __vibeOn = !__vibeOn;
+  const btn = document.getElementById('btn-vibe');
+  if (btn) btn.style.borderColor = __vibeOn ? '#00f2ea' : '#2b2b31';
+  applyVibeCheck();
+}
 
-  // --- Mosaic Mode ---
-  const mosaicBtn = document.getElementById('mosaic-btn');
-  const mosaicModal = document.getElementById('mosaic-modal');
-  const mosaicClose = document.getElementById('mosaic-close');
-  const mosaicGrid = document.getElementById('mosaic-grid');
+// Hook TwitFlix renders (best-effort): re-apply vibe after modal open & after loading more.
+const __oldRenderTwitFlix = (typeof renderTwitFlix === 'function') ? renderTwitFlix : null;
+if (__oldRenderTwitFlix){
+  window.renderTwitFlix = function(){
+    __oldRenderTwitFlix();
+    setTimeout(applyVibeCheck, 50);
+  }
+}
 
-  function getCurrentPlayerHTML(){
-    // video-container is where iframe is injected by existing code
-    const vc = document.getElementById('video-container');
-    if(!vc) return '';
-    const iframe = vc.querySelector('iframe');
-    if(!iframe) return '';
-    return iframe.outerHTML;
-  }
-  function openMosaic(){
-    if(!mosaicModal || !mosaicGrid) return;
-    mosaicGrid.innerHTML = '';
-    const base = getCurrentPlayerHTML();
-    if(!base){
-      mosaicGrid.innerHTML = '<div class="text-white/70 text-sm">Aucun player actif. Lance un stream puis réessaie.</div>';
-    } else {
-      for(let i=0;i<4;i++){
-        const cell = document.createElement('div');
-        cell.className = 'aspect-video bg-black rounded-xl overflow-hidden border border-white/10 cursor-pointer';
-        cell.innerHTML = base;
-        const ifr = cell.querySelector('iframe');
-        if(ifr){
-          ifr.style.width='100%'; ifr.style.height='100%';
-        }
-        cell.addEventListener('click', ()=>{
-          // focus: swap clicked iframe into main video-container
-          const vc = document.getElementById('video-container');
-          const current = vc?.querySelector('iframe');
-          const clicked = cell.querySelector('iframe');
-          if(vc && clicked){
-            vc.innerHTML = '<div id="ambilight" aria-hidden="true"></div>' + clicked.outerHTML;
-          }
-        });
-        mosaicGrid.appendChild(cell);
-      }
-    }
-    mosaicModal.classList.remove('hidden');
-    mosaicModal.classList.add('flex');
-  }
-  function closeMosaic(){
-    if(!mosaicModal) return;
-    mosaicModal.classList.add('hidden');
-    mosaicModal.classList.remove('flex');
-  }
-  if(mosaicBtn) mosaicBtn.addEventListener('click', openMosaic);
-  if(mosaicClose) mosaicClose.addEventListener('click', closeMosaic);
-  if(mosaicModal) mosaicModal.addEventListener('click', (e)=>{ if(e.target===mosaicModal) closeMosaic(); });
+// === Mosaic ===
+function openMosaic(){
+  const modal = document.getElementById('mosaic-modal');
+  const grid = document.getElementById('mosaic-grid');
+  if (!modal || !grid) return;
 
-  // --- Fantasy League (API + fallback localStorage) ---
-  const fBtn = document.getElementById('fantasy-btn');
-  const fModal = document.getElementById('fantasy-modal');
-  const fClose = document.getElementById('fantasy-close');
-  const fCredits = document.getElementById('fantasy-credits');
-  const fValue = document.getElementById('fantasy-value');
-  const fStreamer = document.getElementById('fantasy-streamer');
-  const fAmount = document.getElementById('fantasy-amount');
-  const fBuy = document.getElementById('fantasy-buy');
-  const fSell = document.getElementById('fantasy-sell');
-  const fLb = document.getElementById('fantasy-leaderboard');
-  const fRefresh = document.getElementById('fantasy-refresh');
-  const fMsg = document.getElementById('fantasy-msg');
+  // Try to take recents if present, else duplicate current
+  const current = (window.currentChannel || document.getElementById('current-channel-display')?.innerText || '').trim();
+  const recents = Array.isArray(window.recentChannels) ? window.recentChannels.slice(0,4) : [];
+  const list = [current, ...recents].filter(Boolean);
+  while (list.length < 4) list.push(current || 'twitch');
 
-  const LS_KEY = 'fantasy_v1';
-  function loadLocalFantasy(){
-    try{
-      return JSON.parse(localStorage.getItem(LS_KEY) || '{"credits":10000,"holdings":{}}');
-    }catch{ return {credits:10000, holdings:{}}; }
-  }
-  function saveLocalFantasy(st){ localStorage.setItem(LS_KEY, JSON.stringify(st)); }
-  function updateFantasyUI(st){
-    if(fCredits) fCredits.textContent = String(st.credits||0);
-    const holdings = st.holdings||{};
-    const val = Object.values(holdings).reduce((a,b)=>a+(b||0),0);
-    if(fValue) fValue.textContent = String(val);
-  }
-  async function apiJSON(url, opts){
-    const r = await fetch(url, {headers:{'Content-Type':'application/json'}, ...(opts||{})});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    return r.json();
-  }
-  async function refreshFantasy(){
-    if(!fLb) return;
-    fLb.innerHTML = '<div class="text-gray-400 text-sm">Chargement…</div>';
-    // try server leaderboard
-    try{
-      const data = await apiJSON('/api/fantasy/leaderboard');
-      const rows = (data.leaderboard||[]).slice(0,20);
-      fLb.innerHTML = rows.map((r,i)=>`
-        <div class="flex items-center justify-between p-2 rounded-lg bg-black/30 border border-white/10">
-          <div class="text-white font-bold text-sm">#${i+1} ${r.user||'Anon'}</div>
-          <div class="text-[#00f2ea] font-black">${r.value||0}</div>
-        </div>
-      `).join('') || '<div class="text-gray-400 text-sm">Aucun classement.</div>';
-      return;
-    }catch(e){
-      // fallback local (single user)
-      const st = loadLocalFantasy();
-      fLb.innerHTML = '<div class="text-gray-400 text-sm">Leaderboard indisponible (offline). Tes stats sont en local.</div>';
-      updateFantasyUI(st);
-    }
-  }
-  function openFantasy(){
-    if(!fModal) return;
-    const st = loadLocalFantasy();
-    updateFantasyUI(st);
-    refreshFantasy();
-    fModal.classList.remove('hidden'); fModal.classList.add('flex');
-  }
-  function closeFantasy(){
-    if(!fModal) return;
-    fModal.classList.add('hidden'); fModal.classList.remove('flex');
-  }
-  if(fBtn) fBtn.addEventListener('click', openFantasy);
-  if(fClose) fClose.addEventListener('click', closeFantasy);
-  if(fModal) fModal.addEventListener('click', (e)=>{ if(e.target===fModal) closeFantasy(); });
-  if(fRefresh) fRefresh.addEventListener('click', refreshFantasy);
+  const parent = (new URLSearchParams(window.location.search).get('parent_host') ||
+                  new URLSearchParams(window.location.search).get('parent') ||
+                  window.location.hostname);
 
-  async function doInvest(kind){
-    const user = (window.HUB_USERNAME || 'Anon');
-    const streamer = (fStreamer?.value||'').trim();
-    const amount = parseInt((fAmount?.value||'').trim(),10);
-    if(!streamer){ if(fMsg) fMsg.textContent='Entre un streamer.'; return; }
-    if(!amount || amount<=0){ if(fMsg) fMsg.textContent='Montant invalide.'; return; }
+  grid.innerHTML = '';
+  list.slice(0,4).forEach((ch, i)=>{
+    const tile = document.createElement('div');
+    tile.className = 'mosaic-tile';
+    const src = `https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&parent=${encodeURIComponent(parent)}&muted=true&autoplay=true`;
+    tile.innerHTML = `<iframe src="${src}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen"></iframe>
+                      <button onclick="focusMosaic('${encodeURIComponent(ch)}')">Focus</button>`;
+    grid.appendChild(tile);
+  });
 
-    // try server
-    try{
-      const data = await apiJSON('/api/fantasy/'+(kind==='buy'?'invest':'sell'), {
-        method:'POST',
-        body: JSON.stringify({ user, streamer, amount })
-      });
-      if(fMsg) fMsg.textContent = data.message || 'OK';
-      // refresh profile
-      const prof = await apiJSON('/api/fantasy/profile?user='+encodeURIComponent(user));
-      if(fCredits) fCredits.textContent = String(prof.credits||0);
-      if(fValue) fValue.textContent = String(prof.value||0);
-      await refreshFantasy();
-      return;
-    }catch(e){
-      // local fallback
-      const st = loadLocalFantasy();
-      if(kind==='buy'){
-        if(st.credits < amount){ if(fMsg) fMsg.textContent='Crédits insuffisants (local).'; return; }
-        st.credits -= amount;
-        st.holdings[streamer] = (st.holdings[streamer]||0)+amount;
-        if(fMsg) fMsg.textContent='Investi (local).';
-      } else {
-        const have = st.holdings[streamer]||0;
-        if(have < amount){ if(fMsg) fMsg.textContent='Tu n’as pas assez de parts (local).'; return; }
-        st.holdings[streamer] = have-amount;
-        st.credits += amount;
-        if(fMsg) fMsg.textContent='Vendu (local).';
-      }
-      saveLocalFantasy(st);
-      updateFantasyUI(st);
-    }
+  modal.classList.add('active');
+}
+function closeMosaic(e){
+  if (e) e.preventDefault();
+  const modal = document.getElementById('mosaic-modal');
+  if (modal) modal.classList.remove('active');
+}
+function focusMosaic(encCh){
+  const ch = decodeURIComponent(encCh);
+  if (typeof changeChannel === 'function') changeChannel(ch);
+  closeMosaic(new Event('click'));
+}
+
+// === Fantasy (local fallback) ===
+const FANTASY_KEY = 'jp_fantasy_v1';
+function fantasyState(){
+  try{
+    return JSON.parse(localStorage.getItem(FANTASY_KEY)) || { balance: 10000, board: [] };
+  }catch(_){
+    return { balance: 10000, board: [] };
   }
-  if(fBuy) fBuy.addEventListener('click', ()=>doInvest('buy'));
-  if(fSell) fSell.addEventListener('click', ()=>doInvest('sell'));
-})();
+}
+function saveFantasy(s){ localStorage.setItem(FANTASY_KEY, JSON.stringify(s)); }
+function openFantasy(){
+  const m = document.getElementById('fantasy-modal');
+  if (!m) return;
+  m.classList.add('active');
+  renderFantasy();
+}
+function closeFantasy(e){
+  if (e) e.preventDefault();
+  const m = document.getElementById('fantasy-modal');
+  if (m) m.classList.remove('active');
+}
+function renderFantasy(){
+  const s = fantasyState();
+  const bal = document.getElementById('fantasy-balance');
+  if (bal) bal.textContent = `${s.balance.toLocaleString('fr-FR')} crédits`;
+  const lb = document.getElementById('fantasy-leaderboard');
+  if (lb){
+    const top = (s.board || []).slice().sort((a,b)=>b.score-a.score).slice(0,10);
+    lb.innerHTML = top.length ? top.map((u,idx)=>`
+      <div style="display:flex;justify-content:space-between;gap:10px;border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:10px;background:rgba(0,0,0,.15);">
+        <div style="font-weight:900;color:#fff;">#${idx+1} ${escapeHtml(u.user)}</div>
+        <div style="font-weight:900;color:#00f2ea;">${(u.score||0).toLocaleString('fr-FR')}</div>
+      </div>`).join('') : `<div style="color:#a7a7b2;">Aucun classement pour l’instant.</div>`;
+  }
+}
+function fantasyInvest(){
+  const u = document.getElementById('fantasy-streamer')?.value?.trim();
+  const amt = Number(document.getElementById('fantasy-amount')?.value || 0);
+  if (!u || !amt || amt<=0) return alert('Entre un streamer + un montant.');
+  const s = fantasyState();
+  if (amt > s.balance) return alert('Solde insuffisant.');
+  s.balance -= amt;
+  const entry = (s.board || []).find(x=>x.user.toLowerCase()===u.toLowerCase());
+  if (entry) entry.score += amt;
+  else s.board.push({ user:u, score: amt });
+  saveFantasy(s);
+  renderFantasy();
+  document.getElementById('fantasy-amount').value = '';
+}
+
+// ensure ambilight layer exists after player render
+setTimeout(ensureAmbilightLayer, 1200);
 
 </script>
 
-<!-- Fantasy League Modal -->
-<div id="fantasy-modal" class="fixed inset-0 hidden items-center justify-center z-[9999]">
-  <div class="absolute inset-0 bg-black/70"></div>
-  <div class="relative w-[min(920px,92vw)] max-h-[82vh] overflow-auto rounded-2xl border border-white/10 bg-[#0b0b0d] shadow-2xl p-4">
-    <div class="flex items-center justify-between gap-3 mb-3">
-      <div class="font-orbitron font-black tracking-widest text-sm text-white">🏆 FANTASY LEAGUE</div>
-      <button id="fantasy-close" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold">Fermer</button>
+
+<!-- === EXTRA FEATURES MODALS (SAFE) === -->
+<div id="mosaic-modal" class="modal-overlay" onclick="closeMosaic(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title">Mosaic Mode</div>
+      <button class="modal-close" onclick="closeMosaic(event)">✕</button>
     </div>
-    <div class="grid md:grid-cols-3 gap-3">
-      <div class="md:col-span-1 p-3 rounded-xl border border-white/10 bg-white/5">
-        <div class="text-xs text-gray-300 font-bold mb-2">Portefeuille</div>
-        <div class="flex items-end justify-between">
-          <div>
-            <div class="text-[10px] text-gray-400">Crédits</div>
-            <div id="fantasy-credits" class="text-xl font-black text-[#00f2ea]">10 000</div>
-          </div>
-          <div>
-            <div class="text-[10px] text-gray-400">Valeur</div>
-            <div id="fantasy-value" class="text-xl font-black text-[#ff0099]">0</div>
-          </div>
-        </div>
-        <div class="mt-3">
-          <div class="text-[10px] text-gray-400 mb-1">Streamer</div>
-          <input id="fantasy-streamer" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="ex: gotaga" />
-          <div class="flex gap-2 mt-2">
-            <input id="fantasy-amount" type="number" min="1" class="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="Montant" />
-            <button id="fantasy-buy" class="px-3 py-2 rounded-lg bg-[#00f2ea] text-black font-black">Investir</button>
-          </div>
-          <button id="fantasy-sell" class="mt-2 w-full px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-black">Vendre</button>
-          <div id="fantasy-msg" class="mt-2 text-[11px] text-gray-400"></div>
-        </div>
-      </div>
-      <div class="md:col-span-2 p-3 rounded-xl border border-white/10 bg-white/5">
-        <div class="flex items-center justify-between mb-2">
-          <div class="text-xs text-gray-300 font-bold">Leaderboard</div>
-          <button id="fantasy-refresh" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs">Rafraîchir</button>
-        </div>
-        <div id="fantasy-leaderboard" class="space-y-2"></div>
-      </div>
-    </div>
+    <div class="mosaic-grid" id="mosaic-grid"></div>
   </div>
 </div>
 
-<!-- Mosaic Modal -->
-<div id="mosaic-modal" class="fixed inset-0 hidden items-center justify-center z-[9999]">
-  <div class="absolute inset-0 bg-black/70"></div>
-  <div class="relative w-[min(980px,92vw)] rounded-2xl border border-white/10 bg-[#0b0b0d] shadow-2xl p-4">
-    <div class="flex items-center justify-between gap-3 mb-3">
-      <div class="font-orbitron font-black tracking-widest text-sm text-white">📺 MOSAIC MODE</div>
-      <button id="mosaic-close" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold">Fermer</button>
+<div id="fantasy-modal" class="modal-overlay" onclick="closeFantasy(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title">Fantasy League</div>
+      <button class="modal-close" onclick="closeFantasy(event)">✕</button>
     </div>
-    <div class="text-[11px] text-gray-400 mb-3">Astuce: clique une case pour la mettre en focus.</div>
-    <div id="mosaic-grid" class="grid grid-cols-2 gap-2"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:280px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
+        <div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Portefeuille</div>
+        <div id="fantasy-balance" style="font-size:22px;font-weight:900;color:#fff;">10 000</div>
+        <div style="color:#a7a7b2;font-size:12px;margin-top:6px;">Crédits virtuels. Aucun argent réel.</div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <input id="fantasy-streamer" placeholder="Streamer (login)" style="flex:1;min-width:200px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;">
+          <input id="fantasy-amount" placeholder="Montant" type="number" min="1" style="width:140px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;">
+          <button onclick="fantasyInvest()" style="background:#00f2ea;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Investir</button>
+        </div>
+      </div>
+
+      <div style="flex:2;min-width:320px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
+        <div style="font-weight:900;color:#ff0099;margin-bottom:6px;">Leaderboard</div>
+        <div id="fantasy-leaderboard" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
   </div>
 </div>
 
