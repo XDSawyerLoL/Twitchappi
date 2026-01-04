@@ -1205,7 +1205,7 @@
   <div id="twitflix-modal" class="tf-modal-overlay">
     <div class="tf-modal-content">
       <div class="tf-topbar">
-        <div class="tf-brand"><span class="dot"></span><span><span style="color:#00f2ea;">TWIT</span>FLIX</span></div>
+        <div class="tf-brand"><span class="dot"></span><span><span style="color:#00f2ea;">TWI</span>FLIX</span></div>
 
         <div class="tf-actions">
           <div class="tf-search-wrap">
@@ -3360,6 +3360,67 @@ function tfMatchCategory(cat, tokens){
 
 // monkey-patch tfRunSearch to include tokens/tags and optional AI rerank
 const __tfRunSearch = typeof tfRunSearch === 'function' ? tfRunSearch : null;
+
+// === Twiflix AI toggle + rerank (safe fallback) ===
+let tfAiEnabled = false;
+try{
+  tfAiEnabled = localStorage.getItem('tf_ai') === '1';
+}catch(_){}
+function tfSetAiUI(){
+  const b = document.getElementById('tf-ai-toggle');
+  if(!b) return;
+  b.classList.toggle('active', tfAiEnabled);
+  b.textContent = tfAiEnabled ? 'IA ✓' : 'IA';
+}
+async function tfApplyAiRanking(query, items){
+  if(!tfAiEnabled) return items;
+  const q = String(query||'').trim();
+  if(!q || !items || !items.length) return items;
+
+  try{
+    const res = await fetch('/api/ai/twiflix', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        q,
+        items: items.slice(0,60).map(it=>({
+          name: it.name || it.title || '',
+          tags: it.tags || [],
+          desc: it.description || it.desc || ''
+        }))
+      })
+    });
+    const data = await res.json();
+    if(!data || !data.success || !Array.isArray(data.order)) return items;
+
+    const out = data.order.map(i=>items[i]).filter(Boolean);
+    // ensure no missing
+    const set = new Set(out);
+    items.forEach(it=>{ if(!set.has(it)) out.push(it); });
+    return out;
+  }catch(e){
+    console.warn('[Twiflix AI] fallback', e);
+    return items;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const b = document.getElementById('tf-ai-toggle');
+  if(b){
+    tfSetAiUI();
+    b.addEventListener('click', ()=>{
+      tfAiEnabled = !tfAiEnabled;
+      try{ localStorage.setItem('tf_ai', tfAiEnabled ? '1' : '0'); }catch(_){}
+      tfSetAiUI();
+      // re-run search immediately if query exists
+      try{
+        const q = document.getElementById('twitflix-search')?.value || '';
+        if(window.tfRunSearch) window.tfRunSearch(q);
+      }catch(_){}
+    });
+  }
+});
+
 if(__tfRunSearch){
   window.tfRunSearch = async function(query){
     const q = String(query||'').trim();
@@ -3408,7 +3469,8 @@ if(__tfRunSearch){
 
     // fallback local
     const base = (tfAllCategories||[]).filter(c=>tfMatchCategory(c, tokens)).slice(0,200);
-    tfSearchResults = base;
+    const ranked = await tfApplyAiRanking(q, base);
+    tfSearchResults = ranked;
     renderTwiflix();
   }
 }
