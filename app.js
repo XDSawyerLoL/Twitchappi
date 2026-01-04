@@ -15,10 +15,6 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const session = require('express-session');
-const MemoryStore = require('memorystore')(session);
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -149,17 +145,6 @@ async function addXP(user, delta){
 // 1. CONFIGURATION
 // =========================================================
 const app = express();
-app.set('trust proxy', 1);
-
-// Helmet: iframe-safe (NE BLOQUE PAS Fourthwall/iframe)
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  frameguard: false,
-}));
-
-// Rate limit léger sur /api (évite spam)
-app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 300 }));
 
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -178,28 +163,9 @@ if (GEMINI_API_KEY) {
   }
 }
 
-app.use(cors({ origin: true, credentials: true }));
-app.use(bodyParser.json({ limit: '2mb' }));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
+app.use(bodyParser.json());
 app.use(cookieParser());
-
-// Sessions (memorystore) — supprime le warning MemoryStore
-if (!process.env.SESSION_SECRET) {
-  console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod)');
-}
-app.use(session({
-  name: 'streamerhub.sid',
-  store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
-  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  }
-}));
-
 app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
@@ -1491,6 +1457,164 @@ app.get('/api/gifs/search', async (req, res) => {
   }
 });
 
+
+
+// =========================================================
+// FANTASY LEAGUE (simulation) — Firestore
+// =========================================================
+const FANTASY_COLLECTION = 'fantasy_accounts';
+const fantasyPriceCache = new Map(); // login -> {price, ts}
+const FANTASY_PRICE_TTL = 60 * 1000;
+
+async function getStreamerPrice(login){
+  const key = String(login||'').toLowerCase().trim();
+  if(!key) return 5;
+  const now = Date.now();
+  const cached = fantasyPriceCache.get(key);
+  if(cached && (now - cached.ts) < FANTASY_PRICE_TTL) return cached.price;
+
+  let price = 5;
+  try{
+    const d = await twitchAPI(`streams?user_login=${encodeURIComponent(key)}`);
+    const s = d && d.data && d.data[0];
+    if (s && typeof s.viewer_count === 'number'){
+      price = Math.max(5, Math.round((s.viewer_count / 10) + 10));
+    }
+  }catch(_){}
+  fantasyPriceCache.set(key, {price, ts: now});
+  return price;
+}
+
+async function getFantasyAccount(user){
+  const u = sanitizeName(user, 40);
+  if(!firestoreOk){
+    // fallback in-memory inside inMemFantasy
+    if(!global.__inMemFantasy) global.__inMemFantasy = new Map();
+    const map = global.__inMemFantasy;
+    if(!map.has(u)) map.set(u, { user: u, cash: 10000, holdings: {}, updatedAt: Date.now() });
+    return map.get(u);
+  }
+  const ref = db.collection(FANTASY_COLLECTION).doc(u);
+  const doc = await ref.get();
+  if(!doc.exists){
+    const acc = { user: u, cash: 10000, holdings: {}, updatedAt: Date.now() };
+    await ref.set(acc);
+    return acc;
+  }
+  return doc.data();
+}
+
+async function saveFantasyAccount(acc){
+  acc.updatedAt = Date.now();
+  if(!firestoreOk){
+    if(!global.__inMemFantasy) global.__inMemFantasy = new Map();
+    global.__inMemFantasy.set(acc.user, acc);
+    return;
+  }
+  await db.collection(FANTASY_COLLECTION).doc(acc.user).set(acc, { merge: true });
+}
+
+app.get('/api/fantasy/profile', async (req, res) => {
+  try{
+    const user = sanitizeName(req.query.user || 'Anon', 40);
+    const acc = await getFantasyAccount(user);
+
+    // enrich holdings with prices
+    const holdingsArr = [];
+    const entries = Object.entries(acc.holdings || {});
+    for (const [login, shares] of entries){
+      const price = await getStreamerPrice(login);
+      holdingsArr.push({ login, shares, price, value: shares * price });
+    }
+    const totalHoldings = holdingsArr.reduce((s,x)=>s + x.value, 0);
+    const netWorth = (acc.cash || 0) + totalHoldings;
+
+    res.json({ success:true, user, cash: acc.cash || 0, holdings: holdingsArr, netWorth });
+  }catch(e){
+    res.status(500).json({ success:false, error: e.message });
+  }
+});
+
+app.post('/api/fantasy/invest', async (req, res) => {
+  try{
+    const user = sanitizeName(req.body.user || 'Anon', 40);
+    const login = sanitizeText(req.body.streamer || '', 40).toLowerCase();
+    const amount = Math.max(0, Math.floor(Number(req.body.amount || 0)));
+
+    if(!login || amount <= 0) return res.json({ success:false, error:'Paramètres invalides' });
+
+    const price = await getStreamerPrice(login);
+    const shares = Math.floor(amount / price);
+    if(shares <= 0) return res.json({ success:false, error:`Montant trop faible (prix: ${price})` });
+
+    const cost = shares * price;
+    const acc = await getFantasyAccount(user);
+    if((acc.cash || 0) < cost) return res.json({ success:false, error:'Fonds insuffisants' });
+
+    acc.cash -= cost;
+    acc.holdings = acc.holdings || {};
+    acc.holdings[login] = (acc.holdings[login] || 0) + shares;
+
+    await saveFantasyAccount(acc);
+    res.json({ success:true, user, login, price, shares, cost, cash: acc.cash });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/fantasy/sell', async (req, res) => {
+  try{
+    const user = sanitizeName(req.body.user || 'Anon', 40);
+    const login = sanitizeText(req.body.streamer || '', 40).toLowerCase();
+    const sharesToSell = Math.max(0, Math.floor(Number(req.body.shares || 0)));
+    if(!login || sharesToSell <= 0) return res.json({ success:false, error:'Paramètres invalides' });
+
+    const acc = await getFantasyAccount(user);
+    const owned = (acc.holdings && acc.holdings[login]) || 0;
+    if(owned < sharesToSell) return res.json({ success:false, error:'Pas assez de parts' });
+
+    const price = await getStreamerPrice(login);
+    const gain = sharesToSell * price;
+
+    acc.holdings[login] = owned - sharesToSell;
+    if(acc.holdings[login] <= 0) delete acc.holdings[login];
+    acc.cash = (acc.cash || 0) + gain;
+
+    await saveFantasyAccount(acc);
+    res.json({ success:true, user, login, price, shares: sharesToSell, gain, cash: acc.cash });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.get('/api/fantasy/leaderboard', async (req, res) => {
+  try{
+    const limit = Math.min(50, Math.max(5, Number(req.query.limit || 20)));
+    let users = [];
+    if(!firestoreOk){
+      users = Array.from((global.__inMemFantasy || new Map()).values());
+    } else {
+      const snap = await db.collection(FANTASY_COLLECTION).limit(limit).get();
+      snap.forEach(doc => users.push(doc.data()));
+    }
+
+    // compute net worth quickly (prices cached)
+    const rows = [];
+    for (const acc of users){
+      const holdings = acc.holdings || {};
+      let value = 0;
+      for (const [login, shares] of Object.entries(holdings)){
+        const price = await getStreamerPrice(login);
+        value += shares * price;
+      }
+      rows.push({ user: acc.user, netWorth: (acc.cash||0) + value, cash: acc.cash||0 });
+    }
+    rows.sort((a,b)=>b.netWorth - a.netWorth);
+    res.json({ success:true, leaderboard: rows.slice(0, limit) });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
 
 io.on('connection', async (socket) => {
   console.log('🔌 [SOCKET] client connected');
