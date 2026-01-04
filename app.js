@@ -1485,6 +1485,74 @@ async function getStreamerPrice(login){
   return price;
 }
 
+// ---------- Fantasy Market impact (persistent) ----------
+const FANTASY_MARKET_COLLECTION = 'fantasy_market';
+const FANTASY_HISTORY_SUBCOL = 'history';
+const FANTASY_ALPHA = 0.18; // market impact strength
+const FANTASY_SCALE = 250;  // scale for shares outstanding
+
+async function getMarketDoc(login){
+  const key = String(login||'').toLowerCase().trim();
+  if(!key) throw new Error('missing streamer');
+  if(!firestoreOk) return null;
+  const ref = db.collection(FANTASY_MARKET_COLLECTION).doc(key);
+  const doc = await ref.get();
+  if(!doc.exists){
+    const init = { login:key, sharesOutstanding: 0, updatedAt: Date.now() };
+    await ref.set(init);
+    return init;
+  }
+  return doc.data();
+}
+
+async function updateMarketShares(login, deltaShares){
+  const key = String(login||'').toLowerCase().trim();
+  if(!firestoreOk) return { sharesOutstanding: 0 };
+  const ref = db.collection(FANTASY_MARKET_COLLECTION).doc(key);
+  await ref.set({
+    login:key,
+    sharesOutstanding: admin.firestore.FieldValue.increment(deltaShares),
+    updatedAt: Date.now()
+  }, { merge:true });
+  const doc = await ref.get();
+  return doc.data();
+}
+
+function applyMarketImpact(basePrice, sharesOutstanding){
+  const so = Math.max(0, Number(sharesOutstanding||0));
+  const mult = 1 + FANTASY_ALPHA * Math.log1p(so / FANTASY_SCALE);
+  const price = Math.max(5, Math.round(basePrice * mult));
+  return { price, mult };
+}
+
+async function getStreamerMarketPrice(login){
+  const base = await getStreamerPrice(login); // anchor (live viewers -> base)
+  let sharesOutstanding = 0;
+  if(firestoreOk){
+    const md = await getMarketDoc(login);
+    sharesOutstanding = md?.sharesOutstanding || 0;
+  }else{
+    // fallback approximate using in-memory market map
+    if(!global.__inMemMarket) global.__inMemMarket = new Map();
+    sharesOutstanding = global.__inMemMarket.get(login) || 0;
+  }
+  const { price, mult } = applyMarketImpact(base, sharesOutstanding);
+  return { login:String(login).toLowerCase(), basePrice: base, price, mult, sharesOutstanding };
+}
+
+async function recordPricePoint(mkt){
+  if(!firestoreOk) return;
+  const ref = db.collection(FANTASY_MARKET_COLLECTION).doc(mkt.login).collection(FANTASY_HISTORY_SUBCOL);
+  await ref.add({
+    ts: Date.now(),
+    price: mkt.price,
+    basePrice: mkt.basePrice,
+    sharesOutstanding: mkt.sharesOutstanding,
+    mult: mkt.mult
+  });
+}
+
+
 async function getFantasyAccount(user){
   const u = sanitizeName(user, 40);
   if(!firestoreOk){
@@ -1519,11 +1587,20 @@ app.get('/api/fantasy/profile', async (req, res) => {
     const user = sanitizeName(req.query.user || 'Anon', 40);
     const acc = await getFantasyAccount(user);
 
+    // Limit: max 10 distinct streamers per user
+    const holdingsKeys = Object.keys(acc.holdings || {});
+    const isNew = !acc.holdings || typeof acc.holdings[login] === 'undefined';
+    if (isNew && holdingsKeys.length >= 10){
+      return res.status(400).json({ success:false, error:'Limite atteinte: 10 streamers max dans le portefeuille.' });
+    }
+
+
     // enrich holdings with prices
     const holdingsArr = [];
     const entries = Object.entries(acc.holdings || {});
     for (const [login, shares] of entries){
-      const price = await getStreamerPrice(login);
+      const mkt = await getStreamerMarketPrice(login);
+      const price = mkt.price;
       holdingsArr.push({ login, shares, price, value: shares * price });
     }
     const totalHoldings = holdingsArr.reduce((s,x)=>s + x.value, 0);
@@ -1535,6 +1612,27 @@ app.get('/api/fantasy/profile', async (req, res) => {
   }
 });
 
+app.get('/api/fantasy/market', async (req, res) => {
+  try{
+    const login = sanitizeText(req.query.streamer || req.query.login || '', 50).toLowerCase();
+    if(!login) return res.status(400).json({ success:false, error:'missing streamer' });
+
+    const mkt = await getStreamerMarketPrice(login);
+
+    let history = [];
+    if(firestoreOk){
+      const snap = await db.collection(FANTASY_MARKET_COLLECTION).doc(login)
+        .collection(FANTASY_HISTORY_SUBCOL).orderBy('ts','desc').limit(60).get();
+      history = snap.docs.map(d=>d.data()).reverse();
+    }
+
+    res.json({ success:true, market: mkt, history });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
 app.post('/api/fantasy/invest', async (req, res) => {
   try{
     const user = sanitizeName(req.body.user || 'Anon', 40);
@@ -1543,19 +1641,39 @@ app.post('/api/fantasy/invest', async (req, res) => {
 
     if(!login || amount <= 0) return res.json({ success:false, error:'Paramètres invalides' });
 
-    const price = await getStreamerPrice(login);
+    const mkt = await getStreamerMarketPrice(login);
+      const price = mkt.price;
     const shares = Math.floor(amount / price);
     if(shares <= 0) return res.json({ success:false, error:`Montant trop faible (prix: ${price})` });
 
     const cost = shares * price;
     const acc = await getFantasyAccount(user);
+
+    // Limit: max 10 distinct streamers per user
+    const holdingsKeys = Object.keys(acc.holdings || {});
+    const isNew = !acc.holdings || typeof acc.holdings[login] === 'undefined';
+    if (isNew && holdingsKeys.length >= 10){
+      return res.status(400).json({ success:false, error:'Limite atteinte: 10 streamers max dans le portefeuille.' });
+    }
+
     if((acc.cash || 0) < cost) return res.json({ success:false, error:'Fonds insuffisants' });
 
     acc.cash -= cost;
     acc.holdings = acc.holdings || {};
     acc.holdings[login] = (acc.holdings[login] || 0) + shares;
 
-    await saveFantasyAccount(acc);
+    
+
+    // Market impact: increase outstanding shares and record updated price point
+    if(firestoreOk){
+      const md = await updateMarketShares(login, shares);
+      mkt = await getStreamerMarketPrice(login);
+      await recordPricePoint(mkt);
+    }else{
+      if(!global.__inMemMarket) global.__inMemMarket = new Map();
+      global.__inMemMarket.set(login, (global.__inMemMarket.get(login)||0) + shares);
+    }
+await saveFantasyAccount(acc);
     res.json({ success:true, user, login, price, shares, cost, cash: acc.cash });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
@@ -1570,17 +1688,37 @@ app.post('/api/fantasy/sell', async (req, res) => {
     if(!login || sharesToSell <= 0) return res.json({ success:false, error:'Paramètres invalides' });
 
     const acc = await getFantasyAccount(user);
+
+    // Limit: max 10 distinct streamers per user
+    const holdingsKeys = Object.keys(acc.holdings || {});
+    const isNew = !acc.holdings || typeof acc.holdings[login] === 'undefined';
+    if (isNew && holdingsKeys.length >= 10){
+      return res.status(400).json({ success:false, error:'Limite atteinte: 10 streamers max dans le portefeuille.' });
+    }
+
     const owned = (acc.holdings && acc.holdings[login]) || 0;
     if(owned < sharesToSell) return res.json({ success:false, error:'Pas assez de parts' });
 
-    const price = await getStreamerPrice(login);
+    const mkt = await getStreamerMarketPrice(login);
+      const price = mkt.price;
     const gain = sharesToSell * price;
 
     acc.holdings[login] = owned - sharesToSell;
     if(acc.holdings[login] <= 0) delete acc.holdings[login];
     acc.cash = (acc.cash || 0) + gain;
 
-    await saveFantasyAccount(acc);
+    
+
+    // Market impact: decrease outstanding shares and record updated price point
+    if(firestoreOk){
+      const md = await updateMarketShares(login, -sharesToSell);
+      mkt = await getStreamerMarketPrice(login);
+      await recordPricePoint(mkt);
+    }else{
+      if(!global.__inMemMarket) global.__inMemMarket = new Map();
+      global.__inMemMarket.set(login, Math.max(0, (global.__inMemMarket.get(login)||0) - sharesToSell));
+    }
+await saveFantasyAccount(acc);
     res.json({ success:true, user, login, price, shares: sharesToSell, gain, cash: acc.cash });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
@@ -1604,7 +1742,8 @@ app.get('/api/fantasy/leaderboard', async (req, res) => {
       const holdings = acc.holdings || {};
       let value = 0;
       for (const [login, shares] of Object.entries(holdings)){
-        const price = await getStreamerPrice(login);
+        const mkt = await getStreamerMarketPrice(login);
+      const price = mkt.price;
         value += shares * price;
       }
       rows.push({ user: acc.user, netWorth: (acc.cash||0) + value, cash: acc.cash||0 });
@@ -1623,6 +1762,8 @@ io.on('connection', async (socket) => {
   try{
     const msgs = await loadRecentMessages(60);
     socket.emit('chat history', msgs);
+    socket.emit('hub:history', msgs);
+    socket.emit('hub:init', { ok:true });
   }catch(e){}
 
   // simple anti-spam per socket
@@ -1657,8 +1798,42 @@ io.on('connection', async (socket) => {
 
     await saveMessage(out);
     io.emit('chat message', out);
+    io.emit('hub:message', out);
   });
 
+  socket.on('hub:message', async (msg) => {
+    const now = Date.now();
+    if (now - lastMsgAt < 650) return; // cooldown
+    lastMsgAt = now;
+
+    const user = sanitizeName(msg?.user);
+    const text = sanitizeText(msg?.text, 800);
+
+    let gif = '';
+    if (msg?.gif && typeof msg.gif === 'string' && isValidHttpUrl(msg.gif)) {
+      gif = msg.gif.slice(0, 800);
+    }
+
+    if (!text && !gif) return;
+
+    const out = {
+      id: makeId(),
+      user,
+      text,
+      gif,
+      ts: now,
+      reactions: {}
+    };
+
+    // XP: only if non-empty text (avoid farming with empty)
+    if (text) await addXP(user, 5);
+
+    await saveMessage(out);
+    io.emit('chat message', out);
+    io.emit('hub:message', out);
+  });
+
+  
   socket.on('chat react', async (payload) => {
     try{
       const msgId = String(payload?.id || '');
@@ -1690,6 +1865,38 @@ io.on('connection', async (socket) => {
     }catch(_){}
   });
 
+  socket.on('hub:react', async (payload) => {
+    try{
+      const msgId = String(payload?.id || '');
+      const emo = String(payload?.emoji || '').slice(0, 16);
+      if (!msgId || !emo) return;
+
+      // Update in Firestore if possible; else update memory history
+      if (firestoreOk){
+        const ref = db.collection(CHAT_COLLECTION).doc(msgId);
+        await db.runTransaction(async (t) => {
+          const snap = await t.get(ref);
+          if (!snap.exists) return;
+          const data = snap.data() || {};
+          const reactions = data.reactions || {};
+          reactions[emo] = (reactions[emo] || 0) + 1;
+          t.set(ref, { reactions }, { merge: true });
+        });
+        const updated = (await db.collection(CHAT_COLLECTION).doc(msgId).get()).data();
+        if (updated) io.emit('chat update', { id: msgId, reactions: updated.reactions || {} });
+        return;
+      }
+
+      const item = inMemHistory.find(m => m.id === msgId);
+      if (item){
+        item.reactions = item.reactions || {};
+        item.reactions[emo] = (item.reactions[emo] || 0) + 1;
+        io.emit('chat update', { id: msgId, reactions: item.reactions });
+      }
+    }catch(_){}
+  });
+
+  
   socket.on('disconnect', () => {
     console.log('🔌 [SOCKET] client disconnected');
   });
