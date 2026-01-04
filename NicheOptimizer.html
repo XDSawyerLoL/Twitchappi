@@ -2958,9 +2958,20 @@ function refreshAmbilight(){
 }
 
 
+
+let __toolsSched = false;
 function ensurePlayerTools(){
   const vc = document.getElementById('video-container');
   if(!vc) return;
+
+  // Ensure ambilight layer exists (behind player)
+  if(!document.getElementById('ambilight')){
+    const amb = document.createElement('div');
+    amb.id = 'ambilight';
+    vc.prepend(amb);
+  }
+
+  // Ensure tools exist (above player)
   let tools = document.getElementById('player-tools');
   if(!tools){
     tools = document.createElement('div');
@@ -2972,33 +2983,41 @@ function ensurePlayerTools(){
       <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
     `;
     vc.appendChild(tools);
-  }else{
-    // Move to end so it stays above the player in DOM order
+  } else if (tools.parentElement !== vc) {
     vc.appendChild(tools);
   }
 
-  // Ensure ambilight layer exists and is behind the player
-  if(!document.getElementById('ambilight')){
-    const amb = document.createElement('div');
-    amb.id = 'ambilight';
-    vc.prepend(amb);
-  }
-
-  // If Twitch embed recreated the player container, re-apply z-index safety
-  const iframes = vc.querySelectorAll('iframe');
-  iframes.forEach(f=>{ try{ f.style.zIndex = '1'; f.style.position='relative'; }catch(e){} });
+  // Force player iframe below tools
+  vc.querySelectorAll('iframe').forEach(f=>{
+    try{
+      if(f.style.zIndex !== '1') f.style.zIndex = '1';
+      if(f.style.position !== 'relative') f.style.position = 'relative';
+    }catch(e){}
+  });
 }
-// Re-inject tools if Twitch replaces the player DOM
+
+// Re-ensure tools if Twitch replaces the player DOM (debounced to avoid infinite loops)
 (function(){
   const vc = document.getElementById('video-container');
   if(!vc) return;
+
   ensurePlayerTools();
-  const obs = new MutationObserver(()=>ensurePlayerTools());
-  obs.observe(vc, { childList:true, subtree:false });
-  // Also run after load
-  setTimeout(ensurePlayerTools, 800);
-  setTimeout(ensurePlayerTools, 2000);
+
+  const obs = new MutationObserver(()=>{
+    if(__toolsSched) return;
+    __toolsSched = true;
+    requestAnimationFrame(()=>{
+      __toolsSched = false;
+      ensurePlayerTools();
+    });
+  });
+
+  obs.observe(vc, { childList: true, subtree: true });
+
+  window.addEventListener('load', ()=>setTimeout(ensurePlayerTools, 600));
+  setTimeout(ensurePlayerTools, 1200);
 })();
+
 
 function toggleAmbilight(){
   __ambOn = !__ambOn;
