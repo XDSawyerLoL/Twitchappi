@@ -694,7 +694,8 @@
   pointer-events:none;
   z-index:0;
 }
-#ambilight-glow.active{ opacity:.55; }
+#ambilight-glow.active{ opacity:.80; }
+#video-container{ position:relative; overflow:visible; }
 #video-container > *{ position:relative; z-index:1; }
 
 .modal-overlay{
@@ -744,10 +745,9 @@
 .vibe-toxic{ box-shadow: 0 0 0 2px rgba(255,214,0,.35) inset, 0 0 18px rgba(255,214,0,.18); }
 
 
-/* === FIX IFRAME HEIGHT / BOTTOM CUT === */
-html, body { min-height: 1400px; }
-#app, #root, .app-root { min-height: 1400px; }
-body { padding-bottom: 180px; }
+/* === iframe height safety (do not cut bottom) === */
+html, body { height: auto !important; min-height: 1600px; }
+body { padding-bottom: 220px !important; }
 
 </style>
 </head>
@@ -1469,6 +1469,33 @@ body { padding-bottom: 180px; }
         });
 
         // Nouveau message
+        
+        // Compatibility: backend may emit chat:* events
+        socket.on('chat history', (arr) => {
+          try {
+            if (Array.isArray(arr)) {
+              arr.forEach(m => {
+                if (m && m.id && !seen.has(m.id)) { seen.add(m.id); appendHubMessage(m); }
+              });
+              if (typeof scrollHubToBottom === 'function') scrollHubToBottom(true);
+            }
+          } catch(_){}
+        });
+
+        socket.on('chat message', (msg) => {
+          try {
+            if (!msg || !msg.id) return;
+            if (seen.has(msg.id)) return;
+            seen.add(msg.id);
+            appendHubMessage(msg);
+            if (typeof scrollHubToBottom === 'function') scrollHubToBottom(false);
+          } catch(_){}
+        });
+
+        socket.on('chat update', (payload) => {
+          try { applyReactionUpdate(payload); } catch(_){}
+        });
+
         socket.on('hub:message', (msg) => {
           if (!msg || !msg.id) return;
           if (seen.has(msg.id)) return;
@@ -2812,28 +2839,8 @@ body { padding-bottom: 180px; }
 
 
 // === EXTRA FEATURES (SAFE) ===
-
-function toast(msg){
-  const t = document.getElementById('toast');
-  if(!t) return;
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(()=>{ t.style.display='none'; }, 2200);
-}
-function getTwitchParentParams(){
-  const qs = new URLSearchParams(window.location.search);
-  const p1 = (qs.get('parent_host') || '').trim();
-  const p2 = (qs.get('parent') || '').trim();
-  const p3 = (window.location.hostname || '').trim();
-  const parents = [p1,p2,p3].filter(Boolean);
-  const uniq = [...new Set(parents)];
-  // Twitch accepte plusieurs paramètres parent=...
-  return uniq.map(p=>`parent=${encodeURIComponent(p)}`).join('&');
-}
-
-let __ambilightOn = (localStorage.getItem('jp_ambilight') === '1');
-let __vibeOn = (localStorage.getItem('jp_vibecheck') === '1');
+let __ambilightOn = false;
+let __vibeOn = false;
 
 function ensureAmbilightLayer(){
   const vc = document.getElementById('video-container');
@@ -2848,22 +2855,11 @@ function ensureAmbilightLayer(){
 
 function toggleAmbilight(){
   __ambilightOn = !__ambilightOn;
-  localStorage.setItem('jp_ambilight', __ambilightOn ? '1' : '0');
   ensureAmbilightLayer();
   const glow = document.getElementById('ambilight-glow');
-  if (glow){
-    // pseudo-dynamique : gradient basé sur le nom de chaîne/catégorie
-    const seed = String(window.currentChannel || document.getElementById('current-channel-display')?.innerText || 'twitflix');
-    let h=0; for(let i=0;i<seed.length;i++) h=(h*31 + seed.charCodeAt(i))>>>0;
-    const a = h%360, b=(a+120)%360, c=(a+240)%360;
-    glow.style.background = `radial-gradient(circle at 25% 25%, hsla(${a},95%,60%,.75), transparent 55%),
-                             radial-gradient(circle at 75% 70%, hsla(${b},95%,60%,.65), transparent 55%),
-                             radial-gradient(circle at 40% 85%, hsla(${c},95%,60%,.55), transparent 60%)`;
-    glow.classList.toggle('active', __ambilightOn);
-  }
+  if (glow) glow.classList.toggle('active', __ambilightOn);
   const btn = document.getElementById('btn-ambilight');
   if (btn) btn.style.borderColor = __ambilightOn ? '#00f2ea' : '#2b2b31';
-  toast(__ambilightOn ? 'Ambilight activé 💡' : 'Ambilight désactivé');
 }
 
 function hashVibe(str){
@@ -2886,11 +2882,9 @@ function applyVibeCheck(){
 }
 function toggleVibeCheck(){
   __vibeOn = !__vibeOn;
-  localStorage.setItem('jp_vibecheck', __vibeOn ? '1' : '0');
   const btn = document.getElementById('btn-vibe');
   if (btn) btn.style.borderColor = __vibeOn ? '#00f2ea' : '#2b2b31';
   applyVibeCheck();
-  toast(__vibeOn ? 'Vibe Check activé 🧠 (Chill/Hype/Toxic)' : 'Vibe Check désactivé');
 }
 
 // Hook TwitFlix renders (best-effort): re-apply vibe after modal open & after loading more.
@@ -2908,26 +2902,28 @@ function openMosaic(){
   const grid = document.getElementById('mosaic-grid');
   if (!modal || !grid) return;
 
+  // Try to take recents if present, else duplicate current
   const current = (window.currentChannel || document.getElementById('current-channel-display')?.innerText || '').trim();
   const recents = Array.isArray(window.recentChannels) ? window.recentChannels.slice(0,4) : [];
   const list = [current, ...recents].filter(Boolean);
   while (list.length < 4) list.push(current || 'twitch');
 
-  const parentParams = getTwitchParentParams();
+    const parent = (new URLSearchParams(window.location.search).get('parent_host')
+                  || new URLSearchParams(window.location.search).get('parent')
+                  || (document.referrer ? (new URL(document.referrer)).hostname : '')
+                  || window.location.hostname).replace(/:\d+$/,'');
 
   grid.innerHTML = '';
-  list.slice(0,4).forEach((ch)=>{
+  list.slice(0,4).forEach((ch, i)=>{
     const tile = document.createElement('div');
     tile.className = 'mosaic-tile';
-    const src = `https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&${parentParams}&muted=true&autoplay=true`;
-    tile.innerHTML = `<iframe src="${src}" width="100%" height="100%" frameborder="0"
-        allow="autoplay; fullscreen" allowfullscreen></iframe>
-        <button onclick="focusMosaic('${encodeURIComponent(ch)}')">Focus</button>`;
+    const src = `https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&parent=${encodeURIComponent(parent)}&muted=true&autoplay=true`;
+    tile.innerHTML = `<iframe src="${src}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen"></iframe>
+                      <button onclick="focusMosaic('${encodeURIComponent(ch)}')">Focus</button>`;
     grid.appendChild(tile);
   });
 
   modal.classList.add('active');
-  toast('Mosaic Mode 📺 (4 écrans)');
 }
 function closeMosaic(e){
   if (e) e.preventDefault();
@@ -2990,10 +2986,34 @@ function fantasyInvest(){
   document.getElementById('fantasy-amount').value = '';
 }
 
+
+function setAmbilightFromString(s){
+  const glow = document.getElementById('ambilight-glow');
+  if (!glow) return;
+  let h=0; s=String(s||'');
+  for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))>>>0;
+  const a=(h%360), b=((h*7)%360), c=((h*13)%360);
+  glow.style.background =
+    `radial-gradient(circle at 30% 30%, hsla(${a},100%,60%,.85), transparent 55%),`+
+    `radial-gradient(circle at 70% 70%, hsla(${b},100%,60%,.75), transparent 55%),`+
+    `radial-gradient(circle at 50% 90%, hsla(${c},100%,60%,.65), transparent 60%)`;
+}
+
 // ensure ambilight layer exists after player render
-setTimeout(()=>{ ensureAmbilightLayer(); if(__ambilightOn){ const glow=document.getElementById('ambilight-glow'); if(glow) glow.classList.add('active'); const btn=document.getElementById('btn-ambilight'); if(btn) btn.style.borderColor='#00f2ea'; }
-  if(__vibeOn){ const btn=document.getElementById('btn-vibe'); if(btn) btn.style.borderColor='#00f2ea'; applyVibeCheck(); }
-}, 1200);
+setTimeout(ensureAmbilightLayer, 1200);
+
+
+
+// keep ambilight synced with channel changes
+try{
+  const __oldChangeChannel = (typeof changeChannel === 'function') ? changeChannel : null;
+  if (__oldChangeChannel){
+    window.changeChannel = function(ch){
+      try{ setAmbilightFromString(ch); }catch(_){}
+      return __oldChangeChannel(ch);
+    }
+  }
+}catch(_){}
 
 </script>
 
@@ -3034,11 +3054,6 @@ setTimeout(()=>{ ensureAmbilightLayer(); if(__ambilightOn){ const glow=document.
     </div>
   </div>
 </div>
-
-
-<div id="toast" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100000;display:none;
-background:rgba(0,0,0,.78);border:1px solid rgba(255,255,255,.18);color:#fff;padding:10px 12px;border-radius:14px;
-font-weight:900;max-width:min(560px,92vw);text-align:center;"></div>
 
 </body>
 </html>
