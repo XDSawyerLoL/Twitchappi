@@ -1,11 +1,9 @@
 /**
- * STREAMER & NICHE AI HUB - BACKEND (VERSION 5.0 ULTIMATE)
+ * STREAMER & NICHE AI HUB - BACKEND (ULTIMATE AUDIO + INFINITE SCROLL)
  * =========================================================
- * Features:
- * - TwitFlix (Catalogue Rows, Search, Trailers)
- * - Fantasy League (Mock Portfolio)
- * - Squad/Mosaic Mode Support
- * - Mobile Optimization
+ * Updates:
+ * - /api/categories/top : Supporte pagination (cursor) + fetch 100 items
+ * - Chat force dark mode param check
  */
 
 require('dotenv').config();
@@ -13,6 +11,10 @@ const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const session = require('express-session');
+const MemoryStore = require('memorystore')(session);
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -85,9 +87,35 @@ if (GEMINI_API_KEY) {
   }
 }
 
-app.use(cors());
-app.use(bodyParser.json());
+// --- Sécurité (compatible iframe Fourthwall/Shopify) ---
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  frameguard: false
+}));
+
+app.use(cors({ origin: true, credentials: true }));
+app.use(bodyParser.json({ limit: '2mb' }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// --- Session (prod-safe, supprime le warning MemoryStore) ---
+if (!process.env.SESSION_SECRET) {
+  console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod).');
+}
+const sessionMiddleware = session({
+  name: 'streamerhub.sid',
+  store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
+  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' }
+});
+app.use(sessionMiddleware);
+
+// --- Rate limit API (évite spam) ---
+app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 300 }));
+
 app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
@@ -117,9 +145,7 @@ const CACHE = {
     currentIndex: 0,
     lastFetchTime: 0,
     fetchCooldown: 3 * 60 * 1000
-  },
-  twitflixCatalog: { data: null, expires: 0 },
-  clipCache: {} 
+  }
 };
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
@@ -434,7 +460,7 @@ app.get('/firebase_status', (req, res) => {
 });
 
 // =========================================================
-// 4. STREAM INFO & TWITFLIX CATALOG
+// 4. STREAM INFO & TWITFLIX
 // =========================================================
 app.post('/stream_info', async (req, res) => {
   const channel = String(req.body?.channel || '').trim().toLowerCase();
@@ -466,142 +492,90 @@ app.post('/stream_info', async (req, res) => {
   }
 });
 
-// --- ROUTES TWITFLIX (Catalogue et Recherche) ---
+// --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
 
-app.get('/api/twitflix/catalog', async (req, res) => {
-  const now = Date.now();
-  
-  if (CACHE.twitflixCatalog.data && CACHE.twitflixCatalog.expires > now) {
-    return res.json({ success: true, catalog: CACHE.twitflixCatalog.data });
-  }
-
+app.get('/api/categories/top', async (req, res) => {
   try {
-    const [topGames, shooters, rpg, strategy, simulation] = await Promise.all([
-      twitchAPI('games/top?first=20'),
-      twitchAPI('search/categories?query=shooter&first=20'),
-      twitchAPI('search/categories?query=rpg&first=20'),
-      twitchAPI('search/categories?query=strategy&first=20'),
-      twitchAPI('search/categories?query=simulation&first=20')
-    ]);
+    // On supporte la pagination via "cursor"
+    const cursor = req.query.cursor;
+    
+    // On demande 100 catégories d'un coup (max Twitch)
+    let url = 'games/top?first=100';
+    if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
 
-    const format = (list) => (list || []).map(g => ({
-       id: g.id,
-       name: g.name,
-       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
+    const d = await twitchAPI(url);
+    if (!d.data) return res.json({ success: false });
+    
+    const categories = d.data.map(g => ({
+      id: g.id,
+      name: g.name,
+      box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
     }));
 
-    const catalog = {
-       "🔥 Tendances Actuelles": format(topGames.data),
-       "🔫 FPS & Shooters": format(shooters.data),
-       "⚔️ RPG & Aventure": format(rpg.data),
-       "🧠 Stratégie": format(strategy.data),
-       "🚜 Simulation & Chill": format(simulation.data)
-    };
+    // On renvoie aussi le curseur pour la page suivante
+    const nextCursor = d.pagination ? d.pagination.cursor : null;
 
-    CACHE.twitflixCatalog = { data: catalog, expires: now + 300000 };
-    res.json({ success: true, catalog });
-
+    res.json({ success: true, categories, cursor: nextCursor });
   } catch (e) {
     res.status(500).json({ success:false, error:e.message });
   }
 });
 
-app.post('/api/twitflix/search', async (req, res) => {
-  const query = String(req.body.query || '').trim();
-  if(!query) return res.json({ success:false });
 
+// Search categories (pour la barre de recherche TwitFlix)
+// - retourne un tableau de catégories (mêmes champs que /api/categories/top)
+app.get('/api/categories/search', async (req, res) => {
   try {
-    const d = await twitchAPI(`search/categories?query=${encodeURIComponent(query)}&first=20`);
-    const results = (d.data || []).map(g => ({
-       id: g.id,
-       name: g.name,
-       box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
+    const q = String(req.query.q || '').trim();
+    if (!q) return res.json({ success: true, categories: [] });
+
+    // Twitch: search/categories?query=...&first=100
+    const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
+    const categories = (d.data || []).map(g => ({
+      id: g.id,
+      name: g.name,
+      box_art_url: (g.box_art_url || '').replace('{width}', '285').replace('{height}', '380')
     }));
-    res.json({ success:true, results });
+    return res.json({ success: true, categories });
   } catch (e) {
-    res.status(500).json({ success:false, error:e.message });
+    return res.status(500).json({ success: false, error: e.message });
   }
 });
 
-// --- TRAILER (CLIPS) ---
-app.post('/api/game/trailer', async (req, res) => {
-    const gameId = String(req.body.game_id || '');
-    if(!gameId) return res.json({ success:false });
-
-    if(CACHE.clipCache[gameId]) {
-        return res.json({ success:true, embed_url: CACHE.clipCache[gameId] });
-    }
-
-    try {
-        const now = new Date();
-        const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        
-        const r = await twitchAPI(`clips?game_id=${gameId}&first=1&started_at=${lastWeek}`);
-        
-        if(r.data && r.data.length > 0) {
-            const clip = r.data[0];
-            const embedUrl = clip.embed_url; 
-            CACHE.clipCache[gameId] = embedUrl;
-            return res.json({ success:true, embed_url: embedUrl });
-        }
-        res.json({ success:false });
-    } catch(e) {
-        res.status(500).json({ success:false });
-    }
-});
 
 app.post('/api/stream/by_category', async (req, res) => {
-  const { game_id, tag } = req.body;
-  
+  const gameId = String(req.body?.game_id || '');
+  if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
+
   try {
-    let streams = [];
-    
-    // Recherche par Tag ou Jeu
-    if (tag) {
-        const s = await twitchAPI(`streams?language=fr&first=100`);
-        const tLower = tag.toLowerCase();
-        // Filtrage custom : on regarde si le tag est dans les tags ou le titre
-        streams = (s.data||[]).filter(x => 
-            (x.tags && x.tags.some(t => t.toLowerCase().includes(tLower))) || 
-            (x.title && x.title.toLowerCase().includes(tLower))
-        );
-    } else if (game_id) {
-        // Pour un jeu spécifique, on regarde d'abord en FR, puis en global si besoin
-        let sRes = await twitchAPI(`streams?game_id=${game_id}&language=fr&first=100`);
-        streams = sRes.data || [];
-        if (streams.length < 5) {
-            const gRes = await twitchAPI(`streams?game_id=${game_id}&first=100`);
-            streams = [...streams, ...(gRes.data || [])];
-        }
-    } else {
-        // Fallback global FR
-        const s = await twitchAPI(`streams?language=fr&first=100`);
-        streams = s.data || [];
+    // 100 streams max, FR ou global
+    let sRes = await twitchAPI(`streams?game_id=${gameId}&language=fr&first=100`);
+    let streams = sRes.data || [];
+
+    if (streams.length < 5) {
+      const gRes = await twitchAPI(`streams?game_id=${gameId}&first=100`);
+      streams = [...streams, ...(gRes.data || [])];
     }
 
     // Filtre < 100 viewers
-    const cands = streams.filter(x => (x.viewer_count || 0) <= 100);
-    
-    // Si pas de petits, on prend le plus petit dispo
-    if(!cands.length && streams.length) {
-        streams.sort((a,b)=>(a.viewer_count||0) - (b.viewer_count||0));
-        cands.push(streams[0]);
+    const candidates = streams.filter(s => (s.viewer_count || 0) <= 100);
+
+    if (candidates.length === 0) {
+      // Fallback
+      streams.sort((a, b) => (a.viewer_count || 0) - (b.viewer_count || 0));
+      if (streams.length > 0) candidates.push(streams[0]);
     }
 
-    if (cands.length === 0) {
-      return res.json({ success: false, message: 'Aucun stream trouvé.' });
+    if (candidates.length === 0) {
+      return res.json({ success: false, message: 'Aucun stream trouvé dans cette catégorie.' });
     }
 
-    const pick = cands[Math.floor(Math.random() * cands.length)];
+    const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
     
-    // Pour le mode MOSAIC (SQUAD), on renvoie aussi 3 autres streams aléatoires
-    const squad = cands.filter(c => c.id !== pick.id).slice(0,3).map(c => c.user_login);
-
     return res.json({ 
       success: true, 
-      channel: pick.user_login, 
-      game_name: pick.game_name,
-      squad: squad 
+      channel: randomStream.user_login,
+      game_name: randomStream.game_name
     });
 
   } catch (e) {
@@ -754,14 +728,11 @@ app.get('/api/stats/global', async (req, res) => {
     const est = Math.floor(v * 3.8);
     const topGame = data.data?.[0]?.game_name || "N/A";
 
-    // Si DB vide, on renvoie des stats par défaut
-    const history = { live: { labels: ["10h", "11h", "12h", "13h", "Now"], values: [est*0.8, est*0.9, est*0.85, est*0.95, est] } };
+    const history = { live: { labels: [], values: [] } };
 
     try {
       const snaps = await db.collection('stats_history').orderBy('timestamp', 'desc').limit(12).get();
-      if (!snaps.empty && snaps.docs.length > 2) {
-        history.live.labels = [];
-        history.live.values = [];
+      if (!snaps.empty) {
         snaps.docs.reverse().forEach(d => {
           const stats = d.data();
           if (stats.timestamp) {
@@ -771,8 +742,13 @@ app.get('/api/stats/global', async (req, res) => {
             history.live.values.push(stats.total_viewers);
           }
         });
+      } else {
+        history.live.labels = ["-1h", "Now"];
+        history.live.values = [est * 0.9, est];
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Erreur stats history:", e.message);
+    }
 
     res.json({
       success: true,
@@ -1314,6 +1290,7 @@ app.get('/api/costream/best', async (req, res) => {
     if (!gameId) return res.json({ success:false, message:'Chaîne offline et jeu inconnu (pas assez de data).' });
 
     if (myViewers == null) {
+      // fallback: use daily avg if exists
       try {
         const snaps = await db.collection('channels').doc(String(me.id)).collection('daily_stats').orderBy('day','desc').limit(days).get();
         if (!snaps.empty) {
@@ -1366,27 +1343,257 @@ app.get('/api/costream/best', async (req, res) => {
   }
 });
 
-// --- FANTASY LEAGUE (Mock Backend) ---
-app.get('/api/fantasy/portfolio', (req, res) => {
-    // Dans une vraie app, on lirait depuis Firebase user.portfolio
-    res.json({
-        coins: 1250,
-        streamers: [
-            { name: "PtitGamer", bought_at: 12, current_value: 18, change: "+50%" },
-            { name: "SpeedRunnerFR", bought_at: 5, current_value: 4, change: "-20%" },
-            { name: "NicheFinder", bought_at: 100, current_value: 110, change: "+10%" }
-        ]
-    });
-});
-
 // =========================================================
 // 14. SERVER START + SOCKET.IO
 // =========================================================
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'] }
+
+// ================== HUB CHAT (persistant + gratification + GIF) ==================
+const firestoreEnabled = (() => {
+  try { return !!admin.apps && admin.apps.length > 0; } catch (_) { return false; }
+})();
+
+function getDb(){
+  if (!firestoreEnabled) return null;
+  try { return admin.firestore(); } catch (_) { retuio.on('connection', async (socket) => {
+  const sess = socket.request.session || {};
+  if (!sess.userId) sess.userId = crypto.randomBytes(12).toString('hex');
+  const userId = sess.userId;
+  try { socket.request.session.save?.(()=>{}); } catch(_){}
+
+  console.log('🔌 [SOCKET] client connected', userId);
+
+  // Envoie l’historique + profil à la connexion
+  try{
+    const [messages, profile] = await Promise.all([hubGetRecentMessages(80), hubGetUser(userId)]);
+    socket.emit('hub:init', { messages, profile });
+  }catch(e){
+    socket.emit('hub:init', { messages: HUB_MEM.messages.slice(-80), profile: { userId, xp:0, grade: gradeFromXP(0) } });
+  }
+
+  // Message HUB (texte + gif)
+  socket.on('hub:message', async (payload) => {
+    try{
+      const user = safeUser(payload?.user || 'Anon');
+      const text = safeText(payload?.text || '', 500);
+      const gif = safeGifUrl(payload?.gif || '');
+      if (!text && !gif) return;
+
+      // Anti-spam simple (cooldown 800ms)
+      const now = Date.now();
+      socket.data = socket.data || {};
+      const last = socket.data.lastMsgAt || 0;
+      socket.data.lastMsgAt = now;
+      const fast = (now - last) < 800;
+
+      // XP: base 5, pénalité si spam
+      const delta = fast ? 1 : 5;
+
+      const profile = await hubAddXP(userId, delta);
+      const msg = {
+        id: `${now}-${crypto.randomBytes(4).toString('hex')}`,
+        user,
+        userId,
+        text,
+        gif,
+        ts: now,
+        xp: profile.xp || 0,
+        grade: profile.grade || gradeFromXP(profile.xp||0),
+        reactions: {}
+      };
+
+      await hubSaveMessage(msg);
+      io.emit('hub:message', msg);
+    }catch(e){
+      // ignore
+    }
+  });
+
+  // Réactions
+  socket.on('hub:react', async ({ messageId, emoji }) => {
+    try{
+      const id = safeText(messageId, 80);
+      const em = safeText(emoji, 10);
+      if (!id || !em) return;
+
+      const db = getDb();
+      if (!db){
+        const msg = HUB_MEM.messages.find(m=>m.id===id);
+        if (!msg) return;
+        msg.reactions = msg.reactions || {};
+        msg.reactions[em] = (msg.reactions[em]||0) + 1;
+        io.emit('hub:react', { messageId:id, reactions: msg.reactions });
+        return;
+      }
+
+      const ref = db.collection('hub_messages').doc(id);
+      await db.runTransaction(async (tx) => {
+        const doc = await tx.get(ref);
+        if (!doc.exists) return;
+        const data = doc.data();
+        const reactions = data.reactions || {};
+        reactions[em] = (reactions[em]||0) + 1;
+        tx.set(ref, { reactions }, { merge:true });
+      });
+
+      const updated = await ref.get();
+      io.emit('hub:react', { messageId:id, reactions: (updated.data()?.reactions||{}) });
+    }catch(e){}
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔌 [SOCKET] client disconnected', userId);
+  });
 });
+  return { key:'CURATOR', label:'Curator', color:'#34d399' };
+  return { key:'NEWCOMER', label:'Newcomer', color:'#9ca3af' };
+}
+
+function safeText(s, max=500){
+  return String(s || '').replace(/\s+/g,' ').trim().slice(0, max);
+}
+function safeUser(s, max=40){
+  return String(s || 'Anon').replace(/[\r\n\t]/g,' ').trim().slice(0, max);
+}
+function safeGifUrl(u){
+  const s = String(u || '').trim();
+  if (!s) return '';
+  if (!/^https?:\/\//i.test(s)) return '';
+  if (s.length > 800) return '';
+  // accepte .gif et cdn giphy/tenor/discord
+  return s;
+}
+
+async function hubGetRecentMessages(limit=80){
+  const db = getDb();
+  if (!db) return HUB_MEM.messages.slice(-limit);
+  const snap = await db.collection('hub_messages').orderBy('ts','desc').limit(limit).get();
+  const arr = [];
+  snap.forEach(doc => arr.push(doc.data()));
+  return arr.reverse();
+}
+
+async function hubSaveMessage(msg){
+  const db = getDb();
+  if (!db){
+    HUB_MEM.messages.push(msg);
+    if (HUB_MEM.messages.length > 400) HUB_MEM.messages.shift();
+    return;
+  }
+  await db.collection('hub_messages').doc(msg.id).set(msg, { merge: true });
+}
+
+async function hubGetUser(userId){
+  const db = getDb();
+  if (!db){
+    if (!HUB_MEM.users.has(userId)) HUB_MEM.users.set(userId, { xp:0, grade:gradeFromXP(0) });
+    const u = HUB_MEM.users.get(userId);
+    return { userId, xp:u.xp, grade:u.grade };
+  }
+  const ref = db.collection('hub_users').doc(userId);
+  const doc = await ref.get();
+  if (!doc.exists){
+    const base = { userId, xp:0, grade:gradeFromXP(0), updatedAt: Date.now() };
+    await ref.set(base);
+    return base;
+  }
+  return doc.data();
+}
+
+async function hubAddXP(userId, delta){
+  const db = getDb();
+  if (!db){
+    const u = await hubGetUser(userId);
+    u.xp = Math.max(0, (u.xp||0) + delta);
+    u.grade = gradeFromXP(u.xp);
+    HUB_MEM.users.set(userId, { xp:u.xp, grade:u.grade });
+    return u;
+  }
+  const ref = db.collection('hub_users').doc(userId);
+  await db.runTransaction(async (tx) => {
+    const doc = await tx.get(ref);
+    const cur = doc.exists ? doc.data() : { userId, xp:0 };
+    const xp = Math.max(0, (cur.xp||0) + delta);
+    const grade = gradeFromXP(xp);
+    tx.set(ref, { ...cur, userId, xp, grade, updatedAt: Date.now() }, { merge: true });
+  });
+  return hubGetUser(userId);
+}
+
+app.get('/api/hub/messages', async (req,res) => {
+  try{
+    const limit = Math.min(200, Math.max(10, parseInt(req.query.limit||'80',10)));
+    const messages = await hubGetRecentMessages(limit);
+    res.json({ success:true, messages });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/api/hub/leaderboard', async (req,res) => {
+  try{
+    const limit = Math.min(50, Math.max(5, parseInt(req.query.limit||'10',10)));
+    const db = getDb();
+    if (!db){
+      const arr = Array.from(HUB_MEM.users.entries()).map(([userId,v]) => ({ userId, xp:v.xp||0, grade:v.grade||gradeFromXP(v.xp||0) }));
+      arr.sort((a,b)=>b.xp-a.xp);
+      return res.json({ success:true, users: arr.slice(0,limit) });
+    }
+    const snap = await db.collection('hub_users').orderBy('xp','desc').limit(limit).get();
+    const users = [];
+    snap.forEach(d=> users.push(d.data()));
+    res.json({ success:true, users });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+// --- GIF proxy (GIPHY) ---
+const GIPHY_API_KEY = process.env.GIPHY_API_KEY || '';
+
+app.get('/api/gifs/trending', async (req,res) => {
+  try{
+    if (!GIPHY_API_KEY) return res.json({ success:false, error:'GIPHY_API_KEY manquant' });
+    const limit = Math.min(50, Math.max(5, parseInt(req.query.limit||'24',10)));
+    const url = `https://api.giphy.com/v1/gifs/trending?api_key=${encodeURIComponent(GIPHY_API_KEY)}&limit=${limit}&rating=pg-13`;
+    const r = await fetch(url);
+    const j = await r.json();
+    const gifs = (j.data||[]).map(g=>({
+      id: g.id,
+      title: g.title||'',
+      url: g.images?.original?.url || g.images?.fixed_width?.url || ''
+    })).filter(x=>x.url);
+    res.json({ success:true, gifs });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/api/gifs/search', async (req,res) => {
+  try{
+    if (!GIPHY_API_KEY) return res.json({ success:false, error:'GIPHY_API_KEY manquant' });
+    const q = safeText(req.query.q||'', 80);
+    if (!q) return res.json({ success:true, gifs: [] });
+    const limit = Math.min(50, Math.max(5, parseInt(req.query.limit||'24',10)));
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(GIPHY_API_KEY)}&q=${encodeURIComponent(q)}&limit=${limit}&rating=pg-13&lang=fr`;
+    const r = await fetch(url);
+    const j = await r.json();
+    const gifs = (j.data||[]).map(g=>({
+      id: g.id,
+      title: g.title||'',
+      url: g.images?.original?.url || g.images?.fixed_width?.url || ''
+    })).filter(x=>x.url);
+    res.json({ success:true, gifs });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+const io = new Server(server, {
+  cors: { origin: true, methods: ['GET', 'POST'], credentials: true },
+  transports: ['websocket', 'polling'],
+  pingInterval: 25000,
+  pingTimeout: 20000
+});
+
+// Partage des sessions Express avec Socket.IO
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
+
 
 io.on('connection', (socket) => {
   console.log('🔌 [SOCKET] client connected');
