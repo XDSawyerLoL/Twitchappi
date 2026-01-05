@@ -84,6 +84,18 @@ function sanitizeText(s, max=500){
 function sanitizeName(s, max=40){
   return String(s || 'Anon').replace(/[\r\n\t]/g,' ').trim().slice(0, max) || 'Anon';
 }
+
+
+function getSocketIdentity(socket, fallbackName){
+  try{
+    const tu = socket?.request?.session?.twitchUser;
+    if(tu && (tu.expiry ? tu.expiry > Date.now() : true)){
+      return { user: String(tu.id || tu.display_name || fallbackName || 'Anon'), user_display: String(tu.display_name || tu.login || tu.id || fallbackName || 'Anon') };
+    }
+  }catch(_){}
+  return { user: sanitizeName(fallbackName || 'Anon'), user_display: sanitizeName(fallbackName || 'Anon') };
+}
+
 function isValidHttpUrl(u){
   try{
     const url = new URL(u);
@@ -111,7 +123,8 @@ async function loadRecentMessages(limit=50){
 }
 
 async function saveMessage(msg){
-  // msg: {id,user,text,gif,ts,reactions}
+  // msg: { id, user, user_display, text, gif, ts, reactions }
+
   if (firestoreOk){
     try{
       await db.collection(CHAT_COLLECTION).doc(msg.id).set(msg, { merge: true });
@@ -187,7 +200,7 @@ app.use(cookieParser());
 if (!process.env.SESSION_SECRET) {
   console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod)');
 }
-app.use(session({
+const sessionMiddleware = session({
   name: 'streamerhub.sid',
   store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
@@ -198,7 +211,17 @@ app.use(session({
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
   }
-}));
+});
+app.use(sessionMiddleware);
+
+function requireTwitch(req, res, next){
+  const u = req.session?.twitchUser;
+  if(!u || (u.expiry && u.expiry <= Date.now())) return res.status(401).json({ success:false, error:'not_connected' });
+  req.authUser = u;
+  next();
+}
+
+
 
 app.use(express.static(path.join(__dirname)));
 
@@ -474,7 +497,7 @@ if (ENABLE_CRON) {
 app.get('/twitch_auth_start', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
   const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
+  res.cookie('twitch_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 600000 });
   res.redirect(url);
 });
 
@@ -499,13 +522,15 @@ app.get('/twitch_auth_callback', async (req, res) => {
     if (tokenData.access_token) {
       const userRes = await twitchAPI('users', tokenData.access_token);
       const user = userRes.data[0];
-      CACHE.twitchUser = {
+      req.session.twitchUser = {
         display_name: user.display_name,
+        login: user.login || user.display_name,
         id: user.id,
         access_token: tokenData.access_token,
         expiry: Date.now() + (tokenData.expires_in * 1000),
         profile_image_url: user.profile_image_url
       };
+      await new Promise((resolve,reject)=>req.session.save(err=>err?reject(err):resolve()));
       res.send("<script>window.close();</script>");
     } else {
       res.send("Erreur Token.");
@@ -516,16 +541,17 @@ app.get('/twitch_auth_callback', async (req, res) => {
 });
 
 app.post('/twitch_logout', (req, res) => {
-  CACHE.twitchUser = null;
+  req.session.twitchUser = null;
   res.json({ success: true });
 });
 
 app.get('/twitch_user_status', (req, res) => {
-  if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
+  const u = req.session?.twitchUser;
+  if (u && u.expiry > Date.now()) {
     return res.json({
       is_connected: true,
-      display_name: CACHE.twitchUser.display_name,
-      profile_image_url: CACHE.twitchUser.profile_image_url
+      display_name: u.display_name,
+      profile_image_url: u.profile_image_url
     });
   }
   res.json({ is_connected: false });
@@ -671,12 +697,13 @@ app.post('/api/stream/by_category', async (req, res) => {
 // 5. STREAMS FOLLOWED + ROTATION + BOOST
 // =========================================================
 app.get('/followed_streams', async (req, res) => {
-  if (!CACHE.twitchUser) return res.status(401).json({ success: false });
+  const u = req.session?.twitchUser;
+  if (!u || u.expiry <= Date.now()) return res.status(401).json({ success: false });
 
   try {
     const data = await twitchAPI(
-      `streams/followed?user_id=${CACHE.twitchUser.id}`,
-      CACHE.twitchUser.access_token
+      `streams/followed?user_id=${u.id}`,
+      u.access_token
     );
     return res.json({
       success: true,
@@ -1436,6 +1463,12 @@ const io = new Server(server, {
   cors: { origin: true, methods: ['GET', 'POST'] }
 });
 
+// Share Express session with Socket.IO (secure identity)
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
+
+
 
 // =========================================================
 // HUB: GIF picker proxy (GIPHY) + chat history
@@ -1504,14 +1537,47 @@ io.on('connection', async (socket) => {
   // simple anti-spam per socket
   let lastMsgAt = 0;
 
+  function socketAuthUser(){
+    const tu = socket.request?.session?.twitchUser;
+    if(tu && tu.expiry && tu.expiry <= Date.now()) return { id:null, name:'Anon' };
+    if(tu) return { id: String(tu.id||tu.login||tu.display_name||'Anon'), name: String(tu.display_name||tu.login||tu.id||'Anon') };
+    return { id:null, name:'Anon' };
+  }
+
+  async function grantChatRewardIfConnected(){
+    // lightweight reward for chat activity (server-side identity)
+    const tu = socket.request?.session?.twitchUser;
+    if(!tu || (tu.expiry && tu.expiry <= Date.now()) || !firestoreOk) return;
+    const userId = String(tu.id||'');
+    if(!userId) return;
+    const type = 'hub_chat';
+    const now = Date.now();
+    const ref = db.collection(FANTASY_USERS).doc(userId.toLowerCase());
+    const cfg = { amount: 10, cd: 25_000 };
+    try{
+      await db.runTransaction(async (t)=>{
+        const snap = await t.get(ref);
+        const w = walletEnsureReserves(snap.exists ? (snap.data()||{}) : { user: userId, user_display: tu.display_name, cash: 10000, holdings:{} });
+        w.cooldowns = w.cooldowns || {};
+        const last = Number(w.cooldowns[type]||0);
+        if(now - last < cfg.cd) return; // silent
+        w.cooldowns[type] = now;
+        w.cash = Number(w.cash||0) + cfg.amount;
+        w.user = w.user || userId;
+        w.user_display = w.user_display || tu.display_name || tu.login || userId;
+        t.set(ref, w, { merge:true });
+      });
+    }catch(_){}
+  }
+
   socket.on('chat message', async (msg) => {
     const now = Date.now();
     if (now - lastMsgAt < 650) return; // cooldown
     lastMsgAt = now;
-    const sessU = socket.request?.session?.twitchUser;
-    const isSessValid = !!(sessU && (!sessU.expiry || sessU.expiry > Date.now()));
-    const user = sanitizeName(isSessValid ? (sessU.display_name || sessU.login || sessU.id) : (msg?.user));
-    const user_display = isSessValid ? (sessU.display_name || null) : null;
+
+    const au = socketAuthUser();
+    const user = au.id || sanitizeName(msg?.user);
+    const user_display = au.name || null;
     const text = sanitizeText(msg?.text, 800);
 
     let gif = '';
@@ -1524,7 +1590,8 @@ io.on('connection', async (socket) => {
     const out = {
       id: makeId(),
       user,
-      user_display: (typeof user_display !== 'undefined' ? user_display : null),
+      user_display,
+      user_display: user_display || null,
       text,
       gif,
       ts: now,
@@ -1532,7 +1599,10 @@ io.on('connection', async (socket) => {
     };
 
     // XP: only if non-empty text (avoid farming with empty)
-    if (text) await addXP(user, 5);
+    if (text) await addXP(user_display || user, 5);
+
+    // reward credits for chat usage (server-side)
+    if (text) await grantChatRewardIfConnected();
 
     await saveMessage(out);
     io.emit('chat message', out);
@@ -1543,10 +1613,10 @@ io.on('connection', async (socket) => {
     const now = Date.now();
     if (now - lastMsgAt < 650) return; // cooldown
     lastMsgAt = now;
-    const sessU = socket.request?.session?.twitchUser;
-    const isSessValid = !!(sessU && (!sessU.expiry || sessU.expiry > Date.now()));
-    const user = sanitizeName(isSessValid ? (sessU.display_name || sessU.login || sessU.id) : (msg?.user));
-    const user_display = isSessValid ? (sessU.display_name || null) : null;
+
+    const au = socketAuthUser();
+    const user = au.id || sanitizeName(msg?.user);
+    const user_display = au.name || null;
     const text = sanitizeText(msg?.text, 800);
 
     let gif = '';
@@ -1559,7 +1629,8 @@ io.on('connection', async (socket) => {
     const out = {
       id: makeId(),
       user,
-      user_display: (typeof user_display !== 'undefined' ? user_display : null),
+      user_display,
+      user_display: user_display || null,
       text,
       gif,
       ts: now,
@@ -1567,7 +1638,10 @@ io.on('connection', async (socket) => {
     };
 
     // XP: only if non-empty text (avoid farming with empty)
-    if (text) await addXP(user, 5);
+    if (text) await addXP(user_display || user, 5);
+
+    // reward credits for chat usage (server-side)
+    if (text) await grantChatRewardIfConnected();
 
     await saveMessage(out);
     io.emit('chat message', out);
@@ -1655,6 +1729,16 @@ const FANTASY_MAX_HOLDINGS = 10;
 // Market impact parameters (tweakable)
 const FANTASY_ALPHA = 0.18;  // strength
 const FANTASY_SCALE = 250;   // shares scale
+
+
+// ======= REAL EXCHANGE (order book + trades) =======
+const FANTASY_BOOKS = 'fantasy_books';
+const FANTASY_ORDERS = 'orders';
+const FANTASY_TRADES = 'trades';
+
+// Matching limits (keep transactions light)
+const BOOK_DEPTH = 30; // max orders considered per side during a match
+const ORDER_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days (cleanup optional)
 
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
@@ -1770,6 +1854,77 @@ function holdingsToArray(holdings){
   return Object.entries(holdings||{}).map(([login, h])=>({ login, shares: Number(h.shares||0) }));
 }
 
+
+
+function normLogin(s){ return sanitizeText(s||'',50).toLowerCase().trim(); }
+function normUser(s){ return sanitizeText(s||'Anon',50) || 'Anon'; }
+
+async function getBookMeta(login){
+  if(!firestoreOk) throw new Error('Firestore requis pour la vraie Bourse.');
+  const key = normLogin(login);
+  if(!key) throw new Error('missing streamer');
+  const ref = db.collection(FANTASY_BOOKS).doc(key);
+  const snap = await ref.get();
+  if(snap.exists) return { id:key, ...(snap.data()||{}) };
+  // init from base price (fair value)
+  const m = await getMarket(key);
+  const init = {
+    login: key,
+    lastPrice: m.basePrice,
+    updatedAt: Date.now()
+  };
+  await ref.set(init, { merge:true });
+  return { id:key, ...init };
+}
+
+function walletEnsureReserves(w){
+  if(!w) return w;
+  w.cash = Number(w.cash||0);
+  w.cashReserved = Number(w.cashReserved||0);
+  w.holdings = w.holdings || {};
+  for(const k of Object.keys(w.holdings)){
+    w.holdings[k] = w.holdings[k] || {};
+    w.holdings[k].shares = Number(w.holdings[k].shares||0);
+    w.holdings[k].reserved = Number(w.holdings[k].reserved||0);
+  }
+  return w;
+}
+
+async function getUserWalletEx(user){
+  const w = await getUserWallet(user);
+  return walletEnsureReserves(w);
+}
+
+async function saveUserWalletEx(w){
+  return saveUserWallet(walletEnsureReserves(w));
+}
+
+// Best orders (price-time priority)
+async function fetchBestOpposite(t, login, side){
+  // side = 'buy' -> we need best asks; side='sell' -> best bids
+  const key = normLogin(login);
+  const col = db.collection(FANTASY_BOOKS).doc(key).collection(FANTASY_ORDERS);
+  let q = col.where('status','==','open');
+  if(side === 'buy'){
+    q = q.where('side','==','sell').orderBy('price','asc').orderBy('createdAt','asc').limit(BOOK_DEPTH);
+  }else{
+    q = q.where('side','==','buy').orderBy('price','desc').orderBy('createdAt','asc').limit(BOOK_DEPTH);
+  }
+  const snap = await t.get(q);
+  return snap.docs.map(d=>({ id:d.id, ...(d.data()||{}) }));
+}
+
+function canMatch(order, bestOpp){
+  if(order.type === 'market') return true;
+  if(order.side === 'buy') return Number(bestOpp.price||0) <= Number(order.price||0);
+  return Number(bestOpp.price||0) >= Number(order.price||0);
+}
+
+function makerPrice(order, bestOpp){
+  // trade executes at maker (resting) price
+  return Number(bestOpp.price||0);
+}
+
 // Market endpoint for chart
 app.get('/api/fantasy/market', async (req,res)=>{
   try{
@@ -1790,9 +1945,9 @@ app.get('/api/fantasy/market', async (req,res)=>{
 });
 
 // Profile + holdings values
-app.get('/api/fantasy/profile', async (req,res)=>{
+app.get('/api/fantasy/profile', requireTwitch, async (req,res)=>{
   try{
-    const user = sanitizeText(req.query.user || 'Anon', 50) || 'Anon';
+    const user = String(req.authUser.id); const user_display = String(req.authUser.display_name || req.authUser.login || req.authUser.id);
     const w = await getUserWallet(user);
 
     const holdingsArr = holdingsToArray(w.holdings);
@@ -1807,77 +1962,422 @@ app.get('/api/fantasy/profile', async (req,res)=>{
       });
     }
 
-    res.json({ success:true, user: w.user, cash: Number(w.cash||0), holdings: enriched });
+    const netWorth = Number(w.cash||0) + enriched.reduce((s,x)=>s+Number(x.value||0),0);
+    res.json({ success:true, user: w.user, cash: Number(w.cash||0), netWorth, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+
+// ===== REAL EXCHANGE API =====
+
+// Get order book snapshot
+app.get('/api/fantasy/book', async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const login = normLogin(req.query.login || req.query.streamer || '');
+    if(!login) return res.status(400).json({ success:false, error:'missing login' });
+
+    const meta = await getBookMeta(login);
+
+    const ordersRef = db.collection(FANTASY_BOOKS).doc(login).collection(FANTASY_ORDERS);
+    const bidsSnap = await ordersRef.where('status','==','open').where('side','==','buy')
+      .orderBy('price','desc').orderBy('createdAt','asc').limit(20).get();
+    const asksSnap = await ordersRef.where('status','==','open').where('side','==','sell')
+      .orderBy('price','asc').orderBy('createdAt','asc').limit(20).get();
+
+    const bids = bidsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    const asks = asksSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+    res.json({ success:true, login, meta, bids, asks });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Recent trades
+app.get('/api/fantasy/trades', async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const login = normLogin(req.query.login || req.query.streamer || '');
+    if(!login) return res.status(400).json({ success:false, error:'missing login' });
+
+    const snap = await db.collection(FANTASY_BOOKS).doc(login).collection(FANTASY_TRADES)
+      .orderBy('ts','desc').limit(50).get();
+    const trades = snap.docs.map(d=>({ id:d.id, ...d.data() })).reverse();
+    res.json({ success:true, login, trades });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// User open orders
+app.get('/api/fantasy/orders', requireTwitch, async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const user = normUser(String(req.authUser.id));
+    const snap = await db.collectionGroup(FANTASY_ORDERS)
+      .where('user','==', user)
+      .where('status','==','open')
+      .orderBy('createdAt','desc')
+      .limit(50)
+      .get();
+    const orders = snap.docs.map(d=>({ id:d.id, ...d.data(), _path: d.ref.path }));
+    res.json({ success:true, user, orders });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Place order (market/limit). 
+// BUY market uses {budget}; BUY limit uses {qty, price}
+// SELL market uses {qty}; SELL limit uses {qty, price}
+
+async function placeOrderCore({ user, user_display=null, login, side, type, price=0, qty=0, budget=0 }){
+  if(!firestoreOk) throw new Error('Firestore requis.');
+  user = normUser(user);
+  login = normLogin(login);
+  side = (side === 'sell') ? 'sell' : 'buy';
+  type = (type === 'limit') ? 'limit' : 'market';
+  price = Number(price||0);
+  qty = Number(qty||0);
+  budget = Number(budget||0);
+
+  if(!login) throw new Error('login requis');
+  if(type === 'limit' && (!price || price<=0)) throw new Error('price requis (limit)');
+  if(side === 'buy' && type === 'market' && (!budget || budget<=0)) throw new Error('budget requis (buy market)');
+  if(!(side === 'buy' && type === 'market') && (!qty || qty<=0)) throw new Error('qty requis');
+
+  const orderId = makeId();
+  const now = Date.now();
+
+  return await db.runTransaction(async (t)=>{
+    await getBookMeta(login); // ensure book exists
+
+    const walletRef = db.collection(FANTASY_USERS).doc(user.toLowerCase());
+    const bookRef = db.collection(FANTASY_BOOKS).doc(login);
+    const ordersRef = bookRef.collection(FANTASY_ORDERS);
+
+    const wSnap = await t.get(walletRef);
+    const w = walletEnsureReserves(wSnap.exists ? (wSnap.data()||{}) : { user, cash: 10000, holdings:{} });
+    const holding = (w.holdings[login] = w.holdings[login] || { shares:0, reserved:0 });
+
+    let remaining = qty;
+    let budgetLeft = budget;
+
+    if(side === 'buy'){
+      if(type === 'limit'){
+        const costMax = remaining * price;
+        const available = w.cash - w.cashReserved;
+        if(costMax > available) throw new Error('Solde insuffisant (cash disponible).');
+        w.cashReserved += costMax;
+      }else{
+        const available = w.cash - w.cashReserved;
+        if(budgetLeft > available) throw new Error('Solde insuffisant (cash disponible).');
+        w.cashReserved += budgetLeft;
+      }
+    }else{
+      const availableShares = holding.shares - holding.reserved;
+      if(remaining > availableShares) throw new Error('Shares insuffisantes.');
+      holding.reserved += remaining;
+    }
+
+    const orderDoc = {
+      id: orderId,
+      user,
+      login,
+      side,
+      type,
+      price: type==='limit' ? price : 0,
+      qty: (side==='buy' && type==='market') ? 0 : remaining,
+      remaining: (side==='buy' && type==='market') ? 0 : remaining,
+      budget: (side==='buy' && type==='market') ? budgetLeft : 0,
+      budgetRemaining: (side==='buy' && type==='market') ? budgetLeft : 0,
+      status: 'open',
+      createdAt: now,
+      updatedAt: now
+    };
+    t.set(ordersRef.doc(orderId), orderDoc, { merge:false });
+
+    let filledQty = 0;
+    let filledCost = 0;
+    const trades = [];
+
+    while(true){
+      const opp = (await fetchBestOpposite(t, login, side))[0];
+      if(!opp) break;
+
+      if(side==='buy' && type==='market'){
+        if(!orderDoc.budgetRemaining || orderDoc.budgetRemaining <= 0) break;
+        const px = makerPrice(orderDoc, opp);
+        if(!px || px<=0) break;
+        const maxQtyByBudget = Math.floor(orderDoc.budgetRemaining / px);
+        if(maxQtyByBudget <= 0) break;
+
+        const take = Math.min(Number(opp.remaining||0), maxQtyByBudget);
+        if(take <= 0) break;
+
+        const cost = take * px;
+
+        w.cash -= cost;
+        w.cashReserved -= cost;
+        holding.shares += take;
+
+        const sellerRef = db.collection(FANTASY_USERS).doc(String(opp.user||'').toLowerCase());
+        const sSnap = await t.get(sellerRef);
+        const sw = walletEnsureReserves(sSnap.exists ? (sSnap.data()||{}) : { user: opp.user, cash: 10000, holdings:{} });
+        const sh = (sw.holdings[login] = sw.holdings[login] || { shares:0, reserved:0 });
+        sh.shares -= take;
+        sh.reserved = Math.max(0, sh.reserved - take);
+        sw.cash += cost;
+
+        t.set(walletRef, w, { merge:true });
+        t.set(sellerRef, sw, { merge:true });
+
+        const oppRemaining = Number(opp.remaining||0) - take;
+        t.set(ordersRef.doc(opp.id), { remaining: oppRemaining, status: oppRemaining<=0 ? 'filled':'open', updatedAt: now }, { merge:true });
+
+        orderDoc.budgetRemaining -= cost;
+        filledQty += take;
+        filledCost += cost;
+
+        const tradeId = makeId();
+        const trade = { id: tradeId, ts: now, login, price: px, qty: take, buyer: user, seller: opp.user };
+        trades.push(trade);
+        t.set(bookRef.collection(FANTASY_TRADES).doc(tradeId), trade, { merge:false });
+        t.set(bookRef, { lastPrice: px, updatedAt: now }, { merge:true });
+
+        continue;
+      }
+
+      if(!canMatch(orderDoc, opp)) break;
+
+      const px = makerPrice(orderDoc, opp);
+      const take = Math.min(Number(orderDoc.remaining||remaining), Number(opp.remaining||0));
+      if(take <= 0) break;
+
+      const cost = take * px;
+
+      if(side==='buy'){
+        w.cash -= cost;
+        w.cashReserved -= (take * (type==='limit' ? price : px));
+        holding.shares += take;
+
+        const sellerRef = db.collection(FANTASY_USERS).doc(String(opp.user||'').toLowerCase());
+        const sSnap = await t.get(sellerRef);
+        const sw = walletEnsureReserves(sSnap.exists ? (sSnap.data()||{}) : { user: opp.user, cash: 10000, holdings:{} });
+        const sh = (sw.holdings[login] = sw.holdings[login] || { shares:0, reserved:0 });
+        sh.shares -= take;
+        sh.reserved = Math.max(0, sh.reserved - take);
+        sw.cash += cost;
+
+        t.set(walletRef, w, { merge:true });
+        t.set(sellerRef, sw, { merge:true });
+
+        filledQty += take;
+        filledCost += cost;
+      }else{
+        const buyerRef = db.collection(FANTASY_USERS).doc(String(opp.user||'').toLowerCase());
+        const bSnap = await t.get(buyerRef);
+        const bw = walletEnsureReserves(bSnap.exists ? (bSnap.data()||{}) : { user: opp.user, cash: 10000, holdings:{} });
+        const bh = (bw.holdings[login] = bw.holdings[login] || { shares:0, reserved:0 });
+
+        bw.cash -= cost;
+        bw.cashReserved -= take * Number(opp.price||px);
+        bh.shares += take;
+
+        holding.shares -= take;
+        holding.reserved = Math.max(0, holding.reserved - take);
+        w.cash += cost;
+
+        t.set(walletRef, w, { merge:true });
+        t.set(buyerRef, bw, { merge:true });
+
+        filledQty += take;
+        filledCost += cost;
+      }
+
+      const orderRem = Number(orderDoc.remaining||remaining) - take;
+      orderDoc.remaining = orderRem;
+      const oppRem = Number(opp.remaining||0) - take;
+
+      t.set(ordersRef.doc(orderId), { remaining: orderRem, updatedAt: now, status: orderRem<=0?'filled':'open' }, { merge:true });
+      t.set(ordersRef.doc(opp.id), { remaining: oppRem, updatedAt: now, status: oppRem<=0?'filled':'open' }, { merge:true });
+
+      const tradeId = makeId();
+      const trade = side==='buy'
+        ? { id: tradeId, ts: now, login, price: px, qty: take, buyer: user, seller: opp.user }
+        : { id: tradeId, ts: now, login, price: px, qty: take, buyer: opp.user, seller: user };
+      trades.push(trade);
+      t.set(bookRef.collection(FANTASY_TRADES).doc(tradeId), trade, { merge:false });
+      t.set(bookRef, { lastPrice: px, updatedAt: now }, { merge:true });
+
+      if(orderDoc.remaining <= 0) break;
+    }
+
+    if(side==='buy' && type==='market'){
+      const unused = Math.max(0, orderDoc.budgetRemaining||0);
+      w.cashReserved = Math.max(0, w.cashReserved - unused);
+      t.set(walletRef, w, { merge:true });
+      t.set(ordersRef.doc(orderId), { status:'filled', updatedAt: now, budgetRemaining: 0 }, { merge:true });
+    }
+
+    return {
+      orderId,
+      filledQty,
+      avgPrice: filledQty ? (filledCost / filledQty) : 0,
+      remaining: (side==='buy'&&type==='market') ? 0 : Number(orderDoc.remaining||0),
+      trades
+    };
+  });
+}
+
+async function fetchInternalExchange(params){
+  return placeOrderCore(params);
+}
+
+
+app.post('/api/fantasy/order', requireTwitch, async (req,res)=>{
+  try{
+    const out = await placeOrderCore({
+      user: String(req.authUser.id), user_display: String(req.authUser.display_name || req.authUser.login || req.authUser.id),
+      login: req.body.login || req.body.streamer,
+      side: req.body.side,
+      type: req.body.type,
+      price: req.body.price,
+      qty: req.body.qty,
+      budget: req.body.budget
+    });
+    res.json({ success:true, ...out });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+// Cancel an open order (user must match)
+app.post('/api/fantasy/cancel', requireTwitch, async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const user = normUser(String(req.authUser.id));
+    const login = normLogin(req.body.login || req.body.streamer || '');
+    const orderId = sanitizeText(req.body.orderId || '', 120);
+    if(!login || !orderId) return res.status(400).json({ success:false, error:'login + orderId requis' });
+
+    await db.runTransaction(async (t)=>{
+      const walletRef = db.collection(FANTASY_USERS).doc(user.toLowerCase());
+      const bookRef = db.collection(FANTASY_BOOKS).doc(login);
+      const orderRef = bookRef.collection(FANTASY_ORDERS).doc(orderId);
+
+      const oSnap = await t.get(orderRef);
+      if(!oSnap.exists) throw new Error('Ordre introuvable');
+      const o = oSnap.data()||{};
+      if(o.user !== user) throw new Error('Forbidden');
+      if(o.status !== 'open') throw new Error('Ordre non annulable');
+
+      const wSnap = await t.get(walletRef);
+      const w = walletEnsureReserves(wSnap.exists ? (wSnap.data()||{}) : { user, cash:10000, holdings:{} });
+      const h = (w.holdings[login] = w.holdings[login] || { shares:0, reserved:0 });
+
+      if(o.side === 'buy'){
+        if(o.type === 'limit'){
+          const refund = Number(o.remaining||0) * Number(o.price||0);
+          w.cashReserved = Math.max(0, w.cashReserved - refund);
+        }else{
+          const refund = Number(o.budgetRemaining||0);
+          w.cashReserved = Math.max(0, w.cashReserved - refund);
+        }
+      }else{
+        const refundShares = Number(o.remaining||0);
+        h.reserved = Math.max(0, h.reserved - refundShares);
+      }
+
+      t.set(walletRef, w, { merge:true });
+      t.set(orderRef, { status:'cancelled', updatedAt: Date.now() }, { merge:true });
+    });
+
+    res.json({ success:true });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Reward credits for activity (anti-spam simple cooldown)
+app.post('/api/fantasy/reward', requireTwitch, async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const user = normUser(String(req.authUser.id));
+    const type = sanitizeText(req.body.type || 'generic', 40).toLowerCase();
+    const now = Date.now();
+
+    const REWARDS = {
+      twitflix_view: { amount: 15, cd: 60_000 },
+      twitflix_launch: { amount: 30, cd: 90_000 },
+      analytics_view: { amount: 20, cd: 90_000 },
+      hub_chat: { amount: 10, cd: 25_000 },
+      niche_tool: { amount: 20, cd: 120_000 },
+      generic: { amount: 5, cd: 60_000 }
+    };
+    const cfg = REWARDS[type] || REWARDS.generic;
+
+    const ref = db.collection(FANTASY_USERS).doc(user.toLowerCase());
+    await db.runTransaction(async (t)=>{
+      const snap = await t.get(ref);
+      const w = walletEnsureReserves(snap.exists ? (snap.data()||{}) : { user, cash:10000, holdings:{} });
+      w.cooldowns = w.cooldowns || {};
+      const last = Number(w.cooldowns[type]||0);
+      if(now - last < cfg.cd) throw new Error('Cooldown');
+      w.cooldowns[type] = now;
+      w.cash = Number(w.cash||0) + cfg.amount;
+      t.set(ref, w, { merge:true });
+    });
+
+    res.json({ success:true, amount: cfg.amount });
+  }catch(e){
+    res.status(400).json({ success:false, error:e.message });
   }
 });
 
 // Invest (amount in credits -> shares at current market price)
-app.post('/api/fantasy/invest', async (req,res)=>{
-  try{
-    const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
-    const login = sanitizeText(req.body.streamer || '', 50).toLowerCase();
-    const amount = Number(req.body.amount||0);
 
+app.post('/api/fantasy/invest', requireTwitch, async (req,res)=>{
+  try{
+    const user = normUser(String(req.authUser.id));
+    const login = normLogin(req.body.streamer || req.body.login || '');
+    const amount = Number(req.body.amount||0);
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
 
-    const w = await getUserWallet(user);
-    if(amount > Number(w.cash||0)) return res.status(400).json({ success:false, error:'Solde insuffisant.' });
-
-    const isNew = !w.holdings || !w.holdings[login];
-    const distinct = Object.keys(w.holdings || {}).length;
-    if(isNew && distinct >= FANTASY_MAX_HOLDINGS){
-      return res.status(400).json({ success:false, error:`Limite: ${FANTASY_MAX_HOLDINGS} streamers max.` });
-    }
-
-    const m = await getMarket(login);
-    const shares = Math.max(1, Math.floor(amount / m.price));
-    const cost = shares * m.price;
-
-    w.cash = Number(w.cash||0) - cost;
-    w.holdings = w.holdings || {};
-    w.holdings[login] = w.holdings[login] || { shares: 0 };
-    w.holdings[login].shares += shares;
-
-    await saveUserWallet(w);
-    await bumpShares(login, shares);
-
-    res.json({ success:true, shares, cost, price: m.price });
+    // wrapper: BUY market with budget=amount
+    const r = await fetchInternalExchange({ user, login, side:'buy', type:'market', budget: amount });
+    res.json({ success:true, shares: r.filledQty, cost: Math.round(r.filledQty * r.avgPrice), price: Math.round(r.avgPrice||0), orderId: r.orderId });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
 
 // Sell (amount in credits -> shares to sell)
-app.post('/api/fantasy/sell', async (req,res)=>{
-  try{
-    const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
-    const login = sanitizeText(req.body.streamer || '', 50).toLowerCase();
-    const amount = Number(req.body.amount||0);
 
+app.post('/api/fantasy/sell', requireTwitch, async (req,res)=>{
+  try{
+    const user = normUser(String(req.authUser.id));
+    const login = normLogin(req.body.streamer || req.body.login || '');
+    const amount = Number(req.body.amount||0);
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
 
-    const w = await getUserWallet(user);
-    const have = Number(w.holdings?.[login]?.shares || 0);
-    if(!have) return res.status(400).json({ success:false, error:'Aucune position sur ce streamer.' });
-
-    const m = await getMarket(login);
-    const sharesToSell = clamp(Math.floor(amount / m.price), 1, have);
-    const proceeds = sharesToSell * m.price;
-
-    w.holdings[login].shares -= sharesToSell;
-    if(w.holdings[login].shares <= 0) delete w.holdings[login];
-    w.cash = Number(w.cash||0) + proceeds;
-
-    await saveUserWallet(w);
-    await bumpShares(login, -sharesToSell);
-
-    res.json({ success:true, shares: sharesToSell, proceeds, price: m.price });
+    // wrapper: SELL market using qty inferred from amount at last price
+    const meta = await getBookMeta(login);
+    const px = Number(meta.lastPrice || (await getMarket(login)).basePrice || 25);
+    const qty = Math.max(1, Math.floor(amount / px));
+    const r = await fetchInternalExchange({ user, login, side:'sell', type:'market', qty });
+    res.json({ success:true, shares: r.filledQty, gain: Math.round(r.filledQty * r.avgPrice), price: Math.round(r.avgPrice||0), orderId: r.orderId });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
 
 // Leaderboard by net worth
 app.get('/api/fantasy/leaderboard', async (req,res)=>{
