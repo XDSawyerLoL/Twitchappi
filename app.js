@@ -111,7 +111,8 @@ async function loadRecentMessages(limit=50){
 }
 
 async function saveMessage(msg){
-  // msg: {id,user,text,gif,ts,reactions}
+  // msg: {id,user,
+        user_display: user_display || null,text,gif,ts,reactions}
   if (firestoreOk){
     try{
       await db.collection(CHAT_COLLECTION).doc(msg.id).set(msg, { merge: true });
@@ -187,7 +188,7 @@ app.use(cookieParser());
 if (!process.env.SESSION_SECRET) {
   console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod)');
 }
-app.use(session({
+const sessionMiddleware = session({
   name: 'streamerhub.sid',
   store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
@@ -198,7 +199,17 @@ app.use(session({
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
   }
-}));
+});
+app.use(sessionMiddleware);
+
+function requireTwitch(req, res, next){
+  const u = req.session?.twitchUser;
+  if(!u || (u.expiry && u.expiry <= Date.now())) return res.status(401).json({ success:false, error:'not_connected' });
+  req.authUser = u;
+  next();
+}
+
+
 
 app.use(express.static(path.join(__dirname)));
 
@@ -474,7 +485,7 @@ if (ENABLE_CRON) {
 app.get('/twitch_auth_start', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
   const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
+  res.cookie('twitch_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 600000 });
   res.redirect(url);
 });
 
@@ -499,13 +510,15 @@ app.get('/twitch_auth_callback', async (req, res) => {
     if (tokenData.access_token) {
       const userRes = await twitchAPI('users', tokenData.access_token);
       const user = userRes.data[0];
-      CACHE.twitchUser = {
+      req.session.twitchUser = {
         display_name: user.display_name,
+        login: user.login || user.display_name,
         id: user.id,
         access_token: tokenData.access_token,
         expiry: Date.now() + (tokenData.expires_in * 1000),
         profile_image_url: user.profile_image_url
       };
+      await new Promise((resolve,reject)=>req.session.save(err=>err?reject(err):resolve()));
       res.send("<script>window.close();</script>");
     } else {
       res.send("Erreur Token.");
@@ -516,16 +529,17 @@ app.get('/twitch_auth_callback', async (req, res) => {
 });
 
 app.post('/twitch_logout', (req, res) => {
-  CACHE.twitchUser = null;
+  req.session.twitchUser = null;
   res.json({ success: true });
 });
 
 app.get('/twitch_user_status', (req, res) => {
-  if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
+  const u = req.session?.twitchUser;
+  if (u && u.expiry > Date.now()) {
     return res.json({
       is_connected: true,
-      display_name: CACHE.twitchUser.display_name,
-      profile_image_url: CACHE.twitchUser.profile_image_url
+      display_name: u.display_name,
+      profile_image_url: u.profile_image_url
     });
   }
   res.json({ is_connected: false });
@@ -671,12 +685,13 @@ app.post('/api/stream/by_category', async (req, res) => {
 // 5. STREAMS FOLLOWED + ROTATION + BOOST
 // =========================================================
 app.get('/followed_streams', async (req, res) => {
-  if (!CACHE.twitchUser) return res.status(401).json({ success: false });
+  const u = req.session?.twitchUser;
+  if (!u || u.expiry <= Date.now()) return res.status(401).json({ success: false });
 
   try {
     const data = await twitchAPI(
-      `streams/followed?user_id=${CACHE.twitchUser.id}`,
-      CACHE.twitchUser.access_token
+      `streams/followed?user_id=${u.id}`,
+      u.access_token
     );
     return res.json({
       success: true,
@@ -1436,6 +1451,12 @@ const io = new Server(server, {
   cors: { origin: true, methods: ['GET', 'POST'] }
 });
 
+// Share Express session with Socket.IO (secure identity)
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
+
+
 
 // =========================================================
 // HUB: GIF picker proxy (GIPHY) + chat history
@@ -1865,9 +1886,9 @@ app.get('/api/fantasy/market', async (req,res)=>{
 });
 
 // Profile + holdings values
-app.get('/api/fantasy/profile', async (req,res)=>{
+app.get('/api/fantasy/profile', requireTwitch, async (req,res)=>{
   try{
-    const user = sanitizeText(req.query.user || 'Anon', 50) || 'Anon';
+    const user = String(req.authUser.id); const user_display = String(req.authUser.display_name || req.authUser.login || req.authUser.id);
     const w = await getUserWallet(user);
 
     const holdingsArr = holdingsToArray(w.holdings);
@@ -1934,10 +1955,10 @@ app.get('/api/fantasy/trades', async (req,res)=>{
 });
 
 // User open orders
-app.get('/api/fantasy/orders', async (req,res)=>{
+app.get('/api/fantasy/orders', requireTwitch, async (req,res)=>{
   try{
     if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
-    const user = normUser(req.query.user || 'Anon');
+    const user = normUser(String(req.authUser.id));
     const snap = await db.collectionGroup(FANTASY_ORDERS)
       .where('user','==', user)
       .where('status','==','open')
@@ -1955,7 +1976,7 @@ app.get('/api/fantasy/orders', async (req,res)=>{
 // BUY market uses {budget}; BUY limit uses {qty, price}
 // SELL market uses {qty}; SELL limit uses {qty, price}
 
-async function placeOrderCore({ user, login, side, type, price=0, qty=0, budget=0 }){
+async function placeOrderCore({ user, user_display=null, login, side, type, price=0, qty=0, budget=0 }){
   if(!firestoreOk) throw new Error('Firestore requis.');
   user = normUser(user);
   login = normLogin(login);
@@ -2159,10 +2180,10 @@ async function fetchInternalExchange(params){
 }
 
 
-app.post('/api/fantasy/order', async (req,res)=>{
+app.post('/api/fantasy/order', requireTwitch, async (req,res)=>{
   try{
     const out = await placeOrderCore({
-      user: req.body.user,
+      user: String(req.authUser.id), user_display: String(req.authUser.display_name || req.authUser.login || req.authUser.id),
       login: req.body.login || req.body.streamer,
       side: req.body.side,
       type: req.body.type,
@@ -2178,10 +2199,10 @@ app.post('/api/fantasy/order', async (req,res)=>{
 
 
 // Cancel an open order (user must match)
-app.post('/api/fantasy/cancel', async (req,res)=>{
+app.post('/api/fantasy/cancel', requireTwitch, async (req,res)=>{
   try{
     if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
-    const user = normUser(req.body.user || 'Anon');
+    const user = normUser(String(req.authUser.id));
     const login = normLogin(req.body.login || req.body.streamer || '');
     const orderId = sanitizeText(req.body.orderId || '', 120);
     if(!login || !orderId) return res.status(400).json({ success:false, error:'login + orderId requis' });
@@ -2225,10 +2246,10 @@ app.post('/api/fantasy/cancel', async (req,res)=>{
 });
 
 // Reward credits for activity (anti-spam simple cooldown)
-app.post('/api/fantasy/reward', async (req,res)=>{
+app.post('/api/fantasy/reward', requireTwitch, async (req,res)=>{
   try{
     if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
-    const user = normUser(req.body.user || 'Anon');
+    const user = normUser(String(req.authUser.id));
     const type = sanitizeText(req.body.type || 'generic', 40).toLowerCase();
     const now = Date.now();
 
@@ -2262,9 +2283,9 @@ app.post('/api/fantasy/reward', async (req,res)=>{
 
 // Invest (amount in credits -> shares at current market price)
 
-app.post('/api/fantasy/invest', async (req,res)=>{
+app.post('/api/fantasy/invest', requireTwitch, async (req,res)=>{
   try{
-    const user = normUser(req.body.user || 'Anon');
+    const user = normUser(String(req.authUser.id));
     const login = normLogin(req.body.streamer || req.body.login || '');
     const amount = Number(req.body.amount||0);
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
@@ -2280,9 +2301,9 @@ app.post('/api/fantasy/invest', async (req,res)=>{
 
 // Sell (amount in credits -> shares to sell)
 
-app.post('/api/fantasy/sell', async (req,res)=>{
+app.post('/api/fantasy/sell', requireTwitch, async (req,res)=>{
   try{
-    const user = normUser(req.body.user || 'Anon');
+    const user = normUser(String(req.authUser.id));
     const login = normLogin(req.body.streamer || req.body.login || '');
     const amount = Number(req.body.amount||0);
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
