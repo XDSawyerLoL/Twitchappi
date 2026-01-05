@@ -1187,6 +1187,7 @@
             <button id="tf-btn-az" class="tf-toggle-btn" type="button" onclick="setTwitFlixView('az')">A–Z</button>
           </div>
 
+          <button id="tf-btn-ai" class="tf-toggle-btn" type="button" onclick="toggleTwiflixAI()" title="Recherche IA (synonymes, genres, intentions)">✨ IA</button>
           <i class="fas fa-times tf-close" onclick="closeTwitFlix()"></i>
         </div>
       </div>
@@ -1801,6 +1802,12 @@
 
     let tfObserver = null;
 
+    // AI toggle (does not change UI unless enabled)
+    let tfAiOn = (localStorage.getItem('tf_ai_on') === '1');
+    const tfAiCache = new Map(); // q -> {ts, terms}
+    const TF_AI_TTL = 10 * 60 * 1000;
+
+
     // Preview cache
     const tfPreviewCache = new Map(); // gameId -> {channel, t}
     const tfPreviewInflight = new Map();
@@ -1824,6 +1831,19 @@
       renderTwitFlix();
     }
 
+    function toggleTwiflixAI(){
+      tfAiOn = !tfAiOn;
+      localStorage.setItem('tf_ai_on', tfAiOn ? '1' : '0');
+      const b = document.getElementById('tf-btn-ai');
+      if (b) b.classList.toggle('active', tfAiOn);
+      toast(`Recherche IA ${tfAiOn ? 'activée' : 'désactivée'}`);
+      // Re-run search instantly if there is a query
+      const s = document.getElementById('twitflix-search');
+      const q = String(s?.value || tfSearchQuery || '').trim();
+      if (q) tfRunSearch(q);
+    }
+
+
     async function openTwitFlix(){
       const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
@@ -1831,6 +1851,11 @@
 
       tfModalOpen = true;
       modal.classList.add('active');
+
+      // AI button state
+      const aiBtn = document.getElementById('tf-btn-ai');
+      if (aiBtn) aiBtn.classList.toggle('active', tfAiOn);
+
 
       // reset
       tfViewMode = 'rows';
@@ -1926,28 +1951,96 @@
         return;
       }
 
-      // Try server search (best)
+      // 1) Server search (fast + accurate for exact titles)
+      let serverCats = [];
       try{
         const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
           if (d && d.success && Array.isArray(d.categories)){
-            tfSearchResults = d.categories.map(c => ({
+            serverCats = d.categories.map(c => ({
               id: c.id,
               name: c.name,
               box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
             }));
-            renderTwitFlix();
-            return;
           }
         }
       }catch(_){}
 
-      // Fallback: local filter on already loaded catalogue
-      const low = q.toLowerCase();
-      tfSearchResults = tfAllCategories
-        .filter(c => (c.name||'').toLowerCase().includes(low))
-        .slice(0, 120);
+      // 2) Optional IA expansion (synonyms/genres) to improve discovery
+      let aiTerms = [];
+      if (tfAiOn && q.length >= 2){
+        const key = q.toLowerCase();
+        const now = Date.now();
+        const cached = tfAiCache.get(key);
+        if (cached && (now - cached.ts) < TF_AI_TTL){
+          aiTerms = cached.terms || [];
+        } else {
+          try{
+            const r = await fetch(`${API_BASE}/api/ai/twiflix`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: q })
+            });
+            const d = await r.json();
+            if (d && d.success && Array.isArray(d.terms)) aiTerms = d.terms;
+          }catch(_){}
+          tfAiCache.set(key, { ts: now, terms: aiTerms });
+        }
+      }
+
+      const terms = [q, ...(aiTerms||[])].map(t => String(t||'').toLowerCase()).filter(Boolean);
+      const seen = new Set();
+      const scored = [];
+
+      function scoreCat(cat){
+        const name = String(cat.name||'').toLowerCase();
+        if (!name) return 0;
+        let s = 0;
+        for (const t of terms){
+          if (!t) continue;
+          if (name === t) s += 40;
+          else if (name.startsWith(t)) s += 18;
+          else if (name.includes(t)) s += 10;
+        }
+        // small boost for shorter names on close matches (feel more "exact")
+        if (s > 0) s += Math.max(0, 8 - Math.min(8, Math.floor(name.length / 8)));
+        return s;
+      }
+
+      // Prefer server results first (then enrich with AI-scored catalogue)
+      for (const c of serverCats){
+        if (!c || !c.id) continue;
+        seen.add(String(c.id));
+        scored.push({ ...c, _score: 999 }); // always top
+      }
+
+      // Local catalogue scoring (works even if server search returns nothing)
+      for (const c of tfAllCategories){
+        if (!c || !c.id) continue;
+        const id = String(c.id);
+        if (seen.has(id)) continue;
+
+        const s = scoreCat(c);
+        if (s <= 0) continue;
+
+        scored.push({
+          id,
+          name: c.name,
+          box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || ''),
+          _score: s
+        });
+        seen.add(id);
+      }
+
+      // Sort by score, then alphabetical
+      scored.sort((a,b)=>{
+        const ds = (b._score||0) - (a._score||0);
+        if (ds !== 0) return ds;
+        return String(a.name||'').localeCompare(String(b.name||''), 'fr', { sensitivity:'base' });
+      });
+
+      tfSearchResults = scored.slice(0, 160).map(({_score, ...rest}) => rest);
       renderTwitFlix();
     }
 
