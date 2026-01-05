@@ -111,8 +111,8 @@ async function loadRecentMessages(limit=50){
 }
 
 async function saveMessage(msg){
-  // msg: {id,user,
-        user_display: user_display || null,text,gif,ts,reactions}
+  // msg: { id, user, user_display, text, gif, ts, reactions }
+
   if (firestoreOk){
     try{
       await db.collection(CHAT_COLLECTION).doc(msg.id).set(msg, { merge: true });
