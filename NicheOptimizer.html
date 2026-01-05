@@ -1187,7 +1187,6 @@
             <button id="tf-btn-az" class="tf-toggle-btn" type="button" onclick="setTwitFlixView('az')">A–Z</button>
           </div>
 
-          <button id="tf-btn-ai" class="tf-toggle-btn" type="button" onclick="toggleTwiflixAI()" title="Recherche IA (synonymes, genres, intentions)">✨ IA</button>
           <i class="fas fa-times tf-close" onclick="closeTwitFlix()"></i>
         </div>
       </div>
@@ -1802,12 +1801,6 @@
 
     let tfObserver = null;
 
-    // AI toggle (does not change UI unless enabled)
-    let tfAiOn = (localStorage.getItem('tf_ai_on') === '1');
-    const tfAiCache = new Map(); // q -> {ts, terms}
-    const TF_AI_TTL = 10 * 60 * 1000;
-
-
     // Preview cache
     const tfPreviewCache = new Map(); // gameId -> {channel, t}
     const tfPreviewInflight = new Map();
@@ -1831,19 +1824,6 @@
       renderTwitFlix();
     }
 
-    function toggleTwiflixAI(){
-      tfAiOn = !tfAiOn;
-      localStorage.setItem('tf_ai_on', tfAiOn ? '1' : '0');
-      const b = document.getElementById('tf-btn-ai');
-      if (b) b.classList.toggle('active', tfAiOn);
-      toast(`Recherche IA ${tfAiOn ? 'activée' : 'désactivée'}`);
-      // Re-run search instantly if there is a query
-      const s = document.getElementById('twitflix-search');
-      const q = String(s?.value || tfSearchQuery || '').trim();
-      if (q) tfRunSearch(q);
-    }
-
-
     async function openTwitFlix(){
       const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
@@ -1851,11 +1831,6 @@
 
       tfModalOpen = true;
       modal.classList.add('active');
-
-      // AI button state
-      const aiBtn = document.getElementById('tf-btn-ai');
-      if (aiBtn) aiBtn.classList.toggle('active', tfAiOn);
-
 
       // reset
       tfViewMode = 'rows';
@@ -1951,96 +1926,28 @@
         return;
       }
 
-      // 1) Server search (fast + accurate for exact titles)
-      let serverCats = [];
+      // Try server search (best)
       try{
         const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
           if (d && d.success && Array.isArray(d.categories)){
-            serverCats = d.categories.map(c => ({
+            tfSearchResults = d.categories.map(c => ({
               id: c.id,
               name: c.name,
               box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
             }));
+            renderTwitFlix();
+            return;
           }
         }
       }catch(_){}
 
-      // 2) Optional IA expansion (synonyms/genres) to improve discovery
-      let aiTerms = [];
-      if (tfAiOn && q.length >= 2){
-        const key = q.toLowerCase();
-        const now = Date.now();
-        const cached = tfAiCache.get(key);
-        if (cached && (now - cached.ts) < TF_AI_TTL){
-          aiTerms = cached.terms || [];
-        } else {
-          try{
-            const r = await fetch(`${API_BASE}/api/ai/twiflix`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query: q })
-            });
-            const d = await r.json();
-            if (d && d.success && Array.isArray(d.terms)) aiTerms = d.terms;
-          }catch(_){}
-          tfAiCache.set(key, { ts: now, terms: aiTerms });
-        }
-      }
-
-      const terms = [q, ...(aiTerms||[])].map(t => String(t||'').toLowerCase()).filter(Boolean);
-      const seen = new Set();
-      const scored = [];
-
-      function scoreCat(cat){
-        const name = String(cat.name||'').toLowerCase();
-        if (!name) return 0;
-        let s = 0;
-        for (const t of terms){
-          if (!t) continue;
-          if (name === t) s += 40;
-          else if (name.startsWith(t)) s += 18;
-          else if (name.includes(t)) s += 10;
-        }
-        // small boost for shorter names on close matches (feel more "exact")
-        if (s > 0) s += Math.max(0, 8 - Math.min(8, Math.floor(name.length / 8)));
-        return s;
-      }
-
-      // Prefer server results first (then enrich with AI-scored catalogue)
-      for (const c of serverCats){
-        if (!c || !c.id) continue;
-        seen.add(String(c.id));
-        scored.push({ ...c, _score: 999 }); // always top
-      }
-
-      // Local catalogue scoring (works even if server search returns nothing)
-      for (const c of tfAllCategories){
-        if (!c || !c.id) continue;
-        const id = String(c.id);
-        if (seen.has(id)) continue;
-
-        const s = scoreCat(c);
-        if (s <= 0) continue;
-
-        scored.push({
-          id,
-          name: c.name,
-          box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || ''),
-          _score: s
-        });
-        seen.add(id);
-      }
-
-      // Sort by score, then alphabetical
-      scored.sort((a,b)=>{
-        const ds = (b._score||0) - (a._score||0);
-        if (ds !== 0) return ds;
-        return String(a.name||'').localeCompare(String(b.name||''), 'fr', { sensitivity:'base' });
-      });
-
-      tfSearchResults = scored.slice(0, 160).map(({_score, ...rest}) => rest);
+      // Fallback: local filter on already loaded catalogue
+      const low = q.toLowerCase();
+      tfSearchResults = tfAllCategories
+        .filter(c => (c.name||'').toLowerCase().includes(low))
+        .slice(0, 120);
       renderTwitFlix();
     }
 
@@ -3348,6 +3255,342 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
 
   </div>
 </div>
+
+
+<style>
+  .jp-helpbtn{ width:20px;height:20px; border-radius:999px; border:1px solid rgba(255,255,255,.18);
+    background:rgba(0,0,0,.25); color:#e5e7eb; font-weight:900; font-size:12px; line-height:18px;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; margin-left:6px;
+  }
+  .jp-helpbtn:hover{ border-color: rgba(0,242,234,.55); color:#00f2ea; }
+  #jp-help-modal{ position:fixed; inset:0; z-index:999999; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.65); }
+  #jp-help-modal .box{ width:min(560px,92vw); border-radius:18px; border:1px solid rgba(255,255,255,.12);
+    background:rgba(10,10,12,.96); box-shadow: 0 18px 80px rgba(0,0,0,.65); overflow:hidden;
+  }
+  #jp-help-modal .hd{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.08);}
+  #jp-help-modal .ttl{ font-weight:1000; letter-spacing:.08em; font-family: Orbitron, sans-serif; font-size:13px; }
+  #jp-help-modal .bd{ padding:14px; color:#cbd5e1; font-size:13px; line-height:1.45; }
+  #jp-help-modal .bd strong{ color:#fff; }
+  #jp-help-modal .ft{ padding:12px 14px; border-top:1px solid rgba(255,255,255,.08); display:flex; gap:10px; justify-content:flex-end;}
+  #jp-help-modal .btn{ padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.18); color:#fff; font-weight:900; cursor:pointer;}
+  #jp-help-modal .btn.primary{ border-color: rgba(0,242,234,.35); background:#00f2ea; color:#000; }
+</style>
+
+<div id="jp-help-modal" onclick="if(event.target===this) closeHelp()">
+  <div class="box">
+    <div class="hd">
+      <div id="jp-help-title" class="ttl">AIDE</div>
+      <button class="btn" onclick="closeHelp()">Fermer</button>
+    </div>
+    <div id="jp-help-body" class="bd"></div>
+    <div class="ft">
+      <button class="btn primary" onclick="closeHelp()">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const HELP = {
+    bourse: {
+      title: "BOURSE DES STREAMERS",
+      html: `
+        <p><strong>Ce module transforme ton temps & ton attention en capital.</strong></p>
+        <ul>
+          <li><strong>Tu gagnes des crédits</strong> en utilisant l'app (TwitFlix, dashboard, chat…)</li>
+          <li><strong>Tu places des ordres</strong> (market/limit) et tu trades avec les autres utilisateurs.</li>
+          <li><strong>Objectif progression :</strong> comprendre le timing, la volatilité et repérer les trajectoires reproductibles.</li>
+        </ul>
+        <p style="margin-top:10px; color:#94a3b8;">Astuce: utilise un ordre <strong>LIMIT</strong> pour entrer proprement (meilleur prix) et <strong>MARKET</strong> quand tu veux exécuter vite.</p>
+      `
+    },
+    twitflix: {
+      title: "TWITFLIX",
+      html: `
+        <p><strong>Découverte façon Netflix</strong> pour trouver des niches exploitables et des streams à étudier.</p>
+        <ul>
+          <li><strong>Progression :</strong> tu gagnes du temps de recherche, tu détectes plus tôt les opportunités.</li>
+          <li><strong>Crédits :</strong> explorer + lancer un stream peut te rapporter des crédits (selon cooldown).</li>
+        </ul>
+      `
+    },
+    analytics: {
+      title: "ANALYTICS PRO",
+      html: `
+        <p>Comprendre la <strong>tendance</strong>, la <strong>régularité</strong> et les pics pour éviter les mauvaises décisions.</p>
+      `
+    },
+    niche: {
+      title: "NICHE",
+      html: `
+        <p>Outil d'aide au choix : meilleure catégorie + meilleur timing + concurrence.</p>
+      `
+    },
+    hubchat: {
+      title: "HUB CHAT",
+      html: `
+        <p>Chat communautaire + réactions. <strong>Progression :</strong> tu captes des signaux humains (hype, saturation, retours d'expérience).</p>
+      `
+    }
+  };
+
+  window.openHelp = function(key){
+    const it = HELP[key] || { title: "Aide", html: "<p>Info indisponible.</p>" };
+    document.getElementById('jp-help-title').textContent = it.title;
+    document.getElementById('jp-help-body').innerHTML = it.html;
+    document.getElementById('jp-help-modal').style.display = 'flex';
+  };
+  window.closeHelp = function(){
+    document.getElementById('jp-help-modal').style.display = 'none';
+  };
+
+  function addHelpBtn(el, key){
+    if(!el || el.dataset.jpHelpDone==='1') return;
+    el.dataset.jpHelpDone='1';
+    const b = document.createElement('button');
+    b.className = 'jp-helpbtn';
+    b.type = 'button';
+    b.textContent = '?';
+    b.title = 'Aide';
+    b.addEventListener('click', (e)=>{ e.stopPropagation(); openHelp(key); });
+    el.appendChild(b);
+  }
+
+  // Add help to under-tabs
+  const nav = document.getElementById('under-tabs-nav');
+  if(nav){
+    const btns = nav.querySelectorAll('.u-tab-btn');
+    btns.forEach(b=>{
+      const ut = b.getAttribute('data-ut');
+      if(ut==='overview') addHelpBtn(b, 'analytics');
+      if(ut==='analytics') addHelpBtn(b, 'analytics');
+      if(ut==='niche') addHelpBtn(b, 'niche');
+    });
+    // Inject BOURSE tab if missing
+    if(!nav.querySelector('[data-ut="bourse"]')){
+      const b = document.createElement('button');
+      b.className = 'u-tab-btn';
+      b.setAttribute('data-ut','bourse');
+      b.innerHTML = '<i class="fas fa-coins mr-1"></i> BOURSE';
+      nav.appendChild(b);
+      addHelpBtn(b,'bourse');
+    }
+  }
+
+  // Add help to TwitFlix title if present
+  const tfTitle = document.getElementById('tf-hero-title');
+  if(tfTitle) addHelpBtn(tfTitle, 'twitflix');
+
+  // Extend Fantasy modal into real exchange UI (uses existing modal structure)
+  async function exFetch(url, opts){
+    const r = await fetch(url, opts);
+    return await r.json();
+  }
+  function getUser(){
+    return (window.currentUser && window.currentUser.name) || localStorage.getItem('hubUser') || window.currentUser || 'Anon';
+  }
+
+  function ensureExchangeUI(){
+    const modal = document.getElementById('fantasyModal');
+    if(!modal || modal.dataset.exchange==='1') return;
+    modal.dataset.exchange='1';
+
+    // Try to locate the input row area
+    const inputStreamer = document.getElementById('fantasyStreamer');
+    const inputAmount = document.getElementById('fantasyAmount');
+    const buyBtn = document.getElementById('fantasyBuy');
+    const sellBtn = document.getElementById('fantasySell');
+
+    if(!inputStreamer || !inputAmount || !buyBtn || !sellBtn) return;
+
+    // Replace buy/sell actions by a unified order panel
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;';
+    wrap.innerHTML = `
+      <select id="exSide" style="padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff; font-weight:900;">
+        <option value="buy">BUY</option>
+        <option value="sell">SELL</option>
+      </select>
+      <select id="exType" style="padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff; font-weight:900;">
+        <option value="market">MARKET</option>
+        <option value="limit">LIMIT</option>
+      </select>
+      <input id="exPrice" type="number" placeholder="prix (limit)" style="width:150px; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff; display:none;">
+      <input id="exQty" type="number" placeholder="qty (shares)" style="width:150px; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff; display:none;">
+      <input id="exBudget" type="number" placeholder="budget (buy market)" style="width:190px; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff;">
+      <button id="exPlace" style="padding:8px 10px; border-radius:12px; border:1px solid rgba(0,242,234,.35); background:#00f2ea; color:#000; font-weight:1000; cursor:pointer;">Placer ordre</button>
+      <button class="jp-helpbtn" type="button" onclick="openHelp('bourse')">?</button>
+    `;
+    inputAmount.parentElement.appendChild(wrap);
+
+    // Add panels
+    const panels = document.createElement('div');
+    panels.style.cssText = 'margin-top:12px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;';
+    panels.innerHTML = `
+      <div style="border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; background:rgba(0,0,0,.15);">
+        <div style="font-weight:1000; margin-bottom:8px;">Carnet d'ordres</div>
+        <div id="exBook" style="font-size:12px; color:#cbd5e1;">—</div>
+      </div>
+      <div style="border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; background:rgba(0,0,0,.15);">
+        <div style="font-weight:1000; margin-bottom:8px;">Derniers trades</div>
+        <div id="exTrades" style="font-size:12px; color:#cbd5e1;">—</div>
+      </div>
+      <div style="grid-column:1 / -1; border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; background:rgba(0,0,0,.15);">
+        <div style="font-weight:1000; margin-bottom:8px;">Mes ordres ouverts</div>
+        <div id="exMyOrders" style="font-size:12px; color:#cbd5e1;">—</div>
+      </div>
+    `;
+    inputAmount.parentElement.appendChild(panels);
+
+    // Hide old buttons to avoid confusion
+    buyBtn.style.display = 'none';
+    sellBtn.style.display = 'none';
+
+    const sideSel = wrap.querySelector('#exSide');
+    const typeSel = wrap.querySelector('#exType');
+    const priceInp = wrap.querySelector('#exPrice');
+    const qtyInp = wrap.querySelector('#exQty');
+    const budInp = wrap.querySelector('#exBudget');
+
+    function syncForm(){
+      const side = sideSel.value;
+      const type = typeSel.value;
+      if(type === 'limit'){
+        priceInp.style.display = '';
+        qtyInp.style.display = '';
+        budInp.style.display = 'none';
+        budInp.value = '';
+      }else{
+        priceInp.style.display = 'none';
+        priceInp.value = '';
+        if(side === 'buy'){
+          qtyInp.style.display = 'none';
+          qtyInp.value = '';
+          budInp.style.display = '';
+        }else{
+          budInp.style.display = 'none';
+          budInp.value = '';
+          qtyInp.style.display = '';
+        }
+      }
+    }
+    sideSel.addEventListener('change', syncForm);
+    typeSel.addEventListener('change', syncForm);
+    syncForm();
+
+    async function refreshExchange(){
+      const login = (inputStreamer.value||'').trim().toLowerCase();
+      if(!login) return;
+      const [book, trades, orders] = await Promise.all([
+        exFetch(`/api/fantasy/book?login=${encodeURIComponent(login)}`).catch(()=>null),
+        exFetch(`/api/fantasy/trades?login=${encodeURIComponent(login)}`).catch(()=>null),
+        exFetch(`/api/fantasy/orders?user=${encodeURIComponent(getUser())}`).catch(()=>null)
+      ]);
+
+      const bookEl = document.getElementById('exBook');
+      if(bookEl){
+        if(!book || !book.success){ bookEl.textContent = '—'; }
+        else{
+          const bids = (book.bids||[]).slice(0,8);
+          const asks = (book.asks||[]).slice(0,8);
+          const last = Number(book.meta?.lastPrice||0);
+          bookEl.innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <div>Last: <strong style="color:#00f2ea">${Math.round(last).toLocaleString('fr-FR')}</strong></div>
+              <div style="color:#94a3b8;">${login}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <div style="color:#a7f3d0;font-weight:900;margin-bottom:4px;">BIDS</div>
+                ${(bids.length?bids:[]).map(o=>`<div style="display:flex;justify-content:space-between;"><div>${Math.round(o.price||0)}</div><div style="color:#94a3b8;">${Math.round(o.remaining||0)}</div></div>`).join('') || '<div style="color:#64748b;">Aucun</div>'}
+              </div>
+              <div>
+                <div style="color:#fca5a5;font-weight:900;margin-bottom:4px;">ASKS</div>
+                ${(asks.length?asks:[]).map(o=>`<div style="display:flex;justify-content:space-between;"><div>${Math.round(o.price||0)}</div><div style="color:#94a3b8;">${Math.round(o.remaining||0)}</div></div>`).join('') || '<div style="color:#64748b;">Aucun</div>'}
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      const trEl = document.getElementById('exTrades');
+      if(trEl){
+        if(!trades || !trades.success){ trEl.textContent='—'; }
+        else{
+          const list=(trades.trades||[]).slice(-12).reverse();
+          trEl.innerHTML = list.map(t=>`
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);padding:6px 0;">
+              <div><strong>${Math.round(t.price||0)}</strong> <span style="color:#94a3b8;">x${t.qty}</span></div>
+              <div style="color:#94a3b8;">${new Date(t.ts||0).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+            </div>`).join('') || '<div style="color:#64748b;">Aucun</div>';
+        }
+      }
+
+      const oEl = document.getElementById('exMyOrders');
+      if(oEl){
+        if(!orders || !orders.success){ oEl.textContent='—'; }
+        else{
+          const list=(orders.orders||[]).filter(x=>x.login===login).slice(0,20);
+          oEl.innerHTML = list.map(o=>`
+            <div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(255,255,255,.06);padding:8px 0;align-items:center;">
+              <div>
+                <div style="font-weight:1000;color:${o.side==='buy'?'#a7f3d0':'#fca5a5'}">${o.side.toUpperCase()} ${o.type.toUpperCase()}</div>
+                <div style="color:#94a3b8;font-size:11px;">${o.type==='limit' ? ('@ '+Math.round(o.price||0)) : ''} • rem: ${Math.round(o.remaining||0)} ${o.type==='market'&&o.side==='buy' ? ('• budget: '+Math.round(o.budgetRemaining||0)) : ''}</div>
+              </div>
+              <button class="btn" style="padding:6px 10px;border-radius:12px;" onclick="(async()=>{await fetch('/api/fantasy/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:getUser(),login:'${login}',orderId:'${o.id}'})}); await refreshFantasy(); await refreshExchange();})()">Annuler</button>
+            </div>`).join('') || '<div style="color:#64748b;">Aucun</div>';
+        }
+      }
+    }
+
+    // Hook existing loadMarket to also refresh book/trades
+    const oldLoadMarket = window.loadMarket;
+    window.loadMarket = async function(login){
+      if(oldLoadMarket) try{ await oldLoadMarket(login); }catch(_){}
+      await refreshExchange();
+    };
+
+    wrap.querySelector('#exPlace').addEventListener('click', async ()=>{
+      const login = (inputStreamer.value||'').trim().toLowerCase();
+      if(!login) return alert('login requis');
+      const body = { user: getUser(), login, side: sideSel.value, type: typeSel.value };
+      if(body.type==='limit'){
+        body.price = Number(priceInp.value||0);
+        body.qty = Number(qtyInp.value||0);
+      }else{
+        if(body.side==='buy'){
+          body.budget = Number(budInp.value||0);
+        }else{
+          body.qty = Number(qtyInp.value||0);
+        }
+      }
+      const out = await fetch('/api/fantasy/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+        .then(r=>r.json()).catch(()=>null);
+      if(!out || !out.success) return alert(out?.error || 'Erreur');
+      toast('Ordre exécuté / placé');
+      // reward for usage
+      fetch('/api/fantasy/reward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:getUser(),type:'generic'})}).catch(()=>{});
+      await refreshFantasy();
+      await refreshExchange();
+    });
+
+    // auto refresh when modal opens
+    const openBtn = document.getElementById('tool-fantasy') || document.getElementById('fantasy-open');
+    if(openBtn){
+      openBtn.addEventListener('click', ()=>{
+        fetch('/api/fantasy/reward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:getUser(),type:'generic'})}).catch(()=>{});
+        setTimeout(refreshExchange, 250);
+      });
+    }
+
+    // update exchange when streamer field changes
+    inputStreamer.addEventListener('change', ()=> setTimeout(refreshExchange, 150));
+  }
+
+  // periodic enhancer
+  setInterval(ensureExchangeUI, 1200);
+})();
+</script>
 
 </body>
 </html>
