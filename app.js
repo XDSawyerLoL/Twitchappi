@@ -626,6 +626,114 @@ app.get('/api/categories/search', async (req, res) => {
   }
 });
 
+// =========================================================
+// 6.B TWIFLIX AI (Gemini) — expansion & intent ranking
+// =========================================================
+// POST /api/ai/twiflix  { query: "..." } -> { success:true, terms:[...], intent:{...} }
+// NOTE: kept minimal so it plugs into existing Twiflix search without changing the UI.
+const twiflixAiLimiter = rateLimit({
+  windowMs: 1000, // 1s
+  max: 2,         // 2 req/sec
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const __twiflixAiCache = new Map(); // key -> {ts, payload}
+const TWIFLIX_AI_TTL = 15 * 60 * 1000;
+
+async function runTwiflixAI(query){
+  const q = sanitizeText(query || '', 80);
+  if(!q) return { success:true, terms:[], intent:{} };
+
+  const key = q.toLowerCase();
+  const now = Date.now();
+  const cached = __twiflixAiCache.get(key);
+  if(cached && (now - cached.ts) < TWIFLIX_AI_TTL) return cached.payload;
+
+  if(!aiClient){
+    const payload = { success:false, error:"IA non configurée (GEMINI_API_KEY manquant).", terms:[], intent:{} };
+    __twiflixAiCache.set(key, { ts: now, payload });
+    return payload;
+  }
+
+  // Force JSON output (no markdown) to keep frontend stable.
+  const prompt =
+`Tu es un assistant de recherche pour un catalogue de jeux (Twitch categories).
+Objectif: aider l'utilisateur à trouver le bon jeu même s'il écrit approximativement.
+Entrée utilisateur: "${q}"
+
+Réponds UNIQUEMENT en JSON (pas de markdown, pas de texte autour) avec la forme:
+{
+  "terms": ["synonyme1","synonyme2","genre","abbr","titre alternatif", "..."], 
+  "intent": {
+     "type": "game|genre|mechanic|mood|other",
+     "language": "fr|en|mixed",
+     "notes": "courte explication"
+  }
+}
+
+Règles:
+- terms: max 18 éléments, courts, sans doublons, pertinents pour élargir la recherche.
+- Inclure des synonymes/genres/mécaniques utiles (ex: "soulslike", "battle royale", "roguelike", "cozy").
+- Ne jamais inventer des IDs.
+`;
+
+  try{
+    const response = await aiClient.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
+    });
+
+    const raw = String(response?.text || '').trim();
+    // Attempt strict JSON parse; fallback to safe.
+    let data = null;
+    try { data = JSON.parse(raw); } catch(_){
+      const m = raw.match(/\{[\s\S]*\}/);
+      if(m) data = JSON.parse(m[0]);
+    }
+
+    const terms = Array.isArray(data?.terms) ? data.terms.map(t=>sanitizeText(t, 40)).filter(Boolean) : [];
+    const uniq = [];
+    const seen = new Set();
+    for(const t of terms){
+      const k = t.toLowerCase();
+      if(seen.has(k)) continue;
+      seen.add(k);
+      uniq.push(t);
+      if(uniq.length >= 18) break;
+    }
+
+    const payload = {
+      success:true,
+      query: q,
+      terms: uniq,
+      intent: (data && typeof data.intent === 'object' && data.intent) ? {
+        type: sanitizeText(data.intent.type || 'other', 20),
+        language: sanitizeText(data.intent.language || 'mixed', 12),
+        notes: sanitizeText(data.intent.notes || '', 160)
+      } : { type:'other', language:'mixed', notes:'' }
+    };
+
+    __twiflixAiCache.set(key, { ts: now, payload });
+    return payload;
+  }catch(e){
+    const payload = { success:false, error: e.message, terms:[], intent:{} };
+    __twiflixAiCache.set(key, { ts: now, payload });
+    return payload;
+  }
+}
+
+app.post('/api/ai/twiflix', twiflixAiLimiter, async (req, res) => {
+  try{
+    const q = String(req.body?.query || '').trim();
+    const out = await runTwiflixAI(q);
+    // Keep 200 OK even on IA error so frontend can fallback gracefully
+    return res.json(out);
+  }catch(e){
+    return res.json({ success:false, error:e.message, terms:[], intent:{} });
+  }
+});
+
 
 app.post('/api/stream/by_category', async (req, res) => {
   const gameId = String(req.body?.game_id || '');
