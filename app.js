@@ -1650,6 +1650,16 @@ const FANTASY_MAX_HOLDINGS = 10;
 const FANTASY_ALPHA = 0.18;  // strength
 const FANTASY_SCALE = 250;   // shares scale
 
+
+// ======= REAL EXCHANGE (order book + trades) =======
+const FANTASY_BOOKS = 'fantasy_books';
+const FANTASY_ORDERS = 'orders';
+const FANTASY_TRADES = 'trades';
+
+// Matching limits (keep transactions light)
+const BOOK_DEPTH = 30; // max orders considered per side during a match
+const ORDER_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days (cleanup optional)
+
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
 async function getLiveViewers(login){
@@ -1764,6 +1774,77 @@ function holdingsToArray(holdings){
   return Object.entries(holdings||{}).map(([login, h])=>({ login, shares: Number(h.shares||0) }));
 }
 
+
+
+function normLogin(s){ return sanitizeText(s||'',50).toLowerCase().trim(); }
+function normUser(s){ return sanitizeText(s||'Anon',50) || 'Anon'; }
+
+async function getBookMeta(login){
+  if(!firestoreOk) throw new Error('Firestore requis pour la vraie Bourse.');
+  const key = normLogin(login);
+  if(!key) throw new Error('missing streamer');
+  const ref = db.collection(FANTASY_BOOKS).doc(key);
+  const snap = await ref.get();
+  if(snap.exists) return { id:key, ...(snap.data()||{}) };
+  // init from base price (fair value)
+  const m = await getMarket(key);
+  const init = {
+    login: key,
+    lastPrice: m.basePrice,
+    updatedAt: Date.now()
+  };
+  await ref.set(init, { merge:true });
+  return { id:key, ...init };
+}
+
+function walletEnsureReserves(w){
+  if(!w) return w;
+  w.cash = Number(w.cash||0);
+  w.cashReserved = Number(w.cashReserved||0);
+  w.holdings = w.holdings || {};
+  for(const k of Object.keys(w.holdings)){
+    w.holdings[k] = w.holdings[k] || {};
+    w.holdings[k].shares = Number(w.holdings[k].shares||0);
+    w.holdings[k].reserved = Number(w.holdings[k].reserved||0);
+  }
+  return w;
+}
+
+async function getUserWalletEx(user){
+  const w = await getUserWallet(user);
+  return walletEnsureReserves(w);
+}
+
+async function saveUserWalletEx(w){
+  return saveUserWallet(walletEnsureReserves(w));
+}
+
+// Best orders (price-time priority)
+async function fetchBestOpposite(t, login, side){
+  // side = 'buy' -> we need best asks; side='sell' -> best bids
+  const key = normLogin(login);
+  const col = db.collection(FANTASY_BOOKS).doc(key).collection(FANTASY_ORDERS);
+  let q = col.where('status','==','open');
+  if(side === 'buy'){
+    q = q.where('side','==','sell').orderBy('price','asc').orderBy('createdAt','asc').limit(BOOK_DEPTH);
+  }else{
+    q = q.where('side','==','buy').orderBy('price','desc').orderBy('createdAt','asc').limit(BOOK_DEPTH);
+  }
+  const snap = await t.get(q);
+  return snap.docs.map(d=>({ id:d.id, ...(d.data()||{}) }));
+}
+
+function canMatch(order, bestOpp){
+  if(order.type === 'market') return true;
+  if(order.side === 'buy') return Number(bestOpp.price||0) <= Number(order.price||0);
+  return Number(bestOpp.price||0) >= Number(order.price||0);
+}
+
+function makerPrice(order, bestOpp){
+  // trade executes at maker (resting) price
+  return Number(bestOpp.price||0);
+}
+
 // Market endpoint for chart
 app.get('/api/fantasy/market', async (req,res)=>{
   try{
@@ -1801,77 +1882,422 @@ app.get('/api/fantasy/profile', async (req,res)=>{
       });
     }
 
-    res.json({ success:true, user: w.user, cash: Number(w.cash||0), holdings: enriched });
+    const netWorth = Number(w.cash||0) + enriched.reduce((s,x)=>s+Number(x.value||0),0);
+    res.json({ success:true, user: w.user, cash: Number(w.cash||0), netWorth, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+
+// ===== REAL EXCHANGE API =====
+
+// Get order book snapshot
+app.get('/api/fantasy/book', async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const login = normLogin(req.query.login || req.query.streamer || '');
+    if(!login) return res.status(400).json({ success:false, error:'missing login' });
+
+    const meta = await getBookMeta(login);
+
+    const ordersRef = db.collection(FANTASY_BOOKS).doc(login).collection(FANTASY_ORDERS);
+    const bidsSnap = await ordersRef.where('status','==','open').where('side','==','buy')
+      .orderBy('price','desc').orderBy('createdAt','asc').limit(20).get();
+    const asksSnap = await ordersRef.where('status','==','open').where('side','==','sell')
+      .orderBy('price','asc').orderBy('createdAt','asc').limit(20).get();
+
+    const bids = bidsSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    const asks = asksSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+    res.json({ success:true, login, meta, bids, asks });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Recent trades
+app.get('/api/fantasy/trades', async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const login = normLogin(req.query.login || req.query.streamer || '');
+    if(!login) return res.status(400).json({ success:false, error:'missing login' });
+
+    const snap = await db.collection(FANTASY_BOOKS).doc(login).collection(FANTASY_TRADES)
+      .orderBy('ts','desc').limit(50).get();
+    const trades = snap.docs.map(d=>({ id:d.id, ...d.data() })).reverse();
+    res.json({ success:true, login, trades });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// User open orders
+app.get('/api/fantasy/orders', async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const user = normUser(req.query.user || 'Anon');
+    const snap = await db.collectionGroup(FANTASY_ORDERS)
+      .where('user','==', user)
+      .where('status','==','open')
+      .orderBy('createdAt','desc')
+      .limit(50)
+      .get();
+    const orders = snap.docs.map(d=>({ id:d.id, ...d.data(), _path: d.ref.path }));
+    res.json({ success:true, user, orders });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Place order (market/limit). 
+// BUY market uses {budget}; BUY limit uses {qty, price}
+// SELL market uses {qty}; SELL limit uses {qty, price}
+
+async function placeOrderCore({ user, login, side, type, price=0, qty=0, budget=0 }){
+  if(!firestoreOk) throw new Error('Firestore requis.');
+  user = normUser(user);
+  login = normLogin(login);
+  side = (side === 'sell') ? 'sell' : 'buy';
+  type = (type === 'limit') ? 'limit' : 'market';
+  price = Number(price||0);
+  qty = Number(qty||0);
+  budget = Number(budget||0);
+
+  if(!login) throw new Error('login requis');
+  if(type === 'limit' && (!price || price<=0)) throw new Error('price requis (limit)');
+  if(side === 'buy' && type === 'market' && (!budget || budget<=0)) throw new Error('budget requis (buy market)');
+  if(!(side === 'buy' && type === 'market') && (!qty || qty<=0)) throw new Error('qty requis');
+
+  const orderId = makeId();
+  const now = Date.now();
+
+  return await db.runTransaction(async (t)=>{
+    await getBookMeta(login); // ensure book exists
+
+    const walletRef = db.collection(FANTASY_USERS).doc(user.toLowerCase());
+    const bookRef = db.collection(FANTASY_BOOKS).doc(login);
+    const ordersRef = bookRef.collection(FANTASY_ORDERS);
+
+    const wSnap = await t.get(walletRef);
+    const w = walletEnsureReserves(wSnap.exists ? (wSnap.data()||{}) : { user, cash: 10000, holdings:{} });
+    const holding = (w.holdings[login] = w.holdings[login] || { shares:0, reserved:0 });
+
+    let remaining = qty;
+    let budgetLeft = budget;
+
+    if(side === 'buy'){
+      if(type === 'limit'){
+        const costMax = remaining * price;
+        const available = w.cash - w.cashReserved;
+        if(costMax > available) throw new Error('Solde insuffisant (cash disponible).');
+        w.cashReserved += costMax;
+      }else{
+        const available = w.cash - w.cashReserved;
+        if(budgetLeft > available) throw new Error('Solde insuffisant (cash disponible).');
+        w.cashReserved += budgetLeft;
+      }
+    }else{
+      const availableShares = holding.shares - holding.reserved;
+      if(remaining > availableShares) throw new Error('Shares insuffisantes.');
+      holding.reserved += remaining;
+    }
+
+    const orderDoc = {
+      id: orderId,
+      user,
+      login,
+      side,
+      type,
+      price: type==='limit' ? price : 0,
+      qty: (side==='buy' && type==='market') ? 0 : remaining,
+      remaining: (side==='buy' && type==='market') ? 0 : remaining,
+      budget: (side==='buy' && type==='market') ? budgetLeft : 0,
+      budgetRemaining: (side==='buy' && type==='market') ? budgetLeft : 0,
+      status: 'open',
+      createdAt: now,
+      updatedAt: now
+    };
+    t.set(ordersRef.doc(orderId), orderDoc, { merge:false });
+
+    let filledQty = 0;
+    let filledCost = 0;
+    const trades = [];
+
+    while(true){
+      const opp = (await fetchBestOpposite(t, login, side))[0];
+      if(!opp) break;
+
+      if(side==='buy' && type==='market'){
+        if(!orderDoc.budgetRemaining || orderDoc.budgetRemaining <= 0) break;
+        const px = makerPrice(orderDoc, opp);
+        if(!px || px<=0) break;
+        const maxQtyByBudget = Math.floor(orderDoc.budgetRemaining / px);
+        if(maxQtyByBudget <= 0) break;
+
+        const take = Math.min(Number(opp.remaining||0), maxQtyByBudget);
+        if(take <= 0) break;
+
+        const cost = take * px;
+
+        w.cash -= cost;
+        w.cashReserved -= cost;
+        holding.shares += take;
+
+        const sellerRef = db.collection(FANTASY_USERS).doc(String(opp.user||'').toLowerCase());
+        const sSnap = await t.get(sellerRef);
+        const sw = walletEnsureReserves(sSnap.exists ? (sSnap.data()||{}) : { user: opp.user, cash: 10000, holdings:{} });
+        const sh = (sw.holdings[login] = sw.holdings[login] || { shares:0, reserved:0 });
+        sh.shares -= take;
+        sh.reserved = Math.max(0, sh.reserved - take);
+        sw.cash += cost;
+
+        t.set(walletRef, w, { merge:true });
+        t.set(sellerRef, sw, { merge:true });
+
+        const oppRemaining = Number(opp.remaining||0) - take;
+        t.set(ordersRef.doc(opp.id), { remaining: oppRemaining, status: oppRemaining<=0 ? 'filled':'open', updatedAt: now }, { merge:true });
+
+        orderDoc.budgetRemaining -= cost;
+        filledQty += take;
+        filledCost += cost;
+
+        const tradeId = makeId();
+        const trade = { id: tradeId, ts: now, login, price: px, qty: take, buyer: user, seller: opp.user };
+        trades.push(trade);
+        t.set(bookRef.collection(FANTASY_TRADES).doc(tradeId), trade, { merge:false });
+        t.set(bookRef, { lastPrice: px, updatedAt: now }, { merge:true });
+
+        continue;
+      }
+
+      if(!canMatch(orderDoc, opp)) break;
+
+      const px = makerPrice(orderDoc, opp);
+      const take = Math.min(Number(orderDoc.remaining||remaining), Number(opp.remaining||0));
+      if(take <= 0) break;
+
+      const cost = take * px;
+
+      if(side==='buy'){
+        w.cash -= cost;
+        w.cashReserved -= (take * (type==='limit' ? price : px));
+        holding.shares += take;
+
+        const sellerRef = db.collection(FANTASY_USERS).doc(String(opp.user||'').toLowerCase());
+        const sSnap = await t.get(sellerRef);
+        const sw = walletEnsureReserves(sSnap.exists ? (sSnap.data()||{}) : { user: opp.user, cash: 10000, holdings:{} });
+        const sh = (sw.holdings[login] = sw.holdings[login] || { shares:0, reserved:0 });
+        sh.shares -= take;
+        sh.reserved = Math.max(0, sh.reserved - take);
+        sw.cash += cost;
+
+        t.set(walletRef, w, { merge:true });
+        t.set(sellerRef, sw, { merge:true });
+
+        filledQty += take;
+        filledCost += cost;
+      }else{
+        const buyerRef = db.collection(FANTASY_USERS).doc(String(opp.user||'').toLowerCase());
+        const bSnap = await t.get(buyerRef);
+        const bw = walletEnsureReserves(bSnap.exists ? (bSnap.data()||{}) : { user: opp.user, cash: 10000, holdings:{} });
+        const bh = (bw.holdings[login] = bw.holdings[login] || { shares:0, reserved:0 });
+
+        bw.cash -= cost;
+        bw.cashReserved -= take * Number(opp.price||px);
+        bh.shares += take;
+
+        holding.shares -= take;
+        holding.reserved = Math.max(0, holding.reserved - take);
+        w.cash += cost;
+
+        t.set(walletRef, w, { merge:true });
+        t.set(buyerRef, bw, { merge:true });
+
+        filledQty += take;
+        filledCost += cost;
+      }
+
+      const orderRem = Number(orderDoc.remaining||remaining) - take;
+      orderDoc.remaining = orderRem;
+      const oppRem = Number(opp.remaining||0) - take;
+
+      t.set(ordersRef.doc(orderId), { remaining: orderRem, updatedAt: now, status: orderRem<=0?'filled':'open' }, { merge:true });
+      t.set(ordersRef.doc(opp.id), { remaining: oppRem, updatedAt: now, status: oppRem<=0?'filled':'open' }, { merge:true });
+
+      const tradeId = makeId();
+      const trade = side==='buy'
+        ? { id: tradeId, ts: now, login, price: px, qty: take, buyer: user, seller: opp.user }
+        : { id: tradeId, ts: now, login, price: px, qty: take, buyer: opp.user, seller: user };
+      trades.push(trade);
+      t.set(bookRef.collection(FANTASY_TRADES).doc(tradeId), trade, { merge:false });
+      t.set(bookRef, { lastPrice: px, updatedAt: now }, { merge:true });
+
+      if(orderDoc.remaining <= 0) break;
+    }
+
+    if(side==='buy' && type==='market'){
+      const unused = Math.max(0, orderDoc.budgetRemaining||0);
+      w.cashReserved = Math.max(0, w.cashReserved - unused);
+      t.set(walletRef, w, { merge:true });
+      t.set(ordersRef.doc(orderId), { status:'filled', updatedAt: now, budgetRemaining: 0 }, { merge:true });
+    }
+
+    return {
+      orderId,
+      filledQty,
+      avgPrice: filledQty ? (filledCost / filledQty) : 0,
+      remaining: (side==='buy'&&type==='market') ? 0 : Number(orderDoc.remaining||0),
+      trades
+    };
+  });
+}
+
+async function fetchInternalExchange(params){
+  return placeOrderCore(params);
+}
+
+
+app.post('/api/fantasy/order', async (req,res)=>{
+  try{
+    const out = await placeOrderCore({
+      user: req.body.user,
+      login: req.body.login || req.body.streamer,
+      side: req.body.side,
+      type: req.body.type,
+      price: req.body.price,
+      qty: req.body.qty,
+      budget: req.body.budget
+    });
+    res.json({ success:true, ...out });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+// Cancel an open order (user must match)
+app.post('/api/fantasy/cancel', async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const user = normUser(req.body.user || 'Anon');
+    const login = normLogin(req.body.login || req.body.streamer || '');
+    const orderId = sanitizeText(req.body.orderId || '', 120);
+    if(!login || !orderId) return res.status(400).json({ success:false, error:'login + orderId requis' });
+
+    await db.runTransaction(async (t)=>{
+      const walletRef = db.collection(FANTASY_USERS).doc(user.toLowerCase());
+      const bookRef = db.collection(FANTASY_BOOKS).doc(login);
+      const orderRef = bookRef.collection(FANTASY_ORDERS).doc(orderId);
+
+      const oSnap = await t.get(orderRef);
+      if(!oSnap.exists) throw new Error('Ordre introuvable');
+      const o = oSnap.data()||{};
+      if(o.user !== user) throw new Error('Forbidden');
+      if(o.status !== 'open') throw new Error('Ordre non annulable');
+
+      const wSnap = await t.get(walletRef);
+      const w = walletEnsureReserves(wSnap.exists ? (wSnap.data()||{}) : { user, cash:10000, holdings:{} });
+      const h = (w.holdings[login] = w.holdings[login] || { shares:0, reserved:0 });
+
+      if(o.side === 'buy'){
+        if(o.type === 'limit'){
+          const refund = Number(o.remaining||0) * Number(o.price||0);
+          w.cashReserved = Math.max(0, w.cashReserved - refund);
+        }else{
+          const refund = Number(o.budgetRemaining||0);
+          w.cashReserved = Math.max(0, w.cashReserved - refund);
+        }
+      }else{
+        const refundShares = Number(o.remaining||0);
+        h.reserved = Math.max(0, h.reserved - refundShares);
+      }
+
+      t.set(walletRef, w, { merge:true });
+      t.set(orderRef, { status:'cancelled', updatedAt: Date.now() }, { merge:true });
+    });
+
+    res.json({ success:true });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Reward credits for activity (anti-spam simple cooldown)
+app.post('/api/fantasy/reward', async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const user = normUser(req.body.user || 'Anon');
+    const type = sanitizeText(req.body.type || 'generic', 40).toLowerCase();
+    const now = Date.now();
+
+    const REWARDS = {
+      twitflix_view: { amount: 15, cd: 60_000 },
+      twitflix_launch: { amount: 30, cd: 90_000 },
+      analytics_view: { amount: 20, cd: 90_000 },
+      hub_chat: { amount: 10, cd: 25_000 },
+      niche_tool: { amount: 20, cd: 120_000 },
+      generic: { amount: 5, cd: 60_000 }
+    };
+    const cfg = REWARDS[type] || REWARDS.generic;
+
+    const ref = db.collection(FANTASY_USERS).doc(user.toLowerCase());
+    await db.runTransaction(async (t)=>{
+      const snap = await t.get(ref);
+      const w = walletEnsureReserves(snap.exists ? (snap.data()||{}) : { user, cash:10000, holdings:{} });
+      w.cooldowns = w.cooldowns || {};
+      const last = Number(w.cooldowns[type]||0);
+      if(now - last < cfg.cd) throw new Error('Cooldown');
+      w.cooldowns[type] = now;
+      w.cash = Number(w.cash||0) + cfg.amount;
+      t.set(ref, w, { merge:true });
+    });
+
+    res.json({ success:true, amount: cfg.amount });
+  }catch(e){
+    res.status(400).json({ success:false, error:e.message });
   }
 });
 
 // Invest (amount in credits -> shares at current market price)
+
 app.post('/api/fantasy/invest', async (req,res)=>{
   try{
-    const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
-    const login = sanitizeText(req.body.streamer || '', 50).toLowerCase();
+    const user = normUser(req.body.user || 'Anon');
+    const login = normLogin(req.body.streamer || req.body.login || '');
     const amount = Number(req.body.amount||0);
-
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
 
-    const w = await getUserWallet(user);
-    if(amount > Number(w.cash||0)) return res.status(400).json({ success:false, error:'Solde insuffisant.' });
-
-    const isNew = !w.holdings || !w.holdings[login];
-    const distinct = Object.keys(w.holdings || {}).length;
-    if(isNew && distinct >= FANTASY_MAX_HOLDINGS){
-      return res.status(400).json({ success:false, error:`Limite: ${FANTASY_MAX_HOLDINGS} streamers max.` });
-    }
-
-    const m = await getMarket(login);
-    const shares = Math.max(1, Math.floor(amount / m.price));
-    const cost = shares * m.price;
-
-    w.cash = Number(w.cash||0) - cost;
-    w.holdings = w.holdings || {};
-    w.holdings[login] = w.holdings[login] || { shares: 0 };
-    w.holdings[login].shares += shares;
-
-    await saveUserWallet(w);
-    await bumpShares(login, shares);
-
-    res.json({ success:true, shares, cost, price: m.price });
+    // wrapper: BUY market with budget=amount
+    const r = await fetchInternalExchange({ user, login, side:'buy', type:'market', budget: amount });
+    res.json({ success:true, shares: r.filledQty, cost: Math.round(r.filledQty * r.avgPrice), price: Math.round(r.avgPrice||0), orderId: r.orderId });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
 
 // Sell (amount in credits -> shares to sell)
+
 app.post('/api/fantasy/sell', async (req,res)=>{
   try{
-    const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
-    const login = sanitizeText(req.body.streamer || '', 50).toLowerCase();
+    const user = normUser(req.body.user || 'Anon');
+    const login = normLogin(req.body.streamer || req.body.login || '');
     const amount = Number(req.body.amount||0);
-
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
 
-    const w = await getUserWallet(user);
-    const have = Number(w.holdings?.[login]?.shares || 0);
-    if(!have) return res.status(400).json({ success:false, error:'Aucune position sur ce streamer.' });
-
-    const m = await getMarket(login);
-    const sharesToSell = clamp(Math.floor(amount / m.price), 1, have);
-    const proceeds = sharesToSell * m.price;
-
-    w.holdings[login].shares -= sharesToSell;
-    if(w.holdings[login].shares <= 0) delete w.holdings[login];
-    w.cash = Number(w.cash||0) + proceeds;
-
-    await saveUserWallet(w);
-    await bumpShares(login, -sharesToSell);
-
-    res.json({ success:true, shares: sharesToSell, proceeds, price: m.price });
+    // wrapper: SELL market using qty inferred from amount at last price
+    const meta = await getBookMeta(login);
+    const px = Number(meta.lastPrice || (await getMarket(login)).basePrice || 25);
+    const qty = Math.max(1, Math.floor(amount / px));
+    const r = await fetchInternalExchange({ user, login, side:'sell', type:'market', qty });
+    res.json({ success:true, shares: r.filledQty, gain: Math.round(r.filledQty * r.avgPrice), price: Math.round(r.avgPrice||0), orderId: r.orderId });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
 
 // Leaderboard by net worth
 app.get('/api/fantasy/leaderboard', async (req,res)=>{
