@@ -859,7 +859,17 @@
     #helpBody{ padding: 12px 14px; color:#d1d5db; font-size: 13px; line-height:1.45; }
     #helpBody ul{ margin-left: 18px; list-style: disc; }
 
-  </style>
+  
+  /* ===== Layout fixes (player aspect + chat height) ===== */
+  .player-aspect{ position:relative; width:100%; aspect-ratio:16/9; }
+  .player-aspect iframe{ position:absolute; inset:0; width:100%; height:100%; }
+
+  .tab-content{ display:flex; flex-direction:column; min-height:0; height:100%; }
+  #tab-chat, #tab-stats, #tab-tools, #tab-bourse{ min-height:0; }
+  #chat-container-hub{ min-height:0 !important; height:100%; }
+  #hub-messages{ flex:1 1 auto; min-height:0; }
+
+</style>
 </head>
 
 <body class="min-h-screen flex flex-col p-4">
@@ -949,8 +959,7 @@
           <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW <span class="help-dot" onclick="openHelp('overview');event.stopPropagation()">?</span></button>
           <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO <span class="help-dot" onclick="openHelp('analytics');event.stopPropagation()">?</span></button>
           <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE <span class="help-dot" onclick="openHelp('niche');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="bourse"><i class="fas fa-coins mr-1"></i> BOURSE <span class="help-dot" onclick="openHelp('bourse');event.stopPropagation()">?</span></button>
-        </div>
+</div>
 
         <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1071,65 +1080,6 @@
         </div>
       </div>
 
-        <div id="under-bourse" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="flex items-center justify-between mb-3">
-            <div class="text-sm font-bold text-gray-200"><i class="fas fa-coins mr-2 text-[#00f2ea]"></i>Bourse des Streamers</div>
-            <div class="flex items-center gap-2">
-              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#00f2ea]" onclick="openHelp('bourse')">?</button>
-              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#ff0099]" onclick="openFantasy()">Trading Desk</button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Cash <button class="help-dot-mini" onclick="openHelp('bourse_cash')">?</button></div>
-              <div id="bourse-cash" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Crédits dispo</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Net Worth <button class="help-dot-mini" onclick="openHelp('bourse_networth')">?</button></div>
-              <div id="bourse-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Cash + positions</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Réservé <button class="help-dot-mini" onclick="openHelp('bourse_reserved')">?</button></div>
-              <div id="bourse-reserved" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Ordres en attente</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Ordres ouverts <button class="help-dot-mini" onclick="openHelp('bourse_orders')">?</button></div>
-              <div id="bourse-open-orders" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Annulables</div>
-            </div>
-          </div>
-
-          <div class="mt-3 flex flex-wrap gap-2">
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('twitflix_view')">+15 Crédits (TwitFlix)</button>
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('analytics_view')">+20 Crédits (Stats)</button>
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('niche_tool')">+20 Crédits (Niche)</button>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="flex items-center justify-between">
-                <div class="text-xs text-gray-400 font-bold uppercase">Mon portefeuille</div>
-                <button class="px-2 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-[11px]" onclick="refreshBoursePanel()">↻</button>
-              </div>
-              <div id="bourse-portfolio" class="mt-2 text-xs text-gray-300">—</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-xs text-gray-400 font-bold uppercase">Leaderboard</div>
-              <div id="bourse-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
-            </div>
-          </div>
-
-          <div class="mt-3 text-[10px] text-gray-500">
-            Astuce : tu gagnes des crédits en explorant l’app (TwitFlix, Stats, Chat…) puis tu les investis ici.
-          </div>
         </div>
 
     </div>
@@ -1139,6 +1089,7 @@
         <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT <span class="help-dot" onclick="openHelp('chat');event.stopPropagation()">?</span></button>
         <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS <span class="help-dot" onclick="openHelp('stats');event.stopPropagation()">?</span></button>
         <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS <span class="help-dot" onclick="openHelp('tools');event.stopPropagation()">?</span></button>
+        <button class="tab-btn" onclick="openTab(event,'bourse')"><i class="fas fa-chart-line mr-2"></i>BOURSE <span class="help-dot" onclick="openHelp('bourse');event.stopPropagation()">?</span></button>
       </div>
 
       <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
@@ -1284,6 +1235,78 @@
         </div>
 
       </div>
+      <div id="tab-bourse" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-4 scrollbar-thin">
+
+        <div class="bg-[#111] p-3 rounded border border-[#222]">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-xs font-bold text-[#00f2ea]">📈 COURBE (sélectionne une ligne de portefeuille)</div>
+            <span class="help-dot" onclick="openHelp('bourse_chart');event.stopPropagation()">?</span>
+          </div>
+          <canvas id="chartBourse" width="640" height="220" style="width:100%;background:#0b0b0d;border:1px solid rgba(255,255,255,.10);border-radius:14px;"></canvas>
+          <div class="text-[10px] text-gray-400 mt-2">Astuce : clique sur un streamer dans “Mon portefeuille” pour afficher son cours.</div>
+        </div>
+
+
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-bold text-gray-200"><i class="fas fa-coins mr-2 text-[#00f2ea]"></i>Bourse des Streamers</div>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#00f2ea]" onclick="openHelp('bourse')">?</button>
+              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#ff0099]" onclick="openFantasy()">Trading Desk</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Cash <button class="help-dot-mini" onclick="openHelp('bourse_cash')">?</button></div>
+              <div id="bourse-cash" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Crédits dispo</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Net Worth <button class="help-dot-mini" onclick="openHelp('bourse_networth')">?</button></div>
+              <div id="bourse-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Cash + positions</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Réservé <button class="help-dot-mini" onclick="openHelp('bourse_reserved')">?</button></div>
+              <div id="bourse-reserved" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Ordres en attente</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Ordres ouverts <button class="help-dot-mini" onclick="openHelp('bourse_orders')">?</button></div>
+              <div id="bourse-open-orders" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Annulables</div>
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('twitflix_view')">+15 Crédits (TwitFlix)</button>
+            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('analytics_view')">+20 Crédits (Stats)</button>
+            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('niche_tool')">+20 Crédits (Niche)</button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="flex items-center justify-between">
+                <div class="text-xs text-gray-400 font-bold uppercase">Mon portefeuille</div>
+                <button class="px-2 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-[11px]" onclick="refreshBoursePanel()">↻</button>
+              </div>
+              <div id="bourse-portfolio" class="mt-2 text-xs text-gray-300">—</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-xs text-gray-400 font-bold uppercase">Leaderboard</div>
+              <div id="bourse-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
+            </div>
+          </div>
+
+          <div class="mt-3 text-[10px] text-gray-500">
+            Astuce : tu gagnes des crédits en explorant l’app (TwitFlix, Stats, Chat…) puis tu les investis ici.
+          
+      </div>
+
     </div>
   </div>
 
@@ -1463,7 +1486,7 @@
       const container = document.getElementById('video-container');
       const parentParam = PARENT_DOMAINS.join('&parent=');
       const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
-      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+      container.innerHTML = `<div class="player-aspect"><iframe src="${iframeUrl}" allowfullscreen="true" allow="autoplay; fullscreen" scrolling="no" style="border:none;width:100%;height:100%;"></iframe></div>`;
       loadStreamInfo(channel);
     }
 
@@ -1702,7 +1725,15 @@
       }
     }
 
-    function sendHubMessage(e){
+    
+function appendEmojiToHubInput(emoji){
+  const inp = document.getElementById('hub-input');
+  if(!inp) return;
+  inp.value = (inp.value || '') + String(emoji||'');
+  inp.focus();
+}
+
+function sendHubMessage(e){
       e.preventDefault();
       const input = document.getElementById('hub-input');
       const raw = (input?.value || '').trim();
@@ -3371,6 +3402,27 @@ function openHelp(key){
 function closeHelp(){ document.getElementById('helpModal')?.classList.remove('active'); }
 
 // ================= BOURSE PANEL =================
+
+// Select a holding and render its price chart
+let bourseSelectedLogin = null;
+async function selectBourseHolding(login){
+  try{
+    login = String(login||'').toLowerCase().trim();
+    if(!login) return;
+    bourseSelectedLogin = login;
+    const r = await fetch(`/api/fantasy/price_series?login=${encodeURIComponent(login)}`, { credentials:'include' }).then(x=>x.json());
+    if(r.success){
+      const labels = r.labels || [];
+      const values = r.values || [];
+      renderChart('chartBourse','line',labels,values,`Cours ${login}`);
+    }else{
+      renderChart('chartBourse','line',[],[],`Cours ${login}`);
+    }
+  }catch(e){
+    console.warn('selectBourseHolding', e);
+  }
+}
+
 async function refreshBoursePanel(){
   try{
     const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json());
@@ -3399,12 +3451,14 @@ async function refreshBoursePanel(){
       const rows = holdings
         .sort((a,b)=> (b.value||0)-(a.value||0))
         .slice(0, 12)
-        .map(h=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
+        .map(h=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d] hover:bg-[#101014] px-2 rounded" style="cursor:pointer" onclick="selectBourseHolding(decodeURIComponent('${encodeURIComponent(h.login||'')}'))">
           <div class="text-gray-200"><strong>${escapeHtml(h.login)}</strong> <span class="text-gray-500">x${Number(h.shares||0)}</span></div>
           <div class="text-gray-300">${Number(h.value||0).toLocaleString('fr-FR')}</div>
         </div>`).join('');
       document.getElementById('bourse-portfolio').innerHTML = rows;
-    }
+    
+      if(!bourseSelectedLogin && holdings[0]?.login){ selectBourseHolding(holdings[0].login); }
+}
 
     // Open orders count
     const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json());
