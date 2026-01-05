@@ -806,6 +806,20 @@
 }
 .mosaic-tile button:hover{ border-color:#00f2ea; }
 
+
+    .help{
+      width:18px;height:18px;border-radius:999px;
+      display:inline-flex;align-items:center;justify-content:center;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      color:#fff;
+      font-size:11px;
+      font-weight:900;
+      margin-left:6px;
+      cursor:pointer;
+    }
+    .help:hover{ border-color:#00f2ea; box-shadow:0 0 10px rgba(0,242,234,.18); }
+
 </style>
 </head>
 
@@ -1018,7 +1032,89 @@
       </div>
     </div>
 
-    <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
+    <div class="
+        <div id="under-bourse" class="u-tab-panel p-4 bg-[#0b0b0d]">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase flex items-center gap-2">
+              <i class="fas fa-coins mr-1 text-[#ff0099]"></i> Bourse des streamers
+              <button class="help" onclick="openHelp('bourse')" title="Aide">?</button>
+            </h4>
+            <button onclick="openFantasy()" class="bg-[#111] hover:bg-[#222] text-[#00f2ea] px-3 py-2 rounded font-bold transition text-xs font-orbitron border border-[#333] hover:border-[#00f2ea]">
+              Ouvrir le Trading Desk
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-2">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center justify-between">
+                Cash <button class="help" onclick="openHelp('bourse_cash')" title="Aide">?</button>
+              </div>
+              <div id="bourse-kpi-cash" class="text-xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Crédits disponibles</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center justify-between">
+                Valeur <button class="help" onclick="openHelp('bourse_worth')" title="Aide">?</button>
+              </div>
+              <div id="bourse-kpi-worth" class="text-xl font-orbitron text-[#00f2ea]">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Cash + positions</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center justify-between">
+                Réservé <button class="help" onclick="openHelp('bourse_reserved')" title="Aide">?</button>
+              </div>
+              <div id="bourse-kpi-reserved" class="text-xl font-orbitron text-gray-200">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Ordres en attente</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center justify-between">
+                Classement <button class="help" onclick="openHelp('bourse_rank')" title="Aide">?</button>
+              </div>
+              <div id="bourse-kpi-rank" class="text-xl font-orbitron text-[#ff0099]">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Top 20</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            <div class="bg-[#0a0a0a] border border-[#222] rounded p-3">
+              <div class="text-[11px] text-gray-300 font-bold flex items-center justify-between">
+                Actions rapides
+                <button class="help" onclick="openHelp('bourse_quick')" title="Aide">?</button>
+              </div>
+              <div class="text-[12px] text-gray-500 mt-1">
+                Gagne des crédits en utilisant l’app, puis investis. Clique sur “Trading Desk” pour placer des ordres MARKET/LIMIT.
+              </div>
+
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button onclick="fantasyReward('generic')" class="hub-emo">+ Crédits</button>
+                <button onclick="refreshFantasy()" class="hub-emo">Rafraîchir</button>
+                <button onclick="openTwitFlix(); fantasyReward('twitflix_view')" class="hub-emo">Explorer (TwitFlix)</button>
+              </div>
+
+              <div class="mt-4">
+                <div class="text-[11px] text-gray-300 font-bold mb-2 flex items-center justify-between">
+                  Ton portefeuille
+                  <button class="help" onclick="openHelp('bourse_portfolio')" title="Aide">?</button>
+                </div>
+                <div id="bourse-portfolio" class="text-[12px] text-gray-400">
+                  —
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-[#0a0a0a] border border-[#222] rounded p-3">
+              <div class="text-[11px] text-gray-300 font-bold mb-2 flex items-center justify-between">
+                Leaderboard
+                <button class="help" onclick="openHelp('bourse_leaderboard')" title="Aide">?</button>
+              </div>
+              <div id="bourse-leaderboard-mini" class="text-[12px] text-gray-400">
+                —
+              </div>
+            </div>
+          </div>
+        </div>
+
+lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
       <div class="tab-nav">
         <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
         <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
@@ -1244,12 +1340,16 @@
     // INIT
     window.addEventListener('load', async () => {
       initUnderTabs();
+      initHelpBubbles();
       await checkAuth();
       initPlayer();
       loadStatsDashboard();
       initCarouselScroll();
       initSocket();
       initFirebaseStatus();
+      // Bourse: preload profile + leaderboard (session-based)
+      refreshFantasy();
+      refreshBourseMiniLeaderboard();
       setInterval(loadStatsDashboard, 5 * 60 * 1000);
       
       // Infinite scroll listener
@@ -2899,7 +2999,53 @@
     modal.querySelector('#fantasy-buy').addEventListener('click', buy);
   }
   setInterval(ensureFantasy, 1400);
-})();
+}
+
+function initHelpBubbles(){
+  // Right-side tabs (CHAT / STATS / OUTILS)
+  document.querySelectorAll('.tab-nav .tab-btn').forEach(btn=>{
+    const label = (btn.textContent||'').toLowerCase();
+    let key = null;
+    if(label.includes('chat')) key='hubchat';
+    if(label.includes('stats')) key='stats';
+    if(label.includes('outil')) key='tools';
+    if(!key) return;
+
+    // prevent duplicates
+    if(btn.querySelector('.help')) return;
+
+    const h = document.createElement('button');
+    h.className='help';
+    h.textContent='?';
+    h.title='Aide';
+    h.onclick = (ev)=>{ ev.stopPropagation(); openHelp(key); };
+    btn.appendChild(h);
+  });
+
+  // Player tools
+  const toolMap = [
+    ['tool-mosaic','mosaic'],
+    ['tool-fantasy','fantasy'],
+    ['tool-ambilight','ambilight'],
+    ['tool-vibe','vibe'],
+  ];
+  toolMap.forEach(([id,key])=>{
+    const b = document.getElementById(id);
+    if(!b) return;
+    b.title = (b.title||'') + ' (clic droit: aide)';
+    b.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); openHelp(key); });
+  });
+
+  // Tools modules: Best Time Tool
+  const bt = document.querySelector('.best-time-tool h4');
+  if(bt && !bt.querySelector('.help')){
+    const h = document.createElement('button');
+    h.className='help'; h.textContent='?'; h.title='Aide';
+    h.onclick=(ev)=>{ ev.stopPropagation(); openHelp('besttime'); };
+    bt.appendChild(h);
+  }
+}
+)();
 
     // ==== Messenger-like reactions handlers (hover/tap) ====
     (function(){
@@ -3095,8 +3241,7 @@ function closeFantasy(e){ if(e) e.preventDefault(); document.getElementById('fan
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
 async function refreshFantasy(){
-  const user = (window.currentUser || 'Anon');
-  const prof = await fetch(`/api/fantasy/profile?user=${encodeURIComponent(user)}`).then(r=>r.json()).catch(()=>null);
+  const prof = await fetch(`/api/fantasy/profile`).then(r=>r.json()).catch(()=>null);
   if(prof && prof.success){
     document.getElementById('fantasyCash').textContent = `${Number(prof.cash||0).toLocaleString('fr-FR')} crédits`;
     const h = document.getElementById('fantasyHoldings');
@@ -3122,6 +3267,71 @@ async function refreshFantasy(){
     }
   }
 }
+
+function fantasyReward(type='generic'){
+  fetch('/api/fantasy/reward',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ type })
+  }).then(r=>r.json()).then(j=>{
+    if(j && j.success){
+      toast(`+${j.added||0} crédits`);
+      refreshFantasy();
+      refreshBourseMiniLeaderboard();
+    }
+  }).catch(()=>{});
+}
+
+function updateBourseTabFromProfile(prof){
+  try{
+    const cash = Number(prof.cash||0);
+    const reserved = Number(prof.cashReserved||0);
+    const worth = Number(prof.netWorth||cash);
+    const cashEl = document.getElementById('bourse-kpi-cash');
+    const worthEl = document.getElementById('bourse-kpi-worth');
+    const resEl = document.getElementById('bourse-kpi-reserved');
+    if(cashEl) cashEl.textContent = cash.toLocaleString('fr-FR');
+    if(worthEl) worthEl.textContent = worth.toLocaleString('fr-FR');
+    if(resEl) resEl.textContent = reserved.toLocaleString('fr-FR');
+
+    const port = document.getElementById('bourse-portfolio');
+    if(port){
+      const rows = (prof.holdings||[]).slice(0,12).map(x=>{
+        const sh = Number(x.shares||0);
+        const r = Number(x.reserved||0);
+        return `<div class="flex items-center justify-between border-b border-[#1f1f23] py-1">
+          <div class="text-white font-bold">${x.streamer}</div>
+          <div class="text-gray-400">${sh.toLocaleString('fr-FR')} <span class="text-[10px] text-gray-600">(${r.toLocaleString('fr-FR')} res.)</span></div>
+        </div>`;
+      }).join('') || '<div class="text-gray-500">Aucune position pour le moment. Ouvre le Trading Desk et place un ordre.</div>';
+      port.innerHTML = rows;
+    }
+  }catch(_){}
+}
+
+async function refreshBourseMiniLeaderboard(){
+  const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json()).catch(()=>null);
+  const box = document.getElementById('bourse-leaderboard-mini');
+  if(!box) return;
+  if(!lb || !lb.success){ box.textContent='—'; return; }
+  const me = (window.currentUser||'').toLowerCase();
+  const rows = (lb.items||[]).slice(0,10).map((x,i)=>{
+    const you = (String(x.user||'').toLowerCase()===me);
+    return `<div class="flex items-center justify-between border-b border-[#1f1f23] py-1 ${you?'text-[#00f2ea]':''}">
+      <div>${i+1}. ${x.user}</div>
+      <div class="font-bold">${Number(x.netWorth||0).toLocaleString('fr-FR')}</div>
+    </div>`;
+  }).join('');
+  box.innerHTML = rows || '—';
+  // rank KPI
+  const rankEl = document.getElementById('bourse-kpi-rank');
+  if(rankEl){
+    const idx = (lb.items||[]).findIndex(x=>String(x.user||'').toLowerCase()===me);
+    rankEl.textContent = (idx>=0)? `#${idx+1}` : '—';
+  }
+}
+
+
 
 async function loadMarket(login){
   if(!login) return;
@@ -3375,6 +3585,7 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
       nav.appendChild(b);
       addHelpBtn(b,'bourse');
     }
+    updateBourseTabFromProfile(prof);
   }
 
   // Add help to TwitFlix title if present
@@ -3484,7 +3695,7 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
       const [book, trades, orders] = await Promise.all([
         exFetch(`/api/fantasy/book?login=${encodeURIComponent(login)}`).catch(()=>null),
         exFetch(`/api/fantasy/trades?login=${encodeURIComponent(login)}`).catch(()=>null),
-        exFetch(`/api/fantasy/orders?user=${encodeURIComponent(getUser())}`).catch(()=>null)
+        exFetch(`/api/fantasy/orders`).catch(()=>null)
       ]);
 
       const bookEl = document.getElementById('exBook');
@@ -3537,7 +3748,7 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
                 <div style="font-weight:1000;color:${o.side==='buy'?'#a7f3d0':'#fca5a5'}">${o.side.toUpperCase()} ${o.type.toUpperCase()}</div>
                 <div style="color:#94a3b8;font-size:11px;">${o.type==='limit' ? ('@ '+Math.round(o.price||0)) : ''} • rem: ${Math.round(o.remaining||0)} ${o.type==='market'&&o.side==='buy' ? ('• budget: '+Math.round(o.budgetRemaining||0)) : ''}</div>
               </div>
-              <button class="btn" style="padding:6px 10px;border-radius:12px;" onclick="(async()=>{await fetch('/api/fantasy/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:getUser(),login:'${login}',orderId:'${o.id}'})}); await refreshFantasy(); await refreshExchange();})()">Annuler</button>
+              <button class="btn" style="padding:6px 10px;border-radius:12px;" onclick="(async()=>{await fetch('/api/fantasy/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:'${login}',orderId:'${o.id}'})}); await refreshFantasy(); await refreshExchange();})()">Annuler</button>
             </div>`).join('') || '<div style="color:#64748b;">Aucun</div>';
         }
       }
@@ -3553,7 +3764,7 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
     wrap.querySelector('#exPlace').addEventListener('click', async ()=>{
       const login = (inputStreamer.value||'').trim().toLowerCase();
       if(!login) return alert('login requis');
-      const body = { user: getUser(), login, side: sideSel.value, type: typeSel.value };
+      const body = { login, side: sideSel.value, type: typeSel.value };
       if(body.type==='limit'){
         body.price = Number(priceInp.value||0);
         body.qty = Number(qtyInp.value||0);
@@ -3569,7 +3780,7 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
       if(!out || !out.success) return alert(out?.error || 'Erreur');
       toast('Ordre exécuté / placé');
       // reward for usage
-      fetch('/api/fantasy/reward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:getUser(),type:'generic'})}).catch(()=>{});
+      fetch('/api/fantasy/reward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'generic'})}).catch(()=>{});
       await refreshFantasy();
       await refreshExchange();
     });
@@ -3578,7 +3789,7 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
     const openBtn = document.getElementById('tool-fantasy') || document.getElementById('fantasy-open');
     if(openBtn){
       openBtn.addEventListener('click', ()=>{
-        fetch('/api/fantasy/reward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:getUser(),type:'generic'})}).catch(()=>{});
+        fetch('/api/fantasy/reward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'generic'})}).catch(()=>{});
         setTimeout(refreshExchange, 250);
       });
     }
