@@ -883,6 +883,7 @@
       <button onclick="openTwitFlix()" class="bg-[#111] hover:bg-[#222] text-[#ff0099] px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] hover:border-[#ff0099] shadow-[0_0_10px_rgba(255,0,153,0.1)]">
         <i class="fas fa-play-circle"></i> TWITFLIX
       </button>
+      <button onclick="openBourse()" class="bg-[#111] hover:bg-[#171717] text-white px-4 py-2 rounded-lg text-sm font-orbitron border border-[#333] hover:border-[#00f2ea] shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_22px_rgba(0,242,234,0.18)] transition">📈 Bourse</button>
 
       <button onclick="openBourseModal()" class="bg-[#111] hover:bg-[#1a1a1a] text-white px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] hover:border-[#00ffd5]">
         <i class="fas fa-chart-line"></i> BOURSE
@@ -954,8 +955,7 @@
           <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW <span class="help-dot" onclick="openHelp('overview');event.stopPropagation()">?</span></button>
           <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO <span class="help-dot" onclick="openHelp('analytics');event.stopPropagation()">?</span></button>
           <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE <span class="help-dot" onclick="openHelp('niche');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="bourse"><i class="fas fa-coins mr-1"></i> BOURSE <span class="help-dot" onclick="openHelp('bourse');event.stopPropagation()">?</span></button>
-        </div>
+          </div>
 
         <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1076,10 +1076,7 @@
         </div>
       </div>
 
-        <div id="under-bourse" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="flex items-center justify-between mb-3">
-            <div class="text-sm font-bold text-gray-200"><i class="fas fa-coins mr-2 text-[#00f2ea]"></i>Bourse des Streamers</div>
-            <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2">
               <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#00f2ea]" onclick="openHelp('bourse')">?</button>
               <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#ff0099]" onclick="openFantasy()">Trading Desk</button>
             </div>
@@ -2976,7 +2973,7 @@
     }
     async function loadProfile(){
       const user = getUser();
-      const r = await fetch(`/api/fantasy/profile?user=${encodeURIComponent(user)}`);
+      const r = await fetch(`/api/fantasy/profile`);
       const j = await r.json();
       if(!j.success) throw new Error(j.error||'Erreur');
       const sum = document.getElementById('fantasy-summary');
@@ -3218,7 +3215,7 @@ function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp
 
 async function refreshFantasy(){
   const user = (window.currentUser || 'Anon');
-  const prof = await fetch(`/api/fantasy/profile?user=${encodeURIComponent(user)}`).then(r=>r.json()).catch(()=>null);
+  const prof = await fetch(`/api/fantasy/profile`).then(r=>r.json()).catch(()=>null);
   if(prof && prof.success){
     document.getElementById('fantasyCash').textContent = `${Number(prof.cash||0).toLocaleString('fr-FR')} crédits`;
     const h = document.getElementById('fantasyHoldings');
@@ -3694,6 +3691,150 @@ function appendEmojiToHubInput(emoji){
   input.focus();
 }
 
+
+// ====================== OVERLAY MANAGER (Definitive) ======================
+(function(){
+  const overlays = [
+    { id:'twitflix-modal', isOpen:(el)=>el.classList.contains('active'), close: ()=>{ try{ closeTwitFlix(); }catch(_){} } },
+    { id:'bourse-modal', isOpen:(el)=>el.classList.contains('active'), close: ()=>{ try{ closeBourse(); }catch(_){} } },
+    { id:'fantasyModal', isOpen:(el)=>el.classList.contains('active'), close: ()=>{ try{ closeFantasy(new Event('click')); }catch(_){} } },
+  ];
+  document.addEventListener('keydown', (e)=>{
+    if(e.key !== 'Escape') return;
+    for(const o of overlays){
+      const el = document.getElementById(o.id);
+      if(el && o.isOpen(el)){
+        o.close();
+        break;
+      }
+    }
+  });
+})();
+
+// ====================== BOURSE OVERLAY ======================
+let bourseChart = null;
+let bourseSelectedLogin = null;
+
+function openBourse(){
+  const el = document.getElementById('bourse-modal');
+  if(!el) return;
+  el.classList.add('active');
+  el.setAttribute('aria-hidden','false');
+  refreshBourseOverlay();
+}
+function closeBourse(){
+  const el = document.getElementById('bourse-modal');
+  if(!el) return;
+  el.classList.remove('active');
+  el.setAttribute('aria-hidden','true');
+}
+
+async function refreshBourseOverlay(){
+  const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+  if(!prof || !prof.success){
+    document.getElementById('boursePortfolio').innerHTML =
+      `<div class="text-xs opacity-70">Connecte-toi via Twitch pour utiliser la Bourse.</div>`;
+    return;
+  }
+
+  document.getElementById('bourseCash').textContent = Number(prof.cash||0).toLocaleString('fr-FR');
+  document.getElementById('bourseNetWorth').textContent = Number(prof.netWorth||0).toLocaleString('fr-FR');
+  document.getElementById('boursePositions').textContent = String((prof.holdings||[]).length);
+
+  const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json()).catch(()=>({success:false,orders:[]}));
+  document.getElementById('bourseOpenOrders').textContent = orders?.success ? String((orders.orders||[]).length) : '—';
+
+  const cont = document.getElementById('boursePortfolio');
+  const holdings = (prof.holdings||[]).slice().sort((a,b)=> (b.value||0)-(a.value||0));
+  if(!holdings.length){
+    cont.innerHTML = `<div class="text-xs opacity-70">Aucune position. Gagne des crédits puis achète via Trading Desk.</div>`;
+  }else{
+    cont.innerHTML = holdings.map(h=>`
+      <button class="w-full text-left py-2 px-2 rounded-lg hover:bg-[#111] border border-transparent hover:border-[#333] transition"
+        onclick="selectBourseStreamer('${escapeHtml(h.login)}')">
+        <div class="flex items-center justify-between">
+          <div class="font-semibold">${escapeHtml(h.login)}</div>
+          <div class="opacity-80">${Number(h.value||0).toLocaleString('fr-FR')}</div>
+        </div>
+        <div class="text-xs opacity-60">${Number(h.shares||0)} shares · ${Number(h.price||0).toLocaleString('fr-FR')} /share</div>
+      </button>
+    `).join('');
+    if(!bourseSelectedLogin) selectBourseStreamer(holdings[0].login);
+  }
+
+  const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json()).catch(()=>null);
+  const lbEl = document.getElementById('bourseLeaderboard');
+  if(lb && lb.success){
+    lbEl.innerHTML = (lb.items||[]).slice(0,20).map((x,i)=>`
+      <div class="flex items-center justify-between py-1 border-b border-[#151515]">
+        <div class="opacity-80">#${i+1} <span class="font-semibold">${escapeHtml(x.user)}</span></div>
+        <div>${Number(x.netWorth||0).toLocaleString('fr-FR')}</div>
+      </div>
+    `).join('') || `<div class="text-xs opacity-60">Aucun classement.</div>`;
+  }else{
+    lbEl.innerHTML = `<div class="text-xs opacity-60">Impossible de charger.</div>`;
+  }
+}
+
+async function selectBourseStreamer(login){
+  bourseSelectedLogin = login;
+  document.getElementById('bourseChartTitle').textContent = login ? `· ${login}` : '';
+  await loadBourseChart(login);
+}
+
+async function loadBourseChart(login){
+  const hint = document.getElementById('bourseChartHint');
+  hint.textContent = 'Chargement…';
+  const m = await fetch(`/api/fantasy/market?login=${encodeURIComponent(login)}`).then(r=>r.json()).catch(()=>null);
+  if(!m || !m.success){
+    hint.textContent = 'Impossible de charger le cours.';
+    renderBourseChart([]);
+    return;
+  }
+  const history = (m.history||[]).map(p=>({ ts: p.ts, price: p.price || p.basePrice || 0 })).filter(x=>x.ts && x.price);
+  hint.textContent = (history.length < 2) ? 'Pas assez de données de cours (fais quelques trades ou attends un peu).' :
+    'Astuce : le prix suit les échanges (trades) + un historique "market" si peu de trades.';
+  renderBourseChart(history);
+}
+
+function renderBourseChart(points){
+  const ctx = document.getElementById('bourseChartCanvas')?.getContext('2d');
+  if(!ctx) return;
+  const labels = points.map(p=> {
+    const d = new Date(p.ts);
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  });
+  const data = points.map(p=>p.price);
+
+  if(bourseChart) bourseChart.destroy();
+  bourseChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Prix', data, tension:0.25, fill:false }]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{ ticks:{ maxTicksLimit:8 } }, y:{ ticks:{ maxTicksLimit:6 } } }
+    }
+  });
+}
+
+async function rewardCredits(type){
+  await fetch('/api/fantasy/reward', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    credentials:'include',
+    body: JSON.stringify({ type })
+  }).catch(()=>null);
+  refreshBourseOverlay();
+}
+
+document.addEventListener('click', (e)=>{
+  const b = document.getElementById('bourse-modal');
+  if(b && b.classList.contains('active')){
+    if(e.target === b) closeBourse();
+  }
+});
 </script>
 
 <div id="mosaicModal" class="modal-overlay" onclick="closeMosaic(event)">
