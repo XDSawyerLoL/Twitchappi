@@ -1525,12 +1525,47 @@ io.on('connection', async (socket) => {
   // simple anti-spam per socket
   let lastMsgAt = 0;
 
+  function socketAuthUser(){
+    const tu = socket.request?.session?.twitchUser;
+    if(tu && tu.expiry && tu.expiry <= Date.now()) return { id:null, name:'Anon' };
+    if(tu) return { id: String(tu.id||tu.login||tu.display_name||'Anon'), name: String(tu.display_name||tu.login||tu.id||'Anon') };
+    return { id:null, name:'Anon' };
+  }
+
+  async function grantChatRewardIfConnected(){
+    // lightweight reward for chat activity (server-side identity)
+    const tu = socket.request?.session?.twitchUser;
+    if(!tu || (tu.expiry && tu.expiry <= Date.now()) || !firestoreOk) return;
+    const userId = String(tu.id||'');
+    if(!userId) return;
+    const type = 'hub_chat';
+    const now = Date.now();
+    const ref = db.collection(FANTASY_USERS).doc(userId.toLowerCase());
+    const cfg = { amount: 10, cd: 25_000 };
+    try{
+      await db.runTransaction(async (t)=>{
+        const snap = await t.get(ref);
+        const w = walletEnsureReserves(snap.exists ? (snap.data()||{}) : { user: userId, user_display: tu.display_name, cash: 10000, holdings:{} });
+        w.cooldowns = w.cooldowns || {};
+        const last = Number(w.cooldowns[type]||0);
+        if(now - last < cfg.cd) return; // silent
+        w.cooldowns[type] = now;
+        w.cash = Number(w.cash||0) + cfg.amount;
+        w.user = w.user || userId;
+        w.user_display = w.user_display || tu.display_name || tu.login || userId;
+        t.set(ref, w, { merge:true });
+      });
+    }catch(_){}
+  }
+
   socket.on('chat message', async (msg) => {
     const now = Date.now();
     if (now - lastMsgAt < 650) return; // cooldown
     lastMsgAt = now;
 
-    const user = sanitizeName(msg?.user);
+    const au = socketAuthUser();
+    const user = au.id || sanitizeName(msg?.user);
+    const user_display = au.name || null;
     const text = sanitizeText(msg?.text, 800);
 
     let gif = '';
@@ -1543,6 +1578,7 @@ io.on('connection', async (socket) => {
     const out = {
       id: makeId(),
       user,
+      user_display: user_display || null,
       text,
       gif,
       ts: now,
@@ -1550,7 +1586,10 @@ io.on('connection', async (socket) => {
     };
 
     // XP: only if non-empty text (avoid farming with empty)
-    if (text) await addXP(user, 5);
+    if (text) await addXP(user_display || user, 5);
+
+    // reward credits for chat usage (server-side)
+    if (text) await grantChatRewardIfConnected();
 
     await saveMessage(out);
     io.emit('chat message', out);
@@ -1562,7 +1601,9 @@ io.on('connection', async (socket) => {
     if (now - lastMsgAt < 650) return; // cooldown
     lastMsgAt = now;
 
-    const user = sanitizeName(msg?.user);
+    const au = socketAuthUser();
+    const user = au.id || sanitizeName(msg?.user);
+    const user_display = au.name || null;
     const text = sanitizeText(msg?.text, 800);
 
     let gif = '';
@@ -1575,6 +1616,7 @@ io.on('connection', async (socket) => {
     const out = {
       id: makeId(),
       user,
+      user_display: user_display || null,
       text,
       gif,
       ts: now,
@@ -1582,7 +1624,10 @@ io.on('connection', async (socket) => {
     };
 
     // XP: only if non-empty text (avoid farming with empty)
-    if (text) await addXP(user, 5);
+    if (text) await addXP(user_display || user, 5);
+
+    // reward credits for chat usage (server-side)
+    if (text) await grantChatRewardIfConnected();
 
     await saveMessage(out);
     io.emit('chat message', out);
