@@ -1913,3 +1913,41 @@ server.listen(PORT, () => {
   console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
   console.log("✅ Routes prêtes");
 });
+// Price series for chart (uses trades first, fallback to market history)
+app.get('/api/fantasy/price_series', async (req,res)=>{
+  try{
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'Firestore requis.' });
+    const login = normLogin(req.query.login || req.query.streamer || '');
+    const limit = clamp(parseInt(req.query.limit || '120', 10), 10, 500);
+    if(!login) return res.status(400).json({ success:false, error:'missing login' });
+
+    // Prefer real exchange trades
+    const tSnap = await db.collection(FANTASY_BOOKS).doc(login).collection(FANTASY_TRADES)
+      .orderBy('ts','desc').limit(limit).get();
+    let points = tSnap.docs.map(d=>d.data()).filter(x=>x && x.ts && x.price).reverse()
+      .map(x=>({ ts: x.ts, price: Number(x.price||0) }));
+
+    // Fallback: legacy market history (if no trades yet)
+    if(points.length < 3){
+      const hSnap = await db.collection(FANTASY_MARKET).doc(login).collection(FANTASY_HISTORY)
+        .orderBy('ts','desc').limit(limit).get();
+      points = hSnap.docs.map(d=>d.data()).filter(x=>x && x.ts && x.price).reverse()
+        .map(x=>({ ts: x.ts, price: Number(x.price||0) }));
+    }
+
+    // Build labels (HH:MM)
+    const labels = points.map(p=>{
+      const d = new Date(p.ts);
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      return `${hh}:${mm}`;
+    });
+    const values = points.map(p=>p.price);
+
+    return res.json({ success:true, login, labels, values });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
