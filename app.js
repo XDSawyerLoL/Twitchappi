@@ -470,7 +470,7 @@ async function collectAnalyticsSnapshot() {
 
     console.log(`📊 [CRON] Snapshot saved: viewers=${totalViewers}, live=${streams.length}`);
   } catch (e) {
-    console.error(\"❌ [CRON] Snapshot error:\", e.message);
+    console.error("❌ [CRON] Snapshot error:", e.message);
   } finally {
     __cronRunning = false;
   }
