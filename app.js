@@ -524,7 +524,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
         profile_image_url: user.profile_image_url
       };
       await new Promise((resolve,reject)=>req.session.save(err=>err?reject(err):resolve()));
-      res.send("<script>window.close();</script>");
+      res.send("<script>try{ if(window.opener){ window.opener.postMessage({type:'twitch_connected'}, '*'); } }catch(e){} window.close();</script>");
     } else {
       res.send("Erreur Token.");
     }
