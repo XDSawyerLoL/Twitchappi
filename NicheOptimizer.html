@@ -1269,11 +1269,16 @@ body.modal-open #player-tools{display:none !important;}
 
   <script>
     const API_BASE = window.location.origin;
+    // Always send cookies (session) even in embedded/third-party contexts
+    async function apiFetch(url, opts={}){
+      return fetch(url, Object.assign({ credentials: 'include' }, opts));
+    }
+
     
 
     async function refreshTwitchStatus(){
       try{
-        const res = await fetch(`${API_BASE}/twitch_user_status`);
+        const res = await apiFetch(`${API_BASE}/twitch_user_status`);
         const data = await res.json();
         const btn = document.getElementById('authBtn');
         const av = document.getElementById('twitchAvatar');
@@ -1391,7 +1396,7 @@ const __urlParams = new URLSearchParams(window.location.search);
 
     // AUTH
     async function checkAuth() {
-      const res = await fetch(`${API_BASE}/twitch_user_status`);
+      const res = await apiFetch(`${API_BASE}/twitch_user_status`);
       const data = await res.json();
       if (data.is_connected) {
         currentUser = data.display_name;
@@ -1410,7 +1415,7 @@ const __urlParams = new URLSearchParams(window.location.search);
     function startAuth() {
       window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
       const check = setInterval(async () => {
-        const res = await fetch(`${API_BASE}/twitch_user_status`);
+        const res = await apiFetch(`${API_BASE}/twitch_user_status`);
         const data = await res.json();
         if (data.is_connected) { clearInterval(check); await refreshTwitchStatus(); }
         if (w && w.closed) { clearInterval(check); await refreshTwitchStatus(); }
@@ -1418,7 +1423,7 @@ const __urlParams = new URLSearchParams(window.location.search);
       }, 1000);
     }
 
-    function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
+    function logout() { apiFetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
 
     // PLAYER
     async function initPlayer() {
@@ -1507,7 +1512,7 @@ const __urlParams = new URLSearchParams(window.location.search);
       const el = document.getElementById('carousel');
       el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
       try{
-        const res = await fetch(`${API_BASE}/followed_streams`);
+        const res = await apiFetch(`${API_BASE}/followed_streams`);
         const data = await res.json();
         if (data.success && data.streams.length > 0){
           el.innerHTML = '';
@@ -1572,7 +1577,7 @@ const __urlParams = new URLSearchParams(window.location.search);
       window.__hubSocketInited = true;
 
       try{
-        socket = io(undefined, { transports: ['websocket','polling'] });
+        socket = io(undefined, { transports: ['websocket'], withCredentials: true, reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 800, reconnectionDelayMax: 4000 });
 
         const status = document.getElementById('socket-status');
         const setStatus = (ok) => {
