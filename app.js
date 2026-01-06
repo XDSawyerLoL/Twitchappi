@@ -179,7 +179,8 @@ if (GEMINI_API_KEY) {
   }
 }
 
-app.use(cors({ origin: true, credentials: true }));
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS||'').split(',').map(s=>s.trim()).filter(Boolean);
+app.use(cors({ origin: (origin, cb)=>{ if(!origin) return cb(null,true); if(ALLOWED_ORIGINS.length===0) return cb(null,true); return cb(null, ALLOWED_ORIGINS.includes(origin)); }, credentials: true }));
 app.use(bodyParser.json({ limit: '2mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -196,8 +197,8 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: (process.env.COOKIE_SAMESITE || (process.env.EMBEDDED==='true' ? 'none' : 'lax')),
+    secure: (process.env.NODE_ENV === 'production' || process.env.EMBEDDED==='true'),
   }
 });
 app.use(sessionMiddleware);
@@ -490,7 +491,7 @@ if (ENABLE_CRON) {
 app.get('/twitch_auth_start', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
   const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-  res.cookie('twitch_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 600000 });
+  res.cookie('twitch_state', state, { httpOnly: true, secure: (process.env.NODE_ENV === 'production' || process.env.EMBEDDED==='true'), sameSite: (process.env.COOKIE_SAMESITE || (process.env.EMBEDDED==='true' ? 'none' : 'lax')), maxAge: 600000 });
   res.redirect(url);
 });
 
