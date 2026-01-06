@@ -735,11 +735,12 @@
   position:absolute;
   top:10px;
   right:10px;
-  z-index:99999 !important;
+  z-index:40 !important;
   display:flex;
   gap:8px;
   pointer-events:auto;
 }
+body.modal-open #player-tools{display:none !important;}
 #player-tools .toolbtn{ pointer-events:auto; }
 #video-container iframe{ position:relative; z-index:1 !important; }
 #video-container .player-wrap, #video-container #player{ position:relative; z-index:1 !important; }
@@ -774,7 +775,7 @@
 .modal-overlay{
   position:fixed; inset:0; background:rgba(0,0,0,.75);
   display:none; align-items:center; justify-content:center;
-  z-index:99999;
+  z-index:40;
 }
 .modal-overlay.active{ display:flex; }
 .modal-card{
@@ -1268,7 +1269,31 @@
 
   <script>
     const API_BASE = window.location.origin;
-    const __urlParams = new URLSearchParams(window.location.search);
+    
+
+    async function refreshTwitchStatus(){
+      try{
+        const res = await fetch(`${API_BASE}/twitch_user_status`);
+        const data = await res.json();
+        const btn = document.getElementById('authBtn');
+        const av = document.getElementById('twitchAvatar');
+        if (data.is_connected){
+          if(btn){ btn.textContent = 'Connecté'; btn.classList.add('connected'); }
+          if(av && data.profile_image_url){ av.src = data.profile_image_url; av.style.display='block'; }
+        } else {
+          if(btn){ btn.textContent = 'Connexion'; btn.classList.remove('connected'); }
+          if(av){ av.style.display='none'; }
+        }
+      }catch(e){}
+    }
+
+    window.addEventListener('message', (ev) => {
+      if (ev && ev.data && ev.data.type === 'twitch_connected') {
+        refreshTwitchStatus();
+        try{ if (typeof loadBourse === 'function') loadBourse(); }catch(e){}
+      }
+    });
+const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
@@ -1387,7 +1412,9 @@
       const check = setInterval(async () => {
         const res = await fetch(`${API_BASE}/twitch_user_status`);
         const data = await res.json();
-        if (data.is_connected) { clearInterval(check); location.reload(); }
+        if (data.is_connected) { clearInterval(check); await refreshTwitchStatus(); }
+        if (w && w.closed) { clearInterval(check); await refreshTwitchStatus(); }
+        if (Date.now() - started > 120000) { clearInterval(check); }
       }, 1000);
     }
 
@@ -3001,7 +3028,7 @@ function getParentParam(){
 function toast(msg){
   const t = document.createElement('div');
   t.textContent = msg;
-  t.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;z-index:999999;font-weight:900;';
+  t.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;z-index:409;font-weight:900;';
   document.body.appendChild(t);
   setTimeout(()=>t.remove(), 1400);
 }
@@ -3419,6 +3446,7 @@ let bourseModalOpen = false;
 let bourseSelectedLogin = null;
 
 function openBourseModal(){
+  document.body.classList.add('modal-open');
   const modal = document.getElementById('bourse-modal');
   if(!modal) return;
   bourseModalOpen = true;
@@ -3427,6 +3455,7 @@ function openBourseModal(){
 }
 
 function closeBourseModal(){
+  document.body.classList.remove('modal-open');
   const modal = document.getElementById('bourse-modal');
   if(!modal) return;
   bourseModalOpen = false;
