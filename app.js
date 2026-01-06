@@ -361,32 +361,48 @@ async function updateDailyRollupsForStream(stream, nowMs) {
   const chDailyRef = db.collection('channels').doc(String(stream.user_id))
     .collection('daily_stats').doc(dayKey);
 
-  try {
-    await db.runTransaction(async (tx) => {
-      const snap = await tx.get(chDailyRef);
-      const prev = snap.exists ? snap.data() : {};
-      const prevPeak = Number(prev.peak_viewers || 0);
-      const prevSamples = Number(prev.samples || 0);
-      const prevSum = Number(prev.total_viewers_sum || 0);
+  // Firestore peut renvoyer ABORTED (contention) quand beaucoup d'écritures
+  // visent le même document. On retry avec backoff court + jitter.
+  const MAX_RETRIES = 6;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(chDailyRef);
+        const prev = snap.exists ? snap.data() : {};
+        const prevPeak = Number(prev.peak_viewers || 0);
+        const prevSamples = Number(prev.samples || 0);
+        const prevSum = Number(prev.total_viewers_sum || 0);
 
-      const nextSamples = prevSamples + 1;
-      const nextSum = prevSum + viewers;
-      const nextPeak = viewers > prevPeak ? viewers : prevPeak;
+        const nextSamples = prevSamples + 1;
+        const nextSum = prevSum + viewers;
+        const nextPeak = viewers > prevPeak ? viewers : prevPeak;
 
-      tx.set(chDailyRef, {
-        day: dayKey,
-        samples: nextSamples,
-        total_viewers_sum: nextSum,
-        avg_viewers: Math.round(nextSum / nextSamples),
-        peak_viewers: nextPeak,
-        minutes_live_est: nextSamples * SNAPSHOT_EVERY_MIN,
-        top_game_id: stream.game_id || null,
-        top_game_name: stream.game_name || null,
-        updated_at: admin.firestore.Timestamp.fromMillis(nowMs)
-      }, { merge: true });
-    });
-  } catch (e) {
-    console.error("❌ [DAILY] channel rollup:", e.message);
+        tx.set(chDailyRef, {
+          day: dayKey,
+          samples: nextSamples,
+          total_viewers_sum: nextSum,
+          avg_viewers: Math.round(nextSum / nextSamples),
+          peak_viewers: nextPeak,
+          minutes_live_est: nextSamples * SNAPSHOT_EVERY_MIN,
+          top_game_id: stream.game_id || null,
+          top_game_name: stream.game_name || null,
+          updated_at: admin.firestore.Timestamp.fromMillis(nowMs)
+        }, { merge: true });
+      });
+      return; // ok
+    } catch (e) {
+      const msg = String(e?.message || '');
+      const code = String(e?.code || '');
+      const isContention = msg.includes('Too much contention') || msg.includes('ABORTED') || code === '10';
+      if (!isContention || attempt === MAX_RETRIES - 1) {
+        console.error("❌ [DAILY] channel rollup:", e.message);
+        return;
+      }
+      // backoff 40..320ms + jitter
+      const base = 40 * Math.pow(2, attempt);
+      const jitter = Math.floor(Math.random() * 80);
+      await new Promise(r => setTimeout(r, Math.min(500, base + jitter)));
+    }
   }
 }
 
@@ -1493,7 +1509,7 @@ app.get('/api/gifs/search', async (req, res) => {
 
 
 io.on('connection', async (socket) => {
-  console.log('🔌 [SOCKET] client connected');
+  if(process.env.NODE_ENV!=='production') console.log('🔌 [SOCKET] client connected');
 
   // send recent history on connect
   try{
@@ -1508,10 +1524,8 @@ io.on('connection', async (socket) => {
     const now = Date.now();
     if (now - lastMsgAt < 650) return; // cooldown
     lastMsgAt = now;
-    const sessU = socket.request?.session?.twitchUser;
-    const isSessValid = !!(sessU && (!sessU.expiry || sessU.expiry > Date.now()));
-    const user = sanitizeName(isSessValid ? (sessU.display_name || sessU.login || sessU.id) : (msg?.user));
-    const user_display = isSessValid ? (sessU.display_name || null) : null;
+
+    const user = sanitizeName(msg?.user);
     const text = sanitizeText(msg?.text, 800);
 
     let gif = '';
@@ -1524,7 +1538,6 @@ io.on('connection', async (socket) => {
     const out = {
       id: makeId(),
       user,
-      user_display: (typeof user_display !== 'undefined' ? user_display : null),
       text,
       gif,
       ts: now,
@@ -1543,10 +1556,8 @@ io.on('connection', async (socket) => {
     const now = Date.now();
     if (now - lastMsgAt < 650) return; // cooldown
     lastMsgAt = now;
-    const sessU = socket.request?.session?.twitchUser;
-    const isSessValid = !!(sessU && (!sessU.expiry || sessU.expiry > Date.now()));
-    const user = sanitizeName(isSessValid ? (sessU.display_name || sessU.login || sessU.id) : (msg?.user));
-    const user_display = isSessValid ? (sessU.display_name || null) : null;
+
+    const user = sanitizeName(msg?.user);
     const text = sanitizeText(msg?.text, 800);
 
     let gif = '';
@@ -1559,7 +1570,6 @@ io.on('connection', async (socket) => {
     const out = {
       id: makeId(),
       user,
-      user_display: (typeof user_display !== 'undefined' ? user_display : null),
       text,
       gif,
       ts: now,
@@ -1641,7 +1651,7 @@ io.on('connection', async (socket) => {
 
   
   socket.on('disconnect', () => {
-    console.log('🔌 [SOCKET] client disconnected');
+    if(process.env.NODE_ENV!=='production') console.log('🔌 [SOCKET] client disconnected');
   });
 });
 
@@ -1792,8 +1802,12 @@ app.get('/api/fantasy/market', async (req,res)=>{
 // Profile + holdings values
 app.get('/api/fantasy/profile', async (req,res)=>{
   try{
-    const user = sanitizeText(req.query.user || 'Anon', 50) || 'Anon';
-    const w = await getUserWallet(user);
+    const u = req.session?.twitchUser;
+    const isAuth = !!(u && u.expiry && u.expiry > Date.now());
+    const userKey = isAuth ? String(u.id) : (sanitizeText(req.query.user || 'Anon', 50) || 'Anon');
+    const userDisplay = isAuth ? (u.display_name || u.login || u.id) : userKey;
+
+    const w = await getUserWallet(userKey);
 
     const holdingsArr = holdingsToArray(w.holdings);
     const enriched = [];
@@ -1807,7 +1821,10 @@ app.get('/api/fantasy/profile', async (req,res)=>{
       });
     }
 
-    res.json({ success:true, user: w.user, cash: Number(w.cash||0), holdings: enriched });
+    const cash = Number(w.cash||0);
+    const netWorth = cash + enriched.reduce((s,x)=>s+Number(x.value||0),0);
+
+    res.json({ success:true, is_connected: isAuth, user: userDisplay, user_id: userKey, cash, netWorth, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -1816,13 +1833,16 @@ app.get('/api/fantasy/profile', async (req,res)=>{
 // Invest (amount in credits -> shares at current market price)
 app.post('/api/fantasy/invest', async (req,res)=>{
   try{
-    const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
-    const login = sanitizeText(req.body.streamer || '', 50).toLowerCase();
+    const u = req.session?.twitchUser;
+    const isAuth = !!(u && u.expiry && u.expiry > Date.now());
+    const userKey = isAuth ? String(u.id) : (sanitizeText(req.body.user || 'Anon', 50) || 'Anon');
+
+    const login = sanitizeText(req.body.streamer || req.body.login || '', 50).toLowerCase();
     const amount = Number(req.body.amount||0);
 
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
 
-    const w = await getUserWallet(user);
+    const w = await getUserWallet(userKey);
     if(amount > Number(w.cash||0)) return res.status(400).json({ success:false, error:'Solde insuffisant.' });
 
     const isNew = !w.holdings || !w.holdings[login];
@@ -1838,46 +1858,54 @@ app.post('/api/fantasy/invest', async (req,res)=>{
     w.cash = Number(w.cash||0) - cost;
     w.holdings = w.holdings || {};
     w.holdings[login] = w.holdings[login] || { shares: 0 };
-    w.holdings[login].shares += shares;
+    w.holdings[login].shares = Number(w.holdings[login].shares||0) + shares;
 
     await saveUserWallet(w);
     await bumpShares(login, shares);
 
-    res.json({ success:true, shares, cost, price: m.price });
+    res.json({ success:true, is_connected: isAuth, login, shares, cost, price: m.price });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
 
 // Sell (amount in credits -> shares to sell)
 app.post('/api/fantasy/sell', async (req,res)=>{
   try{
-    const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
-    const login = sanitizeText(req.body.streamer || '', 50).toLowerCase();
+    const u = req.session?.twitchUser;
+    const isAuth = !!(u && u.expiry && u.expiry > Date.now());
+    const userKey = isAuth ? String(u.id) : (sanitizeText(req.body.user || 'Anon', 50) || 'Anon');
+
+    const login = sanitizeText(req.body.streamer || req.body.login || '', 50).toLowerCase();
     const amount = Number(req.body.amount||0);
 
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
 
-    const w = await getUserWallet(user);
-    const have = Number(w.holdings?.[login]?.shares || 0);
-    if(!have) return res.status(400).json({ success:false, error:'Aucune position sur ce streamer.' });
+    const w = await getUserWallet(userKey);
+    const cur = Number(w?.holdings?.[login]?.shares || 0);
+    if(cur <= 0) return res.status(400).json({ success:false, error:'Aucune share à vendre.' });
 
     const m = await getMarket(login);
-    const sharesToSell = clamp(Math.floor(amount / m.price), 1, have);
-    const proceeds = sharesToSell * m.price;
+    const shares = Math.max(1, Math.floor(amount / m.price));
+    const sellQty = Math.min(cur, shares);
+    const gain = sellQty * m.price;
 
-    w.holdings[login].shares -= sharesToSell;
+    w.cash = Number(w.cash||0) + gain;
+    w.holdings = w.holdings || {};
+    w.holdings[login] = w.holdings[login] || { shares: 0 };
+    w.holdings[login].shares = Math.max(0, Number(w.holdings[login].shares||0) - sellQty);
     if(w.holdings[login].shares <= 0) delete w.holdings[login];
-    w.cash = Number(w.cash||0) + proceeds;
 
     await saveUserWallet(w);
-    await bumpShares(login, -sharesToSell);
+    await bumpShares(login, -sellQty);
 
-    res.json({ success:true, shares: sharesToSell, proceeds, price: m.price });
+    res.json({ success:true, is_connected: isAuth, login, shares: sellQty, gain, price: m.price });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
 
 // Leaderboard by net worth
 app.get('/api/fantasy/leaderboard', async (req,res)=>{
