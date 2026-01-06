@@ -3331,7 +3331,8 @@ async function refreshBoursePanel(){
     }
 
     const cash = Number(prof.cash||0);
-    const net = Number(prof.netWorth||0);
+    const computedNet = cash + (Array.isArray(prof.holdings)? prof.holdings.reduce((s,x)=>s+Number(x.value||0),0):0);
+    const net = Number(prof.netWorth||computedNet||0);
     // reserved not returned by profile (yet) → try read wallet fields via profile? fallback 0
     const reserved = Number(prof.cashReserved||0) || 0;
 
@@ -3548,45 +3549,81 @@ function drawBourseChart(points, label){
   const canvas = document.getElementById('bourse-chart');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
 
-  // clear
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // clear + background
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#060606';
+  ctx.fillRect(0,0,W,H);
 
   // frame
   ctx.strokeStyle = '#222';
   ctx.lineWidth = 1;
-  ctx.strokeRect(0.5,0.5,canvas.width-1,canvas.height-1);
+  ctx.strokeRect(0.5,0.5,W-1,H-1);
 
   if(!points || points.length < 2){
-    ctx.fillStyle = '#888';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('Pas assez de données de cours (trade/history).', 16, 40);
+    ctx.fillStyle = '#9a9a9a';
+    ctx.font = '14px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('Pas assez de données de cours (trades / historique).', 16, 40);
+    ctx.fillStyle = '#6f6f6f';
+    ctx.font = '12px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('Passe un ou deux trades (ou laisse tourner le marché) pour voir une courbe.', 16, 62);
     return;
   }
 
-  const ys = points.map(p=>p.y);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const pad = 20;
-  const w = canvas.width;
-  const h = canvas.height;
-  const x0 = pad, y0 = pad, x1 = w - pad, y1 = h - pad;
+  // padding for axes
+  const padL = 56, padR = 16, padT = 18, padB = 34;
+  const x0 = padL, x1 = W - padR;
+  const y0 = padT, y1 = H - padB;
+
+  const ys = points.map(p=>Number(p.y||0));
+  let minY = Math.min(...ys);
+  let maxY = Math.max(...ys);
+  if(minY === maxY){ minY = minY - 1; maxY = maxY + 1; }
 
   const tMin = points[0].t;
   const tMax = points[points.length-1].t;
 
-  function xScale(t){ return x0 + ((t - tMin) / Math.max(1,(tMax - tMin))) * (x1 - x0); }
-  function yScale(y){ 
+  const xScale = (t)=> x0 + ((t - tMin) / Math.max(1,(tMax - tMin))) * (x1 - x0);
+  const yScale = (y)=> {
     const denom = Math.max(1e-6, (maxY - minY));
     return y1 - ((y - minY) / denom) * (y1 - y0);
+  };
+
+  // grid + y ticks
+  const ticks = 5;
+  ctx.strokeStyle = '#121212';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#8a8a8a';
+  ctx.font = '11px ui-sans-serif, system-ui, -apple-system';
+
+  for(let i=0;i<=ticks;i++){
+    const p = i/ticks;
+    const yy = y0 + p*(y1-y0);
+    ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke();
+
+    const val = Math.round(maxY - p*(maxY-minY));
+    ctx.fillText(String(val), 10, yy+4);
   }
 
-  // grid (light)
-  ctx.strokeStyle = '#111';
-  for(let i=1;i<=4;i++){
-    const yy = y0 + (i/5)*(y1-y0);
-    ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke();
-  }
+  // x-axis baseline
+  ctx.strokeStyle = '#1b1b1b';
+  ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
+
+  // time labels (first/last)
+  const fmtTime = (ms)=>{
+    try{
+      const d = new Date(ms);
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      return hh+':'+mm;
+    }catch(_){ return ''; }
+  };
+  ctx.fillStyle = '#7e7e7e';
+  ctx.fillText(fmtTime(tMin), x0, H-12);
+  const lastLbl = fmtTime(tMax);
+  const tw = ctx.measureText(lastLbl).width;
+  ctx.fillText(lastLbl, x1 - tw, H-12);
 
   // line
   ctx.strokeStyle = '#00ffd5';
@@ -3598,19 +3635,58 @@ function drawBourseChart(points, label){
   }
   ctx.stroke();
 
-  // last dot
+  // points (subtle)
+  ctx.fillStyle = 'rgba(0,255,213,0.35)';
+  for(let i=0;i<points.length;i+=Math.ceil(points.length/18)){
+    ctx.beginPath();
+    ctx.arc(xScale(points[i].t), yScale(points[i].y), 2, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // last marker + value pill
   const lp = points[points.length-1];
+  const lx = xScale(lp.t), ly = yScale(lp.y);
+
   ctx.fillStyle = '#ff0099';
   ctx.beginPath();
-  ctx.arc(xScale(lp.t), yScale(lp.y), 4, 0, Math.PI*2);
+  ctx.arc(lx, ly, 4, 0, Math.PI*2);
   ctx.fill();
 
-  // labels
-  ctx.fillStyle = '#aaa';
-  ctx.font = '12px sans-serif';
-  ctx.fillText(`min ${Math.round(minY)} • max ${Math.round(maxY)} • last ${Math.round(lp.y)}`, 16, 18);
-  ctx.fillText(label || '', 16, h - 8);
+  const lastVal = Math.round(lp.y);
+  const pill = ` ${lastVal} `;
+  ctx.font = '12px ui-sans-serif, system-ui, -apple-system';
+  const pw = ctx.measureText(pill).width;
+  const px = Math.min(x1 - pw - 6, Math.max(x0 + 6, lx + 8));
+  const py = Math.min(y1 - 18, Math.max(y0 + 8, ly - 10));
+
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  roundRect(ctx, px, py-12, pw, 18, 8, true, true);
+
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fillText(pill, px, py+1);
+
+  // title
+  ctx.fillStyle = '#a9a9a9';
+  ctx.font = '12px ui-sans-serif, system-ui, -apple-system';
+  const title = label ? String(label) : '';
+  ctx.fillText(`min ${Math.round(minY)} • max ${Math.round(maxY)} • last ${lastVal}`, x0, 14);
+  if(title) ctx.fillText(title, x0, H-12);
 }
+
+function roundRect(ctx, x, y, w, h, r, fill, stroke){
+  r = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+  if(fill) ctx.fill();
+  if(stroke) ctx.stroke();
+}
+
 
 function formatCredits(n){
   const x = Math.round(Number(n||0));
@@ -3632,9 +3708,17 @@ document.addEventListener('click', (e)=>{
 function appendEmojiToHubInput(emoji){
   const input = document.getElementById('hub-input');
   if(!input) return;
-  input.value = (input.value || '') + (emoji || '');
+  const e = String(emoji||'').trim();
+  if(!e) return;
+  const cur = input.value || '';
+  // add a space if needed
+  const sep = cur && !/\s$/.test(cur) ? ' ' : '';
+  input.value = cur + sep + e + ' ';
   input.focus();
+  // place caret at end
+  try{ input.setSelectionRange(input.value.length, input.value.length); }catch(_){}
 }
+
 
 </script>
 
