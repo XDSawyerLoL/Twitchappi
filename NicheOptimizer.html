@@ -806,60 +806,7 @@
 }
 .mosaic-tile button:hover{ border-color:#00f2ea; }
 
-
-    /* Help dots */
-    .help-dot{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:16px; height:16px; border-radius:999px;
-      border:1px solid #2a2a2a; color:#9ca3af;
-      font-size:11px; margin-left:6px;
-      background: rgba(0,0,0,0.35);
-      cursor:pointer;
-    }
-    .help-dot:hover{ border-color: var(--secondary); color: var(--secondary); }
-    .help-dot-mini{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:14px; height:14px; border-radius:999px;
-      border:1px solid #2a2a2a; color:#9ca3af;
-      font-size:10px;
-      background: rgba(0,0,0,0.35);
-      cursor:pointer;
-    }
-    .help-dot-mini:hover{ border-color: var(--secondary); color: var(--secondary); }
-
-    /* Help modal */
-    #helpModal{
-      position:fixed; inset:0; z-index:9999;
-      display:none; align-items:center; justify-content:center;
-      background: rgba(0,0,0,0.65);
-      padding: 16px;
-    }
-    #helpModal.active{ display:flex; }
-    #helpCard{
-      width:min(720px, 96vw);
-      background: #0b0b0d;
-      border:1px solid #222;
-      border-radius:14px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
-      overflow:hidden;
-    }
-    #helpCardHeader{
-      display:flex; align-items:center; justify-content:space-between;
-      padding: 12px 14px;
-      background: linear-gradient(90deg, rgba(255,0,153,0.12), rgba(0,242,234,0.10));
-      border-bottom: 1px solid #222;
-    }
-    #helpTitle{ font-family: Orbitron, Inter, system-ui; font-size: 14px; color:#e5e7eb; }
-    #helpClose{
-      width:34px; height:34px; border-radius:10px;
-      border:1px solid #2a2a2a; background:#111; color:#e5e7eb;
-      cursor:pointer;
-    }
-    #helpClose:hover{ border-color: var(--secondary); color: var(--secondary); }
-    #helpBody{ padding: 12px 14px; color:#d1d5db; font-size: 13px; line-height:1.45; }
-    #helpBody ul{ margin-left: 18px; list-style: disc; }
-
-  </style>
+</style>
 </head>
 
 <body class="min-h-screen flex flex-col p-4">
@@ -946,10 +893,9 @@
 
       <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
         <div class="u-nav" id="under-tabs-nav">
-          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW <span class="help-dot" onclick="openHelp('overview');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO <span class="help-dot" onclick="openHelp('analytics');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE <span class="help-dot" onclick="openHelp('niche');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="bourse"><i class="fas fa-coins mr-1"></i> BOURSE <span class="help-dot" onclick="openHelp('bourse');event.stopPropagation()">?</span></button>
+          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
+          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
+          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
         </div>
 
         <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
@@ -1070,75 +1016,13 @@
           </div>
         </div>
       </div>
-
-        <div id="under-bourse" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="flex items-center justify-between mb-3">
-            <div class="text-sm font-bold text-gray-200"><i class="fas fa-coins mr-2 text-[#00f2ea]"></i>Bourse des Streamers</div>
-            <div class="flex items-center gap-2">
-              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#00f2ea]" onclick="openHelp('bourse')">?</button>
-              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#ff0099]" onclick="openFantasy()">Trading Desk</button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Cash <button class="help-dot-mini" onclick="openHelp('bourse_cash')">?</button></div>
-              <div id="bourse-cash" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Crédits dispo</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Net Worth <button class="help-dot-mini" onclick="openHelp('bourse_networth')">?</button></div>
-              <div id="bourse-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Cash + positions</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Réservé <button class="help-dot-mini" onclick="openHelp('bourse_reserved')">?</button></div>
-              <div id="bourse-reserved" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Ordres en attente</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Ordres ouverts <button class="help-dot-mini" onclick="openHelp('bourse_orders')">?</button></div>
-              <div id="bourse-open-orders" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Annulables</div>
-            </div>
-          </div>
-
-          <div class="mt-3 flex flex-wrap gap-2">
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('twitflix_view')">+15 Crédits (TwitFlix)</button>
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('analytics_view')">+20 Crédits (Stats)</button>
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('niche_tool')">+20 Crédits (Niche)</button>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="flex items-center justify-between">
-                <div class="text-xs text-gray-400 font-bold uppercase">Mon portefeuille</div>
-                <button class="px-2 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-[11px]" onclick="refreshBoursePanel()">↻</button>
-              </div>
-              <div id="bourse-portfolio" class="mt-2 text-xs text-gray-300">—</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-xs text-gray-400 font-bold uppercase">Leaderboard</div>
-              <div id="bourse-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
-            </div>
-          </div>
-
-          <div class="mt-3 text-[10px] text-gray-500">
-            Astuce : tu gagnes des crédits en explorant l’app (TwitFlix, Stats, Chat…) puis tu les investis ici.
-          </div>
-        </div>
-
     </div>
 
     <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
       <div class="tab-nav">
-        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT <span class="help-dot" onclick="openHelp('chat');event.stopPropagation()">?</span></button>
-        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS <span class="help-dot" onclick="openHelp('stats');event.stopPropagation()">?</span></button>
-        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS <span class="help-dot" onclick="openHelp('tools');event.stopPropagation()">?</span></button>
+        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
+        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
+        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
       </div>
 
       <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
@@ -1385,7 +1269,6 @@
       nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           const id = btn.getAttribute('data-ut');
-          if(id === 'bourse'){ setTimeout(refreshBoursePanel, 50); }
           nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
           btn.classList.add('active');
           document.querySelectorAll('#under-overview,#under-analytics,#under-niche').forEach(p=>p.classList.remove('active'));
@@ -3032,10 +2915,23 @@
         }
         const btn = e.target.closest('.hub-react-btn');
         if(btn){
-          const emoji = btn.getAttribute('data-react');
+          const emoji = btn.getAttribute('data-react') || '';
           const idEnc = btn.getAttribute('data-msg') || '';
-          const msgId = decodeURIComponent(idEnc);
-          if(window.emitHubReact) window.emitHubReact({ messageId: msgId, emoji });
+          const msgId = decodeURIComponent(idEnc || '');
+          // 1) Ajoute l'emote dans l'input (style Messenger)
+          const inp = document.getElementById('hub-input');
+          if(inp && emoji){
+            const start = inp.selectionStart ?? inp.value.length;
+            const end = inp.selectionEnd ?? inp.value.length;
+            const before = inp.value.slice(0,start);
+            const after = inp.value.slice(end);
+            inp.value = before + emoji + after;
+            const pos = start + emoji.length;
+            inp.setSelectionRange(pos,pos);
+            inp.focus();
+          }
+          // 2) Envoie aussi la réaction sur le message
+          if(window.emitHubReact && msgId && emoji) window.emitHubReact({ messageId: msgId, emoji });
         }
       });
     })();
@@ -3212,31 +3108,44 @@ function closeFantasy(e){ if(e) e.preventDefault(); document.getElementById('fan
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
 async function refreshFantasy(){
-  const user = (window.currentUser || 'Anon');
-  const prof = await fetch(`/api/fantasy/profile?user=${encodeURIComponent(user)}`).then(r=>r.json()).catch(()=>null);
-  if(prof && prof.success){
-    document.getElementById('fantasyCash').textContent = `${Number(prof.cash||0).toLocaleString('fr-FR')} crédits`;
-    const h = document.getElementById('fantasyHoldings');
-    if(h){
-      h.innerHTML = (prof.holdings||[]).map(x=>`
-        <div style="display:flex;justify-content:space-between;gap:10px;border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:10px;background:rgba(0,0,0,.15);cursor:pointer;"
-             onclick="loadMarket('${escapeHtml(x.login)}')">
-          <div style="font-weight:900;color:#fff;">${escapeHtml(x.login)} <span style="color:#a7a7b2;font-weight:700;">(${x.shares} sh)</span></div>
-          <div style="font-weight:900;color:#00f2ea;">${Math.round(x.value).toLocaleString('fr-FR')}</div>
-        </div>`).join('') || `<div style="color:#a7a7b2;">Aucun streamer en portefeuille.</div>`;
-    }
+  // Profil bourse: si connecté Twitch => session, sinon fallback Anon (dev)
+  const prof = await fetch(`/api/fantasy/profile`, { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+  if(!prof || !prof.success){
+    document.getElementById('fantasyCashNum').textContent = '—';
+    document.getElementById('fantasyNetWorth').textContent = '—';
+    document.getElementById('fantasyPositions').textContent = '—';
+    document.getElementById('fantasyOrders').textContent = '—';
+    const h = document.getElementById('fantasyHoldings'); if(h) h.innerHTML = `<div style="color:#a7a7b2;font-size:13px;">Impossible de charger la bourse.</div>`;
+    return;
   }
 
+  // KPIs
+  document.getElementById('fantasyCashNum').textContent = `${Number(prof.cash||0).toLocaleString('fr-FR')}`;
+  document.getElementById('fantasyNetWorth').textContent = `${Number(prof.netWorth||0).toLocaleString('fr-FR')}`;
+  document.getElementById('fantasyPositions').textContent = `${(prof.holdings||[]).length}`;
+  document.getElementById('fantasyOrders').textContent = `—`;
+
+  // Portefeuille
+  const h = document.getElementById('fantasyHoldings');
+  if(h){
+    h.innerHTML = (prof.holdings||[]).map(x=>`
+      <div class="fantasy-pos" onclick="loadMarket('${escapeHtml(x.login)}')">
+        <div>
+          <div class="fantasy-pos-name">${escapeHtml(x.login)}</div>
+          <div class="fantasy-pos-sub">${Number(x.shares||0)} shares • px ${Number(x.price||0)}</div>
+        </div>
+        <div class="fantasy-pos-val">${Number(x.value||0).toLocaleString('fr-FR')}</div>
+      </div>
+    `).join('') || `<div style="color:#a7a7b2;font-size:13px;">Aucune position. Investis sur un streamer 👇</div>`;
+  }
+
+  // Leaderboard
   const lb = await fetch(`/api/fantasy/leaderboard`).then(r=>r.json()).catch(()=>null);
-  if(lb && lb.success){
-    const el = document.getElementById('fantasyLeaderboard');
-    if(el){
-      el.innerHTML = (lb.items||[]).slice(0,10).map((u,i)=>`
-        <div style="display:flex;justify-content:space-between;gap:10px;border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:10px;background:rgba(0,0,0,.15);">
-          <div style="font-weight:900;color:#fff;">#${i+1} ${escapeHtml(u.user||'')}</div>
-          <div style="font-weight:900;color:#ffd600;">${Math.round(u.netWorth||0).toLocaleString('fr-FR')}</div>
-        </div>`).join('') || `<div style="color:#a7a7b2;">Aucun classement.</div>`;
-    }
+  const lbEl = document.getElementById('fantasyLeaderboard');
+  if(lbEl){
+    lbEl.innerHTML = (lb && lb.success && lb.items && lb.items.length)
+      ? lb.items.map((it,i)=>`<div class="fantasy-lb"><div>#${i+1} ${escapeHtml(it.user)}</div><div>${Number(it.netWorth||0).toLocaleString('fr-FR')}</div></div>`).join('')
+      : `<div style="color:#a7a7b2;font-size:13px;">—</div>`;
   }
 }
 
@@ -3262,56 +3171,110 @@ function drawChart(history, last){
   const c = document.getElementById('marketChart');
   if(!c) return;
   const ctx = c.getContext('2d');
-  const W=c.width, H=c.height;
+  const W = c.width, H = c.height;
+
   ctx.clearRect(0,0,W,H);
+  // background (opaque, to avoid bleed from behind modal)
   ctx.fillStyle = '#0b0b0d';
   ctx.fillRect(0,0,W,H);
+
   const pts = (history||[]).map(x=>Number(x.price||0)).filter(x=>x>0);
   if(pts.length < 2){
+    // fallback: draw a flat line at last
+    const px = Number(last||0);
     ctx.fillStyle = '#a7a7b2';
-    ctx.font = '14px system-ui';
-    ctx.fillText('Historique insuffisant (2+ points requis)', 16, 30);
+    ctx.font = '13px system-ui';
+    ctx.fillText('Pas assez de trades → historique "market" minimal.', 14, 22);
+    if(px>0){
+      ctx.strokeStyle='rgba(0,242,234,.75)';
+      ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(14, H-24); ctx.lineTo(W-14, H-24); ctx.stroke();
+      ctx.fillStyle='#00f2ea';
+      ctx.font='12px system-ui';
+      ctx.fillText(`px ${px}`, W-80, H-30);
+    }
     return;
   }
-  const minP=Math.min(...pts), maxP=Math.max(...pts);
-  const pad=18;
-  const sx=(W-pad*2)/(pts.length-1);
-  const sy=(H-pad*2)/(maxP-minP||1);
-  ctx.strokeStyle='rgba(0,242,234,.85)';
-  ctx.lineWidth=3;
+
+  const padL=42, padR=14, padT=16, padB=26;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  const minP = Math.min(...pts);
+  const maxP = Math.max(...pts);
+  const span = Math.max(1, maxP - minP);
+
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,.08)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<=4;i++){
+    const y = padT + (plotH*i/4);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W-padR, y); ctx.stroke();
+  }
+
+  // axes labels (min/max)
+  ctx.fillStyle = '#a7a7b2';
+  ctx.font = '11px system-ui';
+  ctx.fillText(String(maxP), 8, padT+10);
+  ctx.fillText(String(minP), 8, padT+plotH);
+
+  // line
+  ctx.strokeStyle = 'rgba(0,242,234,.90)';
+  ctx.lineWidth = 2;
   ctx.beginPath();
   pts.forEach((p,i)=>{
-    const x=pad+i*sx;
-    const y=H-pad-(p-minP)*sy;
+    const x = padL + (plotW * (i/(pts.length-1)));
+    const y = padT + (plotH * (1 - ((p-minP)/span)));
     if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
   });
   ctx.stroke();
-  ctx.fillStyle='#00f2ea';
-  ctx.font='bold 16px system-ui';
-  ctx.fillText(String(last||pts[pts.length-1]), W-70, 26);
+
+  // points + last marker
+  for(let i=0;i<pts.length;i++){
+    const p = pts[i];
+    const x = padL + (plotW * (i/(pts.length-1)));
+    const y = padT + (plotH * (1 - ((p-minP)/span)));
+    ctx.fillStyle = (i===pts.length-1) ? '#00f2ea' : 'rgba(255,255,255,.35)';
+    ctx.beginPath(); ctx.arc(x,y, (i===pts.length-1)?3.5:2, 0, Math.PI*2); ctx.fill();
+  }
+
+  const lastP = pts[pts.length-1];
+  ctx.fillStyle = '#00f2ea';
+  ctx.font = '12px system-ui';
+  ctx.fillText(`Dernier: ${lastP}`, W-120, padT+12);
 }
 
 async function fantasyBuy(){
-  const user = (window.currentUser || 'Anon');
-  const login = document.getElementById('fantasyStreamer')?.value?.trim();
+  const login = String(document.getElementById('fantasyStreamer')?.value || '').trim().toLowerCase();
   const amount = Number(document.getElementById('fantasyAmount')?.value || 0);
-  if(!login || !amount) return alert('Streamer + montant requis.');
-  const r = await fetch('/api/fantasy/invest', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ user, streamer: login, amount })}).then(r=>r.json()).catch(()=>null);
-  if(!r || !r.success) return alert(r?.error || 'Erreur invest.');
-  toast('Investissement effectué');
+  if(!login || !amount) return;
+  const r = await fetch('/api/fantasy/invest', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify({ streamer: login, amount })
+  }).then(x=>x.json()).catch(()=>null);
+  if(!r || !r.success){
+    alert(r?.error || 'Erreur invest.');
+    return;
+  }
   await refreshFantasy();
   await loadMarket(login);
 }
 async function fantasySell(){
-  const user = (window.currentUser || 'Anon');
-  const login = document.getElementById('fantasyStreamer')?.value?.trim();
+  const login = String(document.getElementById('fantasyStreamer')?.value || '').trim().toLowerCase();
   const amount = Number(document.getElementById('fantasyAmount')?.value || 0);
-  if(!login || !amount) return alert('Streamer + montant requis.');
-  const r = await fetch('/api/fantasy/sell', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ user, streamer: login, amount })}).then(r=>r.json()).catch(()=>null);
-  if(!r || !r.success) return alert(r?.error || 'Erreur sell.');
-  toast('Vente effectuée');
+  if(!login || !amount) return;
+  const r = await fetch('/api/fantasy/sell', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify({ streamer: login, amount })
+  }).then(x=>x.json()).catch(()=>null);
+  if(!r || !r.success){
+    alert(r?.error || 'Erreur sell.');
+    return;
+  }
   await refreshFantasy();
   await loadMarket(login);
 }
@@ -3322,135 +3285,20 @@ document.getElementById('ambilight')?.classList.toggle('on', __ambOn);
 document.getElementById('tool-vibe')?.classList.toggle('active', __vibeOn);
 setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 700);
 
-
-// ================= HELP SYSTEM (pedagogic) =================
-const HELP = {
-  chat: {
-    title: "Chat Hub (secure)",
-    html: "<p><strong>À quoi ça sert :</strong> réseauter, apprendre, repérer des tendances.</p><ul><li>Le serveur utilise ton login Twitch (si connecté) → pas de spoof.</li><li>Chaque message (texte) te donne un peu d’XP + peut déclencher un petit gain de crédits bourse (cooldown).</li></ul><p><strong>Progresser :</strong> pose une question précise, partage un retour d’expérience, observe les réactions.</p>"
-  },
-  stats: {
-    title: "Stats globales",
-    html: "<p><strong>À quoi ça sert :</strong> comprendre l’état du marché Twitch (viewers, jeux, langues).</p><p><strong>Progresser :</strong> utilise ces infos pour choisir un timing / une niche moins saturée.</p>"
-  },
-  tools: {
-    title: "Outils",
-    html: "<p><strong>À quoi ça sert :</strong> te donner des actions rapides : raid finder, best time tool, co-stream, etc.</p><p><strong>Progresser :</strong> teste une hypothèse → mesure → itère.</p>"
-  },
-  overview: {
-    title: "Overview",
-    html: "<p><strong>À quoi ça sert :</strong> te donner des KPI simples (score, moyenne, pic, croissance).</p><p><strong>Progresser :</strong> vise une amélioration stable plutôt qu’un pic isolé.</p>"
-  },
-  analytics: {
-    title: "Analytics Pro",
-    html: "<p><strong>À quoi ça sert :</strong> stats historisées Firestore + score de croissance.</p><p><strong>Progresser :</strong> compare 7/30 jours, observe la volatilité, ajuste tes horaires + formats.</p>"
-  },
-  niche: {
-    title: "Niche",
-    html: "<p><strong>À quoi ça sert :</strong> mesurer saturation et opportunité sur un jeu / une chaîne.</p><p><strong>Progresser :</strong> cherche les zones où l’opportunité est haute et la concurrence raisonnable.</p>"
-  },
-  bourse: {
-    title: "Bourse des streamers",
-    html: "<p><strong>À quoi ça sert :</strong> un marché en crédits virtuels basé sur de vrais échanges (ordres MARKET/LIMIT, annulation, historique).</p><ul><li>Tu gagnes des crédits en utilisant l’app.</li><li>Tu investis sur des streamers → portefeuille + classement.</li></ul><p><strong>Progresser :</strong> observe les tendances, teste des hypothèses, apprends le timing (entrer tôt / sortir trop tard).</p>"
-  },
-  bourse_cash: { title:"Cash", html:"<p>Crédits disponibles pour passer des ordres. Tu en gagnes via TwitFlix/Stats/Chat (cooldown).</p>" },
-  bourse_networth: { title:"Net Worth", html:"<p>Valeur totale = cash + valeur de tes positions (au prix du marché).</p>" },
-  bourse_reserved: { title:"Réservé", html:"<p>Partie bloquée par tes ordres ouverts (cashReserved / shares reserved). Libérée si l’ordre est exécuté ou annulé.</p>" },
-  bourse_orders: { title:"Ordres ouverts", html:"<p>Ordres LIMIT/MARKET non exécutés entièrement. Tu peux les annuler depuis le Trading Desk.</p>" }
-};
-
-function openHelp(key){
-  const item = HELP[key] || { title:"Aide", html:"<p>Aucune aide disponible pour ce module.</p>" };
-  const modal = document.getElementById('helpModal');
-  const title = document.getElementById('helpTitle');
-  const body = document.getElementById('helpBody');
-  if(title) title.textContent = item.title || 'Aide';
-  if(body) body.innerHTML = item.html || '';
-  modal?.classList.add('active');
-}
-function closeHelp(){ document.getElementById('helpModal')?.classList.remove('active'); }
-
-// ================= BOURSE PANEL =================
-async function refreshBoursePanel(){
-  try{
-    const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json());
-    if(!prof.success){
-      document.getElementById('bourse-portfolio').textContent = "Connecte-toi Twitch pour utiliser la Bourse.";
-      document.getElementById('bourse-cash').textContent = '--';
-      document.getElementById('bourse-networth').textContent = '--';
-      document.getElementById('bourse-reserved').textContent = '--';
-      document.getElementById('bourse-open-orders').textContent = '--';
-      return;
-    }
-
-    const cash = Number(prof.cash||0);
-    const net = Number(prof.netWorth||0);
-    // reserved not returned by profile (yet) → try read wallet fields via profile? fallback 0
-    const reserved = Number(prof.cashReserved||0) || 0;
-
-    document.getElementById('bourse-cash').textContent = cash.toLocaleString('fr-FR');
-    document.getElementById('bourse-networth').textContent = net.toLocaleString('fr-FR');
-    document.getElementById('bourse-reserved').textContent = reserved.toLocaleString('fr-FR');
-
-    const holdings = Array.isArray(prof.holdings) ? prof.holdings : [];
-    if(!holdings.length){
-      document.getElementById('bourse-portfolio').innerHTML = "<div class='text-gray-500'>Aucune position pour l’instant.</div>";
-    }else{
-      const rows = holdings
-        .sort((a,b)=> (b.value||0)-(a.value||0))
-        .slice(0, 12)
-        .map(h=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-          <div class="text-gray-200"><strong>${escapeHtml(h.login)}</strong> <span class="text-gray-500">x${Number(h.shares||0)}</span></div>
-          <div class="text-gray-300">${Number(h.value||0).toLocaleString('fr-FR')}</div>
-        </div>`).join('');
-      document.getElementById('bourse-portfolio').innerHTML = rows;
-    }
-
-    // Open orders count
-    const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json());
-    const openCount = orders.success ? (orders.orders?.length||0) : 0;
-    document.getElementById('bourse-open-orders').textContent = String(openCount);
-
-    // Leaderboard
-    const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json());
-    if(lb.success && Array.isArray(lb.items)){
-      const lines = lb.items.slice(0,10).map((x,i)=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-        <div class="text-gray-200">#${i+1} ${escapeHtml(x.user||'')}</div>
-        <div class="text-gray-300">${Math.round(x.netWorth||0).toLocaleString('fr-FR')}</div>
-      </div>`).join('');
-      document.getElementById('bourse-leaderboard').innerHTML = lines || "<div class='text-gray-500'>—</div>";
-    }else{
-      document.getElementById('bourse-leaderboard').innerHTML = "<div class='text-gray-500'>—</div>";
-    }
-  }catch(e){
-    console.warn('refreshBoursePanel error', e);
-  }
-}
-
-async function earnCredits(type){
-  try{
-    const r = await fetch('/api/fantasy/reward', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      credentials:'include',
-      body: JSON.stringify({ type })
-    }).then(r=>r.json());
-    if(r.success){
-      refreshBoursePanel();
-      (typeof toast==='function') && toast('+'+r.amount+' crédits', true);
-    }else{
-      (typeof toast==='function') && toast(r.error || 'Reward indisponible', false);
-    }
-  }catch(e){}
-}
-
 </script>
 
 <div id="mosaicModal" class="modal-overlay" onclick="closeMosaic(event)">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
       <div class="modal-title">Mosaic Mode</div>
-      <button class="modal-close" onclick="closeMosaic(event)">✕</button>
+      
+    <div class="fantasy-kpis">
+      <div class="kpi-card"><div class="kpi-lab">Cash</div><div id="fantasyCashNum" class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lab">Net Worth</div><div id="fantasyNetWorth" class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lab">Positions</div><div id="fantasyPositions" class="kpi-val">—</div></div>
+      <div class="kpi-card"><div class="kpi-lab">Ordres</div><div id="fantasyOrders" class="kpi-val">—</div></div>
+    </div>
+<button class="modal-close" onclick="closeMosaic(event)">✕</button>
     </div>
     <div class="mosaic-grid" id="mosaicGrid"></div>
   </div>
@@ -3459,12 +3307,12 @@ async function earnCredits(type){
 <div id="fantasyModal" class="modal-overlay" onclick="closeFantasy(event)">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
-      <div class="modal-title">Fantasy League</div>
+      <div class="modal-title">Bourse des Streamers</div>
       <button class="modal-close" onclick="closeFantasy(event)">✕</button>
     </div>
 
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:290px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
+      <div style="flex:1;min-width:290px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;#0f0f12;">
         <div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Portefeuille (max 10 streamers)</div>
         <div id="fantasyCash" style="font-size:22px;font-weight:900;color:#fff;">—</div>
         <div id="fantasyHoldings" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
@@ -3494,18 +3342,6 @@ async function earnCredits(type){
 
   </div>
 </div>
-
-
-  <!-- Help Modal -->
-  <div id="helpModal" onclick="if(event.target.id==='helpModal') closeHelp()">
-    <div id="helpCard">
-      <div id="helpCardHeader">
-        <div id="helpTitle">Aide</div>
-        <button id="helpClose" onclick="closeHelp()" title="Fermer">✕</button>
-      </div>
-      <div id="helpBody"></div>
-    </div>
-  </div>
 
 </body>
 </html>
