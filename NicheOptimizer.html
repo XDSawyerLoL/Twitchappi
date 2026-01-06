@@ -735,12 +735,11 @@
   position:absolute;
   top:10px;
   right:10px;
-  z-index:40 !important;
+  z-index:99999 !important;
   display:flex;
   gap:8px;
   pointer-events:auto;
 }
-body.modal-open #player-tools{display:none !important;}
 #player-tools .toolbtn{ pointer-events:auto; }
 #video-container iframe{ position:relative; z-index:1 !important; }
 #video-container .player-wrap, #video-container #player{ position:relative; z-index:1 !important; }
@@ -775,7 +774,7 @@ body.modal-open #player-tools{display:none !important;}
 .modal-overlay{
   position:fixed; inset:0; background:rgba(0,0,0,.75);
   display:none; align-items:center; justify-content:center;
-  z-index:40;
+  z-index:99999;
 }
 .modal-overlay.active{ display:flex; }
 .modal-card{
@@ -885,11 +884,6 @@ body.modal-open #player-tools{display:none !important;}
         <i class="fas fa-play-circle"></i> TWITFLIX
       </button>
 
-      <button onclick="openBourseModal()" class="bg-[#111] hover:bg-[#1a1a1a] text-white px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] hover:border-[#00ffd5]">
-        <i class="fas fa-chart-line"></i> BOURSE
-      </button>
-
-
       <div class="h-6 w-[1px] bg-[#333]"></div>
 
       <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
@@ -955,7 +949,8 @@ body.modal-open #player-tools{display:none !important;}
           <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW <span class="help-dot" onclick="openHelp('overview');event.stopPropagation()">?</span></button>
           <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO <span class="help-dot" onclick="openHelp('analytics');event.stopPropagation()">?</span></button>
           <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE <span class="help-dot" onclick="openHelp('niche');event.stopPropagation()">?</span></button>
-</div>
+          <button class="u-tab-btn" data-ut="bourse"><i class="fas fa-coins mr-1"></i> BOURSE <span class="help-dot" onclick="openHelp('bourse');event.stopPropagation()">?</span></button>
+        </div>
 
         <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1076,9 +1071,66 @@ body.modal-open #player-tools{display:none !important;}
         </div>
       </div>
 
-        
-<!-- removed under-bourse -->
+        <div id="under-bourse" class="u-tab-panel p-4 bg-[#0b0b0d]">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-bold text-gray-200"><i class="fas fa-coins mr-2 text-[#00f2ea]"></i>Bourse des Streamers</div>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#00f2ea]" onclick="openHelp('bourse')">?</button>
+              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#ff0099]" onclick="openFantasy()">Trading Desk</button>
+            </div>
+          </div>
 
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Cash <button class="help-dot-mini" onclick="openHelp('bourse_cash')">?</button></div>
+              <div id="bourse-cash" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Crédits dispo</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Net Worth <button class="help-dot-mini" onclick="openHelp('bourse_networth')">?</button></div>
+              <div id="bourse-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Cash + positions</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Réservé <button class="help-dot-mini" onclick="openHelp('bourse_reserved')">?</button></div>
+              <div id="bourse-reserved" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Ordres en attente</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Ordres ouverts <button class="help-dot-mini" onclick="openHelp('bourse_orders')">?</button></div>
+              <div id="bourse-open-orders" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Annulables</div>
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('twitflix_view')">+15 Crédits (TwitFlix)</button>
+            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('analytics_view')">+20 Crédits (Stats)</button>
+            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('niche_tool')">+20 Crédits (Niche)</button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="flex items-center justify-between">
+                <div class="text-xs text-gray-400 font-bold uppercase">Mon portefeuille</div>
+                <button class="px-2 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-[11px]" onclick="refreshBoursePanel()">↻</button>
+              </div>
+              <div id="bourse-portfolio" class="mt-2 text-xs text-gray-300">—</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-xs text-gray-400 font-bold uppercase">Leaderboard</div>
+              <div id="bourse-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
+            </div>
+          </div>
+
+          <div class="mt-3 text-[10px] text-gray-500">
+            Astuce : tu gagnes des crédits en explorant l’app (TwitFlix, Stats, Chat…) puis tu les investis ici.
+          </div>
+        </div>
 
     </div>
 
@@ -1269,36 +1321,7 @@ body.modal-open #player-tools{display:none !important;}
 
   <script>
     const API_BASE = window.location.origin;
-    // Always send cookies (session) even in embedded/third-party contexts
-    async function apiFetch(url, opts={}){
-      return fetch(url, Object.assign({ credentials: 'include' }, opts));
-    }
-
-    
-
-    async function refreshTwitchStatus(){
-      try{
-        const res = await apiFetch(`${API_BASE}/twitch_user_status`);
-        const data = await res.json();
-        const btn = document.getElementById('authBtn');
-        const av = document.getElementById('twitchAvatar');
-        if (data.is_connected){
-          if(btn){ btn.textContent = 'Connecté'; btn.classList.add('connected'); }
-          if(av && data.profile_image_url){ av.src = data.profile_image_url; av.style.display='block'; }
-        } else {
-          if(btn){ btn.textContent = 'Connexion'; btn.classList.remove('connected'); }
-          if(av){ av.style.display='none'; }
-        }
-      }catch(e){}
-    }
-
-    window.addEventListener('message', (ev) => {
-      if (ev && ev.data && ev.data.type === 'twitch_connected') {
-        refreshTwitchStatus();
-        try{ if (typeof loadBourse === 'function') loadBourse(); }catch(e){}
-      }
-    });
-const __urlParams = new URLSearchParams(window.location.search);
+    const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
@@ -1396,7 +1419,7 @@ const __urlParams = new URLSearchParams(window.location.search);
 
     // AUTH
     async function checkAuth() {
-      const res = await apiFetch(`${API_BASE}/twitch_user_status`);
+      const res = await fetch(`${API_BASE}/twitch_user_status`);
       const data = await res.json();
       if (data.is_connected) {
         currentUser = data.display_name;
@@ -1415,15 +1438,13 @@ const __urlParams = new URLSearchParams(window.location.search);
     function startAuth() {
       window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
       const check = setInterval(async () => {
-        const res = await apiFetch(`${API_BASE}/twitch_user_status`);
+        const res = await fetch(`${API_BASE}/twitch_user_status`);
         const data = await res.json();
-        if (data.is_connected) { clearInterval(check); await refreshTwitchStatus(); }
-        if (w && w.closed) { clearInterval(check); await refreshTwitchStatus(); }
-        if (Date.now() - started > 120000) { clearInterval(check); }
+        if (data.is_connected) { clearInterval(check); location.reload(); }
       }, 1000);
     }
 
-    function logout() { apiFetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
+    function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
 
     // PLAYER
     async function initPlayer() {
@@ -1512,7 +1533,7 @@ const __urlParams = new URLSearchParams(window.location.search);
       const el = document.getElementById('carousel');
       el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
       try{
-        const res = await apiFetch(`${API_BASE}/followed_streams`);
+        const res = await fetch(`${API_BASE}/followed_streams`);
         const data = await res.json();
         if (data.success && data.streams.length > 0){
           el.innerHTML = '';
@@ -1577,7 +1598,7 @@ const __urlParams = new URLSearchParams(window.location.search);
       window.__hubSocketInited = true;
 
       try{
-        socket = io(undefined, { transports: ['websocket'], withCredentials: true, reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 800, reconnectionDelayMax: 4000 });
+        socket = io(undefined, { transports: ['websocket','polling'] });
 
         const status = document.getElementById('socket-status');
         const setStatus = (ok) => {
@@ -3033,7 +3054,7 @@ function getParentParam(){
 function toast(msg){
   const t = document.createElement('div');
   t.textContent = msg;
-  t.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;z-index:409;font-weight:900;';
+  t.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 14px;border:1px solid rgba(255,255,255,.18);border-radius:14px;z-index:999999;font-weight:900;';
   document.body.appendChild(t);
   setTimeout(()=>t.remove(), 1400);
 }
@@ -3363,8 +3384,7 @@ async function refreshBoursePanel(){
     }
 
     const cash = Number(prof.cash||0);
-    const computedNet = cash + (Array.isArray(prof.holdings)? prof.holdings.reduce((s,x)=>s+Number(x.value||0),0):0);
-    const net = Number(prof.netWorth||computedNet||0);
+    const net = Number(prof.netWorth||0);
     // reserved not returned by profile (yet) → try read wallet fields via profile? fallback 0
     const reserved = Number(prof.cashReserved||0) || 0;
 
@@ -3424,336 +3444,6 @@ async function earnCredits(type){
   }catch(e){}
 }
 
-
-// Extend HELP (if existing) with Bourse entries
-window.HELP = window.HELP || {};
-Object.assign(window.HELP, {
-  bourse: { title:"Bourse des Streamers", what:"Une bourse en crédits virtuels. Tu trades des actions de streamers.", progress:"Apprends à repérer les trajectoires (stables/volatiles) et à gérer ton capital.", rewards:"Tu gagnes des crédits en utilisant les modules (TwitFlix, Stats, Niche, Chat)." },
-  bourse_cash: { title:"Cash", what:"Tes crédits disponibles.", progress:"Plus tu utilises l’app, plus tu peux investir.", rewards:"Gagné via rewards / ventes."},
-  bourse_networth: { title:"Net Worth", what:"Cash + valeur de tes positions.", progress:"Indicateur clé de progression sur la durée.", rewards:"Monte en prenant de meilleures décisions."},
-  bourse_positions: { title:"Positions", what:"Nombre de streamers que tu détiens.", progress:"Diversifier réduit le risque; focus peut augmenter le rendement.", rewards:"—"},
-  bourse_orders: { title:"Ordres ouverts", what:"Tes ordres limit/market en attente.", progress:"Les ordres limit t'aident à acheter/vendre au bon prix.", rewards:"—"},
-  bourse_chart: { title:"Cours", what:"Évolution du prix d'un streamer.", progress:"Comprendre la tendance t’aide à entrer/sortir au bon moment.", rewards:"—"},
-  bourse_leaderboard: { title:"Leaderboard", what:"Classement par Net Worth.", progress:"Motivation + compétition saine.", rewards:"—"}
-});
-
-
-document.addEventListener('click', (e)=>{
-  const btn = e.target.closest && e.target.closest('.hub-react-btn');
-  if(!btn) return;
-  const emo = btn.getAttribute('data-emoji') || btn.textContent;
-  if(emo) appendEmojiToHubInput(emo.trim());
-});
-
-
-// ===================== BOURSE MODAL (overlay like TwitFlix) =====================
-let bourseModalOpen = false;
-let bourseSelectedLogin = null;
-
-function openBourseModal(){
-  document.body.classList.add('modal-open');
-  const modal = document.getElementById('bourse-modal');
-  if(!modal) return;
-  bourseModalOpen = true;
-  modal.classList.add('active');
-  loadBourseDashboard().catch(()=>{});
-}
-
-function closeBourseModal(){
-  document.body.classList.remove('modal-open');
-  const modal = document.getElementById('bourse-modal');
-  if(!modal) return;
-  bourseModalOpen = false;
-  modal.classList.remove('active');
-}
-
-async function rewardCredits(type){
-  try{
-    await fetch('/api/fantasy/reward', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ type: type || 'generic' })
-    });
-  }catch(_){}
-}
-
-async function loadBourseDashboard(){
-  // Profile (cash/netWorth/holdings)
-  const prof = await fetch('/api/fantasy/profile').then(r=>r.json());
-  if(!prof.success){
-    document.getElementById('bourse-portfolio').innerHTML =
-      `<div class="text-red-400 text-sm">⚠️ Connecte-toi Twitch pour accéder à la Bourse.</div>`;
-    return;
-  }
-
-  const cashEl = document.getElementById('bourse-kpi-cash');
-  const nwEl = document.getElementById('bourse-kpi-networth');
-  const posEl = document.getElementById('bourse-kpi-positions');
-  cashEl.textContent = formatCredits(prof.cash || 0);
-  nwEl.textContent = formatCredits(prof.netWorth || 0);
-  posEl.textContent = String((prof.holdings || []).length);
-
-  // open orders count (optional)
-  try{
-    const ord = await fetch('/api/fantasy/orders').then(r=>r.json());
-    document.getElementById('bourse-kpi-orders').textContent = String((ord.orders || []).length || 0);
-  }catch(_){
-    document.getElementById('bourse-kpi-orders').textContent = '—';
-  }
-
-  renderPortfolio(prof.holdings || []);
-
-  // leaderboard
-  try{
-    const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json());
-    renderLeaderboard(lb.items || []);
-  }catch(_){
-    document.getElementById('bourse-leaderboard').innerHTML = `<div class="text-gray-500">—</div>`;
-  }
-
-  // default select first holding
-  if(!bourseSelectedLogin && (prof.holdings||[]).length){
-    selectBourseSymbol(prof.holdings[0].login);
-  }else if(bourseSelectedLogin){
-    selectBourseSymbol(bourseSelectedLogin);
-  }else{
-    drawBourseChart([], 'Aucune position');
-  }
-}
-
-function renderPortfolio(rows){
-  const host = document.getElementById('bourse-portfolio');
-  if(!rows.length){
-    host.innerHTML = `<div class="text-gray-400 text-sm">Aucune position. Gagne des crédits en utilisant l’app, puis investis via Trading Desk.</div>`;
-    return;
-  }
-
-  host.innerHTML = rows.map(r=>{
-    const login = r.login;
-    const shares = r.shares || 0;
-    const price = r.price || 0;
-    const value = r.value || 0;
-    return `
-      <button class="w-full text-left bg-[#070707] hover:bg-[#0f0f0f] border border-[#222] rounded p-2 flex items-center justify-between"
-              onclick="selectBourseSymbol('${escapeHtml(login)}')">
-        <div>
-          <div class="font-bold">${escapeHtml(login)}</div>
-          <div class="text-xs text-gray-400">${shares} shares • px ${formatCredits(price)}</div>
-        </div>
-        <div class="font-bold">${formatCredits(value)}</div>
-      </button>
-    `;
-  }).join('');
-}
-
-function renderLeaderboard(items){
-  const host = document.getElementById('bourse-leaderboard');
-  if(!items.length){
-    host.innerHTML = `<div class="text-gray-500">Aucun classement pour le moment.</div>`;
-    return;
-  }
-  host.innerHTML = items.slice(0,20).map((it, idx)=>`
-    <div class="bg-[#070707] border border-[#222] rounded p-2 flex items-center justify-between">
-      <div class="text-gray-300">#${idx+1} <strong>${escapeHtml(it.user || '—')}</strong></div>
-      <div class="font-bold">${formatCredits(it.netWorth || 0)}</div>
-    </div>
-  `).join('');
-}
-
-async function selectBourseSymbol(login){
-  bourseSelectedLogin = login;
-  document.getElementById('bourse-chart-title').textContent = login ? `• ${login}` : '';
-  // Use existing market history (no new backend needed)
-  try{
-    const d = await fetch(`/api/fantasy/market?login=${encodeURIComponent(login)}`).then(r=>r.json());
-    const points = (d.history || []).map(x=>({ t: x.ts, y: x.price }));
-    // Fallback: show base/last price as flat if no history
-    if(!points.length && d.market){
-      const now = Date.now();
-      points.push({ t: now - 60_000, y: d.market.price || d.market.basePrice || 25 });
-      points.push({ t: now, y: d.market.price || d.market.basePrice || 25 });
-    }
-    drawBourseChart(points, login);
-  }catch(_){
-    drawBourseChart([], login);
-  }
-}
-
-function drawBourseChart(points, label){
-  const canvas = document.getElementById('bourse-chart');
-  if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-
-  // clear + background
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = '#060606';
-  ctx.fillRect(0,0,W,H);
-
-  // frame
-  ctx.strokeStyle = '#222';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0.5,0.5,W-1,H-1);
-
-  if(!points || points.length < 2){
-    ctx.fillStyle = '#9a9a9a';
-    ctx.font = '14px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText('Pas assez de données de cours (trades / historique).', 16, 40);
-    ctx.fillStyle = '#6f6f6f';
-    ctx.font = '12px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText('Passe un ou deux trades (ou laisse tourner le marché) pour voir une courbe.', 16, 62);
-    return;
-  }
-
-  // padding for axes
-  const padL = 56, padR = 16, padT = 18, padB = 34;
-  const x0 = padL, x1 = W - padR;
-  const y0 = padT, y1 = H - padB;
-
-  const ys = points.map(p=>Number(p.y||0));
-  let minY = Math.min(...ys);
-  let maxY = Math.max(...ys);
-  if(minY === maxY){ minY = minY - 1; maxY = maxY + 1; }
-
-  const tMin = points[0].t;
-  const tMax = points[points.length-1].t;
-
-  const xScale = (t)=> x0 + ((t - tMin) / Math.max(1,(tMax - tMin))) * (x1 - x0);
-  const yScale = (y)=> {
-    const denom = Math.max(1e-6, (maxY - minY));
-    return y1 - ((y - minY) / denom) * (y1 - y0);
-  };
-
-  // grid + y ticks
-  const ticks = 5;
-  ctx.strokeStyle = '#121212';
-  ctx.lineWidth = 1;
-  ctx.fillStyle = '#8a8a8a';
-  ctx.font = '11px ui-sans-serif, system-ui, -apple-system';
-
-  for(let i=0;i<=ticks;i++){
-    const p = i/ticks;
-    const yy = y0 + p*(y1-y0);
-    ctx.beginPath(); ctx.moveTo(x0,yy); ctx.lineTo(x1,yy); ctx.stroke();
-
-    const val = Math.round(maxY - p*(maxY-minY));
-    ctx.fillText(String(val), 10, yy+4);
-  }
-
-  // x-axis baseline
-  ctx.strokeStyle = '#1b1b1b';
-  ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); ctx.stroke();
-
-  // time labels (first/last)
-  const fmtTime = (ms)=>{
-    try{
-      const d = new Date(ms);
-      const hh = String(d.getHours()).padStart(2,'0');
-      const mm = String(d.getMinutes()).padStart(2,'0');
-      return hh+':'+mm;
-    }catch(_){ return ''; }
-  };
-  ctx.fillStyle = '#7e7e7e';
-  ctx.fillText(fmtTime(tMin), x0, H-12);
-  const lastLbl = fmtTime(tMax);
-  const tw = ctx.measureText(lastLbl).width;
-  ctx.fillText(lastLbl, x1 - tw, H-12);
-
-  // line
-  ctx.strokeStyle = '#00ffd5';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(xScale(points[0].t), yScale(points[0].y));
-  for(let i=1;i<points.length;i++){
-    ctx.lineTo(xScale(points[i].t), yScale(points[i].y));
-  }
-  ctx.stroke();
-
-  // points (subtle)
-  ctx.fillStyle = 'rgba(0,255,213,0.35)';
-  for(let i=0;i<points.length;i+=Math.ceil(points.length/18)){
-    ctx.beginPath();
-    ctx.arc(xScale(points[i].t), yScale(points[i].y), 2, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  // last marker + value pill
-  const lp = points[points.length-1];
-  const lx = xScale(lp.t), ly = yScale(lp.y);
-
-  ctx.fillStyle = '#ff0099';
-  ctx.beginPath();
-  ctx.arc(lx, ly, 4, 0, Math.PI*2);
-  ctx.fill();
-
-  const lastVal = Math.round(lp.y);
-  const pill = ` ${lastVal} `;
-  ctx.font = '12px ui-sans-serif, system-ui, -apple-system';
-  const pw = ctx.measureText(pill).width;
-  const px = Math.min(x1 - pw - 6, Math.max(x0 + 6, lx + 8));
-  const py = Math.min(y1 - 18, Math.max(y0 + 8, ly - 10));
-
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
-  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-  roundRect(ctx, px, py-12, pw, 18, 8, true, true);
-
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillText(pill, px, py+1);
-
-  // title
-  ctx.fillStyle = '#a9a9a9';
-  ctx.font = '12px ui-sans-serif, system-ui, -apple-system';
-  const title = label ? String(label) : '';
-  ctx.fillText(`min ${Math.round(minY)} • max ${Math.round(maxY)} • last ${lastVal}`, x0, 14);
-  if(title) ctx.fillText(title, x0, H-12);
-}
-
-function roundRect(ctx, x, y, w, h, r, fill, stroke){
-  r = Math.min(r, w/2, h/2);
-  ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.arcTo(x+w, y, x+w, y+h, r);
-  ctx.arcTo(x+w, y+h, x, y+h, r);
-  ctx.arcTo(x, y+h, x, y, r);
-  ctx.arcTo(x, y, x+w, y, r);
-  ctx.closePath();
-  if(fill) ctx.fill();
-  if(stroke) ctx.stroke();
-}
-
-
-function formatCredits(n){
-  const x = Math.round(Number(n||0));
-  return x.toLocaleString('fr-FR');
-}
-
-function escapeHtml(str){
-  return String(str||'').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-}
-
-// Close modal if click outside content
-document.addEventListener('click', (e)=>{
-  const modal = document.getElementById('bourse-modal');
-  if(!modal || !bourseModalOpen) return;
-  if(e.target === modal) closeBourseModal();
-});
-
-// ===================== HUB EMOJI UX: click reaction -> append to input =====================
-function appendEmojiToHubInput(emoji){
-  const input = document.getElementById('hub-input');
-  if(!input) return;
-  const e = String(emoji||'').trim();
-  if(!e) return;
-  const cur = input.value || '';
-  // add a space if needed
-  const sep = cur && !/\s$/.test(cur) ? ' ' : '';
-  input.value = cur + sep + e + ' ';
-  input.focus();
-  // place caret at end
-  try{ input.setSelectionRange(input.value.length, input.value.length); }catch(_){}
-}
-
-
 </script>
 
 <div id="mosaicModal" class="modal-overlay" onclick="closeMosaic(event)">
@@ -3765,72 +3455,6 @@ function appendEmojiToHubInput(emoji){
     <div class="mosaic-grid" id="mosaicGrid"></div>
   </div>
 </div>
-
-
-  <!-- BOURSE MODAL (same UX as TwitFlix: overlay window, does NOT change layout) -->
-  <div id="bourse-modal" class="tf-modal-overlay">
-    <div class="tf-modal-content">
-      <div class="tf-topbar">
-        <div class="flex items-center gap-2">
-          <div class="text-lg font-orbitron">📈 Bourse des Streamers</div>
-          <button class="ml-2 tf-pill" onclick="openHelp('bourse')">?</button>
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="tf-pill" onclick="rewardCredits('generic')">+ crédits</button>
-          <button class="tf-pill" onclick="openFantasy()">Trading Desk</button>
-          <button class="tf-pill" onclick="closeBourseModal()">Fermer</button>
-        </div>
-      </div>
-
-      <div class="p-4 space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div class="bg-[#0b0b0b] border border-[#222] rounded-lg p-3">
-            <div class="text-xs text-gray-400 flex items-center gap-2">Cash <button class="tf-pill" onclick="openHelp('bourse_cash')">?</button></div>
-            <div id="bourse-kpi-cash" class="text-xl font-bold">—</div>
-          </div>
-          <div class="bg-[#0b0b0b] border border-[#222] rounded-lg p-3">
-            <div class="text-xs text-gray-400 flex items-center gap-2">Net Worth <button class="tf-pill" onclick="openHelp('bourse_networth')">?</button></div>
-            <div id="bourse-kpi-networth" class="text-xl font-bold">—</div>
-          </div>
-          <div class="bg-[#0b0b0b] border border-[#222] rounded-lg p-3">
-            <div class="text-xs text-gray-400 flex items-center gap-2">Positions <button class="tf-pill" onclick="openHelp('bourse_positions')">?</button></div>
-            <div id="bourse-kpi-positions" class="text-xl font-bold">—</div>
-          </div>
-          <div class="bg-[#0b0b0b] border border-[#222] rounded-lg p-3">
-            <div class="text-xs text-gray-400 flex items-center gap-2">Ordres ouverts <button class="tf-pill" onclick="openHelp('bourse_orders')">?</button></div>
-            <div id="bourse-kpi-orders" class="text-xl font-bold">—</div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div class="bg-[#0b0b0b] border border-[#222] rounded-lg p-3">
-            <div class="flex items-center justify-between mb-2">
-              <div class="font-orbitron">Mon portefeuille</div>
-              <div class="text-xs text-gray-400">Clique un streamer pour afficher le cours</div>
-            </div>
-            <div id="bourse-portfolio" class="space-y-2 text-sm"></div>
-          </div>
-
-          <div class="bg-[#0b0b0b] border border-[#222] rounded-lg p-3">
-            <div class="flex items-center justify-between mb-2">
-              <div class="font-orbitron flex items-center gap-2">Cours <span id="bourse-chart-title" class="text-xs text-gray-400"></span></div>
-              <button class="tf-pill" onclick="openHelp('bourse_chart')">?</button>
-            </div>
-            <canvas id="bourse-chart" width="900" height="340" class="w-full rounded border border-[#222] bg-[#060606]"></canvas>
-            <div id="bourse-chart-hint" class="text-xs text-gray-500 mt-2">Astuce : le prix suit les échanges (trades) + un historique “market” si peu de trades.</div>
-          </div>
-        </div>
-
-        <div class="bg-[#0b0b0b] border border-[#222] rounded-lg p-3">
-          <div class="flex items-center justify-between mb-2">
-            <div class="font-orbitron">Leaderboard</div>
-            <button class="tf-pill" onclick="openHelp('bourse_leaderboard')">?</button>
-          </div>
-          <div id="bourse-leaderboard" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm"></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
 <div id="fantasyModal" class="modal-overlay" onclick="closeFantasy(event)">
   <div class="modal-card" onclick="event.stopPropagation()">
