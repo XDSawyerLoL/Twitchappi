@@ -117,8 +117,8 @@
     @keyframes bt-spin{ to{ transform:rotate(360deg) } }
 
     /* PLAYER sizing (stable + embed-safe) */
-    .player-shell{ min-height:72vh; }
-    #video-container{ min-height:62vh; }
+    .player-shell{ min-height: unset; height:auto; }
+    #video-container{ min-height:56vh; max-height:68vh; }
 
 
     /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
@@ -891,133 +891,39 @@
     #player-tools{ z-index:60 !important; }
 
   
-    /* === Sidebar (right panel) — resizable === */
-    #side-panel{ flex: 0 0 auto; }
-    #sidebar-resizer{
-      position:absolute;
-      left:0; top:0;
-      width:10px; height:100%;
-      cursor: col-resize;
-      z-index: 30;
-    }
-    #sidebar-resizer::after{
-      content:"";
-      position:absolute;
-      left:4px; top:0;
-      width:2px; height:100%;
-      background: rgba(255,255,255,.06);
-    }
-    @media (max-width: 1023px){
-      #sidebar-resizer{ display:none; }
-      #side-panel{ width:100% !important; }
-    }
+/* === FORCE RIGHT SIDEPANEL (embed-safe, no breakpoints) === */
+.layout-root{
+  display:grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 16px;
+  align-items:start;
+}
+.main-col{ min-width:0; }
+.side-col{
+  width: 420px;
+  max-width: 480px;
+  min-width: 340px;
+  position: sticky;
+  top: 14px;
+  height: calc(100vh - 28px);
+  overflow: hidden;
+  display:flex;
+  flex-direction:column;
+  background: var(--bg-panel);
+  border:1px solid var(--border-color);
+  border-radius: 12px;
+}
+.side-col .tab-content{ height:100%; overflow:auto; }
+.side-col .tab-content.active{ display:flex; }
+.side-col #tab-chat{ display:flex; flex-direction:column; min-height:0; }
+.side-col #hub-messages{ flex:1; min-height:0; overflow:auto; }
 
-    /* Simple clamp (tailwind plugin not guaranteed) */
-    .line-clamp-2{
-      display:-webkit-box;
-      -webkit-line-clamp:2;
-      -webkit-box-orient: vertical;
-      overflow:hidden;
-    }
+/* prevent the old grid behavior from interfering */
+@media (max-width: 420px){
+  .layout-root{ grid-template-columns: minmax(0,1fr) 360px; }
+  .side-col{ width:360px; min-width:320px; }
+}
 
-    /* === Tools Float (overlay flottant) === */
-    .tools-float{
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      width: min(420px, 92vw);
-      background: rgba(11,11,13,.96);
-      border: 1px solid rgba(255,255,255,.14);
-      border-radius: 16px;
-      box-shadow: 0 18px 60px rgba(0,0,0,.65);
-      z-index: 100001; /* above TwitFlix overlay */
-      backdrop-filter: blur(10px);
-    }
-    .tools-float.hidden{ display:none; }
-    .tools-float-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      cursor: move;
-      user-select:none;
-    }
-    .tools-float-title{
-      font-family: Orbitron, sans-serif;
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: .14em;
-      color: #eaeaf0;
-    }
-    .tools-float-actions{ display:flex; align-items:center; gap:8px; }
-    .tools-float-btn{
-      width: 34px; height: 34px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(16,16,18,.86);
-      color:#fff;
-      cursor:pointer;
-      font-weight:900;
-    }
-    .tools-float-btn:hover{ border-color:#00f2ea; transform: translateY(-1px); }
-    .tools-float-close{
-      width: 34px; height: 34px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(16,16,18,.86);
-      color:#fff;
-      cursor:pointer;
-      font-weight:900;
-    }
-    .tools-float-close:hover{ border-color:#ff0099; }
-    .tools-float-body{ padding: 12px; }
-    .tools-float-action{
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      color:#fff;
-      font-weight: 900;
-      font-size: 12px;
-      cursor:pointer;
-    }
-    .tools-float-action:hover{ border-color:#00f2ea; box-shadow:0 0 18px rgba(0,242,234,.16); }
-
-    /* === Cinema mode === */
-    body.cinema{
-      padding: 0 !important;
-      overflow: hidden;
-    }
-    body.cinema header,
-    body.cinema #carousel,
-    body.cinema #side-panel{
-      display:none !important;
-    }
-    body.cinema .player-shell{
-      border-radius: 0 !important;
-      height: 100vh !important;
-      min-height: 100vh !important;
-    }
-    body.cinema #video-container{
-      min-height: 100vh !important;
-      max-height: 100vh !important;
-    }
-    body.cinema #player-tools{
-      top: 14px !important;
-      right: 14px !important;
-      z-index: 100002 !important;
-    }
-
-  
-/* === LAYOUT FORCE: player left / tabs right (embed-safe) === */
-#main-layout{ flex-direction: row !important; flex-wrap: nowrap !important; }
-#side-panel{ width:380px !important; min-width:320px !important; max-width:480px !important; flex:0 0 auto !important; }
-
-
-
-#main-layout > div{ min-width:0 !important; }
 </style>
 </head>
 
@@ -1069,9 +975,10 @@
     <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
   </div>
 
-  <div id="main-layout" class="flex-grow flex flex-row flex-nowrap gap-6 min-h-0">
+  
+  <div id="layout-root" class="layout-root">
+    <div id="main-col" class="main-col">
 
-    <div class="flex-1 flex flex-col gap-4 min-h-0">
 
       <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
         <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
@@ -1098,8 +1005,6 @@
     <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
     <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
     <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
-    <button id="tool-tools" class="toolbtn" onclick="toggleToolsFloat()" title="Outils flottants">🧰</button>
-    <button id="tool-cinema" class="toolbtn" onclick="toggleCinema()" title="Mode cinéma">⛶</button>
   </div>
   <div id="ambilight" aria-hidden="true"></div>
 </div>
@@ -1294,8 +1199,7 @@
 
     </div>
 
-    <aside id="side-panel" class="glass-panel rounded-lg flex flex-col overflow-hidden min-h-0 flex-shrink-0" style="width:380px; min-width:320px; max-width:480px;">
-      <div id="sidebar-resizer" aria-hidden="true"></div>
+    <div class="col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
       <div class="tab-nav">
         <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT <span class="help-dot" onclick="openHelp('chat');event.stopPropagation()">?</span></button>
         <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS <span class="help-dot" onclick="openHelp('stats');event.stopPropagation()">?</span></button>
@@ -1353,26 +1257,6 @@
       </div>
 
       <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
-        <!-- Live mini-cards (stream en cours) -->
-        <div class="grid grid-cols-2 gap-3 mb-4">
-          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
-            <div class="text-[10px] text-gray-500 uppercase">Live Viewers</div>
-            <div id="live-viewers" class="text-2xl font-orbitron text-white">--</div>
-          </div>
-          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
-            <div class="text-[10px] text-gray-500 uppercase">Uptime</div>
-            <div id="live-uptime" class="text-2xl font-orbitron text-white">--</div>
-          </div>
-          <div class="bg-[#111] p-3 rounded border border-[#222] col-span-2">
-            <div class="text-[10px] text-gray-500 uppercase mb-1">Jeu</div>
-            <div id="live-game" class="text-sm font-bold text-white truncate">--</div>
-          </div>
-          <div class="bg-[#111] p-3 rounded border border-[#222] col-span-2">
-            <div class="text-[10px] text-gray-500 uppercase mb-1">Titre</div>
-            <div id="live-title" class="text-sm font-bold text-white line-clamp-2">--</div>
-          </div>
-        </div>
-
         <div class="grid grid-cols-2 gap-3 mb-6">
           <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
             <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
@@ -1466,39 +1350,163 @@
 
       </div>
     </div>
+  
+    </div>
+    <aside id="side-col" class="side-col">
+
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT <span class="help-dot" onclick="openHelp('chat');event.stopPropagation()">?</span></button>
+        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS <span class="help-dot" onclick="openHelp('stats');event.stopPropagation()">?</span></button>
+        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS <span class="help-dot" onclick="openHelp('tools');event.stopPropagation()">?</span></button>
+      </div>
+
+      <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
+        <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
+          <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
+          <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">HUB SECURE</button>
+        </div>
+
+        <div id="chat-container-twitch" class="flex-grow relative bg-black overflow-hidden">
+          <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
+        </div>
+
+        <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
+          <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
+            <div class="text-center text-gray-600 text-xs mt-4">
+              Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
+            </div>
+          </div>
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] items-center">
+            <button type="button" id="hub-emoji-btn" class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" title="Emotes">🙂</button>
+            <button type="button" id="hub-gif-btn" class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" title="GIF">🎁</button>
+            <input id="hub-input" type="text" placeholder="Message / /gif / stickers..." class="bg-[#0b0b0d] text-white px-3 py-2 rounded-lg flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+            <button type="submit" class="text-[#0b0b0d] bg-[#00f2ea] px-4 py-2 rounded-lg font-black hover:opacity-90">Envoyer</button>
+          </form>
+          <div id="hub-emoji-panel" class="hidden absolute bottom-14 left-2 z-50 bg-[#0b0b0d] border border-[#222] rounded-xl p-2 shadow-2xl">
+            <div class="flex flex-wrap gap-2 text-sm">
+              <button type="button" class="hub-emo">:kappa:</button>
+              <button type="button" class="hub-emo">:pog:</button>
+              <button type="button" class="hub-emo">:gg:</button>
+              <button type="button" class="hub-emo">:love:</button>
+              <button type="button" class="hub-emo">:hype:</button>
+              <button type="button" class="hub-emo">:rip:</button>
+              <button type="button" class="hub-emo">:clap:</button>
+              <button type="button" class="hub-emo">:fire:</button>
+            </div>
+            <div class="text-[10px] text-gray-500 mt-2">Clique pour insérer dans ton message.</div>
+          </div>
+
+          <div id="hub-gif-modal" class="hidden fixed inset-0 z-[9999] bg-black/70">
+            <div class="max-w-3xl w-[92%] mx-auto mt-10 bg-[#0b0b0d] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
+              <div class="p-3 flex items-center gap-2 border-b border-[#222]">
+                <div class="font-black text-white tracking-widest">GIF</div>
+                <input id="hub-gif-search" class="flex-grow bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" placeholder="Rechercher un GIF...">
+                <button id="hub-gif-close" class="px-3 py-2 rounded-lg border border-[#222] text-white hover:border-[#00f2ea]">Fermer</button>
+              </div>
+              <div id="hub-gif-grid" class="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[70vh] overflow-y-auto"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
+            <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
+            <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
+          </div>
+          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
+            <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
+            <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance</h4>
+            <div class="h-40"><canvas id="chartViewers"></canvas></div>
+          </div>
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
+            <div class="h-48"><canvas id="chartGames"></canvas></div>
+          </div>
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
+            <div class="h-40"><canvas id="chartLangs"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6 scrollbar-thin">
+
+        <div class="best-time-tool">
+          <h4>🎯 BEST TIME TO STREAM</h4>
+          <input id="best-time-game" type="text" placeholder="Jeu ex: League of Legends...">
+          <button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
+          <div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
+            <span class="best-time-spinner"></span>Analyse en cours...
+          </div>
+          <div id="best-time-results" class="best-time-results" style="display:none;"></div>
+        </div>
+
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
+          <div class="flex gap-2 mb-3">
+            <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
+            <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+
+          <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
+            <div class="flex gap-3 items-center mb-3">
+              <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
+              <div>
+                <div id="scan-name" class="font-bold text-white">--</div>
+                <div id="scan-game" class="text-xs text-gray-500">--</div>
+              </div>
+            </div>
+            <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
+          <div class="flex gap-2 mb-3">
+            <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
+            <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
+          </div>
+          <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">🔍 CHERCHER</button>
+
+          <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
+            <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
+            <div id="raid-info" class="text-xs text-gray-300"></div>
+            <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white">🎮 ALLER AU RAID</button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
+          <div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
+          <button id="costream-btn" onclick="loadCoStreamer()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+            🤝 TROUVER
+          </button>
+          <div id="costream-out" class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" style="display:none;"></div>
+        </div>
+
+        <div>
+          <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
+          <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
+          <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">ACTIVER</button>
+          <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
+        </div>
+
+      </div>
+    
+    </aside>
   </div>
 
-  <div id="twitflix-modal" class="tf-modal-overlay">
-    <div class="tf-modal-content">
-      <div class="tf-topbar">
-        <div class="tf-brand"><span class="dot"></span><span><span style="color:#00f2ea;">TWIT</span>FLIX</span></div>
-
-        <div class="tf-actions">
-          <div class="tf-search-wrap">
-            <i class="fas fa-search tf-search-ico"></i>
-            <input id="twitflix-search" class="tf-search" type="text" placeholder="Rechercher un jeu (ex: Minecraft, Valorant...)" autocomplete="off">
-          </div>
-
-          <div class="tf-view-toggle">
-            <button id="tf-btn-rows" class="tf-toggle-btn active" type="button" onclick="setTwitFlixView('rows')">LIGNES</button>
-            <button id="tf-btn-az" class="tf-toggle-btn" type="button" onclick="setTwitFlixView('az')">A–Z</button>
-          </div>
-
-          <i class="fas fa-times tf-close" onclick="closeTwitFlix()"></i>
-        </div>
-      </div>
-
-      <div class="tf-sub" style="display:none;"></div>
-
-      <div class="tf-hero"><img id="tf-hero-bg" class="tf-hero-bg" src="" alt=""><div class="tf-hero-content"><div><div id="tf-hero-title" class="tf-hero-title">TWITFLIX</div><div id="tf-hero-sub" class="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
-
-      <div id="twitflix-grid" class="tf-grid">
-        <div id="tf-loading" class="text-center w-full text-gray-500 py-20">
-          <i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...
-        </div>
-      </div>
-    </div>
-  </div></div>
 
   <script>
     const API_BASE = window.location.origin;
@@ -3675,36 +3683,9 @@ async function earnCredits(type){
       </div>
     </div>
 
-  </aside>
+  </div>
 </div>
 
-
-
-  <!-- Tools Float (overlay flottant) -->
-  <div id="toolsFloat" class="tools-float hidden" role="dialog" aria-label="Outils flottants">
-    <div class="tools-float-head" id="toolsFloatHead">
-      <div class="tools-float-title">OUTILS</div>
-      <div class="tools-float-actions">
-        <button class="tools-float-btn" onclick="toggleAmbilight()" title="Ambilight">💡</button>
-        <button class="tools-float-btn" onclick="toggleVibe()" title="Vibe">🧠</button>
-        <button class="tools-float-btn" onclick="openMosaic()" title="Mosaïque">📺</button>
-        <button class="tools-float-btn" onclick="openFantasy()" title="Fantasy">🏆</button>
-        <button class="tools-float-btn" onclick="toggleCinema()" title="Cinéma">⛶</button>
-        <button class="tools-float-close" onclick="toggleToolsFloat(false)" title="Fermer">✕</button>
-      </div>
-    </div>
-    <div class="tools-float-body">
-      <div class="text-xs text-gray-300 mb-3">
-        Overlay flottant : drag la barre du haut pour déplacer. Les boutons appliquent les effets au player.
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        <button class="tools-float-action" onclick="openMosaic()">Ouvrir mosaïque</button>
-        <button class="tools-float-action" onclick="openFantasy()">Ouvrir fantasy</button>
-        <button class="tools-float-action" onclick="toggleAmbilight()">Toggle ambilight</button>
-        <button class="tools-float-action" onclick="toggleVibe()">Toggle vibe</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Help Modal -->
   <div id="helpModal" onclick="if(event.target.id==='helpModal') closeHelp()">
@@ -3716,193 +3697,6 @@ async function earnCredits(type){
       <div id="helpBody"></div>
     </div>
   </div>
-
-
-<script>
-/* === UX PRO PACK: sidebar resize + live mini-cards + tools float + cinema fullscreen === */
-(function(){
-  // ----- Sidebar resize (desktop) -----
-  const side = document.getElementById('side-panel');
-  const resizer = document.getElementById('sidebar-resizer');
-  const MIN_W = 320, MAX_W = 520;
-
-  function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
-
-  if(side){
-    const saved = Number(localStorage.getItem('hub_side_w') || 0);
-    if(saved) side.style.width = clamp(saved, MIN_W, MAX_W) + 'px';
-  }
-
-  if(side && resizer){
-    let dragging = false;
-    function onMove(e){
-      if(!dragging) return;
-      const x = (e.touches ? e.touches[0].clientX : e.clientX);
-      const w = clamp(window.innerWidth - x - 16, MIN_W, MAX_W); // 16px approx padding
-      side.style.width = w + 'px';
-      localStorage.setItem('hub_side_w', String(w));
-      e.preventDefault();
-    }
-    function stop(){
-      dragging = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', stop);
-      window.removeEventListener('touchmove', onMove, {passive:false});
-      window.removeEventListener('touchend', stop);
-    }
-    function start(e){
-      if(window.innerWidth < 1024) return;
-      dragging = true;
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', stop);
-      window.addEventListener('touchmove', onMove, {passive:false});
-      window.addEventListener('touchend', stop);
-      e.preventDefault();
-    }
-    resizer.addEventListener('mousedown', start);
-    resizer.addEventListener('touchstart', start, {passive:false});
-  }
-
-  // ----- Intercept /stream_info to power live mini-cards -----
-  window.__live = window.__live || { viewers: 0, title: '', game: '', startedAt: null };
-  const _fetch = window.fetch ? window.fetch.bind(window) : null;
-  if(_fetch){
-    window.fetch = async function(...args){
-      const res = await _fetch(...args);
-      try{
-        const url = args[0];
-        const u = (typeof url === 'string') ? url : (url && url.url) || '';
-        if(String(u).includes('/stream_info')){
-          res.clone().json().then(d=>{
-            if(d && d.success && d.stream){
-              window.__live.viewers = Number(d.stream.viewer_count || 0);
-              window.__live.title = d.stream.title || '';
-              window.__live.game = d.stream.game_name || '';
-              window.__live.startedAt = d.stream.started_at || null;
-            }else{
-              window.__live.viewers = 0;
-              window.__live.title = '';
-              window.__live.game = '';
-              window.__live.startedAt = null;
-            }
-          }).catch(()=>{});
-        }
-      }catch(_){}
-      return res;
-    }
-  }
-
-  function fmtUptime(startedAt){
-    if(!startedAt) return '--';
-    const ms = Date.now() - Date.parse(startedAt);
-    if(!isFinite(ms) || ms < 0) return '--';
-    const s = Math.floor(ms/1000);
-    const h = Math.floor(s/3600);
-    const m = Math.floor((s%3600)/60);
-    return (h>0? (h+'h ') : '') + String(m).padStart(2,'0')+'m';
-  }
-
-  const liveViewersEl = document.getElementById('live-viewers');
-  const liveUptimeEl  = document.getElementById('live-uptime');
-  const liveGameEl    = document.getElementById('live-game');
-  const liveTitleEl   = document.getElementById('live-title');
-
-  setInterval(()=>{
-    if(liveViewersEl) liveViewersEl.textContent = (window.__live.viewers ?? 0).toLocaleString();
-    if(liveUptimeEl) liveUptimeEl.textContent = fmtUptime(window.__live.startedAt);
-    if(liveGameEl) liveGameEl.textContent = window.__live.game || '--';
-    if(liveTitleEl) liveTitleEl.textContent = window.__live.title || '--';
-  }, 1000);
-
-  // ----- Tools float (overlay flottant) -----
-  const toolsFloat = document.getElementById('toolsFloat');
-  const head = document.getElementById('toolsFloatHead');
-  let tfDragging=false, tfOffX=0, tfOffY=0;
-
-  window.toggleToolsFloat = function(force){
-    if(!toolsFloat) return;
-    const shouldOpen = (typeof force === 'boolean') ? force : toolsFloat.classList.contains('hidden');
-    toolsFloat.classList.toggle('hidden', !shouldOpen);
-  };
-
-  if(toolsFloat){
-    // restore position
-    const sx = Number(localStorage.getItem('hub_tf_x')||0);
-    const sy = Number(localStorage.getItem('hub_tf_y')||0);
-    if(sx && sy){
-      toolsFloat.style.right = 'auto';
-      toolsFloat.style.bottom = 'auto';
-      toolsFloat.style.left = sx+'px';
-      toolsFloat.style.top  = sy+'px';
-    }
-  }
-
-  function tfMove(e){
-    if(!tfDragging || !toolsFloat) return;
-    const x = (e.touches ? e.touches[0].clientX : e.clientX) - tfOffX;
-    const y = (e.touches ? e.touches[0].clientY : e.clientY) - tfOffY;
-    toolsFloat.style.right='auto';
-    toolsFloat.style.bottom='auto';
-    toolsFloat.style.left = Math.max(8, Math.min(window.innerWidth-80, x)) + 'px';
-    toolsFloat.style.top  = Math.max(8, Math.min(window.innerHeight-80, y)) + 'px';
-    localStorage.setItem('hub_tf_x', parseInt(toolsFloat.style.left,10));
-    localStorage.setItem('hub_tf_y', parseInt(toolsFloat.style.top,10));
-    e.preventDefault();
-  }
-  function tfStop(){
-    tfDragging=false;
-    window.removeEventListener('mousemove', tfMove);
-    window.removeEventListener('mouseup', tfStop);
-    window.removeEventListener('touchmove', tfMove, {passive:false});
-    window.removeEventListener('touchend', tfStop);
-  }
-  function tfStart(e){
-    if(!toolsFloat) return;
-    tfDragging=true;
-    const rect = toolsFloat.getBoundingClientRect();
-    const cx = (e.touches ? e.touches[0].clientX : e.clientX);
-    const cy = (e.touches ? e.touches[0].clientY : e.clientY);
-    tfOffX = cx - rect.left;
-    tfOffY = cy - rect.top;
-    window.addEventListener('mousemove', tfMove);
-    window.addEventListener('mouseup', tfStop);
-    window.addEventListener('touchmove', tfMove, {passive:false});
-    window.addEventListener('touchend', tfStop);
-    e.preventDefault();
-  }
-  if(head){
-    head.addEventListener('mousedown', tfStart);
-    head.addEventListener('touchstart', tfStart, {passive:false});
-  }
-
-  // ----- Cinema mode + Fullscreen -----
-  window.toggleCinema = async function(){
-    const goingOn = !document.body.classList.contains('cinema');
-    document.body.classList.toggle('cinema', goingOn);
-
-    // In cinema: keep tools visible; hide toolsFloat only if you want:
-    // if(goingOn) toggleToolsFloat(false);
-
-    // try fullscreen when entering, exit when leaving
-    try{
-      if(goingOn){
-        if(!document.fullscreenElement && document.documentElement.requestFullscreen){
-          await document.documentElement.requestFullscreen();
-        }
-      }else{
-        if(document.fullscreenElement && document.exitFullscreen){
-          await document.exitFullscreen();
-        }
-      }
-    }catch(_){}
-  };
-
-})();
-</script>
 
 </body>
 </html>
