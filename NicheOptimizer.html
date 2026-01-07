@@ -1012,11 +1012,12 @@
 
   
 /* === LAYOUT FORCE: player left / tabs right (embed-safe) === */
-@media (min-width: 768px){
-  #main-layout{ flex-direction: row !important; }
-  #side-panel{ width: 380px !important; min-width: 320px !important; }
-}
+#main-layout{ flex-direction: row !important; flex-wrap: nowrap !important; }
+#side-panel{ width:380px !important; min-width:320px !important; max-width:480px !important; flex:0 0 auto !important; }
 
+
+
+#main-layout > div{ min-width:0 !important; }
 </style>
 </head>
 
@@ -1068,7 +1069,7 @@
     <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
   </div>
 
-  <div id="main-layout" class="flex-grow flex flex-col md:flex-row gap-6 min-h-0">
+  <div id="main-layout" class="flex-grow flex flex-row flex-nowrap gap-6 min-h-0">
 
     <div class="flex-1 flex flex-col gap-4 min-h-0">
 
@@ -1293,7 +1294,7 @@
 
     </div>
 
-    <aside id="side-panel" class="w-full md:w-[380px] flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0 relative flex-shrink-0">
+    <aside id="side-panel" class="glass-panel rounded-lg flex flex-col overflow-hidden min-h-0 flex-shrink-0" style="width:380px; min-width:320px; max-width:480px;">
       <div id="sidebar-resizer" aria-hidden="true"></div>
       <div class="tab-nav">
         <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT <span class="help-dot" onclick="openHelp('chat');event.stopPropagation()">?</span></button>
