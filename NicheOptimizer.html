@@ -117,8 +117,8 @@
     @keyframes bt-spin{ to{ transform:rotate(360deg) } }
 
     /* PLAYER sizing (stable + embed-safe) */
-    .player-shell{ min-height: unset; height:auto; }
-    #video-container{ min-height:56vh; max-height:68vh; }
+    .player-shell{ min-height:72vh; }
+    #video-container{ min-height:62vh; }
 
 
     /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
@@ -1010,7 +1010,14 @@
       z-index: 100002 !important;
     }
 
-  </style>
+  
+/* === LAYOUT FORCE: player left / tabs right (embed-safe) === */
+@media (min-width: 768px){
+  #main-layout{ flex-direction: row !important; }
+  #side-panel{ width: 380px !important; min-width: 320px !important; }
+}
+
+</style>
 </head>
 
 <body class="min-h-screen flex flex-col p-4">
@@ -1061,7 +1068,7 @@
     <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
   </div>
 
-  <div class="flex-grow flex flex-col lg:flex-row gap-6 min-h-0">
+  <div id="main-layout" class="flex-grow flex flex-col md:flex-row gap-6 min-h-0">
 
     <div class="flex-1 flex flex-col gap-4 min-h-0">
 
@@ -1286,7 +1293,7 @@
 
     </div>
 
-    <aside id="side-panel" class="w-full lg:w-[380px] flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0 relative">
+    <aside id="side-panel" class="w-full md:w-[380px] flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0 relative flex-shrink-0">
       <div id="sidebar-resizer" aria-hidden="true"></div>
       <div class="tab-nav">
         <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT <span class="help-dot" onclick="openHelp('chat');event.stopPropagation()">?</span></button>
