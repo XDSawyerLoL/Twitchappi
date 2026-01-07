@@ -117,13 +117,8 @@
     @keyframes bt-spin{ to{ transform:rotate(360deg) } }
 
     /* PLAYER sizing (grand) */
-
-/* === Layout fix: chat doesn't resize player === */
-#tab-chat{ height:72vh; display:flex; flex-direction:column; }
-#chat-container-twitch, #chat-container-hub{ height:62vh !important; flex:0 0 auto !important; }
-
-    .player-shell{ height:72vh; }
-    #video-container{ height:62vh; min-height:62vh; flex:0 0 auto !important; }
+    .player-shell{ min-height:72vh; }
+    #video-container{ min-height:62vh; }
 
     /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
     .u-nav{ display:flex; background:#080808; border-bottom:1px solid #1f1f23; }
@@ -630,49 +625,6 @@
       flex-wrap:wrap;
       align-items:center;
     }
-
-    /* Messenger-like reactions: picker hidden, appears on hover/tap */
-    .hub-react-row{
-      position:absolute;
-      right:10px;
-      top:34px;
-      display:flex;
-      gap:8px;
-      padding:6px 8px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(12,12,14,.92);
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-4px);
-      transition:.15s ease;
-      z-index:5;
-    }
-    .hub-msg{ position:relative; }
-    .hub-msg:hover .hub-react-row,
-    .hub-msg.is-tapped .hub-react-row{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
-    .hub-react-toggle{
-      position:absolute;
-      right:10px;
-      top:6px;
-      width:26px;height:26px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(16,16,18,.75);
-      color:#fff;
-      opacity:0;
-      transition:.15s ease;
-      display:flex;align-items:center;justify-content:center;
-      z-index:6;
-      cursor:pointer;
-      font-size:14px;
-    }
-    .hub-msg:hover .hub-react-toggle{ opacity:1; }
-
     .hub-react-btn{
       display:inline-flex;
       align-items:center;
@@ -780,10 +732,10 @@
 /* === Tools overlay (safe) === */
 
 #player-tools{
-  position:relative;
-  top:auto;
-  right:auto;
-  z-index:20 !important;
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:99999 !important;
   display:flex;
   gap:8px;
   pointer-events:auto;
@@ -919,13 +871,6 @@
           </div>
 
           <div class="flex gap-2 flex-shrink-0">
-<div id="player-tools">
-    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
-    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
-    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
-    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
-  </div>
-
             <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
               <i class="fas fa-chevron-left"></i>
             </button>
@@ -936,6 +881,12 @@
         </div>
 
         <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden">
+  <div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:50;display:flex;gap:8px;">
+    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
+    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
+    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
+    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
+  </div>
   <div id="ambilight" aria-hidden="true"></div>
 </div>
       </div>
@@ -2728,24 +2679,7 @@
       if(!msgEl) return;
       // if clicked on button, keep
       if(e.target.closest('.hub-react-btn')) return;
-      if(e.target.closest('.hub-react-toggle')) return;
       msgEl.classList.toggle('is-tapped');
-    });
-
-    // Toggle reactions picker (Messenger-like)
-    document.addEventListener('click', (e)=>{
-      const toggle = e.target.closest('.hub-react-toggle');
-      if(toggle){
-        const msgEl = toggle.closest('.hub-msg');
-        if(!msgEl) return;
-        // close others
-        document.querySelectorAll('.hub-msg.is-tapped').forEach(n=>{ if(n!==msgEl) n.classList.remove('is-tapped'); });
-        msgEl.classList.toggle('is-tapped');
-        e.stopPropagation();
-      }else{
-        // click outside closes any open picker
-        document.querySelectorAll('.hub-msg.is-tapped').forEach(n=> n.classList.remove('is-tapped'));
-      }
     });
 
 </script>
