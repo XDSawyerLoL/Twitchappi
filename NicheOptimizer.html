@@ -826,18 +826,55 @@
   height: 100% !important;
 }
 
-/* === FIX: Messenger-like reactions without layout shift === */
-.hub-msg{ position: relative !important; }
+
+/* === FIX: side-panel height locked to player (Hub Secure can't stretch layout) === */
+#side-panel{
+  height: clamp(520px, 72vh, 860px) !important;
+  min-height: 0 !important;
+}
+#tab-chat{
+  min-height: 0 !important;
+}
+#chat-container-twitch,
+#chat-container-hub{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+#hub-messages{
+  min-height: 0 !important;
+}
+
+/* Ensure chat iframe can't force extra height */
+#twitch-chat-frame{ display:block; width:100%; height:100%; }
+
+/* === FIX: Messenger-like reactions (attached to message) without layout shift === */
+.hub-msg{ position: relative !important; padding-bottom: 34px !important; }
+
+/* Pills (existing reactions) stick to the bottom-right of the message */
+.hub-reactions{
+  position: absolute !important;
+  right: 10px !important;
+  bottom: 8px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  pointer-events: none !important;
+}
+/* Hide empty reactions container */
+.hub-reactions:empty{ display:none !important; }
+
+/* Reaction picker appears just above the pills, like Messenger */
 .hub-react-row{
   position: absolute !important;
   right: 10px !important;
-  top: 8px !important;
+  bottom: 36px !important;
   opacity: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
   pointer-events: none !important;
-  transform: translateY(-6px) !important;
+  transform: translateY(6px) !important;
   transition: opacity .15s ease, transform .15s ease !important;
+  z-index: 5 !important;
 }
 .hub-msg:hover .hub-react-row,
 .hub-msg.show-reactions .hub-react-row{
@@ -845,7 +882,6 @@
   pointer-events: auto !important;
   transform: translateY(0) !important;
 }
-.hub-reactions{ margin-top: 8px !important; }
 
 </style>
 </head>
