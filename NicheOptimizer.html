@@ -117,8 +117,13 @@
     @keyframes bt-spin{ to{ transform:rotate(360deg) } }
 
     /* PLAYER sizing (grand) */
-    .player-shell{ min-height:72vh; }
-    #video-container{ min-height:62vh; }
+
+/* === Layout fix: chat doesn't resize player === */
+#tab-chat{ height:72vh; display:flex; flex-direction:column; }
+#chat-container-twitch, #chat-container-hub{ height:62vh !important; flex:0 0 auto !important; }
+
+    .player-shell{ height:72vh; }
+    #video-container{ height:62vh; min-height:62vh; flex:0 0 auto !important; }
 
     /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
     .u-nav{ display:flex; background:#080808; border-bottom:1px solid #1f1f23; }
@@ -625,6 +630,49 @@
       flex-wrap:wrap;
       align-items:center;
     }
+
+    /* Messenger-like reactions: picker hidden, appears on hover/tap */
+    .hub-react-row{
+      position:absolute;
+      right:10px;
+      top:34px;
+      display:flex;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(12,12,14,.92);
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-4px);
+      transition:.15s ease;
+      z-index:5;
+    }
+    .hub-msg{ position:relative; }
+    .hub-msg:hover .hub-react-row,
+    .hub-msg.is-tapped .hub-react-row{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+    .hub-react-toggle{
+      position:absolute;
+      right:10px;
+      top:6px;
+      width:26px;height:26px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(16,16,18,.75);
+      color:#fff;
+      opacity:0;
+      transition:.15s ease;
+      display:flex;align-items:center;justify-content:center;
+      z-index:6;
+      cursor:pointer;
+      font-size:14px;
+    }
+    .hub-msg:hover .hub-react-toggle{ opacity:1; }
+
     .hub-react-btn{
       display:inline-flex;
       align-items:center;
@@ -732,10 +780,10 @@
 /* === Tools overlay (safe) === */
 
 #player-tools{
-  position:absolute;
-  top:10px;
-  right:10px;
-  z-index:99999 !important;
+  position:relative;
+  top:auto;
+  right:auto;
+  z-index:20 !important;
   display:flex;
   gap:8px;
   pointer-events:auto;
@@ -806,60 +854,7 @@
 }
 .mosaic-tile button:hover{ border-color:#00f2ea; }
 
-
-    /* Help dots */
-    .help-dot{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:16px; height:16px; border-radius:999px;
-      border:1px solid #2a2a2a; color:#9ca3af;
-      font-size:11px; margin-left:6px;
-      background: rgba(0,0,0,0.35);
-      cursor:pointer;
-    }
-    .help-dot:hover{ border-color: var(--secondary); color: var(--secondary); }
-    .help-dot-mini{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:14px; height:14px; border-radius:999px;
-      border:1px solid #2a2a2a; color:#9ca3af;
-      font-size:10px;
-      background: rgba(0,0,0,0.35);
-      cursor:pointer;
-    }
-    .help-dot-mini:hover{ border-color: var(--secondary); color: var(--secondary); }
-
-    /* Help modal */
-    #helpModal{
-      position:fixed; inset:0; z-index:9999;
-      display:none; align-items:center; justify-content:center;
-      background: rgba(0,0,0,0.65);
-      padding: 16px;
-    }
-    #helpModal.active{ display:flex; }
-    #helpCard{
-      width:min(720px, 96vw);
-      background: #0b0b0d;
-      border:1px solid #222;
-      border-radius:14px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
-      overflow:hidden;
-    }
-    #helpCardHeader{
-      display:flex; align-items:center; justify-content:space-between;
-      padding: 12px 14px;
-      background: linear-gradient(90deg, rgba(255,0,153,0.12), rgba(0,242,234,0.10));
-      border-bottom: 1px solid #222;
-    }
-    #helpTitle{ font-family: Orbitron, Inter, system-ui; font-size: 14px; color:#e5e7eb; }
-    #helpClose{
-      width:34px; height:34px; border-radius:10px;
-      border:1px solid #2a2a2a; background:#111; color:#e5e7eb;
-      cursor:pointer;
-    }
-    #helpClose:hover{ border-color: var(--secondary); color: var(--secondary); }
-    #helpBody{ padding: 12px 14px; color:#d1d5db; font-size: 13px; line-height:1.45; }
-    #helpBody ul{ margin-left: 18px; list-style: disc; }
-
-  </style>
+</style>
 </head>
 
 <body class="min-h-screen flex flex-col p-4">
@@ -924,6 +919,13 @@
           </div>
 
           <div class="flex gap-2 flex-shrink-0">
+<div id="player-tools">
+    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
+    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
+    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
+    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
+  </div>
+
             <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
               <i class="fas fa-chevron-left"></i>
             </button>
@@ -934,22 +936,15 @@
         </div>
 
         <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden">
-  <div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:50;display:flex;gap:8px;">
-    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()"><button title='Mosaic Mode'>📺</button></button>
-    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
-    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
-    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
-  </div>
   <div id="ambilight" aria-hidden="true"></div>
 </div>
       </div>
 
       <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
         <div class="u-nav" id="under-tabs-nav">
-          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW <span class="help-dot" onclick="openHelp('overview');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO <span class="help-dot" onclick="openHelp('analytics');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE <span class="help-dot" onclick="openHelp('niche');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="bourse"><i class="fas fa-coins mr-1"></i> BOURSE <span class="help-dot" onclick="openHelp('bourse');event.stopPropagation()">?</span></button>
+          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
+          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
+          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
         </div>
 
         <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
@@ -1070,75 +1065,13 @@
           </div>
         </div>
       </div>
-
-        <div id="under-bourse" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="flex items-center justify-between mb-3">
-            <div class="text-sm font-bold text-gray-200"><i class="fas fa-coins mr-2 text-[#00f2ea]"></i>Bourse des Streamers</div>
-            <div class="flex items-center gap-2">
-              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#00f2ea]" onclick="openHelp('bourse')">?</button>
-              <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#ff0099]" onclick="openFantasy()">Trading Desk</button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Cash <button class="help-dot-mini" onclick="openHelp('bourse_cash')">?</button></div>
-              <div id="bourse-cash" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Crédits dispo</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Net Worth <button class="help-dot-mini" onclick="openHelp('bourse_networth')">?</button></div>
-              <div id="bourse-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Cash + positions</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Réservé <button class="help-dot-mini" onclick="openHelp('bourse_reserved')">?</button></div>
-              <div id="bourse-reserved" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Ordres en attente</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase flex items-center gap-1">Ordres ouverts <button class="help-dot-mini" onclick="openHelp('bourse_orders')">?</button></div>
-              <div id="bourse-open-orders" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Annulables</div>
-            </div>
-          </div>
-
-          <div class="mt-3 flex flex-wrap gap-2">
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('twitflix_view')">+15 Crédits (TwitFlix)</button>
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('analytics_view')">+20 Crédits (Stats)</button>
-            <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('niche_tool')">+20 Crédits (Niche)</button>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="flex items-center justify-between">
-                <div class="text-xs text-gray-400 font-bold uppercase">Mon portefeuille</div>
-                <button class="px-2 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-[11px]" onclick="refreshBoursePanel()">↻</button>
-              </div>
-              <div id="bourse-portfolio" class="mt-2 text-xs text-gray-300">—</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-xs text-gray-400 font-bold uppercase">Leaderboard</div>
-              <div id="bourse-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
-            </div>
-          </div>
-
-          <div class="mt-3 text-[10px] text-gray-500">
-            Astuce : tu gagnes des crédits en explorant l’app (TwitFlix, Stats, Chat…) puis tu les investis ici.
-          </div>
-        </div>
-
     </div>
 
     <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
       <div class="tab-nav">
-        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT <span class="help-dot" onclick="openHelp('chat');event.stopPropagation()">?</span></button>
-        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS <span class="help-dot" onclick="openHelp('stats');event.stopPropagation()">?</span></button>
-        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS <span class="help-dot" onclick="openHelp('tools');event.stopPropagation()">?</span></button>
+        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
+        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
+        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
       </div>
 
       <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
@@ -1385,7 +1318,6 @@
       nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           const id = btn.getAttribute('data-ut');
-          if(id === 'bourse'){ setTimeout(refreshBoursePanel, 50); }
           nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
           btn.classList.add('active');
           document.querySelectorAll('#under-overview,#under-analytics,#under-niche').forEach(p=>p.classList.remove('active'));
@@ -2796,7 +2728,24 @@
       if(!msgEl) return;
       // if clicked on button, keep
       if(e.target.closest('.hub-react-btn')) return;
+      if(e.target.closest('.hub-react-toggle')) return;
       msgEl.classList.toggle('is-tapped');
+    });
+
+    // Toggle reactions picker (Messenger-like)
+    document.addEventListener('click', (e)=>{
+      const toggle = e.target.closest('.hub-react-toggle');
+      if(toggle){
+        const msgEl = toggle.closest('.hub-msg');
+        if(!msgEl) return;
+        // close others
+        document.querySelectorAll('.hub-msg.is-tapped').forEach(n=>{ if(n!==msgEl) n.classList.remove('is-tapped'); });
+        msgEl.classList.toggle('is-tapped');
+        e.stopPropagation();
+      }else{
+        // click outside closes any open picker
+        document.querySelectorAll('.hub-msg.is-tapped').forEach(n=> n.classList.remove('is-tapped'));
+      }
     });
 
 </script>
@@ -2881,7 +2830,7 @@
     const btn = document.createElement('button');
     btn.id = 'mosaic-btn';
     btn.type = 'button';
-    btn.textContent = '<button title='Mosaic Mode'>📺</button> Mosaic';
+    btn.textContent = '📺 Mosaic';
     btn.style.cssText = 'margin-left:8px; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.25); color:#fff; font-weight:900; font-size:12px; cursor:pointer;';
     host.appendChild(btn);
 
@@ -3094,7 +3043,7 @@ function ensurePlayerTools(){
     tools = document.createElement('div');
     tools.id = 'player-tools';
     tools.innerHTML = `
-      <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()"><button title='Mosaic Mode'>📺</button></button>
+      <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
       <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
       <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
       <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
@@ -3322,128 +3271,6 @@ document.getElementById('ambilight')?.classList.toggle('on', __ambOn);
 document.getElementById('tool-vibe')?.classList.toggle('active', __vibeOn);
 setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 700);
 
-
-// ================= HELP SYSTEM (pedagogic) =================
-const HELP = {
-  chat: {
-    title: "Chat Hub (secure)",
-    html: "<p><strong>À quoi ça sert :</strong> réseauter, apprendre, repérer des tendances.</p><ul><li>Le serveur utilise ton login Twitch (si connecté) → pas de spoof.</li><li>Chaque message (texte) te donne un peu d’XP + peut déclencher un petit gain de crédits bourse (cooldown).</li></ul><p><strong>Progresser :</strong> pose une question précise, partage un retour d’expérience, observe les réactions.</p>"
-  },
-  stats: {
-    title: "Stats globales",
-    html: "<p><strong>À quoi ça sert :</strong> comprendre l’état du marché Twitch (viewers, jeux, langues).</p><p><strong>Progresser :</strong> utilise ces infos pour choisir un timing / une niche moins saturée.</p>"
-  },
-  tools: {
-    title: "Outils",
-    html: "<p><strong>À quoi ça sert :</strong> te donner des actions rapides : raid finder, best time tool, co-stream, etc.</p><p><strong>Progresser :</strong> teste une hypothèse → mesure → itère.</p>"
-  },
-  overview: {
-    title: "Overview",
-    html: "<p><strong>À quoi ça sert :</strong> te donner des KPI simples (score, moyenne, pic, croissance).</p><p><strong>Progresser :</strong> vise une amélioration stable plutôt qu’un pic isolé.</p>"
-  },
-  analytics: {
-    title: "Analytics Pro",
-    html: "<p><strong>À quoi ça sert :</strong> stats historisées Firestore + score de croissance.</p><p><strong>Progresser :</strong> compare 7/30 jours, observe la volatilité, ajuste tes horaires + formats.</p>"
-  },
-  niche: {
-    title: "Niche",
-    html: "<p><strong>À quoi ça sert :</strong> mesurer saturation et opportunité sur un jeu / une chaîne.</p><p><strong>Progresser :</strong> cherche les zones où l’opportunité est haute et la concurrence raisonnable.</p>"
-  },
-  bourse: {
-    title: "Bourse des streamers",
-    html: "<p><strong>À quoi ça sert :</strong> un marché en crédits virtuels basé sur de vrais échanges (ordres MARKET/LIMIT, annulation, historique).</p><ul><li>Tu gagnes des crédits en utilisant l’app.</li><li>Tu investis sur des streamers → portefeuille + classement.</li></ul><p><strong>Progresser :</strong> observe les tendances, teste des hypothèses, apprends le timing (entrer tôt / sortir trop tard).</p>"
-  },
-  bourse_cash: { title:"Cash", html:"<p>Crédits disponibles pour passer des ordres. Tu en gagnes via TwitFlix/Stats/Chat (cooldown).</p>" },
-  bourse_networth: { title:"Net Worth", html:"<p>Valeur totale = cash + valeur de tes positions (au prix du marché).</p>" },
-  bourse_reserved: { title:"Réservé", html:"<p>Partie bloquée par tes ordres ouverts (cashReserved / shares reserved). Libérée si l’ordre est exécuté ou annulé.</p>" },
-  bourse_orders: { title:"Ordres ouverts", html:"<p>Ordres LIMIT/MARKET non exécutés entièrement. Tu peux les annuler depuis le Trading Desk.</p>" }
-};
-
-function openHelp(key){
-  const item = HELP[key] || { title:"Aide", html:"<p>Aucune aide disponible pour ce module.</p>" };
-  const modal = document.getElementById('helpModal');
-  const title = document.getElementById('helpTitle');
-  const body = document.getElementById('helpBody');
-  if(title) title.textContent = item.title || 'Aide';
-  if(body) body.innerHTML = item.html || '';
-  modal?.classList.add('active');
-}
-function closeHelp(){ document.getElementById('helpModal')?.classList.remove('active'); }
-
-// ================= BOURSE PANEL =================
-async function refreshBoursePanel(){
-  try{
-    const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json());
-    if(!prof.success){
-      document.getElementById('bourse-portfolio').textContent = "Connecte-toi Twitch pour utiliser la Bourse.";
-      document.getElementById('bourse-cash').textContent = '--';
-      document.getElementById('bourse-networth').textContent = '--';
-      document.getElementById('bourse-reserved').textContent = '--';
-      document.getElementById('bourse-open-orders').textContent = '--';
-      return;
-    }
-
-    const cash = Number(prof.cash||0);
-    const net = Number(prof.netWorth||0);
-    // reserved not returned by profile (yet) → try read wallet fields via profile? fallback 0
-    const reserved = Number(prof.cashReserved||0) || 0;
-
-    document.getElementById('bourse-cash').textContent = cash.toLocaleString('fr-FR');
-    document.getElementById('bourse-networth').textContent = net.toLocaleString('fr-FR');
-    document.getElementById('bourse-reserved').textContent = reserved.toLocaleString('fr-FR');
-
-    const holdings = Array.isArray(prof.holdings) ? prof.holdings : [];
-    if(!holdings.length){
-      document.getElementById('bourse-portfolio').innerHTML = "<div class='text-gray-500'>Aucune position pour l’instant.</div>";
-    }else{
-      const rows = holdings
-        .sort((a,b)=> (b.value||0)-(a.value||0))
-        .slice(0, 12)
-        .map(h=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-          <div class="text-gray-200"><strong>${escapeHtml(h.login)}</strong> <span class="text-gray-500">x${Number(h.shares||0)}</span></div>
-          <div class="text-gray-300">${Number(h.value||0).toLocaleString('fr-FR')}</div>
-        </div>`).join('');
-      document.getElementById('bourse-portfolio').innerHTML = rows;
-    }
-
-    // Open orders count
-    const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json());
-    const openCount = orders.success ? (orders.orders?.length||0) : 0;
-    document.getElementById('bourse-open-orders').textContent = String(openCount);
-
-    // Leaderboard
-    const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json());
-    if(lb.success && Array.isArray(lb.items)){
-      const lines = lb.items.slice(0,10).map((x,i)=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-        <div class="text-gray-200">#${i+1} ${escapeHtml(x.user||'')}</div>
-        <div class="text-gray-300">${Math.round(x.netWorth||0).toLocaleString('fr-FR')}</div>
-      </div>`).join('');
-      document.getElementById('bourse-leaderboard').innerHTML = lines || "<div class='text-gray-500'>—</div>";
-    }else{
-      document.getElementById('bourse-leaderboard').innerHTML = "<div class='text-gray-500'>—</div>";
-    }
-  }catch(e){
-    console.warn('refreshBoursePanel error', e);
-  }
-}
-
-async function earnCredits(type){
-  try{
-    const r = await fetch('/api/fantasy/reward', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      credentials:'include',
-      body: JSON.stringify({ type })
-    }).then(r=>r.json());
-    if(r.success){
-      refreshBoursePanel();
-      (typeof toast==='function') && toast('+'+r.amount+' crédits', true);
-    }else{
-      (typeof toast==='function') && toast(r.error || 'Reward indisponible', false);
-    }
-  }catch(e){}
-}
-
 </script>
 
 <div id="mosaicModal" class="modal-overlay" onclick="closeMosaic(event)">
@@ -3494,18 +3321,6 @@ async function earnCredits(type){
 
   </div>
 </div>
-
-
-  <!-- Help Modal -->
-  <div id="helpModal" onclick="if(event.target.id==='helpModal') closeHelp()">
-    <div id="helpCard">
-      <div id="helpCardHeader">
-        <div id="helpTitle">Aide</div>
-        <button id="helpClose" onclick="closeHelp()" title="Fermer">✕</button>
-      </div>
-      <div id="helpBody"></div>
-    </div>
-  </div>
 
 </body>
 </html>
