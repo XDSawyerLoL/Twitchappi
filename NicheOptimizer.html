@@ -878,44 +878,35 @@
 
 
 /* =========================================================
-   FIX (FINAL): Chats must STOP at Twitch player height
-   - Locks the "player + right panel" row to a fixed viewport height
-   - Prevents the right panel (Twitch / Hub Secure) from growing the page
-   - All scrolling happens INSIDE chat lists, never by stretching the layout
+   FIX: Chat Hub Secure must NOT stretch the Twitch player
+   - Locks the stream row height (player + sidebar)
+   - Forces internal scrolling in chat panels
    ========================================================= */
 :root{
-  --stream-panel-h: clamp(540px, 72vh, 880px);
+  --stream-panel-h: clamp(560px, 76vh, 920px);
 }
 
 /* The row that contains player + right panel */
 #stream-row{
   height: var(--stream-panel-h) !important;
-  flex: 0 0 var(--stream-panel-h) !important; /* overrides the flex-grow class in HTML */
-  overflow: hidden !important;
-  align-items: stretch !important;
+  align-items: stretch !important; /* grid items same height */
 }
 
-/* Left + right columns fill the row */
-#stream-row > .col-span-8,
-#stream-row > #side-panel{
+/* Left column wrapper and player shell fill the row */
+#stream-row > .col-span-8{
   height: 100% !important;
   min-height: 0 !important;
 }
-
-/* Player shell: fixed to row height */
 #stream-row .player-shell{
   height: 100% !important;
   min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
-/* Video area must be allowed to shrink/grow INSIDE the fixed shell */
+/* Video container must be allowed to shrink */
 #video-container{
   flex: 1 1 auto !important;
   min-height: 0 !important;
   height: auto !important;
-  overflow: hidden !important;
 }
 #video-container iframe{
   width: 100% !important;
@@ -923,52 +914,55 @@
   display:block;
 }
 
-/* Right panel: fixed height + internal scrolling only */
+/* Right panel locked to same height as player */
 #side-panel{
-  display:flex !important;
-  flex-direction: column !important;
+  height: 100% !important;
   min-height: 0 !important;
-  overflow: hidden !important;
 }
 
-/* Tabs must not overflow the panel */
-#tab-chat, #tab-stats, #tab-tools{
+/* Tabs area must scroll internally, never expand the panel */
+#side-panel .tab-body,
+#side-panel .tab-content{
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow: hidden !important;
 }
 
-/* Chat containers: take available space and clip overflow */
+/* Chat containers: fixed height + internal scroll */
 #chat-container-twitch,
 #chat-container-hub{
+  display:flex !important;
+  flex-direction: column !important;
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow: hidden !important;
-  display:flex !important;
-  flex-direction: column !important;
 }
 
-/* Twitch chat iframe fills its container */
-#chat-container-twitch iframe{
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Hub: message list scrolls; input stays visible */
-#hub-messages{
+/* Message list scroll */
+#hub-messages,
+#twitch-chat-wrap{
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow-y: auto !important;
-  overflow-anchor: none;
-  padding-bottom: 90px;
-}
-#chat-container-hub form{
-  flex: 0 0 auto !important;
-  position: sticky;
-  bottom: 0;
-  z-index: 20;
 }
 
+/* Prevent page-height “anchor” jumps */
+#hub-messages{ overflow-anchor: none; }
+
+
+/* ================= FIX: SIDE PANEL MUST STOP AT PLAYER HEIGHT =================
+   Root cause: right panel (#side-panel) lives in the same grid row as the whole left column
+   (player + under-module). In CSS grid, items stretch to the tallest cell → the chat becomes
+   as tall as (player + modules) and visually "covers" the bottom modules.
+   Fix: lock #side-panel height to exactly the rendered height of .player-shell (player block),
+   and force internal scrolling inside chat content.
+*/
+#side-panel{ align-self: start !important; height: auto; min-height: 0 !important; }
+#side-panel .tab-content{ display:flex; flex-direction:column; min-height:0 !important; }
+#tab-chat{ min-height:0 !important; }
+#chat-container-twitch, #chat-container-hub{ flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }
+#twitch-chat-frame{ width:100% !important; height:100% !important; display:block; }
+#hub-messages{ flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; }
 
 </style>
 </head>
@@ -3569,6 +3563,53 @@ async function earnCredits(type){
     }
   }catch(e){}
 }
+
+
+// ================= FIX: keep right panel exactly as tall as the player =================
+(function(){
+  function syncSidePanelHeight(){
+    const ps = document.querySelector('.player-shell');
+    const sp = document.getElementById('side-panel');
+    if(!ps || !sp) return;
+
+    // Height of the full player block (header + video)
+    const h = Math.max(420, Math.round(ps.getBoundingClientRect().height));
+    // Hard lock: prevents chat from extending into the modules below
+    sp.style.height = h + 'px';
+    sp.style.maxHeight = h + 'px';
+    sp.style.minHeight = h + 'px';
+  }
+
+  // Run after layout is stable
+  window.addEventListener('load', () => {
+    syncSidePanelHeight();
+    setTimeout(syncSidePanelHeight, 250);
+    setTimeout(syncSidePanelHeight, 900);
+  });
+
+  window.addEventListener('resize', () => requestAnimationFrame(syncSidePanelHeight));
+
+  // Observe player size changes (responsive + cinema mode)
+  const ps = document.querySelector('.player-shell');
+  if(ps && 'ResizeObserver' in window){
+    try{
+      const ro = new ResizeObserver(() => syncSidePanelHeight());
+      ro.observe(ps);
+    }catch(e){}
+  }
+
+  // If tabs / modals change the page scrollbar, re-sync
+  document.addEventListener('click', (e)=>{
+    const t = e.target;
+    if(!t) return;
+    if(t.closest?.('#twitflix-modal') || t.closest?.('#btn-auth') || t.closest?.('#player-tools') || t.closest?.('.u-nav') || t.closest?.('.tab-nav')){
+      setTimeout(syncSidePanelHeight, 50);
+    }
+  }, true);
+
+  // Expose for debugging
+  window.__syncSidePanelHeight = syncSidePanelHeight;
+})();
 
 </script>
 
