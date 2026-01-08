@@ -24,7 +24,7 @@
       background:var(--bg-dark);
       color:var(--text-main);
       font-family:Inter, sans-serif;
-      overflow-x:hidden;
+      overflow-x:auto;
     }
     .font-orbitron{ font-family:Orbitron, sans-serif; }
 
@@ -117,13 +117,8 @@
     @keyframes bt-spin{ to{ transform:rotate(360deg) } }
 
     /* PLAYER sizing (grand) */
-
-/* === Layout fix: chat doesn't resize player === */
-#tab-chat{ height:72vh; display:flex; flex-direction:column; }
-#chat-container-twitch, #chat-container-hub{ height:62vh !important; flex:0 0 auto !important; }
-
-    .player-shell{ height:72vh; }
-    #video-container{ height:62vh; min-height:62vh; flex:0 0 auto !important; }
+    .player-shell{ min-height:72vh; }
+    #video-container{ min-height:62vh; }
 
     /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
     .u-nav{ display:flex; background:#080808; border-bottom:1px solid #1f1f23; }
@@ -630,49 +625,6 @@
       flex-wrap:wrap;
       align-items:center;
     }
-
-    /* Messenger-like reactions: picker hidden, appears on hover/tap */
-    .hub-react-row{
-      position:absolute;
-      right:10px;
-      top:34px;
-      display:flex;
-      gap:8px;
-      padding:6px 8px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(12,12,14,.92);
-      opacity:0;
-      pointer-events:none;
-      transform: translateY(-4px);
-      transition:.15s ease;
-      z-index:5;
-    }
-    .hub-msg{ position:relative; }
-    .hub-msg:hover .hub-react-row,
-    .hub-msg.is-tapped .hub-react-row{
-      opacity:1;
-      pointer-events:auto;
-      transform: translateY(0);
-    }
-    .hub-react-toggle{
-      position:absolute;
-      right:10px;
-      top:6px;
-      width:26px;height:26px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(16,16,18,.75);
-      color:#fff;
-      opacity:0;
-      transition:.15s ease;
-      display:flex;align-items:center;justify-content:center;
-      z-index:6;
-      cursor:pointer;
-      font-size:14px;
-    }
-    .hub-msg:hover .hub-react-toggle{ opacity:1; }
-
     .hub-react-btn{
       display:inline-flex;
       align-items:center;
@@ -780,10 +732,10 @@
 /* === Tools overlay (safe) === */
 
 #player-tools{
-  position:relative;
-  top:auto;
-  right:auto;
-  z-index:20 !important;
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:99999 !important;
   display:flex;
   gap:8px;
   pointer-events:auto;
@@ -854,6 +806,223 @@
 }
 .mosaic-tile button:hover{ border-color:#00f2ea; }
 
+
+/* === FORCE PLAYER + SIDE PANEL ALWAYS SIDE-BY-SIDE (embed-safe) === */
+#main-layout{ align-items: stretch; }
+#main-layout > .col-span-8{ min-width: 640px; }
+#side-panel{ min-width: 360px; max-width: 520px; }
+
+
+/* === FIX: Sidebar chat should NOT deform Twitch player === */
+#main-layout{ align-items: start !important; }
+.player-shell{
+  flex: 0 0 auto !important;
+  height: clamp(520px, 72vh, 860px) !important;
+  min-height: unset !important;
+}
+#video-container{
+  flex: 1 1 auto !important;
+  min-height: unset !important;
+  height: 100% !important;
+}
+
+
+/* === FIX: side-panel height locked to player (Hub Secure can't stretch layout) === */
+#side-panel{
+  height: clamp(520px, 72vh, 860px) !important;
+  min-height: 0 !important;
+}
+#tab-chat{
+  min-height: 0 !important;
+}
+#chat-container-twitch,
+#chat-container-hub{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+#hub-messages{
+  min-height: 0 !important;
+}
+
+/* Ensure chat iframe can't force extra height */
+#twitch-chat-frame{ display:block; width:100%; height:100%; }
+
+/* === FIX: Messenger-like reactions (attached to message) without layout shift === */
+.hub-msg{ position: relative !important; padding-bottom: 34px !important; }
+
+/* Pills (existing reactions) stick to the bottom-right of the message */
+.hub-reactions{
+  position: absolute !important;
+  right: 10px !important;
+  bottom: 8px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  pointer-events: none !important;
+}
+/* Hide empty reactions container */
+.hub-reactions:empty{ display:none !important; }
+
+/* Reaction picker appears just above the pills, like Messenger */
+.hub-react-row{
+  position: absolute !important;
+  right: 10px !important;
+  bottom: 36px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(6px) !important;
+  transition: opacity .15s ease, transform .15s ease !important;
+  z-index: 5 !important;
+}
+.hub-msg:hover .hub-react-row,
+.hub-msg.show-reactions .hub-react-row{
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
+}
+
+
+    /* ===== Help dots (restored) ===== */
+    .help-dot{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:16px; height:16px; border-radius:999px;
+      border:1px solid #2a2a2a; color:#9ca3af;
+      font-size:11px; margin-left:6px;
+      background: rgba(0,0,0,0.35);
+      cursor:pointer;
+      flex-shrink:0;
+    }
+    .help-dot:hover{ border-color: var(--secondary); color: var(--secondary); }
+
+    #helpModal{
+      position:fixed; inset:0; z-index:100001;
+      display:none; align-items:center; justify-content:center;
+      background: rgba(0,0,0,0.65);
+      padding: 16px;
+    }
+    #helpModal.active{ display:flex; }
+    #helpCard{
+      width:min(720px, 96vw);
+      background: #0b0b0d;
+      border:1px solid #222;
+      border-radius:14px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+      overflow:hidden;
+    }
+    #helpCardHeader{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 12px 14px;
+      background: linear-gradient(90deg, rgba(255,0,153,0.12), rgba(0,242,234,0.10));
+      border-bottom: 1px solid #222;
+    }
+    #helpTitle{ font-family: Orbitron, Inter, system-ui; font-size: 14px; color:#e5e7eb; }
+    #helpClose{
+      width:34px; height:34px; border-radius:10px;
+      border:1px solid #2a2a2a; background:#111; color:#e5e7eb;
+      cursor:pointer;
+    }
+    #helpClose:hover{ border-color: var(--secondary); color: var(--secondary); }
+    #helpBody{ padding: 12px 14px; color:#d1d5db; font-size: 13px; line-height:1.45; }
+    #helpBody ul{ margin-left: 18px; list-style: disc; }
+
+    /* ===== Hub Secure — Messenger-like bubbles (no layout shift) ===== */
+    #chat-container-hub{ display:flex; flex-direction:column; min-height:0; }
+    #chat-container-hub #hub-messages{ flex:1; min-height:0; padding:12px; }
+
+    .hub-msg{
+      position:relative;
+      border-bottom:0;
+      padding:10px 10px 14px 10px;
+      margin: 8px 0;
+      background: transparent;
+    }
+    .hub-bubble{
+      display:inline-block;
+      max-width: 92%;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding: 10px 12px;
+      line-height:1.35;
+    }
+    .hub-meta{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:6px;
+      font-size:11px;
+      color:#a7a7b2;
+    }
+    .hub-name{
+      font-family:Orbitron, sans-serif;
+      font-size:11px;
+      color:#00f2ea;
+      font-weight:900;
+    }
+    .hub-text{ font-size:13px; color:#e8e8ee; word-break: break-word; }
+    .hub-time{ font-size:10px; color:#6b7280; margin-left:auto; }
+
+    /* Reaction picker (appears like Messenger, attached to message) */
+    .hub-react-row{
+      position:absolute;
+      right: 10px;
+      top: -12px;
+      display:flex;
+      gap:6px;
+      opacity:0;
+      transform: translateY(-4px);
+      pointer-events:none;
+      transition: .14s ease;
+      z-index: 20;
+    }
+    .hub-msg:hover .hub-react-row,
+    .hub-msg.show-reactions .hub-react-row{
+      opacity:1;
+      transform: translateY(0);
+      pointer-events:auto;
+    }
+    .hub-react-btn{
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,.45);
+      border: 1px solid rgba(255,255,255,.14);
+      font-size: 14px;
+      line-height: 1;
+      cursor:pointer;
+    }
+    .hub-react-btn:hover{ border-color:#00f2ea; box-shadow:0 0 12px rgba(0,242,234,.16); }
+
+    /* Reactions pill attached to bubble (bottom-right) */
+    .hub-reactions{
+      position:absolute;
+      right: 18px;
+      bottom: 2px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      align-items:center;
+      z-index: 15;
+      pointer-events:none;
+    }
+    .hub-reaction-pill{
+      pointer-events:none;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.40);
+      backdrop-filter: blur(6px);
+      color:#eaeaf0;
+    }
 </style>
 </head>
 
@@ -905,9 +1074,9 @@
     <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
   </div>
 
-  <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+  <div id="main-layout" class="flex-grow grid grid-cols-12 gap-6 min-h-0 overflow-x-auto">
 
-    <div class="lg:col-span-8 flex flex-col gap-4 min-h-0">
+    <div class="col-span-8 flex flex-col gap-4 min-h-0">
 
       <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
         <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
@@ -919,13 +1088,6 @@
           </div>
 
           <div class="flex gap-2 flex-shrink-0">
-<div id="player-tools">
-    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
-    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
-    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
-    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
-  </div>
-
             <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
               <i class="fas fa-chevron-left"></i>
             </button>
@@ -936,142 +1098,24 @@
         </div>
 
         <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden">
+  <div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:50;display:flex;gap:8px;">
+    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
+    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
+    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
+    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
+  </div>
   <div id="ambilight" aria-hidden="true"></div>
 </div>
       </div>
 
-      <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
-        <div class="u-nav" id="under-tabs-nav">
-          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
-          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
-          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
-        </div>
-
-        <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Growth Score</div>
-              <div id="kpi-growth-score" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
-              <div id="kpi-growth-label" class="text-[10px] text-gray-400 mt-1">--</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Moy. viewers (30j)</div>
-              <div id="kpi-avg" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">données Firestore</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Pic viewers</div>
-              <div id="kpi-peak" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">sur période</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Croissance</div>
-              <div id="kpi-growth" class="text-2xl font-orbitron text-[#ff0099]">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">début → fin</div>
-            </div>
-          </div>
-
-          <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-bell mr-1"></i> Alertes automatiques
-              </h4>
-              <div id="alerts-box" class="text-xs text-gray-400">—</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-wave-square mr-1"></i> Courbe daily
-              </h4>
-              <div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-magic mr-1"></i> IA – plan d’action
-              </h4>
-              <button id="btn-ai-reco" onclick="loadAIReco()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
-                ⚡ Générer des recommandations
-              </button>
-              <div id="ai-reco-box" class="mt-3 text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto bg-[#0a0a0a] border border-[#222] rounded p-2 hidden"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="under-analytics" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
-              <div id="kpi-volatility" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">plus bas = plus stable</div>
-            </div>
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Heures / semaine (estim.)</div>
-              <div id="kpi-hours" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">basé sur snapshots</div>
-            </div>
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Échantillons</div>
-              <div id="kpi-samples" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
-            </div>
-          </div>
-
-          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
-              <input id="sim-hours" type="number" min="1" max="80" value="12" class="cyber-input" placeholder="Heures / semaine">
-              <button onclick="runSimulation()" class="bg-[#ff0099] text-white px-4 rounded font-bold hover:bg-white hover:text-black transition font-orbitron text-xs">
-                SIMULER
-              </button>
-              <div id="sim-result" class="text-xs text-gray-300 flex items-center bg-[#0a0a0a] border border-[#222] rounded px-3">--</div>
-            </div>
-          </div>
-        </div>
-
-        <div id="under-niche" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
-
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Saturation</div>
-                <div id="niche-sat" class="text-xl font-orbitron text-[#00f2ea]">--</div>
-              </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Découvrabilité</div>
-                <div id="niche-discover" class="text-xl font-orbitron text-[#ff0099]">--</div>
-              </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Position</div>
-                <div id="niche-position" class="text-xl font-orbitron text-white">--</div>
-              </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Verdict</div>
-                <div id="niche-verdict" class="text-xl font-orbitron text-white">--</div>
-              </div>
-            </div>
-
-            <div class="mt-3 text-xs text-gray-300" id="niche-details">—</div>
-          </div>
-
-          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
-            <div class="h-44"><canvas id="chartGameHours"></canvas></div>
-            <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
-          </div>
-        </div>
-      </div>
+      
     </div>
 
-    <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
+    <div class="col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0" id="side-panel">
       <div class="tab-nav">
-        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
-        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
-        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
+        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT <span class="help-dot" data-help="chat">?</span></button>
+        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS <span class="help-dot" data-help="stats">?</span></button>
+        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS <span class="help-dot" data-help="tools">?</span></button>
       </div>
 
       <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
@@ -1218,6 +1262,195 @@
 
       </div>
     </div>
+
+    <div class="col-span-12">
+<div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
+        <div class="u-nav" id="under-tabs-nav">
+          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW <span class="help-dot" data-help="overview">?</span></button>
+          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO <span class="help-dot" data-help="analytics">?</span></button>
+          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE <span class="help-dot" data-help="niche">?</span></button>
+          <button class="u-tab-btn" data-ut="bourse"><i class="fas fa-coins mr-1"></i> BOURSE <span class="help-dot" data-help="bourse">?</span></button>
+        </div>
+
+        <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Growth Score</div>
+              <div id="kpi-growth-score" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
+              <div id="kpi-growth-label" class="text-[10px] text-gray-400 mt-1">--</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Moy. viewers (30j)</div>
+              <div id="kpi-avg" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">données Firestore</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Pic viewers</div>
+              <div id="kpi-peak" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">sur période</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Croissance</div>
+              <div id="kpi-growth" class="text-2xl font-orbitron text-[#ff0099]">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">début → fin</div>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-bell mr-1"></i> Alertes automatiques
+              </h4>
+              <div id="alerts-box" class="text-xs text-gray-400">—</div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-wave-square mr-1"></i> Courbe daily
+              </h4>
+              <div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
+            </div>
+
+            <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
+              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+                <i class="fas fa-magic mr-1"></i> IA – plan d’action
+              </h4>
+              <button id="btn-ai-reco" onclick="loadAIReco()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+                ⚡ Générer des recommandations
+              </button>
+              <div id="ai-reco-box" class="mt-3 text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto bg-[#0a0a0a] border border-[#222] rounded p-2 hidden"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="under-analytics" class="u-tab-panel p-4 bg-[#0b0b0d]">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
+              <div id="kpi-volatility" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">plus bas = plus stable</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Heures / semaine (estim.)</div>
+              <div id="kpi-hours" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">basé sur snapshots</div>
+            </div>
+            <div class="bg-[#111] p-3 rounded border border-[#222]">
+              <div class="text-[10px] text-gray-500 uppercase">Échantillons</div>
+              <div id="kpi-samples" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
+            </div>
+          </div>
+
+          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
+              <input id="sim-hours" type="number" min="1" max="80" value="12" class="cyber-input" placeholder="Heures / semaine">
+              <button onclick="runSimulation()" class="bg-[#ff0099] text-white px-4 rounded font-bold hover:bg-white hover:text-black transition font-orbitron text-xs">
+                SIMULER
+              </button>
+              <div id="sim-result" class="text-xs text-gray-300 flex items-center bg-[#0a0a0a] border border-[#222] rounded px-3">--</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="under-niche" class="u-tab-panel p-4 bg-[#0b0b0d]">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Saturation</div>
+                <div id="niche-sat" class="text-xl font-orbitron text-[#00f2ea]">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Découvrabilité</div>
+                <div id="niche-discover" class="text-xl font-orbitron text-[#ff0099]">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Position</div>
+                <div id="niche-position" class="text-xl font-orbitron text-white">--</div>
+              </div>
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase">Verdict</div>
+                <div id="niche-verdict" class="text-xl font-orbitron text-white">--</div>
+              </div>
+            </div>
+
+            <div class="mt-3 text-xs text-gray-300" id="niche-details">—</div>
+          </div>
+
+          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
+            <div class="h-44"><canvas id="chartGameHours"></canvas></div>
+            <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
+          </div>
+        </div>
+
+      <div id="under-bourse" class="u-tab-panel p-4 bg-[#0b0b0d]">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-sm font-bold text-gray-200"><i class="fas fa-coins mr-2 text-[#00f2ea]"></i>Bourse des Streamers</div>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#00f2ea]" onclick="refreshBoursePanel()">↻</button>
+            <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#ff0099]" onclick="openFantasy()">Trading Desk</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <div class="text-[10px] text-gray-500 uppercase">Cash</div>
+            <div id="bourse-cash" class="text-2xl font-orbitron text-white">--</div>
+            <div class="text-[10px] text-gray-500 mt-1">Crédits dispo</div>
+          </div>
+
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <div class="text-[10px] text-gray-500 uppercase">Net Worth</div>
+            <div id="bourse-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
+            <div class="text-[10px] text-gray-500 mt-1">Cash + positions</div>
+          </div>
+
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <div class="text-[10px] text-gray-500 uppercase">Réservé</div>
+            <div id="bourse-reserved" class="text-2xl font-orbitron text-white">--</div>
+            <div class="text-[10px] text-gray-500 mt-1">Ordres en attente</div>
+          </div>
+
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <div class="text-[10px] text-gray-500 uppercase">Ordres ouverts</div>
+            <div id="bourse-open-orders" class="text-2xl font-orbitron text-white">--</div>
+            <div class="text-[10px] text-gray-500 mt-1">Annulables</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-gray-400 font-bold uppercase">Mon portefeuille</div>
+            </div>
+            <div id="bourse-portfolio" class="mt-2 text-xs text-gray-300">—</div>
+          </div>
+
+          <div class="bg-[#111] p-3 rounded border border-[#222]">
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-gray-400 font-bold uppercase">Leaderboard</div>
+            </div>
+            <div id="bourse-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
+          </div>
+        </div>
+
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('twitflix_view')">+15 Crédits (TwitFlix)</button>
+          <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('analytics_view')">+20 Crédits (Stats)</button>
+          <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('niche_tool')">+20 Crédits (Niche)</button>
+        </div>
+      </div>
+
+      </div>
+    </div>
+
   </div>
 
   <div id="twitflix-modal" class="tf-modal-overlay">
@@ -1318,9 +1551,10 @@
       nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           const id = btn.getAttribute('data-ut');
-          nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
+                    if(id === 'bourse'){ setTimeout(()=>{ try{ refreshBoursePanel(); }catch(e){} }, 50); }
+nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
           btn.classList.add('active');
-          document.querySelectorAll('#under-overview,#under-analytics,#under-niche').forEach(p=>p.classList.remove('active'));
+          document.querySelectorAll('#under-overview,#under-analytics,#under-niche,#under-bourse').forEach(p=>p.classList.remove('active'));
           const panel = document.getElementById(`under-${id}`);
           if (panel) panel.classList.add('active');
         });
@@ -1703,32 +1937,37 @@
       el.setAttribute('data-msg-id', id);
 
       el.innerHTML = `
-        <div class="flex items-center gap-2">
-          <strong class="text-[#00f2ea]">${user}</strong>
+        <div class="hub-meta">
+          <span class="hub-name">${user}</span>
           ${grade ? `<span class="hub-badge" style="border-color:${badgeColor}; color:${badgeColor};">${escapeHtml(grade)}</span>` : ``}
-          <span class="text-[10px] text-gray-600 ml-auto">${ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+          <span class="hub-time">${ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
         </div>
-        ${text ? `<div class="text-gray-200 mt-1">${text}</div>` : ``}
-        ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
+
+        <div class="hub-bubble">
+          ${text ? `<div class="hub-text">${text}</div>` : ``}
+          ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
+        </div>
+
         <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
-        <div class="hub-react-row flex gap-2 mt-2">
-          <button type="button" class="hub-react-btn" data-react="🔥" data-msg="${'${encodeURIComponent(id)}'}">🔥</button>
-          <button type="button" class="hub-react-btn" data-react="😂" data-msg="${'${encodeURIComponent(id)}'}">😂</button>
-          <button type="button" class="hub-react-btn" data-react="💖" data-msg="${'${encodeURIComponent(id)}'}">💖</button>
-          <button type="button" class="hub-react-btn" data-react="👍" data-msg="${'${encodeURIComponent(id)}'}">👍</button>
+
+        <div class="hub-react-row">
+          <button type="button" class="hub-react-btn" aria-label="Réagir feu" data-react="🔥" data-msg="${id}">🔥</button>
+          <button type="button" class="hub-react-btn" aria-label="Réagir rire" data-react="😂" data-msg="${id}">😂</button>
+          <button type="button" class="hub-react-btn" aria-label="Réagir coeur" data-react="💖" data-msg="${id}">💖</button>
+          <button type="button" class="hub-react-btn" aria-label="Réagir pouce" data-react="👍" data-msg="${id}">👍</button>
         </div>
       `;
 
+      const nearBottom = (box.scrollHeight - box.scrollTop - box.clientHeight) < 120;
       box.appendChild(el);
-      box.scrollTop = box.scrollHeight;
+      if (nearBottom) box.scrollTop = box.scrollHeight;
     }
 
-    function reactToMsg(messageIdEscaped, emoji){
-      // On retrouve l'id original via dataset
-      const el = document.querySelector(`[data-msg-id]`);
-      // On envoie directement l'id passé (déjà safe côté serveur)
-      if (socket) if (window.emitHubReact) window.emitHubReact({ messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
+    function reactToMsg(messageId, emoji){
+      // Envoie réaction (id exact du message)
+      if (window.emitHubReact) window.emitHubReact({ messageId, emoji });
     }
+
 
     function insertAtCursor(input, text){
       const start = input.selectionStart || 0;
@@ -2728,24 +2967,7 @@
       if(!msgEl) return;
       // if clicked on button, keep
       if(e.target.closest('.hub-react-btn')) return;
-      if(e.target.closest('.hub-react-toggle')) return;
       msgEl.classList.toggle('is-tapped');
-    });
-
-    // Toggle reactions picker (Messenger-like)
-    document.addEventListener('click', (e)=>{
-      const toggle = e.target.closest('.hub-react-toggle');
-      if(toggle){
-        const msgEl = toggle.closest('.hub-msg');
-        if(!msgEl) return;
-        // close others
-        document.querySelectorAll('.hub-msg.is-tapped').forEach(n=>{ if(n!==msgEl) n.classList.remove('is-tapped'); });
-        msgEl.classList.toggle('is-tapped');
-        e.stopPropagation();
-      }else{
-        // click outside closes any open picker
-        document.querySelectorAll('.hub-msg.is-tapped').forEach(n=> n.classList.remove('is-tapped'));
-      }
     });
 
 </script>
@@ -3271,6 +3493,149 @@ document.getElementById('ambilight')?.classList.toggle('on', __ambOn);
 document.getElementById('tool-vibe')?.classList.toggle('active', __vibeOn);
 setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 700);
 
+
+
+// ================= BOURSE PANEL (UNDER-TABS) =================
+async function refreshBoursePanel(){
+  try{
+    const cashEl = document.getElementById('bourse-cash');
+    const netEl  = document.getElementById('bourse-networth');
+    const resEl  = document.getElementById('bourse-reserved');
+    const ordEl  = document.getElementById('bourse-open-orders');
+    const portEl = document.getElementById('bourse-portfolio');
+    const lbEl   = document.getElementById('bourse-leaderboard');
+    if(!cashEl || !netEl || !resEl || !ordEl || !portEl || !lbEl) return;
+
+    const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+    if(!prof || !prof.success){
+      portEl.innerHTML = "<div class='text-gray-500'>Connecte-toi Twitch pour utiliser la Bourse.</div>";
+      cashEl.textContent = '--';
+      netEl.textContent = '--';
+      resEl.textContent = '--';
+      ordEl.textContent = '--';
+      lbEl.innerHTML = "<div class='text-gray-500'>—</div>";
+      return;
+    }
+
+    const cash = Number(prof.cash||0);
+    const net  = Number(prof.netWorth||0);
+    const reserved = Number(prof.cashReserved||0) || 0;
+
+    cashEl.textContent = cash.toLocaleString('fr-FR');
+    netEl.textContent  = net.toLocaleString('fr-FR');
+    resEl.textContent  = reserved.toLocaleString('fr-FR');
+
+    const holdings = Array.isArray(prof.holdings) ? prof.holdings : [];
+    if(!holdings.length){
+      portEl.innerHTML = "<div class='text-gray-500'>Aucune position pour l’instant.</div>";
+    }else{
+      const rows = holdings
+        .sort((a,b)=> (b.value||0)-(a.value||0))
+        .slice(0, 12)
+        .map(h=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
+          <div class="text-gray-200"><strong>${escapeHtml(h.login||'')}</strong> <span class="text-gray-500">x${Number(h.shares||0)}</span></div>
+          <div class="text-gray-300">${Number(h.value||0).toLocaleString('fr-FR')}</div>
+        </div>`).join('');
+      portEl.innerHTML = rows;
+    }
+
+    const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+    const openCount = (orders && orders.success) ? (orders.orders?.length||0) : 0;
+    ordEl.textContent = String(openCount);
+
+    const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json()).catch(()=>null);
+    if(lb && lb.success && Array.isArray(lb.items)){
+      const lines = lb.items.slice(0,10).map((x,i)=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
+        <div class="text-gray-200">#${i+1} ${escapeHtml(x.user||'')}</div>
+        <div class="text-gray-300">${Math.round(x.netWorth||0).toLocaleString('fr-FR')}</div>
+      </div>`).join('');
+      lbEl.innerHTML = lines || "<div class='text-gray-500'>—</div>";
+    }else{
+      lbEl.innerHTML = "<div class='text-gray-500'>—</div>";
+    }
+  }catch(e){
+    console.warn('refreshBoursePanel error', e);
+  }
+}
+
+async function earnCredits(type){
+  try{
+    const r = await fetch('/api/fantasy/reward', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      credentials:'include',
+      body: JSON.stringify({ type })
+    }).then(r=>r.json()).catch(()=>null);
+
+    if(r && r.success){
+      refreshBoursePanel();
+      if(typeof toast === 'function') toast('+'+r.amount+' crédits', true);
+    }else{
+      if(typeof toast === 'function') toast((r && r.error) ? r.error : 'Reward indisponible', false);
+    }
+  }catch(e){}
+}
+
+
+    // ===== Help dots (restored) =====
+    const HELP_CONTENT = {
+      overview: {
+        title: "Overview",
+        body: `<p>Vue rapide de la chaîne sélectionnée : score, moyennes, pics, etc.</p>`
+      },
+      analytics: {
+        title: "Analytics Pro",
+        body: `<p>Analyse avancée (tendances, recommandations). Utilise l’IA + stats.</p>`
+      },
+      niche: {
+        title: "Niche",
+        body: `<p>Outils niche & optimisation de positionnement / contenus.</p>`
+      },
+      bourse: {
+        title: "Bourse",
+        body: `<p>Portefeuille, cash, ordres et leaderboard. Clique pour rafraîchir.</p>`
+      },
+      chat: {
+        title: "Chat",
+        body: `<ul><li><strong>TWITCH</strong> : chat officiel de la chaîne.</li><li><strong>HUB SECURE</strong> : chat interne modéré / persistant.</li></ul>`
+      },
+      stats: {
+        title: "Stats",
+        body: `<p>Mini-cards live + informations sur la chaîne/stream en cours.</p>`
+      },
+      tools: {
+        title: "Outils",
+        body: `<p>Raccourcis et modules (mosaïque, ambilight, cinéma, etc.).</p>`
+      }
+    };
+
+    function openHelp(key){
+      const modal = document.getElementById('helpModal');
+      const title = document.getElementById('helpTitle');
+      const body = document.getElementById('helpBody');
+      const data = HELP_CONTENT[key] || { title:"Aide", body:"<p>Information indisponible.</p>" };
+      title.textContent = data.title;
+      body.innerHTML = data.body;
+      modal.classList.add('active');
+    }
+    function closeHelp(){
+      document.getElementById('helpModal')?.classList.remove('active');
+    }
+    document.addEventListener('click', (e)=>{
+      const dot = e.target.closest?.('.help-dot');
+      if (dot){
+        e.preventDefault();
+        const key = dot.getAttribute('data-help');
+        openHelp(key);
+        return;
+      }
+      if (e.target?.id === 'helpModal' || e.target?.id === 'helpClose'){
+        closeHelp();
+      }
+    });
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape') closeHelp();
+    });
 </script>
 
 <div id="mosaicModal" class="modal-overlay" onclick="closeMosaic(event)">
@@ -3322,5 +3687,16 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
   </div>
 </div>
 
+
+  <!-- Help Modal (restored) -->
+  <div id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div id="helpCard">
+      <div id="helpCardHeader">
+        <div id="helpTitle">Aide</div>
+        <button id="helpClose" type="button" aria-label="Fermer">✕</button>
+      </div>
+      <div id="helpBody"></div>
+    </div>
+  </div>
 </body>
 </html>
