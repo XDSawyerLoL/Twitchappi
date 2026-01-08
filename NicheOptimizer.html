@@ -875,6 +875,80 @@
       }
     }
 
+
+
+/* =========================================================
+   FIX: Chat Hub Secure must NOT stretch the Twitch player
+   - Locks the stream row height (player + sidebar)
+   - Forces internal scrolling in chat panels
+   ========================================================= */
+:root{
+  --stream-panel-h: clamp(560px, 76vh, 920px);
+}
+
+/* The row that contains player + right panel */
+#stream-row{
+  height: var(--stream-panel-h) !important;
+  align-items: stretch !important; /* grid items same height */
+}
+
+/* Left column wrapper and player shell fill the row */
+#stream-row > .col-span-8{
+  height: 100% !important;
+  min-height: 0 !important;
+}
+#stream-row .player-shell{
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* Video container must be allowed to shrink */
+#video-container{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+}
+#video-container iframe{
+  width: 100% !important;
+  height: 100% !important;
+  display:block;
+}
+
+/* Right panel locked to same height as player */
+#side-panel{
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* Tabs area must scroll internally, never expand the panel */
+#side-panel .tab-body,
+#side-panel .tab-content{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Chat containers: fixed height + internal scroll */
+#chat-container-twitch,
+#chat-container-hub{
+  display:flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Message list scroll */
+#hub-messages,
+#twitch-chat-wrap{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* Prevent page-height “anchor” jumps */
+#hub-messages{ overflow-anchor: none; }
+
 </style>
 </head>
 
@@ -926,7 +1000,7 @@
     <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
   </div>
 
-  <div class="flex-grow grid grid-cols-12 gap-6 min-h-0 w-full overflow-x-auto">
+  <div id="stream-row" class="flex-grow grid grid-cols-12 gap-6 min-h-0 w-full overflow-x-auto">
 
     <div class="col-span-8 flex flex-col gap-4 min-h-0 min-w-[720px]">
 
