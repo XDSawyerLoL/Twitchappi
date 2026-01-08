@@ -878,35 +878,44 @@
 
 
 /* =========================================================
-   FIX: Chat Hub Secure must NOT stretch the Twitch player
-   - Locks the stream row height (player + sidebar)
-   - Forces internal scrolling in chat panels
+   FIX (FINAL): Chats must STOP at Twitch player height
+   - Locks the "player + right panel" row to a fixed viewport height
+   - Prevents the right panel (Twitch / Hub Secure) from growing the page
+   - All scrolling happens INSIDE chat lists, never by stretching the layout
    ========================================================= */
 :root{
-  --stream-panel-h: clamp(560px, 76vh, 920px);
+  --stream-panel-h: clamp(540px, 72vh, 880px);
 }
 
 /* The row that contains player + right panel */
 #stream-row{
   height: var(--stream-panel-h) !important;
-  align-items: stretch !important; /* grid items same height */
+  flex: 0 0 var(--stream-panel-h) !important; /* overrides the flex-grow class in HTML */
+  overflow: hidden !important;
+  align-items: stretch !important;
 }
 
-/* Left column wrapper and player shell fill the row */
-#stream-row > .col-span-8{
+/* Left + right columns fill the row */
+#stream-row > .col-span-8,
+#stream-row > #side-panel{
   height: 100% !important;
   min-height: 0 !important;
 }
+
+/* Player shell: fixed to row height */
 #stream-row .player-shell{
   height: 100% !important;
   min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-/* Video container must be allowed to shrink */
+/* Video area must be allowed to shrink/grow INSIDE the fixed shell */
 #video-container{
   flex: 1 1 auto !important;
   min-height: 0 !important;
   height: auto !important;
+  overflow: hidden !important;
 }
 #video-container iframe{
   width: 100% !important;
@@ -914,40 +923,52 @@
   display:block;
 }
 
-/* Right panel locked to same height as player */
+/* Right panel: fixed height + internal scrolling only */
 #side-panel{
-  height: 100% !important;
-  min-height: 0 !important;
-}
-
-/* Tabs area must scroll internally, never expand the panel */
-#side-panel .tab-body,
-#side-panel .tab-content{
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Chat containers: fixed height + internal scroll */
-#chat-container-twitch,
-#chat-container-hub{
   display:flex !important;
   flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Tabs must not overflow the panel */
+#tab-chat, #tab-stats, #tab-tools{
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow: hidden !important;
 }
 
-/* Message list scroll */
-#hub-messages,
-#twitch-chat-wrap{
+/* Chat containers: take available space and clip overflow */
+#chat-container-twitch,
+#chat-container-hub{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display:flex !important;
+  flex-direction: column !important;
+}
+
+/* Twitch chat iframe fills its container */
+#chat-container-twitch iframe{
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Hub: message list scrolls; input stays visible */
+#hub-messages{
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow-y: auto !important;
+  overflow-anchor: none;
+  padding-bottom: 90px;
+}
+#chat-container-hub form{
+  flex: 0 0 auto !important;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
 }
 
-/* Prevent page-height “anchor” jumps */
-#hub-messages{ overflow-anchor: none; }
 
 </style>
 </head>
