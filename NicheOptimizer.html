@@ -24,7 +24,7 @@
       background:var(--bg-dark);
       color:var(--text-main);
       font-family:Inter, sans-serif;
-      overflow-x:auto;
+      overflow-x:hidden;
     }
     .font-orbitron{ font-family:Orbitron, sans-serif; }
 
@@ -117,8 +117,13 @@
     @keyframes bt-spin{ to{ transform:rotate(360deg) } }
 
     /* PLAYER sizing (grand) */
-    .player-shell{ min-height:72vh; }
-    #video-container{ min-height:62vh; }
+
+/* === Layout fix: chat doesn't resize player === */
+#tab-chat{ height:72vh; display:flex; flex-direction:column; }
+#chat-container-twitch, #chat-container-hub{ height:62vh !important; flex:0 0 auto !important; }
+
+    .player-shell{ height:72vh; }
+    #video-container{ height:62vh; min-height:62vh; flex:0 0 auto !important; }
 
     /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
     .u-nav{ display:flex; background:#080808; border-bottom:1px solid #1f1f23; }
@@ -625,6 +630,49 @@
       flex-wrap:wrap;
       align-items:center;
     }
+
+    /* Messenger-like reactions: picker hidden, appears on hover/tap */
+    .hub-react-row{
+      position:absolute;
+      right:10px;
+      top:34px;
+      display:flex;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(12,12,14,.92);
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(-4px);
+      transition:.15s ease;
+      z-index:5;
+    }
+    .hub-msg{ position:relative; }
+    .hub-msg:hover .hub-react-row,
+    .hub-msg.is-tapped .hub-react-row{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+    .hub-react-toggle{
+      position:absolute;
+      right:10px;
+      top:6px;
+      width:26px;height:26px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(16,16,18,.75);
+      color:#fff;
+      opacity:0;
+      transition:.15s ease;
+      display:flex;align-items:center;justify-content:center;
+      z-index:6;
+      cursor:pointer;
+      font-size:14px;
+    }
+    .hub-msg:hover .hub-react-toggle{ opacity:1; }
+
     .hub-react-btn{
       display:inline-flex;
       align-items:center;
@@ -732,10 +780,10 @@
 /* === Tools overlay (safe) === */
 
 #player-tools{
-  position:absolute;
-  top:10px;
-  right:10px;
-  z-index:99999 !important;
+  position:relative;
+  top:auto;
+  right:auto;
+  z-index:20 !important;
   display:flex;
   gap:8px;
   pointer-events:auto;
@@ -806,83 +854,6 @@
 }
 .mosaic-tile button:hover{ border-color:#00f2ea; }
 
-
-/* === FORCE PLAYER + SIDE PANEL ALWAYS SIDE-BY-SIDE (embed-safe) === */
-#main-layout{ align-items: stretch; }
-#main-layout > .col-span-8{ min-width: 640px; }
-#side-panel{ min-width: 360px; max-width: 520px; }
-
-
-/* === FIX: Sidebar chat should NOT deform Twitch player === */
-#main-layout{ align-items: start !important; }
-.player-shell{
-  flex: 0 0 auto !important;
-  height: clamp(520px, 72vh, 860px) !important;
-  min-height: unset !important;
-}
-#video-container{
-  flex: 1 1 auto !important;
-  min-height: unset !important;
-  height: 100% !important;
-}
-
-
-/* === FIX: side-panel height locked to player (Hub Secure can't stretch layout) === */
-#side-panel{
-  height: clamp(520px, 72vh, 860px) !important;
-  min-height: 0 !important;
-}
-#tab-chat{
-  min-height: 0 !important;
-}
-#chat-container-twitch,
-#chat-container-hub{
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-}
-#hub-messages{
-  min-height: 0 !important;
-}
-
-/* Ensure chat iframe can't force extra height */
-#twitch-chat-frame{ display:block; width:100%; height:100%; }
-
-/* === FIX: Messenger-like reactions (attached to message) without layout shift === */
-.hub-msg{ position: relative !important; padding-bottom: 34px !important; }
-
-/* Pills (existing reactions) stick to the bottom-right of the message */
-.hub-reactions{
-  position: absolute !important;
-  right: 10px !important;
-  bottom: 8px !important;
-  margin: 0 !important;
-  display: inline-flex !important;
-  gap: 6px !important;
-  flex-wrap: wrap !important;
-  justify-content: flex-end !important;
-  pointer-events: none !important;
-}
-/* Hide empty reactions container */
-.hub-reactions:empty{ display:none !important; }
-
-/* Reaction picker appears just above the pills, like Messenger */
-.hub-react-row{
-  position: absolute !important;
-  right: 10px !important;
-  bottom: 36px !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  transform: translateY(6px) !important;
-  transition: opacity .15s ease, transform .15s ease !important;
-  z-index: 5 !important;
-}
-.hub-msg:hover .hub-react-row,
-.hub-msg.show-reactions .hub-react-row{
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  transform: translateY(0) !important;
-}
-
 </style>
 </head>
 
@@ -934,9 +905,9 @@
     <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
   </div>
 
-  <div id="main-layout" class="flex-grow grid grid-cols-12 gap-6 min-h-0 overflow-x-auto">
+  <div class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
 
-    <div class="col-span-8 flex flex-col gap-4 min-h-0">
+    <div class="lg:col-span-8 flex flex-col gap-4 min-h-0">
 
       <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
         <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
@@ -948,6 +919,13 @@
           </div>
 
           <div class="flex gap-2 flex-shrink-0">
+<div id="player-tools">
+    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
+    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
+    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
+    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
+  </div>
+
             <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
               <i class="fas fa-chevron-left"></i>
             </button>
@@ -958,12 +936,6 @@
         </div>
 
         <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden">
-  <div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:50;display:flex;gap:8px;">
-    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
-    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
-    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
-    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
-  </div>
   <div id="ambilight" aria-hidden="true"></div>
 </div>
       </div>
@@ -973,7 +945,6 @@
           <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
           <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
           <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
-          <button class="u-tab-btn" data-ut="bourse"><i class="fas fa-coins mr-1"></i> BOURSE</button>
         </div>
 
         <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
@@ -1093,69 +1064,10 @@
             <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
           </div>
         </div>
-
-      <div id="under-bourse" class="u-tab-panel p-4 bg-[#0b0b0d]">
-        <div class="flex items-center justify-between mb-3">
-          <div class="text-sm font-bold text-gray-200"><i class="fas fa-coins mr-2 text-[#00f2ea]"></i>Bourse des Streamers</div>
-          <div class="flex items-center gap-2">
-            <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#00f2ea]" onclick="refreshBoursePanel()">↻</button>
-            <button class="px-3 py-1 rounded bg-[#151515] border border-[#2a2a2a] text-xs hover:border-[#ff0099]" onclick="openFantasy()">Trading Desk</button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <div class="text-[10px] text-gray-500 uppercase">Cash</div>
-            <div id="bourse-cash" class="text-2xl font-orbitron text-white">--</div>
-            <div class="text-[10px] text-gray-500 mt-1">Crédits dispo</div>
-          </div>
-
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <div class="text-[10px] text-gray-500 uppercase">Net Worth</div>
-            <div id="bourse-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
-            <div class="text-[10px] text-gray-500 mt-1">Cash + positions</div>
-          </div>
-
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <div class="text-[10px] text-gray-500 uppercase">Réservé</div>
-            <div id="bourse-reserved" class="text-2xl font-orbitron text-white">--</div>
-            <div class="text-[10px] text-gray-500 mt-1">Ordres en attente</div>
-          </div>
-
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <div class="text-[10px] text-gray-500 uppercase">Ordres ouverts</div>
-            <div id="bourse-open-orders" class="text-2xl font-orbitron text-white">--</div>
-            <div class="text-[10px] text-gray-500 mt-1">Annulables</div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4">
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <div class="flex items-center justify-between">
-              <div class="text-xs text-gray-400 font-bold uppercase">Mon portefeuille</div>
-            </div>
-            <div id="bourse-portfolio" class="mt-2 text-xs text-gray-300">—</div>
-          </div>
-
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <div class="flex items-center justify-between">
-              <div class="text-xs text-gray-400 font-bold uppercase">Leaderboard</div>
-            </div>
-            <div id="bourse-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
-          </div>
-        </div>
-
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('twitflix_view')">+15 Crédits (TwitFlix)</button>
-          <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('analytics_view')">+20 Crédits (Stats)</button>
-          <button class="px-3 py-2 rounded bg-[#111] border border-[#222] text-xs hover:border-[#00f2ea]" onclick="earnCredits('niche_tool')">+20 Crédits (Niche)</button>
-        </div>
-      </div>
-
       </div>
     </div>
 
-    <div class="col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0" id="side-panel">
+    <div class="lg:col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0">
       <div class="tab-nav">
         <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
         <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
@@ -1406,10 +1318,9 @@
       nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           const id = btn.getAttribute('data-ut');
-                    if(id === 'bourse'){ setTimeout(()=>{ try{ refreshBoursePanel(); }catch(e){} }, 50); }
-nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
+          nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
           btn.classList.add('active');
-          document.querySelectorAll('#under-overview,#under-analytics,#under-niche,#under-bourse').forEach(p=>p.classList.remove('active'));
+          document.querySelectorAll('#under-overview,#under-analytics,#under-niche').forEach(p=>p.classList.remove('active'));
           const panel = document.getElementById(`under-${id}`);
           if (panel) panel.classList.add('active');
         });
@@ -1801,23 +1712,23 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
         <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
         <div class="hub-react-row flex gap-2 mt-2">
-          <button type="button" class="hub-react-btn" data-react="🔥" data-msg="${id}">🔥</button>
-          <button type="button" class="hub-react-btn" data-react="😂" data-msg="${id}">😂</button>
-          <button type="button" class="hub-react-btn" data-react="💖" data-msg="${id}">💖</button>
-          <button type="button" class="hub-react-btn" data-react="👍" data-msg="${id}">👍</button>
+          <button type="button" class="hub-react-btn" data-react="🔥" data-msg="${'${encodeURIComponent(id)}'}">🔥</button>
+          <button type="button" class="hub-react-btn" data-react="😂" data-msg="${'${encodeURIComponent(id)}'}">😂</button>
+          <button type="button" class="hub-react-btn" data-react="💖" data-msg="${'${encodeURIComponent(id)}'}">💖</button>
+          <button type="button" class="hub-react-btn" data-react="👍" data-msg="${'${encodeURIComponent(id)}'}">👍</button>
         </div>
       `;
 
-      const nearBottom = (box.scrollHeight - box.scrollTop - box.clientHeight) < 120;
       box.appendChild(el);
-      if (nearBottom) box.scrollTop = box.scrollHeight;
+      box.scrollTop = box.scrollHeight;
     }
 
-    function reactToMsg(messageId, emoji){
-      // Envoie réaction (id exact du message)
-      if (window.emitHubReact) window.emitHubReact({ messageId, emoji });
+    function reactToMsg(messageIdEscaped, emoji){
+      // On retrouve l'id original via dataset
+      const el = document.querySelector(`[data-msg-id]`);
+      // On envoie directement l'id passé (déjà safe côté serveur)
+      if (socket) if (window.emitHubReact) window.emitHubReact({ messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
     }
-
 
     function insertAtCursor(input, text){
       const start = input.selectionStart || 0;
@@ -2817,7 +2728,24 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       if(!msgEl) return;
       // if clicked on button, keep
       if(e.target.closest('.hub-react-btn')) return;
+      if(e.target.closest('.hub-react-toggle')) return;
       msgEl.classList.toggle('is-tapped');
+    });
+
+    // Toggle reactions picker (Messenger-like)
+    document.addEventListener('click', (e)=>{
+      const toggle = e.target.closest('.hub-react-toggle');
+      if(toggle){
+        const msgEl = toggle.closest('.hub-msg');
+        if(!msgEl) return;
+        // close others
+        document.querySelectorAll('.hub-msg.is-tapped').forEach(n=>{ if(n!==msgEl) n.classList.remove('is-tapped'); });
+        msgEl.classList.toggle('is-tapped');
+        e.stopPropagation();
+      }else{
+        // click outside closes any open picker
+        document.querySelectorAll('.hub-msg.is-tapped').forEach(n=> n.classList.remove('is-tapped'));
+      }
     });
 
 </script>
@@ -3342,89 +3270,6 @@ document.getElementById('tool-ambilight')?.classList.toggle('active', __ambOn);
 document.getElementById('ambilight')?.classList.toggle('on', __ambOn);
 document.getElementById('tool-vibe')?.classList.toggle('active', __vibeOn);
 setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 700);
-
-
-
-// ================= BOURSE PANEL (UNDER-TABS) =================
-async function refreshBoursePanel(){
-  try{
-    const cashEl = document.getElementById('bourse-cash');
-    const netEl  = document.getElementById('bourse-networth');
-    const resEl  = document.getElementById('bourse-reserved');
-    const ordEl  = document.getElementById('bourse-open-orders');
-    const portEl = document.getElementById('bourse-portfolio');
-    const lbEl   = document.getElementById('bourse-leaderboard');
-    if(!cashEl || !netEl || !resEl || !ordEl || !portEl || !lbEl) return;
-
-    const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-    if(!prof || !prof.success){
-      portEl.innerHTML = "<div class='text-gray-500'>Connecte-toi Twitch pour utiliser la Bourse.</div>";
-      cashEl.textContent = '--';
-      netEl.textContent = '--';
-      resEl.textContent = '--';
-      ordEl.textContent = '--';
-      lbEl.innerHTML = "<div class='text-gray-500'>—</div>";
-      return;
-    }
-
-    const cash = Number(prof.cash||0);
-    const net  = Number(prof.netWorth||0);
-    const reserved = Number(prof.cashReserved||0) || 0;
-
-    cashEl.textContent = cash.toLocaleString('fr-FR');
-    netEl.textContent  = net.toLocaleString('fr-FR');
-    resEl.textContent  = reserved.toLocaleString('fr-FR');
-
-    const holdings = Array.isArray(prof.holdings) ? prof.holdings : [];
-    if(!holdings.length){
-      portEl.innerHTML = "<div class='text-gray-500'>Aucune position pour l’instant.</div>";
-    }else{
-      const rows = holdings
-        .sort((a,b)=> (b.value||0)-(a.value||0))
-        .slice(0, 12)
-        .map(h=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-          <div class="text-gray-200"><strong>${escapeHtml(h.login||'')}</strong> <span class="text-gray-500">x${Number(h.shares||0)}</span></div>
-          <div class="text-gray-300">${Number(h.value||0).toLocaleString('fr-FR')}</div>
-        </div>`).join('');
-      portEl.innerHTML = rows;
-    }
-
-    const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-    const openCount = (orders && orders.success) ? (orders.orders?.length||0) : 0;
-    ordEl.textContent = String(openCount);
-
-    const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json()).catch(()=>null);
-    if(lb && lb.success && Array.isArray(lb.items)){
-      const lines = lb.items.slice(0,10).map((x,i)=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-        <div class="text-gray-200">#${i+1} ${escapeHtml(x.user||'')}</div>
-        <div class="text-gray-300">${Math.round(x.netWorth||0).toLocaleString('fr-FR')}</div>
-      </div>`).join('');
-      lbEl.innerHTML = lines || "<div class='text-gray-500'>—</div>";
-    }else{
-      lbEl.innerHTML = "<div class='text-gray-500'>—</div>";
-    }
-  }catch(e){
-    console.warn('refreshBoursePanel error', e);
-  }
-}
-
-async function earnCredits(type){
-  try{
-    const r = await fetch('/api/fantasy/reward', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      credentials:'include',
-      body: JSON.stringify({ type })
-    }).then(r=>r.json()).catch(()=>null);
-
-    if(r && r.success){
-      refreshBoursePanel();
-      if(typeof toast === 'function') toast('+'+r.amount+' crédits', true);
-    }else{
-      if(typeof toast === 'function') toast((r && r.error) ? r.error : 'Reward indisponible', false);
-    }
-  }catch(e){}
-}
 
 </script>
 
