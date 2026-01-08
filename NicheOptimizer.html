@@ -920,12 +920,25 @@
   min-height: 0 !important;
 }
 
-/* Tabs area must scroll internally, never expand the panel */
+/* Tabs must not expand the panel; each tab manages its own scrolling */
 #side-panel .tab-body,
 #side-panel .tab-content{
   flex: 1 1 auto !important;
   min-height: 0 !important;
-  overflow: hidden !important;
+}
+
+/* Chat tab: keep layout locked; only its inner areas scroll */
+#tab-chat{
+  display:flex !important;
+  flex-direction:column !important;
+  overflow:hidden !important;
+}
+
+/* Stats/Tools tabs: allow internal scrolling */
+#tab-stats,
+#tab-tools{
+  overflow-y:auto !important;
+  overscroll-behavior: contain;
 }
 
 /* Chat containers: fixed height + internal scroll */
@@ -959,9 +972,9 @@
   align-self: start !important;
 }
 
-/* Make sure only the inside of tabs scrolls, never the whole panel */
+/* Ensure the tab bar never stretches; tab contents decide their own overflow */
 #side-panel .tab-nav{ flex: 0 0 auto; }
-#side-panel .tab-content{ flex: 1 1 auto !important; min-height: 0 !important; overflow: hidden !important; }
+#side-panel .tab-content{ flex: 1 1 auto !important; min-height: 0 !important; }
 #side-panel .tab-content.active{ display:flex !important; flex-direction:column !important; }
 #side-panel #chat-container-twitch,
 #side-panel #chat-container-hub{ flex: 1 1 auto !important; min-height: 0 !important; }
@@ -1263,7 +1276,8 @@
         </div>
 
         <div id="chat-container-twitch" class="flex-grow relative bg-black overflow-hidden">
-          <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no"></iframe>
+          <!-- Twitch embed chat: keep iframe scroll enabled (the chat UI scrolls inside the iframe) -->
+          <iframe id="twitch-chat-frame" src="" frameborder="0" allow="autoplay" style="border:0;width:100%;height:100%;display:block;" scrolling="yes"></iframe>
         </div>
 
         <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
