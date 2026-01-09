@@ -808,7 +808,24 @@
 
 
 /* === FORCE PLAYER + SIDE PANEL ALWAYS SIDE-BY-SIDE (embed-safe) === */
-#main-layout{ align-items: stretch; }
+#main-layout{ 
+      /* HARD FIX: force 2-column layout even if Tailwind is blocked by CSP */
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      gap: 18px;
+      align-items: stretch;
+      min-height: 0;
+    }
+    /* Left column (player + top modules) */
+    #main-layout > .col-span-8{ grid-column: 1 / 2; min-width: 0; }
+    /* Right column (Chat/Stats/Tools) */
+    #side-panel{ grid-column: 2 / 3; min-width: 320px; width: 100%; }
+    /* Responsive: stack on small screens */
+    @media (max-width: 1100px){
+      #main-layout{ grid-template-columns: 1fr; }
+      #main-layout > .col-span-8{ grid-column: 1 / -1; }
+      #side-panel{ grid-column: 1 / -1; min-width: 0; }
+    }
 #main-layout > .col-span-8{ min-width: 640px; }
 #side-panel{ min-width: 360px; max-width: 520px; }
 
@@ -881,6 +898,33 @@
   opacity: 1 !important;
   pointer-events: auto !important;
   transform: translateY(0) !important;
+}
+
+
+/* HARD LAYOUT FIX: keep player left + side panel right even if Tailwind CDN/CSP fails */
+#main-layout{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 420px !important;
+  gap:16px !important;
+  align-items:stretch !important;
+  min-height:0 !important;
+}
+#main-layout > .col-span-8{ grid-column:1 !important; min-width:0 !important; }
+#side-panel{ grid-column:2 !important; min-width:0 !important; height:100% !important; }
+@media (max-width: 1100px){
+  #main-layout{ grid-template-columns:1fr !important; }
+  #side-panel{ grid-column:1 !important; }
+}
+/* Centered Market modal like TwitFlix */
+#market-overlay .market-modal{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(1200px,96vw);
+  height:min(88vh,900px);
+  border-radius:18px;
+  overflow:hidden;
 }
 
 </style>
@@ -3636,7 +3680,7 @@ async function marketSell(){
 <div id="market-overlay" class="fixed inset-0 z-[9999] hidden">
   <div class="absolute inset-0 bg-black/70" onclick="closeMarketOverlay()"></div>
 
-  <div class="absolute right-4 top-4 bottom-4 w-[min(780px,94vw)] bg-[#0b0b0d] border border-[#222] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+  <div class="market-modal bg-[#07070a] border border-[#222] rounded-2xl shadow-2xl flex flex-col">
     <div class="px-4 py-3 border-b border-[#222] flex items-center justify-between bg-[#0a0a0c]">
       <div class="font-black tracking-widest text-white text-sm">
         <i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — Bourse des Streamers
@@ -3733,6 +3777,27 @@ async function marketSell(){
     </div>
   </div>
 </div>
+
+
+<script>
+/* HARD FIX DOM: ensure side-panel is a direct child of #main-layout (prevents it from dropping under the player) */
+(function(){
+  function ensureSidePanel(){
+    var layout = document.getElementById('main-layout');
+    var side = document.getElementById('side-panel');
+    if(!layout || !side) return;
+    if(side.parentElement !== layout){
+      layout.appendChild(side);
+    }
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ensureSidePanel);
+  } else {
+    ensureSidePanel();
+  }
+  window.addEventListener('resize', function(){ setTimeout(ensureSidePanel, 50); });
+})();
+</script>
 
 </body>
 </html>
