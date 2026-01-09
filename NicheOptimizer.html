@@ -24,7 +24,7 @@
       background:var(--bg-dark);
       color:var(--text-main);
       font-family:Inter, sans-serif;
-      overflow-x:hidden;
+      overflow-x:auto;
     }
     .font-orbitron{ font-family:Orbitron, sans-serif; }
 
@@ -807,234 +807,86 @@
 .mosaic-tile button:hover{ border-color:#00f2ea; }
 
 
-    /* Help dots */
-    .help-dot{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:16px; height:16px; border-radius:999px;
-      border:1px solid #2a2a2a; color:#9ca3af;
-      font-size:11px; margin-left:6px;
-      background: rgba(0,0,0,0.35);
-      cursor:pointer;
-    }
-    .help-dot:hover{ border-color: var(--secondary); color: var(--secondary); }
-    .help-dot-mini{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:14px; height:14px; border-radius:999px;
-      border:1px solid #2a2a2a; color:#9ca3af;
-      font-size:10px;
-      background: rgba(0,0,0,0.35);
-      cursor:pointer;
-    }
-    .help-dot-mini:hover{ border-color: var(--secondary); color: var(--secondary); }
-
-    /* Help modal */
-    #helpModal{
-      position:fixed; inset:0; z-index:9999;
-      display:none; align-items:center; justify-content:center;
-      background: rgba(0,0,0,0.65);
-      padding: 16px;
-    }
-    #helpModal.active{ display:flex; }
-    #helpCard{
-      width:min(720px, 96vw);
-      background: #0b0b0d;
-      border:1px solid #222;
-      border-radius:14px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
-      overflow:hidden;
-    }
-    #helpCardHeader{
-      display:flex; align-items:center; justify-content:space-between;
-      padding: 12px 14px;
-      background: linear-gradient(90deg, rgba(255,0,153,0.12), rgba(0,242,234,0.10));
-      border-bottom: 1px solid #222;
-    }
-    #helpTitle{ font-family: Orbitron, Inter, system-ui; font-size: 14px; color:#e5e7eb; }
-    #helpClose{
-      width:34px; height:34px; border-radius:10px;
-      border:1px solid #2a2a2a; background:#111; color:#e5e7eb;
-      cursor:pointer;
-    }
-    #helpClose:hover{ border-color: var(--secondary); color: var(--secondary); }
-    #helpBody{ padding: 12px 14px; color:#d1d5db; font-size: 13px; line-height:1.45; }
-    #helpBody ul{ margin-left: 18px; list-style: disc; }
-
-  
-    /* === FULL-WIDTH (EDGE TO EDGE) === */
-    body{ width:100%; }
-    /* Étend le module OVERVIEW/ANALYTICS/NICHE/BOURSE sur toute la largeur (même sous la sidebar) */
-    .full-width-module{
-      width: calc(100% + 360px + 24px); /* sidebar min + gap-6 */
-      margin-right: calc(-1 * (360px + 24px));
-    }
-    /* Si sidebar plus large (jusqu'à 520px), on évite d'écraser : */
-    @media (min-width: 1200px){
-      .full-width-module{
-        width: calc(100% + 420px + 24px);
-        margin-right: calc(-1 * (420px + 24px));
-      }
-    }
+/* === FORCE PLAYER + SIDE PANEL ALWAYS SIDE-BY-SIDE (embed-safe) === */
+#main-layout{ align-items: stretch; }
+#main-layout > .col-span-8{ min-width: 640px; }
+#side-panel{ min-width: 360px; max-width: 520px; }
 
 
-
-/* =========================================================
-   FIX: Chat Hub Secure must NOT stretch the Twitch player
-   - Locks the stream row height (player + sidebar)
-   - Forces internal scrolling in chat panels
-   ========================================================= */
-:root{
-  --stream-panel-h: clamp(560px, 76vh, 920px);
+/* === FIX: Sidebar chat should NOT deform Twitch player === */
+#main-layout{ align-items: start !important; }
+.player-shell{
+  flex: 0 0 auto !important;
+  height: clamp(520px, 72vh, 860px) !important;
+  min-height: unset !important;
 }
-
-/* The row that contains player + right panel */
-#stream-row{
-  height: var(--stream-panel-h) !important;
-  align-items: stretch !important; /* grid items same height */
-}
-
-/* Left column wrapper and player shell fill the row */
-#stream-row > .col-span-8{
-  height: 100% !important;
-  min-height: 0 !important;
-}
-#stream-row .player-shell{
-  height: 100% !important;
-  min-height: 0 !important;
-}
-
-/* Video container must be allowed to shrink */
 #video-container{
   flex: 1 1 auto !important;
-  min-height: 0 !important;
-  height: auto !important;
-}
-#video-container iframe{
-  width: 100% !important;
+  min-height: unset !important;
   height: 100% !important;
-  display:block;
 }
 
-/* Right panel locked to same height as player */
+
+/* === FIX: side-panel height locked to player (Hub Secure can't stretch layout) === */
 #side-panel{
-  height: 100% !important;
+  height: clamp(520px, 72vh, 860px) !important;
   min-height: 0 !important;
 }
-
-/* Tabs must not expand the panel; each tab manages its own scrolling */
-#side-panel .tab-body,
-#side-panel .tab-content{
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-}
-
-/* Chat tab: keep layout locked; only its inner areas scroll */
 #tab-chat{
-  display:flex !important;
-  flex-direction:column !important;
-  overflow:hidden !important;
+  min-height: 0 !important;
 }
-
-/* Stats/Tools tabs: allow internal scrolling */
-#tab-stats,
-#tab-tools{
-  overflow-y:auto !important;
-  overscroll-behavior: contain;
-}
-
-/* Chat containers: fixed height + internal scroll */
 #chat-container-twitch,
 #chat-container-hub{
-  display:flex !important;
-  flex-direction: column !important;
   flex: 1 1 auto !important;
   min-height: 0 !important;
-  overflow: hidden !important;
 }
-
-/* Message list scroll */
-#hub-messages,
-#twitch-chat-wrap{
-  flex: 1 1 auto !important;
+#hub-messages{
   min-height: 0 !important;
-  overflow-y: auto !important;
 }
 
-/* Prevent page-height “anchor” jumps */
-#hub-messages{ overflow-anchor: none; }
+/* Ensure chat iframe can't force extra height */
+#twitch-chat-frame{ display:block; width:100%; height:100%; }
 
+/* === FIX: Messenger-like reactions (attached to message) without layout shift === */
+.hub-msg{ position: relative !important; padding-bottom: 34px !important; }
 
-/* === FIX: Side panel height must match Twitch player only (not modules below) === */
-:root{ --jp-player-h: 720px; }
-
-#side-panel{
-  height: var(--jp-player-h) !important;
-  max-height: var(--jp-player-h) !important;
-  align-self: start !important;
+/* Pills (existing reactions) stick to the bottom-right of the message */
+.hub-reactions{
+  position: absolute !important;
+  right: 10px !important;
+  bottom: 8px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  pointer-events: none !important;
 }
+/* Hide empty reactions container */
+.hub-reactions:empty{ display:none !important; }
 
-/* Ensure the tab bar never stretches; tab contents decide their own overflow */
-#side-panel .tab-nav{ flex: 0 0 auto; }
-#side-panel .tab-content{ flex: 1 1 auto !important; min-height: 0 !important; }
-#side-panel .tab-content.active{ display:flex !important; flex-direction:column !important; }
-#side-panel #chat-container-twitch,
-#side-panel #chat-container-hub{ flex: 1 1 auto !important; min-height: 0 !important; }
-
-/* Twitch iframe must fill its container and not affect layout */
-#twitch-chat-frame{ width:100% !important; height:100% !important; display:block; }
-
-/* Prevent the main grid row from stretching because of lower modules */
-.main-grid, #main-grid, .grid-root{
-  align-items: start !important;
+/* Reaction picker appears just above the pills, like Messenger */
+.hub-react-row{
+  position: absolute !important;
+  right: 10px !important;
+  bottom: 36px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(6px) !important;
+  transition: opacity .15s ease, transform .15s ease !important;
+  z-index: 5 !important;
+}
+.hub-msg:hover .hub-react-row,
+.hub-msg.show-reactions .hub-react-row{
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
 }
 
 </style>
-
-<style id="jp-market-patch">
-  /* ====== PATCH LAYOUT: Player + Side panel always same height, no distortion ====== */
-  :root{ --jpPlayerH: 620px; }
-  #player-and-side, .player-and-side{ display:grid !important; grid-template-columns: 1fr minmax(360px, 520px) !important; gap: 16px !important; align-items:stretch !important; }
-  @media (max-width: 1024px){ #player-and-side, .player-and-side{ grid-template-columns: 1fr !important; } }
-  #twitch-player-wrap, .twitch-player-wrap{ height: var(--jpPlayerH) !important; min-height: 420px !important; }
-  #twitch-embed, #twitch-embed iframe{ width:100% !important; height:100% !important; }
-  #right-panel, .right-panel, #side-tabs, .side-tabs{ height: var(--jpPlayerH) !important; min-height: 420px !important; overflow:hidden !important; }
-  .side-tabs{ display:flex !important; flex-direction:column !important; }
-  .side-tabs .tabs-header{ flex:0 0 auto !important; }
-  .side-tabs .tabs-body{ flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }
-  .side-tabs .tab-pane{ height:100% !important; display:none; }
-  .side-tabs .tab-pane.active{ display:flex !important; flex-direction:column !important; }
-  .side-tabs .tab-pane .pane-scroll{ flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; }
-  /* Twitch + secure chat: never stack */
-  #twitch-chat-iframe{ width:100% !important; height:100% !important; border:0 !important; }
-  #secure-chat-wrap{ width:100% !important; height:100% !important; }
-  /* Remove bottom Bourse tab cleanly */
-  [data-ut="bourse"], #under-bourse{ display:none !important; }
-  /* Market modal styling (reuse tf but add panels) */
-  #market-modal.hidden{ display:none !important; }
-  #market-modal .tf-modal-content{ max-width: 1500px; }
-  #market-modal .tf-kpi{ background: rgba(15,15,18,.7); border:1px solid rgba(255,255,255,.06); border-radius: 14px; padding: 10px 12px; }
-  #market-modal .tf-kpi-label{ font-size:11px; color:#9aa3ad; }
-  #market-modal .tf-kpi-value{ font-size:18px; font-weight:800; color:#fff; letter-spacing:.3px; }
-  #market-modal .tf-kpi-sub{ font-size:11px; color:#7c8590; margin-top:2px; }
-  #market-modal .tf-panel{ background: rgba(10,10,12,.7); border:1px solid rgba(255,255,255,.07); border-radius: 16px; padding: 14px; }
-  #market-modal .tf-panel-title{ font-weight:800; color:#e9eef6; font-size:13px; letter-spacing:.35px; margin-bottom:10px; }
-  #market-modal .tf-list{ display:flex; flex-direction:column; gap:10px; }
-  #market-modal .tf-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); }
-  #market-modal .tf-item:hover{ border-color: rgba(0,242,234,.35); background: rgba(0,242,234,.04); }
-  #market-modal .tf-chip{ padding:10px 12px; border-radius: 999px; border:1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.35); color:#cfd6de; font-size:12px; font-weight:800; }
-  #market-modal .tf-chip.active{ border-color: rgba(0,242,234,.55); box-shadow: 0 0 0 3px rgba(0,242,234,.10); color:#fff; }
-  #market-modal .tf-input{ width:100%; padding:10px 12px; border-radius: 12px; border:1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.35); color:#fff; font-size:13px; outline:none; }
-  #market-modal .tf-input:focus{ border-color: rgba(0,242,234,.55); box-shadow: 0 0 0 3px rgba(0,242,234,.10); }
-  #market-modal .tf-table-wrap{ overflow:auto; border-radius: 14px; border: 1px solid rgba(255,255,255,.07); }
-  #market-modal .tf-table{ width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
-  #market-modal .tf-table th{ position:sticky; top:0; background: rgba(12,12,14,.92); text-align:left; padding:10px 12px; color:#9aa3ad; font-weight:800; border-bottom: 1px solid rgba(255,255,255,.07); }
-  #market-modal .tf-table td{ padding:10px 12px; border-bottom: 1px solid rgba(255,255,255,.05); color:#e9eef6; }
-  #market-modal .tf-book{ display:flex; flex-direction:column; gap:6px; }
-  #market-modal .tf-book-row{ display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:8px 10px; border-radius: 12px; background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); }
-</style>
-
 </head>
 
-<body class="min-h-screen flex flex-col m-0 p-0 w-full">
+<body class="min-h-screen flex flex-col p-4">
 
   <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
   <div style="height:18px;"></div>
@@ -1055,11 +907,9 @@
       <button onclick="openTwitFlix()" class="bg-[#111] hover:bg-[#222] text-[#ff0099] px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] hover:border-[#ff0099] shadow-[0_0_10px_rgba(255,0,153,0.1)]">
         <i class="fas fa-play-circle"></i> TWITFLIX
       </button>
-
-      <button onclick="openMarket()" class="bg-[#111] hover:bg-[#171717] text-white px-4 py-2 rounded-xl border border-[#1f1f1f] hover:border-[#00f2ea] shadow-[0_0_10px_rgba(0,242,234,0.10)]">
-        <i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i> MARCHÉ
+      <button onclick="openMarketOverlay()" class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2">
+        <i class="fas fa-chart-line"></i> MARCHÉ
       </button>
-
 
       <div class="h-6 w-[1px] bg-[#333]"></div>
 
@@ -1087,9 +937,9 @@
     <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
   </div>
 
-  <div id="stream-row" class="flex-grow grid grid-cols-12 gap-6 min-h-0 w-full overflow-x-auto">
+  <div id="main-layout" class="flex-grow grid grid-cols-12 gap-6 min-h-0 overflow-x-auto">
 
-    <div class="col-span-8 flex flex-col gap-4 min-h-0 min-w-[720px]">
+    <div class="col-span-8 flex flex-col gap-4 min-h-0">
 
       <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
         <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
@@ -1121,11 +971,11 @@
 </div>
       </div>
 
-      <div id="under-module" class="glass-panel rounded-lg overflow-hidden min-h-[360px] full-width-module">
+      <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
         <div class="u-nav" id="under-tabs-nav">
-          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW <span class="help-dot" onclick="openHelp('overview');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO <span class="help-dot" onclick="openHelp('analytics');event.stopPropagation()">?</span></button>
-          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE <span class="help-dot" onclick="openHelp('niche');event.stopPropagation()">?</span></button>
+          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
+          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
+          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
 </div>
 
         <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
@@ -1245,8 +1095,64 @@
             <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
           </div>
         </div>
+
+      
+<div class="col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0" id="side-panel">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
+        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
+        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
       </div>
-</div>
+
+      <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
+        <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
+          <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
+          <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">HUB SECURE</button>
+        </div>
+
+        <div id="chat-container-twitch" class="flex-grow relative bg-black overflow-hidden">
+          <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="yes"></iframe>
+        </div>
+
+        <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
+          <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
+            <div class="text-center text-gray-600 text-xs mt-4">
+              Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
+            </div>
+          </div>
+          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] items-center">
+            <button type="button" id="hub-emoji-btn" class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" title="Emotes">🙂</button>
+            <button type="button" id="hub-gif-btn" class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" title="GIF">🎁</button>
+            <input id="hub-input" type="text" placeholder="Message / /gif / stickers..." class="bg-[#0b0b0d] text-white px-3 py-2 rounded-lg flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
+            <button type="submit" class="text-[#0b0b0d] bg-[#00f2ea] px-4 py-2 rounded-lg font-black hover:opacity-90">Envoyer</button>
+          </form>
+          <div id="hub-emoji-panel" class="hidden absolute bottom-14 left-2 z-50 bg-[#0b0b0d] border border-[#222] rounded-xl p-2 shadow-2xl">
+            <div class="flex flex-wrap gap-2 text-sm">
+              <button type="button" class="hub-emo">:kappa:</button>
+              <button type="button" class="hub-emo">:pog:</button>
+              <button type="button" class="hub-emo">:gg:</button>
+              <button type="button" class="hub-emo">:love:</button>
+              <button type="button" class="hub-emo">:hype:</button>
+              <button type="button" class="hub-emo">:rip:</button>
+              <button type="button" class="hub-emo">:clap:</button>
+              <button type="button" class="hub-emo">:fire:</button>
+            </div>
+            <div class="text-[10px] text-gray-500 mt-2">Clique pour insérer dans ton message.</div>
+          </div>
+
+          <div id="hub-gif-modal" class="hidden fixed inset-0 z-[9999] bg-black/70">
+            <div class="max-w-3xl w-[92%] mx-auto mt-10 bg-[#0b0b0d] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
+              <div class="p-3 flex items-center gap-2 border-b border-[#222]">
+                <div class="font-black text-white tracking-widest">GIF</div>
+                <input id="hub-gif-search" class="flex-grow bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" placeholder="Rechercher un GIF...">
+                <button id="hub-gif-close" class="px-3 py-2 rounded-lg border border-[#222] text-white hover:border-[#00f2ea]">Fermer</button>
+              </div>
+              <div id="hub-gif-grid" class="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[70vh] overflow-y-auto"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
 
       <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
         <div class="grid grid-cols-2 gap-3 mb-6">
@@ -1289,7 +1195,21 @@
         </div>
 
         <div>
-          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
+          
+                <div class="bg-[#101012] border border-[#222] rounded-xl p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h4 class="text-sm font-black tracking-widest text-white"><i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — ouvrir la fenêtre</h4>
+              <p class="text-xs text-gray-400 mt-1">
+                Le Marché s’ouvre en <strong>overlay</strong> (comme TwitFlix) pour ne jamais écraser le lecteur et garder une UX propre.
+              </p>
+            </div>
+            <button class="px-3 py-2 rounded-lg bg-[#0b0b0d] border border-[#333] text-white hover:border-[#00f2ea]" onclick="openMarketOverlay()">📈 Ouvrir</button>
+          </div>
+        </div>
+
+
+        <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
           <div class="flex gap-2 mb-3">
             <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
             <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
@@ -1442,8 +1362,8 @@
       nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
         btn.addEventListener('click', ()=>{
           const id = btn.getAttribute('data-ut');
-          if(id === 'bourse'){ setTimeout(refreshBoursePanel, 50); }
-          nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
+                    if(id === 'bourse'){ setTimeout(()=>{ try{ refreshBoursePanel(); }catch(e){} }, 50); }
+nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
           btn.classList.add('active');
           document.querySelectorAll('#under-overview,#under-analytics,#under-niche').forEach(p=>p.classList.remove('active'));
           const panel = document.getElementById(`under-${id}`);
@@ -1644,6 +1564,8 @@
       } else {
         hub.classList.add('hidden'); hub.classList.remove('flex');
         twitch.classList.remove('hidden');
+        const frame = document.getElementById('twitch-chat-frame');
+        if(frame && (!frame.src || frame.src === '')){ try{ updateTwitchChatFrame(currentChannel || 'twitch'); }catch(_){} }
         btnTw.className = 'flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded';
         btnHb.className = 'flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white';
       }
@@ -1837,23 +1759,23 @@
         ${gif ? `<img src="${escapeHtml(gif)}" class="hub-gif" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous">` : ``}
         <div class="hub-reactions">${renderReactionsHtml(msg.reactions || {})}</div>
         <div class="hub-react-row flex gap-2 mt-2">
-          <button type="button" class="hub-react-btn" data-react="🔥" data-msg="${'${encodeURIComponent(id)}'}">🔥</button>
-          <button type="button" class="hub-react-btn" data-react="😂" data-msg="${'${encodeURIComponent(id)}'}">😂</button>
-          <button type="button" class="hub-react-btn" data-react="💖" data-msg="${'${encodeURIComponent(id)}'}">💖</button>
-          <button type="button" class="hub-react-btn" data-react="👍" data-msg="${'${encodeURIComponent(id)}'}">👍</button>
+          <button type="button" class="hub-react-btn" data-react="🔥" data-msg="${id}">🔥</button>
+          <button type="button" class="hub-react-btn" data-react="😂" data-msg="${id}">😂</button>
+          <button type="button" class="hub-react-btn" data-react="💖" data-msg="${id}">💖</button>
+          <button type="button" class="hub-react-btn" data-react="👍" data-msg="${id}">👍</button>
         </div>
       `;
 
+      const nearBottom = (box.scrollHeight - box.scrollTop - box.clientHeight) < 120;
       box.appendChild(el);
-      box.scrollTop = box.scrollHeight;
+      if (nearBottom) box.scrollTop = box.scrollHeight;
     }
 
-    function reactToMsg(messageIdEscaped, emoji){
-      // On retrouve l'id original via dataset
-      const el = document.querySelector(`[data-msg-id]`);
-      // On envoie directement l'id passé (déjà safe côté serveur)
-      if (socket) if (window.emitHubReact) window.emitHubReact({ messageId: messageIdEscaped.replace(/_/g,'-'), emoji });
+    function reactToMsg(messageId, emoji){
+      // Envoie réaction (id exact du message)
+      if (window.emitHubReact) window.emitHubReact({ messageId, emoji });
     }
+
 
     function insertAtCursor(input, text){
       const start = input.selectionStart || 0;
@@ -3380,119 +3302,64 @@ document.getElementById('tool-vibe')?.classList.toggle('active', __vibeOn);
 setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 700);
 
 
-// ================= HELP SYSTEM (pedagogic) =================
-const HELP = {
-  chat: {
-    title: "Chat Hub (Secure)",
-    html: "<p><strong>À quoi ça sert :</strong> discuter avec d’autres streamers et viewers dans un chat interne (sécurisé) pour partager des retours, trouver des idées de contenus, et créer du réseau.</p>"
-      + "<p><strong>Comment l’utiliser :</strong> écris un message court + clair (objectif, niche, problème). Ajoute un GIF si tu veux. Utilise les réactions pour valider une idée sans spam.</p>"
-      + "<p><strong>En quoi ça t’aide :</strong> tu obtiens des réponses concrètes, tu identifies ce qui intéresse vraiment les gens, et tu peux même gagner des crédits via l’activité.</p>"
-      + "<p><strong>Exemple :</strong> “Je stream <em>EA FC</em>, je stagne à 15 viewers. Vous feriez quoi : défi, co-stream, ou shorts ?”</p>"
-  },
-  stats: {
-    title: "Stats (tendances Twitch)",
-    html: "<p><strong>À quoi ça sert :</strong> voir l’état du marché Twitch (viewers, langues, jeux qui montent) pour éviter de streamer au mauvais moment ou sur une niche trop saturée.</p>"
-      + "<p><strong>Comment l’utiliser :</strong> repère les pics, compare les jeux, puis ajuste ton planning (horaires) et ton choix de catégorie.</p>"
-      + "<p><strong>En quoi ça t’aide :</strong> tu choisis un timing et un contexte où tu as plus de chances d’être découvert.</p>"
-  },
-  tools: {
-    title: "Outils (actions rapides)",
-    html: "<p><strong>À quoi ça sert :</strong> regrouper des actions utiles (scan, critique IA, raid, best-time, etc.) sans chercher dans toute l’interface.</p>"
-      + "<p><strong>Comment l’utiliser :</strong> pars d’un objectif (ex: “trouver une niche”, “améliorer mon titre”, “préparer un raid”), puis lance l’outil correspondant.</p>"
-      + "<p><strong>En quoi ça t’aide :</strong> tu transformes des données en décisions (tester → mesurer → itérer) au lieu de rester dans l’intuition.</p>"
-  },
-  overview: {
-    title: "Overview",
-    html: "<p><strong>À quoi ça sert :</strong> résumé rapide de ton contexte (état du live, infos utiles, accès direct aux modules).</p>"
-      + "<p><strong>Comment l’utiliser :</strong> commence ici : vérifie le stream chargé, lis les indicateurs, puis passe à Analytics/Niche/Bourse selon ton besoin.</p>"
-      + "<p><strong>En quoi ça t’aide :</strong> tu sais immédiatement “où tu en es” et quelle action a le meilleur impact.</p>"
-  },
-  analytics: {
-    title: "Analytics Pro",
-    html: "<p><strong>À quoi ça sert :</strong> analyser une chaîne (ou la tienne) avec des KPI concrets : moyenne, pic, croissance, volatilité, temps de live.</p>"
-      + "<p><strong>Comment l’utiliser :</strong> scanne un login → observe la courbe → identifie 1 levier (horaire, jeu, format) → teste 1 changement.</p>"
-      + "<p><strong>En quoi ça t’aide :</strong> tu prends des décisions basées sur les données, pas sur des impressions.</p>"
-  },
-  niche: {
-    title: "Niche",
-    html: "<p><strong>À quoi ça sert :</strong> mesurer saturation / opportunité d’un jeu ou d’un sujet pour trouver des zones où tu peux être découvert plus facilement.</p>"
-      + "<p><strong>Comment l’utiliser :</strong> cherche une catégorie → compare viewers vs nombre de chaînes → vise les niches où l’opportunité est haute et la concurrence raisonnable.</p>"
-      + "<p><strong>En quoi ça t’aide :</strong> tu évites les “océans rouges” et tu trouves des angles gagnants.</p>"
-  },
-  bourse: {
-    title: "Bourse des streamers",
-    html: "<p><strong>À quoi ça sert :</strong> un “fantasy market” : tu utilises tes crédits pour investir sur des streamers (positions), suivre des tendances et apprendre le timing.</p>"
-      + "<p><strong>Comment l’utiliser :</strong> gagne des crédits (TwitFlix/Stats/Chat) → investis sur un streamer → suis la valeur dans le Trading Desk.</p>"
-      + "<p><strong>En quoi ça t’aide :</strong> tu apprends à repérer les signaux (croissance, hype, régularité) et tu gamifies ton analyse.</p>"
-  },
-  bourse_cash: { title:"Cash", html:"<p><strong>Crédits disponibles :</strong> c’est ton solde utilisable immédiatement pour investir. Tu en gagnes en utilisant l’app (TwitFlix, Stats, Chat) selon un cooldown.</p>" },
-  bourse_networth: { title:"Net Worth", html:"<p><strong>Valeur totale :</strong> cash + valeur de tes positions au prix actuel. C’est l’indicateur principal pour voir si ta stratégie est bonne.</p>" },
-  bourse_reserved: { title:"Réservé", html:"<p><strong>Somme bloquée :</strong> crédits mis de côté pour des ordres en attente. Ils reviennent si l’ordre est annulé ou non exécuté.</p>" },
-  bourse_orders: { title:"Ordres ouverts", html:"<p><strong>Ordres en attente :</strong> tes achats/ventes limit non exécutés. Utile pour entrer/sortir à un prix précis sans surveiller en permanence.</p>" }
-};
 
-function openHelp(key){
-  const item = HELP[key] || { title:"Aide", html:"<p>Aucune aide disponible pour ce module.</p>" };
-  const modal = document.getElementById('helpModal');
-  const title = document.getElementById('helpTitle');
-  const body = document.getElementById('helpBody');
-  if(title) title.textContent = item.title || 'Aide';
-  if(body) body.innerHTML = item.html || '';
-  modal?.classList.add('active');
-}
-function closeHelp(){ document.getElementById('helpModal')?.classList.remove('active'); }
-
-// ================= BOURSE PANEL =================
+// ================= BOURSE PANEL (UNDER-TABS) =================
 async function refreshBoursePanel(){
   try{
-    const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json());
-    if(!prof.success){
-      document.getElementById('bourse-portfolio').textContent = "Connecte-toi Twitch pour utiliser la Bourse.";
-      document.getElementById('bourse-cash').textContent = '--';
-      document.getElementById('bourse-networth').textContent = '--';
-      document.getElementById('bourse-reserved').textContent = '--';
-      document.getElementById('bourse-open-orders').textContent = '--';
+    const cashEl = document.getElementById('bourse-cash');
+    const netEl  = document.getElementById('bourse-networth');
+    const resEl  = document.getElementById('bourse-reserved');
+    const ordEl  = document.getElementById('bourse-open-orders');
+    const portEl = document.getElementById('bourse-portfolio');
+    const lbEl   = document.getElementById('bourse-leaderboard');
+    if(!cashEl || !netEl || !resEl || !ordEl || !portEl || !lbEl) return;
+
+    const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+    if(!prof || !prof.success){
+      portEl.innerHTML = "<div class='text-gray-500'>Connecte-toi Twitch pour utiliser la Bourse.</div>";
+      cashEl.textContent = '--';
+      netEl.textContent = '--';
+      resEl.textContent = '--';
+      ordEl.textContent = '--';
+      lbEl.innerHTML = "<div class='text-gray-500'>—</div>";
       return;
     }
 
     const cash = Number(prof.cash||0);
-    const net = Number(prof.netWorth||0);
-    // reserved not returned by profile (yet) → try read wallet fields via profile? fallback 0
+    const net  = Number(prof.netWorth||0);
     const reserved = Number(prof.cashReserved||0) || 0;
 
-    document.getElementById('bourse-cash').textContent = cash.toLocaleString('fr-FR');
-    document.getElementById('bourse-networth').textContent = net.toLocaleString('fr-FR');
-    document.getElementById('bourse-reserved').textContent = reserved.toLocaleString('fr-FR');
+    cashEl.textContent = cash.toLocaleString('fr-FR');
+    netEl.textContent  = net.toLocaleString('fr-FR');
+    resEl.textContent  = reserved.toLocaleString('fr-FR');
 
     const holdings = Array.isArray(prof.holdings) ? prof.holdings : [];
     if(!holdings.length){
-      document.getElementById('bourse-portfolio').innerHTML = "<div class='text-gray-500'>Aucune position pour l’instant.</div>";
+      portEl.innerHTML = "<div class='text-gray-500'>Aucune position pour l’instant.</div>";
     }else{
       const rows = holdings
         .sort((a,b)=> (b.value||0)-(a.value||0))
         .slice(0, 12)
         .map(h=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-          <div class="text-gray-200"><strong>${escapeHtml(h.login)}</strong> <span class="text-gray-500">x${Number(h.shares||0)}</span></div>
+          <div class="text-gray-200"><strong>${escapeHtml(h.login||'')}</strong> <span class="text-gray-500">x${Number(h.shares||0)}</span></div>
           <div class="text-gray-300">${Number(h.value||0).toLocaleString('fr-FR')}</div>
         </div>`).join('');
-      document.getElementById('bourse-portfolio').innerHTML = rows;
+      portEl.innerHTML = rows;
     }
 
-    // Open orders count
-    const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json());
-    const openCount = orders.success ? (orders.orders?.length||0) : 0;
-    document.getElementById('bourse-open-orders').textContent = String(openCount);
+    const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+    const openCount = (orders && orders.success) ? (orders.orders?.length||0) : 0;
+    ordEl.textContent = String(openCount);
 
-    // Leaderboard
-    const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json());
-    if(lb.success && Array.isArray(lb.items)){
+    const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json()).catch(()=>null);
+    if(lb && lb.success && Array.isArray(lb.items)){
       const lines = lb.items.slice(0,10).map((x,i)=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
         <div class="text-gray-200">#${i+1} ${escapeHtml(x.user||'')}</div>
         <div class="text-gray-300">${Math.round(x.netWorth||0).toLocaleString('fr-FR')}</div>
       </div>`).join('');
-      document.getElementById('bourse-leaderboard').innerHTML = lines || "<div class='text-gray-500'>—</div>";
+      lbEl.innerHTML = lines || "<div class='text-gray-500'>—</div>";
     }else{
-      document.getElementById('bourse-leaderboard').innerHTML = "<div class='text-gray-500'>—</div>";
+      lbEl.innerHTML = "<div class='text-gray-500'>—</div>";
     }
   }catch(e){
     console.warn('refreshBoursePanel error', e);
@@ -3506,36 +3373,212 @@ async function earnCredits(type){
       headers:{ 'Content-Type':'application/json' },
       credentials:'include',
       body: JSON.stringify({ type })
-    }).then(r=>r.json());
-    if(r.success){
+    }).then(r=>r.json()).catch(()=>null);
+
+    if(r && r.success){
       refreshBoursePanel();
-      (typeof toast==='function') && toast('+'+r.amount+' crédits', true);
+      if(typeof toast === 'function') toast('+'+r.amount+' crédits', true);
     }else{
-      (typeof toast==='function') && toast(r.error || 'Reward indisponible', false);
+      if(typeof toast === 'function') toast((r && r.error) ? r.error : 'Reward indisponible', false);
     }
   }catch(e){}
 }
 
 
-// === FIX: lock right side-panel height to player height ===
-(function(){
-  const setH = ()=>{
-    const panel = document.getElementById('side-panel');
-    const player = document.querySelector('.player-shell') || document.getElementById('video-container')?.closest('.glass-panel') || document.getElementById('video-container');
-    if(!panel || !player) return;
-    // Use the visible player shell height (includes borders/tools)
-    const h = Math.round(player.getBoundingClientRect().height);
-    if(h > 200) document.documentElement.style.setProperty('--jp-player-h', h + 'px');
-  };
-  window.addEventListener('load', ()=>{ setH(); setTimeout(setH, 300); setTimeout(setH, 900); });
-  window.addEventListener('resize', ()=>{ setH(); });
-  // watch for twitch embed resize
-  const vc = document.getElementById('video-container');
-  if(vc){
-    const ro = new ResizeObserver(()=>setH());
-    try{ ro.observe(vc); }catch(e){}
+// =====================
+// MARKET (Fantasy Bourse) — panel OUTILS
+// =====================
+let marketChart = null;
+
+function getMarketUser(){
+  // Prefer connected hub user if available
+  const disp = document.getElementById('hub-user-display');
+  const name = disp ? disp.textContent.trim() : '';
+  return name || 'Anon';
+}
+
+async function refreshMarketAll(){
+  await Promise.allSettled([refreshMarketProfile(), refreshMarketLeaderboard()]);
+}
+
+async function refreshMarketProfile(){
+  try{
+    const user = encodeURIComponent(getMarketUser());
+    const r = await fetch(`/api/fantasy/profile?user=${user}`);
+    const j = await r.json();
+    if(!j.success) throw new Error(j.error || 'profile_failed');
+
+    const cash = Number(j.cash||0);
+    const holdings = j.holdings || [];
+    const netWorth = holdings.reduce((a,h)=>a + Number(h.value||0), 0) + cash;
+
+    const cashEl = document.getElementById('mkt-cash');
+    const nwEl = document.getElementById('mkt-networth');
+    if(cashEl) cashEl.textContent = cash.toLocaleString('fr-FR');
+    if(nwEl) nwEl.textContent = netWorth.toLocaleString('fr-FR');
+
+    const portEl = document.getElementById('mkt-portfolio');
+    if(portEl){
+      if(!holdings.length){
+        portEl.innerHTML = `<div class="text-gray-500 text-xs">Aucune position. Cherche un streamer puis clique sur <strong>Acheter</strong>.</div>`;
+      }else{
+        portEl.innerHTML = holdings.map(h=>`
+          <div class="flex items-center justify-between py-1 border-b border-[#151515]">
+            <div class="text-gray-200"><strong>${escapeHtml(h.login)}</strong> <span class="text-gray-500">(${Number(h.shares||0)} shares)</span></div>
+            <div class="text-gray-200">${Number(h.value||0).toLocaleString('fr-FR')} <span class="text-gray-500">cr</span></div>
+          </div>
+        `).join('');
+      }
+    }
+  }catch(e){
+    // silent UI fail
   }
-})();
+}
+
+async function refreshMarketLeaderboard(){
+  try{
+    const r = await fetch(`/api/fantasy/leaderboard`);
+    const j = await r.json();
+    if(!j.success) throw new Error(j.error || 'leaderboard_failed');
+
+    const el = document.getElementById('mkt-leaderboard');
+    if(!el) return;
+
+    const items = (j.items || []).slice(0, 10);
+    if(!items.length){
+      el.innerHTML = `<div class="text-gray-500 text-xs">Pas encore de joueurs.</div>`;
+      return;
+    }
+    el.innerHTML = items.map((x,i)=>`
+      <div class="flex items-center justify-between py-1 border-b border-[#151515]">
+        <div class="text-gray-200">#${i+1} <strong>${escapeHtml(x.user||'Anon')}</strong></div>
+        <div class="text-gray-200">${Number(x.netWorth||0).toLocaleString('fr-FR')} <span class="text-gray-500">cr</span></div>
+      </div>
+    `).join('');
+  }catch(e){}
+}
+
+async function loadStreamerMarket(){
+  const input = document.getElementById('mkt-streamer');
+  const login = (input?.value || '').trim().toLowerCase();
+  if(!login) return;
+
+  try{
+    const r = await fetch(`/api/fantasy/market?streamer=${encodeURIComponent(login)}`);
+    const j = await r.json();
+    if(!j.success) throw new Error(j.error || 'market_failed');
+
+    const card = document.getElementById('mkt-streamer-card');
+    if(card) card.classList.remove('hidden');
+
+    const price = Number(j.market?.price || 0);
+    const mult = Number(j.market?.mult || 1);
+    const shares = Number(j.market?.sharesOutstanding || 0);
+
+    const priceEl = document.getElementById('mkt-price');
+    const multEl = document.getElementById('mkt-mult');
+    const sharesEl = document.getElementById('mkt-shares');
+
+    if(priceEl) priceEl.textContent = price.toLocaleString('fr-FR');
+    if(multEl) multEl.textContent = (Math.round(mult*100)/100).toLocaleString('fr-FR');
+    if(sharesEl) sharesEl.textContent = shares.toLocaleString('fr-FR');
+
+    // chart
+    const hist = j.history || [];
+    const labels = hist.map((p, idx)=> idx+1);
+    const values = hist.map(p => Number(p.price||0));
+    renderMarketChart(labels, values);
+
+  }catch(e){
+    // leave card as-is
+  }
+}
+
+function renderMarketChart(labels, values){
+  const ctx = document.getElementById('chartMarket');
+  if(!ctx) return;
+
+  if(marketChart){
+    marketChart.destroy();
+    marketChart = null;
+  }
+
+  marketChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Prix',
+        data: values,
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.25
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+      }
+    }
+  });
+}
+
+async function marketInvest(){
+  const login = (document.getElementById('mkt-streamer')?.value || '').trim().toLowerCase();
+  const amount = Number(document.getElementById('mkt-amount')?.value || 0);
+  if(!login || !amount) return;
+
+  try{
+    const r = await fetch('/api/fantasy/invest', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ user: getMarketUser(), streamer: login, amount })
+    });
+    const j = await r.json();
+    if(!j.success) throw new Error(j.error || 'invest_failed');
+    await refreshMarketAll();
+    await loadStreamerMarket();
+  }catch(e){}
+}
+
+async function marketSell(){
+  const login = (document.getElementById('mkt-streamer')?.value || '').trim().toLowerCase();
+  const amount = Number(document.getElementById('mkt-amount')?.value || 0);
+  if(!login || !amount) return;
+
+  try{
+    const r = await fetch('/api/fantasy/sell', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ user: getMarketUser(), streamer: login, amount })
+    });
+    const j = await r.json();
+    if(!j.success) throw new Error(j.error || 'sell_failed');
+    await refreshMarketAll();
+    await loadStreamerMarket();
+  }catch(e){}
+}
+
+
+    // MARKET OVERLAY (TwitFlix-like)
+    function openMarketOverlay(){
+      const ov = document.getElementById('market-overlay');
+      if(!ov) return;
+      ov.classList.remove('hidden');
+      // ensure overlay starts at top
+      try { ov.querySelector('.overflow-y-auto')?.scrollTo({ top:0, behavior:'smooth' }); } catch(_){}
+      // refresh when opened (soft)
+      try { refreshMarketAll(); } catch(_){}
+    }
+    function closeMarketOverlay(){
+      const ov = document.getElementById('market-overlay');
+      if(!ov) return;
+      ov.classList.add('hidden');
+    }
 
 </script>
 
@@ -3589,817 +3632,107 @@ async function earnCredits(type){
 </div>
 
 
-  <!-- Help Modal -->
-  <div id="helpModal" onclick="if(event.target.id==='helpModal') closeHelp()">
-    <div id="helpCard">
-      <div id="helpCardHeader">
-        <div id="helpTitle">Aide</div>
-        <button id="helpClose" onclick="closeHelp()" title="Fermer">✕</button>
+<!-- MARKET OVERLAY (TwitFlix-like) -->
+<div id="market-overlay" class="fixed inset-0 z-[9999] hidden">
+  <div class="absolute inset-0 bg-black/70" onclick="closeMarketOverlay()"></div>
+
+  <div class="absolute right-4 top-4 bottom-4 w-[min(780px,94vw)] bg-[#0b0b0d] border border-[#222] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+    <div class="px-4 py-3 border-b border-[#222] flex items-center justify-between bg-[#0a0a0c]">
+      <div class="font-black tracking-widest text-white text-sm">
+        <i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — Bourse des Streamers
       </div>
-      <div id="helpBody"></div>
-    </div>
-  </div>
-
-
-<!-- ===================== MARCHÉ (Streamer Stock Market) — MODAL ===================== -->
-<div id="market-modal" class="tf-modal hidden" aria-hidden="true">
-  <div class="tf-modal-backdrop" onclick="closeMarket()"></div>
-  <div class="tf-modal-content">
-    <div class="tf-topbar">
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="text-lg font-extrabold tracking-wide text-white">
-            <i class="fas fa-coins mr-2 text-[#00f2ea]"></i> Marché des Streamers
-            <span class="ml-2 text-xs font-bold px-2 py-1 rounded bg-[#0f1b1b] text-[#00f2ea] border border-[#113]">BETA</span>
-          </div>
-          <div class="text-xs text-gray-400 hidden md:block">
-            Prix = base (viewers live) + impact (offre/demande). Objectif: te donner des signaux de croissance & d'opportunité.
-          </div>
-        </div>
-        <div class="tf-actions flex items-center gap-2">
-          <button class="tf-btn" onclick="marketRefresh(true)"><i class="fas fa-sync-alt mr-2"></i>Actualiser</button>
-          <button class="tf-btn" onclick="marketToggleCinema()"><i class="fas fa-expand mr-2"></i>Mode cinéma</button>
-          <button class="tf-btn tf-btn-primary" onclick="closeMarket()"><i class="fas fa-times mr-2"></i>Fermer</button>
-        </div>
-      </div>
-
-      <div class="mt-3 grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <div class="lg:col-span-7 relative">
-          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
-          <input id="market-search" class="tf-search w-full" placeholder="Rechercher un streamer (login)… ex: zerator / gotaga / sardoche"
-                 oninput="marketSearch(this.value)" />
-        </div>
-
-        <div class="lg:col-span-5 grid grid-cols-3 gap-3">
-          <div class="tf-kpi">
-            <div class="tf-kpi-label">Indice global</div>
-            <div class="tf-kpi-value" id="market-index">—</div>
-            <div class="tf-kpi-sub" id="market-index-sub">tendance</div>
-          </div>
-          <div class="tf-kpi">
-            <div class="tf-kpi-label">Volatilité</div>
-            <div class="tf-kpi-value" id="market-vol">—</div>
-            <div class="tf-kpi-sub">7 derniers points</div>
-          </div>
-          <div class="tf-kpi">
-            <div class="tf-kpi-label">Top momentum</div>
-            <div class="tf-kpi-value" id="market-top">—</div>
-            <div class="tf-kpi-sub" id="market-top-sub">+%</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-3 flex flex-wrap gap-2">
-        <button class="tf-chip active" data-market-tab="overview" onclick="marketOpenTab('overview', this)">Vue générale</button>
-        <button class="tf-chip" data-market-tab="screener" onclick="marketOpenTab('screener', this)">Screener</button>
-        <button class="tf-chip" data-market-tab="orderbook" onclick="marketOpenTab('orderbook', this)">Carnet d'ordres</button>
-        <button class="tf-chip" data-market-tab="portfolio" onclick="marketOpenTab('portfolio', this)">Mon portefeuille</button>
-        <button class="tf-chip" data-market-tab="leaderboard" onclick="marketOpenTab('leaderboard', this)">Classement</button>
-        <button class="tf-chip" data-market-tab="how" onclick="marketOpenTab('how', this)">Comment ça marche ?</button>
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-2 rounded-lg bg-[#0b0b0d] border border-[#333] text-white hover:border-[#00f2ea]" onclick="refreshMarketAll()">↻ Actualiser</button>
+        <button class="px-3 py-2 rounded-lg bg-[#141417] border border-[#333] text-white hover:border-red-400" onclick="closeMarketOverlay()">✕</button>
       </div>
     </div>
 
-    <div class="tf-body">
-      <!-- OVERVIEW -->
-      <section id="market-tab-overview" class="market-tab">
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
-          <div class="xl:col-span-8">
-            <div class="tf-panel">
-              <div class="tf-panel-title"><i class="fas fa-wave-square mr-2 text-[#00f2ea]"></i>Indice global (simulation)</div>
-              <canvas id="market-index-chart" height="110"></canvas>
-              <div class="text-xs text-gray-400 mt-2">
-                Pédago : l'indice est une moyenne pondérée des prix (impact + viewers). Il te sert à voir si “le marché” est chaud ou froid.
-              </div>
+    <div class="flex-1 overflow-y-auto p-4 scrollbar-thin">
+      <div class="bg-[#101012] border border-[#222] rounded-xl p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h4 class="text-sm font-black tracking-widest text-white"><i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — bourse des streamers</h4>
+              <p class="text-xs text-gray-400 mt-1">
+                Objectif : te faire <strong>apprendre à investir intelligemment</strong> sur des streamers (comme une mini-bourse),
+                pour comprendre l’impact de la <strong>demande</strong> et de l’<strong>activité en live</strong> sur un prix.
+                <span class="text-gray-500">Plus il y a d’achats (shares), plus le prix monte.</span>
+              </p>
             </div>
+            <button class="px-3 py-2 rounded-lg bg-[#0b0b0d] border border-[#222] text-xs text-gray-200 hover:border-[#00f2ea]" onclick="refreshMarketAll()">↻ Actualiser</button>
+          </div>
 
-            <div class="tf-panel mt-4">
-              <div class="tf-panel-title"><i class="fas fa-bolt mr-2 text-[#ff0099]"></i>Alertes & opportunités (à actionner)</div>
-              <div id="market-opportunities" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+          <div class="grid grid-cols-2 gap-3 mt-4">
+            <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
+              <div class="text-[10px] text-gray-500 uppercase">Cash</div>
+              <div id="mkt-cash" class="text-2xl font-orbitron text-white">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Tes crédits disponibles</div>
+            </div>
+            <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
+              <div class="text-[10px] text-gray-500 uppercase">Net worth</div>
+              <div id="mkt-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
+              <div class="text-[10px] text-gray-500 mt-1">Cash + valeur des positions</div>
             </div>
           </div>
 
-          <div class="xl:col-span-4">
-            <div class="tf-panel">
-              <div class="tf-panel-title"><i class="fas fa-crosshairs mr-2 text-[#00f2ea]"></i>Streamers à surveiller</div>
-              <div id="market-watchlist" class="tf-list"></div>
-              <div class="mt-3 text-xs text-gray-400">
-                Pédago : ajoute ici les streamers que tu veux suivre. Le prix bouge selon leur audience live et la pression d'achat/vente.
-              </div>
+          <div class="mt-4 bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-xs text-gray-300 font-bold uppercase">Rechercher un streamer</div>
+              <span class="text-[10px] text-gray-500">Ex: gotaga / domingo / …</span>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SCREENER -->
-      <section id="market-tab-screener" class="market-tab hidden">
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
-          <div class="xl:col-span-8">
-            <div class="tf-panel">
-              <div class="tf-panel-title"><i class="fas fa-filter mr-2 text-[#00f2ea]"></i>Screener — trouve des pépites</div>
-
-              <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <select id="scr-sort" class="tf-input" onchange="marketRefresh()">
-                  <option value="momentum">Tendance (momentum)</option>
-                  <option value="price">Prix</option>
-                  <option value="viewers">Viewers live</option>
-                  <option value="vol">Volatilité</option>
-                </select>
-                <input id="scr-maxprice" class="tf-input" placeholder="Prix max (ex: 300)" oninput="marketRefresh()" />
-                <input id="scr-minviewers" class="tf-input" placeholder="Viewers min (ex: 50)" oninput="marketRefresh()" />
-                <select id="scr-risk" class="tf-input" onchange="marketRefresh()">
-                  <option value="all">Risque: tous</option>
-                  <option value="low">Faible volatilité</option>
-                  <option value="mid">Moyen</option>
-                  <option value="high">Élevé</option>
-                </select>
-              </div>
-
-              <div class="mt-4 tf-table-wrap">
-                <table class="tf-table">
-                  <thead>
-                    <tr>
-                      <th>Streamer</th><th>Prix</th><th>Δ%</th><th>Viewers</th><th>Vol</th><th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="market-screener"></tbody>
-                </table>
-              </div>
-
-              <div class="text-xs text-gray-400 mt-3">
-                Pédago : “Δ%” = variation récente. “Vol” = instabilité. Objectif : repérer un bon ratio opportunité/risque.
-              </div>
+            <div class="flex gap-2 mt-2">
+              <input id="mkt-streamer" class="flex-grow bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" placeholder="Login Twitch du streamer…">
+              <button class="px-3 py-2 rounded-lg bg-[#00f2ea] text-[#0b0b0d] font-black hover:opacity-90" onclick="loadStreamerMarket()">Voir le cours</button>
             </div>
-          </div>
 
-          <div class="xl:col-span-4">
-            <div class="tf-panel">
-              <div class="tf-panel-title"><i class="fas fa-info-circle mr-2 text-[#00f2ea]"></i>Fiche Streamer</div>
-              <div id="market-profile" class="text-sm text-gray-200">Clique sur un streamer dans le screener.</div>
-              <div class="mt-3">
-                <div class="tf-order grid grid-cols-2 gap-2">
-                  <input id="order-login" class="tf-input col-span-2" placeholder="login streamer" />
-                  <input id="order-amount" class="tf-input" placeholder="Montant (crédits)" />
-                  <select id="order-side" class="tf-input">
-                    <option value="buy">Acheter</option>
-                    <option value="sell">Vendre</option>
-                  </select>
-                  <button class="tf-btn tf-btn-primary col-span-2" onclick="marketPlaceOrder()">
-                    <i class="fas fa-paper-plane mr-2"></i>Passer l'ordre
-                  </button>
+            <div id="mkt-streamer-card" class="mt-3 hidden">
+              <div class="grid grid-cols-2 gap-3">
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Prix actuel</div>
+                  <div id="mkt-price" class="text-2xl font-orbitron text-white">--</div>
+                  <div class="text-[10px] text-gray-500 mt-1">Basé sur viewers + impact demande</div>
                 </div>
-                <div class="text-xs text-gray-400 mt-2">
-                  Pédago : tu achètes des “parts” au prix actuel. Le prix peut monter/descendre selon l'audience live + la demande.
-                </div>
-                <div id="market-order-status" class="text-xs mt-2"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ORDERBOOK -->
-      <section id="market-tab-orderbook" class="market-tab hidden">
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
-          <div class="xl:col-span-4">
-            <div class="tf-panel">
-              <div class="tf-panel-title"><i class="fas fa-layer-group mr-2 text-[#00f2ea]"></i>Streamers suivis</div>
-              <div id="market-book-list" class="tf-list"></div>
-            </div>
-          </div>
-          <div class="xl:col-span-8">
-            <div class="tf-panel">
-              <div class="tf-panel-title"><i class="fas fa-book mr-2 text-[#00f2ea]"></i>Carnet d'ordres (simulation)</div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div class="text-xs text-gray-400 mb-2">ACHATS</div>
-                  <div id="market-bids" class="tf-book"></div>
-                </div>
-                <div>
-                  <div class="text-xs text-gray-400 mb-2">VENTES</div>
-                  <div id="market-asks" class="tf-book"></div>
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Impact du marché</div>
+                  <div class="text-lg font-orbitron text-[#ff0099]">x<span id="mkt-mult">--</span></div>
+                  <div class="text-[10px] text-gray-500 mt-1"><span id="mkt-shares">--</span> shares en circulation</div>
                 </div>
               </div>
-              <div class="text-xs text-gray-400 mt-3">
-                Pédago : ici on simule un carnet. En prod tu peux connecter une vraie logique serveur (ordres limites, matching, historique).
+
+              <div class="mt-3 bg-[#101012] border border-[#222] rounded-lg p-3">
+                <div class="flex items-center justify-between">
+                  <div class="text-xs text-gray-300 font-bold uppercase">Courbe (derniers points)</div>
+                  <div class="text-[10px] text-gray-500">Plus de points = plus lissage</div>
+                </div>
+                <div class="h-36 mt-2"><canvas id="chartMarket"></canvas></div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-2 gap-2">
+                <input id="mkt-amount" type="number" min="1" class="bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" placeholder="Montant (crédits)">
+                <div class="flex gap-2">
+                  <button class="flex-1 px-3 py-2 rounded-lg bg-[#111] border border-[#222] text-xs text-white hover:border-[#00f2ea]" onclick="marketInvest()">Acheter</button>
+                  <button class="flex-1 px-3 py-2 rounded-lg bg-[#111] border border-[#222] text-xs text-white hover:border-[#ff0099]" onclick="marketSell()">Vendre</button>
+                </div>
+              </div>
+
+              <div class="text-[10px] text-gray-500 mt-2">
+                ⚠️ Ceci est un <strong>jeu d’économie</strong> : tu ne gagnes pas de vrai argent. Mais tu apprends comment une bourse réagit à la demande.
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- PORTFOLIO -->
-      <section id="market-tab-portfolio" class="market-tab hidden">
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
-          <div class="xl:col-span-4">
-            <div class="tf-panel">
-              <div class="tf-panel-title"><i class="fas fa-wallet mr-2 text-[#00f2ea]"></i>Résumé</div>
-              <div class="text-sm text-gray-200">
-                <div>Utilisateur: <strong id="market-user">Anon</strong></div>
-                <div class="mt-1">Cash: <strong id="market-cash">—</strong></div>
-                <div class="mt-1">Valeur positions: <strong id="market-posval">—</strong></div>
-                <div class="mt-1">Net worth: <strong id="market-net">—</strong></div>
-              </div>
-              <div class="mt-3 text-xs text-gray-400">
-                Pédago : “Net worth” = cash + valeur de toutes tes positions au prix actuel.
-              </div>
-            </div>
-
-            <div class="tf-panel mt-4">
-              <div class="tf-panel-title"><i class="fas fa-user-shield mr-2 text-[#00f2ea]"></i>Paramètres</div>
-              <input id="market-user-input" class="tf-input" placeholder="Nom utilisateur (pour portefeuille)" />
-              <button class="tf-btn mt-2 w-full" onclick="marketSetUser()"><i class="fas fa-save mr-2"></i>Appliquer</button>
-              <div class="text-xs text-gray-400 mt-2">Pédago : ton pseudo sert de clé pour sauvegarder ton portefeuille.</div>
-            </div>
+          <div class="mt-4 bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
+            <div class="text-xs text-gray-300 font-bold uppercase">Ton portefeuille</div>
+            <div id="mkt-portfolio" class="mt-2 text-xs text-gray-300">—</div>
           </div>
 
-          <div class="xl:col-span-8">
-            <div class="tf-panel">
-              <div class="tf-panel-title"><i class="fas fa-briefcase mr-2 text-[#00f2ea]"></i>Mes positions</div>
-              <div class="tf-table-wrap">
-                <table class="tf-table">
-                  <thead>
-                    <tr><th>Streamer</th><th>Parts</th><th>Prix</th><th>Valeur</th><th>Action</th></tr>
-                  </thead>
-                  <tbody id="market-positions"></tbody>
-                </table>
-              </div>
-            </div>
+          <div class="mt-3 bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
+            <div class="text-xs text-gray-300 font-bold uppercase">Leaderboard</div>
+            <div id="mkt-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
           </div>
         </div>
-      </section>
-
-      <!-- LEADERBOARD -->
-      <section id="market-tab-leaderboard" class="market-tab hidden">
-        <div class="tf-panel">
-          <div class="tf-panel-title"><i class="fas fa-trophy mr-2 text-[#ff0099]"></i>Classement (net worth)</div>
-          <div class="tf-table-wrap">
-            <table class="tf-table">
-              <thead><tr><th>#</th><th>Utilisateur</th><th>Net worth</th></tr></thead>
-              <tbody id="market-leaderboard"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- HOW -->
-      <section id="market-tab-how" class="market-tab hidden">
-        <div class="tf-panel">
-          <div class="tf-panel-title"><i class="fas fa-graduation-cap mr-2 text-[#00f2ea]"></i>Comment ça marche ? (version “vraie bourse”)</div>
-
-          <div class="prose prose-invert max-w-none text-sm text-gray-200">
-            <p><strong>Objectif</strong> : te donner un tableau de bord “bourse” qui transforme les signaux Twitch en métriques actionnables (croissance, risque, opportunité).</p>
-
-            <h4 class="mt-3">1) Le prix d'un streamer</h4>
-            <ul>
-              <li><strong>Base price</strong> : dérivé des viewers live (plus l'audience est haute, plus la base monte).</li>
-              <li><strong>Impact</strong> : augmente si beaucoup de gens achètent (parts “outstanding”). Baisse si ça vend.</li>
-              <li><strong>Résultat</strong> : un prix simple à lire + une variation (%) qui te sert de “momentum”.</li>
-            </ul>
-
-            <h4 class="mt-3">2) Ordres</h4>
-            <ul>
-              <li>Version actuelle : “market orders” (tu achètes/vends au prix du moment).</li>
-              <li>Version vraie bourse : ajouter des <strong>ordres limites</strong> + un <strong>matching engine</strong> serveur (carnet + exécution).</li>
-            </ul>
-
-            <h4 class="mt-3">3) Indice global</h4>
-            <ul>
-              <li>Moyenne pondérée des prix du watchlist (ou des top streamers).</li>
-              <li>Te dit si le “marché” est en expansion (plus d'audience, plus de demande).</li>
-            </ul>
-
-            <h4 class="mt-3">4) Comment ça aide un streamer ?</h4>
-            <ul>
-              <li>Tu vois qui “prend de la traction” rapidement.</li>
-              <li>Tu peux t'inspirer (formats, horaires) + détecter les niches moins saturées.</li>
-              <li>Tu ajoutes un <strong>feedback loop</strong> : tes décisions (investir/observer) te forcent à analyser les signaux.</li>
-            </ul>
-
-            <h4 class="mt-3">5) Brancher à ton backend</h4>
-            <ul>
-              <li><code>/api/fantasy/market?streamer=LOGIN</code> pour prix + historique</li>
-              <li><code>/api/fantasy/profile?user=NAME</code> pour portefeuille</li>
-              <li><code>/api/fantasy/invest</code> / <code>/api/fantasy/sell</code> pour acheter/vendre</li>
-            </ul>
-          </div>
-        </div>
-      </section>
     </div>
   </div>
 </div>
-
-
-<script id="jp-market-js">
-(function(){
-  // ============ Player height lock (prevents secure chat from affecting player) ============
-  function syncPlayerHeight(){
-    const playerWrap = document.getElementById('twitch-player-wrap') || document.querySelector('.twitch-player-wrap');
-    const right = document.getElementById('right-panel') || document.querySelector('.right-panel') || document.getElementById('side-tabs');
-    if(!playerWrap || !right) return;
-
-    const h = Math.max(420, Math.min(860, playerWrap.getBoundingClientRect().height || 0));
-    document.documentElement.style.setProperty('--jpPlayerH', h + 'px');
-  }
-  window.addEventListener('resize', syncPlayerHeight);
-  window.addEventListener('load', () => {
-    // ResizeObserver gives best results when Twitch reflows
-    try{
-      const el = document.getElementById('twitch-player-wrap') || document.querySelector('.twitch-player-wrap');
-      if(el && 'ResizeObserver' in window){
-        new ResizeObserver(()=>syncPlayerHeight()).observe(el);
-      }
-    }catch(_){}
-    setTimeout(syncPlayerHeight, 400);
-    setTimeout(syncPlayerHeight, 1200);
-  });
-
-  // ============ Market modal ============
-  window.openMarket = function(){
-    const m = document.getElementById('market-modal');
-    if(!m) return;
-    m.classList.remove('hidden');
-    m.setAttribute('aria-hidden','false');
-    marketBoot();
-  };
-  window.closeMarket = function(){
-    const m = document.getElementById('market-modal');
-    if(!m) return;
-    m.classList.add('hidden');
-    m.setAttribute('aria-hidden','true');
-  };
-
-  window.marketToggleCinema = function(){
-    // re-use your existing cinema mode if present
-    if (typeof window.toggleCinemaMode === 'function') window.toggleCinemaMode(true);
-    else {
-      document.body.classList.toggle('cinema-mode');
-      document.documentElement.classList.toggle('cinema-mode');
-    }
-  };
-
-  // Tabs inside market
-  window.marketOpenTab = function(key, btn){
-    document.querySelectorAll('#market-modal .tf-chip').forEach(x=>x.classList.remove('active'));
-    if(btn) btn.classList.add('active');
-    document.querySelectorAll('#market-modal .market-tab').forEach(s=>s.classList.add('hidden'));
-    const sec = document.getElementById('market-tab-' + key);
-    if(sec) sec.classList.remove('hidden');
-  };
-
-  // ======= Data layer: uses backend endpoints if present, else fallback demo =======
-  const state = {
-    user: localStorage.getItem('marketUser') || 'Anon',
-    watch: (localStorage.getItem('marketWatch')||'zerator,gota,kamet0').split(',').map(s=>s.trim()).filter(Boolean),
-    cache: new Map(),
-    demo: null
-  };
-
-  function fmt(n){ try{ return new Intl.NumberFormat('fr-FR').format(Math.round(n)); }catch(_){ return String(Math.round(n)); } }
-  function pct(n){ const v = Number(n||0); const s = v>=0?'+':''; return s + v.toFixed(1) + '%'; }
-
-  async function apiJson(url, opt){
-    const r = await fetch(url, opt||{});
-    const j = await r.json();
-    return j;
-  }
-
-  function demoData(){
-    // deterministic pseudo data to keep UI readable if backend not running
-    if(state.demo) return state.demo;
-    const base = [
-      'zerator','gotaga','sardoche','kamel','aminematue','domingo','pape_san','squeezie','ponce','xari','kamet0','locklear'
-    ];
-    const rows = base.map((login,i)=>{
-      const viewers = 40 + (i*37)%480;
-      const price = Math.round(25 + Math.sqrt(viewers)*6 + (i%3)*12);
-      const chg = ((i%7)-3) * 1.7;
-      const vol = 6 + (i%8)*4;
-      return { login, price, viewers, changePct: chg, vol };
-    });
-    state.demo = rows;
-    return rows;
-  }
-
-  async function getStreamerMarket(login){
-    const key = String(login||'').toLowerCase().trim();
-    if(!key) return null;
-    if(state.cache.has(key)) return state.cache.get(key);
-
-    // Prefer your backend fantasy endpoints if available
-    try{
-      const j = await apiJson(`/api/fantasy/market?streamer=${encodeURIComponent(key)}`);
-      if(j && j.success && j.market){
-        const m = {
-          login: j.market.login,
-          price: Number(j.market.price||0),
-          basePrice: Number(j.market.basePrice||0),
-          viewers: null,
-          changePct: 0,
-          vol: computeVol(j.history||[])
-        };
-        // compute recent change
-        if((j.history||[]).length>=2){
-          const a = j.history[j.history.length-2]?.price||m.price;
-          const b = j.history[j.history.length-1]?.price||m.price;
-          m.changePct = a? ((b-a)/a)*100 : 0;
-        }
-        state.cache.set(key, m);
-        return m;
-      }
-    }catch(_){}
-
-    // Fallback demo
-    const d = demoData().find(x=>x.login===key) || { login:key, price: 50, viewers: 0, changePct: 0, vol: 10 };
-    state.cache.set(key, d);
-    return d;
-  }
-
-  function computeVol(history){
-    const h = (history||[]).slice(-7).map(x=>Number(x.price||0)).filter(Boolean);
-    if(h.length<3) return 0;
-    const mean = h.reduce((a,b)=>a+b,0)/h.length;
-    const variance = h.reduce((a,v)=>a+(v-mean)*(v-mean),0)/h.length;
-    return Math.round(Math.sqrt(variance));
-  }
-
-  function setText(id, v){ const el=document.getElementById(id); if(el) el.textContent=v; }
-  function setHTML(id, v){ const el=document.getElementById(id); if(el) el.innerHTML=v; }
-
-  function renderWatchlist(items){
-    const box = document.getElementById('market-watchlist');
-    if(!box) return;
-    box.innerHTML = '';
-    items.forEach(m=>{
-      const row = document.createElement('div');
-      row.className='tf-item';
-      row.innerHTML = `
-        <div class="flex flex-col">
-          <div class="font-extrabold text-white text-sm">${m.login}</div>
-          <div class="text-xs text-gray-400">Prix: <strong class="text-white">${fmt(m.price)}</strong> • Δ ${pct(m.changePct||0)}</div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="tf-btn" onclick="marketQuick('${m.login}')">Détails</button>
-        </div>`;
-      box.appendChild(row);
-    });
-  }
-
-  window.marketQuick = async function(login){
-    document.querySelector('[data-market-tab="screener"]')?.click();
-    const m = await getStreamerMarket(login);
-    fillProfile(m);
-    const o = document.getElementById('order-login'); if(o) o.value = login;
-  };
-
-  function fillOpportunities(items){
-    const box = document.getElementById('market-opportunities');
-    if(!box) return;
-    box.innerHTML='';
-    items.slice(0,6).forEach(m=>{
-      const card = document.createElement('div');
-      card.className='tf-item';
-      const badge = (m.changePct||0)>=0 ? 'text-[#00f2ea]' : 'text-[#ff0099]';
-      card.innerHTML = `
-        <div>
-          <div class="font-extrabold text-white">${m.login} <span class="${badge}">${pct(m.changePct||0)}</span></div>
-          <div class="text-xs text-gray-400">Prix ${fmt(m.price)} • Vol ${fmt(m.vol||0)}</div>
-          <div class="text-xs text-gray-500 mt-1">Action: surveille le momentum + compare la niche/heure.</div>
-        </div>
-        <button class="tf-btn tf-btn-primary" onclick="marketQuick('${m.login}')">Ouvrir</button>
-      `;
-      box.appendChild(card);
-    });
-  }
-
-  function renderScreener(items){
-    const tb=document.getElementById('market-screener');
-    if(!tb) return;
-    tb.innerHTML='';
-    items.forEach(m=>{
-      const tr=document.createElement('tr');
-      const badge = (m.changePct||0)>=0 ? 'style="color:#00f2ea;font-weight:800;"' : 'style="color:#ff0099;font-weight:800;"';
-      tr.innerHTML = `
-        <td><button class="tf-btn" onclick="marketSelect('${m.login}')">${m.login}</button></td>
-        <td>${fmt(m.price)}</td>
-        <td ${badge}>${pct(m.changePct||0)}</td>
-        <td>${m.viewers!=null?fmt(m.viewers):'—'}</td>
-        <td>${fmt(m.vol||0)}</td>
-        <td><button class="tf-btn tf-btn-primary" onclick="marketQuick('${m.login}')">Trade</button></td>`;
-      tb.appendChild(tr);
-    });
-  }
-
-  window.marketSelect = async function(login){
-    const m = await getStreamerMarket(login);
-    fillProfile(m);
-  };
-
-  function fillProfile(m){
-    if(!m) return;
-    setHTML('market-profile', `
-      <div class="text-sm">
-        <div class="font-extrabold text-white text-lg">${m.login}</div>
-        <div class="mt-2 grid grid-cols-2 gap-2">
-          <div class="tf-kpi"><div class="tf-kpi-label">Prix</div><div class="tf-kpi-value">${fmt(m.price)}</div><div class="tf-kpi-sub">base ${fmt(m.basePrice||m.price)}</div></div>
-          <div class="tf-kpi"><div class="tf-kpi-label">Δ%</div><div class="tf-kpi-value">${pct(m.changePct||0)}</div><div class="tf-kpi-sub">momentum</div></div>
-        </div>
-        <div class="mt-2 text-xs text-gray-400">Pédago : si Δ% monte et que la niche est peu saturée, c'est souvent un bon signal d'opportunité.</div>
-      </div>
-    `);
-    const o=document.getElementById('order-login'); if(o) o.value=m.login;
-  }
-
-  function sortAndFilter(items){
-    const sort = (document.getElementById('scr-sort')?.value)||'momentum';
-    const maxp = Number((document.getElementById('scr-maxprice')?.value||'').trim()||0);
-    const minv = Number((document.getElementById('scr-minviewers')?.value||'').trim()||0);
-    const risk = (document.getElementById('scr-risk')?.value)||'all';
-
-    let out = items.slice();
-    if(maxp>0) out = out.filter(x=>Number(x.price||0)<=maxp);
-    if(minv>0) out = out.filter(x=>Number(x.viewers||0)>=minv);
-
-    if(risk!=='all'){
-      out = out.filter(x=>{
-        const v=Number(x.vol||0);
-        if(risk==='low') return v<=12;
-        if(risk==='mid') return v>12 && v<=22;
-        return v>22;
-      });
-    }
-
-    out.sort((a,b)=>{
-      if(sort==='price') return (b.price||0)-(a.price||0);
-      if(sort==='viewers') return (b.viewers||0)-(a.viewers||0);
-      if(sort==='vol') return (b.vol||0)-(a.vol||0);
-      return (b.changePct||0)-(a.changePct||0);
-    });
-    return out;
-  }
-
-  // Portfolio (backend preferred)
-  async function loadPortfolio(){
-    setText('market-user', state.user);
-    try{
-      const j = await apiJson(`/api/fantasy/profile?user=${encodeURIComponent(state.user)}`);
-      if(j && j.success){
-        const cash = Number(j.cash||0);
-        const holdings = j.holdings||[];
-        const posVal = holdings.reduce((a,x)=>a+Number(x.value||0),0);
-        setText('market-cash', fmt(cash));
-        setText('market-posval', fmt(posVal));
-        setText('market-net', fmt(cash+posVal));
-        renderPositions(holdings);
-        return;
-      }
-    }catch(_){}
-    // demo
-    setText('market-cash', fmt(10000));
-    setText('market-posval', fmt(0));
-    setText('market-net', fmt(10000));
-    renderPositions([]);
-  }
-
-  function renderPositions(holdings){
-    const tb=document.getElementById('market-positions');
-    if(!tb) return;
-    tb.innerHTML='';
-    if(!holdings.length){
-      tb.innerHTML = `<tr><td colspan="5" class="text-gray-400">Aucune position pour l'instant. Passe un ordre dans le Screener.</td></tr>`;
-      return;
-    }
-    holdings.forEach(h=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML = `
-        <td>${h.login}</td>
-        <td>${fmt(h.shares)}</td>
-        <td>${fmt(h.price)}</td>
-        <td>${fmt(h.value)}</td>
-        <td>
-          <button class="tf-btn" onclick="marketQuick('${h.login}')">Trader</button>
-        </td>`;
-      tb.appendChild(tr);
-    });
-  }
-
-  async function loadLeaderboard(){
-    try{
-      const j = await apiJson(`/api/fantasy/leaderboard`);
-      if(j && j.success){
-        const tb=document.getElementById('market-leaderboard');
-        if(!tb) return;
-        tb.innerHTML='';
-        (j.items||[]).forEach((it,idx)=>{
-          const tr=document.createElement('tr');
-          tr.innerHTML = `<td>${idx+1}</td><td>${it.user}</td><td>${fmt(it.netWorth)}</td>`;
-          tb.appendChild(tr);
-        });
-        return;
-      }
-    }catch(_){}
-    const tb=document.getElementById('market-leaderboard');
-    if(tb) tb.innerHTML = `<tr><td colspan="3" class="text-gray-400">Classement indisponible (backend).</td></tr>`;
-  }
-
-  // Orders: connect to backend /api/fantasy/invest or /api/fantasy/sell
-  window.marketPlaceOrder = async function(){
-    const login = String(document.getElementById('order-login')?.value||'').trim().toLowerCase();
-    const amount = Number(String(document.getElementById('order-amount')?.value||'').trim()||0);
-    const side = String(document.getElementById('order-side')?.value||'buy');
-    const out = document.getElementById('market-order-status');
-    if(out) out.textContent='';
-    if(!login || !amount || amount<=0){
-      if(out) out.innerHTML = '<span style="color:#ff0099;font-weight:800;">Montant + streamer requis.</span>';
-      return;
-    }
-    try{
-      const url = side==='sell' ? '/api/fantasy/sell' : '/api/fantasy/invest';
-      const j = await apiJson(url, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ user: state.user, streamer: login, amount })
-      });
-      if(j && j.success){
-        if(out) out.innerHTML = `<span style="color:#00f2ea;font-weight:800;">✅ OK</span> — ${side==='sell'?'Vendu':'Acheté'}: ${fmt(j.shares||j.sharesToSell||0)} parts`;
-        // refresh
-        state.cache.delete(login);
-        await marketRefresh(true);
-        await loadPortfolio();
-      }else{
-        if(out) out.innerHTML = `<span style="color:#ff0099;font-weight:800;">❌ ${j?.error||'Erreur ordre'}</span>`;
-      }
-    }catch(e){
-      if(out) out.innerHTML = `<span style="color:#ff0099;font-weight:800;">❌ Backend indisponible</span>`;
-    }
-  };
-
-  window.marketSetUser = function(){
-    const v = String(document.getElementById('market-user-input')?.value||'').trim();
-    if(!v) return;
-    state.user = v.slice(0,50);
-    localStorage.setItem('marketUser', state.user);
-    loadPortfolio();
-  };
-
-  // Search field highlights screener rows
-  window.marketSearch = async function(q){
-    const s = String(q||'').trim().toLowerCase();
-    if(!s){
-      marketRefresh();
-      return;
-    }
-    const items = await marketLoadUniverse();
-    const filtered = items.filter(x=>String(x.login||'').toLowerCase().includes(s)).slice(0,60);
-    renderScreener(sortAndFilter(filtered));
-  };
-
-  async function marketLoadUniverse(){
-    // Universe = watchlist + some demo entries (or from backend later)
-    const universe = new Set(state.watch);
-    demoData().forEach(x=>universe.add(x.login));
-    const list = [];
-    for(const login of universe){
-      const m = await getStreamerMarket(login);
-      if(m) list.push(m);
-    }
-    return list;
-  }
-
-  // Render minimal chart (no libs) for index
-  function drawIndexChart(points){
-    const c = document.getElementById('market-index-chart');
-    if(!c) return;
-    const ctx = c.getContext('2d');
-    const w = c.width = c.parentElement.clientWidth;
-    const h = c.height = 110;
-    ctx.clearRect(0,0,w,h);
-
-    if(!points || points.length<2) return;
-
-    const min = Math.min(...points);
-    const max = Math.max(...points);
-    const pad = 8;
-    const scaleX = (w - pad*2) / (points.length - 1);
-    const scaleY = (h - pad*2) / Math.max(1, (max - min));
-
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    points.forEach((v,i)=>{
-      const x = pad + i*scaleX;
-      const y = h - pad - ((v-min)*scaleY);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    });
-    ctx.strokeStyle = 'rgba(0,242,234,0.9)';
-    ctx.stroke();
-
-    // baseline
-    ctx.beginPath();
-    ctx.moveTo(pad, h-pad);
-    ctx.lineTo(w-pad, h-pad);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  async function buildOrderbook(items){
-    const list = document.getElementById('market-book-list');
-    const bids = document.getElementById('market-bids');
-    const asks = document.getElementById('market-asks');
-    if(!list || !bids || !asks) return;
-
-    list.innerHTML='';
-    bids.innerHTML='';
-    asks.innerHTML='';
-    items.slice(0,8).forEach(m=>{
-      const row=document.createElement('div');
-      row.className='tf-item';
-      row.innerHTML = `<div><div class="font-extrabold text-white">${m.login}</div><div class="text-xs text-gray-400">Prix ${fmt(m.price)}</div></div>
-      <button class="tf-btn" onclick="marketSelectBook('${m.login}')">Voir carnet</button>`;
-      list.appendChild(row);
-    });
-
-    // default: first
-    if(items[0]) marketSelectBook(items[0].login);
-  }
-
-  window.marketSelectBook = async function(login){
-    const m = await getStreamerMarket(login);
-    const bids = document.getElementById('market-bids');
-    const asks = document.getElementById('market-asks');
-    if(!bids || !asks || !m) return;
-
-    // simulate 10 levels around price
-    const p = Number(m.price||50);
-    const make = (side)=>{
-      const arr=[];
-      for(let i=0;i<10;i++){
-        const price = side==='bid' ? Math.max(1, p - i*2) : (p + i*2);
-        const qty = Math.max(1, Math.round((10-i) * (8 + (m.vol||10)/4)));
-        arr.push({ price, qty });
-      }
-      return arr;
-    };
-    const bb = make('bid');
-    const aa = make('ask');
-
-    bids.innerHTML = bb.map(x=>`<div class="tf-book-row"><span>${fmt(x.qty)} parts</span><span style="color:#00f2ea;font-weight:800;">${fmt(x.price)}</span></div>`).join('');
-    asks.innerHTML = aa.map(x=>`<div class="tf-book-row"><span>${fmt(x.qty)} parts</span><span style="color:#ff0099;font-weight:800;">${fmt(x.price)}</span></div>`).join('');
-  };
-
-  // Main refresh
-  window.marketRefresh = async function(hard){
-    if(hard) state.cache.clear();
-
-    // KPIs + watchlist
-    const items = await marketLoadUniverse();
-    // index = avg price of watchlist
-    const watchItems = await Promise.all(state.watch.map(getStreamerMarket));
-    const valid = watchItems.filter(Boolean);
-    const idx = valid.length ? valid.reduce((a,x)=>a+Number(x.price||0),0) / valid.length : 0;
-    setText('market-index', idx ? fmt(idx) : '—');
-    setText('market-index-sub', idx ? 'moyenne watchlist' : '—');
-
-    const vol = valid.length ? Math.round(valid.reduce((a,x)=>a+Number(x.vol||0),0)/valid.length) : 0;
-    setText('market-vol', vol ? fmt(vol) : '—');
-
-    const top = items.slice().sort((a,b)=>(b.changePct||0)-(a.changePct||0))[0];
-    setText('market-top', top? top.login : '—');
-    setText('market-top-sub', top? pct(top.changePct||0) : '—');
-
-    renderWatchlist(valid.slice(0,10));
-    fillOpportunities(items.slice().sort((a,b)=>Math.abs(b.changePct||0)-Math.abs(a.changePct||0)));
-
-    // screener
-    renderScreener(sortAndFilter(items));
-
-    // orderbook
-    await buildOrderbook(items);
-
-    // chart points (simulate recent index points)
-    const pts = [];
-    const base = idx || 80;
-    for(let i=0;i<14;i++){
-      pts.push(base * (1 + ((i%5)-2)*0.006));
-    }
-    drawIndexChart(pts);
-
-    // portfolio + leaderboard
-    await loadPortfolio();
-    await loadLeaderboard();
-  };
-
-  function marketBoot(){
-    // ensure initial tab
-    marketOpenTab('overview', document.querySelector('#market-modal [data-market-tab="overview"]'));
-    setText('market-user', state.user);
-    const u = document.getElementById('market-user-input'); if(u) u.value = state.user;
-    marketRefresh(true);
-  }
-
-  // Expose for other handlers
-  window.marketBoot = marketBoot;
-})();
-</script>
 
 </body>
 </html>
