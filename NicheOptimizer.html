@@ -1,17 +1,16 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Streamer Hub – Pro Analytics & TwitFlix</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Streamer Hub – Pro Analytics &amp; TwitFlix</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;family=Inter:wght@400;600;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<style>
     :root{
       --bg-dark:#050505;
       --bg-panel:#0b0b0d;
@@ -928,426 +927,1314 @@
 }
 
 
-/* === HARD Z-INDEX (no Tailwind dependency) === */
-#market-overlay{ position:fixed !important; inset:0 !important; z-index:10000 !important; }
-#mosaicModal{ z-index:10000 !important; }
-body.modal-open #player-tools{ display:none !important; }
-body.modal-open #ambilight{ display:none !important; }
+/* ======= HARD FIXES (no-tailwind fallback + layout locks) ======= */
+.hidden{display:none !important;}
+/* force main layout: player left, side-panel right */
+#main-layout{display:grid !important; grid-template-columns:minmax(0,1fr) 420px; gap:16px; align-items:stretch;}
+#side-panel{grid-column:2 / 3 !important; min-width:320px;}
+#left-col{grid-column:1 / 2 !important; min-width:0;}
+/* player/side-panel height lock via CSS var */
+:root{ --playerH: 520px; --sideHeaderH: 44px; }
+#side-panel{height:var(--playerH) !important;}
+#side-panel .tab-content{min-height:0;}
+#tab-chat, #tab-stats, #tab-tools{height:calc(var(--playerH) - var(--sideHeaderH)) !important; overflow:hidden;}
+#tab-chat{display:flex; flex-direction:column;}
+#tab-chat .chat-mode-bar{height:40px;}
+#chat-container-twitch, #chat-container-hub{min-height:0; height:calc(100% - 40px) !important;}
+#chat-container-hub{display:flex; flex-direction:column;}
+#hub-messages{min-height:0;}
+/* tools internal scroll (so you can reach bottom) */
+#tab-tools{display:flex; flex-direction:column;}
+#tab-tools .tools-scroll{flex:1; min-height:0; overflow:auto;}
+/* market overlay always centered like TwitFlix */
+#market-overlay{position:fixed !important; inset:0 !important; display:flex; align-items:center; justify-content:center;}
+#market-overlay.hidden{display:none !important;}
+#market-overlay .market-modal{width:min(1100px, calc(100vw - 32px)); height:min(78vh, 720px); max-height:calc(100vh - 32px);}
+@media (max-width: 980px){
+  #main-layout{grid-template-columns:1fr; }
+  #side-panel{grid-column:1 / 2 !important; height:auto !important;}
+  #tab-chat, #tab-stats, #tab-tools{height:auto !important;}
+}
+
+/* Phase2: never overlay player tools above modals */
+body.modal-open #player-tools{display:none !important;}
+
+
+/* === BINANCE MARKET UI === */
+
+    :root{
+      --bg-dark:#050505;
+      --bg-panel:#0b0b0d;
+      --primary:#ff0099;
+      --secondary:#00f2ea;
+      --text-main:#e0e0e0;
+      --border-color:#1f1f23;
+    }
+    body{
+      background:var(--bg-dark);
+      color:var(--text-main);
+      font-family:Inter, sans-serif;
+      overflow-x:auto;
+    }
+    .font-orbitron{ font-family:Orbitron, sans-serif; }
+
+    ::-webkit-scrollbar{ width:6px; height:6px; }
+    ::-webkit-scrollbar-track{ background:#000; }
+    ::-webkit-scrollbar-thumb{ background:#333; border-radius:3px; }
+    ::-webkit-scrollbar-thumb:hover{ background:var(--secondary); }
+
+    .glass-panel{ background:var(--bg-panel); border:1px solid var(--border-color); }
+
+    .carousel-track{
+      display:flex; gap:15px; overflow-x:auto; padding:10px 5px;
+      scroll-behavior:smooth; cursor:grab;
+    }
+    .stream-card{
+      flex:0 0 300px; height:170px; background:#111;
+      border:1px solid #222; border-radius:12px; overflow:hidden;
+      position:relative; cursor:pointer; transition:.2s;
+    }
+    .stream-card:hover{
+      border-color:var(--secondary);
+      transform:translateY(-4px);
+      box-shadow:0 5px 20px rgba(0,242,234,.15);
+    }
+    .card-img{ width:100%; height:100%; object-fit:cover; opacity:.7; transition:.3s; }
+    .stream-card:hover .card-img{ opacity:1; }
+
+    /* onglets DROITE */
+    .tab-nav{ display:flex; background:#080808; border-bottom:1px solid var(--border-color); }
+    .tab-btn{
+      flex:1; padding:14px; text-align:center; color:#666;
+      font-family:Orbitron; font-size:11px; font-weight:bold;
+      cursor:pointer; border-bottom:2px solid transparent; transition:.3s;
+    }
+    .tab-btn:hover{ color:#fff; background:#111; }
+    .tab-btn.active{ color:var(--secondary); border-bottom-color:var(--secondary); background:#151515; }
+    .tab-content{ display:none; height:100%; flex-direction:column; }
+    .tab-content.active{ display:flex; }
+
+    .cyber-input{
+      background:#151515; border:1px solid #333; color:#fff;
+      padding:12px; border-radius:6px; font-size:13px; outline:none; transition:.3s; width:100%;
+    }
+    .cyber-input:focus{ border-color:var(--secondary); box-shadow:0 0 10px rgba(0,242,234,.2); }
+
+    .hub-msg{ padding:8px; border-bottom:1px solid #1a1a1a; font-size:13px; line-height:1.4; }
+    .hub-msg strong{ font-family:Orbitron; font-size:11px; }
+    .scrollbar-thin::-webkit-scrollbar{ width:4px; }
+
+    /* badge statut */
+    #socket-status{ transition:all .3s ease; }
+    #socket-status.connected{
+      color:#00f2ea; border-color:#00f2ea;
+      box-shadow:0 0 8px rgba(0,242,234,.6);
+      animation:hub-pulse 2s infinite;
+    }
+    @keyframes hub-pulse{ 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* BEST TIME TOOL */
+    .best-time-tool{
+      background:#151515; border:1px solid #00f2ea; border-radius:10px;
+      padding:16px; margin-bottom:16px; box-shadow:inset 0 0 10px rgba(0,242,234,.1);
+    }
+    .best-time-tool h4{
+      color:#00f2ea; font-family:Orbitron; font-size:12px;
+      margin-bottom:10px; border-bottom:1px solid #00f2ea; padding-bottom:8px;
+    }
+    .best-time-tool input{
+      width:100%; padding:10px; background:#0a0a0a; border:1px solid #333;
+      color:#fff; border-radius:6px; font-size:12px; margin-bottom:8px;
+    }
+    .best-time-tool input:focus{ border-color:#00f2ea; box-shadow:0 0 8px rgba(0,242,234,.2); outline:none; }
+    .best-time-tool button{
+      width:100%; background:#00f2ea; color:#000; padding:10px;
+      border:none; border-radius:6px; font-weight:bold; cursor:pointer;
+      font-family:Orbitron; font-size:11px; transition:all .3s ease;
+    }
+    .best-time-tool button:hover:not(:disabled){ background:#fff; box-shadow:0 0 15px rgba(0,242,234,.4); transform:translateY(-1px); }
+    .best-time-tool button:disabled{ opacity:.5; cursor:not-allowed; }
+    .best-time-results{
+      background:#0a0a0a; border:1px solid #333; border-radius:6px;
+      padding:12px; margin-top:12px; font-size:12px; max-height:220px; overflow-y:auto;
+    }
+    .best-time-spinner{
+      display:inline-block; width:14px; height:14px;
+      border:2px solid rgba(0,242,234,.3); border-radius:50%;
+      border-top-color:#00f2ea; animation:bt-spin 1s linear infinite;
+      margin-right:6px; vertical-align:middle;
+    }
+    @keyframes bt-spin{ to{ transform:rotate(360deg) } }
+
+    /* PLAYER sizing (grand) */
+    .player-shell{ min-height:72vh; }
+    #video-container{ min-height:62vh; }
+
+    /* ====== ONGLETS SOUS LE LIVE (indépendants) ====== */
+    .u-nav{ display:flex; background:#080808; border-bottom:1px solid #1f1f23; }
+    .u-tab-btn{
+      flex:1; padding:12px; text-align:center; color:#666;
+      font-family:Orbitron; font-size:11px; font-weight:bold;
+      cursor:pointer; border-bottom:2px solid transparent; transition:.25s;
+    }
+    .u-tab-btn:hover{ color:#fff; background:#111; }
+    .u-tab-btn.active{ color:var(--secondary); border-bottom-color:var(--secondary); background:#151515; }
+
+    .u-tab-panel{ display:none; }
+    .u-tab-panel.active{ display:block; }
+
+    /* ====== TWITFLIX MODAL ====== */
+    .tf-modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(5px);
+      z-index: 9999; display: none; align-items: center; justify-content: center;
+    }
+    .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+    .tf-modal-content {
+      width: 90%; max-width: 1200px; height: 85vh;
+      background: #0b0b0d; border: 1px solid #333; border-radius: 12px;
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 0 40px rgba(0, 242, 234, 0.1);
+    }
+    .tf-header {
+      padding: 20px; border-bottom: 1px solid #222;
+      display: flex; justify-content: space-between; align-items: center;
+      background: #080808;
+    }
+    .tf-title { font-family: 'Orbitron'; color: #ff0099; font-size: 24px; letter-spacing: 2px; }
+    .tf-title span { color: #00f2ea; }
+    .tf-close { color: #666; cursor: pointer; font-size: 24px; transition: .3s; }
+    .tf-close:hover { color: #fff; transform: rotate(90deg); }
+
+    .tf-grid {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 20px; align-content: start;
+    }
+    .tf-card {
+      position: relative; aspect-ratio: 3/4; border-radius: 6px; overflow: hidden;
+      cursor: pointer; transition: transform 0.2s, border-color 0.2s;
+      border: 2px solid transparent;
+    }
+    .tf-card:hover {
+      transform: scale(1.05); border-color: #00f2ea; z-index: 10;
+      box-shadow: 0 0 15px rgba(0, 242, 234, 0.3);
+    }
+    .tf-poster { width: 100%; height: 100%; object-fit: cover; }
+    .tf-overlay {
+      position: absolute; bottom: 0; left: 0; width: 100%;
+      background: linear-gradient(to top, black, transparent);
+      padding: 10px; opacity: 0; transition: 0.3s;
+    }
+    .tf-card:hover .tf-overlay { opacity: 1; }
+    .tf-name { font-size: 12px; font-weight: bold; color: white; text-align: center; }
+  
+    /* ====== TWITFLIX — Netflix rows (catalogue only, sans toucher le reste) ====== */
+    .tf-controls{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      padding: 0 16px 12px 16px;
+      border-bottom:1px solid #1f1f23;
+      background: rgba(11,11,13,.92);
+    }
+    .tf-view-toggle{
+      display:flex; gap:6px; padding:4px; border-radius:12px;
+      border:1px solid #2b2b31; background:#0a0a0a;
+    }
+    .tf-toggle-btn{
+      border:0; background:transparent; color:#a7a7b2;
+      font-family:Orbitron; font-size:10px; font-weight:900;
+      letter-spacing:.10em;
+      padding:8px 10px; border-radius:10px; cursor:pointer; transition:.2s;
+    }
+    .tf-toggle-btn:hover{ color:#fff; background:#151515; }
+    .tf-toggle-btn.active{ color:#000; background:#00f2ea; box-shadow:0 0 12px rgba(0,242,234,.18); }
+
+    .tf-grid{ padding: 14px 16px 18px 16px; }
+    .tf-section{ margin-top: 18px; }
+    .tf-section-title{
+      font-family: Orbitron, sans-serif;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #eaeaf0;
+      margin: 8px 0 10px 2px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .tf-section-title .hint{ color:#7f7f8a; font-size:10px; letter-spacing:.06em; text-transform:none; font-family:Inter; font-weight:700; }
+
+    .tf-row-track{
+      display:flex;
+      gap: 14px;
+      overflow-x:auto;
+      padding-bottom: 10px;
+      scroll-behavior:smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tf-row-track::-webkit-scrollbar{ height: 6px; }
+    .tf-row-track::-webkit-scrollbar-thumb{ background:#2a2a2f; border-radius:999px; }
+    .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#00f2ea; }
+
+    /* Card sizing for rows (lisible) */
+    .tf-card{ flex: 0 0 170px; aspect-ratio: 2/3; }
+    .tf-card:hover{ transform: scale(1.06); } /* moins agressif pour éviter le clipping */
+    .tf-name{ font-size: 11px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* A–Z bar */
+    .tf-azbar{
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display:flex;
+      flex-wrap:wrap;
+      gap: 6px;
+      padding: 10px 0 8px 0;
+      background: linear-gradient(180deg, rgba(11,11,13,.98), rgba(11,11,13,.74));
+      border-bottom: 1px solid #1f1f23;
+      margin-bottom: 8px;
+    }
+    .tf-azlink{
+      font-family: Orbitron, sans-serif;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      color:#a7a7b2;
+      text-decoration:none;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.12);
+      transition:.2s;
+    }
+    .tf-azlink:hover{
+      color:#000;
+      background:#00f2ea;
+      border-color:#00f2ea;
+    }
+
+
+    /* ====== TWITFLIX — performance + Netflix rows ====== */
+    .tf-rows{
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display: block;
+    }
+    .tf-row{ margin-bottom: 22px; }
+    .tf-row-title{
+      font-family: Orbitron, sans-serif;
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color:#eaeaf0;
+      margin: 8px 0 10px 2px;
+    }
+    .tf-row-title span{ color:#00f2ea; }
+    .tf-row-track{
+      display:flex;
+      gap: 14px;
+      overflow-x:auto;
+      padding-bottom: 10px;
+      scroll-behavior:smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tf-row-track::-webkit-scrollbar{ height: 6px; }
+    .tf-row-track::-webkit-scrollbar-thumb{ background:#2a2a2f; border-radius:999px; }
+    .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#00f2ea; }
+
+    .tf-az{
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display:block;
+    }
+    .tf-azbar{
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display:flex;
+      flex-wrap:wrap;
+      gap: 6px;
+      padding: 10px 0 8px 0;
+      background: linear-gradient(180deg, rgba(11,11,13,.98), rgba(11,11,13,.78));
+      border-bottom: 1px solid #1f1f23;
+      margin-bottom: 10px;
+    }
+    .tf-azlink{
+      font-family: Orbitron, sans-serif;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      color:#a7a7b2;
+      text-decoration:none;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.12);
+      transition:.2s;
+    }
+    .tf-azlink:hover{
+      color:#000;
+      background:#00f2ea;
+      border-color:#00f2ea;
+    }
+
+    .tf-sentinel{
+      padding: 18px 0 4px 0;
+      display:flex;
+      justify-content:center;
+    }
+    .tf-sentinel-inner{
+      font-size: 12px;
+      color:#9b9ba3;
+      background:#0a0a0a;
+      border:1px solid #2b2b31;
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .tf-sentinel-inner.done{
+      color:#00f2ea;
+      border-color:#00f2ea;
+      background: rgba(0,242,234,.06);
+    }
+    .tf-retry{
+      background:#151515;
+      border:1px solid #2b2b31;
+      color:#fff;
+      padding:10px 14px;
+      border-radius: 12px;
+      font-weight:900;
+      font-size:12px;
+      cursor:pointer;
+      transition:.2s;
+    }
+    .tf-retry:hover{
+      border-color:#00f2ea;
+      box-shadow:0 0 18px rgba(0,242,234,.18);
+      transform: translateY(-1px);
+    }
+
+
+    /* TwitFlix search (Netflix style) */
+    .tf-search-wrap{ position:relative; width:min(520px, 100%); }
+    .tf-search{
+      width:100%;
+      background:#0a0a0a;
+      border:1px solid #2b2b31;
+      color:#fff;
+      border-radius:10px;
+      padding:10px 12px 10px 36px;
+      font-size:13px;
+      outline:none;
+      transition:.2s;
+    }
+    .tf-search:focus{
+      border-color:#00f2ea;
+      box-shadow:0 0 0 3px rgba(0,242,234,.12);
+    }
+    .tf-search-ico{
+      position:absolute;
+      left:12px;
+      top:50%;
+      transform:translateY(-50%);
+      color:#777;
+      font-size:13px;
+      pointer-events:none;
+    }
+
+
+/* === TwitFlix UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
+#twitflix-modal .tf-modal-content{ max-width: 1400px; }
+
+#twitflix-modal .tf-topbar{ position: sticky; top:0; z-index: 60; }
+#twitflix-modal .tf-actions{ gap: 12px; }
+#twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
+
+#twitflix-modal .tf-grid{
+  display:flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 14px 18px 24px 18px;
+}
+
+#twitflix-modal .tf-hero{
+  position: relative;
+  height: 220px;
+  border-radius: 14px;
+  overflow:hidden;
+  border:1px solid #1f1f23;
+  background: #0a0a0a;
+}
+#twitflix-modal .tf-hero::before{
+  content:"";
+  position:absolute; inset:0;
+  background: radial-gradient(circle at 30% 20%, rgba(0,242,234,.18), transparent 60%),
+              radial-gradient(circle at 80% 30%, rgba(255,0,153,.14), transparent 55%),
+              linear-gradient(to top, rgba(0,0,0,.92), rgba(0,0,0,.20));
+  z-index:2;
+}
+#twitflix-modal .tf-hero-bg{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit: cover;
+  filter: saturate(1.05) contrast(1.05);
+  opacity:.55;
+}
+#twitflix-modal .tf-hero-content{
+  position:absolute; inset:0;
+  z-index:3;
+  display:flex;
+  align-items:flex-end;
+  padding: 18px;
+}
+#twitflix-modal .tf-hero-title{
+  font-family: Orbitron, sans-serif;
+  letter-spacing: .08em;
+  font-size: 18px;
+  font-weight: 900;
+  color:#fff;
+  text-shadow: 0 6px 24px rgba(0,0,0,.8);
+}
+#twitflix-modal .tf-hero-sub{
+  margin-top: 6px;
+  font-size: 12px;
+  color:#cfcfda;
+  max-width: 70ch;
+  line-height: 1.35;
+}
+
+#twitflix-modal .tf-row{ display:flex; flex-direction:column; gap: 10px; }
+#twitflix-modal .tf-row-title{
+  font-family: Orbitron, sans-serif;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color:#eaeaf0;
+  display:flex; align-items:center; justify-content:space-between;
+}
+#twitflix-modal .tf-row-title span{ color:#00f2ea; }
+#twitflix-modal .tf-row-track{
+  display:flex;
+  gap: 16px;
+  overflow-x:auto;
+  padding-bottom: 10px;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling: touch;
+}
+#twitflix-modal .tf-row-track::-webkit-scrollbar{ height: 6px; }
+#twitflix-modal .tf-row-track::-webkit-scrollbar-thumb{ background:#2a2a2f; border-radius:999px; }
+#twitflix-modal .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#00f2ea; }
+
+#twitflix-modal .tf-card{
+  flex: 0 0 170px;
+  border-radius: 12px;
+  overflow:hidden;
+  background:#101013;
+  border:1px solid #1d1d22;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+#twitflix-modal .tf-card:hover{
+  transform: scale(1.06);
+  z-index: 40;
+  border-color:#00f2ea;
+  box-shadow: 0 18px 45px rgba(0,0,0,.55), 0 0 18px rgba(0,242,234,.18);
+}
+#twitflix-modal .tf-poster{
+  width:100%; height:100%;
+  object-fit: cover;
+  transform: scale(1.02);
+  opacity:.95;
+}
+#twitflix-modal .tf-card:hover .tf-poster{ opacity:.35; }
+
+#twitflix-modal .tf-overlay{
+  padding: 10px 10px 12px 10px;
+}
+#twitflix-modal .tf-name{
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+#twitflix-modal .tf-meta{ display:none; } /* cache le texte “Survol…” */
+#twitflix-modal .tf-actions-row{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  margin-top: 10px;
+}
+#twitflix-modal .tf-pill{
+  display:inline-flex; align-items:center; gap:6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  color:#000;
+  background:#00f2ea;
+}
+#twitflix-modal .tf-pill.ghost{
+  background: rgba(255,255,255,.08);
+  color:#e8e8ee;
+  border:1px solid rgba(255,255,255,.14);
+}
+
+#twitflix-modal .tf-search-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  padding-top: 10px;
+}
+
+#twitflix-modal .tf-azbar{
+  position: sticky;
+  top: 66px; /* sous la topbar */
+  z-index: 55;
+  display:flex;
+  flex-wrap:wrap;
+  gap: 6px;
+  padding: 10px 0 8px 0;
+  background: linear-gradient(180deg, rgba(11,11,13,.96), rgba(11,11,13,.72));
+  border-bottom: 1px solid #1f1f23;
+}
+#twitflix-modal .tf-azlink{
+  font-family: Orbitron, sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  color:#a7a7b2;
+  text-decoration:none;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.12);
+  transition:.2s;
+}
+#twitflix-modal .tf-azlink:hover{ color:#000; background:#00f2ea; border-color:#00f2ea; }
+
+#twitflix-modal .tf-end{
+  text-align:center;
+  color:#9b9ba3;
+  padding: 18px 0 6px 0;
+}
+#twitflix-modal .tf-retry{
+  margin-top: 10px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid #2b2b31;
+  background:#151515;
+  color:#fff;
+  font-weight:900;
+  cursor:pointer;
+}
+#twitflix-modal .tf-retry:hover{ border-color:#00f2ea; box-shadow:0 0 18px rgba(0,242,234,.18); transform: translateY(-1px); }
+
+
+    /* HUB extras (emotes, gifs, réactions) */
+    .hub-emo{
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color:#e8e8ee;
+      padding:6px 10px;
+      border-radius: 10px;
+      font-weight:900;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .hub-emo:hover{ border-color:#00f2ea; box-shadow:0 0 12px rgba(0,242,234,.15); }
+    .hub-msg{
+      padding:8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .hub-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-weight:900;
+      font-size:10px;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      margin-left:6px;
+    }
+    .hub-gif{
+      margin-top:6px;
+      border-radius: 12px;
+      max-width: 260px;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .hub-reactions{
+      display:flex;
+      gap:6px;
+      margin-top:6px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .hub-react-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color:#fff;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .hub-react-btn:hover{ border-color:#00f2ea; }
+    .hub-react-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      color:#e8e8ee;
+      font-size:12px;
+    }
+
+
+
+/* === EXTRAORDINAIRES (SAFE) === */
+.hub-msg .hub-react-row{ opacity:0; max-height:0; overflow:hidden; transition: .18s ease; }
+.hub-msg:hover .hub-react-row{ opacity:1; max-height:40px; }
+.hub-msg.is-tapped .hub-react-row{ opacity:1; max-height:40px; }
+
+.hub-gif{ max-width: 240px; border-radius: 10px; margin-top: 8px; border:1px solid rgba(255,255,255,.10); display:block; }
+
+#ambilight{
+  position:absolute; inset:-14px;
+  filter: blur(26px);
+  opacity:.55;
+  z-index:0;
+  pointer-events:none;
+  transition: background .25s ease;
+}
+#player-wrap{ position:relative; }
+#player-wrap > *{ position:relative; z-index:1; }
+
+.mosaic-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+.mosaic-grid iframe{ width:100%; height:100%; border:0; border-radius:14px; }
+
+.vibe-chill{ border:1px solid rgba(34,197,94,.55)!important; box-shadow: 0 0 0 1px rgba(34,197,94,.25) inset; }
+.vibe-hype{ border:1px solid rgba(0,242,234,.70)!important; box-shadow: 0 0 0 1px rgba(0,242,234,.25) inset; }
+.vibe-toxic{ border:1px solid rgba(239,68,68,.60)!important; box-shadow: 0 0 0 1px rgba(239,68,68,.22) inset; }
+
+
+    /* ==== HUB Chat UX fixes ==== */
+    #chat-container-hub { min-height: 520px; }
+    #hub-messages { scroll-behavior: smooth; padding-bottom: 90px; }
+    /* Keep input always visible */
+    #chat-container-hub form { position: sticky; bottom: 0; z-index: 20; }
+
+    /* Messenger-like reactions: hidden until hover/tap */
+    .hub-react-row{ 
+      opacity: 0; 
+      max-height: 0; 
+      overflow: hidden;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: opacity .15s ease, max-height .15s ease, transform .15s ease;
+    }
+    .hub-msg:hover .hub-react-row, .hub-msg.show-reactions .hub-react-row{
+      opacity: 1;
+      max-height: 44px;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .hub-react-btn{
+      width: 34px; height: 34px;
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .hub-react-btn:hover{ border-color:#00f2ea; }
+    .hub-reactions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+    .hub-reaction-pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+
+    /* Ensure modules below player aren't clipped inside iframe */
+    body { overflow-y: auto; }
+    .page-wrap { padding-bottom: 40px; }
+
+
+/* === Tools overlay (safe) === */
+
+#player-tools{
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:99999 !important;
+  display:flex;
+  gap:8px;
+  pointer-events:auto;
+}
+#player-tools .toolbtn{ pointer-events:auto; }
+#video-container iframe{ position:relative; z-index:1 !important; }
+#video-container .player-wrap, #video-container #player{ position:relative; z-index:1 !important; }
+
+#video-container{ position:relative; overflow: visible !important; }
+.toolbtn{
+  width:38px;height:34px;border-radius:12px;
+  background:rgba(16,16,18,.86);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff;font-weight:900;cursor:pointer;
+}
+.toolbtn:hover{ border-color:#00f2ea; transform: translateY(-1px); }
+.toolbtn.active{ border-color:#00f2ea; box-shadow:0 0 0 2px rgba(0,242,234,.22) inset; }
+
+#ambilight{
+  position:absolute; inset:-90px; z-index:0;
+  filter: blur(60px);
+  opacity:0;
+  pointer-events:none;
+  transition: opacity .2s ease;
+}
+#ambilight.on{ opacity:.78; }
+
+#video-container iframe, #video-container .player-wrap, #video-container #player{ position:relative; z-index:2; }
+
+/* Vibe borders */
+.vibe-chill{ box-shadow: 0 0 0 2px rgba(0,242,234,.35) inset, 0 0 18px rgba(0,242,234,.18); }
+.vibe-hype{ box-shadow: 0 0 0 2px rgba(255,0,153,.35) inset, 0 0 18px rgba(255,0,153,.18); }
+.vibe-toxic{ box-shadow: 0 0 0 2px rgba(255,214,0,.35) inset, 0 0 18px rgba(255,214,0,.18); }
+
+/* Modals (reuse if not already) */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.75);
+  display:none; align-items:center; justify-content:center;
+  z-index:99999;
+}
+.modal-overlay.active{ display:flex; }
+.modal-card{
+  width:min(1100px,94vw);
+  max-height:92vh;
+  overflow:auto;
+  background:#0b0b0d;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  box-shadow: 0 0 40px rgba(0,0,0,.6);
+  padding:14px;
+}
+.modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 6px 12px; }
+.modal-title{ font-family:Orbitron, sans-serif; letter-spacing:.12em; font-weight:900; font-size:12px; color:#eaeaf0; text-transform:uppercase; }
+.modal-close{
+  background:#151515; border:1px solid #2b2b31; color:#fff;
+  width:36px; height:36px; border-radius:12px; cursor:pointer;
+}
+.modal-close:hover{ border-color:#00f2ea; }
+
+.mosaic-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.mosaic-tile{ background:#000; border:1px solid rgba(255,255,255,.12); border-radius:14px; overflow:hidden; position:relative; aspect-ratio:16/9; }
+.mosaic-tile button{
+  position:absolute; top:10px; right:10px;
+  background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff; border-radius:12px;
+  padding:6px 10px; font-weight:900; cursor:pointer;
+}
+.mosaic-tile button:hover{ border-color:#00f2ea; }
+
+
+/* === FORCE PLAYER + SIDE PANEL ALWAYS SIDE-BY-SIDE (embed-safe) === */
+#main-layout{ 
+      /* HARD FIX: force 2-column layout even if Tailwind is blocked by CSP */
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      gap: 18px;
+      align-items: stretch;
+      min-height: 0;
+    }
+    /* Left column (player + top modules) */
+    #main-layout > .col-span-8{ grid-column: 1 / 2; min-width: 0; }
+    /* Right column (Chat/Stats/Tools) */
+    #side-panel{ grid-column: 2 / 3; min-width: 320px; width: 100%; }
+    /* Responsive: stack on small screens */
+    @media (max-width: 1100px){
+      #main-layout{ grid-template-columns: 1fr; }
+      #main-layout > .col-span-8{ grid-column: 1 / -1; }
+      #side-panel{ grid-column: 1 / -1; min-width: 0; }
+    }
+#main-layout > .col-span-8{ min-width: 640px; }
+#side-panel{ min-width: 360px; max-width: 520px; }
+
+
+/* === FIX: Sidebar chat should NOT deform Twitch player === */
+#main-layout{ align-items: start !important; }
+.player-shell{
+  flex: 0 0 auto !important;
+  height: clamp(520px, 72vh, 860px) !important;
+  min-height: unset !important;
+}
+#video-container{
+  flex: 1 1 auto !important;
+  min-height: unset !important;
+  height: 100% !important;
+}
+
+
+/* === FIX: side-panel height locked to player (Hub Secure can't stretch layout) === */
+#side-panel{
+  height: clamp(520px, 72vh, 860px) !important;
+  min-height: 0 !important;
+}
+#tab-chat{
+  min-height: 0 !important;
+}
+#chat-container-twitch,
+#chat-container-hub{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+#hub-messages{
+  min-height: 0 !important;
+}
+
+/* Ensure chat iframe can't force extra height */
+#twitch-chat-frame{ display:block; width:100%; height:100%; }
+
+/* === FIX: Messenger-like reactions (attached to message) without layout shift === */
+.hub-msg{ position: relative !important; padding-bottom: 34px !important; }
+
+/* Pills (existing reactions) stick to the bottom-right of the message */
+.hub-reactions{
+  position: absolute !important;
+  right: 10px !important;
+  bottom: 8px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  pointer-events: none !important;
+}
+/* Hide empty reactions container */
+.hub-reactions:empty{ display:none !important; }
+
+/* Reaction picker appears just above the pills, like Messenger */
+.hub-react-row{
+  position: absolute !important;
+  right: 10px !important;
+  bottom: 36px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(6px) !important;
+  transition: opacity .15s ease, transform .15s ease !important;
+  z-index: 5 !important;
+}
+.hub-msg:hover .hub-react-row,
+.hub-msg.show-reactions .hub-react-row{
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
+}
+
+
+/* HARD LAYOUT FIX: keep player left + side panel right even if Tailwind CDN/CSP fails */
+#main-layout{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) 420px !important;
+  gap:16px !important;
+  align-items:stretch !important;
+  min-height:0 !important;
+}
+#main-layout > .col-span-8{ grid-column:1 !important; min-width:0 !important; }
+#side-panel{ grid-column:2 !important; min-width:0 !important; height:100% !important; }
+@media (max-width: 1100px){
+  #main-layout{ grid-template-columns:1fr !important; }
+  #side-panel{ grid-column:1 !important; }
+}
+/* Centered Market modal like TwitFlix */
+#market-overlay .market-modal{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(1200px,96vw);
+  height:min(88vh,900px);
+  border-radius:18px;
+  overflow:hidden;
+}
+
 
 </style>
 </head>
-
 <body class="min-h-screen flex flex-col p-4">
-
-  <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
-  <div style="height:18px;"></div>
-
-
-  <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
-    <div class="flex items-center gap-4">
-      <h1 class="text-2xl font-orbitron italic tracking-widest">
-        <span class="text-[#00f2ea]">STREAMER</span> HUB
+<!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
+<div style="height:18px;"></div>
+<header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
+<div class="flex items-center gap-4">
+<h1 class="text-2xl font-orbitron italic tracking-widest">
+<span class="text-[#00f2ea]">STREAMER</span> HUB
         <span class="bg-[#222] text-[#ff0099] px-2 rounded text-xs ml-2 not-italic">PRO</span>
-      </h1>
-      <div id="socket-status" class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded">
+</h1>
+<div class="text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded" id="socket-status">
         HUB DISCONNECTED
       </div>
-    </div>
-
-    <div class="flex items-center gap-3">
-      <button onclick="openTwitFlix()" class="bg-[#111] hover:bg-[#222] text-[#ff0099] px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] hover:border-[#ff0099] shadow-[0_0_10px_rgba(255,0,153,0.1)]">
-        <i class="fas fa-play-circle"></i> TWITFLIX
+</div>
+<div class="flex items-center gap-3">
+<button class="bg-[#111] hover:bg-[#222] text-[#ff0099] px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] hover:border-[#ff0099] shadow-[0_0_10px_rgba(255,0,153,0.1)]" onclick="openTwitFlix()">
+<i class="fas fa-play-circle"></i> TWITFLIX
       </button>
-      <button onclick="openMarketOverlay()" class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2">
-        <i class="fas fa-chart-line"></i> MARCHÉ
+<button class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2" onclick="openMarketOverlay()">
+<i class="fas fa-chart-line"></i> MARCHÉ
       </button>
-
-      <div class="h-6 w-[1px] bg-[#333]"></div>
-
-      <button id="btn-auth" onclick="startAuth()" class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]">
-        <i class="fab fa-twitch"></i> CONNEXION
+<div class="h-6 w-[1px] bg-[#333]"></div>
+<button class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]" id="btn-auth" onclick="startAuth()">
+<i class="fab fa-twitch"></i> CONNEXION
       </button>
-
-      <div id="user-area" class="hidden flex items-center gap-3">
-        <img id="user-avatar" src="" class="w-8 h-8 rounded-full border border-[#00f2ea]">
-        <span id="user-name" class="font-bold text-white text-sm"></span>
-        <button onclick="logout()" class="text-gray-500 hover:text-white">
-          <i class="fas fa-sign-out-alt"></i>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <div class="mb-4 relative group">
-    <div id="carousel" class="carousel-track">
-      <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
-        <i class="fas fa-satellite-dish mb-2"></i><br>
+<div class="hidden flex items-center gap-3" id="user-area">
+<img class="w-8 h-8 rounded-full border border-[#00f2ea]" id="user-avatar" src=""/>
+<span class="font-bold text-white text-sm" id="user-name"></span>
+<button class="text-gray-500 hover:text-white" onclick="logout()">
+<i class="fas fa-sign-out-alt"></i>
+</button>
+</div>
+</div>
+</header>
+<div class="mb-4 relative group">
+<div class="carousel-track" id="carousel">
+<div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
+<i class="fas fa-satellite-dish mb-2"></i><br/>
         Connectez-vous pour voir vos chaînes.
       </div>
-    </div>
-    <div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
-  </div>
-
-  <div id="main-layout" class="flex-grow grid grid-cols-12 gap-6 min-h-0 overflow-x-auto">
-
-    <div class="col-span-8 flex flex-col gap-4 min-h-0">
-
-      <div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
-        <div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
-          <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
-            <span id="current-channel-display" class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate">OFFLINE</span>
-            <span id="player-mode-badge" class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0">AUTO</span>
-            <span id="viewer-count" class="text-[10px] text-[#ff0099] font-bold flex-shrink-0">0 viewers</span>
-          </div>
-
-          <div class="flex gap-2 flex-shrink-0">
-            <button onclick="cycle('prev')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <button onclick="cycle('next')" class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
-        </div>
-
-        <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden">
-  <div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:8;display:flex;gap:8px;">
-    <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
-    <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
-    <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
-    <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
-  </div>
-  <div id="ambilight" aria-hidden="true"></div>
 </div>
-      </div>
-
-      <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
-        <div class="u-nav" id="under-tabs-nav">
-          <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
-          <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
-          <button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
+<div class="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-[#050505] to-transparent pointer-events-none"></div>
 </div>
-
-        <div id="under-overview" class="u-tab-panel active p-4 bg-[#0b0b0d]">
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Growth Score</div>
-              <div id="kpi-growth-score" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
-              <div id="kpi-growth-label" class="text-[10px] text-gray-400 mt-1">--</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Moy. viewers (30j)</div>
-              <div id="kpi-avg" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">données Firestore</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Pic viewers</div>
-              <div id="kpi-peak" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">sur période</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Croissance</div>
-              <div id="kpi-growth" class="text-2xl font-orbitron text-[#ff0099]">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">début → fin</div>
-            </div>
-          </div>
-
-          <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-bell mr-1"></i> Alertes automatiques
+<div class="flex-grow grid grid-cols-12 gap-6 min-h-0 overflow-x-auto" id="main-layout">
+<div class="col-span-8 flex flex-col gap-4 min-h-0" id="left-col">
+<div class="glass-panel flex-grow relative overflow-hidden flex flex-col rounded-lg shadow-2xl player-shell">
+<div class="bg-[#080808] p-3 flex justify-between items-center border-b border-[#222]">
+<div class="flex items-center gap-3 flex-1 min-w-0">
+<div class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_red]"></div>
+<span class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate" id="current-channel-display">OFFLINE</span>
+<span class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0" id="player-mode-badge">AUTO</span>
+<span class="text-[10px] text-[#ff0099] font-bold flex-shrink-0" id="viewer-count">0 viewers</span>
+</div>
+<div class="flex gap-2 flex-shrink-0">
+<button class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center" onclick="cycle('prev')">
+<i class="fas fa-chevron-left"></i>
+</button>
+<button class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center" onclick="cycle('next')">
+<i class="fas fa-chevron-right"></i>
+</button>
+</div>
+</div>
+<div class="flex-grow bg-black relative w-full h-full overflow-hidden" id="video-container">
+<div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:8px;">
+<button class="toolbtn" id="tool-mosaic" onclick="openMosaic()">📺</button>
+<button class="toolbtn" id="tool-fantasy" onclick="openFantasy()">🏆</button>
+<button class="toolbtn" id="tool-ambilight" onclick="toggleAmbilight()">💡</button>
+<button class="toolbtn" id="tool-vibe" onclick="toggleVibe()">🧠</button>
+</div>
+<div aria-hidden="true" id="ambilight"></div>
+</div>
+</div>
+<div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
+<div class="u-nav" id="under-tabs-nav">
+<button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
+<button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
+<button class="u-tab-btn" data-ut="niche"><i class="fas fa-compass mr-1"></i> NICHE</button>
+</div>
+<div class="u-tab-panel active p-4 bg-[#0b0b0d]" id="under-overview">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<div class="text-[10px] text-gray-500 uppercase">Growth Score</div>
+<div class="text-2xl font-orbitron text-[#00f2ea]" id="kpi-growth-score">--</div>
+<div class="text-[10px] text-gray-400 mt-1" id="kpi-growth-label">--</div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<div class="text-[10px] text-gray-500 uppercase">Moy. viewers (30j)</div>
+<div class="text-2xl font-orbitron text-white" id="kpi-avg">--</div>
+<div class="text-[10px] text-gray-500 mt-1">données Firestore</div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<div class="text-[10px] text-gray-500 uppercase">Pic viewers</div>
+<div class="text-2xl font-orbitron text-white" id="kpi-peak">--</div>
+<div class="text-[10px] text-gray-500 mt-1">sur période</div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<div class="text-[10px] text-gray-500 uppercase">Croissance</div>
+<div class="text-2xl font-orbitron text-[#ff0099]" id="kpi-growth">--</div>
+<div class="text-[10px] text-gray-500 mt-1">début → fin</div>
+</div>
+</div>
+<div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+<i class="fas fa-bell mr-1"></i> Alertes automatiques
               </h4>
-              <div id="alerts-box" class="text-xs text-gray-400">—</div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-wave-square mr-1"></i> Courbe daily
+<div class="text-xs text-gray-400" id="alerts-box">—</div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+<i class="fas fa-wave-square mr-1"></i> Courbe daily
               </h4>
-              <div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
-            </div>
-
-            <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
-              <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-                <i class="fas fa-magic mr-1"></i> IA – plan d’action
+<div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
+<i class="fas fa-magic mr-1"></i> IA – plan d’action
               </h4>
-              <button id="btn-ai-reco" onclick="loadAIReco()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="btn-ai-reco" onclick="loadAIReco()">
                 ⚡ Générer des recommandations
               </button>
-              <div id="ai-reco-box" class="mt-3 text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto bg-[#0a0a0a] border border-[#222] rounded p-2 hidden"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="under-analytics" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
-              <div id="kpi-volatility" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">plus bas = plus stable</div>
-            </div>
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Heures / semaine (estim.)</div>
-              <div id="kpi-hours" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">basé sur snapshots</div>
-            </div>
-            <div class="bg-[#111] p-3 rounded border border-[#222]">
-              <div class="text-[10px] text-gray-500 uppercase">Échantillons</div>
-              <div id="kpi-samples" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
-            </div>
-          </div>
-
-          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
-              <input id="sim-hours" type="number" min="1" max="80" value="12" class="cyber-input" placeholder="Heures / semaine">
-              <button onclick="runSimulation()" class="bg-[#ff0099] text-white px-4 rounded font-bold hover:bg-white hover:text-black transition font-orbitron text-xs">
+<div class="mt-3 text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto bg-[#0a0a0a] border border-[#222] rounded p-2 hidden" id="ai-reco-box"></div>
+</div>
+</div>
+</div>
+<div class="u-tab-panel p-4 bg-[#0b0b0d]" id="under-analytics">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
+<div class="text-2xl font-orbitron text-white" id="kpi-volatility">--</div>
+<div class="text-[10px] text-gray-500 mt-1">plus bas = plus stable</div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<div class="text-[10px] text-gray-500 uppercase">Heures / semaine (estim.)</div>
+<div class="text-2xl font-orbitron text-white" id="kpi-hours">--</div>
+<div class="text-[10px] text-gray-500 mt-1">basé sur snapshots</div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<div class="text-[10px] text-gray-500 uppercase">Échantillons</div>
+<div class="text-2xl font-orbitron text-white" id="kpi-samples">--</div>
+<div class="text-[10px] text-gray-500 mt-1">jours couverts</div>
+</div>
+</div>
+<div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-flask mr-1"></i> Simulation</h4>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-2">
+<input class="cyber-input" id="sim-hours" max="80" min="1" placeholder="Heures / semaine" type="number" value="12"/>
+<button class="bg-[#ff0099] text-white px-4 rounded font-bold hover:bg-white hover:text-black transition font-orbitron text-xs" onclick="runSimulation()">
                 SIMULER
               </button>
-              <div id="sim-result" class="text-xs text-gray-300 flex items-center bg-[#0a0a0a] border border-[#222] rounded px-3">--</div>
-            </div>
-          </div>
-        </div>
-
-        <div id="under-niche" class="u-tab-panel p-4 bg-[#0b0b0d]">
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
-
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Saturation</div>
-                <div id="niche-sat" class="text-xl font-orbitron text-[#00f2ea]">--</div>
-              </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Découvrabilité</div>
-                <div id="niche-discover" class="text-xl font-orbitron text-[#ff0099]">--</div>
-              </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Position</div>
-                <div id="niche-position" class="text-xl font-orbitron text-white">--</div>
-              </div>
-              <div>
-                <div class="text-[10px] text-gray-500 uppercase">Verdict</div>
-                <div id="niche-verdict" class="text-xl font-orbitron text-white">--</div>
-              </div>
-            </div>
-
-            <div class="mt-3 text-xs text-gray-300" id="niche-details">—</div>
-          </div>
-
-          <div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
-            <div class="h-44"><canvas id="chartGameHours"></canvas></div>
-            <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
-          </div>
-        </div>
-
-      
+<div class="text-xs text-gray-300 flex items-center bg-[#0a0a0a] border border-[#222] rounded px-3" id="sim-result">--</div>
+</div>
+</div>
+</div>
+<div class="u-tab-panel p-4 bg-[#0b0b0d]" id="under-niche">
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+<div>
+<div class="text-[10px] text-gray-500 uppercase">Saturation</div>
+<div class="text-xl font-orbitron text-[#00f2ea]" id="niche-sat">--</div>
+</div>
+<div>
+<div class="text-[10px] text-gray-500 uppercase">Découvrabilité</div>
+<div class="text-xl font-orbitron text-[#ff0099]" id="niche-discover">--</div>
+</div>
+<div>
+<div class="text-[10px] text-gray-500 uppercase">Position</div>
+<div class="text-xl font-orbitron text-white" id="niche-position">--</div>
+</div>
+<div>
+<div class="text-[10px] text-gray-500 uppercase">Verdict</div>
+<div class="text-xl font-orbitron text-white" id="niche-verdict">--</div>
+</div>
+</div>
+<div class="mt-3 text-xs text-gray-300" id="niche-details">—</div>
+</div>
+<div class="mt-4 bg-[#111] p-3 rounded border border-[#222]">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-fire mr-1"></i> Heatmap meilleures heures (jeu)</h4>
+<div class="h-44"><canvas id="chartGameHours"></canvas></div>
+<div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
+</div>
+</div>
 <div class="col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0" id="side-panel">
-      <div class="tab-nav">
-        <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
-        <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
-        <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
-      </div>
-
-      <div id="tab-chat" class="tab-content active bg-[#0e0e10]">
-        <div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222]">
-          <button onclick="toggleChatMode('twitch')" id="btn-mode-twitch" class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded">TWITCH</button>
-          <button onclick="toggleChatMode('hub')" id="btn-mode-hub" class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white">HUB SECURE</button>
-        </div>
-
-        <div id="chat-container-twitch" class="flex-grow relative bg-black overflow-hidden">
-          <iframe id="twitch-chat-frame" src="" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="yes"></iframe>
-        </div>
-
-        <div id="chat-container-hub" class="flex-grow hidden flex-col relative bg-[#0b0b0d]">
-          <div id="hub-messages" class="flex-grow overflow-y-auto p-2 scrollbar-thin">
-            <div class="text-center text-gray-600 text-xs mt-4">
-              Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span id="hub-user-display" class="text-[#00f2ea] font-bold">Anonyme</span>
-            </div>
+<div class="tab-nav">
+<button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
+<button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
+<button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
+</div>
+<div class="tab-content active bg-[#0e0e10]" id="tab-chat">
+<div class="flex p-2 gap-2 bg-[#080808] border-b border-[#222] chat-mode-bar">
+<button class="flex-1 py-1 text-xs font-bold bg-[#6441a5] text-white rounded" id="btn-mode-twitch" onclick="toggleChatMode('twitch')">TWITCH</button>
+<button class="flex-1 py-1 text-xs font-bold bg-[#1a1a1a] text-gray-400 rounded hover:text-white" id="btn-mode-hub" onclick="toggleChatMode('hub')">HUB SECURE</button>
+</div>
+<div class="flex-grow relative bg-black overflow-hidden" id="chat-container-twitch">
+<iframe allow="autoplay" frameborder="0" height="100%" id="twitch-chat-frame" scrolling="yes" src="" width="100%"></iframe>
+</div>
+<div class="flex-grow hidden flex-col relative bg-[#0b0b0d]" id="chat-container-hub">
+<div class="flex-grow overflow-y-auto p-2 scrollbar-thin" id="hub-messages">
+<div class="text-center text-gray-600 text-xs mt-4">
+              Bienvenue sur le Hub Sécurisé — Connecté en tant que : <span class="text-[#00f2ea] font-bold" id="hub-user-display">Anonyme</span>
+</div>
+</div>
+<form class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] items-center" onsubmit="sendHubMessage(event)">
+<button class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" id="hub-emoji-btn" title="Emotes" type="button">🙂</button>
+<button class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" id="hub-gif-btn" title="GIF" type="button">🎁</button>
+<input class="bg-[#0b0b0d] text-white px-3 py-2 rounded-lg flex-grow outline-none border border-[#333] focus:border-[#00f2ea]" id="hub-input" placeholder="Message / /gif / stickers..." type="text"/>
+<button class="text-[#0b0b0d] bg-[#00f2ea] px-4 py-2 rounded-lg font-black hover:opacity-90" type="submit">Envoyer</button>
+</form>
+<div class="hidden absolute bottom-14 left-2 z-50 bg-[#0b0b0d] border border-[#222] rounded-xl p-2 shadow-2xl" id="hub-emoji-panel">
+<div class="flex flex-wrap gap-2 text-sm">
+<button class="hub-emo" type="button">:kappa:</button>
+<button class="hub-emo" type="button">:pog:</button>
+<button class="hub-emo" type="button">:gg:</button>
+<button class="hub-emo" type="button">:love:</button>
+<button class="hub-emo" type="button">:hype:</button>
+<button class="hub-emo" type="button">:rip:</button>
+<button class="hub-emo" type="button">:clap:</button>
+<button class="hub-emo" type="button">:fire:</button>
+</div>
+<div class="text-[10px] text-gray-500 mt-2">Clique pour insérer dans ton message.</div>
+</div>
+<div class="hidden fixed inset-0 z-[9999] bg-black/70" id="hub-gif-modal">
+<div class="max-w-3xl w-[92%] mx-auto mt-10 bg-[#0b0b0d] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
+<div class="p-3 flex items-center gap-2 border-b border-[#222]">
+<div class="font-black text-white tracking-widest">GIF</div>
+<input class="flex-grow bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" id="hub-gif-search" placeholder="Rechercher un GIF..."/>
+<button class="px-3 py-2 rounded-lg border border-[#222] text-white hover:border-[#00f2ea]" id="hub-gif-close">Fermer</button>
+</div>
+<div class="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[70vh] overflow-y-auto" id="hub-gif-grid"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin" id="tab-stats">
+<div class="grid grid-cols-2 gap-3 mb-6">
+<div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
+<div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
+<div class="text-2xl font-orbitron text-white" id="kpi-viewers">--</div>
+</div>
+<div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
+<div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
+<div class="text-2xl font-orbitron text-white" id="kpi-channels">--</div>
+</div>
+</div>
+<div class="space-y-6">
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance</h4>
+<div class="h-40"><canvas id="chartViewers"></canvas></div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
+<div class="h-48"><canvas id="chartGames"></canvas></div>
+</div>
+<div class="bg-[#111] p-3 rounded border border-[#222]">
+<h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
+<div class="h-40"><canvas id="chartLangs"></canvas></div>
+</div>
+</div>
+</div>
+<div class="tab-content bg-[#0b0b0d]" id="tab-tools"><div class="tools-scroll p-4 space-y-6 scrollbar-thin">
+<div class="best-time-tool">
+<h4>🎯 BEST TIME TO STREAM</h4>
+<input id="best-time-game" placeholder="Jeu ex: League of Legends..." type="text"/>
+<button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
+<div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
+<span class="best-time-spinner"></span>Analyse en cours...
           </div>
-          <form onsubmit="sendHubMessage(event)" class="p-2 border-t border-[#222] flex gap-2 bg-[#080808] items-center">
-            <button type="button" id="hub-emoji-btn" class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" title="Emotes">🙂</button>
-            <button type="button" id="hub-gif-btn" class="px-2 py-2 rounded-lg border border-[#333] text-gray-200 hover:border-[#00f2ea]" title="GIF">🎁</button>
-            <input id="hub-input" type="text" placeholder="Message / /gif / stickers..." class="bg-[#0b0b0d] text-white px-3 py-2 rounded-lg flex-grow outline-none border border-[#333] focus:border-[#00f2ea]">
-            <button type="submit" class="text-[#0b0b0d] bg-[#00f2ea] px-4 py-2 rounded-lg font-black hover:opacity-90">Envoyer</button>
-          </form>
-          <div id="hub-emoji-panel" class="hidden absolute bottom-14 left-2 z-50 bg-[#0b0b0d] border border-[#222] rounded-xl p-2 shadow-2xl">
-            <div class="flex flex-wrap gap-2 text-sm">
-              <button type="button" class="hub-emo">:kappa:</button>
-              <button type="button" class="hub-emo">:pog:</button>
-              <button type="button" class="hub-emo">:gg:</button>
-              <button type="button" class="hub-emo">:love:</button>
-              <button type="button" class="hub-emo">:hype:</button>
-              <button type="button" class="hub-emo">:rip:</button>
-              <button type="button" class="hub-emo">:clap:</button>
-              <button type="button" class="hub-emo">:fire:</button>
-            </div>
-            <div class="text-[10px] text-gray-500 mt-2">Clique pour insérer dans ton message.</div>
-          </div>
-
-          <div id="hub-gif-modal" class="hidden fixed inset-0 z-[9999] bg-black/70">
-            <div class="max-w-3xl w-[92%] mx-auto mt-10 bg-[#0b0b0d] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
-              <div class="p-3 flex items-center gap-2 border-b border-[#222]">
-                <div class="font-black text-white tracking-widest">GIF</div>
-                <input id="hub-gif-search" class="flex-grow bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" placeholder="Rechercher un GIF...">
-                <button id="hub-gif-close" class="px-3 py-2 rounded-lg border border-[#222] text-white hover:border-[#00f2ea]">Fermer</button>
-              </div>
-              <div id="hub-gif-grid" class="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[70vh] overflow-y-auto"></div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <div id="tab-stats" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] scrollbar-thin">
-        <div class="grid grid-cols-2 gap-3 mb-6">
-          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#00f2ea]">
-            <div class="text-[10px] text-gray-500 uppercase">Viewers Totaux</div>
-            <div id="kpi-viewers" class="text-2xl font-orbitron text-white">--</div>
-          </div>
-          <div class="bg-[#151515] p-3 rounded border-l-2 border-[#ff0099]">
-            <div class="text-[10px] text-gray-500 uppercase">Chaînes FR</div>
-            <div id="kpi-channels" class="text-2xl font-orbitron text-white">--</div>
-          </div>
-        </div>
-
-        <div class="space-y-6">
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-chart-line mr-1"></i> Tendance</h4>
-            <div class="h-40"><canvas id="chartViewers"></canvas></div>
-          </div>
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-gamepad mr-1"></i> Top Jeux</h4>
-            <div class="h-48"><canvas id="chartGames"></canvas></div>
-          </div>
-          <div class="bg-[#111] p-3 rounded border border-[#222]">
-            <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-globe mr-1"></i> Langues</h4>
-            <div class="h-40"><canvas id="chartLangs"></canvas></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-tools" class="tab-content overflow-y-auto p-4 bg-[#0b0b0d] space-y-6 scrollbar-thin">
-
-        <div class="best-time-tool">
-          <h4>🎯 BEST TIME TO STREAM</h4>
-          <input id="best-time-game" type="text" placeholder="Jeu ex: League of Legends...">
-          <button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
-          <div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
-            <span class="best-time-spinner"></span>Analyse en cours...
-          </div>
-          <div id="best-time-results" class="best-time-results" style="display:none;"></div>
-        </div>
-
-        <div>
-          
-                <div class="bg-[#101012] border border-[#222] rounded-xl p-4">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h4 class="text-sm font-black tracking-widest text-white"><i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — ouvrir la fenêtre</h4>
-              <p class="text-xs text-gray-400 mt-1">
+<div class="best-time-results" id="best-time-results" style="display:none;"></div>
+</div>
+<div>
+<div class="bg-[#101012] border border-[#222] rounded-xl p-4">
+<div class="flex items-start justify-between gap-3">
+<div>
+<h4 class="text-sm font-black tracking-widest text-white"><i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — ouvrir la fenêtre</h4>
+<p class="text-xs text-gray-400 mt-1">
                 Le Marché s’ouvre en <strong>overlay</strong> (comme TwitFlix) pour ne jamais écraser le lecteur et garder une UX propre.
               </p>
-            </div>
-            <button class="px-3 py-2 rounded-lg bg-[#0b0b0d] border border-[#333] text-white hover:border-[#00f2ea]" onclick="openMarketOverlay()">📈 Ouvrir</button>
-          </div>
-        </div>
-
-
-        <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
-          <div class="flex gap-2 mb-3">
-            <input id="scan-query" type="text" placeholder="Pseudo ex: ZeratoR" class="cyber-input">
-            <button onclick="runScan()" class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white">
-              <i class="fas fa-search"></i>
-            </button>
-          </div>
-
-          <div id="scan-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
-            <div class="flex gap-3 items-center mb-3">
-              <img id="scan-img" src="" class="w-12 h-12 rounded-full border border-[#00f2ea]">
-              <div>
-                <div id="scan-name" class="font-bold text-white">--</div>
-                <div id="scan-game" class="text-xs text-gray-500">--</div>
-              </div>
-            </div>
-            <div id="scan-ai" class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto"></div>
-          </div>
-        </div>
-
-        <div>
-          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
-          <div class="flex gap-2 mb-3">
-            <input id="raid-game" type="text" placeholder="Jeu ex: League" class="cyber-input">
-            <input id="raid-viewers" type="number" placeholder="Max viewers" class="cyber-input" value="100">
-          </div>
-          <button onclick="runRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3">🔍 CHERCHER</button>
-
-          <div id="raid-res" class="hidden bg-[#151515] p-3 rounded border border-[#222]">
-            <img id="raid-img" src="" class="w-full h-40 rounded mb-3 object-cover">
-            <div id="raid-info" class="text-xs text-gray-300"></div>
-            <button id="raid-btn" onclick="goToRaid()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white">🎮 ALLER AU RAID</button>
-          </div>
-        </div>
-
-        <div>
-          <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
-          <div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
-          <button id="costream-btn" onclick="loadCoStreamer()" class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron">
+</div>
+<button class="px-3 py-2 rounded-lg bg-[#0b0b0d] border border-[#333] text-white hover:border-[#00f2ea]" onclick="openMarketOverlay()">📈 Ouvrir</button>
+</div>
+</div>
+<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
+<div class="flex gap-2 mb-3">
+<input class="cyber-input" id="scan-query" placeholder="Pseudo ex: ZeratoR" type="text"/>
+<button class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white" onclick="runScan()">
+<i class="fas fa-search"></i>
+</button>
+</div>
+<div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="scan-res">
+<div class="flex gap-3 items-center mb-3">
+<img class="w-12 h-12 rounded-full border border-[#00f2ea]" id="scan-img" src=""/>
+<div>
+<div class="font-bold text-white" id="scan-name">--</div>
+<div class="text-xs text-gray-500" id="scan-game">--</div>
+</div>
+</div>
+<div class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto" id="scan-ai"></div>
+</div>
+</div>
+<div>
+<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
+<div class="flex gap-2 mb-3">
+<input class="cyber-input" id="raid-game" placeholder="Jeu ex: League" type="text"/>
+<input class="cyber-input" id="raid-viewers" placeholder="Max viewers" type="number" value="100"/>
+</div>
+<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3" onclick="runRaid()">🔍 CHERCHER</button>
+<div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="raid-res">
+<img class="w-full h-40 rounded mb-3 object-cover" id="raid-img" src=""/>
+<div class="text-xs text-gray-300" id="raid-info"></div>
+<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white" id="raid-btn" onclick="goToRaid()">🎮 ALLER AU RAID</button>
+</div>
+</div>
+<div>
+<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
+<div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
+<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="costream-btn" onclick="loadCoStreamer()">
             🤝 TROUVER
           </button>
-          <div id="costream-out" class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" style="display:none;"></div>
+<div class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" id="costream-out" style="display:none;"></div>
+</div>
+<div>
+<h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
+<input class="cyber-input mb-2" id="boost-query" placeholder="Chaîne..." type="text"/>
+<button class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition" onclick="runBoost()">ACTIVER</button>
+<div class="text-center text-xs mt-2 text-green-400" id="boost-msg"></div>
+</div>
+</div></div>
+</div>
+</div>
+<div class="tf-modal-overlay" id="twitflix-modal">
+<div class="tf-modal-content">
+<div class="tf-topbar">
+<div class="tf-brand"><span class="dot"></span><span><span style="color:#00f2ea;">TWIT</span>FLIX</span></div>
+<div class="tf-actions">
+<div class="tf-search-wrap">
+<i class="fas fa-search tf-search-ico"></i>
+<input autocomplete="off" class="tf-search" id="twitflix-search" placeholder="Rechercher un jeu (ex: Minecraft, Valorant...)" type="text"/>
+</div>
+<div class="tf-view-toggle">
+<button class="tf-toggle-btn active" id="tf-btn-rows" onclick="setTwitFlixView('rows')" type="button">LIGNES</button>
+<button class="tf-toggle-btn" id="tf-btn-az" onclick="setTwitFlixView('az')" type="button">A–Z</button>
+</div>
+<i class="fas fa-times tf-close" onclick="closeTwitFlix()"></i>
+</div>
+</div>
+<div class="tf-sub" style="display:none;"></div>
+<div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
+<div class="tf-grid" id="twitflix-grid">
+<div class="text-center w-full text-gray-500 py-20" id="tf-loading">
+<i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...
         </div>
-
-        <div>
-          <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
-          <input id="boost-query" type="text" placeholder="Chaîne..." class="cyber-input mb-2">
-          <button onclick="runBoost()" class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition">ACTIVER</button>
-          <div id="boost-msg" class="text-center text-xs mt-2 text-green-400"></div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <div id="twitflix-modal" class="tf-modal-overlay">
-    <div class="tf-modal-content">
-      <div class="tf-topbar">
-        <div class="tf-brand"><span class="dot"></span><span><span style="color:#00f2ea;">TWIT</span>FLIX</span></div>
-
-        <div class="tf-actions">
-          <div class="tf-search-wrap">
-            <i class="fas fa-search tf-search-ico"></i>
-            <input id="twitflix-search" class="tf-search" type="text" placeholder="Rechercher un jeu (ex: Minecraft, Valorant...)" autocomplete="off">
-          </div>
-
-          <div class="tf-view-toggle">
-            <button id="tf-btn-rows" class="tf-toggle-btn active" type="button" onclick="setTwitFlixView('rows')">LIGNES</button>
-            <button id="tf-btn-az" class="tf-toggle-btn" type="button" onclick="setTwitFlixView('az')">A–Z</button>
-          </div>
-
-          <i class="fas fa-times tf-close" onclick="closeTwitFlix()"></i>
-        </div>
-      </div>
-
-      <div class="tf-sub" style="display:none;"></div>
-
-      <div class="tf-hero"><img id="tf-hero-bg" class="tf-hero-bg" src="" alt=""><div class="tf-hero-content"><div><div id="tf-hero-title" class="tf-hero-title">TWITFLIX</div><div id="tf-hero-sub" class="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
-
-      <div id="twitflix-grid" class="tf-grid">
-        <div id="tf-loading" class="text-center w-full text-gray-500 py-20">
-          <i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...
-        </div>
-      </div>
-    </div>
-  </div></div>
-
-  <script>
+</div>
+</div>
+</div></div>
+<script>
     const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
@@ -1972,7 +2859,8 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     }
 
     async function openTwitFlix(){
-      const modal = document.getElementById('twitflix-modal');
+  document.body.classList.add('modal-open');
+const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
       const search = document.getElementById('twitflix-search');
 
@@ -2022,7 +2910,8 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     }
 
     function closeTwitFlix(){
-      tfModalOpen = false;
+  document.body.classList.remove('modal-open');
+tfModalOpen = false;
       document.querySelectorAll('.tf-card.previewing').forEach(tfStopPreview);
       if (tfObserver){
         try{ tfObserver.disconnect(); }catch(_){}
@@ -2830,7 +3719,6 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     });
 
 </script>
-
 <script>
 (function(){
   // ===== Ambilight =====
@@ -3354,270 +4242,13 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
 
 
 
-// ================= BOURSE PANEL (UNDER-TABS) =================
-async function refreshBoursePanel(){
-  try{
-    const cashEl = document.getElementById('bourse-cash');
-    const netEl  = document.getElementById('bourse-networth');
-    const resEl  = document.getElementById('bourse-reserved');
-    const ordEl  = document.getElementById('bourse-open-orders');
-    const portEl = document.getElementById('bourse-portfolio');
-    const lbEl   = document.getElementById('bourse-leaderboard');
-    if(!cashEl || !netEl || !resEl || !ordEl || !portEl || !lbEl) return;
-
-    const prof = await fetch('/api/fantasy/profile', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-    if(!prof || !prof.success){
-      portEl.innerHTML = "<div class='text-gray-500'>Connecte-toi Twitch pour utiliser la Bourse.</div>";
-      cashEl.textContent = '--';
-      netEl.textContent = '--';
-      resEl.textContent = '--';
-      ordEl.textContent = '--';
-      lbEl.innerHTML = "<div class='text-gray-500'>—</div>";
-      return;
-    }
-
-    const cash = Number(prof.cash||0);
-    const net  = Number(prof.netWorth||0);
-    const reserved = Number(prof.cashReserved||0) || 0;
-
-    cashEl.textContent = cash.toLocaleString('fr-FR');
-    netEl.textContent  = net.toLocaleString('fr-FR');
-    resEl.textContent  = reserved.toLocaleString('fr-FR');
-
-    const holdings = Array.isArray(prof.holdings) ? prof.holdings : [];
-    if(!holdings.length){
-      portEl.innerHTML = "<div class='text-gray-500'>Aucune position pour l’instant.</div>";
-    }else{
-      const rows = holdings
-        .sort((a,b)=> (b.value||0)-(a.value||0))
-        .slice(0, 12)
-        .map(h=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-          <div class="text-gray-200"><strong>${escapeHtml(h.login||'')}</strong> <span class="text-gray-500">x${Number(h.shares||0)}</span></div>
-          <div class="text-gray-300">${Number(h.value||0).toLocaleString('fr-FR')}</div>
-        </div>`).join('');
-      portEl.innerHTML = rows;
-    }
-
-    const orders = await fetch('/api/fantasy/orders', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-    const openCount = (orders && orders.success) ? (orders.orders?.length||0) : 0;
-    ordEl.textContent = String(openCount);
-
-    const lb = await fetch('/api/fantasy/leaderboard').then(r=>r.json()).catch(()=>null);
-    if(lb && lb.success && Array.isArray(lb.items)){
-      const lines = lb.items.slice(0,10).map((x,i)=>`<div class="flex items-center justify-between py-1 border-b border-[#1d1d1d]">
-        <div class="text-gray-200">#${i+1} ${escapeHtml(x.user||'')}</div>
-        <div class="text-gray-300">${Math.round(x.netWorth||0).toLocaleString('fr-FR')}</div>
-      </div>`).join('');
-      lbEl.innerHTML = lines || "<div class='text-gray-500'>—</div>";
-    }else{
-      lbEl.innerHTML = "<div class='text-gray-500'>—</div>";
-    }
-  }catch(e){
-    console.warn('refreshBoursePanel error', e);
-  }
-}
-
-async function earnCredits(type){
-  try{
-    const r = await fetch('/api/fantasy/reward', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      credentials:'include',
-      body: JSON.stringify({ type })
-    }).then(r=>r.json()).catch(()=>null);
-
-    if(r && r.success){
-      refreshBoursePanel();
-      if(typeof toast === 'function') toast('+'+r.amount+' crédits', true);
-    }else{
-      if(typeof toast === 'function') toast((r && r.error) ? r.error : 'Reward indisponible', false);
-    }
-  }catch(e){}
-}
 
 
-// =====================
-// MARKET (Fantasy Bourse) — panel OUTILS
-// =====================
-let marketChart = null;
+// (BOURSE PANEL removed — replaced by Market overlay)
 
-function getMarketUser(){
-  // Prefer connected hub user if available
-  const disp = document.getElementById('hub-user-display');
-  const name = disp ? disp.textContent.trim() : '';
-  return name || 'Anon';
-}
-
-async function refreshMarketAll(){
-  await Promise.allSettled([refreshMarketProfile(), refreshMarketLeaderboard()]);
-}
-
-async function refreshMarketProfile(){
-  try{
-    const user = encodeURIComponent(getMarketUser());
-    const r = await fetch(`/api/fantasy/profile?user=${user}`);
-    const j = await r.json();
-    if(!j.success) throw new Error(j.error || 'profile_failed');
-
-    const cash = Number(j.cash||0);
-    const holdings = j.holdings || [];
-    const netWorth = holdings.reduce((a,h)=>a + Number(h.value||0), 0) + cash;
-
-    const cashEl = document.getElementById('mkt-cash');
-    const nwEl = document.getElementById('mkt-networth');
-    if(cashEl) cashEl.textContent = cash.toLocaleString('fr-FR');
-    if(nwEl) nwEl.textContent = netWorth.toLocaleString('fr-FR');
-
-    const portEl = document.getElementById('mkt-portfolio');
-    if(portEl){
-      if(!holdings.length){
-        portEl.innerHTML = `<div class="text-gray-500 text-xs">Aucune position. Cherche un streamer puis clique sur <strong>Acheter</strong>.</div>`;
-      }else{
-        portEl.innerHTML = holdings.map(h=>`
-          <div class="flex items-center justify-between py-1 border-b border-[#151515]">
-            <div class="text-gray-200"><strong>${escapeHtml(h.login)}</strong> <span class="text-gray-500">(${Number(h.shares||0)} shares)</span></div>
-            <div class="text-gray-200">${Number(h.value||0).toLocaleString('fr-FR')} <span class="text-gray-500">cr</span></div>
-          </div>
-        `).join('');
-      }
-    }
-  }catch(e){
-    // silent UI fail
-  }
-}
-
-async function refreshMarketLeaderboard(){
-  try{
-    const r = await fetch(`/api/fantasy/leaderboard`);
-    const j = await r.json();
-    if(!j.success) throw new Error(j.error || 'leaderboard_failed');
-
-    const el = document.getElementById('mkt-leaderboard');
-    if(!el) return;
-
-    const items = (j.items || []).slice(0, 10);
-    if(!items.length){
-      el.innerHTML = `<div class="text-gray-500 text-xs">Pas encore de joueurs.</div>`;
-      return;
-    }
-    el.innerHTML = items.map((x,i)=>`
-      <div class="flex items-center justify-between py-1 border-b border-[#151515]">
-        <div class="text-gray-200">#${i+1} <strong>${escapeHtml(x.user||'Anon')}</strong></div>
-        <div class="text-gray-200">${Number(x.netWorth||0).toLocaleString('fr-FR')} <span class="text-gray-500">cr</span></div>
-      </div>
-    `).join('');
-  }catch(e){}
-}
-
-async function loadStreamerMarket(){
-  const input = document.getElementById('mkt-streamer');
-  const login = (input?.value || '').trim().toLowerCase();
-  if(!login) return;
-
-  try{
-    const r = await fetch(`/api/fantasy/market?streamer=${encodeURIComponent(login)}`);
-    const j = await r.json();
-    if(!j.success) throw new Error(j.error || 'market_failed');
-
-    const card = document.getElementById('mkt-streamer-card');
-    if(card) card.classList.remove('hidden');
-
-    const price = Number(j.market?.price || 0);
-    const mult = Number(j.market?.mult || 1);
-    const shares = Number(j.market?.sharesOutstanding || 0);
-
-    const priceEl = document.getElementById('mkt-price');
-    const multEl = document.getElementById('mkt-mult');
-    const sharesEl = document.getElementById('mkt-shares');
-
-    if(priceEl) priceEl.textContent = price.toLocaleString('fr-FR');
-    if(multEl) multEl.textContent = (Math.round(mult*100)/100).toLocaleString('fr-FR');
-    if(sharesEl) sharesEl.textContent = shares.toLocaleString('fr-FR');
-
-    // chart
-    const hist = j.history || [];
-    const labels = hist.map((p, idx)=> idx+1);
-    const values = hist.map(p => Number(p.price||0));
-    renderMarketChart(labels, values);
-
-  }catch(e){
-    // leave card as-is
-  }
-}
-
-function renderMarketChart(labels, values){
-  const ctx = document.getElementById('chartMarket');
-  if(!ctx) return;
-
-  if(marketChart){
-    marketChart.destroy();
-    marketChart = null;
-  }
-
-  marketChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Prix',
-        data: values,
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.25
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { display: false },
-        y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.06)' } }
-      }
-    }
-  });
-}
-
-async function marketInvest(){
-  const login = (document.getElementById('mkt-streamer')?.value || '').trim().toLowerCase();
-  const amount = Number(document.getElementById('mkt-amount')?.value || 0);
-  if(!login || !amount) return;
-
-  try{
-    const r = await fetch('/api/fantasy/invest', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ user: getMarketUser(), streamer: login, amount })
-    });
-    const j = await r.json();
-    if(!j.success) throw new Error(j.error || 'invest_failed');
-    await refreshMarketAll();
-    await loadStreamerMarket();
-  }catch(e){}
-}
-
-async function marketSell(){
-  const login = (document.getElementById('mkt-streamer')?.value || '').trim().toLowerCase();
-  const amount = Number(document.getElementById('mkt-amount')?.value || 0);
-  if(!login || !amount) return;
-
-  try{
-    const r = await fetch('/api/fantasy/sell', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ user: getMarketUser(), streamer: login, amount })
-    });
-    const j = await r.json();
-    if(!j.success) throw new Error(j.error || 'sell_failed');
-    await refreshMarketAll();
-    await loadStreamerMarket();
-  }catch(e){}
-}
-
-
-    // MARKET OVERLAY (TwitFlix-like)
-    function openMarketOverlay(){
-      const ov = document.getElementById('market-overlay');
+function openMarketOverlay(){
+  document.body.classList.add('modal-open');
+const ov = document.getElementById('market-overlay');
       if(!ov) return;
       ov.classList.remove('hidden');
       // ensure overlay starts at top
@@ -3626,63 +4257,56 @@ async function marketSell(){
       try { refreshMarketAll(); } catch(_){}
     }
     function closeMarketOverlay(){
-      const ov = document.getElementById('market-overlay');
+  document.body.classList.remove('modal-open');
+const ov = document.getElementById('market-overlay');
       if(!ov) return;
       ov.classList.add('hidden');
     }
 
 </script>
-
-<div id="mosaicModal" class="modal-overlay" onclick="closeMosaic(event)">
-  <div class="modal-card" onclick="event.stopPropagation()">
-    <div class="modal-head">
-      <div class="modal-title">Mosaic Mode</div>
-      <button class="modal-close" onclick="closeMosaic(event)">✕</button>
-    </div>
-    <div class="mosaic-grid" id="mosaicGrid"></div>
-  </div>
+<div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
+<div class="modal-card" onclick="event.stopPropagation()">
+<div class="modal-head">
+<div class="modal-title">Mosaic Mode</div>
+<button class="modal-close" onclick="closeMosaic(event)">✕</button>
 </div>
-
-<div id="fantasyModal" class="modal-overlay" onclick="closeFantasy(event)">
-  <div class="modal-card" onclick="event.stopPropagation()">
-    <div class="modal-head">
-      <div class="modal-title">Fantasy League</div>
-      <button class="modal-close" onclick="closeFantasy(event)">✕</button>
-    </div>
-
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:290px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
-        <div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Portefeuille (max 10 streamers)</div>
-        <div id="fantasyCash" style="font-size:22px;font-weight:900;color:#fff;">—</div>
-        <div id="fantasyHoldings" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
-      <div style="flex:2;min-width:320px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-          <input id="fantasyStreamer" placeholder="Streamer (login)" style="flex:1;min-width:220px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;">
-          <input id="fantasyAmount" placeholder="Montant" type="number" min="1" style="width:140px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;">
-          <button onclick="fantasyBuy()" style="background:#00f2ea;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Investir</button>
-          <button onclick="fantasySell()" style="background:#ff0099;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Vendre</button>
-        </div>
-
-        <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:260px;">
-            <div style="font-weight:900;color:#eaeaf0;margin-bottom:6px;">Cours</div>
-            <div id="marketInfo" style="display:flex;gap:10px;flex-wrap:wrap;color:#a7a7b2;font-size:12px;"></div>
-            <canvas id="marketChart" width="640" height="220" style="width:100%;background:#0b0b0d;border:1px solid rgba(255,255,255,.10);border-radius:14px;"></canvas>
-          </div>
-          <div style="flex:1;min-width:260px;">
-            <div style="font-weight:900;color:#ffd600;margin-bottom:6px;">Leaderboard</div>
-            <div id="fantasyLeaderboard" style="display:flex;flex-direction:column;gap:8px;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
+<div class="mosaic-grid" id="mosaicGrid"></div>
 </div>
-
-
+</div>
+<div class="modal-overlay" id="fantasyModal" onclick="closeFantasy(event)">
+<div class="modal-card" onclick="event.stopPropagation()">
+<div class="modal-head">
+<div class="modal-title">Fantasy League</div>
+<button class="modal-close" onclick="closeFantasy(event)">✕</button>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;">
+<div style="flex:1;min-width:290px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
+<div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Portefeuille (max 10 streamers)</div>
+<div id="fantasyCash" style="font-size:22px;font-weight:900;color:#fff;">—</div>
+<div id="fantasyHoldings" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+<div style="flex:2;min-width:320px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+<input id="fantasyStreamer" placeholder="Streamer (login)" style="flex:1;min-width:220px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;"/>
+<input id="fantasyAmount" min="1" placeholder="Montant" style="width:140px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;" type="number"/>
+<button onclick="fantasyBuy()" style="background:#00f2ea;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Investir</button>
+<button onclick="fantasySell()" style="background:#ff0099;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Vendre</button>
+</div>
+<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
+<div style="flex:1;min-width:260px;">
+<div style="font-weight:900;color:#eaeaf0;margin-bottom:6px;">Cours</div>
+<div id="marketInfo" style="display:flex;gap:10px;flex-wrap:wrap;color:#a7a7b2;font-size:12px;"></div>
+<canvas height="220" id="marketChart" style="width:100%;background:#0b0b0d;border:1px solid rgba(255,255,255,.10);border-radius:14px;" width="640"></canvas>
+</div>
+<div style="flex:1;min-width:260px;">
+<div style="font-weight:900;color:#ffd600;margin-bottom:6px;">Leaderboard</div>
+<div id="fantasyLeaderboard" style="display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
 <!-- MARKET OVERLAY (center modal, Binance-like) -->
 <div id="market-overlay" class="fixed inset-0 z-[9999] hidden" aria-hidden="true">
   <div class="absolute inset-0 bg-black/70" onclick="closeMarketOverlay()"></div>
@@ -3710,7 +4334,6 @@ async function marketSell(){
     <div class="flex items-center gap-2 px-4 py-2 border-b border-white/10">
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/10 text-sm font-bold" data-tab="overview">Overview</button>
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="markets">Markets</button>
-      <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="games">Jeux</button>
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="chart">Chart Pro</button>
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="portfolio">Portfolio</button>
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="leaderboard">Classement</button>
@@ -3881,142 +4504,6 @@ async function marketSell(){
             </div>
           </div>
         </section>
-
-        <!-- GAMES / CATEGORIES -->
-        <section id="mkt-tab-games" class="mkt-view hidden">
-          <div class="grid grid-cols-12 gap-3">
-            <div class="col-span-12 md:col-span-8 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <div class="text-xs text-white/60">Marché des jeux (catégories Twitch)</div>
-                  <div class="text-lg font-semibold">Tendances & opportunités</div>
-                  <div class="text-sm text-white/70 mt-1">
-                    Données 100% réelles: live Twitch (viewers/chaînes) + ton modèle “Fantasy Market” appliqué aux jeux.
-                    Objectif: repérer les catégories qui montent (momentum) ou qui tiennent dans le temps (stabilité).
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button id="game-refresh" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">⟳ Rafraîchir</button>
-                </div>
-              </div>
-
-              <div class="mt-4 flex flex-col gap-3">
-                <div class="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <div class="flex items-center justify-between">
-                    <div class="text-sm font-semibold">Top catégories (FR live)</div>
-                    <div class="text-xs text-white/60">Clique une catégorie pour ouvrir le détail + investir</div>
-                  </div>
-                  <div id="game-trending" class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
-                </div>
-
-                <div class="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <div class="text-sm font-semibold">Détail catégorie</div>
-                      <div class="text-xs text-white/60">Prix, impact, market cap + historique (si dispo)</div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <input id="game-invest-amount" type="number" min="10" value="200" class="w-28 px-3 py-2 rounded-lg bg-white/5 border border-white/10 outline-none text-sm" />
-                      <button id="game-buy" class="px-3 py-2 rounded-lg bg-[#00e5ff] text-black font-bold text-sm">Acheter</button>
-                      <button id="game-sell" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">Vendre</button>
-                    </div>
-                  </div>
-                  <div id="game-detail" class="mt-3 grid grid-cols-12 gap-3">
-                    <div class="col-span-12 md:col-span-6 rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div class="text-xs text-white/60">Catégorie sélectionnée</div>
-                      <div id="game-name" class="text-lg font-semibold">—</div>
-                      <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Prix</div>
-                          <div id="game-price" class="text-base font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Market Cap</div>
-                          <div id="game-mcap" class="text-base font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Viewers</div>
-                          <div id="game-viewers" class="text-base font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Chaînes</div>
-                          <div id="game-channels" class="text-base font-semibold">—</div>
-                        </div>
-
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Perf 1h</div>
-                          <div id="game-perf-1h" class="text-base font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Perf 6h</div>
-                          <div id="game-perf-6h" class="text-base font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Perf 7j</div>
-                          <div id="game-perf-7d" class="text-base font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Trend score</div>
-                          <div id="game-trend-score" class="text-base font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">SMA20</div>
-                          <div id="game-sma20" class="text-base font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">EMA20</div>
-                          <div id="game-ema20" class="text-base font-semibold">—</div>
-                        </div>
-
-                      </div>
-                      <div class="mt-3 text-xs text-white/60">Mis à jour: <span id="game-updated">—</span></div>
-                    </div>
-
-                    <div class="col-span-12 md:col-span-6 rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div class="text-xs text-white/60">Signal “tendance” (réel)</div>
-                      <div class="mt-2 grid grid-cols-3 gap-3 text-sm">
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Heat</div>
-                          <div id="game-heat" class="font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Discover.</div>
-                          <div id="game-disc" class="font-semibold">—</div>
-                        </div>
-                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
-                          <div class="text-xs text-white/60">Stabilité</div>
-                          <div id="game-stab" class="font-semibold">—</div>
-                        </div>
-                      </div>
-                      <div class="mt-3 text-xs text-white/70">
-                        • Heat = viewers totaux (FR).<br/>
-                        • Discoverability = viewers/chaînes (plus c’est haut, plus une petite chaîne peut “exister”).<br/>
-                        • Stabilité = variance simplifiée sur l’historique (si dispo).
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            <div class="col-span-12 md:col-span-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div class="text-sm font-semibold">Investir sur un jeu, ça veut dire quoi ?</div>
-              <div class="mt-2 text-sm text-white/70 leading-relaxed">
-                Tu investis sur la <strong>catégorie Twitch</strong> (le jeu). Le prix se base sur les viewers live
-                et l’impact du marché (parts en circulation).<br/><br/>
-                <strong>À utiliser pour :</strong>
-                <ul class="list-disc pl-5 mt-2">
-                  <li>repérer un jeu qui “prend” avant tout le monde (momentum)</li>
-                  <li>miser sur un jeu stable qui restera en tendance (stabilité)</li>
-                  <li>diversifier ton portefeuille au-delà des streamers</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-
 
         <!-- CHART -->
         <section id="mkt-tab-chart" class="mkt-view hidden">
@@ -4856,217 +5343,6 @@ async function marketSell(){
 })();
 </script>
 
-
-<script>
-/* === Overlay: hide player tools when modals open === */
-(function(){
-  const market = document.getElementById('market-overlay');
-  const mosaic = document.getElementById('mosaicModal');
-  function isOpen(el){
-    if(!el) return false;
-    // Tailwind 'hidden' may not work if Tailwind not loaded; check inline style too
-    const cs = getComputedStyle(el);
-    return cs.display !== 'none' && cs.visibility !== 'hidden' && el.getAttribute('aria-hidden') !== 'true';
-  }
-  function tick(){
-    const open = isOpen(market) || isOpen(mosaic);
-    document.body.classList.toggle('modal-open', open);
-  }
-  setInterval(tick, 300);
-})();
-
-/* === Lock right panel height to Twitch player height === */
-(function(){
-  function sync(){
-    const vc = document.getElementById('video-container');
-    const side = document.getElementById('side-panel');
-    if(!vc || !side) return;
-    const h = vc.getBoundingClientRect().height;
-    if(h && h > 200){
-      side.style.height = h + 'px';
-      // Ensure inner tab contents can scroll
-      const panes = side.querySelectorAll('.side-panel-content, .tab-content, .panel, [data-side-pane]');
-      panes.forEach(p=>{
-        p.style.maxHeight = h + 'px';
-        p.style.overflow = 'auto';
-      });
-    }
-  }
-  window.addEventListener('load', sync);
-  window.addEventListener('resize', sync);
-  const vc = document.getElementById('video-container');
-  if('ResizeObserver' in window && vc){
-    const ro = new ResizeObserver(()=>sync());
-    ro.observe(vc);
-  } else {
-    setInterval(sync, 800);
-  }
-})();
-
-/* === Market tabs: support new "Jeux" tab === */
-(function(){
-  const tabs = document.querySelectorAll('.mkt-tab');
-  const views = document.querySelectorAll('.mkt-view');
-  function show(tab){
-    views.forEach(v=>v.classList.add('hidden'));
-    const sec = document.getElementById('mkt-tab-' + tab);
-    if(sec) sec.classList.remove('hidden');
-    tabs.forEach(b=>b.classList.remove('bg-white/10'));
-    const btn = document.querySelector('.mkt-tab[data-tab="'+tab+'"]');
-    if(btn) btn.classList.add('bg-white/10');
-    // lazy load games
-    if(tab === 'games') loadGameTrending();
-  }
-  tabs.forEach(b=>{
-    b.addEventListener('click', ()=>show(b.dataset.tab));
-  });
-})();
-
-/* === Games (categories) market logic === */
-let __selectedGame = null;
-
-async function loadGameTrending(){
-  const box = document.getElementById('game-trending');
-  if(!box) return;
-  box.innerHTML = '<div class="text-sm text-white/60">Chargement…</div>';
-  try{
-    const r = await fetch('/api/games/trending?language=fr&limit=18');
-    const j = await r.json();
-    if(!j.success) throw new Error(j.error || 'fail');
-    box.innerHTML = '';
-    (j.items || []).forEach(it=>{
-      const div = document.createElement('button');
-      div.className = 'text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 p-3';
-      div.innerHTML = `
-        <div class="text-sm font-semibold truncate">${escapeHtml(it.game_name || '—')}</div>
-        <div class="text-xs text-white/60 mt-1">Viewers: <strong>${it.viewers}</strong> • Chaînes: ${it.channels}</div>
-        <div class="text-xs text-white/60">Discover.: <strong>${it.discoverability}</strong> • Heat: ${it.heat}</div>
-      `;
-      div.addEventListener('click', ()=>selectGame(it));
-      box.appendChild(div);
-    });
-  }catch(e){
-    box.innerHTML = '<div class="text-sm text-red-300">Erreur: '+escapeHtml(String(e.message||e))+'</div>';
-  }
-}
-
-async function selectGame(it){
-  __selectedGame = it;
-  document.getElementById('game-name').textContent = it.game_name || '—';
-  document.getElementById('game-viewers').textContent = String(it.viewers ?? '—');
-  document.getElementById('game-channels').textContent = String(it.channels ?? '—');
-  document.getElementById('game-heat').textContent = String(it.heat ?? '—');
-  document.getElementById('game-disc').textContent = String(it.discoverability ?? '—');
-  document.getElementById('game-stab').textContent = '—';
-
-  const setText = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = (v==null?'—':String(v)); };
-  const fmtPct = (p) => (p==null || !isFinite(p)) ? '—' : ((p>=0?'+':'') + p.toFixed(1) + '%');
-
-  // Helpers for indicators from history
-  const sma = (arr, n) => {
-    if(!arr || arr.length < n) return null;
-    const slice = arr.slice(-n);
-    const s = slice.reduce((a,x)=>a+(x||0),0);
-    return s / n;
-  };
-  const ema = (arr, n) => {
-    if(!arr || arr.length < 2) return null;
-    const k = 2/(n+1);
-    let e = arr[0];
-    for(let i=1;i<arr.length;i++) e = arr[i]*k + e*(1-k);
-    return e;
-  };
-  const perfFromHistory = (hist, horizonMs) => {
-    if(!hist || hist.length < 2) return null;
-    const last = hist[hist.length-1];
-    const targetTs = (last.ts||Date.now()) - horizonMs;
-    // find closest point <= targetTs
-    let base = null;
-    for(let i=hist.length-1;i>=0;i--){
-      if((hist[i].ts||0) <= targetTs){ base = hist[i]; break; }
-    }
-    if(!base) base = hist[0];
-    const p0 = Number(base.price||0);
-    const p1 = Number(last.price||0);
-    if(!p0 || !p1) return null;
-    return ((p1 - p0)/p0)*100;
-  };
-  const volatility = (hist) => {
-    if(!hist || hist.length < 3) return null;
-    const prices = hist.map(x=>Number(x.price||0)).filter(Boolean);
-    if(prices.length < 3) return null;
-    const rets = [];
-    for(let i=1;i<prices.length;i++){
-      rets.push(Math.log(prices[i]/prices[i-1]));
-    }
-    const mean = rets.reduce((a,x)=>a+x,0)/rets.length;
-    const varr = rets.reduce((a,x)=>a+Math.pow(x-mean,2),0)/rets.length;
-    return Math.sqrt(varr)*100; // %
-  };
-  const trendScore = (p1h, p6h, p7d, vol) => {
-    const a = (p1h==null?0:p1h)*0.45 + (p6h==null?0:p6h)*0.35 + (p7d==null?0:p7d)*0.20;
-    const vpen = (vol==null?0:vol)*0.9;
-    const raw = 50 + a - vpen;
-    return Math.max(0, Math.min(100, Math.round(raw)));
-  };
-
-  // Fetch game market price + history (real)
-  try{
-    const r = await fetch('/api/fantasy/games/market?game_id='+encodeURIComponent(it.game_id));
-    const j = await r.json();
-    if(j.success){
-      const m = j.market;
-      const hist = Array.isArray(j.history) ? j.history : [];
-
-      setText('game-price', m.price);
-      setText('game-mcap', (Number(m.price||0) * Number(m.sharesOutstanding||0)) || 0);
-
-      // indicators from history
-      const p1h = perfFromHistory(hist, 60*60*1000);
-      const p6h = perfFromHistory(hist, 6*60*60*1000);
-      const p7d = perfFromHistory(hist, 7*24*60*60*1000);
-
-      const prices = hist.map(x=>Number(x.price||0)).filter(Boolean);
-      const sma20 = sma(prices, 20);
-      const ema20 = ema(prices, 20);
-      const vol = volatility(hist);
-      const tscore = trendScore(p1h, p6h, p7d, vol);
-
-      setText('game-perf-1h', fmtPct(p1h));
-      setText('game-perf-6h', fmtPct(p6h));
-      setText('game-perf-7d', fmtPct(p7d));
-      setText('game-sma20', sma20==null?'—':Math.round(sma20));
-      setText('game-ema20', ema20==null?'—':Math.round(ema20));
-      setText('game-trend-score', tscore);
-
-      document.getElementById('game-updated').textContent = new Date().toLocaleString();
-    }
-  }catch(_){}
-}
-
-async function gameBuySell(side){
-  if(!__selectedGame) return;
-  const amount = Number(document.getElementById('game-invest-amount')?.value || 0);
-  if(!amount || amount<=0) return;
-  const url = side==='buy' ? '/api/fantasy/games/invest' : '/api/fantasy/games/sell';
-  await fetch(url, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ user: (window.HUB_USER||'Anon'), game_id: __selectedGame.game_id, amount })
-  }).catch(()=>{});
-  // refresh market values
-  selectGame(__selectedGame);
-}
-document.addEventListener('click', (e)=>{
-  if(e.target?.id === 'game-refresh') loadGameTrending();
-  if(e.target?.id === 'game-buy') gameBuySell('buy');
-  if(e.target?.id === 'game-sell') gameBuySell('sell');
-});
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-}
-</script>
 
 </body>
 </html>
