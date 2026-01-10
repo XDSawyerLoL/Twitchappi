@@ -735,12 +735,14 @@
   position:absolute;
   top:10px;
   right:10px;
-  z-index:99999 !important;
+  z-index: 50;
   display:flex;
   gap:8px;
   pointer-events:auto;
 }
 #player-tools .toolbtn{ pointer-events:auto; }
+body.modal-open #player-tools{ display:none !important; }
+
 #video-container iframe{ position:relative; z-index:1 !important; }
 #video-container .player-wrap, #video-container #player{ position:relative; z-index:1 !important; }
 
@@ -915,6 +917,11 @@
   #main-layout{ grid-template-columns:1fr !important; }
   #side-panel{ grid-column:1 !important; }
 }
+/* Market overlay fallback (for CSP/no-tailwind) */
+#market-overlay{position:fixed;inset:0;z-index:10000;display:none;}
+#market-overlay.active{display:block;}
+#market-overlay.hidden{display:none;}
+
 /* Centered Market modal like TwitFlix */
 #market-overlay .market-modal{
   position:absolute;
@@ -3519,7 +3526,9 @@ async function loadStreamerMarket(){
     const mult = Number(j.market?.mult || 1);
     const shares = Number(j.market?.sharesOutstanding || 0);
 
-    const priceEl = document.getElementById('mkt-price');
+    
+    const hist = j.history || [];
+const priceEl = document.getElementById('mkt-price');
     const multEl = document.getElementById('mkt-mult');
     const sharesEl = document.getElementById('mkt-shares');
 
@@ -3527,8 +3536,36 @@ async function loadStreamerMarket(){
     if(multEl) multEl.textContent = (Math.round(mult*100)/100).toLocaleString('fr-FR');
     if(sharesEl) sharesEl.textContent = shares.toLocaleString('fr-FR');
 
-    // chart
-    const hist = j.history || [];
+    
+    const base = Number(j.market?.basePrice || 0);
+    const cap = price * shares;
+    const baseEl = document.getElementById('mkt-base');
+    const capEl = document.getElementById('mkt-cap');
+    if(baseEl) baseEl.textContent = base.toLocaleString('fr-FR');
+    if(capEl) capEl.textContent = Math.round(cap).toLocaleString('fr-FR');
+
+    const derived = computeMarketDerived(hist);
+    if(derived){
+      const ch24El = document.getElementById('mkt-chg24');
+      const volEl = document.getElementById('mkt-vol');
+      const hiEl = document.getElementById('mkt-high');
+      const loEl = document.getElementById('mkt-low');
+      const momEl = document.getElementById('mkt-mom');
+      const lastEl = document.getElementById('mkt-last');
+      if(ch24El){
+        ch24El.textContent = (Math.round(derived.chg24*100)/100).toLocaleString('fr-FR') + '%';
+        ch24El.style.color = derived.chg24>=0 ? '#00f2ea' : '#ff4d7d';
+      }
+      if(volEl) volEl.textContent = (Math.round(derived.vol*1000)/1000).toLocaleString('fr-FR');
+      if(hiEl) hiEl.textContent = derived.high.toLocaleString('fr-FR');
+      if(loEl) loEl.textContent = derived.low.toLocaleString('fr-FR');
+      if(momEl) momEl.textContent = (Math.round(derived.mom*100)/100).toLocaleString('fr-FR') + ' (' + (Math.round(derived.momPct*100)/100).toLocaleString('fr-FR') + '%)';
+      if(lastEl){
+        const d = derived.lastTs ? new Date(derived.lastTs) : null;
+        lastEl.textContent = d ? d.toLocaleString('fr-FR') : '—';
+      }
+    }
+// chart
     const labels = hist.map((p, idx)=> idx+1);
     const values = hist.map(p => Number(p.price||0));
     renderMarketChart(labels, values);
@@ -3612,7 +3649,9 @@ async function marketSell(){
     function openMarketOverlay(){
       const ov = document.getElementById('market-overlay');
       if(!ov) return;
+      document.body.classList.add('modal-open');
       ov.classList.remove('hidden');
+      ov.classList.add('active');
       // ensure overlay starts at top
       try { ov.querySelector('.overflow-y-auto')?.scrollTo({ top:0, behavior:'smooth' }); } catch(_){}
       // refresh when opened (soft)
@@ -3622,6 +3661,8 @@ async function marketSell(){
       const ov = document.getElementById('market-overlay');
       if(!ov) return;
       ov.classList.add('hidden');
+      ov.classList.remove('active');
+      document.body.classList.remove('modal-open');
     }
 
 </script>
@@ -3739,6 +3780,49 @@ async function marketSell(){
                   <div class="text-[10px] text-gray-500 uppercase">Impact du marché</div>
                   <div class="text-lg font-orbitron text-[#ff0099]">x<span id="mkt-mult">--</span></div>
                   <div class="text-[10px] text-gray-500 mt-1"><span id="mkt-shares">--</span> shares en circulation</div>
+                </div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Base (viewers)</div>
+                  <div class="text-lg font-orbitron text-white" id="mkt-base">--</div>
+                  <div class="text-[10px] text-gray-500 mt-1">prix plancher (si offline)</div>
+                </div>
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Market Cap</div>
+                  <div class="text-lg font-orbitron text-white" id="mkt-cap">--</div>
+                  <div class="text-[10px] text-gray-500 mt-1">prix × shares</div>
+                </div>
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Variation 24h</div>
+                  <div class="text-lg font-orbitron" id="mkt-chg24">--</div>
+                  <div class="text-[10px] text-gray-500 mt-1">sur points disponibles</div>
+                </div>
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
+                  <div class="text-lg font-orbitron text-white" id="mkt-vol">--</div>
+                  <div class="text-[10px] text-gray-500 mt-1">écart-type rendements</div>
+                </div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">High (période)</div>
+                  <div class="text-lg font-orbitron text-white" id="mkt-high">--</div>
+                </div>
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Low (période)</div>
+                  <div class="text-lg font-orbitron text-white" id="mkt-low">--</div>
+                </div>
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Momentum</div>
+                  <div class="text-lg font-orbitron text-white" id="mkt-mom">--</div>
+                  <div class="text-[10px] text-gray-500 mt-1">Δ derniers points</div>
+                </div>
+                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
+                  <div class="text-[10px] text-gray-500 uppercase">Dernière maj</div>
+                  <div class="text-sm text-gray-200" id="mkt-last">--</div>
                 </div>
               </div>
 
