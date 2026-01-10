@@ -927,17 +927,6 @@
   overflow:hidden;
 }
 
-
-/* === HARD LOCK: chats never exceed player height === */
-:root{ --playerH: 72vh; }
-.player-shell{ height: var(--playerH) !important; max-height: var(--playerH) !important; min-height: var(--playerH) !important; }
-#side-panel{ height: var(--playerH) !important; max-height: var(--playerH) !important; min-height: var(--playerH) !important; display:flex !important; flex-direction:column !important; overflow:hidden !important; }
-#side-panel .tab-panels, #side-panel .tab-content{ flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }
-#side-panel iframe{ width:100% !important; height:100% !important; border:0 !important; }
-
-/* Floating quick icons must not cover TwitFlix/Market overlays */
-body.modal-open .quick-dock, body.modal-open #quickDock, body.modal-open .floating-icons { display:none !important; }
-
 </style>
 </head>
 
@@ -3240,8 +3229,7 @@ function focusChannel(enc){
 }
 
 // Fantasy API + chart
-function openFantasy(){
-      document.body.classList.add('modal-open'); document.getElementById('fantasyModal')?.classList.add('active'); refreshFantasy(); }
+function openFantasy(){ document.getElementById('fantasyModal')?.classList.add('active'); refreshFantasy(); }
 function closeFantasy(e){ if(e) e.preventDefault(); document.getElementById('fantasyModal')?.classList.remove('active'); }
 
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
@@ -3622,7 +3610,6 @@ async function marketSell(){
 
     // MARKET OVERLAY (TwitFlix-like)
     function openMarketOverlay(){
-      document.body.classList.add('modal-open');
       const ov = document.getElementById('market-overlay');
       if(!ov) return;
       ov.classList.remove('hidden');
@@ -3632,7 +3619,6 @@ async function marketSell(){
       try { refreshMarketAll(); } catch(_){}
     }
     function closeMarketOverlay(){
-      document.body.classList.remove('modal-open');
       const ov = document.getElementById('market-overlay');
       if(!ov) return;
       ov.classList.add('hidden');
@@ -3677,56 +3663,6 @@ async function marketSell(){
             <div style="font-weight:900;color:#eaeaf0;margin-bottom:6px;">Cours</div>
             <div id="marketInfo" style="display:flex;gap:10px;flex-wrap:wrap;color:#a7a7b2;font-size:12px;"></div>
             <canvas id="marketChart" width="640" height="220" style="width:100%;background:#0b0b0d;border:1px solid rgba(255,255,255,.10);border-radius:14px;"></canvas>
-
-<div style="margin-top:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.03);">
-  <div style="font-weight:900;color:#eaeaf0;margin-bottom:8px;">📊 Stats Marché (réelles)</div>
-  <div id="marketKpis" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
-  <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:240px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;">
-      <div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Performance</div>
-      <div id="marketPerf" style="color:#a7a7b2;font-size:12px;line-height:1.6;"></div>
-    </div>
-    <div style="flex:1;min-width:240px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;">
-      <div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Indicateurs</div>
-      <div id="marketIndicators" style="color:#a7a7b2;font-size:12px;line-height:1.6;"></div>
-    </div>
-  </div>
-</div>
-
-<div style="margin-top:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.03);">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-    <div style="font-weight:900;color:#eaeaf0;">📌 Watchlist (pour Top Gainers/Losers)</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <select id="wlHorizon" style="background:#0c0c0f;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:8px 10px;">
-        <option value="1h">Perf 1h</option>
-        <option value="6h">Perf 6h</option>
-        <option value="7d">Perf 7j</option>
-      </select>
-      <button onclick="refreshWatchlist()" style="background:#111;border:1px solid rgba(255,255,255,.10);color:#fff;border-radius:12px;padding:8px 10px;font-weight:900;cursor:pointer;">Rafraîchir</button>
-    </div>
-  </div>
-
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <input id="wlInput" placeholder="Ajoute des logins: zerator,gotaga,..." style="flex:1;min-width:260px;background:#0c0c0f;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;">
-    <button onclick="saveWatchlistFromInput()" style="background:#00f2ea;color:#000;border:none;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Enregistrer</button>
-  </div>
-
-  <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;">
-      <div style="font-weight:900;color:#00f2ea;margin-bottom:8px;">🚀 Top Gainers</div>
-      <div id="wlGainers" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-    <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;">
-      <div style="font-weight:900;color:#ff3b3b;margin-bottom:8px;">📉 Top Losers</div>
-      <div id="wlLosers" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-  </div>
-
-  <div style="margin-top:10px;color:#a7a7b2;font-size:12px;">
-    <b>Trend score</b> = score basé sur perf (1h/6h/7j) + volatilité (history). 100% dérivé des données renvoyées par <code>/api/fantasy/market</code>.
-  </div>
-</div>
-
           </div>
           <div style="flex:1;min-width:260px;">
             <div style="font-weight:900;color:#ffd600;margin-bottom:6px;">Leaderboard</div>
@@ -3740,104 +3676,315 @@ async function marketSell(){
 </div>
 
 
-<!-- MARKET OVERLAY (TwitFlix-like) -->
-<div id="market-overlay" class="fixed inset-0 z-[9999] hidden">
+<!-- MARKET OVERLAY (center modal, Binance-like) -->
+<div id="market-overlay" class="fixed inset-0 z-[9999] hidden" aria-hidden="true">
   <div class="absolute inset-0 bg-black/70" onclick="closeMarketOverlay()"></div>
 
-  <div class="market-modal bg-[#07070a] border border-[#222] rounded-2xl shadow-2xl flex flex-col">
-    <div class="px-4 py-3 border-b border-[#222] flex items-center justify-between bg-[#0a0a0c]">
-      <div class="font-black tracking-widest text-white text-sm">
-        <i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — Bourse des Streamers
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(1240px,96vw)] h-[min(90vh,920px)] rounded-2xl border border-white/10 bg-[#050607] shadow-[0_0_80px_rgba(0,229,255,0.08)] flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5">
+          <span class="inline-block w-2 h-2 rounded-full bg-[#00ff88] shadow-[0_0_12px_rgba(0,255,136,0.65)] animate-pulse"></span>
+          <span class="text-xs font-bold tracking-wide">LIVE</span>
+        </div>
+        <div>
+          <div class="text-lg font-extrabold tracking-tight">Marché des Streamers</div>
+          <div class="text-xs text-white/60">Cours réels = viewers live (base) × impact (offre/demande). Aucune donnée inventée.</div>
+        </div>
       </div>
+
       <div class="flex items-center gap-2">
-        <button class="px-3 py-2 rounded-lg bg-[#0b0b0d] border border-[#333] text-white hover:border-[#00f2ea]" onclick="refreshMarketAll()">↻ Actualiser</button>
-        <button class="px-3 py-2 rounded-lg bg-[#141417] border border-[#333] text-white hover:border-red-400" onclick="closeMarketOverlay()">✕</button>
+        <button id="mkt-refresh" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">Rafraîchir</button>
+        <button id="mkt-auto" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">Auto: ON</button>
+        <button class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" onclick="closeMarketOverlay()">✕</button>
       </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-4 scrollbar-thin">
-      <div class="bg-[#101012] border border-[#222] rounded-xl p-4">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h4 class="text-sm font-black tracking-widest text-white"><i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — bourse des streamers</h4>
-              <p class="text-xs text-gray-400 mt-1">
-                Objectif : te faire <strong>apprendre à investir intelligemment</strong> sur des streamers (comme une mini-bourse),
-                pour comprendre l’impact de la <strong>demande</strong> et de l’<strong>activité en live</strong> sur un prix.
-                <span class="text-gray-500">Plus il y a d’achats (shares), plus le prix monte.</span>
-              </p>
-            </div>
-            <button class="px-3 py-2 rounded-lg bg-[#0b0b0d] border border-[#222] text-xs text-gray-200 hover:border-[#00f2ea]" onclick="refreshMarketAll()">↻ Actualiser</button>
-          </div>
+    <div class="flex items-center gap-2 px-4 py-2 border-b border-white/10">
+      <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/10 text-sm font-bold" data-tab="overview">Overview</button>
+      <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="markets">Markets</button>
+      <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="chart">Chart Pro</button>
+      <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="portfolio">Portfolio</button>
+      <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="leaderboard">Classement</button>
+      <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="learn">Comprendre</button>
 
-          <div class="grid grid-cols-2 gap-3 mt-4">
-            <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
-              <div class="text-[10px] text-gray-500 uppercase">Cash</div>
-              <div id="mkt-cash" class="text-2xl font-orbitron text-white">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Tes crédits disponibles</div>
-            </div>
-            <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
-              <div class="text-[10px] text-gray-500 uppercase">Net worth</div>
-              <div id="mkt-networth" class="text-2xl font-orbitron text-[#00f2ea]">--</div>
-              <div class="text-[10px] text-gray-500 mt-1">Cash + valeur des positions</div>
-            </div>
-          </div>
+      <div class="ml-auto flex items-center gap-2">
+        <input id="mkt-search" placeholder="Rechercher un login Twitch (ex: zerator)" class="w-[min(420px,50vw)] px-3 py-2 rounded-lg bg-white/5 border border-white/10 outline-none text-sm" />
+        <button id="mkt-add" class="px-3 py-2 rounded-lg bg-[#00e5ff] text-black font-bold text-sm">⭐ Ajouter</button>
+      </div>
+    </div>
 
-          <div class="mt-4 bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
-            <div class="flex items-center justify-between gap-2">
-              <div class="text-xs text-gray-300 font-bold uppercase">Rechercher un streamer</div>
-              <span class="text-[10px] text-gray-500">Ex: gotaga / domingo / …</span>
-            </div>
-            <div class="flex gap-2 mt-2">
-              <input id="mkt-streamer" class="flex-grow bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" placeholder="Login Twitch du streamer…">
-              <button class="px-3 py-2 rounded-lg bg-[#00f2ea] text-[#0b0b0d] font-black hover:opacity-90" onclick="loadStreamerMarket()">Voir le cours</button>
-            </div>
+    <div class="flex-1 overflow-hidden">
+      <div class="h-full overflow-y-auto p-4" id="mkt-view">
 
-            <div id="mkt-streamer-card" class="mt-3 hidden">
-              <div class="grid grid-cols-2 gap-3">
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Prix actuel</div>
-                  <div id="mkt-price" class="text-2xl font-orbitron text-white">--</div>
-                  <div class="text-[10px] text-gray-500 mt-1">Basé sur viewers + impact demande</div>
+        <!-- OVERVIEW -->
+        <section id="mkt-tab-overview" class="mkt-view">
+          <div class="grid grid-cols-12 gap-3">
+            <div class="col-span-12 md:col-span-8 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-xs text-white/60">Ticker sélectionné</div>
+                  <div class="text-2xl font-extrabold tracking-tight" id="mkt-selected">—</div>
                 </div>
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Impact du marché</div>
-                  <div class="text-lg font-orbitron text-[#ff0099]">x<span id="mkt-mult">--</span></div>
-                  <div class="text-[10px] text-gray-500 mt-1"><span id="mkt-shares">--</span> shares en circulation</div>
+                <div class="text-right">
+                  <div class="text-xs text-white/60">Prix</div>
+                  <div class="text-3xl font-extrabold tracking-tight" id="mkt-price">—</div>
+                  <div class="text-xs" id="mkt-chg">—</div>
                 </div>
               </div>
 
-              <div class="mt-3 bg-[#101012] border border-[#222] rounded-lg p-3">
-                <div class="flex items-center justify-between">
-                  <div class="text-xs text-gray-300 font-bold uppercase">Courbe (derniers points)</div>
-                  <div class="text-[10px] text-gray-500">Plus de points = plus lissage</div>
+              <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Base (viewers)</div>
+                  <div class="text-lg font-bold" id="mkt-base">—</div>
                 </div>
-                <div class="h-36 mt-2"><canvas id="chartMarket"></canvas></div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Impact (mult)</div>
+                  <div class="text-lg font-bold" id="mkt-mult">—</div>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Shares</div>
+                  <div class="text-lg font-bold" id="mkt-shares">—</div>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Market Cap</div>
+                  <div class="text-lg font-bold" id="mkt-mcap">—</div>
+                </div>
               </div>
 
-              <div class="mt-3 grid grid-cols-2 gap-2">
-                <input id="mkt-amount" type="number" min="1" class="bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none" placeholder="Montant (crédits)">
-                <div class="flex gap-2">
-                  <button class="flex-1 px-3 py-2 rounded-lg bg-[#111] border border-[#222] text-xs text-white hover:border-[#00f2ea]" onclick="marketInvest()">Acheter</button>
-                  <button class="flex-1 px-3 py-2 rounded-lg bg-[#111] border border-[#222] text-xs text-white hover:border-[#ff0099]" onclick="marketSell()">Vendre</button>
+              <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Perf 1h</div>
+                  <div class="text-lg font-bold" id="mkt-p1h">—</div>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Perf 6h</div>
+                  <div class="text-lg font-bold" id="mkt-p6h">—</div>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Perf 7j</div>
+                  <div class="text-lg font-bold" id="mkt-p7d">—</div>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Trend Score</div>
+                  <div class="text-lg font-bold" id="mkt-trend">—</div>
                 </div>
               </div>
 
-              <div class="text-[10px] text-gray-500 mt-2">
-                ⚠️ Ceci est un <strong>jeu d’économie</strong> : tu ne gagnes pas de vrai argent. Mais tu apprends comment une bourse réagit à la demande.
+              <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">Volatilité</div>
+                  <div class="text-lg font-bold" id="mkt-vol">—</div>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">High / Low (période)</div>
+                  <div class="text-lg font-bold" id="mkt-hilo">—</div>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">SMA20 / SMA50</div>
+                  <div class="text-lg font-bold" id="mkt-sma">—</div>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div class="text-xs text-white/60">EMA20 / EMA50</div>
+                  <div class="text-lg font-bold" id="mkt-ema">—</div>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap items-center gap-2">
+                <input id="mkt-amount" type="number" min="1" value="100" class="w-32 px-3 py-2 rounded-lg bg-white/5 border border-white/10 outline-none text-sm" />
+                <button id="mkt-buy" class="px-4 py-2 rounded-lg bg-[#00ff88] text-black font-extrabold">Acheter</button>
+                <button id="mkt-sell" class="px-4 py-2 rounded-lg bg-[#ff4d6d] text-black font-extrabold">Vendre</button>
+                <div class="ml-auto text-xs text-white/60" id="mkt-updated">—</div>
               </div>
             </div>
-          </div>
 
-          <div class="mt-4 bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
-            <div class="text-xs text-gray-300 font-bold uppercase">Ton portefeuille</div>
-            <div id="mkt-portfolio" class="mt-2 text-xs text-gray-300">—</div>
-          </div>
+            <div class="col-span-12 md:col-span-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-extrabold">Heatmap Watchlist</div>
+                <button id="mkt-edit" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">Éditer</button>
+              </div>
+              <div class="text-xs text-white/60 mt-1">Basé sur Perf 1h (ou horizon sélectionné).</div>
 
-          <div class="mt-3 bg-[#0b0b0d] border border-[#222] rounded-lg p-3">
-            <div class="text-xs text-gray-300 font-bold uppercase">Leaderboard</div>
-            <div id="mkt-leaderboard" class="mt-2 text-xs text-gray-300">—</div>
+              <div class="mt-3 flex items-center gap-2">
+                <select id="mkt-horizon" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none">
+                  <option value="3600">1h</option>
+                  <option value="21600">6h</option>
+                  <option value="604800">7j</option>
+                </select>
+                <span class="text-xs text-white/60">Horizon</span>
+              </div>
+
+              <div class="mt-3 grid grid-cols-2 gap-2" id="mkt-heat"></div>
+
+              <div class="mt-4 border-t border-white/10 pt-3">
+                <div class="font-extrabold">Top Gainers / Losers</div>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                  <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <div class="text-xs text-white/60">Gainers</div>
+                    <div id="mkt-gainers" class="text-sm mt-1"></div>
+                  </div>
+                  <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <div class="text-xs text-white/60">Losers</div>
+                    <div id="mkt-losers" class="text-sm mt-1"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
+        </section>
+
+        <!-- MARKETS -->
+        <section id="mkt-tab-markets" class="mkt-view hidden">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="font-extrabold text-lg">Markets (Watchlist)</div>
+              <div class="flex items-center gap-2">
+                <select id="mkt-sort" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none">
+                  <option value="trend">Trier: Trend</option>
+                  <option value="p1h">Trier: Perf 1h</option>
+                  <option value="p6h">Trier: Perf 6h</option>
+                  <option value="p7d">Trier: Perf 7j</option>
+                  <option value="mcap">Trier: Market Cap</option>
+                  <option value="vol">Trier: Volatilité</option>
+                </select>
+                <button id="mkt-reload-watch" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">Recharger</button>
+              </div>
+            </div>
+
+            <div class="mt-3 overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="text-white/60">
+                  <tr>
+                    <th class="text-left py-2">#</th>
+                    <th class="text-left py-2">Streamer</th>
+                    <th class="text-right py-2">Prix</th>
+                    <th class="text-right py-2">1h</th>
+                    <th class="text-right py-2">6h</th>
+                    <th class="text-right py-2">7j</th>
+                    <th class="text-right py-2">Vol</th>
+                    <th class="text-right py-2">MCap</th>
+                    <th class="text-right py-2">Trend</th>
+                    <th class="text-right py-2">Spark</th>
+                  </tr>
+                </thead>
+                <tbody id="mkt-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- CHART -->
+        <section id="mkt-tab-chart" class="mkt-view hidden">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="font-extrabold text-lg">Chart Pro</div>
+                <div class="text-xs text-white/60">Sparklines + SMA/EMA (calculés sur l'historique renvoyé par /api/fantasy/market).</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <label class="text-xs text-white/60 flex items-center gap-2"><input id="mkt-toggle-sma" type="checkbox" checked> SMA</label>
+                <label class="text-xs text-white/60 flex items-center gap-2"><input id="mkt-toggle-ema" type="checkbox" checked> EMA</label>
+              </div>
+            </div>
+
+            <div class="mt-3 rounded-xl border border-white/10 bg-black/30 p-3">
+              <svg id="mkt-chart" viewBox="0 0 1000 360" preserveAspectRatio="none" class="w-full h-[360px]"></svg>
+              <div class="text-xs text-white/60 mt-2" id="mkt-chart-meta">—</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PORTFOLIO -->
+        <section id="mkt-tab-portfolio" class="mkt-view hidden">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="font-extrabold text-lg">Portfolio</div>
+              <div class="flex items-center gap-2">
+                <input id="mkt-user" value="Anon" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm outline-none" />
+                <button id="mkt-load-portfolio" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">Charger</button>
+              </div>
+            </div>
+
+            <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                <div class="text-xs text-white/60">Cash</div>
+                <div class="text-lg font-bold" id="pf-cash">—</div>
+              </div>
+              <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                <div class="text-xs text-white/60">Valeur positions</div>
+                <div class="text-lg font-bold" id="pf-hold">—</div>
+              </div>
+              <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                <div class="text-xs text-white/60">Net Worth</div>
+                <div class="text-lg font-bold" id="pf-net">—</div>
+              </div>
+              <div class="rounded-xl border border-white/10 bg-black/20 p-3">
+                <div class="text-xs text-white/60">Positions</div>
+                <div class="text-lg font-bold" id="pf-n">—</div>
+              </div>
+            </div>
+
+            <div class="mt-3 overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="text-white/60">
+                  <tr>
+                    <th class="text-left py-2">Streamer</th>
+                    <th class="text-right py-2">Shares</th>
+                    <th class="text-right py-2">Prix</th>
+                    <th class="text-right py-2">Valeur</th>
+                  </tr>
+                </thead>
+                <tbody id="pf-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- LEADERBOARD -->
+        <section id="mkt-tab-leaderboard" class="mkt-view hidden">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div class="flex items-center justify-between">
+              <div class="font-extrabold text-lg">Classement</div>
+              <button id="mkt-load-leader" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">Charger</button>
+            </div>
+            <div class="mt-3" id="lb-list"></div>
+          </div>
+        </section>
+
+        <!-- LEARN -->
+        <section id="mkt-tab-learn" class="mkt-view hidden">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4 prose prose-invert max-w-none">
+            <h3>Comment le prix est calculé (réel)</h3>
+            <ul>
+              <li><strong>BasePrice</strong> : dérivé des viewers live du streamer (si offline, base minimale).</li>
+              <li><strong>SharesOutstanding</strong> : nombre total de “parts” en circulation (achats/ventes).</li>
+              <li><strong>Impact</strong> : multiplicateur qui augmente avec la demande (logarithmique).</li>
+              <li><strong>Prix final</strong> = BasePrice × Impact.</li>
+            </ul>
+            <p>Les performances (1h/6h/7j), SMA/EMA, volatilité et trend score sont calculés uniquement à partir de l’historique de prix renvoyé par l’API (<code>/api/fantasy/market</code>), donc sans données inventées.</p>
+            <p><strong>Watchlist “Firebase” :</strong> au premier lancement, l’app construit une watchlist réelle à partir des holdings des meilleurs portefeuilles (endpoint leaderboard + profile). Les utilisateurs peuvent ensuite en ajouter.</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Watchlist Modal -->
+  <div id="mkt-edit-modal" class="fixed inset-0 z-[10000] hidden">
+    <div class="absolute inset-0 bg-black/70" onclick="document.getElementById('mkt-edit-modal').classList.add('hidden')"></div>
+    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(760px,94vw)] rounded-2xl border border-white/10 bg-[#050607] p-4">
+      <div class="flex items-center justify-between">
+        <div class="font-extrabold text-lg">Watchlist</div>
+        <button class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10" onclick="document.getElementById('mkt-edit-modal').classList.add('hidden')">✕</button>
+      </div>
+      <div class="text-xs text-white/60 mt-1">Sépare par des virgules. Exemple : <code>zerator, gotaga, kamet0</code></div>
+      <textarea id="mkt-watchlist" class="mt-3 w-full h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/10 outline-none text-sm"></textarea>
+      <div class="mt-3 flex items-center justify-end gap-2">
+        <button class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10" onclick="document.getElementById('mkt-edit-modal').classList.add('hidden')">Annuler</button>
+        <button id="mkt-save-watchlist" class="px-3 py-2 rounded-lg bg-[#00e5ff] text-black font-extrabold">Enregistrer</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3865,270 +4012,704 @@ async function marketSell(){
 
 
 <script>
-(function lockSidePanelToPlayer(){
-  const root = document.documentElement;
-  const player = document.querySelector('.player-shell');
-  const side = document.getElementById('side-panel');
-  if(!player || !side) return;
+/* ==========================
+   MARKET APP (Binance-like)
+   - watchlist bootstrapped from Firestore via backend:
+     leaderboard -> profile holdings -> unique tickers
+   - all metrics derived from /api/fantasy/market (real)
+   ========================== */
 
-  const setH = () => {
-    const h = player.getBoundingClientRect().height;
-    if(h && h > 200){
-      root.style.setProperty('--playerH', Math.round(h) + 'px');
+(function(){
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+  // --- Modal helpers ---
+  const overlay = $('#market-overlay');
+  const tabs = $$('.mkt-tab', overlay);
+  const views = $$('.mkt-view', overlay);
+
+  function setBodyModal(on){
+    document.body.classList.toggle('modal-open', !!on);
+  }
+
+  // Ensure floating emoji buttons (📺🏆💡🧠) don't overlay modals
+  function setAuxUiHidden(on){
+    // best-effort: hide known floating toolbars
+    $$('#floating-tools, #floatingTools, .floating-tools, .quick-tools, .dock-tools').forEach(el=>{
+      el.style.display = on ? 'none' : '';
+    });
+  }
+
+  // --- Data store ---
+  let watchlist = [];
+  let selected = null;
+  let autoOn = true;
+  let autoTimer = null;
+  let cache = new Map(); // login -> last market response
+
+  const LS_KEY = 'mkt_watchlist_v1';
+  const LS_SEL = 'mkt_selected_v1';
+
+  function format(n){
+    if(n === null || n === undefined || Number.isNaN(n)) return '—';
+    const x = Number(n);
+    if(Math.abs(x) >= 1_000_000) return (x/1_000_000).toFixed(2)+'M';
+    if(Math.abs(x) >= 1_000) return (x/1_000).toFixed(2)+'K';
+    return (Math.round(x*100)/100).toString();
+  }
+  function pct(n){
+    if(n === null || n === undefined || Number.isNaN(n)) return '—';
+    const x = Number(n);
+    const sign = x > 0 ? '+' : '';
+    return sign + x.toFixed(2) + '%';
+  }
+  function colorClass(p){
+    if(p === null || p === undefined || Number.isNaN(p)) return 'text-white/70';
+    if(p > 0) return 'text-[#00ff88]';
+    if(p < 0) return 'text-[#ff4d6d]';
+    return 'text-white/70';
+  }
+
+  function sparklineSvg(points){
+    if(!points || points.length < 2) return '<svg viewBox="0 0 100 24" class="w-[100px] h-6"></svg>';
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const span = (max-min) || 1;
+    const coords = points.map((v,i)=>{
+      const x = (i/(points.length-1))*100;
+      const y = 24 - ((v-min)/span)*24;
+      return x.toFixed(2)+','+y.toFixed(2);
+    }).join(' ');
+    const up = points[points.length-1] >= points[0];
+    const stroke = up ? '#00ff88' : '#ff4d6d';
+    return `
+      <svg viewBox="0 0 100 24" class="w-[100px] h-6">
+        <polyline fill="none" stroke="${stroke}" stroke-width="2" points="${coords}" />
+      </svg>`;
+  }
+
+  function findPointAtOrBefore(history, targetTs){
+    // history: [{ts,price}], sorted asc
+    if(!history || history.length === 0) return null;
+    // binary search
+    let lo=0, hi=history.length-1, ans=null;
+    while(lo<=hi){
+      const mid=(lo+hi)>>1;
+      const ts=Number(history[mid].ts||0);
+      if(ts<=targetTs){ ans=history[mid]; lo=mid+1; }
+      else hi=mid-1;
     }
-  };
-  setH();
-  try{
-    const ro = new ResizeObserver(()=>setH());
-    ro.observe(player);
-  }catch(_){
-    window.addEventListener('resize', setH);
+    return ans;
   }
-})();
-</script>
 
-<script>
-/* ===== Market analytics (REAL from /api/fantasy/market) ===== */
-const WL_KEY = 'streamhub_watchlist_v1';
-
-function parseList(s){
-  return String(s||'').split(/[,\s]+/).map(x=>x.trim().toLowerCase()).filter(Boolean);
-}
-function getWatchlist(){
-  try{
-    const raw = localStorage.getItem(WL_KEY);
-    const arr = raw ? JSON.parse(raw) : null;
-    if(Array.isArray(arr) && arr.length) return arr;
-  }catch(_){}
-  // default: current streamer + a few FR staples (edit as you like)
-  return ['sansahd','zerator','gotaga','kamet0','domingo','pomme','mastu'];
-}
-function setWatchlist(arr){
-  const clean = [...new Set((arr||[]).map(x=>String(x).toLowerCase().trim()).filter(Boolean))].slice(0,50);
-  localStorage.setItem(WL_KEY, JSON.stringify(clean));
-  return clean;
-}
-function fillWatchlistInput(){
-  const inp = document.getElementById('wlInput');
-  if(inp) inp.value = getWatchlist().join(',');
-}
-function saveWatchlistFromInput(){
-  const inp = document.getElementById('wlInput');
-  const arr = setWatchlist(parseList(inp?.value));
-  if(inp) inp.value = arr.join(',');
-  refreshWatchlist();
-}
-
-function fmtPct(x){
-  if(x==null || !isFinite(x)) return '—';
-  const sign = x>0?'+':'';
-  return sign + (x*100).toFixed(2) + '%';
-}
-function fmtNum(x){
-  if(x==null || !isFinite(x)) return '—';
-  return Math.round(x).toLocaleString('fr-FR');
-}
-
-function seriesFromHistory(market, history){
-  const pts = (history||[]).map(p=>({ts:Number(p.ts||0), price:Number(p.price||0)})).filter(p=>p.ts && p.price);
-  if(!pts.length){
-    // fallback single point: now + market.price
-    return [{ts: Date.now(), price:Number(market?.price||0)}].filter(p=>p.price);
+  function computePerf(history, seconds){
+    if(!history || history.length < 2) return null;
+    const now = Number(history[history.length-1].ts || Date.now());
+    const cur = Number(history[history.length-1].price || 0);
+    const pastPoint = findPointAtOrBefore(history, now - seconds*1000) || history[0];
+    const past = Number(pastPoint?.price || 0);
+    if(!past) return null;
+    return ((cur - past) / past) * 100;
   }
-  return pts.sort((a,b)=>a.ts-b.ts);
-}
 
-function nearestAtOrBefore(pts, t){
-  // pts sorted asc
-  let lo=0, hi=pts.length-1, ans=null;
-  while(lo<=hi){
-    const mid=(lo+hi)>>1;
-    if(pts[mid].ts<=t){ ans=pts[mid]; lo=mid+1; }
-    else hi=mid-1;
+  function computeReturns(history){
+    if(!history || history.length < 3) return [];
+    const out=[];
+    for(let i=1;i<history.length;i++){
+      const a=Number(history[i-1].price||0);
+      const b=Number(history[i].price||0);
+      if(a>0 && b>0) out.push(Math.log(b/a));
+    }
+    return out;
   }
-  return ans;
-}
-
-function perfForWindow(pts, windowMs){
-  const last = pts[pts.length-1];
-  const targetT = last.ts - windowMs;
-  const prev = nearestAtOrBefore(pts, targetT);
-  if(!prev || !prev.price) return null;
-  return (last.price/prev.price) - 1;
-}
-
-function returnsLog(pts){
-  const r=[];
-  for(let i=1;i<pts.length;i++){
-    const a=pts[i-1].price, b=pts[i].price;
-    if(a>0 && b>0) r.push(Math.log(b/a));
+  function std(arr){
+    if(!arr || arr.length<2) return null;
+    const mean = arr.reduce((s,x)=>s+x,0)/arr.length;
+    const v = arr.reduce((s,x)=>s+(x-mean)**2,0)/(arr.length-1);
+    return Math.sqrt(v);
   }
-  return r;
-}
-
-function std(arr){
-  if(!arr.length) return 0;
-  const m = arr.reduce((s,x)=>s+x,0)/arr.length;
-  const v = arr.reduce((s,x)=>s+(x-m)*(x-m),0)/arr.length;
-  return Math.sqrt(v);
-}
-
-function sma(values, n){
-  if(values.length < n) return null;
-  const slice = values.slice(-n);
-  return slice.reduce((a,b)=>a+b,0)/n;
-}
-function ema(values, n){
-  if(values.length < n) return null;
-  const k = 2/(n+1);
-  let e = values[values.length-n];
-  for(let i=values.length-n+1;i<values.length;i++){
-    e = values[i]*k + e*(1-k);
+  function sma(arr, n){
+    if(!arr || arr.length < n) return null;
+    const slice = arr.slice(-n);
+    return slice.reduce((s,x)=>s+x,0)/n;
   }
-  return e;
-}
+  function ema(arr, n){
+    if(!arr || arr.length < n) return null;
+    const k = 2/(n+1);
+    let e = arr[0];
+    for(let i=1;i<arr.length;i++) e = arr[i]*k + e*(1-k);
+    return e;
+  }
 
-function trendScore({r1h,r6h,r7d,vol}){
-  // 100% derived (no fake): uses available returns + volatility
-  const w1 = (r1h==null?0:r1h)*45;
-  const w6 = (r6h==null?0:r6h)*35;
-  const w7 = (r7d==null?0:r7d)*20;
-  const vpen = (vol||0)*8; // higher vol => penalty
-  let score = 50 + (w1+w6+w7)*100 - vpen*100;
-  if(!isFinite(score)) score = 50;
-  return Math.max(0, Math.min(100, Math.round(score)));
-}
+  function trendScore(p1h, p6h, p7d, vol){
+    // normalize and combine (no fake data; just derived score)
+    const a = (p1h ?? 0) * 0.45 + (p6h ?? 0) * 0.35 + (p7d ?? 0) * 0.20;
+    const penalty = (vol ?? 0) * 120; // log-return std ~ small; scale to 0..?
+    const raw = a - penalty;
+    // map to 0..100
+    const s = Math.max(0, Math.min(100, 50 + raw));
+    return Math.round(s);
+  }
 
-/* Hook into existing loadMarket() by overriding safely */
-(function patchLoadMarket(){
-  if(typeof window.loadMarket !== 'function') return;
+  async function fetchMarket(login){
+    const key = String(login||'').trim().toLowerCase();
+    if(!key) return null;
+    const r = await fetch(`/api/fantasy/market?streamer=${encodeURIComponent(key)}`);
+    const j = await r.json();
+    if(!j?.success) return null;
+    cache.set(key, j);
+    return j;
+  }
 
-  const old = window.loadMarket;
-  window.loadMarket = async function(login){
-    await old(login);
+  async function fetchLeaderboard(){
+    const r = await fetch('/api/fantasy/leaderboard');
+    const j = await r.json();
+    if(!j?.success) return [];
+    return j.items || [];
+  }
 
-    // Update advanced stats in the new blocks (if modal exists)
-    try{
-      const res = await fetch(`/api/fantasy/market?streamer=${encodeURIComponent(login)}`);
-      const data = await res.json();
-      if(!data?.success) return;
+  async function fetchProfile(user){
+    const r = await fetch(`/api/fantasy/profile?user=${encodeURIComponent(user)}`);
+    const j = await r.json();
+    if(!j?.success) return null;
+    return j;
+  }
 
-      const pts = seriesFromHistory(data.market, data.history||[]);
-      const prices = pts.map(p=>p.price);
+  async function bootstrapWatchlistFromFirebase(){
+    // If localStorage already has list, keep it.
+    const ls = localStorage.getItem(LS_KEY);
+    if(ls){
+      try{
+        const arr = JSON.parse(ls);
+        if(Array.isArray(arr) && arr.length){
+          watchlist = arr.map(x=>String(x).toLowerCase().trim()).filter(Boolean).slice(0, 40);
+          return;
+        }
+      }catch(_){}
+    }
 
-      const r1h = perfForWindow(pts, 1*60*60*1000);
-      const r6h = perfForWindow(pts, 6*60*60*1000);
-      const r7d = perfForWindow(pts, 7*24*60*60*1000);
+    // Build from top leaderboard users holdings (real Firestore via backend)
+    const lb = await fetchLeaderboard();
+    const topUsers = lb.slice(0, 12).map(x=>x.user).filter(Boolean);
 
-      const logR = returnsLog(pts);
-      const vol = std(logR);
+    const set = new Set();
+    for(const u of topUsers){
+      const prof = await fetchProfile(u);
+      const holds = prof?.holdings || [];
+      holds.forEach(h=>{ if(h?.login) set.add(String(h.login).toLowerCase().trim()); });
+      if(set.size >= 25) break;
+    }
 
-      const hi = Math.max(...prices);
-      const lo = Math.min(...prices);
-      const last = prices[prices.length-1] || 0;
+    watchlist = Array.from(set).slice(0, 25);
+    if(!watchlist.length){
+      watchlist = ['twitch']; // fallback
+    }
 
-      const SMA20 = sma(prices, 20);
-      const SMA50 = sma(prices, 50);
-      const EMA20 = ema(prices, 20);
-      const EMA50 = ema(prices, 50);
+    localStorage.setItem(LS_KEY, JSON.stringify(watchlist));
+  }
 
-      const so = Number(data.market?.sharesOutstanding||0);
-      const mcap = last * so;
+  function setSelected(login){
+    selected = String(login||'').toLowerCase().trim();
+    if(selected) localStorage.setItem(LS_SEL, selected);
+    $('#mkt-selected').textContent = selected ? selected.toUpperCase() : '—';
+  }
 
-      const score = trendScore({r1h,r6h,r7d,vol});
+  function updateOverview(mkt){
+    if(!mkt) return;
+    const login = selected;
+    const market = mkt.market || {};
+    const hist = (mkt.history || []).map(x=>({ts:Number(x.ts||0), price:Number(x.price||0)})).filter(x=>x.ts && x.price);
 
-      const kpisEl = document.getElementById('marketKpis');
-      if(kpisEl){
-        kpisEl.innerHTML = `
-          ${kpiCard('Prix', fmtNum(last))}
-          ${kpiCard('Base', fmtNum(data.market?.basePrice))}
-          ${kpiCard('Shares', fmtNum(so))}
-          ${kpiCard('Market Cap', fmtNum(mcap))}
-          ${kpiCard('High', fmtNum(hi))}
-          ${kpiCard('Low', fmtNum(lo))}
-          ${kpiCard('Trend', score + '/100')}
-        `;
+    const price = Number(market.price ?? NaN);
+    const base = Number(market.basePrice ?? NaN);
+    const mult = Number(market.mult ?? NaN);
+    const shares = Number(market.sharesOutstanding ?? NaN);
+    const mcap = (Number.isFinite(price) && Number.isFinite(shares)) ? price * shares : null;
+
+    // performance windows
+    const p1h = computePerf(hist, 3600);
+    const p6h = computePerf(hist, 21600);
+    const p7d = computePerf(hist, 604800);
+
+    // vol from log returns
+    const rets = computeReturns(hist);
+    const vol = std(rets);
+
+    // hilo
+    const prices = hist.map(x=>x.price);
+    const hi = prices.length ? Math.max(...prices) : null;
+    const lo = prices.length ? Math.min(...prices) : null;
+
+    // SMA/EMA
+    const sma20 = sma(prices, 20);
+    const sma50 = sma(prices, 50);
+    const ema20 = ema(prices, 20);
+    const ema50 = ema(prices, 50);
+
+    const tscore = trendScore(p1h, p6h, p7d, vol);
+
+    // delta from last point vs prev
+    let chgText = '—';
+    if(prices.length >= 2){
+      const prev = prices[prices.length-2];
+      const cur = prices[prices.length-1];
+      const d = ((cur-prev)/prev)*100;
+      chgText = `Δ dernier point: ${pct(d)}`;
+    }
+
+    $('#mkt-price').textContent = Number.isFinite(price) ? format(price) : '—';
+    $('#mkt-chg').textContent = chgText;
+    $('#mkt-chg').className = 'text-xs ' + (prices.length>=2 ? colorClass(((prices[prices.length-1]-prices[prices.length-2])/prices[prices.length-2])*100) : 'text-white/60');
+
+    $('#mkt-base').textContent = Number.isFinite(base) ? format(base) : '—';
+    $('#mkt-mult').textContent = Number.isFinite(mult) ? (Math.round(mult*100)/100).toString() : '—';
+    $('#mkt-shares').textContent = Number.isFinite(shares) ? format(shares) : '—';
+    $('#mkt-mcap').textContent = mcap !== null ? format(mcap) : '—';
+
+    $('#mkt-p1h').textContent = p1h===null? '—' : pct(p1h);
+    $('#mkt-p1h').className = 'text-lg font-bold ' + colorClass(p1h);
+    $('#mkt-p6h').textContent = p6h===null? '—' : pct(p6h);
+    $('#mkt-p6h').className = 'text-lg font-bold ' + colorClass(p6h);
+    $('#mkt-p7d').textContent = p7d===null? '—' : pct(p7d);
+    $('#mkt-p7d').className = 'text-lg font-bold ' + colorClass(p7d);
+
+    $('#mkt-trend').textContent = Number.isFinite(tscore) ? (tscore + '/100') : '—';
+
+    $('#mkt-vol').textContent = vol===null ? '—' : (Math.round(vol*10000)/100).toString(); // scaled
+    $('#mkt-hilo').textContent = (hi===null||lo===null) ? '—' : `${format(hi)} / ${format(lo)}`;
+
+    $('#mkt-sma').textContent = `${sma20?format(sma20):'—'} / ${sma50?format(sma50):'—'}`;
+    $('#mkt-ema').textContent = `${ema20?format(ema20):'—'} / ${ema50?format(ema50):'—'}`;
+
+    const lastTs = hist.length ? hist[hist.length-1].ts : null;
+    $('#mkt-updated').textContent = lastTs ? ('Dernière maj: ' + new Date(lastTs).toLocaleString()) : '—';
+
+    // chart
+    renderChart(hist, { sma20, sma50, ema20, ema50 });
+
+    // actions enable
+    $('#mkt-buy').disabled = !login;
+    $('#mkt-sell').disabled = !login;
+  }
+
+  function renderChart(hist, ind){
+    const svg = $('#mkt-chart');
+    const meta = $('#mkt-chart-meta');
+    if(!svg) return;
+    svg.innerHTML = '';
+    if(!hist || hist.length < 2){
+      meta.textContent = 'Pas assez de points historiques.';
+      return;
+    }
+    const prices = hist.map(x=>x.price);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const span = (max-min)||1;
+
+    const pts = hist.map((p,i)=>{
+      const x = (i/(hist.length-1))*1000;
+      const y = 360 - ((p.price-min)/span)*360;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+
+    const up = prices[prices.length-1] >= prices[0];
+    const stroke = up ? '#00ff88' : '#ff4d6d';
+    svg.innerHTML += `<polyline fill="none" stroke="${stroke}" stroke-width="3" points="${pts}" />`;
+
+    const showSMA = $('#mkt-toggle-sma')?.checked;
+    const showEMA = $('#mkt-toggle-ema')?.checked;
+
+    function lineForValue(val, color){
+      if(!val) return;
+      const y = 360 - ((val-min)/span)*360;
+      svg.innerHTML += `<line x1="0" y1="${y.toFixed(1)}" x2="1000" y2="${y.toFixed(1)}" stroke="${color}" stroke-width="2" stroke-dasharray="6 6" opacity="0.8"/>`;
+    }
+    if(showSMA){
+      lineForValue(ind.sma20, '#00e5ff');
+      lineForValue(ind.sma50, '#7d5bbe');
+    }
+    if(showEMA){
+      lineForValue(ind.ema20, '#ffd166');
+      lineForValue(ind.ema50, '#ef476f');
+    }
+
+    meta.textContent = `Points: ${hist.length} · Min: ${format(min)} · Max: ${format(max)}`;
+  }
+
+  async function trade(side){
+    const login = selected;
+    if(!login) return;
+    const amount = Number($('#mkt-amount').value || 0);
+    if(!amount || amount<=0) return;
+
+    const path = side === 'buy' ? '/api/fantasy/invest' : '/api/fantasy/sell';
+    await fetch(path, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ user: ($('#mkt-user')?.value || 'Anon'), streamer: login, amount })
+    }).catch(()=>{});
+
+    // refresh selected and watchlist
+    await refreshSelected();
+    await refreshWatchlist();
+  }
+
+  function setTab(name){
+    tabs.forEach(b=>{
+      const on = b.dataset.tab === name;
+      b.classList.toggle('bg-white/10', on);
+      b.classList.toggle('bg-white/5', !on);
+      b.classList.toggle('font-bold', on);
+    });
+    views.forEach(v=>{
+      v.classList.add('hidden');
+    });
+    const el = $('#mkt-tab-' + name);
+    if(el) el.classList.remove('hidden');
+  }
+
+  function renderHeatmap(items, horizonSec){
+    const wrap = $('#mkt-heat');
+    if(!wrap) return;
+    wrap.innerHTML = '';
+    items.slice(0, 12).forEach(it=>{
+      const p = it['p'+horizonSec] ?? it.pct;
+      const cls = p>0 ? 'bg-[#00ff881f] border-[#00ff8833]' : (p<0 ? 'bg-[#ff4d6d1f] border-[#ff4d6d33]' : 'bg-white/5 border-white/10');
+      const tcls = p>0 ? 'text-[#00ff88]' : (p<0 ? 'text-[#ff4d6d]' : 'text-white/70');
+      const div = document.createElement('button');
+      div.className = `text-left rounded-xl border ${cls} p-3 hover:bg-white/10 transition`;
+      div.innerHTML = `<div class="text-xs text-white/60">${it.login.toUpperCase()}</div>
+                       <div class="text-lg font-extrabold ${tcls}">${pct(p)}</div>`;
+      div.onclick = ()=>{ setSelected(it.login); refreshSelected(); };
+      wrap.appendChild(div);
+    });
+  }
+
+  function renderGainersLosers(rows){
+    const gain = $('#mkt-gainers');
+    const lose = $('#mkt-losers');
+    if(!gain || !lose) return;
+    const g = [...rows].sort((a,b)=>(b.pct??-1e9)-(a.pct??-1e9)).slice(0,5);
+    const l = [...rows].sort((a,b)=>(a.pct??1e9)-(b.pct??1e9)).slice(0,5);
+
+    gain.innerHTML = g.map(x=>`<div class="${colorClass(x.pct)} font-bold">${x.login.toUpperCase()} <span class="text-white/60 font-normal">${pct(x.pct)}</span></div>`).join('') || '<div class="text-white/60">—</div>';
+    lose.innerHTML = l.map(x=>`<div class="${colorClass(x.pct)} font-bold">${x.login.toUpperCase()} <span class="text-white/60 font-normal">${pct(x.pct)}</span></div>`).join('') || '<div class="text-white/60">—</div>';
+  }
+
+  async function refreshSelected(){
+    const login = selected || watchlist[0];
+    if(!login) return;
+
+    setSelected(login);
+    const mkt = await fetchMarket(login);
+    updateOverview(mkt);
+  }
+
+  async function refreshWatchlist(){
+    // fetch all tickers (limited concurrency)
+    const list = watchlist.slice(0, 30);
+    const results = [];
+    const horizon = Number($('#mkt-horizon')?.value || 3600);
+    const workers = 4;
+    let idx=0;
+
+    async function worker(){
+      while(idx < list.length){
+        const i = idx++;
+        const login = list[i];
+        const mkt = await fetchMarket(login);
+        if(!mkt) continue;
+
+        const hist = (mkt.history || []).map(x=>({ts:Number(x.ts||0), price:Number(x.price||0)})).filter(x=>x.ts && x.price);
+        const market = mkt.market || {};
+        const price = Number(market.price ?? NaN);
+        const shares = Number(market.sharesOutstanding ?? NaN);
+        const mcap = (Number.isFinite(price) && Number.isFinite(shares)) ? price*shares : null;
+
+        const p1h = computePerf(hist, 3600);
+        const p6h = computePerf(hist, 21600);
+        const p7d = computePerf(hist, 604800);
+
+        const rets = computeReturns(hist);
+        const vol = std(rets);
+        const tscore = trendScore(p1h, p6h, p7d, vol);
+
+        const prices = hist.map(x=>x.price);
+        const spark = prices.slice(-24);
+
+        const pctH = computePerf(hist, horizon);
+        results.push({
+          login,
+          price: Number.isFinite(price)?price:null,
+          p1h, p6h, p7d,
+          vol,
+          mcap,
+          trend: tscore,
+          pct: pctH,
+          spark
+        });
       }
+    }
 
-      const perfEl = document.getElementById('marketPerf');
-      if(perfEl){
-        perfEl.innerHTML = `
-          <div>Perf 1h: <b style="color:#fff">${fmtPct(r1h)}</b></div>
-          <div>Perf 6h: <b style="color:#fff">${fmtPct(r6h)}</b></div>
-          <div>Perf 7j: <b style="color:#fff">${fmtPct(r7d)}</b></div>
-        `;
-      }
+    await Promise.allSettled(Array.from({length:workers}, worker));
 
-      const indEl = document.getElementById('marketIndicators');
-      if(indEl){
-        indEl.innerHTML = `
-          <div>SMA20: <b style="color:#fff">${SMA20==null?'—':fmtNum(SMA20)}</b></div>
-          <div>EMA20: <b style="color:#fff">${EMA20==null?'—':fmtNum(EMA20)}</b></div>
-          <div>SMA50: <b style="color:#fff">${SMA50==null?'—':fmtNum(SMA50)}</b></div>
-          <div>EMA50: <b style="color:#fff">${EMA50==null?'—':fmtNum(EMA50)}</b></div>
-          <div>Volatilité (log): <b style="color:#fff">${(vol*100).toFixed(2)}%</b></div>
-        `;
-      }
+    // heatmap + gainers/losers (based on selected horizon)
+    renderHeatmap(results.map(x=>({login:x.login, pct:x.pct, ['p'+horizon]:x.pct})), horizon);
+    renderGainersLosers(results);
 
-      fillWatchlistInput();
-      refreshWatchlist();
-    }catch(_){}
-  };
-
-  function kpiCard(label, value){
-    return `<div style="flex:1;min-width:130px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;background:rgba(0,0,0,.15);">
-      <div style="color:#a7a7b2;font-size:11px;font-weight:800">${label}</div>
-      <div style="color:#fff;font-size:16px;font-weight:1000">${value}</div>
-    </div>`;
+    // table
+    renderMarketsTable(results);
   }
-})();
 
-async function refreshWatchlist(){
-  const horizonSel = document.getElementById('wlHorizon');
-  const horizon = horizonSel ? horizonSel.value : '1h';
-  const ms = horizon==='6h' ? 6*60*60*1000 : horizon==='7d' ? 7*24*60*60*1000 : 1*60*60*1000;
+  function renderMarketsTable(rows){
+    const sort = $('#mkt-sort')?.value || 'trend';
+    const list = [...rows];
 
-  const wl = getWatchlist();
-  const tasks = wl.map(async login=>{
-    try{
-      const r = await fetch(`/api/fantasy/market?streamer=${encodeURIComponent(login)}`);
-      const d = await r.json();
-      if(!d?.success) return null;
-      const pts = seriesFromHistory(d.market, d.history||[]);
-      const ret = perfForWindow(pts, ms);
-      const logR = returnsLog(pts);
-      const vol = std(logR);
-      const score = trendScore({r1h: perfForWindow(pts, 1*60*60*1000), r6h: perfForWindow(pts, 6*60*60*1000), r7d: perfForWindow(pts, 7*24*60*60*1000), vol});
-      const last = pts[pts.length-1]?.price || 0;
-      return { login, ret, price:last, score };
-    }catch(_){ return null; }
-  });
+    const keyMap = {
+      trend: x=>x.trend ?? -1e9,
+      p1h: x=>x.p1h ?? -1e9,
+      p6h: x=>x.p6h ?? -1e9,
+      p7d: x=>x.p7d ?? -1e9,
+      mcap: x=>x.mcap ?? -1e9,
+      vol: x=>x.vol ?? -1e9
+    };
+    const keyFn = keyMap[sort] || keyMap.trend;
+    list.sort((a,b)=> (keyFn(b)-keyFn(a)));
 
-  const results = (await Promise.allSettled(tasks)).map(x=>x.value).filter(Boolean);
-  const withRet = results.filter(x=>x.ret!=null && isFinite(x.ret));
+    const tbody = $('#mkt-table');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    list.forEach((r, i)=>{
+      const tr = document.createElement('tr');
+      tr.className = 'border-t border-white/10 hover:bg-white/5 cursor-pointer';
+      tr.innerHTML = `
+        <td class="py-2 text-white/60">${i+1}</td>
+        <td class="py-2 font-bold">${r.login.toUpperCase()}</td>
+        <td class="py-2 text-right font-bold">${r.price===null?'—':format(r.price)}</td>
+        <td class="py-2 text-right ${colorClass(r.p1h)} font-bold">${r.p1h===null?'—':pct(r.p1h)}</td>
+        <td class="py-2 text-right ${colorClass(r.p6h)} font-bold">${r.p6h===null?'—':pct(r.p6h)}</td>
+        <td class="py-2 text-right ${colorClass(r.p7d)} font-bold">${r.p7d===null?'—':pct(r.p7d)}</td>
+        <td class="py-2 text-right text-white/80">${r.vol===null?'—':(Math.round(r.vol*10000)/100)}</td>
+        <td class="py-2 text-right text-white/80">${r.mcap===null?'—':format(r.mcap)}</td>
+        <td class="py-2 text-right font-bold">${r.trend??'—'}</td>
+        <td class="py-2 text-right">${sparklineSvg(r.spark || [])}</td>
+      `;
+      tr.onclick = ()=>{ setSelected(r.login); setTab('overview'); refreshSelected(); };
+      tbody.appendChild(tr);
+    });
+  }
 
-  withRet.sort((a,b)=>b.ret-a.ret);
-  const gainers = withRet.slice(0,8);
-  const losers = withRet.slice(-8).reverse();
+  async function refreshPortfolio(){
+    const user = ($('#mkt-user')?.value || 'Anon').trim() || 'Anon';
+    const prof = await fetchProfile(user);
+    if(!prof){
+      $('#pf-cash').textContent = '—';
+      return;
+    }
+    const cash = Number(prof.cash||0);
+    const holds = prof.holdings || [];
+    const holdValue = holds.reduce((s,h)=>s+Number(h.value||0),0);
+    const net = cash + holdValue;
 
-  const gEl = document.getElementById('wlGainers');
-  const lEl = document.getElementById('wlLosers');
+    $('#pf-cash').textContent = format(cash);
+    $('#pf-hold').textContent = format(holdValue);
+    $('#pf-net').textContent = format(net);
+    $('#pf-n').textContent = String(holds.length);
 
-  if(gEl) gEl.innerHTML = gainers.length ? gainers.map(rowHtml).join('') : `<div style="color:#a7a7b2">Pas assez d'historique pour ${horizon}.</div>`;
-  if(lEl) lEl.innerHTML = losers.length ? losers.map(rowHtml).join('') : `<div style="color:#a7a7b2">Pas assez d'historique pour ${horizon}.</div>`;
+    const tbody = $('#pf-table');
+    tbody.innerHTML = holds.map(h=>`
+      <tr class="border-t border-white/10 hover:bg-white/5 cursor-pointer" onclick="window.__mktSelect && window.__mktSelect('${String(h.login).toLowerCase()}')">
+        <td class="py-2 font-bold">${String(h.login||'').toUpperCase()}</td>
+        <td class="py-2 text-right">${format(h.shares||0)}</td>
+        <td class="py-2 text-right">${format(h.price||0)}</td>
+        <td class="py-2 text-right font-bold">${format(h.value||0)}</td>
+      </tr>
+    `).join('') || '<tr><td class="py-2 text-white/60" colspan="4">Aucune position</td></tr>';
+  }
 
-  function rowHtml(x){
-    const color = x.ret>=0 ? '#00f2ea' : '#ff3b3b';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px 10px;background:rgba(0,0,0,.12);cursor:pointer"
-      onclick="loadMarket('${x.login}')">
-      <div style="font-weight:900;color:#fff">${x.login}</div>
-      <div style="text-align:right">
-        <div style="font-weight:1000;color:${color}">${fmtPct(x.ret)}</div>
-        <div style="font-size:11px;color:#a7a7b2">Prix ${fmtNum(x.price)} • Trend ${x.score}/100</div>
+  async function refreshLeaderboard(){
+    const lb = await fetchLeaderboard();
+    const wrap = $('#lb-list');
+    if(!wrap) return;
+    wrap.innerHTML = (lb||[]).slice(0,20).map((x,i)=>`
+      <div class="flex items-center justify-between border-b border-white/10 py-2">
+        <div class="font-bold">${i+1}. ${String(x.user||'').toUpperCase()}</div>
+        <div class="text-white/80">${format(x.netWorth||0)}</div>
       </div>
-    </div>`;
+    `).join('') || '<div class="text-white/60">—</div>';
   }
-}
+
+  // --- Events ---
+  function wire(){
+    // Tabs
+    tabs.forEach(b=>{
+      b.addEventListener('click', ()=>{
+        setTab(b.dataset.tab);
+      });
+    });
+
+    $('#mkt-refresh').addEventListener('click', async ()=>{
+      await refreshSelected();
+      await refreshWatchlist();
+      if($('#mkt-tab-portfolio') && !$('#mkt-tab-portfolio').classList.contains('hidden')) await refreshPortfolio();
+    });
+
+    $('#mkt-auto').addEventListener('click', ()=>{
+      autoOn = !autoOn;
+      $('#mkt-auto').textContent = 'Auto: ' + (autoOn?'ON':'OFF');
+      if(autoOn) startAuto();
+      else stopAuto();
+    });
+
+    $('#mkt-buy').addEventListener('click', ()=>trade('buy'));
+    $('#mkt-sell').addEventListener('click', ()=>trade('sell'));
+
+    $('#mkt-horizon').addEventListener('change', ()=>refreshWatchlist());
+    $('#mkt-sort').addEventListener('change', ()=>refreshWatchlist());
+    $('#mkt-reload-watch').addEventListener('click', ()=>refreshWatchlist());
+
+    $('#mkt-load-portfolio').addEventListener('click', ()=>refreshPortfolio());
+    $('#mkt-load-leader').addEventListener('click', ()=>refreshLeaderboard());
+
+    $('#mkt-edit').addEventListener('click', ()=>{
+      $('#mkt-edit-modal').classList.remove('hidden');
+      $('#mkt-watchlist').value = watchlist.join(', ');
+    });
+    $('#mkt-save-watchlist').addEventListener('click', ()=>{
+      const raw = $('#mkt-watchlist').value || '';
+      const arr = raw.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+      watchlist = Array.from(new Set(arr)).slice(0, 40);
+      localStorage.setItem(LS_KEY, JSON.stringify(watchlist));
+      $('#mkt-edit-modal').classList.add('hidden');
+      if(!watchlist.includes(selected)) setSelected(watchlist[0]);
+      refreshSelected();
+      refreshWatchlist();
+    });
+
+    $('#mkt-add').addEventListener('click', ()=>{
+      const q = ($('#mkt-search').value || '').trim().toLowerCase();
+      if(!q) return;
+      if(!watchlist.includes(q)){
+        watchlist.unshift(q);
+        watchlist = Array.from(new Set(watchlist)).slice(0, 40);
+        localStorage.setItem(LS_KEY, JSON.stringify(watchlist));
+      }
+      setSelected(q);
+      refreshSelected();
+      refreshWatchlist();
+      $('#mkt-search').value = '';
+    });
+
+    $('#mkt-search').addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') $('#mkt-add').click();
+    });
+
+    // chart toggles
+    $('#mkt-toggle-sma').addEventListener('change', ()=>refreshSelected());
+    $('#mkt-toggle-ema').addEventListener('change', ()=>refreshSelected());
+
+    // expose select for portfolio table onclick
+    window.__mktSelect = (login)=>{ setSelected(login); setTab('overview'); refreshSelected(); };
+  }
+
+  function startAuto(){
+    stopAuto();
+    autoTimer = setInterval(async ()=>{
+      if(!overlay || overlay.classList.contains('hidden')) return;
+      await refreshSelected();
+      await refreshWatchlist();
+    }, 12000);
+  }
+  function stopAuto(){
+    if(autoTimer) clearInterval(autoTimer);
+    autoTimer = null;
+  }
+
+  // Override the existing refreshMarketAll called by openMarketOverlay()
+  window.refreshMarketAll = async function(){
+    await refreshSelected();
+    await refreshWatchlist();
+  };
+
+  // Improve open/close to lock scroll and hide auxiliary buttons
+  const _open = window.openMarketOverlay;
+  const _close = window.closeMarketOverlay;
+  window.openMarketOverlay = function(){
+    if(!_open) return;
+    _open();
+    setBodyModal(true);
+    setAuxUiHidden(true);
+    // select default
+    if(!selected) setSelected(watchlist[0]);
+    refreshSelected();
+    refreshWatchlist();
+  };
+  window.closeMarketOverlay = function(){
+    if(_close) _close();
+    setBodyModal(false);
+    setAuxUiHidden(false);
+  };
+
+  // --- Chat height lock to player ---
+  function lockSidePanelToPlayer(){
+    const player = document.getElementById('twitch-embed') || document.querySelector('#player, #playerCol, #playerCol iframe, .player-shell, .twitch-player');
+    const side = document.getElementById('side-panel') || document.querySelector('#side-panel, #sidePanel, #right-panel, #sideCol');
+    if(!player || !side) return;
+
+    const getRect = (el)=>{
+      const r = el.getBoundingClientRect();
+      return { h: Math.max(240, Math.floor(r.height)) };
+    };
+
+    const apply = ()=>{
+      const h = getRect(player).h;
+      side.style.height = h + 'px';
+      side.style.maxHeight = h + 'px';
+      side.style.overflow = 'hidden';
+      // ensure inner scroll panels scroll
+      const inner = side.querySelector('.tab-content, .panel, .side-content, .right-tabs-content, [data-side-scroll]') || side;
+      if(inner) inner.style.overflow = 'auto';
+    };
+
+    apply();
+    try{
+      const ro = new ResizeObserver(()=>apply());
+      ro.observe(player);
+      window.addEventListener('resize', apply);
+    }catch(_){
+      window.addEventListener('resize', apply);
+      setInterval(apply, 1200);
+    }
+  }
+
+  async function init(){
+    wire();
+    await bootstrapWatchlistFromFirebase();
+
+    const savedSel = localStorage.getItem(LS_SEL);
+    if(savedSel && watchlist.includes(savedSel)) selected = savedSel;
+    if(!selected) selected = watchlist[0];
+
+    setSelected(selected);
+
+    // allow market open without errors
+    lockSidePanelToPlayer();
+
+    // If overlay already open
+    if(overlay && !overlay.classList.contains('hidden')){
+      setBodyModal(true);
+      setAuxUiHidden(true);
+      await refreshSelected();
+      await refreshWatchlist();
+    }
+
+    // start auto by default
+    startAuto();
+  }
+
+  init();
+
+})();
 </script>
 
 </body>
