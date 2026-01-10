@@ -735,14 +735,12 @@
   position:absolute;
   top:10px;
   right:10px;
-  z-index: 50;
+  z-index:99999 !important;
   display:flex;
   gap:8px;
   pointer-events:auto;
 }
 #player-tools .toolbtn{ pointer-events:auto; }
-body.modal-open #player-tools{ display:none !important; }
-
 #video-container iframe{ position:relative; z-index:1 !important; }
 #video-container .player-wrap, #video-container #player{ position:relative; z-index:1 !important; }
 
@@ -917,11 +915,6 @@ body.modal-open #player-tools{ display:none !important; }
   #main-layout{ grid-template-columns:1fr !important; }
   #side-panel{ grid-column:1 !important; }
 }
-/* Market overlay fallback (for CSP/no-tailwind) */
-#market-overlay{position:fixed;inset:0;z-index:10000;display:none;}
-#market-overlay.active{display:block;}
-#market-overlay.hidden{display:none;}
-
 /* Centered Market modal like TwitFlix */
 #market-overlay .market-modal{
   position:absolute;
@@ -933,6 +926,17 @@ body.modal-open #player-tools{ display:none !important; }
   border-radius:18px;
   overflow:hidden;
 }
+
+
+/* === HARD LOCK: chats never exceed player height === */
+:root{ --playerH: 72vh; }
+.player-shell{ height: var(--playerH) !important; max-height: var(--playerH) !important; min-height: var(--playerH) !important; }
+#side-panel{ height: var(--playerH) !important; max-height: var(--playerH) !important; min-height: var(--playerH) !important; display:flex !important; flex-direction:column !important; overflow:hidden !important; }
+#side-panel .tab-panels, #side-panel .tab-content{ flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }
+#side-panel iframe{ width:100% !important; height:100% !important; border:0 !important; }
+
+/* Floating quick icons must not cover TwitFlix/Market overlays */
+body.modal-open .quick-dock, body.modal-open #quickDock, body.modal-open .floating-icons { display:none !important; }
 
 </style>
 </head>
@@ -3236,7 +3240,8 @@ function focusChannel(enc){
 }
 
 // Fantasy API + chart
-function openFantasy(){ document.getElementById('fantasyModal')?.classList.add('active'); refreshFantasy(); }
+function openFantasy(){
+      document.body.classList.add('modal-open'); document.getElementById('fantasyModal')?.classList.add('active'); refreshFantasy(); }
 function closeFantasy(e){ if(e) e.preventDefault(); document.getElementById('fantasyModal')?.classList.remove('active'); }
 
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
@@ -3526,9 +3531,7 @@ async function loadStreamerMarket(){
     const mult = Number(j.market?.mult || 1);
     const shares = Number(j.market?.sharesOutstanding || 0);
 
-    
-    const hist = j.history || [];
-const priceEl = document.getElementById('mkt-price');
+    const priceEl = document.getElementById('mkt-price');
     const multEl = document.getElementById('mkt-mult');
     const sharesEl = document.getElementById('mkt-shares');
 
@@ -3536,36 +3539,8 @@ const priceEl = document.getElementById('mkt-price');
     if(multEl) multEl.textContent = (Math.round(mult*100)/100).toLocaleString('fr-FR');
     if(sharesEl) sharesEl.textContent = shares.toLocaleString('fr-FR');
 
-    
-    const base = Number(j.market?.basePrice || 0);
-    const cap = price * shares;
-    const baseEl = document.getElementById('mkt-base');
-    const capEl = document.getElementById('mkt-cap');
-    if(baseEl) baseEl.textContent = base.toLocaleString('fr-FR');
-    if(capEl) capEl.textContent = Math.round(cap).toLocaleString('fr-FR');
-
-    const derived = computeMarketDerived(hist);
-    if(derived){
-      const ch24El = document.getElementById('mkt-chg24');
-      const volEl = document.getElementById('mkt-vol');
-      const hiEl = document.getElementById('mkt-high');
-      const loEl = document.getElementById('mkt-low');
-      const momEl = document.getElementById('mkt-mom');
-      const lastEl = document.getElementById('mkt-last');
-      if(ch24El){
-        ch24El.textContent = (Math.round(derived.chg24*100)/100).toLocaleString('fr-FR') + '%';
-        ch24El.style.color = derived.chg24>=0 ? '#00f2ea' : '#ff4d7d';
-      }
-      if(volEl) volEl.textContent = (Math.round(derived.vol*1000)/1000).toLocaleString('fr-FR');
-      if(hiEl) hiEl.textContent = derived.high.toLocaleString('fr-FR');
-      if(loEl) loEl.textContent = derived.low.toLocaleString('fr-FR');
-      if(momEl) momEl.textContent = (Math.round(derived.mom*100)/100).toLocaleString('fr-FR') + ' (' + (Math.round(derived.momPct*100)/100).toLocaleString('fr-FR') + '%)';
-      if(lastEl){
-        const d = derived.lastTs ? new Date(derived.lastTs) : null;
-        lastEl.textContent = d ? d.toLocaleString('fr-FR') : '—';
-      }
-    }
-// chart
+    // chart
+    const hist = j.history || [];
     const labels = hist.map((p, idx)=> idx+1);
     const values = hist.map(p => Number(p.price||0));
     renderMarketChart(labels, values);
@@ -3647,22 +3622,20 @@ async function marketSell(){
 
     // MARKET OVERLAY (TwitFlix-like)
     function openMarketOverlay(){
+      document.body.classList.add('modal-open');
       const ov = document.getElementById('market-overlay');
       if(!ov) return;
-      document.body.classList.add('modal-open');
       ov.classList.remove('hidden');
-      ov.classList.add('active');
       // ensure overlay starts at top
       try { ov.querySelector('.overflow-y-auto')?.scrollTo({ top:0, behavior:'smooth' }); } catch(_){}
       // refresh when opened (soft)
       try { refreshMarketAll(); } catch(_){}
     }
     function closeMarketOverlay(){
+      document.body.classList.remove('modal-open');
       const ov = document.getElementById('market-overlay');
       if(!ov) return;
       ov.classList.add('hidden');
-      ov.classList.remove('active');
-      document.body.classList.remove('modal-open');
     }
 
 </script>
@@ -3704,6 +3677,56 @@ async function marketSell(){
             <div style="font-weight:900;color:#eaeaf0;margin-bottom:6px;">Cours</div>
             <div id="marketInfo" style="display:flex;gap:10px;flex-wrap:wrap;color:#a7a7b2;font-size:12px;"></div>
             <canvas id="marketChart" width="640" height="220" style="width:100%;background:#0b0b0d;border:1px solid rgba(255,255,255,.10);border-radius:14px;"></canvas>
+
+<div style="margin-top:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.03);">
+  <div style="font-weight:900;color:#eaeaf0;margin-bottom:8px;">📊 Stats Marché (réelles)</div>
+  <div id="marketKpis" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+  <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:240px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;">
+      <div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Performance</div>
+      <div id="marketPerf" style="color:#a7a7b2;font-size:12px;line-height:1.6;"></div>
+    </div>
+    <div style="flex:1;min-width:240px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;">
+      <div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Indicateurs</div>
+      <div id="marketIndicators" style="color:#a7a7b2;font-size:12px;line-height:1.6;"></div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.03);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div style="font-weight:900;color:#eaeaf0;">📌 Watchlist (pour Top Gainers/Losers)</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <select id="wlHorizon" style="background:#0c0c0f;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:8px 10px;">
+        <option value="1h">Perf 1h</option>
+        <option value="6h">Perf 6h</option>
+        <option value="7d">Perf 7j</option>
+      </select>
+      <button onclick="refreshWatchlist()" style="background:#111;border:1px solid rgba(255,255,255,.10);color:#fff;border-radius:12px;padding:8px 10px;font-weight:900;cursor:pointer;">Rafraîchir</button>
+    </div>
+  </div>
+
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <input id="wlInput" placeholder="Ajoute des logins: zerator,gotaga,..." style="flex:1;min-width:260px;background:#0c0c0f;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;">
+    <button onclick="saveWatchlistFromInput()" style="background:#00f2ea;color:#000;border:none;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Enregistrer</button>
+  </div>
+
+  <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;">
+      <div style="font-weight:900;color:#00f2ea;margin-bottom:8px;">🚀 Top Gainers</div>
+      <div id="wlGainers" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+    <div style="flex:1;min-width:260px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;">
+      <div style="font-weight:900;color:#ff3b3b;margin-bottom:8px;">📉 Top Losers</div>
+      <div id="wlLosers" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px;color:#a7a7b2;font-size:12px;">
+    <b>Trend score</b> = score basé sur perf (1h/6h/7j) + volatilité (history). 100% dérivé des données renvoyées par <code>/api/fantasy/market</code>.
+  </div>
+</div>
+
           </div>
           <div style="flex:1;min-width:260px;">
             <div style="font-weight:900;color:#ffd600;margin-bottom:6px;">Leaderboard</div>
@@ -3783,49 +3806,6 @@ async function marketSell(){
                 </div>
               </div>
 
-              <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Base (viewers)</div>
-                  <div class="text-lg font-orbitron text-white" id="mkt-base">--</div>
-                  <div class="text-[10px] text-gray-500 mt-1">prix plancher (si offline)</div>
-                </div>
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Market Cap</div>
-                  <div class="text-lg font-orbitron text-white" id="mkt-cap">--</div>
-                  <div class="text-[10px] text-gray-500 mt-1">prix × shares</div>
-                </div>
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Variation 24h</div>
-                  <div class="text-lg font-orbitron" id="mkt-chg24">--</div>
-                  <div class="text-[10px] text-gray-500 mt-1">sur points disponibles</div>
-                </div>
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
-                  <div class="text-lg font-orbitron text-white" id="mkt-vol">--</div>
-                  <div class="text-[10px] text-gray-500 mt-1">écart-type rendements</div>
-                </div>
-              </div>
-
-              <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">High (période)</div>
-                  <div class="text-lg font-orbitron text-white" id="mkt-high">--</div>
-                </div>
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Low (période)</div>
-                  <div class="text-lg font-orbitron text-white" id="mkt-low">--</div>
-                </div>
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Momentum</div>
-                  <div class="text-lg font-orbitron text-white" id="mkt-mom">--</div>
-                  <div class="text-[10px] text-gray-500 mt-1">Δ derniers points</div>
-                </div>
-                <div class="bg-[#101012] border border-[#222] rounded-lg p-3">
-                  <div class="text-[10px] text-gray-500 uppercase">Dernière maj</div>
-                  <div class="text-sm text-gray-200" id="mkt-last">--</div>
-                </div>
-              </div>
-
               <div class="mt-3 bg-[#101012] border border-[#222] rounded-lg p-3">
                 <div class="flex items-center justify-between">
                   <div class="text-xs text-gray-300 font-bold uppercase">Courbe (derniers points)</div>
@@ -3881,6 +3861,274 @@ async function marketSell(){
   }
   window.addEventListener('resize', function(){ setTimeout(ensureSidePanel, 50); });
 })();
+</script>
+
+
+<script>
+(function lockSidePanelToPlayer(){
+  const root = document.documentElement;
+  const player = document.querySelector('.player-shell');
+  const side = document.getElementById('side-panel');
+  if(!player || !side) return;
+
+  const setH = () => {
+    const h = player.getBoundingClientRect().height;
+    if(h && h > 200){
+      root.style.setProperty('--playerH', Math.round(h) + 'px');
+    }
+  };
+  setH();
+  try{
+    const ro = new ResizeObserver(()=>setH());
+    ro.observe(player);
+  }catch(_){
+    window.addEventListener('resize', setH);
+  }
+})();
+</script>
+
+<script>
+/* ===== Market analytics (REAL from /api/fantasy/market) ===== */
+const WL_KEY = 'streamhub_watchlist_v1';
+
+function parseList(s){
+  return String(s||'').split(/[,\s]+/).map(x=>x.trim().toLowerCase()).filter(Boolean);
+}
+function getWatchlist(){
+  try{
+    const raw = localStorage.getItem(WL_KEY);
+    const arr = raw ? JSON.parse(raw) : null;
+    if(Array.isArray(arr) && arr.length) return arr;
+  }catch(_){}
+  // default: current streamer + a few FR staples (edit as you like)
+  return ['sansahd','zerator','gotaga','kamet0','domingo','pomme','mastu'];
+}
+function setWatchlist(arr){
+  const clean = [...new Set((arr||[]).map(x=>String(x).toLowerCase().trim()).filter(Boolean))].slice(0,50);
+  localStorage.setItem(WL_KEY, JSON.stringify(clean));
+  return clean;
+}
+function fillWatchlistInput(){
+  const inp = document.getElementById('wlInput');
+  if(inp) inp.value = getWatchlist().join(',');
+}
+function saveWatchlistFromInput(){
+  const inp = document.getElementById('wlInput');
+  const arr = setWatchlist(parseList(inp?.value));
+  if(inp) inp.value = arr.join(',');
+  refreshWatchlist();
+}
+
+function fmtPct(x){
+  if(x==null || !isFinite(x)) return '—';
+  const sign = x>0?'+':'';
+  return sign + (x*100).toFixed(2) + '%';
+}
+function fmtNum(x){
+  if(x==null || !isFinite(x)) return '—';
+  return Math.round(x).toLocaleString('fr-FR');
+}
+
+function seriesFromHistory(market, history){
+  const pts = (history||[]).map(p=>({ts:Number(p.ts||0), price:Number(p.price||0)})).filter(p=>p.ts && p.price);
+  if(!pts.length){
+    // fallback single point: now + market.price
+    return [{ts: Date.now(), price:Number(market?.price||0)}].filter(p=>p.price);
+  }
+  return pts.sort((a,b)=>a.ts-b.ts);
+}
+
+function nearestAtOrBefore(pts, t){
+  // pts sorted asc
+  let lo=0, hi=pts.length-1, ans=null;
+  while(lo<=hi){
+    const mid=(lo+hi)>>1;
+    if(pts[mid].ts<=t){ ans=pts[mid]; lo=mid+1; }
+    else hi=mid-1;
+  }
+  return ans;
+}
+
+function perfForWindow(pts, windowMs){
+  const last = pts[pts.length-1];
+  const targetT = last.ts - windowMs;
+  const prev = nearestAtOrBefore(pts, targetT);
+  if(!prev || !prev.price) return null;
+  return (last.price/prev.price) - 1;
+}
+
+function returnsLog(pts){
+  const r=[];
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1].price, b=pts[i].price;
+    if(a>0 && b>0) r.push(Math.log(b/a));
+  }
+  return r;
+}
+
+function std(arr){
+  if(!arr.length) return 0;
+  const m = arr.reduce((s,x)=>s+x,0)/arr.length;
+  const v = arr.reduce((s,x)=>s+(x-m)*(x-m),0)/arr.length;
+  return Math.sqrt(v);
+}
+
+function sma(values, n){
+  if(values.length < n) return null;
+  const slice = values.slice(-n);
+  return slice.reduce((a,b)=>a+b,0)/n;
+}
+function ema(values, n){
+  if(values.length < n) return null;
+  const k = 2/(n+1);
+  let e = values[values.length-n];
+  for(let i=values.length-n+1;i<values.length;i++){
+    e = values[i]*k + e*(1-k);
+  }
+  return e;
+}
+
+function trendScore({r1h,r6h,r7d,vol}){
+  // 100% derived (no fake): uses available returns + volatility
+  const w1 = (r1h==null?0:r1h)*45;
+  const w6 = (r6h==null?0:r6h)*35;
+  const w7 = (r7d==null?0:r7d)*20;
+  const vpen = (vol||0)*8; // higher vol => penalty
+  let score = 50 + (w1+w6+w7)*100 - vpen*100;
+  if(!isFinite(score)) score = 50;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+/* Hook into existing loadMarket() by overriding safely */
+(function patchLoadMarket(){
+  if(typeof window.loadMarket !== 'function') return;
+
+  const old = window.loadMarket;
+  window.loadMarket = async function(login){
+    await old(login);
+
+    // Update advanced stats in the new blocks (if modal exists)
+    try{
+      const res = await fetch(`/api/fantasy/market?streamer=${encodeURIComponent(login)}`);
+      const data = await res.json();
+      if(!data?.success) return;
+
+      const pts = seriesFromHistory(data.market, data.history||[]);
+      const prices = pts.map(p=>p.price);
+
+      const r1h = perfForWindow(pts, 1*60*60*1000);
+      const r6h = perfForWindow(pts, 6*60*60*1000);
+      const r7d = perfForWindow(pts, 7*24*60*60*1000);
+
+      const logR = returnsLog(pts);
+      const vol = std(logR);
+
+      const hi = Math.max(...prices);
+      const lo = Math.min(...prices);
+      const last = prices[prices.length-1] || 0;
+
+      const SMA20 = sma(prices, 20);
+      const SMA50 = sma(prices, 50);
+      const EMA20 = ema(prices, 20);
+      const EMA50 = ema(prices, 50);
+
+      const so = Number(data.market?.sharesOutstanding||0);
+      const mcap = last * so;
+
+      const score = trendScore({r1h,r6h,r7d,vol});
+
+      const kpisEl = document.getElementById('marketKpis');
+      if(kpisEl){
+        kpisEl.innerHTML = `
+          ${kpiCard('Prix', fmtNum(last))}
+          ${kpiCard('Base', fmtNum(data.market?.basePrice))}
+          ${kpiCard('Shares', fmtNum(so))}
+          ${kpiCard('Market Cap', fmtNum(mcap))}
+          ${kpiCard('High', fmtNum(hi))}
+          ${kpiCard('Low', fmtNum(lo))}
+          ${kpiCard('Trend', score + '/100')}
+        `;
+      }
+
+      const perfEl = document.getElementById('marketPerf');
+      if(perfEl){
+        perfEl.innerHTML = `
+          <div>Perf 1h: <b style="color:#fff">${fmtPct(r1h)}</b></div>
+          <div>Perf 6h: <b style="color:#fff">${fmtPct(r6h)}</b></div>
+          <div>Perf 7j: <b style="color:#fff">${fmtPct(r7d)}</b></div>
+        `;
+      }
+
+      const indEl = document.getElementById('marketIndicators');
+      if(indEl){
+        indEl.innerHTML = `
+          <div>SMA20: <b style="color:#fff">${SMA20==null?'—':fmtNum(SMA20)}</b></div>
+          <div>EMA20: <b style="color:#fff">${EMA20==null?'—':fmtNum(EMA20)}</b></div>
+          <div>SMA50: <b style="color:#fff">${SMA50==null?'—':fmtNum(SMA50)}</b></div>
+          <div>EMA50: <b style="color:#fff">${EMA50==null?'—':fmtNum(EMA50)}</b></div>
+          <div>Volatilité (log): <b style="color:#fff">${(vol*100).toFixed(2)}%</b></div>
+        `;
+      }
+
+      fillWatchlistInput();
+      refreshWatchlist();
+    }catch(_){}
+  };
+
+  function kpiCard(label, value){
+    return `<div style="flex:1;min-width:130px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px;background:rgba(0,0,0,.15);">
+      <div style="color:#a7a7b2;font-size:11px;font-weight:800">${label}</div>
+      <div style="color:#fff;font-size:16px;font-weight:1000">${value}</div>
+    </div>`;
+  }
+})();
+
+async function refreshWatchlist(){
+  const horizonSel = document.getElementById('wlHorizon');
+  const horizon = horizonSel ? horizonSel.value : '1h';
+  const ms = horizon==='6h' ? 6*60*60*1000 : horizon==='7d' ? 7*24*60*60*1000 : 1*60*60*1000;
+
+  const wl = getWatchlist();
+  const tasks = wl.map(async login=>{
+    try{
+      const r = await fetch(`/api/fantasy/market?streamer=${encodeURIComponent(login)}`);
+      const d = await r.json();
+      if(!d?.success) return null;
+      const pts = seriesFromHistory(d.market, d.history||[]);
+      const ret = perfForWindow(pts, ms);
+      const logR = returnsLog(pts);
+      const vol = std(logR);
+      const score = trendScore({r1h: perfForWindow(pts, 1*60*60*1000), r6h: perfForWindow(pts, 6*60*60*1000), r7d: perfForWindow(pts, 7*24*60*60*1000), vol});
+      const last = pts[pts.length-1]?.price || 0;
+      return { login, ret, price:last, score };
+    }catch(_){ return null; }
+  });
+
+  const results = (await Promise.allSettled(tasks)).map(x=>x.value).filter(Boolean);
+  const withRet = results.filter(x=>x.ret!=null && isFinite(x.ret));
+
+  withRet.sort((a,b)=>b.ret-a.ret);
+  const gainers = withRet.slice(0,8);
+  const losers = withRet.slice(-8).reverse();
+
+  const gEl = document.getElementById('wlGainers');
+  const lEl = document.getElementById('wlLosers');
+
+  if(gEl) gEl.innerHTML = gainers.length ? gainers.map(rowHtml).join('') : `<div style="color:#a7a7b2">Pas assez d'historique pour ${horizon}.</div>`;
+  if(lEl) lEl.innerHTML = losers.length ? losers.map(rowHtml).join('') : `<div style="color:#a7a7b2">Pas assez d'historique pour ${horizon}.</div>`;
+
+  function rowHtml(x){
+    const color = x.ret>=0 ? '#00f2ea' : '#ff3b3b';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px 10px;background:rgba(0,0,0,.12);cursor:pointer"
+      onclick="loadMarket('${x.login}')">
+      <div style="font-weight:900;color:#fff">${x.login}</div>
+      <div style="text-align:right">
+        <div style="font-weight:1000;color:${color}">${fmtPct(x.ret)}</div>
+        <div style="font-size:11px;color:#a7a7b2">Prix ${fmtNum(x.price)} • Trend ${x.score}/100</div>
+      </div>
+    </div>`;
+  }
+}
 </script>
 
 </body>
