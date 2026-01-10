@@ -3942,6 +3942,32 @@ async function marketSell(){
                           <div class="text-xs text-white/60">Chaînes</div>
                           <div id="game-channels" class="text-base font-semibold">—</div>
                         </div>
+
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Perf 1h</div>
+                          <div id="game-perf-1h" class="text-base font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Perf 6h</div>
+                          <div id="game-perf-6h" class="text-base font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Perf 7j</div>
+                          <div id="game-perf-7d" class="text-base font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Trend score</div>
+                          <div id="game-trend-score" class="text-base font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">SMA20</div>
+                          <div id="game-sma20" class="text-base font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">EMA20</div>
+                          <div id="game-ema20" class="text-base font-semibold">—</div>
+                        </div>
+
                       </div>
                       <div class="mt-3 text-xs text-white/60">Mis à jour: <span id="game-updated">—</span></div>
                     </div>
@@ -4933,14 +4959,86 @@ async function selectGame(it){
   document.getElementById('game-disc').textContent = String(it.discoverability ?? '—');
   document.getElementById('game-stab').textContent = '—';
 
-  // Fetch game market price (real)
+  const setText = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = (v==null?'—':String(v)); };
+  const fmtPct = (p) => (p==null || !isFinite(p)) ? '—' : ((p>=0?'+':'') + p.toFixed(1) + '%');
+
+  // Helpers for indicators from history
+  const sma = (arr, n) => {
+    if(!arr || arr.length < n) return null;
+    const slice = arr.slice(-n);
+    const s = slice.reduce((a,x)=>a+(x||0),0);
+    return s / n;
+  };
+  const ema = (arr, n) => {
+    if(!arr || arr.length < 2) return null;
+    const k = 2/(n+1);
+    let e = arr[0];
+    for(let i=1;i<arr.length;i++) e = arr[i]*k + e*(1-k);
+    return e;
+  };
+  const perfFromHistory = (hist, horizonMs) => {
+    if(!hist || hist.length < 2) return null;
+    const last = hist[hist.length-1];
+    const targetTs = (last.ts||Date.now()) - horizonMs;
+    // find closest point <= targetTs
+    let base = null;
+    for(let i=hist.length-1;i>=0;i--){
+      if((hist[i].ts||0) <= targetTs){ base = hist[i]; break; }
+    }
+    if(!base) base = hist[0];
+    const p0 = Number(base.price||0);
+    const p1 = Number(last.price||0);
+    if(!p0 || !p1) return null;
+    return ((p1 - p0)/p0)*100;
+  };
+  const volatility = (hist) => {
+    if(!hist || hist.length < 3) return null;
+    const prices = hist.map(x=>Number(x.price||0)).filter(Boolean);
+    if(prices.length < 3) return null;
+    const rets = [];
+    for(let i=1;i<prices.length;i++){
+      rets.push(Math.log(prices[i]/prices[i-1]));
+    }
+    const mean = rets.reduce((a,x)=>a+x,0)/rets.length;
+    const varr = rets.reduce((a,x)=>a+Math.pow(x-mean,2),0)/rets.length;
+    return Math.sqrt(varr)*100; // %
+  };
+  const trendScore = (p1h, p6h, p7d, vol) => {
+    const a = (p1h==null?0:p1h)*0.45 + (p6h==null?0:p6h)*0.35 + (p7d==null?0:p7d)*0.20;
+    const vpen = (vol==null?0:vol)*0.9;
+    const raw = 50 + a - vpen;
+    return Math.max(0, Math.min(100, Math.round(raw)));
+  };
+
+  // Fetch game market price + history (real)
   try{
     const r = await fetch('/api/fantasy/games/market?game_id='+encodeURIComponent(it.game_id));
     const j = await r.json();
     if(j.success){
       const m = j.market;
-      document.getElementById('game-price').textContent = String(m.price);
-      document.getElementById('game-mcap').textContent = String(m.price * (m.sharesOutstanding||0));
+      const hist = Array.isArray(j.history) ? j.history : [];
+
+      setText('game-price', m.price);
+      setText('game-mcap', (Number(m.price||0) * Number(m.sharesOutstanding||0)) || 0);
+
+      // indicators from history
+      const p1h = perfFromHistory(hist, 60*60*1000);
+      const p6h = perfFromHistory(hist, 6*60*60*1000);
+      const p7d = perfFromHistory(hist, 7*24*60*60*1000);
+
+      const prices = hist.map(x=>Number(x.price||0)).filter(Boolean);
+      const sma20 = sma(prices, 20);
+      const ema20 = ema(prices, 20);
+      const vol = volatility(hist);
+      const tscore = trendScore(p1h, p6h, p7d, vol);
+
+      setText('game-perf-1h', fmtPct(p1h));
+      setText('game-perf-6h', fmtPct(p6h));
+      setText('game-perf-7d', fmtPct(p7d));
+      setText('game-sma20', sma20==null?'—':Math.round(sma20));
+      setText('game-ema20', ema20==null?'—':Math.round(ema20));
+      setText('game-trend-score', tscore);
+
       document.getElementById('game-updated').textContent = new Date().toLocaleString();
     }
   }catch(_){}

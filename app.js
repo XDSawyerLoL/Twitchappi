@@ -451,7 +451,48 @@ async function collectAnalyticsSnapshot() {
     }, { merge: false });
     ops++; await commitIfNeeded();
 
-    await batch.commit();
+    
+    // --- GAME MARKET HISTORY SNAPSHOT (every cron tick) ---
+    try {
+      if (firestoreOk) {
+        const byGame = new Map();
+        for (const s of streams) {
+          const gid = String(s.game_id || '').trim();
+          if (!gid) continue;
+          byGame.set(gid, (byGame.get(gid) || 0) + Number(s.viewer_count || 0));
+        }
+
+        // keep top 40 games by viewers in this snapshot
+        const topGames = [...byGame.entries()].sort((a,b)=> b[1]-a[1]).slice(0, 40);
+
+        for (const [gid, viewersTotal] of topGames) {
+          // compute base price from snapshot viewers (no extra Twitch API calls)
+          const basePrice = Math.max(15, Math.min(5000, Math.round(10 + Math.sqrt(viewersTotal || 0) * 3)));
+
+          // get sharesOutstanding
+          let sharesOutstanding = 0;
+          try {
+            const doc = await db.collection(FANTASY_GAMES_MARKET).doc(gid).get();
+            if (doc.exists) sharesOutstanding = Number(doc.data()?.sharesOutstanding || 0);
+            else await db.collection(FANTASY_GAMES_MARKET).doc(gid).set({ game_id: gid, sharesOutstanding: 0, updatedAt: Date.now() }, { merge: true });
+          } catch (_) {}
+
+          const { price, mult } = applyImpact(basePrice, sharesOutstanding);
+
+          await db.collection(FANTASY_GAMES_MARKET).doc(gid).collection(FANTASY_GAMES_HISTORY).add({
+            ts: now,
+            price,
+            basePrice,
+            sharesOutstanding,
+            mult
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ [GAMES] history snapshot failed:', e.message);
+    }
+
+await batch.commit();
     await Promise.allSettled(rollupPromises);
 
     console.log(`📊 [CRON] Snapshot saved: viewers=${totalViewers}, live=${streams.length}`);
@@ -1951,6 +1992,7 @@ app.get('/api/games/trending', async (req, res) => {
 
 // ================== FANTASY MARKET: GAMES (real) ==================
 const FANTASY_GAMES_MARKET = 'fantasy_games_market';
+const FANTASY_GAMES_HISTORY = 'history';
 const FANTASY_MAX_GAME_HOLDINGS = 10;
 
 async function getGameLiveViewers(gameId) {
@@ -2005,6 +2047,18 @@ async function bumpGameShares(gameId, deltaShares) {
       sharesOutstanding: admin.firestore.FieldValue.increment(deltaShares),
       updatedAt: Date.now()
     }, { merge: true });
+
+    // record history point after share impact (real market price)
+    try {
+      const m = await getGameMarket(key);
+      await db.collection(FANTASY_GAMES_MARKET).doc(key).collection(FANTASY_GAMES_HISTORY).add({
+        ts: Date.now(),
+        price: m.price,
+        basePrice: m.basePrice,
+        sharesOutstanding: m.sharesOutstanding,
+        mult: m.mult
+      });
+    } catch (_) {}
   } else {
     global.__inMemGameMarket = global.__inMemGameMarket || new Map();
     const cur = Number(global.__inMemGameMarket.get(key) || 0);
@@ -2017,8 +2071,17 @@ app.get('/api/fantasy/games/market', async (req, res) => {
   try {
     const game_id = String(req.query.game_id || '').trim();
     if (!game_id) return res.status(400).json({ success: false, error: 'missing game_id' });
+
     const market = await getGameMarket(game_id);
-    res.json({ success: true, market });
+
+    let history = [];
+    if (firestoreOk) {
+      const snap = await db.collection(FANTASY_GAMES_MARKET).doc(game_id).collection(FANTASY_GAMES_HISTORY)
+        .orderBy('ts', 'desc').limit(200).get();
+      history = snap.docs.map(d => d.data()).reverse();
+    }
+
+    res.json({ success: true, market, history });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
