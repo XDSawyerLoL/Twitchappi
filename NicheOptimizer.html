@@ -927,6 +927,13 @@
   overflow:hidden;
 }
 
+
+/* === HARD Z-INDEX (no Tailwind dependency) === */
+#market-overlay{ position:fixed !important; inset:0 !important; z-index:10000 !important; }
+#mosaicModal{ z-index:10000 !important; }
+body.modal-open #player-tools{ display:none !important; }
+body.modal-open #ambilight{ display:none !important; }
+
 </style>
 </head>
 
@@ -1005,7 +1012,7 @@
         </div>
 
         <div id="video-container" class="flex-grow bg-black relative w-full h-full overflow-hidden">
-  <div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:50;display:flex;gap:8px;">
+  <div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:8;display:flex;gap:8px;">
     <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
     <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
     <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
@@ -3703,6 +3710,7 @@ async function marketSell(){
     <div class="flex items-center gap-2 px-4 py-2 border-b border-white/10">
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/10 text-sm font-bold" data-tab="overview">Overview</button>
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="markets">Markets</button>
+      <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="games">Jeux</button>
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="chart">Chart Pro</button>
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="portfolio">Portfolio</button>
       <button class="mkt-tab px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm" data-tab="leaderboard">Classement</button>
@@ -3873,6 +3881,116 @@ async function marketSell(){
             </div>
           </div>
         </section>
+
+        <!-- GAMES / CATEGORIES -->
+        <section id="mkt-tab-games" class="mkt-view hidden">
+          <div class="grid grid-cols-12 gap-3">
+            <div class="col-span-12 md:col-span-8 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-xs text-white/60">Marché des jeux (catégories Twitch)</div>
+                  <div class="text-lg font-semibold">Tendances & opportunités</div>
+                  <div class="text-sm text-white/70 mt-1">
+                    Données 100% réelles: live Twitch (viewers/chaînes) + ton modèle “Fantasy Market” appliqué aux jeux.
+                    Objectif: repérer les catégories qui montent (momentum) ou qui tiennent dans le temps (stabilité).
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="game-refresh" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">⟳ Rafraîchir</button>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-col gap-3">
+                <div class="rounded-xl border border-white/10 bg-black/30 p-3">
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm font-semibold">Top catégories (FR live)</div>
+                    <div class="text-xs text-white/60">Clique une catégorie pour ouvrir le détail + investir</div>
+                  </div>
+                  <div id="game-trending" class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                </div>
+
+                <div class="rounded-xl border border-white/10 bg-black/30 p-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <div class="text-sm font-semibold">Détail catégorie</div>
+                      <div class="text-xs text-white/60">Prix, impact, market cap + historique (si dispo)</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input id="game-invest-amount" type="number" min="10" value="200" class="w-28 px-3 py-2 rounded-lg bg-white/5 border border-white/10 outline-none text-sm" />
+                      <button id="game-buy" class="px-3 py-2 rounded-lg bg-[#00e5ff] text-black font-bold text-sm">Acheter</button>
+                      <button id="game-sell" class="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">Vendre</button>
+                    </div>
+                  </div>
+                  <div id="game-detail" class="mt-3 grid grid-cols-12 gap-3">
+                    <div class="col-span-12 md:col-span-6 rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div class="text-xs text-white/60">Catégorie sélectionnée</div>
+                      <div id="game-name" class="text-lg font-semibold">—</div>
+                      <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Prix</div>
+                          <div id="game-price" class="text-base font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Market Cap</div>
+                          <div id="game-mcap" class="text-base font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Viewers</div>
+                          <div id="game-viewers" class="text-base font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Chaînes</div>
+                          <div id="game-channels" class="text-base font-semibold">—</div>
+                        </div>
+                      </div>
+                      <div class="mt-3 text-xs text-white/60">Mis à jour: <span id="game-updated">—</span></div>
+                    </div>
+
+                    <div class="col-span-12 md:col-span-6 rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div class="text-xs text-white/60">Signal “tendance” (réel)</div>
+                      <div class="mt-2 grid grid-cols-3 gap-3 text-sm">
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Heat</div>
+                          <div id="game-heat" class="font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Discover.</div>
+                          <div id="game-disc" class="font-semibold">—</div>
+                        </div>
+                        <div class="rounded-lg border border-white/10 bg-black/30 p-2">
+                          <div class="text-xs text-white/60">Stabilité</div>
+                          <div id="game-stab" class="font-semibold">—</div>
+                        </div>
+                      </div>
+                      <div class="mt-3 text-xs text-white/70">
+                        • Heat = viewers totaux (FR).<br/>
+                        • Discoverability = viewers/chaînes (plus c’est haut, plus une petite chaîne peut “exister”).<br/>
+                        • Stabilité = variance simplifiée sur l’historique (si dispo).
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="col-span-12 md:col-span-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-sm font-semibold">Investir sur un jeu, ça veut dire quoi ?</div>
+              <div class="mt-2 text-sm text-white/70 leading-relaxed">
+                Tu investis sur la <strong>catégorie Twitch</strong> (le jeu). Le prix se base sur les viewers live
+                et l’impact du marché (parts en circulation).<br/><br/>
+                <strong>À utiliser pour :</strong>
+                <ul class="list-disc pl-5 mt-2">
+                  <li>repérer un jeu qui “prend” avant tout le monde (momentum)</li>
+                  <li>miser sur un jeu stable qui restera en tendance (stabilité)</li>
+                  <li>diversifier ton portefeuille au-delà des streamers</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
 
         <!-- CHART -->
         <section id="mkt-tab-chart" class="mkt-view hidden">
@@ -4710,6 +4828,146 @@ async function marketSell(){
   init();
 
 })();
+</script>
+
+
+<script>
+/* === Overlay: hide player tools when modals open === */
+(function(){
+  const market = document.getElementById('market-overlay');
+  const mosaic = document.getElementById('mosaicModal');
+  function isOpen(el){
+    if(!el) return false;
+    // Tailwind 'hidden' may not work if Tailwind not loaded; check inline style too
+    const cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && el.getAttribute('aria-hidden') !== 'true';
+  }
+  function tick(){
+    const open = isOpen(market) || isOpen(mosaic);
+    document.body.classList.toggle('modal-open', open);
+  }
+  setInterval(tick, 300);
+})();
+
+/* === Lock right panel height to Twitch player height === */
+(function(){
+  function sync(){
+    const vc = document.getElementById('video-container');
+    const side = document.getElementById('side-panel');
+    if(!vc || !side) return;
+    const h = vc.getBoundingClientRect().height;
+    if(h && h > 200){
+      side.style.height = h + 'px';
+      // Ensure inner tab contents can scroll
+      const panes = side.querySelectorAll('.side-panel-content, .tab-content, .panel, [data-side-pane]');
+      panes.forEach(p=>{
+        p.style.maxHeight = h + 'px';
+        p.style.overflow = 'auto';
+      });
+    }
+  }
+  window.addEventListener('load', sync);
+  window.addEventListener('resize', sync);
+  const vc = document.getElementById('video-container');
+  if('ResizeObserver' in window && vc){
+    const ro = new ResizeObserver(()=>sync());
+    ro.observe(vc);
+  } else {
+    setInterval(sync, 800);
+  }
+})();
+
+/* === Market tabs: support new "Jeux" tab === */
+(function(){
+  const tabs = document.querySelectorAll('.mkt-tab');
+  const views = document.querySelectorAll('.mkt-view');
+  function show(tab){
+    views.forEach(v=>v.classList.add('hidden'));
+    const sec = document.getElementById('mkt-tab-' + tab);
+    if(sec) sec.classList.remove('hidden');
+    tabs.forEach(b=>b.classList.remove('bg-white/10'));
+    const btn = document.querySelector('.mkt-tab[data-tab="'+tab+'"]');
+    if(btn) btn.classList.add('bg-white/10');
+    // lazy load games
+    if(tab === 'games') loadGameTrending();
+  }
+  tabs.forEach(b=>{
+    b.addEventListener('click', ()=>show(b.dataset.tab));
+  });
+})();
+
+/* === Games (categories) market logic === */
+let __selectedGame = null;
+
+async function loadGameTrending(){
+  const box = document.getElementById('game-trending');
+  if(!box) return;
+  box.innerHTML = '<div class="text-sm text-white/60">Chargement…</div>';
+  try{
+    const r = await fetch('/api/games/trending?language=fr&limit=18');
+    const j = await r.json();
+    if(!j.success) throw new Error(j.error || 'fail');
+    box.innerHTML = '';
+    (j.items || []).forEach(it=>{
+      const div = document.createElement('button');
+      div.className = 'text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 p-3';
+      div.innerHTML = `
+        <div class="text-sm font-semibold truncate">${escapeHtml(it.game_name || '—')}</div>
+        <div class="text-xs text-white/60 mt-1">Viewers: <strong>${it.viewers}</strong> • Chaînes: ${it.channels}</div>
+        <div class="text-xs text-white/60">Discover.: <strong>${it.discoverability}</strong> • Heat: ${it.heat}</div>
+      `;
+      div.addEventListener('click', ()=>selectGame(it));
+      box.appendChild(div);
+    });
+  }catch(e){
+    box.innerHTML = '<div class="text-sm text-red-300">Erreur: '+escapeHtml(String(e.message||e))+'</div>';
+  }
+}
+
+async function selectGame(it){
+  __selectedGame = it;
+  document.getElementById('game-name').textContent = it.game_name || '—';
+  document.getElementById('game-viewers').textContent = String(it.viewers ?? '—');
+  document.getElementById('game-channels').textContent = String(it.channels ?? '—');
+  document.getElementById('game-heat').textContent = String(it.heat ?? '—');
+  document.getElementById('game-disc').textContent = String(it.discoverability ?? '—');
+  document.getElementById('game-stab').textContent = '—';
+
+  // Fetch game market price (real)
+  try{
+    const r = await fetch('/api/fantasy/games/market?game_id='+encodeURIComponent(it.game_id));
+    const j = await r.json();
+    if(j.success){
+      const m = j.market;
+      document.getElementById('game-price').textContent = String(m.price);
+      document.getElementById('game-mcap').textContent = String(m.price * (m.sharesOutstanding||0));
+      document.getElementById('game-updated').textContent = new Date().toLocaleString();
+    }
+  }catch(_){}
+}
+
+async function gameBuySell(side){
+  if(!__selectedGame) return;
+  const amount = Number(document.getElementById('game-invest-amount')?.value || 0);
+  if(!amount || amount<=0) return;
+  const url = side==='buy' ? '/api/fantasy/games/invest' : '/api/fantasy/games/sell';
+  await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user: (window.HUB_USER||'Anon'), game_id: __selectedGame.game_id, amount })
+  }).catch(()=>{});
+  // refresh market values
+  selectGame(__selectedGame);
+}
+document.addEventListener('click', (e)=>{
+  if(e.target?.id === 'game-refresh') loadGameTrending();
+  if(e.target?.id === 'game-buy') gameBuySell('buy');
+  if(e.target?.id === 'game-sell') gameBuySell('sell');
+});
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+}
 </script>
 
 </body>

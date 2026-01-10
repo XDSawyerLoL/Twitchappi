@@ -1909,6 +1909,187 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 });
 
 
+
+// ================== GAMES TRENDING (live) ==================
+app.get('/api/games/trending', async (req, res) => {
+  try {
+    const language = String(req.query.language || 'fr').trim();
+    const limit = Math.min(50, Math.max(5, parseInt(req.query.limit || '20', 10)));
+
+    const d = await twitchAPI(`streams?first=100${language ? `&language=${encodeURIComponent(language)}` : ''}`);
+    const streams = d?.data || [];
+
+    const map = new Map(); // game_id -> agg
+    for (const s of streams) {
+      const gid = String(s.game_id || '');
+      if (!gid) continue;
+      const name = s.game_name || '—';
+      const viewers = Number(s.viewer_count || 0);
+      if (!map.has(gid)) {
+        map.set(gid, { game_id: gid, game_name: name, viewers: 0, channels: 0 });
+      }
+      const it = map.get(gid);
+      it.viewers += viewers;
+      it.channels += 1;
+      if (!it.game_name || it.game_name === '—') it.game_name = name;
+    }
+
+    const items = Array.from(map.values()).map(it => {
+      const avg = it.channels ? Math.round(it.viewers / it.channels) : 0;
+      // "discoverability" proxy: viewers per channel (higher => less saturated)
+      const discoverability = avg;
+      // heat proxy: viewers (scale)
+      const heat = it.viewers;
+      return { ...it, avg_viewers: avg, discoverability, heat };
+    }).sort((a, b) => b.viewers - a.viewers).slice(0, limit);
+
+    res.json({ success: true, items });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ================== FANTASY MARKET: GAMES (real) ==================
+const FANTASY_GAMES_MARKET = 'fantasy_games_market';
+const FANTASY_MAX_GAME_HOLDINGS = 10;
+
+async function getGameLiveViewers(gameId) {
+  const gid = String(gameId || '').trim();
+  if (!gid) return 0;
+  try {
+    const d = await twitchAPI(`streams?game_id=${encodeURIComponent(gid)}&first=100`);
+    const streams = d?.data || [];
+    return streams.reduce((a, s) => a + Number(s.viewer_count || 0), 0);
+  } catch (_) {
+    return 0;
+  }
+}
+
+async function getGameBasePrice(gameId) {
+  const v = await getGameLiveViewers(gameId);
+  if (!v) return 25;
+  return clamp(Math.round(10 + Math.sqrt(v) * 3), 15, 5000);
+}
+
+async function getGameMarket(gameId) {
+  const key = String(gameId || '').trim();
+  if (!key) throw new Error('missing game_id');
+  let sharesOutstanding = 0;
+
+  if (firestoreOk) {
+    const ref = db.collection(FANTASY_GAMES_MARKET).doc(key);
+    const doc = await ref.get();
+    if (doc.exists) sharesOutstanding = Number(doc.data()?.sharesOutstanding || 0);
+    else {
+      await ref.set({ game_id: key, sharesOutstanding: 0, updatedAt: Date.now() });
+      sharesOutstanding = 0;
+    }
+  } else {
+    global.__inMemGameMarket = global.__inMemGameMarket || new Map();
+    sharesOutstanding = Number(global.__inMemGameMarket.get(key) || 0);
+  }
+
+  const basePrice = await getGameBasePrice(key);
+  const { price, mult } = applyImpact(basePrice, sharesOutstanding);
+  return { game_id: key, basePrice, price, mult, sharesOutstanding };
+}
+
+async function bumpGameShares(gameId, deltaShares) {
+  const key = String(gameId || '').trim();
+  if (!key) return;
+
+  if (firestoreOk) {
+    const ref = db.collection(FANTASY_GAMES_MARKET).doc(key);
+    await ref.set({
+      game_id: key,
+      sharesOutstanding: admin.firestore.FieldValue.increment(deltaShares),
+      updatedAt: Date.now()
+    }, { merge: true });
+  } else {
+    global.__inMemGameMarket = global.__inMemGameMarket || new Map();
+    const cur = Number(global.__inMemGameMarket.get(key) || 0);
+    global.__inMemGameMarket.set(key, Math.max(0, cur + deltaShares));
+  }
+}
+
+// Market endpoint
+app.get('/api/fantasy/games/market', async (req, res) => {
+  try {
+    const game_id = String(req.query.game_id || '').trim();
+    if (!game_id) return res.status(400).json({ success: false, error: 'missing game_id' });
+    const market = await getGameMarket(game_id);
+    res.json({ success: true, market });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Invest game
+app.post('/api/fantasy/games/invest', async (req, res) => {
+  try {
+    const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
+    const game_id = String(req.body.game_id || '').trim();
+    const amount = Number(req.body.amount || 0);
+
+    if (!game_id || !amount || amount <= 0) return res.status(400).json({ success: false, error: 'game_id + montant requis' });
+
+    const w = await getUserWallet(user);
+    if (amount > Number(w.cash || 0)) return res.status(400).json({ success: false, error: 'Solde insuffisant.' });
+
+    w.holdings_games = w.holdings_games || {};
+    const isNew = !w.holdings_games[game_id];
+    const distinct = Object.keys(w.holdings_games).length;
+    if (isNew && distinct >= FANTASY_MAX_GAME_HOLDINGS) {
+      return res.status(400).json({ success: false, error: `Limite: ${FANTASY_MAX_GAME_HOLDINGS} jeux max.` });
+    }
+
+    const m = await getGameMarket(game_id);
+    const shares = Math.max(1, Math.floor(amount / m.price));
+    const cost = shares * m.price;
+
+    w.cash = Number(w.cash || 0) - cost;
+    w.holdings_games[game_id] = w.holdings_games[game_id] || { shares: 0 };
+    w.holdings_games[game_id].shares += shares;
+
+    await saveUserWallet(w);
+    await bumpGameShares(game_id, shares);
+
+    res.json({ success: true, shares, cost, price: m.price });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Sell game
+app.post('/api/fantasy/games/sell', async (req, res) => {
+  try {
+    const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
+    const game_id = String(req.body.game_id || '').trim();
+    const amount = Number(req.body.amount || 0);
+
+    if (!game_id || !amount || amount <= 0) return res.status(400).json({ success: false, error: 'game_id + montant requis' });
+
+    const w = await getUserWallet(user);
+    const have = Number(w.holdings_games?.[game_id]?.shares || 0);
+    if (!have) return res.status(400).json({ success: false, error: 'Aucune position sur ce jeu.' });
+
+    const m = await getGameMarket(game_id);
+    const sharesToSell = clamp(Math.floor(amount / m.price), 1, have);
+    const proceeds = sharesToSell * m.price;
+
+    w.holdings_games[game_id].shares -= sharesToSell;
+    if (w.holdings_games[game_id].shares <= 0) delete w.holdings_games[game_id];
+    w.cash = Number(w.cash || 0) + proceeds;
+
+    await saveUserWallet(w);
+    await bumpGameShares(game_id, -sharesToSell);
+
+    res.json({ success: true, shares: sharesToSell, proceeds, price: m.price });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
   console.log("✅ Routes prêtes");
