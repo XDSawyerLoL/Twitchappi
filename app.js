@@ -558,7 +558,16 @@ app.get('/twitch_auth_callback', async (req, res) => {
 
     // S’assure que la session est persistée avant fermeture de la popup
     req.session.save(() => {
-      res.send('<script>window.close();</script>');
+      res.send(`
+        <script>
+          try {
+            if (window.opener && !window.opener.closed) {
+              window.opener.location.reload();
+            }
+          } catch (e) {}
+          window.close();
+        </script>
+      `);
     });
 
   } catch (e) {
