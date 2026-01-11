@@ -2424,7 +2424,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div></div>
 <script>
-    const API_BASE = window.location.origin;
+    const API_BASE = new URLSearchParams(location.search).get('api') || window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
@@ -3030,8 +3030,11 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     }
 
     function tfMakeEmbed(channel){
-      const parent = location.hostname;
-      return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&muted=true&parent=${encodeURIComponent(parent)}`;
+      const p1 = (typeof getParentParam === 'function') ? getParentParam() : (new URLSearchParams(location.search).get('parent') || location.hostname);
+      const p2 = location.hostname;
+      const parents = Array.from(new Set([p1, p2].filter(Boolean)));
+      const parentParams = parents.map(p => `parent=${encodeURIComponent(p)}`).join('&');
+      return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&muted=true&${parentParams}`;
     }
 
     function tfBindHeroWheel(el){
