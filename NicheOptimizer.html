@@ -2026,6 +2026,23 @@ body.modal-open #player-tools{display:none !important;}
 #tf-live-carousel{min-height: 154px;}
 
 #tf-vod-carousel{min-height: 210px;}
+
+/* ====== TWITFLIX TOPBAR STICKY (search + LIGNES/A-Z) ====== */
+.tf-topbar{
+  position: sticky !important;
+  top: 0;
+  z-index: 99999;
+  background: rgba(8,8,10,.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  padding-bottom: 12px;
+}
+.tf-modal-content{
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2426,7 +2443,9 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div></div>
 <script>
-    const API_BASE = (new URLSearchParams(location.search).get('api') || window.location.origin);
+    const __qs = new URLSearchParams(location.search);
+  const __apiQ = __qs.get('api');
+  const API_BASE = __apiQ || (window.location.origin.includes('onrender.com') ? window.location.origin : 'https://justplayerstreamhubpro.onrender.com');
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
@@ -3023,7 +3042,9 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         if(!res.ok) throw new Error('streams/top ' + res.status);
         const data = await res.json();
         if (data && data.success && Array.isArray(data.streams)) return data.streams;
-      }catch(e){}
+      }catch(e){
+        window.__tfLastError = (e && e.message) ? e.message : String(e);
+      }
       return [];
     }
 
@@ -3127,7 +3148,8 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       track.innerHTML = '';
 
       if (!streams.length){
-        track.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.75">Aucun live trouvé.</div>`;
+        const err = window.__tfLastError ? `<div style="margin-top:8px;opacity:.85">Erreur: <code>${window.__tfLastError}</code></div>` : '';
+        track.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.75">Impossible de charger les lives.<div style="margin-top:8px;opacity:.85">API: <code>${API_BASE}</code></div>${err}<div style="margin-top:10px"><button class="tf-btn" onclick="tfRenderHeroSlides()">Réessayer</button></div></div>`;
         return;
       }
 
