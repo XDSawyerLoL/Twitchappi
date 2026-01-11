@@ -136,13 +136,18 @@
     .tf-modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(5px);
-      z-index: 9999; display: none; align-items: center; justify-content: center;
+      z-index: 9999; display: none;
+      align-items: flex-start; justify-content: center;
+      padding: 18px 12px; box-sizing: border-box;
+      overflow-y: auto;
     }
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
 
     .tf-modal-content {
-      width: 90%; max-width: 1200px; height: 85vh;
+      width: 92%; max-width: 1400px;
+      height: calc(100vh - 36px);
+      max-height: 92vh;
       background: #0b0b0d; border: 1px solid #333; border-radius: 12px;
       display: flex; flex-direction: column; overflow: hidden;
       box-shadow: 0 0 40px rgba(0, 242, 234, 0.1);
@@ -2426,7 +2431,25 @@ body.modal-open #player-tools{display:none !important;}
 <script>
     const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
-    const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
+
+    function resolveTwitchParent(){
+      // 1) explicit URL param (preferred)
+      const p = __urlParams.get('parent_host') || __urlParams.get('parent');
+      if(p) return String(p).split(',')[0].trim();
+
+      // 2) if this page is inside an iframe, use referrer host (the *embedding* domain)
+      try{
+        if(document.referrer){
+          const h = new URL(document.referrer).hostname;
+          if(h) return h;
+        }
+      }catch(_){}
+
+      // 3) fallback to current host
+      return window.location.hostname;
+    }
+
+    let TWITCH_PARENT = resolveTwitchParent();
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
     // --- SFX (Base64 short sounds) ---
@@ -4281,7 +4304,18 @@ let __vibeOn = localStorage.getItem('jp_vibe_on') === '1';
 
 function getParentParam(){
   const sp = new URLSearchParams(location.search);
-  return sp.get('parent_host') || sp.get('parent') || location.hostname;
+  const p = sp.get('parent_host') || sp.get('parent');
+  if(p) return String(p).split(',')[0].trim();
+
+  // In iframe? Twitch requires the *embedding* domain.
+  try{
+    if(document.referrer){
+      const h = new URL(document.referrer).hostname;
+      if(h) return h;
+    }
+  }catch(_){}
+
+  return location.hostname;
 }
 
 function toast(msg){
