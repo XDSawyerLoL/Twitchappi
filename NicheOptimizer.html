@@ -1879,130 +1879,180 @@ body.modal-open #player-tools{display:none !important;}
 
 
 
-/* ====== HELP (?) TOOLTIP ====== */
-.help{
-  display:inline-flex; align-items:center; justify-content:center;
-  width:16px; height:16px; margin-left:8px;
-  border-radius:999px;
-  border:1px solid rgba(0,242,234,.55);
-  color: var(--secondary);
-  font-family: Orbitron, sans-serif;
-  font-size:11px; font-weight:900;
-  cursor: help;
-  position: relative;
-  flex: 0 0 auto;
-}
-.help::after{
-  content: attr(data-help);
-  position:absolute;
-  left: 50%;
-  top: calc(100% + 10px);
-  transform: translateX(-50%);
-  background: rgba(10,10,12,.96);
-  color: #e9e9ee;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius: 10px;
-  padding: 10px 12px;
-  width: min(360px, 76vw);
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 12px;
-  line-height: 1.35;
-  white-space: normal;
-  box-shadow: 0 18px 50px rgba(0,0,0,.55);
-  opacity:0;
-  pointer-events:none;
-  transition:.15s;
-  z-index: 999999;
-}
-.help:hover::after{ opacity:1; }
+    /* ====== HELP TOOLTIPS (❓) ====== */
+    .help{
+      cursor:pointer;
+      margin-left:6px;
+      color: rgba(180,200,255,.95);
+      font-size: 13px;
+      line-height: 1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      border:1px solid rgba(180,200,255,.35);
+      background: rgba(255,255,255,.04);
+      position:relative;
+      user-select:none;
+    }
+    .help:hover{
+      background: rgba(180,200,255,.14);
+      border-color: rgba(180,200,255,.55);
+    }
+    .help:hover::after{
+      content: attr(data-help);
+      position:absolute;
+      left:0;
+      top:26px;
+      background: rgba(10,10,14,.96);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:10px;
+      font-size:12px;
+      width: 260px;
+      z-index: 99999;
+      box-shadow: 0 10px 24px rgba(0,0,0,.45);
+      border: 1px solid rgba(255,255,255,.12);
+      white-space: normal;
+    }
+    .help:hover::before{
+      content:'';
+      position:absolute;
+      left:10px;
+      top:20px;
+      border:7px solid transparent;
+      border-bottom-color: rgba(10,10,14,.96);
+      z-index: 99999;
+    }
 
+    /* ====== TWITFLIX HEADER CAROUSELS ====== */
+    .tf-header-block{
+      margin-top: 10px;
+    }
+    .tf-strip-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin: 8px 0 10px 2px;
+    }
+    .tf-strip-title h4{
+      font-family: Orbitron, sans-serif;
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color:#eaeaf0;
+      margin:0;
+    }
+    .tf-carousel{
+      display:flex;
+      gap:14px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      scroll-behavior:smooth;
+      padding-bottom: 6px;
+      min-height: 154px;
+    }
+    .tf-carousel::-webkit-scrollbar{ height: 8px; }
+    .tf-carousel::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.12); border-radius:999px; }
+    .tf-live-card{
+      width: 250px;
+      flex: 0 0 auto;
+      border-radius: 14px;
+      overflow:hidden;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      cursor:pointer;
+      position:relative;
+    }
+    .tf-live-thumb{
+      width: 100%;
+      height: 140px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+    .tf-live-thumb .tf-preview{
+      position:absolute;
+      inset:0;
+      background: rgba(0,0,0,.2);
+    }
+    .tf-live-meta{
+      padding: 10px 12px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .tf-live-meta .t1{ font-weight: 800; font-size: 13px; color:#fff; }
+    .tf-live-meta .t2{ font-size: 12px; color: rgba(255,255,255,.72); }
+    .tf-live-badge{
+      position:absolute;
+      top:10px;
+      left:10px;
+      padding: 6px 8px;
+      font-size: 11px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.55);
+      border: 1px solid rgba(255,255,255,.16);
+      color: rgba(255,255,255,.92);
+      backdrop-filter: blur(6px);
+    }
 
-/* ====== TWITFLIX LIVE DIAPORAMA ====== */
-.tf-diapo-wrap{ margin-top: 14px; }
-.tf-diapo-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.tf-diapo-title{ font-family: Orbitron, sans-serif; font-size: 12px; letter-spacing:.08em; text-transform: uppercase; color: rgba(255,255,255,.86); }
-.tf-diapo-ctrls{ display:flex; gap:8px; }
-.tf-diapo-btn{
-  width:34px; height:34px; border-radius: 10px;
-  background: rgba(20,20,24,.85);
-  border: 1px solid rgba(255,255,255,.12);
-  color: rgba(255,255,255,.85);
-  display:flex; align-items:center; justify-content:center;
-  transition:.15s;
-}
-.tf-diapo-btn:hover{ transform: translateY(-1px); border-color: rgba(0,242,234,.35); }
-.tf-diapo-grid{
-  margin-top: 10px;
-  display:grid;
-  grid-template-columns: 1.6fr 1fr 1fr;
-  gap: 12px;
-  min-height: 210px;
-}
-@media (max-width: 980px){
-  .tf-diapo-grid{ grid-template-columns: 1fr; }
-}
-.tf-diapo-card{
-  position: relative;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(10,10,12,.75);
-  box-shadow: 0 14px 50px rgba(0,0,0,.45);
-  cursor: pointer;
-  min-height: 210px;
-}
-.tf-diapo-card.main{ min-height: 260px; }
-.tf-diapo-bg{
-  position:absolute; inset:0;
-  background-size: cover; background-position: center;
-  filter: saturate(1.05) contrast(1.02);
-}
-.tf-diapo-grad{
-  position:absolute; inset:0;
-  background: linear-gradient(90deg, rgba(0,0,0,.72), rgba(0,0,0,.25) 45%, rgba(0,0,0,.70));
-}
-.tf-diapo-meta{
-  position:absolute; left:14px; right:14px; bottom:14px;
-  display:flex; flex-direction:column; gap:6px;
-}
-.tf-diapo-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.tf-live-badge{
-  background:#e91916; color:white;
-  font-weight:900; font-size:10px;
-  padding:4px 8px; border-radius:999px;
-  font-family: Orbitron, sans-serif;
-  letter-spacing:.08em;
-}
-.tf-viewers{
-  font-size:12px; color: rgba(255,255,255,.86);
-}
-.tf-diapo-channel{ font-weight:900; color:#fff; font-size:16px; }
-.tf-diapo-game{ font-size:12px; color: rgba(0,242,234,.9); font-weight:700; }
-.tf-diapo-titleline{
-  font-size:12px; color: rgba(255,255,255,.82);
-  max-width: 100%;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.tf-diapo-preview{
-  position:absolute; inset:0;
-  opacity:0;
-  transition:.15s;
-}
-.tf-diapo-card:hover .tf-diapo-preview{ opacity:1; }
-.tf-diapo-skel{
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: linear-gradient(90deg, rgba(20,20,24,.35), rgba(20,20,24,.65), rgba(20,20,24,.35));
-  background-size: 200% 100%;
-  animation: tfShimmer 1.2s linear infinite;
-  min-height: 210px;
-}
-@keyframes tfShimmer{
-  0%{ background-position: 0% 0; }
-  100%{ background-position: 200% 0; }
-}
+    .tf-trailer-card{
+      width: 320px;
+      height: 180px;
+      flex: 0 0 auto;
+      border-radius: 14px;
+      overflow:hidden;
+      background:#000;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .tf-trailer-card iframe{ width:100%; height:100%; border:0; display:block; }
+    .tf-trailer-fallback{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: rgba(255,255,255,.75);
+      font-size: 12px;
+      padding: 18px;
+      text-align:center;
+    }
+    
 
+#tf-trailer-carousel{min-height: 190px;}
+#tf-live-carousel{min-height: 154px;}
 </style>
+
+<style id="tabs-exclusive-patch">
+  /* --- Tabs exclusive patch (anti empilement) --- */
+  #side-panel{ display:flex !important; flex-direction:column !important; min-height:0 !important; }
+  #side-panel .tab-nav{ flex:0 0 auto !important; }
+  #tabs-viewport{ flex:1 1 auto !important; position:relative !important; min-height:0 !important; background:#0b0b0d; }
+  #tabs-viewport .tab-content{
+    position:absolute !important; inset:0 !important;
+    display:none !important;
+    flex-direction:column !important;
+    height:100% !important;
+    min-height:0 !important;
+  }
+  #tabs-viewport .tab-content.active{ display:flex !important; }
+  /* assure un scroll interne */
+  #tabs-viewport .tools-scroll,
+  #tabs-viewport .stats-scroll,
+  #tabs-viewport #chat-container-twitch,
+  #tabs-viewport #chat-container-hub{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    overflow:auto !important;
+  }
+  /* si un wrapper chat existe, on le force à prendre la place */
+  #tabs-viewport #tab-chat{ min-height:0 !important; }
+</style>
+
 </head>
 <body class="min-h-screen flex flex-col p-4">
 <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
@@ -2350,20 +2400,22 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 <div class="tf-sub" style="display:none;"></div>
-<div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div>
-<div class="tf-diapo-wrap" id="tf-diapo-wrap" aria-label="Diaporama de lives">
-  <div class="tf-diapo-head">
-    <div class="tf-diapo-title">Lives en cours <span class="help" data-help="Un diaporama de lives en cours (style Twitch). Survole pour la preview, clique pour lancer le live dans le lecteur.">?</span></div>
-    <div class="tf-diapo-ctrls">
-      <button class="tf-diapo-btn" type="button" id="tf-diapo-prev" aria-label="Précédent"><i class="fas fa-chevron-left"></i></button>
-      <button class="tf-diapo-btn" type="button" id="tf-diapo-next" aria-label="Suivant"><i class="fas fa-chevron-right"></i></button>
-    </div>
+<div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
+
+<div class="tf-header-block">
+  <div class="tf-strip-title">
+    <h4>Lives en cours <span class="help" data-help="Survole une carte pour une preview. Clique pour lancer un live correspondant au jeu.">?</span></h4>
   </div>
-  <div class="tf-diapo-grid" id="tf-diapo-grid">
-    <div class="tf-diapo-skel"></div><div class="tf-diapo-skel"></div><div class="tf-diapo-skel"></div>
-  </div>
+  <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
 </div>
-</div></div>
+
+<div class="tf-header-block">
+  <div class="tf-strip-title">
+    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque pour un jeu, ajoute son ID YouTube dans la liste TRAILER_MAP du script.">?</span></h4>
+  </div>
+  <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
+</div>
+
 <div class="tf-grid" id="twitflix-grid">
 <div class="text-center w-full text-gray-500 py-20" id="tf-loading">
 <i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...
@@ -2372,8 +2424,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div></div>
 <script>
-    const __qs = new URLSearchParams(location.search);
-    const API_BASE = __qs.get('api') || window.location.origin;
+    const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
@@ -2413,7 +2464,6 @@ body.modal-open #player-tools{display:none !important;}
     // INIT
     window.addEventListener('load', async () => {
       initUnderTabs();
-      attachHelpToUnderTabs();
       await checkAuth();
       initPlayer();
       loadStatsDashboard();
@@ -2432,25 +2482,6 @@ body.modal-open #player-tools{display:none !important;}
         });
       }
     });
-
-    function attachHelpToUnderTabs(){
-      const map = {
-        overview: "Résumé instantané: live, activité, infos rapides et raccourcis.",
-        analytics: "Analyses avancées: tendances, signaux, audience (selon les données disponibles).",
-        niche: "Aide à trouver un angle de niche / positioning. Idéal pour créateurs & streamers."
-      };
-      const nav = document.getElementById('under-tabs-nav');
-      if (!nav) return;
-      nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
-        const key = btn.getAttribute('data-ut');
-        if (!key || btn.querySelector('.help')) return;
-        const h = document.createElement('span');
-        h.className = 'help';
-        h.setAttribute('data-help', map[key] || 'Section');
-        h.textContent = '?';
-        btn.appendChild(h);
-      });
-    }
 
     function initUnderTabs(){
       const nav = document.getElementById('under-tabs-nav');
@@ -2982,6 +3013,128 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     let tfModalOpen = false;
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
+
+    // ====== TWITFLIX: LIVE CAROUSEL + TRAILERS ======
+    // Add YouTube video IDs here to enable embedded trailers in TwitFlix.
+    // Key: game name (lowercased). Value: YouTube videoId.
+    const TRAILER_MAP = {
+      // examples (edit freely)
+      "fortnite": "2gUtfBmw86Y",
+      "minecraft": "MmB9b5njVbA",
+      "league of legends": "aR-KAldshAE",
+      "valorant": "e_E9W2vsRbQ",
+      "apex legends": "innmNewjkuk",
+      "call of duty": "o7lUq2X4y4c"
+    };
+
+    function tfBindHorizontalWheel(el){
+      if (!el || el.__wheelBound) return;
+      el.__wheelBound = true;
+      el.addEventListener('wheel', (e) => {
+        // Convert vertical wheel to horizontal scroll (like Twitch)
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          el.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
+    }
+
+    function tfRenderLiveCarousel(){
+      const wrap = document.getElementById('tf-live-carousel');
+      if (!wrap) return;
+
+      tfBindHorizontalWheel(wrap);
+
+      // Build from categories already loaded in TwitFlix
+      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
+      if (!cats.length){
+        wrap.innerHTML = '<div class="tf-empty">Chargement des lives…</div>';
+        return;
+      }
+
+      wrap.innerHTML = '';
+      cats.forEach(cat => {
+        const gameId = String(cat.id || '');
+        const gameName = String(cat.name || 'Jeu');
+        const boxArt = tfNormalizeBoxArt(cat.box_art_url || cat.boxArt || '');
+
+        const card = document.createElement('div');
+        card.className = 'tf-live-card';
+        card.dataset.gameId = gameId;
+
+        card.innerHTML = `
+          <div class="tf-live-thumb" style="background-image:url('${boxArt}')">
+            <div class="tf-preview"></div>
+            <div class="tf-live-badge">LIVE</div>
+          </div>
+          <div class="tf-live-meta">
+            <div class="t1">${gameName}</div>
+            <div class="t2">Survole pour preview · Clique pour lancer</div>
+          </div>
+        `;
+
+        // Preview on hover (uses existing TwitFlix preview logic)
+        card.addEventListener('mouseenter', () => tfStartPreview(card));
+        card.addEventListener('mouseleave', () => tfStopPreview(card));
+
+        // Click => launch a stream for this category
+        card.addEventListener('click', () => {
+          try { playTwitFlixCategory(gameId, gameName, boxArt); } catch(_) {}
+        });
+
+        wrap.appendChild(card);
+      });
+    }
+
+    function tfRenderTrailerCarousel(){
+      const wrap = document.getElementById('tf-trailer-carousel');
+      if (!wrap) return;
+
+      tfBindHorizontalWheel(wrap);
+
+      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 10) : [];
+      wrap.innerHTML = '';
+
+      if (!cats.length){
+        wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
+        return;
+      }
+
+      cats.forEach(cat => {
+        const gameName = String(cat.name || '').trim();
+        const key = gameName.toLowerCase();
+        const vid = TRAILER_MAP[key];
+
+        const card = document.createElement('div');
+        card.className = 'tf-trailer-card';
+
+        if (vid){
+          card.innerHTML = `
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&mute=1"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              loading="lazy"
+              title="Trailer - ${gameName}">
+            </iframe>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="tf-trailer-fallback">
+              <div>
+                <div style="font-weight:800;margin-bottom:6px">${gameName || 'Trailer'}</div>
+                <div style="opacity:.85">
+                  Trailer non configuré.<br/>
+                  Ajoute l’ID YouTube dans <code style="opacity:.9">TRAILER_MAP</code>.
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        wrap.appendChild(card);
+      });
+    }
+
     let tfCursor = null;
     let tfLoading = false;
     let tfHasMore = true;
@@ -3064,8 +3217,8 @@ const modal = document.getElementById('twitflix-modal');
       // warm load (2 pages)
       await tfLoadMore(true);
       await tfLoadMore(true);
-      tfWireDiapoControls();
-      await tfLoadAndRenderDiapo();
+      tfRenderLiveCarousel();
+      tfRenderTrailerCarousel();
       renderTwitFlix();
     }
 
@@ -3212,7 +3365,9 @@ tfModalOpen = false;
       tfHasMore = true;
       await tfLoadMore(true);
       await tfLoadMore(true);
-      renderTwitFlix();
+      tfRenderLiveCarousel();
+          tfRenderTrailerCarousel();
+          renderTwitFlix();
       tfSetupObserver();
     }
 
@@ -3471,177 +3626,6 @@ tfModalOpen = false;
         }
       }catch(_){
         alert("Erreur lors de la recherche TwitFlix.");
-      }
-    }
-
-    
-    // ====== TWITFLIX: LIVE DIAPO (Netflix-like) ======
-    let tfDiapoIndex = 0;
-    let tfDiapoStreams = [];
-
-    function tfTwitchEmbedUrl(channel, muted=true){
-      const parents = Array.from(new Set([TWITCH_PARENT, window.location.hostname, 'justplayer.fr','www.justplayer.fr','localhost','127.0.0.1'])).filter(Boolean);
-      const parentParams = parents.map(p=>`parent=${encodeURIComponent(p)}`).join('&');
-      const m = muted ? 'muted=true' : 'muted=false';
-      return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&${m}&autoplay=true&${parentParams}`;
-    }
-
-    async function tfFetchTopStreams(){
-      try{
-        const res = await fetch(`${API_BASE}/api/streams/top?first=18`, { credentials:'include' });
-        if(!res.ok) throw new Error('streams/top ' + res.status);
-        const data = await res.json();
-        const streams = (data && data.success && Array.isArray(data.streams)) ? data.streams : [];
-        return streams;
-      }catch(e){
-        // Fallback: pick channels via /api/stream/by_category from first categories
-        try{
-          const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
-          const out = [];
-          for (const c of cats){
-            const gameId = String(c.id||''); if(!gameId) continue;
-            const r = await fetch(`${API_BASE}/api/stream/by_category`,{
-              method:'POST', headers:{'Content-Type':'application/json'},
-              credentials:'include',
-              body: JSON.stringify({ game_id: gameId })
-            });
-            const d = await r.json().catch(()=>null);
-            if (d && d.success && d.channel){
-              out.push({
-                user_login: d.channel,
-                user_name: d.user_name || d.channel,
-                game_name: d.game_name || c.name || '',
-                title: d.title || (c.name || ''),
-                viewer_count: d.viewer_count || 0,
-                thumbnail_url: (d.thumbnail_url || c.box_art_url || '').replace('{width}','1280').replace('{height}','720'),
-                __fallback: true
-              });
-            }
-            if (out.length >= 18) break;
-          }
-          return out;
-        }catch(_){
-          return [];
-        }
-      }
-    }
-
-    function tfFormatViewers(n){
-      const v = Number(n||0);
-      if (v >= 1_000_000) return (v/1_000_000).toFixed(1).replace('.0','') + 'M';
-      if (v >= 1_000) return (v/1_000).toFixed(1).replace('.0','') + 'k';
-      return String(v);
-    }
-
-    function tfRenderDiapo(){
-      const grid = document.getElementById('tf-diapo-grid');
-      if (!grid) return;
-
-      if (!tfDiapoStreams.length){
-        grid.innerHTML = `<div class="tf-diapo-card main"><div class="tf-diapo-bg" style="background-image:url('')"></div><div class="tf-diapo-grad"></div><div class="tf-diapo-meta"><div class="tf-diapo-row"><span class="tf-live-badge" style="background:#333">INFO</span></div><div class="tf-diapo-channel">Aucun live disponible pour l’instant.</div><div class="tf-diapo-titleline">Vérifie la connexion Twitch / Token côté backend.</div></div></div>`;
-        return;
-      }
-
-      const pick = (i)=> tfDiapoStreams[(tfDiapoIndex + i) % tfDiapoStreams.length];
-
-      const s0 = pick(0), s1 = pick(1), s2 = pick(2);
-      const cards = [
-        { s:s0, main:true },
-        { s:s1, main:false },
-        { s:s2, main:false },
-      ];
-
-      grid.innerHTML = '';
-      cards.forEach(({s, main})=>{
-        const thumb = (s.thumbnail_url || '').replace('{width}','1280').replace('{height}','720');
-        const channel = s.user_login || s.user_name || '';
-        const viewers = tfFormatViewers(s.viewer_count || 0);
-
-        const card = document.createElement('div');
-        card.className = 'tf-diapo-card' + (main ? ' main' : '');
-        card.innerHTML = `
-          <div class="tf-diapo-bg" style="background-image:url('${thumb}')"></div>
-          <div class="tf-diapo-grad"></div>
-          <div class="tf-diapo-preview"></div>
-          <div class="tf-diapo-meta">
-            <div class="tf-diapo-row">
-              <span class="tf-live-badge">LIVE</span>
-              <span class="tf-viewers">${viewers} spectateurs</span>
-            </div>
-            <div class="tf-diapo-channel">${(s.user_name || channel)}</div>
-            <div class="tf-diapo-game">${(s.game_name || '')}</div>
-            <div class="tf-diapo-titleline">${(s.title || '')}</div>
-          </div>
-        `;
-
-        // Hover => preview
-        let hoverTimer = null;
-        card.addEventListener('mouseenter', ()=>{
-          hoverTimer = setTimeout(()=>{
-            const host = card.querySelector('.tf-diapo-preview');
-            if (!host) return;
-            host.innerHTML = `<iframe src="${tfTwitchEmbedUrl(channel, true)}" style="width:100%;height:100%;border:0" allow="autoplay; fullscreen"></iframe>`;
-          }, 220);
-        });
-        card.addEventListener('mouseleave', ()=>{
-          if (hoverTimer) clearTimeout(hoverTimer);
-          const host = card.querySelector('.tf-diapo-preview');
-          if (host) host.innerHTML = '';
-        });
-
-        // Click => play channel
-        card.addEventListener('click', ()=>{
-          closeTwitFlix();
-          try{
-            changeChannel(channel);
-            const badge = document.getElementById('player-mode-badge');
-            if (badge) badge.innerText = "TWITFLIX";
-          }catch(_){}
-        });
-
-        grid.appendChild(card);
-      });
-
-      // set hero background from first
-      try{
-        const bg = document.getElementById('tf-hero-bg');
-        if (bg){
-          const heroThumb = ((s0 && s0.thumbnail_url) ? s0.thumbnail_url : '').replace('{width}','1280').replace('{height}','720');
-          bg.src = heroThumb || '';
-          bg.style.opacity = heroThumb ? '.55' : '.18';
-        }
-      }catch(_){}
-    }
-
-    async function tfLoadAndRenderDiapo(){
-      const grid = document.getElementById('tf-diapo-grid');
-      if (grid) grid.innerHTML = '<div class="tf-diapo-skel"></div><div class="tf-diapo-skel"></div><div class="tf-diapo-skel"></div>';
-      tfDiapoStreams = await tfFetchTopStreams();
-      tfDiapoIndex = 0;
-      tfRenderDiapo();
-    }
-
-    function tfWireDiapoControls(){
-      const prev = document.getElementById('tf-diapo-prev');
-      const next = document.getElementById('tf-diapo-next');
-      if (prev && !prev.__wired){
-        prev.__wired = true;
-        prev.addEventListener('click', ()=>{ if(tfDiapoStreams.length){ tfDiapoIndex = (tfDiapoIndex - 1 + tfDiapoStreams.length) % tfDiapoStreams.length; tfRenderDiapo(); }});
-      }
-      if (next && !next.__wired){
-        next.__wired = true;
-        next.addEventListener('click', ()=>{ if(tfDiapoStreams.length){ tfDiapoIndex = (tfDiapoIndex + 1) % tfDiapoStreams.length; tfRenderDiapo(); }});
-      }
-
-      const grid = document.getElementById('tf-diapo-grid');
-      if (grid && !grid.__wheel){
-        grid.__wheel = true;
-        grid.addEventListener('wheel', (e)=>{
-          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)){
-            if (e.deltaY > 0) next?.click(); else prev?.click();
-            e.preventDefault();
-          }
-        }, { passive:false });
       }
     }
 
@@ -5674,6 +5658,176 @@ const ov = document.getElementById('market-overlay');
 })();
 </script>
 
+
+
+<script id="tabs-exclusive-patch-js">
+(function(){
+  function ensureViewport(){
+    const side = document.getElementById('side-panel');
+    if(!side) return null;
+
+    let viewport = document.getElementById('tabs-viewport');
+    if(!viewport){
+      viewport = document.createElement('div');
+      viewport.id = 'tabs-viewport';
+
+      // Place viewport right after the tab-nav
+      const nav = side.querySelector('.tab-nav');
+      if(nav && nav.nextSibling){
+        side.insertBefore(viewport, nav.nextSibling);
+      }else{
+        side.appendChild(viewport);
+      }
+    }
+    return viewport;
+  }
+
+  function movePanelsIntoViewport(){
+    const viewport = ensureViewport();
+    if(!viewport) return;
+
+    const chat = document.getElementById('tab-chat');
+    const stats = document.getElementById('tab-stats');
+    const tools = document.getElementById('tab-tools');
+
+    // Move (append) panels into viewport so they cannot stack under each other
+    [chat, stats, tools].forEach(el => {
+      if(el && el.parentElement !== viewport){
+        viewport.appendChild(el);
+      }
+    });
+
+    // Normalise classes (they might exist already)
+    viewport.querySelectorAll('.tab-content').forEach(p => {
+      p.classList.remove('active');
+    });
+    if(chat) chat.classList.add('active');
+  }
+
+  // Hard exclusive tab switch
+  window.openTab = function(ev, tabName){
+    const viewport = document.getElementById('tabs-viewport') || ensureViewport();
+    if(!viewport) return;
+
+    // buttons
+    const buttons = document.querySelectorAll('#side-panel .tab-nav .tab-btn');
+    buttons.forEach(b => b.classList.remove('active'));
+    if(ev && ev.currentTarget) ev.currentTarget.classList.add('active');
+    else {
+      // fallback: find button by onclick arg
+      const btn = Array.from(buttons).find(b => (b.getAttribute('onclick')||'').includes(`'${tabName}'`));
+      if(btn) btn.classList.add('active');
+    }
+
+    // panels
+    viewport.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+
+    const id = tabName === 'chat' ? 'tab-chat' : (tabName === 'stats' ? 'tab-stats' : 'tab-tools');
+    const panel = document.getElementById(id);
+    if(panel) panel.classList.add('active');
+  };
+
+  // Keep right panel height synced to player
+  function syncRightPanelHeight(){
+    const side = document.getElementById('side-panel');
+    const player =
+      document.getElementById('player-wrapper') ||
+      document.getElementById('player-container') ||
+      document.getElementById('twitch-embed')?.parentElement ||
+      document.querySelector('iframe[src*="twitch.tv"]')?.parentElement;
+
+    if(!side || !player) return;
+    const h = player.getBoundingClientRect().height;
+    if(h && h > 50) side.style.height = Math.round(h) + 'px';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    movePanelsIntoViewport();
+    syncRightPanelHeight();
+    window.addEventListener('resize', syncRightPanelHeight);
+    setInterval(syncRightPanelHeight, 500);
+
+    // Ensure click handlers still work even if inline onclick was changed
+    document.querySelectorAll('#side-panel .tab-nav .tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const oc = btn.getAttribute('onclick') || '';
+        const m = oc.match(/openTab\(event,\s*'([^']+)'\)/);
+        const tab = m ? m[1] : 'chat';
+        window.openTab(e, tab);
+      }, { passive:true });
+    });
+  });
+})();
+</script>
+
+
+<script>
+/* ====== AUTO HELP (❓) ON ALL MODULE HEADERS/TABS ====== */
+(function(){
+  const HELP_TEXT_BY_TITLE = {
+    "Alertes automatiques": "Déclenche des alertes quand un signal important apparaît (tendance, score, changement de marché).",
+    "Courbe daily": "Évolution quotidienne des signaux/performances. Utile pour voir la progression sur plusieurs jours.",
+    "IA – plan d’action": "Génère un plan concret (actions prioritaires) à partir de tes données et du contexte du stream.",
+    "Simulation": "Teste différents scénarios (horaire, jeu, niche) et compare l'impact potentiel avant de décider.",
+    "Chaîne vs Jeu": "Compare ta chaîne à un jeu/niche pour repérer où tu as le plus de traction et où tu perds des viewers.",
+    "Heatmap meilleures heures (jeu)": "Carte chaleur des meilleures heures pour streamer ce jeu (où l'audience est la plus favorable).",
+    "Tendance": "Mesure la dynamique actuelle (en hausse/baisse) et les signaux de hype.",
+    "Top Jeux": "Liste des jeux les plus porteurs selon les signaux (hype, viewers, stabilité).",
+    "Langues": "Aide à choisir la langue la plus pertinente selon l'audience et la concurrence.",
+    "🎯 BEST TIME TO STREAM": "Recommandations d'horaires optimisés (créneaux où tu as le meilleur ratio visibilité / concurrence).",
+    "MARCHÉ — ouvrir la fenêtre": "Mini-bourse de tendances : tu 'mises' sur des niches/jeux et tu suis la performance des signaux.",
+    "SCANNER IA": "Analyse automatique de niches, chaînes et tendances pour détecter des opportunités rapidement.",
+    "RAID FINDER": "Trouve des chaînes compatibles pour raid (taille, jeu, langue) afin de maximiser les retours.",
+    "CO-STREAM MATCH": "Propose des co-streamers compatibles (même vibe, même jeux, audience proche).",
+    "BOOST": "Met en avant un live à lancer (rotation) ou une opportunité de collaboration/raid selon les signaux."
+  };
+
+  const HELP_TEXT_BY_TAB = {
+    "OVERVIEW": "Vue synthèse : KPIs, raccourcis et état global du live.",
+    "ANALYTICS PRO": "Analyse avancée : courbes, segments, perf, signaux et comparaisons.",
+    "NICHE": "Niche & opportunités : idées de jeux/sujets, concurrence, timing et angles gagnants.",
+
+    "CHAT": "Chat du stream : Twitch + Hub Secure. Rien d'autre n'apparaît en dessous.",
+    "STATS": "Tableaux et métriques (audience, tendances, historique).",
+    "OUTILS": "Tous les modules d'analyse (best time, marché, scanner, raid finder, etc.)."
+  };
+
+  function norm(s){ return String(s||"").replace(/\s+/g," ").trim(); }
+
+  function addHelpTo(el, text){
+    if (!el || el.querySelector('.help')) return;
+    const span = document.createElement('span');
+    span.className = 'help';
+    span.setAttribute('data-help', text);
+    span.textContent = '?';
+    el.appendChild(document.createTextNode(' '));
+    el.appendChild(span);
+  }
+
+  function apply(){
+    document.querySelectorAll('h1,h2,h3,h4').forEach(h => {
+      const t = norm(h.textContent);
+      if (HELP_TEXT_BY_TITLE[t]) addHelpTo(h, HELP_TEXT_BY_TITLE[t]);
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      const t = norm(b.textContent);
+      if (HELP_TEXT_BY_TAB[t]) addHelpTo(b, HELP_TEXT_BY_TAB[t]);
+    });
+
+    document.querySelectorAll('.u-tab-btn').forEach(b => {
+      const t = norm(b.textContent).toUpperCase();
+      if (HELP_TEXT_BY_TAB[t]) addHelpTo(b, HELP_TEXT_BY_TAB[t]);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply);
+  } else {
+    apply();
+  }
+})();
+</script>
 
 </body>
 </html>
