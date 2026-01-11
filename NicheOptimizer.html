@@ -2542,7 +2542,16 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       window.__hubSocketInited = true;
 
       try{
-        socket = io(undefined, { transports: ['websocket','polling'] });
+        socket = io(undefined, {
+          withCredentials: true,
+          transports: ['websocket'],
+          upgrade: false,
+          reconnection: true,
+          reconnectionAttempts: Infinity,
+          reconnectionDelay: 500,
+          reconnectionDelayMax: 5000,
+          timeout: 20000
+        });
 
         const status = document.getElementById('socket-status');
         const setStatus = (ok) => {
