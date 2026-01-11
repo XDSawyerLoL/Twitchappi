@@ -2428,11 +2428,7 @@ body.modal-open #player-tools{display:none !important;}
 
   <div class="tf-hero-track" id="tf-hero-track" aria-label="Diaporama de lives"></div>
 
-  <div class="tf-hero-title" style="margin-top:14px">
-    <h4>VOD du streamer sélectionné <span class="help" data-help="Vidéos récentes (archives) du streamer du live choisi. Clique pour ouvrir la VOD dans un onglet.">?</span></h4>
-  </div>
-  <div class="tf-carousel" id="tf-vod-carousel" aria-label="VOD"></div>
-</div>
+  
 
 
 <div class="tf-grid" id="twitflix-grid">
@@ -3037,14 +3033,58 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
     // ====== TWITFLIX HERO (Twitch-like) + VOD ======
     async function tfFetchTopStreams(){
+      // 1) Try modern endpoint (if your backend has it)
       try{
         const res = await fetch(`${API_BASE}/api/streams/top?first=18&language=fr`, { credentials: 'include' });
-        if(!res.ok) throw new Error('streams/top ' + res.status);
-        const data = await res.json();
-        if (data && data.success && Array.isArray(data.streams)) return data.streams;
+        if(res.ok){
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.streams) && data.streams.length) return data.streams;
+        }
       }catch(e){
         window.__tfLastError = (e && e.message) ? e.message : String(e);
       }
+
+      // 2) Fallback (works with your CURRENT backend): use categories + /api/stream/by_category to pick live channels
+      try{
+        const catsRes = await fetch(`${API_BASE}/api/categories/top?first=12`, { credentials:'include' });
+        if(!catsRes.ok) throw new Error('categories/top ' + catsRes.status);
+        const catsData = await catsRes.json();
+        const cats = (catsData && catsData.success && Array.isArray(catsData.categories)) ? catsData.categories : [];
+
+        const picks = [];
+        for (const c of cats.slice(0, 12)){
+          const gameId = String(c.id || '');
+          if(!gameId) continue;
+          try{
+            const r = await fetch(`${API_BASE}/api/stream/by_category`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              credentials:'include',
+              body: JSON.stringify({ game_id: gameId })
+            });
+            const d = await r.json().catch(()=>null);
+            if (d && d.success && d.channel){
+              picks.push({
+                user_login: d.channel,
+                user_name: d.channel,
+                game_name: d.game_name || c.name || '',
+                title: `${c.name || ''}`,
+                viewer_count: 0,
+                // we don't have real stream thumbnails in fallback; use box art as background
+                thumbnail_url: (c.box_art_url || '').replace('{width}','1280').replace('{height}','720'),
+                __fallback: true
+              });
+            }
+          }catch(_){}
+          if (picks.length >= 18) break;
+        }
+
+        if (picks.length) return picks;
+        window.__tfLastError = window.__tfLastError || 'Aucun live trouvé via fallback.';
+      }catch(e){
+        window.__tfLastError = (e && e.message) ? e.message : String(e);
+      }
+
       return [];
     }
 
@@ -3097,46 +3137,9 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       try{ closeTwitFlix(); }catch(_){}
       if (!stream || !stream.user_login) return;
       try { changeChannel(stream.user_login); } catch(_){}
-      tfLoadVods(stream.user_login, stream.user_name);
     }
 
-    async function tfLoadVods(login, displayName){
-      const wrap = document.getElementById('tf-vod-carousel');
-      if (!wrap) return;
-      tfBindHorizontalWheel(wrap);
-
-      wrap.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.75">Chargement des VOD de ${displayName || login}…</div>`;
-      try{
-        const res = await fetch(`${API_BASE}/api/videos/by_user?login=${encodeURIComponent(login)}&first=10`, { credentials:'include' });
-        if(!res.ok) throw new Error('videos/by_user ' + res.status);
-        const data = await res.json();
-        const vids = (data && data.success && Array.isArray(data.videos)) ? data.videos : [];
-        wrap.innerHTML = '';
-        if (!vids.length){
-          wrap.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.75">Aucune VOD publique trouvée.</div>`;
-          return;
-        }
-        vids.forEach(v => {
-          const card = document.createElement('div');
-          card.className = 'tf-vod-card';
-          const thumb = (v.thumbnail_url || '').replace('%{width}', '640').replace('%{height}', '360');
-          card.innerHTML = `
-            <div class="thumb" style="background-image:url('${thumb}')"></div>
-            <div class="meta">
-              <div class="m1">${(v.title||'VOD').replace(/</g,'&lt;')}</div>
-              <div class="m2">${(v.created_at||'').slice(0,10)} · ${v.view_count||0} vues</div>
-            </div>
-          `;
-          card.addEventListener('click', () => {
-            if (v.url) window.open(v.url, '_blank', 'noopener');
-          });
-          wrap.appendChild(card);
-        });
-      }catch(e){
-        wrap.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.75">Erreur chargement VOD.</div>`;
-      }
-    }
-
+    
     async function tfRenderHeroSlides(){
       const track = document.getElementById('tf-hero-track');
       if (!track) return;
@@ -3149,7 +3152,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
       if (!streams.length){
         const err = window.__tfLastError ? `<div style="margin-top:8px;opacity:.85">Erreur: <code>${window.__tfLastError}</code></div>` : '';
-        track.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.75">Impossible de charger les lives.<div style="margin-top:8px;opacity:.85">API: <code>${API_BASE}</code></div>${err}<div style="margin-top:10px"><button class="tf-btn" onclick="tfRenderHeroSlides()">Réessayer</button></div></div>`;
+        track.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.75">Impossible de charger le diaporama de lives.<div style="margin-top:8px;opacity:.85">API: <code>${API_BASE}</code></div>${err}<div style="margin-top:10px"><button class="tf-btn" onclick="tfRenderHeroSlides()">Réessayer</button></div></div>`;
         return;
       }
 
@@ -3208,8 +3211,6 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         track.appendChild(slide);
       }
 
-      // Load VOD for first live by default
-      tfLoadVods(streams[0].user_login, streams[0].user_name);
     }
 
 
