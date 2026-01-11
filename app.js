@@ -549,21 +549,22 @@ app.post('/twitch_logout', (req, res) => {
 });
 
 app.get('/twitch_user_status', (req, res) => {
-  if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
-    return res.json({
-      success: true,
-      channel: randomStream.user_login,
-      user_name: randomStream.user_name,
-      title: randomStream.title,
-      viewer_count: randomStream.viewer_count,
-      thumbnail_url: randomStream.thumbnail_url,
-      game_name: randomStream.game_name
-    });
+  const u = req.session?.twitchUser;
 
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+  if (u && (!u.expiry || u.expiry > Date.now())) {
+    return res.json({
+      is_connected: true,
+      display_name: u.display_name,
+      profile_image_url: u.profile_image_url
+    });
   }
+
+  // Session expirée -> purge
+  if (req.session) req.session.twitchUser = null;
+
+  res.json({ is_connected: false });
 });
+
 
 // =========================================================
 // 5. STREAMS FOLLOWED + ROTATION + BOOST
