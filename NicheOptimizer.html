@@ -234,7 +234,7 @@
     /* A–Z bar */
     .tf-azbar{
       position: sticky;
-      top: 0;
+      top: 64px;
       z-index: 30;
       display:flex;
       flex-wrap:wrap;
@@ -400,6 +400,77 @@
 #twitflix-modal .tf-topbar{ position: sticky; top:0; z-index: 60; }
 #twitflix-modal .tf-actions{ gap: 12px; }
 #twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
+
+#twitflix-modal .tf-modal-content{
+  max-width: 1400px;
+  height: min(92vh, 980px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#twitflix-modal .tf-hero{ display:none; }
+#twitflix-modal .tf-live-hero{
+  padding: 12px 18px 0 18px;
+}
+#twitflix-modal .tf-live-carousel{
+  min-height: 170px; /* avoid collapsing when empty */
+  padding-bottom: 6px;
+}
+#twitflix-modal .tf-mini-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.35);
+  color: #dfe3ff;
+  cursor: pointer;
+}
+#twitflix-modal .tf-mini-btn:hover{
+  background: rgba(0,0,0,.55);
+}
+#twitflix-modal .tf-live-card{
+  width: 280px;
+}
+#twitflix-modal .tf-live-thumb{
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.10);
+}
+#twitflix-modal .tf-live-thumb-img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display:block;
+  opacity: .92;
+}
+#twitflix-modal .tf-live-meta{
+  margin-top: 8px;
+  padding: 0 2px 2px 2px;
+}
+#twitflix-modal .tf-live-title{
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#twitflix-modal .tf-live-sub{
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(255,255,255,.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 #twitflix-modal .tf-grid{
   display:flex;
@@ -2402,18 +2473,13 @@ body.modal-open #player-tools{display:none !important;}
 <div class="tf-sub" style="display:none;"></div>
 <div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
 
-<div class="tf-header-block">
-  <div class="tf-strip-title">
-    <h4>Lives en cours <span class="help" data-help="Survole une carte pour une preview. Clique pour lancer un live correspondant au jeu.">?</span></h4>
-  </div>
-  <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
-</div>
 
-<div class="tf-header-block">
+<div class="tf-live-hero">
   <div class="tf-strip-title">
-    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque pour un jeu, ajoute son ID YouTube dans la liste TRAILER_MAP du script.">?</span></h4>
+    <h4>Lives en cours <span class="help" data-help="Diaporama de lives EN COURS. Survole pour lancer la preview (muted). Clique pour lire le live. Molette = scroll horizontal.">?</span></h4>
+    <button class="tf-mini-btn" id="tf-live-refresh" type="button" title="Rafraîchir"><i class="fas fa-sync"></i></button>
   </div>
-  <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
+  <div class="tf-carousel tf-live-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
 </div>
 
 <div class="tf-grid" id="twitflix-grid">
@@ -3014,126 +3080,125 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
 
-    // ====== TWITFLIX: LIVE CAROUSEL + TRAILERS ======
-    // Add YouTube video IDs here to enable embedded trailers in TwitFlix.
-    // Key: game name (lowercased). Value: YouTube videoId.
-    const TRAILER_MAP = {
-      // examples (edit freely)
-      "fortnite": "2gUtfBmw86Y",
-      "minecraft": "MmB9b5njVbA",
-      "league of legends": "aR-KAldshAE",
-      "valorant": "e_E9W2vsRbQ",
-      "apex legends": "innmNewjkuk",
-      "call of duty": "o7lUq2X4y4c"
-    };
+    // ====== TWITFLIX: LIVE DIAPORAMA (TOP STREAMS) ======
+// Requires:
+//  - GET /api/streams/top?first=...&lang=...  -> { success:true, streams:[...] }
 
-    function tfBindHorizontalWheel(el){
-      if (!el || el.__wheelBound) return;
-      el.__wheelBound = true;
-      el.addEventListener('wheel', (e) => {
-        // Convert vertical wheel to horizontal scroll (like Twitch)
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-          el.scrollLeft += e.deltaY;
-          e.preventDefault();
-        }
-      }, { passive: false });
+let tfTopStreams = [];
+let tfTopStreamsLoading = false;
+
+function tfBindHorizontalWheel(el){
+  if (!el || el.__wheelBound) return;
+  el.__wheelBound = true;
+  el.addEventListener('wheel', (e) => {
+    // Convert vertical wheel to horizontal scroll (like Twitch)
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      el.scrollLeft += e.deltaY;
+      e.preventDefault();
     }
+  }, { passive: false });
+}
 
-    function tfRenderLiveCarousel(){
-      const wrap = document.getElementById('tf-live-carousel');
-      if (!wrap) return;
+function tfLiveSkeleton(count=10){
+  const n = Math.max(3, Math.min(16, Number(count)||10));
+  let out = '';
+  for(let i=0;i<n;i++){
+    out += `<div class="tf-live-card" style="width:280px;flex:0 0 auto;">
+      <div class="tf-live-thumb" style="background:rgba(255,255,255,.06)"></div>
+      <div class="tf-live-meta">
+        <div class="tf-live-title" style="opacity:.35">Chargement…</div>
+        <div class="tf-live-sub" style="opacity:.25"> </div>
+      </div>
+    </div>`;
+  }
+  return out;
+}
 
-      tfBindHorizontalWheel(wrap);
+async function tfLoadTopStreams(force=false){
+  const wrap = document.getElementById('tf-live-carousel');
+  if (!wrap) return;
+  if (tfTopStreamsLoading && !force) return;
 
-      // Build from categories already loaded in TwitFlix
-      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
-      if (!cats.length){
-        wrap.innerHTML = '<div class="tf-empty">Chargement des lives…</div>';
-        return;
-      }
+  tfTopStreamsLoading = true;
+  wrap.innerHTML = tfLiveSkeleton(10);
 
-      wrap.innerHTML = '';
-      cats.forEach(cat => {
-        const gameId = String(cat.id || '');
-        const gameName = String(cat.name || 'Jeu');
-        const boxArt = tfNormalizeBoxArt(cat.box_art_url || cat.boxArt || '');
-
-        const card = document.createElement('div');
-        card.className = 'tf-live-card';
-        card.dataset.gameId = gameId;
-
-        card.innerHTML = `
-          <div class="tf-live-thumb" style="background-image:url('${boxArt}')">
-            <div class="tf-preview"></div>
-            <div class="tf-live-badge">LIVE</div>
-          </div>
-          <div class="tf-live-meta">
-            <div class="t1">${gameName}</div>
-            <div class="t2">Survole pour preview · Clique pour lancer</div>
-          </div>
-        `;
-
-        // Preview on hover (uses existing TwitFlix preview logic)
-        card.addEventListener('mouseenter', () => tfStartPreview(card));
-        card.addEventListener('mouseleave', () => tfStopPreview(card));
-
-        // Click => launch a stream for this category
-        card.addEventListener('click', () => {
-          try { playTwitFlixCategory(gameId, gameName, boxArt); } catch(_) {}
-        });
-
-        wrap.appendChild(card);
-      });
+  try{
+    const r = await fetch(`${API_BASE}/api/streams/top?first=24&lang=fr`);
+    const d = await r.json();
+    if (d && d.success && Array.isArray(d.streams)){
+      tfTopStreams = d.streams;
+    } else {
+      tfTopStreams = [];
     }
+  }catch(_){
+    tfTopStreams = [];
+  }finally{
+    tfTopStreamsLoading = false;
+  }
 
-    function tfRenderTrailerCarousel(){
-      const wrap = document.getElementById('tf-trailer-carousel');
-      if (!wrap) return;
+  tfRenderLiveCarousel();
+}
 
-      tfBindHorizontalWheel(wrap);
+function tfRenderLiveCarousel(){
+  const wrap = document.getElementById('tf-live-carousel');
+  if (!wrap) return;
 
-      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 10) : [];
-      wrap.innerHTML = '';
+  tfBindHorizontalWheel(wrap);
 
-      if (!cats.length){
-        wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
-        return;
-      }
+  const streams = Array.isArray(tfTopStreams) ? tfTopStreams.slice(0, 24) : [];
+  if (!streams.length){
+    wrap.innerHTML = `<div class="tf-empty">
+      Aucun live récupéré pour le moment.
+      <button class="tf-mini-btn" style="margin-left:10px" onclick="tfLoadTopStreams(true)" type="button">
+        <i class="fas fa-sync"></i>
+      </button>
+    </div>`;
+    return;
+  }
 
-      cats.forEach(cat => {
-        const gameName = String(cat.name || '').trim();
-        const key = gameName.toLowerCase();
-        const vid = TRAILER_MAP[key];
+  wrap.innerHTML = '';
 
-        const card = document.createElement('div');
-        card.className = 'tf-trailer-card';
+  streams.forEach(s => {
+    const login = String(s.user_login || '').toLowerCase();
+    const display = String(s.user_name || s.user_login || 'LIVE');
+    const gameName = String(s.game_name || '');
+    const viewers = Number(s.viewer_count || 0);
 
-        if (vid){
-          card.innerHTML = `
-            <iframe
-              src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&mute=1"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              loading="lazy"
-              title="Trailer - ${gameName}">
-            </iframe>
-          `;
-        } else {
-          card.innerHTML = `
-            <div class="tf-trailer-fallback">
-              <div>
-                <div style="font-weight:800;margin-bottom:6px">${gameName || 'Trailer'}</div>
-                <div style="opacity:.85">
-                  Trailer non configuré.<br/>
-                  Ajoute l’ID YouTube dans <code style="opacity:.9">TRAILER_MAP</code>.
-                </div>
-              </div>
-            </div>
-          `;
-        }
+    const thumbRaw = String(s.thumbnail_url || '');
+    const thumb = thumbRaw
+      ? thumbRaw.replace('{width}','320').replace('{height}','180') + `?t=${Date.now()}`
+      : '';
 
-        wrap.appendChild(card);
-      });
-    }
+    const card = document.createElement('div');
+    card.className = 'tf-live-card';
+    card.dataset.channel = login;
+    card.dataset.gameId = String(s.game_id || '');
+
+    card.innerHTML = `
+      <div class="tf-live-thumb">
+        ${thumb ? `<img class="tf-live-thumb-img" loading="lazy" alt="${escapeHtml(display)}" src="${thumb}">` : ''}
+        <div class="tf-preview"></div>
+        <div class="tf-live-badge">LIVE</div>
+      </div>
+      <div class="tf-live-meta">
+        <div class="tf-live-title">${escapeHtml(display)}</div>
+        <div class="tf-live-sub">${escapeHtml(gameName)} • ${viewers.toLocaleString('fr-FR')} viewers</div>
+      </div>
+    `;
+
+    // Preview on hover (muted)
+    card.addEventListener('mouseenter', () => tfStartPreview(card));
+    card.addEventListener('mouseleave', () => tfStopPreview(card));
+
+    // Click => play this channel
+    card.addEventListener('click', () => {
+      try { playTwitFlixChannel(login); } catch(_) {}
+    });
+
+    wrap.appendChild(card);
+  });
+}
+
 
     let tfCursor = null;
     let tfLoading = false;
@@ -3214,11 +3279,16 @@ const modal = document.getElementById('twitflix-modal');
       // sentinel observer for infinite loading
       tfSetupObserver();
 
+      // Live diaporama (non bloquant)
+      try{
+        const refreshBtn = document.getElementById('tf-live-refresh');
+        if (refreshBtn) refreshBtn.onclick = () => tfLoadTopStreams(true);
+      }catch(_){}
+      tfLoadTopStreams();
+
       // warm load (2 pages)
       await tfLoadMore(true);
       await tfLoadMore(true);
-      tfRenderLiveCarousel();
-      tfRenderTrailerCarousel();
       renderTwitFlix();
     }
 
@@ -3236,6 +3306,7 @@ tfModalOpen = false;
 
     function tfSetupObserver(){
       const host = document.getElementById('twitflix-grid');
+      const rootEl = document.querySelector('#twitflix-modal .tf-modal-content') || null;
       if (!host) return;
 
       let sentinel = document.getElementById('tf-sentinel');
@@ -3259,7 +3330,7 @@ tfModalOpen = false;
           await tfLoadMore(false);
           renderTwitFlix();
         }
-      }, { root: host, threshold: 0.1 });
+      }, { root: rootEl, threshold: 0.1 });
 
       tfObserver.observe(sentinel);
     }
@@ -3363,11 +3434,10 @@ tfModalOpen = false;
 
     async function tfRetryLoad(){
       tfHasMore = true;
+      tfLoadTopStreams(true);
       await tfLoadMore(true);
       await tfLoadMore(true);
-      tfRenderLiveCarousel();
-          tfRenderTrailerCarousel();
-          renderTwitFlix();
+      renderTwitFlix();
       tfSetupObserver();
     }
 
@@ -3538,16 +3608,20 @@ tfModalOpen = false;
       }
     }
 
-    async function tfStartPreview(cardEl){
+    async async function tfStartPreview(cardEl){
       try{
         if (!cardEl || cardEl.classList.contains('previewing')) return;
-        const gameId = String(cardEl.dataset.gameId || '');
-        if (!gameId) return;
 
         const host = cardEl.querySelector('.tf-preview');
         if (!host) return;
 
-        const channel = await tfGetPreviewChannel(gameId);
+        // If a live card already carries its channel, preview it.
+        let channel = String(cardEl.dataset.channel || '').trim();
+        if (!channel){
+          const gameId = String(cardEl.dataset.gameId || '');
+          if (!gameId) return;
+          channel = await tfGetPreviewChannel(gameId);
+        }
         if (!channel) return;
 
         const parent = encodeURIComponent(TWITCH_PARENT || window.location.hostname);
@@ -3628,6 +3702,20 @@ tfModalOpen = false;
         alert("Erreur lors de la recherche TwitFlix.");
       }
     }
+    async function playTwitFlixChannel(login){
+      try{
+        const channel = String(login || '').trim();
+        if (!channel) return;
+        closeTwitFlix();
+        const disp = document.getElementById('current-channel-display');
+        if (disp) disp.innerText = channel;
+
+        changeChannel(channel);
+        const badge = document.getElementById('player-mode-badge');
+        if (badge) badge.innerText = "TWITFLIX";
+      }catch(_){}
+    }
+
 
     function tfShuffle(arr){
       const a = arr.slice();

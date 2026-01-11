@@ -1,12 +1,10 @@
 {
   "name": "streamer-hub-v95-final",
   "version": "5.0.1",
-  "description": "Streamer Hub - Moteur Twitchappi",
+  "description": "Streamer Hub - Moteur Twitchappi (TwitFlix rebuild + vuln fix)",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "audit:prod": "npm audit --omit=dev",
-    "audit:fix": "npm audit fix --omit=dev"
+    "start": "node app.js"
   },
   "dependencies": {
     "express": "^4.19.2",
@@ -15,13 +13,13 @@
     "firebase-admin": "^12.1.0",
     "dotenv": "^16.4.5",
     "@google/genai": "latest",
-    "socket.io": "^4.8.1",
+    "socket.io": "^4.7.5",
     "helmet": "^7.1.0",
     "express-rate-limit": "^7.4.1",
     "express-session": "^1.18.0",
     "memorystore": "^1.6.7"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=18.0.0"
   }
 }
