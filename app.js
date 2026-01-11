@@ -215,7 +215,7 @@ app.use(cookieParser());
 if (!process.env.SESSION_SECRET) {
   console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod)');
 }
-app.use(session({
+const sessionMiddleware = session({
   name: 'streamerhub.sid',
   store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
@@ -226,7 +226,9 @@ app.use(session({
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
   }
-}));
+});
+
+app.use(sessionMiddleware);
 
 app.use(express.static(path.join(__dirname)));
 
@@ -249,7 +251,6 @@ app.get('/', (req, res) => {
 // =========================================================
 const CACHE = {
   twitchTokens: {},
-  twitchUser: null,
   boostedStream: null,
   lastScanData: null,
   globalStreamRotation: {
@@ -497,18 +498,33 @@ if (ENABLE_CRON) {
 }
 
 // =========================================================
-// 3. AUTH
+// 3. AUTH (MULTI-USER SAFE)
 // =========================================================
 app.get('/twitch_auth_start', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
-  const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
-  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
+
+  // Stockage du state en session (anti-CSRF) — pas en variable globale
+  req.session.twitch_oauth_state = state;
+
+  const url =
+    `https://id.twitch.tv/oauth2/authorize` +
+    `?client_id=${TWITCH_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent('user:read:follows')}` +
+    `&state=${encodeURIComponent(state)}`;
+
   res.redirect(url);
 });
 
 app.get('/twitch_auth_callback', async (req, res) => {
   const { code, state } = req.query;
-  if (state !== req.cookies.twitch_state) return res.send("Erreur Auth.");
+
+  if (!state || !req.session.twitch_oauth_state || state !== req.session.twitch_oauth_state) {
+    return res.status(403).send('Erreur Auth (state).');
+  }
+  // one-time use
+  req.session.twitch_oauth_state = null;
 
   try {
     const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
@@ -517,45 +533,58 @@ app.get('/twitch_auth_callback', async (req, res) => {
       body: new URLSearchParams({
         client_id: TWITCH_CLIENT_ID,
         client_secret: TWITCH_CLIENT_SECRET,
-        code,
+        code: String(code || ''),
         grant_type: 'authorization_code',
         redirect_uri: REDIRECT_URI
       })
     });
 
     const tokenData = await tokenRes.json();
-    if (tokenData.access_token) {
-      const userRes = await twitchAPI('users', tokenData.access_token);
-      const user = userRes.data[0];
-      CACHE.twitchUser = {
-        display_name: user.display_name,
-        id: user.id,
-        access_token: tokenData.access_token,
-        expiry: Date.now() + (tokenData.expires_in * 1000),
-        profile_image_url: user.profile_image_url
-      };
-      res.send("<script>window.close();</script>");
-    } else {
-      res.send("Erreur Token.");
-    }
+    if (!tokenData?.access_token) return res.status(401).send('Erreur Token.');
+
+    const userRes = await twitchAPI('users', tokenData.access_token);
+    const user = userRes?.data?.[0];
+    if (!user) return res.status(401).send('Erreur User.');
+
+    // ✅ Stockage par utilisateur: SESSION (multi-user)
+    req.session.twitchUser = {
+      display_name: user.display_name,
+      login: user.login,
+      id: user.id,
+      profile_image_url: user.profile_image_url,
+      access_token: tokenData.access_token,
+      expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000)
+    };
+
+    // S’assure que la session est persistée avant fermeture de la popup
+    req.session.save(() => {
+      res.send('<script>window.close();</script>');
+    });
+
   } catch (e) {
-    res.send("Erreur Serveur.");
+    res.status(500).send('Erreur Serveur.');
   }
 });
 
 app.post('/twitch_logout', (req, res) => {
-  CACHE.twitchUser = null;
-  res.json({ success: true });
+  req.session.twitchUser = null;
+  req.session.save(() => res.json({ success: true }));
 });
 
 app.get('/twitch_user_status', (req, res) => {
-  if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
+  const u = req.session?.twitchUser;
+
+  if (u && (!u.expiry || u.expiry > Date.now())) {
     return res.json({
       is_connected: true,
-      display_name: CACHE.twitchUser.display_name,
-      profile_image_url: CACHE.twitchUser.profile_image_url
+      display_name: u.display_name,
+      profile_image_url: u.profile_image_url
     });
   }
+
+  // Session expirée -> purge
+  if (req.session) req.session.twitchUser = null;
+
   res.json({ is_connected: false });
 });
 
@@ -699,28 +728,33 @@ app.post('/api/stream/by_category', async (req, res) => {
 // 5. STREAMS FOLLOWED + ROTATION + BOOST
 // =========================================================
 app.get('/followed_streams', async (req, res) => {
-  if (!CACHE.twitchUser) return res.status(401).json({ success: false });
+  const u = req.session?.twitchUser;
+  if (!u || (u.expiry && u.expiry <= Date.now())) {
+    if (req.session) req.session.twitchUser = null;
+    return res.status(401).json({ success: false });
+  }
 
   try {
     const data = await twitchAPI(
-      `streams/followed?user_id=${CACHE.twitchUser.id}`,
-      CACHE.twitchUser.access_token
+      `streams/followed?user_id=${u.id}`,
+      u.access_token
     );
+
     return res.json({
       success: true,
       streams: (data.data || []).map(s => ({
         user_id: s.user_id,
         user_name: s.user_name,
         user_login: s.user_login,
+        game_name: s.game_name,
+        title: s.title,
         viewer_count: s.viewer_count,
-        game_id: s.game_id || null,
-        game_name: s.game_name || null,
-        title: s.title || null,
+        started_at: s.started_at,
         thumbnail_url: s.thumbnail_url
       }))
     });
   } catch (e) {
-    return res.status(500).json({ success: false, error:e.message });
+    return res.status(500).json({ success: false, error: e.message });
   }
 });
 
@@ -1462,6 +1496,11 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: { origin: true, methods: ['GET', 'POST'] }
+});
+
+// Partage la session Express avec Socket.IO (multi-user)
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
 });
 
 
