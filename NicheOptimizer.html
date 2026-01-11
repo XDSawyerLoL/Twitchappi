@@ -1878,6 +1878,149 @@ body.modal-open #player-tools{display:none !important;}
 }
 
 
+
+    /* ====== HELP TOOLTIPS (❓) ====== */
+    .help{
+      cursor:pointer;
+      margin-left:6px;
+      color: rgba(180,200,255,.95);
+      font-size: 13px;
+      line-height: 1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      border:1px solid rgba(180,200,255,.35);
+      background: rgba(255,255,255,.04);
+      position:relative;
+      user-select:none;
+    }
+    .help:hover{
+      background: rgba(180,200,255,.14);
+      border-color: rgba(180,200,255,.55);
+    }
+    .help:hover::after{
+      content: attr(data-help);
+      position:absolute;
+      left:0;
+      top:26px;
+      background: rgba(10,10,14,.96);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:10px;
+      font-size:12px;
+      width: 260px;
+      z-index: 99999;
+      box-shadow: 0 10px 24px rgba(0,0,0,.45);
+      border: 1px solid rgba(255,255,255,.12);
+      white-space: normal;
+    }
+    .help:hover::before{
+      content:'';
+      position:absolute;
+      left:10px;
+      top:20px;
+      border:7px solid transparent;
+      border-bottom-color: rgba(10,10,14,.96);
+      z-index: 99999;
+    }
+
+    /* ====== TWITFLIX HEADER CAROUSELS ====== */
+    .tf-header-block{
+      margin-top: 10px;
+    }
+    .tf-strip-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin: 8px 0 10px 2px;
+    }
+    .tf-strip-title h4{
+      font-family: Orbitron, sans-serif;
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color:#eaeaf0;
+      margin:0;
+    }
+    .tf-carousel{
+      display:flex;
+      gap:14px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      scroll-behavior:smooth;
+      padding-bottom: 6px;
+    }
+    .tf-carousel::-webkit-scrollbar{ height: 8px; }
+    .tf-carousel::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.12); border-radius:999px; }
+    .tf-live-card{
+      width: 250px;
+      flex: 0 0 auto;
+      border-radius: 14px;
+      overflow:hidden;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      cursor:pointer;
+      position:relative;
+    }
+    .tf-live-thumb{
+      width: 100%;
+      height: 140px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+    .tf-live-thumb .tf-preview{
+      position:absolute;
+      inset:0;
+      background: rgba(0,0,0,.2);
+    }
+    .tf-live-meta{
+      padding: 10px 12px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .tf-live-meta .t1{ font-weight: 800; font-size: 13px; color:#fff; }
+    .tf-live-meta .t2{ font-size: 12px; color: rgba(255,255,255,.72); }
+    .tf-live-badge{
+      position:absolute;
+      top:10px;
+      left:10px;
+      padding: 6px 8px;
+      font-size: 11px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.55);
+      border: 1px solid rgba(255,255,255,.16);
+      color: rgba(255,255,255,.92);
+      backdrop-filter: blur(6px);
+    }
+
+    .tf-trailer-card{
+      width: 320px;
+      height: 180px;
+      flex: 0 0 auto;
+      border-radius: 14px;
+      overflow:hidden;
+      background:#000;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .tf-trailer-card iframe{ width:100%; height:100%; border:0; display:block; }
+    .tf-trailer-fallback{
+      width:100%;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: rgba(255,255,255,.75);
+      font-size: 12px;
+      padding: 18px;
+      text-align:center;
+    }
+    
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2254,6 +2397,21 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 <div class="tf-sub" style="display:none;"></div>
 <div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
+
+<div class="tf-header-block">
+  <div class="tf-strip-title">
+    <h4>Lives en cours <span class="help" data-help="Survole une carte pour une preview. Clique pour lancer un live correspondant au jeu.">?</span></h4>
+  </div>
+  <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
+</div>
+
+<div class="tf-header-block">
+  <div class="tf-strip-title">
+    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque pour un jeu, ajoute son ID YouTube dans la liste TRAILER_MAP du script.">?</span></h4>
+  </div>
+  <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
+</div>
+
 <div class="tf-grid" id="twitflix-grid">
 <div class="text-center w-full text-gray-500 py-20" id="tf-loading">
 <i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...
@@ -2542,16 +2700,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       window.__hubSocketInited = true;
 
       try{
-        socket = io(undefined, {
-          withCredentials: true,
-          transports: ['websocket'],
-          upgrade: false,
-          reconnection: true,
-          reconnectionAttempts: Infinity,
-          reconnectionDelay: 500,
-          reconnectionDelayMax: 5000,
-          timeout: 20000
-        });
+        socket = io(undefined, { transports: ['websocket','polling'] });
 
         const status = document.getElementById('socket-status');
         const setStatus = (ok) => {
@@ -2860,6 +3009,128 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     let tfModalOpen = false;
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
+
+    // ====== TWITFLIX: LIVE CAROUSEL + TRAILERS ======
+    // Add YouTube video IDs here to enable embedded trailers in TwitFlix.
+    // Key: game name (lowercased). Value: YouTube videoId.
+    const TRAILER_MAP = {
+      // examples (edit freely)
+      "fortnite": "2gUtfBmw86Y",
+      "minecraft": "MmB9b5njVbA",
+      "league of legends": "aR-KAldshAE",
+      "valorant": "e_E9W2vsRbQ",
+      "apex legends": "innmNewjkuk",
+      "call of duty": "o7lUq2X4y4c"
+    };
+
+    function tfBindHorizontalWheel(el){
+      if (!el || el.__wheelBound) return;
+      el.__wheelBound = true;
+      el.addEventListener('wheel', (e) => {
+        // Convert vertical wheel to horizontal scroll (like Twitch)
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          el.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
+    }
+
+    function tfRenderLiveCarousel(){
+      const wrap = document.getElementById('tf-live-carousel');
+      if (!wrap) return;
+
+      tfBindHorizontalWheel(wrap);
+
+      // Build from categories already loaded in TwitFlix
+      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
+      if (!cats.length){
+        wrap.innerHTML = '<div class="tf-empty">Chargement des lives…</div>';
+        return;
+      }
+
+      wrap.innerHTML = '';
+      cats.forEach(cat => {
+        const gameId = String(cat.id || '');
+        const gameName = String(cat.name || 'Jeu');
+        const boxArt = tfNormalizeBoxArt(cat.box_art_url || cat.boxArt || '');
+
+        const card = document.createElement('div');
+        card.className = 'tf-live-card';
+        card.dataset.gameId = gameId;
+
+        card.innerHTML = `
+          <div class="tf-live-thumb" style="background-image:url('${boxArt}')">
+            <div class="tf-preview"></div>
+            <div class="tf-live-badge">LIVE</div>
+          </div>
+          <div class="tf-live-meta">
+            <div class="t1">${gameName}</div>
+            <div class="t2">Survole pour preview · Clique pour lancer</div>
+          </div>
+        `;
+
+        // Preview on hover (uses existing TwitFlix preview logic)
+        card.addEventListener('mouseenter', () => tfStartPreview(card));
+        card.addEventListener('mouseleave', () => tfStopPreview(card));
+
+        // Click => launch a stream for this category
+        card.addEventListener('click', () => {
+          try { playTwitFlixCategory(gameId, gameName, boxArt); } catch(_) {}
+        });
+
+        wrap.appendChild(card);
+      });
+    }
+
+    function tfRenderTrailerCarousel(){
+      const wrap = document.getElementById('tf-trailer-carousel');
+      if (!wrap) return;
+
+      tfBindHorizontalWheel(wrap);
+
+      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 10) : [];
+      wrap.innerHTML = '';
+
+      if (!cats.length){
+        wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
+        return;
+      }
+
+      cats.forEach(cat => {
+        const gameName = String(cat.name || '').trim();
+        const key = gameName.toLowerCase();
+        const vid = TRAILER_MAP[key];
+
+        const card = document.createElement('div');
+        card.className = 'tf-trailer-card';
+
+        if (vid){
+          card.innerHTML = `
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&mute=1"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              loading="lazy"
+              title="Trailer - ${gameName}">
+            </iframe>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="tf-trailer-fallback">
+              <div>
+                <div style="font-weight:800;margin-bottom:6px">${gameName || 'Trailer'}</div>
+                <div style="opacity:.85">
+                  Trailer non configuré.<br/>
+                  Ajoute l’ID YouTube dans <code style="opacity:.9">TRAILER_MAP</code>.
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        wrap.appendChild(card);
+      });
+    }
+
     let tfCursor = null;
     let tfLoading = false;
     let tfHasMore = true;
@@ -3088,7 +3359,9 @@ tfModalOpen = false;
       tfHasMore = true;
       await tfLoadMore(true);
       await tfLoadMore(true);
-      renderTwitFlix();
+      tfRenderLiveCarousel();
+          tfRenderTrailerCarousel();
+          renderTwitFlix();
       tfSetupObserver();
     }
 
