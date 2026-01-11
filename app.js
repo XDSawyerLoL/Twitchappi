@@ -1505,11 +1505,29 @@ app.get('/api/costream/best', async (req, res) => {
 // =========================================================
 const server = http.createServer(app);
 
+// Prevent proxies (Render/Cloudflare) from closing long-polling connections too aggressively
+server.keepAliveTimeout = 120000; // 120s
+server.headersTimeout = 125000;   // must be > keepAliveTimeout
+
+
 const io = new Server(server, {
-  cors: { origin: true, methods: ['GET', 'POST'] }
+  cors: {
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling'],
+  pingInterval: 25000,
+  pingTimeout: 60000
 });
 
 // Partage la session Express avec Socket.IO (multi-user)
+
+// Helpful debug for unstable connections
+io.engine.on('connection_error', (err) => {
+  console.warn('⚠️ [SOCKET] connection_error:', err.code, err.message);
+});
+
 io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
