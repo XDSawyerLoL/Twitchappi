@@ -1879,92 +1879,128 @@ body.modal-open #player-tools{display:none !important;}
 
 
 
-/* === TwitFlix: LIVE HERO DIAPO (Twitch-like) === */
-.tf-live-hero-wrap{ padding: 0 0 10px 0; }
-.tf-live-hero-track{
-  display:flex;
-  gap:14px;
-  overflow-x:auto;
-  overflow-y:hidden;
-  scroll-snap-type:x mandatory;
-  scroll-behavior:smooth;
-  padding: 0 20px 10px 20px;
-  min-height: 280px;
+/* ====== HELP (?) TOOLTIP ====== */
+.help{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:16px; height:16px; margin-left:8px;
+  border-radius:999px;
+  border:1px solid rgba(0,242,234,.55);
+  color: var(--secondary);
+  font-family: Orbitron, sans-serif;
+  font-size:11px; font-weight:900;
+  cursor: help;
+  position: relative;
+  flex: 0 0 auto;
 }
-.tf-live-hero-track::-webkit-scrollbar{ height: 8px; }
-.tf-live-hero-track::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.12); border-radius:999px; }
+.help::after{
+  content: attr(data-help);
+  position:absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  transform: translateX(-50%);
+  background: rgba(10,10,12,.96);
+  color: #e9e9ee;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: min(360px, 76vw);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55);
+  opacity:0;
+  pointer-events:none;
+  transition:.15s;
+  z-index: 999999;
+}
+.help:hover::after{ opacity:1; }
 
-.tf-live-slide{
-  scroll-snap-align:start;
-  flex: 0 0 100%;
-  max-width: 100%;
+
+/* ====== TWITFLIX LIVE DIAPORAMA ====== */
+.tf-diapo-wrap{ margin-top: 14px; }
+.tf-diapo-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.tf-diapo-title{ font-family: Orbitron, sans-serif; font-size: 12px; letter-spacing:.08em; text-transform: uppercase; color: rgba(255,255,255,.86); }
+.tf-diapo-ctrls{ display:flex; gap:8px; }
+.tf-diapo-btn{
+  width:34px; height:34px; border-radius: 10px;
+  background: rgba(20,20,24,.85);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.85);
+  display:flex; align-items:center; justify-content:center;
+  transition:.15s;
+}
+.tf-diapo-btn:hover{ transform: translateY(-1px); border-color: rgba(0,242,234,.35); }
+.tf-diapo-grid{
+  margin-top: 10px;
   display:grid;
-  grid-template-columns: 1.7fr 1fr;
+  grid-template-columns: 1.6fr 1fr 1fr;
   gap: 12px;
-  min-width: 760px;
+  min-height: 210px;
 }
-@media (max-width: 1200px){
-  .tf-live-slide{ min-width: 640px; grid-template-columns: 1.5fr 1fr; }
+@media (max-width: 980px){
+  .tf-diapo-grid{ grid-template-columns: 1fr; }
 }
-@media (max-width: 900px){
-  .tf-live-slide{ min-width: 520px; grid-template-columns: 1fr; }
-}
-.tf-live-main{
+.tf-diapo-card{
+  position: relative;
   border-radius: 16px;
-  overflow:hidden;
-  background: rgba(255,255,255,.04);
+  overflow: hidden;
   border: 1px solid rgba(255,255,255,.10);
-  position:relative;
-  min-height: 270px;
-  cursor:pointer;
+  background: rgba(10,10,12,.75);
+  box-shadow: 0 14px 50px rgba(0,0,0,.45);
+  cursor: pointer;
+  min-height: 210px;
 }
-.tf-live-main .thumb{
+.tf-diapo-card.main{ min-height: 260px; }
+.tf-diapo-bg{
   position:absolute; inset:0;
-  background-size: cover; background-position:center;
-  filter: saturate(1.05);
+  background-size: cover; background-position: center;
+  filter: saturate(1.05) contrast(1.02);
 }
-.tf-live-main .overlay{
+.tf-diapo-grad{
   position:absolute; inset:0;
-  background: linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.80));
+  background: linear-gradient(90deg, rgba(0,0,0,.72), rgba(0,0,0,.25) 45%, rgba(0,0,0,.70));
 }
-.tf-live-main .meta{
-  position:absolute; left:14px; right:14px; bottom:12px;
-  z-index:2; display:flex; flex-direction:column; gap:6px;
+.tf-diapo-meta{
+  position:absolute; left:14px; right:14px; bottom:14px;
+  display:flex; flex-direction:column; gap:6px;
 }
-.tf-live-badges{ display:flex; gap:10px; align-items:center; justify-content:space-between; }
-.tf-badge{
-  display:inline-flex; gap:8px; align-items:center;
-  padding: 6px 10px; border-radius: 999px;
-  background: rgba(0,0,0,.55);
-  border: 1px solid rgba(255,255,255,.16);
-  color: rgba(255,255,255,.92);
-  backdrop-filter: blur(6px);
-  font-size: 12px; font-weight: 900;
+.tf-diapo-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.tf-live-badge{
+  background:#e91916; color:white;
+  font-weight:900; font-size:10px;
+  padding:4px 8px; border-radius:999px;
+  font-family: Orbitron, sans-serif;
+  letter-spacing:.08em;
 }
-.tf-live-title{ font-size: 13px; font-weight: 900; color:#fff; line-height:1.2; max-height:2.4em; overflow:hidden; }
-.tf-live-sub{ font-size: 12px; color: rgba(255,255,255,.78); max-height:2.2em; overflow:hidden; }
-.tf-live-preview{ position:absolute; inset:0; z-index:1; opacity:0; transition: opacity .18s ease; }
-.tf-live-main.is-previewing .tf-live-preview{ opacity:1; }
-.tf-live-preview iframe{ width:100%; height:100%; border:0; display:block; }
-
-.tf-live-side{ display:flex; flex-direction:column; gap:12px; }
-.tf-live-side-card{
+.tf-viewers{
+  font-size:12px; color: rgba(255,255,255,.86);
+}
+.tf-diapo-channel{ font-weight:900; color:#fff; font-size:16px; }
+.tf-diapo-game{ font-size:12px; color: rgba(0,242,234,.9); font-weight:700; }
+.tf-diapo-titleline{
+  font-size:12px; color: rgba(255,255,255,.82);
+  max-width: 100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.tf-diapo-preview{
+  position:absolute; inset:0;
+  opacity:0;
+  transition:.15s;
+}
+.tf-diapo-card:hover .tf-diapo-preview{ opacity:1; }
+.tf-diapo-skel{
   border-radius: 16px;
-  overflow:hidden;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.10);
-  cursor:pointer;
-  position:relative;
-  min-height: 129px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(90deg, rgba(20,20,24,.35), rgba(20,20,24,.65), rgba(20,20,24,.35));
+  background-size: 200% 100%;
+  animation: tfShimmer 1.2s linear infinite;
+  min-height: 210px;
 }
-.tf-live-side-card .thumb{ position:absolute; inset:0; background-size:cover; background-position:center; }
-.tf-live-side-card .overlay{ position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.82)); }
-.tf-live-side-card .meta{ position:absolute; left:12px; right:12px; bottom:10px; display:flex; flex-direction:column; gap:4px; }
-.tf-live-side-card .t1{ font-weight:900; color:#fff; font-size:12px; }
-.tf-live-side-card .t2{ color: rgba(255,255,255,.75); font-size:11px; max-height: 2.4em; overflow:hidden; }
-
-/* Fix A–Z bar overlap/scroll weirdness */
-.tf-azbar{ top: 0 !important; position: sticky !important; z-index: 70 !important; background: rgba(8,8,10,.92) !important; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom:1px solid rgba(255,255,255,.10); }
+@keyframes tfShimmer{
+  0%{ background-position: 0% 0; }
+  100%{ background-position: 200% 0; }
+}
 
 </style>
 </head>
@@ -2314,17 +2350,20 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 <div class="tf-sub" style="display:none;"></div>
-<div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
-
-<div class="tf-live-hero-wrap">
-  <div class="tf-strip-title" style="padding:0 20px 10px 20px;">
-    <h4 style="margin:0; font-family:Orbitron; color:#cfd2d6; letter-spacing:.08em; text-transform:uppercase;">
-      Diaporama de lives <span class="help" data-help="En haut : un diaporama de lives en cours (style Twitch). Défile à la molette. Survole pour preview. Clique pour lancer le live dans le lecteur.">?</span>
-    </h4>
+<div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div>
+<div class="tf-diapo-wrap" id="tf-diapo-wrap" aria-label="Diaporama de lives">
+  <div class="tf-diapo-head">
+    <div class="tf-diapo-title">Lives en cours <span class="help" data-help="Un diaporama de lives en cours (style Twitch). Survole pour la preview, clique pour lancer le live dans le lecteur.">?</span></div>
+    <div class="tf-diapo-ctrls">
+      <button class="tf-diapo-btn" type="button" id="tf-diapo-prev" aria-label="Précédent"><i class="fas fa-chevron-left"></i></button>
+      <button class="tf-diapo-btn" type="button" id="tf-diapo-next" aria-label="Suivant"><i class="fas fa-chevron-right"></i></button>
+    </div>
   </div>
-  <div class="tf-live-hero-track" id="tf-live-hero-track" aria-label="Diaporama de lives"></div>
+  <div class="tf-diapo-grid" id="tf-diapo-grid">
+    <div class="tf-diapo-skel"></div><div class="tf-diapo-skel"></div><div class="tf-diapo-skel"></div>
+  </div>
 </div>
-
+</div></div>
 <div class="tf-grid" id="twitflix-grid">
 <div class="text-center w-full text-gray-500 py-20" id="tf-loading">
 <i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...
@@ -2333,7 +2372,8 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div></div>
 <script>
-    const API_BASE = window.location.origin;
+    const __qs = new URLSearchParams(location.search);
+    const API_BASE = __qs.get('api') || window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
@@ -2373,6 +2413,7 @@ body.modal-open #player-tools{display:none !important;}
     // INIT
     window.addEventListener('load', async () => {
       initUnderTabs();
+      attachHelpToUnderTabs();
       await checkAuth();
       initPlayer();
       loadStatsDashboard();
@@ -2391,6 +2432,25 @@ body.modal-open #player-tools{display:none !important;}
         });
       }
     });
+
+    function attachHelpToUnderTabs(){
+      const map = {
+        overview: "Résumé instantané: live, activité, infos rapides et raccourcis.",
+        analytics: "Analyses avancées: tendances, signaux, audience (selon les données disponibles).",
+        niche: "Aide à trouver un angle de niche / positioning. Idéal pour créateurs & streamers."
+      };
+      const nav = document.getElementById('under-tabs-nav');
+      if (!nav) return;
+      nav.querySelectorAll('.u-tab-btn').forEach(btn=>{
+        const key = btn.getAttribute('data-ut');
+        if (!key || btn.querySelector('.help')) return;
+        const h = document.createElement('span');
+        h.className = 'help';
+        h.setAttribute('data-help', map[key] || 'Section');
+        h.textContent = '?';
+        btn.appendChild(h);
+      });
+    }
 
     function initUnderTabs(){
       const nav = document.getElementById('under-tabs-nav');
@@ -3004,6 +3064,8 @@ const modal = document.getElementById('twitflix-modal');
       // warm load (2 pages)
       await tfLoadMore(true);
       await tfLoadMore(true);
+      tfWireDiapoControls();
+      await tfLoadAndRenderDiapo();
       renderTwitFlix();
     }
 
@@ -3409,6 +3471,177 @@ tfModalOpen = false;
         }
       }catch(_){
         alert("Erreur lors de la recherche TwitFlix.");
+      }
+    }
+
+    
+    // ====== TWITFLIX: LIVE DIAPO (Netflix-like) ======
+    let tfDiapoIndex = 0;
+    let tfDiapoStreams = [];
+
+    function tfTwitchEmbedUrl(channel, muted=true){
+      const parents = Array.from(new Set([TWITCH_PARENT, window.location.hostname, 'justplayer.fr','www.justplayer.fr','localhost','127.0.0.1'])).filter(Boolean);
+      const parentParams = parents.map(p=>`parent=${encodeURIComponent(p)}`).join('&');
+      const m = muted ? 'muted=true' : 'muted=false';
+      return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&${m}&autoplay=true&${parentParams}`;
+    }
+
+    async function tfFetchTopStreams(){
+      try{
+        const res = await fetch(`${API_BASE}/api/streams/top?first=18`, { credentials:'include' });
+        if(!res.ok) throw new Error('streams/top ' + res.status);
+        const data = await res.json();
+        const streams = (data && data.success && Array.isArray(data.streams)) ? data.streams : [];
+        return streams;
+      }catch(e){
+        // Fallback: pick channels via /api/stream/by_category from first categories
+        try{
+          const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
+          const out = [];
+          for (const c of cats){
+            const gameId = String(c.id||''); if(!gameId) continue;
+            const r = await fetch(`${API_BASE}/api/stream/by_category`,{
+              method:'POST', headers:{'Content-Type':'application/json'},
+              credentials:'include',
+              body: JSON.stringify({ game_id: gameId })
+            });
+            const d = await r.json().catch(()=>null);
+            if (d && d.success && d.channel){
+              out.push({
+                user_login: d.channel,
+                user_name: d.user_name || d.channel,
+                game_name: d.game_name || c.name || '',
+                title: d.title || (c.name || ''),
+                viewer_count: d.viewer_count || 0,
+                thumbnail_url: (d.thumbnail_url || c.box_art_url || '').replace('{width}','1280').replace('{height}','720'),
+                __fallback: true
+              });
+            }
+            if (out.length >= 18) break;
+          }
+          return out;
+        }catch(_){
+          return [];
+        }
+      }
+    }
+
+    function tfFormatViewers(n){
+      const v = Number(n||0);
+      if (v >= 1_000_000) return (v/1_000_000).toFixed(1).replace('.0','') + 'M';
+      if (v >= 1_000) return (v/1_000).toFixed(1).replace('.0','') + 'k';
+      return String(v);
+    }
+
+    function tfRenderDiapo(){
+      const grid = document.getElementById('tf-diapo-grid');
+      if (!grid) return;
+
+      if (!tfDiapoStreams.length){
+        grid.innerHTML = `<div class="tf-diapo-card main"><div class="tf-diapo-bg" style="background-image:url('')"></div><div class="tf-diapo-grad"></div><div class="tf-diapo-meta"><div class="tf-diapo-row"><span class="tf-live-badge" style="background:#333">INFO</span></div><div class="tf-diapo-channel">Aucun live disponible pour l’instant.</div><div class="tf-diapo-titleline">Vérifie la connexion Twitch / Token côté backend.</div></div></div>`;
+        return;
+      }
+
+      const pick = (i)=> tfDiapoStreams[(tfDiapoIndex + i) % tfDiapoStreams.length];
+
+      const s0 = pick(0), s1 = pick(1), s2 = pick(2);
+      const cards = [
+        { s:s0, main:true },
+        { s:s1, main:false },
+        { s:s2, main:false },
+      ];
+
+      grid.innerHTML = '';
+      cards.forEach(({s, main})=>{
+        const thumb = (s.thumbnail_url || '').replace('{width}','1280').replace('{height}','720');
+        const channel = s.user_login || s.user_name || '';
+        const viewers = tfFormatViewers(s.viewer_count || 0);
+
+        const card = document.createElement('div');
+        card.className = 'tf-diapo-card' + (main ? ' main' : '');
+        card.innerHTML = `
+          <div class="tf-diapo-bg" style="background-image:url('${thumb}')"></div>
+          <div class="tf-diapo-grad"></div>
+          <div class="tf-diapo-preview"></div>
+          <div class="tf-diapo-meta">
+            <div class="tf-diapo-row">
+              <span class="tf-live-badge">LIVE</span>
+              <span class="tf-viewers">${viewers} spectateurs</span>
+            </div>
+            <div class="tf-diapo-channel">${(s.user_name || channel)}</div>
+            <div class="tf-diapo-game">${(s.game_name || '')}</div>
+            <div class="tf-diapo-titleline">${(s.title || '')}</div>
+          </div>
+        `;
+
+        // Hover => preview
+        let hoverTimer = null;
+        card.addEventListener('mouseenter', ()=>{
+          hoverTimer = setTimeout(()=>{
+            const host = card.querySelector('.tf-diapo-preview');
+            if (!host) return;
+            host.innerHTML = `<iframe src="${tfTwitchEmbedUrl(channel, true)}" style="width:100%;height:100%;border:0" allow="autoplay; fullscreen"></iframe>`;
+          }, 220);
+        });
+        card.addEventListener('mouseleave', ()=>{
+          if (hoverTimer) clearTimeout(hoverTimer);
+          const host = card.querySelector('.tf-diapo-preview');
+          if (host) host.innerHTML = '';
+        });
+
+        // Click => play channel
+        card.addEventListener('click', ()=>{
+          closeTwitFlix();
+          try{
+            changeChannel(channel);
+            const badge = document.getElementById('player-mode-badge');
+            if (badge) badge.innerText = "TWITFLIX";
+          }catch(_){}
+        });
+
+        grid.appendChild(card);
+      });
+
+      // set hero background from first
+      try{
+        const bg = document.getElementById('tf-hero-bg');
+        if (bg){
+          const heroThumb = ((s0 && s0.thumbnail_url) ? s0.thumbnail_url : '').replace('{width}','1280').replace('{height}','720');
+          bg.src = heroThumb || '';
+          bg.style.opacity = heroThumb ? '.55' : '.18';
+        }
+      }catch(_){}
+    }
+
+    async function tfLoadAndRenderDiapo(){
+      const grid = document.getElementById('tf-diapo-grid');
+      if (grid) grid.innerHTML = '<div class="tf-diapo-skel"></div><div class="tf-diapo-skel"></div><div class="tf-diapo-skel"></div>';
+      tfDiapoStreams = await tfFetchTopStreams();
+      tfDiapoIndex = 0;
+      tfRenderDiapo();
+    }
+
+    function tfWireDiapoControls(){
+      const prev = document.getElementById('tf-diapo-prev');
+      const next = document.getElementById('tf-diapo-next');
+      if (prev && !prev.__wired){
+        prev.__wired = true;
+        prev.addEventListener('click', ()=>{ if(tfDiapoStreams.length){ tfDiapoIndex = (tfDiapoIndex - 1 + tfDiapoStreams.length) % tfDiapoStreams.length; tfRenderDiapo(); }});
+      }
+      if (next && !next.__wired){
+        next.__wired = true;
+        next.addEventListener('click', ()=>{ if(tfDiapoStreams.length){ tfDiapoIndex = (tfDiapoIndex + 1) % tfDiapoStreams.length; tfRenderDiapo(); }});
+      }
+
+      const grid = document.getElementById('tf-diapo-grid');
+      if (grid && !grid.__wheel){
+        grid.__wheel = true;
+        grid.addEventListener('wheel', (e)=>{
+          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+            if (e.deltaY > 0) next?.click(); else prev?.click();
+            e.preventDefault();
+          }
+        }, { passive:false });
       }
     }
 
@@ -5441,190 +5674,6 @@ const ov = document.getElementById('market-overlay');
 })();
 </script>
 
-
-
-<script>
-/* === TwitFlix Live Diapo (no infinite loading) === */
-(function(){
-  function uniq(arr){ return Array.from(new Set(arr.filter(Boolean))); }
-  const qs = new URLSearchParams(location.search);
-  const p = qs.get('parent') || window.location.hostname;
-  const parents = uniq([p, window.location.hostname, 'justplayer.fr', 'www.justplayer.fr', 'localhost', '127.0.0.1']);
-
-  function twSrc(channel){
-    const parentQs = parents.map(x => `parent=${encodeURIComponent(x)}`).join('&');
-    return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&muted=true&${parentQs}`;
-  }
-
-  function esc(s){ return String(s||'').replace(/</g,'&lt;'); }
-
-  function bindWheelX(el){
-    if (!el || el.__wheelX) return;
-    el.__wheelX = true;
-    el.addEventListener('wheel', (e)=>{
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)){
-        el.scrollLeft += e.deltaY;
-        e.preventDefault();
-      }
-    }, {passive:false});
-  }
-
-  async function pickStream(gameId){
-    try{
-      const res = await fetch(`${API_BASE}/api/stream/by_category`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        credentials:'include',
-        body: JSON.stringify({ game_id: String(gameId||'') })
-      });
-      const data = await res.json();
-      if (!data || !data.success || !data.channel) return null;
-      return {
-        channel: data.channel,
-        user_login: data.user_login || data.channel,
-        user_name: data.user_name || data.channel,
-        title: data.title || '',
-        viewer_count: data.viewer_count || 0,
-        thumbnail_url: data.thumbnail_url || ''
-      };
-    }catch(_){ return null; }
-  }
-
-  async function renderLiveDiapo(){
-    const track = document.getElementById('tf-live-hero-track');
-    if (!track) return;
-    bindWheelX(track);
-
-    // skeleton immediately (so never "blocked")
-    track.innerHTML = '';
-    for (let i=0;i<2;i++){
-      const sk = document.createElement('div');
-      sk.className = 'tf-live-slide';
-      sk.innerHTML = `<div class="tf-live-main"><div class="thumb" style="background:rgba(255,255,255,.06)"></div><div class="overlay"></div></div>
-                      <div class="tf-live-side"><div class="tf-live-side-card"><div class="thumb" style="background:rgba(255,255,255,.06)"></div><div class="overlay"></div></div>
-                      <div class="tf-live-side-card"><div class="thumb" style="background:rgba(255,255,255,.06)"></div><div class="overlay"></div></div></div>`;
-      track.appendChild(sk);
-    }
-
-    // Choose categories based on current mode/search
-    const cats = (window.tfSearchQuery && window.tfSearchQuery.trim() && Array.isArray(window.tfSearchResults) && window.tfSearchResults.length)
-      ? window.tfSearchResults.slice(0, 12)
-      : (Array.isArray(window.tfAllCategories) ? window.tfAllCategories.slice(0, 12) : []);
-
-    const picks = [];
-    // batch to avoid spamming
-    for (let i=0;i<cats.length;i++){
-      const cat = cats[i];
-      const pick = await pickStream(cat.id);
-      if (pick){
-        picks.push({
-          ...pick,
-          game_name: cat.name || '',
-          // fallback thumbnail: use game boxart if stream thumb missing
-          bg: (pick.thumbnail_url || (cat.box_art_url ? cat.box_art_url.replace('{width}','1280').replace('{height}','720') : ''))
-        });
-      }
-      if (picks.length >= 9) break;
-    }
-
-    track.innerHTML = '';
-    if (!picks.length){
-      track.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.85">
-        Aucun live disponible pour l’instant.
-        <div style="margin-top:10px"><button class="tf-btn" onclick="window.__tfReloadDiapo()">Réessayer</button></div>
-      </div>`;
-      return;
-    }
-
-    function mkCard(s){
-      const el = document.createElement('div');
-      el.className = 'tf-live-side-card';
-      el.innerHTML = `
-        <div class="thumb" style="background-image:url('${s.bg}')"></div>
-        <div class="overlay"></div>
-        <div class="meta">
-          <div class="t1">${esc((s.user_name||s.user_login||'').slice(0,28))} · ${s.viewer_count||0}</div>
-          <div class="t2">${esc(s.title||s.game_name||'')}</div>
-        </div>`;
-      el.addEventListener('click', ()=>{
-        try{ window.changeChannel && window.changeChannel(s.user_login || s.channel); }catch(_){}
-        try{ window.closeTwitFlix && window.closeTwitFlix(); }catch(_){}
-      });
-      return el;
-    }
-
-    for (let i=0;i<picks.length;i+=3){
-      const s1 = picks[i], s2 = picks[i+1], s3 = picks[i+2];
-      const slide = document.createElement('div');
-      slide.className = 'tf-live-slide';
-
-      const main = document.createElement('div');
-      main.className = 'tf-live-main';
-      main.innerHTML = `
-        <div class="thumb" style="background-image:url('${s1.bg}')"></div>
-        <div class="tf-live-preview"></div>
-        <div class="overlay"></div>
-        <div class="meta">
-          <div class="tf-live-badges">
-            <div class="tf-badge">LIVE · ${s1.viewer_count||0} viewers</div>
-            <div class="tf-badge" style="opacity:.85">${esc((s1.game_name||'').slice(0,24))}</div>
-          </div>
-          <div class="tf-live-title">${esc(s1.user_name || s1.user_login || '')}</div>
-          <div class="tf-live-sub">${esc(s1.title || '')}</div>
-        </div>
-      `;
-      const prev = main.querySelector('.tf-live-preview');
-      main.addEventListener('mouseenter', ()=>{
-        if (main.__prev) return;
-        main.__prev = true;
-        main.classList.add('is-previewing');
-        prev.innerHTML = `<iframe src="${twSrc(s1.user_login||s1.channel)}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-      });
-      main.addEventListener('mouseleave', ()=>{
-        main.__prev = false;
-        main.classList.remove('is-previewing');
-        prev.innerHTML = '';
-      });
-      main.addEventListener('click', ()=>{
-        try{ window.changeChannel && window.changeChannel(s1.user_login||s1.channel); }catch(_){}
-        try{ window.closeTwitFlix && window.closeTwitFlix(); }catch(_){}
-      });
-
-      const side = document.createElement('div');
-      side.className = 'tf-live-side';
-      if (s2) side.appendChild(mkCard(s2));
-      if (s3) side.appendChild(mkCard(s3));
-
-      slide.appendChild(main);
-      slide.appendChild(side);
-      track.appendChild(slide);
-    }
-  }
-
-  window.__tfReloadDiapo = renderLiveDiapo;
-
-  // Hook renderTwitFlix to refresh diapo on view/search changes
-  const __origRender = window.renderTwitFlix;
-  if (typeof __origRender === 'function'){
-    window.renderTwitFlix = function(...args){
-      const r = __origRender.apply(this, args);
-      // refresh diapo each time view re-renders (search, A-Z, etc)
-      setTimeout(()=>renderLiveDiapo(), 0);
-      return r;
-    }
-  }
-
-  // Hook openTwitFlix to render diapo immediately when modal opens
-  const __origOpen = window.openTwitFlix;
-  if (typeof __origOpen === 'function'){
-    window.openTwitFlix = async function(...args){
-      const r = await __origOpen.apply(this, args);
-      setTimeout(()=>renderLiveDiapo(), 50);
-      return r;
-    }
-  }
-})();
-</script>
 
 </body>
 </html>
