@@ -2024,6 +2024,8 @@ body.modal-open #player-tools{display:none !important;}
     
 
 #tf-live-carousel{min-height: 154px;}
+
+#tf-vod-carousel{min-height: 210px;}
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2424,7 +2426,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div></div>
 <script>
-    const API_BASE = new URLSearchParams(location.search).get('api') || window.location.origin;
+    const API_BASE = (new URLSearchParams(location.search).get('api') || window.location.origin);
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
@@ -3018,6 +3020,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     async function tfFetchTopStreams(){
       try{
         const res = await fetch(`${API_BASE}/api/streams/top?first=18&language=fr`, { credentials: 'include' });
+        if(!res.ok) throw new Error('streams/top ' + res.status);
         const data = await res.json();
         if (data && data.success && Array.isArray(data.streams)) return data.streams;
       }catch(e){}
@@ -3030,11 +3033,12 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     }
 
     function tfMakeEmbed(channel){
-      const p1 = (typeof getParentParam === 'function') ? getParentParam() : (new URLSearchParams(location.search).get('parent') || location.hostname);
+      const qs = new URLSearchParams(location.search);
+      const p1 = qs.get('parent');
       const p2 = location.hostname;
-      const parents = Array.from(new Set([p1, p2].filter(Boolean)));
-      const parentParams = parents.map(p => `parent=${encodeURIComponent(p)}`).join('&');
-      return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&muted=true&${parentParams}`;
+      // Twitch allows multiple parent params. We'll include both to avoid embed blocks.
+      const parents = [p1, p2].filter(Boolean).map(p => `parent=${encodeURIComponent(p)}`).join('&');
+      return `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&muted=true&${parents}`;
     }
 
     function tfBindHeroWheel(el){
@@ -3083,6 +3087,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       wrap.innerHTML = `<div class="tf-empty" style="padding:12px 2px;opacity:.75">Chargement des VOD de ${displayName || login}…</div>`;
       try{
         const res = await fetch(`${API_BASE}/api/videos/by_user?login=${encodeURIComponent(login)}&first=10`, { credentials:'include' });
+        if(!res.ok) throw new Error('videos/by_user ' + res.status);
         const data = await res.json();
         const vids = (data && data.success && Array.isArray(data.videos)) ? data.videos : [];
         wrap.innerHTML = '';
