@@ -2334,7 +2334,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
     // AUTH
     async function checkAuth() {
-      const res = await fetch(`${API_BASE}/twitch_user_status`);
+      const res = await fetch(`${API_BASE}/twitch_user_status`, { credentials: 'include' });
       const data = await res.json();
       if (data.is_connected) {
         currentUser = data.display_name;
@@ -2353,13 +2353,13 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     function startAuth() {
       window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
       const check = setInterval(async () => {
-        const res = await fetch(`${API_BASE}/twitch_user_status`);
+        const res = await fetch(`${API_BASE}/twitch_user_status`, { credentials: 'include' });
         const data = await res.json();
         if (data.is_connected) { clearInterval(check); location.reload(); }
       }, 1000);
     }
 
-    function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
+    function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST', credentials:'include' }).then(()=>location.reload()); }
 
     // PLAYER
     async function initPlayer() {
@@ -2448,7 +2448,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       const el = document.getElementById('carousel');
       el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
       try{
-        const res = await fetch(`${API_BASE}/followed_streams`);
+        const res = await fetch(`${API_BASE}/followed_streams`, { credentials: 'include' });
         const data = await res.json();
         if (data.success && data.streams.length > 0){
           el.innerHTML = '';
