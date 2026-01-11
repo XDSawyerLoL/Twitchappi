@@ -1953,6 +1953,7 @@ body.modal-open #player-tools{display:none !important;}
       overflow-y:hidden;
       scroll-behavior:smooth;
       padding-bottom: 6px;
+      min-height: 154px;
     }
     .tf-carousel::-webkit-scrollbar{ height: 8px; }
     .tf-carousel::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.12); border-radius:999px; }
@@ -2021,6 +2022,9 @@ body.modal-open #player-tools{display:none !important;}
       text-align:center;
     }
     
+
+#tf-trailer-carousel{min-height: 190px;}
+#tf-live-carousel{min-height: 154px;}
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -3213,6 +3217,8 @@ const modal = document.getElementById('twitflix-modal');
       // warm load (2 pages)
       await tfLoadMore(true);
       await tfLoadMore(true);
+      tfRenderLiveCarousel();
+      tfRenderTrailerCarousel();
       renderTwitFlix();
     }
 
@@ -5777,6 +5783,10 @@ const ov = document.getElementById('market-overlay');
   };
 
   const HELP_TEXT_BY_TAB = {
+    "OVERVIEW": "Vue synthèse : KPIs, raccourcis et état global du live.",
+    "ANALYTICS PRO": "Analyse avancée : courbes, segments, perf, signaux et comparaisons.",
+    "NICHE": "Niche & opportunités : idées de jeux/sujets, concurrence, timing et angles gagnants.",
+
     "CHAT": "Chat du stream : Twitch + Hub Secure. Rien d'autre n'apparaît en dessous.",
     "STATS": "Tableaux et métriques (audience, tendances, historique).",
     "OUTILS": "Tous les modules d'analyse (best time, marché, scanner, raid finder, etc.)."
@@ -5802,6 +5812,11 @@ const ov = document.getElementById('market-overlay');
 
     document.querySelectorAll('.tab-btn').forEach(b => {
       const t = norm(b.textContent);
+      if (HELP_TEXT_BY_TAB[t]) addHelpTo(b, HELP_TEXT_BY_TAB[t]);
+    });
+
+    document.querySelectorAll('.u-tab-btn').forEach(b => {
+      const t = norm(b.textContent).toUpperCase();
       if (HELP_TEXT_BY_TAB[t]) addHelpTo(b, HELP_TEXT_BY_TAB[t]);
     });
   }
