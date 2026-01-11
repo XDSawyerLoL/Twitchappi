@@ -7,9 +7,11 @@
  */
 
 require('dotenv').config();
+const fetch = globalThis.fetch;
+if (!fetch) { throw new Error('Global fetch is required (Node 18+).'); }
+
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
@@ -231,6 +233,8 @@ app.use(session({
 app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
+app.get('/health', (req,res)=>res.json({ ok:true, ts: Date.now() }));
+
 app.get('/', (req, res) => {
   const candidates = [
     process.env.UI_FILE,
