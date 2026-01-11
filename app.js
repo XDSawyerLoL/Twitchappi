@@ -644,6 +644,80 @@ app.post('/stream_info', async (req, res) => {
   }
 });
 
+
+// =========================================================
+// 4B. TWITFLIX FEED: TOP STREAMS + VOD
+// =========================================================
+const TWIFLIX_FEED_CACHE = {
+  topStreams: { ts: 0, data: [] }
+};
+
+app.get('/api/streams/top', async (req, res) => {
+  try {
+    const first = Math.max(1, Math.min(40, Number(req.query.first || 18)));
+    const language = String(req.query.language || 'fr').trim().toLowerCase();
+
+    // simple cache (30s) to avoid hitting Twitch too much
+    const now = Date.now();
+    if (TWIFLIX_FEED_CACHE.topStreams.data.length && (now - TWIFLIX_FEED_CACHE.topStreams.ts) < 30_000) {
+      return res.json({ success: true, streams: TWIFLIX_FEED_CACHE.topStreams.data });
+    }
+
+    let url = `streams?first=${first}`;
+    if (language) url += `&language=${encodeURIComponent(language)}`;
+
+    const d = await twitchAPI(url);
+    const streams = (d.data || []).map(s => ({
+      id: s.id,
+      user_id: s.user_id,
+      user_login: s.user_login,
+      user_name: s.user_name,
+      game_id: s.game_id,
+      game_name: s.game_name,
+      title: s.title,
+      viewer_count: s.viewer_count,
+      started_at: s.started_at,
+      thumbnail_url: s.thumbnail_url
+    }));
+
+    TWIFLIX_FEED_CACHE.topStreams = { ts: now, data: streams };
+    return res.json({ success: true, streams });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/videos/by_user', async (req, res) => {
+  try {
+    const login = String(req.query.login || '').trim().toLowerCase();
+    const first = Math.max(1, Math.min(20, Number(req.query.first || 10)));
+    const type = String(req.query.type || 'archive').trim(); // archive, highlight, upload
+
+    if (!login) return res.status(400).json({ success: false, error: 'login manquant' });
+
+    const u = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    const user = u?.data?.[0];
+    if (!user?.id) return res.json({ success: true, videos: [] });
+
+    const v = await twitchAPI(`videos?user_id=${encodeURIComponent(user.id)}&first=${first}&type=${encodeURIComponent(type)}`);
+    const videos = (v.data || []).map(x => ({
+      id: x.id,
+      user_id: x.user_id,
+      user_name: x.user_name,
+      title: x.title,
+      url: x.url,
+      view_count: x.view_count,
+      created_at: x.created_at,
+      duration: x.duration,
+      thumbnail_url: x.thumbnail_url
+    }));
+
+    return res.json({ success: true, videos });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
 
 app.get('/api/categories/top', async (req, res) => {
@@ -1505,29 +1579,11 @@ app.get('/api/costream/best', async (req, res) => {
 // =========================================================
 const server = http.createServer(app);
 
-// Prevent proxies (Render/Cloudflare) from closing long-polling connections too aggressively
-server.keepAliveTimeout = 120000; // 120s
-server.headersTimeout = 125000;   // must be > keepAliveTimeout
-
-
 const io = new Server(server, {
-  cors: {
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST']
-  },
-  transports: ['websocket', 'polling'],
-  pingInterval: 25000,
-  pingTimeout: 60000
+  cors: { origin: true, methods: ['GET', 'POST'] }
 });
 
 // Partage la session Express avec Socket.IO (multi-user)
-
-// Helpful debug for unstable connections
-io.engine.on('connection_error', (err) => {
-  console.warn('⚠️ [SOCKET] connection_error:', err.code, err.message);
-});
-
 io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
