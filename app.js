@@ -7,10 +7,8 @@
  */
 
 require('dotenv').config();
-const bodyParser = { json: () => express.json({ limit: '2mb' }), urlencoded: (o) => express.urlencoded(o) };
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -149,6 +147,8 @@ async function addXP(user, delta){
 // 1. CONFIGURATION
 // =========================================================
 const app = express();
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
 
 // Helmet: iframe-safe (NE BLOQUE PAS Fourthwall/iframe)
@@ -551,142 +551,12 @@ app.post('/twitch_logout', (req, res) => {
 app.get('/twitch_user_status', (req, res) => {
   if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
     return res.json({
-      is_connected: true,
-      display_name: CACHE.twitchUser.display_name,
-      profile_image_url: CACHE.twitchUser.profile_image_url
-    });
-  }
-  res.json({ is_connected: false });
-});
-
-app.get('/firebase_status', (req, res) => {
-  try {
-    if (db && admin.apps.length > 0) {
-      res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
-    } else {
-      res.json({ connected: false, message: 'Firebase not initialized' });
-    }
-  } catch (error) {
-    res.json({ connected: false, error: error.message });
-  }
-});
-
-// =========================================================
-// 4. STREAM INFO & TWITFLIX
-// =========================================================
-app.post('/stream_info', async (req, res) => {
-  const channel = String(req.body?.channel || '').trim().toLowerCase();
-  if (!channel) return res.status(400).json({ success:false, error:'channel manquant' });
-
-  try {
-    const u = await twitchAPI(`users?login=${encodeURIComponent(channel)}`);
-    if (!u.data || !u.data.length) return res.json({ success:false, error:'introuvable' });
-
-    const user = u.data[0];
-    const s = await twitchAPI(`streams?user_id=${encodeURIComponent(user.id)}`);
-    const stream = s.data && s.data.length ? s.data[0] : null;
-
-    const out = stream ? {
-      id: stream.id,
-      user_id: stream.user_id,
-      user_login: stream.user_login,
-      user_name: stream.user_name,
-      game_id: stream.game_id || null,
-      game_name: stream.game_name || null,
-      title: stream.title || null,
-      viewer_count: stream.viewer_count || 0,
-      started_at: stream.started_at || null
-    } : null;
-
-    return res.json({ success:true, user, stream: out });
-  } catch (e) {
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-// --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
-
-app.get('/api/categories/top', async (req, res) => {
-  try {
-    // On supporte la pagination via "cursor"
-    const cursor = req.query.cursor;
-    
-    // On demande 100 catégories d'un coup (max Twitch)
-    let url = 'games/top?first=100';
-    if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
-
-    const d = await twitchAPI(url);
-    if (!d.data) return res.json({ success: false });
-    
-    const categories = d.data.map(g => ({
-      id: g.id,
-      name: g.name,
-      box_art_url: g.box_art_url.replace('{width}', '285').replace('{height}', '380')
-    }));
-
-    // On renvoie aussi le curseur pour la page suivante
-    const nextCursor = d.pagination ? d.pagination.cursor : null;
-
-    res.json({ success: true, categories, cursor: nextCursor });
-  } catch (e) {
-    res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-
-// Search categories (pour la barre de recherche TwitFlix)
-// - retourne un tableau de catégories (mêmes champs que /api/categories/top)
-app.get('/api/categories/search', async (req, res) => {
-  try {
-    const q = String(req.query.q || '').trim();
-    if (!q) return res.json({ success: true, categories: [] });
-
-    // Twitch: search/categories?query=...&first=100
-    const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
-    const categories = (d.data || []).map(g => ({
-      id: g.id,
-      name: g.name,
-      box_art_url: (g.box_art_url || '').replace('{width}', '285').replace('{height}', '380')
-    }));
-    return res.json({ success: true, categories });
-  } catch (e) {
-    return res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-
-app.post('/api/stream/by_category', async (req, res) => {
-  const gameId = String(req.body?.game_id || '');
-  if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
-
-  try {
-    // 100 streams max, FR ou global
-    let sRes = await twitchAPI(`streams?game_id=${gameId}&language=fr&first=100`);
-    let streams = sRes.data || [];
-
-    if (streams.length < 5) {
-      const gRes = await twitchAPI(`streams?game_id=${gameId}&first=100`);
-      streams = [...streams, ...(gRes.data || [])];
-    }
-
-    // Filtre < 100 viewers
-    const candidates = streams.filter(s => (s.viewer_count || 0) <= 100);
-
-    if (candidates.length === 0) {
-      // Fallback
-      streams.sort((a, b) => (a.viewer_count || 0) - (b.viewer_count || 0));
-      if (streams.length > 0) candidates.push(streams[0]);
-    }
-
-    if (candidates.length === 0) {
-      return res.json({ success: false, message: 'Aucun stream trouvé dans cette catégorie.' });
-    }
-
-    const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
-    
-    return res.json({ 
-      success: true, 
+      success: true,
       channel: randomStream.user_login,
+      user_name: randomStream.user_name,
+      title: randomStream.title,
+      viewer_count: randomStream.viewer_count,
+      thumbnail_url: randomStream.thumbnail_url,
       game_name: randomStream.game_name
     });
 
