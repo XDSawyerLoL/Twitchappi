@@ -215,7 +215,7 @@ app.use(cookieParser());
 if (!process.env.SESSION_SECRET) {
   console.warn('⚠️ SESSION_SECRET manquant (OBLIGATOIRE en prod)');
 }
-const sessionMiddleware = session({
+app.use(session({
   name: 'streamerhub.sid',
   store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
@@ -223,14 +223,10 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    // If your UI is on a different domain (e.g. justplayer.fr) than the API (onrender.com),
-    // you NEED SameSite=None + Secure for the session cookie to be sent.
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
   }
-});
-
-app.use(sessionMiddleware);
+}));
 
 app.use(express.static(path.join(__dirname)));
 
@@ -253,6 +249,7 @@ app.get('/', (req, res) => {
 // =========================================================
 const CACHE = {
   twitchTokens: {},
+  twitchUser: null,
   boostedStream: null,
   lastScanData: null,
   globalStreamRotation: {
@@ -500,33 +497,18 @@ if (ENABLE_CRON) {
 }
 
 // =========================================================
-// 3. AUTH (MULTI-USER SAFE)
+// 3. AUTH
 // =========================================================
 app.get('/twitch_auth_start', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
-
-  // Stockage du state en session (anti-CSRF) — pas en variable globale
-  req.session.twitch_oauth_state = state;
-
-  const url =
-    `https://id.twitch.tv/oauth2/authorize` +
-    `?client_id=${TWITCH_CLIENT_ID}` +
-    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-    `&response_type=code` +
-    `&scope=${encodeURIComponent('user:read:follows')}` +
-    `&state=${encodeURIComponent(state)}`;
-
+  const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=user:read:follows&state=${state}`;
+  res.cookie('twitch_state', state, { httpOnly: true, secure: true, maxAge: 600000 });
   res.redirect(url);
 });
 
 app.get('/twitch_auth_callback', async (req, res) => {
   const { code, state } = req.query;
-
-  if (!state || !req.session.twitch_oauth_state || state !== req.session.twitch_oauth_state) {
-    return res.status(403).send('Erreur Auth (state).');
-  }
-  // one-time use
-  req.session.twitch_oauth_state = null;
+  if (state !== req.cookies.twitch_state) return res.send("Erreur Auth.");
 
   try {
     const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
@@ -535,67 +517,45 @@ app.get('/twitch_auth_callback', async (req, res) => {
       body: new URLSearchParams({
         client_id: TWITCH_CLIENT_ID,
         client_secret: TWITCH_CLIENT_SECRET,
-        code: String(code || ''),
+        code,
         grant_type: 'authorization_code',
         redirect_uri: REDIRECT_URI
       })
     });
 
     const tokenData = await tokenRes.json();
-    if (!tokenData?.access_token) return res.status(401).send('Erreur Token.');
-
-    const userRes = await twitchAPI('users', tokenData.access_token);
-    const user = userRes?.data?.[0];
-    if (!user) return res.status(401).send('Erreur User.');
-
-    // ✅ Stockage par utilisateur: SESSION (multi-user)
-    req.session.twitchUser = {
-      display_name: user.display_name,
-      login: user.login,
-      id: user.id,
-      profile_image_url: user.profile_image_url,
-      access_token: tokenData.access_token,
-      expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000)
-    };
-
-    // S’assure que la session est persistée avant fermeture de la popup
-    req.session.save(() => {
-      res.send(`
-        <script>
-          try {
-            if (window.opener && !window.opener.closed) {
-              window.opener.location.reload();
-            }
-          } catch (e) {}
-          window.close();
-        </script>
-      `);
-    });
-
+    if (tokenData.access_token) {
+      const userRes = await twitchAPI('users', tokenData.access_token);
+      const user = userRes.data[0];
+      CACHE.twitchUser = {
+        display_name: user.display_name,
+        id: user.id,
+        access_token: tokenData.access_token,
+        expiry: Date.now() + (tokenData.expires_in * 1000),
+        profile_image_url: user.profile_image_url
+      };
+      res.send("<script>window.close();</script>");
+    } else {
+      res.send("Erreur Token.");
+    }
   } catch (e) {
-    res.status(500).send('Erreur Serveur.');
+    res.send("Erreur Serveur.");
   }
 });
 
 app.post('/twitch_logout', (req, res) => {
-  req.session.twitchUser = null;
-  req.session.save(() => res.json({ success: true }));
+  CACHE.twitchUser = null;
+  res.json({ success: true });
 });
 
 app.get('/twitch_user_status', (req, res) => {
-  const u = req.session?.twitchUser;
-
-  if (u && (!u.expiry || u.expiry > Date.now())) {
+  if (CACHE.twitchUser && CACHE.twitchUser.expiry > Date.now()) {
     return res.json({
       is_connected: true,
-      display_name: u.display_name,
-      profile_image_url: u.profile_image_url
+      display_name: CACHE.twitchUser.display_name,
+      profile_image_url: CACHE.twitchUser.profile_image_url
     });
   }
-
-  // Session expirée -> purge
-  if (req.session) req.session.twitchUser = null;
-
   res.json({ is_connected: false });
 });
 
@@ -641,80 +601,6 @@ app.post('/stream_info', async (req, res) => {
     return res.json({ success:true, user, stream: out });
   } catch (e) {
     return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-
-// =========================================================
-// 4B. TWITFLIX FEED: TOP STREAMS + VOD
-// =========================================================
-const TWIFLIX_FEED_CACHE = {
-  topStreams: { ts: 0, data: [] }
-};
-
-app.get('/api/streams/top', async (req, res) => {
-  try {
-    const first = Math.max(1, Math.min(40, Number(req.query.first || 18)));
-    const language = String(req.query.language || 'fr').trim().toLowerCase();
-
-    // simple cache (30s) to avoid hitting Twitch too much
-    const now = Date.now();
-    if (TWIFLIX_FEED_CACHE.topStreams.data.length && (now - TWIFLIX_FEED_CACHE.topStreams.ts) < 30_000) {
-      return res.json({ success: true, streams: TWIFLIX_FEED_CACHE.topStreams.data });
-    }
-
-    let url = `streams?first=${first}`;
-    if (language) url += `&language=${encodeURIComponent(language)}`;
-
-    const d = await twitchAPI(url);
-    const streams = (d.data || []).map(s => ({
-      id: s.id,
-      user_id: s.user_id,
-      user_login: s.user_login,
-      user_name: s.user_name,
-      game_id: s.game_id,
-      game_name: s.game_name,
-      title: s.title,
-      viewer_count: s.viewer_count,
-      started_at: s.started_at,
-      thumbnail_url: s.thumbnail_url
-    }));
-
-    TWIFLIX_FEED_CACHE.topStreams = { ts: now, data: streams };
-    return res.json({ success: true, streams });
-  } catch (e) {
-    return res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-app.get('/api/videos/by_user', async (req, res) => {
-  try {
-    const login = String(req.query.login || '').trim().toLowerCase();
-    const first = Math.max(1, Math.min(20, Number(req.query.first || 10)));
-    const type = String(req.query.type || 'archive').trim(); // archive, highlight, upload
-
-    if (!login) return res.status(400).json({ success: false, error: 'login manquant' });
-
-    const u = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
-    const user = u?.data?.[0];
-    if (!user?.id) return res.json({ success: true, videos: [] });
-
-    const v = await twitchAPI(`videos?user_id=${encodeURIComponent(user.id)}&first=${first}&type=${encodeURIComponent(type)}`);
-    const videos = (v.data || []).map(x => ({
-      id: x.id,
-      user_id: x.user_id,
-      user_name: x.user_name,
-      title: x.title,
-      url: x.url,
-      view_count: x.view_count,
-      created_at: x.created_at,
-      duration: x.duration,
-      thumbnail_url: x.thumbnail_url
-    }));
-
-    return res.json({ success: true, videos });
-  } catch (e) {
-    return res.status(500).json({ success: false, error: e.message });
   }
 });
 
@@ -772,6 +658,66 @@ app.get('/api/categories/search', async (req, res) => {
 app.post('/api/stream/by_category', async (req, res) => {
   const gameId = String(req.body?.game_id || '');
   if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
+// =========================================================
+// 5bis. TWITFLIX HERO: TOP STREAMS + VODS
+// =========================================================
+app.get('/api/streams/top', async (req, res) => {
+  try {
+    const first = clamp(parseInt(req.query.first || '18', 10) || 18, 1, 100);
+    const language = (req.query.language || '').toString().trim();
+    const langQ = language ? `&language=${encodeURIComponent(language)}` : '';
+
+    const data = await twitchAPI(`streams?first=${first}${langQ}`);
+    const streams = (data.data || []).map(s => ({
+      id: s.id,
+      user_id: s.user_id,
+      user_login: s.user_login,
+      user_name: s.user_name,
+      game_id: s.game_id,
+      game_name: s.game_name,
+      title: s.title,
+      viewer_count: s.viewer_count,
+      started_at: s.started_at,
+      thumbnail_url: s.thumbnail_url
+    }));
+
+    res.json({ success: true, streams });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/videos/by_user', async (req, res) => {
+  try {
+    const login = (req.query.login || '').toString().trim();
+    if (!login) return res.status(400).json({ success: false, error: 'login required' });
+
+    const first = clamp(parseInt(req.query.first || '10', 10) || 10, 1, 100);
+
+    // Resolve login -> user_id
+    const u = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    const user = u?.data?.[0];
+    if (!user?.id) return res.json({ success: true, videos: [] });
+
+    // Fetch VODs (archives)
+    const v = await twitchAPI(`videos?user_id=${encodeURIComponent(user.id)}&first=${first}&type=archive`);
+    const videos = (v.data || []).map(x => ({
+      id: x.id,
+      url: x.url,
+      title: x.title,
+      created_at: x.created_at,
+      view_count: x.view_count,
+      duration: x.duration,
+      thumbnail_url: x.thumbnail_url
+    }));
+
+    res.json({ success: true, videos });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+
 
   try {
     // 100 streams max, FR ou global
@@ -813,33 +759,28 @@ app.post('/api/stream/by_category', async (req, res) => {
 // 5. STREAMS FOLLOWED + ROTATION + BOOST
 // =========================================================
 app.get('/followed_streams', async (req, res) => {
-  const u = req.session?.twitchUser;
-  if (!u || (u.expiry && u.expiry <= Date.now())) {
-    if (req.session) req.session.twitchUser = null;
-    return res.status(401).json({ success: false });
-  }
+  if (!CACHE.twitchUser) return res.status(401).json({ success: false });
 
   try {
     const data = await twitchAPI(
-      `streams/followed?user_id=${u.id}`,
-      u.access_token
+      `streams/followed?user_id=${CACHE.twitchUser.id}`,
+      CACHE.twitchUser.access_token
     );
-
     return res.json({
       success: true,
       streams: (data.data || []).map(s => ({
         user_id: s.user_id,
         user_name: s.user_name,
         user_login: s.user_login,
-        game_name: s.game_name,
-        title: s.title,
         viewer_count: s.viewer_count,
-        started_at: s.started_at,
+        game_id: s.game_id || null,
+        game_name: s.game_name || null,
+        title: s.title || null,
         thumbnail_url: s.thumbnail_url
       }))
     });
   } catch (e) {
-    return res.status(500).json({ success: false, error: e.message });
+    return res.status(500).json({ success: false, error:e.message });
   }
 });
 
@@ -1581,11 +1522,6 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: { origin: true, methods: ['GET', 'POST'] }
-});
-
-// Partage la session Express avec Socket.IO (multi-user)
-io.use((socket, next) => {
-  sessionMiddleware(socket.request, {}, next);
 });
 
 
