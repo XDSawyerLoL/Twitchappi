@@ -7,10 +7,10 @@
  */
 
 require('dotenv').config();
+const bodyParser = { json: () => express.json({ limit: '2mb' }), urlencoded: (o) => express.urlencoded(o) };
 const express = require('express');
 const cors = require('cors');
-const fetch = globalThis.fetch;
-if (!fetch) { throw new Error('Global fetch is required (Node 18+).'); }
+const fetch = require('node-fetch');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -684,14 +684,9 @@ app.post('/api/stream/by_category', async (req, res) => {
 
     const randomStream = candidates[Math.floor(Math.random() * candidates.length)];
     
-    return res.json({
-      success: true,
+    return res.json({ 
+      success: true, 
       channel: randomStream.user_login,
-      user_login: randomStream.user_login,
-      user_name: randomStream.user_name,
-      title: randomStream.title,
-      viewer_count: randomStream.viewer_count,
-      thumbnail_url: randomStream.thumbnail_url,
       game_name: randomStream.game_name
     });
 
