@@ -223,7 +223,9 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    sameSite: 'lax',
+    // If your UI is on a different domain (e.g. justplayer.fr) than the API (onrender.com),
+    // you NEED SameSite=None + Secure for the session cookie to be sent.
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: process.env.NODE_ENV === 'production',
   }
 });
