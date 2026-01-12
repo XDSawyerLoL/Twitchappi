@@ -401,15 +401,30 @@
 #twitflix-modal .tf-actions{ gap: 12px; }
 #twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
 
+#twitflix-modal .tf-body{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Conteneur de contenu (ne scroll plus lui-même, le scroll est sur .tf-body) */
+#twitflix-modal .tf-body{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Conteneur de contenu (ne scroll plus lui-même, le scroll est sur .tf-body) */
 #twitflix-modal .tf-grid{
   display:flex;
   flex-direction: column;
   gap: 18px;
   padding: 14px 18px 24px 18px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: visible;
 }
 
 #twitflix-modal .tf-hero{
@@ -1356,11 +1371,22 @@ body.modal-open #player-tools{display:none !important;}
 #twitflix-modal .tf-actions{ gap: 12px; }
 #twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
 
+#twitflix-modal .tf-body{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Conteneur de contenu (ne scroll plus lui-même, le scroll est sur .tf-body) */
 #twitflix-modal .tf-grid{
   display:flex;
   flex-direction: column;
   gap: 18px;
   padding: 14px 18px 24px 18px;
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: visible;
 }
 
 #twitflix-modal .tf-hero{
@@ -2384,6 +2410,8 @@ body.modal-open #player-tools{display:none !important;}
 <button class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition" onclick="runBoost()">ACTIVER</button>
 <div class="text-center text-xs mt-2 text-green-400" id="boost-msg"></div>
 </div>
+</div>
+</div>
 </div></div>
 </div>
 </div>
@@ -2404,6 +2432,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 <div class="tf-sub" style="display:none;"></div>
+<div class="tf-body" id="tf-body">
 <div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
 
 <div class="tf-header-block">
@@ -2415,7 +2444,7 @@ body.modal-open #player-tools{display:none !important;}
 
 <div class="tf-header-block">
   <div class="tf-strip-title">
-    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque pour un jeu, ajoute son ID YouTube dans la liste TRAILER_MAP du script.">?</span></h4>
+    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, TwitFlix tente une recherche automatique.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
 </div>
@@ -2424,6 +2453,7 @@ body.modal-open #player-tools{display:none !important;}
 <div class="text-center w-full text-gray-500 py-20" id="tf-loading">
 <i class="fas fa-spinner fa-spin"></i> Chargement du catalogue...
         </div>
+</div>
 </div>
 </div>
 </div></div>
@@ -3152,10 +3182,10 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         if (vid){
           card.innerHTML = `
             <iframe
-              src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&mute=1"
-              allow="autoplay; encrypted-media; picture-in-picture"
+              src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               loading="lazy"
-              title="Trailer - ${gameName}">
+              title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
             </iframe>
           `;
         } else {
@@ -3176,10 +3206,10 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
             if (!autoId) return;
             card.innerHTML = `
               <iframe
-                src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&mute=1"
-                allow="autoplay; encrypted-media; picture-in-picture"
+                src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 loading="lazy"
-                title="Trailer - ${gameName}">
+                title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
               </iframe>
             `;
           }).catch(()=>{});
