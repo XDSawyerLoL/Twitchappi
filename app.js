@@ -695,6 +695,48 @@ app.get('/api/categories/search', async (req, res) => {
 });
 
 
+// =========================================================
+// YOUTUBE TRAILER RESOLVER (NO API KEY) — for TwitFlix
+// GET /api/youtube/trailer?q=...
+// Returns first videoId found in YouTube search HTML.
+// =========================================================
+const YT_TRAILER_CACHE = new Map(); // q -> { videoId, t }
+const YT_TRAILER_TTL = 24 * 60 * 60 * 1000;
+
+app.get('/api/youtube/trailer', async (req, res) => {
+  try{
+    const q = String(req.query?.q || '').trim();
+    if(!q) return res.status(400).json({ success:false, error:'q manquant' });
+
+    const now = Date.now();
+    const cached = YT_TRAILER_CACHE.get(q);
+    if(cached && (now - cached.t) < YT_TRAILER_TTL){
+      return res.json({ success:true, videoId: cached.videoId || null, cached:true });
+    }
+
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8'
+      }
+    });
+    const html = await r.text();
+
+    // Extract first videoId
+    const m = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+    const videoId = m ? m[1] : null;
+
+    YT_TRAILER_CACHE.set(q, { videoId, t: now });
+
+    return res.json({ success:true, videoId });
+  }catch(e){
+    return res.status(500).json({ success:false, error: e.message });
+  }
+});
+
+
+
 app.post('/api/stream/by_category', async (req, res) => {
   const gameId = String(req.body?.game_id || '');
   if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
