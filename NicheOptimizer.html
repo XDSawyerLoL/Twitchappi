@@ -406,6 +406,10 @@
   flex-direction: column;
   gap: 18px;
   padding: 14px 18px 24px 18px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 #twitflix-modal .tf-hero{
@@ -3027,6 +3031,43 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       "call of duty": "o7lUq2X4y4c"
     };
 
+    // ====== AUTO TRAILER RESOLVER (no more manual IDs) ======
+    const tfTrailerCache = new Map(); // key -> { id, t }
+    const TF_TRAILER_TTL = 24 * 60 * 60 * 1000;
+
+    async function tfResolveTrailerId(gameName){
+      const name = String(gameName || '').trim();
+      if (!name) return null;
+      const key = name.toLowerCase();
+      const now = Date.now();
+
+      const cached = tfTrailerCache.get(key);
+      if (cached && (now - cached.t) < TF_TRAILER_TTL) return cached.id;
+
+      // 1) manual map still supported (instant)
+      if (TRAILER_MAP[key]){
+        tfTrailerCache.set(key, { id: TRAILER_MAP[key], t: now });
+        return TRAILER_MAP[key];
+      }
+
+      // 2) server resolver (best, avoids CORS + no API key)
+      try{
+        const q = `${name} game trailer`;
+        const r = await fetch(`${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}`);
+        if (r.ok){
+          const d = await r.json();
+          if (d && d.success && d.videoId){
+            tfTrailerCache.set(key, { id: d.videoId, t: now });
+            return d.videoId;
+          }
+        }
+      }catch(_){}
+
+      tfTrailerCache.set(key, { id: null, t: now });
+      return null;
+    }
+
+
     function tfBindHorizontalWheel(el){
       if (!el || el.__wheelBound) return;
       el.__wheelBound = true;
@@ -3123,12 +3164,25 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
               <div>
                 <div style="font-weight:800;margin-bottom:6px">${gameName || 'Trailer'}</div>
                 <div style="opacity:.85">
-                  Trailer non configuré.<br/>
-                  Ajoute l’ID YouTube dans <code style="opacity:.9">TRAILER_MAP</code>.
+                  Recherche du trailer…<br/>
+                  <span style="opacity:.7;font-size:12px">On tente une récupération automatique.</span>
                 </div>
               </div>
             </div>
           `;
+
+          // Auto-resolve, then swap in the iframe
+          tfResolveTrailerId(gameName).then((autoId)=>{
+            if (!autoId) return;
+            card.innerHTML = `
+              <iframe
+                src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&mute=1"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                loading="lazy"
+                title="Trailer - ${gameName}">
+              </iframe>
+            `;
+          }).catch(()=>{});
         }
 
         wrap.appendChild(card);
@@ -3550,8 +3604,10 @@ tfModalOpen = false;
         const channel = await tfGetPreviewChannel(gameId);
         if (!channel) return;
 
-        const parent = encodeURIComponent(TWITCH_PARENT || window.location.hostname);
-        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${parent}&muted=true&autoplay=true`;
+        const parentParams = (Array.isArray(PARENT_DOMAINS) && PARENT_DOMAINS.length)
+          ? PARENT_DOMAINS.map(p=>`parent=${encodeURIComponent(p)}`).join('&')
+          : `parent=${encodeURIComponent(TWITCH_PARENT || window.location.hostname)}`;
+        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&${parentParams}&muted=true&autoplay=true`;
 
         const iframe = document.createElement('iframe');
         iframe.src = src;
