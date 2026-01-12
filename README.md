@@ -1,41 +1,36 @@
-# StreamerHub — Dossier final (Front modulaire + Marché multi-user)
+# StreamerHub — Package final (Firestore only)
 
-## Démarrage local
+Ce package garde le **visuel existant** et remet une structure propre :
+- `public/` pour l'UI
+- `public/assets/` pour les scripts
+- Backend Express dans `app.js`
+
+## Démarrage
 ```bash
 npm install
 npm start
 ```
-Puis ouvre: `http://localhost:10000`
+Ouvre ensuite: `http://localhost:10000`
 
-## Structure
-- `app.js` : API + Socket Hub + Twitch OAuth + Marché (portefeuille multi-user)
-- `public/NicheOptimizer.html` : UI (1 seul fichier HTML)
-- `public/assets/js/` : scripts externalisés (HTML allégé)
-  - `main.js` : charge les scripts dans l’ordre
-  - `core/app-bootstrap.js` : logique principale (player, follow, tabs, twitflix, etc.)
-  - `modules/player/ambilight-vibe.js` : ambilight/vibe
-  - `modules/market/market-overlay.js` : overlay marché + portefeuille
-  - `modules/ui/*` : tabs exclusifs + tooltips (❓)
+## Firestore (source unique de vérité)
+Le **marché** et le **portefeuille** (Portefeuille Marché du Streamer) utilisent Firestore **uniquement**.
+Si Firestore n'est pas correctement initialisé, les endpoints du marché renverront une erreur (503).
 
-## Portefeuille "Marché du streamer" (multi-user)
-### Identité utilisateur
-- Si l’utilisateur est connecté Twitch : clé `twitch:<id>`
-- Sinon : clé `sess:<sessionId>` (cookie de session)
+### Fournir les identifiants Firebase Admin
+Deux options :
+1) Variable d'environnement `FIREBASE_SERVICE_ACCOUNT_JSON` (JSON du service account, éventuellement échappé)
+2) Fichier `serviceAccountKey.json` à la racine (non inclus dans le repo)
 
-### Persistance
-- Si Firestore est disponible (Firebase) : stockage Firestore
-- Sinon : fallback fichier (persistant) dans:
-  - `data/streamer_market/users.json`
-  - `data/streamer_market/market.json`
+## Dossiers
+- `public/NicheOptimizer.html` : page unique
+- `public/assets/js/...` : modules UI
+- `app.js` : API, sessions, sécurité, intégrations
 
-> Résultat: plus de perte de portefeuille au redémarrage, et isolation multi-user.
+## Endpoints portefeuille/marché
+- `GET /api/fantasy/portfolio`
+- `POST /api/fantasy/buy`
+- `POST /api/fantasy/sell`
+- `GET /api/fantasy/market?streamer=<login>`
+- `GET /api/fantasy/leaderboard`
 
-## Variables d’environnement (optionnel)
-- `PORT` (défaut 10000)
-- `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `TWITCH_REDIRECT_URI` (OAuth)
-- `SESSION_SECRET`
-- `CSP_ENABLED=true|false` (CSP Helmet)
-
-## Notes CSP
-- Par défaut CSP est désactivée (dev friendly).
-- Active-la en prod: `CSP_ENABLED=true`.
+> Les routes gardent `/api/fantasy/*` pour compatibilité front, mais l'UI affiche le nom **Portefeuille Marché du Streamer**.
