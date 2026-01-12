@@ -175,11 +175,12 @@
     .tf-close { color: #666; cursor: pointer; font-size: 24px; transition: .3s; }
     .tf-close:hover { color: #fff; transform: rotate(90deg); }
 
-    .tf-grid {
-      flex: 1; overflow-y: auto; padding: 20px;
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 20px; align-content: start;
-    }
+    .tf-grid{padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 20px;
+      align-content: start;
+      overflow: visible; /* IMPORTANT: no inner scroll */}
     .tf-card {
       position: relative; aspect-ratio: 3/4; border-radius: 6px; overflow: hidden;
       cursor: pointer; transition: transform 0.2s, border-color 0.2s;
@@ -2052,15 +2053,13 @@ body.modal-open #player-tools{display:none !important;}
       backdrop-filter: blur(6px);
     }
 
-    .tf-trailer-card{
-      width: 320px;
-      height: 180px;
+    .tf-trailer-card{width: 440px;
+      height: 248px; /* ~16:9 */
       flex: 0 0 auto;
-      border-radius: 14px;
+      border-radius: 16px;
       overflow:hidden;
       background:#000;
-      border: 1px solid rgba(255,255,255,.10);
-    }
+      border: 1px solid rgba(255,255,255,.10);}
     .tf-trailer-card iframe{ width:100%; height:100%; border:0; display:block; }
     .tf-trailer-fallback{
       width:100%;
@@ -2075,8 +2074,42 @@ body.modal-open #player-tools{display:none !important;}
     }
     
 
-#tf-trailer-carousel{min-height: 190px;}
-#tf-live-carousel{min-height: 154px;}
+#tf-trailer-carousel{min-height: 270px;}
+#tf-live-carousel{min-height: 170px;}
+
+
+/* Bigger close button top-right */
+.tf-close-btn{
+  margin-left: 10px;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.35);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.tf-close-btn:hover{ background: rgba(229,9,20,.22); border-color: rgba(229,9,20,.65); }
+
+/* Keep the search + view toggle perfectly fixed and stable */
+.tf-topbar{
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  background: linear-gradient(180deg, rgba(11,11,13,.98), rgba(11,11,13,.86));
+  backdrop-filter: blur(10px);
+}
+.tf-actions{ display:flex; align-items:center; gap: 10px; }
+.tf-view-toggle{ flex: 0 0 auto; }
+
+#tf-trailer-carousel{ gap: 16px; }
+#tf-trailer-carousel .tf-trailer-card{ box-shadow: 0 10px 26px rgba(0,0,0,.45); }
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2450,7 +2483,7 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn active" id="tf-btn-rows" onclick="setTwitFlixView('rows')" type="button">LIGNES</button>
 <button class="tf-toggle-btn" id="tf-btn-az" onclick="setTwitFlixView('az')" type="button">A–Z</button>
 </div>
-<i class="fas fa-times tf-close" onclick="closeTwitFlix()"></i>
+<button class="tf-close-btn" type="button" aria-label="Fermer TwitFlix" onclick="closeTwitFlix()">✕</button>
 </div>
 </div>
 <div class="tf-sub" style="display:none;"></div>
@@ -3185,7 +3218,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
       tfBindHorizontalWheel(wrap);
 
-      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 10) : [];
+      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
       wrap.innerHTML = '';
 
       if (!cats.length){
