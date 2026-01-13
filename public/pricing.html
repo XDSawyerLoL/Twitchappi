@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Plans & Crédits — StreamerHub</title>
+  <meta name="description" content="Twitflix est gratuit. Débloque le Marché via crédits ou Premium." />
+  <link rel="stylesheet" href="/assets/css/pricing.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <a class="back" href="/NicheOptimizer.html" aria-label="Retour">← Retour</a>
+      <h1>Regarder est gratuit.<br/>Comprendre est optionnel.<br/><span class="accent">Décider est payant.</span></h1>
+      <p class="sub">
+        <strong>Twitflix</strong> (lecteur + chat + stats Twitch) est gratuit.
+        Le <strong>Marché</strong> est accessible via <strong>actions</strong> (crédits) ou en <strong>Premium</strong>.
+      </p>
+
+      <section class="status" aria-live="polite">
+        <div class="pill" id="pillPlan">Plan : …</div>
+        <div class="pill" id="pillActions">Actions : …</div>
+        <div class="pill" id="pillCredits">Crédits : …</div>
+      </section>
+    </header>
+
+    <section class="cards" aria-label="Plans">
+      <article class="card">
+        <div class="badge free">GRATUIT — avec bonus</div>
+        <h2>Twitflix</h2>
+        <p class="desc">Regarde, explore et suis les streams librement.</p>
+        <ul class="list">
+          <li>🎥 Lecteur Twitflix</li>
+          <li>💬 Chat Twitch</li>
+          <li>📊 Stats Twitch basiques</li>
+          <li>⭐ Suivi de streamers</li>
+          <li>📺 Mode Cinéma</li>
+          <li>🧩 Mosaic (exploration passive)</li>
+        </ul>
+        <div class="key">
+          <div class="keyTitle">Bonus de départ</div>
+          <div class="keyValue"><strong>1200 crédits</strong> offerts après connexion Twitch</div>
+          <div class="keyNote">Soit <strong>60 actions</strong> (1 action = 20 crédits).</div>
+        </div>
+        <button class="btn" id="btnBack">Retour à l’app</button>
+        <p class="hint">Aucune carte. Tu testes vraiment avant d’acheter.</p>
+      </article>
+
+      <article class="card">
+        <div class="badge credits">À l’usage — sans abonnement</div>
+        <h2>Actions (Crédits)</h2>
+        <p class="desc">Débloque le Marché et les analyses <strong>quand tu en as besoin</strong>.</p>
+
+        <div class="key">
+          <div class="keyTitle">Principe</div>
+          <div class="keyValue"><strong>1 action</strong> = 1 décision stratégique</div>
+          <div class="keyNote">Une action consomme <strong>20 crédits</strong>.</div>
+        </div>
+
+        <div class="packs" id="packs"></div>
+
+        <button class="btn primary" id="btnBuyCredits">Acheter un pack</button>
+        <p class="hint">Tu paies une décision, pas un abonnement.</p>
+      </article>
+
+      <article class="card highlight">
+        <div class="badge premium">Recommandé pour streamers réguliers</div>
+        <h2>Premium</h2>
+        <div class="price">
+          <span class="amount">14,99€</span><span class="period">/ mois</span>
+        </div>
+        <p class="desc">Le Marché en continu. <strong>Actions illimitées</strong>.</p>
+
+        <ul class="list">
+          <li>♾️ Actions illimitées</li>
+          <li>📈 Marché complet (overlay)</li>
+          <li>🔔 Alertes (plus tard)</li>
+          <li>🧠 Recos continues (plus tard)</li>
+        </ul>
+
+        <button class="btn premiumBtn" id="btnPremium">Passer en Premium</button>
+        <p class="hint">Pour ceux qui veulent piloter sans compter.</p>
+      </article>
+    </section>
+
+    <section class="fineprint">
+      <p>
+        Les crédits sont des unités d’usage internes permettant de débloquer des actions et fonctionnalités.
+        Ils ne sont ni transférables, ni convertibles, ni remboursables.
+      </p>
+    </section>
+
+    <section class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></section>
+  </main>
+
+  <script src="/assets/js/pricing.js" defer></script>
+</body>
+</html>
