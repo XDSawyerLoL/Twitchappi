@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StreamerHub — Pricing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html,body{background:#070A10;color:#E8EEF9;}
+    .glass{background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); backdrop-filter: blur(10px);}
+    .muted{color:rgba(232,238,249,0.72);}
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="max-w-5xl mx-auto px-4 py-6">
+    <a href="/" class="text-sm underline muted">← Retour à l’app</a>
+
+    <div class="mt-6 flex flex-col gap-2">
+      <h1 class="text-3xl font-extrabold tracking-tight">Regarder est gratuit. <span class="muted">Décider est payant.</span></h1>
+      <p class="muted">
+        Twitflix (lecteur + chat + stats Twitch) reste gratuit.
+        Le Marché du streamer et les décisions avancées s’activent avec des <b>crédits</b> ou via <b>Premium</b>.
+      </p>
+    </div>
+
+    <div id="statusBox" class="glass rounded-2xl p-4 mt-6 flex items-center justify-between gap-4">
+      <div>
+        <div class="text-sm muted">Ton compte</div>
+        <div id="statusLine" class="font-semibold">Chargement…</div>
+      </div>
+      <button id="connectBtn" class="px-4 py-2 rounded-xl glass hover:opacity-90 text-sm">Connexion Twitch</button>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4 mt-6">
+      <div class="glass rounded-2xl p-5">
+        <h2 class="text-xl font-bold">Crédits (à l’usage)</h2>
+        <p class="muted text-sm mt-1">1 action = <b>20 crédits</b>. Tu dépenses seulement quand tu veux décider.</p>
+
+        <div id="packs" class="mt-4 grid gap-3"></div>
+
+        <div class="mt-4 text-xs muted">
+          <div>✔︎ Idéal pour les petits streamers</div>
+          <div>✔︎ Pas d’engagement</div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <h2 class="text-xl font-bold">Premium</h2>
+        <p class="muted text-sm mt-1">Marché + décisions en continu, sans compteur d’actions.</p>
+
+        <div class="mt-4 rounded-2xl p-4 glass">
+          <div class="flex items-baseline justify-between">
+            <div class="font-semibold">Premium</div>
+            <div class="text-2xl font-extrabold">9,99€<span class="text-sm muted"> / mois</span></div>
+          </div>
+          <ul class="mt-3 space-y-2 text-sm muted list-disc list-inside">
+            <li>Actions illimitées (∞)</li>
+            <li>Marché du streamer toujours accessible</li>
+            <li>Recommandations + alertes (quand activées)</li>
+          </ul>
+          <button id="premiumBtn" class="mt-4 w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm font-semibold">
+            Passer Premium
+          </button>
+          <div class="mt-3 text-xs muted">
+            En prod: Stripe Checkout. En dev: activation de test si Stripe non configuré.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 text-xs muted">
+      <div>⚠️ Le paiement est optionnel et désactivé si Stripe n’est pas configuré côté serveur.</div>
+    </div>
+  </div>
+
+  <script src="/assets/js/modules/billing/pricing.js" defer></script>
+</body>
+</html>
