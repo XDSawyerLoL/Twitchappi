@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;800&display=swap');
+:root{--bg:#050505;--panel:#0b0b0d;--border:#1f1f23;--text:#e0e0e0;--muted:#a7a7b2;--primary:#ff0099;--secondary:#00f2ea;}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 18px 44px}
+.back{display:inline-block;color:var(--secondary);text-decoration:none;font-weight:800;margin-bottom:10px}
+.back:hover{text-decoration:underline}
+.hero{padding:18px 18px 14px;border:1px solid var(--border);border-radius:18px;background:rgba(11,11,13,.88)}
+h1{margin:8px 0 6px;font-family:Orbitron,sans-serif;letter-spacing:.02em;line-height:1.15}
+.accent{color:var(--primary)}
+.sub{margin:0;color:var(--muted);max-width:80ch}
+.status{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pill{border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800;color:#e8e8ee}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+@media(max-width:960px){.cards{grid-template-columns:1fr}}
+.card{border:1px solid var(--border);border-radius:18px;background:rgba(11,11,13,.86);padding:18px;position:relative;overflow:hidden}
+.card.highlight{border-color:rgba(0,242,234,.35);box-shadow:0 0 0 1px rgba(0,242,234,.08) inset}
+.badge{display:inline-flex;align-items:center;gap:6px;font-weight:900;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.22);color:#e8e8ee}
+.badge.free{border-color:rgba(255,255,255,.14)}
+.badge.credits{border-color:rgba(0,242,234,.35);color:var(--secondary)}
+.badge.premium{border-color:rgba(255,0,153,.35);color:var(--primary)}
+.card h2{margin:10px 0 6px;font-family:Orbitron,sans-serif}
+.desc{margin:0;color:var(--muted)}
+.list{margin:12px 0 0;padding:0 0 0 18px;color:#d6d6de}
+.list li{margin:8px 0}
+.price{margin:10px 0 0;display:flex;align-items:baseline;gap:8px}
+.amount{font-size:34px;font-weight:900}
+.period{color:var(--muted);font-weight:800}
+.btn{margin-top:14px;width:100%;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:#151515;color:#fff;padding:12px 12px;font-weight:900;cursor:pointer}
+.btn:hover{border-color:rgba(0,242,234,.45)}
+.btn.primary{background:rgba(0,242,234,.15);border-color:rgba(0,242,234,.45)}
+.btn.primary:hover{background:rgba(0,242,234,.22)}
+.btn.premiumBtn{background:rgba(255,0,153,.18);border-color:rgba(255,0,153,.55)}
+.btn.premiumBtn:hover{background:rgba(255,0,153,.26)}
+.hint{margin:10px 0 0;font-size:12px;color:var(--muted)}
+.key{margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18)}
+.keyTitle{font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.1em}
+.keyValue{margin-top:6px;font-weight:900}
+.keyNote{margin-top:4px;color:var(--muted);font-size:12px}
+.packs{margin-top:12px;display:grid;gap:10px}
+.pack{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(0,0,0,.18)}
+.pack strong{font-family:Orbitron,sans-serif}
+.pack small{display:block;color:var(--muted)}
+.pack button{border-radius:12px;border:1px solid rgba(0,242,234,.45);background:rgba(0,242,234,.15);color:#fff;font-weight:900;padding:10px 12px;cursor:pointer}
+.pack button:hover{background:rgba(0,242,234,.22)}
+.fineprint{margin-top:18px;border:1px solid var(--border);border-radius:18px;background:rgba(11,11,13,.86);padding:16px;color:var(--muted);font-size:12px}
+.fineprint strong{color:#fff}
+.toast{position:fixed;right:16px;bottom:16px;max-width:420px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.82);color:#fff;font-weight:800;opacity:0;transform:translateY(10px);transition:.2s}
+.toast.show{opacity:1;transform:translateY(0)}
