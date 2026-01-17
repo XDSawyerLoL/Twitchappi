@@ -1,0 +1,22 @@
+/* Pricing fallback styles (works even if Tailwind CDN blocked) */
+:root{--bg:#050505;--panel:#0b0b0d;--border:#1f1f23;--teal:#00f2ea;--pink:#ff0099;--text:#e0e0e0;--muted:#9aa0aa;}
+html,body{margin:0;padding:0;background:radial-gradient(900px 500px at 20% 0%, rgba(0,242,234,.10), transparent 60%),radial-gradient(900px 500px at 80% 10%, rgba(255,0,153,.08), transparent 60%),var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;}
+a{color:inherit}
+.container{max-width:1100px;margin:0 auto;padding:18px;}
+.card{background:rgba(11,11,13,.86);border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 12px 35px rgba(0,0,0,.35)}
+.grid{display:grid;gap:14px}
+@media(min-width:900px){.grid-3{grid-template-columns:repeat(3,1fr)}}
+.h1{font-size:36px;line-height:1.05;margin:10px 0 6px;font-weight:900;letter-spacing:-.02em}
+.p{color:var(--muted);line-height:1.5}
+.badge{display:inline-block;font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid rgba(0,242,234,.25);color:rgba(0,242,234,.95);background:rgba(0,242,234,.06)}
+.badge.purple{border-color:rgba(186,85,255,.35);color:rgba(210,170,255,.95);background:rgba(186,85,255,.08)}
+.badge.gray{border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.75);background:rgba(255,255,255,.04)}
+.btn{display:inline-flex;justify-content:center;align-items:center;gap:8px;width:100%;border-radius:14px;border:1px solid rgba(0,242,234,.25);background:rgba(0,242,234,.10);color:var(--text);padding:12px 12px;font-weight:800;cursor:pointer}
+.btn:hover{border-color:rgba(0,242,234,.5)}
+.btn.purple{border-color:rgba(186,85,255,.35);background:rgba(186,85,255,.14)}
+.btn.gray{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04)}
+.small{font-size:12px;color:var(--muted)}
+.hr{height:1px;background:var(--border);margin:14px 0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.list{margin:10px 0 0;padding-left:18px;color:rgba(224,224,224,.92)}
+.list li{margin:6px 0}
