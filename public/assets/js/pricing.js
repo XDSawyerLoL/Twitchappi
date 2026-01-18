@@ -1,127 +1,86 @@
-(() => {
-  const API = window.location.origin;
+(async function(){
+  const $ = (id)=>document.getElementById(id);
+  const pillLogin = $('pillLogin');
+  const pillPlan = $('pillPlan');
+  const pillActions = $('pillActions');
+  const pillCredits = $('pillCredits');
+  const packsBox = $('packs');
 
-  const $ = (id) => document.getElementById(id);
+  const fmt = (n)=> (n===null||n===undefined)?'—': String(n);
 
-  function apiFetch(path, opts){
-    return fetch(API + path, Object.assign({ credentials: 'include' }, opts||{}));
-  }
-  async function apiJson(path, opts){
-    const r = await apiFetch(path, opts);
-    return r.json();
-  }
-
-  function toast(msg){
-    const t = $('toast');
-    if(!t) return;
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toast._t);
-    toast._t = setTimeout(()=>t.classList.remove('show'), 2400);
+  async function getJSON(url, opt){
+    const res = await fetch(url, { credentials:'include', ...(opt||{}) });
+    if(!res.ok) throw new Error(await res.text());
+    return res.json();
   }
 
-  function renderPacks(){
-    const packs = [
-      { sku:'credits_500',  credits:500,  price:'9,99€',  hint:'25 actions' },
-      { sku:'credits_1250', credits:1250, price:'19,99€', hint:'62 actions' }
-    ];
-    const host = $('packs');
-    if(!host) return;
-    host.innerHTML = packs.map(p => (
-      `<button class="pack" data-sku="${p.sku}">
-        <div class="packTop">
-          <div class="packCredits">${p.credits} crédits</div>
-          <div class="packPrice">${p.price}</div>
-        </div>
-        <div class="packHint">${p.hint}</div>
-      </button>`
-    )).join('');
-
-    host.querySelectorAll('[data-sku]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        await startCheckout(btn.getAttribute('data-sku'));
-      });
-    });
-  }
-
-  async function startCheckout(sku){
+  async function load(){
+    let status;
     try{
-      const u = await apiJson('/twitch_user_status').catch(()=>({is_connected:false}));
-      if(!u.is_connected){
-        toast('Connexion Twitch requise');
-        openLogin();
-        return;
-      }
-
-      const r = await apiFetch('/api/billing/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sku })
-      });
-      const d = await r.json().catch(()=>null);
-      if(!d || !d.success){
-        alert((d && d.error) ? d.error : 'Erreur paiement');
-        return;
-      }
-      if(d.url) window.location.href = d.url;
+      status = await getJSON('/api/billing/status');
     }catch(e){
-      alert(e.message || 'Erreur paiement');
-    }
-  }
-
-  function openLogin(){
-    window.open(API + '/twitch_auth_start', 'login', 'width=520,height=720');
-  }
-
-  async function refresh(){
-    const pillLogin = $('pillLogin');
-    const pillPlan = $('pillPlan');
-    const pillActions = $('pillActions');
-    const pillCredits = $('pillCredits');
-
-    const u = await apiJson('/twitch_user_status').catch(()=>({is_connected:false}));
-    if(!u.is_connected){
-      if(pillLogin) pillLogin.textContent = 'Twitch : non connecté';
-      if(pillPlan) pillPlan.textContent = 'Plan : FREE';
-      if(pillActions) pillActions.textContent = 'Actions : —';
-      if(pillCredits) pillCredits.textContent = 'Crédits : —';
+      pillLogin.textContent = 'Twitch : non connecté';
+      pillPlan.textContent = 'Plan : —';
+      pillActions.textContent = 'Actions : —';
+      pillCredits.textContent = 'Crédits : —';
       return;
     }
+    pillLogin.textContent = status.twitch_connected ? `Twitch : ${status.display_name||status.login||'connecté'}` : 'Twitch : non connecté';
+    pillPlan.textContent = `Plan : ${status.plan?.toUpperCase?.() || status.plan || 'FREE'}`;
+    pillCredits.textContent = `Crédits : ${fmt(status.credits)}`;
+    pillActions.textContent = `Actions : ${status.plan==='premium' ? '∞' : fmt(status.actions)}`;
 
-    if(pillLogin) pillLogin.textContent = 'Twitch : ' + (u.display_name || u.login || 'connecté');
+    try{
+      const packs = await getJSON('/api/billing/packs');
+      packsBox.innerHTML = '';
+      packs.forEach(p=>{
+        const el = document.createElement('div');
+        el.className = 'pack';
+        el.innerHTML = `
+          <div>
+            <strong>${p.name}</strong>
+            <small>${p.credits} crédits • ${p.priceLabel}</small>
+          </div>
+          <button class="btn" data-pack="${p.id}">Acheter</button>
+        `;
+        el.querySelector('button').addEventListener('click', async ()=>{
+          // demo mode: credit pack without real payment (server can be wired to Stripe later)
+          try{
+            const r = await getJSON('/api/billing/buy-pack', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ packId: p.id }) });
+            pillCredits.textContent = `Crédits : ${fmt(r.credits)}`;
+            pillActions.textContent = `Actions : ${r.plan==='premium' ? '∞' : fmt(r.actions)}`;
+          }catch(err){
+            alert('Connexion Twitch requise ou serveur non configuré.');
+          }
+        });
+        packsBox.appendChild(el);
+      })
+    }catch(_){ /* ok */ }
+  }
 
-    const me = await apiJson('/api/billing/me').catch(()=>null);
-    if(!me || !me.success){
-      if(pillPlan) pillPlan.textContent = 'Plan : —';
-      if(pillActions) pillActions.textContent = 'Actions : —';
-      if(pillCredits) pillCredits.textContent = 'Crédits : —';
-      return;
+  $('btnGoApp')?.addEventListener('click', ()=>{ window.location.href = '/'; });
+  $('btnScrollPacks')?.addEventListener('click', ()=>{ packsBox?.scrollIntoView({ behavior:'smooth', block:'start' }); });
+  $('btnPremium')?.addEventListener('click', async ()=>{
+    try{
+      await getJSON('/api/billing/subscribe-premium', { method:'POST' });
+      await load();
+      alert('Premium activé (mode dev).');
+    }catch(e){
+      alert('Connexion Twitch requise.');
     }
+  });
 
-    const plan = (me.plan || 'free').toUpperCase();
-    const credits = Number(me.credits || 0);
-    const actions = Math.floor(credits / 20);
+  // sticky CTA
+  const sticky = document.createElement('div');
+  sticky.className = 'sticky';
+  sticky.innerHTML = `
+    <div class="stickyInner">
+      <a class="btn" href="/">Retour</a>
+      <button class="btn premiumBtn" id="stickyPremium">Premium</button>
+    </div>
+  `;
+  document.body.appendChild(sticky);
+  sticky.querySelector('#stickyPremium')?.addEventListener('click', ()=> $('btnPremium')?.click());
 
-    if(pillPlan) pillPlan.textContent = 'Plan : ' + plan;
-    if(pillCredits) pillCredits.textContent = 'Crédits : ' + credits;
-    if(pillActions) pillActions.textContent = 'Actions : ' + actions;
-  }
-
-  function wire(){
-    const go = $('btnGoApp');
-    if(go) go.addEventListener('click', ()=> window.location.href = '/');
-
-    const scroll = $('btnScrollPacks');
-    if(scroll) scroll.addEventListener('click', ()=> {
-      document.getElementById('packs')?.scrollIntoView({ behavior:'smooth', block:'center' });
-    });
-
-    const prem = $('btnPremium');
-    if(prem) prem.addEventListener('click', ()=> startCheckout('premium_monthly'));
-  }
-
-  renderPacks();
-  wire();
-  refresh();
-  setInterval(refresh, 4000);
+  load();
 })();

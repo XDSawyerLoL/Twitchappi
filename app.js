@@ -599,6 +599,131 @@ app.get('/twitch_user_status', (req, res) => {
   res.json({ is_connected: false });
 });
 
+// =========================================================
+// BILLING (Firestore source of truth)
+// - FREE gets 1200 credits on first login
+// - 1 action = 20 credits
+// =========================================================
+const BILLING_USERS = 'billing_users';
+const BILLING_LEDGER = 'billing_ledger';
+const ACTION_COST = 20;
+
+function requireTwitch(req,res,next){
+  const u = req.session?.twitchUser;
+  if(!u) return res.status(401).json({ error:'twitch_not_connected' });
+  req.twitchUser = u;
+  next();
+}
+
+async function getOrCreateBillingUser(tu){
+  const ref = db.collection(BILLING_USERS).doc(String(tu.id));
+  const snap = await ref.get();
+  if(!snap.exists){
+    const doc = {
+      twitchId: String(tu.id),
+      login: tu.login || '',
+      display_name: tu.display_name || tu.login || '',
+      plan: 'free',
+      credits: 1200,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    await ref.set(doc, { merge:true });
+    await db.collection(BILLING_LEDGER).add({
+      twitchId: String(tu.id),
+      type: 'grant',
+      credits: 1200,
+      reason: 'welcome',
+      ts: Date.now()
+    });
+    return doc;
+  }
+  const data = snap.data() || {};
+  // keep login/display fresh
+  await ref.set({ login: tu.login || data.login || '', display_name: tu.display_name || data.display_name || tu.login || '', updatedAt: Date.now() }, { merge:true });
+  return { ...data, login: tu.login || data.login, display_name: tu.display_name || data.display_name || tu.login };
+}
+
+app.get('/api/billing/status', async (req,res)=>{
+  const tu = req.session?.twitchUser;
+  if(!tu) return res.status(200).json({ twitch_connected:false, plan:'free', credits:0, actions:0 });
+  try{
+    const u = await getOrCreateBillingUser(tu);
+    const credits = Number(u.credits || 0);
+    const plan = (u.plan || 'free').toLowerCase();
+    const actions = plan === 'premium' ? null : Math.floor(credits / ACTION_COST);
+    res.json({
+      twitch_connected:true,
+      twitchId: String(tu.id),
+      login: tu.login,
+      display_name: tu.display_name || tu.login,
+      plan,
+      credits,
+      actions
+    });
+  }catch(e){
+    res.status(500).json({ error:'billing_status_failed' });
+  }
+});
+
+app.get('/api/billing/packs', (req,res)=>{
+  res.json([
+    { id:'starter', name:'Starter', credits:200, price:4.99, priceLabel:'4,99€' },
+    { id:'core', name:'Core', credits:500, price:9.99, priceLabel:'9,99€' },
+    { id:'power', name:'Power', credits:1200, price:19.99, priceLabel:'19,99€' }
+  ]);
+});
+
+// DEV ONLY: simulate pack purchase (no Stripe). Keep behind Twitch login.
+app.post('/api/billing/buy-pack', requireTwitch, async (req,res)=>{
+  try{
+    const packId = String(req.body?.packId || '');
+    const packs = { starter:200, core:500, power:1200 };
+    const add = packs[packId];
+    if(!add) return res.status(400).json({ error:'unknown_pack' });
+    const ref = db.collection(BILLING_USERS).doc(String(req.twitchUser.id));
+    const u = await getOrCreateBillingUser(req.twitchUser);
+    const plan = (u.plan || 'free').toLowerCase();
+    const credits = Number(u.credits||0)+Number(add);
+    await ref.set({ credits, updatedAt: Date.now() }, { merge:true });
+    await db.collection(BILLING_LEDGER).add({ twitchId: String(req.twitchUser.id), type:'purchase', packId, credits:add, ts: Date.now() });
+    res.json({ plan, credits, actions: plan==='premium'?null:Math.floor(credits/ACTION_COST) });
+  }catch(e){
+    res.status(500).json({ error:'buy_pack_failed' });
+  }
+});
+
+// Spend 1 action (20 credits) — used for unlocking market actions
+app.post('/api/billing/spend', requireTwitch, async (req,res)=>{
+  try{
+    const u = await getOrCreateBillingUser(req.twitchUser);
+    const plan = (u.plan || 'free').toLowerCase();
+    if(plan==='premium') return res.json({ ok:true, plan, credits:u.credits||0, actions:null });
+    const credits = Number(u.credits||0);
+    if(credits < ACTION_COST) return res.status(402).json({ error:'insufficient_credits', credits });
+    const next = credits - ACTION_COST;
+    await db.collection(BILLING_USERS).doc(String(req.twitchUser.id)).set({ credits: next, updatedAt: Date.now() }, { merge:true });
+    await db.collection(BILLING_LEDGER).add({ twitchId: String(req.twitchUser.id), type:'spend', credits:-ACTION_COST, ts: Date.now() });
+    res.json({ ok:true, plan, credits: next, actions: Math.floor(next/ACTION_COST) });
+  }catch(e){
+    res.status(500).json({ error:'spend_failed' });
+  }
+});
+
+// DEV ONLY: toggle premium
+app.post('/api/billing/subscribe-premium', requireTwitch, async (req,res)=>{
+  try{
+    const ref = db.collection(BILLING_USERS).doc(String(req.twitchUser.id));
+    await getOrCreateBillingUser(req.twitchUser);
+    await ref.set({ plan:'premium', updatedAt: Date.now() }, { merge:true });
+    await db.collection(BILLING_LEDGER).add({ twitchId: String(req.twitchUser.id), type:'plan', plan:'premium', ts: Date.now() });
+    res.json({ ok:true, plan:'premium' });
+  }catch(e){
+    res.status(500).json({ error:'subscribe_failed' });
+  }
+});
+
+
 app.get('/firebase_status', (req, res) => {
   try {
     if (db && admin.apps.length > 0) {
