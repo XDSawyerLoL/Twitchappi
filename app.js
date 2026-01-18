@@ -232,20 +232,29 @@ const sessionMiddleware = session({
 
 app.use(sessionMiddleware);
 
-app.use(express.static(path.join(__dirname)));
+// =========================================================
+// STATIC FILES (Root architecture)
+// =========================================================
+// Your project structure is:
+//   /assets
+//   /NicheOptimizer.html
+//   /pricing.html
+//   /app.js
+// So we serve the project root as static.
+app.use(express.static(__dirname));
 
-// Page principale (UI)
-app.get('/', (req, res) => {
-  const candidates = [
-    process.env.UI_FILE,
-    'NicheOptimizer.html',
-    'NicheOptimizer_v56.html',
-    'index.html'
-  ].filter(Boolean);
+// Page principale (UI) — servie depuis la racine
+app.get(['/', '/NicheOptimizer.html'], (req, res) => {
+  const uiPath = path.join(__dirname, (process.env.UI_FILE || 'NicheOptimizer.html'));
+  if (!fs.existsSync(uiPath)) return res.status(500).send('UI introuvable sur le serveur.');
+  return res.sendFile(uiPath);
+});
 
-  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
-  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
-  return res.sendFile(path.join(__dirname, found));
+// Pricing (Credits & Premium) — servie depuis la racine
+app.get(['/pricing', '/pricing.html'], (req, res) => {
+  const p = path.join(__dirname, 'pricing.html');
+  if (!fs.existsSync(p)) return res.status(500).send('Pricing introuvable sur le serveur.');
+  return res.sendFile(p);
 });
 
 // =========================================================
@@ -598,131 +607,6 @@ app.get('/twitch_user_status', (req, res) => {
 
   res.json({ is_connected: false });
 });
-
-// =========================================================
-// BILLING (Firestore source of truth)
-// - FREE gets 1200 credits on first login
-// - 1 action = 20 credits
-// =========================================================
-const BILLING_USERS = 'billing_users';
-const BILLING_LEDGER = 'billing_ledger';
-const ACTION_COST = 20;
-
-function requireTwitch(req,res,next){
-  const u = req.session?.twitchUser;
-  if(!u) return res.status(401).json({ error:'twitch_not_connected' });
-  req.twitchUser = u;
-  next();
-}
-
-async function getOrCreateBillingUser(tu){
-  const ref = db.collection(BILLING_USERS).doc(String(tu.id));
-  const snap = await ref.get();
-  if(!snap.exists){
-    const doc = {
-      twitchId: String(tu.id),
-      login: tu.login || '',
-      display_name: tu.display_name || tu.login || '',
-      plan: 'free',
-      credits: 1200,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    await ref.set(doc, { merge:true });
-    await db.collection(BILLING_LEDGER).add({
-      twitchId: String(tu.id),
-      type: 'grant',
-      credits: 1200,
-      reason: 'welcome',
-      ts: Date.now()
-    });
-    return doc;
-  }
-  const data = snap.data() || {};
-  // keep login/display fresh
-  await ref.set({ login: tu.login || data.login || '', display_name: tu.display_name || data.display_name || tu.login || '', updatedAt: Date.now() }, { merge:true });
-  return { ...data, login: tu.login || data.login, display_name: tu.display_name || data.display_name || tu.login };
-}
-
-app.get('/api/billing/status', async (req,res)=>{
-  const tu = req.session?.twitchUser;
-  if(!tu) return res.status(200).json({ twitch_connected:false, plan:'free', credits:0, actions:0 });
-  try{
-    const u = await getOrCreateBillingUser(tu);
-    const credits = Number(u.credits || 0);
-    const plan = (u.plan || 'free').toLowerCase();
-    const actions = plan === 'premium' ? null : Math.floor(credits / ACTION_COST);
-    res.json({
-      twitch_connected:true,
-      twitchId: String(tu.id),
-      login: tu.login,
-      display_name: tu.display_name || tu.login,
-      plan,
-      credits,
-      actions
-    });
-  }catch(e){
-    res.status(500).json({ error:'billing_status_failed' });
-  }
-});
-
-app.get('/api/billing/packs', (req,res)=>{
-  res.json([
-    { id:'starter', name:'Starter', credits:200, price:4.99, priceLabel:'4,99€' },
-    { id:'core', name:'Core', credits:500, price:9.99, priceLabel:'9,99€' },
-    { id:'power', name:'Power', credits:1200, price:19.99, priceLabel:'19,99€' }
-  ]);
-});
-
-// DEV ONLY: simulate pack purchase (no Stripe). Keep behind Twitch login.
-app.post('/api/billing/buy-pack', requireTwitch, async (req,res)=>{
-  try{
-    const packId = String(req.body?.packId || '');
-    const packs = { starter:200, core:500, power:1200 };
-    const add = packs[packId];
-    if(!add) return res.status(400).json({ error:'unknown_pack' });
-    const ref = db.collection(BILLING_USERS).doc(String(req.twitchUser.id));
-    const u = await getOrCreateBillingUser(req.twitchUser);
-    const plan = (u.plan || 'free').toLowerCase();
-    const credits = Number(u.credits||0)+Number(add);
-    await ref.set({ credits, updatedAt: Date.now() }, { merge:true });
-    await db.collection(BILLING_LEDGER).add({ twitchId: String(req.twitchUser.id), type:'purchase', packId, credits:add, ts: Date.now() });
-    res.json({ plan, credits, actions: plan==='premium'?null:Math.floor(credits/ACTION_COST) });
-  }catch(e){
-    res.status(500).json({ error:'buy_pack_failed' });
-  }
-});
-
-// Spend 1 action (20 credits) — used for unlocking market actions
-app.post('/api/billing/spend', requireTwitch, async (req,res)=>{
-  try{
-    const u = await getOrCreateBillingUser(req.twitchUser);
-    const plan = (u.plan || 'free').toLowerCase();
-    if(plan==='premium') return res.json({ ok:true, plan, credits:u.credits||0, actions:null });
-    const credits = Number(u.credits||0);
-    if(credits < ACTION_COST) return res.status(402).json({ error:'insufficient_credits', credits });
-    const next = credits - ACTION_COST;
-    await db.collection(BILLING_USERS).doc(String(req.twitchUser.id)).set({ credits: next, updatedAt: Date.now() }, { merge:true });
-    await db.collection(BILLING_LEDGER).add({ twitchId: String(req.twitchUser.id), type:'spend', credits:-ACTION_COST, ts: Date.now() });
-    res.json({ ok:true, plan, credits: next, actions: Math.floor(next/ACTION_COST) });
-  }catch(e){
-    res.status(500).json({ error:'spend_failed' });
-  }
-});
-
-// DEV ONLY: toggle premium
-app.post('/api/billing/subscribe-premium', requireTwitch, async (req,res)=>{
-  try{
-    const ref = db.collection(BILLING_USERS).doc(String(req.twitchUser.id));
-    await getOrCreateBillingUser(req.twitchUser);
-    await ref.set({ plan:'premium', updatedAt: Date.now() }, { merge:true });
-    await db.collection(BILLING_LEDGER).add({ twitchId: String(req.twitchUser.id), type:'plan', plan:'premium', ts: Date.now() });
-    res.json({ ok:true, plan:'premium' });
-  }catch(e){
-    res.status(500).json({ error:'subscribe_failed' });
-  }
-});
-
 
 app.get('/firebase_status', (req, res) => {
   try {
@@ -1879,6 +1763,15 @@ const FANTASY_SCALE = 250;   // shares scale
 
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
+function requireFirestore(res){
+  if(!firestoreOk){
+    res.status(503).json({ success:false, error:'Firestore not initialized. Configure Firebase Admin credentials.' });
+    return false;
+  }
+  return true;
+}
+
+
 async function getLiveViewers(login){
   const user_login = String(login||'').toLowerCase().trim();
   if(!user_login) return 0;
@@ -1978,10 +1871,7 @@ async function getUserWallet(user){
 }
 async function saveUserWallet(wallet){
   if(!wallet) return;
-  if(!firestoreOk){
-    global.__inMemWallet.set(wallet.user, wallet);
-    return;
-  }
+  if(!firestoreOk){ throw new Error('Firestore not initialized'); }
   const ref = db.collection(FANTASY_USERS).doc(String(wallet.user).toLowerCase());
   wallet.updatedAt = Date.now();
   await ref.set(wallet, { merge:true });
@@ -1994,6 +1884,8 @@ function holdingsToArray(holdings){
 // Market endpoint for chart
 app.get('/api/fantasy/market', async (req,res)=>{
   try{
+    if(!requireFirestore(res)) return;
+
     const login = sanitizeText(req.query.streamer || req.query.login || '', 50).toLowerCase();
     if(!login) return res.status(400).json({ success:false, error:'missing streamer' });
 
@@ -2073,6 +1965,8 @@ app.post('/api/fantasy/invest', async (req,res)=>{
 // Sell (amount in credits -> shares to sell)
 app.post('/api/fantasy/sell', async (req,res)=>{
   try{
+    if(!requireFirestore(res)) return;
+
     const user = sanitizeText(req.body.user || 'Anon', 50) || 'Anon';
     const login = sanitizeText(req.body.streamer || '', 50).toLowerCase();
     const amount = Number(req.body.amount||0);
@@ -2103,6 +1997,8 @@ app.post('/api/fantasy/sell', async (req,res)=>{
 // Leaderboard by net worth
 app.get('/api/fantasy/leaderboard', async (req,res)=>{
   try{
+    if(!requireFirestore(res)) return;
+
     let users = [];
     if(firestoreOk){
       const snap = await db.collection(FANTASY_USERS).limit(50).get();
