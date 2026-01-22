@@ -2166,6 +2166,12 @@ body.modal-open #player-tools{display:none !important;}
 <div class="hidden flex items-center gap-3" id="user-area">
 <img class="w-8 h-8 rounded-full border border-[#00f2ea]" id="user-avatar" src=""/>
 <span class="font-bold text-white text-sm" id="user-name"></span>
+
+<!-- Espace utilisateur (crédits + accès Premium) -->
+<a id="billing-link" href="/pricing" class="hidden bg-[#111] hover:bg-[#161616] border border-[#333] text-white px-3 py-1.5 rounded font-bold transition text-[11px]" title="Gérer crédits / Premium">
+  <span class="text-gray-400">Crédits:</span> <span id="billing-credits" class="text-[#00f2ea]">—</span>
+  <span id="billing-plan" class="ml-2 text-[10px] text-gray-400">FREE</span>
+</a>
 <button class="text-gray-500 hover:text-white" onclick="logout()">
 <i class="fas fa-sign-out-alt"></i>
 </button>
