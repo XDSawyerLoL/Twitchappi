@@ -62,7 +62,9 @@
       btn.textContent = `${p.price}`;
       btn.addEventListener('click', async () => {
         try{
-          const r = await api('/api/billing/buy-pack', { method:'POST', body: JSON.stringify({ packId: p.id }) });
+          const r = const r = await api('/api/billing/buy-pack', { method:'POST', body: JSON.stringify({ packId: p.id }) });
+          const go = (r && (r.checkoutUrl || r.url)) ? (r.checkoutUrl || r.url) : null;
+          if (go) { window.location.href = go; return; }
           if (r && r.checkoutUrl) { window.location.href = r.checkoutUrl; return; }
           toast(`Pack ${p.name} ajouté ✅`);
           await loadStatus();
@@ -102,7 +104,9 @@
     const btnPremium = $('btnPremium');
     if (btnPremium) btnPremium.addEventListener('click', async () => {
       try{
-        const r = await api('/api/billing/subscribe-premium', { method:'POST' });
+        const r = const r = await api('/api/billing/subscribe-premium', { method:'POST' });
+        const go = (r && (r.checkoutUrl || r.url)) ? (r.checkoutUrl || r.url) : null;
+        if (go) { window.location.href = go; return; }
         if (r && r.checkoutUrl) { window.location.href = r.checkoutUrl; return; }
         toast('Premium activé ✅');
         await loadStatus();

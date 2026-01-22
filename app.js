@@ -2348,6 +2348,187 @@ if(process.env.NODE_ENV !== 'production'){
 }
 
 
+/* =========================================================
+   Billing compatibility layer (pricing.js expects these)
+   - /api/billing/status
+   - /api/billing/packs
+   - /api/billing/buy-pack
+   - /api/billing/subscribe-premium
+   - /api/billing/webhook (Stripe)
+   ========================================================= */
+
+const BILLING_DEV_MODE = String(process.env.BILLING_DEV_MODE || '').toLowerCase() === 'true';
+const ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
+
+// Packs displayed on /pricing (UI values; Stripe uses PRICE IDs below)
+const BILLING_PACKS = [
+  { id:'credits_500',  name:'Starter', credits:500,  actions: Math.floor(500/ACTION_COST_CREDITS),  price:'9,99€',  isBest:false, sku:'credits_500' },
+  { id:'credits_1250', name:'Boost',   credits:1250, actions: Math.floor(1250/ACTION_COST_CREDITS), price:'19,99€', isBest:true,  sku:'credits_1250' }
+];
+
+// Alias: pricing.js calls /api/billing/status
+app.get('/api/billing/status', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    const b = await getBillingDoc(tu);
+    const credits = Number(b.credits || 0);
+    const plan = b.plan || 'free';
+    res.json({ success:true, plan, credits, actions: Math.floor(credits / ACTION_COST_CREDITS) });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Packs for pricing page
+app.get('/api/billing/packs', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    res.json(BILLING_PACKS);
+  }catch(e){
+    res.status(500).json({ error:e.message });
+  }
+});
+
+// Buy credits pack (dev mode: grants immediately; stripe mode: returns checkout url)
+app.post('/api/billing/buy-pack', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+
+    const packId = String(req.body?.packId || '').trim();
+    const pack = BILLING_PACKS.find(p => p.id === packId);
+    if(!pack) return res.status(400).json({ error:'Pack invalide' });
+
+    if(BILLING_DEV_MODE){
+      await updateBillingCredits(tu, pack.credits);
+      const b = await getBillingDoc(tu);
+      return res.json({ ok:true, mode:'dev', plan:b.plan||'free', credits:Number(b.credits||0) });
+    }
+
+    // Stripe mode -> reuse existing endpoint
+    const fakeReq = { ...req, body: { sku: pack.sku } };
+    // Call logic inline (copy of create-checkout-session, but returning consistent shape)
+    if(!stripe) return res.status(501).json({ error:'Stripe non configuré (STRIPE_SECRET_KEY manquant).' });
+
+    const success_url = (process.env.BILLING_SUCCESS_URL || (req.protocol + '://' + req.get('host') + '/pricing'));
+    const cancel_url  = (process.env.BILLING_CANCEL_URL  || (req.protocol + '://' + req.get('host') + '/pricing'));
+
+    const map = {
+      credits_500:  { price: process.env.STRIPE_PRICE_CREDITS_500,  mode:'payment',  credits: 500 },
+      credits_1250: { price: process.env.STRIPE_PRICE_CREDITS_1250, mode:'payment',  credits: 1250 }
+    };
+    const item = map[pack.sku];
+    if(!item || !item.price){
+      return res.status(400).json({ error:'Price ID manquant côté serveur (STRIPE_PRICE_...)' });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: item.mode,
+      line_items: [{ price: item.price, quantity: 1 }],
+      success_url: success_url + '?success=1',
+      cancel_url: cancel_url + '?canceled=1',
+      client_reference_id: String(tu.id || tu.login || ''),
+      metadata: {
+        sku: pack.sku,
+        twitch_user_id: String(tu.id || ''),
+        twitch_login: String(tu.login || ''),
+        credits: String(item.credits || '')
+      }
+    });
+
+    res.json({ ok:true, checkoutUrl: session.url, url: session.url });
+  }catch(e){
+    res.status(500).json({ error:e.message });
+  }
+});
+
+// Subscribe premium (dev mode: set plan; stripe mode: returns checkout url)
+app.post('/api/billing/subscribe-premium', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+
+    if(BILLING_DEV_MODE){
+      await setBillingPlan(tu, 'premium');
+      const b = await getBillingDoc(tu);
+      return res.json({ ok:true, mode:'dev', plan:b.plan||'premium', credits:Number(b.credits||0) });
+    }
+
+    if(!stripe) return res.status(501).json({ error:'Stripe non configuré (STRIPE_SECRET_KEY manquant).' });
+
+    const priceId = process.env.STRIPE_PRICE_PREMIUM_MONTHLY;
+    if(!priceId) return res.status(400).json({ error:'Price ID premium manquant (STRIPE_PRICE_PREMIUM_MONTHLY)' });
+
+    const success_url = (process.env.BILLING_SUCCESS_URL || (req.protocol + '://' + req.get('host') + '/pricing'));
+    const cancel_url  = (process.env.BILLING_CANCEL_URL  || (req.protocol + '://' + req.get('host') + '/pricing'));
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: success_url + '?success=1',
+      cancel_url: cancel_url + '?canceled=1',
+      client_reference_id: String(tu.id || tu.login || ''),
+      metadata: {
+        sku: 'premium_monthly',
+        twitch_user_id: String(tu.id || ''),
+        twitch_login: String(tu.login || ''),
+        plan: 'premium'
+      }
+    });
+
+    res.json({ ok:true, checkoutUrl: session.url, url: session.url });
+  }catch(e){
+    res.status(500).json({ error:e.message });
+  }
+});
+
+/**
+ * Stripe webhook: applies credits / premium after successful checkout.
+ * Configure in Stripe dashboard:
+ *   Endpoint: https://<ton-domaine>/api/billing/webhook
+ *   Events: checkout.session.completed
+ */
+app.post('/api/billing/webhook', async (req,res)=>{
+  try{
+    if(!stripe) return res.status(400).send('Stripe not configured');
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    if(!secret) return res.status(400).send('Missing STRIPE_WEBHOOK_SECRET');
+
+    const sig = req.headers['stripe-signature'];
+    if(!sig) return res.status(400).send('Missing stripe-signature');
+
+    // rawBody captured by bodyParser.json verify earlier
+    const event = stripe.webhooks.constructEvent(req.rawBody, sig, secret);
+
+    if(event.type === 'checkout.session.completed'){
+      const s = event.data.object;
+      const md = s.metadata || {};
+      const twitchUserId = String(md.twitch_user_id || '').trim();
+      const sku = String(md.sku || '').trim();
+
+      if(twitchUserId){
+        // Build minimal twitch-like object for existing helpers
+        const tu = { id: twitchUserId, login: md.twitch_login || '' };
+
+        if(sku === 'premium_monthly'){
+          await setBillingPlan(tu, 'premium');
+        }else if(sku === 'credits_500' || sku === 'credits_1250'){
+          const credits = Number(md.credits || 0);
+          if(credits > 0) await updateBillingCredits(tu, credits);
+        }
+      }
+    }
+
+    res.json({ received: true });
+  }catch(e){
+    // Stripe expects 2xx for successful receipt; send 400 on signature errors
+    res.status(400).send(`Webhook error: ${e.message}`);
+  }
+});
+
+
 server.listen(PORT, () => {
   console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
   console.log("✅ Routes prêtes");
