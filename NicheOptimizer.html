@@ -2164,6 +2164,12 @@ body.modal-open #player-tools{display:none !important;}
 <i class="fab fa-twitch"></i> CONNEXION
       </button>
 <div class="hidden flex items-center gap-3" id="user-area">
+<a href="/pricing" id="billing-link" class="hidden flex items-center gap-2 bg-[#111] border border-[#333] px-3 py-2 rounded font-orbitron text-xs hover:bg-[#1a1a1a]" title="Gérer crédits & plan">
+  <span class="text-[#00f2ea] font-extrabold"><span id="billing-credits">0</span> CR</span>
+  <span class="text-gray-400">•</span>
+  <span class="text-[#ff0099] font-extrabold" id="billing-plan">FREE</span>
+</a>
+
 <img class="w-8 h-8 rounded-full border border-[#00f2ea]" id="user-avatar" src=""/>
 <span class="font-bold text-white text-sm" id="user-name"></span>
 <button class="text-gray-500 hover:text-white" onclick="logout()">
