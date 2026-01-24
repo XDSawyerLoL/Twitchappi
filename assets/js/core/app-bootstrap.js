@@ -109,8 +109,28 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         document.getElementById('user-name').innerText = data.display_name;
         if (data.profile_image_url) document.getElementById('user-avatar').src = data.profile_image_url;
 
+        // Billing / credits (user space)
+        await loadBillingMe().catch(()=>{});
+
         await loadFollowed();
       }
+    }
+
+    async function loadBillingMe(){
+      // Requires Twitch session
+      const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include' });
+      const d = await r.json().catch(()=>null);
+      const link = document.getElementById('billing-link');
+      const elCredits = document.getElementById('billing-credits');
+      const elPlan = document.getElementById('billing-plan');
+      if(!link || !elCredits || !elPlan) return;
+      if(!d || !d.success){
+        // keep hidden if not available
+        return;
+      }
+      link.classList.remove('hidden');
+      elCredits.textContent = String(d.credits ?? 0);
+      elPlan.textContent = String((d.plan || 'FREE')).toUpperCase();
     }
 
     function startAuth() {
@@ -598,8 +618,10 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       "league of legends": "aR-KAldshAE",
       "valorant": "e_E9W2vsRbQ",
       "apex legends": "innmNewjkuk",
-      "call of duty": "o7lUq2X4y4c"
+      "call of duty": "o7lUq2X4y4c",
+      // "just chatting": "YOUTUBE_VIDEO_ID", // add your ID if you want a fixed trailer for this category
     };
+
 
     // ====== AUTO TRAILER RESOLVER (no more manual IDs) ======
     const tfTrailerCache = new Map(); // key -> { id, t }
@@ -622,7 +644,9 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
       // 2) server resolver (best, avoids CORS + no API key)
       try{
-        const q = `${name} game trailer`;
+        let q = `${name} trailer`;
+        if(key === 'just chatting') q = 'twitch just chatting trailer';
+
         const r = await fetch(`${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
@@ -793,7 +817,42 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       renderTwitFlix();
     }
 
-    async function openTwitFlix(){
+    
+    // ===== TwitFlix Netflix-like intro (lightweight) =====
+    function tfEnsureIntroStyles(){
+      if(document.getElementById('tf-intro-style')) return;
+      const st = document.createElement('style');
+      st.id = 'tf-intro-style';
+      st.textContent = `
+        .tf-intro{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#000;opacity:0;transform:scale(1.02);transition:opacity .25s ease, transform .25s ease;}
+        .tf-intro.show{opacity:1;transform:scale(1);}
+        .tf-intro .logo{font-family:Inter,system-ui,sans-serif;font-weight:900;letter-spacing:.06em;font-size:36px;line-height:1;color:#e50914;text-transform:uppercase;}
+        .tf-intro .sub{margin-top:10px;font-size:12px;color:#9aa0a6;text-align:center;}
+      `;
+      document.head.appendChild(st);
+    }
+
+    function tfShowIntro(){
+      tfEnsureIntroStyles();
+      const existing = document.getElementById('tf-intro');
+      if(existing) existing.remove();
+
+      const el = document.createElement('div');
+      el.id = 'tf-intro';
+      el.className = 'tf-intro';
+      el.innerHTML = `<div><div class="logo">Twitflix</div><div class="sub">Ouverture…</div></div>`;
+      document.body.appendChild(el);
+
+      // trigger animation
+      requestAnimationFrame(()=> el.classList.add('show'));
+      setTimeout(()=>{
+        el.classList.remove('show');
+        setTimeout(()=>{ el.remove(); }, 260);
+      }, 1200);
+    }
+
+async function openTwitFlix(){
+      tfShowIntro();
   document.body.classList.add('modal-open');
 const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
@@ -1643,7 +1702,18 @@ tfModalOpen = false;
           body:JSON.stringify({ channel })
         });
         const data = await r.json();
-        msg.innerText = data.success ? '✅ Boost activé (15 min)' : '❌ Boost refusé';
+        if(data && data.success){
+          msg.innerText = '✅ Boost activé (15 min)';
+          // ✅ Apply boost on main player immediately
+          if(typeof changeChannel === 'function'){
+            changeChannel(channel);
+          }else if(typeof loadPlayerEmbed === 'function'){
+            loadPlayerEmbed(channel);
+            if(typeof updateTwitchChatFrame === 'function') updateTwitchChatFrame(channel);
+          }
+        }else{
+          msg.innerText = '❌ Boost refusé';
+        }
       }catch(e){
         msg.innerText = '❌ Erreur';
       }
