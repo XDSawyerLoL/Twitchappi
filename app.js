@@ -577,6 +577,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
             }
           } catch (e) {}
           window.close();
+          if(!window.opener){ window.location.href = '/'; }
         </script>
       `);
     });
@@ -1916,7 +1917,8 @@ const BILLING_USERS = 'billing_users';
 const ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
 
 async function getBillingDoc(twitchUser){
-  if(!firestoreOk) return { credits: 1200, plan: 'free', noFirestore: true };
+  if(!firestoreOk) return { credits: Number(process.env.FREE_START_CREDITS || 1200),
+      entitlements: { overview:false, analytics:false, niche:false, bestTime:false }, plan: 'free', noFirestore: true };
   const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
   const ref = db.collection(BILLING_USERS).doc(id);
   const snap = await ref.get();
@@ -2104,53 +2106,6 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
   }
 });
 
-
-// =========================================================
-// YOUTUBE TRAILER RESOLVER (optional)
-// Requires env YOUTUBE_API_KEY
-// GET /api/youtube/trailer?q=...
-// =========================================================
-const _ytCache = new Map(); // q -> { videoId, t }
-const _ytTTL = 24 * 60 * 60 * 1000;
-
-app.get('/api/youtube/trailer', async (req,res)=>{
-  try{
-    const q = String(req.query?.q || '').trim();
-    if(!q) return res.status(400).json({ success:false, error:'Q_REQUIRED' });
-
-    const now = Date.now();
-    const cached = _ytCache.get(q.toLowerCase());
-    if(cached && (now - cached.t) < _ytTTL){
-      return res.json({ success:true, videoId: cached.videoId });
-    }
-
-    const key = process.env.YOUTUBE_API_KEY;
-    if(!key){
-      return res.status(501).json({ success:false, error:'YOUTUBE_API_KEY_MISSING' });
-    }
-
-    const url = 'https://www.googleapis.com/youtube/v3/search'
-      + '?part=snippet&type=video&maxResults=1&safeSearch=none'
-      + '&q=' + encodeURIComponent(q)
-      + '&key=' + encodeURIComponent(key);
-
-    const r = await fetch(url);
-    const d = await r.json();
-    const item = (d.items && d.items[0]) ? d.items[0] : null;
-    const videoId = item && item.id ? item.id.videoId : null;
-
-    _ytCache.set(q.toLowerCase(), { videoId, t: now });
-
-    if(!videoId){
-      return res.json({ success:false, videoId:null });
-    }
-    return res.json({ success:true, videoId });
-  }catch(e){
-    res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-
 // =========================================================
 // BILLING API
 // =========================================================
@@ -2171,58 +2126,54 @@ app.post('/api/billing/unlock-feature', async (req,res)=>{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
 
-    const feature = String(req.body?.feature || '').trim().toLowerCase();
-    const cost = 200;
+    const feature = String(req.body?.feature || '').trim();
+    const allowed = new Set(['overview','analytics','niche','bestTime']);
+    if(!allowed.has(feature)) return res.status(400).json({ success:false, error:'FEATURE_INVALID' });
 
-    const allowed = new Set(['overview','analytics','niche','besttime']);
-    if(!allowed.has(feature)){
-      return res.status(400).json({ success:false, error:'FEATURE_INVALID' });
-    }
-
+    const cost = Number(req.body?.cost || 200);
     const b = await getBillingDoc(tu);
     const plan = String(b.plan || 'free').toLowerCase();
-    const ent = b.entitlements || {};
-
-    if(plan === 'premium' || ent[feature] === true){
-      return res.json({ success:true, already:true, plan, credits: Number(b.credits||0), entitlements: ent });
-    }
-
     const credits = Number(b.credits||0);
-    if(credits < cost){
-      return res.status(402).json({ success:false, error:'INSUFFICIENT_CREDITS', credits, cost });
+
+    if(plan === 'premium'){
+      if(firestoreOk){
+        const id = String(tu.id || tu.login || tu.display_name || 'unknown');
+        await db.collection(BILLING_USERS).doc(id).set({
+          entitlements: { [feature]: true },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge:true });
+      }
+      const b2 = await getBillingDoc(tu);
+      return res.json({ success:true, plan: b2.plan||'premium', credits: Number(b2.credits||0), entitlements: b2.entitlements||{} });
     }
 
-    if(!firestoreOk){
-      return res.status(503).json({ success:false, error:'FIRESTORE_UNAVAILABLE' });
-    }
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'FIRESTORE_UNAVAILABLE' });
+
+    if(credits < cost) return res.status(402).json({ success:false, error:'INSUFFICIENT_CREDITS', credits });
 
     const id = String(tu.id || tu.login || tu.display_name || 'unknown');
     const ref = db.collection(BILLING_USERS).doc(id);
 
     await db.runTransaction(async (tx)=>{
       const snap = await tx.get(ref);
-      const cur = snap.exists ? snap.data() : {};
-      const curCredits = Number(cur.credits||0);
-      if(curCredits < cost) throw new Error('INSUFFICIENT_CREDITS');
-      const curEnt = cur.entitlements || {};
-      curEnt[feature] = true;
+      const data = snap.exists ? snap.data() : {};
+      const cur = Number(data.credits||0);
+      if(cur < cost) throw new Error('INSUFFICIENT_CREDITS');
       tx.set(ref, {
-        credits: curCredits - cost,
-        entitlements: curEnt,
+        credits: cur - cost,
+        entitlements: Object.assign({}, data.entitlements||{}, { [feature]: true }),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge:true });
     });
 
-    const b2 = await getBillingDoc(tu);
-    return res.json({ success:true, plan: b2.plan || 'free', credits: Number(b2.credits||0), entitlements: b2.entitlements || {} });
+    const b3 = await getBillingDoc(tu);
+    return res.json({ success:true, plan: b3.plan||'free', credits: Number(b3.credits||0), entitlements: b3.entitlements||{} });
   }catch(e){
-    if(String(e.message||'').includes('INSUFFICIENT_CREDITS')){
-      return res.status(402).json({ success:false, error:'INSUFFICIENT_CREDITS' });
-    }
+    const msg = String(e.message||'');
+    if(msg.includes('INSUFFICIENT_CREDITS')) return res.status(402).json({ success:false, error:'INSUFFICIENT_CREDITS' });
     res.status(500).json({ success:false, error:e.message });
   }
 });
-
 
 // Stripe (optional). If not configured, returns a clear error.
 let stripe = null;
