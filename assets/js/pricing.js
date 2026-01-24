@@ -56,16 +56,25 @@ Backend: POST /api/billing/create-checkout-session { sku }
     }
 
     const data = await safeJson(res);
-    if (!data || !data.ok) {
+    const ok = !!(data && (data.ok === true || data.success === true));
+    if (!data || !ok) {
       setStatus("", "");
       if (res.status === 401 || data?.error === "TWITCH_AUTH_REQUIRED") {
         alert("Connexion Twitch requise.");
         return;
       }
-      alert(data?.error || "Erreur checkout.");
+      const msg = (data?.error || data?.message || "");
+      if (msg && /No such price/i.test(msg)) {
+        alert(msg + "\n\n👉 Mismatch TEST/LIVE : tes price_ existent en test mais tu utilises une clé live (ou l'inverse). Mets STRIPE_SECRET_KEY et STRIPE_PRICE_* dans le même mode.");
+        return;
+      }
+      alert(msg || "Erreur checkout.");
       return;
     }
-    redirectToCheckout(data.url);
+      alert(data?.error || data?.message || "Erreur checkout.");
+      return;
+    }
+    redirectToCheckout(extractUrl(data));
   }
 
   function wireButtons() {
