@@ -81,75 +81,7 @@
     </div>
   </div>
 
-  <script>
-    const API = window.location.origin;
-
-    async function getJson(url, opts){
-      const r = await fetch(url, Object.assign({ credentials:'include' }, opts||{}));
-      return r.json();
-    }
-
-    async function refresh(){
-      const status = document.getElementById('authStatus');
-      const meLine = document.getElementById('meLine');
-      const btnLogin = document.getElementById('btnLogin');
-      const badge = document.getElementById('creditsBadge');
-
-      const u = await getJson(API + '/twitch_user_status').catch(()=>({is_connected:false}));
-      if(!u.is_connected){
-        status.textContent = 'Non connecté';
-        meLine.textContent = 'Connecte-toi pour acheter des crédits / activer Premium.';
-        btnLogin.classList.remove('hidden');
-        btnLogin.onclick = () => window.open(API + '/twitch_auth_start', 'login', 'width=520,height=720');
-        badge.textContent = '— crédits';
-        return;
-      }
-
-      status.textContent = 'Connecté';
-      meLine.textContent = u.display_name ? ('Compte: ' + u.display_name) : '';
-      btnLogin.classList.add('hidden');
-
-      const me = await getJson(API + '/api/billing/me').catch(()=>null);
-      if(me && me.success){
-        badge.textContent = String(me.credits||0) + ' crédits';
-      }
-    }
-
-    async function startCheckout(sku){
-      // Packs & Premium: works with or without Stripe (dev grants if Stripe not configured)
-      const endpoint = (sku === 'premium_monthly') ? '/api/billing/subscribe-premium' : '/api/billing/buy-pack';
-      const payload = (sku === 'premium_monthly') ? {} : { packId: sku };
-
-      const r = await fetch(API + endpoint, {
-        method:'POST',
-        credentials:'include',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-
-      const d = await r.json().catch(()=>null);
-      if(!r.ok){
-        alert((d && (d.error || d.message)) ? (d.error || d.message) : 'Erreur paiement');
-        return;
-      }
-
-      // Stripe redirect if provided
-      const url = d.checkoutUrl || d.url;
-      if(url){ window.location.href = url; return; }
-
-      // Dev / immediate update
-      await refresh();
-      alert('OK ✅');
-    }
-      if(d.url) window.location.href = d.url;
-    }
-
-    document.querySelectorAll('button[data-sku]').forEach(b=>{
-      b.addEventListener('click', ()=> startCheckout(b.getAttribute('data-sku')));
-    });
-
-    refresh();
-    setInterval(refresh, 2000);
-  </script>
+  <!-- External script so CSP / inline restrictions can't break checkout buttons -->
+  <script src="/assets/js/pricing.js" defer></script>
 </body>
 </html>

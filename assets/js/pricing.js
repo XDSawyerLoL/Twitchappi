@@ -1,125 +1,77 @@
-(function(){
-  const $ = (id) => document.getElementById(id);
-  const toast = (msg) => {
-    const el = $('toast');
-    if (!el) return;
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(el.__t);
-    el.__t = setTimeout(()=> el.classList.remove('show'), 3400);
-  };
+(() => {
+  const API = window.location.origin;
 
-  const fmtPlan = (p) => {
-    if (!p) return 'free';
-    if (p === 'premium' || p === 'pro') return 'premium';
-    if (p === 'credits') return 'crédits';
-    return p;
-  };
-
-  async function api(path, opts){
-    const res = await fetch(path, Object.assign({
-      headers: { 'Content-Type':'application/json' },
-      credentials: 'include'
-    }, opts||{}));
-    const ct = res.headers.get('content-type') || '';
-    const data = ct.includes('application/json') ? await res.json() : await res.text();
-    if (!res.ok){
-      const msg = (data && data.error) ? data.error : (typeof data === 'string' ? data : 'Erreur serveur');
-      throw new Error(msg);
+  async function getJson(url, opts){
+    const r = await fetch(url, Object.assign({ credentials:'include' }, opts||{}));
+    // If server returned non-JSON (e.g. HTML error page), fail loudly.
+    const text = await r.text();
+    try{ return JSON.parse(text); } catch(e){
+      console.error('[pricing] Non-JSON response from', url, 'status=', r.status, 'body=', text.slice(0,200));
+      throw new Error('Réponse serveur non JSON');
     }
-    return data;
   }
 
-  function actionsFromCredits(credits){ return Math.floor((Number(credits)||0) / 20); }
+  async function refresh(){
+    const status = document.getElementById('authStatus');
+    const meLine = document.getElementById('meLine');
+    const btnLogin = document.getElementById('btnLogin');
+    const badge = document.getElementById('creditsBadge');
 
-  async function loadStatus(){
+    if(!status || !meLine || !btnLogin || !badge) return; // DOM not ready / wrong page
+
+    const u = await getJson(API + '/twitch_user_status').catch(()=>({is_connected:false}));
+    if(!u.is_connected){
+      status.textContent = 'Non connecté';
+      meLine.textContent = 'Connecte-toi pour acheter des crédits / activer Premium.';
+      btnLogin.classList.remove('hidden');
+      btnLogin.onclick = () => window.open(API + '/twitch_auth_start', 'login', 'width=520,height=720');
+      badge.textContent = '— crédits';
+      return;
+    }
+
+    status.textContent = 'Connecté';
+    meLine.textContent = u.display_name ? ('Compte: ' + u.display_name) : '';
+    btnLogin.classList.add('hidden');
+
+    const me = await getJson(API + '/api/billing/me').catch(()=>null);
+    if(me && me.success){
+      badge.textContent = String(me.credits||0) + ' crédits';
+    }
+  }
+
+  async function startCheckout(sku){
     try{
-      const st = await api('/api/billing/status');
-      $('pillPlan').textContent = `Plan : ${fmtPlan(st.plan)}`;
-      $('pillCredits').textContent = `Crédits : ${st.credits ?? 0}`;
-      const a = st.actions ?? actionsFromCredits(st.credits);
-      $('pillActions').textContent = `Actions : ${a}`;
-      return st;
-    }catch(e){
-      toast(e.message || 'Impossible de charger le statut');
-      return null;
-    }
-  }
-
-  function renderPacks(packs){
-    const wrap = $('packs');
-    if (!wrap) return;
-    wrap.innerHTML = '';
-    packs.forEach((p) => {
-      const div = document.createElement('div');
-      div.className = 'pack';
-
-      const left = document.createElement('div');
-      left.innerHTML = `<div><strong>${p.name}</strong> ${p.isBest ? '<span class="tag">⭐ Best</span>' : ''}</div>
-                        <div class="meta">${p.credits} crédits • ${p.actions} actions</div>`;
-
-      const btn = document.createElement('button');
-      btn.textContent = `${p.price}`;
-      btn.addEventListener('click', async () => {
-        try{
-          const r = const r = await api('/api/billing/buy-pack', { method:'POST', body: JSON.stringify({ packId: p.id }) });
-          const go = (r && (r.checkoutUrl || r.url)) ? (r.checkoutUrl || r.url) : null;
-          if (go) { window.location.href = go; return; }
-          if (r && r.checkoutUrl) { window.location.href = r.checkoutUrl; return; }
-          toast(`Pack ${p.name} ajouté ✅`);
-          await loadStatus();
-        }catch(e){
-          toast(e.message || 'Achat impossible');
-        }
+      const r = await fetch(API + '/api/billing/create-checkout-session', {
+        method:'POST',
+        credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ sku })
       });
+      const text = await r.text();
+      let d = null;
+      try{ d = JSON.parse(text); } catch(_){ d = null; }
 
-      div.appendChild(left);
-      div.appendChild(btn);
-      wrap.appendChild(div);
-    });
-  }
-
-  async function loadPacks(){
-    try{
-      const packs = await api('/api/billing/packs');
-      renderPacks(packs);
-      return packs;
+      if(!d || !d.success){
+        const msg = (d && d.error) ? d.error : `Erreur paiement (HTTP ${r.status})`;
+        alert(msg);
+        return;
+      }
+      if(d.url) window.location.href = d.url;
     }catch(e){
-      toast(e.message || 'Impossible de charger les packs');
-      return [];
+      console.error('[pricing] checkout error', e);
+      alert('Erreur réseau / script bloqué. Ouvre la console (F12) pour voir le détail.');
     }
   }
 
   function bindButtons(){
-    const btnFree = $('btnFree');
-    if (btnFree) btnFree.addEventListener('click', () => location.href = '/');
-
-    const btnBuyCredits = $('btnBuyCredits');
-    if (btnBuyCredits) btnBuyCredits.addEventListener('click', () => {
-      const packs = $('packs');
-      if (packs) packs.scrollIntoView({ behavior:'smooth', block:'start' });
-      toast('Choisis un pack');
-    });
-
-    const btnPremium = $('btnPremium');
-    if (btnPremium) btnPremium.addEventListener('click', async () => {
-      try{
-        const r = const r = await api('/api/billing/subscribe-premium', { method:'POST' });
-        const go = (r && (r.checkoutUrl || r.url)) ? (r.checkoutUrl || r.url) : null;
-        if (go) { window.location.href = go; return; }
-        if (r && r.checkoutUrl) { window.location.href = r.checkoutUrl; return; }
-        toast('Premium activé ✅');
-        await loadStatus();
-      }catch(e){
-        toast(e.message || 'Activation Premium impossible');
-      }
+    document.querySelectorAll('button[data-sku]').forEach(b=>{
+      b.addEventListener('click', () => startCheckout(b.getAttribute('data-sku')));
     });
   }
 
-  async function init(){
+  window.addEventListener('DOMContentLoaded', () => {
     bindButtons();
-    await Promise.all([loadStatus(), loadPacks()]);
-  }
-
-  document.addEventListener('DOMContentLoaded', init);
+    refresh();
+    setInterval(refresh, 2000);
+  });
 })();
