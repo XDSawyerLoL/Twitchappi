@@ -621,6 +621,12 @@
   const _open = window.openMarketOverlay;
   const _close = window.closeMarketOverlay;
   window.openMarketOverlay = function(){
+    // Twitch login is mandatory for Market
+    if(!window.currentUser){
+      alert('Connexion Twitch obligatoire pour utiliser le Marché.');
+      try{ window.startAuth && window.startAuth(); }catch(e){}
+      return;
+    }
     if(!_open) return;
     _open();
     setBodyModal(true);
