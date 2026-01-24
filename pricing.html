@@ -2,86 +2,90 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>StreamerHub — Crédits & Premium</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>body{background:#050505;color:#fff}</style>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crédits & Premium — StreamerHub</title>
+  <meta name="description" content="Twitflix est gratuit. Le Marché est accessible via actions (crédits) ou en Premium." />
+  <link rel="stylesheet" href="/assets/css/pricing.css" />
 </head>
-<body class="min-h-screen">
-  <div class="max-w-5xl mx-auto px-5 py-10">
-    <a href="/" class="text-sm text-teal-300 underline">← Retour à l’app</a>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <a class="back" href="/" aria-label="Retour">← Retour</a>
+      <h1>Regarder est gratuit.<br/>Comprendre est optionnel.<br/><span class="accent">Décider est payant.</span></h1>
+      <p class="sub">
+        <strong>Twitflix</strong> (lecteur + chat + stats Twitch) est gratuit.
+        Le <strong>Marché du streamer</strong> est accessible via <strong>actions</strong> (crédits) ou en <strong>Premium</strong>.
+      </p>
 
-    <div class="mt-6 flex flex-col gap-2">
-      <h1 class="text-3xl font-extrabold tracking-tight">Regarder est gratuit. Comprendre est optionnel. Décider est payant.</h1>
-      <p class="text-gray-300">Twitflix (lecteur + chat + stats Twitch) est gratuit. Le Marché du streamer est accessible via crédits (actions) ou en Premium.</p>
-    </div>
+      <section class="status" aria-live="polite">
+        <div class="pill" id="pillLogin">Twitch : …</div>
+        <div class="pill" id="pillPlan">Plan : …</div>
+        <div class="pill" id="pillActions">Actions : …</div>
+        <div class="pill" id="pillCredits">Crédits : …</div>
+      </section>
+    </header>
 
-    <div id="authBox" class="mt-8 rounded-2xl border border-gray-800 bg-black/40 p-5">
-      <div class="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <div class="text-sm text-gray-400">Statut</div>
-          <div id="authStatus" class="font-bold">Vérification…</div>
-          <div id="meLine" class="text-sm text-gray-400"></div>
-        </div>
-        <button id="btnLogin" class="hidden px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold">Connexion Twitch</button>
-      </div>
-    </div>
-
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
-      <div class="rounded-2xl border border-gray-800 bg-black/40 p-6">
-        <div class="text-sm text-gray-400">Gratuit</div>
-        <div class="mt-2 text-2xl font-extrabold">0€</div>
-        <ul class="mt-4 text-sm text-gray-300 space-y-2 list-disc pl-5">
-          <li>Twitflix : lecteur + chat + stats Twitch</li>
-          <li>Mosaic & Mode Cinéma (gratuit)</li>
-          <li>Accès Marché : verrouillé</li>
+    <section class="cards" aria-label="Offres">
+      <article class="card">
+        <div class="badge free">GRATUIT — sans limite</div>
+        <h2>Twitflix</h2>
+        <p class="desc">Regarde, explore et suis les streams librement.</p>
+        <ul class="list">
+          <li>🎥 Lecteur Twitflix</li>
+          <li>💬 Chat Twitch</li>
+          <li>📊 Stats Twitch basiques</li>
+          <li>⭐ Suivi de streamers</li>
+          <li>📺 Mode Cinéma</li>
+          <li>🧩 Mosaic (exploration passive)</li>
         </ul>
-      </div>
+        <button class="btn" id="btnGoApp">Retour à l’app</button>
+        <p class="hint">Aucune carte. Aucune limite.</p>
+      </article>
 
-      <div class="rounded-2xl border border-teal-500/40 bg-black/40 p-6">
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-gray-400">Crédits</div>
-          <div id="creditsBadge" class="text-xs px-2 py-1 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300">— crédits</div>
+      <article class="card">
+        <div class="badge credits">À l’usage — sans abonnement</div>
+        <h2>Actions (Crédits)</h2>
+        <p class="desc">Débloque des analyses quand tu en as besoin.</p>
+        <div class="key">
+          <div class="keyTitle">Principe</div>
+          <div class="keyValue"><strong>1 action</strong> = 1 décision stratégique</div>
+          <div class="keyNote">Une action consomme <strong>20 crédits</strong>.</div>
         </div>
-        <div class="mt-2 text-2xl font-extrabold">Packs</div>
-        <p class="mt-2 text-sm text-gray-300">1 action = 20 crédits (ex: achat/vente, verdict IA, benchmark).</p>
+        <div class="packs" id="packs"></div>
+        <button class="btn primary" id="btnScrollPacks">Choisir un pack</button>
+        <p class="hint">Tu paies une décision, pas un abonnement.</p>
+      </article>
 
-        <div class="mt-4 space-y-3">
-          <button data-sku="credits_500" class="w-full px-4 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-extrabold">500 crédits — 9,99€</button>
-          <button data-sku="credits_1250" class="w-full px-4 py-3 rounded-xl bg-teal-600/70 hover:bg-teal-500/80 font-extrabold">1250 crédits — 19,99€</button>
-        </div>
-        <p class="mt-3 text-xs text-gray-400">Le paiement est géré par Stripe (clé serveur requise). En dev sans Stripe, les boutons renverront une erreur claire.</p>
-      </div>
-
-      <div class="rounded-2xl border border-purple-500/40 bg-black/40 p-6">
-        <div class="text-sm text-gray-400">Premium</div>
-        <div class="mt-2 text-2xl font-extrabold">Marché en continu</div>
-        <ul class="mt-4 text-sm text-gray-300 space-y-2 list-disc pl-5">
-          <li>Accès Marché illimité</li>
-          <li>Actions illimitées (sans crédits)</li>
-          <li>Priorité sur futures features Pro</li>
+      <article class="card highlight">
+        <div class="badge premium">Premium — marché en continu</div>
+        <h2>Premium</h2>
+        <div class="price"><span class="amount">14,99€</span><span class="period">/ mois</span></div>
+        <p class="desc">Accès complet au marché, sans limite d’actions.</p>
+        <ul class="list">
+          <li>♾️ Actions illimitées</li>
+          <li>📈 Marché complet</li>
+          <li>🔔 Alertes automatiques</li>
+          <li>🧠 Recos continues</li>
+          <li>🗂 Historique long</li>
         </ul>
-        <button data-sku="premium_monthly" class="mt-4 w-full px-4 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 font-extrabold">Passer Premium</button>
-        <p class="mt-3 text-xs text-gray-400">Abonnement Stripe (price id requis côté serveur).</p>
-      </div>
-    </div>
+        <button class="btn premiumBtn" id="btnPremium">Passer Premium</button>
+        <p class="hint">Connexion Twitch requise.</p>
+      </article>
+    </section>
 
-    <div class="mt-10 rounded-2xl border border-gray-800 bg-black/40 p-6">
-      <h2 class="text-xl font-extrabold">FAQ rapide</h2>
-      <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
-        <div>
-          <div class="font-bold">Pourquoi Twitch obligatoire pour le Marché ?</div>
-          <div class="text-gray-400">Pour lier tes positions, ton portefeuille et tes crédits à un identifiant unique (multi-utilisateur).</div>
-        </div>
-        <div>
-          <div class="font-bold">Où sont stockés mes crédits ?</div>
-          <div class="text-gray-400">Dans Firestore, comme source unique de vérité (un document par utilisateur Twitch).</div>
-        </div>
-      </div>
-    </div>
-  </div>
+    <section class="fineprint">
+      <p>
+        Les crédits sont des unités d’usage internes permettant de débloquer des analyses et fonctionnalités.
+        Ils ne sont ni transférables, ni convertibles, ni remboursables.
+      </p>
+      <p class="muted">
+        Les utilisateurs Free reçoivent <strong>1200 crédits</strong> offerts à la première connexion Twitch.
+      </p>
+    </section>
 
-  <!-- External script so CSP / inline restrictions can't break checkout buttons -->
+    <section class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></section>
+  </main>
+
   <script src="/assets/js/pricing.js" defer></script>
 </body>
 </html>

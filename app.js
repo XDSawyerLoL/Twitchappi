@@ -207,7 +207,7 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(bodyParser.json({ limit: '2mb', verify: (req,res,buf)=>{ req.rawBody = buf; } }));
+app.use(bodyParser.json({ limit: '2mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
@@ -1913,10 +1913,10 @@ function requireTwitchSession(req, res) {
 // - 1 action = 20 credits (only if not premium)
 // =========================================================
 const BILLING_USERS = 'billing_users';
-var ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
+const ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
 
 async function getBillingDoc(twitchUser){
-  if(!firestoreOk) return { credits: 0, plan: 'free', noFirestore: true };
+  if(!firestoreOk) return { credits: 1200, plan: 'free', noFirestore: true };
   const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
   const ref = db.collection(BILLING_USERS).doc(id);
   const snap = await ref.get();
@@ -1973,167 +1973,6 @@ async function requireActionQuota(req, res, actionName){
   await updateBillingCredits(tu, -ACTION_COST_CREDITS);
   return { ok: true, plan, credits: credits - ACTION_COST_CREDITS };
 }
-
-// ------------------------------------------------------------
-// Billing API (compat) used by /pricing front (pricing.js)
-// Endpoints expected:
-//   GET  /api/billing/status
-//   GET  /api/billing/packs
-//   POST /api/billing/buy-pack        { packId }
-//   POST /api/billing/subscribe-premium
-// Plus: Stripe webhook to apply credits/plan after payment
-// ------------------------------------------------------------
-function billingSuccessUrl(req){
-  return (process.env.BILLING_SUCCESS_URL || (req.protocol + '://' + req.get('host') + '/pricing'));
-}
-function billingCancelUrl(req){
-  return (process.env.BILLING_CANCEL_URL || (req.protocol + '://' + req.get('host') + '/pricing'));
-}
-
-function billingPacks(){
-  return [
-    { id:'credits_500',  name:'Starter', credits:500,  actions: Math.floor(500 / ACTION_COST_CREDITS),  price:'', isBest:false },
-    { id:'credits_1250', name:'Boost',   credits:1250, actions: Math.floor(1250 / ACTION_COST_CREDITS), price:'', isBest:true  }
-  ];
-}
-
-app.get('/api/billing/status', async (req,res)=>{
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-    const b = await getBillingDoc(tu);
-    const credits = Number(b.credits || 0);
-    const plan = (b.plan || 'free');
-    res.json({ plan, credits, actions: Math.floor(credits / ACTION_COST_CREDITS) });
-  }catch(e){
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/api/billing/packs', async (req,res)=>{
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-    // Return packs; price labels can be injected from env if you want
-    res.json(billingPacks());
-  }catch(e){
-    res.status(500).json({ error: e.message });
-  }
-});
-
-async function createCheckoutForSku(req, tu, sku){
-  if(!stripe) throw new Error('Stripe non configuré (STRIPE_SECRET_KEY manquant).');
-
-  const map = {
-    credits_500:  { price: process.env.STRIPE_PRICE_CREDITS_500,  mode:'payment',      credits: 500 },
-    credits_1250: { price: process.env.STRIPE_PRICE_CREDITS_1250, mode:'payment',      credits: 1250 },
-    premium_monthly: { price: process.env.STRIPE_PRICE_PREMIUM_MONTHLY, mode:'subscription', plan:'premium' }
-  };
-
-  const item = map[sku];
-  if(!item || !item.price) throw new Error('SKU invalide ou Price ID manquant côté serveur.');
-
-  const session = await stripe.checkout.sessions.create({
-    mode: item.mode,
-    line_items: [{ price: item.price, quantity: 1 }],
-    success_url: billingSuccessUrl(req) + '?success=1',
-    cancel_url:  billingCancelUrl(req)  + '?canceled=1',
-    client_reference_id: String(tu.id || tu.login || ''),
-    metadata: {
-      sku,
-      twitch_user_id: String(tu.id || ''),
-      twitch_login: String(tu.login || ''),
-      credits: item.credits ? String(item.credits) : '',
-      plan: item.plan || ''
-    }
-  });
-
-  return session;
-}
-
-app.post('/api/billing/buy-pack', async (req,res)=>{
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-
-    const packId = String(req.body?.packId || '').trim();
-    const sku = packId; // packId matches sku: credits_500 / credits_1250
-    const session = await createCheckoutForSku(req, tu, sku);
-
-    res.json({ ok:true, checkoutUrl: session.url, url: session.url });
-  }catch(e){
-    res.status(500).json({ ok:false, error: e.message });
-  }
-});
-
-app.post('/api/billing/subscribe-premium', async (req,res)=>{
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-
-    const session = await createCheckoutForSku(req, tu, 'premium_monthly');
-    res.json({ ok:true, checkoutUrl: session.url, url: session.url });
-  }catch(e){
-    res.status(500).json({ ok:false, error: e.message });
-  }
-});
-
-// Server-side credit consumption (recommended for protecting premium/credits features)
-app.post('/api/billing/use-action', async (req,res)=>{
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-
-    const cost = Number(req.body?.cost || ACTION_COST_CREDITS);
-    const b = await getBillingDoc(tu);
-    const plan = String(b.plan || 'free').toLowerCase();
-    const credits = Number(b.credits || 0);
-
-    if(plan === 'premium') return res.json({ ok:true, bypass:'premium' });
-    if(credits < cost) return res.status(402).json({ ok:false, error:'Crédits insuffisants' });
-
-    await updateBillingCredits(tu, -cost);
-    res.json({ ok:true });
-  }catch(e){
-    res.status(500).json({ ok:false, error: e.message });
-  }
-});
-
-// Stripe webhook: applies credits/plan after successful checkout
-app.post('/api/billing/webhook', async (req,res)=>{
-  try{
-    if(!stripe) return res.status(400).send('Stripe not configured');
-    const secret = process.env.STRIPE_WEBHOOK_SECRET || '';
-    if(!secret) return res.status(400).send('Missing STRIPE_WEBHOOK_SECRET');
-
-    const sig = req.headers['stripe-signature'];
-    if(!sig) return res.status(400).send('Missing stripe-signature header');
-
-    let event;
-    try{
-      event = stripe.webhooks.constructEvent(req.rawBody, sig, secret);
-    }catch(err){
-      return res.status(400).send('Webhook signature verification failed');
-    }
-
-    if(event.type === 'checkout.session.completed'){
-      const session = event.data.object;
-      const sku = session?.metadata?.sku;
-      const twitchId = session?.metadata?.twitch_user_id || session?.client_reference_id;
-      const twitchLogin = session?.metadata?.twitch_login || '';
-
-      const tu = { id: twitchId, login: twitchLogin, display_name: twitchLogin };
-
-      if(sku === 'credits_500') await updateBillingCredits(tu, 500);
-      if(sku === 'credits_1250') await updateBillingCredits(tu, 1250);
-      if(sku === 'premium_monthly') await setBillingPlan(tu, 'premium');
-    }
-
-    res.json({ received: true });
-  }catch(e){
-    res.status(500).send(e.message);
-  }
-});
 
 app.get('/api/fantasy/profile', async (req,res)=>{
   try{
@@ -2265,6 +2104,53 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
   }
 });
 
+
+// =========================================================
+// YOUTUBE TRAILER RESOLVER (optional)
+// Requires env YOUTUBE_API_KEY
+// GET /api/youtube/trailer?q=...
+// =========================================================
+const _ytCache = new Map(); // q -> { videoId, t }
+const _ytTTL = 24 * 60 * 60 * 1000;
+
+app.get('/api/youtube/trailer', async (req,res)=>{
+  try{
+    const q = String(req.query?.q || '').trim();
+    if(!q) return res.status(400).json({ success:false, error:'Q_REQUIRED' });
+
+    const now = Date.now();
+    const cached = _ytCache.get(q.toLowerCase());
+    if(cached && (now - cached.t) < _ytTTL){
+      return res.json({ success:true, videoId: cached.videoId });
+    }
+
+    const key = process.env.YOUTUBE_API_KEY;
+    if(!key){
+      return res.status(501).json({ success:false, error:'YOUTUBE_API_KEY_MISSING' });
+    }
+
+    const url = 'https://www.googleapis.com/youtube/v3/search'
+      + '?part=snippet&type=video&maxResults=1&safeSearch=none'
+      + '&q=' + encodeURIComponent(q)
+      + '&key=' + encodeURIComponent(key);
+
+    const r = await fetch(url);
+    const d = await r.json();
+    const item = (d.items && d.items[0]) ? d.items[0] : null;
+    const videoId = item && item.id ? item.id.videoId : null;
+
+    _ytCache.set(q.toLowerCase(), { videoId, t: now });
+
+    if(!videoId){
+      return res.json({ success:false, videoId:null });
+    }
+    return res.json({ success:true, videoId });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
 // =========================================================
 // BILLING API
 // =========================================================
@@ -2273,11 +2159,70 @@ app.get('/api/billing/me', async (req,res)=>{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
     const b = await getBillingDoc(tu);
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0) });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {} });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
+
+app.post('/api/billing/unlock-feature', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+
+    const feature = String(req.body?.feature || '').trim().toLowerCase();
+    const cost = 200;
+
+    const allowed = new Set(['overview','analytics','niche','besttime']);
+    if(!allowed.has(feature)){
+      return res.status(400).json({ success:false, error:'FEATURE_INVALID' });
+    }
+
+    const b = await getBillingDoc(tu);
+    const plan = String(b.plan || 'free').toLowerCase();
+    const ent = b.entitlements || {};
+
+    if(plan === 'premium' || ent[feature] === true){
+      return res.json({ success:true, already:true, plan, credits: Number(b.credits||0), entitlements: ent });
+    }
+
+    const credits = Number(b.credits||0);
+    if(credits < cost){
+      return res.status(402).json({ success:false, error:'INSUFFICIENT_CREDITS', credits, cost });
+    }
+
+    if(!firestoreOk){
+      return res.status(503).json({ success:false, error:'FIRESTORE_UNAVAILABLE' });
+    }
+
+    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
+    const ref = db.collection(BILLING_USERS).doc(id);
+
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(ref);
+      const cur = snap.exists ? snap.data() : {};
+      const curCredits = Number(cur.credits||0);
+      if(curCredits < cost) throw new Error('INSUFFICIENT_CREDITS');
+      const curEnt = cur.entitlements || {};
+      curEnt[feature] = true;
+      tx.set(ref, {
+        credits: curCredits - cost,
+        entitlements: curEnt,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+    });
+
+    const b2 = await getBillingDoc(tu);
+    return res.json({ success:true, plan: b2.plan || 'free', credits: Number(b2.credits||0), entitlements: b2.entitlements || {} });
+  }catch(e){
+    if(String(e.message||'').includes('INSUFFICIENT_CREDITS')){
+      return res.status(402).json({ success:false, error:'INSUFFICIENT_CREDITS' });
+    }
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 
 // Stripe (optional). If not configured, returns a clear error.
 let stripe = null;
