@@ -2390,6 +2390,8 @@ body.modal-open #player-tools{display:none !important;}
   #tabs-viewport #tab-chat{ min-height:0 !important; }
 </style>
 
+
+<style id="tools-padding-fix">#tab-tools .tools-scroll{padding:16px 14px !important;}</style>
 </head>
 <body class="min-h-screen flex flex-col p-4">
 <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
@@ -2547,7 +2549,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 </div>
-<div class="u-tab-panel p-4 bg-[#0b0b0d]" id="under-analytics">
+<div class="u-tab-panel p-4 bg-[#0b0b0d]" id="under-analytics" data-paywall data-paywall-title="Analytics Pro" data-paywall-desc="KPIs avancés, alertes et analyses détaillées pour optimiser ta niche.">
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
 <div class="bg-[#111] p-3 rounded border border-[#222]">
 <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
@@ -2695,7 +2697,7 @@ body.modal-open #player-tools{display:none !important;}
           </div>
 <div class="best-time-results" id="best-time-results" style="display:none;"></div>
 </div>
-<div class="paywall-scope" data-paywall data-paywall-title="Scanner IA" data-paywall-desc="Analyse un streamer : score niche, opportunités, risques et résumé IA.">
+<div class="scanner-tool">
 <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
 <div class="flex gap-2 mb-3">
 <input class="cyber-input" id="scan-query" placeholder="Pseudo ex: ZeratoR" type="text"/>
