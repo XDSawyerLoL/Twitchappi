@@ -1855,232 +1855,143 @@ try{
     });
 
 
+
 // === PAYWALL UI (blur + cadenas + upsell) ===
-// === PAYWALL UI (blur + cadenas + upsell) ===
-// Fix robuste: l’overlay est rendu en FIXED dans <body>, donc il ne peut pas passer “sous” un blur/z-index local.
-function applyPaywallUI(){
-  const st = window.__billingState || { plan:'FREE', credits:0 };
-  const plan = String(st.plan || 'FREE').toUpperCase();
-  const credits = Number(st.credits || 0);
-
-  // Lock when user has no subscription and no credits
-  const locked = (plan === 'FREE' && credits <= 0);
-
-  // Store overlays globally
-  if (!window.__paywallFixed) window.__paywallFixed = { items: new Map(), bound:false };
-
-  // Inject CSS once
-  if (!document.getElementById('paywall-css')){
+// IMPORTANT: le "flou" ne doit JAMAIS affecter le cadenas.
+// Donc on évite filter:blur() sur un parent commun ; on utilise un pseudo-calque (::before) + overlay interne.
+(function(){
+  function injectPaywallCSS(){
+    if (document.getElementById('paywall-inline-css')) return;
     const css = document.createElement('style');
-    css.id = 'paywall-css';
+    css.id = 'paywall-inline-css';
     css.textContent = `
-      /* Make tools less glued to borders (OUTILS tab) */
-      #tab-tools .tools-scroll{ padding:24px 20px !important; box-sizing:border-box !important; }
-      #tab-tools .tools-scroll > *{ box-sizing:border-box !important; }
-      #tab-tools .tools-scroll{ margin:0 !important; }
-      #tab-tools{ padding:0 !important; }
-      /* Target blur (only the module itself) */
-      .paywall-locked{
-        filter: blur(2.8px) saturate(.85);
-        opacity:.65;
+      /* Container */
+      [data-paywall].paywall-scope{ position:relative !important; overflow:hidden !important; isolation:isolate; }
+      /* Blur layer (does NOT blur overlay content) */
+      [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
+        content:"";
+        position:absolute; inset:0;
+        background: rgba(0,0,0,.55);
+        backdrop-filter: blur(10px) saturate(.85);
+        -webkit-backdrop-filter: blur(10px) saturate(.85);
+        z-index: 1;
         pointer-events:none;
-        user-select:none;
       }
-      /* Fixed overlay always above everything */
-      .paywall-overlay-fixed{
-        position:fixed;
-        z-index:2147483647;
-        transform:none !important;
-        will-change:auto;
+      /* Disable interactions under lock */
+      [data-paywall].paywall-scope[data-paywall-locked="1"] > :not(.paywall-inline-overlay){
+        pointer-events:none !important;
+        user-select:none !important;
+      }
+      /* Inline overlay (always crisp) */
+      .paywall-inline-overlay{
+        position:absolute; inset:0;
+        z-index: 2;
         display:flex;
         align-items:center;
         justify-content:center;
-        background:rgba(0,0,0,.92);
-        filter:none !important;
-        backdrop-filter:none !important;
-        -webkit-backdrop-filter:none !important;
-        isolation:isolate;
-        border-radius:14px;
-        padding:14px;
+        padding: 14px;
         box-sizing:border-box;
         cursor:pointer;
       }
-      .paywall-overlay-card{
-        max-width:460px; width:100%;
-        border:1px solid rgba(255,255,255,.16);
-        background:#0b0b0d;
+      .paywall-inline-card{
+        width: min(520px, 100%);
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 14px;
+        background: rgba(10,10,10,.98);
+        box-shadow: 0 20px 50px rgba(0,0,0,.45);
+        padding: 14px 14px 12px;
+        color: rgba(255,255,255,.92);
         filter:none !important;
         backdrop-filter:none !important;
         -webkit-backdrop-filter:none !important;
-        border-radius:14px;
-        padding:14px;
-        box-shadow:0 18px 60px rgba(0,0,0,.55);
-        box-sizing:border-box;
       }
-      .paywall-lock{
-        display:flex; align-items:center; gap:10px;
-        font-weight:900; color:#fff; margin-bottom:6px;
-      }
-      .paywall-lock i{ color:#00f2ea; }
-      .paywall-desc{ color:rgba(255,255,255,.78); font-size:12px; line-height:1.35; }
-      .paywall-cta{
-        margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;
-      }
-      .paywall-cta a{
+      .paywall-inline-head{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+      .paywall-inline-head i{ font-size: 18px; color: #00f2ea; }
+      .paywall-inline-desc{ margin-top:8px; font-size:12px; line-height:1.35; color: rgba(255,255,255,.75); }
+      .paywall-inline-cta{ margin-top:10px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+      .paywall-inline-cta a{
         display:inline-flex; align-items:center; gap:8px;
-        padding:8px 10px; border-radius:12px;
-        background:#00f2ea; color:#000; font-weight:900; font-size:12px;
+        padding: 9px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.12);
+        background: rgba(0,242,234,.12);
+        color: rgba(255,255,255,.92);
         text-decoration:none;
+        font-weight:800;
+        font-size: 12px;
       }
-      .paywall-cta span{ font-size:11px; color:rgba(255,255,255,.65); }
+      .paywall-inline-cta small{ font-size:11px; color: rgba(255,255,255,.55); }
+
+      /* OUTILS padding (évite "collé au bord") */
+      #tab-tools{ padding: 14px 14px 24px !important; box-sizing:border-box; }
+      #tab-tools .tools-scroll, #tab-tools .panel-scroll{ padding: 10px 10px 18px !important; box-sizing:border-box; }
     `;
     document.head.appendChild(css);
   }
 
-  const paywallEls = Array.from(document.querySelectorAll('[data-paywall]'));
+  function escapeHtml(s){
+    return String(s ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
 
-  function ensureOverlay(el){
-    const key = el;
+  function ensureInlineOverlay(el){
+    let ov = el.querySelector(':scope > .paywall-inline-overlay');
+    if (!ov){
+      ov = document.createElement('div');
+      ov.className = 'paywall-inline-overlay';
+      ov.addEventListener('click', (e)=>{ e.preventDefault(); window.location.href='/pricing'; });
+      el.appendChild(ov);
+    }
     const title = el.getAttribute('data-paywall-title') || 'Module Premium';
-    const desc  = el.getAttribute('data-paywall-desc') || 'Débloque ce module avec Premium/Pro ou des crédits.';
-
-    let overlay = window.__paywallFixed.items.get(key);
-    if (!overlay){
-      overlay = document.createElement('div');
-      overlay.className = 'paywall-overlay-fixed';
-      overlay.innerHTML = `
-        <div class="paywall-overlay-card">
-          <div class="paywall-lock"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>
-          <div class="paywall-desc">${escapeHtml(desc)}</div>
-          <div class="paywall-cta">
-            <a href="/pricing"><i class="fas fa-crown"></i> Débloquer (Premium/Crédits)</a>
-            <span>Plan + crédits + accès outils IA</span>
-          </div>
+    const desc  = el.getAttribute('data-paywall-desc')  || 'Débloque ce module avec Premium/Pro ou des crédits.';
+    ov.innerHTML = `
+      <div class="paywall-inline-card">
+        <div class="paywall-inline-head"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>
+        <div class="paywall-inline-desc">${escapeHtml(desc)}</div>
+        <div class="paywall-inline-cta">
+          <a href="/pricing"><i class="fas fa-crown"></i> Débloquer</a>
+          <small>Plan + crédits + outils IA</small>
         </div>
-      `;
-      overlay.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.location.href = '/pricing';
-      });
-      document.documentElement.appendChild(overlay);
-      window.__paywallFixed.items.set(key, overlay);
-    }
-    return overlay;
+      </div>
+    `;
+    return ov;
   }
 
-  function removeOverlay(el){
-    const ov = window.__paywallFixed.items.get(el);
-    if (ov){
-      ov.remove();
-      window.__paywallFixed.items.delete(el);
-    }
+  function removeInlineOverlay(el){
+    const ov = el.querySelector(':scope > .paywall-inline-overlay');
+    if (ov) ov.remove();
   }
 
-  function updateOverlayPositions(){
-    // Update all active overlays
-    window.__paywallFixed.items.forEach((overlay, el) => {
-      if (!document.body.contains(el)){
-        overlay.remove();
-        window.__paywallFixed.items.delete(el);
-        return;
+  // Exposed for loadBillingMe()
+  window.applyPaywallUI = function applyPaywallUI(){
+    injectPaywallCSS();
+    const st = window.__billingState || { plan:'FREE', credits:0 };
+    const plan = String(st.plan || 'FREE').toUpperCase();
+    const credits = Number(st.credits ?? 0);
+
+    const locked = (plan === 'FREE' && credits <= 0);
+
+    const els = Array.from(document.querySelectorAll('[data-paywall]'));
+    els.forEach(el=>{
+      el.classList.add('paywall-scope');
+      if (locked){
+        el.setAttribute('data-paywall-locked','1');
+        ensureInlineOverlay(el);
+      } else {
+        el.removeAttribute('data-paywall-locked');
+        removeInlineOverlay(el);
       }
-      const r = el.getBoundingClientRect();
-      // If hidden, collapse
-      if (r.width <= 0 || r.height <= 0){
-        overlay.style.display = 'none';
-        return;
-      }
-      overlay.style.display = 'flex';
-      overlay.style.left = `${Math.max(0, r.left)}px`;
-      overlay.style.top  = `${Math.max(0, r.top)}px`;
-      overlay.style.width  = `${Math.max(0, r.width)}px`;
-      overlay.style.height = `${Math.max(0, r.height)}px`;
-      // Try to match border radius
-      const br = getComputedStyle(el).borderRadius;
-      overlay.style.borderRadius = br || '14px';
     });
-  }
+  };
 
-  // Bind listeners once
-  if (!window.__paywallFixed.bound){
-    window.__paywallFixed.bound = true;
-    window.addEventListener('scroll', () => { updateOverlayPositions(); }, true);
-    window.addEventListener('resize', () => { updateOverlayPositions(); });
-  }
+  // First paint (in case billing arrives later)
+  try{ window.applyPaywallUI(); }catch(_){}
+})();
 
-  // Apply state
-  paywallEls.forEach((el) => {
-    if (locked){
-      el.classList.add('paywall-locked');
-      ensureOverlay(el);
-    } else {
-      el.classList.remove('paywall-locked');
-      removeOverlay(el);
-    }
-  });
-
-  // Ensure positions are correct now
-  updateOverlayPositions();
-}
-
-
-function setMarketTab(tab){
-  const overlay = document.getElementById('market-overlay');
-  if (!overlay) return;
-
-  // Tabs styling
-  const btns = overlay.querySelectorAll('.mkt-tab[data-tab]');
-  btns.forEach(b => {
-    const is = b.getAttribute('data-tab') === tab;
-    b.classList.toggle('bg-white/10', is);
-    b.classList.toggle('font-bold', is);
-    b.classList.toggle('bg-white/5', !is);
-  });
-
-  // Views switching (sections have ids like mkt-tab-overview, mkt-tab-portfolio, ...)
-  const views = overlay.querySelectorAll('.mkt-view');
-  views.forEach(v => v.classList.add('hidden'));
-  const target = overlay.querySelector(`#mkt-tab-${CSS.escape(tab)}`);
-  if (target) target.classList.remove('hidden');
-}
-
-function openMarketOverlay(tab='overview'){
-  const st = window.__billingState || { plan:'FREE', credits:0 };
-  const plan = String(st.plan || 'FREE').toUpperCase();
-  const credits = Number(st.credits || 0);
-
-  // FREE + 0 crédits => redirect pricing
-  if (plan === 'FREE' && credits <= 0){
-    window.location.href = '/pricing';
-    return;
-  }
-
-  const overlay = document.getElementById('market-overlay');
-  if (!overlay) return;
-
-  overlay.classList.remove('hidden');
-  overlay.setAttribute('aria-hidden','false');
-  document.body.style.overflow = 'hidden';
-
-  try{ syncMarketCredits(); }catch(_){}
-
-  // Click the tab button if it exists (preferred)
-  const btn = overlay.querySelector(`.mkt-tab[data-tab="${tab}"]`);
-  if (btn) btn.click();
-  else setMarketTab(tab);
-}
-
-function closeMarketOverlay(){
-  const overlay = document.getElementById('market-overlay');
-  if (!overlay) return;
-  overlay.classList.add('hidden');
-  overlay.setAttribute('aria-hidden','true');
-  document.body.style.overflow = '';
-}
-
-// expose globally (avoid missing handlers when market module not loaded)
-window.openMarketOverlay = window.openMarketOverlay || openMarketOverlay;
-window.closeMarketOverlay = window.closeMarketOverlay || closeMarketOverlay;
 
 // === Credits link between Billing <-> Market Wallet UI ===
 function syncMarketCredits(){
