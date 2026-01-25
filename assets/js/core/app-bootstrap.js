@@ -1856,142 +1856,233 @@ try{
 
 
 
-// === PAYWALL UI (blur + cadenas + upsell) ===
-// IMPORTANT: le "flou" ne doit JAMAIS affecter le cadenas.
-// Donc on évite filter:blur() sur un parent commun ; on utilise un pseudo-calque (::before) + overlay interne.
 (function(){
-  function injectPaywallCSS(){
-    if (document.getElementById('paywall-inline-css')) return;
-    const css = document.createElement('style');
-    css.id = 'paywall-inline-css';
-    css.textContent = `
-      /* Container */
-      [data-paywall].paywall-scope{ position:relative !important; overflow:hidden !important; isolation:isolate; }
-      /* Blur layer (does NOT blur overlay content) */
-      [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
-        content:"";
-        position:absolute; inset:0;
-        background: rgba(0,0,0,.55);
-        backdrop-filter: blur(10px) saturate(.85);
-        -webkit-backdrop-filter: blur(10px) saturate(.85);
-        z-index: 1;
-        pointer-events:none;
-      }
-      /* Disable interactions under lock */
-      [data-paywall].paywall-scope[data-paywall-locked="1"] > :not(.paywall-inline-overlay){
-        pointer-events:none !important;
-        user-select:none !important;
-      }
-      /* Inline overlay (always crisp) */
-      .paywall-inline-overlay{
-        position:absolute; inset:0;
-        z-index: 2;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        padding: 14px;
-        box-sizing:border-box;
-        cursor:pointer;
-      }
-      .paywall-inline-card{
-        width: min(520px, 100%);
-        border: 1px solid rgba(255,255,255,.10);
-        border-radius: 14px;
-        background: rgba(10,10,10,.98);
-        box-shadow: 0 20px 50px rgba(0,0,0,.45);
-        padding: 14px 14px 12px;
-        color: rgba(255,255,255,.92);
-        filter:none !important;
-        backdrop-filter:none !important;
-        -webkit-backdrop-filter:none !important;
-      }
-      .paywall-inline-head{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
-      .paywall-inline-head i{ font-size: 18px; color: #00f2ea; }
-      .paywall-inline-desc{ margin-top:8px; font-size:12px; line-height:1.35; color: rgba(255,255,255,.75); }
-      .paywall-inline-cta{ margin-top:10px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-      .paywall-inline-cta a{
-        display:inline-flex; align-items:center; gap:8px;
-        padding: 9px 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,.12);
-        background: rgba(0,242,234,.12);
-        color: rgba(255,255,255,.92);
-        text-decoration:none;
-        font-weight:800;
-        font-size: 12px;
-      }
-      .paywall-inline-cta small{ font-size:11px; color: rgba(255,255,255,.55); }
 
-      /* OUTILS padding (évite "collé au bord") */
-      #tab-tools{ padding: 14px 14px 24px !important; box-sizing:border-box; }
-      #tab-tools .tools-scroll, #tab-tools .panel-scroll{ padding: 10px 10px 18px !important; box-sizing:border-box; }
-    `;
-    document.head.appendChild(css);
+// === PAYWALL UI (blur + cadenas + upsell) ===
+// Problème récurrent : si un parent (ex: body/main) a un filter/blur, un overlay "dans" le module peut être flouté aussi.
+// Fix robuste :
+// 1) On floute le module via un pseudo-calque ::before (backdrop-filter) -> n'affecte pas le contenu overlay
+// 2) On rend la fenêtre cadenas via un "portal" FIXED injecté comme enfant direct de <html> (sibling de <body>)
+//    => jamais affecté par un filter/blur appliqué à <body> ou à un wrapper.
+
+// Small HTML escaping helper
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+const PAYWALL_ROOT_ID = '__paywall_portal_root__';
+let __paywallUid = 0;
+let __paywallPortals = new Map(); // uid -> { el, portal }
+
+function ensurePaywallRoot(){
+  let root = document.getElementById(PAYWALL_ROOT_ID);
+  if (!root){
+    root = document.createElement('div');
+    root.id = PAYWALL_ROOT_ID;
+    // inject as direct child of <html> to avoid body-level filters
+    (document.documentElement || document.documentElement).appendChild(root);
   }
+  return root;
+}
 
-  function escapeHtml(s){
-    return String(s ?? '')
-      .replaceAll('&','&amp;')
-      .replaceAll('<','&lt;')
-      .replaceAll('>','&gt;')
-      .replaceAll('"','&quot;')
-      .replaceAll("'","&#039;");
-  }
+function injectPaywallCSS(){
+  if (document.getElementById('paywall-css')) return;
+  const style = document.createElement('style');
+  style.id = 'paywall-css';
+  style.textContent = `
+    /* Paywall scope */
+    [data-paywall].paywall-scope{ position:relative !important; overflow:hidden !important; isolation:isolate; }
 
-  function ensureInlineOverlay(el){
-    let ov = el.querySelector(':scope > .paywall-inline-overlay');
-    if (!ov){
-      ov = document.createElement('div');
-      ov.className = 'paywall-inline-overlay';
-      ov.addEventListener('click', (e)=>{ e.preventDefault(); window.location.href='/pricing'; });
-      el.appendChild(ov);
+    /* Blur layer (does NOT blur portal) */
+    [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
+      content:"";
+      position:absolute; inset:0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(10px) saturate(.85);
+      -webkit-backdrop-filter: blur(10px) saturate(.85);
+      z-index: 1;
+      pointer-events:none;
     }
-    const title = el.getAttribute('data-paywall-title') || 'Module Premium';
-    const desc  = el.getAttribute('data-paywall-desc')  || 'Débloque ce module avec Premium/Pro ou des crédits.';
-    ov.innerHTML = `
-      <div class="paywall-inline-card">
-        <div class="paywall-inline-head"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>
-        <div class="paywall-inline-desc">${escapeHtml(desc)}</div>
-        <div class="paywall-inline-cta">
-          <a href="/pricing"><i class="fas fa-crown"></i> Débloquer</a>
-          <small>Plan + crédits + outils IA</small>
-        </div>
+    [data-paywall].paywall-scope[data-paywall-locked="1"] > *{
+      /* keep content visually there but non-interactive */
+      pointer-events:none !important;
+      user-select:none !important;
+    }
+
+    /* Portal overlay (outside body) */
+    #${PAYWALL_ROOT_ID}{
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      pointer-events: none;
+    }
+    .paywall-portal{
+      position: fixed;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      box-sizing: border-box;
+      cursor: pointer;
+      /* never blurred */
+      filter: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .paywall-portal *{
+      filter:none !important;
+      backdrop-filter:none !important;
+      -webkit-backdrop-filter:none !important;
+    }
+    .paywall-card{
+      width: min(520px, 100%);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: rgba(10,10,10,.98);
+      box-shadow: 0 20px 50px rgba(0,0,0,.45);
+      padding: 14px 14px 12px;
+      color: rgba(255,255,255,.92);
+    }
+    .paywall-head{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+    .paywall-head i{ font-size: 18px; color:#00f2ea; }
+    .paywall-desc{ margin-top:8px; font-size:12.5px; color:rgba(255,255,255,.70); line-height:1.35; }
+    .paywall-cta{ margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .paywall-cta a{
+      display:inline-flex; align-items:center; gap:8px;
+      background:#00f2ea; color:#000; text-decoration:none;
+      padding:9px 12px; border-radius:12px; font-weight:900;
+    }
+    .paywall-cta small{ opacity:.65; font-size:11px; }
+
+    /* Tools padding - avoid "collé au bord" */
+    #tab-tools, #tab-tools *{ box-sizing: border-box; }
+    #tab-tools{ padding: 10px 10px 14px !important; }
+    #tab-tools .tools-scroll{ padding: 10px !important; }
+  `;
+  document.head.appendChild(style);
+}
+
+function getOrAssignUid(el){
+  let uid = el.getAttribute('data-paywall-uid');
+  if (!uid){
+    uid = String(++__paywallUid);
+    el.setAttribute('data-paywall-uid', uid);
+  }
+  return uid;
+}
+
+function buildPortal(el){
+  const uid = getOrAssignUid(el);
+  const root = ensurePaywallRoot();
+
+  let portal = document.querySelector(`.paywall-portal[data-paywall-uid="${uid}"]`);
+  if (!portal){
+    portal = document.createElement('div');
+    portal.className = 'paywall-portal';
+    portal.setAttribute('data-paywall-uid', uid);
+    portal.addEventListener('click', (e)=>{ e.preventDefault(); window.location.href='/pricing'; });
+    root.appendChild(portal);
+  }
+
+  const title = el.getAttribute('data-paywall-title') || 'Module Premium';
+  const desc  = el.getAttribute('data-paywall-desc')  || 'Débloque ce module avec Premium/Pro ou des crédits.';
+  portal.innerHTML = `
+    <div class="paywall-card">
+      <div class="paywall-head"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>
+      <div class="paywall-desc">${escapeHtml(desc)}</div>
+      <div class="paywall-cta">
+        <a href="/pricing"><i class="fas fa-crown"></i> Débloquer</a>
+        <small>Plan + crédits + outils IA</small>
       </div>
-    `;
-    return ov;
+    </div>
+  `;
+  __paywallPortals.set(uid, { el, portal });
+  return portal;
+}
+
+function positionPortal(el, portal){
+  const r = el.getBoundingClientRect();
+  const visible = r.width > 2 && r.height > 2 && r.bottom > 0 && r.right > 0 && r.top < window.innerHeight && r.left < window.innerWidth;
+  if (!visible){
+    portal.style.display = 'none';
+    return;
   }
+  portal.style.display = 'flex';
+  portal.style.top = `${Math.max(0, r.top)}px`;
+  portal.style.left = `${Math.max(0, r.left)}px`;
+  portal.style.width = `${Math.max(0, Math.min(window.innerWidth - r.left, r.width))}px`;
+  portal.style.height = `${Math.max(0, Math.min(window.innerHeight - r.top, r.height))}px`;
+}
 
-  function removeInlineOverlay(el){
-    const ov = el.querySelector(':scope > .paywall-inline-overlay');
-    if (ov) ov.remove();
+function updatePaywallPortals(){
+  for (const { el, portal } of __paywallPortals.values()){
+    if (!document.contains(el) || el.getAttribute('data-paywall-locked') !== '1'){
+      portal.remove();
+      continue;
+    }
+    positionPortal(el, portal);
   }
+}
 
-  // Exposed for loadBillingMe()
-  window.applyPaywallUI = function applyPaywallUI(){
-    injectPaywallCSS();
-    const st = window.__billingState || { plan:'FREE', credits:0 };
-    const plan = String(st.plan || 'FREE').toUpperCase();
-    const credits = Number(st.credits ?? 0);
+function lockPaywallElement(el){
+  el.classList.add('paywall-scope');
+  el.setAttribute('data-paywall-locked','1');
 
-    const locked = (plan === 'FREE' && credits <= 0);
-
-    const els = Array.from(document.querySelectorAll('[data-paywall]'));
-    els.forEach(el=>{
-      el.classList.add('paywall-scope');
-      if (locked){
-        el.setAttribute('data-paywall-locked','1');
-        ensureInlineOverlay(el);
-      } else {
-        el.removeAttribute('data-paywall-locked');
-        removeInlineOverlay(el);
-      }
+  // If legacy blur was applied via filter classes/styles, neutralize it (otherwise it will blur everything inside)
+  try{ el.style.setProperty('filter','none','important'); }catch(_){}
+  // remove common Tailwind blur utilities on this scope
+  try{
+    Array.from(el.classList).forEach(c=>{
+      if (c.startsWith('blur') || c.includes('blur-')) el.classList.remove(c);
     });
-  };
+  }catch(_){}
 
-  // First paint (in case billing arrives later)
-  try{ window.applyPaywallUI(); }catch(_){}
+  const portal = buildPortal(el);
+  positionPortal(el, portal);
+}
+
+function unlockPaywallElement(el){
+  el.removeAttribute('data-paywall-locked');
+  const uid = el.getAttribute('data-paywall-uid');
+  if (uid){
+    const rec = __paywallPortals.get(uid);
+    if (rec && rec.portal) rec.portal.remove();
+    __paywallPortals.delete(uid);
+  }
+}
+
+function applyPaywallUI(){
+  injectPaywallCSS();
+  const st = window.__billingState || { plan:'FREE', credits:0 };
+  const plan = String(st.plan || 'FREE').toUpperCase();
+  const credits = Number(st.credits ?? 0);
+  const locked = (plan === 'FREE' && credits <= 0);
+
+  const els = Array.from(document.querySelectorAll('[data-paywall]'));
+  els.forEach(el=>{
+    if (locked) lockPaywallElement(el);
+    else unlockPaywallElement(el);
+  });
+
+  // keep portals positioned
+  updatePaywallPortals();
+}
+
+// First paint (billing may arrive later)
+try{ window.applyPaywallUI = applyPaywallUI; applyPaywallUI(); }catch(_){}
+
+// keep portals in sync with scrolling / resizing (capture to catch scroll in nested containers)
+window.addEventListener('scroll', updatePaywallPortals, true);
+window.addEventListener('resize', updatePaywallPortals, { passive:true });
+
+// If DOM changes (tabs, dynamic inserts), re-apply and reposition
+try{
+  const mo = new MutationObserver(()=>{ try{ applyPaywallUI(); }catch(_){ } });
+  mo.observe(document.body, { childList:true, subtree:true });
+}catch(_){}
+
 })();
-
 
 // === Credits link between Billing <-> Market Wallet UI ===
 function syncMarketCredits(){
