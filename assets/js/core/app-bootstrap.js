@@ -1854,6 +1854,8 @@ try{
 
 
 // === PAYWALL UI (blur + cadenas + upsell) ===
+// === PAYWALL UI (blur + cadenas + upsell) ===
+// Fix robuste: l’overlay est rendu en FIXED dans <body>, donc il ne peut pas passer “sous” un blur/z-index local.
 function applyPaywallUI(){
   const st = window.__billingState || { plan:'FREE', credits:0 };
   const plan = String(st.plan || 'FREE').toUpperCase();
@@ -1862,35 +1864,45 @@ function applyPaywallUI(){
   // Lock when user has no subscription and no credits
   const locked = (plan === 'FREE' && credits <= 0);
 
+  // Store overlays globally
+  if (!window.__paywallFixed) window.__paywallFixed = { items: new Map(), bound:false };
+
   // Inject CSS once
   if (!document.getElementById('paywall-css')){
     const css = document.createElement('style');
     css.id = 'paywall-css';
     css.textContent = `
-      /* Paywall overlay must ALWAYS be above blurred content (stacking-context safe) */
-      .paywall-locked{ position:relative !important; overflow:hidden; isolation:isolate; }
-      .paywall-locked > .paywall-overlay{
-        position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-        background:rgba(0,0,0,.62); backdrop-filter: blur(3px);
-        border-radius:14px; z-index:9999;
-        padding:14px;
-        cursor:pointer;
-      }
-      /* Force content UNDER the overlay */
-      .paywall-locked > :not(.paywall-overlay){
-        position:relative; z-index:0;
-        filter: blur(2.5px) saturate(.85);
+      /* Make tools less glued to borders (OUTILS tab) */
+      #tab-tools .tools-scroll{ padding:16px 14px !important; }
+      #tab-tools{ padding:0 !important; }
+      /* Target blur (only the module itself) */
+      .paywall-locked{
+        filter: blur(2.8px) saturate(.85);
         opacity:.65;
         pointer-events:none;
         user-select:none;
       }
+      /* Fixed overlay always above everything */
+      .paywall-overlay-fixed{
+        position:fixed;
+        z-index:2147483647;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:rgba(0,0,0,.62);
+        border-radius:14px;
+        padding:14px;
+        box-sizing:border-box;
+        cursor:pointer;
+      }
       .paywall-overlay-card{
         max-width:460px; width:100%;
         border:1px solid rgba(255,255,255,.16);
-        background:rgba(10,10,10,.72);
+        background:rgba(10,10,10,.86);
         border-radius:14px;
         padding:14px;
         box-shadow:0 18px 60px rgba(0,0,0,.55);
+        box-sizing:border-box;
       }
       .paywall-lock{
         display:flex; align-items:center; gap:10px;
@@ -1914,44 +1926,88 @@ function applyPaywallUI(){
 
   const paywallEls = Array.from(document.querySelectorAll('[data-paywall]'));
 
-  paywallEls.forEach((el) => {
+  function ensureOverlay(el){
+    const key = el;
     const title = el.getAttribute('data-paywall-title') || 'Module Premium';
     const desc  = el.getAttribute('data-paywall-desc') || 'Débloque ce module avec Premium/Pro ou des crédits.';
-    const existing = el.querySelector(':scope > .paywall-overlay');
 
+    let overlay = window.__paywallFixed.items.get(key);
+    if (!overlay){
+      overlay = document.createElement('div');
+      overlay.className = 'paywall-overlay-fixed';
+      overlay.innerHTML = `
+        <div class="paywall-overlay-card">
+          <div class="paywall-lock"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>
+          <div class="paywall-desc">${escapeHtml(desc)}</div>
+          <div class="paywall-cta">
+            <a href="/pricing"><i class="fas fa-crown"></i> Débloquer (Premium/Crédits)</a>
+            <span>Plan + crédits + accès outils IA</span>
+          </div>
+        </div>
+      `;
+      overlay.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = '/pricing';
+      });
+      document.body.appendChild(overlay);
+      window.__paywallFixed.items.set(key, overlay);
+    }
+    return overlay;
+  }
+
+  function removeOverlay(el){
+    const ov = window.__paywallFixed.items.get(el);
+    if (ov){
+      ov.remove();
+      window.__paywallFixed.items.delete(el);
+    }
+  }
+
+  function updateOverlayPositions(){
+    // Update all active overlays
+    window.__paywallFixed.items.forEach((overlay, el) => {
+      if (!document.body.contains(el)){
+        overlay.remove();
+        window.__paywallFixed.items.delete(el);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      // If hidden, collapse
+      if (r.width <= 0 || r.height <= 0){
+        overlay.style.display = 'none';
+        return;
+      }
+      overlay.style.display = 'flex';
+      overlay.style.left = `${Math.max(0, r.left)}px`;
+      overlay.style.top  = `${Math.max(0, r.top)}px`;
+      overlay.style.width  = `${Math.max(0, r.width)}px`;
+      overlay.style.height = `${Math.max(0, r.height)}px`;
+      // Try to match border radius
+      const br = getComputedStyle(el).borderRadius;
+      overlay.style.borderRadius = br || '14px';
+    });
+  }
+
+  // Bind listeners once
+  if (!window.__paywallFixed.bound){
+    window.__paywallFixed.bound = true;
+    window.addEventListener('scroll', () => { updateOverlayPositions(); }, true);
+    window.addEventListener('resize', () => { updateOverlayPositions(); });
+  }
+
+  // Apply state
+  paywallEls.forEach((el) => {
     if (locked){
       el.classList.add('paywall-locked');
-      if (!existing){
-        const overlay = document.createElement('div');
-        overlay.className = 'paywall-overlay';
-        overlay.innerHTML = `
-          <div class="paywall-overlay-card">
-            <div class="paywall-lock"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>
-            <div class="paywall-desc">${escapeHtml(desc)}</div>
-            <div class="paywall-cta">
-              <a href="/pricing"><i class="fas fa-crown"></i> Débloquer (Premium/Crédits)</a>
-              <span>Plan + crédits + accès outils IA</span>
-            </div>
-          </div>
-        `;
-        overlay.addEventListener('click', () => { window.location.href = '/pricing'; });
-        el.appendChild(overlay);
-      }
+      ensureOverlay(el);
     } else {
       el.classList.remove('paywall-locked');
-      if (existing) existing.remove();
+      removeOverlay(el);
     }
   });
 
-  // Helper: minimal HTML escape
-  function escapeHtml(str){
-    return String(str)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
-  }
+  // Ensure positions are correct now
+  updateOverlayPositions();
 }
 
 
