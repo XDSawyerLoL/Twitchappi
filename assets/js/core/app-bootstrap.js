@@ -121,24 +121,29 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       // Requires Twitch session
       const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include' });
       const d = await r.json().catch(()=>null);
-      const link = document.getElementById('billing-link');
+      const wrap = document.getElementById('billing-menu-wrap');
+      const btn = document.getElementById('billing-link');
       const elCredits = document.getElementById('billing-credits');
       const elPlan = document.getElementById('billing-plan');
-      if(!link || !elCredits || !elPlan) return;
+      const elCredits2 = document.getElementById('billing-credits-2');
+      const elPlan2 = document.getElementById('billing-plan-2');
+
       if(!d || !d.success){
         // keep hidden if not available
         return;
       }
-      link.classList.remove('hidden');
-      elCredits.textContent = String(d.credits ?? 0);
-      elPlan.textContent = String((d.plan || 'FREE')).toUpperCase();
+      if (wrap) wrap.classList.remove('hidden');
 
-      // expose Market entry in dashboard menu
-      const mktLink = document.getElementById('dashboard-market-link');
-      if (mktLink) mktLink.classList.remove('hidden');
+      const credits = Number(d.credits ?? 0);
+      const plan = String((d.plan || 'FREE')).toUpperCase();
+
+      if (elCredits) elCredits.textContent = String(credits);
+      if (elPlan) elPlan.textContent = plan;
+      if (elCredits2) elCredits2.textContent = String(credits);
+      if (elPlan2) elPlan2.textContent = plan;
 
       // global billing state
-      window.__billingState = { plan: String((d.plan || 'FREE')).toUpperCase(), credits: Number(d.credits ?? 0) };
+      window.__billingState = { plan, credits };
       try{ applyPaywallUI(); }catch(_){ }
       try{ syncMarketCredits(); }catch(_){ }
 }
@@ -1857,7 +1862,8 @@ function applyPaywallUI(){
   const locked = (plan === 'FREE' && credits <= 0);
 
   const targets = [
-    { sel:'#analyze-schedule-btn', scope:'.best-time-tool', title:'Best Time IA', desc:'Horaires optimisés + suggestions par jeu' },
+    { sel:'#under-overview', scope:'#under-overview', title:'Outils Pro', desc:'Débloque les modules IA (plan, alertes, best time) + crédits inclus' },
+{ sel:'#analyze-schedule-btn', scope:'.best-time-tool', title:'Best Time IA', desc:'Horaires optimisés + suggestions par jeu' },
     { sel:'#btn-ai-reco', scope:'#under-overview', title:'Plan d’action IA', desc:'Recommandations personnalisées pour accélérer ta croissance' },
     { sel:'#alerts-box', scope:null, title:'Alertes automatiques', desc:'Détection de pics, risques, opportunités (auto)' },
     { sel:'#scan-query', scope:null, title:'Scanner IA', desc:'Analyse de niche + score + opportunités' }
@@ -1921,11 +1927,11 @@ function applyPaywallUI(){
     overlay.className = 'paywall-overlay';
     overlay.innerHTML = `
       <div class="paywall-overlay-card">
-        <div class="paywall-lock"><i class="fas fa-lock"></i> ${meta.title || 'Fonction Premium'}</div>
+        <div class="paywall-lock"><i class="fas fa-lock" style="font-size:18px"></i> ${meta.title || 'Fonction Premium'}</div>
         <div class="paywall-desc">
           ${meta.desc || 'Débloque cette fonction et garde une avance nette sur les autres.'}
           <br/><br/>
-          <strong style="color:#fff">Ce que tu rates :</strong> recommandations IA, alertes automatiques, outils pro, et crédits inclus.
+          <strong style="color:#fff">Ce que tu rates :</strong><ul style="margin:8px 0 0 16px;color:rgba(255,255,255,.82);font-size:12px;line-height:1.35;list-style:disc;"><li>Plan d’action IA concret (quoi faire, quand, et pourquoi)</li><li>Alertes automatiques (pics, risques, opportunités)</li><li>Best Time IA (heures optimales selon ton contenu)</li><li>Crédits inclus + accès Premium</li></ul>
         </div>
         <div class="paywall-cta">
           <a href="/pricing">Voir l’abonnement & crédits</a>
@@ -2023,3 +2029,258 @@ function syncMarketCredits(){
   const hold = document.getElementById('pf-hold');
   if (hold && (hold.textContent || '').trim() === '—') hold.textContent = '0';
 }
+
+
+/* ===== Billing dropdown + Fantasy dashboard widget (Portfolio intégré) ===== */
+(function(){
+  const $ = (s, r=document) => r.querySelector(s);
+
+  function closeBillingMenu(){
+    const menu = $('#billing-menu');
+    if(menu) menu.classList.add('hidden');
+  }
+  function toggleBillingMenu(){
+    const menu = $('#billing-menu');
+    if(!menu) return;
+    menu.classList.toggle('hidden');
+  }
+
+  document.addEventListener('click', (e) => {
+    const wrap = $('#billing-menu-wrap');
+    const menu = $('#billing-menu');
+    if(!wrap || !menu) return;
+    if(!wrap.contains(e.target)) closeBillingMenu();
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = $('#billing-link');
+    const goto = $('#goto-portfolio');
+    const openMkt = $('#open-market-from-menu');
+
+    if(btn){
+      btn.addEventListener('click', (e) => { e.preventDefault(); toggleBillingMenu(); });
+    }
+    if(goto){
+      goto.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeBillingMenu();
+        const el = document.getElementById('fantasyDashboard');
+        if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+      });
+    }
+    if(openMkt){
+      openMkt.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeBillingMenu();
+        if(typeof window.openMarketOverlay === 'function') window.openMarketOverlay('portfolio');
+        else window.location.href = '/pricing';
+      });
+    }
+  });
+
+  // --- Portfolio widget (uses /api/fantasy/profile + /api/fantasy/market + /api/fantasy/leaderboard) ---
+  async function apiJson(url, opts){
+    const r = await fetch(url, opts||{});
+    const txt = await r.text();
+    let j = null;
+    try{ j = JSON.parse(txt); }catch(_){ }
+    if(r.status === 402){
+      // no credits -> keep view but prompt pricing
+      alert("Crédits insuffisants. Va sur /pricing pour débloquer.");
+      try{ window.location.href = '/pricing'; }catch(_){}
+      throw new Error('NO_CREDITS');
+    }
+    if(!r.ok){
+      throw new Error(j?.error || txt || ('HTTP_'+r.status));
+    }
+    return j;
+  }
+
+  function fmtCredits(n){
+    const v = Number(n||0);
+    return `${v}`;
+  }
+
+  function renderTopHoldings(holdings){
+    const box = $('#pf-top-holdings');
+    if(!box) return;
+    box.innerHTML = '';
+    const items = Array.isArray(holdings) ? holdings.slice(0,3) : [];
+    if(!items.length){
+      box.innerHTML = '<div class="text-gray-500">Aucune position pour le moment.</div>';
+      return;
+    }
+    items.forEach(h => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between';
+      row.innerHTML = `<span class="text-gray-300">${h.login}</span><span class="text-white font-bold">${Math.round(h.value||0)}cr</span>`;
+      box.appendChild(row);
+    });
+  }
+
+  function renderHoldingsList(holdings){
+    const box = document.getElementById('fantasyHoldings');
+    if(!box) return;
+    box.innerHTML = '';
+    const items = Array.isArray(holdings) ? holdings : [];
+    if(!items.length){
+      box.innerHTML = '<div style="color:#a7a7b2;font-size:12px;">Aucune position.</div>';
+      return;
+    }
+    items.forEach(h => {
+      const row = document.createElement('div');
+      row.style.display='flex';
+      row.style.justifyContent='space-between';
+      row.style.alignItems='center';
+      row.style.gap='10px';
+      row.style.padding='8px 10px';
+      row.style.border='1px solid rgba(255,255,255,.10)';
+      row.style.borderRadius='12px';
+      row.style.background='rgba(0,0,0,.25)';
+      row.innerHTML = `<div style="display:flex;flex-direction:column;gap:2px;">
+          <div style="font-weight:900;color:#fff">${h.login}</div>
+          <div style="font-size:11px;color:#a7a7b2">${h.shares} parts • ${Math.round(h.price||0)} cr</div>
+        </div>
+        <div style="font-weight:900;color:#00f2ea">${Math.round(h.value||0)} cr</div>`;
+      row.addEventListener('click', () => {
+        const inp = document.getElementById('fantasyStreamer');
+        if(inp) inp.value = h.login;
+        refreshMarket(h.login).catch(()=>{});
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function drawChart(canvas, history){
+    if(!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!Array.isArray(history) || history.length < 2){
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "12px sans-serif";
+      ctx.fillText("Pas assez d'historique.", 10, 20);
+      return;
+    }
+    const prices = history.map(h=>Number(h.price||0));
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const span = (max-min) || 1;
+    const pad = 18;
+    const w = canvas.width - pad*2;
+    const hgt = canvas.height - pad*2;
+    ctx.beginPath();
+    history.forEach((p,i)=>{
+      const x = pad + (i/(history.length-1))*w;
+      const y = pad + (1-((Number(p.price||0)-min)/span))*hgt;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle = "rgba(0,242,234,.95)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  async function refreshMarket(login){
+    if(!login) return;
+    const info = document.getElementById('marketInfo');
+    const chart = document.getElementById('marketChart');
+    const j = await apiJson(`/api/fantasy/market?login=${encodeURIComponent(login)}`);
+    if(info && j?.market){
+      info.innerHTML = `
+        <div><b style="color:#fff">${login}</b></div>
+        <div>Prix: <b style="color:#00f2ea">${Math.round(j.market.price||0)}</b> cr</div>
+        <div>Vol: <b style="color:#ffd600">${Math.round(j.market.vol||0)}</b></div>
+      `;
+    }
+    if(chart) drawChart(chart, j.history || []);
+  }
+
+  async function refreshLeaderboard(){
+    const box = document.getElementById('fantasyLeaderboard');
+    if(!box) return;
+    const j = await apiJson('/api/fantasy/leaderboard');
+    const items = j?.items || [];
+    box.innerHTML = '';
+    items.slice(0,8).forEach((it, idx)=>{
+      const row = document.createElement('div');
+      row.style.display='flex';
+      row.style.justifyContent='space-between';
+      row.style.alignItems='center';
+      row.style.gap='10px';
+      row.style.padding='8px 10px';
+      row.style.border='1px solid rgba(255,255,255,.10)';
+      row.style.borderRadius='12px';
+      row.style.background='rgba(0,0,0,.20)';
+      row.innerHTML = `<div style="display:flex;gap:8px;align-items:center;">
+          <div style="width:22px;text-align:center;color:#a7a7b2;font-weight:900">${idx+1}</div>
+          <div style="font-weight:900;color:#fff">${it.user}</div>
+        </div>
+        <div style="font-weight:900;color:#00f2ea">${Math.round(it.value||0)} cr</div>`;
+      box.appendChild(row);
+    });
+  }
+
+  async function refreshPortfolio(){
+    const cashEl = document.getElementById('fantasyCash');
+    const topCashEl = document.getElementById('pf-cash-top');
+
+    const p = await apiJson('/api/fantasy/profile');
+    if(cashEl) cashEl.textContent = `${fmtCredits(p.cash ?? p.credits ?? 0)} crédits`;
+    if(topCashEl) topCashEl.textContent = `${fmtCredits(p.cash ?? p.credits ?? 0)} cr`;
+
+    renderHoldingsList(p.holdings || []);
+    renderTopHoldings(p.holdings || []);
+
+    // keep header credits in sync if present
+    try{
+      const st = window.__billingState || {};
+      if(typeof p.cash === 'number'){
+        window.__billingState = { plan: (st.plan||p.plan||'FREE'), credits: Number(p.cash||0) };
+        const b1 = $('#billing-credits'); if(b1) b1.textContent = String(Number(p.cash||0));
+        const b2 = $('#billing-credits-2'); if(b2) b2.textContent = String(Number(p.cash||0));
+      }
+    }catch(_){}
+  }
+
+  // Expose buy/sell for inline widget
+  window.fantasyBuy = async function(){
+    const s = document.getElementById('fantasyStreamer')?.value?.trim();
+    const amt = Number(document.getElementById('fantasyAmount')?.value || 0);
+    if(!s || !amt || amt<=0) return alert("Indique un streamer et un montant.");
+    await apiJson('/api/fantasy/invest', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ streamer:s, amount: amt })
+    });
+    await refreshPortfolio();
+    await refreshMarket(s);
+  };
+
+  window.fantasySell = async function(){
+    const s = document.getElementById('fantasyStreamer')?.value?.trim();
+    const amt = Number(document.getElementById('fantasyAmount')?.value || 0);
+    if(!s || !amt || amt<=0) return alert("Indique un streamer et un montant.");
+    await apiJson('/api/fantasy/sell', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ streamer:s, amount: amt })
+    });
+    await refreshPortfolio();
+    await refreshMarket(s);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if(document.getElementById('fantasyDashboard')){
+      refreshPortfolio().catch(()=>{});
+      refreshLeaderboard().catch(()=>{});
+      // update market preview when streamer input changes
+      const inp = document.getElementById('fantasyStreamer');
+      if(inp){
+        let t=null;
+        inp.addEventListener('input', () => {
+          clearTimeout(t);
+          t=setTimeout(()=>{ refreshMarket(inp.value.trim()).catch(()=>{}); }, 400);
+        });
+      }
+    }
+  });
+})();
