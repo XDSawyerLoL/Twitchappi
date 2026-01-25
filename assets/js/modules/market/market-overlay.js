@@ -643,21 +643,49 @@
   // Improve open/close to lock scroll and hide auxiliary buttons
   const _open = window.openMarketOverlay;
   const _close = window.closeMarketOverlay;
-  window.openMarketOverlay = function(){
+  window.openMarketOverlay = async function(mode){
     // Twitch login is mandatory for Market
     if(!window.currentUser){
       alert('Connexion Twitch obligatoire pour utiliser le Marché.');
       try{ window.startAuth && window.startAuth(); }catch(e){}
       return;
     }
-    if(!_open) return;
-    _open();
-    setBodyModal(true);
-    setAuxUiHidden(true);
-    // select default
-    if(!selected) setSelected(watchlist[0]);
-    refreshSelected();
-    refreshWatchlist();
+
+    // If FREE + 0 crédits, we redirect ONLY if portfolio is empty (otherwise allow view)
+    let plan = 'FREE', cash = 0, holdingsCount = 0;
+    try{
+      const r = await fetch('/api/fantasy/profile');
+      const j = await r.json();
+      if(j && j.success){
+        plan = String((j.plan || 'FREE')).toUpperCase();
+        cash = Number(j.cash ?? j.credits ?? 0);
+        holdingsCount = Array.isArray(j.holdings) ? j.holdings.length : 0;
+      }
+    }catch(_){}
+
+    const locked = (plan === 'FREE' && cash <= 0);
+    if(locked && holdingsCount === 0){
+      window.location.href = '/pricing';
+      return;
+    }
+
+    if(_open){
+      try{ _open(mode); }catch(_){ _open(); }
+      setBodyModal(true);
+      setAuxUiHidden(true);
+      if(!selected) setSelected(watchlist[0]);
+      refreshSelected();
+      refreshWatchlist();
+      return;
+    }
+
+    // Fallback: scroll to embedded portfolio widget if overlay isn't available
+    const dash = document.getElementById('fantasyDashboard');
+    if(dash){
+      dash.scrollIntoView({ behavior:'smooth', block:'start' });
+      return;
+    }
+    window.location.href = '/pricing';
   };
   window.closeMarketOverlay = function(){
     if(_close) _close();
