@@ -1926,8 +1926,8 @@ async function getBillingDoc(twitchUser){
       login: twitchUser.login || null,
       display_name: twitchUser.display_name || null,
       plan: 'free',
-      credits: 0,
-      entitlements: { overview:false, analytics:false, niche:false, bestTime:false },
+      credits: 1200,
+      unlockedFeatures: {},
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
@@ -2105,6 +2105,53 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
   }
 });
 
+
+const FEATURE_UNLOCK_COST = Number(process.env.FEATURE_UNLOCK_COST || 200);
+const FEATURE_KEYS = ['overview','analytics_pro','niche','best_time'];
+
+function normalizeFeatureKey(key){
+  key = String(key||'').toLowerCase().trim();
+  if(key === 'analytics' || key === 'pro' || key === 'analyticspro') key = 'analytics_pro';
+  if(key === 'besttime' || key === 'best_time_to_stream') key = 'best_time';
+  return key;
+}
+
+async function getEntitlements(twitchUser){
+  const b = await getBillingDoc(twitchUser);
+  const plan = String(b.plan || 'free').toLowerCase();
+  const unlocked = (b.unlockedFeatures && typeof b.unlockedFeatures === 'object') ? b.unlockedFeatures : {};
+  return { plan, unlocked };
+}
+
+async function unlockFeatureForUser(twitchUser, featureKey){
+  if(!firestoreOk) throw new Error('Firestore non configuré');
+  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const ref = db.collection(BILLING_USERS).doc(id);
+
+  featureKey = normalizeFeatureKey(featureKey);
+  if(!FEATURE_KEYS.includes(featureKey)) throw new Error('Feature invalide');
+
+  await db.runTransaction(async (tx)=>{
+    const snap = await tx.get(ref);
+    const cur = snap.exists ? snap.data() : {};
+    const plan = String(cur.plan || 'free').toLowerCase();
+    const credits = Number(cur.credits || 0);
+    const unlocked = (cur.unlockedFeatures && typeof cur.unlockedFeatures === 'object') ? cur.unlockedFeatures : {};
+
+    if(plan === 'premium') return; // nothing to do
+    if(unlocked[featureKey]) return; // already unlocked
+
+    if(credits < FEATURE_UNLOCK_COST) throw new Error('Crédits insuffisants');
+    unlocked[featureKey] = true;
+
+    tx.set(ref, {
+      credits: credits - FEATURE_UNLOCK_COST,
+      unlockedFeatures: unlocked,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge:true });
+  });
+}
+
 // =========================================================
 // BILLING API
 // =========================================================
@@ -2113,61 +2160,49 @@ app.get('/api/billing/me', async (req,res)=>{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
     const b = await getBillingDoc(tu);
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {} });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0) });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
 
-// Unlock a premium feature with credits (200 by default)
+
+app.get('/api/billing/entitlements', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    const b = await getBillingDoc(tu);
+    res.json({
+      success:true,
+      plan: b.plan || 'free',
+      credits: Number(b.credits||0),
+      unlockedFeatures: (b.unlockedFeatures && typeof b.unlockedFeatures === 'object') ? b.unlockedFeatures : {}
+    });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 app.post('/api/billing/unlock-feature', async (req,res)=>{
   try{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
-    if(!firestoreOk) return res.status(503).json({ success:false, error:'firestore_unavailable' });
 
-    const feature = String((req.body && req.body.feature) || '').trim();
-    const cost = Number((req.body && req.body.cost) || 200);
+    const feature = req.body?.feature;
+    await unlockFeatureForUser(tu, feature);
 
-    const allowed = ['overview','analytics','niche','bestTime'];
-    if(!allowed.includes(feature)) return res.status(400).json({ success:false, error:'invalid_feature' });
-
-    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
-    const ref = db.collection(BILLING_USERS).doc(id);
-
-    await db.runTransaction(async (tx)=>{
-      const snap = await tx.get(ref);
-      const cur = snap.exists ? snap.data() : {};
-      const plan = String(cur.plan || 'free').toLowerCase();
-      const ent = Object.assign({ overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
-      const credits = Number(cur.credits || 0);
-
-      // Premium: just mark as unlocked
-      if(plan === 'premium'){
-        ent[feature] = true;
-        tx.set(ref, { entitlements: ent, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
-        return;
-      }
-
-      if(ent[feature] === true) return; // already unlocked
-      if(credits < cost) throw new Error('credits_insufficient');
-
-      ent[feature] = true;
-      tx.set(ref, {
-        credits: credits - cost,
-        entitlements: ent,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge:true });
+    const b = await getBillingDoc(tu);
+    res.json({
+      success:true,
+      plan: b.plan || 'free',
+      credits: Number(b.credits||0),
+      unlockedFeatures: (b.unlockedFeatures && typeof b.unlockedFeatures === 'object') ? b.unlockedFeatures : {}
     });
-
-    const b = await ref.get();
-    const data = b.data() || {};
-    res.json({ success:true, credits:Number(data.credits||0), plan:data.plan||'free', entitlements:data.entitlements||{} });
   }catch(e){
-    const msg = e.message === 'credits_insufficient' ? 'credits_insufficient' : e.message;
-    res.status(400).json({ success:false, error: msg });
+    res.status(400).json({ success:false, error:e.message });
   }
 });
+
 
 // Stripe (optional). If not configured, returns a clear error.
 let stripe = null;
