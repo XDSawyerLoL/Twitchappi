@@ -153,7 +153,7 @@
 }
     .tf-modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.9); backdrop-filter: none;
+      background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(5px);
       z-index: 9999; display: none; align-items: center; justify-content: center;
     }
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
@@ -193,7 +193,7 @@
   align-items:center;
   justify-content:center;
   background: radial-gradient(ellipse at center, rgba(30,0,0,.65), rgba(0,0,0,.92));
-  backdrop-filter: none;
+  backdrop-filter: blur(4px);
 }
 .tf-intro.active{ display:flex; }
 .tf-intro .tf-intro-box{
@@ -798,7 +798,7 @@
 
 #ambilight{
   position:absolute; inset:-14px;
-  filter: none;
+  filter: blur(26px);
   opacity:.55;
   z-index:0;
   pointer-events:none;
@@ -893,7 +893,7 @@
 
 #ambilight{
   position:absolute; inset:-90px; z-index:0;
-  filter: none;
+  filter: blur(60px);
   opacity:0;
   pointer-events:none;
   transition: opacity .2s ease;
@@ -1224,7 +1224,7 @@ body.modal-open #player-tools{display:none !important;}
     /* ====== TWITFLIX MODAL ====== */
     .tf-modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.9); backdrop-filter: none;
+      background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(5px);
       z-index: 9999; display: none; align-items: center; justify-content: center;
     }
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
@@ -1264,7 +1264,7 @@ body.modal-open #player-tools{display:none !important;}
   align-items:center;
   justify-content:center;
   background: radial-gradient(ellipse at center, rgba(30,0,0,.65), rgba(0,0,0,.92));
-  backdrop-filter: none;
+  backdrop-filter: blur(4px);
 }
 .tf-intro.active{ display:flex; }
 .tf-intro .tf-intro-box{
@@ -1860,7 +1860,7 @@ body.modal-open #player-tools{display:none !important;}
 
 #ambilight{
   position:absolute; inset:-14px;
-  filter: none;
+  filter: blur(26px);
   opacity:.55;
   z-index:0;
   pointer-events:none;
@@ -1955,7 +1955,7 @@ body.modal-open #player-tools{display:none !important;}
 
 #ambilight{
   position:absolute; inset:-90px; z-index:0;
-  filter: none;
+  filter: blur(60px);
   opacity:0;
   pointer-events:none;
   transition: opacity .2s ease;
@@ -2246,7 +2246,7 @@ body.modal-open #player-tools{display:none !important;}
       background: rgba(0,0,0,.55);
       border: 1px solid rgba(255,255,255,.16);
       color: rgba(255,255,255,.92);
-      backdrop-filter: none;
+      backdrop-filter: blur(6px);
     }
 
     .tf-trailer-card{width: 440px;
@@ -2299,13 +2299,69 @@ body.modal-open #player-tools{display:none !important;}
   top: 0;
   z-index: 80;
   background: linear-gradient(180deg, rgba(11,11,13,.98), rgba(11,11,13,.86));
-  backdrop-filter: none;
+  backdrop-filter: blur(10px);
 }
 .tf-actions{ display:flex; align-items:center; gap: 10px; }
 .tf-view-toggle{ flex: 0 0 auto; }
 
 #tf-trailer-carousel{ gap: 16px; }
 #tf-trailer-carousel .tf-trailer-card{ box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+
+/* === PAYWALL (robuste): blur sur pseudo-calque + cadenas net === */
+[data-paywall].paywall-scope{ position:relative !important; overflow:hidden !important; isolation:isolate; }
+[data-paywall].paywall-scope[data-paywall-locked="1"]::before{
+  content:"";
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(10px) saturate(.85);
+  -webkit-backdrop-filter: blur(10px) saturate(.85);
+  z-index: 1;
+  pointer-events:none;
+}
+[data-paywall].paywall-scope[data-paywall-locked="1"] > :not(.paywall-inline-overlay){
+  pointer-events:none !important;
+  user-select:none !important;
+}
+.paywall-inline-overlay{
+  position:absolute; inset:0;
+  z-index: 2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 14px;
+  box-sizing:border-box;
+  cursor:pointer;
+}
+.paywall-inline-card{
+  width: min(520px, 100%);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  background: rgba(10,10,10,.98);
+  box-shadow: 0 20px 50px rgba(0,0,0,.45);
+  padding: 14px 14px 12px;
+  color: rgba(255,255,255,.92);
+}
+.paywall-inline-head{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+.paywall-inline-head i{ font-size: 18px; color: #00f2ea; }
+.paywall-inline-desc{ margin-top:8px; font-size:12px; line-height:1.35; color: rgba(255,255,255,.75); }
+.paywall-inline-cta{ margin-top:10px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.paywall-inline-cta a{
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,242,234,.12);
+  color: rgba(255,255,255,.92);
+  text-decoration:none;
+  font-weight:800;
+  font-size: 12px;
+}
+.paywall-inline-cta small{ font-size:11px; color: rgba(255,255,255,.55); }
+
+/* OUTILS padding (évite "collé au bord") */
+#tab-tools{ padding: 14px 14px 24px !important; box-sizing:border-box; }
+#tab-tools .tools-scroll, #tab-tools .panel-scroll{ padding: 10px 10px 18px !important; box-sizing:border-box; }
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2334,6 +2390,8 @@ body.modal-open #player-tools{display:none !important;}
   #tabs-viewport #tab-chat{ min-height:0 !important; }
 </style>
 
+
+<style id="tools-padding-fix">#tab-tools .tools-scroll{padding:16px 14px !important;}</style>
 </head>
 <body class="min-h-screen flex flex-col p-4">
 <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
@@ -2364,10 +2422,41 @@ body.modal-open #player-tools{display:none !important;}
 <span class="font-bold text-white text-sm" id="user-name"></span>
 
 <!-- Espace utilisateur (crédits + accès Premium) -->
-<a id="billing-link" href="/pricing" class="hidden bg-[#111] hover:bg-[#161616] border border-[#333] text-white px-3 py-1.5 rounded font-bold transition text-[11px]" title="Gérer crédits / Premium">
-  <span class="text-gray-400">Crédits:</span> <span id="billing-credits" class="text-[#00f2ea]">—</span>
-  <span id="billing-plan" class="ml-2 text-[10px] text-gray-400">FREE</span>
-</a>
+<!-- Espace utilisateur (crédits + accès Premium) -->
+<div id="billing-menu-wrap" class="hidden relative">
+  <button id="billing-link" class="bg-[#111] hover:bg-[#161616] border border-[#333] text-white px-3 py-1.5 rounded font-bold transition text-[11px] inline-flex items-center gap-2" title="Plan, crédits & portefeuille">
+    <span class="text-gray-400">Crédits:</span> <span id="billing-credits" class="text-[#00f2ea]">—</span>
+    <span id="billing-plan" class="ml-1 text-[10px] text-gray-400">FREE</span>
+    <i class="fas fa-chevron-down text-[10px] text-gray-500"></i>
+  </button>
+
+  <div id="billing-menu" class="hidden absolute right-0 mt-2 w-[320px] bg-[#0b0b0d] border border-[#222] rounded-xl shadow-[0_18px_60px_rgba(0,0,0,.65)] z-[999] overflow-hidden">
+    <div class="p-3 border-b border-[#222]">
+      <div class="text-[11px] text-gray-400 uppercase font-bold">Plan & crédits</div>
+      <div class="mt-1 flex items-center justify-between">
+        <div class="text-sm font-bold text-white"><span id="billing-plan-2">FREE</span></div>
+        <div class="text-sm font-bold"><span class="text-gray-400">Crédits</span> <span id="billing-credits-2" class="text-[#00f2ea]">—</span></div>
+      </div>
+      <div class="mt-2 flex gap-2">
+        <a href="/pricing" class="flex-1 text-center bg-[#00f2ea] text-black font-extrabold text-[12px] py-2 rounded-lg">Voir /pricing</a>
+        <button id="goto-portfolio" class="flex-1 text-center bg-[#111] border border-[#333] text-white font-extrabold text-[12px] py-2 rounded-lg">Portefeuille</button>
+      </div>
+      <div class="mt-2 text-[11px] text-gray-500">Le Portefeuille Marché utilise les mêmes crédits que la Bourse.</div>
+    </div>
+
+    <div class="p-3">
+      <div class="text-[11px] text-gray-400 uppercase font-bold mb-2">Portefeuille Marché (aperçu)</div>
+      <div class="flex items-center justify-between">
+        <div class="text-[11px] text-gray-500">Cash</div>
+        <div class="text-sm font-extrabold text-white"><span id="pf-cash-top">—</span></div>
+      </div>
+      <div id="pf-top-holdings" class="mt-2 text-[11px] text-gray-300 space-y-1"></div>
+      <button id="open-market-from-menu" class="mt-3 w-full bg-[#111] border border-[#00f2ea33] text-[#00f2ea] font-extrabold text-[12px] py-2 rounded-lg">
+        <i class="fas fa-chart-line mr-2"></i> Ouvrir le Marché
+      </button>
+    </div>
+  </div>
+</div>
 <button class="text-gray-500 hover:text-white" onclick="logout()">
 <i class="fas fa-sign-out-alt"></i>
 </button>
@@ -2403,13 +2492,11 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 <div class="flex-grow bg-black relative w-full h-full overflow-hidden" id="video-container">
-<div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:8px;">
-<button class="toolbtn" id="tool-mosaic" onclick="openMosaic()">📺</button>
-<button class="toolbtn" id="tool-fantasy" onclick="openFantasy()">🏆</button>
+<div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:8px;"><button class="toolbtn" id="tool-mosaic" onclick="openMosaic()">📺</button>
 </div>
 </div>
 </div>
-<div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
+<div class="glass-panel rounded-lg overflow-hidden min-h-[360px]" data-paywall data-paywall-feature="dashboard_premium" data-paywall-title="Dashboard Premium" data-paywall-desc="Débloque les 3 onglets (Overview / Analytics Pro / Niche) pour suivre tes stats avancées.">
 <div class="u-nav" id="under-tabs-nav">
 <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
 <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
@@ -2491,6 +2578,9 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 </div>
+
+
+<!-- (removed) fantasy-dashboard-removed moved to top Plan & crédits menu -->
 <div class="u-tab-panel p-4 bg-[#0b0b0d]" id="under-niche">
 <div class="bg-[#111] p-3 rounded border border-[#222]">
 <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
@@ -2598,7 +2688,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 <div class="tab-content bg-[#0b0b0d]" id="tab-tools"><div class="tools-scroll p-4 space-y-6 scrollbar-thin">
-<div class="best-time-tool">
+<div class="best-time-tool" data-paywall data-paywall-feature="best_time" data-paywall-title="Best Time to Stream" data-paywall-desc="Prédit les meilleurs horaires selon le jeu, tendances et audiences.">
 <h4>🎯 BEST TIME TO STREAM</h4>
 <input id="best-time-game" placeholder="Jeu ex: League of Legends..." type="text"/>
 <button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
@@ -2607,18 +2697,7 @@ body.modal-open #player-tools{display:none !important;}
           </div>
 <div class="best-time-results" id="best-time-results" style="display:none;"></div>
 </div>
-<div>
-<div class="bg-[#101012] border border-[#222] rounded-xl p-4">
-<div class="flex items-start justify-between gap-3">
-<div>
-<h4 class="text-sm font-black tracking-widest text-white"><i class="fas fa-chart-line mr-2 text-[#00f2ea]"></i>MARCHÉ — ouvrir la fenêtre</h4>
-<p class="text-xs text-gray-400 mt-1">
-                Le Marché s’ouvre en <strong>overlay</strong> (comme TwitFlix) pour ne jamais écraser le lecteur et garder une UX propre.
-              </p>
-</div>
-<button class="px-3 py-2 rounded-lg bg-[#0b0b0d] border border-[#333] text-white hover:border-[#00f2ea]" onclick="openMarketOverlay()">📈 Ouvrir</button>
-</div>
-</div>
+<div class="scanner-tool">
 <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
 <div class="flex gap-2 mb-3">
 <input class="cyber-input" id="scan-query" placeholder="Pseudo ex: ZeratoR" type="text"/>
@@ -2637,6 +2716,8 @@ body.modal-open #player-tools{display:none !important;}
 <div class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto" id="scan-ai"></div>
 </div>
 </div>
+
+</div>
 <div>
 <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
 <div class="flex gap-2 mb-3">
@@ -2650,7 +2731,7 @@ body.modal-open #player-tools{display:none !important;}
 <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white" id="raid-btn" onclick="goToRaid()">🎮 ALLER AU RAID</button>
 </div>
 </div>
-<div>
+<div data-paywall data-paywall-feature="costream_match" data-paywall-title="Co‑Stream Match" data-paywall-desc="Trouve un co‑streamer compatible (jeu / langue / taille).">
 <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
 <div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
 <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="costream-btn" onclick="loadCoStreamer()">
@@ -2712,7 +2793,6 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div></div>
 <script src="/assets/js/core/app-bootstrap.js" defer></script>
-<script src="/assets/js/modules/player/ambilight-vibe.js" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
 <div class="modal-head">
@@ -2720,38 +2800,6 @@ body.modal-open #player-tools{display:none !important;}
 <button class="modal-close" onclick="closeMosaic(event)">✕</button>
 </div>
 <div class="mosaic-grid" id="mosaicGrid"></div>
-</div>
-</div>
-<div class="modal-overlay" id="fantasyModal" onclick="closeFantasy(event)">
-<div class="modal-card" onclick="event.stopPropagation()">
-<div class="modal-head">
-<div class="modal-title">Portefeuille Marché du Streamer</div>
-<button class="modal-close" onclick="closeFantasy(event)">✕</button>
-</div>
-<div style="display:flex;gap:12px;flex-wrap:wrap;">
-<div style="flex:1;min-width:290px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
-<div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Portefeuille (max 10 streamers)</div>
-<div id="fantasyCash" style="font-size:22px;font-weight:900;color:#fff;">—</div>
-<div id="fantasyHoldings" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
-</div>
-<div style="flex:2;min-width:320px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
-<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-<input id="fantasyStreamer" placeholder="Streamer (login)" style="flex:1;min-width:220px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;"/>
-<input id="fantasyAmount" min="1" placeholder="Montant" style="width:140px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;" type="number"/>
-<button onclick="fantasyBuy()" style="background:#00f2ea;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Investir</button>
-<button onclick="fantasySell()" style="background:#ff0099;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Vendre</button>
-</div>
-<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
-<div style="flex:1;min-width:260px;">
-<div style="font-weight:900;color:#eaeaf0;margin-bottom:6px;">Cours</div>
-<div id="marketInfo" style="display:flex;gap:10px;flex-wrap:wrap;color:#a7a7b2;font-size:12px;"></div>
-<canvas height="220" id="marketChart" style="width:100%;background:#0b0b0d;border:1px solid rgba(255,255,255,.10);border-radius:14px;" width="640"></canvas>
-</div>
-<div style="flex:1;min-width:260px;">
-<div style="font-weight:900;color:#ffd600;margin-bottom:6px;">Leaderboard</div>
-<div id="fantasyLeaderboard" style="display:flex;flex-direction:column;gap:8px;"></div>
-</div>
-</div>
 </div>
 </div>
 </div>
@@ -3082,19 +3130,5 @@ body.modal-open #player-tools{display:none !important;}
 
 <script src="/assets/js/modules/ui/help-tooltips.js" defer></script>
   <script src="/assets/js/modules/billing/billing-guard.js"></script>
-
-<style id="no-blur-override">
-  /* Force-disable blur/backdrop-blur everywhere (paywalls, ambilight remnants, modals) */
-  html, body { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-  * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-  /* Avoid breaking drop-shadows made with filter: keep only blur removal on known containers */
-  #ambilight, .ambilight, .paywall-blur, [data-paywall], [data-paywall-locked] { filter: none !important; }
-  [data-paywall]::before, [data-paywall-locked]::before, .paywall-blur::before { 
-    content: none !important; 
-    -webkit-backdrop-filter: none !important; backdrop-filter: none !important; 
-    filter: none !important;
-  }
-</style>
-
 </body>
 </html>
