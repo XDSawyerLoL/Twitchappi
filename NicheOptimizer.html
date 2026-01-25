@@ -159,6 +159,104 @@
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
 
+/* TwitFlix logo (Netflix-like) */
+#twitflix-modal .tf-brand .tf-logo{
+  font-family: Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: .12em;
+  font-size: 20px;
+  color: #e50914; /* Netflix red */
+  text-transform: uppercase;
+  text-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+
+/* TwitFlix open/close animations (modal) */
+.tf-modal-overlay.active .tf-modal-content{
+  animation: tfPopIn .38s cubic-bezier(.2,.9,.2,1) both;
+}
+@keyframes tfPopIn{
+  from{ opacity:0; transform: translateY(10px) scale(.97); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+.tf-modal-overlay.closing{
+  display:flex;
+  animation: tfFadeOut .26s ease both;
+}
+@keyframes tfFadeOut{ from{opacity:1;} to{opacity:0;} }
+
+/* TwitFlix intro/outro overlay */
+.tf-intro{
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background: radial-gradient(ellipse at center, rgba(30,0,0,.65), rgba(0,0,0,.92));
+  backdrop-filter: blur(4px);
+}
+.tf-intro.active{ display:flex; }
+.tf-intro .tf-intro-box{
+  position: relative;
+  width: min(520px, 92vw);
+  padding: 34px 26px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 22px 60px rgba(0,0,0,.55);
+  overflow: hidden;
+  transform: translateY(6px);
+  animation: tfIntroIn .55s cubic-bezier(.2,.9,.2,1) both;
+}
+.tf-intro.outro .tf-intro-box{
+  animation: tfIntroOut .45s ease both;
+}
+@keyframes tfIntroIn{
+  from{ opacity:0; transform: translateY(16px) scale(.98); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+@keyframes tfIntroOut{
+  from{ opacity:1; transform: translateY(0) scale(1); }
+  to{ opacity:0; transform: translateY(10px) scale(.98); }
+}
+.tf-intro .tf-scanline{
+  position:absolute;
+  left:-40%;
+  top:0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(229,9,20,.22), transparent);
+  transform: skewX(-18deg);
+  animation: tfScan 1.05s ease both;
+}
+.tf-intro.outro .tf-scanline{
+  animation: tfScanOut .65s ease both;
+}
+@keyframes tfScan{
+  from{ left:-45%; opacity:0; }
+  20%{ opacity:1; }
+  to{ left:110%; opacity:.0; }
+}
+@keyframes tfScanOut{
+  from{ left:-10%; opacity:.8; }
+  to{ left:110%; opacity:0; }
+}
+.tf-intro .tf-intro-logo{
+  font-family: Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: .14em;
+  color:#e50914;
+  font-size: 34px;
+  text-transform: uppercase;
+  text-align:center;
+}
+.tf-intro .tf-intro-sub{
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,.78);
+  text-align:center;
+}
+
     .tf-modal-content {
       width: 90%; max-width: 1200px; height: 85vh;
       background: #0b0b0d; border: 1px solid #333; border-radius: 12px;
@@ -1131,6 +1229,104 @@ body.modal-open #player-tools{display:none !important;}
     }
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+/* TwitFlix logo (Netflix-like) */
+#twitflix-modal .tf-brand .tf-logo{
+  font-family: Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: .12em;
+  font-size: 20px;
+  color: #e50914; /* Netflix red */
+  text-transform: uppercase;
+  text-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+
+/* TwitFlix open/close animations (modal) */
+.tf-modal-overlay.active .tf-modal-content{
+  animation: tfPopIn .38s cubic-bezier(.2,.9,.2,1) both;
+}
+@keyframes tfPopIn{
+  from{ opacity:0; transform: translateY(10px) scale(.97); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+.tf-modal-overlay.closing{
+  display:flex;
+  animation: tfFadeOut .26s ease both;
+}
+@keyframes tfFadeOut{ from{opacity:1;} to{opacity:0;} }
+
+/* TwitFlix intro/outro overlay */
+.tf-intro{
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background: radial-gradient(ellipse at center, rgba(30,0,0,.65), rgba(0,0,0,.92));
+  backdrop-filter: blur(4px);
+}
+.tf-intro.active{ display:flex; }
+.tf-intro .tf-intro-box{
+  position: relative;
+  width: min(520px, 92vw);
+  padding: 34px 26px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 22px 60px rgba(0,0,0,.55);
+  overflow: hidden;
+  transform: translateY(6px);
+  animation: tfIntroIn .55s cubic-bezier(.2,.9,.2,1) both;
+}
+.tf-intro.outro .tf-intro-box{
+  animation: tfIntroOut .45s ease both;
+}
+@keyframes tfIntroIn{
+  from{ opacity:0; transform: translateY(16px) scale(.98); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+@keyframes tfIntroOut{
+  from{ opacity:1; transform: translateY(0) scale(1); }
+  to{ opacity:0; transform: translateY(10px) scale(.98); }
+}
+.tf-intro .tf-scanline{
+  position:absolute;
+  left:-40%;
+  top:0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(229,9,20,.22), transparent);
+  transform: skewX(-18deg);
+  animation: tfScan 1.05s ease both;
+}
+.tf-intro.outro .tf-scanline{
+  animation: tfScanOut .65s ease both;
+}
+@keyframes tfScan{
+  from{ left:-45%; opacity:0; }
+  20%{ opacity:1; }
+  to{ left:110%; opacity:.0; }
+}
+@keyframes tfScanOut{
+  from{ left:-10%; opacity:.8; }
+  to{ left:110%; opacity:0; }
+}
+.tf-intro .tf-intro-logo{
+  font-family: Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: .14em;
+  color:#e50914;
+  font-size: 34px;
+  text-transform: uppercase;
+  text-align:center;
+}
+.tf-intro .tf-intro-sub{
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,.78);
+  text-align:center;
+}
 
     .tf-modal-content {
       width: 90%; max-width: 1200px; height: 85vh;
@@ -2110,27 +2306,6 @@ body.modal-open #player-tools{display:none !important;}
 
 #tf-trailer-carousel{ gap: 16px; }
 #tf-trailer-carousel .tf-trailer-card{ box-shadow: 0 10px 26px rgba(0,0,0,.45); }
-
-/* ===== Paywall / Tabs UX (safe, minimal) ===== */
-#side-panel .tab-nav{
-  overflow-x:auto;
-  -webkit-overflow-scrolling:touch;
-}
-#side-panel .tab-nav .tab-btn{
-  flex:0 0 auto;
-  min-width:110px;
-  white-space:nowrap;
-}
-.u-nav{
-  overflow-x:auto;
-  -webkit-overflow-scrolling:touch;
-}
-.u-nav .u-tab-btn{
-  flex:0 0 auto;
-  min-width:110px;
-  white-space:nowrap;
-}
-
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2228,13 +2403,8 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 <div class="flex-grow bg-black relative w-full h-full overflow-hidden" id="video-container">
-<div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:8px;">
-<button class="toolbtn" id="tool-mosaic" onclick="openMosaic()">📺</button>
-<button class="toolbtn" id="tool-fantasy" onclick="openFantasy()">🏆</button>
-<button class="toolbtn" id="tool-ambilight" onclick="toggleAmbilight()">💡</button>
-<button class="toolbtn" id="tool-vibe" onclick="toggleVibe()">🧠</button>
+<div id="player-tools" style="position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:8px;"><button class="toolbtn" id="tool-mosaic" onclick="openMosaic()">📺</button>
 </div>
-<div aria-hidden="true" id="ambilight"></div>
 </div>
 </div>
 <div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
@@ -2319,6 +2489,39 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 </div>
+
+<div class="mt-4 bg-[#111] p-3 rounded border border-[#222]" id="fantasyDashboard">
+  <div class="flex items-center justify-between mb-2">
+    <h4 class="text-xs text-gray-400 font-bold uppercase"><i class="fas fa-trophy mr-1"></i> Portefeuille Marché du Streamer</h4>
+    <a href="/pricing" class="text-[11px] text-[#00f2ea] hover:underline">Plan &amp; crédits</a>
+  </div>
+  <div class="text-[11px] text-gray-500 mb-3">Investir / vendre consomme des crédits si vous n’êtes pas Premium. Les contrôles sont forcés côté serveur.</div>
+  <button class="modal-close" onclick="closeFantasy(event)">✕</button>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;">
+<div style="flex:1;min-width:290px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
+<div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Portefeuille (max 10 streamers)</div>
+<div id="fantasyCash" style="font-size:22px;font-weight:900;color:#fff;">—</div>
+<div id="fantasyHoldings" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+<div style="flex:2;min-width:320px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+<input id="fantasyStreamer" placeholder="Streamer (login)" style="flex:1;min-width:220px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;"/>
+<input id="fantasyAmount" min="1" placeholder="Montant" style="width:140px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;" type="number"/>
+<button onclick="fantasyBuy()" style="background:#00f2ea;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Investir</button>
+<button onclick="fantasySell()" style="background:#ff0099;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Vendre</button>
+</div>
+<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
+<div style="flex:1;min-width:260px;">
+<div style="font-weight:900;color:#eaeaf0;margin-bottom:6px;">Cours</div>
+<div id="marketInfo" style="display:flex;gap:10px;flex-wrap:wrap;color:#a7a7b2;font-size:12px;"></div>
+<canvas height="220" id="marketChart" style="width:100%;background:#0b0b0d;border:1px solid rgba(255,255,255,.10);border-radius:14px;" width="640"></canvas>
+</div>
+<div style="flex:1;min-width:260px;">
+<div style="font-weight:900;color:#ffd600;margin-bottom:6px;">Leaderboard</div>
+<div id="fantasyLeaderboard" style="display:flex;flex-direction:column;gap:8px;">
+</div>
+
 <div class="u-tab-panel p-4 bg-[#0b0b0d]" id="under-niche">
 <div class="bg-[#111] p-3 rounded border border-[#222]">
 <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase"><i class="fas fa-crosshairs mr-1"></i> Chaîne vs Jeu</h4>
@@ -2500,7 +2703,7 @@ body.modal-open #player-tools{display:none !important;}
 <div class="tf-modal-overlay" id="twitflix-modal">
 <div class="tf-modal-content">
 <div class="tf-topbar">
-<div class="tf-brand"><span class="dot"></span><span><span style="color:#00f2ea;">TWIT</span>FLIX</span></div>
+<div class="tf-brand"><span class="tf-logo">TWITFLIX</span></div>
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
@@ -2540,7 +2743,6 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div></div>
 <script src="/assets/js/core/app-bootstrap.js" defer></script>
-<script src="/assets/js/modules/player/ambilight-vibe.js" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
 <div class="modal-head">
@@ -2548,38 +2750,6 @@ body.modal-open #player-tools{display:none !important;}
 <button class="modal-close" onclick="closeMosaic(event)">✕</button>
 </div>
 <div class="mosaic-grid" id="mosaicGrid"></div>
-</div>
-</div>
-<div class="modal-overlay" id="fantasyModal" onclick="closeFantasy(event)">
-<div class="modal-card" onclick="event.stopPropagation()">
-<div class="modal-head">
-<div class="modal-title">Portefeuille Marché du Streamer</div>
-<button class="modal-close" onclick="closeFantasy(event)">✕</button>
-</div>
-<div style="display:flex;gap:12px;flex-wrap:wrap;">
-<div style="flex:1;min-width:290px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
-<div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Portefeuille (max 10 streamers)</div>
-<div id="fantasyCash" style="font-size:22px;font-weight:900;color:#fff;">—</div>
-<div id="fantasyHoldings" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
-</div>
-<div style="flex:2;min-width:320px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
-<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-<input id="fantasyStreamer" placeholder="Streamer (login)" style="flex:1;min-width:220px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;"/>
-<input id="fantasyAmount" min="1" placeholder="Montant" style="width:140px;background:#0f0f12;border:1px solid #2b2b31;color:#fff;border-radius:12px;padding:10px;" type="number"/>
-<button onclick="fantasyBuy()" style="background:#00f2ea;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Investir</button>
-<button onclick="fantasySell()" style="background:#ff0099;color:#000;border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;">Vendre</button>
-</div>
-<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
-<div style="flex:1;min-width:260px;">
-<div style="font-weight:900;color:#eaeaf0;margin-bottom:6px;">Cours</div>
-<div id="marketInfo" style="display:flex;gap:10px;flex-wrap:wrap;color:#a7a7b2;font-size:12px;"></div>
-<canvas height="220" id="marketChart" style="width:100%;background:#0b0b0d;border:1px solid rgba(255,255,255,.10);border-radius:14px;" width="640"></canvas>
-</div>
-<div style="flex:1;min-width:260px;">
-<div style="font-weight:900;color:#ffd600;margin-bottom:6px;">Leaderboard</div>
-<div id="fantasyLeaderboard" style="display:flex;flex-direction:column;gap:8px;"></div>
-</div>
-</div>
 </div>
 </div>
 </div>
@@ -2909,6 +3079,6 @@ body.modal-open #player-tools{display:none !important;}
 
 
 <script src="/assets/js/modules/ui/help-tooltips.js" defer></script>
-
+  <script src="/assets/js/modules/billing/billing-guard.js"></script>
 </body>
 </html>

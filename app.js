@@ -172,7 +172,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https:"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https:"],
       connectSrc: ["'self'", "https:", "wss:", "ws:"],
-      frameSrc: ["'self'", "https://player.twitch.tv", "https://www.twitch.tv", "https://embed.twitch.tv"],
+      frameSrc: ["'self'", "https://player.twitch.tv", "https://www.twitch.tv", "https://embed.twitch.tv", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.youtube.com/embed", "https://www.youtube-nocookie.com/embed"],
     }
   } : false
 }));
@@ -186,6 +186,8 @@ const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash";
+
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 let aiClient = null;
 if (GEMINI_API_KEY) {
@@ -258,122 +260,6 @@ app.get('/pricing', (req, res) => {
 });
 
 // =========================================================
-// 1B. BILLING (CREDITS + PREMIUM + ENTITLEMENTS) — Firestore
-// =========================================================
-const BILLING_COLLECTION = 'billing';
-const FREE_START_CREDITS = parseInt(process.env.FREE_START_CREDITS || '1200', 10);
-const FEATURE_UNLOCK_COST = parseInt(process.env.FEATURE_UNLOCK_COST || '200', 10);
-
-function getTwitchUser(req){
-  const u = req.session?.twitchUser;
-  if (u && (!u.expiry || u.expiry > Date.now())) return u;
-  return null;
-}
-
-async function ensureBillingDoc(userId, displayName){
-  const ref = db.collection(BILLING_COLLECTION).doc(String(userId));
-  const snap = await ref.get();
-  if (snap.exists) return { ref, data: snap.data() || {} };
-
-  const init = {
-    userId: String(userId),
-    displayName: displayName || null,
-    plan: 'free',
-    credits: FREE_START_CREDITS,
-    entitlements: {},
-    createdAt: admin.firestore.Timestamp.fromMillis(Date.now()),
-    updatedAt: admin.firestore.Timestamp.fromMillis(Date.now())
-  };
-  await ref.set(init, { merge: true });
-  return { ref, data: init };
-}
-
-function requireTwitch(req, res, next){
-  const u = getTwitchUser(req);
-  if (!u) return res.status(401).json({ success:false, error:'NOT_CONNECTED' });
-  req.twitchUser = u;
-  next();
-}
-
-// Who am I (billing)
-app.get('/api/billing/me', async (req, res) => {
-  try {
-    const u = getTwitchUser(req);
-    if (!u) {
-      return res.json({
-        success: true,
-        is_connected: false,
-        plan: 'free',
-        credits: 0,
-        entitlements: {}
-      });
-    }
-    const { data } = await ensureBillingDoc(u.id, u.display_name);
-    return res.json({
-      success: true,
-      is_connected: true,
-      plan: data.plan || 'free',
-      credits: Number(data.credits || 0),
-      entitlements: data.entitlements || {}
-    });
-  } catch (e) {
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-// Unlock a feature (200 credits by default) — persists entitlements
-app.post('/api/billing/unlock-feature', requireTwitch, async (req, res) => {
-  const feature = String(req.body?.feature || '').trim();
-  if (!feature) return res.status(400).json({ success:false, error:'MISSING_FEATURE' });
-
-  const u = req.twitchUser;
-
-  try{
-    const ref = db.collection(BILLING_COLLECTION).doc(String(u.id));
-
-    const out = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      const cur = snap.exists ? (snap.data() || {}) : {};
-      const plan = cur.plan || 'free';
-      const credits = Number(cur.credits || 0);
-      const ent = cur.entitlements || {};
-
-      // Premium => always allowed
-      if (plan === 'premium') {
-        return { plan, credits, entitlements: ent, already: true, premium: true };
-      }
-
-      if (ent[feature] === true) {
-        return { plan, credits, entitlements: ent, already: true };
-      }
-
-      if (credits < FEATURE_UNLOCK_COST) {
-        return { plan, credits, entitlements: ent, error: 'NOT_ENOUGH_CREDITS' };
-      }
-
-      const nextCredits = credits - FEATURE_UNLOCK_COST;
-      const nextEnt = { ...ent, [feature]: true };
-
-      tx.set(ref, {
-        userId: String(u.id),
-        displayName: u.display_name || null,
-        plan: plan,
-        credits: nextCredits,
-        entitlements: nextEnt,
-        updatedAt: admin.firestore.Timestamp.fromMillis(Date.now())
-      }, { merge: true });
-
-      return { plan, credits: nextCredits, entitlements: nextEnt, unlocked: true };
-    });
-
-    if (out.error) return res.status(402).json({ success:false, error: out.error, ...out });
-    return res.json({ success:true, ...out });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-// =========================================================
 // 2. CACHE & HELPERS
 // =========================================================
 const CACHE = {
@@ -387,6 +273,12 @@ const CACHE = {
     fetchCooldown: 3 * 60 * 1000
   }
 };
+
+
+// YouTube trailer cache (reduces quota + stabilizes TwitFlix trailer search)
+const YT_TRAILER_CACHE = new Map();
+const YT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
@@ -820,6 +712,51 @@ app.get('/api/categories/search', async (req, res) => {
 });
 
 
+// YouTube trailer search (server-side) — for TwitFlix trailers carousel
+// Front can call: GET /api/youtube/trailer?q=GAME_NAME
+app.get('/api/youtube/trailer', async (req, res) => {
+  const q0 = String(req.query.q || '').trim();
+  if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
+  if (!YOUTUBE_API_KEY) return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY missing' });
+
+  const q = sanitizeText(q0, 120);
+  const key = q.toLowerCase();
+
+  const cached = YT_TRAILER_CACHE.get(key);
+  if (cached && (Date.now() - cached.ts) < YT_CACHE_TTL_MS) {
+    return res.json({ success:true, ...cached.data, cached:true });
+  }
+
+  try {
+    // bias toward embeddable trailers
+    const query = `${q} trailer`;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=5&safeSearch=moderate&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+    const r = await fetch(url);
+    const data = await r.json();
+
+    const items = Array.isArray(data.items) ? data.items : [];
+    const pick = items.find(x => x?.id?.videoId) || null;
+
+    if (!pick) {
+      return res.json({ success:false, error:'no_result' });
+    }
+
+    const out = {
+      videoId: pick.id.videoId,
+      title: pick.snippet?.title || '',
+      channelTitle: pick.snippet?.channelTitle || '',
+      publishedAt: pick.snippet?.publishedAt || ''
+    };
+
+    YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
+    return res.json({ success:true, ...out });
+  } catch (e) {
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+
 app.post('/api/stream/by_category', async (req, res) => {
   const gameId = String(req.body?.game_id || '');
   if (!gameId) return res.status(400).json({ success: false, error: 'game_id manquant' });
@@ -1148,6 +1085,12 @@ app.post('/scan_target', async (req, res) => {
 app.post('/critique_ia', async (req, res) => {
   const type = String(req.body?.type || '').trim();
   const query = String(req.body?.query || '').trim();
+  if (!query) return res.status(400).json({ success:false, html_response:"<p style='color:red;'>query requis</p>" });
+
+  // Paid feature guard: Premium or credits
+  const quota = await requireActionQuota(req, res, 'critique_ia');
+  if (!quota) return;
+
 
   const prompt = type === 'niche'
     ? `Analyse critique du niche "${query}" sur Twitch. Saturation? Opportunités? Réponds en HTML.`
@@ -1202,6 +1145,10 @@ app.post('/analyze_schedule', async (req, res) => {
   if (!game) {
     return res.status(400).json({ success: false, html_response: '<p style="color:red;">❌ Nom du jeu manquant</p>' });
   }
+  // Paid feature guard: Premium or credits
+  const quota = await requireActionQuota(req, res, 'best_time');
+  if (!quota) return;
+
 
   try {
     const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
@@ -1347,6 +1294,10 @@ app.post('/api/alerts/generate', async (req, res) => {
   const login = String(req.body?.login || '').trim().toLowerCase();
   const days = clamp(parseInt(req.body?.days || '30', 10), 1, 180);
   if (!login) return res.status(400).json({ success:false, error:"login manquant" });
+
+  // Paid feature guard: Premium or credits
+  const quota = await requireActionQuota(req, res, 'alerts_generate');
+  if (!quota) return;
   const r = await generateAlertsForLogin(login, days);
   return res.json(r);
 });
@@ -1509,6 +1460,10 @@ app.get('/api/ai/reco', async (req, res) => {
   const login = String(req.query.login || '').trim().toLowerCase();
   const days = clamp(parseInt(req.query.days || '30', 10), 7, 90);
   if (!login) return res.status(400).json({ success:false, html_response:"<p style='color:red;'>login requis</p>" });
+
+  // Paid feature guard: Premium or credits
+  const quota = await requireActionQuota(req, res, 'ai_reco');
+  if (!quota) return;
 
   try {
     const a = await fetch(`http://localhost:${PORT}/api/analytics/channel_by_login/${encodeURIComponent(login)}?days=${days}`).then(r=>r.json());
@@ -2043,6 +1998,7 @@ async function getBillingDoc(twitchUser){
       display_name: twitchUser.display_name || null,
       plan: 'free',
       credits: 0,
+      entitlements: { overview:false, analytics:false, niche:false, bestTime:false },
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
@@ -2228,9 +2184,59 @@ app.get('/api/billing/me', async (req,res)=>{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
     const b = await getBillingDoc(tu);
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0) });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {} });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Unlock a premium feature with credits (200 by default)
+app.post('/api/billing/unlock-feature', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'firestore_unavailable' });
+
+    const feature = String((req.body && req.body.feature) || '').trim();
+    const cost = Number((req.body && req.body.cost) || 200);
+
+    const allowed = ['overview','analytics','niche','bestTime'];
+    if(!allowed.includes(feature)) return res.status(400).json({ success:false, error:'invalid_feature' });
+
+    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
+    const ref = db.collection(BILLING_USERS).doc(id);
+
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(ref);
+      const cur = snap.exists ? snap.data() : {};
+      const plan = String(cur.plan || 'free').toLowerCase();
+      const ent = Object.assign({ overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+      const credits = Number(cur.credits || 0);
+
+      // Premium: just mark as unlocked
+      if(plan === 'premium'){
+        ent[feature] = true;
+        tx.set(ref, { entitlements: ent, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+        return;
+      }
+
+      if(ent[feature] === true) return; // already unlocked
+      if(credits < cost) throw new Error('credits_insufficient');
+
+      ent[feature] = true;
+      tx.set(ref, {
+        credits: credits - cost,
+        entitlements: ent,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+    });
+
+    const b = await ref.get();
+    const data = b.data() || {};
+    res.json({ success:true, credits:Number(data.credits||0), plan:data.plan||'free', entitlements:data.entitlements||{} });
+  }catch(e){
+    const msg = e.message === 'credits_insufficient' ? 'credits_insufficient' : e.message;
+    res.status(400).json({ success:false, error: msg });
   }
 });
 
