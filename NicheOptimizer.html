@@ -2496,7 +2496,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 </div>
-<div class="glass-panel rounded-lg overflow-hidden min-h-[360px]">
+<div class="glass-panel rounded-lg overflow-hidden min-h-[360px]" data-paywall data-paywall-feature="dashboard_premium" data-paywall-title="Dashboard Premium" data-paywall-desc="Débloque les 3 onglets (Overview / Analytics Pro / Niche) pour suivre tes stats avancées.">
 <div class="u-nav" id="under-tabs-nav">
 <button class="u-tab-btn active" data-ut="overview"><i class="fas fa-bolt mr-1"></i> OVERVIEW</button>
 <button class="u-tab-btn" data-ut="analytics"><i class="fas fa-chart-line mr-1"></i> ANALYTICS PRO</button>
@@ -2526,7 +2526,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-<div class="bg-[#111] p-3 rounded border border-[#222]" data-paywall data-paywall-title="Alertes automatiques" data-paywall-desc="Détection de pics, risques et opportunités. Résumé actionnable + notifications.">
+<div class="bg-[#111] p-3 rounded border border-[#222]">
 <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
 <i class="fas fa-bell mr-1"></i> Alertes automatiques
               </h4>
@@ -2538,7 +2538,7 @@ body.modal-open #player-tools{display:none !important;}
               </h4>
 <div class="h-44"><canvas id="chartChannelDaily"></canvas></div>
 </div>
-<div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2" data-paywall data-paywall-title="IA – Plan d’action" data-paywall-desc="Génère un plan d’action personnalisé (contenu, rythme, hooks, optimisation).">
+<div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
 <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
 <i class="fas fa-magic mr-1"></i> IA – plan d’action
               </h4>
@@ -2549,7 +2549,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 </div>
-<div class="u-tab-panel p-4 bg-[#0b0b0d]" id="under-analytics" data-paywall data-paywall-title="Analytics Pro" data-paywall-desc="KPIs avancés, alertes et analyses détaillées pour optimiser ta niche.">
+<div class="u-tab-panel p-4 bg-[#0b0b0d]" id="under-analytics">
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
 <div class="bg-[#111] p-3 rounded border border-[#222]">
 <div class="text-[10px] text-gray-500 uppercase">Volatilité</div>
@@ -2688,7 +2688,7 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 <div class="tab-content bg-[#0b0b0d]" id="tab-tools"><div class="tools-scroll p-4 space-y-6 scrollbar-thin">
-<div class="best-time-tool" data-paywall data-paywall-title="Best Time to Stream" data-paywall-desc="Prédit les meilleurs horaires selon le jeu, tendances et audiences.">
+<div class="best-time-tool" data-paywall data-paywall-feature="best_time" data-paywall-title="Best Time to Stream" data-paywall-desc="Prédit les meilleurs horaires selon le jeu, tendances et audiences.">
 <h4>🎯 BEST TIME TO STREAM</h4>
 <input id="best-time-game" placeholder="Jeu ex: League of Legends..." type="text"/>
 <button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
@@ -2731,7 +2731,7 @@ body.modal-open #player-tools{display:none !important;}
 <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white" id="raid-btn" onclick="goToRaid()">🎮 ALLER AU RAID</button>
 </div>
 </div>
-<div>
+<div data-paywall data-paywall-feature="costream_match" data-paywall-title="Co‑Stream Match" data-paywall-desc="Trouve un co‑streamer compatible (jeu / langue / taille).">
 <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
 <div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
 <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="costream-btn" onclick="loadCoStreamer()">
