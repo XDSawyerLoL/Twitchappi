@@ -145,7 +145,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   if(wrap) wrap.classList.remove('hidden');
 
-  const credits = Number(d.credits ?? 0) || 0;
+  let credits = Number(d.credits ?? 0) || 0;
   const plan = String((d.plan || 'FREE')).toUpperCase();
 
   elCredits.textContent = String(credits);
@@ -159,7 +159,17 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     const fj = await fr.json().catch(()=>null);
     const cash = Number(fj?.cash ?? fj?.wallet?.cash ?? 0) || 0;
 
-    if(pfCashTop) pfCashTop.textContent = String(cash);
+    // Unifier "wallet crédits" : même nombre partout (bourse + portefeuille)
+    const walletCredits = Math.max(credits, cash);
+    credits = walletCredits;
+
+    // Met à jour les badges crédits/plan + preview portefeuille
+    elCredits.textContent = String(credits);
+    elPlan.textContent = plan;
+    if(elCredits2) elCredits2.textContent = String(credits);
+    if(elPlan2) elPlan2.textContent = plan;
+
+    if(pfCashTop) pfCashTop.textContent = String(credits);
 
     if(pfHold){
       pfHold.innerHTML = '';
@@ -1837,18 +1847,16 @@ try{
       }
     }catch(_e){}
 
-    // 2) fallback portefeuille marché (si migration pas encore en place)
-    // On ne modifie pas billing; on s'en sert juste pour décider "accès via crédits".
-    if(credits <= 0){
-      try{
-        const f = await fetchJSON("/api/fantasy/profile");
-        const j = f.json;
-        if(f.ok && j){
-          const cash = Number(j.cash ?? j.wallet?.cash ?? 0) || 0;
-          if(cash > credits) credits = cash;
-        }
-      }catch(_e){}
-    }
+    // 2) portefeuille marché (source de vérité "wallet" si plus haut que billing)
+// On ne modifie pas billing; on s'en sert juste pour décider l'accès via crédits.
+    try{
+      const f = await fetchJSON("/api/fantasy/profile");
+      const j = f.json;
+      if(f.ok && j){
+        const cash = Number(j.cash ?? j.wallet?.cash ?? 0) || 0;
+        if(cash > credits) credits = cash;
+      }
+    }catch(_e){} 
 
 
 
