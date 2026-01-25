@@ -577,7 +577,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
             }
           } catch (e) {}
           window.close();
-          if(!window.opener){ window.location.href = '/'; }
         </script>
       `);
     });
@@ -1917,8 +1916,7 @@ const BILLING_USERS = 'billing_users';
 const ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
 
 async function getBillingDoc(twitchUser){
-  if(!firestoreOk) return { credits: Number(process.env.FREE_START_CREDITS || 1200),
-      entitlements: { overview:false, analytics:false, niche:false, bestTime:false }, plan: 'free', noFirestore: true };
+  if(!firestoreOk) return { credits: 0, plan: 'free', noFirestore: true };
   const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
   const ref = db.collection(BILLING_USERS).doc(id);
   const snap = await ref.get();
@@ -2114,63 +2112,8 @@ app.get('/api/billing/me', async (req,res)=>{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
     const b = await getBillingDoc(tu);
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {} });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0) });
   }catch(e){
-    res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-
-app.post('/api/billing/unlock-feature', async (req,res)=>{
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-
-    const feature = String(req.body?.feature || '').trim();
-    const allowed = new Set(['overview','analytics','niche','bestTime']);
-    if(!allowed.has(feature)) return res.status(400).json({ success:false, error:'FEATURE_INVALID' });
-
-    const cost = Number(req.body?.cost || 200);
-    const b = await getBillingDoc(tu);
-    const plan = String(b.plan || 'free').toLowerCase();
-    const credits = Number(b.credits||0);
-
-    if(plan === 'premium'){
-      if(firestoreOk){
-        const id = String(tu.id || tu.login || tu.display_name || 'unknown');
-        await db.collection(BILLING_USERS).doc(id).set({
-          entitlements: { [feature]: true },
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge:true });
-      }
-      const b2 = await getBillingDoc(tu);
-      return res.json({ success:true, plan: b2.plan||'premium', credits: Number(b2.credits||0), entitlements: b2.entitlements||{} });
-    }
-
-    if(!firestoreOk) return res.status(503).json({ success:false, error:'FIRESTORE_UNAVAILABLE' });
-
-    if(credits < cost) return res.status(402).json({ success:false, error:'INSUFFICIENT_CREDITS', credits });
-
-    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
-    const ref = db.collection(BILLING_USERS).doc(id);
-
-    await db.runTransaction(async (tx)=>{
-      const snap = await tx.get(ref);
-      const data = snap.exists ? snap.data() : {};
-      const cur = Number(data.credits||0);
-      if(cur < cost) throw new Error('INSUFFICIENT_CREDITS');
-      tx.set(ref, {
-        credits: cur - cost,
-        entitlements: Object.assign({}, data.entitlements||{}, { [feature]: true }),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge:true });
-    });
-
-    const b3 = await getBillingDoc(tu);
-    return res.json({ success:true, plan: b3.plan||'free', credits: Number(b3.credits||0), entitlements: b3.entitlements||{} });
-  }catch(e){
-    const msg = String(e.message||'');
-    if(msg.includes('INSUFFICIENT_CREDITS')) return res.status(402).json({ success:false, error:'INSUFFICIENT_CREDITS' });
     res.status(500).json({ success:false, error:e.message });
   }
 });

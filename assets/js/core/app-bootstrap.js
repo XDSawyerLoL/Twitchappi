@@ -101,6 +101,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       const data = await res.json();
       if (data.is_connected) {
         currentUser = data.display_name;
+        window.currentUser = currentUser; // expose for modules (Market)
         document.getElementById('hub-user-display').innerText = data.display_name;
 
         document.getElementById('btn-auth').classList.add('hidden');
@@ -821,6 +822,34 @@ const modal = document.getElementById('twitflix-modal');
 
       tfModalOpen = true;
       modal.classList.add('active');
+
+      // Netflix-like intro (light, no deps)
+      try {
+        let intro = document.getElementById('twitflix-intro');
+        if (!intro) {
+          intro = document.createElement('div');
+          intro.id = 'twitflix-intro';
+          intro.style.position = 'fixed';
+          intro.style.inset = '0';
+          intro.style.zIndex = '99999';
+          intro.style.background = '#000';
+          intro.style.display = 'flex';
+          intro.style.alignItems = 'center';
+          intro.style.justifyContent = 'center';
+          intro.style.opacity = '0';
+          intro.style.transition = 'opacity 420ms ease';
+          intro.innerHTML = `
+            <div style="font-family:system-ui,Segoe UI,Roboto,Arial;letter-spacing:.06em;font-weight:800;font-size:28px;color:#fff;">
+              <span style="color:#e50914">T</span>WITFLIX
+            </div>`;
+          document.body.appendChild(intro);
+        }
+        intro.style.display = 'flex';
+        requestAnimationFrame(()=>{ intro.style.opacity = '1'; });
+        setTimeout(()=>{ intro.style.opacity = '0'; }, 900);
+        setTimeout(()=>{ intro.style.display = 'none'; }, 1400);
+      } catch(e) {}
+
 
       // reset
       tfViewMode = 'rows';
