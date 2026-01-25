@@ -1995,24 +1995,30 @@ function buildPortal(el){
   }
 
   const kind = el.getAttribute('data-paywall-kind') || '';
-  const isAnalytics = (kind === 'analytics') || el.id === 'under-analytics' || el.getAttribute('data-paywall-scope') === 'analytics';
+  const isDashboard = (kind === 'dashboard');
+  const isAnalytics = (kind === 'analytics') || isDashboard || el.id === 'under-analytics' || el.getAttribute('data-paywall-scope') === 'analytics';
+
   const title = isAnalytics ? 'Analytics Pro — Dashboard Premium' : (el.getAttribute('data-paywall-title') || 'Module Premium');
-  const desc  = isAnalytics ? "Débloque le dashboard Premium (Overview / Analytics Pro / Niche) pour suivre tes stats, tes tendances et tes opportunités avec des insights actionnables." : (el.getAttribute('data-paywall-desc') || 'Débloque ce module avec Premium/Pro ou des crédits.');
+  const desc  = isAnalytics
+    ? "Débloque les 3 onglets (Overview / Analytics Pro / Niche) pour suivre tes stats en profondeur et prendre de meilleures décisions."
+    : (el.getAttribute('data-paywall-desc') || 'Débloque ce module avec Premium/Pro ou des crédits.');
+
   const bullets = isAnalytics ? `
-      <ul style="margin:10px 0 0; padding-left:18px; font-size:12.5px; line-height:1.35; color:rgba(255,255,255,.78)">
-        <li>Graphes avancés & historique (pics, creux, patterns)</li>
-        <li>Best Time to Stream (IA) + recommandations de rythme</li>
-        <li>Alertes automatiques (opportunités / risques) + résumé actionnable</li>
-        <li>Analyse Niche : comparaisons, signaux & axes d’optimisation</li>
+      <ul style="margin:10px 0 0; padding-left:18px; font-size:12.5px; line-height:1.45; color:rgba(255,255,255,.82)">
+        <li>Courbes & historiques (pics, tendances, patterns)</li>
+        <li>Best Time to Stream + recommandations IA</li>
+        <li>Alertes automatiques + analyse Niche actionnable</li>
       </ul>` : '';
-  const foot = isAnalytics ? 'Dashboard Premium' : 'Plan + crédits + outils IA';
+
+  const foot = isAnalytics ? 'Débloque tout le dashboard' : 'Plan + crédits + outils IA';
+
   const chips = isAnalytics ? `
     <div class="paywall-chips">
       <span class="paywall-chip">OVERVIEW</span>
       <span class="paywall-chip">ANALYTICS PRO</span>
       <span class="paywall-chip">NICHE</span>
     </div>` : '';
-  portal.innerHTML = `
+portal.innerHTML = `
     <div class="paywall-card">
       <div class="paywall-head"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>${chips}
       <div class="paywall-desc">${escapeHtml(desc)}</div>${bullets}
@@ -2051,6 +2057,7 @@ function updatePaywallPortals(){
 }
 
 function lockPaywallElement(el){
+  if (el.getAttribute && el.getAttribute('data-paywall-disabled') === '1') return;
   el.classList.add('paywall-scope');
   el.setAttribute('data-paywall-locked','1');
 
@@ -2082,32 +2089,70 @@ function applyPaywallUI(){
   const st = window.__billingState || { plan:'FREE', credits:0 };
   const plan = String(st.plan || 'FREE').toUpperCase();
   const credits = Number(st.credits ?? 0);
+
+  // Rule: lock when FREE and no credits available
   const locked = (plan === 'FREE' && credits <= 0);
 
-  const els = Array.from(document.querySelectorAll('[data-paywall]'));
-  const analyticsRoot = document.getElementById('under-analytics') || document.querySelector('[data-paywall-scope="analytics"]');
-
-  if (!locked){
-    els.forEach(el=> unlockPaywallElement(el));
-  } else {
-    // If multiple premium blocks exist inside Analytics area, show a SINGLE overlay for the whole dashboard.
-    if (analyticsRoot){
-      analyticsRoot.setAttribute('data-paywall-kind','analytics');
-      if (!analyticsRoot.hasAttribute('data-paywall')) analyticsRoot.setAttribute('data-paywall','1');
-      lockPaywallElement(analyticsRoot);
-    }
-    els.forEach(el=>{
-      if (analyticsRoot && el !== analyticsRoot && analyticsRoot.contains(el)){
-        // prevent duplicates inside analytics scope
-        unlockPaywallElement(el);
-        return;
-      }
-      if (analyticsRoot && el === analyticsRoot) return;
-      lockPaywallElement(el);
-    });
+  const nav = document.getElementById('under-tabs-nav');
+  let dashboardRoot = null;
+  if (nav) dashboardRoot = nav.closest('.glass-panel');
+  if (!dashboardRoot){
+    const p = document.getElementById('under-overview') || document.getElementById('under-analytics') || document.getElementById('under-niche');
+    if (p) dashboardRoot = p.closest('.glass-panel') || p.parentElement;
   }
 
-  // keep portals positioned
+  // Helper: hard remove any existing portal for an element
+  function hardUnlock(el){
+    try{ unlockPaywallElement(el); }catch(_){}
+    try{ el.classList.remove('paywall-scope'); }catch(_){}
+    try{ el.removeAttribute('data-paywall-locked'); }catch(_){}
+  }
+
+  // If not locked: unlock everything
+  if (!locked){
+    Array.from(document.querySelectorAll('[data-paywall]')).forEach(hardUnlock);
+    if (dashboardRoot) hardUnlock(dashboardRoot);
+    updatePaywallPortals();
+    return;
+  }
+
+  // LOCKED MODE:
+  // 1) Lock the whole dashboard premium block with ONE overlay
+  if (dashboardRoot){
+    dashboardRoot.setAttribute('data-paywall-kind','dashboard');
+    dashboardRoot.setAttribute('data-paywall','1'); // ensure scope exists
+    lockPaywallElement(dashboardRoot);
+
+    // 2) Disable all child paywalls inside the dashboard (remove their portals if they exist)
+    const childPaywalls = Array.from(dashboardRoot.querySelectorAll('[data-paywall]')).filter(el=>el!==dashboardRoot);
+    childPaywalls.forEach(el=>{
+      // prevent any future creation
+      el.setAttribute('data-paywall-disabled','1');
+      hardUnlock(el);
+    });
+
+    // 3) Aggressive cleanup: remove any existing portals whose target is inside dashboardRoot (except dashboardRoot itself)
+    try{
+      for (const [uid, rec] of __paywallPortals.entries()){
+        if (!rec || !rec.el) continue;
+        if (rec.el !== dashboardRoot && dashboardRoot.contains(rec.el)){
+          try{ rec.portal && rec.portal.remove(); }catch(_){}
+          __paywallPortals.delete(uid);
+          try{ rec.el.removeAttribute('data-paywall-uid'); }catch(_){}
+        }
+      }
+    }catch(_){}
+  }
+
+  // 4) Apply normal per-module paywalls elsewhere, but skip disabled ones and anything inside dashboardRoot
+  const els = Array.from(document.querySelectorAll('[data-paywall]'));
+  els.forEach(el=>{
+    if (dashboardRoot && el !== dashboardRoot && dashboardRoot.contains(el)) return;
+    if (el.getAttribute('data-paywall-disabled') === '1') return;
+    if (el === dashboardRoot) return;
+    lockPaywallElement(el);
+  });
+
   updatePaywallPortals();
 }
 
@@ -2180,8 +2225,8 @@ function syncMarketCredits(){
       goto.addEventListener('click', (e) => {
         e.preventDefault();
         closeBillingMenu();
-        const el = document.getElementById('fantasyDashboard');
-        if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+        if(typeof window.openMarketOverlay === 'function') window.openMarketOverlay('portfolio');
+        else window.location.href='/pricing';
       });
     }
     if(openMkt){
