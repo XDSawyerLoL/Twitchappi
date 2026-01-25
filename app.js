@@ -1914,6 +1914,8 @@ function requireTwitchSession(req, res) {
 // =========================================================
 const BILLING_USERS = 'billing_users';
 const ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
+const FREE_START_CREDITS = Number(process.env.FREE_START_CREDITS || 1200);
+const FEATURE_UNLOCK_COST = Number(process.env.FEATURE_UNLOCK_COST || 200);
 
 async function getBillingDoc(twitchUser){
   if(!firestoreOk) return { credits: 0, plan: 'free', noFirestore: true };
@@ -1926,8 +1928,8 @@ async function getBillingDoc(twitchUser){
       login: twitchUser.login || null,
       display_name: twitchUser.display_name || null,
       plan: 'free',
-      credits: 1200,
-      unlockedFeatures: {},
+      credits: FREE_START_CREDITS,
+      entitlements: {},
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
@@ -2105,53 +2107,6 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
   }
 });
 
-
-const FEATURE_UNLOCK_COST = Number(process.env.FEATURE_UNLOCK_COST || 200);
-const FEATURE_KEYS = ['overview','analytics_pro','niche','best_time'];
-
-function normalizeFeatureKey(key){
-  key = String(key||'').toLowerCase().trim();
-  if(key === 'analytics' || key === 'pro' || key === 'analyticspro') key = 'analytics_pro';
-  if(key === 'besttime' || key === 'best_time_to_stream') key = 'best_time';
-  return key;
-}
-
-async function getEntitlements(twitchUser){
-  const b = await getBillingDoc(twitchUser);
-  const plan = String(b.plan || 'free').toLowerCase();
-  const unlocked = (b.unlockedFeatures && typeof b.unlockedFeatures === 'object') ? b.unlockedFeatures : {};
-  return { plan, unlocked };
-}
-
-async function unlockFeatureForUser(twitchUser, featureKey){
-  if(!firestoreOk) throw new Error('Firestore non configuré');
-  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
-  const ref = db.collection(BILLING_USERS).doc(id);
-
-  featureKey = normalizeFeatureKey(featureKey);
-  if(!FEATURE_KEYS.includes(featureKey)) throw new Error('Feature invalide');
-
-  await db.runTransaction(async (tx)=>{
-    const snap = await tx.get(ref);
-    const cur = snap.exists ? snap.data() : {};
-    const plan = String(cur.plan || 'free').toLowerCase();
-    const credits = Number(cur.credits || 0);
-    const unlocked = (cur.unlockedFeatures && typeof cur.unlockedFeatures === 'object') ? cur.unlockedFeatures : {};
-
-    if(plan === 'premium') return; // nothing to do
-    if(unlocked[featureKey]) return; // already unlocked
-
-    if(credits < FEATURE_UNLOCK_COST) throw new Error('Crédits insuffisants');
-    unlocked[featureKey] = true;
-
-    tx.set(ref, {
-      credits: credits - FEATURE_UNLOCK_COST,
-      unlockedFeatures: unlocked,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge:true });
-  });
-}
-
 // =========================================================
 // BILLING API
 // =========================================================
@@ -2160,49 +2115,70 @@ app.get('/api/billing/me', async (req,res)=>{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
     const b = await getBillingDoc(tu);
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0) });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: (b.entitlements && typeof b.entitlements==='object') ? b.entitlements : {} });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
 
 
-app.get('/api/billing/entitlements', async (req,res)=>{
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-    const b = await getBillingDoc(tu);
-    res.json({
-      success:true,
-      plan: b.plan || 'free',
-      credits: Number(b.credits||0),
-      unlockedFeatures: (b.unlockedFeatures && typeof b.unlockedFeatures === 'object') ? b.unlockedFeatures : {}
-    });
-  }catch(e){
-    res.status(500).json({ success:false, error:e.message });
-  }
-});
-
+// Unlock one premium feature with credits (persisted in Firestore)
 app.post('/api/billing/unlock-feature', async (req,res)=>{
   try{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
 
-    const feature = req.body?.feature;
-    await unlockFeatureForUser(tu, feature);
+    const feature = String((req.body && req.body.feature) || '').trim().toLowerCase();
+    const allowed = new Set(['overview','analytics','niche','besttime']);
+    if(!allowed.has(feature)){
+      res.status(400).json({ success:false, error:'Feature invalide.' });
+      return;
+    }
 
     const b = await getBillingDoc(tu);
-    res.json({
-      success:true,
-      plan: b.plan || 'free',
-      credits: Number(b.credits||0),
-      unlockedFeatures: (b.unlockedFeatures && typeof b.unlockedFeatures === 'object') ? b.unlockedFeatures : {}
+    const plan = String(b.plan || 'free').toLowerCase();
+    const ent = (b.entitlements && typeof b.entitlements==='object') ? b.entitlements : {};
+
+    if(plan === 'premium' || ent[feature] === true){
+      res.json({ success:true, already:true, plan, credits:Number(b.credits||0), entitlements: ent });
+      return;
+    }
+
+    const credits = Number(b.credits || 0);
+    if(credits < FEATURE_UNLOCK_COST){
+      res.status(402).json({ success:false, error:`Crédits insuffisants (${credits}/${FEATURE_UNLOCK_COST}).` });
+      return;
+    }
+
+    // transaction-safe update
+    if(!firestoreOk){
+      res.status(500).json({ success:false, error:'Firestore non disponible.' });
+      return;
+    }
+
+    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
+    const ref = db.collection(BILLING_USERS).doc(id);
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(ref);
+      const cur = snap.exists ? (snap.data() || {}) : {};
+      const curCredits = Number(cur.credits || 0);
+      const curEnt = (cur.entitlements && typeof cur.entitlements==='object') ? cur.entitlements : {};
+      if(curCredits < FEATURE_UNLOCK_COST) throw new Error('Crédits insuffisants.');
+      if(curEnt[feature] === true) return; // already
+      curEnt[feature] = true;
+      tx.set(ref, {
+        credits: curCredits - FEATURE_UNLOCK_COST,
+        entitlements: curEnt,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
     });
+
+    const b2 = await getBillingDoc(tu);
+    res.json({ success:true, plan: b2.plan || 'free', credits: Number(b2.credits||0), entitlements: (b2.entitlements && typeof b2.entitlements==='object') ? b2.entitlements : {} });
   }catch(e){
-    res.status(400).json({ success:false, error:e.message });
+    res.status(500).json({ success:false, error:e.message });
   }
 });
-
 
 // Stripe (optional). If not configured, returns a clear error.
 let stripe = null;

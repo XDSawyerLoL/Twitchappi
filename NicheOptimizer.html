@@ -52,10 +52,9 @@
     .stream-card:hover .card-img{ opacity:1; }
 
     /* onglets DROITE */
-    .tab-nav{ display:flex; background:#080808; border-bottom:1px solid var(--border-color); overflow-x:auto; scrollbar-width:thin; }
-    .tab-nav::-webkit-scrollbar{ height:6px; }
+    .tab-nav{ display:flex; background:#080808; border-bottom:1px solid var(--border-color); }
     .tab-btn{
-      flex:0 0 auto; min-width:90px; padding:14px; text-align:center; color:#666; white-space:nowrap;
+      flex:1; padding:14px; text-align:center; color:#666;
       font-family:Orbitron; font-size:11px; font-weight:bold;
       cursor:pointer; border-bottom:2px solid transparent; transition:.3s;
     }
@@ -1044,10 +1043,9 @@ body.modal-open #player-tools{display:none !important;}
     .stream-card:hover .card-img{ opacity:1; }
 
     /* onglets DROITE */
-    .tab-nav{ display:flex; background:#080808; border-bottom:1px solid var(--border-color); overflow-x:auto; scrollbar-width:thin; }
-    .tab-nav::-webkit-scrollbar{ height:6px; }
+    .tab-nav{ display:flex; background:#080808; border-bottom:1px solid var(--border-color); }
     .tab-btn{
-      flex:0 0 auto; min-width:90px; padding:14px; text-align:center; color:#666; white-space:nowrap;
+      flex:1; padding:14px; text-align:center; color:#666;
       font-family:Orbitron; font-size:11px; font-weight:bold;
       cursor:pointer; border-bottom:2px solid transparent; transition:.3s;
     }
@@ -2112,6 +2110,12 @@ body.modal-open #player-tools{display:none !important;}
 
 #tf-trailer-carousel{ gap: 16px; }
 #tf-trailer-carousel .tf-trailer-card{ box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+
+    /* PATCH: tab buttons not cut (CHAT/STATS/OUTILS) */
+    .tab-nav{ display:flex; gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+    .tab-nav::-webkit-scrollbar{ height:6px; }
+    .tab-btn{ flex:0 0 auto; white-space:nowrap; }
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2138,36 +2142,6 @@ body.modal-open #player-tools{display:none !important;}
   }
   /* si un wrapper chat existe, on le force à prendre la place */
   #tabs-viewport #tab-chat{ min-height:0 !important; }
-</style>
-
-
-<style id="feature-paywall-style">
-  .feature-locked{ position:relative; }
-  .feature-locked .feature-lock-blur{ filter: blur(10px); opacity:.35; pointer-events:none; user-select:none; }
-  .feature-lock-overlay{
-    position:absolute; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    padding:18px;
-    background:rgba(0,0,0,.45);
-    backdrop-filter: blur(2px);
-    z-index:50;
-  }
-  .feature-lock-card{
-    width:min(520px, 92%);
-    border:1px solid rgba(255,255,255,.10);
-    background:rgba(10,10,10,.72);
-    border-radius:16px;
-    padding:16px;
-    text-align:center;
-    box-shadow:0 12px 40px rgba(0,0,0,.45);
-  }
-  .feature-lock-title{ font-family:Orbitron, sans-serif; font-weight:800; letter-spacing:.06em; color:#fff; }
-  .feature-lock-sub{ color:rgba(255,255,255,.70); margin-top:6px; font-size:13px; line-height:1.35; }
-  .feature-lock-actions{ display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
-  .btn-unlock{ background:#e11d48; color:#fff; padding:10px 14px; border-radius:12px; font-weight:800; border:1px solid rgba(255,255,255,.10); }
-  .btn-premium{ background:#111; color:#fff; padding:10px 14px; border-radius:12px; font-weight:800; border:1px solid rgba(255,255,255,.18); }
-  .feature-lock-badge{ display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:999px; background:rgba(225,29,72,.15); border:1px solid rgba(225,29,72,.45); margin:0 auto 10px; }
-  .feature-lock-badge i{ color:#e11d48; }
 </style>
 
 </head>
@@ -2920,188 +2894,6 @@ body.modal-open #player-tools{display:none !important;}
 
 
 <script src="/assets/js/modules/ui/help-tooltips.js" defer></script>
-
-
-<script id="feature-paywall-script">
-(function(){
-  const API = window.location.origin;
-  const FEATURE_COST = 200;
-
-  const FEATURES = {
-    overview: {
-      title: "OVERVIEW",
-      desc: "Lecture rapide : ce qui marche, ce qui plafonne, et les 2–3 priorités à exécuter."
-    },
-    analytics_pro: {
-      title: "ANALYTICS PRO",
-      desc: "Analyse avancée + recommandations actionnables (format "à faire maintenant")."
-    },
-    niche: {
-      title: "NICHE",
-      desc: "Positionnement + angles de contenus : transforme ta catégorie en stratégie."
-    },
-    best_time: {
-      title: "BEST TIME TO STREAM",
-      desc: "Créneaux optimaux (jours/heures) selon concurrence + audience (niveau décision)."
-    }
-  };
-
-  async function getJson(url, opts){
-    const r = await fetch(url, Object.assign({ credentials:'include' }, opts||{}));
-    const ct = r.headers.get('content-type') || '';
-    const data = ct.includes('application/json') ? await r.json() : null;
-    if(!r.ok) throw new Error((data && (data.error || data.message)) || 'Erreur serveur');
-    return data;
-  }
-
-  function ensureLock(featureKey, rootEl){
-    if(!rootEl) return;
-    // idempotent: remove duplicate overlays
-    rootEl.querySelectorAll('.feature-lock-overlay').forEach((n, idx)=>{
-      if(idx>0) n.remove();
-    });
-
-    rootEl.classList.add('feature-locked');
-
-    // wrap existing content once
-    let blur = rootEl.querySelector(':scope > .feature-lock-blur');
-    if(!blur){
-      blur = document.createElement('div');
-      blur.className = 'feature-lock-blur';
-      // move all children into blur
-      while(rootEl.firstChild){
-        blur.appendChild(rootEl.firstChild);
-      }
-      rootEl.appendChild(blur);
-    }
-
-    let overlay = rootEl.querySelector(':scope > .feature-lock-overlay');
-    if(!overlay){
-      overlay = document.createElement('div');
-      overlay.className = 'feature-lock-overlay';
-      overlay.innerHTML = `
-        <div class="feature-lock-card">
-          <div class="feature-lock-badge"><i class="fa-solid fa-lock"></i></div>
-          <div class="feature-lock-title">Fonction Premium — ${FEATURES[featureKey]?.title || 'VERROUILLÉ'}</div>
-          <div class="feature-lock-sub">${FEATURES[featureKey]?.desc || ''}<br/><br/>Débloque cet onglet pour <b>${FEATURE_COST} crédits</b> (définitif) ou passe Premium.</div>
-          <div class="feature-lock-actions">
-            <button class="btn-unlock" data-action="unlock">Débloquer (${FEATURE_COST})</button>
-            <button class="btn-premium" data-action="premium">Passer Premium</button>
-          </div>
-        </div>
-      `;
-      rootEl.appendChild(overlay);
-
-      overlay.addEventListener('click', async (e)=>{
-        const btn = e.target && e.target.closest('button[data-action]');
-        if(!btn) return;
-        const action = btn.getAttribute('data-action');
-
-        if(action === 'premium'){
-          window.location.href = '/pricing';
-          return;
-        }
-
-        try{
-          const st = await getJson(`${API}/twitch_user_status`);
-          if(!st?.is_connected){
-            if(typeof window.startAuth === 'function'){ window.startAuth(); return; }
-            alert('Connexion Twitch requise pour débloquer.');
-            return;
-          }
-
-          btn.disabled = true;
-          btn.textContent = 'Déblocage...';
-
-          await getJson(`${API}/api/billing/unlock-feature`, {
-            method:'POST',
-            headers:{ 'Content-Type':'application/json' },
-            body: JSON.stringify({ feature: featureKey })
-          });
-
-          // refresh badge if available
-          if(typeof window.refreshBillingBadge === 'function'){ window.refreshBillingBadge(); }
-
-          removeLock(rootEl);
-        }catch(err){
-          btn.disabled = false;
-          btn.textContent = `Débloquer (${FEATURE_COST})`;
-          alert(err.message || 'Erreur');
-        }
-      });
-    }
-  }
-
-  function removeLock(rootEl){
-    if(!rootEl) return;
-    const overlay = rootEl.querySelector(':scope > .feature-lock-overlay');
-    const blur = rootEl.querySelector(':scope > .feature-lock-blur');
-    if(overlay) overlay.remove();
-    if(blur){
-      // unwrap
-      while(blur.firstChild){
-        rootEl.appendChild(blur.firstChild);
-      }
-      blur.remove();
-    }
-    rootEl.classList.remove('feature-locked');
-  }
-
-  function mapFeatureToContainer(){
-    // Try by tab ids
-    const map = {
-      overview: document.getElementById('tab-overview') || document.querySelector('[data-tab="overview"]') || document.querySelector('#overview'),
-      analytics_pro: document.getElementById('tab-analytics') || document.querySelector('[data-tab="analytics"]') || document.querySelector('#analytics'),
-      niche: document.getElementById('tab-niche') || document.querySelector('[data-tab="niche"]') || document.querySelector('#niche'),
-      best_time: document.getElementById('tab-besttime') || document.querySelector('[data-tab="besttime"]') || document.querySelector('#best-time') || document.querySelector('#besttime')
-    };
-    return map;
-  }
-
-  async function applyPaywalls(){
-    const containers = mapFeatureToContainer();
-
-    // Not logged => everything locked
-    let connected = false;
-    try{
-      const st = await getJson(`${API}/twitch_user_status`);
-      connected = !!st?.is_connected;
-    }catch(_){ connected = false; }
-
-    let ent = { plan:'free', unlockedFeatures:{} };
-    if(connected){
-      try{
-        ent = await getJson(`${API}/api/billing/entitlements`);
-      }catch(_){}
-    }
-
-    const plan = String(ent.plan || 'free').toLowerCase();
-    const unlocked = ent.unlockedFeatures || {};
-
-    Object.keys(FEATURES).forEach((k)=>{
-      const el = containers[k];
-      if(!el) return;
-
-      const isOpen = (plan === 'premium') || !!unlocked[k];
-      if(isOpen){
-        removeLock(el);
-      }else{
-        ensureLock(k, el);
-      }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', ()=>{
-    applyPaywalls();
-    // re-apply on tab switch, if your app uses buttons
-    document.querySelectorAll('.tab-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=> setTimeout(applyPaywalls, 50));
-    });
-  });
-
-  window.applyPaywalls = applyPaywalls;
-})();
-</script>
 
 </body>
 </html>
