@@ -21,6 +21,39 @@ const API_BASE = window.location.origin;
         console.log("🔊 Audio:", type);
     }
 
+    // ================== API HELPERS (quota / credits guard) ==================
+    async function apiFetchJson(path, options = {}) {
+      const url = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
+      const opts = Object.assign({ credentials: 'include' }, options || {});
+      let res;
+      try {
+        res = await fetch(url, opts);
+      } catch (e) {
+        return { ok: false, status: 0, data: { success: false, message: 'Erreur réseau' } };
+      }
+
+      let data = null;
+      try { data = await res.json(); } catch (_) { data = null; }
+
+      // Handle quota/credits errors consistently
+      if (res.status === 402) {
+        // 402 used by backend as "NO_CREDITS"
+        const msg = (data && (data.message || data.error)) ? (data.message || data.error) : "Crédits insuffisants. Va sur /pricing.";
+        try { await loadBillingMe(); } catch (_) {}
+        alert(msg);
+        return { ok: false, status: res.status, data: data || { success: false, message: msg } };
+      }
+
+      if (res.status === 401 || res.status === 403) {
+        // Auth or forbidden
+        const msg = (data && (data.message || data.error)) ? (data.message || data.error) : "Accès refusé (connexion requise).";
+        alert(msg);
+        return { ok: false, status: res.status, data: data || { success: false, message: msg } };
+      }
+
+      return { ok: res.ok, status: res.status, data };
+    }
+
     let socket;
     let currentChannel = 'twitch';
     let currentUser = null;
@@ -643,7 +676,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
       // 2) server resolver (best, avoids CORS + no API key)
       try{
-        const q = `${name} game trailer`;
+        const q = `${name} official trailer video game`;
         const r = await fetch(`${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
@@ -718,6 +751,57 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       });
     }
 
+    
+    // Trailer preview (YouTube) — loads only on hover to avoid heavy iframes
+    let tfTrailerActiveCard = null;
+
+    function tfStopTrailerPreview(card){
+      try{
+        if (!card) return;
+        const host = card.querySelector('.tf-trailer-host');
+        if (host) host.innerHTML = '';
+        card.classList.remove('showing');
+        if (tfTrailerActiveCard === card) tfTrailerActiveCard = null;
+      }catch(_){}
+    }
+
+    async function tfStartTrailerPreview(card, gameName){
+      try{
+        if (!card) return;
+
+        // Ensure single active trailer preview
+        if (tfTrailerActiveCard && tfTrailerActiveCard !== card){
+          tfStopTrailerPreview(tfTrailerActiveCard);
+        }
+        tfTrailerActiveCard = card;
+
+        // Already showing
+        const host = card.querySelector('.tf-trailer-host');
+        if (!host || host.childElementCount) return;
+
+        const name = String(gameName || '').trim();
+        if (!name) return;
+
+        // Resolve via server (preferred) with cache
+        const vid = await tfResolveTrailerId(name);
+        if (!vid) return;
+
+        const src = `https://www.youtube.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&origin=${encodeURIComponent(location.origin)}`;
+
+        host.innerHTML = `
+          <iframe
+            src="${src}"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            loading="lazy"
+            title="Trailer - ${escapeHtml(name)}"
+            referrerpolicy="strict-origin-when-cross-origin"
+            style="border:0;width:100%;height:100%;"
+            allowfullscreen></iframe>
+        `;
+        card.classList.add('showing');
+      }catch(_){}
+    }
+
     function tfRenderTrailerCarousel(){
       const wrap = document.getElementById('tf-trailer-carousel');
       if (!wrap) return;
@@ -731,6 +815,39 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
         return;
       }
+
+      cats.forEach(cat => {
+        const gameName = String(cat.name || '').trim();
+        const boxArt = tfNormalizeBoxArt(cat.box_art_url || cat.boxArt || '');
+
+        const card = document.createElement('div');
+        card.className = 'tf-trailer-card';
+        card.style.position = 'relative';
+        card.style.overflow = 'hidden';
+
+        card.innerHTML = `
+          <div class="tf-trailer-bg" style="position:absolute;inset:0;background-image:url('${boxArt}');background-size:cover;background-position:center;filter:blur(0px);opacity:.85;"></div>
+          <div class="tf-trailer-host" style="position:absolute;inset:0;"></div>
+          <div class="tf-trailer-label" style="position:absolute;left:10px;right:10px;bottom:10px;background:linear-gradient(to top, rgba(0,0,0,.75), rgba(0,0,0,0));padding:10px;border-radius:12px;">
+            <div class="t1" style="font-weight:900;color:white;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(gameName || 'Trailer')}</div>
+            <div class="t2" style="opacity:.8;color:#cfcfcf;font-size:11px;">Survole pour lancer · YouTube</div>
+          </div>
+        `;
+
+        // Hover => start/stop (Netflix-like)
+        let t = null;
+        card.addEventListener('mouseenter', () => {
+          t = setTimeout(() => tfStartTrailerPreview(card, gameName), 380);
+        });
+        card.addEventListener('mouseleave', () => {
+          if (t) clearTimeout(t);
+          tfStopTrailerPreview(card);
+        });
+
+        wrap.appendChild(card);
+      });
+    }
+
 
       cats.forEach(cat => {
         const gameName = String(cat.name || '').trim();
@@ -1335,12 +1452,13 @@ try{
       results.innerHTML = '';
 
       try{
-        const response = await fetch(`${API_BASE}/analyze_schedule`,{
+        const r = await apiFetchJson(`/analyze_schedule`,{
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ game: gameInput })
         });
-        const data = await response.json();
+        if (!r.ok) return;
+        const data = r.data;
         results.innerHTML = data.html_response || '<p style="color:#ff6666;">❌ Erreur</p>';
         results.style.display = 'block';
       }catch(e){
@@ -1452,18 +1570,20 @@ try{
       box.innerHTML = '<div class="text-gray-500 text-xs"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
 
       try{
-        let r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
-        let data = await r.json();
+        let rr = await apiFetchJson(`/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+        if (!rr.ok) { box.innerHTML = '<div class="text-gray-500 text-xs">Crédit/accès requis.</div>'; return; }
+        let data = rr.data;
 
         if (!data.success || !data.items || data.items.length === 0){
-          await fetch(`${API_BASE}/api/alerts/generate`,{
+          await apiFetchJson(`/api/alerts/generate`,{
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({ login, days:30 })
-          }).catch(()=>{});
+          });
 
-          r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
-          data = await r.json();
+          const rr2 = await apiFetchJson(`/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+          if (!rr2.ok) { box.innerHTML = '<div class="text-gray-500 text-xs">Crédit/accès requis.</div>'; return; }
+          data = rr2.data;
         }
 
         if (!data.success || !data.items){
@@ -1522,8 +1642,9 @@ try{
       btn.innerHTML = '<span class="best-time-spinner"></span> Génération...';
 
       try{
-        const res = await fetch(`${API_BASE}/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);
-        const data = await res.json();
+        const r = await apiFetchJson(`/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);
+        if (!r.ok) { box.innerHTML = "<p style='color:#ff6666;'>❌ Crédit/accès requis</p>"; box.classList.remove('hidden'); return; }
+        const data = r.data;
         box.innerHTML = data.html_response || "<p style='color:#ff6666;'>❌ Pas de recommandation</p>";
         box.classList.remove('hidden');
       }catch(e){
@@ -1565,8 +1686,9 @@ try{
       out.innerHTML = '<div class="text-gray-500 text-xs"><i class="fas fa-spinner fa-spin"></i> Analyse...</div>';
 
       try{
-        const r = await fetch(`${API_BASE}/api/costream/best?login=${encodeURIComponent(currentChannel)}&days=14`);
-        const data = await r.json();
+        const rr = await apiFetchJson(`/api/costream/best?login=${encodeURIComponent(currentChannel)}&days=14`);
+        if (!rr.ok) { out.innerHTML = `<p style="color:#ff6666;">❌ Crédit/accès requis</p>`; return; }
+        const data = rr.data;
 
         if (!data.success){
           out.innerHTML = `<p style="color:#ff6666;">❌ ${escapeHtml(data.message || 'Impossible')}</p>`;
@@ -1609,12 +1731,13 @@ try{
       document.getElementById('scan-ai').innerHTML = `<span class="best-time-spinner"></span> Scan...`;
 
       try{
-        const r = await fetch(`${API_BASE}/scan_target`,{
+        const rr = await apiFetchJson(`/scan_target`,{
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ query:q })
         });
-        const data = await r.json();
+        if (!rr.ok) { document.getElementById('scan-ai').innerHTML = `<p style="color:#ff6666;">❌ Crédit/accès requis</p>`; return; }
+        const data = rr.data;
         if (!data.success){
           document.getElementById('scan-ai').innerHTML = `<p style="color:#ff6666;">❌ Introuvable</p>`;
           return;
@@ -1627,11 +1750,12 @@ try{
           document.getElementById('scan-game').innerText = `${u.game_name || '—'} • ${u.is_live ? (u.viewer_count+' viewers') : 'offline'}`;
 
           // mini critique IA (optionnel)
-          const ai = await fetch(`${API_BASE}/critique_ia`,{
+          const aiR = await apiFetchJson(`/critique_ia`,{
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({ type:'niche', query: u.game_name || q })
-          }).then(x=>x.json()).catch(()=>null);
+          });
+          const ai = aiR.ok ? aiR.data : null;
 
           document.getElementById('scan-ai').innerHTML =
             `<p><strong>Titre:</strong> ${escapeHtml(u.title||'—')}</p>
