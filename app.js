@@ -1919,13 +1919,13 @@ async function getUserWallet(user){
   const u = sanitizeText(user || 'Anon', 50) || 'Anon';
   if(!firestoreOk){
     global.__inMemWallet = global.__inMemWallet || new Map();
-    if(!global.__inMemWallet.get(u)) global.__inMemWallet.set(u, { user:u, cash: 10000, holdings: {} });
+    if(!global.__inMemWallet.get(u)) global.__inMemWallet.set(u, { user:u, cash: 0, holdings: {} });
     return global.__inMemWallet.get(u);
   }
   const ref = db.collection(FANTASY_USERS).doc(u.toLowerCase());
   const doc = await ref.get();
   if(!doc.exists){
-    const init = { user:u, cash: 10000, holdings: {}, updatedAt: Date.now() };
+    const init = { user:u, cash: 0, holdings: {}, updatedAt: Date.now() };
     await ref.set(init);
     return init;
   }
@@ -2065,7 +2065,13 @@ app.get('/api/fantasy/profile', async (req,res)=>{
       });
     }
 
-    res.json({ success:true, user: w.user, cash: Number(w.cash||0), holdings: enriched });
+        const bill = await getBillingDoc(tu);
+    // Single source of truth: billing credits == market cash
+    const cash = Number(bill.credits||0);
+    // keep wallet cash in sync for leaderboard compatibility
+    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }
+
+    res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -2086,7 +2092,10 @@ app.post('/api/fantasy/invest', async (req,res)=>{
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
 
     const w = await getUserWallet(user);
-    if(amount > Number(w.cash||0)) return res.status(400).json({ success:false, error:'Solde insuffisant.' });
+
+    const bill = await getBillingDoc(tu);
+    const credits = Number(bill.credits||0);
+    if(amount > credits) return res.status(400).json({ success:false, error:'Crédits insuffisants.' });
 
     const isNew = !w.holdings || !w.holdings[login];
     const distinct = Object.keys(w.holdings || {}).length;
@@ -2098,7 +2107,10 @@ app.post('/api/fantasy/invest', async (req,res)=>{
     const shares = Math.max(1, Math.floor(amount / m.price));
     const cost = shares * m.price;
 
-    w.cash = Number(w.cash||0) - cost;
+        // Deduct from billing credits (single source of truth)
+    await updateBillingCredits(tu, -cost);
+    // Keep fantasy wallet cash mirrored (for leaderboard)
+    w.cash = credits - cost;
     w.holdings = w.holdings || {};
     w.holdings[login] = w.holdings[login] || { shares: 0 };
     w.holdings[login].shares += shares;
@@ -2106,7 +2118,7 @@ app.post('/api/fantasy/invest', async (req,res)=>{
     await saveUserWallet(w);
     await bumpShares(login, shares);
 
-    res.json({ success:true, shares, cost, price: m.price });
+        res.json({ success:true, shares, cost, price: m.price });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -2127,6 +2139,10 @@ app.post('/api/fantasy/sell', async (req,res)=>{
     if(!login || !amount || amount<=0) return res.status(400).json({ success:false, error:'Streamer + montant requis.' });
 
     const w = await getUserWallet(user);
+
+    const bill = await getBillingDoc(tu);
+    const credits = Number(bill.credits||0);
+
     const have = Number(w.holdings?.[login]?.shares || 0);
     if(!have) return res.status(400).json({ success:false, error:'Aucune position sur ce streamer.' });
 
@@ -2136,7 +2152,10 @@ app.post('/api/fantasy/sell', async (req,res)=>{
 
     w.holdings[login].shares -= sharesToSell;
     if(w.holdings[login].shares <= 0) delete w.holdings[login];
-    w.cash = Number(w.cash||0) + proceeds;
+        // Credit proceeds to billing credits (single source of truth)
+    await updateBillingCredits(tu, +proceeds);
+    // Keep fantasy wallet cash mirrored (for leaderboard)
+    w.cash = credits + proceeds;
 
     await saveUserWallet(w);
     await bumpShares(login, -sharesToSell);
