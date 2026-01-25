@@ -912,7 +912,9 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
           }
           .tf-trailer-card.tf-hover.is-playing .tf-thumb-play{ display:none; }
           .tf-trailer-card.tf-hover iframe{ position:absolute; inset:0; }
-        `;
+        
+      .paywall-overlay-fixed, .paywall-overlay-fixed *{ filter:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+`;
         document.head.appendChild(css);
       }
     }
@@ -1949,7 +1951,7 @@ function applyPaywallUI(){
         e.preventDefault();
         window.location.href = '/pricing';
       });
-      document.body.appendChild(overlay);
+      document.documentElement.appendChild(overlay);
       window.__paywallFixed.items.set(key, overlay);
     }
     return overlay;
