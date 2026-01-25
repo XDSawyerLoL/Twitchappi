@@ -823,35 +823,26 @@ const modal = document.getElementById('twitflix-modal');
       tfModalOpen = true;
       modal.classList.add('active');
 
-      // Netflix-like intro (light, no deps)
-      try {
-        let intro = document.getElementById('twitflix-intro');
-        if (!intro) {
-          intro = document.createElement('div');
-          intro.id = 'twitflix-intro';
-          intro.style.position = 'fixed';
-          intro.style.inset = '0';
-          intro.style.zIndex = '99999';
-          intro.style.background = '#000';
-          intro.style.display = 'flex';
-          intro.style.alignItems = 'center';
-          intro.style.justifyContent = 'center';
-          intro.style.opacity = '0';
-          intro.style.transition = 'opacity 420ms ease';
-          intro.innerHTML = `
-            <div style="font-family:system-ui,Segoe UI,Roboto,Arial;letter-spacing:.06em;font-weight:800;font-size:28px;color:#fff;">
-              <span style="color:#e50914">T</span>WITFLIX
-            </div>`;
-          document.body.appendChild(intro);
-        }
-        intro.style.display = 'flex';
-        requestAnimationFrame(()=>{ intro.style.opacity = '1'; });
-        setTimeout(()=>{ intro.style.opacity = '0'; }, 900);
-        setTimeout(()=>{ intro.style.display = 'none'; }, 1400);
-      } catch(e) {}
-
-
-      // reset
+      // TwitFlix intro (Netflix-like) — stylized, minimal
+try{
+  let intro = document.getElementById('twitflix-intro');
+  if(!intro){
+    intro = document.createElement('div');
+    intro.id = 'twitflix-intro';
+    intro.className = 'tf-intro';
+    intro.innerHTML = `
+      <div class="tf-intro-box">
+        <div class="tf-scanline"></div>
+        <div class="tf-intro-logo">TWITFLIX</div>
+        <div class="tf-intro-sub">Mode Netflix • Chargement des streams</div>
+      </div>
+    `;
+    document.body.appendChild(intro);
+  }
+  intro.classList.remove('outro');
+  intro.classList.add('active');
+  setTimeout(()=>{ intro.classList.remove('active'); }, 1200);
+}catch(_){}// reset
       tfViewMode = 'rows';
       tfAllCategories = [];
       tfCursor = null;
@@ -897,15 +888,31 @@ const modal = document.getElementById('twitflix-modal');
 
     function closeTwitFlix(){
   document.body.classList.remove('modal-open');
-tfModalOpen = false;
-      document.querySelectorAll('.tf-card.previewing').forEach(tfStopPreview);
-      if (tfObserver){
-        try{ tfObserver.disconnect(); }catch(_){}
-        tfObserver = null;
-      }
-      const modal = document.getElementById('twitflix-modal');
-      modal.classList.remove('active');
+  tfModalOpen = false;
+  document.querySelectorAll('.tf-card.previewing').forEach(tfStopPreview);
+  if (tfObserver){
+    try{ tfObserver.disconnect(); }catch(_){}
+    tfObserver = null;
+  }
+  const modal = document.getElementById('twitflix-modal');
+
+  // Outro overlay (stylized)
+  try{
+    let intro = document.getElementById('twitflix-intro');
+    if(intro){
+      intro.classList.add('outro');
+      intro.classList.add('active');
+      setTimeout(()=>{ intro.classList.remove('active'); }, 520);
     }
+  }catch(_){}
+
+  // Close animation
+  modal.classList.add('closing');
+  setTimeout(()=>{
+    modal.classList.remove('active');
+    modal.classList.remove('closing');
+  }, 260);
+}
 
     function tfSetupObserver(){
       const host = document.getElementById('twitflix-grid');

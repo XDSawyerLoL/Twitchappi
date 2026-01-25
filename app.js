@@ -1927,6 +1927,7 @@ async function getBillingDoc(twitchUser){
       display_name: twitchUser.display_name || null,
       plan: 'free',
       credits: 0,
+      entitlements: { overview:false, analytics:false, niche:false, bestTime:false },
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
@@ -2112,9 +2113,59 @@ app.get('/api/billing/me', async (req,res)=>{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
     const b = await getBillingDoc(tu);
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0) });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {} });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Unlock a premium feature with credits (200 by default)
+app.post('/api/billing/unlock-feature', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'firestore_unavailable' });
+
+    const feature = String((req.body && req.body.feature) || '').trim();
+    const cost = Number((req.body && req.body.cost) || 200);
+
+    const allowed = ['overview','analytics','niche','bestTime'];
+    if(!allowed.includes(feature)) return res.status(400).json({ success:false, error:'invalid_feature' });
+
+    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
+    const ref = db.collection(BILLING_USERS).doc(id);
+
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(ref);
+      const cur = snap.exists ? snap.data() : {};
+      const plan = String(cur.plan || 'free').toLowerCase();
+      const ent = Object.assign({ overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+      const credits = Number(cur.credits || 0);
+
+      // Premium: just mark as unlocked
+      if(plan === 'premium'){
+        ent[feature] = true;
+        tx.set(ref, { entitlements: ent, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+        return;
+      }
+
+      if(ent[feature] === true) return; // already unlocked
+      if(credits < cost) throw new Error('credits_insufficient');
+
+      ent[feature] = true;
+      tx.set(ref, {
+        credits: credits - cost,
+        entitlements: ent,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+    });
+
+    const b = await ref.get();
+    const data = b.data() || {};
+    res.json({ success:true, credits:Number(data.credits||0), plan:data.plan||'free', entitlements:data.entitlements||{} });
+  }catch(e){
+    const msg = e.message === 'credits_insufficient' ? 'credits_insufficient' : e.message;
+    res.status(400).json({ success:false, error: msg });
   }
 });
 

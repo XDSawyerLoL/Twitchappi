@@ -159,6 +159,104 @@
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
 
+/* TwitFlix logo (Netflix-like) */
+#twitflix-modal .tf-brand .tf-logo{
+  font-family: Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: .12em;
+  font-size: 20px;
+  color: #e50914; /* Netflix red */
+  text-transform: uppercase;
+  text-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+
+/* TwitFlix open/close animations (modal) */
+.tf-modal-overlay.active .tf-modal-content{
+  animation: tfPopIn .38s cubic-bezier(.2,.9,.2,1) both;
+}
+@keyframes tfPopIn{
+  from{ opacity:0; transform: translateY(10px) scale(.97); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+.tf-modal-overlay.closing{
+  display:flex;
+  animation: tfFadeOut .26s ease both;
+}
+@keyframes tfFadeOut{ from{opacity:1;} to{opacity:0;} }
+
+/* TwitFlix intro/outro overlay */
+.tf-intro{
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background: radial-gradient(ellipse at center, rgba(30,0,0,.65), rgba(0,0,0,.92));
+  backdrop-filter: blur(4px);
+}
+.tf-intro.active{ display:flex; }
+.tf-intro .tf-intro-box{
+  position: relative;
+  width: min(520px, 92vw);
+  padding: 34px 26px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 22px 60px rgba(0,0,0,.55);
+  overflow: hidden;
+  transform: translateY(6px);
+  animation: tfIntroIn .55s cubic-bezier(.2,.9,.2,1) both;
+}
+.tf-intro.outro .tf-intro-box{
+  animation: tfIntroOut .45s ease both;
+}
+@keyframes tfIntroIn{
+  from{ opacity:0; transform: translateY(16px) scale(.98); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+@keyframes tfIntroOut{
+  from{ opacity:1; transform: translateY(0) scale(1); }
+  to{ opacity:0; transform: translateY(10px) scale(.98); }
+}
+.tf-intro .tf-scanline{
+  position:absolute;
+  left:-40%;
+  top:0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(229,9,20,.22), transparent);
+  transform: skewX(-18deg);
+  animation: tfScan 1.05s ease both;
+}
+.tf-intro.outro .tf-scanline{
+  animation: tfScanOut .65s ease both;
+}
+@keyframes tfScan{
+  from{ left:-45%; opacity:0; }
+  20%{ opacity:1; }
+  to{ left:110%; opacity:.0; }
+}
+@keyframes tfScanOut{
+  from{ left:-10%; opacity:.8; }
+  to{ left:110%; opacity:0; }
+}
+.tf-intro .tf-intro-logo{
+  font-family: Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: .14em;
+  color:#e50914;
+  font-size: 34px;
+  text-transform: uppercase;
+  text-align:center;
+}
+.tf-intro .tf-intro-sub{
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,.78);
+  text-align:center;
+}
+
     .tf-modal-content {
       width: 90%; max-width: 1200px; height: 85vh;
       background: #0b0b0d; border: 1px solid #333; border-radius: 12px;
@@ -1131,6 +1229,104 @@ body.modal-open #player-tools{display:none !important;}
     }
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+/* TwitFlix logo (Netflix-like) */
+#twitflix-modal .tf-brand .tf-logo{
+  font-family: Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: .12em;
+  font-size: 20px;
+  color: #e50914; /* Netflix red */
+  text-transform: uppercase;
+  text-shadow: 0 10px 30px rgba(0,0,0,.55);
+}
+
+/* TwitFlix open/close animations (modal) */
+.tf-modal-overlay.active .tf-modal-content{
+  animation: tfPopIn .38s cubic-bezier(.2,.9,.2,1) both;
+}
+@keyframes tfPopIn{
+  from{ opacity:0; transform: translateY(10px) scale(.97); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+.tf-modal-overlay.closing{
+  display:flex;
+  animation: tfFadeOut .26s ease both;
+}
+@keyframes tfFadeOut{ from{opacity:1;} to{opacity:0;} }
+
+/* TwitFlix intro/outro overlay */
+.tf-intro{
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background: radial-gradient(ellipse at center, rgba(30,0,0,.65), rgba(0,0,0,.92));
+  backdrop-filter: blur(4px);
+}
+.tf-intro.active{ display:flex; }
+.tf-intro .tf-intro-box{
+  position: relative;
+  width: min(520px, 92vw);
+  padding: 34px 26px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 22px 60px rgba(0,0,0,.55);
+  overflow: hidden;
+  transform: translateY(6px);
+  animation: tfIntroIn .55s cubic-bezier(.2,.9,.2,1) both;
+}
+.tf-intro.outro .tf-intro-box{
+  animation: tfIntroOut .45s ease both;
+}
+@keyframes tfIntroIn{
+  from{ opacity:0; transform: translateY(16px) scale(.98); }
+  to{ opacity:1; transform: translateY(0) scale(1); }
+}
+@keyframes tfIntroOut{
+  from{ opacity:1; transform: translateY(0) scale(1); }
+  to{ opacity:0; transform: translateY(10px) scale(.98); }
+}
+.tf-intro .tf-scanline{
+  position:absolute;
+  left:-40%;
+  top:0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(229,9,20,.22), transparent);
+  transform: skewX(-18deg);
+  animation: tfScan 1.05s ease both;
+}
+.tf-intro.outro .tf-scanline{
+  animation: tfScanOut .65s ease both;
+}
+@keyframes tfScan{
+  from{ left:-45%; opacity:0; }
+  20%{ opacity:1; }
+  to{ left:110%; opacity:.0; }
+}
+@keyframes tfScanOut{
+  from{ left:-10%; opacity:.8; }
+  to{ left:110%; opacity:0; }
+}
+.tf-intro .tf-intro-logo{
+  font-family: Inter, sans-serif;
+  font-weight: 900;
+  letter-spacing: .14em;
+  color:#e50914;
+  font-size: 34px;
+  text-transform: uppercase;
+  text-align:center;
+}
+.tf-intro .tf-intro-sub{
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,.78);
+  text-align:center;
+}
 
     .tf-modal-content {
       width: 90%; max-width: 1200px; height: 85vh;
@@ -2479,7 +2675,7 @@ body.modal-open #player-tools{display:none !important;}
 <div class="tf-modal-overlay" id="twitflix-modal">
 <div class="tf-modal-content">
 <div class="tf-topbar">
-<div class="tf-brand"><span class="dot"></span><span><span style="color:#00f2ea;">TWIT</span>FLIX</span></div>
+<div class="tf-brand"><span class="tf-logo">TWITFLIX</span></div>
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
