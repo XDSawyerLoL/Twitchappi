@@ -2364,13 +2364,41 @@ body.modal-open #player-tools{display:none !important;}
 <span class="font-bold text-white text-sm" id="user-name"></span>
 
 <!-- Espace utilisateur (crédits + accès Premium) -->
-<a id="billing-link" href="/pricing" class="hidden bg-[#111] hover:bg-[#161616] border border-[#333] text-white px-3 py-1.5 rounded font-bold transition text-[11px]" title="Gérer crédits / Premium">
-  <span class="text-gray-400">Crédits:</span> <span id="billing-credits" class="text-[#00f2ea]">—</span>
-  <span id="billing-plan" class="ml-2 text-[10px] text-gray-400">FREE</span>
-</a>
-<button id="dashboard-market-link" class="hidden bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-3 py-1.5 rounded font-bold transition text-[11px]" title="Ouvrir le Marché (Portfolio)" onclick="openMarketOverlay('portfolio')">
-  <i class="fas fa-chart-line mr-1"></i> Marché
-</button>
+<!-- Espace utilisateur (crédits + accès Premium) -->
+<div id="billing-menu-wrap" class="hidden relative">
+  <button id="billing-link" class="bg-[#111] hover:bg-[#161616] border border-[#333] text-white px-3 py-1.5 rounded font-bold transition text-[11px] inline-flex items-center gap-2" title="Plan, crédits & portefeuille">
+    <span class="text-gray-400">Crédits:</span> <span id="billing-credits" class="text-[#00f2ea]">—</span>
+    <span id="billing-plan" class="ml-1 text-[10px] text-gray-400">FREE</span>
+    <i class="fas fa-chevron-down text-[10px] text-gray-500"></i>
+  </button>
+
+  <div id="billing-menu" class="hidden absolute right-0 mt-2 w-[320px] bg-[#0b0b0d] border border-[#222] rounded-xl shadow-[0_18px_60px_rgba(0,0,0,.65)] z-[999] overflow-hidden">
+    <div class="p-3 border-b border-[#222]">
+      <div class="text-[11px] text-gray-400 uppercase font-bold">Plan & crédits</div>
+      <div class="mt-1 flex items-center justify-between">
+        <div class="text-sm font-bold text-white"><span id="billing-plan-2">FREE</span></div>
+        <div class="text-sm font-bold"><span class="text-gray-400">Crédits</span> <span id="billing-credits-2" class="text-[#00f2ea]">—</span></div>
+      </div>
+      <div class="mt-2 flex gap-2">
+        <a href="/pricing" class="flex-1 text-center bg-[#00f2ea] text-black font-extrabold text-[12px] py-2 rounded-lg">Voir /pricing</a>
+        <button id="goto-portfolio" class="flex-1 text-center bg-[#111] border border-[#333] text-white font-extrabold text-[12px] py-2 rounded-lg">Portefeuille</button>
+      </div>
+      <div class="mt-2 text-[11px] text-gray-500">Le Portefeuille Marché utilise les mêmes crédits que la Bourse.</div>
+    </div>
+
+    <div class="p-3">
+      <div class="text-[11px] text-gray-400 uppercase font-bold mb-2">Portefeuille Marché (aperçu)</div>
+      <div class="flex items-center justify-between">
+        <div class="text-[11px] text-gray-500">Cash</div>
+        <div class="text-sm font-extrabold text-white"><span id="pf-cash-top">—</span></div>
+      </div>
+      <div id="pf-top-holdings" class="mt-2 text-[11px] text-gray-300 space-y-1"></div>
+      <button id="open-market-from-menu" class="mt-3 w-full bg-[#111] border border-[#00f2ea33] text-[#00f2ea] font-extrabold text-[12px] py-2 rounded-lg">
+        <i class="fas fa-chart-line mr-2"></i> Ouvrir le Marché
+      </button>
+    </div>
+  </div>
+</div>
 <button class="text-gray-500 hover:text-white" onclick="logout()">
 <i class="fas fa-sign-out-alt"></i>
 </button>

@@ -2018,6 +2018,17 @@ async function updateBillingCredits(twitchUser, delta){
   }, { merge: true });
 }
 
+
+async function setBillingCreditsAbsolute(twitchUser, credits){
+  if(!firestoreOk) return;
+  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const ref = db.collection(BILLING_USERS).doc(id);
+  await ref.set({
+    credits: Number(credits||0),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
 async function setBillingPlan(twitchUser, plan){
   if(!firestoreOk) return;
   const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
@@ -2067,11 +2078,16 @@ app.get('/api/fantasy/profile', async (req,res)=>{
 
         const bill = await getBillingDoc(tu);
     // Single source of truth: billing credits == market cash
-    const cash = Number(bill.credits||0);
-    // keep wallet cash in sync for leaderboard compatibility
-    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }
+    let cash = Number(bill.credits||0);
 
-    res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
+    // One-time migration: if billing credits are 0 but legacy fantasy wallet cash exists, sync it into billing.
+    if(cash <= 0 && Number(w.cash||0) > 0){
+      cash = Number(w.cash||0);
+      try{ await setBillingCreditsAbsolute(tu, cash); }catch(_){ }
+    }
+
+    // keep wallet cash in sync for leaderboard compatibility (do not erase holdings)
+    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -2202,9 +2218,21 @@ app.get('/api/billing/me', async (req,res)=>{
   try{
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
-    const b = await getBillingDoc(tu);
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {} });
-  }catch(e){
+    let b = await getBillingDoc(tu);
+
+    // Migration safety: if billing credits are 0 but fantasy wallet cash exists, sync it once.
+    if(Number(b.credits||0) <= 0){
+      try{
+        const userKey = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
+        const w = await getUserWallet(userKey);
+        if(Number(w.cash||0) > 0){
+          await setBillingCreditsAbsolute(tu, Number(w.cash||0));
+          b = await getBillingDoc(tu);
+        }
+      }catch(_){}
+    }
+
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {} });}catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
