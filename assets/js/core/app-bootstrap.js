@@ -1955,6 +1955,15 @@ function injectPaywallCSS(){
     }
     .paywall-cta small{ opacity:.65; font-size:11px; }
 
+    .paywall-chips{ margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
+    .paywall-chip{
+      font-size:11px; padding:4px 8px; border-radius:999px;
+      background: rgba(0,242,234,.10);
+      border: 1px solid rgba(0,242,234,.22);
+      color: rgba(255,255,255,.82);
+      letter-spacing: .2px;
+    }
+
     /* Tools padding - avoid "collé au bord" */
     #tab-tools, #tab-tools *{ box-sizing: border-box; }
     #tab-tools{ padding: 10px 10px 14px !important; }
@@ -1985,15 +1994,31 @@ function buildPortal(el){
     root.appendChild(portal);
   }
 
-  const title = el.getAttribute('data-paywall-title') || 'Module Premium';
-  const desc  = el.getAttribute('data-paywall-desc')  || 'Débloque ce module avec Premium/Pro ou des crédits.';
+  const kind = el.getAttribute('data-paywall-kind') || '';
+  const isAnalytics = (kind === 'analytics') || el.id === 'under-analytics' || el.getAttribute('data-paywall-scope') === 'analytics';
+  const title = isAnalytics ? 'Analytics Pro — Dashboard Premium' : (el.getAttribute('data-paywall-title') || 'Module Premium');
+  const desc  = isAnalytics ? "Débloque le dashboard Premium (Overview / Analytics Pro / Niche) pour suivre tes stats, tes tendances et tes opportunités avec des insights actionnables." : (el.getAttribute('data-paywall-desc') || 'Débloque ce module avec Premium/Pro ou des crédits.');
+  const bullets = isAnalytics ? `
+      <ul style="margin:10px 0 0; padding-left:18px; font-size:12.5px; line-height:1.35; color:rgba(255,255,255,.78)">
+        <li>Graphes avancés & historique (pics, creux, patterns)</li>
+        <li>Best Time to Stream (IA) + recommandations de rythme</li>
+        <li>Alertes automatiques (opportunités / risques) + résumé actionnable</li>
+        <li>Analyse Niche : comparaisons, signaux & axes d’optimisation</li>
+      </ul>` : '';
+  const foot = isAnalytics ? 'Dashboard Premium' : 'Plan + crédits + outils IA';
+  const chips = isAnalytics ? `
+    <div class="paywall-chips">
+      <span class="paywall-chip">OVERVIEW</span>
+      <span class="paywall-chip">ANALYTICS PRO</span>
+      <span class="paywall-chip">NICHE</span>
+    </div>` : '';
   portal.innerHTML = `
     <div class="paywall-card">
-      <div class="paywall-head"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>
-      <div class="paywall-desc">${escapeHtml(desc)}</div>
+      <div class="paywall-head"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>${chips}
+      <div class="paywall-desc">${escapeHtml(desc)}</div>${bullets}
       <div class="paywall-cta">
-        <a href="/pricing"><i class="fas fa-crown"></i> Débloquer</a>
-        <small>Plan + crédits + outils IA</small>
+        <a href="/pricing"><i class="fas fa-crown"></i> Voir les offres</a>
+        <small>${escapeHtml(foot)}</small>
       </div>
     </div>
   `;
@@ -2060,10 +2085,27 @@ function applyPaywallUI(){
   const locked = (plan === 'FREE' && credits <= 0);
 
   const els = Array.from(document.querySelectorAll('[data-paywall]'));
-  els.forEach(el=>{
-    if (locked) lockPaywallElement(el);
-    else unlockPaywallElement(el);
-  });
+  const analyticsRoot = document.getElementById('under-analytics') || document.querySelector('[data-paywall-scope="analytics"]');
+
+  if (!locked){
+    els.forEach(el=> unlockPaywallElement(el));
+  } else {
+    // If multiple premium blocks exist inside Analytics area, show a SINGLE overlay for the whole dashboard.
+    if (analyticsRoot){
+      analyticsRoot.setAttribute('data-paywall-kind','analytics');
+      if (!analyticsRoot.hasAttribute('data-paywall')) analyticsRoot.setAttribute('data-paywall','1');
+      lockPaywallElement(analyticsRoot);
+    }
+    els.forEach(el=>{
+      if (analyticsRoot && el !== analyticsRoot && analyticsRoot.contains(el)){
+        // prevent duplicates inside analytics scope
+        unlockPaywallElement(el);
+        return;
+      }
+      if (analyticsRoot && el === analyticsRoot) return;
+      lockPaywallElement(el);
+    });
+  }
 
   // keep portals positioned
   updatePaywallPortals();
