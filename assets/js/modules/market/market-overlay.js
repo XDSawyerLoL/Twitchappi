@@ -33,6 +33,23 @@
   let autoTimer = null;
   let cache = new Map(); // login -> last market response
 
+
+  // --- Billing (credits/plan) ---
+  async function fetchBilling(){
+    try{
+      const r = await fetch('/api/billing/me');
+      const j = await r.json();
+      if(!j?.success) return { plan:'free', credits:0 };
+      return { plan: String(j.plan||'free').toLowerCase(), credits: Number(j.credits||0) };
+    }catch(_){
+      return { plan:'free', credits:0 };
+    }
+  }
+
+  function goPricing(){
+    try{ window.location.href = '/pricing'; }catch(_){}
+  }
+
   const LS_KEY = 'mkt_watchlist_v1';
   const LS_SEL = 'mkt_selected_v1';
 
@@ -329,6 +346,9 @@
     if(!amount || amount<=0) return;
 
     const path = side === 'buy' ? '/api/fantasy/invest' : '/api/fantasy/sell';
+        const bill = await fetchBilling();
+    if(String(bill.plan||'free').toLowerCase()==='free' && Number(bill.credits||0)<=0){ goPricing(); return; }
+
     await fetch(path, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -336,8 +356,9 @@
     }).catch(()=>{});
 
     // refresh selected and watchlist
-    await refreshSelected();
+        await refreshSelected();
     await refreshWatchlist();
+    try{ window.loadBillingMe && window.loadBillingMe(); }catch(_){ }
   }
 
   function setTab(name){
@@ -492,7 +513,8 @@
       $('#pf-cash').textContent = '—';
       return;
     }
-    const cash = Number(prof.cash||0);
+        const bill = await fetchBilling();
+    const cash = Number(bill.credits||0);
     const holds = prof.holdings || [];
     const holdValue = holds.reduce((s,h)=>s+Number(h.value||0),0);
     const net = cash + holdValue;
@@ -613,8 +635,9 @@
 
   // Override the existing refreshMarketAll called by openMarketOverlay()
   window.refreshMarketAll = async function(){
-    await refreshSelected();
+        await refreshSelected();
     await refreshWatchlist();
+    try{ window.loadBillingMe && window.loadBillingMe(); }catch(_){ }
   };
 
   // Improve open/close to lock scroll and hide auxiliary buttons
