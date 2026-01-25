@@ -1859,15 +1859,8 @@ function applyPaywallUI(){
   const plan = String(st.plan || 'FREE').toUpperCase();
   const credits = Number(st.credits || 0);
 
+  // Lock when user has no subscription and no credits
   const locked = (plan === 'FREE' && credits <= 0);
-
-  const targets = [
-    { sel:'#under-overview', scope:'#under-overview', title:'Outils Pro', desc:'Débloque les modules IA (plan, alertes, best time) + crédits inclus' },
-{ sel:'#analyze-schedule-btn', scope:'.best-time-tool', title:'Best Time IA', desc:'Horaires optimisés + suggestions par jeu' },
-    { sel:'#btn-ai-reco', scope:'#under-overview', title:'Plan d’action IA', desc:'Recommandations personnalisées pour accélérer ta croissance' },
-    { sel:'#alerts-box', scope:null, title:'Alertes automatiques', desc:'Détection de pics, risques, opportunités (auto)' },
-    { sel:'#scan-query', scope:null, title:'Scanner IA', desc:'Analyse de niche + score + opportunités' }
-  ];
 
   // Inject CSS once
   if (!document.getElementById('paywall-css')){
@@ -1882,11 +1875,11 @@ function applyPaywallUI(){
         padding:14px;
         cursor:pointer;
       }
-      .paywall-locked > :not(.paywall-overlay){ filter: blur(2px) saturate(.85); opacity:.65; pointer-events:none; }
+      .paywall-locked > :not(.paywall-overlay){ filter: blur(2.5px) saturate(.85); opacity:.65; pointer-events:none; user-select:none; }
       .paywall-overlay-card{
-        max-width:420px; width:100%;
-        border:1px solid rgba(255,255,255,.14);
-        background:rgba(10,10,10,.65);
+        max-width:460px; width:100%;
+        border:1px solid rgba(255,255,255,.16);
+        background:rgba(10,10,10,.72);
         border-radius:14px;
         padding:14px;
         box-shadow:0 18px 60px rgba(0,0,0,.55);
@@ -1904,54 +1897,56 @@ function applyPaywallUI(){
         display:inline-flex; align-items:center; gap:8px;
         padding:8px 10px; border-radius:12px;
         background:#00f2ea; color:#000; font-weight:900; font-size:12px;
+        text-decoration:none;
       }
       .paywall-cta span{ font-size:11px; color:rgba(255,255,255,.65); }
     `;
     document.head.appendChild(css);
   }
 
-  const lockify = (container, meta) => {
-    if (!container) return;
-    if (!locked){
-      // unlock: remove overlay
-      const ov = container.querySelector(':scope > .paywall-overlay');
-      if (ov) ov.remove();
-      container.classList.remove('paywall-locked');
-      return;
+  const paywallEls = Array.from(document.querySelectorAll('[data-paywall]'));
+
+  paywallEls.forEach((el) => {
+    const title = el.getAttribute('data-paywall-title') || 'Module Premium';
+    const desc  = el.getAttribute('data-paywall-desc') || 'Débloque ce module avec Premium/Pro ou des crédits.';
+    const existing = el.querySelector(':scope > .paywall-overlay');
+
+    if (locked){
+      el.classList.add('paywall-locked');
+      if (!existing){
+        const overlay = document.createElement('div');
+        overlay.className = 'paywall-overlay';
+        overlay.innerHTML = `
+          <div class="paywall-overlay-card">
+            <div class="paywall-lock"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>
+            <div class="paywall-desc">${escapeHtml(desc)}</div>
+            <div class="paywall-cta">
+              <a href="/pricing"><i class="fas fa-crown"></i> Débloquer (Premium/Crédits)</a>
+              <span>Plan + crédits + accès outils IA</span>
+            </div>
+          </div>
+        `;
+        overlay.addEventListener('click', () => { window.location.href = '/pricing'; });
+        el.appendChild(overlay);
+      }
+    } else {
+      el.classList.remove('paywall-locked');
+      if (existing) existing.remove();
     }
-    if (container.classList.contains('paywall-locked')) return;
-
-    container.classList.add('paywall-locked');
-
-    const overlay = document.createElement('div');
-    overlay.className = 'paywall-overlay';
-    overlay.innerHTML = `
-      <div class="paywall-overlay-card">
-        <div class="paywall-lock"><i class="fas fa-lock" style="font-size:18px"></i> ${meta.title || 'Fonction Premium'}</div>
-        <div class="paywall-desc">
-          ${meta.desc || 'Débloque cette fonction et garde une avance nette sur les autres.'}
-          <br/><br/>
-          <strong style="color:#fff">Ce que tu rates :</strong><ul style="margin:8px 0 0 16px;color:rgba(255,255,255,.82);font-size:12px;line-height:1.35;list-style:disc;"><li>Plan d’action IA concret (quoi faire, quand, et pourquoi)</li><li>Alertes automatiques (pics, risques, opportunités)</li><li>Best Time IA (heures optimales selon ton contenu)</li><li>Crédits inclus + accès Premium</li></ul>
-        </div>
-        <div class="paywall-cta">
-          <a href="/pricing">Voir l’abonnement & crédits</a>
-          <span>Cliquer ouvre /pricing</span>
-        </div>
-      </div>
-    `;
-    overlay.addEventListener('click', () => { window.location.href = '/pricing'; });
-    container.appendChild(overlay);
-  };
-
-  targets.forEach(t => {
-    const el = document.querySelector(t.sel);
-    if (!el) return;
-    const container = t.scope ? (el.closest(t.scope) || el.parentElement) : (el.closest('.bg-[#111]') || el.parentElement);
-    lockify(container, t);
   });
+
+  // Helper: minimal HTML escape
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
 }
 
-// === MARKET OVERLAY (fallback global handlers) ===
+
 function setMarketTab(tab){
   const overlay = document.getElementById('market-overlay');
   if (!overlay) return;
