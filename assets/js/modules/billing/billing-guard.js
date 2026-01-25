@@ -2,95 +2,20 @@
   const API_BASE = window.location.origin;
   const $ = (id)=>document.getElementById(id);
 
-  const FEATURE_COST = 200;
-
-  const FEATURE_TARGETS = [
-    { feature:'overview',  sel:'#under-overview',  title:'Overview',      teaser:'Résumé actionnable + verdict IA + points forts/faibles.' },
-    { feature:'analytics', sel:'#under-analytics', title:'Analytic Pro',   teaser:'Benchmark, recommandations, best time et signaux concurrence.' },
-    { feature:'niche',     sel:'#under-niche',     title:'Niche',         teaser:'Score niche, potentiel, risques, axes de contenus gagnants.' },
-    { feature:'besttime',  sel:'.best-time-tool',  title:'Best Time',     teaser:'Créneaux gagnants (jours/heures) selon jeu + concurrence.' },
-  ];
+  const COST_PER_TAB = 200;
+  const FEATURES = {
+    overview: { containerId: 'under-overview' },
+    analytics: { containerId: 'under-analytics' },
+    niche: { containerId: 'under-niche' },
+    bestTime: { selector: '.best-time-tool' } // can be multiple
+  };
 
   async function getJson(url, opts){
-    const r = await fetch(url, { credentials:'include', ...(opts||{}) });
+    const r = await fetch(url, Object.assign({ credentials:'include' }, opts||{}));
     const ct = r.headers.get('content-type') || '';
     const data = ct.includes('application/json') ? await r.json() : null;
     if(!r.ok) throw new Error((data && (data.error || data.message)) || 'Erreur serveur');
     return data;
-  }
-
-  function ensureOverlay(container, cfg){
-    if(!container) return null;
-
-    // anti-dup
-    if(container.dataset.eveyLocked === '1') return container.querySelector('.evey-lock-overlay') || null;
-
-    container.dataset.eveyLocked = '1';
-    container.classList.add('evey-locked');
-
-    // make sure container can host overlay
-    const cs = window.getComputedStyle(container);
-    if(cs.position === 'static') container.style.position = 'relative';
-    container.style.minHeight = container.style.minHeight || '220px';
-
-    // blur underlying children (but keep overlay sharp)
-    Array.from(container.children).forEach(ch=>{
-      if(ch.classList && ch.classList.contains('evey-lock-overlay')) return;
-      ch.classList.add('evey-lock-blur');
-    });
-
-    const ov = document.createElement('div');
-    ov.className = 'evey-lock-overlay';
-    ov.innerHTML = `
-      <div class="evey-lock-card">
-        <div class="evey-lock-icon">🔒</div>
-        <div class="evey-lock-title">Fonction Premium</div>
-        <div class="evey-lock-sub">${cfg.title} — ${cfg.teaser}</div>
-        <div class="evey-lock-actions">
-          <button class="evey-btn evey-btn-primary" data-action="unlock">Débloquer (${FEATURE_COST})</button>
-          <button class="evey-btn evey-btn-secondary" data-action="premium">Passer Premium</button>
-          <button class="evey-btn evey-btn-ghost" data-action="login">Se connecter</button>
-        </div>
-      </div>
-    `;
-    container.appendChild(ov);
-    return ov;
-  }
-
-  function unlockVisual(container){
-    if(!container) return;
-    container.dataset.eveyLocked = '0';
-    container.classList.remove('evey-locked');
-    Array.from(container.querySelectorAll('.evey-lock-overlay')).forEach(n=>n.remove());
-    Array.from(container.children).forEach(ch=>ch.classList && ch.classList.remove('evey-lock-blur'));
-  }
-
-  function injectStylesOnce(){
-    if(document.getElementById('evey-lock-styles')) return;
-    const s = document.createElement('style');
-    s.id = 'evey-lock-styles';
-    s.textContent = `
-      .evey-lock-blur{ filter: blur(8px); opacity:.55; pointer-events:none; }
-      .evey-lock-overlay{
-        position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-        background:rgba(0,0,0,.45); z-index:50;
-      }
-      .evey-lock-card{
-        width:min(520px,92%); background:rgba(10,10,10,.85);
-        border:1px solid rgba(255,255,255,.08); border-radius:16px;
-        padding:18px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.55);
-        backdrop-filter: blur(10px);
-      }
-      .evey-lock-icon{ font-size:28px; margin-bottom:6px; }
-      .evey-lock-title{ font-weight:800; letter-spacing:.4px; margin-bottom:6px; }
-      .evey-lock-sub{ font-size:12px; opacity:.9; line-height:1.35; margin:0 auto 12px; max-width:420px; }
-      .evey-lock-actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-      .evey-btn{ border-radius:12px; padding:10px 14px; font-weight:800; font-size:12px; border:1px solid transparent; cursor:pointer; }
-      .evey-btn-primary{ background:#e50914; color:#fff; }
-      .evey-btn-secondary{ background:#1f1f1f; color:#fff; border-color:#2b2b2b; }
-      .evey-btn-ghost{ background:transparent; color:#fff; border-color:rgba(255,255,255,.18); }
-    `;
-    document.head.appendChild(s);
   }
 
   async function refreshBillingBadge(){
@@ -102,20 +27,163 @@
     try{
       const auth = await getJson(`${API_BASE}/twitch_user_status`);
       if(!auth?.is_connected) return;
-
       const me = await getJson(`${API_BASE}/api/billing/me`);
-      const payload = me.success === false ? null : (me.success === true ? me : me);
-      if(!payload) return;
-
       link.classList.remove('hidden');
-      c.textContent = String(payload.credits ?? 0);
-      p.textContent = String(payload.plan ?? 'free').toUpperCase();
-    }catch(_){
-      // keep silent
+      c.textContent = String(me.credits ?? 0);
+      p.textContent = String(me.plan ?? 'free').toUpperCase();
+    }catch(_){}
+  }
+
+  function ensurePaywallStyles(){
+    if(document.getElementById('paywall-style')) return;
+    const css = document.createElement('style');
+    css.id = 'paywall-style';
+    css.textContent = `
+      .paywall-wrap{ position:relative; }
+      .paywall-blur{ filter: blur(7px); opacity:.55; pointer-events:none; user-select:none; }
+      .paywall-overlay{
+        position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+        background: rgba(0,0,0,.35);
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 14px;
+        z-index: 40;
+      }
+      .paywall-card{
+        width: min(420px, 92%);
+        padding: 16px 14px;
+        border-radius: 14px;
+        background: rgba(8,8,10,.85);
+        border: 1px solid rgba(255,255,255,.10);
+        box-shadow: 0 18px 55px rgba(0,0,0,.55);
+        text-align:center;
+      }
+      .paywall-lock{
+        width: 44px; height:44px; border-radius: 14px;
+        display:flex; align-items:center; justify-content:center;
+        margin: 0 auto 10px auto;
+        background: rgba(229,9,20,.14);
+        border: 1px solid rgba(229,9,20,.28);
+        color: #e50914;
+        font-size: 18px;
+      }
+      .paywall-title{ font-weight:800; font-size: 13px; color:#fff; }
+      .paywall-sub{ margin-top:6px; font-size:12px; color: rgba(255,255,255,.72); }
+      .paywall-actions{ display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+      .paywall-btn{
+        padding:10px 12px; border-radius:12px; font-size:12px; font-weight:800;
+        border:1px solid rgba(255,255,255,.12);
+        background: rgba(255,255,255,.06);
+        color:#fff;
+        cursor:pointer;
+      }
+      .paywall-btn.primary{
+        background:#e50914;
+        border-color:#e50914;
+      }
+      .paywall-btn:hover{ transform: translateY(-1px); }
+    `;
+    document.head.appendChild(css);
+  }
+
+  function wrapAndBlur(el, featureKey){
+    if(!el || el.dataset.paywalled === '1') return;
+    ensurePaywallStyles();
+
+    // Wrap element to hold overlay
+    const wrap = document.createElement('div');
+    wrap.className = 'paywall-wrap';
+    el.parentNode.insertBefore(wrap, el);
+    wrap.appendChild(el);
+
+    el.classList.add('paywall-blur');
+    el.dataset.paywalled = '1';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'paywall-overlay';
+    overlay.innerHTML = `
+      <div class="paywall-card">
+        <div class="paywall-lock"><i class="fas fa-lock"></i></div>
+        <div class="paywall-title">Fonction Premium</div>
+        <div class="paywall-sub">Débloque cet onglet pour <b>${COST_PER_TAB}</b> crédits (définitif) ou passe Premium.</div>
+        <div class="paywall-actions">
+          <button class="paywall-btn primary" data-unlock="${featureKey}">Débloquer (${COST_PER_TAB})</button>
+          <button class="paywall-btn" data-pricing="1">Passer Premium</button>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(overlay);
+  }
+
+  function unblur(el){
+    if(!el) return;
+    el.classList.remove('paywall-blur');
+    const wrap = el.parentElement;
+    if(wrap && wrap.classList.contains('paywall-wrap')){
+      const ov = wrap.querySelector('.paywall-overlay');
+      if(ov) ov.remove();
+      // unwrap to keep DOM clean
+      wrap.parentNode.insertBefore(el, wrap);
+      wrap.remove();
     }
   }
 
-  // Gate Market overlay (Twitch + credits/premium)
+  async function applyPaywalls(){
+    try{
+      const auth = await getJson(`${API_BASE}/twitch_user_status`);
+      if(!auth?.is_connected) return; // paywall is user-specific
+
+      const me = await getJson(`${API_BASE}/api/billing/me`);
+      const plan = String(me.plan || 'free').toLowerCase();
+      const ent = me.entitlements || {};
+
+      // Premium = everything unlocked
+      if(plan === 'premium'){
+        Object.values(FEATURES).forEach(cfg=>{
+          if(cfg.containerId) unblur($(cfg.containerId));
+          if(cfg.selector) document.querySelectorAll(cfg.selector).forEach(unblur);
+        });
+        return;
+      }
+
+      // Overview / analytics / niche
+      for(const key of ['overview','analytics','niche']){
+        const cfg = FEATURES[key];
+        const el = $(cfg.containerId);
+        if(ent[key] === true) unblur(el);
+        else wrapAndBlur(el, key);
+      }
+
+      // Best time: can be multiple boxes, treat as one feature
+      document.querySelectorAll(FEATURES.bestTime.selector).forEach(el=>{
+        if(ent.bestTime === true || ent.analytics === true) unblur(el); // if analytics unlocked, allow best time
+        else wrapAndBlur(el, 'bestTime');
+      });
+
+    }catch(e){
+      // silent: never break app
+      console.warn('[PAYWALL]', e.message);
+    }
+  }
+
+  async function unlockFeature(feature){
+    try{
+      const r = await getJson(`${API_BASE}/api/billing/unlock-feature`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ feature, cost: COST_PER_TAB })
+      });
+      if(r.success){
+        await refreshBillingBadge();
+        await applyPaywalls();
+      }else{
+        alert(r.error || 'Déblocage impossible');
+      }
+    }catch(e){
+      alert(e.message || 'Déblocage impossible');
+    }
+  }
+
+  // Gate Market overlay: must be Twitch-connected, then Premium required (redirect pricing)
   function installMarketGate(){
     const _open = window.openMarketOverlay;
     if(!_open) return;
@@ -125,16 +193,14 @@
         const st = await getJson(`${API_BASE}/twitch_user_status`);
         if(!st?.is_connected){
           if(typeof window.startAuth === 'function') return window.startAuth();
-          window.location.href = '/pricing';
+          alert('Connexion Twitch requise.');
           return;
         }
 
         const me = await getJson(`${API_BASE}/api/billing/me`);
-        const plan = String((me.plan ?? (me.success && me.plan)) || 'free').toLowerCase();
-        const credits = Number((me.credits ?? (me.success && me.credits)) || 0);
-
-        // market: premium OR has credits for at least one action
-        if(plan !== 'premium' && credits < 20){
+        const plan = String(me.plan || 'free').toLowerCase();
+        if(plan !== 'premium'){
+          // Market is Pro/Premium feature: go pricing
           window.location.href = '/pricing';
           return;
         }
@@ -147,87 +213,26 @@
     };
   }
 
-  async function applyPaywalls(){
-    injectStylesOnce();
+  document.addEventListener('click', (e)=>{
+    const b1 = e.target.closest('[data-pricing="1"]');
+    if(b1){ e.preventDefault(); window.location.href='/pricing'; return; }
 
-    // default: lock everything immediately (also when not connected)
-    const containers = [];
-    for(const cfg of FEATURE_TARGETS){
-      const node = document.querySelector(cfg.sel);
-      if(!node) continue;
-      containers.push({cfg, node});
-      const ov = ensureOverlay(node, cfg);
-      if(ov){
-        ov.addEventListener('click', async (ev)=>{
-          const btn = ev.target.closest('button[data-action]');
-          if(!btn) return;
-          const act = btn.getAttribute('data-action');
-
-          if(act === 'premium'){
-            window.location.href = '/pricing';
-            return;
-          }
-          if(act === 'login'){
-            if(typeof window.startAuth === 'function') return window.startAuth();
-            window.location.href = '/pricing';
-            return;
-          }
-          if(act === 'unlock'){
-            try{
-              const st = await getJson(`${API_BASE}/twitch_user_status`);
-              if(!st?.is_connected){
-                if(typeof window.startAuth === 'function') return window.startAuth();
-                window.location.href = '/pricing';
-                return;
-              }
-              const r = await getJson(`${API_BASE}/api/billing/unlock-feature`, {
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ feature: cfg.feature })
-              });
-              if(r && (r.success === true || r.ok === true)){
-                await refreshBillingBadge();
-                // re-evaluate
-                await hydrateUnlockStates();
-              }
-            }catch(e){
-              alert(e.message || 'Déblocage impossible');
-            }
-          }
-        }, { passive:true });
-      }
+    const b2 = e.target.closest('[data-unlock]');
+    if(b2){
+      e.preventDefault();
+      const f = b2.getAttribute('data-unlock');
+      unlockFeature(f);
+      return;
     }
-
-    async function hydrateUnlockStates(){
-      let st = null;
-      try{ st = await getJson(`${API_BASE}/twitch_user_status`); }catch(_){}
-      const isConnected = !!st?.is_connected;
-
-      // if not connected: keep locked, but buttons still shown (login/pricing)
-      if(!isConnected) return;
-
-      let me = null;
-      try{ me = await getJson(`${API_BASE}/api/billing/me`); }catch(_){}
-      if(!me) return;
-
-      const plan = String(me.plan || 'free').toLowerCase();
-      const ent = (me.entitlements && typeof me.entitlements === 'object') ? me.entitlements : {};
-
-      for(const {cfg, node} of containers){
-        const unlocked = (plan === 'premium') || (ent[cfg.feature] === true);
-        if(unlocked) unlockVisual(node);
-      }
-    }
-
-    // hydrate after initial paint
-    setTimeout(hydrateUnlockStates, 120);
-  }
+  });
 
   document.addEventListener('DOMContentLoaded', ()=>{
     refreshBillingBadge();
     installMarketGate();
-    applyPaywalls();
+    // apply paywalls after initial render
+    setTimeout(applyPaywalls, 200);
   });
 
   window.refreshBillingBadge = refreshBillingBadge;
+  window.applyPaywalls = applyPaywalls;
 })();

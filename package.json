@@ -1,28 +1,28 @@
 {
-  "name": "streamer-hub-v95-final",
-  "version": "5.0.0",
-  "description": "Streamer Hub - Moteur Twitchappi",
+  "name": "streamerhub",
+  "version": "1.0.0",
+  "private": true,
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
   },
-  "dependencies": {
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
-    "node-fetch": "^2.6.1",
-    "body-parser": "^1.20.2",
-    "cookie-parser": "^1.4.6",
-    "firebase-admin": "^12.1.0",
-    "dotenv": "^16.4.5",
-    "@google/genai": "latest",
-    "socket.io": "^4.7.5",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.4.1",
-    "express-session": "^1.18.0",
-    "memorystore": "^1.6.7",
-    "stripe": "^16.12.0"
-  },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "body-parser": "^1.20.3",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.1",
+    "express-session": "^1.17.3",
+    "firebase-admin": "^12.5.0",
+    "helmet": "^7.1.0",
+    "memorystore": "^1.6.7",
+    "node-fetch": "^2.6.12",
+    "socket.io": "^4.7.5",
+    "stripe": "^14.25.0"
   }
 }

@@ -100,7 +100,7 @@
         status.textContent = 'Non connecté';
         meLine.textContent = 'Connecte-toi pour acheter des crédits / activer Premium.';
         btnLogin.classList.remove('hidden');
-        btnLogin.onclick = () => window.open(API + '/twitch_auth_start', 'login', 'width=520,height=720');
+        btnLogin.onclick = () => { const u = API + '/twitch_auth_start'; try{ if(window.top && window.top!==window) window.top.location.href = u; else window.location.href = u; }catch(e){ window.location.href = u; } };
         badge.textContent = '— crédits';
         return;
       }
@@ -127,7 +127,7 @@
         alert((d && d.error) ? d.error : 'Erreur paiement');
         return;
       }
-      if(d.url) window.location.href = d.url;
+      if(d.url){ try{ if(window.top && window.top!==window) window.top.location.href = d.url; else window.location.href = d.url; }catch(e){ window.open(d.url,'_blank','noopener,noreferrer'); } }
     }
 
     document.querySelectorAll('button[data-sku]').forEach(b=>{
