@@ -2368,6 +2368,9 @@ body.modal-open #player-tools{display:none !important;}
   <span class="text-gray-400">Crédits:</span> <span id="billing-credits" class="text-[#00f2ea]">—</span>
   <span id="billing-plan" class="ml-2 text-[10px] text-gray-400">FREE</span>
 </a>
+<button id="dashboard-market-link" class="hidden bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-3 py-1.5 rounded font-bold transition text-[11px]" title="Ouvrir le Marché (Portfolio)" onclick="openMarketOverlay('portfolio')">
+  <i class="fas fa-chart-line mr-1"></i> Marché
+</button>
 <button class="text-gray-500 hover:text-white" onclick="logout()">
 <i class="fas fa-sign-out-alt"></i>
 </button>
@@ -2496,8 +2499,7 @@ body.modal-open #player-tools{display:none !important;}
     <a href="/pricing" class="text-[11px] text-[#00f2ea] hover:underline">Plan &amp; crédits</a>
   </div>
   <div class="text-[11px] text-gray-500 mb-3">Investir / vendre consomme des crédits si vous n’êtes pas Premium. Les contrôles sont forcés côté serveur.</div>
-  <button class="modal-close" onclick="closeFantasy(event)">✕</button>
-</div>
+  </div>
 <div style="display:flex;gap:12px;flex-wrap:wrap;">
 <div style="flex:1;min-width:290px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);">
 <div style="font-weight:900;color:#00f2ea;margin-bottom:6px;">Portefeuille (max 10 streamers)</div>
