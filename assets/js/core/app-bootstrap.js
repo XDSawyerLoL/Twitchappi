@@ -121,32 +121,18 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       // Requires Twitch session
       const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include' });
       const d = await r.json().catch(()=>null);
-      const wrap = document.getElementById('billing-menu-wrap');
-      const btn = document.getElementById('billing-link');
+      const link = document.getElementById('billing-link');
       const elCredits = document.getElementById('billing-credits');
       const elPlan = document.getElementById('billing-plan');
-      const elCredits2 = document.getElementById('billing-credits-2');
-      const elPlan2 = document.getElementById('billing-plan-2');
-
+      if(!link || !elCredits || !elPlan) return;
       if(!d || !d.success){
         // keep hidden if not available
         return;
       }
-      if (wrap) wrap.classList.remove('hidden');
-
-      const credits = Number(d.credits ?? 0);
-      const plan = String((d.plan || 'FREE')).toUpperCase();
-
-      if (elCredits) elCredits.textContent = String(credits);
-      if (elPlan) elPlan.textContent = plan;
-      if (elCredits2) elCredits2.textContent = String(credits);
-      if (elPlan2) elPlan2.textContent = plan;
-
-      // global billing state
-      window.__billingState = { plan, credits };
-      try{ applyPaywallUI(); }catch(_){ }
-      try{ syncMarketCredits(); }catch(_){ }
-}
+      link.classList.remove('hidden');
+      elCredits.textContent = String(d.credits ?? 0);
+      elPlan.textContent = String((d.plan || 'FREE')).toUpperCase();
+    }
 
     function startAuth() {
       window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
@@ -657,7 +643,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
       // 2) server resolver (best, avoids CORS + no API key)
       try{
-        const q = `${name} official trailer video game`;
+        const q = `${name} game trailer`;
         const r = await fetch(`${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
@@ -746,177 +732,52 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         return;
       }
 
-      // One trailer at a time
-      if (!window.__tfTrailerState){
-        window.__tfTrailerState = { activeCard: null, activeIframe: null };
-      }
-
-      const stopActive = () => {
-        const st = window.__tfTrailerState;
-        if (st.activeIframe){
-          try{ st.activeIframe.src = 'about:blank'; }catch(_){}
-          try{ st.activeIframe.remove(); }catch(_){}
-        }
-        if (st.activeCard){
-          st.activeCard.classList.remove('is-playing');
-          const ph = st.activeCard.querySelector('.tf-thumb');
-          if (ph) ph.classList.remove('hidden');
-        }
-        st.activeCard = null;
-        st.activeIframe = null;
-      };
-
       cats.forEach(cat => {
         const gameName = String(cat.name || '').trim();
         const key = gameName.toLowerCase();
-        const manualVid = TRAILER_MAP[key];
+        const vid = TRAILER_MAP[key];
 
         const card = document.createElement('div');
-        card.className = 'tf-trailer-card tf-hover';
-        card.setAttribute('tabindex','0');
+        card.className = 'tf-trailer-card';
 
-        const titleHtml = (gameName || 'Trailer').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-        // Thumb placeholder
-        card.innerHTML = `
-          <div class="tf-thumb">
-            <div class="tf-thumb-bg"></div>
-            <div class="tf-thumb-meta">
-              <div class="tf-thumb-title">${titleHtml}</div>
-              <div class="tf-thumb-sub">Survolez pour lire le trailer</div>
+        if (vid){
+          card.innerHTML = `
+            <iframe
+              src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              loading="lazy"
+              title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
+            </iframe>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="tf-trailer-fallback">
+              <div>
+                <div style="font-weight:800;margin-bottom:6px">${gameName || 'Trailer'}</div>
+                <div style="opacity:.85">
+                  Recherche du trailer…<br/>
+                  <span style="opacity:.7;font-size:12px">On tente une récupération automatique.</span>
+                </div>
+              </div>
             </div>
-            <div class="tf-thumb-play"><i class="fas fa-play"></i></div>
-          </div>
-        `;
+          `;
 
-        const thumb = card.querySelector('.tf-thumb');
-        const thumbBg = card.querySelector('.tf-thumb-bg');
-
-        const setThumbFromVid = (vid) => {
-          if (!thumbBg) return;
-          if (!vid){
-            thumbBg.style.backgroundImage = 'linear-gradient(135deg, rgba(0,242,234,.10), rgba(229,9,20,.10))';
-            return;
-          }
-          thumbBg.style.backgroundImage = `url("https://i.ytimg.com/vi/${encodeURIComponent(vid)}/hqdefault.jpg")`;
-        };
-
-        // init thumb
-        setThumbFromVid(manualVid || null);
-
-        let resolvedVid = manualVid || null;
-        let resolving = false;
-
-        const play = async () => {
-          if (window.__tfTrailerState.activeCard === card && window.__tfTrailerState.activeIframe) return;
-
-          stopActive();
-
-          // Resolve trailer id lazily
-          if (!resolvedVid && !resolving){
-            resolving = true;
-            resolvedVid = await tfResolveTrailerId(gameName);
-            resolving = false;
-            setThumbFromVid(resolvedVid);
-          }
-          if (!resolvedVid) return;
-
-          // Create iframe only on hover (Netflix-like)
-          const iframe = document.createElement('iframe');
-          iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(resolvedVid)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&origin=${encodeURIComponent(location.origin)}`;
-          iframe.allow = 'autoplay; encrypted-media; picture-in-picture; web-share';
-          iframe.loading = 'eager';
-          iframe.title = `Trailer - ${titleHtml}`;
-          iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-          iframe.style.border = '0';
-          iframe.style.width = '100%';
-          iframe.style.height = '100%';
-          iframe.style.borderRadius = '16px';
-
-          card.classList.add('is-playing');
-          if (thumb) thumb.classList.add('hidden');
-          card.appendChild(iframe);
-
-          window.__tfTrailerState.activeCard = card;
-          window.__tfTrailerState.activeIframe = iframe;
-        };
-
-        const stop = () => {
-          if (window.__tfTrailerState.activeCard === card){
-            stopActive();
-          }
-        };
-
-        card.addEventListener('mouseenter', play);
-        card.addEventListener('mouseleave', stop);
-        card.addEventListener('focus', play);
-        card.addEventListener('blur', stop);
-
-        // Clicking opens full YouTube page (optional)
-        card.addEventListener('click', async () => {
-          if (!resolvedVid){
-            resolvedVid = await tfResolveTrailerId(gameName);
-            setThumbFromVid(resolvedVid);
-          }
-          if (resolvedVid){
-            window.open(`https://www.youtube.com/watch?v=${encodeURIComponent(resolvedVid)}`, '_blank', 'noopener');
-          }
-        });
+          // Auto-resolve, then swap in the iframe
+          tfResolveTrailerId(gameName).then((autoId)=>{
+            if (!autoId) return;
+            card.innerHTML = `
+              <iframe
+                src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                loading="lazy"
+                title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
+              </iframe>
+            `;
+          }).catch(()=>{});
+        }
 
         wrap.appendChild(card);
       });
-
-      // Inject minimal CSS once for hover animation + thumbs
-      if (!document.getElementById('tf-hover-css')){
-        const css = document.createElement('style');
-        css.id = 'tf-hover-css';
-        css.textContent = `
-          .tf-trailer-card.tf-hover{
-            position:relative; overflow:hidden;
-            border-radius:16px;
-            transform:translateZ(0);
-            transition:transform .18s ease, box-shadow .18s ease;
-          }
-          .tf-trailer-card.tf-hover:hover,
-          .tf-trailer-card.tf-hover:focus{
-            transform:scale(1.06);
-            box-shadow:0 16px 50px rgba(0,0,0,.55);
-            z-index:5;
-          }
-          .tf-trailer-card.tf-hover .tf-thumb{
-            position:absolute; inset:0; display:flex; align-items:flex-end;
-            border-radius:16px; overflow:hidden;
-          }
-          .tf-trailer-card.tf-hover .tf-thumb.hidden{ display:none; }
-          .tf-trailer-card.tf-hover .tf-thumb-bg{
-            position:absolute; inset:0;
-            background-size:cover; background-position:center;
-            filter:saturate(1.1) contrast(1.05);
-            transform:scale(1.08);
-          }
-          .tf-trailer-card.tf-hover .tf-thumb-bg::after{
-            content:""; position:absolute; inset:0;
-            background:linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70));
-          }
-          .tf-trailer-card.tf-hover .tf-thumb-meta{
-            position:relative; padding:12px; width:100%;
-          }
-          .tf-thumb-title{ font-weight:900; font-size:14px; color:white; }
-          .tf-thumb-sub{ margin-top:2px; font-size:11px; color:rgba(255,255,255,.75); }
-          .tf-trailer-card.tf-hover .tf-thumb-play{
-            position:absolute; right:12px; bottom:12px;
-            width:38px; height:38px; border-radius:999px;
-            display:flex; align-items:center; justify-content:center;
-            background:rgba(229,9,20,.92); color:white;
-            box-shadow:0 10px 24px rgba(0,0,0,.45);
-          }
-          .tf-trailer-card.tf-hover.is-playing .tf-thumb-play{ display:none; }
-          .tf-trailer-card.tf-hover iframe{ position:absolute; inset:0; }
-        
-      .paywall-overlay-fixed, .paywall-overlay-fixed *{ filter:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
-`;
-        document.head.appendChild(css);
-      }
     }
 
     let tfCursor = null;
@@ -1855,593 +1716,192 @@ try{
     });
 
 
-
+/* ===========================
+   PAYWALL MANAGER (Premium + Credits)
+   - Locks/unlocks based on /api/billing/me
+   - 1 paywall for Dashboard Premium + independent tools (Best Time, Co-stream)
+   =========================== */
 (function(){
+  const PRICING_URL = "/pricing";
 
-// === PAYWALL UI (blur + cadenas + upsell) ===
-// Problème récurrent : si un parent (ex: body/main) a un filter/blur, un overlay "dans" le module peut être flouté aussi.
-// Fix robuste :
-// 1) On floute le module via un pseudo-calque ::before (backdrop-filter) -> n'affecte pas le contenu overlay
-// 2) On rend la fenêtre cadenas via un "portal" FIXED injecté comme enfant direct de <html> (sibling de <body>)
-//    => jamais affecté par un filter/blur appliqué à <body> ou à un wrapper.
-
-// Small HTML escaping helper
-function escapeHtml(s){
-  return String(s ?? '').replace(/[&<>"']/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-}
-
-const PAYWALL_ROOT_ID = '__paywall_portal_root__';
-let __paywallUid = 0;
-let __paywallPortals = new Map(); // uid -> { el, portal }
-
-function ensurePaywallRoot(){
-  let root = document.getElementById(PAYWALL_ROOT_ID);
-  if (!root){
-    root = document.createElement('div');
-    root.id = PAYWALL_ROOT_ID;
-    // inject as direct child of <html> to avoid body-level filters
-    (document.documentElement || document.documentElement).appendChild(root);
-  }
-  return root;
-}
-
-function injectPaywallCSS(){
-  if (document.getElementById('paywall-css')) return;
-  const style = document.createElement('style');
-  style.id = 'paywall-css';
-  style.textContent = `
-    /* Paywall scope */
-    [data-paywall].paywall-scope{ position:relative !important; overflow:hidden !important; isolation:isolate; }
-
-    /* Blur layer (does NOT blur portal) */
-    [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
-      content:"";
-      position:absolute; inset:0;
-      background: rgba(0,0,0,.55);
-      backdrop-filter: blur(10px) saturate(.85);
-      -webkit-backdrop-filter: blur(10px) saturate(.85);
-      z-index: 1;
-      pointer-events:none;
-    }
-    [data-paywall].paywall-scope[data-paywall-locked="1"] > *{
-      /* keep content visually there but non-interactive */
-      pointer-events:none !important;
-      user-select:none !important;
-    }
-
-    /* Portal overlay (outside body) */
-    #${PAYWALL_ROOT_ID}{
-      position: fixed;
-      inset: 0;
-      z-index: 2147483647;
-      pointer-events: none;
-    }
-    .paywall-portal{
-      position: fixed;
-      pointer-events: auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 14px;
-      box-sizing: border-box;
-      cursor: pointer;
-      /* never blurred */
-      filter: none !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-    }
-    .paywall-portal *{
-      filter:none !important;
-      backdrop-filter:none !important;
-      -webkit-backdrop-filter:none !important;
-    }
-    .paywall-card{
-      width: min(520px, 100%);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      background: rgba(10,10,10,.98);
-      box-shadow: 0 20px 50px rgba(0,0,0,.45);
-      padding: 14px 14px 12px;
-      color: rgba(255,255,255,.92);
-    }
-    .paywall-head{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
-    .paywall-head i{ font-size: 18px; color:#00f2ea; }
-    .paywall-desc{ margin-top:8px; font-size:12.5px; color:rgba(255,255,255,.70); line-height:1.35; }
-    .paywall-cta{ margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .paywall-cta a{
-      display:inline-flex; align-items:center; gap:8px;
-      background:#00f2ea; color:#000; text-decoration:none;
-      padding:9px 12px; border-radius:12px; font-weight:900;
-    }
-    .paywall-cta small{ opacity:.65; font-size:11px; }
-
-    .paywall-chips{ margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
-    .paywall-chip{
-      font-size:11px; padding:4px 8px; border-radius:999px;
-      background: rgba(0,242,234,.10);
-      border: 1px solid rgba(0,242,234,.22);
-      color: rgba(255,255,255,.82);
-      letter-spacing: .2px;
-    }
-
-    /* Tools padding - avoid "collé au bord" */
-    #tab-tools, #tab-tools *{ box-sizing: border-box; }
-    #tab-tools{ padding: 10px 10px 14px !important; }
-    #tab-tools .tools-scroll{ padding: 10px !important; }
-  `;
-  document.head.appendChild(style);
-}
-
-function getOrAssignUid(el){
-  let uid = el.getAttribute('data-paywall-uid');
-  if (!uid){
-    uid = String(++__paywallUid);
-    el.setAttribute('data-paywall-uid', uid);
-  }
-  return uid;
-}
-
-function buildPortal(el){
-  const uid = getOrAssignUid(el);
-  const root = ensurePaywallRoot();
-
-  let portal = document.querySelector(`.paywall-portal[data-paywall-uid="${uid}"]`);
-  if (!portal){
-    portal = document.createElement('div');
-    portal.className = 'paywall-portal';
-    portal.setAttribute('data-paywall-uid', uid);
-    portal.addEventListener('click', (e)=>{ e.preventDefault(); window.location.href='/pricing'; });
-    root.appendChild(portal);
+  function normPlan(p){
+    if(!p) return "FREE";
+    return String(p).trim().toUpperCase();
   }
 
-  const kind = el.getAttribute('data-paywall-kind') || '';
-  const isDashboard = (kind === 'dashboard');
-  const isAnalytics = (kind === 'analytics') || isDashboard || el.id === 'under-analytics' || el.getAttribute('data-paywall-scope') === 'analytics';
-
-  const title = isAnalytics ? 'Analytics Pro — Dashboard Premium' : (el.getAttribute('data-paywall-title') || 'Module Premium');
-  const desc  = isAnalytics
-    ? "Débloque les 3 onglets (Overview / Analytics Pro / Niche) pour suivre tes stats en profondeur et prendre de meilleures décisions."
-    : (el.getAttribute('data-paywall-desc') || 'Débloque ce module avec Premium/Pro ou des crédits.');
-
-  const bullets = isAnalytics ? `
-      <ul style="margin:10px 0 0; padding-left:18px; font-size:12.5px; line-height:1.45; color:rgba(255,255,255,.82)">
-        <li>Courbes & historiques (pics, tendances, patterns)</li>
-        <li>Best Time to Stream + recommandations IA</li>
-        <li>Alertes automatiques + analyse Niche actionnable</li>
-      </ul>` : '';
-
-  const foot = isAnalytics ? 'Débloque tout le dashboard' : 'Plan + crédits + outils IA';
-
-  const chips = isAnalytics ? `
-    <div class="paywall-chips">
-      <span class="paywall-chip">OVERVIEW</span>
-      <span class="paywall-chip">ANALYTICS PRO</span>
-      <span class="paywall-chip">NICHE</span>
-    </div>` : '';
-portal.innerHTML = `
-    <div class="paywall-card">
-      <div class="paywall-head"><i class="fas fa-lock"></i><div>${escapeHtml(title)}</div></div>${chips}
-      <div class="paywall-desc">${escapeHtml(desc)}</div>${bullets}
-      <div class="paywall-cta">
-        <a href="/pricing"><i class="fas fa-crown"></i> Voir les offres</a>
-        <small>${escapeHtml(foot)}</small>
-      </div>
-    </div>
-  `;
-  __paywallPortals.set(uid, { el, portal });
-  return portal;
-}
-
-function positionPortal(el, portal){
-  const r = el.getBoundingClientRect();
-  const visible = r.width > 2 && r.height > 2 && r.bottom > 0 && r.right > 0 && r.top < window.innerHeight && r.left < window.innerWidth;
-  if (!visible){
-    portal.style.display = 'none';
-    return;
-  }
-  portal.style.display = 'flex';
-  portal.style.top = `${Math.max(0, r.top)}px`;
-  portal.style.left = `${Math.max(0, r.left)}px`;
-  portal.style.width = `${Math.max(0, Math.min(window.innerWidth - r.left, r.width))}px`;
-  portal.style.height = `${Math.max(0, Math.min(window.innerHeight - r.top, r.height))}px`;
-}
-
-function updatePaywallPortals(){
-  for (const { el, portal } of __paywallPortals.values()){
-    if (!document.contains(el) || el.getAttribute('data-paywall-locked') !== '1'){
-      portal.remove();
-      continue;
-    }
-    positionPortal(el, portal);
-  }
-}
-
-function lockPaywallElement(el){
-  if (el.getAttribute && el.getAttribute('data-paywall-disabled') === '1') return;
-  el.classList.add('paywall-scope');
-  el.setAttribute('data-paywall-locked','1');
-
-  // If legacy blur was applied via filter classes/styles, neutralize it (otherwise it will blur everything inside)
-  try{ el.style.setProperty('filter','none','important'); }catch(_){}
-  // remove common Tailwind blur utilities on this scope
-  try{
-    Array.from(el.classList).forEach(c=>{
-      if (c.startsWith('blur') || c.includes('blur-')) el.classList.remove(c);
-    });
-  }catch(_){}
-
-  const portal = buildPortal(el);
-  positionPortal(el, portal);
-}
-
-function unlockPaywallElement(el){
-  el.removeAttribute('data-paywall-locked');
-  const uid = el.getAttribute('data-paywall-uid');
-  if (uid){
-    const rec = __paywallPortals.get(uid);
-    if (rec && rec.portal) rec.portal.remove();
-    __paywallPortals.delete(uid);
-  }
-}
-
-function applyPaywallUI(){
-  injectPaywallCSS();
-  const st = window.__billingState || { plan:'FREE', credits:0 };
-  const plan = String(st.plan || 'FREE').toUpperCase();
-  const credits = Number(st.credits ?? 0);
-
-  // Rule: lock when FREE and no credits available
-  const locked = (plan === 'FREE' && credits <= 0);
-
-  const nav = document.getElementById('under-tabs-nav');
-  let dashboardRoot = null;
-  if (nav) dashboardRoot = nav.closest('.glass-panel');
-  if (!dashboardRoot){
-    const p = document.getElementById('under-overview') || document.getElementById('under-analytics') || document.getElementById('under-niche');
-    if (p) dashboardRoot = p.closest('.glass-panel') || p.parentElement;
-  }
-
-  // Helper: hard remove any existing portal for an element
-  function hardUnlock(el){
-    try{ unlockPaywallElement(el); }catch(_){}
-    try{ el.classList.remove('paywall-scope'); }catch(_){}
-    try{ el.removeAttribute('data-paywall-locked'); }catch(_){}
-  }
-
-  // If not locked: unlock everything
-  if (!locked){
-    Array.from(document.querySelectorAll('[data-paywall]')).forEach(hardUnlock);
-    if (dashboardRoot) hardUnlock(dashboardRoot);
-    updatePaywallPortals();
-    return;
-  }
-
-  // LOCKED MODE:
-  // 1) Lock the whole dashboard premium block with ONE overlay
-  if (dashboardRoot){
-    dashboardRoot.setAttribute('data-paywall-kind','dashboard');
-    dashboardRoot.setAttribute('data-paywall','1'); // ensure scope exists
-    lockPaywallElement(dashboardRoot);
-
-    // 2) Disable all child paywalls inside the dashboard (remove their portals if they exist)
-    const childPaywalls = Array.from(dashboardRoot.querySelectorAll('[data-paywall]')).filter(el=>el!==dashboardRoot);
-    childPaywalls.forEach(el=>{
-      // prevent any future creation
-      el.setAttribute('data-paywall-disabled','1');
-      hardUnlock(el);
-    });
-
-    // 3) Aggressive cleanup: remove any existing portals whose target is inside dashboardRoot (except dashboardRoot itself)
+  async function fetchBillingSafe(){
     try{
-      for (const [uid, rec] of __paywallPortals.entries()){
-        if (!rec || !rec.el) continue;
-        if (rec.el !== dashboardRoot && dashboardRoot.contains(rec.el)){
-          try{ rec.portal && rec.portal.remove(); }catch(_){}
-          __paywallPortals.delete(uid);
-          try{ rec.el.removeAttribute('data-paywall-uid'); }catch(_){}
-        }
-      }
-    }catch(_){}
+      const res = await fetch("/api/billing/me", { credentials:"include" });
+      if(!res.ok) throw new Error("billing "+res.status);
+      const j = await res.json();
+      const plan = normPlan(j.plan || j.tier || j.subscription || j.status);
+      const credits = Number(j.credits ?? j.balance ?? 0) || 0;
+      return { plan, credits };
+    }catch(e){
+      return { plan:"FREE", credits:0 };
+    }
   }
 
-  // 4) Apply normal per-module paywalls elsewhere, but skip disabled ones and anything inside dashboardRoot
-  const els = Array.from(document.querySelectorAll('[data-paywall]'));
-  els.forEach(el=>{
-    if (dashboardRoot && el !== dashboardRoot && dashboardRoot.contains(el)) return;
-    if (el.getAttribute('data-paywall-disabled') === '1') return;
-    if (el === dashboardRoot) return;
-    lockPaywallElement(el);
-  });
-
-  updatePaywallPortals();
-}
-
-// First paint (billing may arrive later)
-try{ window.applyPaywallUI = applyPaywallUI; applyPaywallUI(); }catch(_){}
-
-// keep portals in sync with scrolling / resizing (capture to catch scroll in nested containers)
-window.addEventListener('scroll', updatePaywallPortals, true);
-window.addEventListener('resize', updatePaywallPortals, { passive:true });
-
-// If DOM changes (tabs, dynamic inserts), re-apply and reposition
-try{
-  const mo = new MutationObserver(()=>{ try{ applyPaywallUI(); }catch(_){ } });
-  mo.observe(document.body, { childList:true, subtree:true });
-}catch(_){}
-
-})();
-
-// === Credits link between Billing <-> Market Wallet UI ===
-function syncMarketCredits(){
-  const st = window.__billingState || { plan:'FREE', credits:0 };
-  const credits = Number(st.credits || 0);
-
-  const fmt = (n) => String(Math.max(0, Math.floor(n)));
-
-  const el1 = document.getElementById('pf-cash');
-  if (el1) el1.textContent = fmt(credits);
-
-  const el2 = document.getElementById('fantasyCash');
-  if (el2) el2.textContent = fmt(credits);
-
-  // Optional: net/hold placeholders if empty
-  const net = document.getElementById('pf-net');
-  if (net && (net.textContent || '').trim() === '—') net.textContent = fmt(credits);
-  const hold = document.getElementById('pf-hold');
-  if (hold && (hold.textContent || '').trim() === '—') hold.textContent = '0';
-}
-
-
-/* ===== Billing dropdown + Fantasy dashboard widget (Portfolio intégré) ===== */
-(function(){
-  const $ = (s, r=document) => r.querySelector(s);
-
-  function closeBillingMenu(){
-    const menu = $('#billing-menu');
-    if(menu) menu.classList.add('hidden');
-  }
-  function toggleBillingMenu(){
-    const menu = $('#billing-menu');
-    if(!menu) return;
-    menu.classList.toggle('hidden');
+  function isPremiumPlan(plan){
+    return plan !== "FREE" && plan !== "TRIAL" && plan !== "BASIC";
   }
 
-  document.addEventListener('click', (e) => {
-    const wrap = $('#billing-menu-wrap');
-    const menu = $('#billing-menu');
-    if(!wrap || !menu) return;
-    if(!wrap.contains(e.target)) closeBillingMenu();
-  });
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = $('#billing-link');
-    const goto = $('#goto-portfolio');
-    const openMkt = $('#open-market-from-menu');
-
-    if(btn){
-      btn.addEventListener('click', (e) => { e.preventDefault(); toggleBillingMenu(); });
-    }
-    if(goto){
-      goto.addEventListener('click', (e) => {
-        e.preventDefault();
-        closeBillingMenu();
-        if(typeof window.openMarketOverlay === 'function') window.openMarketOverlay('portfolio');
-        else window.location.href='/pricing';
-      });
-    }
-    if(openMkt){
-      openMkt.addEventListener('click', (e) => {
-        e.preventDefault();
-        closeBillingMenu();
-        if(typeof window.openMarketOverlay === 'function') window.openMarketOverlay('portfolio');
-        else window.location.href = '/pricing';
-      });
-    }
-  });
-
-  // --- Portfolio widget (uses /api/fantasy/profile + /api/fantasy/market + /api/fantasy/leaderboard) ---
-  async function apiJson(url, opts){
-    const r = await fetch(url, opts||{});
-    const txt = await r.text();
-    let j = null;
-    try{ j = JSON.parse(txt); }catch(_){ }
-    if(r.status === 402){
-      // no credits -> keep view but prompt pricing
-      alert("Crédits insuffisants. Va sur /pricing pour débloquer.");
-      try{ window.location.href = '/pricing'; }catch(_){}
-      throw new Error('NO_CREDITS');
-    }
-    if(!r.ok){
-      throw new Error(j?.error || txt || ('HTTP_'+r.status));
-    }
-    return j;
+  function hasAnyAccess(b){
+    return isPremiumPlan(b.plan) || (b.credits > 0);
   }
 
-  function fmtCredits(n){
-    const v = Number(n||0);
-    return `${v}`;
+  function ensureScopeClass(el){
+    if(!el.classList.contains("paywall-scope")) el.classList.add("paywall-scope");
   }
 
-  function renderTopHoldings(holdings){
-    const box = $('#pf-top-holdings');
-    if(!box) return;
-    box.innerHTML = '';
-    const items = Array.isArray(holdings) ? holdings.slice(0,3) : [];
-    if(!items.length){
-      box.innerHTML = '<div class="text-gray-500">Aucune position pour le moment.</div>';
-      return;
-    }
-    items.forEach(h => {
-      const row = document.createElement('div');
-      row.className = 'flex items-center justify-between';
-      row.innerHTML = `<span class="text-gray-300">${h.login}</span><span class="text-white font-bold">${Math.round(h.value||0)}cr</span>`;
-      box.appendChild(row);
-    });
+  function esc(s){
+    return String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
   }
 
-  function renderHoldingsList(holdings){
-    const box = document.getElementById('fantasyHoldings');
-    if(!box) return;
-    box.innerHTML = '';
-    const items = Array.isArray(holdings) ? holdings : [];
-    if(!items.length){
-      box.innerHTML = '<div style="color:#a7a7b2;font-size:12px;">Aucune position.</div>';
-      return;
-    }
-    items.forEach(h => {
-      const row = document.createElement('div');
-      row.style.display='flex';
-      row.style.justifyContent='space-between';
-      row.style.alignItems='center';
-      row.style.gap='10px';
-      row.style.padding='8px 10px';
-      row.style.border='1px solid rgba(255,255,255,.10)';
-      row.style.borderRadius='12px';
-      row.style.background='rgba(0,0,0,.25)';
-      row.innerHTML = `<div style="display:flex;flex-direction:column;gap:2px;">
-          <div style="font-weight:900;color:#fff">${h.login}</div>
-          <div style="font-size:11px;color:#a7a7b2">${h.shares} parts • ${Math.round(h.price||0)} cr</div>
+  function creditLine(b){
+    if(isPremiumPlan(b.plan)) return "Premium actif";
+    if((b.credits||0) > 0) return `${b.credits} crédits disponibles — accès en FREE (consomme des crédits à l’usage)`;
+    return "0 crédit — Premium ou crédits requis";
+  }
+
+  function makeCardHTML({title, desc, billing, feature}){
+    const cLine = creditLine(billing);
+
+    if(feature === "dashboard_premium"){
+      return `
+        <div class="paywall-inline-card">
+          <div class="paywall-inline-head"><i class="fas fa-lock"></i> <span>Dashboard Premium (3 onglets)</span></div>
+          <div class="paywall-inline-desc">
+            Débloque <b>OVERVIEW</b>, <b>ANALYTICS PRO</b> et <b>NICHE</b> pour suivre tes stats avancées.
+          </div>
+          <ul style="margin-top:10px; padding-left:16px; font-size:12px; color: rgba(255,255,255,.78); line-height:1.35;">
+            <li>KPIs + graphes avancés (historique, pics, patterns)</li>
+            <li>Alertes automatiques (opportunités / risques) + résumé actionnable</li>
+            <li>Analyse niche (comparaisons, signaux, axes d’optimisation)</li>
+          </ul>
+          <div class="paywall-inline-cta">
+            <a href="${PRICING_URL}"><i class="fas fa-crown"></i> Voir les offres</a>
+            <span style="font-size:11px; color: rgba(255,255,255,.55);">${esc(cLine)}</span>
+          </div>
         </div>
-        <div style="font-weight:900;color:#00f2ea">${Math.round(h.value||0)} cr</div>`;
-      row.addEventListener('click', () => {
-        const inp = document.getElementById('fantasyStreamer');
-        if(inp) inp.value = h.login;
-        refreshMarket(h.login).catch(()=>{});
-      });
-      box.appendChild(row);
-    });
-  }
-
-  function drawChart(canvas, history){
-    if(!canvas || !canvas.getContext) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(!Array.isArray(history) || history.length < 2){
-      ctx.fillStyle = "rgba(255,255,255,.55)";
-      ctx.font = "12px sans-serif";
-      ctx.fillText("Pas assez d'historique.", 10, 20);
-      return;
-    }
-    const prices = history.map(h=>Number(h.price||0));
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    const span = (max-min) || 1;
-    const pad = 18;
-    const w = canvas.width - pad*2;
-    const hgt = canvas.height - pad*2;
-    ctx.beginPath();
-    history.forEach((p,i)=>{
-      const x = pad + (i/(history.length-1))*w;
-      const y = pad + (1-((Number(p.price||0)-min)/span))*hgt;
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    });
-    ctx.strokeStyle = "rgba(0,242,234,.95)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  async function refreshMarket(login){
-    if(!login) return;
-    const info = document.getElementById('marketInfo');
-    const chart = document.getElementById('marketChart');
-    const j = await apiJson(`/api/fantasy/market?login=${encodeURIComponent(login)}`);
-    if(info && j?.market){
-      info.innerHTML = `
-        <div><b style="color:#fff">${login}</b></div>
-        <div>Prix: <b style="color:#00f2ea">${Math.round(j.market.price||0)}</b> cr</div>
-        <div>Vol: <b style="color:#ffd600">${Math.round(j.market.vol||0)}</b></div>
       `;
     }
-    if(chart) drawChart(chart, j.history || []);
-  }
 
-  async function refreshLeaderboard(){
-    const box = document.getElementById('fantasyLeaderboard');
-    if(!box) return;
-    const j = await apiJson('/api/fantasy/leaderboard');
-    const items = j?.items || [];
-    box.innerHTML = '';
-    items.slice(0,8).forEach((it, idx)=>{
-      const row = document.createElement('div');
-      row.style.display='flex';
-      row.style.justifyContent='space-between';
-      row.style.alignItems='center';
-      row.style.gap='10px';
-      row.style.padding='8px 10px';
-      row.style.border='1px solid rgba(255,255,255,.10)';
-      row.style.borderRadius='12px';
-      row.style.background='rgba(0,0,0,.20)';
-      row.innerHTML = `<div style="display:flex;gap:8px;align-items:center;">
-          <div style="width:22px;text-align:center;color:#a7a7b2;font-weight:900">${idx+1}</div>
-          <div style="font-weight:900;color:#fff">${it.user}</div>
+    return `
+      <div class="paywall-inline-card">
+        <div class="paywall-inline-head"><i class="fas fa-lock"></i> <span>${esc(title || "Fonction Premium")}</span></div>
+        <div class="paywall-inline-desc">${esc(desc || "Débloque cette fonctionnalité avec Premium ou crédits.")}</div>
+        <div class="paywall-inline-cta">
+          <a href="${PRICING_URL}"><i class="fas fa-lock-open"></i> Voir les offres</a>
+          <span style="font-size:11px; color: rgba(255,255,255,.55);">${esc(cLine)}</span>
         </div>
-        <div style="font-weight:900;color:#00f2ea">${Math.round(it.value||0)} cr</div>`;
-      box.appendChild(row);
-    });
+      </div>
+    `;
   }
 
-  async function refreshPortfolio(){
-    const cashEl = document.getElementById('fantasyCash');
-    const topCashEl = document.getElementById('pf-cash-top');
+  function ensureOverlay(el, html){
+    let ov = el.querySelector(":scope > .paywall-inline-overlay");
+    if(!ov){
+      ov = document.createElement("div");
+      ov.className = "paywall-inline-overlay";
+      ov.addEventListener("click", (e)=>{
+        const t = e.target;
+        if(t && (t.tagName === "A" || t.closest("a"))) return;
+        window.location.href = PRICING_URL;
+      });
+      el.appendChild(ov);
+    }
+    ov.innerHTML = html;
+  }
 
-    const p = await apiJson('/api/fantasy/profile');
-    if(cashEl) cashEl.textContent = `${fmtCredits(p.cash ?? p.credits ?? 0)} crédits`;
-    if(topCashEl) topCashEl.textContent = `${fmtCredits(p.cash ?? p.credits ?? 0)} cr`;
+  function removeOverlay(el){
+    const ov = el.querySelector(":scope > .paywall-inline-overlay");
+    if(ov) ov.remove();
+  }
 
-    renderHoldingsList(p.holdings || []);
-    renderTopHoldings(p.holdings || []);
+  let __billing = { plan:"FREE", credits:0 };
+  let __busy = false;
 
-    // keep header credits in sync if present
-    try{
-      const st = window.__billingState || {};
-      if(typeof p.cash === 'number'){
-        window.__billingState = { plan: (st.plan||p.plan||'FREE'), credits: Number(p.cash||0) };
-        const b1 = $('#billing-credits'); if(b1) b1.textContent = String(Number(p.cash||0));
-        const b2 = $('#billing-credits-2'); if(b2) b2.textContent = String(Number(p.cash||0));
+  async function applyPaywalls(){
+    if(__busy) return;
+    __busy = true;
+
+    __billing = await fetchBillingSafe();
+
+    const dashboard = document.querySelector('[data-paywall-feature="dashboard_premium"]');
+    const all = Array.from(document.querySelectorAll("[data-paywall]"));
+
+    for(const el of all){
+      ensureScopeClass(el);
+
+      // Avoid doubles: if inside dashboard wrapper, disable child paywalls.
+      if(dashboard && dashboard !== el && dashboard.contains(el)){
+        el.removeAttribute("data-paywall-locked");
+        removeOverlay(el);
+        continue;
       }
-    }catch(_){}
-  }
 
-  // Expose buy/sell for inline widget
-  window.fantasyBuy = async function(){
-    const s = document.getElementById('fantasyStreamer')?.value?.trim();
-    const amt = Number(document.getElementById('fantasyAmount')?.value || 0);
-    if(!s || !amt || amt<=0) return alert("Indique un streamer et un montant.");
-    await apiJson('/api/fantasy/invest', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ streamer:s, amount: amt })
-    });
-    await refreshPortfolio();
-    await refreshMarket(s);
-  };
+      const feature = el.getAttribute("data-paywall-feature") || "generic";
+      const title = el.getAttribute("data-paywall-title") || "";
+      const desc  = el.getAttribute("data-paywall-desc") || "";
 
-  window.fantasySell = async function(){
-    const s = document.getElementById('fantasyStreamer')?.value?.trim();
-    const amt = Number(document.getElementById('fantasyAmount')?.value || 0);
-    if(!s || !amt || amt<=0) return alert("Indique un streamer et un montant.");
-    await apiJson('/api/fantasy/sell', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ streamer:s, amount: amt })
-    });
-    await refreshPortfolio();
-    await refreshMarket(s);
-  };
+      // Lock logic: Premium OR (credits>0) => unlocked
+      const locked = !hasAnyAccess(__billing);
 
-  document.addEventListener('DOMContentLoaded', () => {
-    if(document.getElementById('fantasyDashboard')){
-      refreshPortfolio().catch(()=>{});
-      refreshLeaderboard().catch(()=>{});
-      // update market preview when streamer input changes
-      const inp = document.getElementById('fantasyStreamer');
-      if(inp){
-        let t=null;
-        inp.addEventListener('input', () => {
-          clearTimeout(t);
-          t=setTimeout(()=>{ refreshMarket(inp.value.trim()).catch(()=>{}); }, 400);
-        });
+      if(locked){
+        el.setAttribute("data-paywall-locked","1");
+        ensureOverlay(el, makeCardHTML({title, desc, billing:__billing, feature}));
+      }else{
+        el.removeAttribute("data-paywall-locked");
+        removeOverlay(el);
       }
     }
-  });
+
+    __busy = false;
+  }
+
+  function debounce(fn, wait){
+    let t=null;
+    return (...args)=>{
+      clearTimeout(t);
+      t=setTimeout(()=>fn(...args), wait);
+    };
+  }
+  const applyDebounced = debounce(applyPaywalls, 120);
+
+  // Hook billing refresh
+  try{
+    const orig = window.loadBillingMe;
+    if(typeof orig === "function" && !orig.__paywallWrapped){
+      const wrapped = async function(...args){
+        const out = await orig.apply(this, args);
+        window.dispatchEvent(new Event("billing:updated"));
+        return out;
+      };
+      wrapped.__paywallWrapped = true;
+      window.loadBillingMe = wrapped;
+    }
+  }catch(_e){}
+
+  window.addEventListener("billing:updated", applyDebounced);
+  window.addEventListener("focus", applyDebounced);
+  window.addEventListener("resize", applyDebounced);
+  window.addEventListener("scroll", applyDebounced, true);
+
+  try{
+    const mo = new MutationObserver(applyDebounced);
+    mo.observe(document.documentElement, { childList:true, subtree:true });
+  }catch(_e){}
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", applyPaywalls, { once:true });
+  }else{
+    applyPaywalls();
+  }
 })();
+
