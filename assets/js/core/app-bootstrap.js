@@ -1813,6 +1813,33 @@ try{
   const PRICING_URL = "/pricing";
   const DASHBOARD_SEL = '[data-paywall-feature="dashboard_premium"]';
 
+  // --- NO-BLUR MODE (requested): disable any CSS blur/backdrop-filter that could hide the lock card ---
+  (function injectNoBlurStyle(){
+    if(document.getElementById("pw-noblur-style")) return;
+    const st = document.createElement("style");
+    st.id = "pw-noblur-style";
+    st.textContent = `
+      /* Disable paywall blur globally */
+      .paywall-scope::before,
+      .paywall-scope::after,
+      [data-paywall-locked]::before,
+      [data-paywall-locked]::after{
+        content: none !important;
+        display: none !important;
+        filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+      .is-blurred, .blurred, .premium-blur, .paywall-locked,
+      [data-paywall-locked], [data-paywall-locked] *{
+        filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+    `;
+    (document.head || document.documentElement).appendChild(st);
+  })();
+
   function normPlan(p){ return String(p || "FREE").trim().toUpperCase(); }
   function isPremium(plan){ plan = normPlan(plan); return plan !== "FREE"; }
 
@@ -2065,10 +2092,12 @@ try{
     // Dashboard lock/unlock
     if(dashboard){
       ensureScopeClass(dashboard);
+      clearResidualBlur(dashboard);
       const lockedDash = !(premium || canUseByCredits);
+      dashboard.removeAttribute("data-paywall-locked");
       if(lockedDash){
-        dashboard.setAttribute("data-paywall-locked","1");
-        positionPortalCard(dashboard, dashboardCardHTML(access));
+        // no-blur: do not set data-paywall-locked (blur disabled)
+positionPortalCard(dashboard, dashboardCardHTML(access));
       }else{
         dashboard.removeAttribute("data-paywall-locked");
         removePortal();
@@ -2080,6 +2109,7 @@ try{
     for(const el of all){
       const feature = el.getAttribute("data-paywall-feature") || "generic";
       if(feature === "dashboard_premium") continue;
+      clearResidualBlur(el);
       if(dashboard && dashboard.contains(el)) {
         // never show child paywalls inside dashboard
         el.removeAttribute("data-paywall-locked");
@@ -2091,9 +2121,10 @@ try{
       ensureScopeClass(el);
 
       const locked = !(premium || canUseByCredits);
+      el.removeAttribute("data-paywall-locked");
       if(locked){
-        el.setAttribute("data-paywall-locked","1");
-        const title = el.getAttribute("data-paywall-title") || "";
+        // no-blur: do not set data-paywall-locked (blur disabled)
+const title = el.getAttribute("data-paywall-title") || "";
         const desc  = el.getAttribute("data-paywall-desc") || "";
         ensureInlineOverlay(el, toolCardHTML({title, desc, access}));
       }else{
