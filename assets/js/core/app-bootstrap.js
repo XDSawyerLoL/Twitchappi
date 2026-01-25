@@ -1875,7 +1875,9 @@ function applyPaywallUI(){
     css.id = 'paywall-css';
     css.textContent = `
       /* Make tools less glued to borders (OUTILS tab) */
-      #tab-tools .tools-scroll{ padding:16px 14px !important; }
+      #tab-tools .tools-scroll{ padding:24px 20px !important; box-sizing:border-box !important; }
+      #tab-tools .tools-scroll > *{ box-sizing:border-box !important; }
+      #tab-tools .tools-scroll{ margin:0 !important; }
       #tab-tools{ padding:0 !important; }
       /* Target blur (only the module itself) */
       .paywall-locked{
@@ -1888,10 +1890,16 @@ function applyPaywallUI(){
       .paywall-overlay-fixed{
         position:fixed;
         z-index:2147483647;
+        transform:none !important;
+        will-change:auto;
         display:flex;
         align-items:center;
         justify-content:center;
-        background:rgba(0,0,0,.62);
+        background:rgba(0,0,0,.92);
+        filter:none !important;
+        backdrop-filter:none !important;
+        -webkit-backdrop-filter:none !important;
+        isolation:isolate;
         border-radius:14px;
         padding:14px;
         box-sizing:border-box;
@@ -1900,7 +1908,10 @@ function applyPaywallUI(){
       .paywall-overlay-card{
         max-width:460px; width:100%;
         border:1px solid rgba(255,255,255,.16);
-        background:rgba(10,10,10,.86);
+        background:#0b0b0d;
+        filter:none !important;
+        backdrop-filter:none !important;
+        -webkit-backdrop-filter:none !important;
         border-radius:14px;
         padding:14px;
         box-shadow:0 18px 60px rgba(0,0,0,.55);
