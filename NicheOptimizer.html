@@ -2306,6 +2306,62 @@ body.modal-open #player-tools{display:none !important;}
 
 #tf-trailer-carousel{ gap: 16px; }
 #tf-trailer-carousel .tf-trailer-card{ box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+
+/* === PAYWALL (robuste): blur sur pseudo-calque + cadenas net === */
+[data-paywall].paywall-scope{ position:relative !important; overflow:hidden !important; isolation:isolate; }
+[data-paywall].paywall-scope[data-paywall-locked="1"]::before{
+  content:"";
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(10px) saturate(.85);
+  -webkit-backdrop-filter: blur(10px) saturate(.85);
+  z-index: 1;
+  pointer-events:none;
+}
+[data-paywall].paywall-scope[data-paywall-locked="1"] > :not(.paywall-inline-overlay){
+  pointer-events:none !important;
+  user-select:none !important;
+}
+.paywall-inline-overlay{
+  position:absolute; inset:0;
+  z-index: 2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 14px;
+  box-sizing:border-box;
+  cursor:pointer;
+}
+.paywall-inline-card{
+  width: min(520px, 100%);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  background: rgba(10,10,10,.98);
+  box-shadow: 0 20px 50px rgba(0,0,0,.45);
+  padding: 14px 14px 12px;
+  color: rgba(255,255,255,.92);
+}
+.paywall-inline-head{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+.paywall-inline-head i{ font-size: 18px; color: #00f2ea; }
+.paywall-inline-desc{ margin-top:8px; font-size:12px; line-height:1.35; color: rgba(255,255,255,.75); }
+.paywall-inline-cta{ margin-top:10px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.paywall-inline-cta a{
+  display:inline-flex; align-items:center; gap:8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,242,234,.12);
+  color: rgba(255,255,255,.92);
+  text-decoration:none;
+  font-weight:800;
+  font-size: 12px;
+}
+.paywall-inline-cta small{ font-size:11px; color: rgba(255,255,255,.55); }
+
+/* OUTILS padding (évite "collé au bord") */
+#tab-tools{ padding: 14px 14px 24px !important; box-sizing:border-box; }
+#tab-tools .tools-scroll, #tab-tools .panel-scroll{ padding: 10px 10px 18px !important; box-sizing:border-box; }
+
 </style>
 
 <style id="tabs-exclusive-patch">
