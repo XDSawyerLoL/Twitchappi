@@ -2307,7 +2307,15 @@ body.modal-open #player-tools{display:none !important;}
 #tf-trailer-carousel{ gap: 16px; }
 #tf-trailer-carousel .tf-trailer-card{ box-shadow: 0 10px 26px rgba(0,0,0,.45); }
 
-/* === PAYWALL (robuste): overlay (sans blur) + cadenas net === */
+/* === PAYWALL (robuste): blur sur pseudo-calque + cadenas net === */
+/* no-blur override: keep dim overlay but remove any blur/filter on locked scopes */
+[data-paywall].paywall-scope[data-paywall-locked="1"],
+[data-paywall].paywall-scope[data-paywall-locked="1"] *{
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 [data-paywall].paywall-scope{ position:relative !important; overflow:hidden !important; isolation:isolate; }
 [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
   content:"";
