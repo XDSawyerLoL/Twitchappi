@@ -1867,15 +1867,23 @@ function applyPaywallUI(){
     const css = document.createElement('style');
     css.id = 'paywall-css';
     css.textContent = `
-      .paywall-locked{ position:relative !important; }
+      /* Paywall overlay must ALWAYS be above blurred content (stacking-context safe) */
+      .paywall-locked{ position:relative !important; overflow:hidden; isolation:isolate; }
       .paywall-locked > .paywall-overlay{
         position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
         background:rgba(0,0,0,.62); backdrop-filter: blur(3px);
-        border-radius:14px; z-index:50;
+        border-radius:14px; z-index:9999;
         padding:14px;
         cursor:pointer;
       }
-      .paywall-locked > :not(.paywall-overlay){ filter: blur(2.5px) saturate(.85); opacity:.65; pointer-events:none; user-select:none; }
+      /* Force content UNDER the overlay */
+      .paywall-locked > :not(.paywall-overlay){
+        position:relative; z-index:0;
+        filter: blur(2.5px) saturate(.85);
+        opacity:.65;
+        pointer-events:none;
+        user-select:none;
+      }
       .paywall-overlay-card{
         max-width:460px; width:100%;
         border:1px solid rgba(255,255,255,.16);
