@@ -20,7 +20,7 @@
     css.id = 'evey-billing-guard-css';
     css.textContent = `
       .evey-locked-wrap{ position:relative; }
-      .evey-locked-wrap.evey-blurred > *{ filter: blur(6px); opacity:.35; pointer-events:none; user-select:none; }
+      .evey-locked-wrap.evey-blurred > *{ filter:none !important; opacity:.18; pointer-events:none; user-select:none; }
       .evey-lock-overlay{
         position:absolute; inset:0; z-index:999;
         display:flex; align-items:center; justify-content:center;
@@ -103,14 +103,20 @@
     window.open('/twitch_auth_start', 'twitch_auth', `width=${w},height=${h},left=${left},top=${top}`);
   }
 
-  function wrapTarget(target){
-    // if already wrapped, use existing
-    if (target.dataset.eveyWrapped === '1') return target.closest('.evey-locked-wrap') || target;
+  function wrapTarget(target, featureKey){
+    // Reuse existing wrapper to avoid nesting / multiple layers
+    const existing = target.closest('.evey-locked-wrap');
+    if (existing){
+      if (featureKey) existing.dataset.eveyFeature = featureKey;
+      return existing;
+    }
+
     const wrap = document.createElement('div');
     wrap.className = 'evey-locked-wrap';
+    if (featureKey) wrap.dataset.eveyFeature = featureKey;
+
     target.parentNode.insertBefore(wrap, target);
     wrap.appendChild(target);
-    target.dataset.eveyWrapped = '1';
     return wrap;
   }
 
@@ -126,7 +132,13 @@
     if (!isElement(target)) return;
     ensureStyles();
 
-    const wrap = wrapTarget(target);
+    const wrap = wrapTarget(target, cfg.key);
+
+    // Cleanup duplicate overlays if any (caused by UI re-render)
+    const dups = wrap.querySelectorAll('.evey-lock-overlay');
+    if (dups && dups.length > 1) {
+      dups.forEach((ov,i)=>{ if(i>0) ov.remove(); });
+    }
 
     // Anti-duplication
     if (wrap.dataset.eveyLocked === '1' || wrap.querySelector('.evey-lock-overlay')) {
