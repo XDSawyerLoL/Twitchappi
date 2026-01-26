@@ -1823,6 +1823,29 @@ try{
   const PRICING_URL = "/pricing";
   const DASHBOARD_SEL = '[data-paywall-feature="dashboard_premium"]';
 
+  // Inject a hard no-blur CSS override (covers legacy modules + pseudo-elements)
+  (function injectPaywallNoBlur(){
+    const ID = "paywall-no-blur-override-runtime";
+    if(document.getElementById(ID)) return;
+    const st = document.createElement("style");
+    st.id = ID;
+    st.textContent = `
+      html body [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        filter: none !important;
+      }
+      html body [data-paywall].paywall-scope[data-paywall-locked="1"],
+      html body [data-paywall].paywall-scope[data-paywall-locked="1"] *{
+        filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+    `;
+    document.head.appendChild(st);
+  })();
+
+
   function normPlan(p){ return String(p || "FREE").trim().toUpperCase(); }
   function isPremium(plan){ plan = normPlan(plan); return plan !== "FREE"; }
 
@@ -2066,24 +2089,6 @@ try{
     const dashboard = document.querySelector(DASHBOARD_SEL);
     const all = Array.from(document.querySelectorAll("[data-paywall]"));
 
-    // Global cleanup: prevent stacked overlays/locks from legacy modules or repeated renders
-    try{
-      // Remove legacy portals (keep the current one if present)
-      document.querySelectorAll(".paywall-portal").forEach(p=>{ if(p.id !== PORTAL_ID) p.remove(); });
-      // Remove any stray inline overlays (we'll recreate the correct ones)
-      document.querySelectorAll(".paywall-inline-overlay").forEach(ov=>{
-        const parent = ov.parentElement;
-        if(!parent || !parent.matches || !parent.matches("[data-paywall]")) ov.remove();
-      });
-    }catch(_e){}
-
-    // Always clear residual blur and inline overlays inside each scope before re-applying state
-    for(const el of all){
-      cleanupScope(el);
-      clearResidualBlur(el);
-    }
-
-
     // Always prevent duplicates inside dashboard: only dashboard gets the global portal
     if(dashboard){
       cleanupScope(dashboard);
@@ -2105,7 +2110,6 @@ try{
       ensureScopeClass(dashboard);
       const lockedDash = !(premium || canUseByCredits);
       if(lockedDash){
-        clearResidualBlur(dashboard);
         dashboard.setAttribute("data-paywall-locked","1");
         positionPortalCard(dashboard, dashboardCardHTML(access));
       }else{
@@ -2131,7 +2135,6 @@ try{
 
       const locked = !(premium || canUseByCredits);
       if(locked){
-        clearResidualBlur(el);
         el.setAttribute("data-paywall-locked","1");
         const title = el.getAttribute("data-paywall-title") || "";
         const desc  = el.getAttribute("data-paywall-desc") || "";
