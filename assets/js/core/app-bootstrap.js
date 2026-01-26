@@ -1812,46 +1812,26 @@ try{
 
 
 /* ===========================
-   PAYWALL MANAGER (Premium + Credits) — v3
-   Objectifs:
-   - 1 seul cadenas pour le Dashboard Premium (3 onglets sous le lecteur)
-   - Best Time + Co‑Stream Match verrouillés indépendamment
-   - En FREE: si crédits > 0 (billing OU portefeuille marché), on ne bloque pas
-   - Jamais "blur sans fenêtre": l'overlay est en portal (enfant de <html>)
+   PAYWALL MANAGER (Premium + Credits) — v4 (clean, no stacking)
+   - Evite l'empilement d'overlays/cadenas (idempotent)
+   - Ne dépend pas du blur (le blur est supprimé côté CSS)
    =========================== */
 (function(){
-  // Prevent double-initialisation (multiple script tags / duplicated bundle)
-  if(window.__SH_PAYWALL_MANAGER_V4__) return;
-  window.__SH_PAYWALL_MANAGER_V4__ = true;
-
-  // Hard no-blur override (neutralise any backdrop-filter/filter on locked paywalls)
-  const STYLE_ID = 'sh-paywall-noblur-override';
-  try{
-    if(!document.getElementById(STYLE_ID)){
-      const st = document.createElement('style');
-      st.id = STYLE_ID;
-      st.textContent = `
-        /* Paywall: never blur content (only dark overlay) */
-        [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
-          backdrop-filter: none !important;
-          -webkit-backdrop-filter: none !important;
-          filter: none !important;
-        }
-        [data-paywall].paywall-scope[data-paywall-locked="1"],
-        [data-paywall].paywall-scope[data-paywall-locked="1"] *{
-          filter: none !important;
-          backdrop-filter: none !important;
-          -webkit-backdrop-filter: none !important;
-        }
-      `;
-      (document.head || document.documentElement).appendChild(st);
-    }
-  }catch(_e){}
   const PRICING_URL = "/pricing";
   const DASHBOARD_SEL = '[data-paywall-feature="dashboard_premium"]';
+  const PORTAL_ID = "pw-dashboard-portal";
 
   function normPlan(p){ return String(p || "FREE").trim().toUpperCase(); }
   function isPremium(plan){ plan = normPlan(plan); return plan !== "FREE"; }
+
+  function esc(s){
+    return String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
 
   async function fetchJSON(url){
     const r = await fetch(url, { credentials:"include" });
@@ -1860,10 +1840,10 @@ try{
   }
 
   async function fetchAccess(){
-    // 1) billing
     let plan = "FREE";
     let credits = 0;
 
+    // 1) billing
     try{
       const b = await fetchJSON("/api/billing/me");
       const j = b.json;
@@ -1874,8 +1854,7 @@ try{
       }
     }catch(_e){}
 
-    // 2) portefeuille marché (source de vérité "wallet" si plus haut que billing)
-// On ne modifie pas billing; on s'en sert juste pour décider l'accès via crédits.
+    // 2) portefeuille marché (wallet cash)
     try{
       const f = await fetchJSON("/api/fantasy/profile");
       const j = f.json;
@@ -1883,11 +1862,9 @@ try{
         const cash = Number(j.cash ?? j.wallet?.cash ?? 0) || 0;
         if(cash > credits) credits = cash;
       }
-    }catch(_e){} 
+    }catch(_e){}
 
-
-
-    // 3) DOM fallback (si un autre script remplit le badge crédits)
+    // 3) DOM fallback
     if(credits <= 0){
       try{
         const el = document.getElementById('billing-credits');
@@ -1897,11 +1874,11 @@ try{
         }
       }catch(_e){}
     }
+
     return { plan, credits };
   }
 
-  // ---------- Portal overlay (Dashboard) ----------
-  const PORTAL_ID = "pw-dashboard-portal";
+  // ---------- portal (dashboard) ----------
   function getPortal(){
     let el = document.getElementById(PORTAL_ID);
     if(!el){
@@ -1913,19 +1890,14 @@ try{
     }
     return el;
   }
-
   function removePortal(){
     const el = document.getElementById(PORTAL_ID);
     if(el) el.remove();
   }
-
-  function esc(s){
-    return String(s||"")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+  function removeLegacyPortals(){
+    document.querySelectorAll(".paywall-portal").forEach(p=>{
+      if(p.id !== PORTAL_ID) p.remove();
+    });
   }
 
   function dashboardCardHTML(access){
@@ -1933,13 +1905,9 @@ try{
     const credits = Number(access.credits||0) || 0;
 
     let subline = "";
-    if(isPremium(plan)){
-      subline = "Premium actif — accès complet";
-    }else if(credits > 0){
-      subline = `${credits} crédits disponibles — accès en FREE (consomme des crédits à l’usage)`;
-    }else{
-      subline = "0 crédit — Premium ou crédits requis";
-    }
+    if(isPremium(plan)) subline = "Premium actif — accès complet";
+    else if(credits > 0) subline = `${credits} crédits disponibles — accès en FREE (crédits à l’usage)`;
+    else subline = "0 crédit — Premium ou crédits requis";
 
     return `
       <div style="
@@ -1950,7 +1918,7 @@ try{
         border-radius: 16px;
         padding: 16px 16px 14px;
         pointer-events:auto;
-        ">
+      ">
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="width:34px; height:34px; border-radius:12px; background:rgba(0,242,234,.12); display:flex; align-items:center; justify-content:center; border:1px solid rgba(0,242,234,.18);">
             <i class="fas fa-lock" style="color:#00f2ea"></i>
@@ -1986,24 +1954,21 @@ try{
   function positionPortalCard(scope, html){
     const portal = getPortal();
     portal.innerHTML = "";
-
     if(!scope) return;
 
     const r = scope.getBoundingClientRect();
     if(r.width < 50 || r.height < 50) return;
 
-    // Wrapper for positioning
     const wrap = document.createElement("div");
     wrap.style.cssText = "position:absolute; inset:0; pointer-events:none;";
 
     const card = document.createElement("div");
     card.innerHTML = html;
-    // Center on scope rect
+
     const cx = r.left + r.width/2;
     const cy = r.top + Math.min(r.height/2, 220);
 
     card.style.cssText = `position:fixed; left:${cx}px; top:${cy}px; transform:translate(-50%,-50%); pointer-events:none;`;
-    // make inner card clickable
     const inner = card.firstElementChild;
     if(inner) inner.style.pointerEvents = "auto";
 
@@ -2011,10 +1976,11 @@ try{
     portal.appendChild(wrap);
   }
 
-  // ---------- Inline overlays (tools) ----------
+  // ---------- inline overlays (tools) ----------
   function ensureScopeClass(el){
     if(!el.classList.contains("paywall-scope")) el.classList.add("paywall-scope");
   }
+
   function toolCardHTML({title, desc, access}){
     const plan = normPlan(access.plan);
     const credits = Number(access.credits||0) || 0;
@@ -2035,41 +2001,6 @@ try{
     `;
   }
 
-  function ensureInlineOverlay(el, html){
-    let ov = el.querySelector(":scope > .paywall-inline-overlay");
-    if(!ov){
-      ov = document.createElement("div");
-      ov.className = "paywall-inline-overlay";
-      ov.addEventListener("click", (e)=>{
-        const t = e.target;
-        if(t && (t.tagName === "A" || t.closest("a"))) return;
-        window.location.href = PRICING_URL;
-      });
-      el.appendChild(ov);
-    }
-    ov.innerHTML = html;
-  }
-  function removeInlineOverlay(el){
-    const ov = el.querySelector(":scope > .paywall-inline-overlay");
-    if(ov) ov.remove();
-  }
-
-  // Remove legacy overlays/cards inside a scope (old versions)
-  function cleanupScope(scope){
-    if(!scope) return;
-    // Remove overlays injected by current or legacy versions (prevents stacking)
-    scope.querySelectorAll(
-      ".paywall-inline-overlay, .paywall-overlay, .paywall-lock-overlay, .premium-overlay, .lock-overlay, [data-paywall-overlay]"
-    ).forEach(n=>n.remove());
-    // Broad catch (legacy custom class names)
-    scope.querySelectorAll('[class*="paywall"][class*="overlay"], [class*="premium"][class*="overlay"]').forEach(n=>n.remove());
-    // Remove old portal(s)
-    document.querySelectorAll(".paywall-portal").forEach(p=>{
-      if(p.id !== PORTAL_ID) p.remove();
-    });
-  }
-
-  // Force clear residual blur when unlocked (in case a legacy class remains)
   function clearResidualBlur(scope){
     if(!scope) return;
     scope.style.filter = "";
@@ -2084,37 +2015,59 @@ try{
     });
   }
 
-  let access = { plan:"FREE", credits:0 };
+  function removeAllInlineOverlays(scope){
+    if(!scope) return;
+    scope.querySelectorAll(".paywall-inline-overlay").forEach(n=>n.remove());
+  }
+
+  function ensureSingleInlineOverlay(scope, html){
+    // hard-clean first to avoid stacking from older versions/rerenders
+    removeAllInlineOverlays(scope);
+
+    const ov = document.createElement("div");
+    ov.className = "paywall-inline-overlay";
+    ov.addEventListener("click", (e)=>{
+      const t = e.target;
+      if(t && (t.tagName === "A" || t.closest("a"))) return;
+      window.location.href = PRICING_URL;
+    });
+    ov.innerHTML = html;
+    scope.appendChild(ov);
+  }
+
+  // ---------- apply ----------
   let busy = false;
+  let lastAccessKey = "";
 
   async function apply(){
     if(busy) return;
     busy = true;
 
-    access = await fetchAccess();
+    removeLegacyPortals();
+
+    const access = await fetchAccess();
+    const accessKey = `${normPlan(access.plan)}|${Number(access.credits||0)||0}`;
+    // still apply even if unchanged: DOM might have rerendered and removed overlays
 
     const dashboard = document.querySelector(DASHBOARD_SEL);
-    const all = Array.from(document.querySelectorAll("[data-paywall]"));
-
-    // Always prevent duplicates inside dashboard: only dashboard gets the global portal
-    if(dashboard){
-      cleanupScope(dashboard);
-      // Ensure children never keep locked state from previous runs
-      dashboard.querySelectorAll("[data-paywall]").forEach(el=>{
-        if(el !== dashboard){
-          el.removeAttribute("data-paywall-locked");
-          removeInlineOverlay(el);
-          clearResidualBlur(el);
-        }
-      });
-    }
+    const allScopes = Array.from(document.querySelectorAll("[data-paywall]"));
 
     const canUseByCredits = (Number(access.credits||0) > 0);
     const premium = isPremium(access.plan);
 
-    // Dashboard lock/unlock
+    // Dashboard
     if(dashboard){
       ensureScopeClass(dashboard);
+
+      // prevent nested child paywalls inside dashboard
+      dashboard.querySelectorAll("[data-paywall]").forEach(el=>{
+        if(el !== dashboard){
+          el.removeAttribute("data-paywall-locked");
+          removeAllInlineOverlays(el);
+          clearResidualBlur(el);
+        }
+      });
+
       const lockedDash = !(premium || canUseByCredits);
       if(lockedDash){
         dashboard.setAttribute("data-paywall-locked","1");
@@ -2124,35 +2077,37 @@ try{
         removePortal();
         clearResidualBlur(dashboard);
       }
+    }else{
+      removePortal();
     }
 
-    // Independent tools (best_time / costream_match)
-    for(const el of all){
-      const feature = el.getAttribute("data-paywall-feature") || "generic";
+    // Tools (best_time / costream_match / etc.)
+    for(const scope of allScopes){
+      const feature = scope.getAttribute("data-paywall-feature") || "generic";
       if(feature === "dashboard_premium") continue;
-      if(dashboard && dashboard.contains(el)) {
-        // never show child paywalls inside dashboard
-        el.removeAttribute("data-paywall-locked");
-        removeInlineOverlay(el);
-        clearResidualBlur(el);
+      if(dashboard && dashboard.contains(scope)){
+        scope.removeAttribute("data-paywall-locked");
+        removeAllInlineOverlays(scope);
+        clearResidualBlur(scope);
         continue;
       }
 
-      ensureScopeClass(el);
+      ensureScopeClass(scope);
 
       const locked = !(premium || canUseByCredits);
       if(locked){
-        el.setAttribute("data-paywall-locked","1");
-        const title = el.getAttribute("data-paywall-title") || "";
-        const desc  = el.getAttribute("data-paywall-desc") || "";
-        ensureInlineOverlay(el, toolCardHTML({title, desc, access}));
+        scope.setAttribute("data-paywall-locked","1");
+        const title = scope.getAttribute("data-paywall-title") || "";
+        const desc  = scope.getAttribute("data-paywall-desc") || "";
+        ensureSingleInlineOverlay(scope, toolCardHTML({title, desc, access}));
       }else{
-        el.removeAttribute("data-paywall-locked");
-        removeInlineOverlay(el);
-        clearResidualBlur(el);
+        scope.removeAttribute("data-paywall-locked");
+        removeAllInlineOverlays(scope);
+        clearResidualBlur(scope);
       }
     }
 
+    lastAccessKey = accessKey;
     busy = false;
   }
 
@@ -2162,37 +2117,22 @@ try{
   }
   const applyDebounced = debounce(apply, 120);
 
-  // Safety net: some auth flows rerender without dispatching events.
-  // Re-apply periodically for a short window, then keep a slow heartbeat.
-  let __pwTicks = 0;
-  setInterval(()=>{
-    __pwTicks++;
-    // fast for first ~30s
-    if(__pwTicks < 20) applyDebounced();
-    // then every ~15s
-    else if(__pwTicks % 10 === 0) applyDebounced();
-  }, 1500);
-
-
-  // Re-apply when billing changes
+  // events
   window.addEventListener("billing:updated", applyDebounced);
   window.addEventListener("focus", applyDebounced);
   window.addEventListener("resize", applyDebounced);
-  window.addEventListener("scroll", applyDebounced, true);
 
-  // Observe DOM changes (some blocks rerender on login/stream updates)
+  // Observe DOM changes (login/rerenders)
   try{
     const mo = new MutationObserver(applyDebounced);
     mo.observe(document.documentElement, { childList:true, subtree:true });
   }catch(_e){}
 
-  // Periodic re-apply (certains rerenders login ne déclenchent pas toujours les bons events)
-  try{
-    setInterval(()=>{
-      if(document.hidden) return;
-      applyDebounced();
-    }, 2000);
-  }catch(_e){}
+  // Light heartbeat as safety net (no spam)
+  setInterval(()=>{
+    if(document.hidden) return;
+    applyDebounced();
+  }, 10000);
 
   if(document.readyState === "loading"){
     document.addEventListener("DOMContentLoaded", apply, { once:true });
@@ -2200,4 +2140,6 @@ try{
     apply();
   }
 })();
+
+;
 
