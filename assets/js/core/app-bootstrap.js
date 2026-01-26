@@ -1820,31 +1820,35 @@ try{
    - Jamais "blur sans fenêtre": l'overlay est en portal (enfant de <html>)
    =========================== */
 (function(){
+  // Prevent double-initialisation (multiple script tags / duplicated bundle)
+  if(window.__SH_PAYWALL_MANAGER_V4__) return;
+  window.__SH_PAYWALL_MANAGER_V4__ = true;
+
+  // Hard no-blur override (neutralise any backdrop-filter/filter on locked paywalls)
+  const STYLE_ID = 'sh-paywall-noblur-override';
+  try{
+    if(!document.getElementById(STYLE_ID)){
+      const st = document.createElement('style');
+      st.id = STYLE_ID;
+      st.textContent = `
+        /* Paywall: never blur content (only dark overlay) */
+        [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          filter: none !important;
+        }
+        [data-paywall].paywall-scope[data-paywall-locked="1"],
+        [data-paywall].paywall-scope[data-paywall-locked="1"] *{
+          filter: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(st);
+    }
+  }catch(_e){}
   const PRICING_URL = "/pricing";
   const DASHBOARD_SEL = '[data-paywall-feature="dashboard_premium"]';
-
-  // Inject a hard no-blur CSS override (covers legacy modules + pseudo-elements)
-  (function injectPaywallNoBlur(){
-    const ID = "paywall-no-blur-override-runtime";
-    if(document.getElementById(ID)) return;
-    const st = document.createElement("style");
-    st.id = ID;
-    st.textContent = `
-      html body [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        filter: none !important;
-      }
-      html body [data-paywall].paywall-scope[data-paywall-locked="1"],
-      html body [data-paywall].paywall-scope[data-paywall-locked="1"] *{
-        filter: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-      }
-    `;
-    document.head.appendChild(st);
-  })();
-
 
   function normPlan(p){ return String(p || "FREE").trim().toUpperCase(); }
   function isPremium(plan){ plan = normPlan(plan); return plan !== "FREE"; }
@@ -2053,9 +2057,12 @@ try{
   // Remove legacy overlays/cards inside a scope (old versions)
   function cleanupScope(scope){
     if(!scope) return;
-    scope.querySelectorAll(".paywall-inline-overlay").forEach(n=>n.remove());
-    // Some older versions injected floating cards without wrapper
-    scope.querySelectorAll(".paywall-inline-card, .paywall-inline-head, .paywall-inline-desc").forEach(()=>{});
+    // Remove overlays injected by current or legacy versions (prevents stacking)
+    scope.querySelectorAll(
+      ".paywall-inline-overlay, .paywall-overlay, .paywall-lock-overlay, .premium-overlay, .lock-overlay, [data-paywall-overlay]"
+    ).forEach(n=>n.remove());
+    // Broad catch (legacy custom class names)
+    scope.querySelectorAll('[class*="paywall"][class*="overlay"], [class*="premium"][class*="overlay"]').forEach(n=>n.remove());
     // Remove old portal(s)
     document.querySelectorAll(".paywall-portal").forEach(p=>{
       if(p.id !== PORTAL_ID) p.remove();
