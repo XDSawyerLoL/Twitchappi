@@ -2413,6 +2413,39 @@ body.modal-open #player-tools{display:none !important;}
   font-weight: 900;
   font-size: 12px;
   line-height: 1;
+
+
+/* Riot + Epic buttons (TwitFlix topbar) */
+#twitflix-modal .tf-riot-btn,
+#twitflix-modal .tf-epic-btn{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  white-space:nowrap;
+  border-color: rgba(255,255,255,.12);
+  background: rgba(17,17,19,.9);
+}
+#twitflix-modal .tf-oauth-dot{
+  width: 10px; height: 10px;
+  border-radius: 999px;
+  display:inline-block;
+  border: 1px solid rgba(255,255,255,.22);
+  box-shadow: 0 0 10px rgba(0,0,0,.25);
+}
+#twitflix-modal .tf-dot-riot{ background: rgba(255,0,80,.85); }
+#twitflix-modal .tf-dot-epic{ background: rgba(255,255,255,.85); }
+#twitflix-modal .tf-oauth-label{
+  max-width: 160px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#twitflix-modal #tf-btn-riot.tf-oauth-connected,
+#twitflix-modal #tf-btn-epic.tf-oauth-connected{
+  border-color: rgba(0,242,234,.32);
+  box-shadow: 0 0 18px rgba(0,242,234,.10);
+}
+
 }
 
 </style>
@@ -2708,6 +2741,10 @@ body.modal-open #player-tools{display:none !important;}
       <div class="grid grid-cols-1 gap-2">
         <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-2">
           <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Ton compte LoL</div>
+          <div class="flex gap-2 mb-2">
+            <button id="riot-auth-btn" class="px-3 py-2 rounded-lg bg-[#111] border border-[#ff009933] text-[#ff0099] font-black text-xs">Connecter Riot (RSO)</button>
+            <div class="text-[10px] text-gray-600 flex items-center">Optionnel : connexion compte Riot (pour enrichir ton profil)</div>
+          </div>
           <div class="flex gap-2">
             <input id="riot-me-name" class="flex-1 bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none text-xs" placeholder="Ton Summoner (EUW)" />
             <button id="riot-me-link" class="px-3 py-2 rounded-lg bg-[#00f2ea] text-black font-black text-xs">Lier</button>
@@ -2883,6 +2920,14 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn tf-steam-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">
   <i class="fab fa-steam" aria-hidden="true"></i>
   <span class="tf-steam-label">Connecter Steam</span>
+</button>
+<button class="tf-toggle-btn tf-riot-btn" id="tf-btn-riot" type="button" onclick="tfPromptRiot()">
+  <span class="tf-oauth-dot tf-dot-riot" aria-hidden="true"></span>
+  <span class="tf-oauth-label">Connecter Riot</span>
+</button>
+<button class="tf-toggle-btn tf-epic-btn" id="tf-btn-epic" type="button" onclick="tfPromptEpic()">
+  <span class="tf-oauth-dot tf-dot-epic" aria-hidden="true"></span>
+  <span class="tf-oauth-label">Connecter Epic</span>
 </button>
 <button class="tf-close-btn" type="button" aria-label="Fermer TwitFlix" onclick="closeTwitFlix()">✕</button>
 </div>

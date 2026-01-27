@@ -377,6 +377,478 @@ app.get('/steam/connected', (req, res) => {
 </body></html>`);
 });
 
+// =========================================================
+// 1C. RIOT (RSO OAuth2) + EPIC (OAuth2) — persistent linking like Steam
+// =========================================================
+
+// RIOT: Start OAuth (RSO)
+app.get('/auth/riot', async (req, res) => {
+  try{
+    const next = safeNext(req.query.next);
+    req.session.riotNext = next;
+    const state = crypto.randomBytes(16).toString('hex');
+    req.session.riot_oauth_state = state;
+
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = process.env.RIOT_REDIRECT_URI || `${baseUrl}/auth/riot/return`;
+    const clientId = process.env.RIOT_CLIENT_ID;
+    if(!clientId) return res.status(500).send('RIOT_CLIENT_ID missing');
+
+    const scope = (process.env.RIOT_SCOPE || 'openid offline_access').trim();
+    const url =
+      `https://auth.riotgames.com/authorize` +
+      `?client_id=${encodeURIComponent(clientId)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&state=${encodeURIComponent(state)}`;
+
+    return res.redirect(url);
+  }catch(e){
+    return res.status(500).send('Riot auth init failed');
+  }
+});
+
+app.get('/auth/riot/return', async (req, res) => {
+  const next = safeNext(req.session?.riotNext);
+  const { code, state } = req.query || {};
+  if(!code) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+  if(!state || !req.session?.riot_oauth_state || String(state) !== String(req.session.riot_oauth_state)){
+    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+  }
+  req.session.riot_oauth_state = null;
+
+  try{
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = process.env.RIOT_REDIRECT_URI || `${baseUrl}/auth/riot/return`;
+    const clientId = process.env.RIOT_CLIENT_ID;
+    const clientSecret = process.env.RIOT_CLIENT_SECRET;
+    if(!clientId || !clientSecret) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+
+    const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const tokenRes = await fetch('https://auth.riotgames.com/token', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basic}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: String(code),
+        redirect_uri: redirectUri
+      }).toString()
+    });
+
+    const tok = await tokenRes.json().catch(()=>null);
+    if(!tokenRes.ok || !tok?.access_token){
+      return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+    }
+
+    let userinfo = null;
+    try{
+      const u = await fetch('https://auth.riotgames.com/userinfo', {
+        headers:{ 'Authorization': `Bearer ${tok.access_token}` }
+      });
+      userinfo = await u.json().catch(()=>null);
+    }catch(_){}
+
+    req.session.riot = {
+      access_token: tok.access_token,
+      refresh_token: tok.refresh_token || null,
+      id_token: tok.id_token || null,
+      scope: tok.scope || null,
+      token_type: tok.token_type || null,
+      expires_in: tok.expires_in || null,
+      userinfo: userinfo || null,
+      linkedAt: Date.now()
+    };
+
+    try{
+      const tu = req.session?.twitchUser;
+      if(tu) await setBillingRiot(tu, req.session.riot);
+    }catch(_){}
+
+    return res.redirect(`/riot/connected?ok=1&next=${encodeURIComponent(next)}`);
+  }catch(e){
+    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+  }
+});
+
+app.get('/riot/connected', (req, res) => {
+  const ok = String(req.query.ok || '0') === '1';
+  const next = safeNext(req.query.next);
+  const payload = JSON.stringify({ type: 'riot:connected', ok });
+  res.setHeader('content-type','text/html; charset=utf-8');
+  return res.send(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Riot</title></head>
+<body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+  <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
+    <h2 style="margin:0 0 10px 0">${ok ? 'Riot connecté ✅' : 'Riot: échec ❌'}</h2>
+    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir au Streamer Hub.' : 'Réessaie la connexion Riot.'}</p>
+    <a href="${next}" style="color:#00e5ff">Retour</a>
+  </div>
+  <script>
+    (function(){
+      try{
+        if(window.opener && !window.opener.closed){
+          window.opener.postMessage(${payload}, '*');
+          window.close();
+        }
+      }catch(e){}
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+    })();
+  </script>
+</body></html>`);
+});
+
+// EPIC: Start OAuth
+app.get('/auth/epic', async (req, res) => {
+  try{
+    const next = safeNext(req.query.next);
+    req.session.epicNext = next;
+    const state = crypto.randomBytes(16).toString('hex');
+    req.session.epic_oauth_state = state;
+
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
+    const clientId = process.env.EPIC_CLIENT_ID;
+    if(!clientId) return res.status(500).send('EPIC_CLIENT_ID missing');
+
+    const scope = (process.env.EPIC_SCOPE || 'openid basic_profile').trim();
+    const url =
+      `https://www.epicgames.com/id/authorize` +
+      `?client_id=${encodeURIComponent(clientId)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&state=${encodeURIComponent(state)}`;
+
+    return res.redirect(url);
+  }catch(e){
+    return res.status(500).send('Epic auth init failed');
+  }
+});
+
+app.get('/auth/epic/return', async (req, res) => {
+  const next = safeNext(req.session?.epicNext);
+  const { code, state } = req.query || {};
+  if(!code) return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+  if(!state || !req.session?.epic_oauth_state || String(state) !== String(req.session.epic_oauth_state)){
+    return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+  }
+  req.session.epic_oauth_state = null;
+
+  try{
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
+    const clientId = process.env.EPIC_CLIENT_ID;
+    const clientSecret = process.env.EPIC_CLIENT_SECRET;
+    if(!clientId || !clientSecret) return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+
+    const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const tokenRes = await fetch('https://api.epicgames.dev/epic/oauth/v2/token', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basic}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: String(code),
+        redirect_uri: redirectUri
+      }).toString()
+    });
+
+    const tok = await tokenRes.json().catch(()=>null);
+    if(!tokenRes.ok || !tok?.access_token){
+      return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+    }
+
+    req.session.epic = {
+      access_token: tok.access_token,
+      refresh_token: tok.refresh_token || null,
+      id_token: tok.id_token || null,
+      scope: tok.scope || null,
+      token_type: tok.token_type || null,
+      expires_in: tok.expires_in || null,
+      linkedAt: Date.now()
+    };
+
+    try{
+      const tu = req.session?.twitchUser;
+      if(tu) await setBillingEpic(tu, req.session.epic);
+    }catch(_){}
+
+    return res.redirect(`/epic/connected?ok=1&next=${encodeURIComponent(next)}`);
+  }catch(e){
+    return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+  }
+});
+
+app.get('/epic/connected', (req, res) => {
+  const ok = String(req.query.ok || '0') === '1';
+  const next = safeNext(req.query.next);
+  const payload = JSON.stringify({ type: 'epic:connected', ok });
+  res.setHeader('content-type','text/html; charset=utf-8');
+  return res.send(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Epic</title></head>
+<body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+  <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
+    <h2 style="margin:0 0 10px 0">${ok ? 'Epic connecté ✅' : 'Epic: échec ❌'}</h2>
+    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir à TwitFlix.' : 'Réessaie la connexion Epic.'}</p>
+    <a href="${next}" style="color:#00e5ff">Retour</a>
+  </div>
+  <script>
+    (function(){
+      try{
+        if(window.opener && !window.opener.closed){
+          window.opener.postMessage(${payload}, '*');
+          window.close();
+        }
+      }catch(e){}
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+    })();
+  </script>
+</body></html>`);
+});
+
+// =========================================================
+// 1C. RIOT (RSO OAuth2) + EPIC (OAuth2) — persistent linking like Steam
+// =========================================================
+
+// RIOT: Start OAuth (RSO)
+app.get('/auth/riot', async (req, res) => {
+  try{
+    const next = safeNext(req.query.next);
+    req.session.riotNext = next;
+    const state = crypto.randomBytes(16).toString('hex');
+    req.session.riot_oauth_state = state;
+
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = process.env.RIOT_REDIRECT_URI || `${baseUrl}/auth/riot/return`;
+    const clientId = process.env.RIOT_CLIENT_ID;
+    if(!clientId) return res.status(500).send('RIOT_CLIENT_ID missing');
+
+    const scope = (process.env.RIOT_SCOPE || 'openid offline_access').trim(); // add more scopes if your app is approved
+    const url =
+      `https://auth.riotgames.com/authorize` +
+      `?client_id=${encodeURIComponent(clientId)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&state=${encodeURIComponent(state)}`;
+
+    return res.redirect(url);
+  }catch(e){
+    return res.status(500).send('Riot auth init failed');
+  }
+});
+
+app.get('/auth/riot/return', async (req, res) => {
+  const next = safeNext(req.session?.riotNext);
+  const { code, state } = req.query || {};
+  if(!code) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+  if(!state || !req.session?.riot_oauth_state || String(state) !== String(req.session.riot_oauth_state)){
+    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+  }
+  req.session.riot_oauth_state = null;
+
+  try{
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = process.env.RIOT_REDIRECT_URI || `${baseUrl}/auth/riot/return`;
+    const clientId = process.env.RIOT_CLIENT_ID;
+    const clientSecret = process.env.RIOT_CLIENT_SECRET;
+    if(!clientId || !clientSecret) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+
+    const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const tokenRes = await fetch('https://auth.riotgames.com/token', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basic}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: String(code),
+        redirect_uri: redirectUri
+      }).toString()
+    });
+
+    const tok = await tokenRes.json().catch(()=>null);
+    if(!tokenRes.ok || !tok?.access_token){
+      return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+    }
+
+    // Fetch basic userinfo (best-effort)
+    let userinfo = null;
+    try{
+      const u = await fetch('https://auth.riotgames.com/userinfo', {
+        headers:{ 'Authorization': `Bearer ${tok.access_token}` }
+      });
+      userinfo = await u.json().catch(()=>null);
+    }catch(_){}
+
+    req.session.riot = {
+      access_token: tok.access_token,
+      refresh_token: tok.refresh_token || null,
+      id_token: tok.id_token || null,
+      scope: tok.scope || null,
+      token_type: tok.token_type || null,
+      expires_in: tok.expires_in || null,
+      userinfo: userinfo || null,
+      linkedAt: Date.now()
+    };
+
+    // Persist to Billing doc if Twitch session exists
+    try{
+      const tu = req.session?.twitchUser;
+      if(tu) await setBillingRiot(tu, req.session.riot);
+    }catch(_){}
+
+    return res.redirect(`/riot/connected?ok=1&next=${encodeURIComponent(next)}`);
+  }catch(e){
+    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+  }
+});
+
+app.get('/riot/connected', (req, res) => {
+  const ok = String(req.query.ok || '0') === '1';
+  const next = safeNext(req.query.next);
+  const payload = JSON.stringify({ type: 'riot:connected', ok });
+  res.setHeader('content-type','text/html; charset=utf-8');
+  return res.send(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Riot</title></head>
+<body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+  <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
+    <h2 style="margin:0 0 10px 0">${ok ? 'Riot connecté ✅' : 'Riot: échec ❌'}</h2>
+    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir au Streamer Hub.' : 'Réessaie la connexion Riot.'}</p>
+    <a href="${next}" style="color:#00e5ff">Retour</a>
+  </div>
+  <script>
+    (function(){
+      try{
+        if(window.opener && !window.opener.closed){
+          window.opener.postMessage(${payload}, '*');
+          window.close();
+        }
+      }catch(e){}
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+    })();
+  </script>
+</body></html>`);
+});
+
+// EPIC: Start OAuth
+app.get('/auth/epic', async (req, res) => {
+  try{
+    const next = safeNext(req.query.next);
+    req.session.epicNext = next;
+    const state = crypto.randomBytes(16).toString('hex');
+    req.session.epic_oauth_state = state;
+
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
+    const clientId = process.env.EPIC_CLIENT_ID;
+    if(!clientId) return res.status(500).send('EPIC_CLIENT_ID missing');
+
+    const scope = (process.env.EPIC_SCOPE || 'openid basic_profile').trim();
+    const url =
+      `https://www.epicgames.com/id/authorize` +
+      `?client_id=${encodeURIComponent(clientId)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&state=${encodeURIComponent(state)}`;
+
+    return res.redirect(url);
+  }catch(e){
+    return res.status(500).send('Epic auth init failed');
+  }
+});
+
+app.get('/auth/epic/return', async (req, res) => {
+  const next = safeNext(req.session?.epicNext);
+  const { code, state } = req.query || {};
+  if(!code) return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+  if(!state || !req.session?.epic_oauth_state || String(state) !== String(req.session.epic_oauth_state)){
+    return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+  }
+  req.session.epic_oauth_state = null;
+
+  try{
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
+    const clientId = process.env.EPIC_CLIENT_ID;
+    const clientSecret = process.env.EPIC_CLIENT_SECRET;
+    if(!clientId || !clientSecret) return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+
+    const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const tokenRes = await fetch('https://api.epicgames.dev/epic/oauth/v2/token', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basic}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: String(code),
+        redirect_uri: redirectUri
+      }).toString()
+    });
+
+    const tok = await tokenRes.json().catch(()=>null);
+    if(!tokenRes.ok || !tok?.access_token){
+      return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+    }
+
+    req.session.epic = {
+      access_token: tok.access_token,
+      refresh_token: tok.refresh_token || null,
+      id_token: tok.id_token || null,
+      scope: tok.scope || null,
+      token_type: tok.token_type || null,
+      expires_in: tok.expires_in || null,
+      linkedAt: Date.now()
+    };
+
+    try{
+      const tu = req.session?.twitchUser;
+      if(tu) await setBillingEpic(tu, req.session.epic);
+    }catch(_){}
+
+    return res.redirect(`/epic/connected?ok=1&next=${encodeURIComponent(next)}`);
+  }catch(e){
+    return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+  }
+});
+
+app.get('/epic/connected', (req, res) => {
+  const ok = String(req.query.ok || '0') === '1';
+  const next = safeNext(req.query.next);
+  const payload = JSON.stringify({ type: 'epic:connected', ok });
+  res.setHeader('content-type','text/html; charset=utf-8');
+  return res.send(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Epic</title></head>
+<body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+  <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
+    <h2 style="margin:0 0 10px 0">${ok ? 'Epic connecté ✅' : 'Epic: échec ❌'}</h2>
+    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir à TwitFlix.' : 'Réessaie la connexion Epic.'}</p>
+    <a href="${next}" style="color:#00e5ff">Retour</a>
+  </div>
+  <script>
+    (function(){
+      try{
+        if(window.opener && !window.opener.closed){
+          window.opener.postMessage(${payload}, '*');
+          window.close();
+        }
+      }catch(e){}
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+    })();
+  </script>
+</body></html>`);
+});
+
 // Session info (used by TwitFlix)
 app.get('/api/steam/me', async (req, res) => {
   const s = req.session?.steam;
@@ -436,6 +908,87 @@ app.post('/api/steam/unlink', async (req, res) => {
     await setBillingSteam(tu, null);
     if(req.session) req.session.steam = null;
     return res.json({ success:true });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+// Riot/Epic session info (used by Streamer Hub / TwitFlix)
+app.get('/api/riot/me', async (req, res) => {
+  const r = req.session?.riot;
+  if(r?.access_token){
+    return res.json({ success:true, connected:true, linkedAt: r.linkedAt || null, userinfo: r.userinfo || null, source:'session' });
+  }
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.json({ success:true, connected:false });
+    const b = await getBillingDoc(tu);
+    if(b?.riot?.access_token){
+      return res.json({ success:true, connected:true, linkedAt: b.riot.linkedAt || null, userinfo: b.riot.userinfo || null, source:'billing' });
+    }
+  }catch(_){}
+  return res.json({ success:true, connected:false });
+});
+
+app.post('/api/riot/unlink', async (req, res) => {
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    req.session.riot = null;
+    await setBillingRiot(tu, null);
+    return res.json({ success:true });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.get('/api/epic/me', async (req, res) => {
+  const e = req.session?.epic;
+  if(e?.access_token){
+    return res.json({ success:true, connected:true, linkedAt: e.linkedAt || null, source:'session' });
+  }
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.json({ success:true, connected:false });
+    const b = await getBillingDoc(tu);
+    if(b?.epic?.access_token){
+      return res.json({ success:true, connected:true, linkedAt: b.epic.linkedAt || null, source:'billing' });
+    }
+  }catch(_){}
+  return res.json({ success:true, connected:false });
+});
+
+app.post('/api/epic/unlink', async (req, res) => {
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    req.session.epic = null;
+    await setBillingEpic(tu, null);
+    return res.json({ success:true });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Lightweight stream peek by login (used to fix LoL detection reliably)
+app.get('/api/twitch/stream_by_login', async (req, res) => {
+  try{
+    const login = String(req.query.login || '').trim().toLowerCase();
+    if(!login) return res.status(400).json({ success:false, error:'login manquant' });
+    const data = await twitchAPI(`streams?user_login=${encodeURIComponent(login)}`);
+    const s = data?.data?.[0];
+    if(!s) return res.json({ success:true, live:false });
+    return res.json({
+      success:true,
+      live:true,
+      login: s.user_login || login,
+      user_name: s.user_name || null,
+      game_id: s.game_id || null,
+      game_name: s.game_name || null,
+      title: s.title || null,
+      viewer_count: s.viewer_count || 0
+    });
   }catch(e){
     return res.status(500).json({ success:false, error:e.message });
   }
@@ -1162,10 +1715,6 @@ async function riotFetchJSON(url){
   const r = await fetch(url, { headers: { 'X-Riot-Token': RIOT_API_KEY } });
   if(!r.ok){
     const t = await r.text().catch(()=> '');
-    // Make 401/403 clearer for non-technical UI.
-    if (r.status === 401 || r.status === 403) {
-      throw new Error(`Riot ${r.status}: clé invalide ou expirée. Détails: ${t.slice(0,200)}`);
-    }
     throw new Error(`Riot ${r.status}: ${t.slice(0,200)}`);
   }
   return await r.json();
@@ -1395,81 +1944,81 @@ app.get('/api/youtube/trailer', async (req, res) => {
 
 // YouTube "Progress Clips" (Live Tips) — short help videos
 // GET /api/youtube/tips?q=QUERY
+
 app.get('/api/youtube/tips', async (req, res) => {
   try{
     if(!YOUTUBE_API_KEY){
       return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY manquant' });
     }
     const q0 = String(req.query.q || '').trim();
-    const game = String(req.query.game || '').trim();
-    if(!q0 && !game) return res.json({ success:true, items:[] });
+    if(!q0) return res.json({ success:true, items:[] });
 
-    // Build a better query: if game is known, always inject it.
-    // Also bias toward short "how-to" content.
-    const base = [game, q0].filter(Boolean).join(' ').trim();
-    const candidates = [];
-    const q = sanitizeText(base, 160);
-    if (q) {
-      candidates.push(q);
-      candidates.push(`${q} guide`);
-      candidates.push(`${q} tips`);
-      candidates.push(`${q} tutorial`);
-      candidates.push(`${q} short`);
-    }
+    // We try a few variants to improve hit rate ("Aucun clip trouvé" felt too frequent).
+    const base = sanitizeText(q0, 140);
+    const variants = [];
+    variants.push(base);
+    variants.push(`${base} guide`);
+    variants.push(`${base} tips`);
+    variants.push(`${base} how to`);
 
-    // search (retry with increasingly guided queries)
-    let items = [];
-    let usedQuery = '';
-    for (const cand of candidates.slice(0, 5)){
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&safeSearch=moderate&videoDuration=short&q=${encodeURIComponent(cand)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+    // Helper that searches + enriches with duration, then returns ordered items
+    const searchOnce = async (query) => {
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&safeSearch=moderate&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
       const r = await fetch(url);
       const d = await r.json();
-      const arr = Array.isArray(d.items) ? d.items : [];
-      if (arr.length){ items = arr; usedQuery = cand; break; }
-    }
-    const vids = items.map(x => x?.id?.videoId).filter(Boolean);
+      const items = Array.isArray(d.items) ? d.items : [];
+      const vids = items.map(x => x?.id?.videoId).filter(Boolean);
 
-    // fetch durations (optional)
-    let durMap = {};
-    if(vids.length){
+      let durMap = {};
+      if(vids.length){
+        try{
+          const u2 = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(vids.join(','))}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+          const r2 = await fetch(u2);
+          const d2 = await r2.json();
+          const vitems = Array.isArray(d2.items) ? d2.items : [];
+          for(const it of vitems){
+            const id = it?.id;
+            const iso = it?.contentDetails?.duration || '';
+            if(id) durMap[id] = isoDurationToSeconds(iso);
+          }
+        }catch(_){}
+      }
+
+      const out = items.map(it=>{
+        const vid = it?.id?.videoId;
+        if(!vid) return null;
+        const title = it?.snippet?.title || '';
+        const thumb = it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '';
+        const dur = durMap[vid] || null;
+        return { videoId: vid, title, thumbnail: thumb, durationSec: dur };
+      }).filter(Boolean);
+
+      // prefer shorts when duration is known
+      const sorted = out.slice().sort((a,b)=>{
+        const da = (typeof a.durationSec === 'number') ? a.durationSec : 99999;
+        const db = (typeof b.durationSec === 'number') ? b.durationSec : 99999;
+        return da - db;
+      });
+
+      const shorts = sorted.filter(x => typeof x.durationSec === 'number' && x.durationSec > 0 && x.durationSec <= 120);
+      const final = (shorts.length ? shorts : sorted).slice(0, 10);
+      return final;
+    };
+
+    let final = [];
+    for(const v of variants){
       try{
-        const u2 = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(vids.join(','))}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
-        const r2 = await fetch(u2);
-        const d2 = await r2.json();
-        const vitems = Array.isArray(d2.items) ? d2.items : [];
-        for(const it of vitems){
-          const id = it?.id;
-          const iso = it?.contentDetails?.duration || '';
-          if(id) durMap[id] = isoDurationToSeconds(iso);
-        }
+        final = await searchOnce(v);
+        if(final && final.length) break;
       }catch(_){}
     }
 
-    const out = items.map(it=>{
-      const vid = it?.id?.videoId;
-      if(!vid) return null;
-      const title = it?.snippet?.title || '';
-      const thumb = it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '';
-      const dur = durMap[vid] || null;
-      return { videoId: vid, title, thumbnail: thumb, durationSec: dur };
-    }).filter(Boolean);
-
-    // prefer shorter videos when duration is known
-    const shortFirst = out.slice().sort((a,b)=>{
-      const da = (typeof a.durationSec === 'number') ? a.durationSec : 99999;
-      const db = (typeof b.durationSec === 'number') ? b.durationSec : 99999;
-      return da - db;
-    });
-
-    // if we have true shorts (< 90s) pick them, else pick top results
-    const shorts = shortFirst.filter(x => typeof x.durationSec === 'number' && x.durationSec > 0 && x.durationSec <= 90);
-    const final = (shorts.length ? shorts : shortFirst).slice(0, 10);
-
-    return res.json({ success:true, items: final, usedQuery });
+    return res.json({ success:true, items: Array.isArray(final) ? final : [] });
   }catch(e){
     return res.status(500).json({ success:false, error:e.message });
   }
 });
+
 
 
 
@@ -2776,6 +3325,57 @@ async function setBillingSteam(twitchUser, steam){
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge:true });
 }
+
+
+async function setBillingRiot(twitchUser, riot){
+  if(!firestoreOk) return;
+  if(!twitchUser) return;
+  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const ref = db.collection(BILLING_USERS).doc(id);
+  if(!riot){
+    await ref.set({ riot: admin.firestore.FieldValue.delete(), updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    return;
+  }
+  await ref.set({
+    riot: {
+      access_token: String(riot.access_token||''),
+      refresh_token: riot.refresh_token ? String(riot.refresh_token) : null,
+      id_token: riot.id_token ? String(riot.id_token) : null,
+      scope: riot.scope ? String(riot.scope) : null,
+      token_type: riot.token_type ? String(riot.token_type) : null,
+      expires_in: riot.expires_in ? Number(riot.expires_in) : null,
+      userinfo: riot.userinfo || null,
+      linkedAt: riot.linkedAt ? admin.firestore.Timestamp.fromMillis(Number(riot.linkedAt)) : admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    },
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge:true });
+}
+
+async function setBillingEpic(twitchUser, epic){
+  if(!firestoreOk) return;
+  if(!twitchUser) return;
+  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const ref = db.collection(BILLING_USERS).doc(id);
+  if(!epic){
+    await ref.set({ epic: admin.firestore.FieldValue.delete(), updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    return;
+  }
+  await ref.set({
+    epic: {
+      access_token: String(epic.access_token||''),
+      refresh_token: epic.refresh_token ? String(epic.refresh_token) : null,
+      id_token: epic.id_token ? String(epic.id_token) : null,
+      scope: epic.scope ? String(epic.scope) : null,
+      token_type: epic.token_type ? String(epic.token_type) : null,
+      expires_in: epic.expires_in ? Number(epic.expires_in) : null,
+      linkedAt: epic.linkedAt ? admin.firestore.Timestamp.fromMillis(Number(epic.linkedAt)) : admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    },
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge:true });
+}
+
 
 async function requireActionQuota(req, res, actionName){
   const tu = requireTwitchSession(req, res);
