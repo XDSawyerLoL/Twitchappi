@@ -787,7 +787,7 @@ async function tfPromptSteam(){
   if(tfSteamSession.connected){
     const ok = confirm('Steam est déjà connecté. Voulez-vous déconnecter Steam pour cette session ?');
     if(!ok) return;
-    try{ await fetch(`${API_BASE}/api/steam/logout`, { method:'POST', credentials:'include' }); }catch(_){}
+    try{ await fetch(`${API_BASE}/api/steam/unlink`, { method:'POST', credentials:'include' }); }catch(_){}
     tfSteamSession = { connected:false, steamid:'', profile:null };
     tfUpdateSteamBtn();
     tfPersonalization = null;

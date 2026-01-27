@@ -332,6 +332,13 @@ app.get('/auth/steam/return', async (req, res) => {
         linkedAt: Date.now()
       };
 
+      // If the user is also connected via Twitch on this session, persist Steam on their Billing doc.
+      // This avoids relying on Firebase Auth on the frontend and makes Steam "permanent".
+      try{
+        const tu = req.session?.twitchUser;
+        if(tu) await setBillingSteam(tu, req.session.steam);
+      }catch(_){ }
+
       // Optional: if front sends Firebase idToken later, we can persist the link.
       return res.redirect(`/steam/connected?ok=1&next=${encodeURIComponent(next)}`);
     }catch(_){
@@ -364,7 +371,7 @@ app.get('/steam/connected', (req, res) => {
         }
       }catch(e){}
       // fallback: redirect after 1.2s
-      setTimeout(function(){ try{ location.href = ${json.dumps(next)}; }catch(e){} }, 1200);
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
     })();
   </script>
 </body></html>`);
@@ -373,8 +380,21 @@ app.get('/steam/connected', (req, res) => {
 // Session info (used by TwitFlix)
 app.get('/api/steam/me', async (req, res) => {
   const s = req.session?.steam;
-  if(!s?.steamid) return res.json({ success:true, connected:false });
-  return res.json({ success:true, connected:true, steamid: s.steamid, profile: s.profile || null, linkedAt: s.linkedAt || null });
+  if(s?.steamid){
+    return res.json({ success:true, connected:true, steamid: s.steamid, profile: s.profile || null, linkedAt: s.linkedAt || null, source: 'session' });
+  }
+
+  // Fallback: if user is connected via Twitch, read persisted Steam link from billing_users/{twitchUserId}
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.json({ success:true, connected:false });
+    const b = await getBillingDoc(tu);
+    if(b?.steam?.steamid){
+      return res.json({ success:true, connected:true, steamid: b.steam.steamid, profile: b.steam.profile || null, linkedAt: b.steam.linkedAt || null, source: 'billing' });
+    }
+  }catch(_){ }
+
+  return res.json({ success:true, connected:false });
 });
 
 // Persist Steam link to Firestore for the currently logged-in Firebase user
@@ -407,6 +427,20 @@ app.post('/api/steam/logout', (req, res) => {
   }catch(_){}
   return res.json({ success:true });
 });
+
+// Remove the persisted Steam link for the current Twitch user
+app.post('/api/steam/unlink', async (req, res) => {
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    await setBillingSteam(tu, null);
+    if(req.session) req.session.steam = null;
+    return res.json({ success:true });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 
 
 // Static assets (kept simple: UI + /assets folder)
@@ -749,6 +783,13 @@ app.get('/twitch_auth_callback', async (req, res) => {
       access_token: tokenData.access_token,
       expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000)
     };
+
+    // If Steam was connected before Twitch, persist it now so it becomes permanent.
+    try{
+      if(req.session?.steam?.steamid){
+        await setBillingSteam(req.session.twitchUser, req.session.steam);
+      }
+    }catch(_){ }
 
     // S’assure que la session est persistée avant fermeture de la popup
     req.session.save(() => {
@@ -2344,6 +2385,27 @@ async function setBillingPlan(twitchUser, plan){
   }, { merge: true });
 }
 
+// Store (or remove) the Steam link on the Billing doc. This makes Steam persistent across browser sessions.
+async function setBillingSteam(twitchUser, steam){
+  if(!firestoreOk) return;
+  if(!twitchUser) return;
+  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const ref = db.collection(BILLING_USERS).doc(id);
+  if(!steam){
+    await ref.set({ steam: admin.firestore.FieldValue.delete(), updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    return;
+  }
+  await ref.set({
+    steam: {
+      steamid: String(steam.steamid||''),
+      profile: steam.profile || null,
+      linkedAt: steam.linkedAt ? admin.firestore.Timestamp.fromMillis(Number(steam.linkedAt)) : admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    },
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge:true });
+}
+
 async function requireActionQuota(req, res, actionName){
   const tu = requireTwitchSession(req, res);
   if(!tu) return null;
@@ -2537,7 +2599,9 @@ app.get('/api/billing/me', async (req,res)=>{
       }catch(_){}
     }
 
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {} });}catch(e){
+    const steam = b.steam && b.steam.steamid ? { connected:true, steamid:b.steam.steamid, profile:b.steam.profile || null } : { connected:false };
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
+  }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
 });
