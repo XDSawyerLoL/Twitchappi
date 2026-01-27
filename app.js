@@ -21,6 +21,7 @@ const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
 const http = require('http');
 const { Server } = require('socket.io');
+const openid = require('openid');
 
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
@@ -234,6 +235,179 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+
+// =========================================================
+// 1B. STEAM OPENID (no manual SteamID64)
+// =========================================================
+const STEAM_PROVIDER = 'https://steamcommunity.com/openid';
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || ''; // ex: https://justplayer.onrender.com
+function getBaseUrl(req){
+  // trust proxy enabled: req.protocol honors X-Forwarded-Proto on Render/Cloudflare
+  const fromReq = `${req.protocol}://${req.get('host')}`;
+  return PUBLIC_BASE_URL || fromReq;
+}
+function safeNext(next){
+  const s = String(next || '').trim();
+  // Only allow relative paths to avoid open redirects
+  if (!s || !s.startsWith('/')) return '/';
+  return s;
+}
+function steamRelyingParty(req){
+  const baseUrl = getBaseUrl(req);
+  const returnUrl = `${baseUrl}/auth/steam/return`;
+  const realm = baseUrl;
+  // stateless = true, strict = true. We rely on express-session for state anyway.
+  return new openid.RelyingParty(returnUrl, realm, true, true, []);
+}
+async function steamFetchPlayerSummary(steamid){
+  if(!STEAM_API_KEY) return null;
+  try{
+    const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${encodeURIComponent(STEAM_API_KEY)}&steamids=${encodeURIComponent(steamid)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const p = d?.response?.players?.[0];
+    if(!p) return null;
+    return {
+      steamid: p.steamid,
+      personaname: p.personaname || null,
+      avatar: p.avatar || null,
+      avatarmedium: p.avatarmedium || null,
+      avatarfull: p.avatarfull || null,
+      profileurl: p.profileurl || null,
+      communityvisibilitystate: p.communityvisibilitystate || null,
+      lastlogoff: p.lastlogoff || null
+    };
+  }catch(_){ return null; }
+}
+async function verifyFirebaseIdTokenFromReq(req){
+  const auth = String(req.headers.authorization || '').trim();
+  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : (req.body?.idToken ? String(req.body.idToken).trim() : '');
+  if(!token) return null;
+  try{
+    return await admin.auth().verifyIdToken(token);
+  }catch(e){
+    return null;
+  }
+}
+
+// Start Steam auth (use popup or full redirect)
+app.get('/auth/steam', async (req, res) => {
+  try{
+    const next = safeNext(req.query.next);
+    req.session.steamNext = next;
+
+    const rp = steamRelyingParty(req);
+    rp.authenticate(STEAM_PROVIDER, false, (err, authUrl) => {
+      if (err || !authUrl) {
+        return res.status(500).send('Steam auth init failed');
+      }
+      return res.redirect(authUrl);
+    });
+  }catch(e){
+    return res.status(500).send('Steam auth init failed');
+  }
+});
+
+// Steam callback
+app.get('/auth/steam/return', async (req, res) => {
+  const next = safeNext(req.session?.steamNext);
+  const rp = steamRelyingParty(req);
+  rp.verifyAssertion(req, async (err, result) => {
+    try{
+      if (err || !result?.authenticated) {
+        return res.redirect(`/steam/connected?ok=0&next=${encodeURIComponent(next)}`);
+      }
+      const claimed = String(result.claimedIdentifier || '');
+      const m = claimed.match(/steamcommunity\.com\/openid\/id\/(\d+)/i);
+      const steamid = m ? m[1] : '';
+      if(!steamid){
+        return res.redirect(`/steam/connected?ok=0&next=${encodeURIComponent(next)}`);
+      }
+
+      const profile = await steamFetchPlayerSummary(steamid);
+
+      req.session.steam = {
+        steamid,
+        profile: profile || null,
+        linkedAt: Date.now()
+      };
+
+      // Optional: if front sends Firebase idToken later, we can persist the link.
+      return res.redirect(`/steam/connected?ok=1&next=${encodeURIComponent(next)}`);
+    }catch(_){
+      return res.redirect(`/steam/connected?ok=0&next=${encodeURIComponent(next)}`);
+    }
+  });
+});
+
+// Tiny page to close popup + notify opener
+app.get('/steam/connected', (req, res) => {
+  const ok = String(req.query.ok || '0') === '1';
+  const next = safeNext(req.query.next);
+  const steamid = req.session?.steam?.steamid || '';
+  const payload = JSON.stringify({ type: 'steam:connected', ok, steamid });
+  res.setHeader('content-type','text/html; charset=utf-8');
+  return res.send(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Steam</title></head>
+<body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+  <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
+    <h2 style="margin:0 0 10px 0">${ok ? 'Steam connecté ✅' : 'Steam: échec ❌'}</h2>
+    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir à TwitFlix.' : 'Réessaie la connexion Steam.'}</p>
+    <a href="${next}" style="color:#00e5ff">Retour</a>
+  </div>
+  <script>
+    (function(){
+      try{
+        if(window.opener && !window.opener.closed){
+          window.opener.postMessage(${payload}, '*');
+          window.close();
+        }
+      }catch(e){}
+      // fallback: redirect after 1.2s
+      setTimeout(function(){ try{ location.href = ${json.dumps(next)}; }catch(e){} }, 1200);
+    })();
+  </script>
+</body></html>`);
+});
+
+// Session info (used by TwitFlix)
+app.get('/api/steam/me', async (req, res) => {
+  const s = req.session?.steam;
+  if(!s?.steamid) return res.json({ success:true, connected:false });
+  return res.json({ success:true, connected:true, steamid: s.steamid, profile: s.profile || null, linkedAt: s.linkedAt || null });
+});
+
+// Persist Steam link to Firestore for the currently logged-in Firebase user
+app.post('/api/steam/link', async (req, res) => {
+  try{
+    const s = req.session?.steam;
+    if(!s?.steamid) return res.status(400).json({ success:false, error:'Steam non connecté (session)' });
+
+    const decoded = await verifyFirebaseIdTokenFromReq(req);
+    if(!decoded?.uid) return res.status(401).json({ success:false, error:'Auth Firebase requise' });
+
+    await db.collection('users').doc(decoded.uid).set({
+      steam: {
+        steamid: s.steamid,
+        profile: s.profile || null,
+        linkedAt: admin.firestore.Timestamp.fromMillis(s.linkedAt || Date.now()),
+        updatedAt: admin.firestore.Timestamp.fromMillis(Date.now())
+      }
+    }, { merge: true });
+
+    return res.json({ success:true });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/steam/logout', (req, res) => {
+  try{
+    if(req.session) req.session.steam = null;
+  }catch(_){}
+  return res.json({ success:true });
+});
+
 
 // Static assets (kept simple: UI + /assets folder)
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
@@ -753,7 +927,8 @@ async function steamResolveAppNames(appids){
 // GET /api/steam/recent?steamid=STEAMID64
 app.get('/api/steam/recent', async (req,res)=>{
   try{
-    const steamid = String(req.query.steamid||'').trim();
+    let steamid = String(req.query.steamid||'').trim();
+    if(!steamid) steamid = String(req.session?.steam?.steamid||'').trim();
     if(!steamid) return res.status(400).json({success:false,error:'steamid manquant'});
     const recent = await steamGetRecentlyPlayed(steamid);
     const names = await steamResolveAppNames(recent.map(x=>x.appid));
@@ -766,7 +941,8 @@ app.get('/api/steam/recent', async (req,res)=>{
 // GET /api/reco/personalized?steamid=STEAMID64
 app.get('/api/reco/personalized', async (req,res)=>{
   try{
-    const steamid = String(req.query.steamid||'').trim();
+    let steamid = String(req.query.steamid||'').trim();
+    if(!steamid) steamid = String(req.session?.steam?.steamid||'').trim();
     if(!steamid || !STEAM_API_KEY){
       return res.json({ success:true, title:'Tendances <span>FR</span>', seedGame:null, categories:[] });
     }

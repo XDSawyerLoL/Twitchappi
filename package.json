@@ -23,6 +23,7 @@
     "memorystore": "^1.6.7",
     "node-fetch": "^2.6.12",
     "socket.io": "^4.7.5",
-    "stripe": "^14.25.0"
+    "stripe": "^14.25.0",
+    "openid": "^2.0.10"
   }
 }

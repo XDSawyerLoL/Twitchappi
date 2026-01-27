@@ -704,44 +704,111 @@ function startAuth() {
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
 
-    // Personalisation (Steam ADN)
-    let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
-    const TF_STEAM_STORAGE_KEY = 'twitflix_steamid64';
+    // Personalisation (Steam ADN) — prefers Steam OpenID session (no manual SteamID64)
+let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
+const TF_STEAM_STORAGE_KEY = 'twitflix_steamid64'; // legacy fallback
+let tfSteamSession = { connected:false, steamid:'', profile:null };
 
-    function tfGetSteamId(){
-      try{ return (localStorage.getItem(TF_STEAM_STORAGE_KEY) || '').trim(); }catch(_){ return ''; }
-    }
-    function tfSetSteamId(v){
-      try{ localStorage.setItem(TF_STEAM_STORAGE_KEY, String(v||'').trim()); }catch(_){ }
-    }
+function tfGetSteamId(){
+  try{ return (localStorage.getItem(TF_STEAM_STORAGE_KEY) || '').trim(); }catch(_){ return ''; }
+}
+function tfSetSteamId(v){
+  try{ localStorage.setItem(TF_STEAM_STORAGE_KEY, String(v||'').trim()); }catch(_){ }
+}
 
-    async function tfLoadPersonalization(){
-      const steamid = tfGetSteamId();
-      if(!steamid){ tfPersonalization = null; return; }
-      try{
-        const r = await fetch(`${API_BASE}/api/reco/personalized?steamid=${encodeURIComponent(steamid)}`);
-        if(!r.ok) { tfPersonalization = null; return; }
-        const d = await r.json();
-        if(d && d.success && Array.isArray(d.categories) && d.categories.length){
-          tfPersonalization = d;
-        }else{
-          tfPersonalization = null;
-        }
-      }catch(_){ tfPersonalization = null; }
-    }
+function tfUpdateSteamBtn(){
+  const btn = document.getElementById('tf-btn-steam');
+  if(!btn) return;
+  if(tfSteamSession.connected){
+    btn.textContent = 'STEAM ✓';
+    btn.title = tfSteamSession.profile?.personaname ? `Connecté: ${tfSteamSession.profile.personaname}` : 'Steam connecté';
+  }else{
+    btn.textContent = 'STEAM';
+    btn.title = 'Connecter Steam';
+  }
+}
 
-    function tfPromptSteam(){
-      const cur = tfGetSteamId();
-      const v = prompt('SteamID64 (profil public) :', cur || '');
-      if(v === null) return;
-      const clean = String(v||'').trim();
-      tfSetSteamId(clean);
-      // Refresh personalization if modal already open
-      if(tfModalOpen){
-        tfLoadPersonalization().then(()=>{ renderTwitFlix(); }).catch(()=>{});
+async function tfRefreshSteamSession(){
+  try{
+    const r = await fetch(`${API_BASE}/api/steam/me`, { credentials:'include' });
+    const d = await r.json();
+    tfSteamSession = (d && d.success && d.connected) ? { connected:true, steamid:d.steamid||'', profile:d.profile||null } : { connected:false, steamid:'', profile:null };
+    if(tfSteamSession.connected && tfSteamSession.steamid){
+      // keep a local hint for legacy endpoints; not required
+      tfSetSteamId(tfSteamSession.steamid);
+    }
+  }catch(_){
+    tfSteamSession = { connected:false, steamid:'', profile:null };
+  }
+  tfUpdateSteamBtn();
+}
+
+async function tfLoadPersonalization(){
+  // Prefer server session
+  if(tfSteamSession.connected){
+    try{
+      const r = await fetch(`${API_BASE}/api/reco/personalized`, { credentials:'include' });
+      if(!r.ok) { tfPersonalization = null; return; }
+      const d = await r.json();
+      if(d && d.success && Array.isArray(d.categories) && d.categories.length){
+        tfPersonalization = d;
+        return;
       }
-    }
-    window.tfPromptSteam = tfPromptSteam;
+    }catch(_){}
+  }
+
+  // Legacy fallback (manual SteamID64 in localStorage)
+  const steamid = tfGetSteamId();
+  if(!steamid){ tfPersonalization = null; return; }
+  try{
+    const r = await fetch(`${API_BASE}/api/reco/personalized?steamid=${encodeURIComponent(steamid)}`);
+    if(!r.ok) { tfPersonalization = null; return; }
+    const d = await r.json();
+    tfPersonalization = (d && d.success && Array.isArray(d.categories) && d.categories.length) ? d : null;
+  }catch(_){ tfPersonalization = null; }
+}
+
+function tfConnectSteam(){
+  const next = '/'; // keep it simple: return to home
+  const url = `${API_BASE}/auth/steam?next=${encodeURIComponent(next)}`;
+  // popup first (second screen friendly)
+  const w = 720, h = 640;
+  const left = Math.max(0, (window.screen.width - w) / 2);
+  const top = Math.max(0, (window.screen.height - h) / 2);
+  const popup = window.open(url, 'steamAuth', `width=${w},height=${h},left=${left},top=${top}`);
+  if(!popup){
+    // popup blocked -> full redirect
+    window.location.href = url;
+  }
+}
+
+async function tfPromptSteam(){
+  // No more manual prompt: always use Steam OpenID.
+  if(tfSteamSession.connected){
+    const ok = confirm('Steam est déjà connecté. Voulez-vous déconnecter Steam pour cette session ?');
+    if(!ok) return;
+    try{ await fetch(`${API_BASE}/api/steam/logout`, { method:'POST', credentials:'include' }); }catch(_){}
+    tfSteamSession = { connected:false, steamid:'', profile:null };
+    tfUpdateSteamBtn();
+    tfPersonalization = null;
+    if(tfModalOpen) renderTwitFlix();
+    return;
+  }
+  tfConnectSteam();
+}
+window.tfPromptSteam = tfPromptSteam;
+
+// Listen for popup completion
+window.addEventListener('message', (ev) => {
+  const data = ev?.data;
+  if(!data || data.type !== 'steam:connected') return;
+  if(data.ok){
+    tfRefreshSteamSession().then(()=> tfLoadPersonalization().then(()=>{ if(tfModalOpen) renderTwitFlix(); }).catch(()=>{})).catch(()=>{});
+  }else{
+    tfRefreshSteamSession().catch(()=>{});
+    alert('Connexion Steam échouée.');
+  }
+});
 
 
     // ====== TWITFLIX: LIVE CAROUSEL + TRAILERS ======
@@ -1026,7 +1093,8 @@ try{
       await tfLoadMore(true);
       await tfLoadMore(true);
 
-      // Steam ADN (optional)
+      // Steam session (OpenID) + ADN
+      await tfRefreshSteamSession();
       await tfLoadPersonalization();
 
       tfRenderLiveCarousel();
