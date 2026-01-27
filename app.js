@@ -188,6 +188,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash";
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const STEAM_API_KEY = process.env.STEAM_API_KEY;
 
 let aiClient = null;
 if (GEMINI_API_KEY) {
@@ -708,6 +709,134 @@ app.get('/api/categories/search', async (req, res) => {
     return res.json({ success: true, categories });
   } catch (e) {
     return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+
+// =========================================================
+// STEAM (lightweight integration) + ADN / IA-assisted search
+// =========================================================
+function tokenSet(s){
+  return new Set(String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/).filter(Boolean));
+}
+function jaccard(a,b){
+  const A = tokenSet(a), B = tokenSet(b);
+  if(!A.size || !B.size) return 0;
+  let inter = 0;
+  for(const x of A){ if(B.has(x)) inter++; }
+  const uni = A.size + B.size - inter;
+  return uni ? inter/uni : 0;
+}
+async function steamGetRecentlyPlayed(steamid){
+  if(!STEAM_API_KEY) throw new Error("STEAM_API_KEY missing");
+  const url = `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key=${encodeURIComponent(STEAM_API_KEY)}&steamid=${encodeURIComponent(steamid)}&count=5`;
+  const r = await fetch(url);
+  const d = await r.json();
+  const games = (d && d.response && Array.isArray(d.response.games)) ? d.response.games : [];
+  return games;
+}
+async function steamResolveAppNames(appids){
+  const out = [];
+  for(const appid of (appids||[]).slice(0,3)){
+    try{
+      const url = `https://store.steampowered.com/api/appdetails?appids=${encodeURIComponent(appid)}&l=english`;
+      const r = await fetch(url);
+      const d = await r.json();
+      const entry = d && d[String(appid)];
+      const name = entry && entry.success && entry.data ? entry.data.name : null;
+      if(name) out.push({ appid, name });
+    }catch(_){}
+  }
+  return out;
+}
+
+// GET /api/steam/recent?steamid=STEAMID64
+app.get('/api/steam/recent', async (req,res)=>{
+  try{
+    const steamid = String(req.query.steamid||'').trim();
+    if(!steamid) return res.status(400).json({success:false,error:'steamid manquant'});
+    const recent = await steamGetRecentlyPlayed(steamid);
+    const names = await steamResolveAppNames(recent.map(x=>x.appid));
+    return res.json({success:true,recent, names});
+  }catch(e){
+    return res.status(500).json({success:false,error:e.message});
+  }
+});
+
+// GET /api/reco/personalized?steamid=STEAMID64
+app.get('/api/reco/personalized', async (req,res)=>{
+  try{
+    const steamid = String(req.query.steamid||'').trim();
+    if(!steamid || !STEAM_API_KEY){
+      return res.json({ success:true, title:'Tendances <span>FR</span>', seedGame:null, categories:[] });
+    }
+
+    const recent = await steamGetRecentlyPlayed(steamid);
+    const resolved = await steamResolveAppNames(recent.map(x=>x.appid));
+    const seed = resolved[0]?.name || null;
+    if(!seed){
+      return res.json({ success:true, title:'Tendances <span>FR</span>', seedGame:null, categories:[] });
+    }
+
+    const top = await twitchAPI('games/top?first=100');
+    const pool = (top.data||[]).map(g=>({
+      id: g.id,
+      name: g.name,
+      box_art_url: (g.box_art_url||'').replace('{width}','285').replace('{height}','380')
+    }));
+
+    const scored = pool.map(c=>{
+      const sim = jaccard(seed, c.name);
+      const compat = Math.max(65, Math.min(99, Math.round(65 + sim*34)));
+      return { ...c, compat, _sim: sim };
+    }).sort((a,b)=> b._sim - a._sim);
+
+    const title = `Parce que tu as aimé <span>${sanitizeText(seed,40)}</span>`;
+    return res.json({ success:true, title, seedGame: seed, categories: scored.slice(0, 56) });
+  }catch(e){
+    return res.status(500).json({success:false,error:e.message});
+  }
+});
+
+// POST /api/search/intent  { text: "comme Zomboid mais plus de craft et moins de stress" }
+app.post('/api/search/intent', async (req,res)=>{
+  try{
+    const text = String(req.body?.text || '').trim();
+    if(!text) return res.json({success:true, categories:[]});
+
+    const low = text.toLowerCase();
+
+    let base = '';
+    const mm = low.match(/comme\s+([^,.;]+)/i);
+    if(mm) base = mm[1].split(' mais ')[0].trim();
+
+    const wantsCraft = /craft|artisan|construction|build|builder|base/i.test(low);
+    const lessStress = /(moins|pas).*stress|chill|relax|calme|zen/i.test(low);
+
+    const queries = [];
+    if(base) queries.push(base);
+    if(wantsCraft) queries.push('craft');
+    if(lessStress) queries.push('chill');
+
+    const byId = new Map();
+    for(const q of queries.slice(0,3)){
+      try{
+        const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
+        for(const g of (d.data||[])){
+          if(!g?.id) continue;
+          if(byId.has(g.id)) continue;
+          byId.set(g.id, {
+            id: g.id,
+            name: g.name,
+            box_art_url: (g.box_art_url||'').replace('{width}','285').replace('{height}','380')
+          });
+        }
+      }catch(_){}
+    }
+
+    return res.json({ success:true, categories: Array.from(byId.values()).slice(0,120) });
+  }catch(e){
+    return res.status(500).json({success:false,error:e.message});
   }
 });
 

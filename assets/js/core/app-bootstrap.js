@@ -704,6 +704,46 @@ function startAuth() {
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
 
+    // Personalisation (Steam ADN)
+    let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
+    const TF_STEAM_STORAGE_KEY = 'twitflix_steamid64';
+
+    function tfGetSteamId(){
+      try{ return (localStorage.getItem(TF_STEAM_STORAGE_KEY) || '').trim(); }catch(_){ return ''; }
+    }
+    function tfSetSteamId(v){
+      try{ localStorage.setItem(TF_STEAM_STORAGE_KEY, String(v||'').trim()); }catch(_){ }
+    }
+
+    async function tfLoadPersonalization(){
+      const steamid = tfGetSteamId();
+      if(!steamid){ tfPersonalization = null; return; }
+      try{
+        const r = await fetch(`${API_BASE}/api/reco/personalized?steamid=${encodeURIComponent(steamid)}`);
+        if(!r.ok) { tfPersonalization = null; return; }
+        const d = await r.json();
+        if(d && d.success && Array.isArray(d.categories) && d.categories.length){
+          tfPersonalization = d;
+        }else{
+          tfPersonalization = null;
+        }
+      }catch(_){ tfPersonalization = null; }
+    }
+
+    function tfPromptSteam(){
+      const cur = tfGetSteamId();
+      const v = prompt('SteamID64 (profil public) :', cur || '');
+      if(v === null) return;
+      const clean = String(v||'').trim();
+      tfSetSteamId(clean);
+      // Refresh personalization if modal already open
+      if(tfModalOpen){
+        tfLoadPersonalization().then(()=>{ renderTwitFlix(); }).catch(()=>{});
+      }
+    }
+    window.tfPromptSteam = tfPromptSteam;
+
+
     // ====== TWITFLIX: LIVE CAROUSEL + TRAILERS ======
     // Add YouTube video IDs here to enable embedded trailers in TwitFlix.
     // Key: game name (lowercased). Value: YouTube videoId.
@@ -957,8 +997,17 @@ try{
 
       setTwitFlixView('rows');
 
-      // search handler (server if possible, fallback local)
+      // search handler (IA-assisted)
       if (search){
+        search.onkeydown = async (ev)=>{
+          if(ev.key === 'Enter'){
+            ev.preventDefault();
+            const v = String(search.value||'').trim();
+            tfSearchQuery = v;
+            if (tfSearchTimer) clearTimeout(tfSearchTimer);
+            await tfRunSearch(v);
+          }
+        };
         search.oninput = (e) => {
           const v = String(e.target.value || '').trim();
           tfSearchQuery = v;
@@ -976,6 +1025,10 @@ try{
       // warm load (2 pages)
       await tfLoadMore(true);
       await tfLoadMore(true);
+
+      // Steam ADN (optional)
+      await tfLoadPersonalization();
+
       tfRenderLiveCarousel();
       tfRenderTrailerCarousel();
       renderTwitFlix();
@@ -1048,6 +1101,30 @@ try{
         tfSearchResults = [];
         renderTwitFlix();
         return;
+      }
+
+      // IA-assisted: if query is a sentence, ask the server to translate it into a curated list.
+      const looksComplex = (q.length >= 22) || /\bcomme\b|\bmais\b|\bmoins\b|\bplus\b|\bstress\b|\bcraft\b/i.test(q);
+      if(looksComplex){
+        try{
+          const r0 = await fetch(`${API_BASE}/api/search/intent`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ text: q })
+          });
+          if(r0.ok){
+            const d0 = await r0.json();
+            if(d0 && d0.success && Array.isArray(d0.categories)){
+              tfSearchResults = d0.categories.map(c => ({
+                id: c.id,
+                name: c.name,
+                box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
+              }));
+              renderTwitFlix();
+              return;
+            }
+          }
+        }catch(_){ }
       }
 
       // Try server search (best)
@@ -1212,7 +1289,14 @@ try{
       const picks4 = tfShuffle(list).slice(28, 56);
 
       host.appendChild(tfBuildRow('Top du moment <span>(Twitch)</span>', picks1));
-      host.appendChild(tfBuildRow('Tendances <span>FR</span>', picks2));
+
+      // ADN row (Steam-based) if available
+      if (tfPersonalization && Array.isArray(tfPersonalization.categories) && tfPersonalization.categories.length){
+        host.appendChild(tfBuildRow(tfPersonalization.title || 'Parce que tu as aimé', tfPersonalization.categories.slice(0,28)));
+      } else {
+        host.appendChild(tfBuildRow('Tendances <span>FR</span>', picks2));
+      }
+
       host.appendChild(tfBuildRow('Découverte <span>(aléatoire)</span>', picks3));
       host.appendChild(tfBuildRow('À essayer <span>ce soir</span>', picks4));
     }
@@ -1276,6 +1360,7 @@ try{
 
       div.innerHTML = `
         <img class="tf-poster" src="${poster}" loading="lazy" alt="">
+        ${typeof cat.compat === "number" ? `<div class="tf-compat-badge">${Math.round(cat.compat)}% compat</div>` : ``}
         <div class="tf-preview" aria-hidden="true"></div>
         <div class="tf-overlay">
           <div class="tf-name" title="${escapeHtml(cat.name)}">${escapeHtml(cat.name)}</div>
