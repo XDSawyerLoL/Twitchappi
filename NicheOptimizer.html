@@ -2380,6 +2380,41 @@ body.modal-open #player-tools{display:none !important;}
   -webkit-backdrop-filter: none;
 }
 
+/* Steam button (TwitFlix topbar) */
+#twitflix-modal .tf-steam-btn{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  white-space:nowrap;
+  border-color: rgba(199,213,224,.18);
+  background: rgba(17,17,19,.9);
+}
+#twitflix-modal .tf-steam-btn i{ color:#c7d5e0; font-size: 14px; }
+#twitflix-modal .tf-steam-label{
+  max-width: 160px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#twitflix-modal #tf-btn-steam.tf-steam-connected{
+  border-color: rgba(0,242,234,.32);
+  box-shadow: 0 0 18px rgba(0,242,234,.10);
+}
+#twitflix-modal .tf-steam-check{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0,242,234,.15);
+  border: 1px solid rgba(0,242,234,.28);
+  color:#00f2ea;
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1;
+}
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2781,7 +2816,10 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn active" id="tf-btn-rows" onclick="setTwitFlixView('rows')" type="button">LIGNES</button>
 <button class="tf-toggle-btn" id="tf-btn-az" onclick="setTwitFlixView('az')" type="button">A–Z</button>
 </div>
-<button class="tf-toggle-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">STEAM</button>
+<button class="tf-toggle-btn tf-steam-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">
+  <i class="fab fa-steam" aria-hidden="true"></i>
+  <span class="tf-steam-label">Connecter Steam</span>
+</button>
 <button class="tf-close-btn" type="button" aria-label="Fermer TwitFlix" onclick="closeTwitFlix()">✕</button>
 </div>
 </div>

@@ -719,13 +719,19 @@ function tfSetSteamId(v){
 function tfUpdateSteamBtn(){
   const btn = document.getElementById('tf-btn-steam');
   if(!btn) return;
-  if(tfSteamSession.connected){
-    btn.textContent = 'STEAM ✓';
-    btn.title = tfSteamSession.profile?.personaname ? `Connecté: ${tfSteamSession.profile.personaname}` : 'Steam connecté';
-  }else{
-    btn.textContent = 'STEAM';
-    btn.title = 'Connecter Steam';
-  }
+  const persona = (tfSteamSession && tfSteamSession.profile && tfSteamSession.profile.personaname) ? String(tfSteamSession.profile.personaname) : '';
+  const connected = !!(tfSteamSession && tfSteamSession.connected);
+
+  // Aesthetic button (icon + compact status) — keep id stable.
+  btn.classList.toggle('tf-steam-connected', connected);
+  btn.innerHTML = `
+    <i class="fab fa-steam" aria-hidden="true"></i>
+    <span class="tf-steam-label">${connected ? (persona ? escapeHtml(persona) : 'Steam connecté') : 'Connecter Steam'}</span>
+    ${connected ? '<span class="tf-steam-check" aria-hidden="true">✓</span>' : ''}
+  `;
+  btn.title = connected
+    ? (persona ? `Steam connecté : ${persona}` : 'Steam connecté')
+    : 'Connecter Steam';
 }
 
 async function tfRefreshSteamSession(){

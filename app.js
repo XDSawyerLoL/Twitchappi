@@ -1023,22 +1023,94 @@ app.post('/api/search/intent', async (req,res)=>{
 
     const low = text.toLowerCase();
 
+    // Heuristic NLP (no external LLM required): turns a sentence into a curated set of games.
+    // Goal: make queries like "comme Zomboid mais plus de craft et moins de stress" actually work.
+
+    // 1) Extract base game after "comme" (optional)
     let base = '';
-    const mm = low.match(/comme\s+([^,.;]+)/i);
+    const mm = low.match(/\bcomme\s+([^,.;]+)/i);
     if(mm) base = mm[1].split(' mais ')[0].trim();
 
-    const wantsCraft = /craft|artisan|construction|build|builder|base/i.test(low);
-    const lessStress = /(moins|pas).*stress|chill|relax|calme|zen/i.test(low);
+    // 2) Detect intent signals
+    const wantsCraft = /\bcraft\b|artisan|artisanat|construction|build|builder|base\b|b\u00e2tir/i.test(low);
+    const wantsSurvival = /survie|survival|zombie|hardcore/i.test(low);
+    const wantsCoop = /coop|co-op|multijoueur|team|groupe/i.test(low);
+    const wantsRogue = /rogue|roguelite|roguelike/i.test(low);
 
-    const queries = [];
-    if(base) queries.push(base);
-    if(wantsCraft) queries.push('craft');
-    if(lessStress) queries.push('chill');
+    const lessStress = /(moins|pas)\s+(de\s+)?stress|chill|relax|calme|zen|tranquille/i.test(low);
+    const moreStress = /plus\s+(de\s+)?stress|tryhard|sueur/i.test(low);
+    const wantsMoreCraft = /plus\s+(de\s+)?craft|plus\s+(de\s+)?construction|plus\s+(de\s+)?b\u00e2timent/i.test(low);
 
+    // 3) Curated KB (kept small; reliable)
+    const KB = {
+      base_zomboid: [
+        'Project Zomboid', '7 Days to Die', 'DayZ', 'State of Decay 2', 'Dying Light', 'Unturned'
+      ],
+      craft: [
+        'Minecraft', 'Valheim', 'Terraria', 'Raft', 'The Forest', 'Sons of the Forest', 'Subnautica', 'No Man\'s Sky', 'Astroneer'
+      ],
+      chill: [
+        'Stardew Valley', 'Slime Rancher', 'Spiritfarer', 'No Man\'s Sky', 'Astroneer', 'Terraria', 'Minecraft'
+      ],
+      coop: [
+        'Valheim', 'Raft', 'The Forest', 'Sons of the Forest', 'Deep Rock Galactic', 'Lethal Company'
+      ],
+      rogue: [
+        'Hades', 'Dead Cells', 'The Binding of Isaac: Repentance', 'Risk of Rain 2'
+      ]
+    };
+
+    const wants = new Set();
+
+    // Base-driven expansion
+    if(base){
+      if(/zomboid/.test(base)) KB.base_zomboid.forEach(x=>wants.add(x));
+      else wants.add(base);
+    }
+
+    // Intent-driven expansion
+    if(wantsCraft || wantsMoreCraft) KB.craft.forEach(x=>wants.add(x));
+    if(lessStress) KB.chill.forEach(x=>wants.add(x));
+    if(wantsCoop) KB.coop.forEach(x=>wants.add(x));
+    if(wantsRogue) KB.rogue.forEach(x=>wants.add(x));
+
+    // If user asked for "moins de stress", avoid very stressful picks (keep it simple)
+    const STRESSY = new Set(['Rust', 'Escape from Tarkov', 'Dead by Daylight', 'Call of Duty: Warzone']);
+
+    // 4) Resolve these names to Twitch categories (exact-ish)
     const byId = new Map();
-    for(const q of queries.slice(0,3)){
+    const picks = Array.from(wants).filter(Boolean).slice(0, 18);
+    for(const name of picks){
       try{
-        const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
+        const d = await twitchAPI(`search/categories?query=${encodeURIComponent(name)}&first=5`);
+        const arr = Array.isArray(d.data) ? d.data : [];
+        if(!arr.length) continue;
+        // prefer exact match
+        let g = arr.find(x => String(x.name||'').toLowerCase() === String(name).toLowerCase()) || arr[0];
+        if(!g?.id) continue;
+        if(STRESSY.has(g.name) && lessStress) continue;
+
+        const compatBase = base ? jaccard(base, g.name) : 0.35;
+        let compat = 68 + compatBase * 28;
+        if(wantsCraft || wantsMoreCraft) compat += 3;
+        if(lessStress) compat += 2;
+        if(wantsCoop) compat += 1;
+        if(moreStress) compat -= 2;
+        compat = Math.max(60, Math.min(99, Math.round(compat)));
+
+        byId.set(g.id, {
+          id: g.id,
+          name: g.name,
+          box_art_url: (g.box_art_url||'').replace('{width}','285').replace('{height}','380'),
+          compat
+        });
+      }catch(_){ }
+    }
+
+    // Fallback: if nothing resolved, fallback to Twitch search on the whole sentence
+    if(!byId.size){
+      try{
+        const d = await twitchAPI(`search/categories?query=${encodeURIComponent(base || text)}&first=50`);
         for(const g of (d.data||[])){
           if(!g?.id) continue;
           if(byId.has(g.id)) continue;
@@ -1048,7 +1120,7 @@ app.post('/api/search/intent', async (req,res)=>{
             box_art_url: (g.box_art_url||'').replace('{width}','285').replace('{height}','380')
           });
         }
-      }catch(_){}
+      }catch(_){ }
     }
 
     return res.json({ success:true, categories: Array.from(byId.values()).slice(0,120) });
