@@ -1008,6 +1008,7 @@ window.addEventListener('message', (ev) => {
     let tfSearchQuery = '';
     let tfSearchResults = [];
     let tfSearchTimer = null;
+    let tfSearchSeq = 0; // prevents stale async search results from overriding newer queries
 
     let tfObserver = null;
 
@@ -1183,11 +1184,19 @@ try{
       const host = document.getElementById('twitflix-grid');
       if (!host) return;
 
+      const mySeq = ++tfSearchSeq;
+
       if (!q){
         tfSearchResults = [];
         renderTwitFlix();
         return;
       }
+
+      // Fast feedback (prevents the feeling that nothing happens)
+      try{
+        tfSearchResults = [];
+        renderTwitFlix();
+      }catch(_){ }
 
       // IA-assisted: if query is a sentence, ask the server to translate it into a curated list.
       const looksComplex = (q.length >= 22) || /\bcomme\b|\bmais\b|\bmoins\b|\bplus\b|\bstress\b|\bcraft\b/i.test(q);
@@ -1196,14 +1205,17 @@ try{
           const r0 = await fetch(`${API_BASE}/api/search/intent`, {
             method:'POST',
             headers:{'Content-Type':'application/json'},
+            credentials: 'include',
             body: JSON.stringify({ text: q })
           });
           if(r0.ok){
             const d0 = await r0.json();
             if(d0 && d0.success && Array.isArray(d0.categories)){
+              if(mySeq !== tfSearchSeq) return; // stale
               tfSearchResults = d0.categories.map(c => ({
                 id: c.id,
                 name: c.name,
+                compat: (typeof c.compat === 'number') ? c.compat : undefined,
                 box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
               }));
               renderTwitFlix();
@@ -1215,13 +1227,15 @@ try{
 
       // Try server search (best)
       try{
-        const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
+        const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`, { credentials: 'include' });
         if (r.ok){
           const d = await r.json();
           if (d && d.success && Array.isArray(d.categories)){
+            if(mySeq !== tfSearchSeq) return; // stale
             tfSearchResults = d.categories.map(c => ({
               id: c.id,
               name: c.name,
+              compat: (typeof c.compat === 'number') ? c.compat : undefined,
               box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
             }));
             renderTwitFlix();
@@ -1232,9 +1246,11 @@ try{
 
       // Fallback: local filter on already loaded catalogue
       const low = q.toLowerCase();
-      tfSearchResults = tfAllCategories
+      const local = tfAllCategories
         .filter(c => (c.name||'').toLowerCase().includes(low))
         .slice(0, 120);
+      if(mySeq !== tfSearchSeq) return; // stale
+      tfSearchResults = local;
       renderTwitFlix();
     }
 
