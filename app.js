@@ -934,6 +934,16 @@ app.get('/api/categories/search', async (req, res) => {
 function tokenSet(s){
   return new Set(String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/).filter(Boolean));
 }
+
+function isoDurationToSeconds(iso){
+  // Basic ISO 8601 duration parser: PT#H#M#S
+  const s = String(iso || '').toUpperCase();
+  const m = s.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if(!m) return null;
+  const h = Number(m[1]||0), mi = Number(m[2]||0), se = Number(m[3]||0);
+  return h*3600 + mi*60 + se;
+}
+
 function jaccard(a,b){
   const A = tokenSet(a), B = tokenSet(b);
   if(!A.size || !B.size) return 0;
@@ -1129,6 +1139,212 @@ app.post('/api/search/intent', async (req,res)=>{
   }
 });
 
+// ================================
+// Riot (LoL) — minimal predictive compare (historical CS@15)
+// Notes:
+// - Requires RIOT_API_KEY
+// - This MVP compares your recent CS@15 average to the streamer's recent CS@15 average.
+// - It does NOT read live CS from the current game (not available via public Riot spectator API).
+// ================================
+const RIOT_API_KEY = process.env.RIOT_API_KEY || '';
+const riotCache = new Map(); // key -> { t, v }
+const RIOT_CACHE_TTL = 10 * 60 * 1000;
+
+function riotRegionToRouting(platform){
+  const p = String(platform||'').toLowerCase();
+  if(p.startsWith('euw') || p.startsWith('eun') || p.startsWith('tr') || p.startsWith('ru')) return { platform: platform, regional: 'europe' };
+  if(p.startsWith('na') || p.startsWith('br') || p.startsWith('la1') || p.startsWith('la2') || p.startsWith('oc')) return { platform: platform, regional: 'americas' };
+  if(p.startsWith('kr') || p.startsWith('jp')) return { platform: platform, regional: 'asia' };
+  return { platform: platform || 'euw1', regional: 'europe' };
+}
+
+async function riotFetchJSON(url){
+  const r = await fetch(url, { headers: { 'X-Riot-Token': RIOT_API_KEY } });
+  if(!r.ok){
+    const t = await r.text().catch(()=> '');
+    throw new Error(`Riot ${r.status}: ${t.slice(0,200)}`);
+  }
+  return await r.json();
+}
+
+async function riotSummonerByName(region, name){
+  const { platform } = riotRegionToRouting(region);
+  const url = `https://${platform}.api.riotgames.com/lol/summoner/v4/summoners/by-name/${encodeURIComponent(name)}`;
+  return riotFetchJSON(url);
+}
+
+async function riotMatchIdsByPuuid(region, puuid, count=3){
+  const { regional } = riotRegionToRouting(region);
+  const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?start=0&count=${encodeURIComponent(String(count))}`;
+  return riotFetchJSON(url);
+}
+
+async function riotMatch(region, matchId){
+  const { regional } = riotRegionToRouting(region);
+  const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}`;
+  return riotFetchJSON(url);
+}
+
+async function riotTimeline(region, matchId){
+  const { regional } = riotRegionToRouting(region);
+  const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}/timeline`;
+  return riotFetchJSON(url);
+}
+
+async function riotAvgCsAt15(region, puuid){
+  const cacheKey = `cs15:${region}:${puuid}`;
+  const now = Date.now();
+  const c = riotCache.get(cacheKey);
+  if(c && (now - c.t) < RIOT_CACHE_TTL) return c.v;
+
+  const ids = await riotMatchIdsByPuuid(region, puuid, 3);
+  const vals = [];
+  for(const id of (ids||[])){
+    try{
+      const md = await riotMatch(region, id);
+      const parts = md?.info?.participants || [];
+      const me = parts.find(p => p.puuid === puuid);
+      const pid = me ? String(me.participantId) : null;
+      if(!pid) continue;
+
+      const tl = await riotTimeline(region, id);
+      const frames = tl?.info?.frames || [];
+      if(!frames.length) continue;
+
+      // pick frame closest to 15:00
+      const target = 15*60*1000;
+      let best = frames[0];
+      let bestDist = Math.abs((frames[0].timestamp||0) - target);
+      for(const fr of frames){
+        const dist = Math.abs((fr.timestamp||0) - target);
+        if(dist < bestDist){ best=fr; bestDist=dist; }
+      }
+      const pf = best?.participantFrames?.[pid];
+      if(!pf) continue;
+      const cs = (Number(pf.minionsKilled||0) || 0) + (Number(pf.jungleMinionsKilled||0) || 0);
+      vals.push(cs);
+    }catch(_e){}
+  }
+  const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  riotCache.set(cacheKey, { t: now, v: avg });
+  return avg;
+}
+
+// Link Riot to user (stored in billing_users)
+app.post('/api/riot/link', async (req,res)=>{
+  try{
+    if(!RIOT_API_KEY) return res.status(400).json({ success:false, error:'RIOT_API_KEY manquant' });
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.status(401).json({ success:false, error:'Non connecté' });
+
+    const region = String(req.body?.region || 'euw1').trim() || 'euw1';
+    const summonerName = String(req.body?.summonerName || '').trim();
+    if(!summonerName) return res.status(400).json({ success:false, error:'summonerName manquant' });
+
+    const s = await riotSummonerByName(region, summonerName);
+    const payload = {
+      region,
+      summonerName,
+      puuid: s.puuid,
+      id: s.id,
+      accountId: s.accountId || null,
+      linkedAt: Date.now()
+    };
+
+    await admin.firestore().collection('billing_users').doc(String(tu))
+      .set({ riot: payload, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+
+    return res.json({ success:true, riot: payload });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Bind a Riot summoner to a Twitch streamer login (stored in riot_streamers/{login})
+app.post('/api/riot/bind-streamer', async (req,res)=>{
+  try{
+    if(!RIOT_API_KEY) return res.status(400).json({ success:false, error:'RIOT_API_KEY manquant' });
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.status(401).json({ success:false, error:'Non connecté' });
+
+    const twitchLogin = String(req.body?.twitchLogin || '').trim().toLowerCase();
+    const region = String(req.body?.region || 'euw1').trim() || 'euw1';
+    const summonerName = String(req.body?.summonerName || '').trim();
+    if(!twitchLogin) return res.status(400).json({ success:false, error:'twitchLogin manquant' });
+    if(!summonerName) return res.status(400).json({ success:false, error:'summonerName manquant' });
+
+    const s = await riotSummonerByName(region, summonerName);
+    const payload = {
+      region,
+      summonerName,
+      puuid: s.puuid,
+      id: s.id,
+      boundAt: Date.now(),
+      by: String(tu)
+    };
+
+    await admin.firestore().collection('riot_streamers').doc(twitchLogin)
+      .set(payload, { merge:true });
+
+    return res.json({ success:true, streamer: payload });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+// Compare user vs streamer (historical cs@15)
+app.get('/api/riot/compare', async (req,res)=>{
+  try{
+    if(!RIOT_API_KEY) return res.status(400).json({ success:false, error:'RIOT_API_KEY manquant' });
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.status(401).json({ success:false, error:'Non connecté' });
+
+    const twitchLogin = String(req.query?.twitchLogin || '').trim().toLowerCase();
+    const region = String(req.query?.region || 'euw1').trim() || 'euw1';
+    if(!twitchLogin) return res.status(400).json({ success:false, error:'twitchLogin manquant' });
+
+    const userSnap = await admin.firestore().collection('billing_users').doc(String(tu)).get();
+    const user = userSnap.exists ? (userSnap.data() || {}) : {};
+    const ur = user.riot || null;
+
+    const stSnap = await admin.firestore().collection('riot_streamers').doc(twitchLogin).get();
+    const st = stSnap.exists ? (stSnap.data() || {}) : null;
+
+    if(!st){
+      return res.json({ success:false, error:`Associe d’abord le Summoner LoL du streamer (${twitchLogin}).` });
+    }
+    if(!ur){
+      return res.json({ success:false, error:`Lie ton compte LoL (Summoner) pour activer la comparaison.` , streamer: { summonerName: st.summonerName } });
+    }
+
+    const sAvg = await riotAvgCsAt15(st.region || region, st.puuid);
+    const uAvg = await riotAvgCsAt15(ur.region || region, ur.puuid);
+
+    if(sAvg == null || uAvg == null){
+      return res.json({ success:false, error:'Stats insuffisantes (matchs privés ou API limitée).' , streamer: { summonerName: st.summonerName } });
+    }
+
+    const diff = Math.round(sAvg - uAvg);
+    const msg = diff >= 8
+      ? `${st.summonerName} tourne à ~${Math.round(sAvg)} CS à 15min, toi ~${Math.round(uAvg)}. Focus: last-hit + reset + rotations.`
+      : diff >= 3
+        ? `${st.summonerName} a un léger avantage (~${Math.round(sAvg)} CS à 15min vs ${Math.round(uAvg)}). Observe ses recalls et sa gestion de wave.`
+        : diff <= -8
+          ? `Tu es au-dessus sur la lane (~${Math.round(uAvg)} CS à 15min vs ${Math.round(sAvg)}). Tu peux copier son midgame (objectifs / tempo).`
+          : `Vous êtes proches (~${Math.round(sAvg)} CS à 15min vs ${Math.round(uAvg)}). Compare surtout ses timings (vision / objectifs).`;
+
+    return res.json({
+      success:true,
+      message: msg,
+      streamer: { summonerName: st.summonerName, avgCs15: sAvg },
+      you: { summonerName: ur.summonerName, avgCs15: uAvg }
+    });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
 
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME
@@ -1172,6 +1388,66 @@ app.get('/api/youtube/trailer', async (req, res) => {
     return res.status(500).json({ success:false, error:e.message });
   }
 });
+
+// YouTube "Progress Clips" (Live Tips) — short help videos
+// GET /api/youtube/tips?q=QUERY
+app.get('/api/youtube/tips', async (req, res) => {
+  try{
+    if(!YOUTUBE_API_KEY){
+      return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY manquant' });
+    }
+    const q = String(req.query.q || '').trim();
+    if(!q) return res.json({ success:true, items:[] });
+
+    // search first
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=8&safeSearch=moderate&q=${encodeURIComponent(q)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const items = Array.isArray(d.items) ? d.items : [];
+    const vids = items.map(x => x?.id?.videoId).filter(Boolean);
+
+    // fetch durations (optional)
+    let durMap = {};
+    if(vids.length){
+      try{
+        const u2 = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(vids.join(','))}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+        const r2 = await fetch(u2);
+        const d2 = await r2.json();
+        const vitems = Array.isArray(d2.items) ? d2.items : [];
+        for(const it of vitems){
+          const id = it?.id;
+          const iso = it?.contentDetails?.duration || '';
+          if(id) durMap[id] = isoDurationToSeconds(iso);
+        }
+      }catch(_){}
+    }
+
+    const out = items.map(it=>{
+      const vid = it?.id?.videoId;
+      if(!vid) return null;
+      const title = it?.snippet?.title || '';
+      const thumb = it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '';
+      const dur = durMap[vid] || null;
+      return { videoId: vid, title, thumbnail: thumb, durationSec: dur };
+    }).filter(Boolean);
+
+    // prefer shorter videos when duration is known
+    const shortFirst = out.slice().sort((a,b)=>{
+      const da = (typeof a.durationSec === 'number') ? a.durationSec : 99999;
+      const db = (typeof b.durationSec === 'number') ? b.durationSec : 99999;
+      return da - db;
+    });
+
+    // if we have true shorts (< 90s) pick them, else pick top results
+    const shorts = shortFirst.filter(x => typeof x.durationSec === 'number' && x.durationSec > 0 && x.durationSec <= 90);
+    const final = (shorts.length ? shorts : shortFirst).slice(0, 10);
+
+    return res.json({ success:true, items: final });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 
 
 
@@ -2677,6 +2953,122 @@ app.get('/api/billing/me', async (req,res)=>{
     res.status(500).json({ success:false, error:e.message });
   }
 });
+
+// ================================
+// Second Screen: Play Session (progress HUD)
+// ================================
+async function getPlaySession(twitchUser){
+  const ref = admin.firestore().collection('billing_users').doc(String(twitchUser));
+  const snap = await ref.get();
+  const d = snap.exists ? (snap.data() || {}) : {};
+  return { ref, data: d };
+}
+
+function normalizePlaySession(ps){
+  const s = ps || {};
+  const active = !!s.active;
+  const level = Number(s.level || 1) || 1;
+  const xp = Number(s.xp || 0) || 0;
+  const secondsToday = Number(s.secondsToday || 0) || 0;
+  const progressPct = Math.max(0, Math.min(100, ((xp % 100) / 100) * 100));
+  return { active, level, xp, secondsToday, progressPct, game: s.game || null };
+}
+
+app.get('/api/play/status', async (req, res) => {
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.status(401).json({ success:false, error:'Non connecté' });
+    const { data } = await getPlaySession(tu);
+    const ps = normalizePlaySession(data.playSession || {});
+    return res.json({ success:true, session: ps });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/play/start', async (req,res)=>{
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.status(401).json({ success:false, error:'Non connecté' });
+
+    const { ref, data } = await getPlaySession(tu);
+    const prev = data.playSession || {};
+    const now = Date.now();
+
+    const xp = Number(prev.xp || 0) || 0;
+    const level = Math.max(1, Math.floor(xp / 100) + 1);
+
+    const next = {
+      active: true,
+      startedAt: now,
+      lastTickAt: now,
+      xp,
+      level,
+      secondsToday: Number(prev.secondsToday || 0) || 0,
+      game: (data?.steam?.lastGameName || null)
+    };
+
+    await ref.set({ playSession: next, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    return res.json({ success:true, session: normalizePlaySession(next) });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/play/stop', async (req,res)=>{
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.status(401).json({ success:false, error:'Non connecté' });
+
+    const { ref, data } = await getPlaySession(tu);
+    const prev = data.playSession || {};
+    const now = Date.now();
+
+    const next = Object.assign({}, prev, { active:false, lastTickAt: now });
+    await ref.set({ playSession: next, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    return res.json({ success:true, session: normalizePlaySession(next) });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/play/tick', async (req,res)=>{
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu) return res.status(401).json({ success:false, error:'Non connecté' });
+
+    const { ref, data } = await getPlaySession(tu);
+    const prev = data.playSession || {};
+    const now = Date.now();
+
+    if(!prev.active){
+      return res.json({ success:true, session: normalizePlaySession(prev) });
+    }
+
+    const last = Number(prev.lastTickAt || now);
+    let delta = Math.max(0, Math.min(60, Math.floor((now - last)/1000))); // cap to 60s
+    // if clock skew or first tick
+    if(!isFinite(delta)) delta = 0;
+
+    const addXp = (delta / 60) * 10; // 10 XP / min
+    const xp = (Number(prev.xp || 0) || 0) + addXp;
+    const level = Math.max(1, Math.floor(xp / 100) + 1);
+    const secondsToday = (Number(prev.secondsToday || 0) || 0) + delta;
+
+    const next = Object.assign({}, prev, {
+      lastTickAt: now,
+      xp,
+      level,
+      secondsToday
+    });
+
+    await ref.set({ playSession: next, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+    return res.json({ success:true, session: normalizePlaySession(next) });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 
 // Unlock a premium feature with credits (200 by default)
 app.post('/api/billing/unlock-feature', async (req,res)=>{

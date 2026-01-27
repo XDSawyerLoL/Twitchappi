@@ -38,6 +38,8 @@ const API_BASE = window.location.origin;
     // INIT
     window.addEventListener('load', async () => {
       initUnderTabs();
+      initPlaySessionHUD();
+      initPerformanceWidget();
       await checkAuth();
       initPlayer();
       loadStatsDashboard();
@@ -282,6 +284,10 @@ function startAuth() {
 
           currentGameId = data.stream.game_id || null;
           currentGameName = data.stream.game_name || null;
+
+          try{ updatePlayGameLabel(); }catch(_e){}
+          try{ updatePerformanceWidget(); }catch(_e){}
+          try{ if(window.tfModalOpen){ window.tfAutoLoadTips && window.tfAutoLoadTips(); } }catch(_e){}
 
           // 🔥 Pro data sous le live
           loadChannelProData(channel);
@@ -928,6 +934,12 @@ window.addEventListener('message', (ev) => {
 
     function tfRenderTrailerCarousel(){
       const wrap = document.getElementById('tf-trailer-carousel');
+      // Live Tips replaces trailers
+      if(wrap){
+        wrap.innerHTML = '<div class="tf-empty">Clips de progrès…</div>';
+      }
+      try{ window.tfLoadProgressClips && window.tfLoadProgressClips(true); }catch(_e){}
+      return;
       if (!wrap) return;
 
       tfBindHorizontalWheel(wrap);
@@ -2168,6 +2180,8 @@ try{
   }
 
   function ensureInlineOverlay(el, html){
+    // hard cleanup to avoid multiple padlocks layers
+    el.querySelectorAll('.paywall-inline-overlay').forEach(n=>n.remove());
     let ov = el.querySelector(":scope > .paywall-inline-overlay");
     if(!ov){
       ov = document.createElement("div");
@@ -2330,3 +2344,287 @@ try{
   }
 })();
 
+
+
+// ================================
+// Second Screen: Play Session HUD
+// ================================
+let __playSession = { active:false, level:1, xp:0, progressPct:0, game:null, secondsToday:0 };
+
+async function apiPlayGetStatus(){
+  try{
+    const r = await fetch(`${API_BASE}/api/play/status`, { credentials:'include' });
+    if(!r.ok) return null;
+    return await r.json().catch(()=>null);
+  }catch(_){ return null; }
+}
+async function apiPlayStart(){
+  const r = await fetch(`${API_BASE}/api/play/start`, { method:'POST', credentials:'include' });
+  return await r.json().catch(()=>null);
+}
+async function apiPlayStop(){
+  const r = await fetch(`${API_BASE}/api/play/stop`, { method:'POST', credentials:'include' });
+  return await r.json().catch(()=>null);
+}
+async function apiPlayTick(){
+  const r = await fetch(`${API_BASE}/api/play/tick`, { method:'POST', credentials:'include' });
+  return await r.json().catch(()=>null);
+}
+
+function updatePlayGameLabel(){
+  const el = document.getElementById('play-game');
+  if(el) el.textContent = currentGameName ? String(currentGameName) : '—';
+}
+
+function renderPlayHUD(){
+  const hud = document.getElementById('play-hud');
+  const btn = document.getElementById('btn-play-session');
+  const lbl = document.getElementById('play-session-label');
+  if(btn && lbl){
+    lbl.textContent = __playSession.active ? 'EN SESSION' : 'JE JOUE';
+    btn.classList.toggle('border-[#00f2ea33]', __playSession.active);
+    btn.classList.toggle('text-[#00f2ea]', __playSession.active);
+  }
+
+  if(!hud) return;
+  if(__playSession.active){
+    hud.classList.remove('hidden');
+  }else{
+    hud.classList.add('hidden');
+  }
+  const meta = document.getElementById('play-hud-meta');
+  if(meta){
+    const m = __playSession.active ? `Actif • ${Math.round((__playSession.secondsToday||0)/60)} min aujourd’hui` : '—';
+    meta.textContent = m;
+  }
+  const level = document.getElementById('play-level');
+  const xp = document.getElementById('play-xp');
+  const bar = document.getElementById('play-progress');
+  if(level) level.textContent = String(__playSession.level || 1);
+  if(xp) xp.textContent = String(Math.round(__playSession.xp || 0));
+  if(bar) bar.style.width = `${Math.max(0, Math.min(100, Number(__playSession.progressPct||0)))}%`;
+  updatePlayGameLabel();
+}
+
+let __playTickTimer = null;
+
+async function initPlaySessionHUD(){
+  // Only if logged in; still safe to call
+  const st = await apiPlayGetStatus();
+  if(st && st.success){
+    __playSession = Object.assign(__playSession, st.session || {});
+  }
+  renderPlayHUD();
+
+  // background ticker
+  if(__playTickTimer) clearInterval(__playTickTimer);
+  __playTickTimer = setInterval(async ()=>{
+    if(!__playSession.active) return;
+    if(document.hidden) return;
+    const d = await apiPlayTick();
+    if(d && d.success){
+      __playSession = Object.assign(__playSession, d.session || {});
+      renderPlayHUD();
+    }
+  }, 20000);
+}
+
+async function togglePlaySession(){
+  // must be authenticated
+  try{
+    const st0 = await apiPlayGetStatus();
+    if(!st0 || !st0.success){
+      alert('Connecte-toi pour activer la session jeu.');
+      return;
+    }
+  }catch(_){}
+  if(__playSession.active){
+    const d = await apiPlayStop();
+    if(d && d.success){
+      __playSession = Object.assign(__playSession, d.session || {active:false});
+      renderPlayHUD();
+    }
+  }else{
+    const d = await apiPlayStart();
+    if(d && d.success){
+      __playSession = Object.assign(__playSession, d.session || {active:true});
+      renderPlayHUD();
+    }
+  }
+}
+window.togglePlaySession = togglePlaySession;
+
+// ================================
+// Streamer Hub Predictif (LoL) — Riot compare (historical CS@15)
+// ================================
+let __perfInit = false;
+async function initPerformanceWidget(){
+  if(__perfInit) return;
+  __perfInit = true;
+
+  const btnLink = document.getElementById('riot-me-link');
+  const btnBind = document.getElementById('riot-streamer-bind');
+
+  if(btnLink){
+    btnLink.addEventListener('click', async ()=>{
+      const name = String(document.getElementById('riot-me-name')?.value || '').trim();
+      if(!name){ alert('Entre ton Summoner.'); return; }
+      const r = await fetch(`${API_BASE}/api/riot/link`, {
+        method:'POST',
+        credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ region:'euw1', summonerName: name })
+      });
+      const d = await r.json().catch(()=>null);
+      if(d?.success){ alert('Compte LoL lié.'); updatePerformanceWidget(); }
+      else alert(d?.error || 'Erreur Riot (link).');
+    });
+  }
+
+  if(btnBind){
+    btnBind.addEventListener('click', async ()=>{
+      const name = String(document.getElementById('riot-streamer-name')?.value || '').trim();
+      if(!name){ alert('Entre le Summoner du streamer.'); return; }
+      const r = await fetch(`${API_BASE}/api/riot/bind-streamer`, {
+        method:'POST',
+        credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ region:'euw1', twitchLogin: String(currentChannel||'').trim(), summonerName: name })
+      });
+      const d = await r.json().catch(()=>null);
+      if(d?.success){ alert('Streamer associé.'); updatePerformanceWidget(); }
+      else alert(d?.error || 'Erreur Riot (bind).');
+    });
+  }
+}
+
+function isLoL(){
+  const g = String(currentGameName||'').toLowerCase();
+  return g.includes('league of legends') || g === 'lol';
+}
+
+async function updatePerformanceWidget(){
+  const status = document.getElementById('perf-status');
+  const body = document.getElementById('perf-body');
+  const actions = document.getElementById('perf-actions');
+  if(!status || !body || !actions) return;
+
+  if(!currentChannel || currentChannel === 'twitch'){
+    status.textContent = '—';
+    body.textContent = 'Sélectionne un live pour analyser.';
+    actions.classList.add('hidden');
+    return;
+  }
+
+  if(!isLoL()){
+    status.textContent = currentGameName ? 'Jeu détecté' : '—';
+    body.textContent = currentGameName ? `Jeu: ${currentGameName}. La comparaison Riot est dispo uniquement sur League of Legends.` : '—';
+    actions.classList.add('hidden');
+    return;
+  }
+
+  status.textContent = 'LoL détecté';
+  actions.classList.remove('hidden');
+  body.innerHTML = '<span class="text-gray-500">Analyse…</span>';
+
+  try{
+    const r = await fetch(`${API_BASE}/api/riot/compare?twitchLogin=${encodeURIComponent(String(currentChannel||''))}&region=euw1`, { credentials:'include' });
+    const d = await r.json().catch(()=>null);
+    if(d?.success){
+      body.innerHTML = `
+        <div class="text-gray-200 font-bold">${d.message || 'Comparaison prête.'}</div>
+        <div class="mt-2 text-[11px] text-gray-500">Basé sur les derniers matchs publics (moyenne CS@15).</div>
+      `;
+      // prefill streamer summoner if known
+      if(d.streamer?.summonerName){
+        const in2 = document.getElementById('riot-streamer-name');
+        if(in2 && !in2.value) in2.value = d.streamer.summonerName;
+      }
+      return;
+    }
+    body.textContent = d?.error || 'Comparaison indisponible. Lie ton compte et associe le streamer.';
+  }catch(e){
+    body.textContent = 'Erreur chargement Riot.';
+  }
+}
+window.updatePerformanceWidget = updatePerformanceWidget;
+
+// ================================
+// Live Tips: "Clips de Progrès" (YouTube short tips)
+// ================================
+let __tfTipsCache = { q:'', t:0, clips:[] };
+
+function tfRenderProgressClips(clips, qLabel){
+  const wrap = document.getElementById('tf-trailer-carousel');
+  const sub = document.getElementById('tf-tips-sub');
+  if(!wrap) return;
+
+  tfBindHorizontalWheel(wrap);
+  wrap.innerHTML = '';
+
+  if(sub){
+    sub.textContent = qLabel ? `Recherche: ${qLabel}` : '';
+  }
+
+  if(!clips || !clips.length){
+    wrap.innerHTML = '<div class="tf-empty">Aucun clip trouvé. Essaye un autre mot-clé.</div>';
+    return;
+  }
+
+  clips.slice(0, 10).forEach(c=>{
+    const vid = c.videoId || c.id;
+    const title = c.title || 'Clip';
+    const card = document.createElement('div');
+    card.className = 'tf-trailer-card';
+    card.innerHTML = `
+      <iframe
+        src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        loading="lazy"
+        title="${title}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
+      </iframe>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+async function tfLoadProgressClips(silent){
+  const input = document.getElementById('tf-tips-query');
+  const extra = String(input?.value || '').trim();
+  const g = String(currentGameName || '').trim();
+  const q = [g, extra].filter(Boolean).join(' ');
+  const finalQ = q || extra || g;
+
+  if(!finalQ){
+    tfRenderProgressClips([], '');
+    return;
+  }
+
+  const now = Date.now();
+  if(__tfTipsCache.q === finalQ && (now - __tfTipsCache.t) < 60_000 && __tfTipsCache.clips?.length){
+    tfRenderProgressClips(__tfTipsCache.clips, finalQ);
+    return;
+  }
+
+  if(!silent){
+    const wrap = document.getElementById('tf-trailer-carousel');
+    if(wrap) wrap.innerHTML = '<div class="tf-empty">Recherche de clips…</div>';
+  }
+
+  try{
+    const r = await fetch(`${API_BASE}/api/youtube/tips?q=${encodeURIComponent(finalQ)}`);
+    const d = await r.json().catch(()=>null);
+    const clips = (d && d.success && Array.isArray(d.items)) ? d.items : [];
+    __tfTipsCache = { q: finalQ, t: now, clips };
+    tfRenderProgressClips(clips, finalQ);
+  }catch(_){
+    tfRenderProgressClips([], finalQ);
+  }
+}
+window.tfLoadProgressClips = tfLoadProgressClips;
+
+// Auto-load tips when TwitFlix opens and a game is known
+window.tfAutoLoadTips = function(){
+  if(!window.tfModalOpen) return;
+  tfLoadProgressClips(true);
+};
