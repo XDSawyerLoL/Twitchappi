@@ -1007,6 +1007,8 @@ window.addEventListener('message', (ev) => {
 
     let tfSearchQuery = '';
     let tfSearchResults = [];
+    let tfSearchRails = null; // [{titleHtml, items:[...]}, ...] for Netflix-like reorg
+
     let tfSearchTimer = null;
     let tfSearchSeq = 0; // prevents stale async search results from overriding newer queries
 
@@ -1071,6 +1073,7 @@ try{
       tfHasMore = true;
       tfSearchQuery = '';
       tfSearchResults = [];
+      tfSearchRails = null;
       if (search) search.value = '';
 
       // hero default
@@ -1179,6 +1182,29 @@ try{
       tfObserver.observe(sentinel);
     }
 
+    function tfMakeSearchRails(q, results){
+      const r = Array.isArray(results) ? results : [];
+      if (!r.length) return null;
+
+      const rails = [];
+      rails.push({ titleHtml: 'Jeux qui matchent ton prompt <span>(IA)</span>', items: r.slice(0, 28) });
+
+      // Keep ADN row visible even in search mode (second screen feel)
+      if (tfPersonalization && Array.isArray(tfPersonalization.categories) && tfPersonalization.categories.length){
+        rails.push({ titleHtml: tfPersonalization.title || 'Parce que tu as aimé', items: tfPersonalization.categories.slice(0, 28) });
+      }
+
+      // Add a "Top du moment" row but avoid duplicates
+      const exclude = new Set(r.map(x => String(x.id)));
+      const extra = (Array.isArray(tfAllCategories) ? tfAllCategories : [])
+        .filter(c => !exclude.has(String(c.id)))
+        .slice(0, 28);
+
+      rails.push({ titleHtml: 'Top du moment <span>(Twitch)</span>', items: extra });
+
+      return rails;
+    }
+
     async function tfRunSearch(query){
       const q = String(query || '').trim();
       const host = document.getElementById('twitflix-grid');
@@ -1188,6 +1214,7 @@ try{
 
       if (!q){
         tfSearchResults = [];
+        tfSearchRails = null;
         renderTwitFlix();
         return;
       }
@@ -1195,6 +1222,7 @@ try{
       // Fast feedback (prevents the feeling that nothing happens)
       try{
         tfSearchResults = [];
+        tfSearchRails = null;
         renderTwitFlix();
       }catch(_){ }
 
@@ -1218,6 +1246,7 @@ try{
                 compat: (typeof c.compat === 'number') ? c.compat : undefined,
                 box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
               }));
+              tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
               renderTwitFlix();
               return;
             }
@@ -1238,6 +1267,7 @@ try{
               compat: (typeof c.compat === 'number') ? c.compat : undefined,
               box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
             }));
+            tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
             renderTwitFlix();
             return;
           }
@@ -1251,6 +1281,7 @@ try{
         .slice(0, 120);
       if(mySeq !== tfSearchSeq) return; // stale
       tfSearchResults = local;
+      tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
       renderTwitFlix();
     }
 
@@ -1336,18 +1367,21 @@ try{
       if (tfSearchQuery && tfSearchQuery.trim()){
         host.innerHTML = '';
         const q = tfSearchQuery.trim();
-        tfSetHero({ title: q, sub: 'Résultats de recherche' });
+        tfSetHero({ title: q, sub: 'Recherche IA-assisted • Réorganisation instantanée' });
 
-        if (!tfSearchResults.length){
+        const rails = tfSearchRails || tfMakeSearchRails(q, tfSearchResults);
+
+        if (!tfSearchResults.length || !rails || !rails.length){
           host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
           if (sentinel) host.appendChild(sentinel);
           return;
         }
 
-        const grid = document.createElement('div');
-        grid.className = 'tf-search-grid';
-        tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
-        host.appendChild(grid);
+        rails.forEach(r => {
+          if (!r || !Array.isArray(r.items) || !r.items.length) return;
+          host.appendChild(tfBuildRow(r.titleHtml || 'Résultats', r.items));
+        });
+
         if (sentinel) host.appendChild(sentinel);
         return;
       }
@@ -2570,6 +2604,27 @@ window.updatePerformanceWidget = updatePerformanceWidget;
 // ================================
 let __tfTipsCache = { q:'', t:0, clips:[] };
 
+
+async function tfEnsureTipsGameContext(){
+  if (currentGameName) return currentGameName;
+
+  // Prefer Steam recent game when Steam is linked (second screen context)
+  try{
+    if (tfSteamSession && tfSteamSession.connected){
+      const r = await fetch(`${API_BASE}/api/steam/recent`, { credentials:'include' });
+      const d = await r.json().catch(()=>null);
+      const seed = d?.names?.[0]?.name || null;
+      if (seed){
+        currentGameName = String(seed);
+        try{ updatePlayGameLabel && updatePlayGameLabel(); }catch(_){}
+      }
+    }
+  }catch(_){}
+
+  return currentGameName;
+}
+
+
 function tfRenderProgressClips(clips, qLabel){
   const wrap = document.getElementById('tf-trailer-carousel');
   const sub = document.getElementById('tf-tips-sub');
@@ -2607,6 +2662,7 @@ function tfRenderProgressClips(clips, qLabel){
 async function tfLoadProgressClips(silent){
   const input = document.getElementById('tf-tips-query');
   const extra = String(input?.value || '').trim();
+  await tfEnsureTipsGameContext();
   const g = String(currentGameName || '').trim();
   const q = [g, extra].filter(Boolean).join(' ');
   const finalQ = q || extra || g;
