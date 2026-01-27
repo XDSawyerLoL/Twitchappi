@@ -1162,6 +1162,10 @@ async function riotFetchJSON(url){
   const r = await fetch(url, { headers: { 'X-Riot-Token': RIOT_API_KEY } });
   if(!r.ok){
     const t = await r.text().catch(()=> '');
+    // Make 401/403 clearer for non-technical UI.
+    if (r.status === 401 || r.status === 403) {
+      throw new Error(`Riot ${r.status}: clé invalide ou expirée. Détails: ${t.slice(0,200)}`);
+    }
     throw new Error(`Riot ${r.status}: ${t.slice(0,200)}`);
   }
   return await r.json();
@@ -1396,14 +1400,33 @@ app.get('/api/youtube/tips', async (req, res) => {
     if(!YOUTUBE_API_KEY){
       return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY manquant' });
     }
-    const q = String(req.query.q || '').trim();
-    if(!q) return res.json({ success:true, items:[] });
+    const q0 = String(req.query.q || '').trim();
+    const game = String(req.query.game || '').trim();
+    if(!q0 && !game) return res.json({ success:true, items:[] });
 
-    // search first
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=8&safeSearch=moderate&q=${encodeURIComponent(q)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
-    const r = await fetch(url);
-    const d = await r.json();
-    const items = Array.isArray(d.items) ? d.items : [];
+    // Build a better query: if game is known, always inject it.
+    // Also bias toward short "how-to" content.
+    const base = [game, q0].filter(Boolean).join(' ').trim();
+    const candidates = [];
+    const q = sanitizeText(base, 160);
+    if (q) {
+      candidates.push(q);
+      candidates.push(`${q} guide`);
+      candidates.push(`${q} tips`);
+      candidates.push(`${q} tutorial`);
+      candidates.push(`${q} short`);
+    }
+
+    // search (retry with increasingly guided queries)
+    let items = [];
+    let usedQuery = '';
+    for (const cand of candidates.slice(0, 5)){
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&safeSearch=moderate&videoDuration=short&q=${encodeURIComponent(cand)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+      const r = await fetch(url);
+      const d = await r.json();
+      const arr = Array.isArray(d.items) ? d.items : [];
+      if (arr.length){ items = arr; usedQuery = cand; break; }
+    }
     const vids = items.map(x => x?.id?.videoId).filter(Boolean);
 
     // fetch durations (optional)
@@ -1442,7 +1465,7 @@ app.get('/api/youtube/tips', async (req, res) => {
     const shorts = shortFirst.filter(x => typeof x.durationSec === 'number' && x.durationSec > 0 && x.durationSec <= 90);
     const final = (shorts.length ? shorts : shortFirst).slice(0, 10);
 
-    return res.json({ success:true, items: final });
+    return res.json({ success:true, items: final, usedQuery });
   }catch(e){
     return res.status(500).json({ success:false, error:e.message });
   }
