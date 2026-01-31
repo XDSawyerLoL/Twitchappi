@@ -21,6 +21,21 @@ const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
 const http = require('http');
 const { Server } = require('socket.io');
+// ---------------------------------------------------------
+// Node >=20 deprecates the built-in "punycode" module.
+// Some older deps (e.g. openid) still require('punycode').
+// We transparently redirect to the userland package "punycode/".
+// (Add "punycode" to package.json dependencies.)
+// ---------------------------------------------------------
+try{
+  const Module = require('module');
+  const _load = Module._load;
+  Module._load = function(request, parent, isMain){
+    if(request === 'punycode') request = 'punycode/';
+    return _load.call(this, request, parent, isMain);
+  };
+}catch(_){ }
+
 const openid = require('openid');
 
 const { GoogleGenAI } = require('@google/genai');
@@ -348,10 +363,10 @@ async function verifyFirebaseIdTokenFromReq(req){
 // Start Steam auth (use popup or full redirect)
 app.get('/auth/steam', async (req, res) => {
   try{
-    // Allow returning to the embedding page (e.g. justplayer.fr) when opened from an iframe.
-    // Uses ?return_to=... (preferred) or Referer header as fallback, with allowlist.
-    const next = inferReturnTo(req);
-    req.session.steamNext = next;
+    // Allow returning to the embedding host (justplayer.fr) when Steam auth is launched from an iframe.
+    // The URL is validated against RETURN_TO_ORIGINS.
+    const returnTo = inferReturnTo(req);
+    req.session.steamNext = returnTo;
 
     const rp = steamRelyingParty(req);
     rp.authenticate(STEAM_PROVIDER, false, (err, authUrl) => {
@@ -410,8 +425,6 @@ app.get('/steam/connected', (req, res) => {
   const next = safeReturnTo(req.query.next, '/');
   const steamid = req.session?.steam?.steamid || '';
   const payload = JSON.stringify({ type: 'steam:connected', ok, steamid });
-  let targetOrigin = '*';
-  try{ targetOrigin = new URL(next).origin; }catch(_){ /* relative -> keep '*' */ }
   res.setHeader('content-type','text/html; charset=utf-8');
   return res.send(`<!doctype html>
 <html><head><meta charset="utf-8"><title>Steam</title></head>
@@ -425,7 +438,9 @@ app.get('/steam/connected', (req, res) => {
     (function(){
       try{
         if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, ${JSON.stringify(targetOrigin)});
+          var _target = '*';
+          try{ _target = (new URL(${JSON.stringify(next)})).origin; }catch(e){ _target = '*'; }
+          window.opener.postMessage(${payload}, _target);
           window.close();
         }
       }catch(e){}

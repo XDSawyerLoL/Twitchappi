@@ -1,14 +1,10 @@
-// API base: when embedded on justplayer.fr (iframe), the backend lives on Render.
-// Support ?api=https://<backend-host> in the URL (recommended for iframe embeds).
-const __urlParams = new URLSearchParams(window.location.search);
-const API_BASE = (() => {
-  const api = String(__urlParams.get('api') || '').trim();
-  if(!api) return window.location.origin;
-  return api.replace(/\/+$/, '');
-})();
-const API_ORIGIN = (() => {
-  try{ return new URL(API_BASE).origin; }catch(e){ return API_BASE; }
-})();
+    const __urlParams = new URLSearchParams(window.location.search);
+    // IMPORTANT: this app is often embedded on justplayer.fr in an iframe,
+    // while the API is hosted on Render (onrender.com). We therefore support
+    // passing the API base via a query param: ?api=https://your-render-host
+    const __apiParam = String(__urlParams.get('api') || '').trim().replace(/\/+$/,'');
+    const API_BASE = __apiParam || window.location.origin;
+    const API_ORIGIN = (()=>{ try{ return new URL(API_BASE, window.location.href).origin; }catch(_){ return window.location.origin; }})();
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
@@ -40,6 +36,161 @@ const API_ORIGIN = (() => {
     let currentGameId = null;
     let currentGameName = null;
 
+    // =========================================================
+    // TWITFLIX BIG PICTURE MODE (web "console" UX)
+    // =========================================================
+    let tfBigPictureEnabled = false;
+    let __tfGamepadLoopInited = false;
+
+    function tfIsBigPicture(){
+      return document.documentElement.classList.contains('tf-big-picture');
+    }
+
+    function tfSetBigPicture(enabled){
+      tfBigPictureEnabled = !!enabled;
+      document.documentElement.classList.toggle('tf-big-picture', tfBigPictureEnabled);
+      try{ localStorage.setItem('tf_big_picture', tfBigPictureEnabled ? '1' : '0'); }catch(_){ }
+
+      const btn = document.getElementById('tf-btn-bigpic');
+      if(btn){
+        btn.classList.toggle('active', tfBigPictureEnabled);
+        btn.innerHTML = tfBigPictureEnabled ? '🎮 BIG PICTURE: ON' : '🎮 BIG PICTURE';
+      }
+
+      // Optional fullscreen (best effort; browsers may block until user gesture)
+      if(tfBigPictureEnabled && !document.fullscreenElement){
+        document.documentElement.requestFullscreen?.().catch(()=>{});
+      }
+    }
+
+    function tfInitBigPictureUI(){
+      // Restore saved state
+      try{ tfBigPictureEnabled = localStorage.getItem('tf_big_picture') === '1'; }catch(_){ tfBigPictureEnabled = false; }
+      if(tfBigPictureEnabled) document.documentElement.classList.add('tf-big-picture');
+
+      // Wire button (if present)
+      const btn = document.getElementById('tf-btn-bigpic');
+      if(btn && !btn.__wired){
+        btn.__wired = true;
+        btn.addEventListener('click', ()=> tfSetBigPicture(!tfIsBigPicture()));
+      }
+
+      // Start gamepad loop once
+      if(!__tfGamepadLoopInited){
+        __tfGamepadLoopInited = true;
+        tfStartGamepadLoop();
+      }
+    }
+
+    function tfFocusableCards(){
+      return Array.from(document.querySelectorAll('#twitflix-modal .tf-card[data-focus="tf-card"]'))
+        .filter(el => el && el.offsetParent !== null);
+    }
+
+    function tfEnsureCardsFocusable(){
+      const cards = document.querySelectorAll('#twitflix-modal .tf-card');
+      cards.forEach(el => {
+        if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
+        el.setAttribute('data-focus','tf-card');
+      });
+    }
+
+    function tfMoveFocus(dir){
+      const items = tfFocusableCards();
+      if(!items.length) return;
+      const active = document.activeElement;
+      const from = items.includes(active) ? active : items[0];
+
+      const r0 = from.getBoundingClientRect();
+      const cx0 = r0.left + r0.width/2;
+      const cy0 = r0.top + r0.height/2;
+
+      const isOk = (r) => {
+        const cx = r.left + r.width/2;
+        const cy = r.top + r.height/2;
+        if(dir === 'left') return cx < cx0 - 8;
+        if(dir === 'right') return cx > cx0 + 8;
+        if(dir === 'up') return cy < cy0 - 8;
+        if(dir === 'down') return cy > cy0 + 8;
+        return false;
+      };
+
+      let best = null;
+      let bestScore = Infinity;
+      for(const el of items){
+        if(el === from) continue;
+        const r = el.getBoundingClientRect();
+        if(!isOk(r)) continue;
+        const cx = r.left + r.width/2;
+        const cy = r.top + r.height/2;
+        // Directional distance: prioritize moving in the intended axis, then minimize total distance
+        const dx = cx - cx0;
+        const dy = cy - cy0;
+        const primary = (dir === 'left' || dir === 'right') ? Math.abs(dx) : Math.abs(dy);
+        const secondary = (dir === 'left' || dir === 'right') ? Math.abs(dy) : Math.abs(dx);
+        const score = primary * 1.0 + secondary * 0.35;
+        if(score < bestScore){ bestScore = score; best = el; }
+      }
+
+      (best || from).focus({preventScroll:false});
+      (best || from).scrollIntoView({block:'nearest', inline:'nearest'});
+    }
+
+    function tfHookBigPictureKeyboard(){
+      if(window.__tfBigPictureKeys) return;
+      window.__tfBigPictureKeys = true;
+      window.addEventListener('keydown', (e)=>{
+        if(!tfIsBigPicture()) return;
+        // Only when TwitFlix is open
+        const modal = document.getElementById('twitflix-modal');
+        if(!modal || !modal.classList.contains('open')) return;
+
+        if(e.key === 'ArrowLeft'){ e.preventDefault(); tfMoveFocus('left'); }
+        if(e.key === 'ArrowRight'){ e.preventDefault(); tfMoveFocus('right'); }
+        if(e.key === 'ArrowUp'){ e.preventDefault(); tfMoveFocus('up'); }
+        if(e.key === 'ArrowDown'){ e.preventDefault(); tfMoveFocus('down'); }
+        if(e.key === 'Enter'){
+          const el = document.activeElement;
+          if(el && el.classList && el.classList.contains('tf-card')){ e.preventDefault(); el.click(); }
+        }
+        if(e.key === 'Escape'){ /* keep existing close */ }
+      });
+    }
+
+    function tfStartGamepadLoop(){
+      let last = 0;
+      const cooldown = 170;
+      const pressed = (gp, i) => !!(gp.buttons && gp.buttons[i] && gp.buttons[i].pressed);
+
+      function tick(){
+        const now = Date.now();
+        const modal = document.getElementById('twitflix-modal');
+        const isActive = tfIsBigPicture() && modal && modal.classList.contains('open');
+        if(isActive){
+          const gps = navigator.getGamepads?.() || [];
+          const gp = gps.find(g => g && g.connected);
+          if(gp && now - last > cooldown){
+            const axX = gp.axes?.[0] || 0;
+            const axY = gp.axes?.[1] || 0;
+
+            // D-pad (standard mapping): 14 left, 15 right, 12 up, 13 down
+            if(axX > 0.6 || pressed(gp, 15)){ tfMoveFocus('right'); last = now; }
+            else if(axX < -0.6 || pressed(gp, 14)){ tfMoveFocus('left'); last = now; }
+            else if(axY > 0.6 || pressed(gp, 13)){ tfMoveFocus('down'); last = now; }
+            else if(axY < -0.6 || pressed(gp, 12)){ tfMoveFocus('up'); last = now; }
+
+            // A / Cross (0) to activate
+            if(pressed(gp, 0)){
+              const el = document.activeElement;
+              if(el && el.classList && el.classList.contains('tf-card')){ el.click(); last = now; }
+            }
+          }
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
     // TwitFlix infinite scroll
     let currentCursor = null;
     let isLoadingGames = false;
@@ -66,6 +217,10 @@ const API_ORIGIN = (() => {
              }
         });
       }
+
+      // Big Picture init (safe even if TwitFlix modal is closed)
+      tfInitBigPictureUI();
+      tfHookBigPictureKeyboard();
     });
 
     function initUnderTabs(){
@@ -405,11 +560,27 @@ function startAuth() {
 
     // SOCKET.IO
     function initSocket(){
+      // Socket must connect to the API host (Render) even when embedded on justplayer.fr.
+      // Also, guard against double init (scripts loaded twice / SPA re-init).
+      if (window.__hubSocket && window.__hubSocket.connected) {
+        socket = window.__hubSocket;
+        return;
+      }
       if (window.__hubSocketInited) return;
       window.__hubSocketInited = true;
 
       try{
-        socket = io(undefined, { transports: ['websocket','polling'] });
+        socket = io(API_ORIGIN, {
+          path: '/socket.io',
+          transports: ['websocket'],
+          withCredentials: true,
+          reconnection: true,
+          reconnectionAttempts: Infinity,
+          reconnectionDelay: 500,
+          reconnectionDelayMax: 2500,
+          timeout: 8000,
+        });
+        window.__hubSocket = socket;
 
         const status = document.getElementById('socket-status');
         const setStatus = (ok) => {
@@ -790,9 +961,10 @@ async function tfLoadPersonalization(){
 }
 
 function tfConnectSteam(){
-  // Prefer returning to the actual embedding page (e.g. justplayer.fr/..) rather than staying on Render.
-  const returnTo = encodeURIComponent(window.location.href);
-  const url = `${API_BASE}/auth/steam?return_to=${returnTo}`;
+  // Return to the iframe host page (justplayer.fr) after auth.
+  // Backend will validate allowlist via safeReturnTo.
+  const return_to = window.location.href;
+  const url = `${API_BASE}/auth/steam?return_to=${encodeURIComponent(return_to)}`;
   // popup first (second screen friendly)
   const w = 720, h = 640;
   const left = Math.max(0, (window.screen.width - w) / 2);
@@ -822,6 +994,8 @@ window.tfPromptSteam = tfPromptSteam;
 
 // Listen for popup completion
 window.addEventListener('message', (ev) => {
+  // The popup is served by the API host (Render). When embedded in an iframe on justplayer.fr,
+  // we must validate against the API origin, not the current page origin.
   if(ev.origin !== API_ORIGIN) return;
   const data = ev?.data;
   if(!data || data.type !== 'steam:connected') return;
@@ -928,7 +1102,7 @@ window.tfPromptRiot = tfPromptRiot;
 window.tfPromptEpic = tfPromptEpic;
 
 window.addEventListener('message', (ev) => {
-  if(ev.origin !== API_ORIGIN) return;
+  if(ev.origin !== API_BASE) return;
   const data = ev?.data;
   if(!data || !data.type) return;
   if(data.type === 'riot:connected'){
@@ -1536,6 +1710,15 @@ try{
         host.appendChild(loading);
       }
 
+      // Big Picture: make cards focusable + preserve console navigation
+      tfEnsureCardsFocusable();
+      if(tfIsBigPicture()){
+        const first = host.querySelector('.tf-card');
+        if(first && document.activeElement === document.body){
+          first.focus({preventScroll:true});
+        }
+      }
+
       if (sentinel) host.appendChild(sentinel);
     }
 
@@ -1610,6 +1793,8 @@ try{
     function tfBuildCard(cat){
       const div = document.createElement('div');
       div.className = 'tf-card';
+      div.setAttribute('tabindex','0');
+      div.setAttribute('data-focus','tf-card');
       div.dataset.gameId = cat.id;
       div.dataset.gameName = cat.name;
 

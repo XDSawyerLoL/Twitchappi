@@ -518,6 +518,23 @@
 #twitflix-modal .tf-actions{ gap: 12px; }
 #twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
 
+/* =========================================================
+   BIG PICTURE MODE (console-like UX)
+   Toggle adds class .tf-big-picture on <html>
+========================================================= */
+.tf-big-picture #twitflix-modal .tf-modal-content{ max-width: 1680px; }
+.tf-big-picture #twitflix-modal .tf-search{ font-size: 16px; padding: 14px 16px 14px 42px; }
+.tf-big-picture #twitflix-modal .tf-row{ gap: 14px; }
+.tf-big-picture #twitflix-modal .tf-row-title{ font-size: 16px; }
+.tf-big-picture #twitflix-modal .tf-row-track{ padding-bottom: 10px; }
+.tf-big-picture #twitflix-modal .tf-card{ width: 240px; height: 145px; }
+.tf-big-picture #twitflix-modal .tf-card:focus{
+  outline: 3px solid rgba(0,242,234,.95);
+  outline-offset: 6px;
+  box-shadow: 0 0 0 6px rgba(0,0,0,.45);
+}
+.tf-big-picture #twitflix-modal .tf-actions .tf-toggle-btn{ padding: 10px 14px; font-weight: 900; }
+
 #twitflix-modal .tf-body{
   flex: 1;
   min-height: 0;
@@ -2925,6 +2942,7 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn active" id="tf-btn-rows" onclick="setTwitFlixView('rows')" type="button">LIGNES</button>
 <button class="tf-toggle-btn" id="tf-btn-az" onclick="setTwitFlixView('az')" type="button">A–Z</button>
 </div>
+<button class="tf-toggle-btn" id="tf-btn-bigpic" type="button">🎮 BIG PICTURE</button>
 <button class="tf-toggle-btn tf-steam-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">
   <i class="fab fa-steam" aria-hidden="true"></i>
   <span class="tf-steam-label">Connecter Steam</span>
