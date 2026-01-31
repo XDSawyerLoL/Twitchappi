@@ -1936,7 +1936,7 @@ try{
       }
     }
 
-    async async function loadAIReco(){
+    async function loadAIReco(){
       if (!currentChannel || currentChannel === 'twitch') return;
       const box = document.getElementById('ai-reco-box');
       const btn = document.getElementById('btn-ai-reco');
@@ -1944,7 +1944,7 @@ try{
       box.classList.add('hidden');
       box.innerHTML = '';
       btn.disabled = true;
-      btn.innerHTML = '<span class="best-time-spinner"></span> Génération du rapport...';
+      btn.innerHTML = '<span class="best-time-spinner"></span> Rapport...';
 
       try{
         const res = await fetch(`${API_BASE}/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);

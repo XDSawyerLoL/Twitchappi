@@ -2759,7 +2759,6 @@ Structure obligatoire:
 
 Ne parle jamais de "modèle", "IA", "prompt", "données insuffisantes". Si une KPI est faible/absente, propose une action de mesure plutôt que te plaindre.`;
 
-
     const ai = await runGeminiAnalysis(prompt);
     return res.json(ai);
   } catch (e) {
