@@ -1060,6 +1060,7 @@ window.addEventListener('message', (ev) => {
       .then(() => tfLoadPersonalization())
       .then(() => { if(tfModalOpen) renderTwitFlix(); })
       .then(() => { try{ window.dispatchEvent(new Event('tf:provider-changed')); }catch(e){} })
+      .then(() => { try{ window.location.reload(); }catch(e){} })
       .catch(()=>{});
   }else{
     tfRefreshSteamSession().catch(()=>{});
@@ -1072,27 +1073,28 @@ window.addEventListener('message', (ev) => {
 // Riot + Epic (OAuth) buttons
 let tfRiotSession = { connected:false, userinfo:null };
 let tfEpicSession = { connected:false };
+let tfUbisoftSession = { connected:false };
+let tfXboxSession = { connected:false };
 
 function tfUpdateOauthButtons(){
-  const rbtn = document.getElementById('tf-btn-riot');
-  if(rbtn){
-    rbtn.classList.toggle('tf-oauth-connected', !!tfRiotSession.connected);
-    rbtn.innerHTML = `
-      <span class="tf-oauth-dot tf-dot-riot" aria-hidden="true"></span>
-      <span class="tf-oauth-label">${tfRiotSession.connected ? 'Riot connecté' : 'Connecter Riot'}</span>
-      ${tfRiotSession.connected ? '<span class="tf-steam-check" aria-hidden="true">✓</span>' : ''}
+  const setBtn = (id, connected, labelOn, labelOff, dotClass, iconClass)=>{
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    btn.classList.toggle('tf-oauth-connected', !!connected);
+    btn.innerHTML = `
+      ${iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : `<span class="tf-oauth-dot ${dotClass||''}" aria-hidden="true"></span>`}
+      <span class="tf-oauth-label">${connected ? labelOn : labelOff}</span>
+      ${connected ? '<span class="tf-steam-check" aria-hidden="true">✓</span>' : ''}
     `;
-  }
+  };
 
-  const ebtn = document.getElementById('tf-btn-epic');
-  if(ebtn){
-    ebtn.classList.toggle('tf-oauth-connected', !!tfEpicSession.connected);
-    ebtn.innerHTML = `
-      <span class="tf-oauth-dot tf-dot-epic" aria-hidden="true"></span>
-      <span class="tf-oauth-label">${tfEpicSession.connected ? 'Epic connecté' : 'Connecter Epic'}</span>
-      ${tfEpicSession.connected ? '<span class="tf-steam-check" aria-hidden="true">✓</span>' : ''}
-    `;
-  }
+  // Riot / Epic keep the colored dot (more consistent with your UI)
+  setBtn('tf-btn-riot',  !!tfRiotSession.connected,  'Riot connecté',   'Connecter Riot', 'tf-dot-riot', '');
+  setBtn('tf-btn-epic',  !!tfEpicSession.connected,  'Epic connecté',   'Connecter Epic', 'tf-dot-epic', '');
+
+  // Ubisoft / Xbox: show brand icons if FontAwesome provides them
+  setBtn('tf-btn-ubisoft', !!tfUbisoftSession.connected, 'Ubisoft connecté', 'Connecter Ubisoft', 'tf-dot-ubi', 'fab fa-ubisoft');
+  setBtn('tf-btn-xbox',    !!tfXboxSession.connected,    'Xbox connecté',    'Connecter Xbox',    'tf-dot-xbox','fab fa-xbox');
 }
 
 async function tfRefreshRiotSession(){
@@ -1117,6 +1119,30 @@ async function tfRefreshEpicSession(){
   tfUpdateOauthButtons();
 }
 
+
+async function tfRefreshUbisoftSession(){
+  try{
+    const r = await fetch(`${API_BASE}/api/ubisoft/me`, { credentials:'include' });
+    const d = await r.json();
+    tfUbisoftSession = (d && d.success && d.connected) ? { connected:true } : { connected:false };
+  }catch(_){
+    tfUbisoftSession = { connected:false };
+  }
+  tfUpdateOauthButtons();
+}
+
+async function tfRefreshXboxSession(){
+  try{
+    const r = await fetch(`${API_BASE}/api/xbox/me`, { credentials:'include' });
+    const d = await r.json();
+    tfXboxSession = (d && d.success && d.connected) ? { connected:true } : { connected:false };
+  }catch(_){
+    tfXboxSession = { connected:false };
+  }
+  tfUpdateOauthButtons();
+}
+
+
 function tfConnectRiot(){
   const returnTo = document.referrer || window.location.href;
   const url = `${API_BASE}/auth/riot?return_to=${encodeURIComponent(returnTo)}`;
@@ -1135,6 +1161,27 @@ function tfConnectEpic(){
   const popup = window.open(url, 'epicAuth', `width=${w},height=${h},left=${left},top=${top}`);
   if(!popup) window.location.href = url;
 }
+
+
+function tfConnectUbisoft(){
+  const returnTo = document.referrer || window.location.href;
+  const url = `${API_BASE}/auth/ubisoft?return_to=${encodeURIComponent(returnTo)}`;
+  const w = 720, h = 720;
+  const left = Math.max(0, (window.screen.width - w) / 2);
+  const top = Math.max(0, (window.screen.height - h) / 2);
+  const popup = window.open(url, 'ubisoftAuth', `width=${w},height=${h},left=${left},top=${top}`);
+  if(!popup) window.location.href = url;
+}
+function tfConnectXbox(){
+  const returnTo = document.referrer || window.location.href;
+  const url = `${API_BASE}/auth/xbox?return_to=${encodeURIComponent(returnTo)}`;
+  const w = 720, h = 720;
+  const left = Math.max(0, (window.screen.width - w) / 2);
+  const top = Math.max(0, (window.screen.height - h) / 2);
+  const popup = window.open(url, 'xboxAuth', `width=${w},height=${h},left=${left},top=${top}`);
+  if(!popup) window.location.href = url;
+}
+
 
 async function tfPromptRiot(){
   if(tfRiotSession.connected){
@@ -1161,12 +1208,49 @@ async function tfPromptEpic(){
 window.tfPromptRiot = tfPromptRiot;
 window.tfPromptEpic = tfPromptEpic;
 
+async function tfPromptUbisoft(){
+  if(tfUbisoftSession.connected){
+    alert('Ubisoft est connecté. (Déconnexion: bientôt)');
+    return;
+  }
+  tfConnectUbisoft();
+}
+async function tfPromptXbox(){
+  if(tfXboxSession.connected){
+    alert('Xbox est connecté. (Déconnexion: bientôt)');
+    return;
+  }
+  tfConnectXbox();
+}
+window.tfPromptUbisoft = tfPromptUbisoft;
+window.tfPromptXbox = tfPromptXbox;
+
+
 window.addEventListener('message', (ev) => {
-  if(ev.origin !== API_BASE) return;
+  // Popups are served by the API host (Render). When embedded, origin must match API origin.
+  if(ev.origin !== API_ORIGIN) return;
   const data = ev?.data;
   if(!data || !data.type) return;
+
+  const done = () => { try{ window.dispatchEvent(new Event('tf:provider-changed')); }catch(_){} };
+
   if(data.type === 'riot:connected'){
-    if(data.ok) tfRefreshRiotSession().catch(()=>{});
+    if(data.ok) tfRefreshRiotSession().then(done).catch(()=>{});
+    else { tfRefreshRiotSession().catch(()=>{}); alert('Connexion Riot échouée.'); }
+  }
+  if(data.type === 'epic:connected'){
+    if(data.ok) tfRefreshEpicSession().then(done).catch(()=>{});
+    else { tfRefreshEpicSession().catch(()=>{}); alert('Connexion Epic échouée.'); }
+  }
+  if(data.type === 'ubisoft:connected'){
+    if(data.ok) tfRefreshUbisoftSession().then(done).catch(()=>{});
+    else { tfRefreshUbisoftSession().catch(()=>{}); alert('Connexion Ubisoft non configurée.'); }
+  }
+  if(data.type === 'xbox:connected'){
+    if(data.ok) tfRefreshXboxSession().then(done).catch(()=>{});
+    else { tfRefreshXboxSession().catch(()=>{}); alert('Connexion Xbox non configurée.'); }
+  }
+});
     else { tfRefreshRiotSession().catch(()=>{}); alert('Connexion Riot échouée.'); }
   }
   if(data.type === 'epic:connected'){
@@ -1481,6 +1565,8 @@ try{
       await tfRefreshSteamSession();
       await tfRefreshRiotSession();
       await tfRefreshEpicSession();
+      await tfRefreshUbisoftSession();
+      await tfRefreshXboxSession();
       await tfLoadPersonalization();
 
       tfRenderLiveCarousel();
@@ -2977,9 +3063,9 @@ try{
 }catch(_){}
 
   if(!isLoL()){
-    // Generic performance module: adapts to the providers the user linked (Steam / Riot / Epic)
-    status.textContent = currentGameName ? 'Jeu détecté' : '—';
-    actions.classList.add('hidden'); // Riot comparison actions remain LoL-only (advanced feature)
+    // Second-screen performance: prioritize the platforms the user connected (Steam/Epic/Riot/Ubisoft/Xbox).
+    status.textContent = (currentGameName ? 'Jeu détecté' : '—');
+    actions.classList.add('hidden'); // Advanced Riot comparison stays LoL-only (see below)
 
     const safeGet = async (path)=>{
       try{
@@ -2988,24 +3074,53 @@ try{
       }catch(_){ return null; }
     };
 
-    const [steamMe, epicMe, riotMe, steamRecent] = await Promise.all([
+    const [steamMe, epicMe, riotMe, ubiMe, xboxMe, steamRecent] = await Promise.all([
       safeGet('/api/steam/me'),
       safeGet('/api/epic/me'),
       safeGet('/api/riot/me'),
+      safeGet('/api/ubisoft/me'),
+      safeGet('/api/xbox/me'),
       safeGet('/api/steam/recent')
     ]);
 
     const steamOn = !!(steamMe && steamMe.success && steamMe.connected);
     const epicOn  = !!(epicMe  && epicMe.success  && epicMe.connected);
     const riotOn  = !!(riotMe  && riotMe.success  && riotMe.connected);
+    const ubiOn   = !!(ubiMe   && ubiMe.success   && ubiMe.connected);
+    const xboxOn  = !!(xboxMe  && xboxMe.success  && xboxMe.connected);
 
+    // Context game priority:
+    // 1) Steam "best" (recent/now/top) if Steam is connected
+    // 2) Current Twitch live game (if a live is selected)
+    let ctxSource = '';
+    let ctxGame = '';
+
+    try{
+      if(steamOn && steamRecent?.success){
+        const best = steamRecent?.best?.name || steamRecent?.recent?.[0]?.name || '';
+        if(best){
+          ctxGame = String(best);
+          ctxSource = 'Steam';
+        }
+      }
+    }catch(_){}
+
+    if(!ctxGame && currentGameName){
+      ctxGame = String(currentGameName);
+      ctxSource = 'Live';
+    }
+
+    // Small readable badges row
     const badges = [
       steamOn ? 'Steam ✅' : 'Steam —',
+      epicOn  ? 'Epic ✅'  : 'Epic —',
       riotOn  ? 'Riot ✅'  : 'Riot —',
-      epicOn  ? 'Epic ✅'  : 'Epic —'
+      ubiOn   ? 'Ubisoft ✅' : 'Ubisoft —',
+      xboxOn  ? 'Xbox ✅' : 'Xbox —'
     ];
 
-    let recentLine = '';
+    // Steam recent detail (useful even when not watching a live)
+    let steamLine = '';
     try{
       const list = Array.isArray(steamRecent?.recent) ? steamRecent.recent : [];
       if(list.length){
@@ -3014,19 +3129,24 @@ try{
         const mins = Number(top?.playtime_2weeks || 0);
         const hrs = mins ? Math.round((mins/60)*10)/10 : 0;
         if(name){
-          recentLine = hrs ? `Dernier jeu Steam récent : <b>${name}</b> (~${hrs} h sur 2 semaines).` : `Dernier jeu Steam récent : <b>${name}</b>.`;
+          steamLine = hrs ? `Activité Steam récente : <b>${escapeHTML(name)}</b> (~${hrs} h sur 2 semaines).` : `Activité Steam récente : <b>${escapeHTML(name)}</b>.`;
         }
       }
-    }catch(_){ }
+    }catch(_){}
 
-    const liveLine = currentGameName ? `Live détecté : <b>${escapeHTML(currentGameName)}</b>.` : `Live : <span class="text-gray-500">pas encore détecté</span>.`;
+    const ctxLine = ctxGame
+      ? `Contexte prioritaire : <b>${escapeHTML(ctxGame)}</b> <span class="text-gray-500">(${escapeHTML(ctxSource)})</span>.`
+      : `Contexte : <span class="text-gray-500">branche un compte (Steam/Epic...) pour activer l’analyse</span>.`;
 
     body.innerHTML = `
-      <div class="text-gray-200 font-bold">Analyse multi-plateformes</div>
+      <div class="text-gray-200 font-bold">Analyse de performance</div>
       <div class="mt-1 text-[11px] text-gray-500">${badges.join(' · ')}</div>
-      <div class="mt-2 text-[12px] text-gray-300">${liveLine}</div>
-      ${recentLine ? `<div class="mt-2 text-[12px] text-gray-300">${recentLine}</div>` : ''}
-      <div class="mt-2 text-[11px] text-gray-500">Astuce : si tu veux une comparaison “pro” en live, elle s'active automatiquement quand le live est sur League of Legends <i>et</i> que Riot est connecté.</div>
+      <div class="mt-2 text-[12px] text-gray-300">${ctxLine}</div>
+      ${steamLine ? `<div class="mt-2 text-[12px] text-gray-300">${steamLine}</div>` : ''}
+      <div class="mt-2 text-[11px] text-gray-500">
+        Steam te donne déjà un signal fiable (activité récente). Riot sert aux comparaisons <i>League of Legends</i> quand un live LoL est sélectionné.
+        Epic/Ubisoft/Xbox: bouton de connexion prêt, données d’activité à brancher selon les APIs.
+      </div>
     `;
     return;
   }
@@ -3060,6 +3180,8 @@ window.updatePerformanceWidget = updatePerformanceWidget;
 // ================================
 // Live Tips: "Clips de Progrès" (YouTube short tips)
 // ================================
+let tfTipsGameName = '';
+
 let __tfTipsCache = { q:'', t:0, clips:[] };
 
 function tfFillTipsGameSelect(options){
@@ -3098,10 +3220,11 @@ function tfFillTipsGameSelect(options){
 async function tfEnsureTipsGameContext(){
   const sel0 = document.getElementById('tf-tips-game');
   const needFill = sel0 && sel0.options && sel0.options.length <= 1;
-  if (currentGameName && !needFill) return currentGameName;
 
+  // If we already resolved a tips game and the select is filled, reuse it.
+  if (tfTipsGameName && !needFill) return tfTipsGameName;
 
-  // Prefer Steam context when Steam is linked (second screen)
+  // Prefer Steam context when Steam is linked (second screen).
   try{
     if (tfSteamSession && tfSteamSession.connected){
       const r = await fetch(`${API_BASE}/api/steam/recent`, { credentials:'include' });
@@ -3113,14 +3236,19 @@ async function tfEnsureTipsGameContext(){
 
         const seed = d?.best?.name || d?.names?.[0]?.name || null;
         if (seed){
-          currentGameName = String(seed);
-          try{ updatePlayGameLabel && updatePlayGameLabel(); }catch(_){}
+          tfTipsGameName = String(seed);
+          return tfTipsGameName;
         }
       }
     }
   }catch(_){}
 
-  return currentGameName;
+  // Fallback to the currently watched live game (if any)
+  if(!tfTipsGameName && currentGameName){
+    tfTipsGameName = String(currentGameName);
+  }
+
+  return tfTipsGameName;
 }
 
 function tfRenderProgressClips(clips, qLabel){
@@ -3194,7 +3322,7 @@ async function tfLoadProgressClips(silent){
   }
 
   await tfEnsureTipsGameContext();
-  let g = String(currentGameName || '').trim();
+  let g = String(tfTipsGameName || currentGameName || '').trim();
 
   // Heuristic: if user explicitly mentions a different game (e.g. "bloqué sur minecraft"),
   // do NOT prepend the previously detected game. This avoids queries like
@@ -3313,3 +3441,12 @@ window.tfAutoLoadTips = function(){
   if(!window.tfModalOpen) return;
   tfLoadProgressClips(true);
 };
+
+
+// When a provider changes (Steam/Riot/Epic...), refresh second-screen context.
+window.addEventListener('tf:provider-changed', () => {
+  try{ __tfTipsCache = { q:'', t:0, clips:[] }; }catch(_){}
+  try{ tfTipsGameName = ''; }catch(_){}
+  try{ if(window.tfModalOpen) tfLoadProgressClips(true); }catch(_){}
+  try{ if(typeof updatePerformanceWidget === 'function') updatePerformanceWidget(); }catch(_){}
+});

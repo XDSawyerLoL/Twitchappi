@@ -629,6 +629,48 @@ app.get('/auth/epic/return', async (req, res) => {
   }
   req.session.epic_oauth_state = null;
 
+// =========================================================
+// UBISOFT / XBOX (placeholders)
+// =========================================================
+// These endpoints are stubs so the UI can expose the buttons without breaking the app.
+// Wire them to real OAuth flows later.
+
+app.get('/auth/ubisoft', (req,res)=>{
+  const returnTo = String(req.query.return_to||'').trim();
+  res.setHeader('Content-Type','text/html; charset=utf-8');
+  res.end(`<!doctype html><html><body style="font-family:system-ui;background:#0b0f14;color:#e5e7eb;padding:20px">
+  <h3 style="margin:0 0 8px 0">Ubisoft Connect</h3>
+  <p style="margin:0 0 12px 0">Connexion Ubisoft pas encore configurée côté serveur.</p>
+  <script>
+    try{
+      if(window.opener){
+        window.opener.postMessage({ type:'ubisoft:connected', ok:false, return_to:${json.dumps(returnTo)} }, window.location.origin);
+      }
+    }catch(e){}
+    setTimeout(()=>{ try{ window.close(); }catch(e){} }, 50);
+  </script>
+  </body></html>`);
+});
+
+app.get('/auth/xbox', (req,res)=>{
+  const returnTo = String(req.query.return_to||'').trim();
+  res.setHeader('Content-Type','text/html; charset=utf-8');
+  res.end(`<!doctype html><html><body style="font-family:system-ui;background:#0b0f14;color:#e5e7eb;padding:20px">
+  <h3 style="margin:0 0 8px 0">Xbox</h3>
+  <p style="margin:0 0 12px 0">Connexion Xbox pas encore configurée côté serveur.</p>
+  <script>
+    try{
+      if(window.opener){
+        window.opener.postMessage({ type:'xbox:connected', ok:false, return_to:${json.dumps(returnTo)} }, window.location.origin);
+      }
+    }catch(e){}
+    setTimeout(()=>{ try{ window.close(); }catch(e){} }, 50);
+  </script>
+  </body></html>`);
+});
+
+
+
   try{
     const baseUrl = getBaseUrl(req);
     const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
@@ -1292,6 +1334,21 @@ app.get('/api/epic/me', (req, res) => {
   const connected = !!e;
   return res.json({ success:true, connected });
 });
+
+// GET /api/ubisoft/me -> Ubisoft (placeholder) session status
+app.get('/api/ubisoft/me', (req, res) => {
+  const u = req.session?.ubisoft || null;
+  const connected = !!u;
+  return res.json({ success:true, connected });
+});
+
+// GET /api/xbox/me -> Xbox (placeholder) session status
+app.get('/api/xbox/me', (req, res) => {
+  const x = req.session?.xbox || null;
+  const connected = !!x;
+  return res.json({ success:true, connected });
+});
+
 
 // GET /api/steam/recent?steamid=STEAMID64
 app.get('/api/steam/recent', async (req,res)=>{

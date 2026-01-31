@@ -2557,6 +2557,10 @@ body.modal-open #player-tools{display:none !important;}
 
 }
 
+
+/* Big Picture must fully isolate TwitFlix (no background bleed) */
+#twitflix-modal.tf-big-picture{ background:#000 !important; }
+#twitflix-modal.tf-big-picture .tf-shell{ background:#000 !important; }
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -3064,6 +3068,15 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn tf-epic-btn" id="tf-btn-epic" type="button" onclick="tfPromptEpic()">
   <span class="tf-oauth-dot tf-dot-epic" aria-hidden="true"></span>
   <span class="tf-oauth-label">Connecter Epic</span>
+
+<button class="tf-toggle-btn tf-ubisoft-btn" id="tf-btn-ubisoft" type="button" onclick="tfPromptUbisoft()">
+  <i class="fab fa-ubisoft" aria-hidden="true"></i>
+  <span class="tf-oauth-label">Connecter Ubisoft</span>
+</button>
+<button class="tf-toggle-btn tf-xbox-btn" id="tf-btn-xbox" type="button" onclick="tfPromptXbox()">
+  <i class="fab fa-xbox" aria-hidden="true"></i>
+  <span class="tf-oauth-label">Connecter Xbox</span>
+</button>
 </button>
 <button class="tf-close-btn" type="button" aria-label="Fermer TwitFlix" onclick="closeTwitFlix()">✕</button>
 </div>
