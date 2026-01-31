@@ -20,7 +20,7 @@
     css.id = 'evey-billing-guard-css';
     css.textContent = `
       .evey-locked-wrap{ position:relative; }
-      .evey-locked-wrap.evey-blurred > *{ filter:none !important; opacity:.18; pointer-events:none; user-select:none; }
+      .evey-locked-wrap.evey-blurred > *{ filter:none !important; opacity:1 !important; pointer-events:none; user-select:none; }
       .evey-lock-overlay{
         position:absolute; inset:0; z-index:999;
         display:flex; align-items:center; justify-content:center;
@@ -129,6 +129,11 @@
   }
 
   function applyLock(target, cfg, state){
+    // Avoid duplicate layers if a newer paywall system already manages this area
+    if (target && (target.closest('[data-paywall]') || target.closest('.paywall-scope'))) {
+      return;
+    }
+
     if (!isElement(target)) return;
     ensureStyles();
 

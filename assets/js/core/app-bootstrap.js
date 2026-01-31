@@ -872,9 +872,17 @@ async function tfRefreshEpicSession(){
   tfUpdateOauthButtons();
 }
 
+
+function tfGetReturnTo(){
+  // In iframe (Fourthwall/Shopify), document.referrer points to the justplayer.fr page.
+  const ref = String(document.referrer || '').trim();
+  if(ref) return ref;
+  return window.location.href;
+}
+
 function tfConnectRiot(){
-  const next = '/';
-  const url = `${API_BASE}/auth/riot?next=${encodeURIComponent(next)}`;
+  const returnTo = tfGetReturnTo();
+  const url = `${API_BASE}/auth/riot?return_to=${encodeURIComponent(returnTo)}`;
   const w = 720, h = 720;
   const left = Math.max(0, (window.screen.width - w) / 2);
   const top = Math.max(0, (window.screen.height - h) / 2);
@@ -882,8 +890,8 @@ function tfConnectRiot(){
   if(!popup) window.location.href = url;
 }
 function tfConnectEpic(){
-  const next = '/';
-  const url = `${API_BASE}/auth/epic?next=${encodeURIComponent(next)}`;
+  const returnTo = tfGetReturnTo();
+  const url = `${API_BASE}/auth/epic?return_to=${encodeURIComponent(returnTo)}`;
   const w = 720, h = 720;
   const left = Math.max(0, (window.screen.width - w) / 2);
   const top = Math.max(0, (window.screen.height - h) / 2);
@@ -1944,7 +1952,7 @@ try{
       box.classList.add('hidden');
       box.innerHTML = '';
       btn.disabled = true;
-      btn.innerHTML = '<span class="best-time-spinner"></span> Rapport...';
+      btn.innerHTML = '<span class="best-time-spinner"></span> Rapport en cours...';
 
       try{
         const res = await fetch(`${API_BASE}/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);
@@ -1952,11 +1960,11 @@ try{
         box.innerHTML = data.html_response || "<p style='color:#ff6666;'>❌ Pas de recommandation</p>";
         box.classList.remove('hidden');
       }catch(e){
-        box.innerHTML = "<p style='color:#ff6666;'>❌ Erreur IA</p>";
+        box.innerHTML = "<p style='color:#ff6666;'>❌ Impossible de générer le rapport pour l’instant.</p>";
         box.classList.remove('hidden');
       }finally{
         btn.disabled = false;
-        btn.innerHTML = 'Lancer le rapport';
+        btn.innerHTML = '📄 Lancer le rapport';
       }
     }
 
@@ -2627,8 +2635,8 @@ async function initPerformanceWidget(){
 
   if(btnAuth){
     btnAuth.addEventListener('click', ()=>{
-      const next = '/';
-      const url = `${API_BASE}/auth/riot?next=${encodeURIComponent(next)}`;
+      const returnTo = tfGetReturnTo();
+      const url = `${API_BASE}/auth/riot?return_to=${encodeURIComponent(returnTo)}`;
       const w = 720, h = 720;
       const left = Math.max(0, (window.screen.width - w) / 2);
       const top = Math.max(0, (window.screen.height - h) / 2);

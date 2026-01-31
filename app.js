@@ -251,6 +251,23 @@ function safeNext(next){
   // Only allow relative paths to avoid open redirects
   if (!s || !s.startsWith('/')) return '/';
   return s;
+
+const RETURN_TO_ORIGINS = (process.env.RETURN_TO_ORIGINS || 'https://justplayer.fr,https://www.justplayer.fr')
+  .split(',')
+  .map(s=>s.trim())
+  .filter(Boolean);
+
+function safeReturnTo(returnTo){
+  const s = String(returnTo || '').trim();
+  if(!s) return '/';
+  if(s.startsWith('/')) return s;
+  try{
+    const u = new URL(s);
+    if(RETURN_TO_ORIGINS.includes(u.origin)) return u.toString();
+  }catch(_){}
+  return '/';
+}
+
 }
 function steamRelyingParty(req){
   const baseUrl = getBaseUrl(req);
@@ -350,7 +367,7 @@ app.get('/auth/steam/return', async (req, res) => {
 // Tiny page to close popup + notify opener
 app.get('/steam/connected', (req, res) => {
   const ok = String(req.query.ok || '0') === '1';
-  const next = safeNext(req.query.next);
+  const returnTo = safeReturnTo(req.query.return_to || req.query.next);
   const steamid = req.session?.steam?.steamid || '';
   const payload = JSON.stringify({ type: 'steam:connected', ok, steamid });
   res.setHeader('content-type','text/html; charset=utf-8');
@@ -360,18 +377,18 @@ app.get('/steam/connected', (req, res) => {
   <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
     <h2 style="margin:0 0 10px 0">${ok ? 'Steam connecté ✅' : 'Steam: échec ❌'}</h2>
     <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir à TwitFlix.' : 'Réessaie la connexion Steam.'}</p>
-    <a href="${next}" style="color:#00e5ff">Retour</a>
+    <a href="${returnTo}" style="color:#00e5ff">Retour</a>
   </div>
   <script>
     (function(){
       try{
         if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, '*');
+          window.opener.postMessage(${payload}, ${JSON.stringify(new URL(getBaseUrl(req)).origin)});
           window.close();
         }
       }catch(e){}
       // fallback: redirect after 1.2s
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(returnTo)}; }catch(e){} }, 1200);
     })();
   </script>
 </body></html>`);
@@ -384,8 +401,8 @@ app.get('/steam/connected', (req, res) => {
 // RIOT: Start OAuth (RSO)
 app.get('/auth/riot', async (req, res) => {
   try{
-    const next = safeNext(req.query.next);
-    req.session.riotNext = next;
+    const returnTo = safeReturnTo(req.query.return_to || req.query.next);
+    req.session.riotReturnTo = returnTo;
     const state = crypto.randomBytes(16).toString('hex');
     req.session.riot_oauth_state = state;
 
@@ -410,11 +427,11 @@ app.get('/auth/riot', async (req, res) => {
 });
 
 app.get('/auth/riot/return', async (req, res) => {
-  const next = safeNext(req.session?.riotNext);
+  const returnTo = safeReturnTo(req.session?.riotReturnTo);
   const { code, state } = req.query || {};
-  if(!code) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+  if(!code) return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
   if(!state || !req.session?.riot_oauth_state || String(state) !== String(req.session.riot_oauth_state)){
-    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+    return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
   }
   req.session.riot_oauth_state = null;
 
@@ -423,7 +440,7 @@ app.get('/auth/riot/return', async (req, res) => {
     const redirectUri = process.env.RIOT_REDIRECT_URI || `${baseUrl}/auth/riot/return`;
     const clientId = process.env.RIOT_CLIENT_ID;
     const clientSecret = process.env.RIOT_CLIENT_SECRET;
-    if(!clientId || !clientSecret) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+    if(!clientId || !clientSecret) return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
 
     const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const tokenRes = await fetch('https://auth.riotgames.com/token', {
@@ -441,7 +458,7 @@ app.get('/auth/riot/return', async (req, res) => {
 
     const tok = await tokenRes.json().catch(()=>null);
     if(!tokenRes.ok || !tok?.access_token){
-      return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+      return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
     }
 
     let userinfo = null;
@@ -468,15 +485,15 @@ app.get('/auth/riot/return', async (req, res) => {
       if(tu) await setBillingRiot(tu, req.session.riot);
     }catch(_){}
 
-    return res.redirect(`/riot/connected?ok=1&next=${encodeURIComponent(next)}`);
+    return res.redirect(`/riot/connected?ok=1&return_to=${encodeURIComponent(returnTo)}`);
   }catch(e){
-    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
+    return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
   }
 });
 
 app.get('/riot/connected', (req, res) => {
   const ok = String(req.query.ok || '0') === '1';
-  const next = safeNext(req.query.next);
+  const returnTo = safeReturnTo(req.query.return_to);
   const payload = JSON.stringify({ type: 'riot:connected', ok });
   res.setHeader('content-type','text/html; charset=utf-8');
   return res.send(`<!doctype html>
@@ -485,17 +502,17 @@ app.get('/riot/connected', (req, res) => {
   <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
     <h2 style="margin:0 0 10px 0">${ok ? 'Riot connecté ✅' : 'Riot: échec ❌'}</h2>
     <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir au Streamer Hub.' : 'Réessaie la connexion Riot.'}</p>
-    <a href="${next}" style="color:#00e5ff">Retour</a>
+    <a href="${returnTo}" style="color:#00e5ff">Retour</a>
   </div>
   <script>
     (function(){
       try{
         if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, '*');
+          window.opener.postMessage(${payload}, ${JSON.stringify(new URL(getBaseUrl(req)).origin)});
           window.close();
         }
       }catch(e){}
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(returnTo)}; }catch(e){} }, 1200);
     })();
   </script>
 </body></html>`);
@@ -504,8 +521,8 @@ app.get('/riot/connected', (req, res) => {
 // EPIC: Start OAuth
 app.get('/auth/epic', async (req, res) => {
   try{
-    const next = safeNext(req.query.next);
-    req.session.epicNext = next;
+    const returnTo = safeReturnTo(req.query.return_to || req.query.next);
+    req.session.epicReturnTo = returnTo;
     const state = crypto.randomBytes(16).toString('hex');
     req.session.epic_oauth_state = state;
 
@@ -530,11 +547,11 @@ app.get('/auth/epic', async (req, res) => {
 });
 
 app.get('/auth/epic/return', async (req, res) => {
-  const next = safeNext(req.session?.epicNext);
+  const returnTo = safeReturnTo(req.session?.epicReturnTo);
   const { code, state } = req.query || {};
-  if(!code) return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+  if(!code) return res.redirect(`/epic/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
   if(!state || !req.session?.epic_oauth_state || String(state) !== String(req.session.epic_oauth_state)){
-    return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+    return res.redirect(`/epic/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
   }
   req.session.epic_oauth_state = null;
 
@@ -543,7 +560,7 @@ app.get('/auth/epic/return', async (req, res) => {
     const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
     const clientId = process.env.EPIC_CLIENT_ID;
     const clientSecret = process.env.EPIC_CLIENT_SECRET;
-    if(!clientId || !clientSecret) return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+    if(!clientId || !clientSecret) return res.redirect(`/epic/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
 
     const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const tokenRes = await fetch('https://api.epicgames.dev/epic/oauth/v2/token', {
@@ -561,7 +578,7 @@ app.get('/auth/epic/return', async (req, res) => {
 
     const tok = await tokenRes.json().catch(()=>null);
     if(!tokenRes.ok || !tok?.access_token){
-      return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+      return res.redirect(`/epic/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
     }
 
     req.session.epic = {
@@ -579,15 +596,15 @@ app.get('/auth/epic/return', async (req, res) => {
       if(tu) await setBillingEpic(tu, req.session.epic);
     }catch(_){}
 
-    return res.redirect(`/epic/connected?ok=1&next=${encodeURIComponent(next)}`);
+    return res.redirect(`/epic/connected?ok=1&return_to=${encodeURIComponent(returnTo)}`);
   }catch(e){
-    return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
+    return res.redirect(`/epic/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
   }
 });
 
 app.get('/epic/connected', (req, res) => {
   const ok = String(req.query.ok || '0') === '1';
-  const next = safeNext(req.query.next);
+  const returnTo = safeReturnTo(req.query.return_to);
   const payload = JSON.stringify({ type: 'epic:connected', ok });
   res.setHeader('content-type','text/html; charset=utf-8');
   return res.send(`<!doctype html>
@@ -596,429 +613,20 @@ app.get('/epic/connected', (req, res) => {
   <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
     <h2 style="margin:0 0 10px 0">${ok ? 'Epic connecté ✅' : 'Epic: échec ❌'}</h2>
     <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir à TwitFlix.' : 'Réessaie la connexion Epic.'}</p>
-    <a href="${next}" style="color:#00e5ff">Retour</a>
+    <a href="${returnTo}" style="color:#00e5ff">Retour</a>
   </div>
   <script>
     (function(){
       try{
         if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, '*');
+          window.opener.postMessage(${payload}, ${JSON.stringify(new URL(getBaseUrl(req)).origin)});
           window.close();
         }
       }catch(e){}
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(returnTo)}; }catch(e){} }, 1200);
     })();
   </script>
 </body></html>`);
-});
-
-// =========================================================
-// 1C. RIOT (RSO OAuth2) + EPIC (OAuth2) — persistent linking like Steam
-// =========================================================
-
-// RIOT: Start OAuth (RSO)
-app.get('/auth/riot', async (req, res) => {
-  try{
-    const next = safeNext(req.query.next);
-    req.session.riotNext = next;
-    const state = crypto.randomBytes(16).toString('hex');
-    req.session.riot_oauth_state = state;
-
-    const baseUrl = getBaseUrl(req);
-    const redirectUri = process.env.RIOT_REDIRECT_URI || `${baseUrl}/auth/riot/return`;
-    const clientId = process.env.RIOT_CLIENT_ID;
-    if(!clientId) return res.status(500).send('RIOT_CLIENT_ID missing');
-
-    const scope = (process.env.RIOT_SCOPE || 'openid offline_access').trim(); // add more scopes if your app is approved
-    const url =
-      `https://auth.riotgames.com/authorize` +
-      `?client_id=${encodeURIComponent(clientId)}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&response_type=code` +
-      `&scope=${encodeURIComponent(scope)}` +
-      `&state=${encodeURIComponent(state)}`;
-
-    return res.redirect(url);
-  }catch(e){
-    return res.status(500).send('Riot auth init failed');
-  }
-});
-
-app.get('/auth/riot/return', async (req, res) => {
-  const next = safeNext(req.session?.riotNext);
-  const { code, state } = req.query || {};
-  if(!code) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
-  if(!state || !req.session?.riot_oauth_state || String(state) !== String(req.session.riot_oauth_state)){
-    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
-  }
-  req.session.riot_oauth_state = null;
-
-  try{
-    const baseUrl = getBaseUrl(req);
-    const redirectUri = process.env.RIOT_REDIRECT_URI || `${baseUrl}/auth/riot/return`;
-    const clientId = process.env.RIOT_CLIENT_ID;
-    const clientSecret = process.env.RIOT_CLIENT_SECRET;
-    if(!clientId || !clientSecret) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
-
-    const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    const tokenRes = await fetch('https://auth.riotgames.com/token', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${basic}`
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: String(code),
-        redirect_uri: redirectUri
-      }).toString()
-    });
-
-    const tok = await tokenRes.json().catch(()=>null);
-    if(!tokenRes.ok || !tok?.access_token){
-      return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
-    }
-
-    // Fetch basic userinfo (best-effort)
-    let userinfo = null;
-    try{
-      const u = await fetch('https://auth.riotgames.com/userinfo', {
-        headers:{ 'Authorization': `Bearer ${tok.access_token}` }
-      });
-      userinfo = await u.json().catch(()=>null);
-    }catch(_){}
-
-    req.session.riot = {
-      access_token: tok.access_token,
-      refresh_token: tok.refresh_token || null,
-      id_token: tok.id_token || null,
-      scope: tok.scope || null,
-      token_type: tok.token_type || null,
-      expires_in: tok.expires_in || null,
-      userinfo: userinfo || null,
-      linkedAt: Date.now()
-    };
-
-    // Persist to Billing doc if Twitch session exists
-    try{
-      const tu = req.session?.twitchUser;
-      if(tu) await setBillingRiot(tu, req.session.riot);
-    }catch(_){}
-
-    return res.redirect(`/riot/connected?ok=1&next=${encodeURIComponent(next)}`);
-  }catch(e){
-    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
-  }
-});
-
-app.get('/riot/connected', (req, res) => {
-  const ok = String(req.query.ok || '0') === '1';
-  const next = safeNext(req.query.next);
-  const payload = JSON.stringify({ type: 'riot:connected', ok });
-  res.setHeader('content-type','text/html; charset=utf-8');
-  return res.send(`<!doctype html>
-<html><head><meta charset="utf-8"><title>Riot</title></head>
-<body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-  <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
-    <h2 style="margin:0 0 10px 0">${ok ? 'Riot connecté ✅' : 'Riot: échec ❌'}</h2>
-    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir au Streamer Hub.' : 'Réessaie la connexion Riot.'}</p>
-    <a href="${next}" style="color:#00e5ff">Retour</a>
-  </div>
-  <script>
-    (function(){
-      try{
-        if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, '*');
-          window.close();
-        }
-      }catch(e){}
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
-    })();
-  </script>
-</body></html>`);
-});
-
-// EPIC: Start OAuth
-app.get('/auth/epic', async (req, res) => {
-  try{
-    const next = safeNext(req.query.next);
-    req.session.epicNext = next;
-    const state = crypto.randomBytes(16).toString('hex');
-    req.session.epic_oauth_state = state;
-
-    const baseUrl = getBaseUrl(req);
-    const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
-    const clientId = process.env.EPIC_CLIENT_ID;
-    if(!clientId) return res.status(500).send('EPIC_CLIENT_ID missing');
-
-    const scope = (process.env.EPIC_SCOPE || 'openid basic_profile').trim();
-    const url =
-      `https://www.epicgames.com/id/authorize` +
-      `?client_id=${encodeURIComponent(clientId)}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&response_type=code` +
-      `&scope=${encodeURIComponent(scope)}` +
-      `&state=${encodeURIComponent(state)}`;
-
-    return res.redirect(url);
-  }catch(e){
-    return res.status(500).send('Epic auth init failed');
-  }
-});
-
-app.get('/auth/epic/return', async (req, res) => {
-  const next = safeNext(req.session?.epicNext);
-  const { code, state } = req.query || {};
-  if(!code) return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
-  if(!state || !req.session?.epic_oauth_state || String(state) !== String(req.session.epic_oauth_state)){
-    return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
-  }
-  req.session.epic_oauth_state = null;
-
-  try{
-    const baseUrl = getBaseUrl(req);
-    const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
-    const clientId = process.env.EPIC_CLIENT_ID;
-    const clientSecret = process.env.EPIC_CLIENT_SECRET;
-    if(!clientId || !clientSecret) return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
-
-    const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    const tokenRes = await fetch('https://api.epicgames.dev/epic/oauth/v2/token', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${basic}`
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: String(code),
-        redirect_uri: redirectUri
-      }).toString()
-    });
-
-    const tok = await tokenRes.json().catch(()=>null);
-    if(!tokenRes.ok || !tok?.access_token){
-      return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
-    }
-
-    req.session.epic = {
-      access_token: tok.access_token,
-      refresh_token: tok.refresh_token || null,
-      id_token: tok.id_token || null,
-      scope: tok.scope || null,
-      token_type: tok.token_type || null,
-      expires_in: tok.expires_in || null,
-      linkedAt: Date.now()
-    };
-
-    try{
-      const tu = req.session?.twitchUser;
-      if(tu) await setBillingEpic(tu, req.session.epic);
-    }catch(_){}
-
-    return res.redirect(`/epic/connected?ok=1&next=${encodeURIComponent(next)}`);
-  }catch(e){
-    return res.redirect(`/epic/connected?ok=0&next=${encodeURIComponent(next)}`);
-  }
-});
-
-app.get('/epic/connected', (req, res) => {
-  const ok = String(req.query.ok || '0') === '1';
-  const next = safeNext(req.query.next);
-  const payload = JSON.stringify({ type: 'epic:connected', ok });
-  res.setHeader('content-type','text/html; charset=utf-8');
-  return res.send(`<!doctype html>
-<html><head><meta charset="utf-8"><title>Epic</title></head>
-<body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-  <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
-    <h2 style="margin:0 0 10px 0">${ok ? 'Epic connecté ✅' : 'Epic: échec ❌'}</h2>
-    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir à TwitFlix.' : 'Réessaie la connexion Epic.'}</p>
-    <a href="${next}" style="color:#00e5ff">Retour</a>
-  </div>
-  <script>
-    (function(){
-      try{
-        if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, '*');
-          window.close();
-        }
-      }catch(e){}
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
-    })();
-  </script>
-</body></html>`);
-});
-
-// Session info (used by TwitFlix)
-app.get('/api/steam/me', async (req, res) => {
-  const s = req.session?.steam;
-  if(s?.steamid){
-    return res.json({ success:true, connected:true, steamid: s.steamid, profile: s.profile || null, linkedAt: s.linkedAt || null, source: 'session' });
-  }
-
-  // Fallback: if user is connected via Twitch, read persisted Steam link from billing_users/{twitchUserId}
-  try{
-    const tu = req.session?.twitchUser;
-    if(!tu) return res.json({ success:true, connected:false });
-    const b = await getBillingDoc(tu);
-    if(b?.steam?.steamid){
-      return res.json({ success:true, connected:true, steamid: b.steam.steamid, profile: b.steam.profile || null, linkedAt: b.steam.linkedAt || null, source: 'billing' });
-    }
-  }catch(_){ }
-
-  return res.json({ success:true, connected:false });
-});
-
-// Persist Steam link to Firestore for the currently logged-in Firebase user
-app.post('/api/steam/link', async (req, res) => {
-  try{
-    const s = req.session?.steam;
-    if(!s?.steamid) return res.status(400).json({ success:false, error:'Steam non connecté (session)' });
-
-    const decoded = await verifyFirebaseIdTokenFromReq(req);
-    if(!decoded?.uid) return res.status(401).json({ success:false, error:'Auth Firebase requise' });
-
-    await db.collection('users').doc(decoded.uid).set({
-      steam: {
-        steamid: s.steamid,
-        profile: s.profile || null,
-        linkedAt: admin.firestore.Timestamp.fromMillis(s.linkedAt || Date.now()),
-        updatedAt: admin.firestore.Timestamp.fromMillis(Date.now())
-      }
-    }, { merge: true });
-
-    return res.json({ success:true });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-app.post('/api/steam/logout', (req, res) => {
-  try{
-    if(req.session) req.session.steam = null;
-  }catch(_){}
-  return res.json({ success:true });
-});
-
-// Remove the persisted Steam link for the current Twitch user
-app.post('/api/steam/unlink', async (req, res) => {
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-    await setBillingSteam(tu, null);
-    if(req.session) req.session.steam = null;
-    return res.json({ success:true });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-
-// Riot/Epic session info (used by Streamer Hub / TwitFlix)
-app.get('/api/riot/me', async (req, res) => {
-  const r = req.session?.riot;
-  if(r?.access_token){
-    return res.json({ success:true, connected:true, linkedAt: r.linkedAt || null, userinfo: r.userinfo || null, source:'session' });
-  }
-  try{
-    const tu = req.session?.twitchUser;
-    if(!tu) return res.json({ success:true, connected:false });
-    const b = await getBillingDoc(tu);
-    if(b?.riot?.access_token){
-      return res.json({ success:true, connected:true, linkedAt: b.riot.linkedAt || null, userinfo: b.riot.userinfo || null, source:'billing' });
-    }
-  }catch(_){}
-  return res.json({ success:true, connected:false });
-});
-
-app.post('/api/riot/unlink', async (req, res) => {
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-    req.session.riot = null;
-    await setBillingRiot(tu, null);
-    return res.json({ success:true });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-app.get('/api/epic/me', async (req, res) => {
-  const e = req.session?.epic;
-  if(e?.access_token){
-    return res.json({ success:true, connected:true, linkedAt: e.linkedAt || null, source:'session' });
-  }
-  try{
-    const tu = req.session?.twitchUser;
-    if(!tu) return res.json({ success:true, connected:false });
-    const b = await getBillingDoc(tu);
-    if(b?.epic?.access_token){
-      return res.json({ success:true, connected:true, linkedAt: b.epic.linkedAt || null, source:'billing' });
-    }
-  }catch(_){}
-  return res.json({ success:true, connected:false });
-});
-
-app.post('/api/epic/unlink', async (req, res) => {
-  try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-    req.session.epic = null;
-    await setBillingEpic(tu, null);
-    return res.json({ success:true });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-// Lightweight stream peek by login (used to fix LoL detection reliably)
-app.get('/api/twitch/stream_by_login', async (req, res) => {
-  try{
-    const login = String(req.query.login || '').trim().toLowerCase();
-    if(!login) return res.status(400).json({ success:false, error:'login manquant' });
-    const data = await twitchAPI(`streams?user_login=${encodeURIComponent(login)}`);
-    const s = data?.data?.[0];
-    if(!s) return res.json({ success:true, live:false });
-    return res.json({
-      success:true,
-      live:true,
-      login: s.user_login || login,
-      user_name: s.user_name || null,
-      game_id: s.game_id || null,
-      game_name: s.game_name || null,
-      title: s.title || null,
-      viewer_count: s.viewer_count || 0
-    });
-  }catch(e){
-    return res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-
-
-// Static assets (kept simple: UI + /assets folder)
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
-app.use(express.static(path.join(__dirname)));
-
-// Page principale (UI)
-app.get('/', (req, res) => {
-  const candidates = [
-    process.env.UI_FILE,
-    'NicheOptimizer.html',
-    'NicheOptimizer_v56.html',
-    'index.html'
-  ].filter(Boolean);
-
-  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
-  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
-  return res.sendFile(path.join(__dirname, found));
-});
-
-// Pricing page (credits + premium)
-app.get('/pricing', (req, res) => {
-  const f = path.join(__dirname, 'pricing.html');
-  if (!fs.existsSync(f)) return res.status(404).send('Pricing introuvable.');
-  return res.sendFile(f);
 });
 
 // =========================================================
@@ -1105,7 +713,7 @@ async function runGeminiAnalysis(prompt) {
       model: GEMINI_MODEL,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: "Tu es un coach Twitch humain, exigeant et bienveillant. Tu parles comme un expert réel, pas comme une IA. Style direct, chaleureux, parfois piquant mais toujours constructif. Réponds UNIQUEMENT en HTML simple (<p>, <h4>, <ul>, <li>, <strong>). Pas de markdown, pas de backticks."
+        systemInstruction: "Tu es un expert Data Twitch. Réponds UNIQUEMENT en HTML simple (<p>, <h4>, <ul>, <li>, <strong>). Pas de markdown, pas de backticks."
       }
     });
 
@@ -1115,6 +723,37 @@ async function runGeminiAnalysis(prompt) {
     console.error("❌ Erreur IA:", e);
     return { success: false, html_response: `<p style='color:red;'>❌ Erreur IA: ${e.message}</p>` };
   }
+
+
+async function runGeminiReport(prompt) {
+  if (!aiClient) {
+    return { success: false, html_response: "<p style='color:red;'>❌ IA non initialisée.</p>" };
+  }
+
+  try {
+    const response = await aiClient.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: [
+          "Tu es un coach humain et un analyste Twitch expérimenté.",
+          "Ton style est naturel, incarné, avec une dose d'émotion (encourageant, parfois ferme), jamais robotique.",
+          "Interdit: 'Analyse:', 'Conclusion:', 'Recommandation 1:', titres type IA, markdown, backticks, disclaimers.",
+          "Autorisé: HTML simple uniquement: <p>, <strong>, <ul>, <li>, <br>.",
+          "Évite les formulations génériques et les phrases 'en tant qu'IA'.",
+          "Sois concret: actions mesurables, exemples, et une phrase de clôture motivante."
+        ].join(" ")
+      }
+    });
+
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    return { success: true, html_response: text };
+  } catch (e) {
+    console.error("❌ Erreur IA (rapport):", e);
+    return { success: false, html_response: `<p style='color:red;'>❌ Erreur IA: ${e.message}</p>` };
+  }
+}
+
 }
 
 // =========================================================
@@ -2736,30 +2375,32 @@ app.get('/api/ai/reco', async (req, res) => {
     if (!a.success) return res.json({ success:false, html_response:"<p style='color:red;'>Pas assez de data.</p>" });
 
     const k = a.kpis || {};
-    const prompt = `Tu es un coach Twitch HUMAIN (pas une IA) : franc, motivant, et capable de dire les choses clairement.
-Réponds UNIQUEMENT en HTML (<h4>, <ul>, <li>, <p>, <strong>). Pas de markdown.
+    const prompt = `Tu es un coach streaming humain.
+Tu dois produire un rapport de profil clair, incarné, comme un pro qui te parle en face.
 
-Contexte : tu rédiges un **RAPPORT DE PROFIL** à partir de KPIs. Le ton doit être vivant : encouragements quand ça progresse, et "tough love" quand il y a un blocage. Tu utilises le "tu".
+Règles de style:
+- Tu t'adresses à moi en "tu".
+- Pas de titres type IA (pas de "Analyse:", "Conclusion:", "Recommandation 1:").
+- Pas de phrases génériques. Donne des exemples concrets.
+- Réponse UNIQUEMENT en HTML simple: <p>, <strong>, <ul>, <li>, <br>.
 
-KPIs (30 derniers jours):
-- viewers moyens: ${k.avg_viewers}
-- pic viewers: ${k.peak_viewers}
-- croissance: ${k.growth_percent}%
-- volatilité: ${k.volatility}
-- heures/semaine estimées: ${k.hours_per_week_est}
-- growth score: ${k.growth_score}/100
+Données (sur ${days} jours):
+- Moyenne viewers: ${k.avg_viewers}
+- Pic viewers: ${k.peak_viewers}
+- Croissance: ${k.growth_percent}%
+- Volatilité: ${k.volatility}
+- Estimation heures/semaine: ${k.hours_per_week_est}
+- Score croissance: ${k.growth_score}/100
 
-Structure obligatoire:
-1) <h4>Verdict en 1 phrase</h4> (impactant, humain)
-2) <h4>Forces</h4> (3 puces)
-3) <h4>Points qui te freinent</h4> (3 puces, sans langue de bois)
-4) <h4>Plan d’attaque 7 jours</h4> (5 actions concrètes et mesurables)
-5) <h4>Expériences à tester</h4> (3 tests A/B)
-6) <p>Phrase de fin ultra motivante (ou recadrage) + rappel: "On ajuste dans 7 jours".</p>
+Structure attendue (sans titres):
+1) Ouverture empathique (2-3 phrases).
+2) Diagnostic net en 1 phrase.
+3) 3 forces (liste).
+4) 3 axes de progression (liste).
+5) Plan d'action sur 7 jours (checklist courte).
+6) Une phrase de clôture motivante et réaliste.`;
 
-Ne parle jamais de "modèle", "IA", "prompt", "données insuffisantes". Si une KPI est faible/absente, propose une action de mesure plutôt que te plaindre.`;
-
-    const ai = await runGeminiAnalysis(prompt);
+    const ai = await runGeminiReport(prompt);
     return res.json(ai);
   } catch (e) {
     return res.status(500).json({ success:false, html_response:`<p style="color:red;">${e.message}</p>` });
