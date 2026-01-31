@@ -348,7 +348,9 @@ async function verifyFirebaseIdTokenFromReq(req){
 // Start Steam auth (use popup or full redirect)
 app.get('/auth/steam', async (req, res) => {
   try{
-    const next = safeNext(req.query.next);
+    // Allow returning to the embedding page (e.g. justplayer.fr) when opened from an iframe.
+    // Uses ?return_to=... (preferred) or Referer header as fallback, with allowlist.
+    const next = inferReturnTo(req);
     req.session.steamNext = next;
 
     const rp = steamRelyingParty(req);
@@ -365,7 +367,7 @@ app.get('/auth/steam', async (req, res) => {
 
 // Steam callback
 app.get('/auth/steam/return', async (req, res) => {
-  const next = safeNext(req.session?.steamNext);
+  const next = safeReturnTo(req.session?.steamNext, '/');
   const rp = steamRelyingParty(req);
   rp.verifyAssertion(req, async (err, result) => {
     try{
@@ -405,9 +407,11 @@ app.get('/auth/steam/return', async (req, res) => {
 // Tiny page to close popup + notify opener
 app.get('/steam/connected', (req, res) => {
   const ok = String(req.query.ok || '0') === '1';
-  const next = safeNext(req.query.next);
+  const next = safeReturnTo(req.query.next, '/');
   const steamid = req.session?.steam?.steamid || '';
   const payload = JSON.stringify({ type: 'steam:connected', ok, steamid });
+  let targetOrigin = '*';
+  try{ targetOrigin = new URL(next).origin; }catch(_){ /* relative -> keep '*' */ }
   res.setHeader('content-type','text/html; charset=utf-8');
   return res.send(`<!doctype html>
 <html><head><meta charset="utf-8"><title>Steam</title></head>
@@ -421,7 +425,7 @@ app.get('/steam/connected', (req, res) => {
     (function(){
       try{
         if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, '*');
+          window.opener.postMessage(${payload}, ${JSON.stringify(targetOrigin)});
           window.close();
         }
       }catch(e){}

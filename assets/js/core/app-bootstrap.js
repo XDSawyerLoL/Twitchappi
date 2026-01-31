@@ -1,5 +1,14 @@
-const API_BASE = window.location.origin;
-    const __urlParams = new URLSearchParams(window.location.search);
+// API base: when embedded on justplayer.fr (iframe), the backend lives on Render.
+// Support ?api=https://<backend-host> in the URL (recommended for iframe embeds).
+const __urlParams = new URLSearchParams(window.location.search);
+const API_BASE = (() => {
+  const api = String(__urlParams.get('api') || '').trim();
+  if(!api) return window.location.origin;
+  return api.replace(/\/+$/, '');
+})();
+const API_ORIGIN = (() => {
+  try{ return new URL(API_BASE).origin; }catch(e){ return API_BASE; }
+})();
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
@@ -781,8 +790,9 @@ async function tfLoadPersonalization(){
 }
 
 function tfConnectSteam(){
-  const next = '/'; // keep it simple: return to home
-  const url = `${API_BASE}/auth/steam?next=${encodeURIComponent(next)}`;
+  // Prefer returning to the actual embedding page (e.g. justplayer.fr/..) rather than staying on Render.
+  const returnTo = encodeURIComponent(window.location.href);
+  const url = `${API_BASE}/auth/steam?return_to=${returnTo}`;
   // popup first (second screen friendly)
   const w = 720, h = 640;
   const left = Math.max(0, (window.screen.width - w) / 2);
@@ -812,7 +822,7 @@ window.tfPromptSteam = tfPromptSteam;
 
 // Listen for popup completion
 window.addEventListener('message', (ev) => {
-  if(ev.origin !== API_BASE) return;
+  if(ev.origin !== API_ORIGIN) return;
   const data = ev?.data;
   if(!data || data.type !== 'steam:connected') return;
   if(data.ok){
@@ -918,7 +928,7 @@ window.tfPromptRiot = tfPromptRiot;
 window.tfPromptEpic = tfPromptEpic;
 
 window.addEventListener('message', (ev) => {
-  if(ev.origin !== API_BASE) return;
+  if(ev.origin !== API_ORIGIN) return;
   const data = ev?.data;
   if(!data || !data.type) return;
   if(data.type === 'riot:connected'){
