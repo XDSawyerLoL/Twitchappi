@@ -63,6 +63,10 @@
       }
     }
 
+    // Hard fallback for environments where the modal header is re-rendered
+    // or event listeners get lost.
+    window.tfToggleBigPicture = () => tfSetBigPicture(!tfIsBigPicture());
+
     function tfInitBigPictureUI(){
       // Restore saved state
       try{ tfBigPictureEnabled = localStorage.getItem('tf_big_picture') === '1'; }catch(_){ tfBigPictureEnabled = false; }
@@ -973,7 +977,25 @@ function tfConnectSteam(){
   if(!popup){
     // popup blocked -> full redirect
     window.location.href = url;
+    return;
   }
+
+  // Fallback watcher: if postMessage is blocked by browser policies,
+  // we still refresh Steam state when the popup closes.
+  try{
+    const started = Date.now();
+    const timer = setInterval(()=>{
+      if(popup.closed){
+        clearInterval(timer);
+        tfRefreshSteamSession()
+          .then(()=> tfLoadPersonalization())
+          .then(()=>{ if(tfModalOpen) renderTwitFlix(); })
+          .catch(()=>{});
+      }
+      // safety stop after 2 minutes
+      if(Date.now() - started > 120000){ clearInterval(timer); }
+    }, 600);
+  }catch(_){ }
 }
 
 async function tfPromptSteam(){
@@ -1339,6 +1361,9 @@ const modal = document.getElementById('twitflix-modal');
       tfModalOpen = true;
       modal.classList.add('active');
 
+      // Ensure Big Picture button is wired (modal buttons may be created/updated dynamically)
+      tfInitBigPictureUI();
+
       // TwitFlix intro (Netflix-like) — stylized, minimal
 try{
   let intro = document.getElementById('twitflix-intro');
@@ -1417,6 +1442,8 @@ try{
       tfRenderLiveCarousel();
       tfRenderTrailerCarousel();
       renderTwitFlix();
+      // Wire Big Picture button again after render in case the header was re-rendered.
+      tfInitBigPictureUI();
     }
 
     function closeTwitFlix(){
@@ -1578,6 +1605,9 @@ try{
       tfSearchResults = local;
       tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
       renderTwitFlix();
+
+      // Re-wire again after initial render, in case the header was rebuilt.
+      tfInitBigPictureUI();
     }
 
     async function tfLoadMore(force){
@@ -1710,8 +1740,14 @@ try{
         host.appendChild(loading);
       }
 
+      // Re-wire TwitFlix controls that may be present in the modal header
+      // (some builds inject/re-render parts of the modal).
+      tfInitBigPictureUI();
+
       // Big Picture: make cards focusable + preserve console navigation
       tfEnsureCardsFocusable();
+      // Ensure the toggle button remains wired if DOM got replaced.
+      tfInitBigPictureUI();
       if(tfIsBigPicture()){
         const first = host.querySelector('.tf-card');
         if(first && document.activeElement === document.body){

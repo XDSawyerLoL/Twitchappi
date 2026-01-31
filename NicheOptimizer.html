@@ -2942,7 +2942,7 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn active" id="tf-btn-rows" onclick="setTwitFlixView('rows')" type="button">LIGNES</button>
 <button class="tf-toggle-btn" id="tf-btn-az" onclick="setTwitFlixView('az')" type="button">A–Z</button>
 </div>
-<button class="tf-toggle-btn" id="tf-btn-bigpic" type="button">🎮 BIG PICTURE</button>
+<button class="tf-toggle-btn" id="tf-btn-bigpic" type="button" onclick="try{window.tfToggleBigPicture&&window.tfToggleBigPicture()}catch(e){}">🎮 BIG PICTURE</button>
 <button class="tf-toggle-btn tf-steam-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">
   <i class="fab fa-steam" aria-hidden="true"></i>
   <span class="tf-steam-label">Connecter Steam</span>

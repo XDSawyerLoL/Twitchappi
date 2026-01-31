@@ -438,8 +438,10 @@ app.get('/steam/connected', (req, res) => {
     (function(){
       try{
         if(window.opener && !window.opener.closed){
+          // The opener is usually the Render-hosted iframe window (same origin as this page).
+          // Using the "next" origin (justplayer.fr) would prevent delivery.
           var _target = '*';
-          try{ _target = (new URL(${JSON.stringify(next)})).origin; }catch(e){ _target = '*'; }
+          try{ _target = window.opener.location.origin; }catch(e){ _target = '*'; }
           window.opener.postMessage(${payload}, _target);
           window.close();
         }
