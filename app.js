@@ -152,6 +152,28 @@ async function addXP(user, delta){
 const app = express();
 app.set('trust proxy', 1);
 
+// =========================================================
+// 0.C SERVE FRONT (NicheOptimizer + assets)
+// =========================================================
+const WEB_ROOT = __dirname;
+
+// Static assets (required by NicheOptimizer.html)
+app.use('/assets', express.static(path.join(WEB_ROOT, 'assets'), {
+  maxAge: '7d',
+  etag: true,
+  fallthrough: true,
+}));
+
+// Main UI entry (supports iframe query params)
+app.get(['/', '/NicheOptimizer', '/NicheOptimizer.html'], (req, res) => {
+  res.sendFile(path.join(WEB_ROOT, 'NicheOptimizer.html'));
+});
+
+// Pricing page (if used)
+app.get(['/pricing', '/pricing.html'], (req, res) => {
+  res.sendFile(path.join(WEB_ROOT, 'pricing.html'));
+});
+
 // Helmet: iframe-safe (NE BLOQUE PAS Fourthwall/iframe)
 // Helmet: iframe-safe + CSP option (enable with CSP_ENABLED=true)
 const CSP_ENABLED = (process.env.CSP_ENABLED || 'false').toLowerCase() === 'true';
