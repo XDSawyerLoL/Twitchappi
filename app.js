@@ -251,23 +251,36 @@ function safeNext(next){
   // Only allow relative paths to avoid open redirects
   if (!s || !s.startsWith('/')) return '/';
   return s;
-
-const RETURN_TO_ORIGINS = (process.env.RETURN_TO_ORIGINS || 'https://justplayer.fr,https://www.justplayer.fr')
-  .split(',')
-  .map(s=>s.trim())
-  .filter(Boolean);
-
-function safeReturnTo(returnTo){
-  const s = String(returnTo || '').trim();
-  if(!s) return '/';
-  if(s.startsWith('/')) return s;
-  try{
-    const u = new URL(s);
-    if(RETURN_TO_ORIGINS.includes(u.origin)) return u.toString();
-  }catch(_){}
-  return '/';
 }
 
+// Allow returning to an absolute URL only if it matches an allowlist of origins.
+// Set RETURN_TO_ORIGINS="https://justplayer.fr,https://www.justplayer.fr" in production.
+const RETURN_TO_ORIGINS = (process.env.RETURN_TO_ORIGINS || 'https://justplayer.fr,https://www.justplayer.fr').split(',').map(s=>s.trim()).filter(Boolean);
+
+function safeReturnTo(candidate, fallback='/'){
+  const s = String(candidate || '').trim();
+  if(!s) return fallback;
+
+  // Relative path is always allowed
+  if(s.startsWith('/')) return s;
+
+  try{
+    const u = new URL(s);
+    if(u.protocol !== 'https:' && u.protocol !== 'http:') return fallback;
+    if(!RETURN_TO_ORIGINS.length) return fallback; // strict by default if not configured
+    const origin = u.origin;
+    if(!RETURN_TO_ORIGINS.includes(origin)) return fallback;
+    return u.toString();
+  }catch(_){
+    return fallback;
+  }
+}
+
+function inferReturnTo(req){
+  // Prefer explicit query param, else use Referer (common when the popup is opened from an iframe)
+  const q = req.query?.return_to || req.query?.next || '';
+  const ref = req.get('referer') || '';
+  return safeReturnTo(q || ref, '/');
 }
 function steamRelyingParty(req){
   const baseUrl = getBaseUrl(req);
@@ -367,7 +380,7 @@ app.get('/auth/steam/return', async (req, res) => {
 // Tiny page to close popup + notify opener
 app.get('/steam/connected', (req, res) => {
   const ok = String(req.query.ok || '0') === '1';
-  const returnTo = safeReturnTo(req.query.return_to || req.query.next);
+  const next = safeNext(req.query.next);
   const steamid = req.session?.steam?.steamid || '';
   const payload = JSON.stringify({ type: 'steam:connected', ok, steamid });
   res.setHeader('content-type','text/html; charset=utf-8');
@@ -377,18 +390,18 @@ app.get('/steam/connected', (req, res) => {
   <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
     <h2 style="margin:0 0 10px 0">${ok ? 'Steam connecté ✅' : 'Steam: échec ❌'}</h2>
     <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir à TwitFlix.' : 'Réessaie la connexion Steam.'}</p>
-    <a href="${returnTo}" style="color:#00e5ff">Retour</a>
+    <a href="${next}" style="color:#00e5ff">Retour</a>
   </div>
   <script>
     (function(){
       try{
         if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, ${JSON.stringify(new URL(getBaseUrl(req)).origin)});
+          window.opener.postMessage(${payload}, '*');
           window.close();
         }
       }catch(e){}
       // fallback: redirect after 1.2s
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(returnTo)}; }catch(e){} }, 1200);
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
     })();
   </script>
 </body></html>`);
@@ -401,8 +414,8 @@ app.get('/steam/connected', (req, res) => {
 // RIOT: Start OAuth (RSO)
 app.get('/auth/riot', async (req, res) => {
   try{
-    const returnTo = safeReturnTo(req.query.return_to || req.query.next);
-    req.session.riotReturnTo = returnTo;
+    const next = safeNext(req.query.next);
+    req.session.riotNext = next;
     const state = crypto.randomBytes(16).toString('hex');
     req.session.riot_oauth_state = state;
 
@@ -427,11 +440,11 @@ app.get('/auth/riot', async (req, res) => {
 });
 
 app.get('/auth/riot/return', async (req, res) => {
-  const returnTo = safeReturnTo(req.session?.riotReturnTo);
+  const next = safeNext(req.session?.riotNext);
   const { code, state } = req.query || {};
-  if(!code) return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
+  if(!code) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
   if(!state || !req.session?.riot_oauth_state || String(state) !== String(req.session.riot_oauth_state)){
-    return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
+    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
   }
   req.session.riot_oauth_state = null;
 
@@ -440,7 +453,7 @@ app.get('/auth/riot/return', async (req, res) => {
     const redirectUri = process.env.RIOT_REDIRECT_URI || `${baseUrl}/auth/riot/return`;
     const clientId = process.env.RIOT_CLIENT_ID;
     const clientSecret = process.env.RIOT_CLIENT_SECRET;
-    if(!clientId || !clientSecret) return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
+    if(!clientId || !clientSecret) return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
 
     const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const tokenRes = await fetch('https://auth.riotgames.com/token', {
@@ -458,7 +471,7 @@ app.get('/auth/riot/return', async (req, res) => {
 
     const tok = await tokenRes.json().catch(()=>null);
     if(!tokenRes.ok || !tok?.access_token){
-      return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
+      return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
     }
 
     let userinfo = null;
@@ -485,15 +498,15 @@ app.get('/auth/riot/return', async (req, res) => {
       if(tu) await setBillingRiot(tu, req.session.riot);
     }catch(_){}
 
-    return res.redirect(`/riot/connected?ok=1&return_to=${encodeURIComponent(returnTo)}`);
+    return res.redirect(`/riot/connected?ok=1&next=${encodeURIComponent(next)}`);
   }catch(e){
-    return res.redirect(`/riot/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
+    return res.redirect(`/riot/connected?ok=0&next=${encodeURIComponent(next)}`);
   }
 });
 
 app.get('/riot/connected', (req, res) => {
   const ok = String(req.query.ok || '0') === '1';
-  const returnTo = safeReturnTo(req.query.return_to);
+  const next = safeNext(req.query.next);
   const payload = JSON.stringify({ type: 'riot:connected', ok });
   res.setHeader('content-type','text/html; charset=utf-8');
   return res.send(`<!doctype html>
@@ -502,17 +515,17 @@ app.get('/riot/connected', (req, res) => {
   <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
     <h2 style="margin:0 0 10px 0">${ok ? 'Riot connecté ✅' : 'Riot: échec ❌'}</h2>
     <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir au Streamer Hub.' : 'Réessaie la connexion Riot.'}</p>
-    <a href="${returnTo}" style="color:#00e5ff">Retour</a>
+    <a href="${next}" style="color:#00e5ff">Retour</a>
   </div>
   <script>
     (function(){
       try{
         if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, ${JSON.stringify(new URL(getBaseUrl(req)).origin)});
+          window.opener.postMessage(${payload}, '*');
           window.close();
         }
       }catch(e){}
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(returnTo)}; }catch(e){} }, 1200);
+      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
     })();
   </script>
 </body></html>`);
@@ -521,8 +534,9 @@ app.get('/riot/connected', (req, res) => {
 // EPIC: Start OAuth
 app.get('/auth/epic', async (req, res) => {
   try{
-    const returnTo = safeReturnTo(req.query.return_to || req.query.next);
+    const returnTo = inferReturnTo(req);
     req.session.epicReturnTo = returnTo;
+
     const state = crypto.randomBytes(16).toString('hex');
     req.session.epic_oauth_state = state;
 
@@ -547,7 +561,7 @@ app.get('/auth/epic', async (req, res) => {
 });
 
 app.get('/auth/epic/return', async (req, res) => {
-  const returnTo = safeReturnTo(req.session?.epicReturnTo);
+  const returnTo = safeReturnTo(req.session?.epicReturnTo, '/');
   const { code, state } = req.query || {};
   if(!code) return res.redirect(`/epic/connected?ok=0&return_to=${encodeURIComponent(returnTo)}`);
   if(!state || !req.session?.epic_oauth_state || String(state) !== String(req.session.epic_oauth_state)){
@@ -604,7 +618,15 @@ app.get('/auth/epic/return', async (req, res) => {
 
 app.get('/epic/connected', (req, res) => {
   const ok = String(req.query.ok || '0') === '1';
-  const returnTo = safeReturnTo(req.query.return_to);
+  const returnTo = safeReturnTo(req.query.return_to || req.get('referer') || '', '/');
+  let targetOrigin = '*';
+  try{
+    if(returnTo.startsWith('http')) targetOrigin = new URL(returnTo).origin;
+    else if (RETURN_TO_ORIGINS.length) targetOrigin = RETURN_TO_ORIGINS[0];
+  }catch(_){
+    if (RETURN_TO_ORIGINS.length) targetOrigin = RETURN_TO_ORIGINS[0];
+  }
+
   const payload = JSON.stringify({ type: 'epic:connected', ok });
   res.setHeader('content-type','text/html; charset=utf-8');
   return res.send(`<!doctype html>
@@ -612,23 +634,29 @@ app.get('/epic/connected', (req, res) => {
 <body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
   <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
     <h2 style="margin:0 0 10px 0">${ok ? 'Epic connecté ✅' : 'Epic: échec ❌'}</h2>
-    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir à TwitFlix.' : 'Réessaie la connexion Epic.'}</p>
+    <p style="margin:0 0 12px 0;opacity:.85">${ok ? 'Tu peux revenir au Streamer Hub.' : 'Réessaie la connexion Epic.'}</p>
     <a href="${returnTo}" style="color:#00e5ff">Retour</a>
   </div>
   <script>
     (function(){
+      var payload = ${payload};
+      var targetOrigin = ${json.dumps(targetOrigin)};
       try{
         if(window.opener && !window.opener.closed){
-          window.opener.postMessage(${payload}, ${JSON.stringify(new URL(getBaseUrl(req)).origin)});
+          window.opener.postMessage(payload, targetOrigin);
           window.close();
+          return;
         }
       }catch(e){}
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(returnTo)}; }catch(e){} }, 1200);
+      setTimeout(function(){ try{ location.href = ${json.dumps(returnTo)}; }catch(e){} }, 800);
     })();
   </script>
 </body></html>`);
+
 });
 
+
+// (dedup) removed duplicate RIOT/EPIC oauth block
 // =========================================================
 // 2. CACHE & HELPERS
 // =========================================================
@@ -723,37 +751,6 @@ async function runGeminiAnalysis(prompt) {
     console.error("❌ Erreur IA:", e);
     return { success: false, html_response: `<p style='color:red;'>❌ Erreur IA: ${e.message}</p>` };
   }
-
-
-async function runGeminiReport(prompt) {
-  if (!aiClient) {
-    return { success: false, html_response: "<p style='color:red;'>❌ IA non initialisée.</p>" };
-  }
-
-  try {
-    const response = await aiClient.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction: [
-          "Tu es un coach humain et un analyste Twitch expérimenté.",
-          "Ton style est naturel, incarné, avec une dose d'émotion (encourageant, parfois ferme), jamais robotique.",
-          "Interdit: 'Analyse:', 'Conclusion:', 'Recommandation 1:', titres type IA, markdown, backticks, disclaimers.",
-          "Autorisé: HTML simple uniquement: <p>, <strong>, <ul>, <li>, <br>.",
-          "Évite les formulations génériques et les phrases 'en tant qu'IA'.",
-          "Sois concret: actions mesurables, exemples, et une phrase de clôture motivante."
-        ].join(" ")
-      }
-    });
-
-    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return { success: true, html_response: text };
-  } catch (e) {
-    console.error("❌ Erreur IA (rapport):", e);
-    return { success: false, html_response: `<p style='color:red;'>❌ Erreur IA: ${e.message}</p>` };
-  }
-}
-
 }
 
 // =========================================================
@@ -2375,32 +2372,27 @@ app.get('/api/ai/reco', async (req, res) => {
     if (!a.success) return res.json({ success:false, html_response:"<p style='color:red;'>Pas assez de data.</p>" });
 
     const k = a.kpis || {};
-    const prompt = `Tu es un coach streaming humain.
-Tu dois produire un rapport de profil clair, incarné, comme un pro qui te parle en face.
+    const prompt = `Tu es un coach streaming HUMAIN et expérimenté.
+Tu parles comme une vraie personne (pas comme une IA) : naturel, motivant, parfois un peu exigeant, mais toujours positif.
+Interdits : titres, sections, "Analyse:", "Conclusion:", listes interminables, ton robotique.
+Format STRICT : uniquement du HTML avec <p>, <ul>, <li>, <strong>, <em>, <br>. PAS de <h*>.
 
-Règles de style:
-- Tu t'adresses à moi en "tu".
-- Pas de titres type IA (pas de "Analyse:", "Conclusion:", "Recommandation 1:").
-- Pas de phrases génériques. Donne des exemples concrets.
-- Réponse UNIQUEMENT en HTML simple: <p>, <strong>, <ul>, <li>, <br>.
+Contexte (KPIs de la chaîne Twitch sur ${days} jours) :
+- avg_viewers: ${k.avg_viewers}
+- peak_viewers: ${k.peak_viewers}
+- growth_percent: ${k.growth_percent}%
+- volatility: ${k.volatility}
+- hours_per_week_est: ${k.hours_per_week_est}
+- growth_score: ${k.growth_score}/100
 
-Données (sur ${days} jours):
-- Moyenne viewers: ${k.avg_viewers}
-- Pic viewers: ${k.peak_viewers}
-- Croissance: ${k.growth_percent}%
-- Volatilité: ${k.volatility}
-- Estimation heures/semaine: ${k.hours_per_week_est}
-- Score croissance: ${k.growth_score}/100
+Mission :
+1) Écris 2 à 3 <p> comme un rapport humain : ce qui marche, ce qui bloque, et la priorité n°1.
+2) Puis une <ul> de 5 actions très concrètes (phrases courtes, applicables demain).
+3) Puis un mini "plan 7 jours" en <ul> : 7 lignes max, une ligne = un jour.
+Ne donne pas d'avertissements ni de disclaimers. Pas de jargon.`;
 
-Structure attendue (sans titres):
-1) Ouverture empathique (2-3 phrases).
-2) Diagnostic net en 1 phrase.
-3) 3 forces (liste).
-4) 3 axes de progression (liste).
-5) Plan d'action sur 7 jours (checklist courte).
-6) Une phrase de clôture motivante et réaliste.`;
 
-    const ai = await runGeminiReport(prompt);
+    const ai = await runGeminiAnalysis(prompt);
     return res.json(ai);
   } catch (e) {
     return res.status(500).json({ success:false, html_response:`<p style="color:red;">${e.message}</p>` });

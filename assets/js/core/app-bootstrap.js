@@ -812,6 +812,7 @@ window.tfPromptSteam = tfPromptSteam;
 
 // Listen for popup completion
 window.addEventListener('message', (ev) => {
+  if(ev.origin !== API_BASE) return;
   const data = ev?.data;
   if(!data || data.type !== 'steam:connected') return;
   if(data.ok){
@@ -872,16 +873,8 @@ async function tfRefreshEpicSession(){
   tfUpdateOauthButtons();
 }
 
-
-function tfGetReturnTo(){
-  // In iframe (Fourthwall/Shopify), document.referrer points to the justplayer.fr page.
-  const ref = String(document.referrer || '').trim();
-  if(ref) return ref;
-  return window.location.href;
-}
-
 function tfConnectRiot(){
-  const returnTo = tfGetReturnTo();
+  const returnTo = document.referrer || window.location.href;
   const url = `${API_BASE}/auth/riot?return_to=${encodeURIComponent(returnTo)}`;
   const w = 720, h = 720;
   const left = Math.max(0, (window.screen.width - w) / 2);
@@ -890,7 +883,7 @@ function tfConnectRiot(){
   if(!popup) window.location.href = url;
 }
 function tfConnectEpic(){
-  const returnTo = tfGetReturnTo();
+  const returnTo = document.referrer || window.location.href;
   const url = `${API_BASE}/auth/epic?return_to=${encodeURIComponent(returnTo)}`;
   const w = 720, h = 720;
   const left = Math.max(0, (window.screen.width - w) / 2);
@@ -925,6 +918,7 @@ window.tfPromptRiot = tfPromptRiot;
 window.tfPromptEpic = tfPromptEpic;
 
 window.addEventListener('message', (ev) => {
+  if(ev.origin !== API_BASE) return;
   const data = ev?.data;
   if(!data || !data.type) return;
   if(data.type === 'riot:connected'){
@@ -1960,7 +1954,7 @@ try{
         box.innerHTML = data.html_response || "<p style='color:#ff6666;'>❌ Pas de recommandation</p>";
         box.classList.remove('hidden');
       }catch(e){
-        box.innerHTML = "<p style='color:#ff6666;'>❌ Impossible de générer le rapport pour l’instant.</p>";
+        box.innerHTML = "<p style='color:#ff6666;'>❌ Erreur IA</p>";
         box.classList.remove('hidden');
       }finally{
         btn.disabled = false;
@@ -2635,8 +2629,8 @@ async function initPerformanceWidget(){
 
   if(btnAuth){
     btnAuth.addEventListener('click', ()=>{
-      const returnTo = tfGetReturnTo();
-      const url = `${API_BASE}/auth/riot?return_to=${encodeURIComponent(returnTo)}`;
+      const next = '/';
+      const url = `${API_BASE}/auth/riot?next=${encodeURIComponent(next)}`;
       const w = 720, h = 720;
       const left = Math.max(0, (window.screen.width - w) / 2);
       const top = Math.max(0, (window.screen.height - h) / 2);
