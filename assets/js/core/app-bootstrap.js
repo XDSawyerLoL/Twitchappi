@@ -2739,26 +2739,66 @@ window.updatePerformanceWidget = updatePerformanceWidget;
 // ================================
 let __tfTipsCache = { q:'', t:0, clips:[] };
 
+function tfFillTipsGameSelect(options){
+  const sel = document.getElementById('tf-tips-game');
+  if(!sel) return;
+
+  const saved = localStorage.getItem('tf_tips_game') || '';
+  const mkLabel = (o)=>{
+    const prefix = o.source === 'now' ? '🎮 ' : (o.source === 'recent' ? '🕒 ' : '⭐ ');
+    return prefix + (o.name || '');
+  };
+
+  const safeOptions = Array.isArray(options) ? options : [];
+  sel.innerHTML = '<option value="">Jeu : Auto</option>' + safeOptions.map(o=>{
+    const name = String(o.name||'').trim();
+    if(!name) return '';
+    const value = encodeURIComponent(name);
+    const label = mkLabel(o).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<option value="${value}">${label}</option>`;
+  }).join('');
+
+  // restore selection if present
+  if(saved){
+    const encoded = encodeURIComponent(saved);
+    const has = Array.from(sel.options).some(op => op.value === encoded);
+    if(has) sel.value = encoded;
+  }
+
+  sel.onchange = ()=>{
+    const v = sel.value ? decodeURIComponent(sel.value) : '';
+    localStorage.setItem('tf_tips_game', v);
+  };
+}
+
 
 async function tfEnsureTipsGameContext(){
-  if (currentGameName) return currentGameName;
+  const sel0 = document.getElementById('tf-tips-game');
+  const needFill = sel0 && sel0.options && sel0.options.length <= 1;
+  if (currentGameName && !needFill) return currentGameName;
 
-  // Prefer Steam recent game when Steam is linked (second screen context)
+
+  // Prefer Steam context when Steam is linked (second screen)
   try{
     if (tfSteamSession && tfSteamSession.connected){
       const r = await fetch(`${API_BASE}/api/steam/recent`, { credentials:'include' });
       const d = await r.json().catch(()=>null);
-      const seed = d?.names?.[0]?.name || null;
-      if (seed){
-        currentGameName = String(seed);
-        try{ updatePlayGameLabel && updatePlayGameLabel(); }catch(_){}
+
+      if(d?.success){
+        // Fill the dropdown (Auto + now/recent/top)
+        try{ tfFillTipsGameSelect(d.options || d.names || []); }catch(_){}
+
+        const seed = d?.best?.name || d?.names?.[0]?.name || null;
+        if (seed){
+          currentGameName = String(seed);
+          try{ updatePlayGameLabel && updatePlayGameLabel(); }catch(_){}
+        }
       }
     }
   }catch(_){}
 
   return currentGameName;
 }
-
 
 function tfRenderProgressClips(clips, qLabel){
   const wrap = document.getElementById('tf-trailer-carousel');
@@ -2796,11 +2836,44 @@ function tfRenderProgressClips(clips, qLabel){
 
 async function tfLoadProgressClips(silent){
   const input = document.getElementById('tf-tips-query');
-  const extra = String(input?.value || '').trim();
+  let extra = String(input?.value || '').trim();
+
   await tfEnsureTipsGameContext();
-  const g = String(currentGameName || '').trim();
-  const q = [g, extra].filter(Boolean).join(' ');
-  const finalQ = q || extra || g;
+  let g = String(currentGameName || '').trim();
+
+  // Heuristic: if user explicitly mentions a different game (e.g. "bloqué sur minecraft"),
+  // do NOT prepend the previously detected game. This avoids queries like
+  // "Albion Online je suis bloqué sur minecraft".
+  let forcedGame = '';
+  let rest = extra;
+
+  // Pattern 1: "sur <jeu>" (common French phrasing)
+  const mSur = extra.match(/\bsur\s+([^\n\r]+)$/i);
+  if(mSur && mSur[1]){
+    const cand = String(mSur[1]).trim().replace(/^["'“”]/,'').replace(/["'“”]$/,'');
+    if(cand && cand.length <= 40 && !/https?:\/\//i.test(cand)){
+      forcedGame = cand;
+      rest = String(extra).slice(0, mSur.index).trim();
+      rest = rest.replace(/\b(suis|je suis)\b/i,'je suis').trim();
+    }
+  }
+
+  // Pattern 2: "<jeu> : <situation>"
+  if(!forcedGame){
+    const mColon = extra.match(/^([^:]{2,30})\s*[:\-–]\s*(.+)$/);
+    if(mColon){
+      const cand = String(mColon[1]).trim();
+      if(cand && cand.length <= 30){
+        forcedGame = cand;
+        rest = String(mColon[2] || '').trim();
+      }
+    }
+  }
+
+  const sel = document.getElementById('tf-tips-game');
+  const chosen = sel && sel.value ? decodeURIComponent(sel.value) : '';
+  const game = (forcedGame || chosen || g).trim();
+  const finalQ = [game, rest].filter(Boolean).join(' ').trim();
 
   if(!finalQ){
     tfRenderProgressClips([], '');

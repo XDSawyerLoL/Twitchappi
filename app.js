@@ -327,7 +327,10 @@ async function steamFetchPlayerSummary(steamid){
       avatarfull: p.avatarfull || null,
       profileurl: p.profileurl || null,
       communityvisibilitystate: p.communityvisibilitystate || null,
-      lastlogoff: p.lastlogoff || null
+      lastlogoff: p.lastlogoff || null,
+      // Optional signals (only present if public / available)
+      gameid: p.gameid ? String(p.gameid) : null,
+      gameextrainfo: p.gameextrainfo ? String(p.gameextrainfo) : null
     };
   }catch(_){ return null; }
 }
@@ -1165,15 +1168,25 @@ function jaccard(a,b){
 }
 async function steamGetRecentlyPlayed(steamid){
   if(!STEAM_API_KEY) throw new Error("STEAM_API_KEY missing");
-  const url = `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key=${encodeURIComponent(STEAM_API_KEY)}&steamid=${encodeURIComponent(steamid)}&count=5`;
+  const url = `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key=${encodeURIComponent(STEAM_API_KEY)}&steamid=${encodeURIComponent(steamid)}&count=8`;
   const r = await fetch(url);
   const d = await r.json();
   const games = (d && d.response && Array.isArray(d.response.games)) ? d.response.games : [];
   return games;
 }
+
+async function steamGetOwnedTop(steamid, count=5){
+  if(!STEAM_API_KEY) throw new Error("STEAM_API_KEY missing");
+  const url = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${encodeURIComponent(STEAM_API_KEY)}&steamid=${encodeURIComponent(steamid)}&include_played_free_games=1&include_appinfo=0`;
+  const r = await fetch(url);
+  const d = await r.json();
+  const games = (d && d.response && Array.isArray(d.response.games)) ? d.response.games : [];
+  games.sort((a,b)=> (b.playtime_forever||0) - (a.playtime_forever||0));
+  return games.slice(0, Math.max(1, Math.min(20, count))).map(g=>({ appid: g.appid, playtime_forever: g.playtime_forever||0 }));
+}
 async function steamResolveAppNames(appids){
   const out = [];
-  for(const appid of (appids||[]).slice(0,3)){
+  for(const appid of (appids||[]).slice(0,8)){
     try{
       const url = `https://store.steampowered.com/api/appdetails?appids=${encodeURIComponent(appid)}&l=english`;
       const r = await fetch(url);
@@ -1192,9 +1205,55 @@ app.get('/api/steam/recent', async (req,res)=>{
     let steamid = String(req.query.steamid||'').trim();
     if(!steamid) steamid = String(req.session?.steam?.steamid||'').trim();
     if(!steamid) return res.status(400).json({success:false,error:'steamid manquant'});
+
+    // 1) "Now playing" if public
+    let nowPlaying = null;
+    try{
+      const p = await steamFetchPlayerSummary(steamid);
+      if(p?.gameextrainfo){
+        nowPlaying = {
+          name: String(p.gameextrainfo),
+          appid: p.gameid ? Number(p.gameid) : null
+        };
+      }
+    }catch(_){ /* ignore */ }
+
+    // 2) Recently played (2 weeks)
     const recent = await steamGetRecentlyPlayed(steamid);
-    const names = await steamResolveAppNames(recent.map(x=>x.appid));
-    return res.json({success:true,recent, names});
+    const recentNames = await steamResolveAppNames(recent.map(x=>x.appid));
+
+    // 3) Top playtime fallback
+    const top = await steamGetOwnedTop(steamid, 5);
+    const topNames = await steamResolveAppNames(top.map(x=>x.appid));
+
+    // Merge options (unique)
+    const options = [];
+    const seen = new Set();
+    const push = (name, source, appid=null)=>{
+      const key = String(name||'').toLowerCase();
+      if(!name || seen.has(key)) return;
+      seen.add(key);
+      options.push({ name, source, appid });
+    };
+
+    if(nowPlaying?.name) push(nowPlaying.name, 'now', nowPlaying.appid);
+    for(const n of (recentNames||[])) push(n.name, 'recent', n.appid);
+    for(const n of (topNames||[])) push(n.name, 'top', n.appid);
+
+    const best = options[0] ? { name: options[0].name, source: options[0].source } : null;
+
+    return res.json({
+      success:true,
+      steamid,
+      best,
+      nowPlaying,
+      recent,
+      recentNames,
+      top,
+      topNames,
+      options,
+      names: options // backward compat name
+    });
   }catch(e){
     return res.status(500).json({success:false,error:e.message});
   }
@@ -1209,9 +1268,23 @@ app.get('/api/reco/personalized', async (req,res)=>{
       return res.json({ success:true, title:'Tendances <span>FR</span>', seedGame:null, categories:[] });
     }
 
-    const recent = await steamGetRecentlyPlayed(steamid);
-    const resolved = await steamResolveAppNames(recent.map(x=>x.appid));
-    const seed = resolved[0]?.name || null;
+    // Choose the most relevant seed game for personalization
+    // Priority: now playing (if public) -> recently played -> most played
+    let seed = null;
+    try{
+      const p = await steamFetchPlayerSummary(steamid);
+      if(p?.gameextrainfo) seed = String(p.gameextrainfo);
+    }catch(_){ }
+    if(!seed){
+      const recent = await steamGetRecentlyPlayed(steamid);
+      const resolved = await steamResolveAppNames(recent.map(x=>x.appid));
+      seed = resolved[0]?.name || null;
+    }
+    if(!seed){
+      const topOwned = await steamGetOwnedTop(steamid, 3);
+      const topResolved = await steamResolveAppNames(topOwned.map(x=>x.appid));
+      seed = topResolved[0]?.name || null;
+    }
     if(!seed){
       return res.json({ success:true, title:'Tendances <span>FR</span>', seedGame:null, categories:[] });
     }
