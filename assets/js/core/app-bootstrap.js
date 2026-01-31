@@ -48,7 +48,15 @@
 
     function tfSetBigPicture(enabled){
       tfBigPictureEnabled = !!enabled;
+
+      // Big Picture implies TwitFlix is the primary "second screen" view.
+      // If the user toggles it while the modal is closed, open TwitFlix first.
+      if(tfBigPictureEnabled && !tfModalOpen){
+        try{ (typeof openTwitFlix === 'function') && openTwitFlix(); }catch(_){}
+      }
+
       document.documentElement.classList.toggle('tf-big-picture', tfBigPictureEnabled);
+      document.body.classList.toggle('tf-big-picture-body', tfBigPictureEnabled);
       try{ localStorage.setItem('tf_big_picture', tfBigPictureEnabled ? '1' : '0'); }catch(_){ }
 
       const btn = document.getElementById('tf-btn-bigpic');
@@ -57,11 +65,19 @@
         btn.innerHTML = tfBigPictureEnabled ? '🎮 BIG PICTURE: ON' : '🎮 BIG PICTURE';
       }
 
-      // Optional fullscreen (best effort; browsers may block until user gesture)
-      if(tfBigPictureEnabled && !document.fullscreenElement){
-        document.documentElement.requestFullscreen?.().catch(()=>{});
+      // True fullscreen (best effort; browsers may block until user gesture)
+      if(tfBigPictureEnabled){
+        if(!document.fullscreenElement){
+          document.documentElement.requestFullscreen?.().catch(()=>{});
+        }
+        // focus search for instant "Steam-like" typing
+        setTimeout(()=>{ try{ document.getElementById('twitflix-search')?.focus(); }catch(_){ } }, 50);
+      }else{
+        if(document.fullscreenElement){
+          document.exitFullscreen?.().catch(()=>{});
+        }
       }
-    }
+    }}
 
     // Hard fallback for environments where the modal header is re-rendered
     // or event listeners get lost.
@@ -72,7 +88,18 @@
       try{ tfBigPictureEnabled = localStorage.getItem('tf_big_picture') === '1'; }catch(_){ tfBigPictureEnabled = false; }
       if(tfBigPictureEnabled) document.documentElement.classList.add('tf-big-picture');
 
-      // Wire button (if present)
+      
+      // Escape exits Big Picture (without closing TwitFlix)
+      if(!window.__tfBigPictureKeyHandler){
+        window.__tfBigPictureKeyHandler = true;
+        window.addEventListener('keydown', (e)=>{
+          if(e.key === 'Escape' && tfIsBigPicture()){
+            e.preventDefault();
+            tfSetBigPicture(false);
+          }
+        }, {capture:true});
+      }
+// Wire button (if present)
       const btn = document.getElementById('tf-btn-bigpic');
       if(btn && !btn.__wired){
         btn.__wired = true;

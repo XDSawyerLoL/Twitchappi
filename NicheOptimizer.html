@@ -535,6 +535,81 @@
 }
 .tf-big-picture #twitflix-modal .tf-actions .tf-toggle-btn{ padding: 10px 14px; font-weight: 900; }
 
+/* === BIG PICTURE FULLSCREEN (Steam-like) =======================
+   Goal: TwitFlix becomes a true full-screen "second screen" view,
+   not a zoomed modal. This overrides layout only when big-picture is on.
+=============================================================== */
+.tf-big-picture body{ overflow: hidden !important; }
+.tf-big-picture #twitflix-modal{
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: radial-gradient(1200px 800px at 20% 10%, rgba(0,229,255,.12), rgba(0,0,0,.94) 55%, rgba(0,0,0,.98) 100%) !important;
+  backdrop-filter: none !important;
+}
+.tf-big-picture #twitflix-modal.active{ display:flex !important; }
+.tf-big-picture #twitflix-modal .tf-modal-content{
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  display:flex !important;
+  flex-direction: column !important;
+}
+.tf-big-picture #twitflix-modal .tf-topbar{
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 80 !important;
+  background: linear-gradient(180deg, rgba(0,0,0,.82), rgba(0,0,0,.55)) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+  padding: 18px 24px !important;
+}
+.tf-big-picture #twitflix-modal .tf-search-wrap{
+  max-width: 920px !important;
+  margin: 0 auto !important;
+}
+.tf-big-picture #twitflix-modal .tf-search{
+  font-size: 18px !important;
+  padding: 16px 18px 16px 48px !important;
+  border-radius: 14px !important;
+}
+.tf-big-picture #twitflix-modal .tf-body{
+  overflow-y: auto !important;
+  padding: 10px 14px 28px 14px !important;
+}
+.tf-big-picture #twitflix-modal .tf-row-title{
+  font-size: 18px !important;
+  letter-spacing: .2px !important;
+}
+.tf-big-picture #twitflix-modal .tf-card{
+  width: 300px !important;
+  height: 170px !important;
+  border-radius: 16px !important;
+}
+.tf-big-picture #twitflix-modal .tf-row-track{
+  gap: 18px !important;
+  padding: 8px 10px 16px 10px !important;
+  scroll-snap-type: x mandatory;
+}
+.tf-big-picture #twitflix-modal .tf-card{ scroll-snap-align: start; }
+.tf-big-picture #twitflix-modal .tf-card:focus{
+  transform: translateY(-2px) scale(1.03);
+  outline: 3px solid rgba(0,229,255,.95) !important;
+  outline-offset: 7px !important;
+  box-shadow: 0 0 0 7px rgba(0,0,0,.55), 0 22px 60px rgba(0,0,0,.65) !important;
+}
+.tf-big-picture #twitflix-modal .tf-actions{ gap: 14px !important; }
+.tf-big-picture #twitflix-modal .tf-actions button{ padding: 12px 16px !important; }
+
+
 #twitflix-modal .tf-body{
   flex: 1;
   min-height: 0;

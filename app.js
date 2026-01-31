@@ -436,18 +436,32 @@ app.get('/steam/connected', (req, res) => {
   </div>
   <script>
     (function(){
-      try{
-        if(window.opener && !window.opener.closed){
-          // The opener is usually the Render-hosted iframe window (same origin as this page).
-          // Using the "next" origin (justplayer.fr) would prevent delivery.
-          var _target = '*';
-          try{ _target = window.opener.location.origin; }catch(e){ _target = '*'; }
-          window.opener.postMessage(${payload}, _target);
-          window.close();
-        }
-      }catch(e){}
-      // fallback: redirect after 1.2s
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+      var payload = ${payload};
+      var next = ${JSON.stringify(next)};
+
+      function notify(){
+        try{
+          if(window.opener && !window.opener.closed){
+            window.opener.postMessage(payload, '*');
+          }
+        }catch(e){}
+      }
+
+      function tryClose(){
+        try{ window.close(); }catch(e){}
+        try{ window.open('','_self'); window.close(); }catch(e){}
+      }
+
+      notify();
+      var n = 0;
+      var iv = setInterval(function(){
+        n++;
+        notify();
+        tryClose();
+        if(n >= 10){ clearInterval(iv); }
+      }, 250);
+
+      setTimeout(function(){ try{ location.href = next; }catch(e){} }, 1200);
     })();
   </script>
 </body></html>`);
