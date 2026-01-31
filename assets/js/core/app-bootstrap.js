@@ -48,15 +48,7 @@
 
     function tfSetBigPicture(enabled){
       tfBigPictureEnabled = !!enabled;
-
-      // Big Picture implies TwitFlix is the primary "second screen" view.
-      // If the user toggles it while the modal is closed, open TwitFlix first.
-      if(tfBigPictureEnabled && !tfModalOpen){
-        try{ (typeof openTwitFlix === 'function') && openTwitFlix(); }catch(_){}
-      }
-
       document.documentElement.classList.toggle('tf-big-picture', tfBigPictureEnabled);
-      document.body.classList.toggle('tf-big-picture-body', tfBigPictureEnabled);
       try{ localStorage.setItem('tf_big_picture', tfBigPictureEnabled ? '1' : '0'); }catch(_){ }
 
       const btn = document.getElementById('tf-btn-bigpic');
@@ -65,19 +57,11 @@
         btn.innerHTML = tfBigPictureEnabled ? '🎮 BIG PICTURE: ON' : '🎮 BIG PICTURE';
       }
 
-      // True fullscreen (best effort; browsers may block until user gesture)
-      if(tfBigPictureEnabled){
-        if(!document.fullscreenElement){
-          document.documentElement.requestFullscreen?.().catch(()=>{});
-        }
-        // focus search for instant "Steam-like" typing
-        setTimeout(()=>{ try{ document.getElementById('twitflix-search')?.focus(); }catch(_){ } }, 50);
-      }else{
-        if(document.fullscreenElement){
-          document.exitFullscreen?.().catch(()=>{});
-        }
+      // Optional fullscreen (best effort; browsers may block until user gesture)
+      if(tfBigPictureEnabled && !document.fullscreenElement){
+        document.documentElement.requestFullscreen?.().catch(()=>{});
       }
-    }}
+    }
 
     // Hard fallback for environments where the modal header is re-rendered
     // or event listeners get lost.
@@ -88,18 +72,7 @@
       try{ tfBigPictureEnabled = localStorage.getItem('tf_big_picture') === '1'; }catch(_){ tfBigPictureEnabled = false; }
       if(tfBigPictureEnabled) document.documentElement.classList.add('tf-big-picture');
 
-      
-      // Escape exits Big Picture (without closing TwitFlix)
-      if(!window.__tfBigPictureKeyHandler){
-        window.__tfBigPictureKeyHandler = true;
-        window.addEventListener('keydown', (e)=>{
-          if(e.key === 'Escape' && tfIsBigPicture()){
-            e.preventDefault();
-            tfSetBigPicture(false);
-          }
-        }, {capture:true});
-      }
-// Wire button (if present)
+      // Wire button (if present)
       const btn = document.getElementById('tf-btn-bigpic');
       if(btn && !btn.__wired){
         btn.__wired = true;
@@ -1362,10 +1335,20 @@ window.addEventListener('message', (ev) => {
     const TF_PREVIEW_TTL = 10 * 60 * 1000;
 
     function tfNormalizeBoxArt(url){
-      // request higher res to avoid blur, then we downscale in CSS
-      const u = String(url || '');
+      // Request higher res to avoid “blurred jackets” when cards are big.
+      let u = String(url || '');
       if (!u) return '';
-      return u.replace('{width}','1000').replace('{height}','1333');
+
+      // Twitch template URLs
+      u = u.replace('{width}','1000').replace('{height}','1333');
+
+      // Twitch resolved URLs like ...-285x380.jpg -> bump size
+      u = u.replace(/-(\d+)x(\d+)(\.(?:jpg|png|webp))/i, '-1000x1333$3');
+
+      // Some variants use _285x380.jpg
+      u = u.replace(/_(\d+)x(\d+)(\.(?:jpg|png|webp))/i, '_1000x1333$3');
+
+      return u;
     }
 
     function setTwitFlixView(mode){
@@ -1536,20 +1519,12 @@ try{
       if (!r.length) return null;
 
       const rails = [];
-      rails.push({ titleHtml: 'Jeux qui matchent ton prompt <span>(IA)</span>', items: r.slice(0, 28) });
+      rails.push({ titleHtml: 'Résultats de votre recherche', items: r.slice(0, 60) });
 
       // Keep ADN row visible even in search mode (second screen feel)
       if (tfPersonalization && Array.isArray(tfPersonalization.categories) && tfPersonalization.categories.length){
         rails.push({ titleHtml: tfPersonalization.title || 'Parce que tu as aimé', items: tfPersonalization.categories.slice(0, 28) });
       }
-
-      // Add a "Top du moment" row but avoid duplicates
-      const exclude = new Set(r.map(x => String(x.id)));
-      const extra = (Array.isArray(tfAllCategories) ? tfAllCategories : [])
-        .filter(c => !exclude.has(String(c.id)))
-        .slice(0, 28);
-
-      rails.push({ titleHtml: 'Top du moment <span>(Twitch)</span>', items: extra });
 
       return rails;
     }
@@ -1575,8 +1550,27 @@ try{
         renderTwitFlix();
       }catch(_){ }
 
-      // IA-assisted: if query is a sentence, ask the server to translate it into a curated list.
-      const looksComplex = (q.length >= 22) || /\bcomme\b|\bmais\b|\bmoins\b|\bplus\b|\bstress\b|\bcraft\b/i.test(q);
+      // 1) Hard match on known game names (instant, avoids random results)
+      try{
+        const lowQ = q.toLowerCase();
+        const cats = Array.isArray(tfAllCategories) ? tfAllCategories : [];
+        // Find categories whose name appears in the query (prefer longest names)
+        const hits = cats
+          .filter(c => c && c.name && lowQ.includes(String(c.name).toLowerCase()))
+          .sort((a,b)=>(String(b.name||'').length - String(a.name||'').length))
+          .slice(0, 60);
+
+        if(hits.length){
+          if(mySeq !== tfSearchSeq) return; // stale
+          tfSearchResults = hits;
+          tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
+          renderTwitFlix();
+          return;
+        }
+      }catch(_){}
+
+      // 2) IA-assisted (optional): sentence -> curated list (but keep it “human” in UI)
+      const looksComplex = (q.length >= 22) || /comme|mais|moins|plus|stress|craft/i.test(q);
       if(looksComplex){
         try{
           const r0 = await fetch(`${API_BASE}/api/search/intent`, {
@@ -1589,12 +1583,18 @@ try{
             const d0 = await r0.json();
             if(d0 && d0.success && Array.isArray(d0.categories)){
               if(mySeq !== tfSearchSeq) return; // stale
-              tfSearchResults = d0.categories.map(c => ({
-                id: c.id,
-                name: c.name,
-                compat: (typeof c.compat === 'number') ? c.compat : undefined,
-                box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
-              }));
+              // Keep only the best matches (avoid “random wall of games”)
+              const cats = d0.categories
+                .map(c => ({
+                  id: c.id,
+                  name: c.name,
+                  compat: (typeof c.compat === 'number') ? c.compat : undefined,
+                  box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
+                }))
+                .filter(x => x && x.id && x.name)
+                .slice(0, 60);
+
+              tfSearchResults = cats;
               tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
               renderTwitFlix();
               return;
@@ -1622,12 +1622,26 @@ try{
           }
         }
       }catch(_){}
+      // Fallback: local scoring on already loaded catalogue (no random filler)
+      const tokens = q.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 8);
+      const local = (Array.isArray(tfAllCategories) ? tfAllCategories : [])
+        .map(c => {
+          const name = String(c?.name || '');
+          const hay = name.toLowerCase();
+          let score = 0;
+          for (const t of tokens){
+            if (!t) continue;
+            if (hay.includes(t)) score += 2;
+          }
+          // bonus: exact / close
+          if (hay === q.toLowerCase()) score += 10;
+          return { c, score };
+        })
+        .filter(x => x.score > 0)
+        .sort((a,b)=>b.score-a.score)
+        .slice(0, 60)
+        .map(x => x.c);
 
-      // Fallback: local filter on already loaded catalogue
-      const low = q.toLowerCase();
-      const local = tfAllCategories
-        .filter(c => (c.name||'').toLowerCase().includes(low))
-        .slice(0, 120);
       if(mySeq !== tfSearchSeq) return; // stale
       tfSearchResults = local;
       tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
@@ -1636,6 +1650,7 @@ try{
       // Re-wire again after initial render, in case the header was rebuilt.
       tfInitBigPictureUI();
     }
+
 
     async function tfLoadMore(force){
       if (!tfModalOpen) return;
@@ -1719,7 +1734,7 @@ try{
       if (tfSearchQuery && tfSearchQuery.trim()){
         host.innerHTML = '';
         const q = tfSearchQuery.trim();
-        tfSetHero({ title: q, sub: 'Recherche IA-assisted • Réorganisation instantanée' });
+        tfSetHero({ title: q, sub: 'Résultats de votre recherche' });
 
         const rails = tfSearchRails || tfMakeSearchRails(q, tfSearchResults);
 
