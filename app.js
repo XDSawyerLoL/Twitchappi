@@ -436,18 +436,32 @@ app.get('/steam/connected', (req, res) => {
   </div>
   <script>
     (function(){
-      try{
-        if(window.opener && !window.opener.closed){
-          // The opener is usually the Render-hosted iframe window (same origin as this page).
-          // Using the "next" origin (justplayer.fr) would prevent delivery.
-          var _target = '*';
-          try{ _target = window.opener.location.origin; }catch(e){ _target = '*'; }
-          window.opener.postMessage(${payload}, _target);
-          window.close();
-        }
-      }catch(e){}
-      // fallback: redirect after 1.2s
-      setTimeout(function(){ try{ location.href = ${JSON.stringify(next)}; }catch(e){} }, 1200);
+      var payload = ${payload};
+      var next = ${JSON.stringify(next)};
+
+      function notify(){
+        try{
+          if(window.opener && !window.opener.closed){
+            window.opener.postMessage(payload, '*');
+          }
+        }catch(e){}
+      }
+
+      function tryClose(){
+        try{ window.close(); }catch(e){}
+        try{ window.open('','_self'); window.close(); }catch(e){}
+      }
+
+      notify();
+      var n = 0;
+      var iv = setInterval(function(){
+        n++;
+        notify();
+        tryClose();
+        if(n >= 10){ clearInterval(iv); }
+      }, 250);
+
+      setTimeout(function(){ try{ location.href = next; }catch(e){} }, 1200);
     })();
   </script>
 </body></html>`);
@@ -1774,7 +1788,9 @@ app.get('/api/youtube/tips', async (req, res) => {
 
     // Helper that searches + enriches with duration, then returns ordered items
     const searchOnce = async (query) => {
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&safeSearch=moderate&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+      // Force gaming results (categoryId=20) and prefer FR relevance to avoid off-topic content.
+      // This is critical for "Clips de progrès" so we don't end up with random entertainment videos.
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&safeSearch=moderate&videoCategoryId=20&videoDuration=short&relevanceLanguage=fr&regionCode=FR&order=relevance&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
       const r = await fetch(url);
       const d = await r.json();
       const items = Array.isArray(d.items) ? d.items : [];

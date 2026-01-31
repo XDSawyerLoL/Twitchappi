@@ -520,20 +520,95 @@
 
 /* =========================================================
    BIG PICTURE MODE (console-like UX)
-   Toggle adds class .tf-big-picture on <html>
+   Toggle adds class .tf-big-picture on #twitflix-modal (so it never impacts StreamerHub)
 ========================================================= */
-.tf-big-picture #twitflix-modal .tf-modal-content{ max-width: 1680px; }
-.tf-big-picture #twitflix-modal .tf-search{ font-size: 16px; padding: 14px 16px 14px 42px; }
-.tf-big-picture #twitflix-modal .tf-row{ gap: 14px; }
-.tf-big-picture #twitflix-modal .tf-row-title{ font-size: 16px; }
-.tf-big-picture #twitflix-modal .tf-row-track{ padding-bottom: 10px; }
-.tf-big-picture #twitflix-modal .tf-card{ width: 240px; height: 145px; }
-.tf-big-picture #twitflix-modal .tf-card:focus{
+#twitflix-modal.tf-big-picture .tf-modal-content{ max-width: 1680px; }
+#twitflix-modal.tf-big-picture .tf-search{ font-size: 16px; padding: 14px 16px 14px 42px; }
+#twitflix-modal.tf-big-picture .tf-row{ gap: 14px; }
+#twitflix-modal.tf-big-picture .tf-row-title{ font-size: 16px; }
+#twitflix-modal.tf-big-picture .tf-row-track{ padding-bottom: 10px; }
+#twitflix-modal.tf-big-picture .tf-card{ width: 240px; height: 145px; }
+#twitflix-modal.tf-big-picture .tf-card:focus{
   outline: 3px solid rgba(0,242,234,.95);
   outline-offset: 6px;
   box-shadow: 0 0 0 6px rgba(0,0,0,.45);
 }
-.tf-big-picture #twitflix-modal .tf-actions .tf-toggle-btn{ padding: 10px 14px; font-weight: 900; }
+.tf-big-picture-body{ overflow: hidden !important; }
+#twitflix-modal.tf-big-picture .tf-actions .tf-toggle-btn{ padding: 10px 14px; font-weight: 900; }
+
+/* === BIG PICTURE FULLSCREEN (Steam-like) =======================
+   Goal: TwitFlix becomes a true full-screen "second screen" view,
+   not a zoomed modal. This overrides layout only when big-picture is on.
+=============================================================== */
+#twitflix-modal.tf-big-picture{
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: radial-gradient(1200px 800px at 20% 10%, rgba(0,229,255,.12), rgba(0,0,0,.94) 55%, rgba(0,0,0,.98) 100%) !important;
+  backdrop-filter: none !important;
+}
+#twitflix-modal.tf-big-picture.active{ display:flex !important; }
+#twitflix-modal.tf-big-picture .tf-modal-content{
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  display:flex !important;
+  flex-direction: column !important;
+}
+#twitflix-modal.tf-big-picture .tf-topbar{
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 80 !important;
+  background: linear-gradient(180deg, rgba(0,0,0,.82), rgba(0,0,0,.55)) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+  padding: 18px 24px !important;
+}
+#twitflix-modal.tf-big-picture .tf-search-wrap{
+  max-width: 920px !important;
+  margin: 0 auto !important;
+}
+#twitflix-modal.tf-big-picture .tf-search{
+  font-size: 18px !important;
+  padding: 16px 18px 16px 48px !important;
+  border-radius: 14px !important;
+}
+#twitflix-modal.tf-big-picture .tf-body{
+  overflow-y: auto !important;
+  padding: 10px 14px 28px 14px !important;
+}
+#twitflix-modal.tf-big-picture .tf-row-title{
+  font-size: 18px !important;
+  letter-spacing: .2px !important;
+}
+#twitflix-modal.tf-big-picture .tf-card{
+  width: 300px !important;
+  height: 170px !important;
+  border-radius: 16px !important;
+}
+#twitflix-modal.tf-big-picture .tf-row-track{
+  gap: 18px !important;
+  padding: 8px 10px 16px 10px !important;
+  scroll-snap-type: x mandatory;
+}
+#twitflix-modal.tf-big-picture .tf-card{ scroll-snap-align: start; }
+#twitflix-modal.tf-big-picture .tf-card:focus{
+  transform: translateY(-2px) scale(1.03);
+  outline: 3px solid rgba(0,229,255,.95) !important;
+  outline-offset: 7px !important;
+  box-shadow: 0 0 0 7px rgba(0,0,0,.55), 0 22px 60px rgba(0,0,0,.65) !important;
+}
+#twitflix-modal.tf-big-picture .tf-actions{ gap: 14px !important; }
+#twitflix-modal.tf-big-picture .tf-actions button{ padding: 12px 16px !important; }
+
 
 #twitflix-modal .tf-body{
   flex: 1;
@@ -2505,10 +2580,7 @@ body.modal-open #player-tools{display:none !important;}
 </style>
 
 
-<style id="tools-padding-fix">#tab-tools .tools-scroll{padding:16px 14px !important;}
-/* Force no blur on TwitFlix results */
-#twitflix-grid, #twitflix-grid * { filter:none !important; backdrop-filter:none !important; }
-</style>
+<style id="tools-padding-fix">#tab-tools .tools-scroll{padding:16px 14px !important;}</style>
 </head>
 <body class="min-h-screen flex flex-col p-4">
 <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
@@ -2951,7 +3023,9 @@ body.modal-open #player-tools{display:none !important;}
   (function(){
     function setState(on){
       try{ localStorage.setItem('tf_big_picture', on ? '1' : '0'); }catch(e){}
-      document.documentElement.classList.toggle('tf-big-picture', !!on);
+      var modal = document.getElementById('twitflix-modal');
+      if(modal) modal.classList.toggle('tf-big-picture', !!on);
+      document.body.classList.toggle('tf-big-picture-body', !!on);
       var btn = document.getElementById('tf-btn-bigpic');
       if(btn){
         btn.classList.toggle('active', !!on);
@@ -2959,7 +3033,8 @@ body.modal-open #player-tools{display:none !important;}
       }
     }
     window.tfToggleBigPictureFallback = function(){
-      var on = document.documentElement.classList.contains('tf-big-picture');
+      var modal = document.getElementById('twitflix-modal');
+      var on = !!(modal && modal.classList.contains('tf-big-picture'));
       setState(!on);
     };
     if(!window.tfToggleBigPicture){
@@ -3003,7 +3078,12 @@ body.modal-open #player-tools{display:none !important;}
   <div class="tf-strip-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <h4 style="margin:0">Clips de Progrès <span class="help" data-help="Des clips courts pour t’aider sur ton jeu. Tape une situation (ex: 'boss 2', 'early game', 'build') pour une recherche ciblée.">?</span></h4>
     <div style="display:flex;gap:8px;align-items:center;flex:1;min-width:240px;max-width:640px">
-<input id="tf-tips-query" class="tf-search" style="height:34px;font-size:12px;flex:1" placeholder="Je suis bloqué sur… (ex: 'craft base', 'boss 2')" autocomplete="off"/>
+      <!-- Auto game context is resolved from Steam (recently played) or current stream.
+           We keep the element for internal wiring but hide it to avoid UX noise. -->
+      <select id="tf-tips-game" class="tf-search" style="display:none" aria-label="Jeu pour les clips">
+        <option value=""></option>
+      </select>
+      <input id="tf-tips-query" class="tf-search" style="height:34px;font-size:12px;flex:1" placeholder="Je suis bloqué sur… (ex: 'craft base', 'boss 2')" autocomplete="off"/>
       <button class="tf-toggle-btn" id="tf-tips-go" type="button" onclick="tfLoadProgressClips()">TROUVER</button>
     </div>
   </div>
