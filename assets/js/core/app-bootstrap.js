@@ -1936,7 +1936,7 @@ try{
       }
     }
 
-    async function loadAIReco(){
+    async async function loadAIReco(){
       if (!currentChannel || currentChannel === 'twitch') return;
       const box = document.getElementById('ai-reco-box');
       const btn = document.getElementById('btn-ai-reco');
@@ -1944,7 +1944,7 @@ try{
       box.classList.add('hidden');
       box.innerHTML = '';
       btn.disabled = true;
-      btn.innerHTML = '<span class="best-time-spinner"></span> Génération...';
+      btn.innerHTML = '<span class="best-time-spinner"></span> Génération du rapport...';
 
       try{
         const res = await fetch(`${API_BASE}/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);
@@ -1956,7 +1956,7 @@ try{
         box.classList.remove('hidden');
       }finally{
         btn.disabled = false;
-        btn.innerHTML = '⚡ Générer des recommandations';
+        btn.innerHTML = 'Lancer le rapport';
       }
     }
 

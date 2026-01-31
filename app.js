@@ -1105,7 +1105,7 @@ async function runGeminiAnalysis(prompt) {
       model: GEMINI_MODEL,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
-        systemInstruction: "Tu es un expert Data Twitch. Réponds UNIQUEMENT en HTML simple (<p>, <h4>, <ul>, <li>, <strong>). Pas de markdown, pas de backticks."
+        systemInstruction: "Tu es un coach Twitch humain, exigeant et bienveillant. Tu parles comme un expert réel, pas comme une IA. Style direct, chaleureux, parfois piquant mais toujours constructif. Réponds UNIQUEMENT en HTML simple (<p>, <h4>, <ul>, <li>, <strong>). Pas de markdown, pas de backticks."
       }
     });
 
@@ -2736,18 +2736,29 @@ app.get('/api/ai/reco', async (req, res) => {
     if (!a.success) return res.json({ success:false, html_response:"<p style='color:red;'>Pas assez de data.</p>" });
 
     const k = a.kpis || {};
-    const prompt = `Tu es un coach Twitch DATA-DRIVEN.
-Réponds UNIQUEMENT en HTML (<h4>, <ul>, <li>, <p>, <strong>).
+    const prompt = `Tu es un coach Twitch HUMAIN (pas une IA) : franc, motivant, et capable de dire les choses clairement.
+Réponds UNIQUEMENT en HTML (<h4>, <ul>, <li>, <p>, <strong>). Pas de markdown.
 
-KPIs:
-- avg_viewers: ${k.avg_viewers}
-- peak_viewers: ${k.peak_viewers}
-- growth_percent: ${k.growth_percent}%
-- volatility: ${k.volatility}
-- hours_per_week_est: ${k.hours_per_week_est}
-- growth_score: ${k.growth_score}/100
+Contexte : tu rédiges un **RAPPORT DE PROFIL** à partir de KPIs. Le ton doit être vivant : encouragements quand ça progresse, et "tough love" quand il y a un blocage. Tu utilises le "tu".
 
-Donne 5 recommandations concrètes + 3 expériences à tester.`;
+KPIs (30 derniers jours):
+- viewers moyens: ${k.avg_viewers}
+- pic viewers: ${k.peak_viewers}
+- croissance: ${k.growth_percent}%
+- volatilité: ${k.volatility}
+- heures/semaine estimées: ${k.hours_per_week_est}
+- growth score: ${k.growth_score}/100
+
+Structure obligatoire:
+1) <h4>Verdict en 1 phrase</h4> (impactant, humain)
+2) <h4>Forces</h4> (3 puces)
+3) <h4>Points qui te freinent</h4> (3 puces, sans langue de bois)
+4) <h4>Plan d’attaque 7 jours</h4> (5 actions concrètes et mesurables)
+5) <h4>Expériences à tester</h4> (3 tests A/B)
+6) <p>Phrase de fin ultra motivante (ou recadrage) + rappel: "On ajuste dans 7 jours".</p>
+
+Ne parle jamais de "modèle", "IA", "prompt", "données insuffisantes". Si une KPI est faible/absente, propose une action de mesure plutôt que te plaindre.`;
+
 
     const ai = await runGeminiAnalysis(prompt);
     return res.json(ai);
