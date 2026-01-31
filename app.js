@@ -1786,11 +1786,27 @@ app.get('/api/youtube/tips', async (req, res) => {
     variants.push(`${base} tips`);
     variants.push(`${base} how to`);
 
-    // Helper that searches + enriches with duration, then returns ordered items
-    const searchOnce = async (query) => {
-      // Force gaming results (categoryId=20) and prefer FR relevance to avoid off-topic content.
-      // This is critical for "Clips de progrès" so we don't end up with random entertainment videos.
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&safeSearch=moderate&videoCategoryId=20&videoDuration=short&relevanceLanguage=fr&regionCode=FR&order=relevance&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+    // Helper that searches + enriches with duration, then returns ordered items.
+    // IMPORTANT: we deliberately use a fallback ladder because strict filters
+    // (short + gaming category + FR) can often return 0 for niche bosses.
+    const searchOnce = async (query, opts = {}) => {
+      const params = new URLSearchParams({
+        part: 'snippet',
+        type: 'video',
+        videoEmbeddable: 'true',
+        maxResults: '12',
+        safeSearch: 'moderate',
+        order: 'relevance',
+        q: query,
+        key: YOUTUBE_API_KEY,
+      });
+
+      if(opts.categoryId) params.set('videoCategoryId', String(opts.categoryId));
+      if(opts.duration) params.set('videoDuration', String(opts.duration));
+      if(opts.relevanceLanguage) params.set('relevanceLanguage', String(opts.relevanceLanguage));
+      if(opts.regionCode) params.set('regionCode', String(opts.regionCode));
+
+      const url = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
       const r = await fetch(url);
       const d = await r.json();
       const items = Array.isArray(d.items) ? d.items : [];
@@ -1832,12 +1848,25 @@ app.get('/api/youtube/tips', async (req, res) => {
       return final;
     };
 
+    const strategies = [
+      // 1) Strict: gaming shorts + FR relevance
+      { categoryId: 20, duration: 'short', relevanceLanguage: 'fr', regionCode: 'FR' },
+      // 2) Still gaming, allow longer (tutorials are often not Shorts)
+      { categoryId: 20, relevanceLanguage: 'fr', regionCode: 'FR' },
+      // 3) Still gaming, drop language bias (keeps relevance but broader)
+      { categoryId: 20, regionCode: 'FR' },
+      // 4) Still gaming, maximum recall
+      { categoryId: 20 },
+    ];
+
     let final = [];
-    for(const v of variants){
-      try{
-        final = await searchOnce(v);
-        if(final && final.length) break;
-      }catch(_){}
+    outer: for(const v of variants){
+      for(const s of strategies){
+        try{
+          final = await searchOnce(v, s);
+          if(final && final.length) break outer;
+        }catch(_){ }
+      }
     }
 
     return res.json({ success:true, items: Array.isArray(final) ? final : [] });

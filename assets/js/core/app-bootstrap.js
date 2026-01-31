@@ -60,8 +60,8 @@
       const modal = document.getElementById('twitflix-modal');
       if(modal) modal.classList.toggle('tf-big-picture', tfBigPictureEnabled);
 
-      // Lock body scroll only while TwitFlix is in Big Picture.
-      document.body.classList.toggle('tf-big-picture-body', tfBigPictureEnabled);
+      // IMPORTANT: Big Picture must not change the underlying StreamerHub page state.
+      // Do NOT touch <body> / <html> overflow here. The TwitFlix overlay already captures input.
       try{ localStorage.setItem('tf_big_picture', tfBigPictureEnabled ? '1' : '0'); }catch(_){ }
 
       const btn = document.getElementById('tf-btn-bigpic');
@@ -1056,7 +1056,11 @@ window.addEventListener('message', (ev) => {
   const data = ev?.data;
   if(!data || data.type !== 'steam:connected') return;
   if(data.ok){
-    tfRefreshSteamSession().then(()=> tfLoadPersonalization().then(()=>{ if(tfModalOpen) renderTwitFlix(); }).catch(()=>{})).catch(()=>{});
+    tfRefreshSteamSession()
+      .then(() => tfLoadPersonalization())
+      .then(() => { if(tfModalOpen) renderTwitFlix(); })
+      .then(() => { try{ window.dispatchEvent(new Event('tf:provider-changed')); }catch(e){} })
+      .catch(()=>{});
   }else{
     tfRefreshSteamSession().catch(()=>{});
     alert('Connexion Steam échouée.');
@@ -2973,9 +2977,57 @@ try{
 }catch(_){}
 
   if(!isLoL()){
+    // Generic performance module: adapts to the providers the user linked (Steam / Riot / Epic)
     status.textContent = currentGameName ? 'Jeu détecté' : '—';
-    body.textContent = currentGameName ? `Jeu: ${currentGameName}. La comparaison Riot est dispo uniquement sur League of Legends.` : '—';
-    actions.classList.add('hidden');
+    actions.classList.add('hidden'); // Riot comparison actions remain LoL-only (advanced feature)
+
+    const safeGet = async (path)=>{
+      try{
+        const r = await fetch(`${API_BASE}${path}`, { credentials:'include' });
+        return await r.json().catch(()=>null);
+      }catch(_){ return null; }
+    };
+
+    const [steamMe, epicMe, riotMe, steamRecent] = await Promise.all([
+      safeGet('/api/steam/me'),
+      safeGet('/api/epic/me'),
+      safeGet('/api/riot/me'),
+      safeGet('/api/steam/recent')
+    ]);
+
+    const steamOn = !!(steamMe && steamMe.success && steamMe.connected);
+    const epicOn  = !!(epicMe  && epicMe.success  && epicMe.connected);
+    const riotOn  = !!(riotMe  && riotMe.success  && riotMe.connected);
+
+    const badges = [
+      steamOn ? 'Steam ✅' : 'Steam —',
+      riotOn  ? 'Riot ✅'  : 'Riot —',
+      epicOn  ? 'Epic ✅'  : 'Epic —'
+    ];
+
+    let recentLine = '';
+    try{
+      const list = Array.isArray(steamRecent?.recent) ? steamRecent.recent : [];
+      if(list.length){
+        const top = list[0];
+        const name = String(top?.name || '').trim();
+        const mins = Number(top?.playtime_2weeks || 0);
+        const hrs = mins ? Math.round((mins/60)*10)/10 : 0;
+        if(name){
+          recentLine = hrs ? `Dernier jeu Steam récent : <b>${name}</b> (~${hrs} h sur 2 semaines).` : `Dernier jeu Steam récent : <b>${name}</b>.`;
+        }
+      }
+    }catch(_){ }
+
+    const liveLine = currentGameName ? `Live détecté : <b>${escapeHTML(currentGameName)}</b>.` : `Live : <span class="text-gray-500">pas encore détecté</span>.`;
+
+    body.innerHTML = `
+      <div class="text-gray-200 font-bold">Analyse multi-plateformes</div>
+      <div class="mt-1 text-[11px] text-gray-500">${badges.join(' · ')}</div>
+      <div class="mt-2 text-[12px] text-gray-300">${liveLine}</div>
+      ${recentLine ? `<div class="mt-2 text-[12px] text-gray-300">${recentLine}</div>` : ''}
+      <div class="mt-2 text-[11px] text-gray-500">Astuce : si tu veux une comparaison “pro” en live, elle s'active automatiquement quand le live est sur League of Legends <i>et</i> que Riot est connecté.</div>
+    `;
     return;
   }
 
@@ -3150,25 +3202,75 @@ async function tfLoadProgressClips(silent){
   let forcedGame = '';
   let rest = extra;
 
-  // Pattern 1: "sur <jeu>" (common French phrasing)
-  const mSur = extra.match(/\bsur\s+([^\n\r]+)$/i);
-  if(mSur && mSur[1]){
-    const cand = stripTrailingPunct(String(mSur[1]).trim().replace(/^["'“”’]/,''));
-    if(cand && cand.length <= 40 && !/https?:\/\//i.test(cand)){
+  // Detect an explicit game mention inside the text (avoids picking up
+  // “sur le 3ème boss de X” as if it were the game name).
+  const detectGameFromText = (txt)=>{
+    const raw = String(txt||'');
+    const low = raw.toLowerCase();
+
+    // 1) Try to match against the user's own game list (dropdown options)
+    let best = '';
+    try{
+      const sel = document.getElementById('tf-tips-game');
+      if(sel){
+        const opts = Array.from(sel.options || []).map(o=>String(o.textContent||'').trim()).filter(Boolean);
+        // Remove the “Auto” label
+        const names = opts.filter(n=>!/^jeu\s*:\s*auto$/i.test(n));
+        for(const n of names){
+          const nl = n.toLowerCase();
+          if(nl && low.includes(nl) && nl.length > best.length) best = n;
+        }
+      }
+    }catch(_){ }
+
+    // 2) A few high-frequency titles / typos (French users often type these)
+    const manual = [
+      ['lies of p', 'Lies of P'],
+      ['lie of p',  'Lies of P'],
+      ['elden ring','Elden Ring'],
+      ['minecraft', 'Minecraft'],
+      ['league of legends','League of Legends'],
+      ['valorant','VALORANT'],
+      ['rocket league','Rocket League']
+    ];
+    if(!best){
+      for(const [k,v] of manual){
+        if(low.includes(k)) { best = v; break; }
+      }
+    }
+
+    if(!best) return { game:'', cleaned: raw };
+
+    // Remove the detected game chunk from the issue text so the query stays clean
+    const cleaned = normalizeTipsText(raw.replace(new RegExp(best.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'ig'), ' '));
+    return { game: best, cleaned };
+  };
+
+  // Pattern A: "<jeu> : <situation>" or "<jeu> - <situation>"
+  const mColon = extra.match(/^([^:]{2,40})\s*[:\-–]\s*(.+)$/);
+  if(mColon){
+    const cand = String(mColon[1]).trim();
+    // Only accept if it looks like a title (avoid “je suis bloqué ...”)
+    if(cand && cand.length <= 40 && !/\b(bloqu|boss|chapitre|niveau|level|craft|base)\b/i.test(cand)){
       forcedGame = cand;
-      rest = String(extra).slice(0, mSur.index).trim();
-      rest = rest.trim();
+      rest = String(mColon[2] || '').trim();
     }
   }
 
-  // Pattern 2: "<jeu> : <situation>"
+  // Pattern B: find a game mention anywhere in the sentence
   if(!forcedGame){
-    const mColon = extra.match(/^([^:]{2,30})\s*[:\-–]\s*(.+)$/);
-    if(mColon){
-      const cand = String(mColon[1]).trim();
-      if(cand && cand.length <= 30){
+    const dg = detectGameFromText(extra);
+    if(dg.game){ forcedGame = dg.game; rest = dg.cleaned; }
+  }
+
+  // Pattern C (last resort): "sur <jeu>" but only if the chunk does NOT contain progress words
+  if(!forcedGame){
+    const mSur = extra.match(/\bsur\s+([^\n\r]+)$/i);
+    if(mSur && mSur[1]){
+      const cand = stripTrailingPunct(String(mSur[1]).trim().replace(/^["'“”’]/,''));
+      if(cand && cand.length <= 40 && !/https?:\/\//i.test(cand) && !/\b(boss|chapitre|niveau|level|acte|phase|craft|base)\b/i.test(cand)){
         forcedGame = cand;
-        rest = String(mColon[2] || '').trim();
+        rest = String(extra).slice(0, mSur.index).trim();
       }
     }
   }

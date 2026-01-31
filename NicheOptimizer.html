@@ -514,6 +514,10 @@
 /* === TwitFlix UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
 #twitflix-modal .tf-modal-content{ max-width: 1400px; }
 
+/* Make the TwitFlix overlay truly opaque so Big Picture never “bleeds” the underlying StreamerHub UI */
+#twitflix-modal{ background:#000 !important; }
+#twitflix-modal .tf-body{ background:#000 !important; }
+
 #twitflix-modal .tf-topbar{ position: sticky; top:0; z-index: 60; }
 #twitflix-modal .tf-actions{ gap: 12px; }
 #twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
@@ -533,7 +537,7 @@
   outline-offset: 6px;
   box-shadow: 0 0 0 6px rgba(0,0,0,.45);
 }
-.tf-big-picture-body{ overflow: hidden !important; }
+/* Big Picture is scoped to #twitflix-modal only; never lock the whole page scroll here. */
 #twitflix-modal.tf-big-picture .tf-actions .tf-toggle-btn{ padding: 10px 14px; font-weight: 900; }
 
 /* === BIG PICTURE FULLSCREEN (Steam-like) =======================
@@ -723,8 +727,10 @@
 #twitflix-modal .tf-poster{
   width:100%; height:100%;
   object-fit: cover;
-  transform: scale(1.02);
+  transform: none;
   opacity:.95;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 #twitflix-modal .tf-card:hover .tf-poster{ opacity:.35; }
 
@@ -2838,7 +2844,7 @@ body.modal-open #player-tools{display:none !important;}
       </div>
       <div id="perf-status" class="text-[10px] text-gray-500">—</div>
     </div>
-    <div id="perf-body" class="mt-2 text-xs text-gray-400">Sélectionne un live. Si le jeu est League of Legends, tu peux activer la comparaison Riot.</div>
+    <div id="perf-body" class="mt-2 text-xs text-gray-400">Sélectionne un live pour analyser. Le module s'adapte à tes comptes connectés (Steam / Riot / Epic).</div>
 
     <div id="perf-actions" class="mt-3 hidden">
       <div class="grid grid-cols-1 gap-2">
@@ -3025,7 +3031,7 @@ body.modal-open #player-tools{display:none !important;}
       try{ localStorage.setItem('tf_big_picture', on ? '1' : '0'); }catch(e){}
       var modal = document.getElementById('twitflix-modal');
       if(modal) modal.classList.toggle('tf-big-picture', !!on);
-      document.body.classList.toggle('tf-big-picture-body', !!on);
+      // Do not modify <body> state; Big Picture must be scoped to TwitFlix only.
       var btn = document.getElementById('tf-btn-bigpic');
       if(btn){
         btn.classList.toggle('active', !!on);
