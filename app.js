@@ -1114,6 +1114,34 @@ app.post('/stream_info', async (req, res) => {
 
 // --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
 
+
+// =========================================================
+// Twitch helpers used by front widgets (stream_by_login)
+// =========================================================
+// GET /api/twitch/stream_by_login?login=<twitch_login>
+// Returns: { success, live, game_name, stream, user }
+app.get('/api/twitch/stream_by_login', async (req, res) => {
+  try{
+    const login = String(req.query.login || '').trim().toLowerCase();
+    if(!login) return res.status(400).json({ success:false, error:'login manquant' });
+    if(!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET){
+      return res.status(500).json({ success:false, error:'TWITCH_CLIENT_ID/SECRET missing' });
+    }
+    const u = await twitchAPI(`users?login=${encodeURIComponent(login)}`);
+    const user = u?.data?.[0] || null;
+    if(!user?.id){
+      return res.json({ success:true, live:false, user:null, stream:null, game_name:null });
+    }
+    const s = await twitchAPI(`streams?user_id=${encodeURIComponent(user.id)}`);
+    const stream = s?.data?.[0] || null;
+    const game_name = stream?.game_name || null;
+    return res.json({ success:true, live:!!stream, user, stream, game_name });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
 app.get('/api/categories/top', async (req, res) => {
   try {
     // On supporte la pagination via "cursor"
@@ -1219,6 +1247,37 @@ async function steamResolveAppNames(appids){
   }
   return out;
 }
+
+
+// GET /api/steam/me  -> Steam session status for TwitFlix UI
+app.get('/api/steam/me', (req, res) => {
+  const s = req.session?.steam || null;
+  const connected = !!(s && s.steamid);
+  return res.json({
+    success: true,
+    connected,
+    steamid: connected ? String(s.steamid) : '',
+    profile: connected ? (s.profile || null) : null
+  });
+});
+
+// GET /api/riot/me  -> Riot OAuth session status (does not expose tokens)
+app.get('/api/riot/me', (req, res) => {
+  const r = req.session?.riot || null;
+  const connected = !!r;
+  return res.json({
+    success: true,
+    connected,
+    userinfo: connected ? (r.userinfo || null) : null
+  });
+});
+
+// GET /api/epic/me  -> Epic OAuth session status (does not expose tokens)
+app.get('/api/epic/me', (req, res) => {
+  const e = req.session?.epic || null;
+  const connected = !!e;
+  return res.json({ success:true, connected });
+});
 
 // GET /api/steam/recent?steamid=STEAMID64
 app.get('/api/steam/recent', async (req,res)=>{
