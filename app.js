@@ -262,12 +262,15 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
   resave: false,
   saveUninitialized: false,
+  // Render / reverse-proxy: required so secure cookies work reliably.
+  proxy: true,
   cookie: {
     httpOnly: true,
     // If your UI is on a different domain (e.g. justplayer.fr) than the API (onrender.com),
     // you NEED SameSite=None + Secure for the session cookie to be sent.
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    // Immediate fix requested: always allow cross-site cookies (iframe on justplayer.fr).
+    sameSite: 'none',
+    secure: true,
   }
 });
 
