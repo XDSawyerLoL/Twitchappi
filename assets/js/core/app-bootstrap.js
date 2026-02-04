@@ -931,6 +931,7 @@ function startAuth() {
     // Personalisation (Steam ADN) — prefers Steam OpenID session (no manual SteamID64)
 let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
 const TF_STEAM_STORAGE_KEY = 'twitflix_steamid64'; // legacy fallback
+const TF_STEAM_TOKEN_KEY = 'jp_steam_token'; // fallback when 3rd-party cookies blocked
 let tfSteamSession = { connected:false, steamid:'', profile:null };
 
 function tfGetSteamId(){
@@ -938,6 +939,24 @@ function tfGetSteamId(){
 }
 function tfSetSteamId(v){
   try{ localStorage.setItem(TF_STEAM_STORAGE_KEY, String(v||'').trim()); }catch(_){ }
+}
+
+function tfGetSteamToken(){
+  try{ return (localStorage.getItem(TF_STEAM_TOKEN_KEY) || '').trim(); }catch(_){ return ''; }
+}
+function tfSetSteamToken(v){
+  try{
+    const s = String(v||'').trim();
+    if(s) localStorage.setItem(TF_STEAM_TOKEN_KEY, s);
+    else localStorage.removeItem(TF_STEAM_TOKEN_KEY);
+  }catch(_){ }
+}
+
+function tfAuthHeaders(extra){
+  const h = Object.assign({}, extra || {});
+  const tok = tfGetSteamToken();
+  if(tok) h['X-Steam-Token'] = tok;
+  return h;
 }
 
 function tfUpdateSteamBtn(){
@@ -960,7 +979,7 @@ function tfUpdateSteamBtn(){
 
 async function tfRefreshSteamSession(){
   try{
-    const r = await fetch(`${API_BASE}/api/steam/me`, { credentials:'include' });
+    const r = await fetch(`${API_BASE}/api/steam/me`, { credentials:'include', headers: tfAuthHeaders() });
     const d = await r.json();
     tfSteamSession = (d && d.success && d.connected) ? { connected:true, steamid:d.steamid||'', profile:d.profile||null } : { connected:false, steamid:'', profile:null };
     if(tfSteamSession.connected && tfSteamSession.steamid){
@@ -977,7 +996,7 @@ async function tfLoadPersonalization(){
   // Prefer server session
   if(tfSteamSession.connected){
     try{
-      const r = await fetch(`${API_BASE}/api/reco/personalized`, { credentials:'include' });
+      const r = await fetch(`${API_BASE}/api/reco/personalized`, { credentials:'include', headers: tfAuthHeaders() });
       if(!r.ok) { tfPersonalization = null; return; }
       const d = await r.json();
       if(d && d.success && Array.isArray(d.categories) && d.categories.length){
@@ -1056,11 +1075,13 @@ window.addEventListener('message', (ev) => {
   const data = ev?.data;
   if(!data || data.type !== 'steam:connected') return;
   if(data.ok){
+    if(data.token){ try{ tfSetSteamToken(String(data.token)); }catch(e){} }
     tfRefreshSteamSession()
       .then(() => tfLoadPersonalization())
       .then(() => { if(tfModalOpen) renderTwitFlix(); })
       .then(() => { try{ window.dispatchEvent(new Event('tf:provider-changed')); }catch(e){} })
-      .then(() => { try{ window.location.reload(); }catch(e){} })
+      // No full reload: we refresh modules in-place to avoid breaking the embedding page.
+      .then(() => { try{ updatePerformanceWidget && updatePerformanceWidget(); }catch(e){} })
       .catch(()=>{});
   }else{
     tfRefreshSteamSession().catch(()=>{});
@@ -3069,7 +3090,7 @@ try{
 
     const safeGet = async (path)=>{
       try{
-        const r = await fetch(`${API_BASE}${path}`, { credentials:'include' });
+        const r = await fetch(`${API_BASE}${path}`, { credentials:'include', headers: tfAuthHeaders() });
         return await r.json().catch(()=>null);
       }catch(_){ return null; }
     };

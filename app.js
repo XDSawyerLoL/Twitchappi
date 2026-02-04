@@ -266,13 +266,68 @@ const sessionMiddleware = session({
   proxy: true,
   cookie: {
     httpOnly: true,
-    // If your UI is on a different domain (e.g. justplayer.fr) than the API (onrender.com),
-    // you NEED SameSite=None + Secure for the session cookie to be sent.
-    // Immediate fix requested: always allow cross-site cookies (iframe on justplayer.fr).
-    sameSite: 'none',
-    secure: true,
+    // In an iframe (justplayer.fr) calling an API on another domain (onrender.com),
+    // cookies are considered third‑party. We need SameSite=None.
+    // But forcing secure:true can break if HTTPS isn't detected correctly behind a proxy.
+    // Use secure:'auto' so express-session mirrors req.secure (trust proxy is enabled).
+    sameSite: (process.env.NODE_ENV === 'production') ? 'none' : 'lax',
+    secure: 'auto',
   }
 });
+
+// ---------------------------------------------------------
+// Ephemeral provider token (fallback when 3rd‑party cookies are blocked)
+// Purpose: allow the iframe UI on justplayer.fr to learn the "connected" state
+// after OAuth/OpenID, even if the session cookie is not sent back in requests.
+// This token does NOT grant access to provider secrets; it only carries a signed
+// steamid (and expiry) so /api/steam/* can work in "read-only" mode.
+// ---------------------------------------------------------
+function b64urlEncode(buf){
+  return Buffer.from(buf).toString('base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function b64urlDecode(str){
+  const s = String(str||'').replace(/-/g,'+').replace(/_/g,'/');
+  const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+  return Buffer.from(s + pad, 'base64');
+}
+function signProviderToken(payload, ttlSeconds){
+  const secret = process.env.SESSION_SECRET || 'dev_secret_change_me';
+  const exp = Date.now() + (Number(ttlSeconds||0) * 1000);
+  const body = JSON.stringify({ ...payload, exp });
+  const bodyB64 = b64urlEncode(body);
+  const sig = crypto.createHmac('sha256', secret).update(bodyB64).digest();
+  const sigB64 = b64urlEncode(sig);
+  return `${bodyB64}.${sigB64}`;
+}
+function verifyProviderToken(token){
+  try{
+    const t = String(token||'').trim();
+    const [bodyB64, sigB64] = t.split('.');
+    if(!bodyB64 || !sigB64) return null;
+    const secret = process.env.SESSION_SECRET || 'dev_secret_change_me';
+    const expected = crypto.createHmac('sha256', secret).update(bodyB64).digest();
+    const got = b64urlDecode(sigB64);
+    if(got.length !== expected.length || !crypto.timingSafeEqual(got, expected)) return null;
+    const body = JSON.parse(b64urlDecode(bodyB64).toString('utf8'));
+    if(!body || !body.exp || Date.now() > Number(body.exp)) return null;
+    return body;
+  }catch(_){
+    return null;
+  }
+}
+function getSteamFromReq(req){
+  // Prefer real session
+  const s = req.session?.steam;
+  if(s && s.steamid) return s;
+
+  // Fallback token header (when cookies are blocked)
+  const tok = String(req.headers['x-steam-token'] || req.headers['x-provider-token'] || '').trim();
+  const data = tok ? verifyProviderToken(tok) : null;
+  if(data && data.provider === 'steam' && data.steamid){
+    return { steamid: String(data.steamid), profile: data.profile || null };
+  }
+  return null;
+}
 
 app.use(sessionMiddleware);
 
@@ -426,8 +481,11 @@ app.get('/auth/steam/return', async (req, res) => {
 app.get('/steam/connected', (req, res) => {
   const ok = String(req.query.ok || '0') === '1';
   const next = safeReturnTo(req.query.next, '/');
-  const steamid = req.session?.steam?.steamid || '';
-  const payload = JSON.stringify({ type: 'steam:connected', ok, steamid });
+  const steam = getSteamFromReq(req);
+  const steamid = steam?.steamid || '';
+  // 30 days token so the iframe can keep the connected state even if cookies are blocked.
+  const token = (ok && steamid) ? signProviderToken({ provider:'steam', steamid }, 60 * 60 * 24 * 30) : '';
+  const payload = JSON.stringify({ type: 'steam:connected', ok, steamid, token });
   res.setHeader('content-type','text/html; charset=utf-8');
   return res.send(`<!doctype html>
 <html><head><meta charset="utf-8"><title>Steam</title></head>
@@ -1310,7 +1368,7 @@ async function steamResolveAppNames(appids){
 
 // GET /api/steam/me  -> Steam session status for TwitFlix UI
 app.get('/api/steam/me', (req, res) => {
-  const s = req.session?.steam || null;
+  const s = getSteamFromReq(req);
   const connected = !!(s && s.steamid);
   return res.json({
     success: true,
@@ -1357,7 +1415,10 @@ app.get('/api/xbox/me', (req, res) => {
 app.get('/api/steam/recent', async (req,res)=>{
   try{
     let steamid = String(req.query.steamid||'').trim();
-    if(!steamid) steamid = String(req.session?.steam?.steamid||'').trim();
+    if(!steamid) {
+      const s = getSteamFromReq(req);
+      steamid = String(s?.steamid || '').trim();
+    }
     if(!steamid) return res.status(400).json({success:false,error:'steamid manquant'});
 
     // 1) "Now playing" if public
@@ -1417,7 +1478,10 @@ app.get('/api/steam/recent', async (req,res)=>{
 app.get('/api/reco/personalized', async (req,res)=>{
   try{
     let steamid = String(req.query.steamid||'').trim();
-    if(!steamid) steamid = String(req.session?.steam?.steamid||'').trim();
+    if(!steamid) {
+      const s = getSteamFromReq(req);
+      steamid = String(s?.steamid || '').trim();
+    }
     if(!steamid || !STEAM_API_KEY){
       return res.json({ success:true, title:'Tendances <span>FR</span>', seedGame:null, categories:[] });
     }
