@@ -1,10 +1,5 @@
+const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
-    // IMPORTANT: this app is often embedded on justplayer.fr in an iframe,
-    // while the API is hosted on Render (onrender.com). We therefore support
-    // passing the API base via a query param: ?api=https://your-render-host
-    const __apiParam = String(__urlParams.get('api') || '').trim().replace(/\/+$/,'');
-    const API_BASE = __apiParam || window.location.origin;
-    const API_ORIGIN = (()=>{ try{ return new URL(API_BASE, window.location.href).origin; }catch(_){ return window.location.origin; }})();
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
@@ -36,192 +31,6 @@
     let currentGameId = null;
     let currentGameName = null;
 
-    // =========================================================
-    // TWITFLIX BIG PICTURE MODE (web "console" UX)
-    // =========================================================
-    let tfBigPictureEnabled = false;
-    let __tfGamepadLoopInited = false;
-
-    function tfIsBigPicture(){
-      return document.documentElement.classList.contains('tf-big-picture');
-    }
-
-    function tfSetBigPicture(enabled){
-      tfBigPictureEnabled = !!enabled;
-
-      // Big Picture implies TwitFlix is the primary "second screen" view.
-      // If the user toggles it while the modal is closed, open TwitFlix first.
-      if(tfBigPictureEnabled && !tfModalOpen){
-        try{ (typeof openTwitFlix === 'function') && openTwitFlix(); }catch(_){}
-      }
-
-      document.documentElement.classList.toggle('tf-big-picture', tfBigPictureEnabled);
-      document.body.classList.toggle('tf-big-picture-body', tfBigPictureEnabled);
-      try{ localStorage.setItem('tf_big_picture', tfBigPictureEnabled ? '1' : '0'); }catch(_){ }
-
-      const btn = document.getElementById('tf-btn-bigpic');
-      if(btn){
-        btn.classList.toggle('active', tfBigPictureEnabled);
-        btn.innerHTML = tfBigPictureEnabled ? '🎮 BIG PICTURE: ON' : '🎮 BIG PICTURE';
-      }
-
-      // True fullscreen (best effort; browsers may block until user gesture)
-      if(tfBigPictureEnabled){
-        if(!document.fullscreenElement){
-          document.documentElement.requestFullscreen?.().catch(()=>{});
-        }
-        // focus search for instant "Steam-like" typing
-        setTimeout(()=>{ try{ document.getElementById('twitflix-search')?.focus(); }catch(_){ } }, 50);
-      }else{
-        if(document.fullscreenElement){
-          document.exitFullscreen?.().catch(()=>{});
-        }
-      }
-    }
-
-    // Hard fallback for environments where the modal header is re-rendered
-    // or event listeners get lost.
-    window.tfToggleBigPicture = () => tfSetBigPicture(!tfIsBigPicture());
-
-    function tfInitBigPictureUI(){
-      // Restore saved state
-      try{ tfBigPictureEnabled = localStorage.getItem('tf_big_picture') === '1'; }catch(_){ tfBigPictureEnabled = false; }
-      if(tfBigPictureEnabled) document.documentElement.classList.add('tf-big-picture');
-
-      
-      // Escape exits Big Picture (without closing TwitFlix)
-      if(!window.__tfBigPictureKeyHandler){
-        window.__tfBigPictureKeyHandler = true;
-        window.addEventListener('keydown', (e)=>{
-          if(e.key === 'Escape' && tfIsBigPicture()){
-            e.preventDefault();
-            tfSetBigPicture(false);
-          }
-        }, {capture:true});
-      }
-// Wire button (if present)
-      const btn = document.getElementById('tf-btn-bigpic');
-      if(btn && !btn.__wired){
-        btn.__wired = true;
-        btn.addEventListener('click', ()=> tfSetBigPicture(!tfIsBigPicture()));
-      }
-
-      // Start gamepad loop once
-      if(!__tfGamepadLoopInited){
-        __tfGamepadLoopInited = true;
-        tfStartGamepadLoop();
-      }
-    }
-
-    function tfFocusableCards(){
-      return Array.from(document.querySelectorAll('#twitflix-modal .tf-card[data-focus="tf-card"]'))
-        .filter(el => el && el.offsetParent !== null);
-    }
-
-    function tfEnsureCardsFocusable(){
-      const cards = document.querySelectorAll('#twitflix-modal .tf-card');
-      cards.forEach(el => {
-        if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
-        el.setAttribute('data-focus','tf-card');
-      });
-    }
-
-    function tfMoveFocus(dir){
-      const items = tfFocusableCards();
-      if(!items.length) return;
-      const active = document.activeElement;
-      const from = items.includes(active) ? active : items[0];
-
-      const r0 = from.getBoundingClientRect();
-      const cx0 = r0.left + r0.width/2;
-      const cy0 = r0.top + r0.height/2;
-
-      const isOk = (r) => {
-        const cx = r.left + r.width/2;
-        const cy = r.top + r.height/2;
-        if(dir === 'left') return cx < cx0 - 8;
-        if(dir === 'right') return cx > cx0 + 8;
-        if(dir === 'up') return cy < cy0 - 8;
-        if(dir === 'down') return cy > cy0 + 8;
-        return false;
-      };
-
-      let best = null;
-      let bestScore = Infinity;
-      for(const el of items){
-        if(el === from) continue;
-        const r = el.getBoundingClientRect();
-        if(!isOk(r)) continue;
-        const cx = r.left + r.width/2;
-        const cy = r.top + r.height/2;
-        // Directional distance: prioritize moving in the intended axis, then minimize total distance
-        const dx = cx - cx0;
-        const dy = cy - cy0;
-        const primary = (dir === 'left' || dir === 'right') ? Math.abs(dx) : Math.abs(dy);
-        const secondary = (dir === 'left' || dir === 'right') ? Math.abs(dy) : Math.abs(dx);
-        const score = primary * 1.0 + secondary * 0.35;
-        if(score < bestScore){ bestScore = score; best = el; }
-      }
-
-      (best || from).focus({preventScroll:false});
-      (best || from).scrollIntoView({block:'nearest', inline:'nearest'});
-    }
-
-    function tfHookBigPictureKeyboard(){
-      if(window.__tfBigPictureKeys) return;
-      window.__tfBigPictureKeys = true;
-      window.addEventListener('keydown', (e)=>{
-        if(!tfIsBigPicture()) return;
-        // Only when TwitFlix is open
-        const modal = document.getElementById('twitflix-modal');
-        if(!modal || !modal.classList.contains('open')) return;
-
-        if(e.key === 'ArrowLeft'){ e.preventDefault(); tfMoveFocus('left'); }
-        if(e.key === 'ArrowRight'){ e.preventDefault(); tfMoveFocus('right'); }
-        if(e.key === 'ArrowUp'){ e.preventDefault(); tfMoveFocus('up'); }
-        if(e.key === 'ArrowDown'){ e.preventDefault(); tfMoveFocus('down'); }
-        if(e.key === 'Enter'){
-          const el = document.activeElement;
-          if(el && el.classList && el.classList.contains('tf-card')){ e.preventDefault(); el.click(); }
-        }
-        if(e.key === 'Escape'){ /* keep existing close */ }
-      });
-    }
-
-    function tfStartGamepadLoop(){
-      let last = 0;
-      const cooldown = 170;
-      const pressed = (gp, i) => !!(gp.buttons && gp.buttons[i] && gp.buttons[i].pressed);
-
-      function tick(){
-        const now = Date.now();
-        const modal = document.getElementById('twitflix-modal');
-        const isActive = tfIsBigPicture() && modal && modal.classList.contains('open');
-        if(isActive){
-          const gps = navigator.getGamepads?.() || [];
-          const gp = gps.find(g => g && g.connected);
-          if(gp && now - last > cooldown){
-            const axX = gp.axes?.[0] || 0;
-            const axY = gp.axes?.[1] || 0;
-
-            // D-pad (standard mapping): 14 left, 15 right, 12 up, 13 down
-            if(axX > 0.6 || pressed(gp, 15)){ tfMoveFocus('right'); last = now; }
-            else if(axX < -0.6 || pressed(gp, 14)){ tfMoveFocus('left'); last = now; }
-            else if(axY > 0.6 || pressed(gp, 13)){ tfMoveFocus('down'); last = now; }
-            else if(axY < -0.6 || pressed(gp, 12)){ tfMoveFocus('up'); last = now; }
-
-            // A / Cross (0) to activate
-            if(pressed(gp, 0)){
-              const el = document.activeElement;
-              if(el && el.classList && el.classList.contains('tf-card')){ el.click(); last = now; }
-            }
-          }
-        }
-        requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    }
-
     // TwitFlix infinite scroll
     let currentCursor = null;
     let isLoadingGames = false;
@@ -229,8 +38,6 @@
     // INIT
     window.addEventListener('load', async () => {
       initUnderTabs();
-      initPlaySessionHUD();
-      initPerformanceWidget();
       await checkAuth();
       initPlayer();
       loadStatsDashboard();
@@ -248,10 +55,6 @@
              }
         });
       }
-
-      // Big Picture init (safe even if TwitFlix modal is closed)
-      tfInitBigPictureUI();
-      tfHookBigPictureKeyboard();
     });
 
     function initUnderTabs(){
@@ -480,10 +283,6 @@ function startAuth() {
           currentGameId = data.stream.game_id || null;
           currentGameName = data.stream.game_name || null;
 
-          try{ updatePlayGameLabel(); }catch(_e){}
-          try{ updatePerformanceWidget(); }catch(_e){}
-          try{ if(window.tfModalOpen){ window.tfAutoLoadTips && window.tfAutoLoadTips(); } }catch(_e){}
-
           // 🔥 Pro data sous le live
           loadChannelProData(channel);
         } else {
@@ -591,27 +390,11 @@ function startAuth() {
 
     // SOCKET.IO
     function initSocket(){
-      // Socket must connect to the API host (Render) even when embedded on justplayer.fr.
-      // Also, guard against double init (scripts loaded twice / SPA re-init).
-      if (window.__hubSocket && window.__hubSocket.connected) {
-        socket = window.__hubSocket;
-        return;
-      }
       if (window.__hubSocketInited) return;
       window.__hubSocketInited = true;
 
       try{
-        socket = io(API_ORIGIN, {
-          path: '/socket.io',
-          transports: ['websocket'],
-          withCredentials: true,
-          reconnection: true,
-          reconnectionAttempts: Infinity,
-          reconnectionDelay: 500,
-          reconnectionDelayMax: 2500,
-          timeout: 8000,
-        });
-        window.__hubSocket = socket;
+        socket = io(undefined, { transports: ['websocket','polling'] });
 
         const status = document.getElementById('socket-status');
         const setStatus = (ok) => {
@@ -992,10 +775,8 @@ async function tfLoadPersonalization(){
 }
 
 function tfConnectSteam(){
-  // Return to the iframe host page (justplayer.fr) after auth.
-  // Backend will validate allowlist via safeReturnTo.
-  const return_to = window.location.href;
-  const url = `${API_BASE}/auth/steam?return_to=${encodeURIComponent(return_to)}`;
+  const next = '/'; // keep it simple: return to home
+  const url = `${API_BASE}/auth/steam?next=${encodeURIComponent(next)}`;
   // popup first (second screen friendly)
   const w = 720, h = 640;
   const left = Math.max(0, (window.screen.width - w) / 2);
@@ -1004,25 +785,7 @@ function tfConnectSteam(){
   if(!popup){
     // popup blocked -> full redirect
     window.location.href = url;
-    return;
   }
-
-  // Fallback watcher: if postMessage is blocked by browser policies,
-  // we still refresh Steam state when the popup closes.
-  try{
-    const started = Date.now();
-    const timer = setInterval(()=>{
-      if(popup.closed){
-        clearInterval(timer);
-        tfRefreshSteamSession()
-          .then(()=> tfLoadPersonalization())
-          .then(()=>{ if(tfModalOpen) renderTwitFlix(); })
-          .catch(()=>{});
-      }
-      // safety stop after 2 minutes
-      if(Date.now() - started > 120000){ clearInterval(timer); }
-    }, 600);
-  }catch(_){ }
 }
 
 async function tfPromptSteam(){
@@ -1043,9 +806,6 @@ window.tfPromptSteam = tfPromptSteam;
 
 // Listen for popup completion
 window.addEventListener('message', (ev) => {
-  // The popup is served by the API host (Render). When embedded in an iframe on justplayer.fr,
-  // we must validate against the API origin, not the current page origin.
-  if(ev.origin !== API_ORIGIN) return;
   const data = ev?.data;
   if(!data || data.type !== 'steam:connected') return;
   if(data.ok){
@@ -1053,114 +813,6 @@ window.addEventListener('message', (ev) => {
   }else{
     tfRefreshSteamSession().catch(()=>{});
     alert('Connexion Steam échouée.');
-  }
-});
-
-
-
-// Riot + Epic (OAuth) buttons
-let tfRiotSession = { connected:false, userinfo:null };
-let tfEpicSession = { connected:false };
-
-function tfUpdateOauthButtons(){
-  const rbtn = document.getElementById('tf-btn-riot');
-  if(rbtn){
-    rbtn.classList.toggle('tf-oauth-connected', !!tfRiotSession.connected);
-    rbtn.innerHTML = `
-      <span class="tf-oauth-dot tf-dot-riot" aria-hidden="true"></span>
-      <span class="tf-oauth-label">${tfRiotSession.connected ? 'Riot connecté' : 'Connecter Riot'}</span>
-      ${tfRiotSession.connected ? '<span class="tf-steam-check" aria-hidden="true">✓</span>' : ''}
-    `;
-  }
-
-  const ebtn = document.getElementById('tf-btn-epic');
-  if(ebtn){
-    ebtn.classList.toggle('tf-oauth-connected', !!tfEpicSession.connected);
-    ebtn.innerHTML = `
-      <span class="tf-oauth-dot tf-dot-epic" aria-hidden="true"></span>
-      <span class="tf-oauth-label">${tfEpicSession.connected ? 'Epic connecté' : 'Connecter Epic'}</span>
-      ${tfEpicSession.connected ? '<span class="tf-steam-check" aria-hidden="true">✓</span>' : ''}
-    `;
-  }
-}
-
-async function tfRefreshRiotSession(){
-  try{
-    const r = await fetch(`${API_BASE}/api/riot/me`, { credentials:'include' });
-    const d = await r.json();
-    tfRiotSession = (d && d.success && d.connected) ? { connected:true, userinfo:d.userinfo||null } : { connected:false, userinfo:null };
-  }catch(_){
-    tfRiotSession = { connected:false, userinfo:null };
-  }
-  tfUpdateOauthButtons();
-}
-
-async function tfRefreshEpicSession(){
-  try{
-    const r = await fetch(`${API_BASE}/api/epic/me`, { credentials:'include' });
-    const d = await r.json();
-    tfEpicSession = (d && d.success && d.connected) ? { connected:true } : { connected:false };
-  }catch(_){
-    tfEpicSession = { connected:false };
-  }
-  tfUpdateOauthButtons();
-}
-
-function tfConnectRiot(){
-  const returnTo = document.referrer || window.location.href;
-  const url = `${API_BASE}/auth/riot?return_to=${encodeURIComponent(returnTo)}`;
-  const w = 720, h = 720;
-  const left = Math.max(0, (window.screen.width - w) / 2);
-  const top = Math.max(0, (window.screen.height - h) / 2);
-  const popup = window.open(url, 'riotAuth', `width=${w},height=${h},left=${left},top=${top}`);
-  if(!popup) window.location.href = url;
-}
-function tfConnectEpic(){
-  const returnTo = document.referrer || window.location.href;
-  const url = `${API_BASE}/auth/epic?return_to=${encodeURIComponent(returnTo)}`;
-  const w = 720, h = 720;
-  const left = Math.max(0, (window.screen.width - w) / 2);
-  const top = Math.max(0, (window.screen.height - h) / 2);
-  const popup = window.open(url, 'epicAuth', `width=${w},height=${h},left=${left},top=${top}`);
-  if(!popup) window.location.href = url;
-}
-
-async function tfPromptRiot(){
-  if(tfRiotSession.connected){
-    const ok = confirm('Riot est déjà connecté. Voulez-vous déconnecter ?');
-    if(!ok) return;
-    try{ await fetch(`${API_BASE}/api/riot/unlink`, { method:'POST', credentials:'include' }); }catch(_){}
-    tfRiotSession = { connected:false, userinfo:null };
-    tfUpdateOauthButtons();
-    return;
-  }
-  tfConnectRiot();
-}
-async function tfPromptEpic(){
-  if(tfEpicSession.connected){
-    const ok = confirm('Epic est déjà connecté. Voulez-vous déconnecter ?');
-    if(!ok) return;
-    try{ await fetch(`${API_BASE}/api/epic/unlink`, { method:'POST', credentials:'include' }); }catch(_){}
-    tfEpicSession = { connected:false };
-    tfUpdateOauthButtons();
-    return;
-  }
-  tfConnectEpic();
-}
-window.tfPromptRiot = tfPromptRiot;
-window.tfPromptEpic = tfPromptEpic;
-
-window.addEventListener('message', (ev) => {
-  if(ev.origin !== API_BASE) return;
-  const data = ev?.data;
-  if(!data || !data.type) return;
-  if(data.type === 'riot:connected'){
-    if(data.ok) tfRefreshRiotSession().catch(()=>{});
-    else { tfRefreshRiotSession().catch(()=>{}); alert('Connexion Riot échouée.'); }
-  }
-  if(data.type === 'epic:connected'){
-    if(data.ok) tfRefreshEpicSession().catch(()=>{});
-    else { tfRefreshEpicSession().catch(()=>{}); alert('Connexion Epic échouée.'); }
   }
 });
 
@@ -1276,12 +928,6 @@ window.addEventListener('message', (ev) => {
 
     function tfRenderTrailerCarousel(){
       const wrap = document.getElementById('tf-trailer-carousel');
-      // Live Tips replaces trailers
-      if(wrap){
-        wrap.innerHTML = '<div class="tf-empty">Clips de progrès…</div>';
-      }
-      try{ window.tfLoadProgressClips && window.tfLoadProgressClips(true); }catch(_e){}
-      return;
       if (!wrap) return;
 
       tfBindHorizontalWheel(wrap);
@@ -1349,10 +995,7 @@ window.addEventListener('message', (ev) => {
 
     let tfSearchQuery = '';
     let tfSearchResults = [];
-    let tfSearchRails = null; // [{titleHtml, items:[...]}, ...] for Netflix-like reorg
-
     let tfSearchTimer = null;
-    let tfSearchSeq = 0; // prevents stale async search results from overriding newer queries
 
     let tfObserver = null;
 
@@ -1388,9 +1031,6 @@ const modal = document.getElementById('twitflix-modal');
       tfModalOpen = true;
       modal.classList.add('active');
 
-      // Ensure Big Picture button is wired (modal buttons may be created/updated dynamically)
-      tfInitBigPictureUI();
-
       // TwitFlix intro (Netflix-like) — stylized, minimal
 try{
   let intro = document.getElementById('twitflix-intro');
@@ -1418,7 +1058,6 @@ try{
       tfHasMore = true;
       tfSearchQuery = '';
       tfSearchResults = [];
-      tfSearchRails = null;
       if (search) search.value = '';
 
       // hero default
@@ -1462,15 +1101,11 @@ try{
 
       // Steam session (OpenID) + ADN
       await tfRefreshSteamSession();
-      await tfRefreshRiotSession();
-      await tfRefreshEpicSession();
       await tfLoadPersonalization();
 
       tfRenderLiveCarousel();
       tfRenderTrailerCarousel();
       renderTwitFlix();
-      // Wire Big Picture button again after render in case the header was re-rendered.
-      tfInitBigPictureUI();
     }
 
     function closeTwitFlix(){
@@ -1531,49 +1166,16 @@ try{
       tfObserver.observe(sentinel);
     }
 
-    function tfMakeSearchRails(q, results){
-      const r = Array.isArray(results) ? results : [];
-      if (!r.length) return null;
-
-      const rails = [];
-      rails.push({ titleHtml: 'Jeux qui matchent ton prompt <span>(IA)</span>', items: r.slice(0, 28) });
-
-      // Keep ADN row visible even in search mode (second screen feel)
-      if (tfPersonalization && Array.isArray(tfPersonalization.categories) && tfPersonalization.categories.length){
-        rails.push({ titleHtml: tfPersonalization.title || 'Parce que tu as aimé', items: tfPersonalization.categories.slice(0, 28) });
-      }
-
-      // Add a "Top du moment" row but avoid duplicates
-      const exclude = new Set(r.map(x => String(x.id)));
-      const extra = (Array.isArray(tfAllCategories) ? tfAllCategories : [])
-        .filter(c => !exclude.has(String(c.id)))
-        .slice(0, 28);
-
-      rails.push({ titleHtml: 'Top du moment <span>(Twitch)</span>', items: extra });
-
-      return rails;
-    }
-
     async function tfRunSearch(query){
       const q = String(query || '').trim();
       const host = document.getElementById('twitflix-grid');
       if (!host) return;
 
-      const mySeq = ++tfSearchSeq;
-
       if (!q){
         tfSearchResults = [];
-        tfSearchRails = null;
         renderTwitFlix();
         return;
       }
-
-      // Fast feedback (prevents the feeling that nothing happens)
-      try{
-        tfSearchResults = [];
-        tfSearchRails = null;
-        renderTwitFlix();
-      }catch(_){ }
 
       // IA-assisted: if query is a sentence, ask the server to translate it into a curated list.
       const looksComplex = (q.length >= 22) || /\bcomme\b|\bmais\b|\bmoins\b|\bplus\b|\bstress\b|\bcraft\b/i.test(q);
@@ -1582,20 +1184,16 @@ try{
           const r0 = await fetch(`${API_BASE}/api/search/intent`, {
             method:'POST',
             headers:{'Content-Type':'application/json'},
-            credentials: 'include',
             body: JSON.stringify({ text: q })
           });
           if(r0.ok){
             const d0 = await r0.json();
             if(d0 && d0.success && Array.isArray(d0.categories)){
-              if(mySeq !== tfSearchSeq) return; // stale
               tfSearchResults = d0.categories.map(c => ({
                 id: c.id,
                 name: c.name,
-                compat: (typeof c.compat === 'number') ? c.compat : undefined,
                 box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
               }));
-              tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
               renderTwitFlix();
               return;
             }
@@ -1605,18 +1203,15 @@ try{
 
       // Try server search (best)
       try{
-        const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`, { credentials: 'include' });
+        const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
           if (d && d.success && Array.isArray(d.categories)){
-            if(mySeq !== tfSearchSeq) return; // stale
             tfSearchResults = d.categories.map(c => ({
               id: c.id,
               name: c.name,
-              compat: (typeof c.compat === 'number') ? c.compat : undefined,
               box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
             }));
-            tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
             renderTwitFlix();
             return;
           }
@@ -1625,16 +1220,10 @@ try{
 
       // Fallback: local filter on already loaded catalogue
       const low = q.toLowerCase();
-      const local = tfAllCategories
+      tfSearchResults = tfAllCategories
         .filter(c => (c.name||'').toLowerCase().includes(low))
         .slice(0, 120);
-      if(mySeq !== tfSearchSeq) return; // stale
-      tfSearchResults = local;
-      tfSearchRails = tfMakeSearchRails(q, tfSearchResults);
       renderTwitFlix();
-
-      // Re-wire again after initial render, in case the header was rebuilt.
-      tfInitBigPictureUI();
     }
 
     async function tfLoadMore(force){
@@ -1719,21 +1308,18 @@ try{
       if (tfSearchQuery && tfSearchQuery.trim()){
         host.innerHTML = '';
         const q = tfSearchQuery.trim();
-        tfSetHero({ title: q, sub: 'Recherche IA-assisted • Réorganisation instantanée' });
+        tfSetHero({ title: q, sub: 'Résultats de recherche' });
 
-        const rails = tfSearchRails || tfMakeSearchRails(q, tfSearchResults);
-
-        if (!tfSearchResults.length || !rails || !rails.length){
+        if (!tfSearchResults.length){
           host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
           if (sentinel) host.appendChild(sentinel);
           return;
         }
 
-        rails.forEach(r => {
-          if (!r || !Array.isArray(r.items) || !r.items.length) return;
-          host.appendChild(tfBuildRow(r.titleHtml || 'Résultats', r.items));
-        });
-
+        const grid = document.createElement('div');
+        grid.className = 'tf-search-grid';
+        tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
+        host.appendChild(grid);
         if (sentinel) host.appendChild(sentinel);
         return;
       }
@@ -1765,21 +1351,6 @@ try{
         loading.className = 'tf-empty';
         loading.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement...';
         host.appendChild(loading);
-      }
-
-      // Re-wire TwitFlix controls that may be present in the modal header
-      // (some builds inject/re-render parts of the modal).
-      tfInitBigPictureUI();
-
-      // Big Picture: make cards focusable + preserve console navigation
-      tfEnsureCardsFocusable();
-      // Ensure the toggle button remains wired if DOM got replaced.
-      tfInitBigPictureUI();
-      if(tfIsBigPicture()){
-        const first = host.querySelector('.tf-card');
-        if(first && document.activeElement === document.body){
-          first.focus({preventScroll:true});
-        }
       }
 
       if (sentinel) host.appendChild(sentinel);
@@ -1856,8 +1427,6 @@ try{
     function tfBuildCard(cat){
       const div = document.createElement('div');
       div.className = 'tf-card';
-      div.setAttribute('tabindex','0');
-      div.setAttribute('data-focus','tf-card');
       div.dataset.gameId = cat.id;
       div.dataset.gameName = cat.name;
 
@@ -2204,7 +1773,7 @@ try{
       box.classList.add('hidden');
       box.innerHTML = '';
       btn.disabled = true;
-      btn.innerHTML = '<span class="best-time-spinner"></span> Rapport en cours...';
+      btn.innerHTML = '<span class="best-time-spinner"></span> Génération...';
 
       try{
         const res = await fetch(`${API_BASE}/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);
@@ -2216,7 +1785,7 @@ try{
         box.classList.remove('hidden');
       }finally{
         btn.disabled = false;
-        btn.innerHTML = '📄 Lancer le rapport';
+        btn.innerHTML = '⚡ Générer des recommandations';
       }
     }
 
@@ -2599,8 +2168,6 @@ try{
   }
 
   function ensureInlineOverlay(el, html){
-    // hard cleanup to avoid multiple padlocks layers
-    el.querySelectorAll('.paywall-inline-overlay').forEach(n=>n.remove());
     let ov = el.querySelector(":scope > .paywall-inline-overlay");
     if(!ov){
       ov = document.createElement("div");
@@ -2763,406 +2330,3 @@ try{
   }
 })();
 
-
-
-// ================================
-// Second Screen: Play Session HUD
-// ================================
-let __playSession = { active:false, level:1, xp:0, progressPct:0, game:null, secondsToday:0 };
-
-async function apiPlayGetStatus(){
-  try{
-    const r = await fetch(`${API_BASE}/api/play/status`, { credentials:'include' });
-    if(!r.ok) return null;
-    return await r.json().catch(()=>null);
-  }catch(_){ return null; }
-}
-async function apiPlayStart(){
-  const r = await fetch(`${API_BASE}/api/play/start`, { method:'POST', credentials:'include' });
-  return await r.json().catch(()=>null);
-}
-async function apiPlayStop(){
-  const r = await fetch(`${API_BASE}/api/play/stop`, { method:'POST', credentials:'include' });
-  return await r.json().catch(()=>null);
-}
-async function apiPlayTick(){
-  const r = await fetch(`${API_BASE}/api/play/tick`, { method:'POST', credentials:'include' });
-  return await r.json().catch(()=>null);
-}
-
-function updatePlayGameLabel(){
-  const el = document.getElementById('play-game');
-  if(el) el.textContent = currentGameName ? String(currentGameName) : '—';
-}
-
-function renderPlayHUD(){
-  const hud = document.getElementById('play-hud');
-  const btn = document.getElementById('btn-play-session');
-  const lbl = document.getElementById('play-session-label');
-  if(btn && lbl){
-    lbl.textContent = __playSession.active ? 'EN SESSION' : 'JE JOUE';
-    btn.classList.toggle('border-[#00f2ea33]', __playSession.active);
-    btn.classList.toggle('text-[#00f2ea]', __playSession.active);
-  }
-
-  if(!hud) return;
-  if(__playSession.active){
-    hud.classList.remove('hidden');
-  }else{
-    hud.classList.add('hidden');
-  }
-  const meta = document.getElementById('play-hud-meta');
-  if(meta){
-    const m = __playSession.active ? `Actif • ${Math.round((__playSession.secondsToday||0)/60)} min aujourd’hui` : '—';
-    meta.textContent = m;
-  }
-  const level = document.getElementById('play-level');
-  const xp = document.getElementById('play-xp');
-  const bar = document.getElementById('play-progress');
-  if(level) level.textContent = String(__playSession.level || 1);
-  if(xp) xp.textContent = String(Math.round(__playSession.xp || 0));
-  if(bar) bar.style.width = `${Math.max(0, Math.min(100, Number(__playSession.progressPct||0)))}%`;
-  updatePlayGameLabel();
-}
-
-let __playTickTimer = null;
-
-async function initPlaySessionHUD(){
-  // Only if logged in; still safe to call
-  const st = await apiPlayGetStatus();
-  if(st && st.success){
-    __playSession = Object.assign(__playSession, st.session || {});
-  }
-  renderPlayHUD();
-
-  // background ticker
-  if(__playTickTimer) clearInterval(__playTickTimer);
-  __playTickTimer = setInterval(async ()=>{
-    if(!__playSession.active) return;
-    if(document.hidden) return;
-    const d = await apiPlayTick();
-    if(d && d.success){
-      __playSession = Object.assign(__playSession, d.session || {});
-      renderPlayHUD();
-    }
-  }, 20000);
-}
-
-async function togglePlaySession(){
-  // must be authenticated
-  try{
-    const st0 = await apiPlayGetStatus();
-    if(!st0 || !st0.success){
-      alert('Connecte-toi pour activer la session jeu.');
-      return;
-    }
-  }catch(_){}
-  if(__playSession.active){
-    const d = await apiPlayStop();
-    if(d && d.success){
-      __playSession = Object.assign(__playSession, d.session || {active:false});
-      renderPlayHUD();
-    }
-  }else{
-    const d = await apiPlayStart();
-    if(d && d.success){
-      __playSession = Object.assign(__playSession, d.session || {active:true});
-      renderPlayHUD();
-    }
-  }
-}
-window.togglePlaySession = togglePlaySession;
-
-// ================================
-// Streamer Hub Predictif (LoL) — Riot compare (historical CS@15)
-// ================================
-let __perfInit = false;
-async function initPerformanceWidget(){
-  if(__perfInit) return;
-  __perfInit = true;
-
-  const btnLink = document.getElementById('riot-me-link');
-  const btnBind = document.getElementById('riot-streamer-bind');
-  const btnAuth = document.getElementById('riot-auth-btn');
-
-  if(btnAuth){
-    btnAuth.addEventListener('click', ()=>{
-      const next = '/';
-      const url = `${API_BASE}/auth/riot?next=${encodeURIComponent(next)}`;
-      const w = 720, h = 720;
-      const left = Math.max(0, (window.screen.width - w) / 2);
-      const top = Math.max(0, (window.screen.height - h) / 2);
-      const popup = window.open(url, 'riotAuth', `width=${w},height=${h},left=${left},top=${top}`);
-      if(!popup) window.location.href = url;
-    });
-  }
-
-  if(btnLink){
-    btnLink.addEventListener('click', async ()=>{
-      const name = String(document.getElementById('riot-me-name')?.value || '').trim();
-      if(!name){ alert('Entre ton Summoner.'); return; }
-      const r = await fetch(`${API_BASE}/api/riot/link`, {
-        method:'POST',
-        credentials:'include',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ region:'euw1', summonerName: name })
-      });
-      const d = await r.json().catch(()=>null);
-      if(d?.success){ alert('Compte LoL lié.'); updatePerformanceWidget(); }
-      else alert(d?.error || 'Erreur Riot (link).');
-    });
-  }
-
-  if(btnBind){
-    btnBind.addEventListener('click', async ()=>{
-      const name = String(document.getElementById('riot-streamer-name')?.value || '').trim();
-      if(!name){ alert('Entre le Summoner du streamer.'); return; }
-      const r = await fetch(`${API_BASE}/api/riot/bind-streamer`, {
-        method:'POST',
-        credentials:'include',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ region:'euw1', twitchLogin: String(currentChannel||'').trim(), summonerName: name })
-      });
-      const d = await r.json().catch(()=>null);
-      if(d?.success){ alert('Streamer associé.'); updatePerformanceWidget(); }
-      else alert(d?.error || 'Erreur Riot (bind).');
-    });
-  }
-}
-
-function isLoL(){
-  const g = String(currentGameName||'').toLowerCase();
-  return g.includes('league of legends') || g === 'lol';
-}
-
-async function updatePerformanceWidget(){
-  const status = document.getElementById('perf-status');
-  const body = document.getElementById('perf-body');
-  const actions = document.getElementById('perf-actions');
-  if(!status || !body || !actions) return;
-
-  if(!currentChannel || currentChannel === 'twitch'){
-    status.textContent = '—';
-    body.textContent = 'Sélectionne un live pour analyser.';
-    actions.classList.add('hidden');
-    return;
-  }
-
-
-// Ensure we have fresh game info from Twitch (fixes LoL detection when currentGameName isn't set yet)
-try{
-  const peek = await fetch(`${API_BASE}/api/twitch/stream_by_login?login=${encodeURIComponent(String(currentChannel||''))}`, { credentials:'include' });
-  const pd = await peek.json().catch(()=>null);
-  if(pd?.success && pd?.live && pd?.game_name){
-    currentGameName = String(pd.game_name);
-    try{ updatePlayGameLabel && updatePlayGameLabel(); }catch(_){}
-  }
-}catch(_){}
-
-  if(!isLoL()){
-    status.textContent = currentGameName ? 'Jeu détecté' : '—';
-    body.textContent = currentGameName ? `Jeu: ${currentGameName}. La comparaison Riot est dispo uniquement sur League of Legends.` : '—';
-    actions.classList.add('hidden');
-    return;
-  }
-
-  status.textContent = 'LoL détecté';
-  actions.classList.remove('hidden');
-  body.innerHTML = '<span class="text-gray-500">Analyse…</span>';
-
-  try{
-    const r = await fetch(`${API_BASE}/api/riot/compare?twitchLogin=${encodeURIComponent(String(currentChannel||''))}&region=euw1`, { credentials:'include' });
-    const d = await r.json().catch(()=>null);
-    if(d?.success){
-      body.innerHTML = `
-        <div class="text-gray-200 font-bold">${d.message || 'Comparaison prête.'}</div>
-        <div class="mt-2 text-[11px] text-gray-500">Basé sur les derniers matchs publics (moyenne CS@15).</div>
-      `;
-      // prefill streamer summoner if known
-      if(d.streamer?.summonerName){
-        const in2 = document.getElementById('riot-streamer-name');
-        if(in2 && !in2.value) in2.value = d.streamer.summonerName;
-      }
-      return;
-    }
-    body.textContent = d?.error || 'Comparaison indisponible. Lie ton compte et associe le streamer.';
-  }catch(e){
-    body.textContent = 'Erreur chargement Riot.';
-  }
-}
-window.updatePerformanceWidget = updatePerformanceWidget;
-
-// ================================
-// Live Tips: "Clips de Progrès" (YouTube short tips)
-// ================================
-let __tfTipsCache = { q:'', t:0, clips:[] };
-
-function tfFillTipsGameSelect(options){
-  const sel = document.getElementById('tf-tips-game');
-  if(!sel) return;
-
-  const saved = localStorage.getItem('tf_tips_game') || '';
-  const mkLabel = (o)=>{
-    const prefix = o.source === 'now' ? '🎮 ' : (o.source === 'recent' ? '🕒 ' : '⭐ ');
-    return prefix + (o.name || '');
-  };
-
-  const safeOptions = Array.isArray(options) ? options : [];
-  sel.innerHTML = '<option value="">Jeu : Auto</option>' + safeOptions.map(o=>{
-    const name = String(o.name||'').trim();
-    if(!name) return '';
-    const value = encodeURIComponent(name);
-    const label = mkLabel(o).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return `<option value="${value}">${label}</option>`;
-  }).join('');
-
-  // restore selection if present
-  if(saved){
-    const encoded = encodeURIComponent(saved);
-    const has = Array.from(sel.options).some(op => op.value === encoded);
-    if(has) sel.value = encoded;
-  }
-
-  sel.onchange = ()=>{
-    const v = sel.value ? decodeURIComponent(sel.value) : '';
-    localStorage.setItem('tf_tips_game', v);
-  };
-}
-
-
-async function tfEnsureTipsGameContext(){
-  const sel0 = document.getElementById('tf-tips-game');
-  const needFill = sel0 && sel0.options && sel0.options.length <= 1;
-  if (currentGameName && !needFill) return currentGameName;
-
-
-  // Prefer Steam context when Steam is linked (second screen)
-  try{
-    if (tfSteamSession && tfSteamSession.connected){
-      const r = await fetch(`${API_BASE}/api/steam/recent`, { credentials:'include' });
-      const d = await r.json().catch(()=>null);
-
-      if(d?.success){
-        // Fill the dropdown (Auto + now/recent/top)
-        try{ tfFillTipsGameSelect(d.options || d.names || []); }catch(_){}
-
-        const seed = d?.best?.name || d?.names?.[0]?.name || null;
-        if (seed){
-          currentGameName = String(seed);
-          try{ updatePlayGameLabel && updatePlayGameLabel(); }catch(_){}
-        }
-      }
-    }
-  }catch(_){}
-
-  return currentGameName;
-}
-
-function tfRenderProgressClips(clips, qLabel){
-  const wrap = document.getElementById('tf-trailer-carousel');
-  const sub = document.getElementById('tf-tips-sub');
-  if(!wrap) return;
-
-  tfBindHorizontalWheel(wrap);
-  wrap.innerHTML = '';
-
-  if(sub){
-    sub.textContent = qLabel ? `Recherche: ${qLabel}` : '';
-  }
-
-  if(!clips || !clips.length){
-    wrap.innerHTML = '<div class="tf-empty">Aucun clip trouvé. Essaye un autre mot-clé.</div>';
-    return;
-  }
-
-  clips.slice(0, 10).forEach(c=>{
-    const vid = c.videoId || c.id;
-    const title = c.title || 'Clip';
-    const card = document.createElement('div');
-    card.className = 'tf-trailer-card';
-    card.innerHTML = `
-      <iframe
-        src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        loading="lazy"
-        title="${title}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
-      </iframe>
-    `;
-    wrap.appendChild(card);
-  });
-}
-
-async function tfLoadProgressClips(silent){
-  const input = document.getElementById('tf-tips-query');
-  let extra = String(input?.value || '').trim();
-
-  await tfEnsureTipsGameContext();
-  let g = String(currentGameName || '').trim();
-
-  // Heuristic: if user explicitly mentions a different game (e.g. "bloqué sur minecraft"),
-  // do NOT prepend the previously detected game. This avoids queries like
-  // "Albion Online je suis bloqué sur minecraft".
-  let forcedGame = '';
-  let rest = extra;
-
-  // Pattern 1: "sur <jeu>" (common French phrasing)
-  const mSur = extra.match(/\bsur\s+([^\n\r]+)$/i);
-  if(mSur && mSur[1]){
-    const cand = String(mSur[1]).trim().replace(/^["'“”]/,'').replace(/["'“”]$/,'');
-    if(cand && cand.length <= 40 && !/https?:\/\//i.test(cand)){
-      forcedGame = cand;
-      rest = String(extra).slice(0, mSur.index).trim();
-      rest = rest.replace(/\b(suis|je suis)\b/i,'je suis').trim();
-    }
-  }
-
-  // Pattern 2: "<jeu> : <situation>"
-  if(!forcedGame){
-    const mColon = extra.match(/^([^:]{2,30})\s*[:\-–]\s*(.+)$/);
-    if(mColon){
-      const cand = String(mColon[1]).trim();
-      if(cand && cand.length <= 30){
-        forcedGame = cand;
-        rest = String(mColon[2] || '').trim();
-      }
-    }
-  }
-
-  const sel = document.getElementById('tf-tips-game');
-  const chosen = sel && sel.value ? decodeURIComponent(sel.value) : '';
-  const game = (forcedGame || chosen || g).trim();
-  const finalQ = [game, rest].filter(Boolean).join(' ').trim();
-
-  if(!finalQ){
-    tfRenderProgressClips([], '');
-    return;
-  }
-
-  const now = Date.now();
-  if(__tfTipsCache.q === finalQ && (now - __tfTipsCache.t) < 60_000 && __tfTipsCache.clips?.length){
-    tfRenderProgressClips(__tfTipsCache.clips, finalQ);
-    return;
-  }
-
-  if(!silent){
-    const wrap = document.getElementById('tf-trailer-carousel');
-    if(wrap) wrap.innerHTML = '<div class="tf-empty">Recherche de clips…</div>';
-  }
-
-  try{
-    const r = await fetch(`${API_BASE}/api/youtube/tips?q=${encodeURIComponent(finalQ)}`);
-    const d = await r.json().catch(()=>null);
-    const clips = (d && d.success && Array.isArray(d.items)) ? d.items : [];
-    __tfTipsCache = { q: finalQ, t: now, clips };
-    tfRenderProgressClips(clips, finalQ);
-  }catch(_){
-    tfRenderProgressClips([], finalQ);
-  }
-}
-window.tfLoadProgressClips = tfLoadProgressClips;
-
-// Auto-load tips when TwitFlix opens and a game is known
-window.tfAutoLoadTips = function(){
-  if(!window.tfModalOpen) return;
-  tfLoadProgressClips(true);
-};

@@ -518,98 +518,6 @@
 #twitflix-modal .tf-actions{ gap: 12px; }
 #twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
 
-/* =========================================================
-   BIG PICTURE MODE (console-like UX)
-   Toggle adds class .tf-big-picture on <html>
-========================================================= */
-.tf-big-picture #twitflix-modal .tf-modal-content{ max-width: 1680px; }
-.tf-big-picture #twitflix-modal .tf-search{ font-size: 16px; padding: 14px 16px 14px 42px; }
-.tf-big-picture #twitflix-modal .tf-row{ gap: 14px; }
-.tf-big-picture #twitflix-modal .tf-row-title{ font-size: 16px; }
-.tf-big-picture #twitflix-modal .tf-row-track{ padding-bottom: 10px; }
-.tf-big-picture #twitflix-modal .tf-card{ width: 240px; height: 145px; }
-.tf-big-picture #twitflix-modal .tf-card:focus{
-  outline: 3px solid rgba(0,242,234,.95);
-  outline-offset: 6px;
-  box-shadow: 0 0 0 6px rgba(0,0,0,.45);
-}
-.tf-big-picture #twitflix-modal .tf-actions .tf-toggle-btn{ padding: 10px 14px; font-weight: 900; }
-
-/* === BIG PICTURE FULLSCREEN (Steam-like) =======================
-   Goal: TwitFlix becomes a true full-screen "second screen" view,
-   not a zoomed modal. This overrides layout only when big-picture is on.
-=============================================================== */
-.tf-big-picture body{ overflow: hidden !important; }
-.tf-big-picture #twitflix-modal{
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  background: radial-gradient(1200px 800px at 20% 10%, rgba(0,229,255,.12), rgba(0,0,0,.94) 55%, rgba(0,0,0,.98) 100%) !important;
-  backdrop-filter: none !important;
-}
-.tf-big-picture #twitflix-modal.active{ display:flex !important; }
-.tf-big-picture #twitflix-modal .tf-modal-content{
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  border-radius: 0 !important;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  display:flex !important;
-  flex-direction: column !important;
-}
-.tf-big-picture #twitflix-modal .tf-topbar{
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 80 !important;
-  background: linear-gradient(180deg, rgba(0,0,0,.82), rgba(0,0,0,.55)) !important;
-  border-bottom: 1px solid rgba(255,255,255,.08) !important;
-  padding: 18px 24px !important;
-}
-.tf-big-picture #twitflix-modal .tf-search-wrap{
-  max-width: 920px !important;
-  margin: 0 auto !important;
-}
-.tf-big-picture #twitflix-modal .tf-search{
-  font-size: 18px !important;
-  padding: 16px 18px 16px 48px !important;
-  border-radius: 14px !important;
-}
-.tf-big-picture #twitflix-modal .tf-body{
-  overflow-y: auto !important;
-  padding: 10px 14px 28px 14px !important;
-}
-.tf-big-picture #twitflix-modal .tf-row-title{
-  font-size: 18px !important;
-  letter-spacing: .2px !important;
-}
-.tf-big-picture #twitflix-modal .tf-card{
-  width: 300px !important;
-  height: 170px !important;
-  border-radius: 16px !important;
-}
-.tf-big-picture #twitflix-modal .tf-row-track{
-  gap: 18px !important;
-  padding: 8px 10px 16px 10px !important;
-  scroll-snap-type: x mandatory;
-}
-.tf-big-picture #twitflix-modal .tf-card{ scroll-snap-align: start; }
-.tf-big-picture #twitflix-modal .tf-card:focus{
-  transform: translateY(-2px) scale(1.03);
-  outline: 3px solid rgba(0,229,255,.95) !important;
-  outline-offset: 7px !important;
-  box-shadow: 0 0 0 7px rgba(0,0,0,.55), 0 22px 60px rgba(0,0,0,.65) !important;
-}
-.tf-big-picture #twitflix-modal .tf-actions{ gap: 14px !important; }
-.tf-big-picture #twitflix-modal .tf-actions button{ padding: 12px 16px !important; }
-
-
 #twitflix-modal .tf-body{
   flex: 1;
   min-height: 0;
@@ -2335,7 +2243,7 @@ body.modal-open #player-tools{display:none !important;}
       padding: 6px 8px;
       font-size: 11px;
       border-radius: 999px;
-      background: rgba(0,0,0,0);
+      background: rgba(0,0,0,.55);
       border: 1px solid rgba(255,255,255,.16);
       color: rgba(255,255,255,.92);
       backdrop-filter: none;
@@ -2404,7 +2312,7 @@ body.modal-open #player-tools{display:none !important;}
 [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
   content:"";
   position:absolute; inset:0;
-  background: rgba(0,0,0,0);
+  background: rgba(0,0,0,.55);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   z-index: 1;
@@ -2453,17 +2361,6 @@ body.modal-open #player-tools{display:none !important;}
 /* OUTILS padding (évite "collé au bord") */
 #tab-tools{ padding: 14px 14px 24px !important; box-sizing:border-box; }
 #tab-tools .tools-scroll, #tab-tools .panel-scroll{ padding: 10px 10px 18px !important; box-sizing:border-box; }
-
-/* Tool cards (OUTILS) — unify layout, avoid clipped modules */
-#tab-tools .tool-card{
-  background: #0f0f11;
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 16px;
-  padding: 14px;
-  box-sizing: border-box;
-}
-#tab-tools .tool-card h3, #tab-tools .tool-card h4{ margin-top:0; }
-#tab-tools .tool-card + .tool-card{ margin-top: 14px; }
 
 
 /* Compat badge (Steam ADN) */
@@ -2516,39 +2413,6 @@ body.modal-open #player-tools{display:none !important;}
   font-weight: 900;
   font-size: 12px;
   line-height: 1;
-
-
-/* Riot + Epic buttons (TwitFlix topbar) */
-#twitflix-modal .tf-riot-btn,
-#twitflix-modal .tf-epic-btn{
-  display:inline-flex;
-  align-items:center;
-  gap: 8px;
-  white-space:nowrap;
-  border-color: rgba(255,255,255,.12);
-  background: rgba(17,17,19,.9);
-}
-#twitflix-modal .tf-oauth-dot{
-  width: 10px; height: 10px;
-  border-radius: 999px;
-  display:inline-block;
-  border: 1px solid rgba(255,255,255,.22);
-  box-shadow: 0 0 10px rgba(0,0,0,.25);
-}
-#twitflix-modal .tf-dot-riot{ background: rgba(255,0,80,.85); }
-#twitflix-modal .tf-dot-epic{ background: rgba(255,255,255,.85); }
-#twitflix-modal .tf-oauth-label{
-  max-width: 160px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-#twitflix-modal #tf-btn-riot.tf-oauth-connected,
-#twitflix-modal #tf-btn-epic.tf-oauth-connected{
-  border-color: rgba(0,242,234,.32);
-  box-shadow: 0 0 18px rgba(0,242,234,.10);
-}
-
 }
 
 </style>
@@ -2602,11 +2466,6 @@ body.modal-open #player-tools{display:none !important;}
 <button class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2" onclick="openMarketOverlay()">
 <i class="fas fa-chart-line"></i> MARCHÉ
       </button>
-
-<button class="bg-[#111] hover:bg-[#161616] border border-[#ff009933] text-[#ff0099] px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron" id="btn-play-session" type="button" onclick="togglePlaySession()">
-  <i class="fas fa-gamepad"></i> <span id="play-session-label">JE JOUE</span>
-</button>
-
 <div class="h-6 w-[1px] bg-[#333]"></div>
 <button class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]" id="btn-auth" onclick="startAuth()">
 <i class="fab fa-twitch"></i> CONNEXION
@@ -2657,31 +2516,6 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 </header>
-
-<div id="play-hud" class="hidden mb-4 border border-[#222] rounded-xl overflow-hidden bg-[#080808]">
-  <div class="flex items-center justify-between px-4 py-2 border-b border-[#222]">
-    <div class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">
-      <i class="fas fa-satellite mr-2 text-[#00f2ea]"></i>
-      Session jeu <span class="text-gray-500">(second screen)</span>
-    </div>
-    <div class="text-[10px] text-gray-500" id="play-hud-meta">—</div>
-  </div>
-  <div class="px-4 py-3">
-    <div class="flex items-center justify-between">
-      <div class="text-xs text-gray-300">
-        Niveau <span class="text-white font-black" id="play-level">1</span>
-        <span class="text-gray-600">•</span>
-        XP <span class="text-[#00f2ea] font-black" id="play-xp">0</span>
-      </div>
-      <div class="text-xs text-gray-500" id="play-game">—</div>
-    </div>
-    <div class="mt-2 h-2 rounded-full bg-[#111] border border-[#222] overflow-hidden">
-      <div id="play-progress" class="h-full w-0 bg-[#00f2ea]"></div>
-    </div>
-    <div class="mt-2 text-[10px] text-gray-500" id="play-hint">La barre progresse uniquement quand ta session est active.</div>
-  </div>
-</div>
-
 <div class="mb-4 relative group">
 <div class="carousel-track" id="carousel">
 <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
@@ -2759,10 +2593,10 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 <div class="bg-[#111] p-3 rounded border border-[#222] lg:col-span-2">
 <h4 class="text-xs text-gray-400 mb-2 font-bold uppercase">
-<i class="fas fa-magic mr-1"></i> RAPPORT DE PROFIL
+<i class="fas fa-magic mr-1"></i> IA – plan d’action
               </h4>
 <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="btn-ai-reco" onclick="loadAIReco()">
-                📄 Lancer le rapport
+                ⚡ Générer des recommandations
               </button>
 <div class="mt-3 text-xs text-gray-300 leading-relaxed max-h-48 overflow-y-auto bg-[#0a0a0a] border border-[#222] rounded p-2 hidden" id="ai-reco-box"></div>
 </div>
@@ -2829,46 +2663,8 @@ body.modal-open #player-tools{display:none !important;}
 <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
 </div>
 </div>
-
 <div class="col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0" id="side-panel">
-  <div id="perf-widget" class="border-b border-[#222] bg-[#080808] p-3">
-    <div class="flex items-center justify-between">
-      <div class="text-[11px] text-gray-300 font-black uppercase tracking-wider">
-        <i class="fas fa-chart-line mr-2 text-[#ff0099]"></i> Analyse de performance
-      </div>
-      <div id="perf-status" class="text-[10px] text-gray-500">—</div>
-    </div>
-    <div id="perf-body" class="mt-2 text-xs text-gray-400">Sélectionne un live. Si le jeu est League of Legends, tu peux activer la comparaison Riot.</div>
-
-    <div id="perf-actions" class="mt-3 hidden">
-      <div class="grid grid-cols-1 gap-2">
-        <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-2">
-          <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Ton compte LoL</div>
-          <div class="flex gap-2 mb-2">
-            <button id="riot-auth-btn" class="px-3 py-2 rounded-lg bg-[#111] border border-[#ff009933] text-[#ff0099] font-black text-xs">Connecter Riot (RSO)</button>
-            <div class="text-[10px] text-gray-600 flex items-center">Optionnel : connexion compte Riot (pour enrichir ton profil)</div>
-          </div>
-          <div class="flex gap-2">
-            <input id="riot-me-name" class="flex-1 bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none text-xs" placeholder="Ton Summoner (EUW)" />
-            <button id="riot-me-link" class="px-3 py-2 rounded-lg bg-[#00f2ea] text-black font-black text-xs">Lier</button>
-          </div>
-          <div class="text-[10px] text-gray-600 mt-1">Optionnel. Sert à comparer tes stats aux siennes.</div>
-        </div>
-
-        <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-2">
-          <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Compte du streamer</div>
-          <div class="flex gap-2">
-            <input id="riot-streamer-name" class="flex-1 bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none text-xs" placeholder="Summoner du streamer (EUW)" />
-            <button id="riot-streamer-bind" class="px-3 py-2 rounded-lg bg-[#111] border border-[#00f2ea33] text-[#00f2ea] font-black text-xs">Associer</button>
-          </div>
-          <div class="text-[10px] text-gray-600 mt-1">À faire une fois par streamer.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
 <div class="tab-nav">
-
 <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
 <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
 <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
@@ -2944,66 +2740,69 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 </div>
-<div class="tab-content bg-[#0b0b0d]" id="tab-tools">
-  <div class="tools-scroll p-4 space-y-6 scrollbar-thin">
-    <div class="best-time-tool tool-card" data-paywall data-paywall-feature="best_time" data-paywall-title="Best Time to Stream" data-paywall-desc="Prédit les meilleurs horaires selon le jeu, tendances et audiences.">
-      <h4>🎯 BEST TIME TO STREAM</h4>
-      <input id="best-time-game" placeholder="Jeu ex: League of Legends..." type="text"/>
-      <button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
-      <div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
-        <span class="best-time-spinner"></span>Analyse en cours...
-      </div>
-      <div class="best-time-results" id="best-time-results" style="display:none;"></div>
-    </div>
-
-    <div class="scanner-tool tool-card">
-      <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
-      <div class="flex gap-2 mb-3">
-        <input class="cyber-input" id="scan-query" placeholder="Pseudo ex: ZeratoR" type="text"/>
-        <button class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white" onclick="runScan()"><i class="fas fa-search"></i></button>
-      </div>
-      <div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="scan-res">
-        <div class="flex gap-3 items-center mb-3">
-          <img class="w-12 h-12 rounded-full border border-[#00f2ea]" id="scan-img" src=""/>
-          <div>
-            <div class="font-bold text-white" id="scan-name">--</div>
-            <div class="text-xs text-gray-500" id="scan-game">--</div>
+<div class="tab-content bg-[#0b0b0d]" id="tab-tools"><div class="tools-scroll p-4 space-y-6 scrollbar-thin">
+<div class="best-time-tool" data-paywall data-paywall-feature="best_time" data-paywall-title="Best Time to Stream" data-paywall-desc="Prédit les meilleurs horaires selon le jeu, tendances et audiences.">
+<h4>🎯 BEST TIME TO STREAM</h4>
+<input id="best-time-game" placeholder="Jeu ex: League of Legends..." type="text"/>
+<button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
+<div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
+<span class="best-time-spinner"></span>Analyse en cours...
           </div>
-        </div>
-        <div class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto" id="scan-ai"></div>
-      </div>
-    </div>
-
-    <div class="tool-card">
-      <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
-      <div class="flex gap-2 mb-3">
-        <input class="cyber-input" id="raid-game" placeholder="Jeu ex: League" type="text"/>
-        <input class="cyber-input" id="raid-viewers" placeholder="Max viewers" type="number" value="100"/>
-      </div>
-      <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3" onclick="runRaid()">🔍 CHERCHER</button>
-      <div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="raid-res">
-        <img class="w-full h-40 rounded mb-3 object-cover" id="raid-img" src=""/>
-        <div class="text-xs text-gray-300" id="raid-info"></div>
-        <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white" id="raid-btn" onclick="goToRaid()">🎮 ALLER AU RAID</button>
-      </div>
-    </div>
-
-    <div class="tool-card" data-paywall data-paywall-feature="costream_match" data-paywall-title="Co‑Stream Match" data-paywall-desc="Trouve un co‑streamer compatible (jeu / langue / taille).">
-      <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
-      <div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
-      <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="costream-btn" onclick="loadCoStreamer()">🤝 TROUVER</button>
-      <div class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" id="costream-out" style="display:none;"></div>
-    </div>
-
-    <div class="tool-card">
-      <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
-      <input class="cyber-input mb-2" id="boost-query" placeholder="Chaîne..." type="text"/>
-      <button class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition" onclick="runBoost()">ACTIVER</button>
-      <div class="text-center text-xs mt-2 text-green-400" id="boost-msg"></div>
-    </div>
-  </div>
+<div class="best-time-results" id="best-time-results" style="display:none;"></div>
+</div>
+<div class="scanner-tool">
+<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
+<div class="flex gap-2 mb-3">
+<input class="cyber-input" id="scan-query" placeholder="Pseudo ex: ZeratoR" type="text"/>
+<button class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white" onclick="runScan()">
+<i class="fas fa-search"></i>
+</button>
+</div>
+<div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="scan-res">
+<div class="flex gap-3 items-center mb-3">
+<img class="w-12 h-12 rounded-full border border-[#00f2ea]" id="scan-img" src=""/>
+<div>
+<div class="font-bold text-white" id="scan-name">--</div>
+<div class="text-xs text-gray-500" id="scan-game">--</div>
+</div>
+</div>
+<div class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto" id="scan-ai"></div>
+</div>
 </div>
 
+</div>
+<div>
+<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
+<div class="flex gap-2 mb-3">
+<input class="cyber-input" id="raid-game" placeholder="Jeu ex: League" type="text"/>
+<input class="cyber-input" id="raid-viewers" placeholder="Max viewers" type="number" value="100"/>
+</div>
+<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3" onclick="runRaid()">🔍 CHERCHER</button>
+<div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="raid-res">
+<img class="w-full h-40 rounded mb-3 object-cover" id="raid-img" src=""/>
+<div class="text-xs text-gray-300" id="raid-info"></div>
+<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white" id="raid-btn" onclick="goToRaid()">🎮 ALLER AU RAID</button>
+</div>
+</div>
+<div data-paywall data-paywall-feature="costream_match" data-paywall-title="Co‑Stream Match" data-paywall-desc="Trouve un co‑streamer compatible (jeu / langue / taille).">
+<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
+<div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
+<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="costream-btn" onclick="loadCoStreamer()">
+            🤝 TROUVER
+          </button>
+<div class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" id="costream-out" style="display:none;"></div>
+</div>
+<div>
+<h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
+<input class="cyber-input mb-2" id="boost-query" placeholder="Chaîne..." type="text"/>
+<button class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition" onclick="runBoost()">ACTIVER</button>
+<div class="text-center text-xs mt-2 text-green-400" id="boost-msg"></div>
+</div>
+</div>
+</div>
+</div></div>
+</div>
+</div>
 <div class="tf-modal-overlay" id="twitflix-modal">
 <div class="tf-modal-content">
 <div class="tf-topbar">
@@ -3017,44 +2816,9 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn active" id="tf-btn-rows" onclick="setTwitFlixView('rows')" type="button">LIGNES</button>
 <button class="tf-toggle-btn" id="tf-btn-az" onclick="setTwitFlixView('az')" type="button">A–Z</button>
 </div>
-<button class="tf-toggle-btn" id="tf-btn-bigpic" type="button" onclick="try{window.tfToggleBigPicture&&window.tfToggleBigPicture()}catch(e){}">🎮 BIG PICTURE</button>
-<script>
-  // Fallback: ensure Big Picture toggle works even if bootstrap failed.
-  (function(){
-    function setState(on){
-      try{ localStorage.setItem('tf_big_picture', on ? '1' : '0'); }catch(e){}
-      document.documentElement.classList.toggle('tf-big-picture', !!on);
-      var btn = document.getElementById('tf-btn-bigpic');
-      if(btn){
-        btn.classList.toggle('active', !!on);
-        btn.textContent = on ? '🎮 BIG PICTURE: ON' : '🎮 BIG PICTURE';
-      }
-    }
-    window.tfToggleBigPictureFallback = function(){
-      var on = document.documentElement.classList.contains('tf-big-picture');
-      setState(!on);
-    };
-    if(!window.tfToggleBigPicture){
-      window.tfToggleBigPicture = window.tfToggleBigPictureFallback;
-    }
-    // restore on load
-    try{
-      if(localStorage.getItem('tf_big_picture') === '1') setState(true);
-    }catch(e){}
-  })();
-</script>
-
 <button class="tf-toggle-btn tf-steam-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">
   <i class="fab fa-steam" aria-hidden="true"></i>
   <span class="tf-steam-label">Connecter Steam</span>
-</button>
-<button class="tf-toggle-btn tf-riot-btn" id="tf-btn-riot" type="button" onclick="tfPromptRiot()">
-  <span class="tf-oauth-dot tf-dot-riot" aria-hidden="true"></span>
-  <span class="tf-oauth-label">Connecter Riot</span>
-</button>
-<button class="tf-toggle-btn tf-epic-btn" id="tf-btn-epic" type="button" onclick="tfPromptEpic()">
-  <span class="tf-oauth-dot tf-dot-epic" aria-hidden="true"></span>
-  <span class="tf-oauth-label">Connecter Epic</span>
 </button>
 <button class="tf-close-btn" type="button" aria-label="Fermer TwitFlix" onclick="closeTwitFlix()">✕</button>
 </div>
@@ -3070,22 +2834,12 @@ body.modal-open #player-tools{display:none !important;}
   <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
 </div>
 
-
 <div class="tf-header-block">
-  <div class="tf-strip-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-    <h4 style="margin:0">Clips de Progrès <span class="help" data-help="Des clips courts pour t’aider sur ton jeu. Tape une situation (ex: 'boss 2', 'early game', 'build') pour une recherche ciblée.">?</span></h4>
-    <div style="display:flex;gap:8px;align-items:center;flex:1;min-width:240px;max-width:640px">
-      <select id="tf-tips-game" class="tf-search" style="height:34px;font-size:12px;max-width:240px" aria-label="Jeu pour les clips">
-        <option value="">Jeu : Auto</option>
-      </select>
-      <input id="tf-tips-query" class="tf-search" style="height:34px;font-size:12px;flex:1" placeholder="Je suis bloqué sur… (ex: 'craft base', 'boss 2')" autocomplete="off"/>
-      <button class="tf-toggle-btn" id="tf-tips-go" type="button" onclick="tfLoadProgressClips()">TROUVER</button>
-    </div>
+  <div class="tf-strip-title">
+    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, TwitFlix tente une recherche automatique.">?</span></h4>
   </div>
-  <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Clips de progrès"></div>
-  <div class="tf-sub" id="tf-tips-sub" style="margin-top:6px;display:block;color:#777;font-size:11px"></div>
+  <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
 </div>
-
 
 <div class="tf-grid" id="twitflix-grid">
 <div class="text-center w-full text-gray-500 py-20" id="tf-loading">
