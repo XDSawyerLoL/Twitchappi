@@ -38,8 +38,6 @@ const API_BASE = window.location.origin;
     // INIT
     window.addEventListener('load', async () => {
       initUnderTabs();
-      initPlaySessionHUD();
-      initPerformanceWidget();
       await checkAuth();
       initPlayer();
       loadStatsDashboard();
@@ -284,10 +282,6 @@ function startAuth() {
 
           currentGameId = data.stream.game_id || null;
           currentGameName = data.stream.game_name || null;
-
-          try{ updatePlayGameLabel(); }catch(_e){}
-          try{ updatePerformanceWidget(); }catch(_e){}
-          try{ if(window.tfModalOpen){ window.tfAutoLoadTips && window.tfAutoLoadTips(); } }catch(_e){}
 
           // 🔥 Pro data sous le live
           loadChannelProData(channel);
@@ -710,119 +704,6 @@ function startAuth() {
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
 
-    // Personalisation (Steam ADN) — prefers Steam OpenID session (no manual SteamID64)
-let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
-const TF_STEAM_STORAGE_KEY = 'twitflix_steamid64'; // legacy fallback
-let tfSteamSession = { connected:false, steamid:'', profile:null };
-
-function tfGetSteamId(){
-  try{ return (localStorage.getItem(TF_STEAM_STORAGE_KEY) || '').trim(); }catch(_){ return ''; }
-}
-function tfSetSteamId(v){
-  try{ localStorage.setItem(TF_STEAM_STORAGE_KEY, String(v||'').trim()); }catch(_){ }
-}
-
-function tfUpdateSteamBtn(){
-  const btn = document.getElementById('tf-btn-steam');
-  if(!btn) return;
-  const persona = (tfSteamSession && tfSteamSession.profile && tfSteamSession.profile.personaname) ? String(tfSteamSession.profile.personaname) : '';
-  const connected = !!(tfSteamSession && tfSteamSession.connected);
-
-  // Aesthetic button (icon + compact status) — keep id stable.
-  btn.classList.toggle('tf-steam-connected', connected);
-  btn.innerHTML = `
-    <i class="fab fa-steam" aria-hidden="true"></i>
-    <span class="tf-steam-label">${connected ? (persona ? escapeHtml(persona) : 'Steam connecté') : 'Connecter Steam'}</span>
-    ${connected ? '<span class="tf-steam-check" aria-hidden="true">✓</span>' : ''}
-  `;
-  btn.title = connected
-    ? (persona ? `Steam connecté : ${persona}` : 'Steam connecté')
-    : 'Connecter Steam';
-}
-
-async function tfRefreshSteamSession(){
-  try{
-    const r = await fetch(`${API_BASE}/api/steam/me`, { credentials:'include' });
-    const d = await r.json();
-    tfSteamSession = (d && d.success && d.connected) ? { connected:true, steamid:d.steamid||'', profile:d.profile||null } : { connected:false, steamid:'', profile:null };
-    if(tfSteamSession.connected && tfSteamSession.steamid){
-      // keep a local hint for legacy endpoints; not required
-      tfSetSteamId(tfSteamSession.steamid);
-    }
-  }catch(_){
-    tfSteamSession = { connected:false, steamid:'', profile:null };
-  }
-  tfUpdateSteamBtn();
-}
-
-async function tfLoadPersonalization(){
-  // Prefer server session
-  if(tfSteamSession.connected){
-    try{
-      const r = await fetch(`${API_BASE}/api/reco/personalized`, { credentials:'include' });
-      if(!r.ok) { tfPersonalization = null; return; }
-      const d = await r.json();
-      if(d && d.success && Array.isArray(d.categories) && d.categories.length){
-        tfPersonalization = d;
-        return;
-      }
-    }catch(_){}
-  }
-
-  // Legacy fallback (manual SteamID64 in localStorage)
-  const steamid = tfGetSteamId();
-  if(!steamid){ tfPersonalization = null; return; }
-  try{
-    const r = await fetch(`${API_BASE}/api/reco/personalized?steamid=${encodeURIComponent(steamid)}`);
-    if(!r.ok) { tfPersonalization = null; return; }
-    const d = await r.json();
-    tfPersonalization = (d && d.success && Array.isArray(d.categories) && d.categories.length) ? d : null;
-  }catch(_){ tfPersonalization = null; }
-}
-
-function tfConnectSteam(){
-  const next = '/'; // keep it simple: return to home
-  const url = `${API_BASE}/auth/steam?next=${encodeURIComponent(next)}`;
-  // popup first (second screen friendly)
-  const w = 720, h = 640;
-  const left = Math.max(0, (window.screen.width - w) / 2);
-  const top = Math.max(0, (window.screen.height - h) / 2);
-  const popup = window.open(url, 'steamAuth', `width=${w},height=${h},left=${left},top=${top}`);
-  if(!popup){
-    // popup blocked -> full redirect
-    window.location.href = url;
-  }
-}
-
-async function tfPromptSteam(){
-  // No more manual prompt: always use Steam OpenID.
-  if(tfSteamSession.connected){
-    const ok = confirm('Steam est déjà connecté. Voulez-vous déconnecter Steam pour cette session ?');
-    if(!ok) return;
-    try{ await fetch(`${API_BASE}/api/steam/unlink`, { method:'POST', credentials:'include' }); }catch(_){}
-    tfSteamSession = { connected:false, steamid:'', profile:null };
-    tfUpdateSteamBtn();
-    tfPersonalization = null;
-    if(tfModalOpen) renderTwitFlix();
-    return;
-  }
-  tfConnectSteam();
-}
-window.tfPromptSteam = tfPromptSteam;
-
-// Listen for popup completion
-window.addEventListener('message', (ev) => {
-  const data = ev?.data;
-  if(!data || data.type !== 'steam:connected') return;
-  if(data.ok){
-    tfRefreshSteamSession().then(()=> tfLoadPersonalization().then(()=>{ if(tfModalOpen) renderTwitFlix(); }).catch(()=>{})).catch(()=>{});
-  }else{
-    tfRefreshSteamSession().catch(()=>{});
-    alert('Connexion Steam échouée.');
-  }
-});
-
-
     // ====== TWITFLIX: LIVE CAROUSEL + TRAILERS ======
     // Add YouTube video IDs here to enable embedded trailers in TwitFlix.
     // Key: game name (lowercased). Value: YouTube videoId.
@@ -934,12 +815,6 @@ window.addEventListener('message', (ev) => {
 
     function tfRenderTrailerCarousel(){
       const wrap = document.getElementById('tf-trailer-carousel');
-      // Live Tips replaces trailers
-      if(wrap){
-        wrap.innerHTML = '<div class="tf-empty">Clips de progrès…</div>';
-      }
-      try{ window.tfLoadProgressClips && window.tfLoadProgressClips(true); }catch(_e){}
-      return;
       if (!wrap) return;
 
       tfBindHorizontalWheel(wrap);
@@ -1008,7 +883,6 @@ window.addEventListener('message', (ev) => {
     let tfSearchQuery = '';
     let tfSearchResults = [];
     let tfSearchTimer = null;
-    let tfSearchSeq = 0; // prevents stale async search results from overriding newer queries
 
     let tfObserver = null;
 
@@ -1083,17 +957,8 @@ try{
 
       setTwitFlixView('rows');
 
-      // search handler (IA-assisted)
+      // search handler (server if possible, fallback local)
       if (search){
-        search.onkeydown = async (ev)=>{
-          if(ev.key === 'Enter'){
-            ev.preventDefault();
-            const v = String(search.value||'').trim();
-            tfSearchQuery = v;
-            if (tfSearchTimer) clearTimeout(tfSearchTimer);
-            await tfRunSearch(v);
-          }
-        };
         search.oninput = (e) => {
           const v = String(e.target.value || '').trim();
           tfSearchQuery = v;
@@ -1111,11 +976,6 @@ try{
       // warm load (2 pages)
       await tfLoadMore(true);
       await tfLoadMore(true);
-
-      // Steam session (OpenID) + ADN
-      await tfRefreshSteamSession();
-      await tfLoadPersonalization();
-
       tfRenderLiveCarousel();
       tfRenderTrailerCarousel();
       renderTwitFlix();
@@ -1184,58 +1044,21 @@ try{
       const host = document.getElementById('twitflix-grid');
       if (!host) return;
 
-      const mySeq = ++tfSearchSeq;
-
       if (!q){
         tfSearchResults = [];
         renderTwitFlix();
         return;
       }
 
-      // Fast feedback (prevents the feeling that nothing happens)
-      try{
-        tfSearchResults = [];
-        renderTwitFlix();
-      }catch(_){ }
-
-      // IA-assisted: if query is a sentence, ask the server to translate it into a curated list.
-      const looksComplex = (q.length >= 22) || /\bcomme\b|\bmais\b|\bmoins\b|\bplus\b|\bstress\b|\bcraft\b/i.test(q);
-      if(looksComplex){
-        try{
-          const r0 = await fetch(`${API_BASE}/api/search/intent`, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            credentials: 'include',
-            body: JSON.stringify({ text: q })
-          });
-          if(r0.ok){
-            const d0 = await r0.json();
-            if(d0 && d0.success && Array.isArray(d0.categories)){
-              if(mySeq !== tfSearchSeq) return; // stale
-              tfSearchResults = d0.categories.map(c => ({
-                id: c.id,
-                name: c.name,
-                compat: (typeof c.compat === 'number') ? c.compat : undefined,
-                box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
-              }));
-              renderTwitFlix();
-              return;
-            }
-          }
-        }catch(_){ }
-      }
-
       // Try server search (best)
       try{
-        const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`, { credentials: 'include' });
+        const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
           if (d && d.success && Array.isArray(d.categories)){
-            if(mySeq !== tfSearchSeq) return; // stale
             tfSearchResults = d.categories.map(c => ({
               id: c.id,
               name: c.name,
-              compat: (typeof c.compat === 'number') ? c.compat : undefined,
               box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
             }));
             renderTwitFlix();
@@ -1246,11 +1069,9 @@ try{
 
       // Fallback: local filter on already loaded catalogue
       const low = q.toLowerCase();
-      const local = tfAllCategories
+      tfSearchResults = tfAllCategories
         .filter(c => (c.name||'').toLowerCase().includes(low))
         .slice(0, 120);
-      if(mySeq !== tfSearchSeq) return; // stale
-      tfSearchResults = local;
       renderTwitFlix();
     }
 
@@ -1391,14 +1212,7 @@ try{
       const picks4 = tfShuffle(list).slice(28, 56);
 
       host.appendChild(tfBuildRow('Top du moment <span>(Twitch)</span>', picks1));
-
-      // ADN row (Steam-based) if available
-      if (tfPersonalization && Array.isArray(tfPersonalization.categories) && tfPersonalization.categories.length){
-        host.appendChild(tfBuildRow(tfPersonalization.title || 'Parce que tu as aimé', tfPersonalization.categories.slice(0,28)));
-      } else {
-        host.appendChild(tfBuildRow('Tendances <span>FR</span>', picks2));
-      }
-
+      host.appendChild(tfBuildRow('Tendances <span>FR</span>', picks2));
       host.appendChild(tfBuildRow('Découverte <span>(aléatoire)</span>', picks3));
       host.appendChild(tfBuildRow('À essayer <span>ce soir</span>', picks4));
     }
@@ -1462,7 +1276,6 @@ try{
 
       div.innerHTML = `
         <img class="tf-poster" src="${poster}" loading="lazy" alt="">
-        ${typeof cat.compat === "number" ? `<div class="tf-compat-badge">${Math.round(cat.compat)}% compat</div>` : ``}
         <div class="tf-preview" aria-hidden="true"></div>
         <div class="tf-overlay">
           <div class="tf-name" title="${escapeHtml(cat.name)}">${escapeHtml(cat.name)}</div>
@@ -2196,8 +2009,6 @@ try{
   }
 
   function ensureInlineOverlay(el, html){
-    // hard cleanup to avoid multiple padlocks layers
-    el.querySelectorAll('.paywall-inline-overlay').forEach(n=>n.remove());
     let ov = el.querySelector(":scope > .paywall-inline-overlay");
     if(!ov){
       ov = document.createElement("div");
@@ -2360,287 +2171,3 @@ try{
   }
 })();
 
-
-
-// ================================
-// Second Screen: Play Session HUD
-// ================================
-let __playSession = { active:false, level:1, xp:0, progressPct:0, game:null, secondsToday:0 };
-
-async function apiPlayGetStatus(){
-  try{
-    const r = await fetch(`${API_BASE}/api/play/status`, { credentials:'include' });
-    if(!r.ok) return null;
-    return await r.json().catch(()=>null);
-  }catch(_){ return null; }
-}
-async function apiPlayStart(){
-  const r = await fetch(`${API_BASE}/api/play/start`, { method:'POST', credentials:'include' });
-  return await r.json().catch(()=>null);
-}
-async function apiPlayStop(){
-  const r = await fetch(`${API_BASE}/api/play/stop`, { method:'POST', credentials:'include' });
-  return await r.json().catch(()=>null);
-}
-async function apiPlayTick(){
-  const r = await fetch(`${API_BASE}/api/play/tick`, { method:'POST', credentials:'include' });
-  return await r.json().catch(()=>null);
-}
-
-function updatePlayGameLabel(){
-  const el = document.getElementById('play-game');
-  if(el) el.textContent = currentGameName ? String(currentGameName) : '—';
-}
-
-function renderPlayHUD(){
-  const hud = document.getElementById('play-hud');
-  const btn = document.getElementById('btn-play-session');
-  const lbl = document.getElementById('play-session-label');
-  if(btn && lbl){
-    lbl.textContent = __playSession.active ? 'EN SESSION' : 'JE JOUE';
-    btn.classList.toggle('border-[#00f2ea33]', __playSession.active);
-    btn.classList.toggle('text-[#00f2ea]', __playSession.active);
-  }
-
-  if(!hud) return;
-  if(__playSession.active){
-    hud.classList.remove('hidden');
-  }else{
-    hud.classList.add('hidden');
-  }
-  const meta = document.getElementById('play-hud-meta');
-  if(meta){
-    const m = __playSession.active ? `Actif • ${Math.round((__playSession.secondsToday||0)/60)} min aujourd’hui` : '—';
-    meta.textContent = m;
-  }
-  const level = document.getElementById('play-level');
-  const xp = document.getElementById('play-xp');
-  const bar = document.getElementById('play-progress');
-  if(level) level.textContent = String(__playSession.level || 1);
-  if(xp) xp.textContent = String(Math.round(__playSession.xp || 0));
-  if(bar) bar.style.width = `${Math.max(0, Math.min(100, Number(__playSession.progressPct||0)))}%`;
-  updatePlayGameLabel();
-}
-
-let __playTickTimer = null;
-
-async function initPlaySessionHUD(){
-  // Only if logged in; still safe to call
-  const st = await apiPlayGetStatus();
-  if(st && st.success){
-    __playSession = Object.assign(__playSession, st.session || {});
-  }
-  renderPlayHUD();
-
-  // background ticker
-  if(__playTickTimer) clearInterval(__playTickTimer);
-  __playTickTimer = setInterval(async ()=>{
-    if(!__playSession.active) return;
-    if(document.hidden) return;
-    const d = await apiPlayTick();
-    if(d && d.success){
-      __playSession = Object.assign(__playSession, d.session || {});
-      renderPlayHUD();
-    }
-  }, 20000);
-}
-
-async function togglePlaySession(){
-  // must be authenticated
-  try{
-    const st0 = await apiPlayGetStatus();
-    if(!st0 || !st0.success){
-      alert('Connecte-toi pour activer la session jeu.');
-      return;
-    }
-  }catch(_){}
-  if(__playSession.active){
-    const d = await apiPlayStop();
-    if(d && d.success){
-      __playSession = Object.assign(__playSession, d.session || {active:false});
-      renderPlayHUD();
-    }
-  }else{
-    const d = await apiPlayStart();
-    if(d && d.success){
-      __playSession = Object.assign(__playSession, d.session || {active:true});
-      renderPlayHUD();
-    }
-  }
-}
-window.togglePlaySession = togglePlaySession;
-
-// ================================
-// Streamer Hub Predictif (LoL) — Riot compare (historical CS@15)
-// ================================
-let __perfInit = false;
-async function initPerformanceWidget(){
-  if(__perfInit) return;
-  __perfInit = true;
-
-  const btnLink = document.getElementById('riot-me-link');
-  const btnBind = document.getElementById('riot-streamer-bind');
-
-  if(btnLink){
-    btnLink.addEventListener('click', async ()=>{
-      const name = String(document.getElementById('riot-me-name')?.value || '').trim();
-      if(!name){ alert('Entre ton Summoner.'); return; }
-      const r = await fetch(`${API_BASE}/api/riot/link`, {
-        method:'POST',
-        credentials:'include',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ region:'euw1', summonerName: name })
-      });
-      const d = await r.json().catch(()=>null);
-      if(d?.success){ alert('Compte LoL lié.'); updatePerformanceWidget(); }
-      else alert(d?.error || 'Erreur Riot (link).');
-    });
-  }
-
-  if(btnBind){
-    btnBind.addEventListener('click', async ()=>{
-      const name = String(document.getElementById('riot-streamer-name')?.value || '').trim();
-      if(!name){ alert('Entre le Summoner du streamer.'); return; }
-      const r = await fetch(`${API_BASE}/api/riot/bind-streamer`, {
-        method:'POST',
-        credentials:'include',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ region:'euw1', twitchLogin: String(currentChannel||'').trim(), summonerName: name })
-      });
-      const d = await r.json().catch(()=>null);
-      if(d?.success){ alert('Streamer associé.'); updatePerformanceWidget(); }
-      else alert(d?.error || 'Erreur Riot (bind).');
-    });
-  }
-}
-
-function isLoL(){
-  const g = String(currentGameName||'').toLowerCase();
-  return g.includes('league of legends') || g === 'lol';
-}
-
-async function updatePerformanceWidget(){
-  const status = document.getElementById('perf-status');
-  const body = document.getElementById('perf-body');
-  const actions = document.getElementById('perf-actions');
-  if(!status || !body || !actions) return;
-
-  if(!currentChannel || currentChannel === 'twitch'){
-    status.textContent = '—';
-    body.textContent = 'Sélectionne un live pour analyser.';
-    actions.classList.add('hidden');
-    return;
-  }
-
-  if(!isLoL()){
-    status.textContent = currentGameName ? 'Jeu détecté' : '—';
-    body.textContent = currentGameName ? `Jeu: ${currentGameName}. La comparaison Riot est dispo uniquement sur League of Legends.` : '—';
-    actions.classList.add('hidden');
-    return;
-  }
-
-  status.textContent = 'LoL détecté';
-  actions.classList.remove('hidden');
-  body.innerHTML = '<span class="text-gray-500">Analyse…</span>';
-
-  try{
-    const r = await fetch(`${API_BASE}/api/riot/compare?twitchLogin=${encodeURIComponent(String(currentChannel||''))}&region=euw1`, { credentials:'include' });
-    const d = await r.json().catch(()=>null);
-    if(d?.success){
-      body.innerHTML = `
-        <div class="text-gray-200 font-bold">${d.message || 'Comparaison prête.'}</div>
-        <div class="mt-2 text-[11px] text-gray-500">Basé sur les derniers matchs publics (moyenne CS@15).</div>
-      `;
-      // prefill streamer summoner if known
-      if(d.streamer?.summonerName){
-        const in2 = document.getElementById('riot-streamer-name');
-        if(in2 && !in2.value) in2.value = d.streamer.summonerName;
-      }
-      return;
-    }
-    body.textContent = d?.error || 'Comparaison indisponible. Lie ton compte et associe le streamer.';
-  }catch(e){
-    body.textContent = 'Erreur chargement Riot.';
-  }
-}
-window.updatePerformanceWidget = updatePerformanceWidget;
-
-// ================================
-// Live Tips: "Clips de Progrès" (YouTube short tips)
-// ================================
-let __tfTipsCache = { q:'', t:0, clips:[] };
-
-function tfRenderProgressClips(clips, qLabel){
-  const wrap = document.getElementById('tf-trailer-carousel');
-  const sub = document.getElementById('tf-tips-sub');
-  if(!wrap) return;
-
-  tfBindHorizontalWheel(wrap);
-  wrap.innerHTML = '';
-
-  if(sub){
-    sub.textContent = qLabel ? `Recherche: ${qLabel}` : '';
-  }
-
-  if(!clips || !clips.length){
-    wrap.innerHTML = '<div class="tf-empty">Aucun clip trouvé. Essaye un autre mot-clé.</div>';
-    return;
-  }
-
-  clips.slice(0, 10).forEach(c=>{
-    const vid = c.videoId || c.id;
-    const title = c.title || 'Clip';
-    const card = document.createElement('div');
-    card.className = 'tf-trailer-card';
-    card.innerHTML = `
-      <iframe
-        src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        loading="lazy"
-        title="${title}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
-      </iframe>
-    `;
-    wrap.appendChild(card);
-  });
-}
-
-async function tfLoadProgressClips(silent){
-  const input = document.getElementById('tf-tips-query');
-  const extra = String(input?.value || '').trim();
-  const g = String(currentGameName || '').trim();
-  const q = [g, extra].filter(Boolean).join(' ');
-  const finalQ = q || extra || g;
-
-  if(!finalQ){
-    tfRenderProgressClips([], '');
-    return;
-  }
-
-  const now = Date.now();
-  if(__tfTipsCache.q === finalQ && (now - __tfTipsCache.t) < 60_000 && __tfTipsCache.clips?.length){
-    tfRenderProgressClips(__tfTipsCache.clips, finalQ);
-    return;
-  }
-
-  if(!silent){
-    const wrap = document.getElementById('tf-trailer-carousel');
-    if(wrap) wrap.innerHTML = '<div class="tf-empty">Recherche de clips…</div>';
-  }
-
-  try{
-    const r = await fetch(`${API_BASE}/api/youtube/tips?q=${encodeURIComponent(finalQ)}`);
-    const d = await r.json().catch(()=>null);
-    const clips = (d && d.success && Array.isArray(d.items)) ? d.items : [];
-    __tfTipsCache = { q: finalQ, t: now, clips };
-    tfRenderProgressClips(clips, finalQ);
-  }catch(_){
-    tfRenderProgressClips([], finalQ);
-  }
-}
-window.tfLoadProgressClips = tfLoadProgressClips;
-
-// Auto-load tips when TwitFlix opens and a game is known
-window.tfAutoLoadTips = function(){
-  if(!window.tfModalOpen) return;
-  tfLoadProgressClips(true);
-};
