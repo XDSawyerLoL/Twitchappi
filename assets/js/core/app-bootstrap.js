@@ -77,7 +77,7 @@
           document.exitFullscreen?.().catch(()=>{});
         }
       }
-    }}
+    }
 
     // Hard fallback for environments where the modal header is re-rendered
     // or event listeners get lost.
