@@ -514,37 +514,33 @@
 /* === TwitFlix UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
 #twitflix-modal .tf-modal-content{ max-width: 1400px; }
 
-/* Make the TwitFlix overlay truly opaque so Big Picture never “bleeds” the underlying StreamerHub UI */
-#twitflix-modal{ background:#000 !important; }
-#twitflix-modal .tf-body{ background:#000 !important; }
-
 #twitflix-modal .tf-topbar{ position: sticky; top:0; z-index: 60; }
 #twitflix-modal .tf-actions{ gap: 12px; }
 #twitflix-modal .tf-search{ font-size: 14px; padding: 12px 14px 12px 38px; }
 
 /* =========================================================
    BIG PICTURE MODE (console-like UX)
-   Toggle adds class .tf-big-picture on #twitflix-modal (so it never impacts StreamerHub)
+   Toggle adds class .tf-big-picture on <html>
 ========================================================= */
-#twitflix-modal.tf-big-picture .tf-modal-content{ max-width: 1680px; }
-#twitflix-modal.tf-big-picture .tf-search{ font-size: 16px; padding: 14px 16px 14px 42px; }
-#twitflix-modal.tf-big-picture .tf-row{ gap: 14px; }
-#twitflix-modal.tf-big-picture .tf-row-title{ font-size: 16px; }
-#twitflix-modal.tf-big-picture .tf-row-track{ padding-bottom: 10px; }
-#twitflix-modal.tf-big-picture .tf-card{ width: 240px; height: 145px; }
-#twitflix-modal.tf-big-picture .tf-card:focus{
+.tf-big-picture #twitflix-modal .tf-modal-content{ max-width: 1680px; }
+.tf-big-picture #twitflix-modal .tf-search{ font-size: 16px; padding: 14px 16px 14px 42px; }
+.tf-big-picture #twitflix-modal .tf-row{ gap: 14px; }
+.tf-big-picture #twitflix-modal .tf-row-title{ font-size: 16px; }
+.tf-big-picture #twitflix-modal .tf-row-track{ padding-bottom: 10px; }
+.tf-big-picture #twitflix-modal .tf-card{ width: 240px; height: 145px; }
+.tf-big-picture #twitflix-modal .tf-card:focus{
   outline: 3px solid rgba(0,242,234,.95);
   outline-offset: 6px;
   box-shadow: 0 0 0 6px rgba(0,0,0,.45);
 }
-/* Big Picture is scoped to #twitflix-modal only; never lock the whole page scroll here. */
-#twitflix-modal.tf-big-picture .tf-actions .tf-toggle-btn{ padding: 10px 14px; font-weight: 900; }
+.tf-big-picture #twitflix-modal .tf-actions .tf-toggle-btn{ padding: 10px 14px; font-weight: 900; }
 
 /* === BIG PICTURE FULLSCREEN (Steam-like) =======================
    Goal: TwitFlix becomes a true full-screen "second screen" view,
    not a zoomed modal. This overrides layout only when big-picture is on.
 =============================================================== */
-#twitflix-modal.tf-big-picture{
+.tf-big-picture body{ overflow: hidden !important; }
+.tf-big-picture #twitflix-modal{
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
@@ -554,8 +550,8 @@
   background: radial-gradient(1200px 800px at 20% 10%, rgba(0,229,255,.12), rgba(0,0,0,.94) 55%, rgba(0,0,0,.98) 100%) !important;
   backdrop-filter: none !important;
 }
-#twitflix-modal.tf-big-picture.active{ display:flex !important; }
-#twitflix-modal.tf-big-picture .tf-modal-content{
+.tf-big-picture #twitflix-modal.active{ display:flex !important; }
+.tf-big-picture #twitflix-modal .tf-modal-content{
   width: 100vw !important;
   height: 100vh !important;
   max-width: none !important;
@@ -568,7 +564,7 @@
   display:flex !important;
   flex-direction: column !important;
 }
-#twitflix-modal.tf-big-picture .tf-topbar{
+.tf-big-picture #twitflix-modal .tf-topbar{
   position: sticky !important;
   top: 0 !important;
   z-index: 80 !important;
@@ -576,42 +572,42 @@
   border-bottom: 1px solid rgba(255,255,255,.08) !important;
   padding: 18px 24px !important;
 }
-#twitflix-modal.tf-big-picture .tf-search-wrap{
+.tf-big-picture #twitflix-modal .tf-search-wrap{
   max-width: 920px !important;
   margin: 0 auto !important;
 }
-#twitflix-modal.tf-big-picture .tf-search{
+.tf-big-picture #twitflix-modal .tf-search{
   font-size: 18px !important;
   padding: 16px 18px 16px 48px !important;
   border-radius: 14px !important;
 }
-#twitflix-modal.tf-big-picture .tf-body{
+.tf-big-picture #twitflix-modal .tf-body{
   overflow-y: auto !important;
   padding: 10px 14px 28px 14px !important;
 }
-#twitflix-modal.tf-big-picture .tf-row-title{
+.tf-big-picture #twitflix-modal .tf-row-title{
   font-size: 18px !important;
   letter-spacing: .2px !important;
 }
-#twitflix-modal.tf-big-picture .tf-card{
+.tf-big-picture #twitflix-modal .tf-card{
   width: 300px !important;
   height: 170px !important;
   border-radius: 16px !important;
 }
-#twitflix-modal.tf-big-picture .tf-row-track{
+.tf-big-picture #twitflix-modal .tf-row-track{
   gap: 18px !important;
   padding: 8px 10px 16px 10px !important;
   scroll-snap-type: x mandatory;
 }
-#twitflix-modal.tf-big-picture .tf-card{ scroll-snap-align: start; }
-#twitflix-modal.tf-big-picture .tf-card:focus{
+.tf-big-picture #twitflix-modal .tf-card{ scroll-snap-align: start; }
+.tf-big-picture #twitflix-modal .tf-card:focus{
   transform: translateY(-2px) scale(1.03);
   outline: 3px solid rgba(0,229,255,.95) !important;
   outline-offset: 7px !important;
   box-shadow: 0 0 0 7px rgba(0,0,0,.55), 0 22px 60px rgba(0,0,0,.65) !important;
 }
-#twitflix-modal.tf-big-picture .tf-actions{ gap: 14px !important; }
-#twitflix-modal.tf-big-picture .tf-actions button{ padding: 12px 16px !important; }
+.tf-big-picture #twitflix-modal .tf-actions{ gap: 14px !important; }
+.tf-big-picture #twitflix-modal .tf-actions button{ padding: 12px 16px !important; }
 
 
 #twitflix-modal .tf-body{
@@ -727,10 +723,8 @@
 #twitflix-modal .tf-poster{
   width:100%; height:100%;
   object-fit: cover;
-  transform: none;
+  transform: scale(1.02);
   opacity:.95;
-  backface-visibility: hidden;
-  -webkit-font-smoothing: antialiased;
 }
 #twitflix-modal .tf-card:hover .tf-poster{ opacity:.35; }
 
@@ -2557,10 +2551,6 @@ body.modal-open #player-tools{display:none !important;}
 
 }
 
-
-/* Big Picture must fully isolate TwitFlix (no background bleed) */
-#twitflix-modal.tf-big-picture{ background:#000 !important; }
-#twitflix-modal.tf-big-picture .tf-shell{ background:#000 !important; }
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2848,7 +2838,7 @@ body.modal-open #player-tools{display:none !important;}
       </div>
       <div id="perf-status" class="text-[10px] text-gray-500">—</div>
     </div>
-    <div id="perf-body" class="mt-2 text-xs text-gray-400">Sélectionne un live pour analyser. Le module s'adapte à tes comptes connectés (Steam / Riot / Epic).</div>
+    <div id="perf-body" class="mt-2 text-xs text-gray-400">Sélectionne un live. Si le jeu est League of Legends, tu peux activer la comparaison Riot.</div>
 
     <div id="perf-actions" class="mt-3 hidden">
       <div class="grid grid-cols-1 gap-2">
@@ -3033,9 +3023,7 @@ body.modal-open #player-tools{display:none !important;}
   (function(){
     function setState(on){
       try{ localStorage.setItem('tf_big_picture', on ? '1' : '0'); }catch(e){}
-      var modal = document.getElementById('twitflix-modal');
-      if(modal) modal.classList.toggle('tf-big-picture', !!on);
-      // Do not modify <body> state; Big Picture must be scoped to TwitFlix only.
+      document.documentElement.classList.toggle('tf-big-picture', !!on);
       var btn = document.getElementById('tf-btn-bigpic');
       if(btn){
         btn.classList.toggle('active', !!on);
@@ -3043,8 +3031,7 @@ body.modal-open #player-tools{display:none !important;}
       }
     }
     window.tfToggleBigPictureFallback = function(){
-      var modal = document.getElementById('twitflix-modal');
-      var on = !!(modal && modal.classList.contains('tf-big-picture'));
+      var on = document.documentElement.classList.contains('tf-big-picture');
       setState(!on);
     };
     if(!window.tfToggleBigPicture){
@@ -3068,15 +3055,6 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn tf-epic-btn" id="tf-btn-epic" type="button" onclick="tfPromptEpic()">
   <span class="tf-oauth-dot tf-dot-epic" aria-hidden="true"></span>
   <span class="tf-oauth-label">Connecter Epic</span>
-
-<button class="tf-toggle-btn tf-ubisoft-btn" id="tf-btn-ubisoft" type="button" onclick="tfPromptUbisoft()">
-  <i class="fab fa-ubisoft" aria-hidden="true"></i>
-  <span class="tf-oauth-label">Connecter Ubisoft</span>
-</button>
-<button class="tf-toggle-btn tf-xbox-btn" id="tf-btn-xbox" type="button" onclick="tfPromptXbox()">
-  <i class="fab fa-xbox" aria-hidden="true"></i>
-  <span class="tf-oauth-label">Connecter Xbox</span>
-</button>
 </button>
 <button class="tf-close-btn" type="button" aria-label="Fermer TwitFlix" onclick="closeTwitFlix()">✕</button>
 </div>
@@ -3097,10 +3075,8 @@ body.modal-open #player-tools{display:none !important;}
   <div class="tf-strip-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <h4 style="margin:0">Clips de Progrès <span class="help" data-help="Des clips courts pour t’aider sur ton jeu. Tape une situation (ex: 'boss 2', 'early game', 'build') pour une recherche ciblée.">?</span></h4>
     <div style="display:flex;gap:8px;align-items:center;flex:1;min-width:240px;max-width:640px">
-      <!-- Auto game context is resolved from Steam (recently played) or current stream.
-           We keep the element for internal wiring but hide it to avoid UX noise. -->
-      <select id="tf-tips-game" class="tf-search" style="display:none" aria-label="Jeu pour les clips">
-        <option value=""></option>
+      <select id="tf-tips-game" class="tf-search" style="height:34px;font-size:12px;max-width:240px" aria-label="Jeu pour les clips">
+        <option value="">Jeu : Auto</option>
       </select>
       <input id="tf-tips-query" class="tf-search" style="height:34px;font-size:12px;flex:1" placeholder="Je suis bloqué sur… (ex: 'craft base', 'boss 2')" autocomplete="off"/>
       <button class="tf-toggle-btn" id="tf-tips-go" type="button" onclick="tfLoadProgressClips()">TROUVER</button>

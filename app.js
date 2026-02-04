@@ -629,48 +629,6 @@ app.get('/auth/epic/return', async (req, res) => {
   }
   req.session.epic_oauth_state = null;
 
-// =========================================================
-// UBISOFT / XBOX (placeholders)
-// =========================================================
-// These endpoints are stubs so the UI can expose the buttons without breaking the app.
-// Wire them to real OAuth flows later.
-
-app.get('/auth/ubisoft', (req,res)=>{
-  const returnTo = String(req.query.return_to||'').trim();
-  res.setHeader('Content-Type','text/html; charset=utf-8');
-  res.end(`<!doctype html><html><body style="font-family:system-ui;background:#0b0f14;color:#e5e7eb;padding:20px">
-  <h3 style="margin:0 0 8px 0">Ubisoft Connect</h3>
-  <p style="margin:0 0 12px 0">Connexion Ubisoft pas encore configurée côté serveur.</p>
-  <script>
-    try{
-      if(window.opener){
-        window.opener.postMessage({ type:'ubisoft:connected', ok:false, return_to:${json.dumps(returnTo)} }, window.location.origin);
-      }
-    }catch(e){}
-    setTimeout(()=>{ try{ window.close(); }catch(e){} }, 50);
-  </script>
-  </body></html>`);
-});
-
-app.get('/auth/xbox', (req,res)=>{
-  const returnTo = String(req.query.return_to||'').trim();
-  res.setHeader('Content-Type','text/html; charset=utf-8');
-  res.end(`<!doctype html><html><body style="font-family:system-ui;background:#0b0f14;color:#e5e7eb;padding:20px">
-  <h3 style="margin:0 0 8px 0">Xbox</h3>
-  <p style="margin:0 0 12px 0">Connexion Xbox pas encore configurée côté serveur.</p>
-  <script>
-    try{
-      if(window.opener){
-        window.opener.postMessage({ type:'xbox:connected', ok:false, return_to:${json.dumps(returnTo)} }, window.location.origin);
-      }
-    }catch(e){}
-    setTimeout(()=>{ try{ window.close(); }catch(e){} }, 50);
-  </script>
-  </body></html>`);
-});
-
-
-
   try{
     const baseUrl = getBaseUrl(req);
     const redirectUri = process.env.EPIC_REDIRECT_URI || `${baseUrl}/auth/epic/return`;
@@ -1335,21 +1293,6 @@ app.get('/api/epic/me', (req, res) => {
   return res.json({ success:true, connected });
 });
 
-// GET /api/ubisoft/me -> Ubisoft (placeholder) session status
-app.get('/api/ubisoft/me', (req, res) => {
-  const u = req.session?.ubisoft || null;
-  const connected = !!u;
-  return res.json({ success:true, connected });
-});
-
-// GET /api/xbox/me -> Xbox (placeholder) session status
-app.get('/api/xbox/me', (req, res) => {
-  const x = req.session?.xbox || null;
-  const connected = !!x;
-  return res.json({ success:true, connected });
-});
-
-
 // GET /api/steam/recent?steamid=STEAMID64
 app.get('/api/steam/recent', async (req,res)=>{
   try{
@@ -1843,27 +1786,9 @@ app.get('/api/youtube/tips', async (req, res) => {
     variants.push(`${base} tips`);
     variants.push(`${base} how to`);
 
-    // Helper that searches + enriches with duration, then returns ordered items.
-    // IMPORTANT: we deliberately use a fallback ladder because strict filters
-    // (short + gaming category + FR) can often return 0 for niche bosses.
-    const searchOnce = async (query, opts = {}) => {
-      const params = new URLSearchParams({
-        part: 'snippet',
-        type: 'video',
-        videoEmbeddable: 'true',
-        maxResults: '12',
-        safeSearch: 'moderate',
-        order: 'relevance',
-        q: query,
-        key: YOUTUBE_API_KEY,
-      });
-
-      if(opts.categoryId) params.set('videoCategoryId', String(opts.categoryId));
-      if(opts.duration) params.set('videoDuration', String(opts.duration));
-      if(opts.relevanceLanguage) params.set('relevanceLanguage', String(opts.relevanceLanguage));
-      if(opts.regionCode) params.set('regionCode', String(opts.regionCode));
-
-      const url = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
+    // Helper that searches + enriches with duration, then returns ordered items
+    const searchOnce = async (query) => {
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&safeSearch=moderate&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
       const r = await fetch(url);
       const d = await r.json();
       const items = Array.isArray(d.items) ? d.items : [];
@@ -1905,25 +1830,12 @@ app.get('/api/youtube/tips', async (req, res) => {
       return final;
     };
 
-    const strategies = [
-      // 1) Strict: gaming shorts + FR relevance
-      { categoryId: 20, duration: 'short', relevanceLanguage: 'fr', regionCode: 'FR' },
-      // 2) Still gaming, allow longer (tutorials are often not Shorts)
-      { categoryId: 20, relevanceLanguage: 'fr', regionCode: 'FR' },
-      // 3) Still gaming, drop language bias (keeps relevance but broader)
-      { categoryId: 20, regionCode: 'FR' },
-      // 4) Still gaming, maximum recall
-      { categoryId: 20 },
-    ];
-
     let final = [];
-    outer: for(const v of variants){
-      for(const s of strategies){
-        try{
-          final = await searchOnce(v, s);
-          if(final && final.length) break outer;
-        }catch(_){ }
-      }
+    for(const v of variants){
+      try{
+        final = await searchOnce(v);
+        if(final && final.length) break;
+      }catch(_){}
     }
 
     return res.json({ success:true, items: Array.isArray(final) ? final : [] });
