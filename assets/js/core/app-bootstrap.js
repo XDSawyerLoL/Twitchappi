@@ -1,11 +1,4 @@
-// --- API base resolution (critical for iframe on justplayer.fr) ---
-// Priority:
-// 1) ?api=https://justplayerstreamhubpro.onrender.com
-// 2) window.location.origin (when the app is served from Render)
-// This prevents the front from accidentally calling https://justplayer.fr as the API.
-const __url = new URL(window.location.href);
-const __apiParam = (__url.searchParams.get('api') || '').trim();
-const API_BASE = (__apiParam ? __apiParam : window.location.origin).replace(/\/+$/, '');
+const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
@@ -83,23 +76,10 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     // FIREBASE STATUS
     async function initFirebaseStatus() {
       async function checkStatus() {
-        const statusEl = document.getElementById('socket-status');
-        if (!statusEl) return;
         try {
-          // Prefer a simple healthcheck to detect API reachability (iframe-safe)
-          const h = await fetch(`${API_BASE}/api/health`, { credentials: 'include' });
-          if (h.ok) {
-            statusEl.innerText = 'HUB SECURE';
-            statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
-            return;
-          }
-        } catch (_) {
-          // fallthrough to firebase_status
-        }
-
-        try {
-          const response = await fetch(`${API_BASE}/firebase_status`, { credentials: 'include' });
+          const response = await fetch(`${API_BASE}/firebase_status`);
           const data = await response.json();
+          const statusEl = document.getElementById('socket-status');
           if (data.connected) {
             statusEl.innerText = 'HUB SECURE';
             statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
@@ -108,9 +88,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
             statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
           }
         } catch (error) {
-          statusEl.innerText = 'HUB DISCONNECTED';
-          statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
-          console.error('Hub status error:', error);
+          console.error('Firebase status error:', error);
         }
       }
       checkStatus();
@@ -119,7 +97,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
     // AUTH
     async function checkAuth() {
-      const res = await fetch(`${API_BASE}/twitch_user_status`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/twitch_user_status`);
       const data = await res.json();
       if (data.is_connected) {
         currentUser = data.display_name;
@@ -254,7 +232,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 function startAuth() {
       window.open(`${API_BASE}/twitch_auth_start`, 'login', 'width=500,height=700');
       const check = setInterval(async () => {
-      const res = await fetch(`${API_BASE}/twitch_user_status`, { credentials: 'include' });
+        const res = await fetch(`${API_BASE}/twitch_user_status`);
         const data = await res.json();
         if (data.is_connected) { clearInterval(check); location.reload(); }
       }, 1000);

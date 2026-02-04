@@ -209,9 +209,7 @@ app.use(cors({
     if(!CORS_ORIGINS.length) return cb(null, true); // default: allow all (previous behavior)
     return cb(null, CORS_ORIGINS.includes(origin));
   },
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','X-Requested-With','X-Steam-Token'],
+  credentials: true
 }));
 app.use(bodyParser.json({ limit: '2mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -227,25 +225,16 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
   resave: false,
   saveUninitialized: false,
-  proxy: true,
   cookie: {
     httpOnly: true,
     // If your UI is on a different domain (e.g. justplayer.fr) than the API (onrender.com),
     // you NEED SameSite=None + Secure for the session cookie to be sent.
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    // Keep Secure in production, but rely on trust proxy.
     secure: process.env.NODE_ENV === 'production',
   }
 });
 
 app.use(sessionMiddleware);
-
-// ---------------------------------------------------------
-// Healthcheck (used by iframe client to detect API reachability)
-// ---------------------------------------------------------
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, ts: Date.now() });
-});
 
 // =========================================================
 // 1B. STEAM OPENID (no manual SteamID64)
