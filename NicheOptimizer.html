@@ -2243,7 +2243,7 @@ body.modal-open #player-tools{display:none !important;}
       padding: 6px 8px;
       font-size: 11px;
       border-radius: 999px;
-      background: rgba(0,0,0,.55);
+      background: rgba(0,0,0,0);
       border: 1px solid rgba(255,255,255,.16);
       color: rgba(255,255,255,.92);
       backdrop-filter: none;
@@ -2312,7 +2312,7 @@ body.modal-open #player-tools{display:none !important;}
 [data-paywall].paywall-scope[data-paywall-locked="1"]::before{
   content:"";
   position:absolute; inset:0;
-  background: rgba(0,0,0,.55);
+  background: rgba(0,0,0,0);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   z-index: 1;
@@ -2466,6 +2466,11 @@ body.modal-open #player-tools{display:none !important;}
 <button class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2" onclick="openMarketOverlay()">
 <i class="fas fa-chart-line"></i> MARCHÉ
       </button>
+
+<button class="bg-[#111] hover:bg-[#161616] border border-[#ff009933] text-[#ff0099] px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron" id="btn-play-session" type="button" onclick="togglePlaySession()">
+  <i class="fas fa-gamepad"></i> <span id="play-session-label">JE JOUE</span>
+</button>
+
 <div class="h-6 w-[1px] bg-[#333]"></div>
 <button class="bg-[#6441a5] hover:bg-[#7d5bbe] text-white px-5 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#7d5bbe]" id="btn-auth" onclick="startAuth()">
 <i class="fab fa-twitch"></i> CONNEXION
@@ -2516,6 +2521,31 @@ body.modal-open #player-tools{display:none !important;}
 </div>
 </div>
 </header>
+
+<div id="play-hud" class="hidden mb-4 border border-[#222] rounded-xl overflow-hidden bg-[#080808]">
+  <div class="flex items-center justify-between px-4 py-2 border-b border-[#222]">
+    <div class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">
+      <i class="fas fa-satellite mr-2 text-[#00f2ea]"></i>
+      Session jeu <span class="text-gray-500">(second screen)</span>
+    </div>
+    <div class="text-[10px] text-gray-500" id="play-hud-meta">—</div>
+  </div>
+  <div class="px-4 py-3">
+    <div class="flex items-center justify-between">
+      <div class="text-xs text-gray-300">
+        Niveau <span class="text-white font-black" id="play-level">1</span>
+        <span class="text-gray-600">•</span>
+        XP <span class="text-[#00f2ea] font-black" id="play-xp">0</span>
+      </div>
+      <div class="text-xs text-gray-500" id="play-game">—</div>
+    </div>
+    <div class="mt-2 h-2 rounded-full bg-[#111] border border-[#222] overflow-hidden">
+      <div id="play-progress" class="h-full w-0 bg-[#00f2ea]"></div>
+    </div>
+    <div class="mt-2 text-[10px] text-gray-500" id="play-hint">La barre progresse uniquement quand ta session est active.</div>
+  </div>
+</div>
+
 <div class="mb-4 relative group">
 <div class="carousel-track" id="carousel">
 <div class="w-full text-center py-10 border border-dashed border-[#333] rounded text-gray-500">
@@ -2663,8 +2693,42 @@ body.modal-open #player-tools{display:none !important;}
 <div class="text-[10px] text-gray-500 mt-2">Plus haut = plus d’opportunité (viewers / concurrence).</div>
 </div>
 </div>
+
 <div class="col-span-4 flex flex-col glass-panel rounded-lg overflow-hidden h-full min-h-0" id="side-panel">
+  <div id="perf-widget" class="border-b border-[#222] bg-[#080808] p-3">
+    <div class="flex items-center justify-between">
+      <div class="text-[11px] text-gray-300 font-black uppercase tracking-wider">
+        <i class="fas fa-chart-line mr-2 text-[#ff0099]"></i> Analyse de performance
+      </div>
+      <div id="perf-status" class="text-[10px] text-gray-500">—</div>
+    </div>
+    <div id="perf-body" class="mt-2 text-xs text-gray-400">Sélectionne un live. Si le jeu est League of Legends, tu peux activer la comparaison Riot.</div>
+
+    <div id="perf-actions" class="mt-3 hidden">
+      <div class="grid grid-cols-1 gap-2">
+        <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-2">
+          <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Ton compte LoL</div>
+          <div class="flex gap-2">
+            <input id="riot-me-name" class="flex-1 bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none text-xs" placeholder="Ton Summoner (EUW)" />
+            <button id="riot-me-link" class="px-3 py-2 rounded-lg bg-[#00f2ea] text-black font-black text-xs">Lier</button>
+          </div>
+          <div class="text-[10px] text-gray-600 mt-1">Optionnel. Sert à comparer tes stats aux siennes.</div>
+        </div>
+
+        <div class="bg-[#0b0b0d] border border-[#222] rounded-lg p-2">
+          <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Compte du streamer</div>
+          <div class="flex gap-2">
+            <input id="riot-streamer-name" class="flex-1 bg-[#070708] text-white px-3 py-2 rounded-lg border border-[#222] focus:border-[#00f2ea] outline-none text-xs" placeholder="Summoner du streamer (EUW)" />
+            <button id="riot-streamer-bind" class="px-3 py-2 rounded-lg bg-[#111] border border-[#00f2ea33] text-[#00f2ea] font-black text-xs">Associer</button>
+          </div>
+          <div class="text-[10px] text-gray-600 mt-1">À faire une fois par streamer.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <div class="tab-nav">
+
 <button class="tab-btn active" onclick="openTab(event,'chat')"><i class="fas fa-comments mr-1"></i> CHAT</button>
 <button class="tab-btn" onclick="openTab(event,'stats')"><i class="fas fa-chart-pie mr-1"></i> STATS</button>
 <button class="tab-btn" onclick="openTab(event,'tools')"><i class="fas fa-toolbox mr-1"></i> OUTILS</button>
@@ -2834,12 +2898,19 @@ body.modal-open #player-tools{display:none !important;}
   <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
 </div>
 
+
 <div class="tf-header-block">
-  <div class="tf-strip-title">
-    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, TwitFlix tente une recherche automatique.">?</span></h4>
+  <div class="tf-strip-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <h4 style="margin:0">Clips de Progrès <span class="help" data-help="Des clips courts pour t’aider sur ton jeu. Tape une situation (ex: 'boss 2', 'early game', 'build') pour une recherche ciblée.">?</span></h4>
+    <div style="display:flex;gap:8px;align-items:center;flex:1;min-width:240px;max-width:520px">
+      <input id="tf-tips-query" class="tf-search" style="height:34px;font-size:12px" placeholder="Je suis bloqué sur… (ex: 'craft base', 'boss 2')" autocomplete="off"/>
+      <button class="tf-toggle-btn" id="tf-tips-go" type="button" onclick="tfLoadProgressClips()">TROUVER</button>
+    </div>
   </div>
-  <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
+  <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Clips de progrès"></div>
+  <div class="tf-sub" id="tf-tips-sub" style="margin-top:6px;display:block;color:#777;font-size:11px"></div>
 </div>
+
 
 <div class="tf-grid" id="twitflix-grid">
 <div class="text-center w-full text-gray-500 py-20" id="tf-loading">
