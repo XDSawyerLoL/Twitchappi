@@ -2539,6 +2539,40 @@ body.tf-bigpicture #twitflix-modal .tf-card:hover{
 #twitflix-modal .tf-dot.active{ background: rgba(255,140,0,.92); box-shadow: 0 0 12px rgba(255,140,0,.35); }
 #twitflix-modal .tf-row-title{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
 
+
+
+/* ORYON TV splash (clean) */
+.oryon-tv-splash{ position:absolute; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(900px 500px at 50% 40%, rgba(255,140,0,.14), rgba(0,0,0,.92));
+  backdrop-filter: blur(12px);
+}
+.oryon-tv-splash.hidden{ display:none; }
+.oryon-tv-splash-bg{ position:relative; width:min(880px, 92vw); height:min(420px, 70vh); border-radius:22px;
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  background: rgba(10,10,12,.25);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 40px 120px rgba(0,0,0,.55);
+  overflow:hidden;
+}
+.oryon-tv-splash-bgtext{
+  font-family: Orbitron, system-ui, sans-serif;
+  font-size: clamp(64px, 9vw, 120px);
+  font-weight: 900;
+  letter-spacing: .18em;
+  color: rgba(255,255,255,.10); /* faint only */
+  text-transform: uppercase;
+  user-select:none;
+  transform: translateY(6px);
+}
+.oryon-tv-splash-status{
+  margin-top: 6px;
+  color: rgba(240,240,248,.82);
+  font-weight: 700;
+  letter-spacing: .06em;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2929,9 +2963,11 @@ body.tf-bigpicture #twitflix-modal .tf-card:hover{
 </div>
 <div class="tf-modal-overlay" id="twitflix-modal">
         <div id="oryon-tv-splash" class="oryon-tv-splash hidden" aria-hidden="true">
-          <div class="oryon-tv-splash-inner">
-            <img src="assets/img/oryon-logo.png" alt="ORYON" class="oryon-tv-splash-logo">
-            <div class="oryon-tv-splash-title">ORYON TV</div>
+  <div class="oryon-tv-splash-bg">
+    <div class="oryon-tv-splash-bgtext">ORYON TV</div>
+    <div class="oryon-tv-splash-status">Mode Netflix • Chargement des streams…</div>
+  </div>
+</div>
             <div class="oryon-tv-splash-sub">ORYON • Data Analytics</div>
           </div>
         </div>
@@ -2987,7 +3023,7 @@ body.tf-bigpicture #twitflix-modal .tf-card:hover{
 </div>
 </div>
 </div></div>
-<div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo">ORYON</div></div>
+<div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="ORYON" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;">ORYON</div></div>
 <script src="/assets/js/core/app-bootstrap.js" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
