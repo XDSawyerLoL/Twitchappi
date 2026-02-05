@@ -1116,24 +1116,13 @@ try{
       tfRenderLiveCarousel();
       tfRenderTrailerCarousel();
       renderTwitFlix();
+      }catch(e){
+        console.error('[ORYON TV] init failed', e);
+        try{ renderTwitFlix(); }catch(_){ }
+      }
     }
 
     
-// Alias for branding: ORYON TV is the new name of the TwitFlix modal
-window.openORYONTV = function(){
-  try { openTwitFlix(); } catch(e){ console.error('[ORYON TV] open failed', e); }
-};
-
-
-
-// Alias for branding: ORYON TV is the VOD/Browser modal (legacy: TwitFlix)
-window.openORYONTV = function(){
-  try { openTwitFlix(); } catch(e){ console.error('[ORYON TV] open failed', e); }
-};
-window.closeORYONTV = function(){
-  try { closeTwitFlix(); } catch(e){ console.error('[ORYON TV] close failed', e); }
-};
-
 function closeTwitFlix(){
   document.body.classList.remove('modal-open');
   tfModalOpen = false;
@@ -1161,6 +1150,16 @@ function closeTwitFlix(){
     modal.classList.remove('closing');
   }, 260);
 }
+
+// ORYON TV public controls (keep internal TwitFlix ids for stability)
+window.openORYONTV = function(){
+  try { openTwitFlix(); } catch(e){ console.error('[ORYON TV] open failed', e); }
+};
+window.closeORYONTV = function(){
+  try { closeTwitFlix(); } catch(e){ console.error('[ORYON TV] close failed', e); }
+};
+
+
 
     function tfSetupObserver(){
       const host = document.getElementById('twitflix-grid');
