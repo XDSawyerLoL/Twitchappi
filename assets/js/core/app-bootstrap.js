@@ -1120,7 +1120,7 @@ try{
 
     
 // Alias for branding: ORYON TV is the new name of the TwitFlix modal
-window.openORYON TV = function(){
+window.openORYONTV = function(){
   try { openTwitFlix(); } catch(e){ console.error('[ORYON TV] open failed', e); }
 };
 
