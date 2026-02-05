@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Streamer Hub – Pro Analytics &amp; TwitFlix</title>
+<title>ORYON – Data Analytics</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;family=Inter:wght@400;600;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -132,9 +132,9 @@
     .u-tab-panel{ display:none; }
     .u-tab-panel.active{ display:block; }
 
-    /* ====== TWITFLIX MODAL ====== */
+    /* ====== THMAX MODAL ====== */
 
-/* TWITFLIX wordmark (Netflix-like) */
+/* THMAX wordmark (Netflix-like) */
 .twitflix-wordmark{
   font-family: Arial Black, Impact, system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
   letter-spacing: .06em !important;
@@ -159,7 +159,7 @@
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
 
-/* TwitFlix logo (Netflix-like) */
+/* THMAX logo (Netflix-like) */
 #twitflix-modal .tf-brand .tf-logo{
   font-family: Inter, sans-serif;
   font-weight: 900;
@@ -170,7 +170,7 @@
   text-shadow: 0 10px 30px rgba(0,0,0,.55);
 }
 
-/* TwitFlix open/close animations (modal) */
+/* THMAX open/close animations (modal) */
 .tf-modal-overlay.active .tf-modal-content{
   animation: tfPopIn .38s cubic-bezier(.2,.9,.2,1) both;
 }
@@ -184,7 +184,7 @@
 }
 @keyframes tfFadeOut{ from{opacity:1;} to{opacity:0;} }
 
-/* TwitFlix intro/outro overlay */
+/* THMAX intro/outro overlay */
 .tf-intro{
   position: fixed;
   inset: 0;
@@ -297,7 +297,7 @@
     .tf-card:hover .tf-overlay { opacity: 1; }
     .tf-name { font-size: 12px; font-weight: bold; color: white; text-align: center; }
   
-    /* ====== TWITFLIX — Netflix rows (catalogue only, sans toucher le reste) ====== */
+    /* ====== THMAX — Netflix rows (catalogue only, sans toucher le reste) ====== */
     .tf-controls{
       display:flex; align-items:center; gap:10px; flex-wrap:wrap;
       padding: 0 16px 12px 16px;
@@ -381,7 +381,7 @@
     }
 
 
-    /* ====== TWITFLIX — performance + Netflix rows ====== */
+    /* ====== THMAX — performance + Netflix rows ====== */
     .tf-rows{
       flex: 1;
       overflow-y: auto;
@@ -483,7 +483,7 @@
     }
 
 
-    /* TwitFlix search (Netflix style) */
+    /* THMAX search (Netflix style) */
     .tf-search-wrap{ position:relative; width:min(520px, 100%); }
     .tf-search{
       width:100%;
@@ -511,7 +511,7 @@
     }
 
 
-/* === TwitFlix UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
+/* === THMAX UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
 #twitflix-modal .tf-modal-content{ max-width: 1400px; }
 
 #twitflix-modal .tf-topbar{ position: sticky; top:0; z-index: 60; }
@@ -1052,7 +1052,7 @@
   #main-layout{ grid-template-columns:1fr !important; }
   #side-panel{ grid-column:1 !important; }
 }
-/* Centered Market modal like TwitFlix */
+/* Centered Market modal like THMAX */
 #market-overlay .market-modal{
   position:absolute;
   left:50%;
@@ -1084,7 +1084,7 @@
 /* tools internal scroll (so you can reach bottom) */
 #tab-tools{display:flex; flex-direction:column;}
 #tab-tools .tools-scroll{flex:1; min-height:0; overflow:auto;}
-/* market overlay always centered like TwitFlix */
+/* market overlay always centered like THMAX */
 #market-overlay{position:fixed !important; inset:0 !important; display:flex; align-items:center; justify-content:center;}
 #market-overlay.hidden{display:none !important;}
 #market-overlay .market-modal{width:min(1100px, calc(100vw - 32px)); height:min(78vh, 720px); max-height:calc(100vh - 32px);}
@@ -1221,7 +1221,7 @@ body.modal-open #player-tools{display:none !important;}
     .u-tab-panel{ display:none; }
     .u-tab-panel.active{ display:block; }
 
-    /* ====== TWITFLIX MODAL ====== */
+    /* ====== THMAX MODAL ====== */
     .tf-modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.9); backdrop-filter: none;
@@ -1230,7 +1230,7 @@ body.modal-open #player-tools{display:none !important;}
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
 
-/* TwitFlix logo (Netflix-like) */
+/* THMAX logo (Netflix-like) */
 #twitflix-modal .tf-brand .tf-logo{
   font-family: Inter, sans-serif;
   font-weight: 900;
@@ -1241,7 +1241,7 @@ body.modal-open #player-tools{display:none !important;}
   text-shadow: 0 10px 30px rgba(0,0,0,.55);
 }
 
-/* TwitFlix open/close animations (modal) */
+/* THMAX open/close animations (modal) */
 .tf-modal-overlay.active .tf-modal-content{
   animation: tfPopIn .38s cubic-bezier(.2,.9,.2,1) both;
 }
@@ -1255,7 +1255,7 @@ body.modal-open #player-tools{display:none !important;}
 }
 @keyframes tfFadeOut{ from{opacity:1;} to{opacity:0;} }
 
-/* TwitFlix intro/outro overlay */
+/* THMAX intro/outro overlay */
 .tf-intro{
   position: fixed;
   inset: 0;
@@ -1367,7 +1367,7 @@ body.modal-open #player-tools{display:none !important;}
     .tf-card:hover .tf-overlay { opacity: 1; }
     .tf-name { font-size: 12px; font-weight: bold; color: white; text-align: center; }
   
-    /* ====== TWITFLIX — Netflix rows (catalogue only, sans toucher le reste) ====== */
+    /* ====== THMAX — Netflix rows (catalogue only, sans toucher le reste) ====== */
     .tf-controls{
       display:flex; align-items:center; gap:10px; flex-wrap:wrap;
       padding: 0 16px 12px 16px;
@@ -1451,7 +1451,7 @@ body.modal-open #player-tools{display:none !important;}
     }
 
 
-    /* ====== TWITFLIX — performance + Netflix rows ====== */
+    /* ====== THMAX — performance + Netflix rows ====== */
     .tf-rows{
       flex: 1;
       overflow-y: auto;
@@ -1553,7 +1553,7 @@ body.modal-open #player-tools{display:none !important;}
     }
 
 
-    /* TwitFlix search (Netflix style) */
+    /* THMAX search (Netflix style) */
     .tf-search-wrap{ position:relative; width:min(520px, 100%); }
     .tf-search{
       width:100%;
@@ -1581,7 +1581,7 @@ body.modal-open #player-tools{display:none !important;}
     }
 
 
-/* === TwitFlix UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
+/* === THMAX UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
 #twitflix-modal .tf-modal-content{ max-width: 1400px; }
 
 #twitflix-modal .tf-topbar{ position: sticky; top:0; z-index: 60; }
@@ -2114,7 +2114,7 @@ body.modal-open #player-tools{display:none !important;}
   #main-layout{ grid-template-columns:1fr !important; }
   #side-panel{ grid-column:1 !important; }
 }
-/* Centered Market modal like TwitFlix */
+/* Centered Market modal like THMAX */
 #market-overlay .market-modal{
   position:absolute;
   left:50%;
@@ -2176,7 +2176,7 @@ body.modal-open #player-tools{display:none !important;}
       z-index: 99999;
     }
 
-    /* ====== TWITFLIX HEADER CAROUSELS ====== */
+    /* ====== THMAX HEADER CAROUSELS ====== */
     .tf-header-block{
       margin-top: 10px;
     }
@@ -2380,7 +2380,7 @@ body.modal-open #player-tools{display:none !important;}
   -webkit-backdrop-filter: none;
 }
 
-/* Steam button (TwitFlix topbar) */
+/* Steam button (THMAX topbar) */
 #twitflix-modal .tf-steam-btn{
   display:inline-flex;
   align-items:center;
@@ -2508,6 +2508,37 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar{ height: 10p
 body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-thumb{ background: rgba(255,140,0,.25); border-radius: 999px; }
 body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ background: rgba(255,255,255,.06); border-radius: 999px; }
 
+
+/* THMAX splash (launch) */
+.thmax-splash{ position:absolute; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(900px 500px at 50% 40%, rgba(255,140,0,.18), rgba(0,0,0,.92));
+  backdrop-filter: blur(10px);
+}
+.thmax-splash.hidden{ display:none; }
+.thmax-splash-inner{ text-align:center; transform: translateY(-10px); }
+.thmax-splash-logo{ width:86px; height:86px; border-radius:24px; box-shadow:0 30px 80px rgba(0,0,0,.65); }
+.thmax-splash-title{ margin-top:16px; font-family: Orbitron, system-ui, sans-serif; font-size:42px; font-weight:900; letter-spacing:.14em; color:#eaeaf2; }
+.thmax-splash-sub{ margin-top:8px; color:#c9c9d4; font-weight:700; letter-spacing:.08em; font-size:12px; }
+
+/* Reduce perceived blur on covers (avoid scaling the poster during focus) */
+#twitflix-modal .tf-card:focus-visible,
+#twitflix-modal .tf-card.tf-focused{
+  transform: translateY(-2px) !important; /* no scale => crisp covers */
+}
+body.tf-bigpicture #twitflix-modal .tf-card:hover{
+  transform: translateY(-2px) !important; /* keep crisp even on hover in BP */
+}
+#twitflix-modal .tf-poster{
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  image-rendering: auto;
+}
+/* Dots indicator */
+#twitflix-modal .tf-row-dots{ display:flex; gap:6px; align-items:center; justify-content:flex-end; }
+#twitflix-modal .tf-dot{ width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,.22); }
+#twitflix-modal .tf-dot.active{ background: rgba(255,140,0,.92); box-shadow: 0 0 12px rgba(255,140,0,.35); }
+#twitflix-modal .tf-row-title{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2553,8 +2584,8 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
       </div>
 </div>
 <div class="flex items-center gap-3">
-<button class="bg-[#111] hover:bg-[#222] text-white px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] shadow-[0_0_10px_rgba(229,9,20,0.10)] twitflix-btn" onclick="openTwitFlix()">
-<i class="fas fa-play-circle" style="color:#e50914"></i> <span class="twitflix-wordmark">TWITFLIX</span>
+<button class="bg-[#111] hover:bg-[#222] text-white px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] shadow-[0_0_10px_rgba(229,9,20,0.10)] twitflix-btn" onclick="openTHMAX()">
+<i class="fas fa-play-circle" style="color:#e50914"></i> <img src="assets/img/oryon-logo.png" alt="ORYON" style="height:18px;width:18px;vertical-align:-3px;margin-right:8px;border-radius:6px;"><span class="twitflix-wordmark">THMAX</span>
       </button>
 <button class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2" onclick="openMarketOverlay()">
 <i class="fas fa-chart-line"></i> MARCHÉ
@@ -2897,17 +2928,25 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div>
 <div class="tf-modal-overlay" id="twitflix-modal">
+        <div id="thmax-splash" class="thmax-splash hidden" aria-hidden="true">
+          <div class="thmax-splash-inner">
+            <img src="assets/img/oryon-logo.png" alt="ORYON" class="thmax-splash-logo">
+            <div class="thmax-splash-title">THMAX</div>
+            <div class="thmax-splash-sub">ORYON • Data Analytics</div>
+          </div>
+        </div>
+        
 <div class="tf-modal-content">
 <div class="tf-topbar">
-<div class="tf-brand"><span class="tf-logo">TWITFLIX</span></div>
+<div class="tf-brand"><span class="tf-logo">THMAX</span></div>
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
 <input autocomplete="off" class="tf-search" id="twitflix-search" placeholder="Décris ce que tu veux (ex: \"comme Zomboid mais plus de craft et moins de stress\")" type="text"/>
 </div>
 <div class="tf-view-toggle">
-<button class="tf-toggle-btn active" id="tf-btn-rows" onclick="setTwitFlixView('rows')" type="button">LIGNES</button>
-<button class="tf-toggle-btn" id="tf-btn-az" onclick="setTwitFlixView('az')" type="button">A–Z</button>
+<button class="tf-toggle-btn active" id="tf-btn-rows" onclick="setTHMAXView('rows')" type="button">LIGNES</button>
+<button class="tf-toggle-btn" id="tf-btn-az" onclick="setTHMAXView('az')" type="button">A–Z</button>
 </div>
 <button class="tf-toggle-btn tf-steam-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">
   <i class="fab fa-steam" aria-hidden="true"></i>
@@ -2919,12 +2958,12 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   <span class="tf-bp-label">Big Picture</span>
 </button>
 
-<button class="tf-close-btn" type="button" aria-label="Fermer TwitFlix" onclick="closeTwitFlix()">✕</button>
+<button class="tf-close-btn" type="button" aria-label="Fermer THMAX" onclick="closeTHMAX()">✕</button>
 </div>
 </div>
 <div class="tf-sub" style="display:none;"></div>
 <div class="tf-body" id="tf-body">
-<div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">TWITFLIX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
+<div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">THMAX</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
 
 <div class="tf-header-block">
   <div class="tf-strip-title">
@@ -2935,7 +2974,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 <div class="tf-header-block">
   <div class="tf-strip-title">
-    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, TwitFlix tente une recherche automatique.">?</span></h4>
+    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, THMAX tente une recherche automatique.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
 </div>
