@@ -694,7 +694,7 @@ function startAuth() {
     });
 
 
-    // THMAX — Netflix-like catalogue (only). Does NOT touch the rest of the app.
+    // ORYON TV — Netflix-like catalogue (only). Does NOT touch the rest of the app.
     // Requires:
     //  - GET  /api/categories/top?cursor=...
     //  - (optional) GET /api/categories/search?q=...
@@ -817,7 +817,7 @@ window.addEventListener('message', (ev) => {
 });
 
 
-    // ====== THMAX: LIVE CAROUSEL + TRAILERS ======
+    // ====== ORYON TV: LIVE CAROUSEL + TRAILERS ======
     // Add YouTube video IDs here to enable embedded trailers in TwitFlix.
     // Key: game name (lowercased). Value: YouTube videoId.
     const TRAILER_MAP = {
@@ -1025,7 +1025,7 @@ window.addEventListener('message', (ev) => {
     async function openTwitFlix(){
 
   try{
-    const splash = document.getElementById('thmax-splash');
+    const splash = document.getElementById('oryon-tv-splash');
     if(splash){
       splash.classList.remove('hidden');
       // fade out
@@ -1051,7 +1051,7 @@ try{
     intro.innerHTML = `
       <div class="tf-intro-box">
         <div class="tf-scanline"></div>
-        <div class="tf-intro-logo">THMAX</div>
+        <div class="tf-intro-logo">ORYON TV</div>
         <div class="tf-intro-sub">Mode Netflix • Chargement des streams</div>
       </div>
     `;
@@ -1071,7 +1071,7 @@ try{
       if (search) search.value = '';
 
       // hero default
-      tfSetHero({ title: 'THMAX', sub: 'Découvre des jeux, survole pour une preview, clique pour lancer un stream.' });
+      tfSetHero({ title: 'ORYON TV', sub: 'Découvre des jeux, survole pour une preview, clique pour lancer un stream.' });
 
       // empty ui
       if (host){
@@ -1119,11 +1119,20 @@ try{
     }
 
     
-// Alias for branding: THMAX is the new name of the TwitFlix modal
-window.openTHMAX = function(){
-  try { openTwitFlix(); } catch(e){ console.error('[THMAX] open failed', e); }
+// Alias for branding: ORYON TV is the new name of the TwitFlix modal
+window.openORYON TV = function(){
+  try { openTwitFlix(); } catch(e){ console.error('[ORYON TV] open failed', e); }
 };
 
+
+
+// Alias for branding: ORYON TV is the VOD/Browser modal (legacy: TwitFlix)
+window.openORYONTV = function(){
+  try { openTwitFlix(); } catch(e){ console.error('[ORYON TV] open failed', e); }
+};
+window.closeORYONTV = function(){
+  try { closeTwitFlix(); } catch(e){ console.error('[ORYON TV] close failed', e); }
+};
 
 function closeTwitFlix(){
   document.body.classList.remove('modal-open');
@@ -1343,7 +1352,7 @@ function closeTwitFlix(){
 
       // CATALOG MODE
       host.innerHTML = '';
-      tfSetHero({ title: 'THMAX', sub: 'Survole un jeu pour la preview, clique pour lancer un stream.' });
+      tfSetHero({ title: 'ORYON TV', sub: 'Survole un jeu pour la preview, clique pour lancer un stream.' });
 
       const list = tfAllCategories.slice(0);
       if (!list.length){
@@ -1499,10 +1508,10 @@ function closeTwitFlix(){
       const bg = document.getElementById('tf-hero-bg');
       const t = document.getElementById('tf-hero-title');
       const s = document.getElementById('tf-hero-sub');
-      if (t) t.textContent = String(title || 'THMAX');
+      if (t) t.textContent = String(title || 'ORYON TV');
       if (s) s.textContent = String(sub || '');
       if (bg){
-        if (poster) { bg.src = poster; bg.style.opacity = (String(title||'').toUpperCase()==='THMAX' ? '.55' : '.78'); }
+        if (poster) { bg.src = poster; bg.style.opacity = (String(title||'').toUpperCase()==='ORYON TV' ? '.55' : '.78'); }
         else { bg.removeAttribute('src'); bg.style.opacity = '.15'; }
       }
     }
@@ -1577,7 +1586,7 @@ function closeTwitFlix(){
 
     async function playTwitFlixCategory(gameId, gameName){
       closeTwitFlix();
-      document.getElementById('current-channel-display').innerText = "THMAX…";
+      document.getElementById('current-channel-display').innerText = "ORYON TV…";
 
       try{
         const res = await fetch(`${API_BASE}/api/stream/by_category`,{
@@ -1590,7 +1599,7 @@ function closeTwitFlix(){
         if (data && data.success && data.channel){
           changeChannel(data.channel);
           const badge = document.getElementById('player-mode-badge');
-          if (badge) badge.innerText = "THMAX";
+          if (badge) badge.innerText = "ORYON TV";
         } else {
           alert("Aucun stream trouvé pour ce jeu.");
           document.getElementById('current-channel-display').innerText = "OFFLINE";
