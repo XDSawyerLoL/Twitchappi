@@ -1128,17 +1128,6 @@ try{
     }
   }catch(_){}
 
-  // Big Picture cleanup
-  try{
-    if(document.body.classList.contains('tf-bigpicture')){
-      document.body.classList.remove('tf-bigpicture');
-      tfBigPicture = false;
-    }
-    if(document.fullscreenElement){
-      document.exitFullscreen?.().catch(()=>{});
-    }
-  }catch(_){}
-
   // Close animation
   modal.classList.add('closing');
   setTimeout(()=>{
@@ -1146,189 +1135,6 @@ try{
     modal.classList.remove('closing');
   }, 260);
 }
-
-/* =========================
-   TWITFLIX — BIG PICTURE
-   Steam-like navigation + focus
-========================= */
-let tfBigPicture = false;
-let tfBPIndex = []; // [{el, rect, row}]
-let tfBPLastFocused = null;
-
-function tfToggleBigPicture(){
-  const modal = document.getElementById('twitflix-modal');
-  if(!modal) return;
-
-  tfBigPicture = !tfBigPicture;
-  document.body.classList.toggle('tf-bigpicture', tfBigPicture);
-
-  // Make cards focusable
-  tfBPMakeFocusable();
-
-  // Try to enter fullscreen (best-effort, optional)
-  try{
-    if(tfBigPicture && !document.fullscreenElement){
-      modal.requestFullscreen?.().catch(()=>{});
-    }else if(!tfBigPicture && document.fullscreenElement){
-      document.exitFullscreen?.().catch(()=>{});
-    }
-  }catch(_){}
-
-  if(tfBigPicture){
-    tfBPReindex();
-    // Focus first card if none focused
-    const focusTarget = tfBPLastFocused && document.contains(tfBPLastFocused) ? tfBPLastFocused : (tfBPIndex[0]?.el || null);
-    (focusTarget || document.getElementById('twitflix-search'))?.focus?.({preventScroll:true});
-    tfBPScrollIntoView(focusTarget);
-  }else{
-    // restore focus to search for normal browsing
-    document.getElementById('twitflix-search')?.focus?.({preventScroll:true});
-  }
-}
-
-function tfBPMakeFocusable(){
-  const host = document.getElementById('twitflix-grid');
-  if(!host) return;
-  host.querySelectorAll('.tf-card').forEach(card=>{
-    if(!card.hasAttribute('tabindex')) card.setAttribute('tabindex','0');
-  });
-}
-
-function tfBPReindex(){
-  const host = document.getElementById('twitflix-grid');
-  if(!host) { tfBPIndex=[]; return; }
-  const cards = Array.from(host.querySelectorAll('.tf-card')).filter(el=> el.offsetParent !== null);
-  const rows = [];
-  const threshold = 14;
-
-  const items = cards.map(el=>{
-    const r = el.getBoundingClientRect();
-    return { el, rect:r };
-  }).filter(it=> it.rect.width>10 && it.rect.height>10);
-
-  // sort by top then left
-  items.sort((a,b)=> (a.rect.top-b.rect.top) || (a.rect.left-b.rect.left));
-
-  // group into rows
-  for(const it of items){
-    let row = rows.find(r=> Math.abs(r.top - it.rect.top) < threshold);
-    if(!row){
-      row = { top: it.rect.top, items: [] };
-      rows.push(row);
-    }
-    row.items.push(it);
-  }
-  // ensure row items sorted by left
-  for(const r of rows){
-    r.items.sort((a,b)=> a.rect.left-b.rect.left);
-  }
-
-  tfBPIndex = [];
-  rows.forEach((r, ri)=>{
-    r.items.forEach(it=> tfBPIndex.push({ ...it, row: ri }));
-  });
-}
-
-function tfBPFind(el){
-  if(!el) return -1;
-  return tfBPIndex.findIndex(x=> x.el===el);
-}
-
-function tfBPClosestInRow(targetLeft, rowIdx){
-  const rowItems = tfBPIndex.filter(x=> x.row===rowIdx);
-  if(!rowItems.length) return null;
-  let best=rowItems[0], bestd=1e9;
-  for(const it of rowItems){
-    const d = Math.abs((it.rect.left + it.rect.width/2) - targetLeft);
-    if(d<bestd){ bestd=d; best=it; }
-  }
-  return best.el;
-}
-
-function tfBPScrollIntoView(el){
-  if(!el) return;
-  try{
-    el.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'smooth' });
-  }catch(_){}
-}
-
-function tfBPHandleKey(e){
-  if(!tfModalOpen || !tfBigPicture) return;
-
-  // don't steal typing in search
-  const a = document.activeElement;
-  const tag = (a?.tagName||'').toLowerCase();
-  const isTyping = tag==='input' || tag==='textarea' || a?.isContentEditable;
-  if(isTyping){
-    // allow Esc to exit big picture
-    if(e.key === 'Escape'){
-      e.preventDefault();
-      tfToggleBigPicture();
-    }
-    return;
-  }
-
-  if(!tfBPIndex.length) tfBPReindex();
-
-  const current = (a && a.classList?.contains('tf-card')) ? a : (tfBPIndex[0]?.el || null);
-  let idx = tfBPFind(current);
-  if(idx < 0) idx = 0;
-
-  const cur = tfBPIndex[idx];
-  const curCenter = cur ? (cur.rect.left + cur.rect.width/2) : 0;
-
-  if(e.key === 'Escape'){
-    e.preventDefault();
-    tfToggleBigPicture();
-    return;
-  }
-  if(e.key === 'Enter' || e.key === ' '){
-    e.preventDefault();
-    current?.click?.();
-    return;
-  }
-
-  let next = null;
-
-  if(e.key === 'ArrowRight'){
-    e.preventDefault();
-    next = tfBPIndex[Math.min(tfBPIndex.length-1, idx+1)]?.el;
-  }else if(e.key === 'ArrowLeft'){
-    e.preventDefault();
-    next = tfBPIndex[Math.max(0, idx-1)]?.el;
-  }else if(e.key === 'ArrowDown'){
-    e.preventDefault();
-    const row = cur?.row ?? 0;
-    next = tfBPClosestInRow(curCenter, row+1) || tfBPIndex[Math.min(tfBPIndex.length-1, idx+1)]?.el;
-  }else if(e.key === 'ArrowUp'){
-    e.preventDefault();
-    const row = cur?.row ?? 0;
-    next = tfBPClosestInRow(curCenter, Math.max(0, row-1)) || tfBPIndex[Math.max(0, idx-1)]?.el;
-  }
-
-  if(next){
-    tfBPLastFocused = next;
-    next.focus({preventScroll:true});
-    tfBPScrollIntoView(next);
-  }
-}
-
-// Global key handler for Big Picture
-document.addEventListener('keydown', tfBPHandleKey, { passive:false });
-
-// Reindex when grid changes / view changes
-const tfBPObserver = new MutationObserver(()=>{
-  if(tfModalOpen && tfBigPicture){
-    tfBPMakeFocusable();
-    tfBPReindex();
-  }
-});
-window.addEventListener('load', ()=>{
-  const host = document.getElementById('twitflix-grid');
-  if(host) tfBPObserver.observe(host, { childList:true, subtree:true });
-});
-
-
 
     function tfSetupObserver(){
       const host = document.getElementById('twitflix-grid');
@@ -1621,6 +1427,9 @@ window.addEventListener('load', ()=>{
     function tfBuildCard(cat){
       const div = document.createElement('div');
       div.className = 'tf-card';
+      div.tabIndex = 0;
+      div.setAttribute('role','button');
+      div.setAttribute('aria-label', `${cat.name} (ouvrir)`);
       div.dataset.gameId = cat.id;
       div.dataset.gameName = cat.name;
 
@@ -1645,6 +1454,13 @@ window.addEventListener('load', ()=>{
 
       // click play
       div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
+
+      div.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          div.click();
+        }
+      });
 
       // Hover preview (Netflix-like delay)
       let t = null;
@@ -2525,4 +2341,279 @@ window.addEventListener('load', ()=>{
 })();
 
 
-try{ window.tfToggleBigPicture = tfToggleBigPicture; }catch(_){ }
+
+
+/* ===========================
+   ORYON Big Picture (Steam-like)
+   - Fullscreen layout + full-width (no black sides)
+   - Focus navigation by rows
+   - Gamepad support (A/B + dpad/stick)
+   - Smooth transition + optional whoosh
+   =========================== */
+
+let tfBigPicture = false;
+let tfLastFocus = null;
+let tfNavEnabled = false;
+let tfGamepadTimer = null;
+let tfGpPrev = { t:0, ax:0, ay:0, b:[] };
+
+function tfShowBpTransition(){
+  const el = document.getElementById('tf-bp-transition');
+  if(!el) return;
+  el.classList.add('active');
+  el.setAttribute('aria-hidden','false');
+  // auto-hide quickly
+  setTimeout(()=>{ try{ el.classList.remove('active'); el.setAttribute('aria-hidden','true'); }catch(_){} }, 520);
+}
+
+function tfWhoosh(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const dur = 0.22;
+    const sr = ctx.sampleRate;
+    const n = Math.floor(sr*dur);
+    const buf = ctx.createBuffer(1, n, sr);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<n;i++){
+      const t = i/n;
+      // noise with envelope (fast attack, smooth decay)
+      const env = Math.exp(-6*t) * (1 - Math.exp(-40*t));
+      data[i] = (Math.random()*2-1) * env * 0.65;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    const g = ctx.createGain();
+    g.gain.value = 0.9;
+    // sweep filter for "whoosh"
+    filt.frequency.setValueAtTime(220, ctx.currentTime);
+    filt.frequency.exponentialRampToValueAtTime(1600, ctx.currentTime + dur);
+    src.connect(filt); filt.connect(g); g.connect(ctx.destination);
+    src.start();
+    setTimeout(()=>{ try{ ctx.close(); }catch(_){} }, 500);
+  }catch(_){}
+}
+
+function tfEnableBigPictureNav(){
+  if(tfNavEnabled) return;
+  tfNavEnabled = true;
+
+  document.addEventListener('keydown', tfBpKeyHandler, true);
+  tfStartGamepad();
+}
+
+function tfDisableBigPictureNav(){
+  tfNavEnabled = false;
+  document.removeEventListener('keydown', tfBpKeyHandler, true);
+  tfStopGamepad();
+}
+
+function tfToggleBigPicture(force){
+  const on = (typeof force === 'boolean') ? force : !tfBigPicture;
+  tfBigPicture = on;
+
+  // Save last focused element within TwitFlix
+  try{
+    const active = document.activeElement;
+    if(active && active.classList && active.classList.contains('tf-card')) tfLastFocus = active;
+  }catch(_){}
+
+  if(on){
+    document.body.classList.add('tf-bigpicture');
+    tfShowBpTransition();
+    tfWhoosh();
+    tfEnableBigPictureNav();
+    // Focus first card in first row
+    setTimeout(()=>{
+      const first = document.querySelector('#twitflix-modal .tf-row .tf-card') || document.querySelector('#twitflix-modal .tf-card');
+      if(first) tfFocusCard(first, true);
+    }, 120);
+  }else{
+    document.body.classList.remove('tf-bigpicture');
+    tfDisableBigPictureNav();
+    // restore focus
+    setTimeout(()=>{ try{ tfLastFocus?.focus?.(); }catch(_){} }, 80);
+  }
+}
+
+/* Row-based focus navigation */
+function tfGetRows(){
+  return Array.from(document.querySelectorAll('#twitflix-modal .tf-row'));
+}
+function tfGetCardsInRow(row){
+  if(!row) return [];
+  return Array.from(row.querySelectorAll('.tf-row-track .tf-card'));
+}
+
+function tfFocusCard(card, scrollIntoView){
+  if(!card) return;
+  try{
+    document.querySelectorAll('#twitflix-modal .tf-card.tf-focused').forEach(e=>e.classList.remove('tf-focused'));
+    card.classList.add('tf-focused');
+    card.focus({ preventScroll: true });
+    if(scrollIntoView){
+      // keep the focused row roughly centered
+      const body = document.getElementById('tf-body');
+      const row = card.closest('.tf-row');
+      if(body && row){
+        const rb = row.getBoundingClientRect();
+        const bb = body.getBoundingClientRect();
+        const delta = (rb.top + rb.height/2) - (bb.top + bb.height/2);
+        body.scrollBy({ top: delta, behavior: 'smooth' });
+      }else{
+        card.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'smooth' });
+      }
+    }
+  }catch(_){}
+}
+
+function tfMoveFocus(dx, dy){
+  const rows = tfGetRows();
+  if(!rows.length) return;
+  const active = document.querySelector('#twitflix-modal .tf-card.tf-focused') || document.activeElement;
+  let curRowIdx = 0;
+  let curColIdx = 0;
+
+  // locate current
+  if(active && active.closest){
+    const row = active.closest('.tf-row');
+    const ri = rows.indexOf(row);
+    if(ri >= 0) curRowIdx = ri;
+    const cards = tfGetCardsInRow(row);
+    const ci = cards.indexOf(active);
+    if(ci >= 0) curColIdx = ci;
+  }
+
+  let nextRowIdx = curRowIdx + dy;
+  nextRowIdx = Math.max(0, Math.min(rows.length-1, nextRowIdx));
+  let row = rows[nextRowIdx];
+  let cards = tfGetCardsInRow(row);
+  if(!cards.length) return;
+
+  // horizontal within same row
+  if(dy === 0){
+    let nextColIdx = curColIdx + dx;
+    nextColIdx = Math.max(0, Math.min(cards.length-1, nextColIdx));
+    tfFocusCard(cards[nextColIdx], true);
+    return;
+  }
+
+  // vertical: preserve approximate column (by ratio)
+  const prevRow = rows[curRowIdx];
+  const prevCards = tfGetCardsInRow(prevRow);
+  const ratio = prevCards.length ? (curColIdx / Math.max(1, prevCards.length-1)) : 0;
+  const targetIdx = Math.round(ratio * Math.max(1, cards.length-1));
+  tfFocusCard(cards[targetIdx], true);
+}
+
+function tfBpKeyHandler(e){
+  // Only when TwitFlix is open and bigpicture enabled
+  if(!tfBigPicture) return;
+
+  // Don't hijack typing in search
+  const a = document.activeElement;
+  const inSearch = a && (a.id === 'twitflix-search' || a.classList?.contains('tf-search'));
+  if(inSearch && !['Escape'].includes(e.key)) return;
+
+  if(e.key === 'Escape'){
+    e.preventDefault();
+    tfToggleBigPicture(false);
+    return;
+  }
+  if(e.key === 'ArrowLeft'){ e.preventDefault(); tfMoveFocus(-1,0); return; }
+  if(e.key === 'ArrowRight'){ e.preventDefault(); tfMoveFocus(1,0); return; }
+  if(e.key === 'ArrowUp'){ e.preventDefault(); tfMoveFocus(0,-1); return; }
+  if(e.key === 'ArrowDown'){ e.preventDefault(); tfMoveFocus(0,1); return; }
+
+  if(e.key === 'Enter' || e.key === ' '){
+    const focused = document.querySelector('#twitflix-modal .tf-card.tf-focused');
+    if(focused){ e.preventDefault(); focused.click(); }
+  }
+}
+
+/* Gamepad support (best-effort) */
+function tfStartGamepad(){
+  if(tfGamepadTimer) return;
+  tfGpPrev = { t:0, ax:0, ay:0, b:[] };
+  tfGamepadTimer = setInterval(tfPollGamepad, 80);
+}
+function tfStopGamepad(){
+  if(tfGamepadTimer){ clearInterval(tfGamepadTimer); tfGamepadTimer = null; }
+}
+
+function tfPressed(btn){ return !!(btn && (btn.pressed || btn.value > 0.5)); }
+
+function tfPollGamepad(){
+  if(!tfBigPicture) return;
+  const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+  const gp = gps && (gps[0] || gps[1] || gps[2] || gps[3]);
+  if(!gp) return;
+
+  const now = Date.now();
+  const cooldown = 160; // ms
+  const dead = 0.35;
+
+  const ax = gp.axes?.[0] ?? 0;
+  const ay = gp.axes?.[1] ?? 0;
+
+  const dLeft  = tfPressed(gp.buttons?.[14]) || ax < -dead;
+  const dRight = tfPressed(gp.buttons?.[15]) || ax >  dead;
+  const dUp    = tfPressed(gp.buttons?.[12]) || ay < -dead;
+  const dDown  = tfPressed(gp.buttons?.[13]) || ay >  dead;
+
+  const A = tfPressed(gp.buttons?.[0]); // A / Cross
+  const B = tfPressed(gp.buttons?.[1]); // B / Circle
+  const X = tfPressed(gp.buttons?.[2]); // X / Square
+
+  // edge detection + cooldown
+  const prev = tfGpPrev;
+  function edge(name, cur){
+    const was = !!prev[name];
+    prev[name] = cur;
+    return cur && !was;
+  }
+  if(now - prev.t > cooldown){
+    if(edge('l', dLeft))  { tfMoveFocus(-1,0); prev.t = now; return; }
+    if(edge('r', dRight)) { tfMoveFocus(1,0);  prev.t = now; return; }
+    if(edge('u', dUp))    { tfMoveFocus(0,-1); prev.t = now; return; }
+    if(edge('d', dDown))  { tfMoveFocus(0,1);  prev.t = now; return; }
+  }
+
+  if(edge('A', A)){
+    const focused = document.querySelector('#twitflix-modal .tf-card.tf-focused');
+    focused?.click?.();
+  }
+  if(edge('B', B)){
+    tfToggleBigPicture(false);
+  }
+  if(edge('X', X)){
+    // quick toggle search focus
+    const s = document.getElementById('twitflix-search');
+    if(s){ s.focus(); }
+  }
+}
+
+// Ensure we exit Big Picture when closing TwitFlix
+try{
+  const __closeTwitFlix = window.closeTwitFlix;
+  if (typeof __closeTwitFlix === 'function'){
+    window.closeTwitFlix = function(){
+      try{ tfToggleBigPicture(false); }catch(_){}
+      return __closeTwitFlix.apply(this, arguments);
+    };
+  }
+}catch(_){}
+
+
+function tfAnnotateRows(){
+  try{
+    document.querySelectorAll('#twitflix-modal .tf-row').forEach((row,i)=>row.dataset.rowIndex=String(i));
+  }catch(_){}
+}
+const __renderTwitFlix = window.renderTwitFlix;
+window.renderTwitFlix = function(){
+  const r = __renderTwitFlix.apply(this, arguments);
+  setTimeout(tfAnnotateRows, 0);
+  return r;
+};

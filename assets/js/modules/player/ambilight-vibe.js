@@ -241,7 +241,6 @@
 // ===== Extra tools logic (Fantasy/Mosaic/Ambilight/Vibe) =====
 let __ambOn = localStorage.getItem('jp_amb_on') === '1';
 let __vibeOn = localStorage.getItem('jp_vibe_on') === '1';
-let __cinemaOn = (localStorage.getItem('jp_cinema_on') === '1');
 
 function getParentParam(){
   const sp = new URLSearchParams(location.search);
@@ -295,29 +294,11 @@ function ensurePlayerTools(){
       <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
       <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
       <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
-      <button id="tool-cinema" class="toolbtn" onclick="toggleCinema()">🎬</button>
     `;
     vc.appendChild(tools);
   } else if (tools.parentElement !== vc) {
     vc.appendChild(tools);
   }
-
-
-  // Ensure all tool buttons exist (in case HTML shipped a partial set)
-  const ensureBtn = (id, label, onclick) => {
-    if(document.getElementById(id)) return;
-    const b = document.createElement('button');
-    b.id = id;
-    b.className = 'toolbtn';
-    b.textContent = label;
-    b.setAttribute('onclick', onclick);
-    tools.appendChild(b);
-  };
-  ensureBtn('tool-mosaic','📺',"openMosaic()");
-  ensureBtn('tool-fantasy','🏆',"openFantasy()");
-  ensureBtn('tool-ambilight','💡',"toggleAmbilight()");
-  ensureBtn('tool-vibe','🧠',"toggleVibe()");
-  ensureBtn('tool-cinema','🎬',"toggleCinema()");
 
   // Force player iframe below tools
   vc.querySelectorAll('iframe').forEach(f=>{
@@ -326,9 +307,6 @@ function ensurePlayerTools(){
       if(f.style.position !== 'relative') f.style.position = 'relative';
     }catch(e){}
   });
-
-  // Keep tools above the embed
-  pinToolsToViewport(tools, vc);
 }
 
 // Re-ensure tools if Twitch replaces the player DOM (debounced to avoid infinite loops)
@@ -562,81 +540,3 @@ const ov = document.getElementById('market-overlay');
       if(!ov) return;
       ov.classList.add('hidden');
     }
-
-
-function ensureCinemaOverlay(){
-  if(document.getElementById('cinema-dim')) return;
-  const d = document.createElement('div');
-  d.id = 'cinema-dim';
-  document.body.appendChild(d);
-}
-
-function applyCinema(on){
-  ensureCinemaOverlay();
-  document.body.classList.toggle('cinema-mode', !!on);
-  const btn = document.getElementById('tool-cinema');
-  if(btn) btn.classList.toggle('active', !!on);
-  if(on){
-    const shell = document.querySelector('.player-shell');
-    if(shell) shell.scrollIntoView({behavior:'smooth', block:'start'});
-  }
-}
-
-function toggleCinema(){
-  __cinemaOn = !__cinemaOn;
-  localStorage.setItem('jp_cinema_on', __cinemaOn ? '1' : '0');
-  applyCinema(__cinemaOn);
-  toast(`Mode Cinéma ${__cinemaOn ? 'activé' : 'désactivé'}`);
-}
-
-window.addEventListener('keydown', (e)=>{
-  if(e.key === 'Escape' && __cinemaOn){
-    __cinemaOn = false;
-    localStorage.setItem('jp_cinema_on','0');
-    applyCinema(false);
-  }
-  if((e.key === 'c' || e.key === 'C') && !e.metaKey && !e.ctrlKey && !e.altKey){
-    const t = document.activeElement;
-    const tag = t && t.tagName ? t.tagName.toLowerCase() : '';
-    if(tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return;
-    toggleCinema();
-  }
-});
-
-window.addEventListener('load', ()=>{ if(__cinemaOn) applyCinema(true); });
-// Pin tools above the player even if the embed creates a higher stacking context.
-function pinToolsToViewport(toolsEl, anchorEl){
-  try{
-    if(!toolsEl || !anchorEl) return;
-    // Move to body once to escape stacking contexts inside the player container.
-    if(toolsEl.parentElement !== document.body){
-      document.body.appendChild(toolsEl);
-    }
-    toolsEl.style.position = 'fixed';
-    toolsEl.style.zIndex = '2147483647';
-    toolsEl.style.pointerEvents = 'auto';
-
-    const place = ()=>{
-      const r = anchorEl.getBoundingClientRect();
-      // Keep within viewport bounds
-      const top = Math.max(8, r.top + 10);
-      const right = Math.max(8, window.innerWidth - r.right + 10);
-      toolsEl.style.top = top + 'px';
-      toolsEl.style.right = right + 'px';
-    };
-    place();
-    // Update on scroll/resize (throttled)
-    let raf = 0;
-    const tick = ()=>{
-      if(raf) return;
-      raf = requestAnimationFrame(()=>{ raf=0; place(); });
-    };
-    window.addEventListener('scroll', tick, { passive:true });
-    window.addEventListener('resize', tick);
-    // If layout changes, poll lightly for a short time.
-    let n=0;
-    const iv=setInterval(()=>{ place(); n++; if(n>40) clearInterval(iv); }, 250);
-  }catch(e){}
-}
-
-
