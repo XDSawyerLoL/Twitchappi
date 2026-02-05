@@ -915,6 +915,44 @@ body.cinema-mode #video-container{
 }
 
 
+/* === Big Picture (Steam-like) === */
+body.tf-bigpicture #twitflix-modal{ background: rgba(0,0,0,.92) !important; }
+body.tf-bigpicture .tf-modal-content{
+  width: 100vw !important; height: 100vh !important;
+  margin: 0 !important; border-radius: 0 !important;
+  border: 0 !important; box-shadow: none !important;
+}
+body.tf-bigpicture .tf-topbar{
+  padding: 18px 22px !important;
+}
+body.tf-bigpicture .tf-logo{ font-size: 22px !important; letter-spacing:.10em !important; }
+body.tf-bigpicture .tf-search{ font-size: 16px !important; padding: 12px 14px !important; }
+body.tf-bigpicture .tf-body{ padding: 18px 22px 28px !important; }
+body.tf-bigpicture .tf-hero{ border-radius: 16px !important; }
+body.tf-bigpicture #twitflix-grid{
+  gap: 18px !important;
+}
+body.tf-bigpicture .tf-card{
+  border-radius: 14px !important;
+  border-width: 2px !important;
+  outline: none !important;
+}
+body.tf-bigpicture .tf-card:hover{ transform: scale(1.06) !important; }
+body.tf-bigpicture .tf-card:focus{
+  border-color: #00f2ea !important;
+  box-shadow: 0 0 0 3px rgba(0,242,234,.22), 0 18px 60px rgba(0,0,0,.55) !important;
+  transform: scale(1.06);
+  z-index: 20;
+}
+body.tf-bigpicture .tf-bp-btn{
+  border-color: rgba(0,242,234,.55) !important;
+  box-shadow: 0 0 0 1px rgba(0,242,234,.16) inset, 0 0 14px rgba(0,242,234,.10) !important;
+}
+body.tf-bigpicture .tf-bp-label{ display:none; }
+@media (min-width: 1100px){
+  body.tf-bigpicture .tf-bp-label{ display:inline; margin-left:8px; font-weight:800; letter-spacing:.06em; }
+}
+
 
 #ambilight{
   position:absolute; inset:-90px; z-index:0;
@@ -2844,6 +2882,10 @@ body.modal-open #player-tools{display:none !important;}
 <button class="tf-toggle-btn tf-steam-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">
   <i class="fab fa-steam" aria-hidden="true"></i>
   <span class="tf-steam-label">Connecter Steam</span>
+</button>
+<button class="tf-toggle-btn tf-bp-btn" id="tf-btn-bp" type="button" onclick="tfToggleBigPicture()" title="Mode Big Picture (Steam)">
+  <i class="fas fa-tv" aria-hidden="true"></i>
+  <span class="tf-bp-label">Big Picture</span>
 </button>
 <button class="tf-close-btn" type="button" aria-label="Fermer TwitFlix" onclick="closeTwitFlix()">✕</button>
 </div>
