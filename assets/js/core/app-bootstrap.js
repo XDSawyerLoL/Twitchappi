@@ -1316,10 +1316,16 @@ try{
           return;
         }
 
-        const grid = document.createElement('div');
-        grid.className = 'tf-search-grid';
-        tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
-        host.appendChild(grid);
+        // In Big Picture (and rows mode), render search results as a single horizontal row (Netflix/Steam style)
+        if (document.body.classList.contains('tf-bigpicture') || tfViewMode === 'rows'){
+          const row = tfBuildRow(`<div class="tf-strip-title"><h4>Résultats</h4><span class="tf-strip-sub">${escapeHtml(q)}</span></div>`, tfSearchResults, 'tf-search-row');
+          host.appendChild(row);
+        } else {
+          const grid = document.createElement('div');
+          grid.className = 'tf-search-grid';
+          tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
+          host.appendChild(grid);
+        }
         if (sentinel) host.appendChild(sentinel);
         return;
       }
@@ -1466,6 +1472,14 @@ try{
       let t = null;
       div.addEventListener('mouseenter', () => { t = setTimeout(() => tfStartPreview(div), 420); });
       div.addEventListener('mouseleave', () => { if (t) clearTimeout(t); tfStopPreview(div); });
+
+      // Focus preview (gamepad/keyboard): same behavior as hover
+      div.addEventListener('focus', () => {
+        // only auto-preview in Big Picture to avoid noise in normal mode
+        if (!document.body.classList.contains('tf-bigpicture')) return;
+        t = setTimeout(() => tfStartPreview(div), 380);
+      });
+      div.addEventListener('blur', () => { if (t) clearTimeout(t); tfStopPreview(div); });
 
       return div;
     }
@@ -2507,6 +2521,38 @@ function tfMoveFocus(dx, dy){
   tfFocusCard(cards[targetIdx], true);
 }
 
+// Page-based horizontal snap scrolling (Netflix/Prime feel)
+function tfGetActiveTrack(){
+  const focused = document.querySelector('#twitflix-modal .tf-card.tf-focused') || document.activeElement;
+  if(!focused) return null;
+  return focused.closest('.tf-row-track') || focused.closest('.tf-search-grid');
+}
+function tfScrollTrackPage(dir){
+  const track = tfGetActiveTrack();
+  if(!track) return;
+  const delta = Math.max(220, Math.floor(track.clientWidth * 0.88)) * (dir < 0 ? -1 : 1);
+  track.scrollBy({ left: delta, behavior: 'smooth' });
+  // after scrolling, try to keep focus on a visible card
+  setTimeout(()=>{ try{ tfSnapFocusToVisible(track, dir); }catch(_){} }, 260);
+}
+function tfSnapFocusToVisible(track, dir){
+  const cards = Array.from(track.querySelectorAll('.tf-card'));
+  if(!cards.length) return;
+  const r = track.getBoundingClientRect();
+  let best = null;
+  for(const c of cards){
+    const cr = c.getBoundingClientRect();
+    const visible = Math.min(cr.right, r.right) - Math.max(cr.left, r.left);
+    if(visible >= Math.min(cr.width, r.width) * 0.55){
+      best = c;
+      // if moving right, keep iterating to get last visible
+      if(dir < 0) break;
+    }
+  }
+  if(!best) best = (dir > 0 ? cards[cards.length-1] : cards[0]);
+  tfFocusCard(best, false);
+}
+
 function tfBpKeyHandler(e){
   // Only when TwitFlix is open and bigpicture enabled
   if(!tfBigPicture) return;
@@ -2525,6 +2571,10 @@ function tfBpKeyHandler(e){
   if(e.key === 'ArrowRight'){ e.preventDefault(); tfMoveFocus(1,0); return; }
   if(e.key === 'ArrowUp'){ e.preventDefault(); tfMoveFocus(0,-1); return; }
   if(e.key === 'ArrowDown'){ e.preventDefault(); tfMoveFocus(0,1); return; }
+
+  // Page jump within the current row (Netflix-like)
+  if(e.key === 'PageDown' || (e.key === 'ArrowRight' && e.shiftKey)){ e.preventDefault(); tfScrollTrackPage(1); return; }
+  if(e.key === 'PageUp'   || (e.key === 'ArrowLeft'  && e.shiftKey)){ e.preventDefault(); tfScrollTrackPage(-1); return; }
 
   if(e.key === 'Enter' || e.key === ' '){
     const focused = document.querySelector('#twitflix-modal .tf-card.tf-focused');
@@ -2564,7 +2614,9 @@ function tfPollGamepad(){
 
   const A = tfPressed(gp.buttons?.[0]); // A / Cross
   const B = tfPressed(gp.buttons?.[1]); // B / Circle
-  const X = tfPressed(gp.buttons?.[2]); // X / Square
+  const X  = tfPressed(gp.buttons?.[2]); // X / Square
+  const LB = tfPressed(gp.buttons?.[4]); // LB
+  const RB = tfPressed(gp.buttons?.[5]); // RB
 
   // edge detection + cooldown
   const prev = tfGpPrev;
@@ -2576,6 +2628,8 @@ function tfPollGamepad(){
   if(now - prev.t > cooldown){
     if(edge('l', dLeft))  { tfMoveFocus(-1,0); prev.t = now; return; }
     if(edge('r', dRight)) { tfMoveFocus(1,0);  prev.t = now; return; }
+    if(edge('LB', LB))    { tfScrollTrackPage(-1); prev.t = now; return; }
+    if(edge('RB', RB))    { tfScrollTrackPage(1);  prev.t = now; return; }
     if(edge('u', dUp))    { tfMoveFocus(0,-1); prev.t = now; return; }
     if(edge('d', dDown))  { tfMoveFocus(0,1);  prev.t = now; return; }
   }
