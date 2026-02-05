@@ -326,6 +326,9 @@ function ensurePlayerTools(){
       if(f.style.position !== 'relative') f.style.position = 'relative';
     }catch(e){}
   });
+
+  // Keep tools above the embed
+  pinToolsToViewport(tools, vc);
 }
 
 // Re-ensure tools if Twitch replaces the player DOM (debounced to avoid infinite loops)
@@ -601,3 +604,39 @@ window.addEventListener('keydown', (e)=>{
 });
 
 window.addEventListener('load', ()=>{ if(__cinemaOn) applyCinema(true); });
+// Pin tools above the player even if the embed creates a higher stacking context.
+function pinToolsToViewport(toolsEl, anchorEl){
+  try{
+    if(!toolsEl || !anchorEl) return;
+    // Move to body once to escape stacking contexts inside the player container.
+    if(toolsEl.parentElement !== document.body){
+      document.body.appendChild(toolsEl);
+    }
+    toolsEl.style.position = 'fixed';
+    toolsEl.style.zIndex = '2147483647';
+    toolsEl.style.pointerEvents = 'auto';
+
+    const place = ()=>{
+      const r = anchorEl.getBoundingClientRect();
+      // Keep within viewport bounds
+      const top = Math.max(8, r.top + 10);
+      const right = Math.max(8, window.innerWidth - r.right + 10);
+      toolsEl.style.top = top + 'px';
+      toolsEl.style.right = right + 'px';
+    };
+    place();
+    // Update on scroll/resize (throttled)
+    let raf = 0;
+    const tick = ()=>{
+      if(raf) return;
+      raf = requestAnimationFrame(()=>{ raf=0; place(); });
+    };
+    window.addEventListener('scroll', tick, { passive:true });
+    window.addEventListener('resize', tick);
+    // If layout changes, poll lightly for a short time.
+    let n=0;
+    const iv=setInterval(()=>{ place(); n++; if(n>40) clearInterval(iv); }, 250);
+  }catch(e){}
+}
+
+
