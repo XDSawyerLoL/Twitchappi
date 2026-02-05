@@ -891,6 +891,31 @@
 .toolbtn:hover{ border-color:#00f2ea; transform: translateY(-1px); }
 .toolbtn.active{ border-color:#00f2ea; box-shadow:0 0 0 2px rgba(0,242,234,.22) inset; }
 
+/* === Mode Cinéma === */
+#cinema-dim{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.78);
+  backdrop-filter: blur(2px);
+  opacity:0;
+  transition: opacity .18s ease;
+  z-index:8000;
+  pointer-events:none;
+}
+body.cinema-mode #cinema-dim{ opacity:1; }
+body.cinema-mode #side-panel{ display:none !important; }
+body.cinema-mode #left-col{ grid-column: 1 / -1 !important; }
+body.cinema-mode #main-layout{ gap: 0 !important; }
+body.cinema-mode .player-shell{
+  z-index:9001;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 18px 60px rgba(0,0,0,.65);
+}
+body.cinema-mode #video-container{
+  min-height: 82vh !important;
+}
+
+
+
 #ambilight{
   position:absolute; inset:-90px; z-index:0;
   filter: none;
