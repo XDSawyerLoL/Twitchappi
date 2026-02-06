@@ -52,12 +52,14 @@ async function tfTryRenderOptionalRows(host){
         tfSetupRowPaging(sec.querySelector('.tf-row'));
       }else{
         // hide if nothing
-        sec.style.display = 'none';
+        const empty = sec.querySelector('.tf-empty');
+        if(empty) empty.textContent = 'Aucun élément (connecte Twitch pour remplir).';
+        // keep visible
       }
     }
 
     // Fetch & fill CLIPS
-    const clips = await tfTryFetchJson('/api/twitch/clips') || await tfTryFetchJson('/api/clips');
+    const clips = await tfTryFetchJson('/api/twitch/clips');
     if(clipsSec){
       if(clips && Array.isArray(clips.items) && clips.items.length){
         const cards = clips.items.slice(0,24).map(c=>{
@@ -82,7 +84,7 @@ async function tfTryRenderOptionalRows(host){
     }
 
     // Fetch & fill VOD
-    const vod = await tfTryFetchJson('/api/twitch/videos') || await tfTryFetchJson('/api/vod') || await tfTryFetchJson('/api/videos');
+    const vod = await tfTryFetchJson('/api/twitch/videos?type=archive');
     if(vodSec){
       if(vod && Array.isArray(vod.items) && vod.items.length){
         const cards = vod.items.slice(0,24).map(v=>{

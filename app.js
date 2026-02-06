@@ -1130,6 +1130,100 @@ app.post('/api/search/intent', async (req,res)=>{
 });
 
 
+// =========================================================
+// ORYON TV — CLIPS & VOD (Helix)
+// =========================================================
+// These endpoints are used by ORYON TV rows. They return 200 with {items:[]} when not connected,
+// so the UI can show an explicit message instead of hard 404s.
+
+function getUserTwitchAccess(req){
+  // try several possible places depending on earlier auth code
+  return (
+    req.session?.twitch?.access_token ||
+    req.session?.twitchAccessToken ||
+    req.cookies?.twitch_access_token ||
+    null
+  );
+}
+function getUserTwitchId(req){
+  return (
+    req.session?.twitch?.user_id ||
+    req.session?.twitchUserId ||
+    req.session?.user?.twitchUserId ||
+    req.cookies?.twitch_user_id ||
+    null
+  );
+}
+
+app.get('/api/twitch/clips', async (req, res) => {
+  try{
+    const userId = getUserTwitchId(req) || String(req.query.broadcaster_id || '').trim();
+    const token = getUserTwitchAccess(req) || await getTwitchToken('app');
+
+    if(!userId){
+      return res.json({ success:true, items:[], reason:'missing_user_id' });
+    }
+    if(!token){
+      return res.json({ success:true, items:[], reason:'missing_token' });
+    }
+
+    const first = Math.min(parseInt(req.query.first || '20',10) || 20, 50);
+    const endpoint = `clips?broadcaster_id=${encodeURIComponent(userId)}&first=${first}`;
+    const data = await twitchAPI(endpoint, token);
+
+    const items = (data.data || []).map(c => ({
+      id: c.id,
+      title: c.title,
+      url: c.url,
+      embed_url: c.embed_url,
+      creator_name: c.creator_name,
+      view_count: c.view_count,
+      thumbnail_url: c.thumbnail_url,
+      created_at: c.created_at,
+      platform: 'twitch'
+    }));
+    return res.json({ success:true, items });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/clips error:', e.message);
+    return res.json({ success:true, items:[], error:e.message });
+  }
+});
+
+app.get('/api/twitch/videos', async (req, res) => {
+  try{
+    const userId = getUserTwitchId(req) || String(req.query.user_id || '').trim();
+    const token = getUserTwitchAccess(req) || await getTwitchToken('app');
+
+    if(!userId){
+      return res.json({ success:true, items:[], reason:'missing_user_id' });
+    }
+    if(!token){
+      return res.json({ success:true, items:[], reason:'missing_token' });
+    }
+
+    const first = Math.min(parseInt(req.query.first || '20',10) || 20, 50);
+    const type = String(req.query.type || 'archive'); // archive|highlight|upload
+    const endpoint = `videos?user_id=${encodeURIComponent(userId)}&first=${first}&type=${encodeURIComponent(type)}`;
+    const data = await twitchAPI(endpoint, token);
+
+    const items = (data.data || []).map(v => ({
+      id: v.id,
+      title: v.title,
+      url: v.url,
+      thumbnail_url: v.thumbnail_url,
+      view_count: v.view_count,
+      duration: v.duration,
+      created_at: v.created_at,
+      type: v.type,
+      platform: 'twitch'
+    }));
+    return res.json({ success:true, items });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/videos error:', e.message);
+    return res.json({ success:true, items:[], error:e.message });
+  }
+});
+
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME
 app.get('/api/youtube/trailer', async (req, res) => {
