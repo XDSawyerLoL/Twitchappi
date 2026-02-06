@@ -682,14 +682,22 @@ app.get('/api/twitch/vods/search', async (req, res) => {
 
     for(let i=0; i<attempts && items.length < limit; i++){
       const s = candidates[i];
+      const matchGame = String(s.game_name||'').toLowerCase().includes(low);
       try{
         // fetch up to 5 recent videos, search in their title
         const v = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=5&type=archive`, token);
         const vids = v?.data || [];
-        for(const row of vids){
+        // fallback: some channels disable archives -> try highlights
+        let vids2 = null;
+        if(!vids.length){
+          const vh = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=5&type=highlight`, token);
+          vids2 = vh?.data || [];
+        }
+        const allVids = vids2 && vids2.length ? vids2 : vids;
+        for(const row of allVids){
           if(items.length >= limit) break;
           const t = String(row.title||'').toLowerCase();
-          if(!t.includes(low)) continue;
+          if(!(matchGame || t.includes(low))) continue;
           items.push({
             id: row.id, title: row.title, url: row.url, thumbnail_url: row.thumbnail_url,
             duration: row.duration, view_count: row.view_count, created_at: row.created_at, vod_type: row.type,
