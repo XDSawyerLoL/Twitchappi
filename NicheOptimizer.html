@@ -2511,6 +2511,16 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 /* Fix: allow clicks through header logo */
 .oryon-logo, .brand img, .logo img { pointer-events: none; }
+
+
+/* ORYON TV row paging dots */
+#twitflix-modal .tf-row-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:14px; }
+#twitflix-modal .tf-row-dots{ display:flex; gap:6px; align-items:center; justify-content:flex-end; padding-bottom:2px; }
+#twitflix-modal .tf-dot{ width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,.22); }
+#twitflix-modal .tf-dot.active{ background: rgba(255,140,0,.92); box-shadow: 0 0 12px rgba(255,140,0,.35); }
+#twitflix-modal .tf-row-track{ scroll-snap-type: x mandatory; scroll-behavior:smooth; }
+#twitflix-modal .tf-card{ scroll-snap-align: start; }
+
 </style>
 
 <style id="tabs-exclusive-patch">

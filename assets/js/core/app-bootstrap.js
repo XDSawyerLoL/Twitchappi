@@ -1313,6 +1313,7 @@ try{
         if (!tfSearchResults.length){
           host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
           if (sentinel) host.appendChild(sentinel);
+      try{ tfAnnotateRows(); }catch(_){ }
           return;
         }
 
@@ -2409,6 +2410,99 @@ function tfWhoosh(){
   }catch(_){}
 }
 
+function tfSetupRowPaging(rowEl){
+  try{
+    if(!rowEl) return;
+    const track = rowEl.querySelector('.tf-row-track') || rowEl.querySelector('.tf-row');
+    const head  = rowEl.querySelector('.tf-row-head') || rowEl.querySelector('.tf-strip-title') || rowEl.querySelector('.tf-row-title')?.parentElement;
+    const title = rowEl.querySelector('.tf-row-title') || rowEl.querySelector('.tf-strip-title') || rowEl.querySelector('h4')?.parentElement;
+    if(!track || !head) return;
+
+    if(track.__tfPaging) return;
+
+    let dots = head.querySelector('.tf-row-dots');
+    if(!dots){
+      dots = document.createElement('div');
+      dots.className = 'tf-row-dots';
+      head.appendChild(dots);
+    }
+
+    track.style.scrollSnapType = 'x mandatory';
+    track.style.scrollBehavior = 'smooth';
+
+    function pageStep(){ return Math.max(240, Math.floor(track.clientWidth * 0.88)); }
+    function pageCount(){
+      const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+      if(maxScroll <= 0) return 1;
+      return Math.max(1, Math.ceil(maxScroll / pageStep()) + 1);
+    }
+    function currentPage(){
+      const step = pageStep();
+      return step ? Math.round(track.scrollLeft / step) : 0;
+    }
+    function updateDots(){
+      const p = currentPage();
+      Array.from(dots.children).forEach((el,i)=>el.classList.toggle('active', i===p));
+    }
+    function renderDots(){
+      const n = pageCount();
+      dots.innerHTML = '';
+      for(let i=0;i<n;i++){
+        const d = document.createElement('span');
+        d.className = 'tf-dot';
+        d.dataset.page = String(i);
+        dots.appendChild(d);
+      }
+      updateDots();
+    }
+
+    let raf=null;
+    track.addEventListener('scroll', ()=>{
+      if(raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateDots);
+    }, {passive:true});
+
+    dots.addEventListener('click', (e)=>{
+      const t = e.target;
+      if(!(t && t.dataset && t.dataset.page)) return;
+      const p = parseInt(t.dataset.page,10);
+      const left = p * pageStep();
+      track.scrollTo({ left, behavior:'smooth' });
+    });
+
+    const ro = new ResizeObserver(()=>renderDots());
+    ro.observe(track);
+
+    tfEnableTrackDrag(track);
+    track.__tfPaging = { dots, ro, renderDots, updateDots, pageStep };
+    renderDots();
+  }catch(_){}
+}
+
+function tfEnableTrackDrag(track){
+  if(!track || track.__tfDrag) return;
+  let down=false, startX=0, startScroll=0;
+  track.addEventListener('pointerdown',(e)=>{
+    down=true; startX=e.clientX; startScroll=track.scrollLeft;
+    track.setPointerCapture(e.pointerId);
+  });
+  track.addEventListener('pointermove',(e)=>{
+    if(!down) return;
+    const dx = e.clientX - startX;
+    track.scrollLeft = startScroll - dx;
+  });
+  track.addEventListener('pointerup',()=>{ down=false; });
+  track.addEventListener('pointercancel',()=>{ down=false; });
+  // wheel vertical => horizontal when over track
+  track.addEventListener('wheel',(e)=>{
+    if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+      track.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }
+  }, {passive:false});
+  track.__tfDrag=true;
+}
+
 function tfEnableBigPictureNav(){
   if(tfNavEnabled) return;
   tfNavEnabled = true;
@@ -2662,8 +2756,19 @@ try{
 
 function tfAnnotateRows(){
   try{
-    document.querySelectorAll('#twitflix-modal .tf-row').forEach((row,i)=>row.dataset.rowIndex=String(i));
+    document.querySelectorAll('#twitflix-modal .tf-row').forEach((row,i)=>{
+      row.dataset.rowIndex=String(i);
+      tfSetupRowPaging(row);
+      const t = row.querySelector('.tf-row-track'); if(t) tfEnableTrackDrag(t);
+    });
+    // Also setup paging for any standalone tracks
+    document.querySelectorAll('#twitflix-modal .tf-row-track').forEach(track=>{
+      const row = track.closest('.tf-row') || track.parentElement;
+      if(row) tfSetupRowPaging(row);
+      const t = row.querySelector('.tf-row-track'); if(t) tfEnableTrackDrag(t);
+    });
   }catch(_){}
+}catch(_){}
 }
 const __renderTwitFlix = window.renderTwitFlix;
 window.renderTwitFlix = function(){
