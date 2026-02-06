@@ -2508,6 +2508,9 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar{ height: 10p
 body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-thumb{ background: rgba(255,140,0,.25); border-radius: 999px; }
 body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ background: rgba(255,255,255,.06); border-radius: 999px; }
 
+
+/* Fix: allow clicks through header logo */
+.oryon-logo, .brand img, .logo img { pointer-events: none; }
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2899,7 +2902,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-modal-overlay" id="twitflix-modal">
 <div class="tf-modal-content">
 <div class="tf-topbar">
-<div class="tf-brand"><img src="assets/img/oryon-logo.png" alt="ORYON" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;"><span class="tf-logo">ORYON TV</span></div>
+<div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">ORYON TV</span></div>
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
@@ -2948,7 +2951,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div>
 </div></div>
-<div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo">ORYON</div></div>
+<div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="ORYON" class="oryon-logo" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;pointer-events:none;">ORYON</div></div>
 <script src="/assets/js/core/app-bootstrap.js" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
