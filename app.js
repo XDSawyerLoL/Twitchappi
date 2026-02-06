@@ -1131,6 +1131,120 @@ app.post('/api/search/intent', async (req,res)=>{
 
 
 // =========================================================
+// ORYON TV — Random VODs (streamers 20-200 viewers)
+// =========================================================
+const __oryonVodsCache = { ts: 0, key: '', items: [] };
+
+function pickRandom(arr, n){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a.slice(0,n);
+}
+
+app.get('/api/twitch/vods/random', async (req, res) => {
+  try{
+    const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
+    const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '18', 10) || 18), 30);
+    const lang = String(req.query.lang || '').trim(); // optional, e.g. 'fr'
+    const cacheKey = `${min}-${max}-${limit}-${lang}`;
+    if(__oryonVodsCache.key === cacheKey && (Date.now()-__oryonVodsCache.ts) < 60_000){
+      return res.json({ success:true, items: __oryonVodsCache.items, cached:true });
+    }
+
+    const appToken = await getTwitchToken('app');
+    if(!appToken){
+      return res.json({ success:true, items:[], reason:'missing_app_token' });
+    }
+
+    // 1) collect candidates streams in range
+    let cursor = '';
+    const candidates = [];
+    for(let page=0; page<8 && candidates.length < 800; page++){
+      const qs = new URLSearchParams();
+      qs.set('first','100');
+      if(cursor) qs.set('after', cursor);
+      if(lang) qs.set('language', lang);
+      const data = await twitchAPI(`streams?${qs.toString()}`, appToken);
+      const rows = data?.data || [];
+      cursor = data?.pagination?.cursor || '';
+      for(const s of rows){
+        const vc = s.viewer_count || 0;
+        if(vc >= min && vc <= max){
+          candidates.push({
+            user_id: s.user_id,
+            user_login: s.user_login,
+            user_name: s.user_name,
+            game_name: s.game_name,
+            viewer_count: vc
+          });
+        }
+      }
+      if(!cursor) break;
+    }
+
+    if(!candidates.length){
+      return res.json({ success:true, items:[], reason:'no_candidates_in_range' });
+    }
+
+    // Shuffle and attempt to fill VODs, many streamers have VODs disabled.
+    for(let i=candidates.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
+    }
+
+    const items = [];
+    const maxAttempts = Math.min(250, candidates.length);
+    for(let i=0; i<maxAttempts && items.length < limit; i++){
+      const s = candidates[i];
+      try{
+        // try archive then highlight fallback
+        let data = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=archive`, appToken);
+        let row = (data?.data || [])[0];
+        if(!row){
+          data = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=highlight`, appToken);
+          row = (data?.data || [])[0];
+        }
+        if(!row) continue;
+
+        items.push({
+          id: row.id,
+          title: row.title,
+          url: row.url,
+          thumbnail_url: row.thumbnail_url,
+          view_count: row.view_count,
+          duration: row.duration,
+          created_at: row.created_at,
+          vod_type: row.type,
+          user_name: s.user_name,
+          user_login: s.user_login,
+          game_name: s.game_name,
+          live_viewers: s.viewer_count,
+          platform: 'twitch'
+        });
+      }catch(e){
+        // skip
+      }
+    }
+
+    __oryonVodsCache.ts = Date.now();
+    __oryonVodsCache.key = cacheKey;
+    __oryonVodsCache.items = items;
+
+    if(!items.length){
+      return res.json({ success:true, items:[], reason:'no_vods_found_attempted', attempted: Math.min(250, candidates.length), candidates: candidates.length });
+    }
+    return res.json({ success:true, items, candidates: candidates.length });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/vods/random error:', e.message);
+    return res.json({ success:true, items:[], reason:'server_error', error:e.message });
+  }
+});
+
+// =========================================================
 // ORYON TV — CLIPS & VOD (Helix)
 // =========================================================
 // These endpoints are used by ORYON TV rows. They return 200 with {items:[]} when not connected,
@@ -1220,95 +1334,6 @@ app.get('/api/twitch/videos', async (req, res) => {
     return res.json({ success:true, items });
   }catch(e){
     console.warn('⚠️ /api/twitch/videos error:', e.message);
-    return res.json({ success:true, items:[], error:e.message });
-  }
-});
-
-// =========================================================
-// ORYON TV — Random VODs (streamers 20-200 viewers)
-// =========================================================
-const __oryonVodsCache = { ts: 0, key: '', items: [] };
-
-function pickRandom(arr, n){
-  const a = arr.slice();
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-  return a.slice(0,n);
-}
-
-app.get('/api/twitch/vods/random', async (req, res) => {
-  try{
-    const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
-    const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '16', 10) || 16), 30);
-    const lang = String(req.query.lang || '').trim(); // e.g. 'fr'
-    const cacheKey = `${min}-${max}-${limit}-${lang}`;
-    if(__oryonVodsCache.key === cacheKey && (Date.now()-__oryonVodsCache.ts) < 60_000){
-      return res.json({ success:true, items: __oryonVodsCache.items, cached:true });
-    }
-
-    const appToken = await getTwitchToken('app');
-    if(!appToken) return res.json({ success:true, items:[], reason:'missing_app_token' });
-
-    let cursor = '';
-    const candidates = [];
-    for(let page=0; page<5 && candidates.length < (limit*6); page++){
-      const qs = new URLSearchParams();
-      qs.set('first','100');
-      if(cursor) qs.set('after', cursor);
-      if(lang) qs.set('language', lang);
-      const data = await twitchAPI(`streams?${qs.toString()}`, appToken);
-      const rows = data?.data || [];
-      cursor = data?.pagination?.cursor || '';
-      for(const s of rows){
-        const vc = s.viewer_count || 0;
-        if(vc >= min && vc <= max){
-          candidates.push({
-            user_id: s.user_id,
-            user_login: s.user_login,
-            user_name: s.user_name,
-            game_name: s.game_name,
-            viewer_count: vc
-          });
-        }
-      }
-      if(!cursor) break;
-    }
-    if(!candidates.length) return res.json({ success:true, items:[], reason:'no_candidates' });
-
-    const picked = pickRandom(candidates, Math.min(limit, candidates.length));
-    const items = [];
-    for(const s of picked){
-      try{
-        const v = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=archive`, appToken);
-        const row = (v?.data || [])[0];
-        if(!row) continue;
-        items.push({
-          id: row.id,
-          title: row.title,
-          url: row.url,
-          thumbnail_url: row.thumbnail_url,
-          view_count: row.view_count,
-          duration: row.duration,
-          created_at: row.created_at,
-          user_name: s.user_name,
-          user_login: s.user_login,
-          game_name: s.game_name,
-          live_viewers: s.viewer_count,
-          platform: 'twitch'
-        });
-      }catch(_){}
-    }
-
-    __oryonVodsCache.ts = Date.now();
-    __oryonVodsCache.key = cacheKey;
-    __oryonVodsCache.items = items;
-
-    return res.json({ success:true, items });
-  }catch(e){
-    console.warn('⚠️ /api/twitch/vods/random error:', e.message);
     return res.json({ success:true, items:[], error:e.message });
   }
 });
