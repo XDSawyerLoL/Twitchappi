@@ -1,4 +1,3 @@
-window.ORYON_DEBUG = true;
 async function tfTryFetchJson(url){
   try{
     const r = await fetch(url, { credentials:'include' });
@@ -53,10 +52,7 @@ async function tfTryRenderOptionalRows(host){
         tfSetupRowPaging(sec.querySelector('.tf-row'));
       }else{
         // hide if nothing
-        /* keep visible */
-        const empty = sec.querySelector('.tf-empty');
-        if(empty) empty.textContent = 'Aucun élément (ou non connecté).';
-
+        sec.style.display = 'none';
       }
     }
 
