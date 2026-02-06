@@ -958,11 +958,11 @@ app.get('/api/twitch/vods/search', async (req, res) => {
     const cached = __cacheGet(key, 45_000);
     if(cached) return res.json({ success:true, items:cached, cached:true });
 
-    // 1) collect live streamers in range
+    // Collect live FR streamers in range
     let cursor = '';
     const candidates = [];
-    const maxPages = 14; // ~1400 lives scanned
-    for(let page=0; page<maxPages && candidates.length < 1400; page++){
+    const maxPages = 16;
+    for(let page=0; page<maxPages && candidates.length < 1600; page++){
       const qs = new URLSearchParams();
       qs.set('first','100');
       if(cursor) qs.set('after', cursor);
@@ -996,47 +996,51 @@ app.get('/api/twitch/vods/search', async (req, res) => {
 
     const low = q.toLowerCase();
     const items = [];
-    const attempts = Math.min(900, candidates.length);
+    const attempts = Math.min(1000, candidates.length);
 
+    // Pass 1: match by VOD title OR live game_name (so "mario" works)
     for(let i=0; i<attempts && items.length < limit; i++){
       const s = candidates[i];
-
-      // Match query against game_name too (so "mario" works)
       const gameMatch = String(s.game_name||'').toLowerCase().includes(low);
-
       try{
-        // Pull up to 5 recent VODs (archives). Many channels disable archives.
-        // We'll accept a match if title includes query OR gameMatch is true.
         const v = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=5&type=archive`);
         const vids = v?.data || [];
         for(const row of vids){
           if(items.length >= limit) break;
           const t = String(row.title||'').toLowerCase();
           if(!gameMatch && !t.includes(low)) continue;
-
           items.push({
-            id: row.id,
-            title: row.title,
-            url: row.url,
-            thumbnail_url: row.thumbnail_url,
-            view_count: row.view_count,
-            duration: row.duration,
-            created_at: row.created_at,
-            vod_type: row.type,
-            user_name: s.user_name,
-            user_login: s.user_login,
-            game_name: s.game_name,
-            live_viewers: s.viewer_count,
-            platform: 'twitch'
+            id: row.id, title: row.title, url: row.url, thumbnail_url: row.thumbnail_url,
+            view_count: row.view_count, duration: row.duration, created_at: row.created_at, vod_type: row.type,
+            user_name: s.user_name, user_login: s.user_login, game_name: s.game_name, live_viewers: s.viewer_count,
+            platform:'twitch'
           });
         }
-      }catch(_){
-        // ignore
+      }catch(_){}
+    }
+
+    // Pass 2 fallback: if nothing matched, still return VODs from FR 20-200 (random, without query filter)
+    if(!items.length){
+      for(let i=0; i<attempts && items.length < limit; i++){
+        const s = candidates[i];
+        try{
+          let d = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=archive`);
+          let row = (d?.data||[])[0];
+          if(!row){ d = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=highlight`); row = (d?.data||[])[0]; }
+          if(!row){ d = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=upload`); row = (d?.data||[])[0]; }
+          if(!row) continue;
+          items.push({
+            id: row.id, title: row.title, url: row.url, thumbnail_url: row.thumbnail_url,
+            view_count: row.view_count, duration: row.duration, created_at: row.created_at, vod_type: row.type,
+            user_name: s.user_name, user_login: s.user_login, game_name: s.game_name, live_viewers: s.viewer_count,
+            platform:'twitch'
+          });
+        }catch(_){}
       }
     }
 
     __cacheSet(key, items);
-    return res.json({ success:true, items, candidates:candidates.length });
+    return res.json({ success:true, items, candidates:candidates.length, matched: !!items.length });
   }catch(e){
     console.warn('⚠️ /api/twitch/vods/search', e.message);
     return res.json({ success:true, items:[], reason:'server_error', error:e.message });

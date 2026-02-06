@@ -1155,6 +1155,7 @@ function tfNormalizeBoxArt(url){
 
       if (!q){
         tfSearchResults = [];
+        tfVodResults = [];
         renderTwitFlix();
         return;
       }
@@ -1313,7 +1314,7 @@ try{
           host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
           
 // ORYON TV: VOD results row (FR, 20-200 viewers)
-if (tfVodResults && tfVodResults.length){
+if (tfVodResults){
   const vodRow = tfBuildRow(
     `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Recherche: ${escapeHtml(q)}</span></div>`,
     tfVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })),
@@ -1326,6 +1327,14 @@ if (tfVodResults && tfVodResults.length){
   });
   host.appendChild(vodRow);
 }
+else {
+  const vodEmpty = document.createElement('div');
+  vodEmpty.className = 'tf-empty';
+  vodEmpty.style.marginTop = '10px';
+  vodEmpty.innerHTML = `Aucune VOD trouvée pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span> (FR 20-200).`;
+  host.appendChild(vodEmpty);
+}
+
 if (sentinel) host.appendChild(sentinel);
           return;
         }
@@ -2342,5 +2351,21 @@ if (sentinel) host.appendChild(sentinel);
   }else{
     apply();
   }
+
+
+// ORYON_VOD_DELEGATE: ensure mouse clicks on VOD cards always work
+document.addEventListener('click', (e)=>{
+  const card = e.target.closest && e.target.closest('.tf-card');
+  if(!card) return;
+  const vodId = card.dataset && card.dataset.vodId;
+  if(!vodId) return;
+  e.preventDefault();
+  e.stopPropagation();
+  try{
+    loadVodEmbed(vodId);
+    closeTwitFlix();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }catch(_){}
+}, true);
 })();
 
