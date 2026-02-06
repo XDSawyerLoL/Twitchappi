@@ -2410,6 +2410,31 @@ function tfWhoosh(){
   }catch(_){}
 }
 
+function tfEnsureCardVisible(card){
+  try{
+    if(!card) return;
+    const track = card.closest('.tf-row-track') || card.closest('.tf-row') || card.parentElement;
+    if(!track) { card.scrollIntoView({block:'nearest', inline:'nearest'}); return; }
+
+    // If the focused card is outside the visible area of the track, scroll it in.
+    const c = card.getBoundingClientRect();
+    const t = track.getBoundingClientRect();
+    const pad = 28; // breathing room
+    if(c.left < t.left + pad){
+      const dx = (t.left + pad) - c.left;
+      track.scrollBy({ left: -dx, behavior:'smooth' });
+    }else if(c.right > t.right - pad){
+      const dx = c.right - (t.right - pad);
+      track.scrollBy({ left: dx, behavior:'smooth' });
+    }
+
+    // keep dots in sync
+    if(track.__tfPaging && track.__tfPaging.updateDots){
+      requestAnimationFrame(track.__tfPaging.updateDots);
+    }
+  }catch(_){}
+}
+
 function tfSetupRowPaging(rowEl){
   try{
     if(!rowEl) return;
@@ -2560,6 +2585,7 @@ function tfFocusCard(card, scrollIntoView){
     document.querySelectorAll('#twitflix-modal .tf-card.tf-focused').forEach(e=>e.classList.remove('tf-focused'));
     card.classList.add('tf-focused');
     card.focus({ preventScroll: true });
+      tfEnsureCardVisible(card);
     if(scrollIntoView){
       // keep the focused row roughly centered
       const body = document.getElementById('tf-body');
