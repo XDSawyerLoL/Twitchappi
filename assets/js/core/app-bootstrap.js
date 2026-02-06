@@ -63,7 +63,8 @@ async function tfTryRenderOptionalRows(host){
         const cards = clips.items.slice(0,24).map(c=>{
           const title = c.title || c.name || 'Clip';
           const id = c.id || c.clip_id || title;
-          const card = tfBuildCard({ id, name: title });
+          const thumb = c.thumbnail_url || c.thumbnail || c.image || c.box_art_url || '';
+        const card = tfBuildCard({ id, name: title, box_art_url: thumb });
           card.dataset.platform = c.platform || 'twitch';
           card.dataset.live = 'CLIP';
           card.dataset.tags = (c.tags||[]).join(', ');
@@ -87,7 +88,8 @@ async function tfTryRenderOptionalRows(host){
         const cards = vod.items.slice(0,24).map(v=>{
           const title = v.title || v.name || 'VOD';
           const id = v.id || v.video_id || title;
-          const card = tfBuildCard({ id, name: title });
+          const thumb = c.thumbnail_url || c.thumbnail || c.image || c.box_art_url || '';
+        const card = tfBuildCard({ id, name: title, box_art_url: thumb });
           card.dataset.platform = v.platform || 'twitch';
           card.dataset.live = 'VOD';
           card.dataset.tags = (v.tags||[]).join(', ');
@@ -1115,7 +1117,7 @@ window.addEventListener('message', (ev) => {
     function tfNormalizeBoxArt(url){
       // request higher res to avoid blur, then we downscale in CSS
       const u = String(url || '');
-      if (!u) return '';
+      if (!u) return 'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22600%22%20height%3D%22800%22%3E%0A%3Cdefs%3E%0A%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%3Cstop%20offset%3D%220%22%20stop-color%3D%22%230b0b0f%22/%3E%0A%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%2314141c%22/%3E%0A%3Cstop%20offset%3D%221%22%20stop-color%3D%22%230b0b0f%22/%3E%0A%3C/linearGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20rx%3D%2228%22%20ry%3D%2228%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Ccircle%20cx%3D%22300%22%20cy%3D%22360%22%20r%3D%2292%22%20fill%3D%22none%22%20stroke%3D%22%23ff8c00%22%20stroke-width%3D%2210%22%20opacity%3D%22.85%22/%3E%0A%3Ctext%20x%3D%22300%22%20y%3D%22520%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20Helvetica%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2256%22%20fill%3D%22%23eaeaf2%22%20opacity%3D%22.92%22%3EORYON%3C/text%3E%0A%3Ctext%20x%3D%22300%22%20y%3D%22585%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20Helvetica%2C%20sans-serif%22%20font-weight%3D%22800%22%20font-size%3D%2230%22%20fill%3D%22%23ff8c00%22%20opacity%3D%22.9%22%3ETV%3C/text%3E%0A%3C/svg%3E';
       return u.replace('{width}','1000').replace('{height}','1333');
     }
 
@@ -1586,7 +1588,7 @@ const q = tfSearchQuery.trim();
       const poster = tfNormalizeBoxArt(cat.box_art_url || '');
 
       div.innerHTML = `
-        <img class="tf-poster" src="${poster}" loading="lazy" alt="">
+        <img class="tf-poster" src="${poster}" loading="lazy" alt="" onerror="this.onerror=null;this.src=\'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22600%22%20height%3D%22800%22%3E%0A%3Cdefs%3E%0A%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%3Cstop%20offset%3D%220%22%20stop-color%3D%22%230b0b0f%22/%3E%0A%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%2314141c%22/%3E%0A%3Cstop%20offset%3D%221%22%20stop-color%3D%22%230b0b0f%22/%3E%0A%3C/linearGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20rx%3D%2228%22%20ry%3D%2228%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Ccircle%20cx%3D%22300%22%20cy%3D%22360%22%20r%3D%2292%22%20fill%3D%22none%22%20stroke%3D%22%23ff8c00%22%20stroke-width%3D%2210%22%20opacity%3D%22.85%22/%3E%0A%3Ctext%20x%3D%22300%22%20y%3D%22520%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20Helvetica%2C%20sans-serif%22%20font-weight%3D%22900%22%20font-size%3D%2256%22%20fill%3D%22%23eaeaf2%22%20opacity%3D%22.92%22%3EORYON%3C/text%3E%0A%3Ctext%20x%3D%22300%22%20y%3D%22585%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2C%20Helvetica%2C%20sans-serif%22%20font-weight%3D%22800%22%20font-size%3D%2230%22%20fill%3D%22%23ff8c00%22%20opacity%3D%22.9%22%3ETV%3C/text%3E%0A%3C/svg%3E\';">
         ${typeof cat.compat === "number" ? `<div class="tf-compat-badge">${Math.round(cat.compat)}% compat</div>` : ``}
         <div class="tf-preview" aria-hidden="true"></div>
         <div class="tf-overlay">
