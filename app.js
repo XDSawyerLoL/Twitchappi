@@ -557,25 +557,31 @@ function __oryonShuffle(a){
 
 app.get('/api/twitch/vods/random', async (req, res) => {
   try{
+    // Defaults: FR streamers 20-100 viewers
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
-    const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
+    const max = Math.max(min+1, parseInt(req.query.max || '100', 10) || 100);
     const limit = Math.min(Math.max(1, parseInt(req.query.limit || '18', 10) || 18), 30);
-    const lang = String(req.query.lang || '').trim(); // optional: 'fr'
-    const cacheKey = `${min}-${max}-${limit}-${lang}`;
 
-    if(__oryonVodsCache.key === cacheKey && (Date.now() - __oryonVodsCache.ts) < 60_000){
-      return res.json({ success:true, items: __oryonVodsCache.items, cached:true });
+    // Twitch language codes are 2 letters, use "fr" for French streams
+    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+
+    const cacheKey = `${min}-${max}-${limit}-${lang}`;
+    if(__oryonVodsCache.key === cacheKey && (Date.now()-__oryonVodsCache.ts) < 60_000){
+      return res.json({ success:true, items: __oryonVodsCache.items, cached:true, params:{min,max,limit,lang} });
     }
 
     const appToken = await getTwitchToken('app');
     if(!appToken){
-      return res.json({ success:true, items:[], reason:'missing_app_token' });
+      return res.json({ success:true, items:[], reason:'missing_app_token', params:{min,max,limit,lang} });
     }
 
-    // Collect candidate live streams in viewer range
+    // 1) Collect live stream candidates in the viewer range (scan deeper).
     let cursor = '';
     const candidates = [];
-    for(let page=0; page<8 && candidates.length < 800; page++){
+    const maxPages = 15;          // 15 * 100 = up to 1500 live rows scanned
+    const wantCandidates = 1200;  // cap
+
+    for(let page=0; page<maxPages && candidates.length < wantCandidates; page++){
       const qs = new URLSearchParams();
       qs.set('first','100');
       if(cursor) qs.set('after', cursor);
@@ -599,24 +605,30 @@ app.get('/api/twitch/vods/random', async (req, res) => {
     }
 
     if(!candidates.length){
-      return res.json({ success:true, items:[], reason:'no_candidates_in_range' });
+      return res.json({ success:true, items:[], reason:'no_candidates_in_range', scanned_pages:maxPages, params:{min,max,limit,lang} });
     }
 
-    __oryonShuffle(candidates);
+    // Shuffle candidates
+    for(let i=candidates.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
+    }
 
-    // Fill with VODs. Many streamers have VODs disabled => we try many candidates.
+    // 2) Try to pull latest VODs. Many channels disable archives; fallback highlight/upload.
     const items = [];
-    const maxAttempts = Math.min(250, candidates.length);
+    const maxAttempts = Math.min(800, candidates.length);
+
+    async function firstVideo(userId, type){
+      const data = await twitchAPI(`videos?user_id=${encodeURIComponent(userId)}&first=1&type=${encodeURIComponent(type)}`, appToken);
+      return (data?.data || [])[0] || null;
+    }
+
     for(let i=0; i<maxAttempts && items.length < limit; i++){
       const s = candidates[i];
       try{
-        // archive then highlight fallback
-        let vd = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=archive`, appToken);
-        let row = (vd?.data || [])[0];
-        if(!row){
-          vd = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=highlight`, appToken);
-          row = (vd?.data || [])[0];
-        }
+        let row = await firstVideo(s.user_id, 'archive');
+        if(!row) row = await firstVideo(s.user_id, 'highlight');
+        if(!row) row = await firstVideo(s.user_id, 'upload');
         if(!row) continue;
 
         items.push({
@@ -635,7 +647,7 @@ app.get('/api/twitch/vods/random', async (req, res) => {
           platform: 'twitch'
         });
       }catch(e){
-        // skip candidate
+        // skip
       }
     }
 
@@ -644,13 +656,19 @@ app.get('/api/twitch/vods/random', async (req, res) => {
     __oryonVodsCache.items = items;
 
     if(!items.length){
-      return res.json({ success:true, items:[], reason:'no_vods_found_attempted', attempted: maxAttempts, candidates: candidates.length });
+      return res.json({
+        success:true, items:[],
+        reason:'no_vods_found_attempted',
+        attempted:maxAttempts,
+        candidates:candidates.length,
+        params:{min,max,limit,lang}
+      });
     }
 
-    return res.json({ success:true, items, candidates: candidates.length });
+    return res.json({ success:true, items, candidates:candidates.length, attempted:maxAttempts, params:{min,max,limit,lang} });
   }catch(e){
     console.warn('⚠️ /api/twitch/vods/random error:', e.message);
-    return res.json({ success:true, items:[], reason:'server_error', error: e.message });
+    return res.json({ success:true, items:[], reason:'server_error', error:e.message });
   }
 });
 
