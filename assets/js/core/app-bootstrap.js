@@ -259,17 +259,25 @@ function startAuth() {
       const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
       container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
       loadStreamInfo(channel);
-    
-
-function loadVodEmbed(videoId){
-      const container = document.getElementById('video-container');
-      const parentParam = PARENT_DOMAINS.join('&parent=');
-      const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(videoId)}&parent=${parentParam}&theme=dark&autoplay=true&muted=true`;
-      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
-      // keep chat as-is (user can switch to live later)
     }
 
-}
+	    // Play a Twitch VOD inside the main player (Netflix-like inline playback)
+	    function loadVodEmbed(videoId, channelHint) {
+	      const container = document.getElementById('video-container');
+	      const parentParam = PARENT_DOMAINS.join('&parent=');
+	      const vid = String(videoId || '').replace(/^v/i,'');
+	      if (!vid) return;
+	      const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${parentParam}&theme=dark&autoplay=true`;
+	      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+	      // VOD: no guaranteed chat; keep chat on channel if available
+	      if (channelHint) {
+	        try { updateTwitchChatFrame(channelHint); } catch(_){ }
+	        try { document.getElementById('current-channel-display').innerText = `${String(channelHint).toUpperCase()} • VOD`; } catch(_){ }
+	      } else {
+	        try { document.getElementById('current-channel-display').innerText = `VOD`; } catch(_){ }
+	      }
+	      try { document.getElementById('player-mode-badge').innerText = 'VOD'; } catch(_){ }
+	    }
 
     function loadStreamInfo(channel) {
       fetch(`${API_BASE}/stream_info`, {
@@ -1022,91 +1030,81 @@ window.addEventListener('message', (ev) => {
       // Twitch thumbnails use {width}x{height}
       return u.replace('%{width}','1000').replace('%{height}','562').replace('{width}','1000').replace('{height}','562');
     }
-function tfGetTwitchParent(){
-      // Twitch embed requires parent without port
-      const h = (location.hostname || 'localhost').split(':')[0];
-      return h || 'localhost';
-    }
-
-    function tfEnsureVodModal(){
-      let modal = document.getElementById('oryon-vod-modal');
-      if(modal) return modal;
-      modal = document.createElement('div');
-      modal.id = 'oryon-vod-modal';
-      modal.innerHTML = `
-        <div class="oryon-vod-backdrop"></div>
-        <div class="oryon-vod-shell" role="dialog" aria-modal="true">
-          <button class="oryon-vod-close" type="button" aria-label="Fermer">✕</button>
-          <div class="oryon-vod-framewrap">
-            <iframe class="oryon-vod-iframe" allow="autoplay; fullscreen" allowfullscreen></iframe>
-          </div>
-          <div class="oryon-vod-meta">
-            <div class="oryon-vod-title"></div>
-            <div class="oryon-vod-sub"></div>
-          </div>
-        </div>`;
-      document.body.appendChild(modal);
-
-      const close = () => tfCloseVodModal();
-      modal.querySelector('.oryon-vod-backdrop').addEventListener('click', close);
-      modal.querySelector('.oryon-vod-close').addEventListener('click', close);
-      document.addEventListener('keydown', (e)=>{
-        if(e.key === 'Escape' && modal.classList.contains('open')) close();
-      });
-
-      return modal;
-    }
-
-    function tfOpenVodModal(v){
-      const modal = tfEnsureVodModal();
-      const iframe = modal.querySelector('.oryon-vod-iframe');
-      const titleEl = modal.querySelector('.oryon-vod-title');
-      const subEl = modal.querySelector('.oryon-vod-sub');
-
-      const vodId = v?.id || '';
-      const vodTitle = v?.title || v?.name || 'VOD';
-      const user = v?.user_name || '';
-      const game = v?.game_name || '';
-      titleEl.textContent = vodTitle;
-      subEl.textContent = [user, game].filter(Boolean).join(' • ');
-
-      // Use Twitch embed video player (muted autoplay to avoid policy issues)
-      const parent = tfGetTwitchParent();
-      const src = `https://player.twitch.tv/?video=${encodeURIComponent(vodId)}&parent=${encodeURIComponent(parent)}&autoplay=true&muted=true`;
-      iframe.src = src;
-
-      modal.classList.add('open');
-      document.body.classList.add('oryon-vod-open');
-      try{ iframe.focus(); }catch(_){}
-    }
-
-    function tfCloseVodModal(){
-      const modal = document.getElementById('oryon-vod-modal');
-      if(!modal) return;
-      const iframe = modal.querySelector('.oryon-vod-iframe');
-      if(iframe) iframe.src = 'about:blank';
-      modal.classList.remove('open');
-      document.body.classList.remove('oryon-vod-open');
-    }
-
-
 
 function tfNormalizeBoxArt(url){
+  // Request higher res to avoid blur, then downscale in CSS.
+  // Supports Twitch template URLs and some common IGDB/Steam style covers.
   const u = String(url || '');
   if (!u) return '';
-  // Twitch template thumbs
+
+  // Twitch template: ...{width}x{height}...
   let out = u.replace('{width}','2000').replace('{height}','2666');
 
-  // IGDB: upgrade to bigger cover size if possible
-  // examples: https://images.igdb.com/igdb/image/upload/t_thumb/xxx.jpg
-  out = out.replace(/\/t_thumb\//g, '/t_cover_big_2x/');
-  out = out.replace(/\/t_cover_small\//g, '/t_cover_big_2x/');
-  out = out.replace(/\/t_cover_big\//g, '/t_cover_big_2x/');
+  // IGDB: t_cover_small / t_thumb / t_cover_big etc -> keep cover_big
+  out = out.replace(/t_(?:thumb|cover_small|cover_big|720p|1080p)/g, 't_cover_big');
 
-  // Some CDNs use query params like ?w=90&h=120 — request bigger
-  out = out.replace(/([?&])w=\d+/g, '$1w=600').replace(/([?&])h=\d+/g, '$1h=800');
+  // If URL already has width/height params, bump them.
+  out = out
+    .replace(/([?&])w=\d+/g, '$1w=600')
+    .replace(/([?&])h=\d+/g, '$1h=800');
 
   return out;
+}
+
+    function setTwitFlixView(mode){
+      tfViewMode = (mode === 'az') ? 'az' : 'rows';
+      const bRows = document.getElementById('tf-btn-rows');
+      const bAz = document.getElementById('tf-btn-az');
+      if (bRows && bAz){
+        bRows.classList.toggle('active', tfViewMode === 'rows');
+        bAz.classList.toggle('active', tfViewMode === 'az');
+      }
+      renderTwitFlix();
+    }
+
+    async function openTwitFlix(){
+  document.body.classList.add('modal-open');
+const modal = document.getElementById('twitflix-modal');
+      const host = document.getElementById('twitflix-grid');
+      const search = document.getElementById('twitflix-search');
+
+      tfModalOpen = true;
+      modal.classList.add('active');
+
+      // TwitFlix intro (Netflix-like) — stylized, minimal
+	try{
+	  // UX hotfixes (search blur + clickability)
+	  if (!document.getElementById('tf-ux-hotfix')){
+	    const st = document.createElement('style');
+	    st.id = 'tf-ux-hotfix';
+	    st.textContent = `
+	      /* sharper posters */
+	      .tf-card .tf-poster{ image-rendering:auto; filter:none !important; }
+	      .tf-card{ overflow: hidden; }
+	      /* overlays must not steal mouse clicks */
+	      .tf-card .tf-overlay, .tf-card .tf-preview{ pointer-events:none !important; }
+	      /* keep images crisp when scaled */
+	      .tf-card .tf-poster{ transform: translateZ(0); backface-visibility:hidden; }
+	    `;
+	    document.head.appendChild(st);
+	  }
+  let intro = document.getElementById('twitflix-intro');
+  if(!intro){
+    intro = document.createElement('div');
+    intro.id = 'twitflix-intro';
+    intro.className = 'tf-intro';
+    intro.innerHTML = `
+      <div class="tf-intro-box">
+        <div class="tf-scanline"></div>
+        <div class="tf-intro-logo">TWITFLIX</div>
+        <div class="tf-intro-sub">Mode Netflix • Chargement des streams</div>
+      </div>
+    `;
+    document.body.appendChild(intro);
+  }
+  intro.classList.remove('outro');
+  intro.classList.add('active');
+  setTimeout(()=>{ intro.classList.remove('active'); }, 1200);
 }catch(_){}// reset
       tfViewMode = 'rows';
       tfAllCategories = [];
@@ -1401,11 +1399,18 @@ function tfNormalizeBoxArt(url){
             tfVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })),
             'tf-vod-search-row'
           );
-          // attach click to open VOD url
+	          // attach click to play VOD inline (main player) instead of opening a new tab
           vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
             const v = tfVodResults[idx]?._vod;
             if(!v) return;
-            card.onclick = ()=>{ try{ loadVodEmbed(v.id); closeTwitFlix(); }catch(_){ try{ if(v.url) window.open(v.url, '_blank', 'noopener'); }catch(__){} } };
+	            card.onclick = ()=>{
+	              try{
+	                // close ORYON TV overlay to reveal the main player
+	                if (typeof closeTwitFlix === 'function') closeTwitFlix();
+	              }catch(_){ }
+	              // Twitch video id can be "v123" or "123"
+	              try{ loadVodEmbed(v.video_id || v.id || v.url, v.user_name || v.channel); }catch(_){ }
+	            };
           });
           host.appendChild(vodRow);
         } else {
@@ -2907,21 +2912,3 @@ window.renderTwitFlix = function(){
   setTimeout(tfAnnotateRows, 0);
   return r;
 };
-
-      // Hotfix: ensure mouse clicks work + avoid unwanted blur on posters during search
-      if(!document.getElementById('oryon-tv-hotfix')){
-        const st = document.createElement('style');
-        st.id = 'oryon-tv-hotfix';
-        st.textContent = `
-          .tf-row, .tf-row-track, .tf-card { pointer-events:auto !important; }
-          .tf-card { cursor:pointer; }
-          .tf-card * { pointer-events:none; }
-          .tf-card { pointer-events:auto !important; }
-          .tf-card .tf-preview, .tf-card .tf-overlay { pointer-events:none !important; }
-          /* keep posters crisp */
-          .tf-poster { filter:none !important; image-rendering:auto; }
-          /* if any blur/dim rules exist, neutralize in search mode */
-          body.tf-searching .tf-card .tf-poster { filter:none !important; opacity:1 !important; }
-        `;
-        document.head.appendChild(st);
-      }
