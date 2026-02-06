@@ -259,7 +259,17 @@ function startAuth() {
       const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
       container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
       loadStreamInfo(channel);
+    
+
+function loadVodEmbed(videoId){
+      const container = document.getElementById('video-container');
+      const parentParam = PARENT_DOMAINS.join('&parent=');
+      const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(videoId)}&parent=${parentParam}&theme=dark&autoplay=true&muted=true`;
+      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+      // keep chat as-is (user can switch to live later)
     }
+
+}
 
     function loadStreamInfo(channel) {
       fetch(`${API_BASE}/stream_info`, {
@@ -1082,51 +1092,21 @@ function tfGetTwitchParent(){
 
 
 function tfNormalizeBoxArt(url){
-      // request higher res to avoid blur, then we downscale in CSS
-      const u = String(url || '');
-      if (!u) return '';
-      return u.replace('{width}','2000').replace('{height}','2666');
-    }
+  const u = String(url || '');
+  if (!u) return '';
+  // Twitch template thumbs
+  let out = u.replace('{width}','2000').replace('{height}','2666');
 
-    function setTwitFlixView(mode){
-      tfViewMode = (mode === 'az') ? 'az' : 'rows';
-      const bRows = document.getElementById('tf-btn-rows');
-      const bAz = document.getElementById('tf-btn-az');
-      if (bRows && bAz){
-        bRows.classList.toggle('active', tfViewMode === 'rows');
-        bAz.classList.toggle('active', tfViewMode === 'az');
-      }
-      renderTwitFlix();
-    }
+  // IGDB: upgrade to bigger cover size if possible
+  // examples: https://images.igdb.com/igdb/image/upload/t_thumb/xxx.jpg
+  out = out.replace(/\/t_thumb\//g, '/t_cover_big_2x/');
+  out = out.replace(/\/t_cover_small\//g, '/t_cover_big_2x/');
+  out = out.replace(/\/t_cover_big\//g, '/t_cover_big_2x/');
 
-    async function openTwitFlix(){
-  document.body.classList.add('modal-open');
-const modal = document.getElementById('twitflix-modal');
-      const host = document.getElementById('twitflix-grid');
-      const search = document.getElementById('twitflix-search');
+  // Some CDNs use query params like ?w=90&h=120 — request bigger
+  out = out.replace(/([?&])w=\d+/g, '$1w=600').replace(/([?&])h=\d+/g, '$1h=800');
 
-      tfModalOpen = true;
-      modal.classList.add('active');
-
-      // TwitFlix intro (Netflix-like) — stylized, minimal
-try{
-  let intro = document.getElementById('twitflix-intro');
-  if(!intro){
-    intro = document.createElement('div');
-    intro.id = 'twitflix-intro';
-    intro.className = 'tf-intro';
-    intro.innerHTML = `
-      <div class="tf-intro-box">
-        <div class="tf-scanline"></div>
-        <div class="tf-intro-logo">TWITFLIX</div>
-        <div class="tf-intro-sub">Mode Netflix • Chargement des streams</div>
-      </div>
-    `;
-    document.body.appendChild(intro);
-  }
-  intro.classList.remove('outro');
-  intro.classList.add('active');
-  setTimeout(()=>{ intro.classList.remove('active'); }, 1200);
+  return out;
 }catch(_){}// reset
       tfViewMode = 'rows';
       tfAllCategories = [];
@@ -1425,7 +1405,7 @@ try{
           vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
             const v = tfVodResults[idx]?._vod;
             if(!v) return;
-            card.onclick = ()=>{ try{ tfOpenVodModal(v); }catch(_){ if(v.url) window.open(v.url, '_blank', 'noopener'); } };
+            card.onclick = ()=>{ try{ loadVodEmbed(v.id); closeTwitFlix(); }catch(_){ try{ if(v.url) window.open(v.url, '_blank', 'noopener'); }catch(__){} } };
           });
           host.appendChild(vodRow);
         } else {
@@ -2927,3 +2907,21 @@ window.renderTwitFlix = function(){
   setTimeout(tfAnnotateRows, 0);
   return r;
 };
+
+      // Hotfix: ensure mouse clicks work + avoid unwanted blur on posters during search
+      if(!document.getElementById('oryon-tv-hotfix')){
+        const st = document.createElement('style');
+        st.id = 'oryon-tv-hotfix';
+        st.textContent = `
+          .tf-row, .tf-row-track, .tf-card { pointer-events:auto !important; }
+          .tf-card { cursor:pointer; }
+          .tf-card * { pointer-events:none; }
+          .tf-card { pointer-events:auto !important; }
+          .tf-card .tf-preview, .tf-card .tf-overlay { pointer-events:none !important; }
+          /* keep posters crisp */
+          .tf-poster { filter:none !important; image-rendering:auto; }
+          /* if any blur/dim rules exist, neutralize in search mode */
+          body.tf-searching .tf-card .tf-poster { filter:none !important; opacity:1 !important; }
+        `;
+        document.head.appendChild(st);
+      }
