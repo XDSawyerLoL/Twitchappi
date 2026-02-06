@@ -1004,7 +1004,7 @@ window.addEventListener('message', (ev) => {
 
     let tfSearchQuery = '';
     let tfSearchResults = [];
-let tfVodResults = [];
+    let tfVodResults = [];
     let tfSearchTimer = null;
 
     let tfObserver = null;
@@ -1032,7 +1032,8 @@ function tfNormalizeBoxArt(url){
   // generic ?w=&h=
   out = out.replace(/([?&])w=\d+/g,'$1w=600').replace(/([?&])h=\d+/g,'$1h=800');
   return out;
-}catch(_){}// reset
+}
+// reset
       tfViewMode = 'rows';
       tfAllCategories = [];
       tfCursor = null;
@@ -2368,4 +2369,3 @@ document.addEventListener('click', (e)=>{
   }catch(_){}
 }, true);
 })();
-
