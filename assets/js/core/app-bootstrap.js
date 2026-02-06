@@ -2757,18 +2757,18 @@ try{
 function tfAnnotateRows(){
   try{
     document.querySelectorAll('#twitflix-modal .tf-row').forEach((row,i)=>{
-      row.dataset.rowIndex=String(i);
-      tfSetupRowPaging(row);
-      const t = row.querySelector('.tf-row-track'); if(t) tfEnableTrackDrag(t);
+      row.dataset.rowIndex = String(i);
+      try{ tfSetupRowPaging(row); }catch(_){ }
+      const t = row.querySelector('.tf-row-track');
+      if(t) try{ tfEnableTrackDrag(t); }catch(_){ }
     });
-    // Also setup paging for any standalone tracks
+
     document.querySelectorAll('#twitflix-modal .tf-row-track').forEach(track=>{
       const row = track.closest('.tf-row') || track.parentElement;
-      if(row) tfSetupRowPaging(row);
-      const t = row.querySelector('.tf-row-track'); if(t) tfEnableTrackDrag(t);
+      if(row) try{ tfSetupRowPaging(row); }catch(_){ }
+      try{ tfEnableTrackDrag(track); }catch(_){ }
     });
-  }catch(_){}
-}catch(_){}
+  }catch(_){ }
 }
 const __renderTwitFlix = window.renderTwitFlix;
 window.renderTwitFlix = function(){
