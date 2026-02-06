@@ -1,3 +1,89 @@
+async function tfTryFetchJson(url){
+  try{
+    const r = await fetch(url, { credentials:'include' });
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(_){ return null; }
+}
+
+async function tfTryRenderOptionalRows(host){
+  try{
+    if(!host) return;
+
+    // CLIPS (top)
+    const clips = await tfTryFetchJson('/api/twitch/clips') || await tfTryFetchJson('/api/clips');
+    if(clips && Array.isArray(clips.items) && clips.items.length){
+      const sec = document.createElement('div');
+      sec.className = 'tf-section';
+      sec.innerHTML = `
+        <div class="tf-row-head">
+          <div class="tf-row-left"><div class="tf-row-title">CLIPS</div></div>
+          <div class="tf-row-right">
+            <button class="tf-row-arrow" data-dir="-1" title="Page précédente">‹</button>
+            <button class="tf-row-arrow" data-dir="1" title="Page suivante">›</button>
+            <div class="tf-row-dots" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="tf-row"><div class="tf-row-track"></div></div>
+      `;
+      const track = sec.querySelector('.tf-row-track');
+      clips.items.slice(0,24).forEach(c=>{
+        const title = c.title || c.name || 'Clip';
+        const id = c.id || c.clip_id || title;
+        const card = tfBuildCard({ id, name: title });
+        card.dataset.platform = c.platform || 'twitch';
+        card.dataset.live = 'CLIP';
+        card.dataset.viewers = '';
+        card.dataset.tags = (c.tags||[]).join(', ');
+        card.onclick = () => {
+          try{ tfPushRecent({ id, title, platform: card.dataset.platform, type:'clip', url: c.url || c.embed_url || '' }); }catch(_){}
+          const url = c.url || c.embed_url;
+          if(url) window.open(url, '_blank', 'noopener');
+        };
+        track.appendChild(card);
+      });
+      host.appendChild(sec);
+      tfSetupRowPaging(sec.querySelector('.tf-row'));
+    }
+
+    // VOD (recent videos)
+    const vod = await tfTryFetchJson('/api/twitch/videos') || await tfTryFetchJson('/api/vod') || await tfTryFetchJson('/api/videos');
+    if(vod && Array.isArray(vod.items) && vod.items.length){
+      const sec = document.createElement('div');
+      sec.className = 'tf-section';
+      sec.innerHTML = `
+        <div class="tf-row-head">
+          <div class="tf-row-left"><div class="tf-row-title">VOD</div></div>
+          <div class="tf-row-right">
+            <button class="tf-row-arrow" data-dir="-1" title="Page précédente">‹</button>
+            <button class="tf-row-arrow" data-dir="1" title="Page suivante">›</button>
+            <div class="tf-row-dots" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="tf-row"><div class="tf-row-track"></div></div>
+      `;
+      const track = sec.querySelector('.tf-row-track');
+      vod.items.slice(0,24).forEach(v=>{
+        const title = v.title || v.name || 'VOD';
+        const id = v.id || v.video_id || title;
+        const card = tfBuildCard({ id, name: title });
+        card.dataset.platform = v.platform || 'twitch';
+        card.dataset.live = 'VOD';
+        card.dataset.viewers = '';
+        card.dataset.tags = (v.tags||[]).join(', ');
+        card.onclick = () => {
+          try{ tfPushRecent({ id, title, platform: card.dataset.platform, type:'vod', url: v.url || v.link || '' }); }catch(_){}
+          const url = v.url || v.link;
+          if(url) window.open(url, '_blank', 'noopener');
+        };
+        track.appendChild(card);
+      });
+      host.appendChild(sec);
+      tfSetupRowPaging(sec.querySelector('.tf-row'));
+    }
+  }catch(_){}
+}
+
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
@@ -1329,8 +1415,13 @@ try{
             `;
             const track = sec.querySelector('.tf-row-track');
             recents.slice(0,14).forEach(r=>{
-              const fake = { title: r.title || 'Reprendre', platform: r.platform || '', id:r.id, live:false, viewers:'' };
-              track.appendChild(tfBuildCard(fake));
+              const card = tfBuildCard({ id: r.id, name: r.title || 'Reprendre' });
+              // Override click to reopen the exact id/name
+              card.onclick = () => {
+                try{ tfPushRecent({ id:r.id, title:r.title||'', platform:r.platform||'', type:r.type||'' }); }catch(_){}
+                playTwitFlixCategory(r.id, r.title || 'Reprendre');
+              };
+              track.appendChild(card);
             });
             host.appendChild(sec);
             tfSetupRowPaging(sec.querySelector('.tf-row'));
@@ -1489,9 +1580,11 @@ const q = tfSearchQuery.trim();
       div.addEventListener('focus', () => tfSetHero({ title: cat.name, poster }));
 
       // click play
-      div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
-
-      div.addEventListener('keydown', (e) => {
+      div.onclick = () => {
+        try{ tfPushRecent({ id: cat.id, title: cat.name, platform: 'twitch', type:'live' }); }catch(_){ }
+        playTwitFlixCategory(cat.id, cat.name);
+      };
+div.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           div.click();
@@ -2959,7 +3052,7 @@ function tfPushRecent(item){
     if(!item || !item.id) return;
     let arr = tfLoadRecents();
     arr = arr.filter(x=>x && x.id !== item.id);
-    arr.unshift({ id:item.id, title:item.title||'', platform:item.platform||'', ts:Date.now() });
+    arr.unshift({ id:item.id, title:item.title||'', platform:item.platform||'', type:item.type||'', url:item.url||'', ts:Date.now() });
     tfSaveRecents(arr);
 
     // Optional Firestore sync if available (no hard dependency)
