@@ -267,7 +267,7 @@ function startAuth() {
 	      const parentParam = PARENT_DOMAINS.join('&parent=');
 	      const vid = String(videoId || '').replace(/^v/i,'');
 	      if (!vid) return;
-	      const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${parentParam}&theme=dark&autoplay=true`;
+	      const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${parentParam}&theme=dark&autoplay=true&muted=true`;
 	      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
 	      // VOD: no guaranteed chat; keep chat on channel if available
 	      if (channelHint) {
@@ -1032,22 +1032,13 @@ window.addEventListener('message', (ev) => {
     }
 
 function tfNormalizeBoxArt(url){
-  // Request higher res to avoid blur, then downscale in CSS.
-  // Supports Twitch template URLs and some common IGDB/Steam style covers.
   const u = String(url || '');
   if (!u) return '';
-
-  // Twitch template: ...{width}x{height}...
   let out = u.replace('{width}','2000').replace('{height}','2666');
-
-  // IGDB: t_cover_small / t_thumb / t_cover_big etc -> keep cover_big
-  out = out.replace(/t_(?:thumb|cover_small|cover_big|720p|1080p)/g, 't_cover_big');
-
-  // If URL already has width/height params, bump them.
-  out = out
-    .replace(/([?&])w=\d+/g, '$1w=600')
-    .replace(/([?&])h=\d+/g, '$1h=800');
-
+  out = out.replace(/\/t_thumb\//g,'/t_cover_big_2x/')
+           .replace(/\/t_cover_small\//g,'/t_cover_big_2x/')
+           .replace(/\/t_cover_big\//g,'/t_cover_big_2x/');
+  out = out.replace(/([?&])w=\d+/g,'$1w=600').replace(/([?&])h=\d+/g,'$1h=800');
   return out;
 }
 
@@ -1066,6 +1057,24 @@ function tfNormalizeBoxArt(url){
   document.body.classList.add('modal-open');
 const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
+
+      // ORYON TV: delegated mouse click for VOD cards (prevents overlay layers from swallowing clicks)
+      try{
+        const __grid = document.getElementById('twitflix-grid');
+        if(__grid && !__grid.dataset.oryonVodClickDelegate){
+          __grid.dataset.oryonVodClickDelegate = '1';
+          __grid.addEventListener('click', (e)=>{
+            const card = e.target.closest('.tf-card');
+            if(!card) return;
+            const vodId = card.dataset.vodId;
+            if(!vodId) return;
+            e.preventDefault(); e.stopPropagation();
+            try{ closeTwitFlix(); }catch(_){}
+            try{ loadVodEmbed(vodId); }catch(_){}
+            try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
+          }, true);
+        }
+      }catch(_){}
       const search = document.getElementById('twitflix-search');
 
       tfModalOpen = true;
@@ -1160,6 +1169,7 @@ const modal = document.getElementById('twitflix-modal');
 
       tfRenderLiveCarousel();
       tfRenderTrailerCarousel();
+      document.body.classList.add('tf-bigpicture'); tfViewMode='rows';
       renderTwitFlix();
     }
 
@@ -1389,46 +1399,35 @@ const modal = document.getElementById('twitflix-modal');
         const q = tfSearchQuery.trim();
         tfSetHero({ title: q, sub: 'Résultats de recherche' });
 
-        if (!tfSearchResults.length){
-          host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
-          
-        // Twitch VOD results by title
+        // Always show VOD row (if any) above category results
         if (tfVodResults && tfVodResults.length){
           const vodRow = tfBuildRow(
-            `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Titre: ${escapeHtml(q)}</span></div>`,
+            `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Recherche: ${escapeHtml(q)}</span></div>`,
             tfVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })),
             'tf-vod-search-row'
           );
-	          // attach click to play VOD inline (main player) instead of opening a new tab
+          // store vod id on cards for delegated click
           vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
             const v = tfVodResults[idx]?._vod;
             if(!v) return;
-	            card.onclick = ()=>{
-	              try{
-	                // close ORYON TV overlay to reveal the main player
-	                if (typeof closeTwitFlix === 'function') closeTwitFlix();
-	              }catch(_){ }
-	              // Twitch video id can be "v123" or "123"
-	              try{ loadVodEmbed(v.video_id || v.id || v.url, v.user_name || v.channel); }catch(_){ }
-	            };
+            card.dataset.vodId = String(v.id || '').replace(/^v/i,'');
           });
           host.appendChild(vodRow);
         } else {
-          // show small hint row when searching
           const hint = document.createElement('div');
           hint.className = 'tf-empty tf-vod-hint';
           hint.style.marginTop = '10px';
-          hint.innerHTML = `VOD FR (20-200 viewers) : ${'recherche en cours / aucun résultat.'}`;
+          hint.innerHTML = `VOD FR (20-200 viewers) : <span style="opacity:.8">aucun résultat</span>`;
           host.appendChild(hint);
         }
 
-        if (sentinel) host.appendChild(sentinel);
-      try{ tfAnnotateRows(); }catch(_){ }
-          return;
-        }
-
-        // In Big Picture (and rows mode), render search results as a single horizontal row (Netflix/Steam style)
-        if (document.body.classList.contains('tf-bigpicture') || tfViewMode === 'rows'){
+        // Category results
+        if (!tfSearchResults.length){
+          host.appendChild(Object.assign(document.createElement('div'), {
+            className: 'tf-empty',
+            innerHTML: `Aucun jeu pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.`
+          }));
+        } else if (document.body.classList.contains('tf-bigpicture') || tfViewMode === 'rows'){
           const row = tfBuildRow(`<div class="tf-strip-title"><h4>Résultats</h4><span class="tf-strip-sub">${escapeHtml(q)}</span></div>`, tfSearchResults, 'tf-search-row');
           host.appendChild(row);
         } else {
@@ -1437,7 +1436,9 @@ const modal = document.getElementById('twitflix-modal');
           tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
           host.appendChild(grid);
         }
+
         if (sentinel) host.appendChild(sentinel);
+        try{ tfAnnotateRows(); }catch(_){ }
         return;
       }
 

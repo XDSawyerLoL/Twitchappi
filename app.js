@@ -682,6 +682,7 @@ app.get('/api/twitch/vods/search', async (req, res) => {
 
     for(let i=0; i<attempts && items.length < limit; i++){
       const s = candidates[i];
+      const gameMatch = String(s.game_name||'').toLowerCase().includes(low);
       try{
         // fetch up to 5 recent videos, search in their title
         const v = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=5&type=archive`, token);
@@ -689,7 +690,7 @@ app.get('/api/twitch/vods/search', async (req, res) => {
         for(const row of vids){
           if(items.length >= limit) break;
           const t = String(row.title||'').toLowerCase();
-          if(!t.includes(low)) continue;
+          if(!gameMatch && !t.includes(low)) continue;
           items.push({
             id: row.id, title: row.title, url: row.url, thumbnail_url: row.thumbnail_url,
             duration: row.duration, view_count: row.view_count, created_at: row.created_at, vod_type: row.type,
