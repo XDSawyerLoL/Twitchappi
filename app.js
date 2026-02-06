@@ -540,7 +540,120 @@ async function twitchAPI(endpoint, token = null) {
   }
 
   return res.json();
+}// =========================================================
+// ORYON TV — Random VODs (streamers 20-200 viewers) [backend-only]
+// =========================================================
+// Returns: { success:true, items:[{id,title,url,thumbnail_url,user_name,user_login,game_name,live_viewers,...}], reason? }
+// Uses Twitch App token. Requires TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET configured on the server.
+const __oryonVodsCache = { ts: 0, key: '', items: [] };
+
+function __oryonShuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
 }
+
+app.get('/api/twitch/vods/random', async (req, res) => {
+  try{
+    const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
+    const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '18', 10) || 18), 30);
+    const lang = String(req.query.lang || '').trim(); // optional: 'fr'
+    const cacheKey = `${min}-${max}-${limit}-${lang}`;
+
+    if(__oryonVodsCache.key === cacheKey && (Date.now() - __oryonVodsCache.ts) < 60_000){
+      return res.json({ success:true, items: __oryonVodsCache.items, cached:true });
+    }
+
+    const appToken = await getTwitchToken('app');
+    if(!appToken){
+      return res.json({ success:true, items:[], reason:'missing_app_token' });
+    }
+
+    // Collect candidate live streams in viewer range
+    let cursor = '';
+    const candidates = [];
+    for(let page=0; page<8 && candidates.length < 800; page++){
+      const qs = new URLSearchParams();
+      qs.set('first','100');
+      if(cursor) qs.set('after', cursor);
+      if(lang) qs.set('language', lang);
+      const data = await twitchAPI(`streams?${qs.toString()}`, appToken);
+      const rows = data?.data || [];
+      cursor = data?.pagination?.cursor || '';
+      for(const s of rows){
+        const vc = s.viewer_count || 0;
+        if(vc >= min && vc <= max){
+          candidates.push({
+            user_id: s.user_id,
+            user_login: s.user_login,
+            user_name: s.user_name,
+            game_name: s.game_name,
+            viewer_count: vc
+          });
+        }
+      }
+      if(!cursor) break;
+    }
+
+    if(!candidates.length){
+      return res.json({ success:true, items:[], reason:'no_candidates_in_range' });
+    }
+
+    __oryonShuffle(candidates);
+
+    // Fill with VODs. Many streamers have VODs disabled => we try many candidates.
+    const items = [];
+    const maxAttempts = Math.min(250, candidates.length);
+    for(let i=0; i<maxAttempts && items.length < limit; i++){
+      const s = candidates[i];
+      try{
+        // archive then highlight fallback
+        let vd = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=archive`, appToken);
+        let row = (vd?.data || [])[0];
+        if(!row){
+          vd = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=highlight`, appToken);
+          row = (vd?.data || [])[0];
+        }
+        if(!row) continue;
+
+        items.push({
+          id: row.id,
+          title: row.title,
+          url: row.url,
+          thumbnail_url: row.thumbnail_url,
+          view_count: row.view_count,
+          duration: row.duration,
+          created_at: row.created_at,
+          vod_type: row.type,
+          user_name: s.user_name,
+          user_login: s.user_login,
+          game_name: s.game_name,
+          live_viewers: s.viewer_count,
+          platform: 'twitch'
+        });
+      }catch(e){
+        // skip candidate
+      }
+    }
+
+    __oryonVodsCache.ts = Date.now();
+    __oryonVodsCache.key = cacheKey;
+    __oryonVodsCache.items = items;
+
+    if(!items.length){
+      return res.json({ success:true, items:[], reason:'no_vods_found_attempted', attempted: maxAttempts, candidates: candidates.length });
+    }
+
+    return res.json({ success:true, items, candidates: candidates.length });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/vods/random error:', e.message);
+    return res.json({ success:true, items:[], reason:'server_error', error: e.message });
+  }
+});
+
 
 async function runGeminiAnalysis(prompt) {
   if (!aiClient) {
@@ -1129,214 +1242,6 @@ app.post('/api/search/intent', async (req,res)=>{
   }
 });
 
-
-// =========================================================
-// ORYON TV — Random VODs (streamers 20-200 viewers)
-// =========================================================
-const __oryonVodsCache = { ts: 0, key: '', items: [] };
-
-function pickRandom(arr, n){
-  const a = arr.slice();
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-  return a.slice(0,n);
-}
-
-app.get('/api/twitch/vods/random', async (req, res) => {
-  try{
-    const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
-    const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '18', 10) || 18), 30);
-    const lang = String(req.query.lang || '').trim(); // optional, e.g. 'fr'
-    const cacheKey = `${min}-${max}-${limit}-${lang}`;
-    if(__oryonVodsCache.key === cacheKey && (Date.now()-__oryonVodsCache.ts) < 60_000){
-      return res.json({ success:true, items: __oryonVodsCache.items, cached:true });
-    }
-
-    const appToken = await getTwitchToken('app');
-    if(!appToken){
-      return res.json({ success:true, items:[], reason:'missing_app_token' });
-    }
-
-    // 1) collect candidates streams in range
-    let cursor = '';
-    const candidates = [];
-    for(let page=0; page<8 && candidates.length < 800; page++){
-      const qs = new URLSearchParams();
-      qs.set('first','100');
-      if(cursor) qs.set('after', cursor);
-      if(lang) qs.set('language', lang);
-      const data = await twitchAPI(`streams?${qs.toString()}`, appToken);
-      const rows = data?.data || [];
-      cursor = data?.pagination?.cursor || '';
-      for(const s of rows){
-        const vc = s.viewer_count || 0;
-        if(vc >= min && vc <= max){
-          candidates.push({
-            user_id: s.user_id,
-            user_login: s.user_login,
-            user_name: s.user_name,
-            game_name: s.game_name,
-            viewer_count: vc
-          });
-        }
-      }
-      if(!cursor) break;
-    }
-
-    if(!candidates.length){
-      return res.json({ success:true, items:[], reason:'no_candidates_in_range' });
-    }
-
-    // Shuffle and attempt to fill VODs, many streamers have VODs disabled.
-    for(let i=candidates.length-1;i>0;i--){
-      const j = Math.floor(Math.random()*(i+1));
-      [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
-    }
-
-    const items = [];
-    const maxAttempts = Math.min(250, candidates.length);
-    for(let i=0; i<maxAttempts && items.length < limit; i++){
-      const s = candidates[i];
-      try{
-        // try archive then highlight fallback
-        let data = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=archive`, appToken);
-        let row = (data?.data || [])[0];
-        if(!row){
-          data = await twitchAPI(`videos?user_id=${encodeURIComponent(s.user_id)}&first=1&type=highlight`, appToken);
-          row = (data?.data || [])[0];
-        }
-        if(!row) continue;
-
-        items.push({
-          id: row.id,
-          title: row.title,
-          url: row.url,
-          thumbnail_url: row.thumbnail_url,
-          view_count: row.view_count,
-          duration: row.duration,
-          created_at: row.created_at,
-          vod_type: row.type,
-          user_name: s.user_name,
-          user_login: s.user_login,
-          game_name: s.game_name,
-          live_viewers: s.viewer_count,
-          platform: 'twitch'
-        });
-      }catch(e){
-        // skip
-      }
-    }
-
-    __oryonVodsCache.ts = Date.now();
-    __oryonVodsCache.key = cacheKey;
-    __oryonVodsCache.items = items;
-
-    if(!items.length){
-      return res.json({ success:true, items:[], reason:'no_vods_found_attempted', attempted: Math.min(250, candidates.length), candidates: candidates.length });
-    }
-    return res.json({ success:true, items, candidates: candidates.length });
-  }catch(e){
-    console.warn('⚠️ /api/twitch/vods/random error:', e.message);
-    return res.json({ success:true, items:[], reason:'server_error', error:e.message });
-  }
-});
-
-// =========================================================
-// ORYON TV — CLIPS & VOD (Helix)
-// =========================================================
-// These endpoints are used by ORYON TV rows. They return 200 with {items:[]} when not connected,
-// so the UI can show an explicit message instead of hard 404s.
-
-function getUserTwitchAccess(req){
-  // try several possible places depending on earlier auth code
-  return (
-    req.session?.twitch?.access_token ||
-    req.session?.twitchAccessToken ||
-    req.cookies?.twitch_access_token ||
-    null
-  );
-}
-function getUserTwitchId(req){
-  return (
-    req.session?.twitch?.user_id ||
-    req.session?.twitchUserId ||
-    req.session?.user?.twitchUserId ||
-    req.cookies?.twitch_user_id ||
-    null
-  );
-}
-
-app.get('/api/twitch/clips', async (req, res) => {
-  try{
-    const userId = getUserTwitchId(req) || String(req.query.broadcaster_id || '').trim();
-    const token = getUserTwitchAccess(req) || await getTwitchToken('app');
-
-    if(!userId){
-      return res.json({ success:true, items:[], reason:'missing_user_id' });
-    }
-    if(!token){
-      return res.json({ success:true, items:[], reason:'missing_token' });
-    }
-
-    const first = Math.min(parseInt(req.query.first || '20',10) || 20, 50);
-    const endpoint = `clips?broadcaster_id=${encodeURIComponent(userId)}&first=${first}`;
-    const data = await twitchAPI(endpoint, token);
-
-    const items = (data.data || []).map(c => ({
-      id: c.id,
-      title: c.title,
-      url: c.url,
-      embed_url: c.embed_url,
-      creator_name: c.creator_name,
-      view_count: c.view_count,
-      thumbnail_url: c.thumbnail_url,
-      created_at: c.created_at,
-      platform: 'twitch'
-    }));
-    return res.json({ success:true, items });
-  }catch(e){
-    console.warn('⚠️ /api/twitch/clips error:', e.message);
-    return res.json({ success:true, items:[], error:e.message });
-  }
-});
-
-app.get('/api/twitch/videos', async (req, res) => {
-  try{
-    const userId = getUserTwitchId(req) || String(req.query.user_id || '').trim();
-    const token = getUserTwitchAccess(req) || await getTwitchToken('app');
-
-    if(!userId){
-      return res.json({ success:true, items:[], reason:'missing_user_id' });
-    }
-    if(!token){
-      return res.json({ success:true, items:[], reason:'missing_token' });
-    }
-
-    const first = Math.min(parseInt(req.query.first || '20',10) || 20, 50);
-    const type = String(req.query.type || 'archive'); // archive|highlight|upload
-    const endpoint = `videos?user_id=${encodeURIComponent(userId)}&first=${first}&type=${encodeURIComponent(type)}`;
-    const data = await twitchAPI(endpoint, token);
-
-    const items = (data.data || []).map(v => ({
-      id: v.id,
-      title: v.title,
-      url: v.url,
-      thumbnail_url: v.thumbnail_url,
-      view_count: v.view_count,
-      duration: v.duration,
-      created_at: v.created_at,
-      type: v.type,
-      platform: 'twitch'
-    }));
-    return res.json({ success:true, items });
-  }catch(e){
-    console.warn('⚠️ /api/twitch/videos error:', e.message);
-    return res.json({ success:true, items:[], error:e.message });
-  }
-});
 
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME

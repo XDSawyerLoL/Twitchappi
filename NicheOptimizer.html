@@ -2521,66 +2521,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-track{ scroll-snap-type: x mandatory; scroll-behavior:smooth; }
 #twitflix-modal .tf-card{ scroll-snap-align: start; }
 
-
-
-/* ORYON TV — overlays & polish */
-.oryon-tv-search{ position:absolute; inset:0; z-index:9998; display:flex; align-items:flex-start; justify-content:center;
-  background: radial-gradient(900px 500px at 50% 30%, rgba(255,140,0,.10), rgba(0,0,0,.92));
-  backdrop-filter: blur(10px);
-}
-.oryon-tv-search.hidden{ display:none; }
-.oryon-tv-search-inner{ width:min(980px, 92vw); margin-top: 7vh; }
-.oryon-tv-search-bar{ background: rgba(16,16,20,.72); border: 1px solid rgba(255,255,255,.10);
-  border-radius: 18px; padding: 18px 18px 14px; box-shadow: 0 30px 110px rgba(0,0,0,.55);
-}
-.oryon-tv-search-label{ font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:rgba(240,240,248,.85); font-size:12px; }
-#oryon-tv-search-input{ width:100%; margin-top:10px; font-size:22px; font-weight:900; letter-spacing:.02em;
-  padding: 14px 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.55); color: #eaeaf2; outline: none;
-}
-#oryon-tv-search-input:focus{ border-color: rgba(255,140,0,.55); box-shadow: 0 0 0 3px rgba(255,140,0,.18); }
-.oryon-tv-search-hint{ margin-top:10px; color:rgba(220,220,232,.70); font-weight:700; font-size:12px; letter-spacing:.04em; }
-
-/* Peek preview */
-.oryon-tv-peek{ position:absolute; left: 18px; right: 18px; bottom: 14px; z-index:9997;
-  background: linear-gradient(90deg, rgba(0,0,0,.78), rgba(0,0,0,.46));
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px; padding: 12px 14px;
-  box-shadow: 0 18px 80px rgba(0,0,0,.55);
-}
-.oryon-tv-peek.hidden{ display:none; }
-.oryon-tv-peek-title{ font-weight:900; font-size:16px; color:#f2f2fb; letter-spacing:.02em; }
-.oryon-tv-peek-meta{ margin-top:4px; font-weight:800; font-size:12px; color: rgba(230,230,242,.80); letter-spacing:.04em; text-transform:uppercase; }
-.oryon-tv-peek-tags{ margin-top:6px; font-weight:700; font-size:12px; color: rgba(210,210,224,.80); display:flex; gap:8px; flex-wrap:wrap; }
-.oryon-tv-peek-tags .tag{ padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.06); }
-
-/* Motion polish */
-@media (prefers-reduced-motion: reduce){
-  #twitflix-modal *{ transition:none !important; animation:none !important; scroll-behavior:auto !important; }
-}
-#twitflix-modal .tf-card{ transition: transform .14s cubic-bezier(.2,.9,.2,1), filter .14s, opacity .14s; }
-body.tf-bigpicture #twitflix-modal .tf-card{ opacity: .78; filter: saturate(.96) brightness(.92); }
-body.tf-bigpicture #twitflix-modal .tf-card:focus-visible,
-body.tf-bigpicture #twitflix-modal .tf-card.tf-focused{ opacity:1; filter:none; }
-
-/* Row paging arrows */
-#twitflix-modal .tf-row-arrow{
-  width: 34px; height: 34px; border-radius: 999px; border:1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.45); color: rgba(240,240,248,.88);
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer;
-  opacity:0; transform: translateY(2px);
-  transition: opacity .14s, transform .14s;
-}
-#twitflix-modal .tf-row-head:hover .tf-row-arrow,
-#twitflix-modal .tf-row-head:focus-within .tf-row-arrow{ opacity:1; transform: translateY(0); }
-#twitflix-modal .tf-row-head{ gap:12px; }
-#twitflix-modal .tf-row-head .tf-row-left{ display:flex; align-items:flex-end; gap:10px; }
-#twitflix-modal .tf-row-head .tf-row-right{ display:flex; align-items:center; gap:8px; }
-
-
-/* Fix: peek overlay should not block mouse clicks */
-.oryon-tv-peek{ pointer-events: none; }
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2970,24 +2910,6 @@ body.tf-bigpicture #twitflix-modal .tf-card.tf-focused{ opacity:1; filter:none; 
 </div>
 </div>
 <div class="tf-modal-overlay" id="twitflix-modal">
-  <!-- ORYON TV: Search overlay -->
-  <div id="oryon-tv-search" class="oryon-tv-search hidden" aria-hidden="true">
-    <div class="oryon-tv-search-inner">
-      <div class="oryon-tv-search-bar">
-        <div class="oryon-tv-search-label">Recherche</div>
-        <input id="oryon-tv-search-input" type="text" placeholder="Rechercher…" autocomplete="off" />
-        <div class="oryon-tv-search-hint">Ctrl+K • Y (manette) • Esc/B pour fermer</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ORYON TV: Peek preview (lightweight) -->
-  <div id="oryon-tv-peek" class="oryon-tv-peek hidden" aria-hidden="true">
-    <div class="oryon-tv-peek-title"></div>
-    <div class="oryon-tv-peek-meta"></div>
-    <div class="oryon-tv-peek-tags"></div>
-  </div>
-
 <div class="tf-modal-content">
 <div class="tf-topbar">
 <div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">ORYON TV</span></div>
