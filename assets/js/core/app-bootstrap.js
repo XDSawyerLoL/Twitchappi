@@ -10,7 +10,46 @@ async function tfTryRenderOptionalRows(host){
   try{
     if(!host) return;
 
-    // Ensure top blocks exist once (placeholders)
+    
+// RANDOM VOD (20-200 viewers)
+    const rndSec = document.createElement('div');
+    rndSec.className = 'tf-section';
+    rndSec.innerHTML = `
+      <div class="tf-row-head">
+        <div class="tf-row-left"><div class="tf-row-title">VOD AU HASARD (20-200 viewers)</div></div>
+        <div class="tf-row-right">
+          <button class="tf-row-arrow" data-dir="-1" title="Page précédente">‹</button>
+          <button class="tf-row-arrow" data-dir="1" title="Page suivante">›</button>
+          <div class="tf-row-dots" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="tf-row"><div class="tf-row-track"></div></div>
+      <div class="tf-empty" style="margin-top:10px;opacity:.75;">Chargement…</div>
+    `;
+    host.prepend(rndSec);
+    const rnd = await tfTryFetchJson('/api/twitch/vods/random?min=20&max=200&limit=18');
+    if(rnd && Array.isArray(rnd.items) && rnd.items.length){
+      const track = rndSec.querySelector('.tf-row-track');
+      track.innerHTML = '';
+      const empty = rndSec.querySelector('.tf-empty'); if(empty) empty.remove();
+      rnd.items.slice(0,18).forEach(v=>{
+        const title = v.title || 'VOD';
+        const id = v.id || title;
+        const thumb = v.thumbnail_url || '';
+        const card = tfBuildCard({ id, name: title, box_art_url: thumb });
+        card.dataset.platform = 'twitch';
+        card.dataset.live = 'VOD';
+        card.dataset.viewers = String(v.live_viewers || '');
+        card.dataset.tags = [v.user_name||'', v.game_name||''].filter(Boolean).join(', ');
+        card.onclick = () => { if(v.url) window.open(v.url, '_blank', 'noopener'); };
+        track.appendChild(card);
+      });
+      tfSetupRowPaging(rndSec.querySelector('.tf-row'));
+    } else {
+      const empty = rndSec.querySelector('.tf-empty');
+      if(empty) empty.textContent = 'Aucun VOD trouvé (réessaie).';
+    }
+// Ensure top blocks exist once (placeholders)
     let clipsSec = host.querySelector('.tf-section[data-oryon="clips"]');
     let vodSec   = host.querySelector('.tf-section[data-oryon="vod"]');
 
@@ -71,43 +110,7 @@ async function tfTryRenderOptionalRows(host){
           card.dataset.live = 'CLIP';
           card.dataset.tags = (c.tags||[]).join(', ');
           card.onclick = () => {
-            try{ tfPushRecent({ id, title, platform: card.dataset.platform, type:'clip', url: c.url || c.embed_url || '' }); 
-    // RANDOM VOD (streamers 20-200 viewers)
-    let rndSec = host.querySelector('.tf-section[data-oryon="randomvod"]');
-    if(!rndSec){
-      rndSec = makeSection('randomvod','VOD AU HASARD (20-200 viewers)');
-      host.prepend(rndSec);
-    }
-    const rnd = await tfTryFetchJson('/api/twitch/vods/random?min=20&max=200&limit=18');
-    if(rndSec){
-      if(rnd && Array.isArray(rnd.items) && rnd.items.length){
-        const cards = rnd.items.slice(0,18).map(v=>{
-          const title = v.title || 'VOD';
-          const id = v.id || title;
-          const thumb = v.thumbnail_url || '';
-          const card = tfBuildCard({ id, name: title, box_art_url: thumb });
-          card.dataset.platform = 'twitch';
-          card.dataset.live = 'VOD';
-          card.dataset.viewers = String(v.live_viewers || '');
-          card.dataset.tags = [v.user_name || '', v.game_name || ''].filter(Boolean).join(', ');
-          card.onclick = () => {
-            try{ tfPushRecent({ id, title, platform:'twitch', type:'vod', url: v.url || '' }); }catch(_){}
-            if(v.url) window.open(v.url, '_blank', 'noopener');
-          };
-          return card;
-        });
-        const track = rndSec.querySelector('.tf-row-track');
-        track.innerHTML = '';
-        const empty = rndSec.querySelector('.tf-empty'); if(empty) empty.remove();
-        cards.forEach(c=>track.appendChild(c));
-        tfSetupRowPaging(rndSec.querySelector('.tf-row'));
-      }else{
-        const empty = rndSec.querySelector('.tf-empty');
-        if(empty) empty.textContent = 'Aucun VOD trouvé (réessaie).';
-      }
-    }
-
-  }catch(_){}
+            try{ tfPushRecent({ id, title, platform: card.dataset.platform, type:'clip', url: c.url || c.embed_url || '' }); }catch(_){}
             const url = c.url || c.embed_url;
             if(url) window.open(url, '_blank', 'noopener');
           };
