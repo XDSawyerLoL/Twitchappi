@@ -1307,7 +1307,36 @@ try{
       // SEARCH MODE
       if (tfSearchQuery && tfSearchQuery.trim()){
         host.innerHTML = '';
-        const q = tfSearchQuery.trim();
+        
+        // ORYON TV: Continue Watching (local, optional Firestore sync)
+        try{
+          const recents = tfLoadRecents();
+          if(Array.isArray(recents) && recents.length){
+            const sec = document.createElement('div');
+            sec.className = 'tf-section';
+            sec.innerHTML = `
+              <div class="tf-row-head">
+                <div class="tf-row-left">
+                  <div class="tf-row-title">REPRENDRE</div>
+                </div>
+                <div class="tf-row-right">
+                  <button class="tf-row-arrow" data-dir="-1" title="Page précédente">‹</button>
+                  <button class="tf-row-arrow" data-dir="1" title="Page suivante">›</button>
+                  <div class="tf-row-dots" aria-hidden="true"></div>
+                </div>
+              </div>
+              <div class="tf-row"><div class="tf-row-track"></div></div>
+            `;
+            const track = sec.querySelector('.tf-row-track');
+            recents.slice(0,14).forEach(r=>{
+              const fake = { title: r.title || 'Reprendre', platform: r.platform || '', id:r.id, live:false, viewers:'' };
+              track.appendChild(tfBuildCard(fake));
+            });
+            host.appendChild(sec);
+            tfSetupRowPaging(sec.querySelector('.tf-row'));
+          }
+        }catch(_){}
+const q = tfSearchQuery.trim();
         tfSetHero({ title: q, sub: 'Résultats de recherche' });
 
         if (!tfSearchResults.length){
@@ -2673,6 +2702,24 @@ function tfSnapFocusToVisible(track, dir){
   tfFocusCard(best, false);
 }
 
+function tfFocusRow(targetIndex){
+  try{
+    const rows = Array.from(document.querySelectorAll('#twitflix-modal .tf-row'));
+    if(!rows.length) return;
+    let idx = targetIndex;
+    if(idx >= 9999) idx = rows.length - 1;
+    idx = Math.max(0, Math.min(rows.length-1, idx));
+    const row = rows[idx];
+    // focus first card in row
+    const card = row.querySelector('.tf-card');
+    if(card){
+      card.focus({preventScroll:true});
+      tfEnsureCardVisible(card);
+      tfSchedulePeek(card);
+    }
+  }catch(_){}
+}
+
 function tfBpKeyHandler(e){
   // Only when TwitFlix is open and bigpicture enabled
   if(!tfBigPicture) return;
@@ -2713,6 +2760,24 @@ function tfStopGamepad(){
 }
 
 function tfPressed(btn){ return !!(btn && (btn.pressed || btn.value > 0.5)); }
+
+function tfJumpRow(dir){
+  try{
+    const rows = Array.from(document.querySelectorAll('#twitflix-modal .tf-row'));
+    if(!rows.length) return;
+    const active = document.activeElement?.closest?.('.tf-row');
+    let idx = active ? rows.indexOf(active) : 0;
+    if(idx < 0) idx = 0;
+    idx = Math.max(0, Math.min(rows.length-1, idx + dir));
+    const row = rows[idx];
+    const card = row.querySelector('.tf-card');
+    if(card){
+      card.focus({preventScroll:true});
+      tfEnsureCardVisible(card);
+      tfSchedulePeek(card);
+    }
+  }catch(_){}
+}
 
 function tfPollGamepad(){
   if(!tfBigPicture) return;
@@ -2802,3 +2867,158 @@ window.renderTwitFlix = function(){
   setTimeout(tfAnnotateRows, 0);
   return r;
 };
+
+
+/* ===== ORYON TV UX helpers ===== */
+const ORYON_RECENTS_KEY = 'oryon_tv_recents_v1';
+
+function tfGetCardMeta(card){
+  try{
+    if(!card) return null;
+    const title = (card.dataset.title || card.getAttribute('aria-label') || '').trim();
+    const platform = (card.dataset.platform || '').trim();
+    const viewers = (card.dataset.viewers || '').trim();
+    const live = (card.dataset.live || '').trim();
+    const tags = (card.dataset.tags || '').trim();
+    return { title, platform, viewers, live, tags };
+  }catch(_){ return null; }
+}
+
+function tfShowPeek(meta){
+  try{
+    const peek = document.getElementById('oryon-tv-peek');
+    if(!peek) return;
+    const t = peek.querySelector('.oryon-tv-peek-title');
+    const m = peek.querySelector('.oryon-tv-peek-meta');
+    const g = peek.querySelector('.oryon-tv-peek-tags');
+    if(!t || !m || !g) return;
+
+    const liveText = (meta && meta.live) ? meta.live : '';
+    const vText = (meta && meta.viewers) ? `${meta.viewers} viewers` : '';
+    const pText = (meta && meta.platform) ? meta.platform : '';
+    const parts = [pText, liveText, vText].filter(Boolean);
+
+    t.textContent = meta?.title || '';
+    m.textContent = parts.join(' • ');
+    g.innerHTML = '';
+    const tags = (meta?.tags || '').split(',').map(s=>s.trim()).filter(Boolean).slice(0,6);
+    tags.forEach(tag=>{
+      const el = document.createElement('span');
+      el.className = 'tag';
+      el.textContent = tag;
+      g.appendChild(el);
+    });
+
+    if(meta?.title){
+      peek.classList.remove('hidden');
+      peek.setAttribute('aria-hidden','false');
+    }else{
+      peek.classList.add('hidden');
+      peek.setAttribute('aria-hidden','true');
+    }
+  }catch(_){}
+}
+
+let tfPeekTimer = null;
+let tfPeekLastKey = '';
+
+function tfSchedulePeek(card){
+  try{
+    if(tfPeekTimer){ clearTimeout(tfPeekTimer); tfPeekTimer=null; }
+    const meta = tfGetCardMeta(card);
+    const key = JSON.stringify(meta||{});
+    tfPeekLastKey = key;
+    tfPeekTimer = setTimeout(()=>{
+      if(tfPeekLastKey !== key) return; // cancelled
+      tfShowPeek(meta);
+    }, 320);
+  }catch(_){}
+}
+
+function tfHidePeek(){
+  try{
+    if(tfPeekTimer){ clearTimeout(tfPeekTimer); tfPeekTimer=null; }
+    const peek = document.getElementById('oryon-tv-peek');
+    if(peek){ peek.classList.add('hidden'); peek.setAttribute('aria-hidden','true'); }
+  }catch(_){}
+}
+
+/* Continue watching */
+function tfLoadRecents(){
+  try{
+    const raw = localStorage.getItem(ORYON_RECENTS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(_){ return []; }
+}
+function tfSaveRecents(arr){
+  try{ localStorage.setItem(ORYON_RECENTS_KEY, JSON.stringify(arr.slice(0,18))); }catch(_){}
+}
+function tfPushRecent(item){
+  try{
+    if(!item || !item.id) return;
+    let arr = tfLoadRecents();
+    arr = arr.filter(x=>x && x.id !== item.id);
+    arr.unshift({ id:item.id, title:item.title||'', platform:item.platform||'', ts:Date.now() });
+    tfSaveRecents(arr);
+
+    // Optional Firestore sync if available (no hard dependency)
+    try{
+      if(window.db && window.firebase && window.firebase.firestore){
+        const uid = window.currentUser?.uid;
+        if(uid){
+          window.db.collection('users').doc(uid).collection('oryonTv').doc('recents')
+            .set({ items: arr.slice(0,18), updatedAt: Date.now() }, { merge:true })
+            .catch(()=>{});
+        }
+      }
+    }catch(_){}
+  }catch(_){}
+}
+
+/* Search overlay */
+function tfOpenSearchOverlay(){
+  try{
+    const ov = document.getElementById('oryon-tv-search');
+    const inp = document.getElementById('oryon-tv-search-input');
+    if(!ov || !inp) return;
+    ov.classList.remove('hidden');
+    ov.setAttribute('aria-hidden','false');
+    inp.value = (window.tfSearchQuery || '').trim();
+    setTimeout(()=>inp.focus(), 0);
+  }catch(_){}
+}
+function tfCloseSearchOverlay(){
+  try{
+    const ov = document.getElementById('oryon-tv-search');
+    const inp = document.getElementById('oryon-tv-search-input');
+    if(!ov || !inp) return;
+    ov.classList.add('hidden');
+    ov.setAttribute('aria-hidden','true');
+    // return focus to current card
+    const cur = document.querySelector('#twitflix-modal .tf-card:focus, #twitflix-modal .tf-card.tf-focused');
+    if(cur) cur.focus({preventScroll:true});
+  }catch(_){}
+}
+function tfIsSearchOverlayOpen(){
+  const ov = document.getElementById('oryon-tv-search');
+  return !!(ov && !ov.classList.contains('hidden'));
+}
+
+
+// ORYON TV: focus peek binding
+try{
+  const modal = document.getElementById('twitflix-modal');
+  if(modal && !modal.__oryonPeekBound){
+    modal.addEventListener('focusin', (e)=>{
+      const card = e.target?.closest?.('.tf-card');
+      if(card){ tfSchedulePeek(card); }
+    });
+    modal.addEventListener('focusout', (e)=>{
+      // keep peek unless leaving modal entirely
+      const to = e.relatedTarget;
+      if(!to || !modal.contains(to)){ tfHidePeek(); }
+    });
+    modal.__oryonPeekBound = true;
+  }
+}catch(_){}
