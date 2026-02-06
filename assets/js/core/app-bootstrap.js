@@ -261,14 +261,23 @@ function startAuth() {
       loadStreamInfo(channel);
     }
 
-
-function loadVodEmbed(videoId){
-  const container = document.getElementById('video-container');
-  if(!container) return;
-  const parentParam = PARENT_DOMAINS.join('&parent=');
-  const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(videoId)}&parent=${parentParam}&theme=dark&autoplay=true&muted=true`;
-  container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
-}
+	    // Play a Twitch VOD inside the main player (Netflix-like inline playback)
+	    function loadVodEmbed(videoId, channelHint) {
+	      const container = document.getElementById('video-container');
+	      const parentParam = PARENT_DOMAINS.join('&parent=');
+	      const vid = String(videoId || '').replace(/^v/i,'');
+	      if (!vid) return;
+	      const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${parentParam}&theme=dark&autoplay=true`;
+	      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+	      // VOD: no guaranteed chat; keep chat on channel if available
+	      if (channelHint) {
+	        try { updateTwitchChatFrame(channelHint); } catch(_){ }
+	        try { document.getElementById('current-channel-display').innerText = `${String(channelHint).toUpperCase()} • VOD`; } catch(_){ }
+	      } else {
+	        try { document.getElementById('current-channel-display').innerText = `VOD`; } catch(_){ }
+	      }
+	      try { document.getElementById('player-mode-badge').innerText = 'VOD'; } catch(_){ }
+	    }
 
     function loadStreamInfo(channel) {
       fetch(`${API_BASE}/stream_info`, {
@@ -1005,6 +1014,7 @@ window.addEventListener('message', (ev) => {
     let tfSearchQuery = '';
     let tfSearchResults = [];
     let tfVodResults = [];
+    let tfVodTimer = null;
     let tfSearchTimer = null;
 
     let tfObserver = null;
@@ -1014,26 +1024,88 @@ window.addEventListener('message', (ev) => {
     const tfPreviewInflight = new Map();
     const TF_PREVIEW_TTL = 10 * 60 * 1000;
 
-    
-function tfNormalizeTwitchThumb(url){
-  const u = String(url||'');
-  if(!u) return '';
-  return u.replace('%{width}','1000').replace('%{height}','562').replace('{width}','1000').replace('{height}','562');
-}
+    function tfNormalizeTwitchThumb(url){
+      const u = String(url||'');
+      if(!u) return '';
+      // Twitch thumbnails use {width}x{height}
+      return u.replace('%{width}','1000').replace('%{height}','562').replace('{width}','1000').replace('{height}','562');
+    }
 
 function tfNormalizeBoxArt(url){
+  // Request higher res to avoid blur, then downscale in CSS.
+  // Supports Twitch template URLs and some common IGDB/Steam style covers.
   const u = String(url || '');
   if (!u) return '';
+
+  // Twitch template: ...{width}x{height}...
   let out = u.replace('{width}','2000').replace('{height}','2666');
-  // IGDB upgrade
-  out = out.replace(/\/t_thumb\//g,'/t_cover_big_2x/')
-           .replace(/\/t_cover_small\//g,'/t_cover_big_2x/')
-           .replace(/\/t_cover_big\//g,'/t_cover_big_2x/');
-  // generic ?w=&h=
-  out = out.replace(/([?&])w=\d+/g,'$1w=600').replace(/([?&])h=\d+/g,'$1h=800');
+
+  // IGDB: t_cover_small / t_thumb / t_cover_big etc -> keep cover_big
+  out = out.replace(/t_(?:thumb|cover_small|cover_big|720p|1080p)/g, 't_cover_big');
+
+  // If URL already has width/height params, bump them.
+  out = out
+    .replace(/([?&])w=\d+/g, '$1w=600')
+    .replace(/([?&])h=\d+/g, '$1h=800');
+
   return out;
 }
-// reset
+
+    function setTwitFlixView(mode){
+      tfViewMode = (mode === 'az') ? 'az' : 'rows';
+      const bRows = document.getElementById('tf-btn-rows');
+      const bAz = document.getElementById('tf-btn-az');
+      if (bRows && bAz){
+        bRows.classList.toggle('active', tfViewMode === 'rows');
+        bAz.classList.toggle('active', tfViewMode === 'az');
+      }
+      renderTwitFlix();
+    }
+
+    async function openTwitFlix(){
+  document.body.classList.add('modal-open');
+const modal = document.getElementById('twitflix-modal');
+      const host = document.getElementById('twitflix-grid');
+      const search = document.getElementById('twitflix-search');
+
+      tfModalOpen = true;
+      modal.classList.add('active');
+
+      // TwitFlix intro (Netflix-like) — stylized, minimal
+	try{
+	  // UX hotfixes (search blur + clickability)
+	  if (!document.getElementById('tf-ux-hotfix')){
+	    const st = document.createElement('style');
+	    st.id = 'tf-ux-hotfix';
+	    st.textContent = `
+	      /* sharper posters */
+	      .tf-card .tf-poster{ image-rendering:auto; filter:none !important; }
+	      .tf-card{ overflow: hidden; }
+	      /* overlays must not steal mouse clicks */
+	      .tf-card .tf-overlay, .tf-card .tf-preview{ pointer-events:none !important; }
+	      /* keep images crisp when scaled */
+	      .tf-card .tf-poster{ transform: translateZ(0); backface-visibility:hidden; }
+	    `;
+	    document.head.appendChild(st);
+	  }
+  let intro = document.getElementById('twitflix-intro');
+  if(!intro){
+    intro = document.createElement('div');
+    intro.id = 'twitflix-intro';
+    intro.className = 'tf-intro';
+    intro.innerHTML = `
+      <div class="tf-intro-box">
+        <div class="tf-scanline"></div>
+        <div class="tf-intro-logo">TWITFLIX</div>
+        <div class="tf-intro-sub">Mode Netflix • Chargement des streams</div>
+      </div>
+    `;
+    document.body.appendChild(intro);
+  }
+  intro.classList.remove('outro');
+  intro.classList.add('active');
+  setTimeout(()=>{ intro.classList.remove('active'); }, 1200);
+}catch(_){}// reset
       tfViewMode = 'rows';
       tfAllCategories = [];
       tfCursor = null;
@@ -1186,21 +1258,27 @@ function tfNormalizeBoxArt(url){
       }
 
       
-// Twitch VODs FR (20-200 viewers) by query (title OR game)
-try{
-  const rV = await fetch(`${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=18`, { credentials:'include' });
-  if(rV.ok){
-    const dV = await rV.json();
-    if(dV && dV.success && Array.isArray(dV.items)){
-      tfVodResults = dV.items.map(v=>({
-        id: v.id,
-        name: v.title || 'VOD',
-        box_art_url: tfNormalizeTwitchThumb(v.thumbnail_url || ''),
-        _vod: v
-      }));
-    } else tfVodResults = [];
-  } else tfVodResults = [];
-}catch(_){ tfVodResults = []; }
+      // Also fetch Twitch VODs by title (FR, streamers 20-200 viewers)
+      try{
+        const rV = await fetch(`${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=18`);
+        if(rV.ok){
+          const dV = await rV.json();
+          if(dV && dV.success && Array.isArray(dV.items)){
+            tfVodResults = dV.items.map(v=>({
+              id: v.id,
+              name: `${v.title}`,
+              box_art_url: tfNormalizeTwitchThumb(v.thumbnail_url || ''),
+              _vod: v
+            }));
+          } else {
+            tfVodResults = [];
+          }
+        } else {
+          tfVodResults = [];
+        }
+      }catch(_){
+        tfVodResults = [];
+      }
 
 // Try server search (best)
       try{
@@ -1314,36 +1392,51 @@ try{
         if (!tfSearchResults.length){
           host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
           
-// ORYON TV: VOD results row (FR, 20-200 viewers)
-if (tfVodResults){
-  const vodRow = tfBuildRow(
-    `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Recherche: ${escapeHtml(q)}</span></div>`,
-    tfVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })),
-    'tf-vod-search-row'
-  );
-  vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
-    const v = tfVodResults[idx]?._vod;
-    if(!v) return;
-    card.dataset.vodId = v.id;
-  });
-  host.appendChild(vodRow);
-}
-else {
-  const vodEmpty = document.createElement('div');
-  vodEmpty.className = 'tf-empty';
-  vodEmpty.style.marginTop = '10px';
-  vodEmpty.innerHTML = `Aucune VOD trouvée pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span> (FR 20-200).`;
-  host.appendChild(vodEmpty);
-}
+        // Twitch VOD results by title
+        if (tfVodResults && tfVodResults.length){
+          const vodRow = tfBuildRow(
+            `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Titre: ${escapeHtml(q)}</span></div>`,
+            tfVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })),
+            'tf-vod-search-row'
+          );
+	          // attach click to play VOD inline (main player) instead of opening a new tab
+          vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
+            const v = tfVodResults[idx]?._vod;
+            if(!v) return;
+	            card.onclick = ()=>{
+	              try{
+	                // close ORYON TV overlay to reveal the main player
+	                if (typeof closeTwitFlix === 'function') closeTwitFlix();
+	              }catch(_){ }
+	              // Twitch video id can be "v123" or "123"
+	              try{ loadVodEmbed(v.video_id || v.id || v.url, v.user_name || v.channel); }catch(_){ }
+	            };
+          });
+          host.appendChild(vodRow);
+        } else {
+          // show small hint row when searching
+          const hint = document.createElement('div');
+          hint.className = 'tf-empty tf-vod-hint';
+          hint.style.marginTop = '10px';
+          hint.innerHTML = `VOD FR (20-200 viewers) : ${'recherche en cours / aucun résultat.'}`;
+          host.appendChild(hint);
+        }
 
-if (sentinel) host.appendChild(sentinel);
+        if (sentinel) host.appendChild(sentinel);
+      try{ tfAnnotateRows(); }catch(_){ }
           return;
         }
 
-        const grid = document.createElement('div');
-        grid.className = 'tf-search-grid';
-        tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
-        host.appendChild(grid);
+        // In Big Picture (and rows mode), render search results as a single horizontal row (Netflix/Steam style)
+        if (document.body.classList.contains('tf-bigpicture') || tfViewMode === 'rows'){
+          const row = tfBuildRow(`<div class="tf-strip-title"><h4>Résultats</h4><span class="tf-strip-sub">${escapeHtml(q)}</span></div>`, tfSearchResults, 'tf-search-row');
+          host.appendChild(row);
+        } else {
+          const grid = document.createElement('div');
+          grid.className = 'tf-search-grid';
+          tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
+          host.appendChild(grid);
+        }
         if (sentinel) host.appendChild(sentinel);
         return;
       }
@@ -1451,6 +1544,9 @@ if (sentinel) host.appendChild(sentinel);
     function tfBuildCard(cat){
       const div = document.createElement('div');
       div.className = 'tf-card';
+      div.tabIndex = 0;
+      div.setAttribute('role','button');
+      div.setAttribute('aria-label', `${cat.name} (ouvrir)`);
       div.dataset.gameId = cat.id;
       div.dataset.gameName = cat.name;
 
@@ -1476,10 +1572,25 @@ if (sentinel) host.appendChild(sentinel);
       // click play
       div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
 
+      div.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          div.click();
+        }
+      });
+
       // Hover preview (Netflix-like delay)
       let t = null;
       div.addEventListener('mouseenter', () => { t = setTimeout(() => tfStartPreview(div), 420); });
       div.addEventListener('mouseleave', () => { if (t) clearTimeout(t); tfStopPreview(div); });
+
+      // Focus preview (gamepad/keyboard): same behavior as hover
+      div.addEventListener('focus', () => {
+        // only auto-preview in Big Picture to avoid noise in normal mode
+        if (!document.body.classList.contains('tf-bigpicture')) return;
+        t = setTimeout(() => tfStartPreview(div), 380);
+      });
+      div.addEventListener('blur', () => { if (t) clearTimeout(t); tfStopPreview(div); });
 
       return div;
     }
@@ -2352,20 +2463,452 @@ if (sentinel) host.appendChild(sentinel);
   }else{
     apply();
   }
-
-
-// ORYON_VOD_DELEGATE: ensure mouse clicks on VOD cards always work
-document.addEventListener('click', (e)=>{
-  const card = e.target.closest && e.target.closest('.tf-card');
-  if(!card) return;
-  const vodId = card.dataset && card.dataset.vodId;
-  if(!vodId) return;
-  e.preventDefault();
-  e.stopPropagation();
-  try{
-    loadVodEmbed(vodId);
-    closeTwitFlix();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }catch(_){}
-}, true);
 })();
+
+
+
+
+/* ===========================
+   ORYON Big Picture (Steam-like)
+   - Fullscreen layout + full-width (no black sides)
+   - Focus navigation by rows
+   - Gamepad support (A/B + dpad/stick)
+   - Smooth transition + optional whoosh
+   =========================== */
+
+let tfBigPicture = false;
+let tfLastFocus = null;
+let tfNavEnabled = false;
+let tfGamepadTimer = null;
+let tfGpPrev = { t:0, ax:0, ay:0, b:[] };
+
+function tfShowBpTransition(){
+  const el = document.getElementById('tf-bp-transition');
+  if(!el) return;
+  el.classList.add('active');
+  el.setAttribute('aria-hidden','false');
+  // auto-hide quickly
+  setTimeout(()=>{ try{ el.classList.remove('active'); el.setAttribute('aria-hidden','true'); }catch(_){} }, 520);
+}
+
+function tfWhoosh(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const dur = 0.22;
+    const sr = ctx.sampleRate;
+    const n = Math.floor(sr*dur);
+    const buf = ctx.createBuffer(1, n, sr);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<n;i++){
+      const t = i/n;
+      // noise with envelope (fast attack, smooth decay)
+      const env = Math.exp(-6*t) * (1 - Math.exp(-40*t));
+      data[i] = (Math.random()*2-1) * env * 0.65;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    const g = ctx.createGain();
+    g.gain.value = 0.9;
+    // sweep filter for "whoosh"
+    filt.frequency.setValueAtTime(220, ctx.currentTime);
+    filt.frequency.exponentialRampToValueAtTime(1600, ctx.currentTime + dur);
+    src.connect(filt); filt.connect(g); g.connect(ctx.destination);
+    src.start();
+    setTimeout(()=>{ try{ ctx.close(); }catch(_){} }, 500);
+  }catch(_){}
+}
+
+function tfEnsureCardVisible(card){
+  try{
+    if(!card) return;
+    const track = card.closest('.tf-row-track') || card.closest('.tf-row') || card.parentElement;
+    if(!track) { card.scrollIntoView({block:'nearest', inline:'nearest'}); return; }
+
+    // If the focused card is outside the visible area of the track, scroll it in.
+    const c = card.getBoundingClientRect();
+    const t = track.getBoundingClientRect();
+    const pad = 28; // breathing room
+    if(c.left < t.left + pad){
+      const dx = (t.left + pad) - c.left;
+      track.scrollBy({ left: -dx, behavior:'smooth' });
+    }else if(c.right > t.right - pad){
+      const dx = c.right - (t.right - pad);
+      track.scrollBy({ left: dx, behavior:'smooth' });
+    }
+
+    // keep dots in sync
+    if(track.__tfPaging && track.__tfPaging.updateDots){
+      requestAnimationFrame(track.__tfPaging.updateDots);
+    }
+  }catch(_){}
+}
+
+function tfSetupRowPaging(rowEl){
+  try{
+    if(!rowEl) return;
+    const track = rowEl.querySelector('.tf-row-track') || rowEl.querySelector('.tf-row');
+    const head  = rowEl.querySelector('.tf-row-head') || rowEl.querySelector('.tf-strip-title') || rowEl.querySelector('.tf-row-title')?.parentElement;
+    const title = rowEl.querySelector('.tf-row-title') || rowEl.querySelector('.tf-strip-title') || rowEl.querySelector('h4')?.parentElement;
+    if(!track || !head) return;
+
+    if(track.__tfPaging) return;
+
+    let dots = head.querySelector('.tf-row-dots');
+    if(!dots){
+      dots = document.createElement('div');
+      dots.className = 'tf-row-dots';
+      head.appendChild(dots);
+    }
+
+    track.style.scrollSnapType = 'x mandatory';
+    track.style.scrollBehavior = 'smooth';
+
+    function pageStep(){ return Math.max(240, Math.floor(track.clientWidth * 0.88)); }
+    function pageCount(){
+      const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+      if(maxScroll <= 0) return 1;
+      return Math.max(1, Math.ceil(maxScroll / pageStep()) + 1);
+    }
+    function currentPage(){
+      const step = pageStep();
+      return step ? Math.round(track.scrollLeft / step) : 0;
+    }
+    function updateDots(){
+      const p = currentPage();
+      Array.from(dots.children).forEach((el,i)=>el.classList.toggle('active', i===p));
+    }
+    function renderDots(){
+      const n = pageCount();
+      dots.innerHTML = '';
+      for(let i=0;i<n;i++){
+        const d = document.createElement('span');
+        d.className = 'tf-dot';
+        d.dataset.page = String(i);
+        dots.appendChild(d);
+      }
+      updateDots();
+    }
+
+    let raf=null;
+    track.addEventListener('scroll', ()=>{
+      if(raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateDots);
+    }, {passive:true});
+
+    dots.addEventListener('click', (e)=>{
+      const t = e.target;
+      if(!(t && t.dataset && t.dataset.page)) return;
+      const p = parseInt(t.dataset.page,10);
+      const left = p * pageStep();
+      track.scrollTo({ left, behavior:'smooth' });
+    });
+
+    const ro = new ResizeObserver(()=>renderDots());
+    ro.observe(track);
+
+    tfEnableTrackDrag(track);
+    track.__tfPaging = { dots, ro, renderDots, updateDots, pageStep };
+    renderDots();
+  }catch(_){}
+}
+
+function tfEnableTrackDrag(track){
+  if(!track || track.__tfDrag) return;
+  let down=false, startX=0, startScroll=0;
+  track.addEventListener('pointerdown',(e)=>{
+    down=true; startX=e.clientX; startScroll=track.scrollLeft;
+    track.setPointerCapture(e.pointerId);
+  });
+  track.addEventListener('pointermove',(e)=>{
+    if(!down) return;
+    const dx = e.clientX - startX;
+    track.scrollLeft = startScroll - dx;
+  });
+  track.addEventListener('pointerup',()=>{ down=false; });
+  track.addEventListener('pointercancel',()=>{ down=false; });
+  // wheel vertical => horizontal when over track
+  track.addEventListener('wheel',(e)=>{
+    if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+      track.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }
+  }, {passive:false});
+  track.__tfDrag=true;
+}
+
+function tfEnableBigPictureNav(){
+  if(tfNavEnabled) return;
+  tfNavEnabled = true;
+
+  document.addEventListener('keydown', tfBpKeyHandler, true);
+  tfStartGamepad();
+}
+
+function tfDisableBigPictureNav(){
+  tfNavEnabled = false;
+  document.removeEventListener('keydown', tfBpKeyHandler, true);
+  tfStopGamepad();
+}
+
+function tfToggleBigPicture(force){
+  const on = (typeof force === 'boolean') ? force : !tfBigPicture;
+  tfBigPicture = on;
+
+  // Save last focused element within TwitFlix
+  try{
+    const active = document.activeElement;
+    if(active && active.classList && active.classList.contains('tf-card')) tfLastFocus = active;
+  }catch(_){}
+
+  if(on){
+    document.body.classList.add('tf-bigpicture');
+    tfShowBpTransition();
+    tfWhoosh();
+    tfEnableBigPictureNav();
+    // Focus first card in first row
+    setTimeout(()=>{
+      const first = document.querySelector('#twitflix-modal .tf-row .tf-card') || document.querySelector('#twitflix-modal .tf-card');
+      if(first) tfFocusCard(first, true);
+    }, 120);
+  }else{
+    document.body.classList.remove('tf-bigpicture');
+    tfDisableBigPictureNav();
+    // restore focus
+    setTimeout(()=>{ try{ tfLastFocus?.focus?.(); }catch(_){} }, 80);
+  }
+}
+
+/* Row-based focus navigation */
+function tfGetRows(){
+  return Array.from(document.querySelectorAll('#twitflix-modal .tf-row'));
+}
+function tfGetCardsInRow(row){
+  if(!row) return [];
+  return Array.from(row.querySelectorAll('.tf-row-track .tf-card'));
+}
+
+function tfFocusCard(card, scrollIntoView){
+  if(!card) return;
+  try{
+    document.querySelectorAll('#twitflix-modal .tf-card.tf-focused').forEach(e=>e.classList.remove('tf-focused'));
+    card.classList.add('tf-focused');
+    card.focus({ preventScroll: true });
+      tfEnsureCardVisible(card);
+    if(scrollIntoView){
+      // keep the focused row roughly centered
+      const body = document.getElementById('tf-body');
+      const row = card.closest('.tf-row');
+      if(body && row){
+        const rb = row.getBoundingClientRect();
+        const bb = body.getBoundingClientRect();
+        const delta = (rb.top + rb.height/2) - (bb.top + bb.height/2);
+        body.scrollBy({ top: delta, behavior: 'smooth' });
+      }else{
+        card.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'smooth' });
+      }
+    }
+  }catch(_){}
+}
+
+function tfMoveFocus(dx, dy){
+  const rows = tfGetRows();
+  if(!rows.length) return;
+  const active = document.querySelector('#twitflix-modal .tf-card.tf-focused') || document.activeElement;
+  let curRowIdx = 0;
+  let curColIdx = 0;
+
+  // locate current
+  if(active && active.closest){
+    const row = active.closest('.tf-row');
+    const ri = rows.indexOf(row);
+    if(ri >= 0) curRowIdx = ri;
+    const cards = tfGetCardsInRow(row);
+    const ci = cards.indexOf(active);
+    if(ci >= 0) curColIdx = ci;
+  }
+
+  let nextRowIdx = curRowIdx + dy;
+  nextRowIdx = Math.max(0, Math.min(rows.length-1, nextRowIdx));
+  let row = rows[nextRowIdx];
+  let cards = tfGetCardsInRow(row);
+  if(!cards.length) return;
+
+  // horizontal within same row
+  if(dy === 0){
+    let nextColIdx = curColIdx + dx;
+    nextColIdx = Math.max(0, Math.min(cards.length-1, nextColIdx));
+    tfFocusCard(cards[nextColIdx], true);
+    return;
+  }
+
+  // vertical: preserve approximate column (by ratio)
+  const prevRow = rows[curRowIdx];
+  const prevCards = tfGetCardsInRow(prevRow);
+  const ratio = prevCards.length ? (curColIdx / Math.max(1, prevCards.length-1)) : 0;
+  const targetIdx = Math.round(ratio * Math.max(1, cards.length-1));
+  tfFocusCard(cards[targetIdx], true);
+}
+
+// Page-based horizontal snap scrolling (Netflix/Prime feel)
+function tfGetActiveTrack(){
+  const focused = document.querySelector('#twitflix-modal .tf-card.tf-focused') || document.activeElement;
+  if(!focused) return null;
+  return focused.closest('.tf-row-track') || focused.closest('.tf-search-grid');
+}
+function tfScrollTrackPage(dir){
+  const track = tfGetActiveTrack();
+  if(!track) return;
+  const delta = Math.max(220, Math.floor(track.clientWidth * 0.88)) * (dir < 0 ? -1 : 1);
+  track.scrollBy({ left: delta, behavior: 'smooth' });
+  // after scrolling, try to keep focus on a visible card
+  setTimeout(()=>{ try{ tfSnapFocusToVisible(track, dir); }catch(_){} }, 260);
+}
+function tfSnapFocusToVisible(track, dir){
+  const cards = Array.from(track.querySelectorAll('.tf-card'));
+  if(!cards.length) return;
+  const r = track.getBoundingClientRect();
+  let best = null;
+  for(const c of cards){
+    const cr = c.getBoundingClientRect();
+    const visible = Math.min(cr.right, r.right) - Math.max(cr.left, r.left);
+    if(visible >= Math.min(cr.width, r.width) * 0.55){
+      best = c;
+      // if moving right, keep iterating to get last visible
+      if(dir < 0) break;
+    }
+  }
+  if(!best) best = (dir > 0 ? cards[cards.length-1] : cards[0]);
+  tfFocusCard(best, false);
+}
+
+function tfBpKeyHandler(e){
+  // Only when TwitFlix is open and bigpicture enabled
+  if(!tfBigPicture) return;
+
+  // Don't hijack typing in search
+  const a = document.activeElement;
+  const inSearch = a && (a.id === 'twitflix-search' || a.classList?.contains('tf-search'));
+  if(inSearch && !['Escape'].includes(e.key)) return;
+
+  if(e.key === 'Escape'){
+    e.preventDefault();
+    tfToggleBigPicture(false);
+    return;
+  }
+  if(e.key === 'ArrowLeft'){ e.preventDefault(); tfMoveFocus(-1,0); return; }
+  if(e.key === 'ArrowRight'){ e.preventDefault(); tfMoveFocus(1,0); return; }
+  if(e.key === 'ArrowUp'){ e.preventDefault(); tfMoveFocus(0,-1); return; }
+  if(e.key === 'ArrowDown'){ e.preventDefault(); tfMoveFocus(0,1); return; }
+
+  // Page jump within the current row (Netflix-like)
+  if(e.key === 'PageDown' || (e.key === 'ArrowRight' && e.shiftKey)){ e.preventDefault(); tfScrollTrackPage(1); return; }
+  if(e.key === 'PageUp'   || (e.key === 'ArrowLeft'  && e.shiftKey)){ e.preventDefault(); tfScrollTrackPage(-1); return; }
+
+  if(e.key === 'Enter' || e.key === ' '){
+    const focused = document.querySelector('#twitflix-modal .tf-card.tf-focused');
+    if(focused){ e.preventDefault(); focused.click(); }
+  }
+}
+
+/* Gamepad support (best-effort) */
+function tfStartGamepad(){
+  if(tfGamepadTimer) return;
+  tfGpPrev = { t:0, ax:0, ay:0, b:[] };
+  tfGamepadTimer = setInterval(tfPollGamepad, 80);
+}
+function tfStopGamepad(){
+  if(tfGamepadTimer){ clearInterval(tfGamepadTimer); tfGamepadTimer = null; }
+}
+
+function tfPressed(btn){ return !!(btn && (btn.pressed || btn.value > 0.5)); }
+
+function tfPollGamepad(){
+  if(!tfBigPicture) return;
+  const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+  const gp = gps && (gps[0] || gps[1] || gps[2] || gps[3]);
+  if(!gp) return;
+
+  const now = Date.now();
+  const cooldown = 160; // ms
+  const dead = 0.35;
+
+  const ax = gp.axes?.[0] ?? 0;
+  const ay = gp.axes?.[1] ?? 0;
+
+  const dLeft  = tfPressed(gp.buttons?.[14]) || ax < -dead;
+  const dRight = tfPressed(gp.buttons?.[15]) || ax >  dead;
+  const dUp    = tfPressed(gp.buttons?.[12]) || ay < -dead;
+  const dDown  = tfPressed(gp.buttons?.[13]) || ay >  dead;
+
+  const A = tfPressed(gp.buttons?.[0]); // A / Cross
+  const B = tfPressed(gp.buttons?.[1]); // B / Circle
+  const X  = tfPressed(gp.buttons?.[2]); // X / Square
+  const LB = tfPressed(gp.buttons?.[4]); // LB
+  const RB = tfPressed(gp.buttons?.[5]); // RB
+
+  // edge detection + cooldown
+  const prev = tfGpPrev;
+  function edge(name, cur){
+    const was = !!prev[name];
+    prev[name] = cur;
+    return cur && !was;
+  }
+  if(now - prev.t > cooldown){
+    if(edge('l', dLeft))  { tfMoveFocus(-1,0); prev.t = now; return; }
+    if(edge('r', dRight)) { tfMoveFocus(1,0);  prev.t = now; return; }
+    if(edge('LB', LB))    { tfScrollTrackPage(-1); prev.t = now; return; }
+    if(edge('RB', RB))    { tfScrollTrackPage(1);  prev.t = now; return; }
+    if(edge('u', dUp))    { tfMoveFocus(0,-1); prev.t = now; return; }
+    if(edge('d', dDown))  { tfMoveFocus(0,1);  prev.t = now; return; }
+  }
+
+  if(edge('A', A)){
+    const focused = document.querySelector('#twitflix-modal .tf-card.tf-focused');
+    focused?.click?.();
+  }
+  if(edge('B', B)){
+    tfToggleBigPicture(false);
+  }
+  if(edge('X', X)){
+    // quick toggle search focus
+    const s = document.getElementById('twitflix-search');
+    if(s){ s.focus(); }
+  }
+}
+
+// Ensure we exit Big Picture when closing TwitFlix
+try{
+  const __closeTwitFlix = window.closeTwitFlix;
+  if (typeof __closeTwitFlix === 'function'){
+    window.closeTwitFlix = function(){
+      try{ tfToggleBigPicture(false); }catch(_){}
+      return __closeTwitFlix.apply(this, arguments);
+    };
+  }
+}catch(_){}
+
+
+function tfAnnotateRows(){
+  try{
+    document.querySelectorAll('#twitflix-modal .tf-row').forEach((row,i)=>{
+      row.dataset.rowIndex = String(i);
+      try{ tfSetupRowPaging(row); }catch(_){ }
+      const t = row.querySelector('.tf-row-track');
+      if(t) try{ tfEnableTrackDrag(t); }catch(_){ }
+    });
+
+    document.querySelectorAll('#twitflix-modal .tf-row-track').forEach(track=>{
+      const row = track.closest('.tf-row') || track.parentElement;
+      if(row) try{ tfSetupRowPaging(row); }catch(_){ }
+      try{ tfEnableTrackDrag(track); }catch(_){ }
+    });
+  }catch(_){ }
+}
+const __renderTwitFlix = window.renderTwitFlix;
+window.renderTwitFlix = function(){
+  const r = __renderTwitFlix.apply(this, arguments);
+  setTimeout(tfAnnotateRows, 0);
+  return r;
+};
