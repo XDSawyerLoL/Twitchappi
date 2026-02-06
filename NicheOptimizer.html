@@ -2521,6 +2521,46 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-track{ scroll-snap-type: x mandatory; scroll-behavior:smooth; }
 #twitflix-modal .tf-card{ scroll-snap-align: start; }
 
+/* === ORYON TV — VOD Modal (Netflix-like) === */
+#oryon-vod-modal{ position:fixed; inset:0; z-index:99999; display:none; }
+#oryon-vod-modal.open{ display:block; }
+#oryon-vod-modal .oryon-vod-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.78); }
+#oryon-vod-modal .oryon-vod-shell{
+  position:absolute; inset:3.5vh 3.5vw;
+  background:rgba(10,10,10,.92);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  box-shadow:0 20px 80px rgba(0,0,0,.55);
+  overflow:hidden;
+}
+#oryon-vod-modal .oryon-vod-close{
+  position:absolute; top:14px; right:14px;
+  width:44px; height:44px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.35);
+  color:#fff; font-size:18px; cursor:pointer;
+  z-index:2;
+}
+#oryon-vod-modal .oryon-vod-close:hover{ border-color:rgba(0,242,234,.55); }
+#oryon-vod-modal .oryon-vod-framewrap{
+  position:absolute; inset:0 0 92px 0;
+  background:#000;
+}
+#oryon-vod-modal .oryon-vod-iframe{
+  width:100%; height:100%; border:0; display:block;
+}
+#oryon-vod-modal .oryon-vod-meta{
+  position:absolute; left:0; right:0; bottom:0;
+  height:92px;
+  display:flex; flex-direction:column; justify-content:center;
+  padding:14px 18px;
+  background:linear-gradient(to top, rgba(0,0,0,.82), rgba(0,0,0,.35), rgba(0,0,0,0));
+  color:#fff;
+}
+#oryon-vod-modal .oryon-vod-title{ font-weight:700; font-size:16px; line-height:1.2; }
+#oryon-vod-modal .oryon-vod-sub{ opacity:.8; font-size:13px; margin-top:4px; }
+body.oryon-vod-open{ overflow:hidden; }
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2547,10 +2587,90 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   }
   /* si un wrapper chat existe, on le force à prendre la place */
   #tabs-viewport #tab-chat{ min-height:0 !important; }
+/* === ORYON TV — VOD Modal (Netflix-like) === */
+#oryon-vod-modal{ position:fixed; inset:0; z-index:99999; display:none; }
+#oryon-vod-modal.open{ display:block; }
+#oryon-vod-modal .oryon-vod-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.78); }
+#oryon-vod-modal .oryon-vod-shell{
+  position:absolute; inset:3.5vh 3.5vw;
+  background:rgba(10,10,10,.92);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  box-shadow:0 20px 80px rgba(0,0,0,.55);
+  overflow:hidden;
+}
+#oryon-vod-modal .oryon-vod-close{
+  position:absolute; top:14px; right:14px;
+  width:44px; height:44px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.35);
+  color:#fff; font-size:18px; cursor:pointer;
+  z-index:2;
+}
+#oryon-vod-modal .oryon-vod-close:hover{ border-color:rgba(0,242,234,.55); }
+#oryon-vod-modal .oryon-vod-framewrap{
+  position:absolute; inset:0 0 92px 0;
+  background:#000;
+}
+#oryon-vod-modal .oryon-vod-iframe{
+  width:100%; height:100%; border:0; display:block;
+}
+#oryon-vod-modal .oryon-vod-meta{
+  position:absolute; left:0; right:0; bottom:0;
+  height:92px;
+  display:flex; flex-direction:column; justify-content:center;
+  padding:14px 18px;
+  background:linear-gradient(to top, rgba(0,0,0,.82), rgba(0,0,0,.35), rgba(0,0,0,0));
+  color:#fff;
+}
+#oryon-vod-modal .oryon-vod-title{ font-weight:700; font-size:16px; line-height:1.2; }
+#oryon-vod-modal .oryon-vod-sub{ opacity:.8; font-size:13px; margin-top:4px; }
+body.oryon-vod-open{ overflow:hidden; }
+
 </style>
 
 
-<style id="tools-padding-fix">#tab-tools .tools-scroll{padding:16px 14px !important;}</style>
+<style id="tools-padding-fix">#tab-tools .tools-scroll{padding:16px 14px !important;}/* === ORYON TV — VOD Modal (Netflix-like) === */
+#oryon-vod-modal{ position:fixed; inset:0; z-index:99999; display:none; }
+#oryon-vod-modal.open{ display:block; }
+#oryon-vod-modal .oryon-vod-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.78); }
+#oryon-vod-modal .oryon-vod-shell{
+  position:absolute; inset:3.5vh 3.5vw;
+  background:rgba(10,10,10,.92);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  box-shadow:0 20px 80px rgba(0,0,0,.55);
+  overflow:hidden;
+}
+#oryon-vod-modal .oryon-vod-close{
+  position:absolute; top:14px; right:14px;
+  width:44px; height:44px; border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.35);
+  color:#fff; font-size:18px; cursor:pointer;
+  z-index:2;
+}
+#oryon-vod-modal .oryon-vod-close:hover{ border-color:rgba(0,242,234,.55); }
+#oryon-vod-modal .oryon-vod-framewrap{
+  position:absolute; inset:0 0 92px 0;
+  background:#000;
+}
+#oryon-vod-modal .oryon-vod-iframe{
+  width:100%; height:100%; border:0; display:block;
+}
+#oryon-vod-modal .oryon-vod-meta{
+  position:absolute; left:0; right:0; bottom:0;
+  height:92px;
+  display:flex; flex-direction:column; justify-content:center;
+  padding:14px 18px;
+  background:linear-gradient(to top, rgba(0,0,0,.82), rgba(0,0,0,.35), rgba(0,0,0,0));
+  color:#fff;
+}
+#oryon-vod-modal .oryon-vod-title{ font-weight:700; font-size:16px; line-height:1.2; }
+#oryon-vod-modal .oryon-vod-sub{ opacity:.8; font-size:13px; margin-top:4px; }
+body.oryon-vod-open{ overflow:hidden; }
+
+</style>
 </head>
 <body class="min-h-screen flex flex-col p-4">
 <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
