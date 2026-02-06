@@ -1118,14 +1118,7 @@ try{
       renderTwitFlix();
     }
 
-    
-// Alias for branding: THMAX is the new name of the TwitFlix modal
-window.openTHMAX = function(){
-  try { openTwitFlix(); } catch(e){ console.error('[THMAX] open failed', e); }
-};
-
-
-function closeTwitFlix(){
+    function closeTwitFlix(){
   document.body.classList.remove('modal-open');
   tfModalOpen = false;
   document.querySelectorAll('.tf-card.previewing').forEach(tfStopPreview);
