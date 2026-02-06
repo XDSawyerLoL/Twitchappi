@@ -995,6 +995,8 @@ window.addEventListener('message', (ev) => {
 
     let tfSearchQuery = '';
     let tfSearchResults = [];
+    let tfVodResults = [];
+    let tfVodTimer = null;
     let tfSearchTimer = null;
 
     let tfObserver = null;
@@ -1004,7 +1006,14 @@ window.addEventListener('message', (ev) => {
     const tfPreviewInflight = new Map();
     const TF_PREVIEW_TTL = 10 * 60 * 1000;
 
-    function tfNormalizeBoxArt(url){
+    function tfNormalizeTwitchThumb(url){
+      const u = String(url||'');
+      if(!u) return '';
+      // Twitch thumbnails use {width}x{height}
+      return u.replace('%{width}','1000').replace('%{height}','562').replace('{width}','1000').replace('{height}','562');
+    }
+
+function tfNormalizeBoxArt(url){
       // request higher res to avoid blur, then we downscale in CSS
       const u = String(url || '');
       if (!u) return '';
@@ -1173,6 +1182,7 @@ try{
 
       if (!q){
         tfSearchResults = [];
+        tfVodResults = [];
         renderTwitFlix();
         return;
       }
@@ -1201,7 +1211,30 @@ try{
         }catch(_){ }
       }
 
-      // Try server search (best)
+      
+      // Also fetch Twitch VODs by title (FR, streamers 20-200 viewers)
+      try{
+        const rV = await fetch(`${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=18`);
+        if(rV.ok){
+          const dV = await rV.json();
+          if(dV && dV.success && Array.isArray(dV.items)){
+            tfVodResults = dV.items.map(v=>({
+              id: v.id,
+              name: `${v.title}`,
+              box_art_url: tfNormalizeTwitchThumb(v.thumbnail_url || ''),
+              _vod: v
+            }));
+          } else {
+            tfVodResults = [];
+          }
+        } else {
+          tfVodResults = [];
+        }
+      }catch(_){
+        tfVodResults = [];
+      }
+
+// Try server search (best)
       try{
         const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
         if (r.ok){
@@ -1312,7 +1345,31 @@ try{
 
         if (!tfSearchResults.length){
           host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
-          if (sentinel) host.appendChild(sentinel);
+          
+        // Twitch VOD results by title
+        if (tfVodResults && tfVodResults.length){
+          const vodRow = tfBuildRow(
+            `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Titre: ${escapeHtml(q)}</span></div>`,
+            tfVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })),
+            'tf-vod-search-row'
+          );
+          // attach click to open VOD url
+          vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
+            const v = tfVodResults[idx]?._vod;
+            if(!v) return;
+            card.onclick = ()=>{ try{ window.open(v.url, '_blank', 'noopener'); }catch(_){ } };
+          });
+          host.appendChild(vodRow);
+        } else {
+          // show small hint row when searching
+          const hint = document.createElement('div');
+          hint.className = 'tf-empty tf-vod-hint';
+          hint.style.marginTop = '10px';
+          hint.innerHTML = `VOD FR (20-200 viewers) : ${'recherche en cours / aucun résultat.'}`;
+          host.appendChild(hint);
+        }
+
+        if (sentinel) host.appendChild(sentinel);
       try{ tfAnnotateRows(); }catch(_){ }
           return;
         }
