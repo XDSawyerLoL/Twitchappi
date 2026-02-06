@@ -10,14 +10,17 @@ async function tfTryRenderOptionalRows(host){
   try{
     if(!host) return;
 
-    // CLIPS (top)
-    const clips = await tfTryFetchJson('/api/twitch/clips') || await tfTryFetchJson('/api/clips');
-    if(clips && Array.isArray(clips.items) && clips.items.length){
+    // Ensure top blocks exist once (placeholders)
+    let clipsSec = host.querySelector('.tf-section[data-oryon="clips"]');
+    let vodSec   = host.querySelector('.tf-section[data-oryon="vod"]');
+
+    function makeSection(kind, title){
       const sec = document.createElement('div');
       sec.className = 'tf-section';
+      sec.dataset.oryon = kind;
       sec.innerHTML = `
         <div class="tf-row-head">
-          <div class="tf-row-left"><div class="tf-row-title">CLIPS</div></div>
+          <div class="tf-row-left"><div class="tf-row-title">${title}</div></div>
           <div class="tf-row-right">
             <button class="tf-row-arrow" data-dir="-1" title="Page précédente">‹</button>
             <button class="tf-row-arrow" data-dir="1" title="Page suivante">›</button>
@@ -25,61 +28,80 @@ async function tfTryRenderOptionalRows(host){
           </div>
         </div>
         <div class="tf-row"><div class="tf-row-track"></div></div>
+        <div class="tf-empty" style="margin-top:10px;opacity:.75;">Chargement…</div>
       `;
-      const track = sec.querySelector('.tf-row-track');
-      clips.items.slice(0,24).forEach(c=>{
-        const title = c.title || c.name || 'Clip';
-        const id = c.id || c.clip_id || title;
-        const card = tfBuildCard({ id, name: title });
-        card.dataset.platform = c.platform || 'twitch';
-        card.dataset.live = 'CLIP';
-        card.dataset.viewers = '';
-        card.dataset.tags = (c.tags||[]).join(', ');
-        card.onclick = () => {
-          try{ tfPushRecent({ id, title, platform: card.dataset.platform, type:'clip', url: c.url || c.embed_url || '' }); }catch(_){}
-          const url = c.url || c.embed_url;
-          if(url) window.open(url, '_blank', 'noopener');
-        };
-        track.appendChild(card);
-      });
-      host.appendChild(sec);
-      tfSetupRowPaging(sec.querySelector('.tf-row'));
+      return sec;
     }
 
-    // VOD (recent videos)
-    const vod = await tfTryFetchJson('/api/twitch/videos') || await tfTryFetchJson('/api/vod') || await tfTryFetchJson('/api/videos');
-    if(vod && Array.isArray(vod.items) && vod.items.length){
-      const sec = document.createElement('div');
-      sec.className = 'tf-section';
-      sec.innerHTML = `
-        <div class="tf-row-head">
-          <div class="tf-row-left"><div class="tf-row-title">VOD</div></div>
-          <div class="tf-row-right">
-            <button class="tf-row-arrow" data-dir="-1" title="Page précédente">‹</button>
-            <button class="tf-row-arrow" data-dir="1" title="Page suivante">›</button>
-            <div class="tf-row-dots" aria-hidden="true"></div>
-          </div>
-        </div>
-        <div class="tf-row"><div class="tf-row-track"></div></div>
-      `;
+    if(!clipsSec){
+      clipsSec = makeSection('clips','CLIPS');
+      host.prepend(clipsSec);
+    }
+    if(!vodSec){
+      vodSec = makeSection('vod','VOD');
+      host.prepend(vodSec);
+    }
+
+    async function fill(sec, items, kind){
       const track = sec.querySelector('.tf-row-track');
-      vod.items.slice(0,24).forEach(v=>{
-        const title = v.title || v.name || 'VOD';
-        const id = v.id || v.video_id || title;
-        const card = tfBuildCard({ id, name: title });
-        card.dataset.platform = v.platform || 'twitch';
-        card.dataset.live = 'VOD';
-        card.dataset.viewers = '';
-        card.dataset.tags = (v.tags||[]).join(', ');
-        card.onclick = () => {
-          try{ tfPushRecent({ id, title, platform: card.dataset.platform, type:'vod', url: v.url || v.link || '' }); }catch(_){}
-          const url = v.url || v.link;
-          if(url) window.open(url, '_blank', 'noopener');
-        };
-        track.appendChild(card);
-      });
-      host.appendChild(sec);
-      tfSetupRowPaging(sec.querySelector('.tf-row'));
+      const empty = sec.querySelector('.tf-empty');
+      track.innerHTML = '';
+      if(Array.isArray(items) && items.length){
+        if(empty) empty.remove();
+        items.forEach(it=> track.appendChild(it));
+        tfSetupRowPaging(sec.querySelector('.tf-row'));
+      }else{
+        // hide if nothing
+        sec.style.display = 'none';
+      }
+    }
+
+    // Fetch & fill CLIPS
+    const clips = await tfTryFetchJson('/api/twitch/clips') || await tfTryFetchJson('/api/clips');
+    if(clipsSec){
+      if(clips && Array.isArray(clips.items) && clips.items.length){
+        const cards = clips.items.slice(0,24).map(c=>{
+          const title = c.title || c.name || 'Clip';
+          const id = c.id || c.clip_id || title;
+          const card = tfBuildCard({ id, name: title });
+          card.dataset.platform = c.platform || 'twitch';
+          card.dataset.live = 'CLIP';
+          card.dataset.tags = (c.tags||[]).join(', ');
+          card.onclick = () => {
+            try{ tfPushRecent({ id, title, platform: card.dataset.platform, type:'clip', url: c.url || c.embed_url || '' }); }catch(_){}
+            const url = c.url || c.embed_url;
+            if(url) window.open(url, '_blank', 'noopener');
+          };
+          return card;
+        });
+        await fill(clipsSec, cards, 'clips');
+      }else{
+        await fill(clipsSec, [], 'clips');
+      }
+    }
+
+    // Fetch & fill VOD
+    const vod = await tfTryFetchJson('/api/twitch/videos') || await tfTryFetchJson('/api/vod') || await tfTryFetchJson('/api/videos');
+    if(vodSec){
+      if(vod && Array.isArray(vod.items) && vod.items.length){
+        const cards = vod.items.slice(0,24).map(v=>{
+          const title = v.title || v.name || 'VOD';
+          const id = v.id || v.video_id || title;
+          const card = tfBuildCard({ id, name: title });
+          card.dataset.platform = v.platform || 'twitch';
+          card.dataset.live = 'VOD';
+          card.dataset.tags = (v.tags||[]).join(', ');
+          card.onclick = () => {
+            try{ tfPushRecent({ id, title, platform: card.dataset.platform, type:'vod', url: v.url || v.link || '' }); }catch(_){}
+            const url = v.url || v.link;
+            if(url) window.open(url, '_blank', 'noopener');
+          };
+          return card;
+        });
+        await fill(vodSec, cards, 'vod');
+      }else{
+        await fill(vodSec, [], 'vod');
+      }
     }
   }catch(_){}
 }
@@ -1453,6 +1475,7 @@ const q = tfSearchQuery.trim();
 
       // CATALOG MODE
       host.innerHTML = '';
+      try{ tfTryRenderOptionalRows(host); }catch(_){ }
       tfSetHero({ title: 'TWITFLIX', sub: 'Survole un jeu pour la preview, clique pour lancer un stream.' });
 
       const list = tfAllCategories.slice(0);
