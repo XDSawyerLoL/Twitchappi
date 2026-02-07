@@ -1434,16 +1434,24 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 app.get('/firebase_status', (req, res) => {
-  try {
-    if (db && admin.apps.length > 0) {
-      res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
-    } else {
-      res.json({ connected: false, message: 'Firebase not initialized' });
-    }
-  } catch (error) {
-    res.json({ connected: false, error: error.message });
+  try{
+    // Treat Firebase Admin initialization as "connected" for UI badge.
+    const adminInit = !!(admin && Array.isArray(admin.apps) && admin.apps.length > 0);
+    const dbInit = !!db;
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return res.json({
+      connected: adminInit,
+      firestore: dbInit,
+      message: adminInit ? 'Firebase Admin initialized' : 'Firebase not initialized',
+      hasServiceAccount: !!serviceAccount
+    });
+  }catch(error){
+    return res.json({ connected:false, error: error.message });
   }
 });
+
 
 // =========================================================
 // 4. STREAM INFO & TWITFLIX
