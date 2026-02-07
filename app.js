@@ -617,6 +617,17 @@ app.post('/api/providers/:providerId/disconnect', async (req, res) => {
 app.get('/api/metrics/cache', cacheMetricsHandler);
 app.get('/api/metrics/externals', (req,res)=>res.json({ success:true, twitch: brTwitch.status(), youtube: brYouTube.status() }));
 
+app.get('/api/metrics/ui', (req,res)=> {
+  const d = uiTelemetryGet(req);
+  return res.json({ success:true, data: d || null });
+});
+app.post('/api/metrics/ui', express.json({ limit:'50kb' }), (req,res)=> {
+  try{
+    uiTelemetrySet(req, req.body || {});
+  }catch(_){}
+  return res.json({ success:true });
+});
+
 app.get('/healthz', (req, res) => {
   res.json({ ok:true, uptime: process.uptime(), ts: new Date().toISOString() });
 });
@@ -3562,6 +3573,34 @@ app.get('/api/content', withCache(30000), async (req, res) => {
   }
 });
 
+
+
+// =========================================================
+// SOCLE C4 : UI telemetry (in-memory) for observability
+// =========================================================
+const __uiTelemetry = new Map(); // key -> {ts, data}
+function uiKey(req){
+  const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
+  if(tu && tu.id) return 'u:' + String(tu.id);
+  return 'ip:' + String(req.ip||'');
+}
+function uiTelemetryGet(req){
+  const k = uiKey(req);
+  const it = __uiTelemetry.get(k);
+  if(!it) return null;
+  if(Date.now() - it.ts > 5*60*1000){ __uiTelemetry.delete(k); return null; }
+  return it.data;
+}
+function uiTelemetrySet(req, data){
+  const k = uiKey(req);
+  __uiTelemetry.set(k, { ts: Date.now(), data });
+}
+setInterval(()=>{ try{
+  const now=Date.now();
+  for(const [k,v] of __uiTelemetry.entries()){
+    if(now - v.ts > 5*60*1000) __uiTelemetry.delete(k);
+  }
+}catch(_){ } }, 60000).unref();
 
 // =========================================================
 // SAFE ERROR HANDLER (évite crash silencieux)
