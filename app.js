@@ -151,6 +151,98 @@ try {
 } catch (e) {}
 
 
+
+// =========================================================
+// SOCLE B : PROVIDERS (interop) — Adapter + Firestore schema
+// =========================================================
+const PROVIDERS = [
+  { id:'twitch', label:'Twitch', type:'oauth' },
+  { id:'steam', label:'Steam', type:'openid' },
+  { id:'riot', label:'Riot', type:'oauth' },
+  { id:'epic', label:'Epic Games', type:'oauth' },
+  { id:'ubisoft', label:'Ubisoft', type:'oauth' },
+  { id:'xbox', label:'Xbox', type:'oauth' }
+];
+
+const PROVIDER_USERS = 'users'; // users/{uid}/connections/{provider}
+
+function userIdFromSession(req){
+  const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
+  if(!tu) return null;
+  return String(tu.id || tu.login || tu.display_name || '');
+}
+function connectionRef(uid, providerId){
+  return db.collection(PROVIDER_USERS).doc(uid).collection('connections').doc(providerId);
+}
+async function getConnection(uid, providerId){
+  if(!firestoreOk || !uid) return null;
+  const snap = await connectionRef(uid, providerId).get();
+  return snap.exists ? snap.data() : null;
+}
+async function setConnection(uid, providerId, data){
+  if(!firestoreOk || !uid) return;
+  await connectionRef(uid, providerId).set({
+    providerId,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    ...data
+  }, { merge:true });
+}
+async function deleteConnection(uid, providerId){
+  if(!firestoreOk || !uid) return;
+  await connectionRef(uid, providerId).delete().catch(()=>{});
+}
+
+// Helper: unified status (session + firestore)
+async function providerStatus(req, providerId){
+  const uid = userIdFromSession(req);
+  const base = PROVIDERS.find(p=>p.id===providerId) || { id: providerId, label: providerId, type:'unknown' };
+
+  // Session-derived quick status
+  let sessionConnected = false;
+  let sessionMeta = null;
+
+  if(providerId === 'twitch'){
+    const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
+    sessionConnected = !!tu;
+    if(tu) sessionMeta = { id: tu.id, login: tu.login, display_name: tu.display_name, profile_image_url: tu.profile_image_url };
+  }
+  if(providerId === 'steam'){
+    const st = req.session && req.session.steam ? req.session.steam : null;
+    sessionConnected = !!(st && st.steamid);
+    if(st) sessionMeta = { steamid: st.steamid, personaName: st.profile?.personaname || null };
+  }
+
+  let dbConnected = false;
+  let dbMeta = null;
+  if(uid){
+    const conn = await getConnection(uid, providerId);
+    if(conn && conn.connected){
+      dbConnected = true;
+      dbMeta = conn.meta || null;
+    }
+  }
+  return {
+    id: base.id,
+    label: base.label,
+    type: base.type,
+    connected: sessionConnected || dbConnected,
+    sessionConnected,
+    dbConnected,
+    meta: sessionMeta || dbMeta || null
+  };
+}
+
+// Provider connect URLs (front can open these)
+// Twitch: /twitch_auth_start already exists
+// Steam: /auth/steam/start already exists
+function providerConnectUrl(req, providerId){
+  const baseUrl = getBaseUrl ? getBaseUrl(req) : `${req.protocol}://${req.get('host')}`;
+  if(providerId === 'twitch') return `${baseUrl}/twitch_auth_start`;
+  if(providerId === 'steam') return `${baseUrl}/auth/steam/start`;
+  // Placeholders for future OAuth providers
+  return null;
+}
+
 // =========================================================
 // 0.B HUB CHAT PERSISTENCE + GIF PROXY (SAFE)
 // =========================================================
@@ -441,6 +533,87 @@ app.get('/api/auth/status', (req, res) => {
     const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
     return res.json({ authenticated: !!tu, user: tu ? { id: tu.id, login: tu.login, display_name: tu.display_name } : null });
 
+// =========================================================
+// SOCLE B : PROVIDERS API
+// =========================================================
+app.get('/api/providers/list', (req, res) => {
+  return res.json({ success:true, providers: PROVIDERS });
+});
+
+app.get('/api/providers/status', async (req, res) => {
+  try{
+    const out = [];
+    for(const p of PROVIDERS){
+      out.push(await providerStatus(req, p.id));
+    }
+    return res.json({ success:true, providers: out });
+  }catch(e){
+    return res.status(500).json({ success:false, error:'providers_status_failed' });
+  }
+});
+
+app.get('/api/providers/:providerId/status', async (req, res) => {
+  try{
+    const pid = String(req.params.providerId||'').toLowerCase();
+    if(!PROVIDERS.find(p=>p.id===pid)) return res.status(404).json({ success:false, error:'unknown_provider' });
+    const st = await providerStatus(req, pid);
+    return res.json({ success:true, provider: st });
+  }catch(_){
+    return res.status(500).json({ success:false, error:'provider_status_failed' });
+  }
+});
+
+app.get('/api/providers/:providerId/connect_url', (req, res) => {
+  const pid = String(req.params.providerId||'').toLowerCase();
+  const url = providerConnectUrl(req, pid);
+  if(!url) return res.status(400).json({ success:false, error:'no_connect_url' });
+  return res.json({ success:true, url });
+});
+
+// Manual connect (placeholder for Riot/Epic/Ubisoft/Xbox until OAuth wired):
+// Stores non-secret identifiers only (no tokens).
+app.post('/api/providers/:providerId/connect/manual', express.json(), async (req, res) => {
+  try{
+    const pid = String(req.params.providerId||'').toLowerCase();
+    if(!PROVIDERS.find(p=>p.id===pid)) return res.status(404).json({ success:false, error:'unknown_provider' });
+    const uid = userIdFromSession(req);
+    if(!uid) return res.status(401).json({ success:false, error:'unauthorized' });
+
+    const handle = sanitizeName(req.body?.handle || '', 64);
+    const externalId = sanitizeText(req.body?.externalId || '', 128);
+
+    await setConnection(uid, pid, {
+      connected: true,
+      linkedAt: admin.firestore.FieldValue.serverTimestamp(),
+      meta: { handle: handle || null, externalId: externalId || null, mode:'manual' }
+    });
+
+    return res.json({ success:true });
+  }catch(e){
+    return res.status(500).json({ success:false, error:'manual_connect_failed' });
+  }
+});
+
+app.post('/api/providers/:providerId/disconnect', async (req, res) => {
+  try{
+    const pid = String(req.params.providerId||'').toLowerCase();
+    if(!PROVIDERS.find(p=>p.id===pid)) return res.status(404).json({ success:false, error:'unknown_provider' });
+    const uid = userIdFromSession(req);
+    if(!uid) return res.status(401).json({ success:false, error:'unauthorized' });
+
+    await deleteConnection(uid, pid);
+
+    // Also clear session bits for known providers
+    if(pid === 'steam') req.session.steam = null;
+    if(pid === 'twitch') req.session.twitchUser = null;
+
+    req.session.save(() => res.json({ success:true }));
+  }catch(e){
+    return res.status(500).json({ success:false, error:'disconnect_failed' });
+  }
+});
+
+
 app.get('/api/metrics/cache', cacheMetricsHandler);
 app.get('/api/metrics/externals', (req,res)=>res.json({ success:true, twitch: brTwitch.status(), youtube: brYouTube.status() }));
 
@@ -555,6 +728,18 @@ app.get('/auth/steam/return', async (req, res) => {
         const tu = req.session?.twitchUser;
         if(tu) await setBillingSteam(tu, req.session.steam);
       }catch(_){ }
+      // Socle B: persist connection (steam) if Twitch user present
+      try{
+        const tu = req.session?.twitchUser;
+        if(tu && tu.id){
+          await setConnection(String(tu.id), 'steam', {
+            connected: true,
+            linkedAt: admin.firestore.FieldValue.serverTimestamp(),
+            meta: { steamid: String(steamid), personaName: profile?.personaname || null }
+          });
+        }
+      }catch(_){}
+
 
       // Optional: if front sends Firebase idToken later, we can persist the link.
       return res.redirect(`/steam/connected?ok=1&next=${encodeURIComponent(next)}`);
@@ -1169,6 +1354,15 @@ app.get('/twitch_auth_callback', async (req, res) => {
       expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000)
     };
 
+    // Socle B: persist connection (twitch)
+    try{
+      await setConnection(String(user.id), 'twitch', {
+        connected: true,
+        linkedAt: admin.firestore.FieldValue.serverTimestamp(),
+        meta: { id: user.id, login: user.login, display_name: user.display_name, profile_image_url: user.profile_image_url }
+      });
+    }catch(_){}
+
     // If Steam was connected before Twitch, persist it now so it becomes permanent.
     try{
       if(req.session?.steam?.steamid){
@@ -1198,6 +1392,11 @@ app.get('/twitch_auth_callback', async (req, res) => {
 app.post('/twitch_logout', (req, res) => {
   req.session.twitchUser = null;
   req.session.save(() => res.json({ success: true }));
+
+  try{
+    const uid = userIdFromSession(req);
+    if(uid) await deleteConnection(uid, 'twitch');
+  }catch(_){}
 });
 
 app.get('/twitch_user_status', (req, res) => {
