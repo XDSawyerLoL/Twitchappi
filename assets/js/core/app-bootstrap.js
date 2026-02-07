@@ -273,7 +273,28 @@ function startAuth() {
 	      if (channelHint) {
 	        try { updateTwitchChatFrame(channelHint); } catch(_){ }
 	        try { document.getElementById('current-channel-display').innerText = `${String(channelHint).toUpperCase()} • VOD`; } catch(_){ }
-	      } else {
+	      }
+
+
+        // Play a Twitch Clip inside the main player (inline)
+        function loadClipEmbed(clipId, channelHint){
+          const container = document.getElementById('video-container');
+          const parentParam = PARENT_DOMAINS.join('&parent=');
+          const cid = String(clipId || '').trim();
+          if(!cid) return;
+          // Twitch clip embed
+          const iframeUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(cid)}&parent=${parentParam}&autoplay=true&muted=false`;
+          container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+          if(channelHint){
+            try{ updateTwitchChatFrame(channelHint); }catch(_){}
+          }
+          try{
+            const badge = document.getElementById('player-mode-badge');
+            if(badge) badge.innerText = "CLIP";
+          }catch(_){}
+        }
+
+ else {
 	        try { document.getElementById('current-channel-display').innerText = `VOD`; } catch(_){ }
 	      }
 	      try { document.getElementById('player-mode-badge').innerText = 'VOD'; } catch(_){ }
@@ -721,6 +742,7 @@ function startAuth() {
     let tfModalOpen = false;
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
+    window.__tfVodSearchResults = [];
 
     // Personalisation (Steam ADN) — prefers Steam OpenID session (no manual SteamID64)
 let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
@@ -1449,6 +1471,16 @@ const modal = document.getElementById('twitflix-modal');
       tfSetHero({ title: 'TWITFLIX', sub: 'Survole un jeu pour la preview, clique pour lancer un stream.' });
 
       const list = tfAllCategories.slice(0);
+
+      // SOCLE B++: if search has VOD results, prepend a VOD row
+      try{
+        if(window.__tfVodSearchResults && window.__tfVodSearchResults.length){
+          const host = document.getElementById('twitflix-host');
+          if(host){
+            host.appendChild(tfBuildRow('VOD <span>Résultats</span>', window.__tfVodSearchResults.map(tfContentToCard), 'tf-row-vod-search'));
+          }
+        }
+      }catch(_){}
       if (!list.length){
         host.innerHTML = '<div class="tf-empty"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
         if (sentinel) host.appendChild(sentinel);
@@ -1476,7 +1508,61 @@ const modal = document.getElementById('twitflix-modal');
       if (sentinel) host.appendChild(sentinel);
     }
 
-    function tfRenderRows(host, list){
+    
+    // ====== SOCLE B++ : Unified Content (/api/content) ======
+    async function tfFetchContent(params){
+      const qs = new URLSearchParams();
+      Object.entries(params||{}).forEach(([k,v])=>{
+        if(v===undefined || v===null || v==='') return;
+        qs.set(k, String(v));
+      });
+      try{
+        const r = await fetch(`${API_BASE}/api/content?${qs.toString()}`, { credentials:'include' });
+        if(!r.ok) return [];
+        const d = await r.json();
+        return (d && d.success && Array.isArray(d.items)) ? d.items : [];
+      }catch(_){
+        return [];
+      }
+    }
+
+    function tfContentToCard(item){
+      const title = item.title || item.game || item.channel || 'VOD';
+      // prefer bigger thumbnails if possible
+      const thumb = String(item.thumbnail || '').replace('{width}', '540').replace('{height}','720');
+      const c = {
+        id: item.id,
+        name: title,
+        box_art_url: thumb || '',
+        __content: item
+      };
+      return c;
+    }
+
+    async function tfPlayContent(item){
+      try{ closeTwitFlix(); }catch(_){}
+      try{
+        const badge = document.getElementById('player-mode-badge');
+        if(badge) badge.innerText = "ORYON TV";
+      }catch(_){}
+      if(!item) return;
+      if(item.type === 'vod'){
+        loadVodEmbed(item.id, item.channel);
+        return;
+      }
+      if(item.type === 'clip'){
+        loadClipEmbed(item.id, item.channel);
+        return;
+      }
+      if(item.type === 'live'){
+        if(item.channel) changeChannel(item.channel);
+        return;
+      }
+      // fallback
+      if(item.url) window.open(item.url, '_blank');
+    }
+
+function tfRenderRows(host, list){
       const picks1 = list.slice(0, 28);
       const picks2 = list.slice(28, 56);
       const picks3 = tfShuffle(list).slice(0, 28);
@@ -1487,7 +1573,22 @@ const modal = document.getElementById('twitflix-modal');
       // ADN row (Steam-based) if available
       if (tfPersonalization && Array.isArray(tfPersonalization.categories) && tfPersonalization.categories.length){
         host.appendChild(tfBuildRow(tfPersonalization.title || 'Parce que tu as aimé', tfPersonalization.categories.slice(0,28)));
-      } else {
+      
+      // SOCLE B++: VOD/CLIPS rows via /api/content (FR 20-200)
+      (async () => {
+        try{
+          const vodItems = await tfFetchContent({ provider:'twitch', type:'vod', lang:'fr', min:20, max:200, limit:28 });
+          if(vodItems && vodItems.length){
+            host.appendChild(tfBuildRow('VOD <span>FR 20–200</span>', vodItems.map(tfContentToCard)));
+          }
+          const clipItems = await tfFetchContent({ provider:'twitch', type:'clip', lang:'fr', limit:28 });
+          if(clipItems && clipItems.length){
+            host.appendChild(tfBuildRow('Clips <span>FR</span>', clipItems.map(tfContentToCard)));
+          }
+        }catch(_){}
+      })();
+
+    } else {
         host.appendChild(tfBuildRow('Tendances <span>FR</span>', picks2));
       }
 
@@ -1573,7 +1674,10 @@ const modal = document.getElementById('twitflix-modal');
       div.addEventListener('focus', () => tfSetHero({ title: cat.name, poster }));
 
       // click play
-      div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
+      div.onclick = () => {
+        if(cat && cat.__content){ tfPlayContent(cat.__content); return; }
+        playTwitFlixCategory(cat.id, cat.name);
+      };
 
       div.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
