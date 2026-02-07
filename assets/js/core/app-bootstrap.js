@@ -721,6 +721,7 @@ function startAuth() {
     let tfModalOpen = false;
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
+    window.__tfVodSearchResults = [];
 
     // Personalisation (Steam ADN) — prefers Steam OpenID session (no manual SteamID64)
 let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
@@ -1449,6 +1450,12 @@ const modal = document.getElementById('twitflix-modal');
       tfSetHero({ title: 'TWITFLIX', sub: 'Survole un jeu pour la preview, clique pour lancer un stream.' });
 
       const list = tfAllCategories.slice(0);
+
+      try{
+        if(window.__tfVodSearchResults && window.__tfVodSearchResults.length){
+          host.appendChild(tfBuildRow('VOD <span>Résultats</span>', window.__tfVodSearchResults.map(tfContentToCard), 'tf-row-vod-search'));
+        }
+      }catch(_){}
       if (!list.length){
         host.innerHTML = '<div class="tf-empty"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
         if (sentinel) host.appendChild(sentinel);
@@ -1476,7 +1483,54 @@ const modal = document.getElementById('twitflix-modal');
       if (sentinel) host.appendChild(sentinel);
     }
 
-    function tfRenderRows(host, list){
+    
+    // ====== SOCLE B++ : Unified Content (/api/content) ======
+    async function tfFetchContent(params){
+      const qs = new URLSearchParams();
+      Object.entries(params||{}).forEach(([k,v])=>{
+        if(v===undefined || v===null || v==='') return;
+        qs.set(k, String(v));
+      });
+      try{
+        const r = await fetch(`${API_BASE}/api/content?${qs.toString()}`, { credentials:'include' });
+        if(!r.ok) return [];
+        const d = await r.json();
+        return (d && d.success && Array.isArray(d.items)) ? d.items : [];
+      }catch(_){
+        return [];
+      }
+    }
+
+    function tfContentToCard(item){
+      const title = item.title || item.game || item.channel || 'Contenu';
+      const thumb = String(item.thumbnail || '').replace('{width}', '540').replace('{height}','720');
+      return { id: item.id, name: title, box_art_url: thumb || '', __content: item };
+    }
+
+    async function tfPlayContent(item){
+      if(!item) return;
+      try{ closeTwitFlix(); }catch(_){}
+      if(item.type === 'vod'){
+        loadVodEmbed(item.id, item.channel);
+        return;
+      }
+      if(item.type === 'live'){
+        if(item.channel) changeChannel(item.channel);
+        return;
+      }
+      if(item.url) window.open(item.url, '_blank');
+    }
+function tfRenderRows(host, list){
+      // SOCLE B++: VOD row via /api/content (FR 20-200)
+      (async () => {
+        try{
+          const vodItems = await tfFetchContent({ provider:'twitch', type:'vod', lang:'fr', min:20, max:200, limit:28 });
+          if(vodItems && vodItems.length){
+            host.appendChild(tfBuildRow('VOD <span>FR 20–200</span>', vodItems.map(tfContentToCard), 'tf-row-vod'));
+          }
+        }catch(_){}
+      })();
+
       const picks1 = list.slice(0, 28);
       const picks2 = list.slice(28, 56);
       const picks3 = tfShuffle(list).slice(0, 28);
@@ -1546,6 +1600,7 @@ const modal = document.getElementById('twitflix-modal');
 
     function tfBuildCard(cat){
       const div = document.createElement('div');
+      div.setAttribute('data-tf-card','1');
       div.className = 'tf-card';
       div.tabIndex = 0;
       div.setAttribute('role','button');
@@ -1573,7 +1628,10 @@ const modal = document.getElementById('twitflix-modal');
       div.addEventListener('focus', () => tfSetHero({ title: cat.name, poster }));
 
       // click play
-      div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
+      div.onclick = () => {
+        if(cat && cat.__content){ tfPlayContent(cat.__content); return; }
+        playTwitFlixCategory(cat.id, cat.name);
+      };
 
       div.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -2976,5 +3034,22 @@ async function oryonCheckAuth(){
       if(document.hidden) return;
       await oryonCheckAuth();
     }, 15000);
+  }catch(_){}
+})();
+
+// SOCLE C2: click delegation in capture to avoid overlay blocking cards
+(function oryonClickDelegate(){
+  try{
+    document.addEventListener('click', (ev) => {
+      const el = ev.target && ev.target.closest ? ev.target.closest('[data-tf-card]') : null;
+      if(!el) return;
+      const raw = el.getAttribute('data-content');
+      if(!raw) return;
+      try{
+        const item = JSON.parse(raw);
+        tfPlayContent(item);
+        ev.preventDefault(); ev.stopPropagation();
+      }catch(_){}
+    }, true);
   }catch(_){}
 })();

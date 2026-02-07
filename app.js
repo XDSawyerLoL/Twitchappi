@@ -857,6 +857,134 @@ app.get('/api/twitch/vods/search', withCache(90000), async (req, res) => {
 
     if(!title || title.length < 2){
       return res.json({ success:true, items:[], reason:'missing_title' });
+
+// =========================================================
+// SOCLE B+ : Unified Content API
+// =========================================================
+function normalizeContentItem(item){
+  return {
+    id: String(item.id || ''),
+    type: String(item.type || ''),
+    provider: String(item.provider || ''),
+    title: item.title || '',
+    game: item.game || null,
+    channel: item.channel || null,
+    language: item.language || null,
+    viewers: (item.viewers != null ? Number(item.viewers) : null),
+    duration: item.duration || null,
+    thumbnail: item.thumbnail || null,
+    url: item.url || null,
+    embed: item.embed || null,
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    isLive: !!item.isLive,
+    createdAt: item.createdAt || null
+  };
+}
+
+function makeEmbed(provider, type, payload, req){
+  const parent = (req && req.hostname) ? req.hostname : (req && req.get ? req.get('host') : 'localhost');
+  if(provider === 'twitch'){
+    if(type === 'live'){
+      return { kind:'iframe', src:`https://player.twitch.tv/?channel=${encodeURIComponent(payload.channel)}&parent=${encodeURIComponent(parent)}&theme=dark&autoplay=true` };
+    }
+    if(type === 'vod'){
+      const vid = String(payload.videoId||payload.id||'').replace(/^v/i,'');
+      return { kind:'iframe', src:`https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${encodeURIComponent(parent)}&theme=dark&autoplay=true` };
+    }
+  }
+  return null;
+}
+
+async function fetchTwitchLive({ lang, minViewers, maxViewers, limit }, req){
+  const list = globalThis.__ORYON_LIVE_STREAMS || null;
+  if(!list) return [];
+  return list
+    .filter(s => (!lang || (String(s.language||'').toLowerCase()===lang)) )
+    .filter(s => (minViewers==null || Number(s.viewer_count||0)>=minViewers))
+    .filter(s => (maxViewers==null || Number(s.viewer_count||0)<=maxViewers))
+    .slice(0, limit)
+    .map(s => ({
+      id: s.user_login || s.user_name || s.id,
+      type: 'live',
+      provider: 'twitch',
+      title: s.title || '',
+      game: s.game_name || null,
+      channel: s.user_login || s.user_name || null,
+      language: s.language || null,
+      viewers: s.viewer_count || null,
+      thumbnail: s.thumbnail_url || null,
+      url: s.user_login ? `https://twitch.tv/${s.user_login}` : null,
+      embed: makeEmbed('twitch','live',{ channel: s.user_login || s.user_name }, req),
+      tags: s.tags || [],
+      isLive: true,
+      createdAt: s.started_at || null
+    }))
+    .map(normalizeContentItem);
+}
+
+async function fetchTwitchVods({ query, game, lang, minViewers, maxViewers, limit }, req){
+  const params = new URLSearchParams();
+  if(query) params.set('title', query);
+  if(game && !query) params.set('title', game);
+  if(lang) params.set('lang', lang);
+  if(minViewers!=null) params.set('min', String(minViewers));
+  if(maxViewers!=null) params.set('max', String(maxViewers));
+  params.set('limit', String(limit));
+  const baseUrl = getBaseUrl(req);
+  const url = `${baseUrl}/api/twitch/vods/search?${params.toString()}`;
+  const data = await fetchJsonWithRetry(url, { headers: { 'Accept':'application/json' } }, 8000, 0).catch(()=>null);
+  const items = (data && data.items) ? data.items : [];
+  return items.map(v => normalizeContentItem({
+    id: v.id || v.videoId || v.video_id,
+    type: 'vod',
+    provider: 'twitch',
+    title: v.title || '',
+    game: v.game || v.game_name || null,
+    channel: v.channel || v.user_login || v.user_name || null,
+    language: v.language || lang || null,
+    viewers: v.viewers || v.viewer_count || null,
+    duration: v.duration || null,
+    thumbnail: v.thumbnail || v.thumbnail_url || null,
+    url: v.url || (v.id ? `https://twitch.tv/videos/${v.id}` : null),
+    embed: makeEmbed('twitch','vod',{ videoId: v.id || v.videoId || v.video_id }, req),
+    tags: v.tags || [],
+    isLive: false,
+    createdAt: v.createdAt || v.created_at || null
+  }));
+}
+
+app.get('/api/content', withCache(30000), async (req, res) => {
+  try{
+    const provider = qEnum(req, 'provider', ['twitch'], 'twitch');
+    const type = qEnum(req, 'type', ['live','vod','clip'], 'live');
+    const lang = qEnum(req, 'lang', ['fr','en','es','de','it','pt'], 'fr');
+    const limit = qInt(req, 'limit', 24, 1, 60);
+
+    const minViewers = qInt(req, 'min', 20, 0, 100000);
+    const maxViewers = qInt(req, 'max', 200, 0, 100000);
+
+    const query = qStr(req, 'q', 120);
+    const game = qStr(req, 'game', 80);
+
+    if(provider === 'twitch'){
+      if(type === 'live'){
+        const items = await fetchTwitchLive({ lang, minViewers, maxViewers, limit }, req);
+        return res.json({ success:true, provider, type, items });
+      }
+      if(type === 'vod'){
+        const items = await fetchTwitchVods({ query, game, lang, minViewers, maxViewers, limit }, req);
+        return res.json({ success:true, provider, type, items });
+      }
+      if(type === 'clip'){
+        return res.json({ success:true, provider, type, items: [] });
+      }
+    }
+
+    return res.json({ success:true, provider, type, items: [] });
+  }catch(e){
+    return res.status(500).json({ success:false, error:'content_failed' });
+  }
+});
     }
 
     const key = `q:${title.toLowerCase()}:${min}:${max}:${limit}:${lang}`;
@@ -1038,6 +1166,19 @@ async function collectAnalyticsSnapshot() {
     const data = await twitchAPI('streams?first=100&language=fr');
     const streams = data?.data || [];
     console.log(`[CRON] streams récupérés: ${streams.length}`);
+
+    try{ globalThis.__ORYON_LIVE_STREAMS = streams.map(s=>({
+      user_login: s.user_login,
+      user_name: s.user_name,
+      title: s.title,
+      game_name: s.game_name,
+      language: s.language,
+      viewer_count: s.viewer_count,
+      thumbnail_url: s.thumbnail_url,
+      tags: s.tags,
+      started_at: s.started_at
+    })); }catch(_){}
+
 
     let totalViewers = 0;
     const rollupPromises = [];
