@@ -1014,7 +1014,6 @@ window.addEventListener('message', (ev) => {
     let tfSearchQuery = '';
     let tfSearchResults = [];
     let tfVodResults = [];
-    let tfVodResults = [];
     let tfVodTimer = null;
     let tfSearchTimer = null;
 
