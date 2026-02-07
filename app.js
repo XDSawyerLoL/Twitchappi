@@ -3562,7 +3562,6 @@ app.get('/api/content', withCache(30000), async (req, res) => {
   }
 });
 
-});
 
 // =========================================================
 // SAFE ERROR HANDLER (évite crash silencieux)
