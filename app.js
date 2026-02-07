@@ -149,6 +149,65 @@ async function addXP(user, delta){
 // =========================================================
 // 1. CONFIGURATION
 // =========================================================
+
+// =========================================================
+// SOCLE A+ : CACHE TTL (mémoire) + métriques
+// =========================================================
+const __ttlCache = new Map();
+const __cacheMetrics = { hit:0, miss:0, set:0, purge:0 };
+
+function cacheKey(req){
+  // Key stable: method + path + query
+  const q = req.originalUrl || req.url || '';
+  return req.method + ' ' + q;
+}
+
+function cacheGet(key){
+  const it = __ttlCache.get(key);
+  if(!it) { __cacheMetrics.miss++; return null; }
+  if(Date.now() > it.exp){
+    __ttlCache.delete(key);
+    __cacheMetrics.purge++;
+    __cacheMetrics.miss++;
+    return null;
+  }
+  __cacheMetrics.hit++;
+  return it.val;
+}
+
+function cacheSet(key, val, ttlMs){
+  __ttlCache.set(key, { val, exp: Date.now() + ttlMs });
+  __cacheMetrics.set++;
+}
+
+function withCache(ttlMs){
+  return async (req, res, next) => {
+    try{
+      const key = cacheKey(req);
+      const cached = cacheGet(key);
+      if(cached){
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cached);
+      }
+      // Wrap res.json to store
+      const orig = res.json.bind(res);
+      res.json = (body) => {
+        try{
+          // cache only success-ish JSON objects (avoid caching 401/500)
+          if(res.statusCode >= 200 && res.statusCode < 300){
+            cacheSet(key, body, ttlMs);
+            res.setHeader('X-Cache', 'MISS');
+          }
+        }catch(_){}
+        return orig(body);
+      };
+    }catch(_){}
+    next();
+  };
+}
+
+function cacheMetricsHandler = (req, res) => res.json({ success:true, cache: __cacheMetrics, size: __ttlCache.size });
+
 const app = express();
 app.set('trust proxy', 1);
 
@@ -243,6 +302,8 @@ app.get('/api/auth/status', (req, res) => {
   try{
     const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
     return res.json({ authenticated: !!tu, user: tu ? { id: tu.id, login: tu.login, display_name: tu.display_name } : null });
+
+app.get('/api/metrics/cache', cacheMetricsHandler);
   }catch(_){
     return res.json({ authenticated: false, user: null });
   }
@@ -574,7 +635,7 @@ async function twitchGetUserIdByLogin(login, token){
 }
 
 // Random VODs (used by UI rows)
-app.get('/api/twitch/vods/random', async (req, res) => {
+app.get('/api/twitch/vods/random', withCache(90000), async (req, res) => {
   try{
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
     const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
@@ -643,7 +704,7 @@ app.get('/api/twitch/vods/random', async (req, res) => {
 });
 
 // Search VODs by title among FR live streamers in viewer range
-app.get('/api/twitch/vods/search', async (req, res) => {
+app.get('/api/twitch/vods/search', withCache(90000), async (req, res) => {
   try{
     const title = String(req.query.title || req.query.q || '').trim();
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
@@ -1060,7 +1121,7 @@ app.post('/stream_info', async (req, res) => {
 
 // --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
 
-app.get('/api/categories/top', async (req, res) => {
+app.get('/api/categories/top', withCache(60000), async (req, res) => {
   try {
     // On supporte la pagination via "cursor"
     const cursor = req.query.cursor;
@@ -1313,7 +1374,7 @@ app.post('/api/search/intent', async (req,res)=>{
 
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME
-app.get('/api/youtube/trailer', async (req, res) => {
+app.get('/api/youtube/trailer', withCache(60000), async (req, res) => {
   const q0 = String(req.query.q || '').trim();
   if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
   if (!YOUTUBE_API_KEY) return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY missing' });
