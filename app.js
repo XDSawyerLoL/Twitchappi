@@ -1389,15 +1389,21 @@ app.get('/twitch_auth_callback', async (req, res) => {
   }
 });
 
-app.post('/twitch_logout', (req, res) => {
-  req.session.twitchUser = null;
-  req.session.save(() => res.json({ success: true }));
-
+app.post('/twitch_logout', async (req, res) => {
   try{
-    const uid = userIdFromSession(req);
+    const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
+    const uid = tu && tu.id ? String(tu.id) : null;
+
+    // Clear session
+    req.session.twitchUser = null;
+
+    // Socle B: clear persisted connection
     if(uid) await deleteConnection(uid, 'twitch');
   }catch(_){}
+
+  req.session.save(() => res.json({ success: true }));
 });
+
 
 app.get('/twitch_user_status', (req, res) => {
   const u = req.session?.twitchUser;
