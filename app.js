@@ -10,6 +10,38 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
+
+// =========================================================
+// SOCLE A++ : timeouts & retries pour appels externes
+// =========================================================
+async function fetchWithTimeout(url, opts={}, timeoutMs=8000){
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try{
+    const res = await fetch(url, Object.assign({}, opts, { signal: controller.signal }));
+    return res;
+  } finally {
+    clearTimeout(t);
+  }
+}
+async function fetchJsonWithRetry(url, opts={}, timeoutMs=8000, retries=1){
+  let lastErr = null;
+  for(let i=0;i<=retries;i++){
+    try{
+      const res = await fetchWithTimeout(url, opts, timeoutMs);
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error('HTTP '+res.status+' '+txt.slice(0,120));
+      }
+      return await res.json();
+    }catch(e){
+      lastErr = e;
+      if(i<retries) await new Promise(r=>setTimeout(r, 250*(i+1)));
+    }
+  }
+  throw lastErr;
+}
+
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
@@ -153,6 +185,28 @@ async function addXP(user, delta){
 // =========================================================
 // SOCLE A+ : CACHE TTL (mémoire) + métriques
 // =========================================================
+
+// =========================================================
+// SOCLE A++ : validation légère des entrées + helpers
+// =========================================================
+function qStr(req, key, maxLen=120){
+  const v = (req.query && req.query[key] != null) ? String(req.query[key]) : '';
+  const s = v.trim().slice(0, maxLen);
+  return s;
+}
+function qInt(req, key, defVal, minVal, maxVal){
+  const raw = (req.query && req.query[key] != null) ? String(req.query[key]) : '';
+  let n = parseInt(raw, 10);
+  if(Number.isNaN(n)) n = defVal;
+  if(minVal != null) n = Math.max(minVal, n);
+  if(maxVal != null) n = Math.min(maxVal, n);
+  return n;
+}
+function qEnum(req, key, allowed, defVal){
+  const v = qStr(req, key, 40).toLowerCase();
+  return allowed.includes(v) ? v : defVal;
+}
+
 const __ttlCache = new Map();
 const __cacheMetrics = { hit:0, miss:0, set:0, purge:0 };
 
@@ -303,6 +357,10 @@ app.get('/api/auth/status', (req, res) => {
     return res.json({ authenticated: !!tu, user: tu ? { id: tu.id, login: tu.login, display_name: tu.display_name } : null });
 
 app.get('/api/metrics/cache', cacheMetricsHandler);
+
+app.get('/healthz', (req, res) => {
+  res.json({ ok:true, uptime: process.uptime(), ts: new Date().toISOString() });
+});
   }catch(_){
     return res.json({ authenticated: false, user: null });
   }
@@ -2243,6 +2301,8 @@ app.get('/api/costream/best', async (req, res) => {
 // 14. SERVER START + SOCKET.IO
 // =========================================================
 const server = http.createServer(app);
+setupGracefulShutdown(server);
+
 
 // Prevent proxies (Render/Cloudflare) from closing long-polling connections too aggressively
 server.keepAliveTimeout = 120000; // 120s
@@ -3057,3 +3117,25 @@ app.use((err, req, res, next) => {
   if(res.headersSent) return next(err);
   return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
 });
+
+
+// =========================================================
+// SOCLE A++ : arrêt propre (Render / Docker)
+// =========================================================
+function setupGracefulShutdown(server){
+  const shut = (sig) => {
+    try{ console.log('[SHUTDOWN]', sig); }catch(_){}
+    try{
+      server.close(() => {
+        try{ console.log('[SHUTDOWN] closed'); }catch(_){}
+        process.exit(0);
+      });
+      // force exit after 8s
+      setTimeout(() => process.exit(1), 8000).unref();
+    }catch(_){
+      process.exit(1);
+    }
+  };
+  process.on('SIGTERM', () => shut('SIGTERM'));
+  process.on('SIGINT', () => shut('SIGINT'));
+}
