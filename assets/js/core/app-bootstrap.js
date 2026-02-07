@@ -3136,10 +3136,12 @@ async function oryonCheckAuth(){
   }catch(_){}
 })();
 
-// SOCLE C4: UI telemetry to backend (lightweight, 15s, only when visible)
-(function oryonUiTelemetry(){
+
+// SOCLE C4 (SAFE): UI telemetry to backend (opt-in, low frequency, change-based)
+(function oryonUiTelemetrySafe(){
   try{
-    let lastSend=0;
+    let lastPayload = null;
+    let lastSend = 0;
     const state = { rows:0, lastFetch:null, playerMode:null };
     window.__oryonUiState = state;
 
@@ -3147,8 +3149,9 @@ async function oryonCheckAuth(){
       try{
         const vc = document.getElementById('video-container');
         if(!vc) return null;
-        if(vc.querySelector('iframe') && vc.innerHTML.includes('player.twitch.tv/?video=')) return 'vod';
-        if(vc.querySelector('iframe') && vc.innerHTML.includes('clips.twitch.tv')) return 'clip';
+        const html = vc.innerHTML || '';
+        if(html.includes('player.twitch.tv/?video=')) return 'vod';
+        if(html.includes('clips.twitch.tv')) return 'clip';
         if(document.getElementById('twitch-embed')) return 'live';
         return null;
       }catch(_){ return null; }
@@ -3156,16 +3159,20 @@ async function oryonCheckAuth(){
 
     setInterval(async ()=>{
       if(document.hidden) return;
-      const now=Date.now();
-      if(now-lastSend < 15000) return;
-      lastSend=now;
+      const now = Date.now();
+      if(now - lastSend < 60000) return; // 60s
       state.playerMode = inferPlayerMode();
+      const payload = { ts: new Date().toISOString(), rows: state.rows, lastFetch: state.lastFetch, playerMode: state.playerMode };
+      const s = JSON.stringify(payload);
+      if(s === lastPayload) return;
+      lastPayload = s;
+      lastSend = now;
       try{
         await fetch(`${API_BASE}/api/metrics/ui`, {
           method:'POST',
           credentials:'include',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ ts: new Date().toISOString(), rows: state.rows, lastFetch: state.lastFetch, playerMode: state.playerMode })
+          body: s
         });
       }catch(_){}
     }, 5000);
