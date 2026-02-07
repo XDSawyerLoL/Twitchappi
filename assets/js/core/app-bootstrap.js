@@ -1393,44 +1393,61 @@ const modal = document.getElementById('twitflix-modal');
       // Keep sentinel at bottom
       const sentinel = document.getElementById('tf-sentinel');
 
-      // SEARCH MODE
+      
+// SEARCH MODE
       if (tfSearchQuery && tfSearchQuery.trim()){
         host.innerHTML = '';
         const q = tfSearchQuery.trim();
         tfSetHero({ title: q, sub: 'Résultats de recherche' });
 
-        if (!tfSearchResults.length){
-          host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
-          
-        // Twitch VOD results by title
+        // --- VOD FR (20–200) : titre OU nom du jeu ---
         if (tfVodResults && tfVodResults.length){
           const vodRow = tfBuildRow(
-            `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Titre: ${escapeHtml(q)}</span></div>`,
+            `<div class="tf-strip-title"><h4>VOD FR (20–200 viewers)</h4><span class="tf-strip-sub">Titre/Jeu : ${escapeHtml(q)}</span></div>`,
             tfVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })),
             'tf-vod-search-row'
           );
-	          // attach click to play VOD inline (main player) instead of opening a new tab
+          // override click => play VOD inline in main player
           vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
             const v = tfVodResults[idx]?._vod;
             if(!v) return;
-            // store twitch video id; backend returns numeric id
-            card.dataset.vodId = String(v.id || '').replace(/^v/i,'');
+            const vid = String(v.id || '').replace(/^v/i,'');
+            card.dataset.vodId = vid;
+            card.onclick = (ev)=>{
+              try{ ev.preventDefault(); ev.stopPropagation(); }catch(_){}
+              try{ closeTwitFlix(); }catch(_){}
+              try{ loadVodEmbed(vid); }catch(_){}
+              try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
+            };
           });
           host.appendChild(vodRow);
         } else {
-          // show small hint row when searching
           const hint = document.createElement('div');
           hint.className = 'tf-empty tf-vod-hint';
-          hint.style.marginTop = '10px';
-          hint.innerHTML = `VOD FR (20-200 viewers) : <span style="opacity:.8">aucun résultat</span>`;
+          hint.style.margin = '10px 0 0';
+          hint.innerHTML = `VOD FR (20–200 viewers) : <span style="opacity:.8">aucun résultat (essaie un autre titre)</span>`;
           host.appendChild(hint);
         }
 
-        if (sentinel) host.appendChild(sentinel);
-      try{ tfAnnotateRows(); }catch(_){ }
+        // --- Jeux / catégories (résultats) ---
+        if (tfSearchResults && tfSearchResults.length){
+          const row = tfBuildRow(
+            `<div class="tf-strip-title"><h4>Résultats</h4><span class="tf-strip-sub">${escapeHtml(q)}</span></div>`,
+            tfSearchResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url, compat:x.compat })),
+            'tf-search-row'
+          );
+          host.appendChild(row);
+        } else {
+          const empty = document.createElement('div');
+          empty.className = 'tf-empty';
+          empty.innerHTML = `Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.`;
+          host.appendChild(empty);
         }
 
-        // In Big Picture (and rows mode), render search results as a single horizontal row (Netflix/Steam style)
+        if (sentinel) host.appendChild(sentinel);
+        try{ tfAnnotateRows(); }catch(_){ }
+      }
+// In Big Picture (and rows mode), render search results as a single horizontal row (Netflix/Steam style)
         if (document.body.classList.contains('tf-bigpicture') || tfViewMode === 'rows'){
           const row = tfBuildRow(`<div class="tf-strip-title"><h4>Résultats</h4><span class="tf-strip-sub">${escapeHtml(q)}</span></div>`, tfSearchResults, 'tf-search-row');
           host.appendChild(row);
@@ -2931,3 +2948,211 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         `;
         document.head.appendChild(st);
       }
+
+
+/* =========================================================
+   ORYON TV UX Pack (Step 4) - safe layer
+   - Ctrl+K Search overlay (TV style)
+   - Peek preview lightweight info
+   - Continue Watching (localStorage)
+   ========================================================= */
+(function(){
+  const ORYON_CONTINUE_KEY = 'oryon_continue_v1';
+
+  function getContinue(){
+    try{ return JSON.parse(localStorage.getItem(ORYON_CONTINUE_KEY) || '[]') || []; }catch(e){ return []; }
+  }
+  function setContinue(list){
+    try{ localStorage.setItem(ORYON_CONTINUE_KEY, JSON.stringify(list.slice(0,20))); }catch(e){}
+  }
+  window.oryonPushContinue = function(entry){
+    try{
+      if(!entry) return;
+      const list = getContinue().filter(x => !(x && x.type===entry.type && x.id===entry.id));
+      list.unshift({...entry, ts: entry.ts || Date.now()});
+      setContinue(list);
+    }catch(e){}
+  };
+
+  // Inject "Reprendre" row at top if items exist
+  function injectContinueRow(){
+    const host = document.getElementById('twitflix-grid');
+    if(!host) return;
+    // avoid in search mode (only when empty query)
+    try{
+      if(window.tfSearchQuery && String(window.tfSearchQuery).trim()) return;
+    }catch(e){}
+    const list = getContinue();
+    if(!list.length) return;
+    // If already injected, refresh
+    const existing = document.getElementById('tf-continue-row');
+    if(existing) existing.remove();
+
+    const items = list.map(x => {
+      return {
+        id: x.id || ('c'+Math.random()),
+        name: x.title || 'Reprendre',
+        box_art_url: x.poster || '',
+        _continue: x
+      };
+    });
+
+    if(typeof window.tfBuildRow !== 'function') return;
+    const row = window.tfBuildRow(
+      `<div class="tf-strip-title"><h4>Reprendre</h4><span class="tf-strip-sub">Dernières lectures</span></div>`,
+      items,
+      'tf-continue-row'
+    );
+    row.querySelectorAll('.tf-card').forEach((card, idx)=>{
+      const c = items[idx]?._continue;
+      if(!c) return;
+      card.dataset.vodId = c.type==='vod' ? String(c.id).replace(/^v/i,'') : '';
+      card.onclick = (ev)=>{
+        try{ ev.preventDefault(); ev.stopPropagation(); }catch(_e){}
+        if(c.type==='vod' && c.id){
+          try{ closeTwitFlix(); }catch(_e){}
+          try{ loadVodEmbed(String(c.id).replace(/^v/i,'')); }catch(_e){}
+          try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(_e){}
+        }
+      };
+    });
+    host.prepend(row);
+    try{ window.tfAnnotateRows && window.tfAnnotateRows(); }catch(e){}
+  }
+
+  // Call inject after opening & after renders
+  const _open = window.openTwitFlix;
+  if(typeof _open === 'function'){
+    window.openTwitFlix = function(){
+      const r = _open.apply(this, arguments);
+      setTimeout(injectContinueRow, 50);
+      return r;
+    };
+  }
+
+  // Search overlay (Ctrl+K)
+  function ensureOverlay(){
+    let ov = document.getElementById('oryon-search-overlay');
+    if(ov) return ov;
+    ov = document.createElement('div');
+    ov.id = 'oryon-search-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:11000;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.86);backdrop-filter:blur(6px);';
+    ov.innerHTML = `
+      <div style="width:min(980px,92vw);margin-top:6vh;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(10,10,10,.88);box-shadow:0 20px 60px rgba(0,0,0,.55);padding:18px 18px 14px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-weight:900;letter-spacing:.08em;color:#ff2d2d;">ORYON TV</div>
+          <div style="opacity:.7;font-size:12px;">Recherche (Ctrl+K) — Fermer (Esc)</div>
+          <div style="margin-left:auto;opacity:.7;font-size:12px;">Recherche VOD FR 20–200 + jeux</div>
+        </div>
+        <input id="oryon-search-input" type="text" placeholder="Tape un titre ou un jeu (ex: mario, gta, valorant)..." 
+          style="width:100%;margin-top:12px;border-radius:14px;border:1px solid rgba(0,242,234,.55);outline:none;background:rgba(0,0,0,.35);color:#fff;padding:14px 14px;font-size:18px;" />
+      </div>
+    `;
+    document.body.appendChild(ov);
+
+    const input = ov.querySelector('#oryon-search-input');
+    let t=null;
+    input.addEventListener('input', ()=>{
+      const q = input.value.trim();
+      if(t) clearTimeout(t);
+      t = setTimeout(async ()=>{
+        try{
+          // sync with main search box if present
+          const main = document.getElementById('twitflix-search');
+          if(main) main.value = q;
+        }catch(e){}
+        try{ if(typeof window.tfRunSearch === 'function') await window.tfRunSearch(q); }catch(e){ console.warn(e); }
+      }, 220);
+    });
+
+    ov.addEventListener('click', (e)=>{
+      if(e.target === ov) closeOverlay();
+    });
+
+    function closeOverlay(){
+      ov.style.display='none';
+      try{ document.body.classList.remove('oryon-search-open'); }catch(e){}
+    }
+    window.oryonCloseSearchOverlay = closeOverlay;
+    return ov;
+  }
+
+  function openOverlay(){
+    const ov = ensureOverlay();
+    ov.style.display='flex';
+    try{ document.body.classList.add('oryon-search-open'); }catch(e){}
+    const input = ov.querySelector('#oryon-search-input');
+    // prefill with current query if any
+    try{
+      const main = document.getElementById('twitflix-search');
+      if(main && main.value) input.value = main.value;
+    }catch(e){}
+    setTimeout(()=>{ try{ input.focus(); input.select(); }catch(e){} }, 30);
+  }
+  window.oryonOpenSearchOverlay = openOverlay;
+
+  document.addEventListener('keydown', (e)=>{
+    // Ctrl+K opens overlay (from anywhere)
+    if((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')){
+      e.preventDefault();
+      try{ openTwitFlix(); }catch(_e){}
+      openOverlay();
+      return;
+    }
+    // Esc closes overlay
+    if(e.key === 'Escape'){
+      const ov = document.getElementById('oryon-search-overlay');
+      if(ov && ov.style.display !== 'none'){
+        e.preventDefault();
+        try{ window.oryonCloseSearchOverlay && window.oryonCloseSearchOverlay(); }catch(_e){}
+      }
+    }
+  }, true);
+
+  // Peek preview (lightweight)
+  let peekT=null, lastCard=null;
+  function showPeek(card){
+    try{
+      if(!card) return;
+      const name = card.dataset.gameName || card.getAttribute('aria-label') || 'Sélection';
+      let bar = document.getElementById('oryon-peek-bar');
+      if(!bar){
+        bar = document.createElement('div');
+        bar.id = 'oryon-peek-bar';
+        bar.style.cssText = 'position:fixed;left:24px;right:24px;bottom:18px;z-index:10090;pointer-events:none;display:none;';
+        bar.innerHTML = `<div style="max-width:1100px;margin:0 auto;border-radius:16px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.62);backdrop-filter:blur(10px);padding:10px 12px;color:#fff;display:flex;gap:10px;align-items:center;">
+          <div style="font-weight:900;letter-spacing:.06em;opacity:.9">Peek</div>
+          <div id="oryon-peek-title" style="font-weight:800;"></div>
+          <div id="oryon-peek-meta" style="margin-left:auto;opacity:.75;font-size:12px;"></div>
+        </div>`;
+        document.body.appendChild(bar);
+      }
+      bar.querySelector('#oryon-peek-title').textContent = String(name).replace('(ouvrir)','').trim();
+      // metadata placeholder (platform, tags, etc.)
+      bar.querySelector('#oryon-peek-meta').textContent = card.dataset.platform ? String(card.dataset.platform) : '';
+      bar.style.display='block';
+    }catch(e){}
+  }
+  function hidePeek(){
+    try{
+      const bar = document.getElementById('oryon-peek-bar');
+      if(bar) bar.style.display='none';
+    }catch(e){}
+  }
+
+  document.addEventListener('pointerover', (e)=>{
+    const card = e.target && e.target.closest ? e.target.closest('.tf-card') : null;
+    if(!card) return;
+    lastCard = card;
+    if(peekT) clearTimeout(peekT);
+    peekT = setTimeout(()=>{ if(lastCard===card) showPeek(card); }, 320);
+  }, true);
+
+  document.addEventListener('pointerout', (e)=>{
+    const card = e.target && e.target.closest ? e.target.closest('.tf-card') : null;
+    if(!card) return;
+    if(peekT) clearTimeout(peekT);
+    hidePeek();
+  }, true);
+
+})();
