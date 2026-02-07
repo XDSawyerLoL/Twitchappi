@@ -38,6 +38,58 @@ async function fetchJsonWithRetry(url, opts={}, timeoutMs=8000, retries=1){
       lastErr = e;
       if(i<retries) await new Promise(r=>setTimeout(r, 250*(i+1)));
     }
+
+// =========================================================
+// SOCLE A+++ : Concurrency limiter + Circuit Breaker (externals)
+// =========================================================
+class Semaphore{
+  constructor(max){ this.max=max; this.cur=0; this.q=[]; }
+  async acquire(){
+    if(this.cur < this.max){ this.cur++; return; }
+    await new Promise(resolve => this.q.push(resolve));
+    this.cur++;
+  }
+  release(){
+    this.cur = Math.max(0, this.cur-1);
+    const next = this.q.shift();
+    if(next) next();
+  }
+}
+function makeBreaker(name, {failWindowMs=60000, failThreshold=5, openMs=30000}={}){
+  let fails=[]; // timestamps
+  let openUntil=0;
+  return {
+    can(){
+      const now=Date.now();
+      if(now < openUntil) return false;
+      // purge old
+      fails = fails.filter(t => now - t < failWindowMs);
+      return true;
+    },
+    ok(){
+      // success: optional decay
+    },
+    fail(){
+      const now=Date.now();
+      fails.push(now);
+      fails = fails.filter(t => now - t < failWindowMs);
+      if(fails.length >= failThreshold){
+        openUntil = now + openMs;
+        try{ console.warn('[BREAKER]', name, 'OPEN', {fails:fails.length}); }catch(_){}
+      }
+    },
+    status(){
+      const now=Date.now();
+      fails = fails.filter(t => now - t < failWindowMs);
+      return { name, open: now < openUntil, openForMs: Math.max(0, openUntil-now), fails: fails.length };
+    }
+  };
+}
+const semTwitch = new Semaphore(Number(process.env.CONCURRENCY_TWITCH||4));
+const semYouTube = new Semaphore(Number(process.env.CONCURRENCY_YOUTUBE||3));
+const brTwitch = makeBreaker('twitch', {});
+const brYouTube = makeBreaker('youtube', {});
+
   }
   throw lastErr;
 }
@@ -260,6 +312,30 @@ function withCache(ttlMs){
   };
 }
 
+// =========================================================
+// SOCLE A+++ : Cache bounds + purge périodique
+// =========================================================
+const __ttlCacheMax = Number(process.env.CACHE_MAX_ITEMS || 2000);
+setInterval(() => {
+  try{
+    const now = Date.now();
+    // purge expired
+    for(const [k,v] of __ttlCache.entries()){
+      if(now > v.exp) { __ttlCache.delete(k); __cacheMetrics.purge++; }
+    }
+    // hard cap (remove oldest-ish by exp)
+    if(__ttlCache.size > __ttlCacheMax){
+      const entries = Array.from(__ttlCache.entries()).sort((a,b)=>a[1].exp - b[1].exp);
+      const toRemove = __ttlCache.size - __ttlCacheMax;
+      for(let i=0;i<toRemove;i++){
+        __ttlCache.delete(entries[i][0]);
+        __cacheMetrics.purge++;
+      }
+    }
+  }catch(_){}
+}, 15000).unref();
+
+
 function cacheMetricsHandler(req, res){ return res.json({ success:true, cache: __cacheMetrics, size: __ttlCache.size }); }
 const app = express();
 app.set('trust proxy', 1);
@@ -315,14 +391,23 @@ if (GEMINI_API_KEY) {
 
 // CORS: multi-domain (set CORS_ORIGINS="https://prod.com,https://staging.com")
 const CORS_ORIGINS = (process.env.CORS_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
-app.use(cors({
+
+// =========================================================
+// SOCLE A+++ : CORS allowlist (env ALLOWED_ORIGINS)
+// =========================================================
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
+const corsOptions = {
   origin: function(origin, cb){
+    // allow same-origin / server-to-server
     if(!origin) return cb(null, true);
-    if(!CORS_ORIGINS.length) return cb(null, true); // default: allow all (previous behavior)
-    return cb(null, CORS_ORIGINS.includes(origin));
+    if(ALLOWED_ORIGINS.length === 0) return cb(null, true); // keep backward-compatible
+    if(ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    return cb(new Error('CORS blocked'));
   },
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '2mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -357,6 +442,7 @@ app.get('/api/auth/status', (req, res) => {
     return res.json({ authenticated: !!tu, user: tu ? { id: tu.id, login: tu.login, display_name: tu.display_name } : null });
 
 app.get('/api/metrics/cache', cacheMetricsHandler);
+app.get('/api/metrics/externals', (req,res)=>res.json({ success:true, twitch: brTwitch.status(), youtube: brYouTube.status() }));
 
 app.get('/healthz', (req, res) => {
   res.json({ ok:true, uptime: process.uptime(), ts: new Date().toISOString() });

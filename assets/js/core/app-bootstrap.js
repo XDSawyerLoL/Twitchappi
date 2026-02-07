@@ -2973,10 +2973,8 @@ async function oryonCheckAuth(){
   try{
     let last = 0;
     setInterval(async ()=>{
-      const now = Date.now();
-      if(now - last < 8000) return;
-      last = now;
+      if(document.hidden) return;
       await oryonCheckAuth();
-    }, 9000);
+    }, 15000);
   }catch(_){}
 })();
