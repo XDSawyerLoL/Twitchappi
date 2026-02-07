@@ -257,7 +257,8 @@ function startAuth() {
       const container = document.getElementById('video-container');
       const parentParam = PARENT_DOMAINS.join('&parent=');
       const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
-      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+      oryonPushContinue({ type:'vod', id: String(videoId), title: 'VOD Twitch', ts: Date.now() });
+  container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
       loadStreamInfo(channel);
     }
 
@@ -268,7 +269,8 @@ function startAuth() {
 	      const vid = String(videoId || '').replace(/^v/i,'');
 	      if (!vid) return;
 	      const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${parentParam}&theme=dark&autoplay=true`;
-	      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+	      oryonPushContinue({ type:'vod', id: String(videoId), title: 'VOD Twitch', ts: Date.now() });
+  container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
 	      // VOD: no guaranteed chat; keep chat on channel if available
 	      if (channelHint) {
 	        try { updateTwitchChatFrame(channelHint); } catch(_){ }
@@ -1270,7 +1272,7 @@ const modal = document.getElementById('twitflix-modal');
       
       // Also fetch Twitch VODs by title (FR, streamers 20-200 viewers)
       try{
-        const rV = await fetch(`${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=18`);
+        const rV = await fetch(`${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=18`, { credentials:'include' });
         if(rV.ok){
           const dV = await rV.json();
           if(dV && dV.success && Array.isArray(dV.items)){
@@ -1399,26 +1401,20 @@ const modal = document.getElementById('twitflix-modal');
         const q = tfSearchQuery.trim();
         tfSetHero({ title: q, sub: 'Résultats de recherche' });
 
-        if (!tfSearchResults.length){
-          host.innerHTML = `<div class="tf-empty">Aucun résultat pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.</div>`;
-          
-        // Twitch VOD results by title
+        // VOD FR row
         if (tfVodResults && tfVodResults.length){
           const vodRow = tfBuildRow(
-            `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Titre: ${escapeHtml(q)}</span></div>`,
+            `<div class="tf-strip-title"><h4>VOD FR (20-200 viewers)</h4><span class="tf-strip-sub">Recherche: ${escapeHtml(q)}</span></div>`,
             tfVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })),
             'tf-vod-search-row'
           );
-	          // attach click to play VOD inline (main player) instead of opening a new tab
           vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
             const v = tfVodResults[idx]?._vod;
             if(!v) return;
-            // store twitch video id; backend returns numeric id
             card.dataset.vodId = String(v.id || '').replace(/^v/i,'');
           });
           host.appendChild(vodRow);
         } else {
-          // show small hint row when searching
           const hint = document.createElement('div');
           hint.className = 'tf-empty tf-vod-hint';
           hint.style.marginTop = '10px';
@@ -1426,12 +1422,13 @@ const modal = document.getElementById('twitflix-modal');
           host.appendChild(hint);
         }
 
-        if (sentinel) host.appendChild(sentinel);
-      try{ tfAnnotateRows(); }catch(_){ }
-        }
-
-        // In Big Picture (and rows mode), render search results as a single horizontal row (Netflix/Steam style)
-        if (document.body.classList.contains('tf-bigpicture') || tfViewMode === 'rows'){
+        // Category results
+        if (!tfSearchResults.length){
+          host.appendChild(Object.assign(document.createElement('div'), {
+            className: 'tf-empty',
+            innerHTML: `Aucun jeu pour <span style="color:#00f2ea;font-weight:900;">${escapeHtml(q)}</span>.`
+          }));
+        } else if (document.body.classList.contains('tf-bigpicture') || tfViewMode === 'rows'){
           const row = tfBuildRow(`<div class="tf-strip-title"><h4>Résultats</h4><span class="tf-strip-sub">${escapeHtml(q)}</span></div>`, tfSearchResults, 'tf-search-row');
           host.appendChild(row);
         } else {
@@ -1440,11 +1437,12 @@ const modal = document.getElementById('twitflix-modal');
           tfSearchResults.forEach(cat => grid.appendChild(tfBuildCard(cat)));
           host.appendChild(grid);
         }
+
         if (sentinel) host.appendChild(sentinel);
-        return;
+        try{ tfAnnotateRows(); }catch(_){}
       }
 
-      // CATALOG MODE
+// CATALOG MODE
       host.innerHTML = '';
       tfSetHero({ title: 'TWITFLIX', sub: 'Survole un jeu pour la preview, clique pour lancer un stream.' });
 
@@ -2931,3 +2929,149 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         `;
         document.head.appendChild(st);
       }
+
+
+function oryonOpenFromCard(card){
+  try{
+    const ch = (card.dataset && (card.dataset.channel || card.dataset.login || card.dataset.user || card.dataset.userLogin || card.dataset.streamer || card.dataset.name)) || '';
+    if(ch && typeof loadPlayerEmbed === 'function'){
+      // Close ORYON TV and play live channel in main player
+      try{ closeTwitFlix(); }catch(_){}
+      try{ loadPlayerEmbed(ch); }catch(_){}
+      try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
+      return true;
+    }
+  }catch(_){}
+  return false;
+}
+
+
+// ===== ORYON TV UX (Step 4) =====
+const ORYON_CONTINUE_KEY = 'oryon_continue_watching_v1';
+function oryonLoadContinue(){
+  try{ return JSON.parse(localStorage.getItem(ORYON_CONTINUE_KEY) || '[]'); }catch(_){ return []; }
+}
+function oryonSaveContinue(list){
+  try{ localStorage.setItem(ORYON_CONTINUE_KEY, JSON.stringify(list.slice(0,24))); }catch(_){}
+}
+function oryonPushContinue(item){
+  try{
+    if(!item || !item.id) return;
+    const list = oryonLoadContinue();
+    const id = String(item.id);
+    const next = [item, ...list.filter(x=>String(x.id)!==id)];
+    oryonSaveContinue(next);
+  }catch(_){}
+}
+
+
+let __oryonPeekTimer = null;
+function oryonShowPeek(info){
+  try{
+    let el = document.getElementById('oryon-peek');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'oryon-peek';
+      el.style.cssText = 'position:fixed;left:22px;bottom:18px;z-index:99998;background:rgba(10,10,12,.92);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px 12px;min-width:260px;max-width:520px;backdrop-filter: blur(6px);';
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `<div style="font-weight:900;font-size:14px;line-height:1.2;">${escapeHtml(info.title||'')}</div>
+      <div style="opacity:.85;font-size:12px;margin-top:2px;">${escapeHtml(info.sub||'')}</div>`;
+    el.style.display = 'block';
+  }catch(_){}
+}
+function oryonHidePeek(){
+  try{ const el=document.getElementById('oryon-peek'); if(el) el.style.display='none'; }catch(_){}
+}
+function oryonSchedulePeek(card){
+  try{
+    clearTimeout(__oryonPeekTimer);
+    __oryonPeekTimer = setTimeout(()=>{
+      try{
+        const title = card.getAttribute('data-name') || card.querySelector('.tf-title')?.textContent || '';
+        const sub = card.getAttribute('data-sub') || '';
+        oryonShowPeek({ title, sub });
+      }catch(_){}
+    }, 320);
+  }catch(_){}
+}
+
+(function(){
+  try{
+    if(window.__oryonPeekHook) return;
+    window.__oryonPeekHook = true;
+    document.addEventListener('mouseover', (e)=>{
+      const card = e.target.closest && e.target.closest('.tf-card');
+      if(!card) return;
+      oryonSchedulePeek(card);
+    }, true);
+    document.addEventListener('focusin', (e)=>{
+      const card = e.target.closest && e.target.closest('.tf-card');
+      if(!card) return;
+      oryonSchedulePeek(card);
+    }, true);
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape') oryonHidePeek();
+    }, true);
+  }catch(_){}
+})();
+
+
+function oryonOpenSearchOverlay(){
+  try{
+    let ov = document.getElementById('oryon-search-ov');
+    if(!ov){
+      ov = document.createElement('div');
+      ov.id = 'oryon-search-ov';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,.78);backdrop-filter: blur(10px);display:flex;align-items:flex-start;justify-content:center;padding-top:120px;';
+      ov.innerHTML = `<div style="width:min(820px,92vw);">
+        <input id="oryon-search-input" placeholder="Rechercher un jeu (Ctrl+K)" style="width:100%;padding:16px 18px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:rgba(15,15,18,.95);color:#fff;font-size:18px;outline:none;" />
+        <div style="opacity:.7;font-size:12px;margin-top:10px;">Entrée: valider • Échap: fermer</div>
+      </div>`;
+      document.body.appendChild(ov);
+      ov.addEventListener('click', (e)=>{ if(e.target===ov) oryonCloseSearchOverlay(); });
+    }
+    ov.style.display='flex';
+    const input = document.getElementById('oryon-search-input');
+    if(input){
+      input.value = (typeof tfSearchQuery==='string') ? tfSearchQuery : '';
+      input.focus();
+      input.onkeydown = (e)=>{
+        if(e.key==='Escape'){ oryonCloseSearchOverlay(); }
+        if(e.key==='Enter'){
+          const q = input.value.trim();
+          if(q){
+            tfSearchQuery = q;
+            try{ tfRunSearch(q); }catch(_){ }
+            oryonCloseSearchOverlay();
+          }
+        }
+      };
+    }
+  }catch(_){}
+}
+function oryonCloseSearchOverlay(){
+  try{ const ov=document.getElementById('oryon-search-ov'); if(ov) ov.style.display='none'; }catch(_){}
+}
+document.addEventListener('keydown', (e)=>{
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='k'){
+    e.preventDefault(); oryonOpenSearchOverlay();
+  }
+  if(e.key==='Escape'){ oryonCloseSearchOverlay(); }
+}, true);
+
+(function(){
+  try{
+    if(document.getElementById('oryon-motion-style')) return;
+    const st=document.createElement('style');
+    st.id='oryon-motion-style';
+    st.textContent=`
+      .tf-card{transition:transform .18s ease, filter .18s ease, opacity .18s ease}
+      .tf-card:focus, .tf-card.tf-focused{transform:scale(1.08)}
+      @media (prefers-reduced-motion: reduce){
+        .tf-card{transition:none!important}
+      }
+    `;
+    document.head.appendChild(st);
+  }catch(_){}
+})();
