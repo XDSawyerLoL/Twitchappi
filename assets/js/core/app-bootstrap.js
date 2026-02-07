@@ -252,32 +252,41 @@ function startAuth() {
         updateTwitchChatFrame(currentChannel);
       }
     }
-
-    function loadPlayerEmbed(channel) {
-      const container = document.getElementById('video-container');
-      const parentParam = PARENT_DOMAINS.join('&parent=');
-      const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
-      oryonPushContinue({ type:'vod', id: String(videoId), title: 'VOD Twitch', ts: Date.now() });
-  container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
-      loadStreamInfo(channel);
+function loadPlayerEmbed(channel){
+  try{
+    const container = document.getElementById('video-container');
+    if(!container) return;
+    const ch = String(channel||'').trim();
+    if(!ch){ 
+      container.innerHTML = '<div style="padding:18px;color:#fff;opacity:.85">Aucun channel.</div>';
+      return;
     }
+    const parent = (window.location && window.location.hostname) ? window.location.hostname : 'localhost';
+    const src = `https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&parent=${encodeURIComponent(parent)}&theme=dark&muted=false&autoplay=true`;
+    container.innerHTML = `<iframe src="${src}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+  }catch(e){
+    try{ console.error('[ORYON] loadPlayerEmbed error', e); }catch(_){}
+  }
+}
 
 	    // Play a Twitch VOD inside the main player (Netflix-like inline playback)
-	    function loadVodEmbed(videoId, channelHint) {
-	      const container = document.getElementById('video-container');
-	      const parentParam = PARENT_DOMAINS.join('&parent=');
-	      const vid = String(videoId || '').replace(/^v/i,'');
-	      if (!vid) return;
-	      const iframeUrl = `https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${parentParam}&theme=dark&autoplay=true`;
-	      oryonPushContinue({ type:'vod', id: String(videoId), title: 'VOD Twitch', ts: Date.now() });
-  container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
-	      // VOD: no guaranteed chat; keep chat on channel if available
-	      if (channelHint) {
-	        try { updateTwitchChatFrame(channelHint); } catch(_){ }
-	        try { document.getElementById('current-channel-display').innerText = `${String(channelHint).toUpperCase()} • VOD`; } catch(_){ }
-	      } else {
-	        try { document.getElementById('current-channel-display').innerText = `VOD`; } catch(_){ }
-	      }
+function loadVodEmbed(videoId){
+  try{
+    const container = document.getElementById('video-container');
+    if(!container) return;
+    const vid = String(videoId||'').replace(/^v/i,'').trim();
+    if(!vid){
+      container.innerHTML = '<div style="padding:18px;color:#fff;opacity:.85">Aucune VOD.</div>';
+      return;
+    }
+    const parent = (window.location && window.location.hostname) ? window.location.hostname : 'localhost';
+    const src = `https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${encodeURIComponent(parent)}&theme=dark&muted=true&autoplay=true`;
+    try{ oryonPushContinue({ type:'vod', id: String(vid), title: 'VOD Twitch', ts: Date.now() }); }catch(_){}
+    container.innerHTML = `<iframe src="${src}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+  }catch(e){
+    try{ console.error('[ORYON] loadVodEmbed error', e); }catch(_){}
+  }
+}
 	      try { document.getElementById('player-mode-badge').innerText = 'VOD'; } catch(_){ }
 	    }
 
