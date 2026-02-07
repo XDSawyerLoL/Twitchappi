@@ -178,50 +178,8 @@ app.use(helmet({
   } : false
 }));
 
-
-// =========================================================
-// 1.b REQUEST ID + LOGS STRUCTURÉS (SOCLE A)
-// =========================================================
-app.use((req, res, next) => {
-  try{
-    const rid = (crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(12).toString('hex'));
-    req.__rid = rid;
-    res.setHeader('X-Request-Id', rid);
-    const t0 = Date.now();
-    res.on('finish', () => {
-      const ms = Date.now() - t0;
-      const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
-      console.log(JSON.stringify({
-        t: new Date().toISOString(),
-        rid,
-        m: req.method,
-        p: req.originalUrl,
-        s: res.statusCode,
-        ms,
-        ip
-      }));
-    });
-  }catch(_){}
-  next();
-});
-
-// Rate limit par défaut sur /api (évite spam)
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-app.use('/api', apiLimiter);
-
-// Limites plus strictes pour routes coûteuses (YouTube/Twitch search)
-const heavyLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
+// Rate limit léger sur /api (évite spam)
+app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 300 }));
 
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -277,6 +235,19 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+
+// =========================================================
+// AUTH STATUS (use this instead of spamming billing/fantasy)
+// =========================================================
+app.get('/api/auth/status', (req, res) => {
+  try{
+    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    return res.json({ authenticated: !!tu, user: tu ? { id: tu.id, login: tu.login, display_name: tu.display_name } : null });
+  }catch(_){
+    return res.json({ authenticated: false, user: null });
+  }
+});
+
 
 // =========================================================
 // 1B. STEAM OPENID (no manual SteamID64)
@@ -603,7 +574,7 @@ async function twitchGetUserIdByLogin(login, token){
 }
 
 // Random VODs (used by UI rows)
-app.get('/api/twitch/vods/random', heavyLimiter, async (req, res) => {
+app.get('/api/twitch/vods/random', async (req, res) => {
   try{
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
     const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
@@ -672,7 +643,7 @@ app.get('/api/twitch/vods/random', heavyLimiter, async (req, res) => {
 });
 
 // Search VODs by title among FR live streamers in viewer range
-app.get('/api/twitch/vods/search', heavyLimiter, async (req, res) => {
+app.get('/api/twitch/vods/search', async (req, res) => {
   try{
     const title = String(req.query.title || req.query.q || '').trim();
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
@@ -1342,7 +1313,7 @@ app.post('/api/search/intent', async (req,res)=>{
 
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME
-app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
+app.get('/api/youtube/trailer', async (req, res) => {
   const q0 = String(req.query.q || '').trim();
   if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
   if (!YOUTUBE_API_KEY) return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY missing' });
@@ -2736,7 +2707,8 @@ app.get('/api/fantasy/profile', async (req,res)=>{
     }
 
     // keep wallet cash in sync for leaderboard compatibility (do not erase holdings)
-    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
+    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }
+    return res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -3016,7 +2988,7 @@ server.listen(PORT, () => {
 
 
 // =========================================================
-// 9. SAFE ERROR HANDLER (évite crash silencieux)
+// SAFE ERROR HANDLER (évite crash silencieux)
 // =========================================================
 app.use((err, req, res, next) => {
   try{
