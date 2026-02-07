@@ -206,8 +206,7 @@ function withCache(ttlMs){
   };
 }
 
-function cacheMetricsHandler = (req, res) => res.json({ success:true, cache: __cacheMetrics, size: __ttlCache.size });
-
+function cacheMetricsHandler(req, res){ return res.json({ success:true, cache: __cacheMetrics, size: __ttlCache.size }); }
 const app = express();
 app.set('trust proxy', 1);
 
