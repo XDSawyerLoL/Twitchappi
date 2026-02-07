@@ -84,8 +84,14 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
           if(!data){ return; }
           const statusEl = document.getElementById('socket-status');
           if (data.connected) {
-            statusEl.innerText = 'HUB SECURE';
-            statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
+            const limited = (data.firestore === false) || (data.adminInit === false);
+            if(limited){
+              statusEl.innerText = 'HUB LIMITED';
+              statusEl.className = 'text-[10px] font-bold text-yellow-400 border border-yellow-400 px-2 rounded connected';
+            }else{
+              statusEl.innerText = 'HUB SECURE';
+              statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
+            }
           } else {
             statusEl.innerText = 'HUB DISCONNECTED';
             statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';

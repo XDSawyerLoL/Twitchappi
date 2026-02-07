@@ -1435,18 +1435,24 @@ app.get('/twitch_user_status', (req, res) => {
 
 app.get('/firebase_status', (req, res) => {
   try{
-    // Treat Firebase Admin initialization as "connected" for UI badge.
-    const adminInit = !!(admin && Array.isArray(admin.apps) && admin.apps.length > 0);
+    // UI badge: "online" if the server is responding; expose deeper flags separately.
+    const adminInit = !!(admin && admin.apps && admin.apps.length >= 1);
     const dbInit = !!db;
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     return res.json({
-      connected: adminInit,
+      connected: true,
+      adminInit,
       firestore: dbInit,
-      message: adminInit ? 'Firebase Admin initialized' : 'Firebase not initialized',
+      message: adminInit ? 'Firebase Admin initialized' : 'Firebase Admin not initialized',
       hasServiceAccount: !!serviceAccount
     });
+  }catch(error){
+    return res.json({ connected:true, adminInit:false, firestore:false, error: error.message });
+  }
+});
+
   }catch(error){
     return res.json({ connected:false, error: error.message });
   }
