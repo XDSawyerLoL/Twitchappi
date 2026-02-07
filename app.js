@@ -617,17 +617,6 @@ app.post('/api/providers/:providerId/disconnect', async (req, res) => {
 app.get('/api/metrics/cache', cacheMetricsHandler);
 app.get('/api/metrics/externals', (req,res)=>res.json({ success:true, twitch: brTwitch.status(), youtube: brYouTube.status() }));
 
-app.get('/api/metrics/ui', (req,res)=> {
-  const d = uiTelemetryGet(req);
-  return res.json({ success:true, data: d || null });
-});
-app.post('/api/metrics/ui', express.json({ limit:'50kb' }), (req,res)=> {
-  try{
-    uiTelemetrySet(req, req.body || {});
-  }catch(_){}
-  return res.json({ success:true });
-});
-
 app.get('/healthz', (req, res) => {
   res.json({ ok:true, uptime: process.uptime(), ts: new Date().toISOString() });
 });
@@ -1400,21 +1389,15 @@ app.get('/twitch_auth_callback', async (req, res) => {
   }
 });
 
-app.post('/twitch_logout', async (req, res) => {
+app.post('/twitch_logout', (req, res) => {
+  req.session.twitchUser = null;
+  req.session.save(() => res.json({ success: true }));
+
   try{
-    const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
-    const uid = tu && tu.id ? String(tu.id) : null;
-
-    // Clear session
-    req.session.twitchUser = null;
-
-    // Socle B: clear persisted connection
+    const uid = userIdFromSession(req);
     if(uid) await deleteConnection(uid, 'twitch');
   }catch(_){}
-
-  req.session.save(() => res.json({ success: true }));
 });
-
 
 app.get('/twitch_user_status', (req, res) => {
   const u = req.session?.twitchUser;
@@ -1434,30 +1417,16 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 app.get('/firebase_status', (req, res) => {
-  try{
-    // UI badge: "online" if the server is responding; expose deeper flags separately.
-    const adminInit = !!(admin && admin.apps && admin.apps.length >= 1);
-    const dbInit = !!db;
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    return res.json({
-      connected: true,
-      adminInit,
-      firestore: dbInit,
-      message: adminInit ? 'Firebase Admin initialized' : 'Firebase Admin not initialized',
-      hasServiceAccount: !!serviceAccount
-    });
-  }catch(error){
-    return res.json({ connected:true, adminInit:false, firestore:false, error: error.message });
+  try {
+    if (db && admin.apps.length > 0) {
+      res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
+    } else {
+      res.json({ connected: false, message: 'Firebase not initialized' });
+    }
+  } catch (error) {
+    res.json({ connected: false, error: error.message });
   }
 });
-
-  }catch(error){
-    return res.json({ connected:false, error: error.message });
-  }
-});
-
 
 // =========================================================
 // 4. STREAM INFO & TWITFLIX
@@ -3587,34 +3556,7 @@ app.get('/api/content', withCache(30000), async (req, res) => {
   }
 });
 
-
-
-// =========================================================
-// SOCLE C4 : UI telemetry (in-memory) for observability
-// =========================================================
-const __uiTelemetry = new Map(); // key -> {ts, data}
-function uiKey(req){
-  const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
-  if(tu && tu.id) return 'u:' + String(tu.id);
-  return 'ip:' + String(req.ip||'');
-}
-function uiTelemetryGet(req){
-  const k = uiKey(req);
-  const it = __uiTelemetry.get(k);
-  if(!it) return null;
-  if(Date.now() - it.ts > 5*60*1000){ __uiTelemetry.delete(k); return null; }
-  return it.data;
-}
-function uiTelemetrySet(req, data){
-  const k = uiKey(req);
-  __uiTelemetry.set(k, { ts: Date.now(), data });
-}
-setInterval(()=>{ try{
-  const now=Date.now();
-  for(const [k,v] of __uiTelemetry.entries()){
-    if(now - v.ts > 5*60*1000) __uiTelemetry.delete(k);
-  }
-}catch(_){ } }, 60000).unref();
+});
 
 // =========================================================
 // SAFE ERROR HANDLER (évite crash silencieux)

@@ -77,21 +77,12 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     async function initFirebaseStatus() {
       async function checkStatus() {
         try {
-          const response = await fetch(`${API_BASE}/firebase_status?t=${Date.now()}`, { cache: 'no-store' });
-          if(response.status === 304) return;
-          let data = null;
-          try{ data = await response.json(); }catch(_){ data = null; }
-          if(!data){ return; }
+          const response = await fetch(`${API_BASE}/firebase_status`);
+          const data = await response.json();
           const statusEl = document.getElementById('socket-status');
           if (data.connected) {
-            const limited = (data.firestore === false) || (data.adminInit === false);
-            if(limited){
-              statusEl.innerText = 'HUB LIMITED';
-              statusEl.className = 'text-[10px] font-bold text-yellow-400 border border-yellow-400 px-2 rounded connected';
-            }else{
-              statusEl.innerText = 'HUB SECURE';
-              statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
-            }
+            statusEl.innerText = 'HUB SECURE';
+            statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
           } else {
             statusEl.innerText = 'HUB DISCONNECTED';
             statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
@@ -282,28 +273,7 @@ function startAuth() {
 	      if (channelHint) {
 	        try { updateTwitchChatFrame(channelHint); } catch(_){ }
 	        try { document.getElementById('current-channel-display').innerText = `${String(channelHint).toUpperCase()} • VOD`; } catch(_){ }
-	      }
-
-
-        // Play a Twitch Clip inside the main player (inline)
-        function loadClipEmbed(clipId, channelHint){
-          const container = document.getElementById('video-container');
-          const parentParam = PARENT_DOMAINS.join('&parent=');
-          const cid = String(clipId || '').trim();
-          if(!cid) return;
-          // Twitch clip embed
-          const iframeUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(cid)}&parent=${parentParam}&autoplay=true&muted=false`;
-          container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
-          if(channelHint){
-            try{ updateTwitchChatFrame(channelHint); }catch(_){}
-          }
-          try{
-            const badge = document.getElementById('player-mode-badge');
-            if(badge) badge.innerText = "CLIP";
-          }catch(_){}
-        }
-
- else {
+	      } else {
 	        try { document.getElementById('current-channel-display').innerText = `VOD`; } catch(_){ }
 	      }
 	      try { document.getElementById('player-mode-badge').innerText = 'VOD'; } catch(_){ }
@@ -751,7 +721,6 @@ function startAuth() {
     let tfModalOpen = false;
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
-    window.__tfVodSearchResults = [];
 
     // Personalisation (Steam ADN) — prefers Steam OpenID session (no manual SteamID64)
 let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
@@ -1480,16 +1449,6 @@ const modal = document.getElementById('twitflix-modal');
       tfSetHero({ title: 'TWITFLIX', sub: 'Survole un jeu pour la preview, clique pour lancer un stream.' });
 
       const list = tfAllCategories.slice(0);
-
-      // SOCLE B++: if search has VOD results, prepend a VOD row
-      try{
-        if(window.__tfVodSearchResults && window.__tfVodSearchResults.length){
-          const host = document.getElementById('twitflix-host');
-          if(host){
-            host.appendChild(tfBuildRow('VOD <span>Résultats</span>', window.__tfVodSearchResults.map(tfContentToCard), 'tf-row-vod-search'));
-          }
-        }
-      }catch(_){}
       if (!list.length){
         host.innerHTML = '<div class="tf-empty"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
         if (sentinel) host.appendChild(sentinel);
@@ -1517,79 +1476,7 @@ const modal = document.getElementById('twitflix-modal');
       if (sentinel) host.appendChild(sentinel);
     }
 
-    
-    // ====== SOCLE B++ : Unified Content (/api/content) ======
-    async function tfFetchContent(params){
-      const qs = new URLSearchParams();
-      Object.entries(params||{}).forEach(([k,v])=>{
-        if(v===undefined || v===null || v==='') return;
-        qs.set(k, String(v));
-      });
-      try{
-        const r = await fetch(`${API_BASE}/api/content?${qs.toString()}`, { credentials:'include' });
-        if(!r.ok) return [];
-        const d = await r.json();
-        return (d && d.success && Array.isArray(d.items)) ? d.items : [];
-      }catch(_){
-        return [];
-      }
-    }
-
-    function tfContentToCard(item){
-      const title = item.title || item.game || item.channel || 'VOD';
-      // prefer bigger thumbnails if possible
-      const thumb = String(item.thumbnail || '').replace('{width}', '540').replace('{height}','720');
-      const c = {
-        id: item.id,
-        name: title,
-        box_art_url: thumb || '',
-        __content: item
-      };
-      return c;
-    }
-
-    async function tfPlayContent(item){
-      try{ closeTwitFlix(); }catch(_){}
-      try{
-        const badge = document.getElementById('player-mode-badge');
-        if(badge) badge.innerText = "ORYON TV";
-      }catch(_){}
-      if(!item) return;
-      if(item.type === 'vod'){
-        loadVodEmbed(item.id, item.channel);
-        return;
-      }
-      if(item.type === 'clip'){
-        loadClipEmbed(item.id, item.channel);
-        return;
-      }
-      if(item.type === 'live'){
-        if(item.channel) changeChannel(item.channel);
-        return;
-      }
-      // fallback
-      if(item.url) window.open(item.url, '_blank');
-    }
-
-function tfRenderRows(host, list){
-      // SOCLE C1: rows from /api/content (single source)
-      (async () => {
-        try{
-          const live = await tfFetchContent({ provider:'twitch', type:'live', lang:'fr', min:20, max:200, limit:28 });
-          if(live && live.length){
-            host.appendChild(tfBuildRow('Live <span>FR 20–200</span>', live.map(tfContentToCard), 'tf-row-live'));
-          }
-          const vod = await tfFetchContent({ provider:'twitch', type:'vod', lang:'fr', min:20, max:200, limit:28 });
-          if(vod && vod.length){
-            host.appendChild(tfBuildRow('VOD <span>FR 20–200</span>', vod.map(tfContentToCard), 'tf-row-vod'));
-          }
-          const clips = await tfFetchContent({ provider:'twitch', type:'clip', lang:'fr', limit:28 });
-          if(clips && clips.length){
-            host.appendChild(tfBuildRow('Clips <span>FR</span>', clips.map(tfContentToCard), 'tf-row-clips'));
-          }
-        }catch(_){}
-      })();
-
+    function tfRenderRows(host, list){
       const picks1 = list.slice(0, 28);
       const picks2 = list.slice(28, 56);
       const picks3 = tfShuffle(list).slice(0, 28);
@@ -1600,22 +1487,7 @@ function tfRenderRows(host, list){
       // ADN row (Steam-based) if available
       if (tfPersonalization && Array.isArray(tfPersonalization.categories) && tfPersonalization.categories.length){
         host.appendChild(tfBuildRow(tfPersonalization.title || 'Parce que tu as aimé', tfPersonalization.categories.slice(0,28)));
-      
-      // SOCLE B++: VOD/CLIPS rows via /api/content (FR 20-200)
-      (async () => {
-        try{
-          const vodItems = await tfFetchContent({ provider:'twitch', type:'vod', lang:'fr', min:20, max:200, limit:28 });
-          if(vodItems && vodItems.length){
-            host.appendChild(tfBuildRow('VOD <span>FR 20–200</span>', vodItems.map(tfContentToCard)));
-          }
-          const clipItems = await tfFetchContent({ provider:'twitch', type:'clip', lang:'fr', limit:28 });
-          if(clipItems && clipItems.length){
-            host.appendChild(tfBuildRow('Clips <span>FR</span>', clipItems.map(tfContentToCard)));
-          }
-        }catch(_){}
-      })();
-
-    } else {
+      } else {
         host.appendChild(tfBuildRow('Tendances <span>FR</span>', picks2));
       }
 
@@ -1674,7 +1546,6 @@ function tfRenderRows(host, list){
 
     function tfBuildCard(cat){
       const div = document.createElement('div');
-      div.setAttribute('data-tf-card','1');
       div.className = 'tf-card';
       div.tabIndex = 0;
       div.setAttribute('role','button');
@@ -1702,10 +1573,7 @@ function tfRenderRows(host, list){
       div.addEventListener('focus', () => tfSetHero({ title: cat.name, poster }));
 
       // click play
-      div.onclick = () => {
-        if(cat && cat.__content){ tfPlayContent(cat.__content); return; }
-        playTwitFlixCategory(cat.id, cat.name);
-      };
+      div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
 
       div.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -1864,10 +1732,7 @@ function tfRenderRows(host, list){
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ game: gameInput })
         });
-        if(response.status === 304) return;
-          let data = null;
-          try{ data = await response.json(); }catch(_){ data = null; }
-          if(!data){ return; }
+        const data = await response.json();
         results.innerHTML = data.html_response || '<p style="color:#ff6666;">❌ Erreur</p>';
         results.style.display = 'block';
       }catch(e){
@@ -3111,82 +2976,5 @@ async function oryonCheckAuth(){
       if(document.hidden) return;
       await oryonCheckAuth();
     }, 15000);
-  }catch(_){}
-})();
-
-// SOCLE C3: player shell styles (inline)
-(function(){
-  try{
-    const css = `
-      .oryon-player-shell{position:relative;width:100%;height:100%;}
-      .oryon-unmute{position:absolute;right:12px;bottom:12px;z-index:20;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:8px 10px;cursor:pointer}
-      .oryon-unmute:hover{background:rgba(0,0,0,.8)}
-    `;
-    const st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
-  }catch(_){}
-})();
-
-// SOCLE C2: click delegation in capture to avoid overlay blocking cards
-(function oryonClickDelegate(){
-  try{
-    document.addEventListener('click', (ev) => {
-      const el = ev.target && ev.target.closest ? ev.target.closest('[data-tf-card]') : null;
-      if(!el) return;
-      const id = el.getAttribute('data-id');
-      if(!id) return;
-      // If card has serialized content, prefer it
-      const raw = el.getAttribute('data-content');
-      if(raw){
-        try{
-          const item = JSON.parse(raw);
-          tfPlayContent(item);
-          ev.preventDefault(); ev.stopPropagation();
-          return;
-        }catch(_){}
-      }
-    }, true);
-  }catch(_){}
-})();
-
-
-// SOCLE C4 (SAFE): UI telemetry to backend (opt-in, low frequency, change-based)
-(function oryonUiTelemetrySafe(){
-  try{
-    let lastPayload = null;
-    let lastSend = 0;
-    const state = { rows:0, lastFetch:null, playerMode:null };
-    window.__oryonUiState = state;
-
-    function inferPlayerMode(){
-      try{
-        const vc = document.getElementById('video-container');
-        if(!vc) return null;
-        const html = vc.innerHTML || '';
-        if(html.includes('player.twitch.tv/?video=')) return 'vod';
-        if(html.includes('clips.twitch.tv')) return 'clip';
-        if(document.getElementById('twitch-embed')) return 'live';
-        return null;
-      }catch(_){ return null; }
-    }
-
-    setInterval(async ()=>{
-      if(document.hidden) return;
-      const now = Date.now();
-      if(now - lastSend < 60000) return; // 60s
-      state.playerMode = inferPlayerMode();
-      const payload = { ts: new Date().toISOString(), rows: state.rows, lastFetch: state.lastFetch, playerMode: state.playerMode };
-      const s = JSON.stringify(payload);
-      if(s === lastPayload) return;
-      lastPayload = s;
-      lastSend = now;
-      try{
-        await fetch(`${API_BASE}/api/metrics/ui`, {
-          method:'POST',
-          credentials:'include',
-          headers:{'Content-Type':'application/json'},
-          body: s
-        });
-      }catch(_){}
-    }, 5000);
   }catch(_){}
 })();

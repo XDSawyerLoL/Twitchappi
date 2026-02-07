@@ -4,10 +4,7 @@
   "private": true,
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "audit:fix": "npm audit fix --omit=dev",
-    "audit:report": "npm audit --omit=dev",
-    "security:check": "node -e \"console.log('Run: npm run audit:report')\""
+    "start": "node app.js"
   },
   "engines": {
     "node": ">=20"
