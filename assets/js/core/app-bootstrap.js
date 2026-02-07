@@ -77,8 +77,11 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     async function initFirebaseStatus() {
       async function checkStatus() {
         try {
-          const response = await fetch(`${API_BASE}/firebase_status`);
-          const data = await response.json();
+          const response = await fetch(`${API_BASE}/firebase_status?t=${Date.now()}`, { cache: 'no-store' });
+          if(response.status === 304) return;
+          let data = null;
+          try{ data = await response.json(); }catch(_){ data = null; }
+          if(!data){ return; }
           const statusEl = document.getElementById('socket-status');
           if (data.connected) {
             statusEl.innerText = 'HUB SECURE';
@@ -1855,7 +1858,10 @@ function tfRenderRows(host, list){
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ game: gameInput })
         });
-        const data = await response.json();
+        if(response.status === 304) return;
+          let data = null;
+          try{ data = await response.json(); }catch(_){ data = null; }
+          if(!data){ return; }
         results.innerHTML = data.html_response || '<p style="color:#ff6666;">❌ Erreur</p>';
         results.style.display = 'block';
       }catch(e){
