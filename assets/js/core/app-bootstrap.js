@@ -132,7 +132,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   let d = null;
   try{
-    const r = await oryonFetchJson(`${API_BASE}/api/billing/me`);
+    const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include' });
     d = await r.json().catch(()=>null);
   }catch(_e){ d = null; }
 
@@ -155,7 +155,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   // Portfolio preview (fallback: use fantasy wallet cash)
   try{
-    const fr = await oryonFetchJson(`${API_BASE}/api/fantasy/profile`);
+    const fr = await fetch(`${API_BASE}/api/fantasy/profile`, { credentials:'include' });
     const fj = await fr.json().catch(()=>null);
     const cash = Number(fj?.cash ?? fj?.wallet?.cash ?? 0) || 0;
 
@@ -1032,9 +1032,11 @@ window.addEventListener('message', (ev) => {
     }
 
 function tfNormalizeBoxArt(url){
-  const u = String(url || '');
+  
+  const desiredW=1000, desiredH=1400;
+const u = String(url || '');
   if (!u) return '';
-  let out = u.replace('{width}','2000').replace('{height}','2666');
+  let out = u.replace('{width}','desiredW').replace('{height}','desiredH');
   out = out.replace(/\/t_thumb\//g,'/t_cover_big_2x/')
            .replace(/\/t_cover_small\//g,'/t_cover_big_2x/')
            .replace(/\/t_cover_big\//g,'/t_cover_big_2x/');
@@ -1093,6 +1095,7 @@ const modal = document.getElementById('twitflix-modal');
 	      .tf-card{ overflow: hidden; }
 	      /* overlays must not steal mouse clicks */
 	      .tf-card .tf-overlay, .tf-card .tf-preview{ pointer-events:none !important; }
+      .tf-card .tf-actions-row, .tf-card .tf-actions-row *{ pointer-events:auto !important; }
 	      /* keep images crisp when scaled */
 	      .tf-card .tf-poster{ transform: translateZ(0); backface-visibility:hidden; }
 	    `;
@@ -1544,7 +1547,47 @@ const modal = document.getElementById('twitflix-modal');
       return row;
     }
 
-    function tfBuildCard(cat){
+    
+function tfEnsurePeekBar(){
+  let bar = document.getElementById('tf-peekbar');
+  if(bar) return bar;
+  bar = document.createElement('div');
+  bar.id = 'tf-peekbar';
+  bar.className = 'tf-peekbar';
+  bar.style.cssText = 'position:fixed;left:18px;bottom:18px;z-index:99999;max-width:520px;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.68);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(10px);opacity:0;transform:translateY(8px);transition:opacity .18s ease, transform .18s ease;pointer-events:none;';
+  bar.innerHTML = '<div style="font-weight:900;letter-spacing:.4px"> </div><div style="opacity:.85;font-size:12px;margin-top:2px"></div>';
+  document.body.appendChild(bar);
+  return bar;
+}
+let tfPeekTimer = null;
+function tfShowPeek(meta){
+  const bar = tfEnsurePeekBar();
+  const t = bar.children[0], s = bar.children[1];
+  t.textContent = meta.title || '';
+  s.textContent = meta.sub || '';
+  bar.style.opacity = '1';
+  bar.style.transform = 'translateY(0px)';
+}
+function tfHidePeek(){
+  const bar = document.getElementById('tf-peekbar');
+  if(!bar) return;
+  bar.style.opacity = '0';
+  bar.style.transform = 'translateY(8px)';
+}
+function tfSchedulePeekFromCard(card){
+  if(tfPeekTimer) clearTimeout(tfPeekTimer);
+  tfPeekTimer = setTimeout(()=>{
+    try{
+      if(document.activeElement !== card) return;
+      const title = card.dataset.gameName || card.getAttribute('aria-label') || 'Contenu';
+      const platform = card.dataset.platform || 'Twitch';
+      const viewers = card.dataset.viewers ? ` • ${card.dataset.viewers} viewers` : '';
+      const tags = card.dataset.tags ? ` • ${card.dataset.tags}` : '';
+      tfShowPeek({ title: title.replace('(ouvrir)','').trim(), sub: platform + viewers + tags });
+    }catch(_){}
+  }, 320);
+}
+function tfBuildCard(cat){
       const div = document.createElement('div');
       div.className = 'tf-card';
       div.tabIndex = 0;
@@ -1569,8 +1612,11 @@ const modal = document.getElementById('twitflix-modal');
       `;
 
       // hero update on hover/focus
-      div.addEventListener('mouseenter', () => tfSetHero({ title: cat.name, poster }));
-      div.addEventListener('focus', () => tfSetHero({ title: cat.name, poster }));
+      div.addEventListener('mouseenter', () => { tfSetHero({ title: cat.name, poster }); tfSchedulePeekFromCard(div); });
+      div.addEventListener('focus', () => { tfSetHero({ title: cat.name, poster }); tfSchedulePeekFromCard(div); });
+
+      div.addEventListener('mouseleave', tfHidePeek);
+      div.addEventListener('blur', tfHidePeek);
 
       // click play
       div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
@@ -2564,6 +2610,14 @@ function tfSetupRowPaging(rowEl){
       dots.className = 'tf-row-dots';
       head.appendChild(dots);
     }
+    // C2 PRIME: row arrows
+    let arrows = head.querySelector('.tf-row-arrows');
+    if(!arrows){
+      arrows = document.createElement('div');
+      arrows.className = 'tf-row-arrows';
+      arrows.innerHTML = `<button class="tf-row-arrow" type="button" data-dir="-1" aria-label="Précédent">‹</button><button class="tf-row-arrow" type="button" data-dir="1" aria-label="Suivant">›</button>`;
+      head.appendChild(arrows);
+    }
 
     track.style.scrollSnapType = 'x mandatory';
     track.style.scrollBehavior = 'smooth';
@@ -2608,6 +2662,16 @@ function tfSetupRowPaging(rowEl){
       track.scrollTo({ left, behavior:'smooth' });
     });
 
+    // arrows paging
+    arrows.addEventListener('click', (e)=>{
+      const b = e.target && e.target.dataset ? e.target : null;
+      const dir = b && b.dataset && b.dataset.dir ? parseInt(b.dataset.dir,10) : 0;
+      if(!dir) return;
+      const p = currentPage() + dir;
+      const left = Math.max(0, p * pageStep());
+      track.scrollTo({ left, behavior:'smooth' });
+    });
+
     const ro = new ResizeObserver(()=>renderDots());
     ro.observe(track);
 
@@ -2617,28 +2681,64 @@ function tfSetupRowPaging(rowEl){
   }catch(_){}
 }
 
+
+// tfGlobalClickDelegate: make mouse clicks reliable even with draggable rows / overlays
+(function tfGlobalClickDelegate(){
+  if (window.__tfGlobalClickDelegate) return;
+  window.__tfGlobalClickDelegate = true;
+  document.addEventListener('click', function(e){
+    const t = e.target;
+    if(!t) return;
+    const pill = t.closest && t.closest('.tf-pill');
+    const card = t.closest && t.closest('.tf-card');
+    if(!card) return;
+
+    // if user clicked on a pill, prioritize its intent
+    if(pill){
+      const txt = (pill.textContent||'').toLowerCase();
+      if(txt.includes('lire') || txt.includes('play')){
+        e.preventDefault(); e.stopPropagation();
+        card.click(); // card.onclick already routes (category or VOD)
+        return;
+      }
+      if(txt.includes('preview')){
+        e.preventDefault(); e.stopPropagation();
+        try{ window.tfPreviewCard && window.tfPreviewCard(card); }catch(_){}
+        return;
+      }
+    }
+  }, true);
+})();
 function tfEnableTrackDrag(track){
   if(!track || track.__tfDrag) return;
-  let down=false, startX=0, startScroll=0;
+  track.__tfDrag = true;
+  let down=false, startX=0, startScroll=0, moved=false;
+  const TAP_SLOP = 6; // px
   track.addEventListener('pointerdown',(e)=>{
-    down=true; startX=e.clientX; startScroll=track.scrollLeft;
-    track.setPointerCapture(e.pointerId);
-  });
+    down=true; moved=false;
+    startX=e.clientX; startScroll=track.scrollLeft;
+  }, {passive:true});
   track.addEventListener('pointermove',(e)=>{
     if(!down) return;
     const dx = e.clientX - startX;
+    if (Math.abs(dx) > TAP_SLOP) moved=true;
     track.scrollLeft = startScroll - dx;
-  });
-  track.addEventListener('pointerup',()=>{ down=false; });
-  track.addEventListener('pointercancel',()=>{ down=false; });
-  // wheel vertical => horizontal when over track
-  track.addEventListener('wheel',(e)=>{
-    if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
-      track.scrollLeft += e.deltaY;
-      e.preventDefault();
+  }, {passive:true});
+  track.addEventListener('pointerup',(e)=>{
+    if(!down) return;
+    down=false;
+    // If it was a tap (no drag), forward a click to the card under cursor
+    if(!moved){
+      try{
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const card = el && el.closest ? el.closest('.tf-card') : null;
+        if(card){
+          card.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true, view:window}));
+        }
+      }catch(_){}
     }
-  }, {passive:false});
-  track.__tfDrag=true;
+  }, {passive:true});
+  track.addEventListener('pointercancel',()=>{ down=false; moved=false; }, {passive:true});
 }
 
 function tfEnableBigPictureNav(){
@@ -2934,49 +3034,185 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
 
 // =========================================================
-// ORYON STABILITY: fetch wrapper with 401 backoff
+// SOCLE C2: TV Search Overlay (Prime)
+//  - Ctrl+K opens, Esc closes
+//  - Gamepad: Y opens, B closes, A selects
+//  - Fetches VOD via /api/twitch/vods/search?title=...
 // =========================================================
-const __oryon401Backoff = new Map();
-async function oryonFetchJson(url, opts){
-  const key = String(url || '');
-  const now = Date.now();
-  const nextAllowed = __oryon401Backoff.get(key) || 0;
-  if(now < nextAllowed){
-    return { __blocked:true, status:401, blockedUntil: nextAllowed };
-  }
-  const res = await fetch(url, Object.assign({ credentials:'include' }, opts||{}));
-  if(res.status === 401){
-    const ra = Number(res.headers.get('Retry-After') || 5);
-    __oryon401Backoff.set(key, now + Math.min(Math.max(ra, 2), 15)*1000);
-  }
-  let data = null;
-  try{ data = await res.json(); }catch(_){}
-  data = data || {};
-  data.__status = res.status;
-  return data;
-}
-
-
-let __oryonAuthState = { authenticated:false, checked:false };
-async function oryonCheckAuth(){
+(function oryonTvSearchOverlay(){
   try{
-    const st = await oryonFetchJson(`${API_BASE}/api/auth/status`);
-    __oryonAuthState = { authenticated: !!st.authenticated, checked:true, user: st.user || null };
-    return __oryonAuthState;
-  }catch(_){
-    __oryonAuthState = { authenticated:false, checked:true };
-    return __oryonAuthState;
-  }
-}
+    const css = `
+    .oryon-so{position:fixed;inset:0;z-index:100000;display:none;align-items:flex-start;justify-content:center;padding:34px 24px;background:rgba(0,0,0,.86);backdrop-filter:blur(7px);}
+    .oryon-so.open{display:flex;}
+    .oryon-so-panel{width:min(1320px,100%);border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(10,10,10,.92);box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
+    .oryon-so-top{display:flex;gap:12px;align-items:center;padding:14px;border-bottom:1px solid rgba(255,255,255,.10);}
+    .oryon-so-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px 14px;color:#fff;font-size:16px;outline:none;}
+    .oryon-so-hint{font-size:12px;color:rgba(255,255,255,.65);white-space:nowrap;}
+    .oryon-so-body{padding:16px;max-height:72vh;overflow:auto;}
+    .oryon-so-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px;}
+    @media (max-width:1200px){.oryon-so-grid{grid-template-columns:repeat(7,1fr)}}
+    @media (max-width:980px){.oryon-so-grid{grid-template-columns:repeat(6,1fr)}}
+    @media (max-width:760px){.oryon-so-grid{grid-template-columns:repeat(5,1fr)}}
+    @media (max-width:560px){.oryon-so-grid{grid-template-columns:repeat(4,1fr)}}
+    .oryon-so-card{position:relative;border-radius:14px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);cursor:pointer;user-select:none;}
+    .oryon-so-card img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;}
+    .oryon-so-card:focus{outline:none;border-color:rgba(0,242,234,.85);box-shadow:0 0 0 2px rgba(0,242,234,.35);}
+    .oryon-so-meta{position:absolute;left:0;right:0;bottom:0;padding:10px;background:linear-gradient(to top, rgba(0,0,0,.86), rgba(0,0,0,0));}
+    .oryon-so-title{font-size:12px;font-weight:800;color:#fff;line-height:1.15;max-height:2.3em;overflow:hidden;}
+    .oryon-so-sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;}
+    .oryon-so-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,.18);padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.35);}
+    .oryon-so-footer{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-size:12px;}
+    .oryon-so-close{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 10px;color:#fff;cursor:pointer;}
+    `;
+    const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
-(function oryonPeriodicAuthCheck(){
-  try{
-    let last = 0;
-    setInterval(async ()=>{
-      const now = Date.now();
-      if(now - last < 8000) return;
-      last = now;
-      await oryonCheckAuth();
-    }, 9000);
+    const root = document.createElement('div');
+    root.className='oryon-so';
+    root.innerHTML=`
+      <div class="oryon-so-panel" role="dialog" aria-modal="true">
+        <div class="oryon-so-top">
+          <input id="oryonSoInput" class="oryon-so-input" type="text" placeholder="Recherche VOD (titre ou jeu)…" autocomplete="off"/>
+          <div class="oryon-so-hint">Ctrl+K / Y • Esc / B</div>
+        </div>
+        <div class="oryon-so-body">
+          <div class="oryon-so-grid" id="oryonSoGrid"></div>
+        </div>
+        <div class="oryon-so-footer">
+          <div id="oryonSoStatus">Tape pour chercher…</div>
+          <button id="oryonSoClose" class="oryon-so-close">Fermer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(root);
+
+    const input=root.querySelector('#oryonSoInput');
+    const grid=root.querySelector('#oryonSoGrid');
+    const status=root.querySelector('#oryonSoStatus');
+    const closeBtn=root.querySelector('#oryonSoClose');
+
+    let openFlag=false, timer=null, inflight=0, focusIndex=0;
+
+    function open(){
+      if(openFlag) return;
+      openFlag=true;
+      root.classList.add('open');
+      setTimeout(()=>{ try{ input.focus(); input.select(); }catch(_){} }, 20);
+    }
+    function close(){
+      if(!openFlag) return;
+      openFlag=false;
+      root.classList.remove('open');
+      grid.innerHTML='';
+      status.textContent='Tape pour chercher…';
+    }
+
+    function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    async function fetchVods(q){
+      const u = `${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=28`;
+      const r = await fetch(u, { credentials:'include' });
+      const j = await r.json().catch(()=>null);
+      return (j && j.items) ? j.items : [];
+    }
+
+    function render(items){
+      grid.innerHTML='';
+      focusIndex=0;
+      if(!items.length){ status.textContent='Aucun résultat.'; return; }
+      status.textContent = `${items.length} résultat(s).`;
+      items.forEach((it,i)=>{
+        const b=document.createElement('button');
+        b.type='button';
+        b.className='oryon-so-card';
+        b.tabIndex = (i===0?0:-1);
+        b.dataset.idx=String(i);
+        b.__item = it;
+        const thumb = String(it.thumbnail_url||'').replace('%{width}','540').replace('%{height}','720').replace('{width}','540').replace('{height}','720');
+        b.innerHTML = `
+          <img src="${thumb}" alt="">
+          <div class="oryon-so-meta">
+            <div class="oryon-so-title">${esc(it.title || it.game_name || it.user_name || 'VOD')}</div>
+            <div class="oryon-so-sub">
+              <span class="oryon-so-pill">${esc((it.game_name||'').slice(0,22) || 'Jeu')}</span>
+              <span class="oryon-so-pill">${esc((it.user_name||'').slice(0,18) || 'Chaîne')}</span>
+            </div>
+          </div>
+        `;
+        b.addEventListener('focus',()=>{ focusIndex=i; });
+        b.addEventListener('click',()=>{
+          try{ loadVodEmbed(it.id, it.user_login || it.user_name); }catch(_){}
+          close();
+        });
+        grid.appendChild(b);
+      });
+    }
+
+    function moveFocus(delta){
+      const cards=[...grid.querySelectorAll('.oryon-so-card')];
+      if(!cards.length) return;
+      focusIndex = Math.max(0, Math.min(cards.length-1, focusIndex+delta));
+      cards.forEach((c,idx)=> c.tabIndex = (idx===focusIndex?0:-1));
+      cards[focusIndex].focus();
+      cards[focusIndex].scrollIntoView({block:'nearest', inline:'nearest'});
+    }
+
+    input.addEventListener('input',()=>{
+      const q=(input.value||'').trim();
+      if(timer) clearTimeout(timer);
+      timer=setTimeout(async ()=>{
+        if(q.length<2){ grid.innerHTML=''; status.textContent='Tape au moins 2 caractères…'; return; }
+        const my=++inflight;
+        status.textContent='Recherche…';
+        const items=await fetchVods(q);
+        if(my!==inflight) return;
+        render(items);
+      }, 320);
+    });
+
+    // keybinds
+    window.addEventListener('keydown',(e)=>{
+      const k=(e.key||'');
+      const ctrlk=(e.ctrlKey||e.metaKey) && k.toLowerCase()==='k';
+      if(ctrlk){ e.preventDefault(); open(); return; }
+      if(!openFlag) return;
+      if(k==='Escape'){ e.preventDefault(); close(); return; }
+      if(k==='ArrowRight'){ e.preventDefault(); moveFocus(1); }
+      if(k==='ArrowLeft'){ e.preventDefault(); moveFocus(-1); }
+      if(k==='ArrowDown'){ e.preventDefault(); moveFocus(8); }
+      if(k==='ArrowUp'){ e.preventDefault(); moveFocus(-8); }
+      if(k==='Enter'){
+        const c=grid.querySelector(`.oryon-so-card[data-idx="${focusIndex}"]`);
+        if(c) c.click();
+      }
+    }, true);
+
+    root.addEventListener('click',(e)=>{ if(e.target===root) close(); }, true);
+    closeBtn.addEventListener('click', close);
+
+    // gamepad open/close/select
+    let last={a:false,b:false,y:false,up:false,down:false,left:false,right:false};
+    setInterval(()=>{
+      try{
+        if(!navigator.getGamepads) return;
+        const gp=(navigator.getGamepads()||[])[0]; if(!gp) return;
+        const a=gp.buttons[0]?.pressed, b=gp.buttons[1]?.pressed, y=gp.buttons[3]?.pressed;
+        const up=gp.buttons[12]?.pressed, down=gp.buttons[13]?.pressed, left=gp.buttons[14]?.pressed, right=gp.buttons[15]?.pressed;
+        if(y && !last.y) open();
+        if(openFlag){
+          if(b && !last.b) close();
+          if(right && !last.right) moveFocus(1);
+          if(left && !last.left) moveFocus(-1);
+          if(down && !last.down) moveFocus(8);
+          if(up && !last.up) moveFocus(-8);
+          if(a && !last.a){
+            const c=grid.querySelector(`.oryon-so-card[data-idx="${focusIndex}"]`);
+            if(c) c.click();
+          }
+        }
+        last={a,b,y,up,down,left,right};
+      }catch(_){}
+    }, 100);
+
+    window.__oryonSo = { open, close };
   }catch(_){}
 })();

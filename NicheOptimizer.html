@@ -40,7 +40,7 @@
     }
     .stream-card{
       flex:0 0 300px; height:170px; background:#111;
-      border:1px solid #222; border-radius:12px; overflow:hidden;
+      border:1px solid #222; border-radius: 0px; overflow:hidden;
       position:relative; cursor:pointer; transition:.2s;
     }
     .stream-card:hover{
@@ -258,7 +258,7 @@
 }
 
     .tf-modal-content {
-      width: 90%; max-width: 1200px; height: 85vh;
+      width: 100%; max-width: none; height: 100vh;
       background: #0b0b0d; border: 1px solid #333; border-radius: 12px;
       display: flex; flex-direction: column; overflow: hidden;
       box-shadow: 0 0 40px rgba(0, 242, 234, 0.1);
@@ -2521,6 +2521,18 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-track{ scroll-snap-type: x mandatory; scroll-behavior:smooth; }
 #twitflix-modal .tf-card{ scroll-snap-align: start; }
 
+
+/* C2 PRIME: row paging arrows */
+#twitflix-modal .tf-row-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+#twitflix-modal .tf-row-dots{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex:0 0 auto;}
+#twitflix-modal .tf-dot{width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.25);display:inline-block;cursor:pointer;}
+#twitflix-modal .tf-dot.active{background:rgba(0,242,234,.9);}
+#twitflix-modal .tf-row-arrows{display:flex;gap:8px;align-items:center;opacity:0;transition:opacity .18s ease;}
+#twitflix-modal .tf-row:hover .tf-row-arrows,
+#twitflix-modal .tf-row:focus-within .tf-row-arrows{opacity:1;}
+#twitflix-modal .tf-row-arrow{width:30px;height:30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
+#twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2960,7 +2972,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div></div>
 <div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="ORYON" class="oryon-logo" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;pointer-events:none;">ORYON</div></div>
-<script src="/assets/js/core/app-bootstrap.js?v=1770480537" defer></script>
+<script src="/assets/js/core/app-bootstrap.js?v=1770565485" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
 <div class="modal-head">
