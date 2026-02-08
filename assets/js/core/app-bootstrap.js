@@ -1099,6 +1099,9 @@ window.addEventListener('message', (ev) => {
     let tfSearchQuery = '';
     let tfSearchResults = [];
     let tfVodResults = [];
+    let tfTopVodResults = [];
+    let tfTopVodLoading = false;
+    let tfTopVodLoadedAt = 0;
     let tfVodTimer = null;
     let tfSearchTimer = null;
 
@@ -1183,6 +1186,10 @@ const modal = document.getElementById('twitflix-modal');
 
       tfModalOpen = true;
       modal.classList.add('active');
+
+      // Preload global Top VOD row (non-blocking)
+      try{ tfLoadTopVods(false).then(()=>{ if(tfModalOpen && !tfSearchQuery) renderTwitFlix(); }); }catch(_){ }
+
       document.body.classList.add('tf-bigpicture'); tfBigPicture = true; tfViewMode='rows';
 
       // TwitFlix intro (Netflix-like) — stylized, minimal
@@ -1334,6 +1341,35 @@ const modal = document.getElementById('twitflix-modal');
       }, { root: host, threshold: 0.1 });
 
       tfObserver.observe(sentinel);
+    }
+
+
+    async function tfLoadTopVods(force){
+      // Global "Top VOD" selection (Netflix-like). Cached client-side to avoid spam.
+      const TTL = 15 * 60 * 1000; // 15 min
+      const now = Date.now();
+      if (!force && tfTopVodResults.length && (now - tfTopVodLoadedAt) < TTL) return;
+      if (tfTopVodLoading) return;
+      tfTopVodLoading = true;
+      try{
+        const r = await fetch(`${API_BASE}/api/twitch/vods/top?limit=28`, { credentials:'include' });
+        const d = await r.json().catch(()=>null);
+        if (r.ok && d && Array.isArray(d.items)){
+          tfTopVodResults = d.items.map(v=>({
+            id: v.id,
+            name: `${v.title || v.game_name || 'VOD'}`,
+            box_art_url: tfNormalizeTwitchThumb(v.thumbnail_url || ''),
+            _vod: v
+          }));
+          tfTopVodLoadedAt = now;
+        } else {
+          tfTopVodResults = [];
+        }
+      }catch(_){
+        tfTopVodResults = [];
+      }finally{
+        tfTopVodLoading = false;
+      }
     }
 
     async function tfRunSearch(query){
@@ -1558,6 +1594,37 @@ const modal = document.getElementById('twitflix-modal');
         host.innerHTML = '<div class="tf-empty"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
         if (sentinel) host.appendChild(sentinel);
         return;
+      }
+
+
+      // Netflix-like: Global Top VOD row (Twitch archives)
+      if (tfViewMode !== 'az'){
+        if (tfTopVodLoading && !tfTopVodResults.length){
+          const row = document.createElement('div');
+          row.className = 'tf-row';
+          row.id = 'tf-top-vod-row';
+          row.innerHTML = `
+            <div class="tf-row-title">Top VOD <span>(Global)</span></div>
+            <div class="tf-row-track">
+              <div class="tf-empty" style="padding:18px;opacity:.85"><i class="fas fa-spinner fa-spin"></i> Chargement des VOD…</div>
+            </div>
+          `;
+          host.appendChild(row);
+        } else if (tfTopVodResults && tfTopVodResults.length){
+          const vodRow = tfBuildRow('Top VOD <span>(Global)</span>', tfTopVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })), 'tf-top-vod-row');
+          vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
+            const v = tfTopVodResults[idx]?._vod;
+            if(!v) return;
+            card.dataset.vodId = String(v.id || '').replace(/^v/i,'');
+            // metadata for peekbar
+            card.dataset.platform = 'Twitch VOD';
+            card.dataset.viewers = v.view_count ? String(v.view_count) : '';
+          });
+          host.appendChild(vodRow);
+        } else {
+          // if not loaded yet, trigger load once
+          try{ tfLoadTopVods(false).then(()=>{ if(tfModalOpen && !tfSearchQuery) renderTwitFlix(); }); }catch(_){ }
+        }
       }
 
       if (tfViewMode === 'az'){
