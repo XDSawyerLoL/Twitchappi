@@ -869,8 +869,8 @@ window.addEventListener('message', (ev) => {
 
       // 2) server resolver (best, avoids CORS + no API key)
       try{
-        const q = `${name} game trailer`;
-        const r = await fetch(`${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}`);
+        const q = String(name||'').trim();
+        const r = await fetch(`${API_BASE}/api/youtube/trailer?type=game&lang=fr&q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
           if (d && d.success && d.videoId){

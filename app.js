@@ -8,6 +8,15 @@
 
 require('dotenv').config();
 const express = require('express');
+
+
+// ---- helpers (timeouts) ----
+function fetchWithTimeout(url, options = {}, timeoutMs = 4500){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: ctrl.signal }).finally(()=>clearTimeout(t));
+}
+
 const cors = require('cors');
 const fetch = require('node-fetch');
 const bodyParser = require('body-parser');
@@ -1343,38 +1352,117 @@ app.post('/api/search/intent', async (req,res)=>{
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME
 app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
-  const q0 = String(req.query.q || '').trim();
-  if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
-  if (!YOUTUBE_API_KEY) return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY missing' });
-
-  const q = sanitizeText(q0, 120);
-  const key = q.toLowerCase();
-
-  const cached = YT_TRAILER_CACHE.get(key);
-  if (cached && (Date.now() - cached.ts) < YT_CACHE_TTL_MS) {
-    return res.json({ success:true, ...cached.data, cached:true });
-  }
-
   try {
-    // bias toward embeddable trailers
-    const query = `${q} trailer`;
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=5&safeSearch=moderate&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
-    const r = await fetch(url);
-    const data = await r.json();
+    const type = String(req.query.type || 'game');
+    const q0 = String(req.query.q || req.query.title || req.query.query || '').trim();
+    if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
 
-    const items = Array.isArray(data.items) ? data.items : [];
-    const pick = items.find(x => x?.id?.videoId) || null;
+    const q = sanitizeText(q0, 120);
+    const lang = String(req.query.lang || 'fr');
 
-    if (!pick) {
-      return res.json({ success:false, error:'no_result' });
+    // cache key includes type/lang
+    const key = `${type}|${lang}|${q.toLowerCase()}`;
+
+    const cached = YT_TRAILER_CACHE.get(key);
+    if (cached && (Date.now() - cached.ts) < YT_CACHE_TTL_MS) {
+      return res.json({ success:true, ...cached.data, cached:true });
     }
 
-    const out = {
-      videoId: pick.id.videoId,
-      title: pick.snippet?.title || '',
-      channelTitle: pick.snippet?.channelTitle || '',
-      publishedAt: pick.snippet?.publishedAt || ''
-    };
+    const queries = (()=>{
+      if(type === 'movie'){
+        return [
+          `${q} bande annonce officielle`,
+          `${q} bande-annonce officielle`,
+          `${q} trailer officiel`,
+          `${q} official trailer`,
+          `${q} bande annonce`
+        ];
+      }
+      return [
+        `${q} trailer officiel`,
+        `${q} bande annonce officielle`,
+        `${q} bande-annonce officielle`,
+        `${q} gameplay trailer`,
+        `${q} official trailer`,
+        `${q} cinematic trailer`,
+        `${q} launch trailer`,
+        `${q} trailer fr`
+      ];
+    })();
+
+    // -------- 1) YouTube Data API (if key set) --------
+    const ytKey = process.env.YOUTUBE_API_KEY || YOUTUBE_API_KEY;
+    async function ytApiSearch(query){
+      if(!ytKey) return null;
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoSyndicated=true&maxResults=6&safeSearch=moderate&relevanceLanguage=${encodeURIComponent(lang==='fr'?'fr':'en')}&regionCode=${encodeURIComponent(lang==='fr'?'FR':'US')}&q=${encodeURIComponent(query)}&key=${encodeURIComponent(ytKey)}`;
+      const r = await fetchWithTimeout(url, {}, 5500).catch(()=>null);
+      if(!r || !r.ok) return null;
+      const data = await r.json().catch(()=>null);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const pick = items.find(x => x?.id?.videoId) || null;
+      if(!pick) return null;
+      const thumbs = pick.snippet?.thumbnails || {};
+      const thumb = thumbs.maxres?.url || thumbs.high?.url || thumbs.medium?.url || thumbs.default?.url || '';
+      return {
+        videoId: pick.id.videoId,
+        title: pick.snippet?.title || '',
+        channelTitle: pick.snippet?.channelTitle || '',
+        publishedAt: pick.snippet?.publishedAt || '',
+        thumb,
+        embedUrl: `https://www.youtube.com/embed/${pick.id.videoId}?autoplay=0&rel=0&modestbranding=1`,
+        source: 'youtube_api'
+      };
+    }
+
+    let out = null;
+    for(const qq of queries){
+      out = await ytApiSearch(qq);
+      if(out) break;
+    }
+
+    // -------- 2) Invidious fallback (no key) --------
+    const INVIDIOUS = [
+      "https://yewtu.be",
+      "https://inv.nadeko.net",
+      "https://invidious.fdn.fr",
+      "https://invidious.nerdvpn.de"
+    ];
+
+    async function invSearch(instance, query){
+      const url = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video&sort_by=relevance`;
+      const r = await fetchWithTimeout(url, { headers: { 'accept': 'application/json' } }, 4500).catch(()=>null);
+      if(!r || !r.ok) return null;
+      const j = await r.json().catch(()=>null);
+      if(!Array.isArray(j)) return null;
+      const pick = j.find(x => x?.videoId && String(x.videoId).length===11) || null;
+      if(!pick) return null;
+      const thumbs = Array.isArray(pick.videoThumbnails) ? pick.videoThumbnails : [];
+      const t = thumbs.length ? (thumbs[thumbs.length-1].url || '') : '';
+      return {
+        videoId: pick.videoId,
+        title: pick.title || '',
+        channelTitle: pick.author || '',
+        publishedAt: pick.published || '',
+        thumb: t,
+        embedUrl: `https://www.youtube.com/embed/${pick.videoId}?autoplay=0&rel=0&modestbranding=1`,
+        source: 'invidious'
+      };
+    }
+
+    if(!out){
+      const inst = INVIDIOUS.sort(()=>Math.random()-0.5);
+      for(const base of inst){
+        for(const qq of queries){
+          out = await invSearch(base, qq);
+          if(out) break;
+        }
+        if(out) break;
+      }
+    }
+
+    if (!out) {
+      return res.json({ success:false, error:'no_result' });
+    }
 
     YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
     return res.json({ success:true, ...out });
