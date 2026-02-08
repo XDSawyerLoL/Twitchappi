@@ -27,6 +27,24 @@ const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
 // =========================================================
+// HTTP helper: fetch with timeout (node-fetch)
+// =========================================================
+// Some routes (notably /api/youtube/trailer) used to reference fetchWithTimeout
+// without defining it, which could make the YouTube lookup "partially" work only
+// when cached (and otherwise 500). Keep the helper local and dependency-free.
+function fetchWithTimeout(url, options = {}, timeoutMs = 5500){
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const t = setTimeout(() => {
+    try{ controller?.abort(); }catch(_){ }
+  }, Math.max(100, Number(timeoutMs) || 5500));
+
+  const opts = controller ? { ...options, signal: controller.signal } : { ...options };
+
+  return Promise.resolve(fetch(url, opts))
+    .finally(() => clearTimeout(t));
+}
+
+// =========================================================
 // 0. INITIALISATION FIREBASE
 // =========================================================
 let serviceAccount;
@@ -1380,27 +1398,55 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
     return res.json({ success:true, ...cached.data, cached:true });
   }
 
+  // Build query variants.
+  // Front sometimes already sends strings like "<game> trailer"; avoid "trailer trailer".
   const queries = (() => {
-    const base = q;
+    const baseRaw = q;
+    const lower = baseRaw.toLowerCase();
+    const hasTrailerWord = /(\btrailer\b|\bteaser\b|bande\s*-?\s*annonce)/i.test(lower);
+    const baseStripped = hasTrailerWord
+      ? baseRaw
+          .replace(/\btrailer\b/gi, '')
+          .replace(/\bteaser\b/gi, '')
+          .replace(/bande\s*-?\s*annonce/gi, '')
+          .replace(/\bofficiel(le)?\b/gi, '')
+          .replace(/\bofficial\b/gi, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+      : baseRaw;
+
+    const base = baseStripped || baseRaw;
+    const list = [];
+    const push = (s) => {
+      const v = sanitizeText(s, 180);
+      if (!v) return;
+      const k = v.toLowerCase();
+      if (list.some(x => x.toLowerCase() === k)) return;
+      list.push(v);
+    };
+
+    // Always try the raw query first.
+    push(baseRaw);
+
     if (type === 'movie') {
-      return [
-        `${base} bande annonce officielle`,
-        `${base} bande-annonce officielle`,
-        `${base} trailer officiel`,
-        `${base} official trailer`
-      ];
+      push(`${base} bande annonce officielle`);
+      push(`${base} bande-annonce officielle`);
+      push(`${base} trailer officiel`);
+      push(`${base} official trailer`);
+      push(`${base} trailer`);
+      return list;
     }
+
     // game
-    return [
-      `${base} trailer officiel`,
-      `${base} bande annonce officielle`,
-      `${base} bande-annonce officielle`,
-      `${base} gameplay trailer`,
-      `${base} official trailer`,
-      `${base} cinematic trailer`,
-      `${base} launch trailer`,
-      `${base} trailer`
-    ];
+    push(`${base} trailer officiel`);
+    push(`${base} bande annonce officielle`);
+    push(`${base} bande-annonce officielle`);
+    push(`${base} gameplay trailer`);
+    push(`${base} official trailer`);
+    push(`${base} cinematic trailer`);
+    push(`${base} launch trailer`);
+    push(`${base} trailer`);
+    return list;
   })();
 
   // -------- YouTube Data API (if key works) --------
