@@ -1342,46 +1342,56 @@ app.post('/api/search/intent', async (req,res)=>{
 
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME
-app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
-  const q0 = String(req.query.q || '').trim();
-  if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
-  if (!YOUTUBE_API_KEY) return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY missing' });
 
-  const q = sanitizeText(q0, 120);
-  const key = q.toLowerCase();
-
-  const cached = YT_TRAILER_CACHE.get(key);
-  if (cached && (Date.now() - cached.ts) < YT_CACHE_TTL_MS) {
-    return res.json({ success:true, ...cached.data, cached:true });
+// Resolve a YouTube trailer videoId for a given title.
+// Prefers YouTube Data API if YOUTUBE_API_KEY is set; otherwise falls back to a lightweight
+// scrape of the YouTube search results page (no key required).
+async function youtubeScrapeFirstVideoId(query){
+  try{
+    const url = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query);
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const html = await r.text();
+    // videoId appears multiple times; take first plausible one
+    const m = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+    return m ? m[1] : null;
+  }catch(e){
+    return null;
   }
+}
 
-  try {
-    // bias toward embeddable trailers
-    const query = `${q} trailer`;
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=5&safeSearch=moderate&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
-    const r = await fetch(url);
-    const data = await r.json();
+app.get('/api/youtube/trailer', async (req, res) => {
+  try{
+    const title = String(req.query.title || '').trim();
+    if(!title) return res.status(400).json({ ok:false, error:'missing title' });
 
-    const items = Array.isArray(data.items) ? data.items : [];
-    const pick = items.find(x => x?.id?.videoId) || null;
+    const q = `${title} official trailer`;
+    const apiKey = process.env.YOUTUBE_API_KEY;
 
-    if (!pick) {
-      return res.json({ success:false, error:'no_result' });
+    // 1) Try Data API if available
+    if(apiKey){
+      try{
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&safeSearch=none&q=${encodeURIComponent(q)}&key=${encodeURIComponent(apiKey)}`;
+        const r = await fetch(url);
+        if(r.ok){
+          const data = await r.json();
+          const vid = data?.items?.[0]?.id?.videoId || null;
+          if(vid) return res.json({ ok:true, videoId: vid, source:'api' });
+        }
+      }catch(e){
+        // fall through
+      }
     }
 
-    const out = {
-      videoId: pick.id.videoId,
-      title: pick.snippet?.title || '',
-      channelTitle: pick.snippet?.channelTitle || '',
-      publishedAt: pick.snippet?.publishedAt || ''
-    };
+    // 2) Fallback: scrape search page (works without API key)
+    const vid2 = await youtubeScrapeFirstVideoId(q);
+    if(vid2) return res.json({ ok:true, videoId: vid2, source:'scrape' });
 
-    YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
-    return res.json({ success:true, ...out });
-  } catch (e) {
-    return res.status(500).json({ success:false, error:e.message });
+    return res.status(404).json({ ok:false, error:'not found' });
+  }catch(e){
+    return res.status(500).json({ ok:false, error:'server error' });
   }
 });
+
 
 
 

@@ -1024,6 +1024,30 @@ window.addEventListener('message', (ev) => {
     const tfPreviewInflight = new Map();
     const TF_PREVIEW_TTL = 10 * 60 * 1000;
 
+
+// Continue Watching (local, safe; does not touch auth / hub state)
+const TF_CONTINUE_KEY = 'oryon_continue_v1';
+function tfGetContinue(){
+  try{
+    const raw = localStorage.getItem(TF_CONTINUE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(_){ return []; }
+}
+function tfSetContinue(arr){
+  try{ localStorage.setItem(TF_CONTINUE_KEY, JSON.stringify(arr.slice(0, 25))); }catch(_){}
+}
+function tfAddContinue(entry){
+  try{
+    if(!entry || !entry.id) return;
+    const now = Date.now();
+    const arr = tfGetContinue().filter(x => x && x.id && x.id !== entry.id);
+    arr.unshift({ ...entry, ts: now });
+    tfSetContinue(arr);
+  }catch(_){}
+}
+
+
     function tfNormalizeTwitchThumb(url){
       const u = String(url||'');
       if(!u) return '';
@@ -1698,6 +1722,28 @@ function tfBuildCard(cat){
         iframe.frameBorder = '0';
 
         host.innerHTML = '';
+
+  // Continue Watching row (localStorage) — placed first
+  try{
+    const cont = tfGetContinue().filter(x => x && x.type === 'vod' && x.vodId).slice(0, 12);
+    if(cont.length){
+      const items = cont.map(c => ({
+        id: c.vodId,
+        name: c.title || 'VOD',
+        box_art_url: c.boxArtUrl || '',
+        _vod: { id: c.vodId, title: c.title || '', user_name: c.userName || '' }
+      }));
+      const row = tfBuildRow('REPRENDRE', items);
+      // mark dataset for click handler
+      row.querySelectorAll('.tf-card').forEach((card, idx) => {
+        card.dataset.vodId = String(items[idx].id);
+        card.dataset.vodTitle = String(items[idx]._vod.title || '');
+        card.dataset.vodUser = String(items[idx]._vod.user_name || '');
+        if(items[idx].box_art_url) card.dataset.vodBox = String(items[idx].box_art_url);
+      });
+      host.appendChild(row);
+    }
+  }catch(_){}
         host.appendChild(iframe);
         cardEl.classList.add('previewing');
       }catch(_){}
@@ -2948,8 +2994,6 @@ function tfPollGamepad(){
   const X  = tfPressed(gp.buttons?.[2]); // X / Square
   const LB = tfPressed(gp.buttons?.[4]); // LB
   const RB = tfPressed(gp.buttons?.[5]); // RB
-  const LT = tfPressed(gp.buttons?.[6]); // LT
-  const RT = tfPressed(gp.buttons?.[7]); // RT
 
   // edge detection + cooldown
   const prev = tfGpPrev;
@@ -2963,8 +3007,6 @@ function tfPollGamepad(){
     if(edge('r', dRight)) { tfMoveFocus(1,0);  prev.t = now; return; }
     if(edge('LB', LB))    { tfScrollTrackPage(-1); prev.t = now; return; }
     if(edge('RB', RB))    { tfScrollTrackPage(1);  prev.t = now; return; }
-    if(edge('LT', LT))    { tfMoveFocus(0,-1); prev.t = now; return; }
-    if(edge('RT', RT))    { tfMoveFocus(0,1);  prev.t = now; return; }
     if(edge('u', dUp))    { tfMoveFocus(0,-1); prev.t = now; return; }
     if(edge('d', dDown))  { tfMoveFocus(0,1);  prev.t = now; return; }
   }
