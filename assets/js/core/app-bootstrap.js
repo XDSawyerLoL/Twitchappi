@@ -3053,3 +3053,238 @@ async function oryonCheckAuth(){
     }, true);
   }catch(_){}
 })();
+
+
+// =========================================================
+// SOCLE C2: Search Overlay (TV / Prime-like)
+//  - Ctrl+K / Y (gamepad) : open
+//  - Esc / B : close
+//  - Debounce 300ms, cancel if moving
+//  - Results via /api/content?type=vod&q=
+// =========================================================
+(function oryonSearchOverlay(){
+  try{
+    const REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function css(){
+      return `
+      .oryon-so{position:fixed;inset:0;z-index:99999;display:none;align-items:flex-start;justify-content:center;padding:40px 24px;background:rgba(0,0,0,.80);backdrop-filter: blur(6px);}
+      .oryon-so.open{display:flex;}
+      .oryon-so-panel{width:min(1200px,100%);border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(10,10,10,.92);box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
+      .oryon-so-top{display:flex;gap:12px;align-items:center;padding:14px 14px;border-bottom:1px solid rgba(255,255,255,.10);}
+      .oryon-so-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px 14px;color:#fff;font-size:16px;outline:none;}
+      .oryon-so-hint{font-size:12px;color:rgba(255,255,255,.65);white-space:nowrap;}
+      .oryon-so-body{padding:16px;max-height:70vh;overflow:auto;}
+      .oryon-so-rowtitle{margin:8px 0 10px;font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.75);}
+      .oryon-so-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;}
+      @media (max-width:1100px){.oryon-so-grid{grid-template-columns:repeat(6,1fr)}}
+      @media (max-width:900px){.oryon-so-grid{grid-template-columns:repeat(5,1fr)}}
+      @media (max-width:700px){.oryon-so-grid{grid-template-columns:repeat(4,1fr)}}
+      @media (max-width:520px){.oryon-so-grid{grid-template-columns:repeat(3,1fr)}}
+      .oryon-so-card{position:relative;border-radius:14px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);cursor:pointer;user-select:none;}
+      .oryon-so-card img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;filter:saturate(1.05) contrast(1.02);}
+      .oryon-so-card:focus{outline:none;border-color:rgba(0,242,234,.8);box-shadow:0 0 0 2px rgba(0,242,234,.35);}
+      .oryon-so-meta{position:absolute;left:0;right:0;bottom:0;padding:10px;background:linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0));}
+      .oryon-so-title{font-size:12px;font-weight:800;color:#fff;line-height:1.15;max-height:2.3em;overflow:hidden;}
+      .oryon-so-sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;}
+      .oryon-so-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,.18);padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.35);}
+      .oryon-so-footer{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.65);font-size:12px;}
+      .oryon-so-close{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 10px;color:#fff;cursor:pointer;}
+      .oryon-so-close:hover{background:rgba(255,255,255,.10);}
+      `;
+    }
+
+    const style = document.createElement('style');
+    style.textContent = css();
+    document.head.appendChild(style);
+
+    const root = document.createElement('div');
+    root.className = 'oryon-so';
+    root.innerHTML = `
+      <div class="oryon-so-panel" role="dialog" aria-modal="true" aria-label="Recherche">
+        <div class="oryon-so-top">
+          <input class="oryon-so-input" id="oryonSoInput" type="text" placeholder="Rechercher une VOD (titre ou jeu)..." autocomplete="off" />
+          <div class="oryon-so-hint">Ctrl+K / Y • Esc / B</div>
+        </div>
+        <div class="oryon-so-body">
+          <div class="oryon-so-rowtitle">VOD • FR 20–200</div>
+          <div class="oryon-so-grid" id="oryonSoGrid"></div>
+        </div>
+        <div class="oryon-so-footer">
+          <div id="oryonSoStatus">Tape pour chercher…</div>
+          <button class="oryon-so-close" id="oryonSoClose">Fermer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(root);
+
+    const input = root.querySelector('#oryonSoInput');
+    const grid = root.querySelector('#oryonSoGrid');
+    const status = root.querySelector('#oryonSoStatus');
+    const closeBtn = root.querySelector('#oryonSoClose');
+
+    let isOpen = false;
+    let lastQ = '';
+    let timer = null;
+    let inflight = 0;
+    let focusIndex = 0;
+
+    function open(){
+      if(isOpen) return;
+      isOpen = true;
+      root.classList.add('open');
+      // delay focus so CSS applied
+      setTimeout(()=>{ try{ input.focus(); input.select(); }catch(_){ } }, 20);
+      status.textContent = 'Tape pour chercher…';
+    }
+
+    function close(){
+      if(!isOpen) return;
+      isOpen = false;
+      root.classList.remove('open');
+      grid.innerHTML = '';
+      status.textContent = 'Tape pour chercher…';
+    }
+
+    function render(items){
+      grid.innerHTML = '';
+      focusIndex = 0;
+      if(!items || !items.length){
+        status.textContent = 'Aucun résultat.';
+        return;
+      }
+      status.textContent = `${items.length} résultat(s).`;
+      items.forEach((it, i) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'oryon-so-card';
+        card.setAttribute('data-content', JSON.stringify(it));
+        card.setAttribute('data-idx', String(i));
+        card.tabIndex = (i===0 ? 0 : -1);
+        const thumb = String(it.thumbnail || '').replace('{width}','540').replace('{height}','720');
+        card.innerHTML = `
+          <img src="${thumb}" alt="">
+          <div class="oryon-so-meta">
+            <div class="oryon-so-title">${escapeHtml(it.title || it.game || it.channel || 'VOD')}</div>
+            <div class="oryon-so-sub">
+              <span class="oryon-so-badge">${escapeHtml((it.game||'').slice(0,22) || 'Jeu')}</span>
+              <span class="oryon-so-badge">${escapeHtml((it.channel||'').slice(0,18) || 'Chaîne')}</span>
+            </div>
+          </div>
+        `;
+        card.onclick = () => {
+          try{ tfPlayContent(it); }catch(_){ }
+          close();
+        };
+        card.onfocus = () => { focusIndex = i; };
+        grid.appendChild(card);
+      });
+    }
+
+    function moveFocus(delta){
+      const cards = grid.querySelectorAll('.oryon-so-card');
+      if(!cards.length) return;
+      focusIndex = Math.max(0, Math.min(cards.length-1, focusIndex + delta));
+      cards.forEach((c, idx)=> c.tabIndex = (idx===focusIndex ? 0 : -1));
+      cards[focusIndex].focus();
+      // keep in view
+      cards[focusIndex].scrollIntoView({ block:'nearest', inline:'nearest' });
+    }
+
+    async function search(q){
+      const my = ++inflight;
+      status.textContent = 'Recherche…';
+      const items = await tfFetchContent({ provider:'twitch', type:'vod', lang:'fr', min:20, max:200, limit:28, q });
+      if(my !== inflight) return; // canceled by newer request
+      render(items);
+    }
+
+    input.addEventListener('input', () => {
+      const q = (input.value || '').trim();
+      lastQ = q;
+      if(timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        if(q.length < 2){
+          grid.innerHTML = '';
+          status.textContent = 'Tape au moins 2 caractères…';
+          return;
+        }
+        search(q);
+      }, 300);
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      const key = e.key || '';
+      const ctrlk = (e.ctrlKey || e.metaKey) && (key.toLowerCase() === 'k');
+      if(ctrlk){
+        e.preventDefault();
+        open();
+        return;
+      }
+      if(!isOpen) return;
+
+      if(key === 'Escape'){
+        e.preventDefault();
+        close();
+        return;
+      }
+      if(key === 'ArrowRight'){ e.preventDefault(); moveFocus(1); }
+      if(key === 'ArrowLeft'){ e.preventDefault(); moveFocus(-1); }
+      if(key === 'ArrowDown'){ e.preventDefault(); moveFocus(7); }
+      if(key === 'ArrowUp'){ e.preventDefault(); moveFocus(-7); }
+      if(key === 'Enter'){
+        const card = grid.querySelector(`.oryon-so-card[data-idx="${focusIndex}"]`);
+        if(card){ card.click(); }
+      }
+    }, true);
+
+    // Click outside to close
+    root.addEventListener('click', (e)=>{ if(e.target === root) close(); }, true);
+    closeBtn.addEventListener('click', close);
+
+    // Gamepad (poll)
+    let gpLast = { a:false, b:false, y:false, up:false, down:false, left:false, right:false };
+    function pollGamepad(){
+      try{
+        if(!navigator.getGamepads) return;
+        const pads = navigator.getGamepads();
+        const gp = pads && pads[0];
+        if(!gp) return;
+        const bA = gp.buttons[0] && gp.buttons[0].pressed;
+        const bB = gp.buttons[1] && gp.buttons[1].pressed;
+        const bY = gp.buttons[3] && gp.buttons[3].pressed;
+
+        const up = gp.buttons[12] && gp.buttons[12].pressed;
+        const down = gp.buttons[13] && gp.buttons[13].pressed;
+        const left = gp.buttons[14] && gp.buttons[14].pressed;
+        const right = gp.buttons[15] && gp.buttons[15].pressed;
+
+        // Rising edges
+        if(bY && !gpLast.y){ open(); }
+        if(isOpen){
+          if(bB && !gpLast.b){ close(); }
+          if(right && !gpLast.right){ moveFocus(1); }
+          if(left && !gpLast.left){ moveFocus(-1); }
+          if(down && !gpLast.down){ moveFocus(7); }
+          if(up && !gpLast.up){ moveFocus(-7); }
+          if(bA && !gpLast.a){
+            const card = grid.querySelector(`.oryon-so-card[data-idx="${focusIndex}"]`);
+            if(card){ card.click(); }
+          }
+        }
+
+        gpLast = { a:bA, b:bB, y:bY, up, down, left, right };
+      }catch(_){}
+    }
+    setInterval(pollGamepad, 100);
+
+    // Helpers
+    function escapeHtml(s){
+      return String(s||'').replace(/[&<>"']/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+
+    // Expose for debugging
+    window.__oryonSearchOverlay = { open, close };
+  }catch(_){}
+})();
