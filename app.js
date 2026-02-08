@@ -582,6 +582,7 @@ async function twitchAPI(endpoint, token = null) {
   }
 
   return res.json();
+}
 // =========================================================
 // ORYON TV — VODs by title (FR streamers 20-200 viewers)
 // =========================================================
@@ -750,7 +751,142 @@ app.get('/api/twitch/vods/search', heavyLimiter, async (req, res) => {
   }
 });
 
+
+// =========================================================
+// ORYON TV — Top VOD (global) — Netflix-like
+// Heuristic: top streams + top games -> recent archives, ranked
+// =========================================================
+const __oryonTopVodCache = { ts: 0, items: [], meta: null };
+
+function __normalizeTwitchThumb(url, w=540, h=720){
+  if(!url) return '';
+  return String(url)
+    .replace('%{width}', String(w)).replace('%{height}', String(h))
+    .replace('{width}', String(w)).replace('{height}', String(h));
 }
+
+function __parseTwitchDurationToMinutes(dur){
+  // Twitch formats like "3h12m5s" or "45m" etc.
+  const s = String(dur||'').toLowerCase();
+  let h=0,m=0,sec=0;
+  const mh = s.match(/(\d+)h/); if(mh) h=parseInt(mh[1],10)||0;
+  const mm = s.match(/(\d+)m/); if(mm) m=parseInt(mm[1],10)||0;
+  const ms = s.match(/(\d+)s/); if(ms) sec=parseInt(ms[1],10)||0;
+  return h*60 + m + Math.round(sec/60);
+}
+
+function __scoreVod(row){
+  // row: helix video
+  const views = Math.max(0, Number(row.view_count||0));
+  const ageH = Math.max(0, (Date.now() - Date.parse(row.created_at||row.published_at||row.created_at||0)) / 36e5);
+  const mins = __parseTwitchDurationToMinutes(row.duration);
+  // log views + recency bonus (freshness within 72h) + mild duration sanity
+  const logViews = Math.log10(views + 1);
+  const recency = ageH <= 72 ? (72 - ageH)/72 : 0; // 0..1
+  const dur = mins<=0 ? 0 : (mins<15 ? -0.35 : (mins>720 ? -0.15 : 0.10));
+  return (logViews * 10) + (recency * 6) + dur;
+}
+
+async function __twitchFetchWithConcurrency(tasks, limit=3){
+  const out = [];
+  let i=0;
+  async function worker(){
+    while(i < tasks.length){
+      const cur = i++;
+      try{ out[cur] = await tasks[cur](); }catch(e){ out[cur] = null; }
+    }
+  }
+  const workers = Array.from({length: Math.max(1, limit)}, ()=>worker());
+  await Promise.all(workers);
+  return out;
+}
+
+// Global "Top VOD" (cached)
+app.get('/api/twitch/vods/top', heavyLimiter, async (req, res) => {
+  try{
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '60', 10) || 60), 120);
+    const ttlMs = Math.min(Math.max(60_000, parseInt(req.query.ttlMs || '900000', 10) || 900_000), 3_600_000); // 1m..60m
+
+    if(__oryonTopVodCache.ts && (Date.now() - __oryonTopVodCache.ts) < ttlMs && Array.isArray(__oryonTopVodCache.items) && __oryonTopVodCache.items.length){
+      return res.json({ success:true, cached:true, meta:__oryonTopVodCache.meta, items: __oryonTopVodCache.items.slice(0,limit) });
+    }
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+
+    // A) top streams now
+    const streamsData = await twitchAPI('streams?first=60', token);
+    const streams = (streamsData?.data || []).slice(0,60);
+    const streamUserIds = [...new Set(streams.map(s=>s.user_id).filter(Boolean))].slice(0,35);
+
+    // B) top games
+    const gamesData = await twitchAPI('games/top?first=20', token);
+    const games = (gamesData?.data || []).slice(0,20);
+    const gameIds = games.map(g=>g.id).filter(Boolean).slice(0,14);
+
+    const pool = [];
+
+    // fetch videos by user
+    const userTasks = streamUserIds.map(uid => async () => {
+      const v = await twitchAPI(`videos?user_id=${encodeURIComponent(uid)}&first=3&type=archive`, token);
+      return (v?.data || []).slice(0,3);
+    });
+    const userResults = await __twitchFetchWithConcurrency(userTasks, 3);
+    for(const arr of userResults){ if(Array.isArray(arr)) pool.push(...arr); }
+
+    // fetch videos by game
+    const gameTasks = gameIds.map(gid => async () => {
+      const v = await twitchAPI(`videos?game_id=${encodeURIComponent(gid)}&first=5&type=archive`, token);
+      return (v?.data || []).slice(0,5);
+    });
+    const gameResults = await __twitchFetchWithConcurrency(gameTasks, 3);
+    for(const arr of gameResults){ if(Array.isArray(arr)) pool.push(...arr); }
+
+    // de-dup by video id
+    const byId = new Map();
+    for(const row of pool){
+      if(!row || !row.id) continue;
+      if(byId.has(row.id)) continue;
+      // basic filtering: public, not too old
+      const created = Date.parse(row.created_at || '') || 0;
+      const ageDays = created ? ((Date.now()-created)/(24*36e5)) : 0;
+      if(ageDays > 30) continue;
+      if(String(row.type||'').toLowerCase() !== 'archive') continue;
+      byId.set(row.id, row);
+    }
+
+    const items = [...byId.values()]
+      .map(v => ({
+        type:'vod', provider:'twitch',
+        id: v.id,
+        title: v.title,
+        url: v.url,
+        thumbnail_url: __normalizeTwitchThumb(v.thumbnail_url),
+        duration: v.duration,
+        view_count: v.view_count,
+        created_at: v.created_at,
+        user_id: v.user_id,
+        user_name: v.user_name,
+        game_id: v.game_id,
+        game_name: v.game_name,
+        language: v.language,
+        score: __scoreVod(v)
+      }))
+      .sort((a,b)=> (b.score||0) - (a.score||0))
+      .slice(0, Math.max(limit, 60));
+
+    const meta = { streams: streams.length, users: streamUserIds.length, games: gameIds.length, pool: pool.length, unique: byId.size, ttlMs };
+    __oryonTopVodCache.ts = Date.now();
+    __oryonTopVodCache.items = items;
+    __oryonTopVodCache.meta = meta;
+
+    return res.json({ success:true, cached:false, meta, items: items.slice(0,limit) });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/vods/top', e.message);
+    return res.json({ success:true, items:[], reason:'server_error', error:e.message });
+  }
+});
+
 
 async function runGeminiAnalysis(prompt) {
   if (!aiClient) {
@@ -1404,72 +1540,37 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
   })();
 
   // -------- YouTube Data API (if key works) --------
-async function ytApiSearch(query, baseUrl){
-  const key = process.env.YOUTUBE_API_KEY || process.env.YT_API_KEY || '';
-  if(!key) return { ok:false, reason:'no_key' };
-
-  const params = new URLSearchParams({
-    part: 'snippet',
-    type: 'video',
-    videoEmbeddable: 'true',
-    safeSearch: 'moderate',
-    maxResults: '12',
-    q: query,
-    key
-  });
-  const url = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
-
-  const hdrs = baseUrl
-    ? { 'accept':'application/json', 'referer': baseUrl, 'origin': baseUrl }
-    : { 'accept':'application/json' };
-
-  const r = await fetchWithTimeout(url, { headers: hdrs }, 6500);
-  if(!r.ok){
-    let body = '';
-    try { body = await r.text(); } catch(_){}
-    return { ok:false, reason:'api_http_'+r.status, body: (body||'').slice(0,600) };
-  }
-  const data = await r.json();
-  const items = Array.isArray(data?.items) ? data.items : [];
-  const cand = items.filter(x => x?.id?.videoId && x?.snippet?.title);
-  if(!cand.length) return { ok:false, reason:'no_result' };
-
-  const ql = String(query||'').toLowerCase();
-  const toks = ql
-    .replace(/[^a-z0-9àâäçéèêëîïôöùûüÿñæœ\s]/gi,' ')
-    .split(/\s+/).filter(Boolean);
-
-  function scoreTitle(title){
-    const tl = String(title||'').toLowerCase();
-    let sc = 0;
-    if (tl.includes('trailer')) sc += 10;
-    if (tl.includes('bande annonce') || tl.includes('bande-annonce')) sc += 10;
-    if (tl.includes('official')) sc += 6;
-    if (tl.includes('cinematic') || tl.includes('cinématique')) sc += 4;
-    if (tl.includes('gameplay')) sc += 2;
-    for (const tok of toks){
-      if (tok.length < 3) continue;
-      if (tl.includes(tok)) sc += 2;
+  async function ytApiSearch(query){
+    if (!YOUTUBE_API_KEY) return { ok:false, reason:'missing_key' };
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=6&safeSearch=moderate&relevanceLanguage=${encodeURIComponent(lang === 'fr' ? 'fr' : 'en')}&regionCode=${encodeURIComponent(lang === 'fr' ? 'FR' : 'US')}&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+    const r = await fetchWithTimeout(url, {}, 5500).catch((e)=>({ ok:false, _err:e }));
+    if (!r || r.ok === false) {
+      return { ok:false, reason:'fetch_failed', err: r?._err?.message };
     }
-    if (tl.includes('reaction') || tl.includes('réaction')) sc -= 4;
-    if (tl.includes('compilation') || tl.includes('best of')) sc -= 3;
-    if (tl.includes('soundtrack') || tl.includes('ost')) sc -= 3;
-    return sc;
-  }
-
-  let pick = cand[0];
-  let best = -1e9;
-  for (const it of cand){
-    const sc = scoreTitle(it.snippet.title);
-    if (sc > best){
-      best = sc;
-      pick = it;
+    const status = r.status || 0;
+    const text = await r.text().catch(()=> '');
+    let data = null;
+    try { data = JSON.parse(text || '{}'); } catch(_) { data = null; }
+    if (!r.ok) {
+      const reason = data?.error?.errors?.[0]?.reason || data?.error?.message || 'youtube_api_error';
+      return { ok:false, reason, status, raw: debug ? text?.slice(0,400) : undefined };
     }
-  }
-  return { ok:true, videoId: pick.id.videoId, title: pick.snippet.title };
-}
+    const items = Array.isArray(data?.items) ? data.items : [];
+    const pick = items.find(x => x?.id?.videoId) || null;
+    if (!pick) return { ok:false, reason:'no_result' };
 
-// -------- Fallback: Invidious public instances --------
+    return {
+      ok:true,
+      data: {
+        videoId: pick.id.videoId,
+        title: pick.snippet?.title || '',
+        channelTitle: pick.snippet?.channelTitle || '',
+        publishedAt: pick.snippet?.publishedAt || ''
+      }
+    };
+  }
+
+  // -------- Fallback: Invidious public instances --------
   const INVIDIOUS = [
     "https://yewtu.be",
     "https://inv.nadeko.net",

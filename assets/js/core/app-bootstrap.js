@@ -3199,11 +3199,25 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       openFlag=true;
       root.classList.add('open');
       setTimeout(()=>{ try{ input.focus(); input.select(); }catch(_){} }, 20);
+
+      // When opening with empty query, show a global selection (Netflix-like)
+      try{
+        const q=(input.value||'').trim();
+        if(!q){
+          status.textContent='Top VOD…';
+          (async ()=>{
+            const items = await fetchTopVods();
+            if(!openFlag) return;
+            render(items);
+          })();
+        }
+      }catch(_){ }
     }
     function close(){
       if(!openFlag) return;
       openFlag=false;
       root.classList.remove('open');
+      inflight++;
       grid.innerHTML='';
       status.textContent='Tape pour chercher…';
     }
@@ -3212,6 +3226,13 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
     async function fetchVods(q){
       const u = `${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=28`;
+      const r = await fetch(u, { credentials:'include' });
+      const j = await r.json().catch(()=>null);
+      return (j && j.items) ? j.items : [];
+    }
+
+    async function fetchTopVods(){
+      const u = `${API_BASE}/api/twitch/vods/top?limit=28`;
       const r = await fetch(u, { credentials:'include' });
       const j = await r.json().catch(()=>null);
       return (j && j.items) ? j.items : [];

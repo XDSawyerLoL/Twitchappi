@@ -34,3 +34,9 @@ Deux options :
 - `GET /api/fantasy/leaderboard`
 
 > Les routes gardent `/api/fantasy/*` pour compatibilité front, mais l'UI affiche le nom **Portefeuille Marché du Streamer**.
+
+## ORYON TV — Endpoints Twitch (VOD)
+- `GET /api/twitch/vods/top?limit=60` : sélection globale "Top VOD" (heuristique: top streams + top games, cache serveur)
+- `GET /api/twitch/vods/random?min=20&max=200&lang=fr&limit=18` : VOD aléatoires chez les lives (20–200 viewers)
+- `GET /api/twitch/vods/search?title=<q>&min=20&max=200&lang=fr&limit=18` : recherche VOD (titre) chez les lives (20–200 viewers)
+
