@@ -528,6 +528,80 @@ const CACHE = {
 
 // YouTube trailer cache (reduces quota + stabilizes TwitFlix trailer search)
 const YT_TRAILER_CACHE = new Map();
+
+// --- YouTube trailer fallback (no API key) ---
+// Strategy:
+// 1) If YOUTUBE_API_KEY is provided -> use YouTube Data API v3 search.
+// 2) Otherwise -> scrape a search engine HTML result for the first youtube.com/watch?v=
+// This keeps trailers working on Render without requiring additional secrets.
+async function findYouTubeVideoIdFallback(query) {
+  const q = String(query || '').trim();
+  if (!q) return null;
+
+  // DuckDuckGo HTML endpoint is lightweight and often works without extra headers.
+  const url = `https://duckduckgo.com/html/?q=${encodeURIComponent('site:youtube.com ' + q)}`;
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; OryonTV/1.0; +https://example.invalid)',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    }
+  });
+  if (!res.ok) return null;
+  const html = await res.text();
+
+  // Look for watch URLs.
+  const m = html.match(/https?:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
+  if (m && m[1]) return m[1];
+
+  // Some results use youtu.be
+  const m2 = html.match(/https?:\/\/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (m2 && m2[1]) return m2[1];
+
+  return null;
+}
+
+async function findYouTubeTrailerVideo(query) {
+  const q = String(query || '').trim();
+  if (!q) return null;
+
+  // Try multiple phrasings (FR/EN) to maximize hit rate without spamming.
+  // Order matters: start with the most likely official/clean results.
+  const candidates = [
+    `${q} official trailer`,
+    `${q} trailer`,
+    `${q} bande annonce officielle`,
+    `${q} bande annonce`,
+    `${q} gameplay trailer`,
+    `${q} cinematic trailer`,
+  ];
+
+  // 1) YouTube Data API (if available)
+  if (process.env.YOUTUBE_API_KEY) {
+    for (const s of candidates) {
+      try {
+        const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&safeSearch=moderate&q=${encodeURIComponent(s)}&key=${encodeURIComponent(process.env.YOUTUBE_API_KEY)}`;
+        const r = await fetch(ytUrl);
+        if (r.ok) {
+          const j = await r.json();
+          const item = j?.items?.[0];
+          const vid = item?.id?.videoId;
+          const title = item?.snippet?.title;
+          if (vid) return { videoId: vid, title: title || q };
+        }
+      } catch (_) {
+        // continue
+      }
+    }
+  }
+
+  // 2) HTML fallback search (DuckDuckGo)
+  for (const s of candidates) {
+    const vid = await findYouTubeVideoIdFallback(s);
+    if (vid) return { videoId: vid, title: q };
+  }
+
+  return null;
+}
 const YT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 
@@ -1345,10 +1419,8 @@ app.post('/api/search/intent', async (req,res)=>{
 app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
   const q0 = String(req.query.q || '').trim();
   if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
-  if (!YOUTUBE_API_KEY) return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY missing' });
-
   const q = sanitizeText(q0, 120);
-  const key = q.toLowerCase();
+  const key = `trailer:${q.toLowerCase()}`;
 
   const cached = YT_TRAILER_CACHE.get(key);
   if (cached && (Date.now() - cached.ts) < YT_CACHE_TTL_MS) {
@@ -1356,25 +1428,26 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
   }
 
   try {
-    // bias toward embeddable trailers
-    const query = `${q} trailer`;
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=5&safeSearch=moderate&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
-    const r = await fetch(url);
-    const data = await r.json();
+    // "Implacable" search: multiple queries, fast timeouts, best-effort fallback.
+    // Prefer official trailers, but also accept "bande annonce" FR.
+    const queries = [
+      `${q} official trailer`,
+      `${q} trailer`,
+      `${q} bande annonce`,
+      `${q} trailer gameplay`,
+      `${q} cinematic trailer`,
+    ];
 
-    const items = Array.isArray(data.items) ? data.items : [];
-    const pick = items.find(x => x?.id?.videoId) || null;
-
-    if (!pick) {
-      return res.json({ success:false, error:'no_result' });
+    let out = null;
+    for (const qq of queries) {
+      // Uses API key if present; otherwise scrapes.
+      out = await findYouTubeTrailerVideo(qq);
+      if (out?.videoId) break;
     }
 
-    const out = {
-      videoId: pick.id.videoId,
-      title: pick.snippet?.title || '',
-      channelTitle: pick.snippet?.channelTitle || '',
-      publishedAt: pick.snippet?.publishedAt || ''
-    };
+    if (!out?.videoId) {
+      return res.json({ success:false, error:'no_result' });
+    }
 
     YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
     return res.json({ success:true, ...out });

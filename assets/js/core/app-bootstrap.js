@@ -855,6 +855,13 @@ window.addEventListener('message', (ev) => {
     async function tfResolveTrailerId(gameName){
       const name = String(gameName || '').trim();
       if (!name) return null;
+
+      // Skip obvious non-game categories to avoid wasting requests.
+      const NON_GAME = new Set([
+        'Just Chatting','Music','Art','ASMR','Sports','Travel & Outdoors','Food & Drink',
+        'Science & Technology','Makers & Crafting','Talk Shows & Podcasts','IRL'
+      ]);
+      if (NON_GAME.has(name)) return null;
       const key = name.toLowerCase();
       const now = Date.now();
 
@@ -869,7 +876,8 @@ window.addEventListener('message', (ev) => {
 
       // 2) server resolver (best, avoids CORS + no API key)
       try{
-        const q = `${name} game trailer`;
+        // Let the backend try multiple FR/EN phrasings; send raw name.
+        const q = `${name}`;
         const r = await fetch(`${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
@@ -1002,6 +1010,30 @@ window.addEventListener('message', (ev) => {
           }).catch(()=>{});
         }
 
+        wrap.appendChild(card);
+      });
+
+      // --- Bonus: movie trailers adapted from video games ---
+      const MOVIE_TRAILERS = [
+        { title: 'The Super Mario Bros. Movie', id: 'TnGl01FkMMo' },
+        { title: 'Sonic the Hedgehog', id: 'szby7ZHLnkA' },
+        { title: 'Detective Pikachu', id: '1roy4o4tqQM' },
+        { title: 'Warcraft', id: 'RhFMIRuHAL4' },
+        { title: 'Uncharted', id: 'eHp3MbsCbMg' },
+        { title: 'Five Nights at Freddy\'s', id: '0VH9WCFV6XQ' },
+      ];
+
+      MOVIE_TRAILERS.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'tf-trailer-card tf-trailer-movie';
+        card.innerHTML = `
+          <iframe
+            src="https://www.youtube.com/embed/${encodeURIComponent(m.id)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            loading="lazy"
+            title="Trailer - ${m.title}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
+          </iframe>
+        `;
         wrap.appendChild(card);
       });
     }
