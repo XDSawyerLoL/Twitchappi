@@ -149,6 +149,64 @@ async function addXP(user, delta){
 // =========================================================
 // 1. CONFIGURATION
 // =========================================================
+
+// =========================================================
+// SOCLE A+ : CACHE TTL (mémoire) + métriques
+// =========================================================
+const __ttlCache = new Map();
+const __cacheMetrics = { hit:0, miss:0, set:0, purge:0 };
+
+function cacheKey(req){
+  // Key stable: method + path + query
+  const q = req.originalUrl || req.url || '';
+  return req.method + ' ' + q;
+}
+
+function cacheGet(key){
+  const it = __ttlCache.get(key);
+  if(!it) { __cacheMetrics.miss++; return null; }
+  if(Date.now() > it.exp){
+    __ttlCache.delete(key);
+    __cacheMetrics.purge++;
+    __cacheMetrics.miss++;
+    return null;
+  }
+  __cacheMetrics.hit++;
+  return it.val;
+}
+
+function cacheSet(key, val, ttlMs){
+  __ttlCache.set(key, { val, exp: Date.now() + ttlMs });
+  __cacheMetrics.set++;
+}
+
+function withCache(ttlMs){
+  return async (req, res, next) => {
+    try{
+      const key = cacheKey(req);
+      const cached = cacheGet(key);
+      if(cached){
+        res.setHeader('X-Cache', 'HIT');
+        return res.json(cached);
+      }
+      // Wrap res.json to store
+      const orig = res.json.bind(res);
+      res.json = (body) => {
+        try{
+          // cache only success-ish JSON objects (avoid caching 401/500)
+          if(res.statusCode >= 200 && res.statusCode < 300){
+            cacheSet(key, body, ttlMs);
+            res.setHeader('X-Cache', 'MISS');
+          }
+        }catch(_){}
+        return orig(body);
+      };
+    }catch(_){}
+    next();
+  };
+}
+
+function cacheMetricsHandler(req, res){ return res.json({ success:true, cache: __cacheMetrics, size: __ttlCache.size }); }
 const app = express();
 app.set('trust proxy', 1);
 
@@ -178,50 +236,8 @@ app.use(helmet({
   } : false
 }));
 
-
-// =========================================================
-// 1.b REQUEST ID + LOGS STRUCTURÉS (SOCLE A)
-// =========================================================
-app.use((req, res, next) => {
-  try{
-    const rid = (crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(12).toString('hex'));
-    req.__rid = rid;
-    res.setHeader('X-Request-Id', rid);
-    const t0 = Date.now();
-    res.on('finish', () => {
-      const ms = Date.now() - t0;
-      const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
-      console.log(JSON.stringify({
-        t: new Date().toISOString(),
-        rid,
-        m: req.method,
-        p: req.originalUrl,
-        s: res.statusCode,
-        ms,
-        ip
-      }));
-    });
-  }catch(_){}
-  next();
-});
-
-// Rate limit par défaut sur /api (évite spam)
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-app.use('/api', apiLimiter);
-
-// Limites plus strictes pour routes coûteuses (YouTube/Twitch search)
-const heavyLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
+// Rate limit léger sur /api (évite spam)
+app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 300 }));
 
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -277,6 +293,21 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+
+// =========================================================
+// AUTH STATUS (use this instead of spamming billing/fantasy)
+// =========================================================
+app.get('/api/auth/status', (req, res) => {
+  try{
+    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    return res.json({ authenticated: !!tu, user: tu ? { id: tu.id, login: tu.login, display_name: tu.display_name } : null });
+
+app.get('/api/metrics/cache', cacheMetricsHandler);
+  }catch(_){
+    return res.json({ authenticated: false, user: null });
+  }
+});
+
 
 // =========================================================
 // 1B. STEAM OPENID (no manual SteamID64)
@@ -528,80 +559,6 @@ const CACHE = {
 
 // YouTube trailer cache (reduces quota + stabilizes TwitFlix trailer search)
 const YT_TRAILER_CACHE = new Map();
-
-// --- YouTube trailer fallback (no API key) ---
-// Strategy:
-// 1) If YOUTUBE_API_KEY is provided -> use YouTube Data API v3 search.
-// 2) Otherwise -> scrape a search engine HTML result for the first youtube.com/watch?v=
-// This keeps trailers working on Render without requiring additional secrets.
-async function findYouTubeVideoIdFallback(query) {
-  const q = String(query || '').trim();
-  if (!q) return null;
-
-  // DuckDuckGo HTML endpoint is lightweight and often works without extra headers.
-  const url = `https://duckduckgo.com/html/?q=${encodeURIComponent('site:youtube.com ' + q)}`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; OryonTV/1.0; +https://example.invalid)',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-    }
-  });
-  if (!res.ok) return null;
-  const html = await res.text();
-
-  // Look for watch URLs.
-  const m = html.match(/https?:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
-  if (m && m[1]) return m[1];
-
-  // Some results use youtu.be
-  const m2 = html.match(/https?:\/\/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-  if (m2 && m2[1]) return m2[1];
-
-  return null;
-}
-
-async function findYouTubeTrailerVideo(query) {
-  const q = String(query || '').trim();
-  if (!q) return null;
-
-  // Try multiple phrasings (FR/EN) to maximize hit rate without spamming.
-  // Order matters: start with the most likely official/clean results.
-  const candidates = [
-    `${q} official trailer`,
-    `${q} trailer`,
-    `${q} bande annonce officielle`,
-    `${q} bande annonce`,
-    `${q} gameplay trailer`,
-    `${q} cinematic trailer`,
-  ];
-
-  // 1) YouTube Data API (if available)
-  if (process.env.YOUTUBE_API_KEY) {
-    for (const s of candidates) {
-      try {
-        const ytUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&safeSearch=moderate&q=${encodeURIComponent(s)}&key=${encodeURIComponent(process.env.YOUTUBE_API_KEY)}`;
-        const r = await fetch(ytUrl);
-        if (r.ok) {
-          const j = await r.json();
-          const item = j?.items?.[0];
-          const vid = item?.id?.videoId;
-          const title = item?.snippet?.title;
-          if (vid) return { videoId: vid, title: title || q };
-        }
-      } catch (_) {
-        // continue
-      }
-    }
-  }
-
-  // 2) HTML fallback search (DuckDuckGo)
-  for (const s of candidates) {
-    const vid = await findYouTubeVideoIdFallback(s);
-    if (vid) return { videoId: vid, title: q };
-  }
-
-  return null;
-}
 const YT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 
@@ -677,7 +634,7 @@ async function twitchGetUserIdByLogin(login, token){
 }
 
 // Random VODs (used by UI rows)
-app.get('/api/twitch/vods/random', heavyLimiter, async (req, res) => {
+app.get('/api/twitch/vods/random', withCache(90000), async (req, res) => {
   try{
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
     const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
@@ -746,7 +703,7 @@ app.get('/api/twitch/vods/random', heavyLimiter, async (req, res) => {
 });
 
 // Search VODs by title among FR live streamers in viewer range
-app.get('/api/twitch/vods/search', heavyLimiter, async (req, res) => {
+app.get('/api/twitch/vods/search', withCache(90000), async (req, res) => {
   try{
     const title = String(req.query.title || req.query.q || '').trim();
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
@@ -1163,7 +1120,7 @@ app.post('/stream_info', async (req, res) => {
 
 // --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
 
-app.get('/api/categories/top', async (req, res) => {
+app.get('/api/categories/top', withCache(60000), async (req, res) => {
   try {
     // On supporte la pagination via "cursor"
     const cursor = req.query.cursor;
@@ -1416,11 +1373,13 @@ app.post('/api/search/intent', async (req,res)=>{
 
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME
-app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
+app.get('/api/youtube/trailer', withCache(60000), async (req, res) => {
   const q0 = String(req.query.q || '').trim();
   if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
+  if (!YOUTUBE_API_KEY) return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY missing' });
+
   const q = sanitizeText(q0, 120);
-  const key = `trailer:${q.toLowerCase()}`;
+  const key = q.toLowerCase();
 
   const cached = YT_TRAILER_CACHE.get(key);
   if (cached && (Date.now() - cached.ts) < YT_CACHE_TTL_MS) {
@@ -1428,26 +1387,25 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
   }
 
   try {
-    // "Implacable" search: multiple queries, fast timeouts, best-effort fallback.
-    // Prefer official trailers, but also accept "bande annonce" FR.
-    const queries = [
-      `${q} official trailer`,
-      `${q} trailer`,
-      `${q} bande annonce`,
-      `${q} trailer gameplay`,
-      `${q} cinematic trailer`,
-    ];
+    // bias toward embeddable trailers
+    const query = `${q} trailer`;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=5&safeSearch=moderate&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
+    const r = await fetch(url);
+    const data = await r.json();
 
-    let out = null;
-    for (const qq of queries) {
-      // Uses API key if present; otherwise scrapes.
-      out = await findYouTubeTrailerVideo(qq);
-      if (out?.videoId) break;
-    }
+    const items = Array.isArray(data.items) ? data.items : [];
+    const pick = items.find(x => x?.id?.videoId) || null;
 
-    if (!out?.videoId) {
+    if (!pick) {
       return res.json({ success:false, error:'no_result' });
     }
+
+    const out = {
+      videoId: pick.id.videoId,
+      title: pick.snippet?.title || '',
+      channelTitle: pick.snippet?.channelTitle || '',
+      publishedAt: pick.snippet?.publishedAt || ''
+    };
 
     YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
     return res.json({ success:true, ...out });
@@ -2809,7 +2767,8 @@ app.get('/api/fantasy/profile', async (req,res)=>{
     }
 
     // keep wallet cash in sync for leaderboard compatibility (do not erase holdings)
-    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
+    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }
+    return res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -3089,7 +3048,7 @@ server.listen(PORT, () => {
 
 
 // =========================================================
-// 9. SAFE ERROR HANDLER (évite crash silencieux)
+// SAFE ERROR HANDLER (évite crash silencieux)
 // =========================================================
 app.use((err, req, res, next) => {
   try{
