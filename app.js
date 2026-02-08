@@ -1347,17 +1347,76 @@ app.post('/api/search/intent', async (req,res)=>{
 // Prefers YouTube Data API if YOUTUBE_API_KEY is set; otherwise falls back to a lightweight
 // scrape of the YouTube search results page (no key required).
 async function youtubeScrapeFirstVideoId(query){
-  try{
-    const url = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query);
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const html = await r.text();
-    // videoId appears multiple times; take first plausible one
-    const m = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
-    return m ? m[1] : null;
-  }catch(e){
-    return null;
+  // Robust-ish HTML scrape of YouTube search results.
+  // NOTE: YouTube may show consent/interstitial pages; we try to bypass with a CONSENT cookie and stable params.
+  const q = String(query||'').trim();
+  if(!q) return null;
+
+  const params = new URLSearchParams({
+    search_query: q,
+    hl: 'en',
+    gl: 'US',
+    persist_hl: '1',
+    persist_gl: '1'
+  });
+  // Filter to videos when possible (same param YouTube uses for "Videos")
+  // EgIQAQ%3D%3D => videos only
+  params.set('sp','EgIQAQ%3D%3D');
+
+  const url = `https://www.youtube.com/results?${params.toString()}`;
+
+  const headers = {
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'accept-language': 'en-US,en;q=0.9,fr-FR;q=0.8,fr;q=0.7',
+    // Attempts to bypass the EU consent interstitial.
+    'cookie': 'CONSENT=YES+1; VISITOR_INFO1_LIVE=;'
+  };
+
+  const res = await fetch(url, { headers, redirect: 'follow' });
+  if(!res.ok) return null;
+  const html = await res.text();
+
+  // If we got a consent/interstitial, the HTML often contains no videoId at all.
+  // In that case, try a second request with an alternate gl/hl.
+  const looksLikeConsent = /consent\.youtube\.com|Before you continue to YouTube|consent\.google\.com/i.test(html);
+  let body = html;
+  if(looksLikeConsent){
+    const params2 = new URLSearchParams({
+      search_query: q,
+      hl: 'en',
+      gl: 'GB',
+      persist_hl: '1',
+      persist_gl: '1',
+      sp: 'EgIQAQ%3D%3D'
+    });
+    const url2 = `https://www.youtube.com/results?${params2.toString()}`;
+    const res2 = await fetch(url2, { headers, redirect: 'follow' });
+    if(res2.ok) body = await res2.text();
   }
+
+  // 1) Primary: JSON snippet in HTML
+  const ids = [];
+  const re1 = /"videoId":"([a-zA-Z0-9_-]{11})"/g;
+  let m1;
+  while((m1 = re1.exec(body))){
+    const id = m1[1];
+    if(!ids.includes(id)) ids.push(id);
+    if(ids.length >= 8) break;
+  }
+  if(ids.length) return ids[0];
+
+  // 2) Fallback: href="/watch?v=..."
+  const re2 = /href="\/watch\?v=([a-zA-Z0-9_-]{11})/g;
+  let m2;
+  while((m2 = re2.exec(body))){
+    const id = m2[1];
+    if(!ids.includes(id)) ids.push(id);
+    if(ids.length >= 8) break;
+  }
+  return ids[0] || null;
 }
+
 
 app.get('/api/youtube/trailer', async (req, res) => {
   try{
