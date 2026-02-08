@@ -10,90 +10,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
-
-// =========================================================
-// SOCLE A++ : timeouts & retries pour appels externes
-// =========================================================
-async function fetchWithTimeout(url, opts={}, timeoutMs=8000){
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
-  try{
-    const res = await fetch(url, Object.assign({}, opts, { signal: controller.signal }));
-    return res;
-  } finally {
-    clearTimeout(t);
-  }
-}
-async function fetchJsonWithRetry(url, opts={}, timeoutMs=8000, retries=1){
-  let lastErr = null;
-  for(let i=0;i<=retries;i++){
-    try{
-      const res = await fetchWithTimeout(url, opts, timeoutMs);
-      if(!res.ok){
-        const txt = await res.text().catch(()=> '');
-        throw new Error('HTTP '+res.status+' '+txt.slice(0,120));
-      }
-      return await res.json();
-    }catch(e){
-      lastErr = e;
-      if(i<retries) await new Promise(r=>setTimeout(r, 250*(i+1)));
-    }
-
-// =========================================================
-// SOCLE A+++ : Concurrency limiter + Circuit Breaker (externals)
-// =========================================================
-class Semaphore{
-  constructor(max){ this.max=max; this.cur=0; this.q=[]; }
-  async acquire(){
-    if(this.cur < this.max){ this.cur++; return; }
-    await new Promise(resolve => this.q.push(resolve));
-    this.cur++;
-  }
-  release(){
-    this.cur = Math.max(0, this.cur-1);
-    const next = this.q.shift();
-    if(next) next();
-  }
-}
-function makeBreaker(name, {failWindowMs=60000, failThreshold=5, openMs=30000}={}){
-  let fails=[]; // timestamps
-  let openUntil=0;
-  return {
-    can(){
-      const now=Date.now();
-      if(now < openUntil) return false;
-      // purge old
-      fails = fails.filter(t => now - t < failWindowMs);
-      return true;
-    },
-    ok(){
-      // success: optional decay
-    },
-    fail(){
-      const now=Date.now();
-      fails.push(now);
-      fails = fails.filter(t => now - t < failWindowMs);
-      if(fails.length >= failThreshold){
-        openUntil = now + openMs;
-        try{ console.warn('[BREAKER]', name, 'OPEN', {fails:fails.length}); }catch(_){}
-      }
-    },
-    status(){
-      const now=Date.now();
-      fails = fails.filter(t => now - t < failWindowMs);
-      return { name, open: now < openUntil, openForMs: Math.max(0, openUntil-now), fails: fails.length };
-    }
-  };
-}
-const semTwitch = new Semaphore(Number(process.env.CONCURRENCY_TWITCH||4));
-const semYouTube = new Semaphore(Number(process.env.CONCURRENCY_YOUTUBE||3));
-const brTwitch = makeBreaker('twitch', {});
-const brYouTube = makeBreaker('youtube', {});
-
-  }
-  throw lastErr;
-}
-
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
@@ -150,98 +66,6 @@ try {
   }
 } catch (e) {}
 
-
-
-// =========================================================
-// SOCLE B : PROVIDERS (interop) — Adapter + Firestore schema
-// =========================================================
-const PROVIDERS = [
-  { id:'twitch', label:'Twitch', type:'oauth' },
-  { id:'steam', label:'Steam', type:'openid' },
-  { id:'riot', label:'Riot', type:'oauth' },
-  { id:'epic', label:'Epic Games', type:'oauth' },
-  { id:'ubisoft', label:'Ubisoft', type:'oauth' },
-  { id:'xbox', label:'Xbox', type:'oauth' }
-];
-
-const PROVIDER_USERS = 'users'; // users/{uid}/connections/{provider}
-
-function userIdFromSession(req){
-  const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
-  if(!tu) return null;
-  return String(tu.id || tu.login || tu.display_name || '');
-}
-function connectionRef(uid, providerId){
-  return db.collection(PROVIDER_USERS).doc(uid).collection('connections').doc(providerId);
-}
-async function getConnection(uid, providerId){
-  if(!firestoreOk || !uid) return null;
-  const snap = await connectionRef(uid, providerId).get();
-  return snap.exists ? snap.data() : null;
-}
-async function setConnection(uid, providerId, data){
-  if(!firestoreOk || !uid) return;
-  await connectionRef(uid, providerId).set({
-    providerId,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    ...data
-  }, { merge:true });
-}
-async function deleteConnection(uid, providerId){
-  if(!firestoreOk || !uid) return;
-  await connectionRef(uid, providerId).delete().catch(()=>{});
-}
-
-// Helper: unified status (session + firestore)
-async function providerStatus(req, providerId){
-  const uid = userIdFromSession(req);
-  const base = PROVIDERS.find(p=>p.id===providerId) || { id: providerId, label: providerId, type:'unknown' };
-
-  // Session-derived quick status
-  let sessionConnected = false;
-  let sessionMeta = null;
-
-  if(providerId === 'twitch'){
-    const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
-    sessionConnected = !!tu;
-    if(tu) sessionMeta = { id: tu.id, login: tu.login, display_name: tu.display_name, profile_image_url: tu.profile_image_url };
-  }
-  if(providerId === 'steam'){
-    const st = req.session && req.session.steam ? req.session.steam : null;
-    sessionConnected = !!(st && st.steamid);
-    if(st) sessionMeta = { steamid: st.steamid, personaName: st.profile?.personaname || null };
-  }
-
-  let dbConnected = false;
-  let dbMeta = null;
-  if(uid){
-    const conn = await getConnection(uid, providerId);
-    if(conn && conn.connected){
-      dbConnected = true;
-      dbMeta = conn.meta || null;
-    }
-  }
-  return {
-    id: base.id,
-    label: base.label,
-    type: base.type,
-    connected: sessionConnected || dbConnected,
-    sessionConnected,
-    dbConnected,
-    meta: sessionMeta || dbMeta || null
-  };
-}
-
-// Provider connect URLs (front can open these)
-// Twitch: /twitch_auth_start already exists
-// Steam: /auth/steam/start already exists
-function providerConnectUrl(req, providerId){
-  const baseUrl = getBaseUrl ? getBaseUrl(req) : `${req.protocol}://${req.get('host')}`;
-  if(providerId === 'twitch') return `${baseUrl}/twitch_auth_start`;
-  if(providerId === 'steam') return `${baseUrl}/auth/steam/start`;
-  // Placeholders for future OAuth providers
-  return null;
-}
 
 // =========================================================
 // 0.B HUB CHAT PERSISTENCE + GIF PROXY (SAFE)
@@ -325,110 +149,6 @@ async function addXP(user, delta){
 // =========================================================
 // 1. CONFIGURATION
 // =========================================================
-
-// =========================================================
-// SOCLE A+ : CACHE TTL (mémoire) + métriques
-// =========================================================
-
-// =========================================================
-// SOCLE A++ : validation légère des entrées + helpers
-// =========================================================
-function qStr(req, key, maxLen=120){
-  const v = (req.query && req.query[key] != null) ? String(req.query[key]) : '';
-  const s = v.trim().slice(0, maxLen);
-  return s;
-}
-function qInt(req, key, defVal, minVal, maxVal){
-  const raw = (req.query && req.query[key] != null) ? String(req.query[key]) : '';
-  let n = parseInt(raw, 10);
-  if(Number.isNaN(n)) n = defVal;
-  if(minVal != null) n = Math.max(minVal, n);
-  if(maxVal != null) n = Math.min(maxVal, n);
-  return n;
-}
-function qEnum(req, key, allowed, defVal){
-  const v = qStr(req, key, 40).toLowerCase();
-  return allowed.includes(v) ? v : defVal;
-}
-
-const __ttlCache = new Map();
-const __cacheMetrics = { hit:0, miss:0, set:0, purge:0 };
-
-function cacheKey(req){
-  // Key stable: method + path + query
-  const q = req.originalUrl || req.url || '';
-  return req.method + ' ' + q;
-}
-
-function cacheGet(key){
-  const it = __ttlCache.get(key);
-  if(!it) { __cacheMetrics.miss++; return null; }
-  if(Date.now() > it.exp){
-    __ttlCache.delete(key);
-    __cacheMetrics.purge++;
-    __cacheMetrics.miss++;
-    return null;
-  }
-  __cacheMetrics.hit++;
-  return it.val;
-}
-
-function cacheSet(key, val, ttlMs){
-  __ttlCache.set(key, { val, exp: Date.now() + ttlMs });
-  __cacheMetrics.set++;
-}
-
-function withCache(ttlMs){
-  return async (req, res, next) => {
-    try{
-      const key = cacheKey(req);
-      const cached = cacheGet(key);
-      if(cached){
-        res.setHeader('X-Cache', 'HIT');
-        return res.json(cached);
-      }
-      // Wrap res.json to store
-      const orig = res.json.bind(res);
-      res.json = (body) => {
-        try{
-          // cache only success-ish JSON objects (avoid caching 401/500)
-          if(res.statusCode >= 200 && res.statusCode < 300){
-            cacheSet(key, body, ttlMs);
-            res.setHeader('X-Cache', 'MISS');
-          }
-        }catch(_){}
-        return orig(body);
-      };
-    }catch(_){}
-    next();
-  };
-}
-
-// =========================================================
-// SOCLE A+++ : Cache bounds + purge périodique
-// =========================================================
-const __ttlCacheMax = Number(process.env.CACHE_MAX_ITEMS || 2000);
-setInterval(() => {
-  try{
-    const now = Date.now();
-    // purge expired
-    for(const [k,v] of __ttlCache.entries()){
-      if(now > v.exp) { __ttlCache.delete(k); __cacheMetrics.purge++; }
-    }
-    // hard cap (remove oldest-ish by exp)
-    if(__ttlCache.size > __ttlCacheMax){
-      const entries = Array.from(__ttlCache.entries()).sort((a,b)=>a[1].exp - b[1].exp);
-      const toRemove = __ttlCache.size - __ttlCacheMax;
-      for(let i=0;i<toRemove;i++){
-        __ttlCache.delete(entries[i][0]);
-        __cacheMetrics.purge++;
-      }
-    }
-  }catch(_){}
-}, 15000).unref();
-
-
-function cacheMetricsHandler(req, res){ return res.json({ success:true, cache: __cacheMetrics, size: __ttlCache.size }); }
 const app = express();
 app.set('trust proxy', 1);
 
@@ -458,8 +178,50 @@ app.use(helmet({
   } : false
 }));
 
-// Rate limit léger sur /api (évite spam)
-app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 300 }));
+
+// =========================================================
+// 1.b REQUEST ID + LOGS STRUCTURÉS (SOCLE A)
+// =========================================================
+app.use((req, res, next) => {
+  try{
+    const rid = (crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(12).toString('hex'));
+    req.__rid = rid;
+    res.setHeader('X-Request-Id', rid);
+    const t0 = Date.now();
+    res.on('finish', () => {
+      const ms = Date.now() - t0;
+      const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
+      console.log(JSON.stringify({
+        t: new Date().toISOString(),
+        rid,
+        m: req.method,
+        p: req.originalUrl,
+        s: res.statusCode,
+        ms,
+        ip
+      }));
+    });
+  }catch(_){}
+  next();
+});
+
+// Rate limit par défaut sur /api (évite spam)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use('/api', apiLimiter);
+
+// Limites plus strictes pour routes coûteuses (YouTube/Twitch search)
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -483,23 +245,14 @@ if (GEMINI_API_KEY) {
 
 // CORS: multi-domain (set CORS_ORIGINS="https://prod.com,https://staging.com")
 const CORS_ORIGINS = (process.env.CORS_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
-
-// =========================================================
-// SOCLE A+++ : CORS allowlist (env ALLOWED_ORIGINS)
-// =========================================================
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
-const corsOptions = {
+app.use(cors({
   origin: function(origin, cb){
-    // allow same-origin / server-to-server
     if(!origin) return cb(null, true);
-    if(ALLOWED_ORIGINS.length === 0) return cb(null, true); // keep backward-compatible
-    if(ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    return cb(new Error('CORS blocked'));
+    if(!CORS_ORIGINS.length) return cb(null, true); // default: allow all (previous behavior)
+    return cb(null, CORS_ORIGINS.includes(origin));
   },
   credentials: true
-};
-
-app.use(cors(corsOptions));
+}));
 app.use(bodyParser.json({ limit: '2mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -524,107 +277,6 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
-
-// =========================================================
-// AUTH STATUS (use this instead of spamming billing/fantasy)
-// =========================================================
-app.get('/api/auth/status', (req, res) => {
-  try{
-    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
-    return res.json({ authenticated: !!tu, user: tu ? { id: tu.id, login: tu.login, display_name: tu.display_name } : null });
-
-// =========================================================
-// SOCLE B : PROVIDERS API
-// =========================================================
-app.get('/api/providers/list', (req, res) => {
-  return res.json({ success:true, providers: PROVIDERS });
-});
-
-app.get('/api/providers/status', async (req, res) => {
-  try{
-    const out = [];
-    for(const p of PROVIDERS){
-      out.push(await providerStatus(req, p.id));
-    }
-    return res.json({ success:true, providers: out });
-  }catch(e){
-    return res.status(500).json({ success:false, error:'providers_status_failed' });
-  }
-});
-
-app.get('/api/providers/:providerId/status', async (req, res) => {
-  try{
-    const pid = String(req.params.providerId||'').toLowerCase();
-    if(!PROVIDERS.find(p=>p.id===pid)) return res.status(404).json({ success:false, error:'unknown_provider' });
-    const st = await providerStatus(req, pid);
-    return res.json({ success:true, provider: st });
-  }catch(_){
-    return res.status(500).json({ success:false, error:'provider_status_failed' });
-  }
-});
-
-app.get('/api/providers/:providerId/connect_url', (req, res) => {
-  const pid = String(req.params.providerId||'').toLowerCase();
-  const url = providerConnectUrl(req, pid);
-  if(!url) return res.status(400).json({ success:false, error:'no_connect_url' });
-  return res.json({ success:true, url });
-});
-
-// Manual connect (placeholder for Riot/Epic/Ubisoft/Xbox until OAuth wired):
-// Stores non-secret identifiers only (no tokens).
-app.post('/api/providers/:providerId/connect/manual', express.json(), async (req, res) => {
-  try{
-    const pid = String(req.params.providerId||'').toLowerCase();
-    if(!PROVIDERS.find(p=>p.id===pid)) return res.status(404).json({ success:false, error:'unknown_provider' });
-    const uid = userIdFromSession(req);
-    if(!uid) return res.status(401).json({ success:false, error:'unauthorized' });
-
-    const handle = sanitizeName(req.body?.handle || '', 64);
-    const externalId = sanitizeText(req.body?.externalId || '', 128);
-
-    await setConnection(uid, pid, {
-      connected: true,
-      linkedAt: admin.firestore.FieldValue.serverTimestamp(),
-      meta: { handle: handle || null, externalId: externalId || null, mode:'manual' }
-    });
-
-    return res.json({ success:true });
-  }catch(e){
-    return res.status(500).json({ success:false, error:'manual_connect_failed' });
-  }
-});
-
-app.post('/api/providers/:providerId/disconnect', async (req, res) => {
-  try{
-    const pid = String(req.params.providerId||'').toLowerCase();
-    if(!PROVIDERS.find(p=>p.id===pid)) return res.status(404).json({ success:false, error:'unknown_provider' });
-    const uid = userIdFromSession(req);
-    if(!uid) return res.status(401).json({ success:false, error:'unauthorized' });
-
-    await deleteConnection(uid, pid);
-
-    // Also clear session bits for known providers
-    if(pid === 'steam') req.session.steam = null;
-    if(pid === 'twitch') req.session.twitchUser = null;
-
-    req.session.save(() => res.json({ success:true }));
-  }catch(e){
-    return res.status(500).json({ success:false, error:'disconnect_failed' });
-  }
-});
-
-
-app.get('/api/metrics/cache', cacheMetricsHandler);
-app.get('/api/metrics/externals', (req,res)=>res.json({ success:true, twitch: brTwitch.status(), youtube: brYouTube.status() }));
-
-app.get('/healthz', (req, res) => {
-  res.json({ ok:true, uptime: process.uptime(), ts: new Date().toISOString() });
-});
-  }catch(_){
-    return res.json({ authenticated: false, user: null });
-  }
-});
-
 
 // =========================================================
 // 1B. STEAM OPENID (no manual SteamID64)
@@ -728,18 +380,6 @@ app.get('/auth/steam/return', async (req, res) => {
         const tu = req.session?.twitchUser;
         if(tu) await setBillingSteam(tu, req.session.steam);
       }catch(_){ }
-      // Socle B: persist connection (steam) if Twitch user present
-      try{
-        const tu = req.session?.twitchUser;
-        if(tu && tu.id){
-          await setConnection(String(tu.id), 'steam', {
-            connected: true,
-            linkedAt: admin.firestore.FieldValue.serverTimestamp(),
-            meta: { steamid: String(steamid), personaName: profile?.personaname || null }
-          });
-        }
-      }catch(_){}
-
 
       // Optional: if front sends Firebase idToken later, we can persist the link.
       return res.redirect(`/steam/connected?ok=1&next=${encodeURIComponent(next)}`);
@@ -963,7 +603,7 @@ async function twitchGetUserIdByLogin(login, token){
 }
 
 // Random VODs (used by UI rows)
-app.get('/api/twitch/vods/random', withCache(90000), async (req, res) => {
+app.get('/api/twitch/vods/random', heavyLimiter, async (req, res) => {
   try{
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
     const max = Math.max(min+1, parseInt(req.query.max || '200', 10) || 200);
@@ -1032,7 +672,7 @@ app.get('/api/twitch/vods/random', withCache(90000), async (req, res) => {
 });
 
 // Search VODs by title among FR live streamers in viewer range
-app.get('/api/twitch/vods/search', withCache(90000), async (req, res) => {
+app.get('/api/twitch/vods/search', heavyLimiter, async (req, res) => {
   try{
     const title = String(req.query.title || req.query.q || '').trim();
     const min = Math.max(0, parseInt(req.query.min || '20', 10) || 20);
@@ -1354,15 +994,6 @@ app.get('/twitch_auth_callback', async (req, res) => {
       expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000)
     };
 
-    // Socle B: persist connection (twitch)
-    try{
-      await setConnection(String(user.id), 'twitch', {
-        connected: true,
-        linkedAt: admin.firestore.FieldValue.serverTimestamp(),
-        meta: { id: user.id, login: user.login, display_name: user.display_name, profile_image_url: user.profile_image_url }
-      });
-    }catch(_){}
-
     // If Steam was connected before Twitch, persist it now so it becomes permanent.
     try{
       if(req.session?.steam?.steamid){
@@ -1389,21 +1020,10 @@ app.get('/twitch_auth_callback', async (req, res) => {
   }
 });
 
-app.post('/twitch_logout', async (req, res) => {
-  try{
-    const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
-    const uid = tu && tu.id ? String(tu.id) : null;
-
-    // Clear session
-    req.session.twitchUser = null;
-
-    // Socle B: clear persisted connection
-    if(uid) await deleteConnection(uid, 'twitch');
-  }catch(_){}
-
+app.post('/twitch_logout', (req, res) => {
+  req.session.twitchUser = null;
   req.session.save(() => res.json({ success: true }));
 });
-
 
 app.get('/twitch_user_status', (req, res) => {
   const u = req.session?.twitchUser;
@@ -1469,7 +1089,7 @@ app.post('/stream_info', async (req, res) => {
 
 // --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
 
-app.get('/api/categories/top', withCache(60000), async (req, res) => {
+app.get('/api/categories/top', async (req, res) => {
   try {
     // On supporte la pagination via "cursor"
     const cursor = req.query.cursor;
@@ -1722,7 +1342,7 @@ app.post('/api/search/intent', async (req,res)=>{
 
 // YouTube trailer search (server-side) — for TwitFlix trailers carousel
 // Front can call: GET /api/youtube/trailer?q=GAME_NAME
-app.get('/api/youtube/trailer', withCache(60000), async (req, res) => {
+app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
   const q0 = String(req.query.q || '').trim();
   if (!q0) return res.status(400).json({ success:false, error:'q manquant' });
   if (!YOUTUBE_API_KEY) return res.status(400).json({ success:false, error:'YOUTUBE_API_KEY missing' });
@@ -2592,8 +2212,6 @@ app.get('/api/costream/best', async (req, res) => {
 // 14. SERVER START + SOCKET.IO
 // =========================================================
 const server = http.createServer(app);
-setupGracefulShutdown(server);
-
 
 // Prevent proxies (Render/Cloudflare) from closing long-polling connections too aggressively
 server.keepAliveTimeout = 120000; // 120s
@@ -3118,8 +2736,7 @@ app.get('/api/fantasy/profile', async (req,res)=>{
     }
 
     // keep wallet cash in sync for leaderboard compatibility (do not erase holdings)
-    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }
-    return res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
+    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -3398,173 +3015,8 @@ server.listen(PORT, () => {
 });
 
 
-
 // =========================================================
-// SOCLE B+ : Unified Content API (provider-agnostic)
-// =========================================================
-function normalizeContentItem(item){
-  // Ensure stable shape
-  return {
-    id: String(item.id || ''),
-    type: String(item.type || ''),
-    provider: String(item.provider || ''),
-    title: item.title || '',
-    game: item.game || null,
-    channel: item.channel || null,
-    language: item.language || null,
-    viewers: (item.viewers != null ? Number(item.viewers) : null),
-    duration: item.duration || null,
-    thumbnail: item.thumbnail || null,
-    url: item.url || null,
-    embed: item.embed || null,
-    tags: Array.isArray(item.tags) ? item.tags : [],
-    isLive: !!item.isLive,
-    createdAt: item.createdAt || null
-  };
-}
-
-function makeEmbed(provider, type, payload, req){
-  const parent = (req && req.hostname) ? req.hostname : (req && req.get ? req.get('host') : 'localhost');
-  if(provider === 'twitch'){
-    if(type === 'live'){
-      return { kind:'iframe', src:`https://player.twitch.tv/?channel=${encodeURIComponent(payload.channel)}&parent=${encodeURIComponent(parent)}&theme=dark&autoplay=true` };
-    }
-    if(type === 'vod'){
-      const vid = String(payload.videoId||payload.id||'').replace(/^v/i,'');
-      return { kind:'iframe', src:`https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${encodeURIComponent(parent)}&theme=dark&autoplay=true` };
-    }
-  }
-  // default: link-only
-  return null;
-}
-
-// Provider-specific fetchers (return arrays of normalized-ish objects)
-async function fetchTwitchLive({ lang, minViewers, maxViewers, limit }, req){
-  // Existing app already has a cache+cron streams list; use the same memory list if available.
-  // Fallback: call existing endpoint logic via internal function if present; here we do minimal: reuse /api/streams handler is not callable, so return empty if no list.
-  const list = globalThis.__ORYON_LIVE_STREAMS || null;
-  if(!list) return [];
-  return list
-    .filter(s => (!lang || (String(s.language||'').toLowerCase()===lang)) )
-    .filter(s => (minViewers==null || Number(s.viewers||0)>=minViewers))
-    .filter(s => (maxViewers==null || Number(s.viewers||0)<=maxViewers))
-    .slice(0, limit)
-    .map(s => ({
-      id: s.user_login || s.user_name || s.id,
-      type: 'live',
-      provider: 'twitch',
-      title: s.title || '',
-      game: s.game_name || null,
-      channel: s.user_login || s.user_name || null,
-      language: s.language || null,
-      viewers: s.viewer_count || s.viewers || null,
-      thumbnail: s.thumbnail_url || null,
-      url: s.user_login ? `https://twitch.tv/${s.user_login}` : null,
-      embed: makeEmbed('twitch','live',{ channel: s.user_login || s.user_name }, req),
-      tags: s.tags || [],
-      isLive: true,
-      createdAt: s.started_at || null
-    }))
-    .map(normalizeContentItem);
-}
-
-async function fetchTwitchVods({ query, game, lang, minViewers, maxViewers, limit }, req){
-  // Reuse existing endpoint /api/twitch/vods/search to avoid rewriting logic.
-  const params = new URLSearchParams();
-  if(query) params.set('title', query);
-  if(game && !query) params.set('title', game);
-  if(lang) params.set('lang', lang);
-  if(minViewers!=null) params.set('min', String(minViewers));
-  if(maxViewers!=null) params.set('max', String(maxViewers));
-  params.set('limit', String(limit));
-  const baseUrl = getBaseUrl(req);
-  const url = `${baseUrl}/api/twitch/vods/search?${params.toString()}`;
-  const data = await fetchJsonWithRetry(url, { headers: { 'Accept':'application/json' } }, 8000, 0).catch(()=>null);
-  const items = (data && data.items) ? data.items : [];
-  return items.map(v => normalizeContentItem({
-    id: v.id || v.videoId || v.video_id,
-    type: 'vod',
-    provider: 'twitch',
-    title: v.title || '',
-    game: v.game || v.game_name || null,
-    channel: v.channel || v.user_login || v.user_name || null,
-    language: v.language || lang || null,
-    viewers: v.viewers || v.viewer_count || null,
-    duration: v.duration || null,
-    thumbnail: v.thumbnail || v.thumbnail_url || null,
-    url: v.url || (v.id ? `https://twitch.tv/videos/${v.id}` : null),
-    embed: makeEmbed('twitch','vod',{ videoId: v.id || v.videoId || v.video_id }, req),
-    tags: v.tags || [],
-    isLive: false,
-    createdAt: v.createdAt || v.created_at || null
-  }));
-}
-
-async function fetchTwitchClips({ query, game, lang, limit }, req){
-  // If an existing clips endpoint exists, reuse; else return empty.
-  const baseUrl = getBaseUrl(req);
-  const url = `${baseUrl}/api/clips?limit=${encodeURIComponent(String(limit||12))}`;
-  const data = await fetchJsonWithRetry(url, { headers: { 'Accept':'application/json' } }, 8000, 0).catch(()=>null);
-  const items = (data && (data.items||data.clips)) ? (data.items||data.clips) : [];
-  return items.map(c => normalizeContentItem({
-    id: c.id || c.clip_id,
-    type: 'clip',
-    provider: 'twitch',
-    title: c.title || '',
-    game: c.game || c.game_name || null,
-    channel: c.channel || c.broadcaster_login || c.broadcaster_name || null,
-    language: c.language || lang || null,
-    viewers: c.view_count || null,
-    duration: c.duration || null,
-    thumbnail: c.thumbnail_url || c.thumbnail || null,
-    url: c.url || null,
-    embed: null,
-    tags: c.tags || [],
-    isLive: false,
-    createdAt: c.created_at || null
-  }));
-}
-
-// Unified router
-app.get('/api/content', withCache(30000), async (req, res) => {
-  try{
-    const provider = qEnum(req, 'provider', PROVIDERS.map(p=>p.id), 'twitch');
-    const type = qEnum(req, 'type', ['live','vod','clip'], 'live');
-    const lang = qEnum(req, 'lang', ['fr','en','es','de','it','pt'], 'fr');
-    const limit = qInt(req, 'limit', 24, 1, 60);
-
-    const minViewers = qInt(req, 'min', 20, 0, 100000);
-    const maxViewers = qInt(req, 'max', 200, 0, 100000);
-
-    const query = qStr(req, 'q', 120);
-    const game = qStr(req, 'game', 80);
-
-    // Future: switch per provider
-    if(provider === 'twitch'){
-      if(type === 'live'){
-        const items = await fetchTwitchLive({ lang, minViewers, maxViewers, limit }, req);
-        return res.json({ success:true, provider, type, items });
-      }
-      if(type === 'vod'){
-        const items = await fetchTwitchVods({ query, game, lang, minViewers, maxViewers, limit }, req);
-        return res.json({ success:true, provider, type, items });
-      }
-      if(type === 'clip'){
-        const items = await fetchTwitchClips({ query, game, lang, limit }, req);
-        return res.json({ success:true, provider, type, items });
-      }
-    }
-
-    // Placeholder for other providers until adapters exist
-    return res.json({ success:true, provider, type, items: [] });
-  }catch(e){
-    return res.status(500).json({ success:false, error:'content_failed' });
-  }
-});
-
-
-// =========================================================
-// SAFE ERROR HANDLER (évite crash silencieux)
+// 9. SAFE ERROR HANDLER (évite crash silencieux)
 // =========================================================
 app.use((err, req, res, next) => {
   try{
@@ -3573,25 +3025,3 @@ app.use((err, req, res, next) => {
   if(res.headersSent) return next(err);
   return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
 });
-
-
-// =========================================================
-// SOCLE A++ : arrêt propre (Render / Docker)
-// =========================================================
-function setupGracefulShutdown(server){
-  const shut = (sig) => {
-    try{ console.log('[SHUTDOWN]', sig); }catch(_){}
-    try{
-      server.close(() => {
-        try{ console.log('[SHUTDOWN] closed'); }catch(_){}
-        process.exit(0);
-      });
-      // force exit after 8s
-      setTimeout(() => process.exit(1), 8000).unref();
-    }catch(_){
-      process.exit(1);
-    }
-  };
-  process.on('SIGTERM', () => shut('SIGTERM'));
-  process.on('SIGINT', () => shut('SIGINT'));
-}

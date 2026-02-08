@@ -132,7 +132,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   let d = null;
   try{
-    const r = await oryonFetchJson(`${API_BASE}/api/billing/me`);
+    const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include' });
     d = await r.json().catch(()=>null);
   }catch(_e){ d = null; }
 
@@ -155,7 +155,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   // Portfolio preview (fallback: use fantasy wallet cash)
   try{
-    const fr = await oryonFetchJson(`${API_BASE}/api/fantasy/profile`);
+    const fr = await fetch(`${API_BASE}/api/fantasy/profile`, { credentials:'include' });
     const fj = await fr.json().catch(()=>null);
     const cash = Number(fj?.cash ?? fj?.wallet?.cash ?? 0) || 0;
 
@@ -2931,50 +2931,3 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         `;
         document.head.appendChild(st);
       }
-
-
-// =========================================================
-// ORYON STABILITY: fetch wrapper with 401 backoff
-// =========================================================
-const __oryon401Backoff = new Map();
-async function oryonFetchJson(url, opts){
-  const key = String(url || '');
-  const now = Date.now();
-  const nextAllowed = __oryon401Backoff.get(key) || 0;
-  if(now < nextAllowed){
-    return { __blocked:true, status:401, blockedUntil: nextAllowed };
-  }
-  const res = await fetch(url, Object.assign({ credentials:'include' }, opts||{}));
-  if(res.status === 401){
-    const ra = Number(res.headers.get('Retry-After') || 5);
-    __oryon401Backoff.set(key, now + Math.min(Math.max(ra, 2), 15)*1000);
-  }
-  let data = null;
-  try{ data = await res.json(); }catch(_){}
-  data = data || {};
-  data.__status = res.status;
-  return data;
-}
-
-
-let __oryonAuthState = { authenticated:false, checked:false };
-async function oryonCheckAuth(){
-  try{
-    const st = await oryonFetchJson(`${API_BASE}/api/auth/status`);
-    __oryonAuthState = { authenticated: !!st.authenticated, checked:true, user: st.user || null };
-    return __oryonAuthState;
-  }catch(_){
-    __oryonAuthState = { authenticated:false, checked:true };
-    return __oryonAuthState;
-  }
-}
-
-(function oryonPeriodicAuthCheck(){
-  try{
-    let last = 0;
-    setInterval(async ()=>{
-      if(document.hidden) return;
-      await oryonCheckAuth();
-    }, 15000);
-  }catch(_){}
-})();
