@@ -1032,22 +1032,31 @@ window.addEventListener('message', (ev) => {
     }
 
 function tfNormalizeBoxArt(url){
-  // Force HD boxarts to avoid "blurry" upscale in the ORYON TV rows.
-  // Twitch templates often return URLs with {width}x{height} (or %{width}x%{height}).
-  const desiredW = 600, desiredH = 800;
+  // Force higher-res boxarts to avoid "blurry" upscale in the ORYON TV rows.
+  // Uses devicePixelRatio to request sharper images on HiDPI screens.
   const u = String(url || '');
   if (!u) return '';
+
+  const dpr = Math.min(2, (window.devicePixelRatio || 1));
+  const desiredW = Math.round(900 * dpr);
+  const desiredH = Math.round(1200 * dpr);
+
   let out = u
     .replace(/%\{width\}|\{width\}/g, String(desiredW))
     .replace(/%\{height\}|\{height\}/g, String(desiredH));
 
-  // IGDB size upgrades (if the upstream provider uses IGDB-style paths)
+  // If the provider uses fixed dimensions in the path (e.g. "-285x380.jpg"), upgrade them.
+  out = out.replace(/-(\d{2,4})x(\d{2,4})\.(jpg|jpeg|png|webp)\b/gi, `-${desiredW}x${desiredH}.$3`);
+
+  // IGDB size upgrades (if IGDB covers)
   out = out.replace(/\/t_thumb\//g,'/t_cover_big_2x/')
            .replace(/\/t_cover_small\//g,'/t_cover_big_2x/')
            .replace(/\/t_cover_big\//g,'/t_cover_big_2x/');
 
   // Common query params
-  out = out.replace(/([?&])w=\d+/g,'$1w=' + desiredW).replace(/([?&])h=\d+/g,'$1h=' + desiredH);
+  out = out.replace(/([?&])w=\d+/g,'$1w=' + desiredW)
+           .replace(/([?&])h=\d+/g,'$1h=' + desiredH);
+
   return out;
 }
 
@@ -1099,7 +1108,7 @@ const modal = document.getElementById('twitflix-modal');
 	    st.id = 'tf-ux-hotfix';
 	    st.textContent = `
 	      /* sharper posters */
-	      .tf-card .tf-poster{ image-rendering:auto; filter:none !important; }
+	      .tf-card .tf-poster{ image-rendering:auto; filter:none !important; transform:none !important; backface-visibility:hidden; }\n\t      .tf-card{ transform: translateZ(0); }
 	      .tf-card{ overflow: hidden; }
 	      /* overlays must not steal mouse clicks */
 	      .tf-card .tf-overlay, .tf-card .tf-preview{ pointer-events:none !important; }
