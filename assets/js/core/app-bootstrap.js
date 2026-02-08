@@ -932,7 +932,8 @@ window.addEventListener('message', (ev) => {
           `${base} official trailer`,
         ];
 
-        const resolved = await tfTrailerEnqueue(async () => {
+        // bugfix: use the actual queue function name
+        const resolved = await tfEnqueueTrailerLookup(async () => {
           for (const q of variants){
             const url = `${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}&hl=fr&gl=FR`;
             const r = await fetch(url, { cache: 'no-store' });
@@ -945,13 +946,15 @@ window.addEventListener('message', (ev) => {
 
         if (resolved){
           tfTrailerCache.set(key, { id: resolved, t: now });
-          tfTrailerPersist();
+          // bugfix: use the actual persist function name
+          tfPersistTrailerCache();
           return resolved;
         }
       }catch(_){}
 
       tfTrailerCache.set(key, { id: null, t: now });
-      tfTrailerPersist();
+      // bugfix: use the actual persist function name
+      tfPersistTrailerCache();
       return null;
     }
 
@@ -1061,7 +1064,18 @@ window.addEventListener('message', (ev) => {
 
           // Auto-resolve, then swap in the iframe
           tfResolveTrailerId(gameName).then((autoId)=>{
-            if (!autoId) return;
+            if (!autoId){
+              // Show a deterministic end state instead of a forever-loading card.
+              const meta = card.querySelector('.tf-trailer-meta');
+              if(meta){
+                meta.innerHTML = `
+                  <div class="tf-title">${gameName}</div>
+                  <div class="tf-sub">Trailer introuvable</div>
+                `;
+              }
+              card.classList.add('tf-no-trailer');
+              return;
+            }
             card.innerHTML = `
               <iframe
                 src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
