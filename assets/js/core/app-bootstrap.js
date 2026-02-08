@@ -2948,6 +2948,8 @@ function tfPollGamepad(){
   const X  = tfPressed(gp.buttons?.[2]); // X / Square
   const LB = tfPressed(gp.buttons?.[4]); // LB
   const RB = tfPressed(gp.buttons?.[5]); // RB
+  const LT = tfPressed(gp.buttons?.[6]); // LT
+  const RT = tfPressed(gp.buttons?.[7]); // RT
 
   // edge detection + cooldown
   const prev = tfGpPrev;
@@ -2961,6 +2963,8 @@ function tfPollGamepad(){
     if(edge('r', dRight)) { tfMoveFocus(1,0);  prev.t = now; return; }
     if(edge('LB', LB))    { tfScrollTrackPage(-1); prev.t = now; return; }
     if(edge('RB', RB))    { tfScrollTrackPage(1);  prev.t = now; return; }
+    if(edge('LT', LT))    { tfMoveFocus(0,-1); prev.t = now; return; }
+    if(edge('RT', RT))    { tfMoveFocus(0,1);  prev.t = now; return; }
     if(edge('u', dUp))    { tfMoveFocus(0,-1); prev.t = now; return; }
     if(edge('d', dDown))  { tfMoveFocus(0,1);  prev.t = now; return; }
   }
