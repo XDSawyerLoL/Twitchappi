@@ -1032,9 +1032,11 @@ window.addEventListener('message', (ev) => {
     }
 
 function tfNormalizeBoxArt(url){
-  const u = String(url || '');
+  
+  const desiredW=1000, desiredH=1400;
+const u = String(url || '');
   if (!u) return '';
-  let out = u.replace('{width}','2000').replace('{height}','2666');
+  let out = u.replace('{width}','desiredW').replace('{height}','desiredH');
   out = out.replace(/\/t_thumb\//g,'/t_cover_big_2x/')
            .replace(/\/t_cover_small\//g,'/t_cover_big_2x/')
            .replace(/\/t_cover_big\//g,'/t_cover_big_2x/');
@@ -1093,6 +1095,7 @@ const modal = document.getElementById('twitflix-modal');
 	      .tf-card{ overflow: hidden; }
 	      /* overlays must not steal mouse clicks */
 	      .tf-card .tf-overlay, .tf-card .tf-preview{ pointer-events:none !important; }
+      .tf-card .tf-actions-row, .tf-card .tf-actions-row *{ pointer-events:auto !important; }
 	      /* keep images crisp when scaled */
 	      .tf-card .tf-poster{ transform: translateZ(0); backface-visibility:hidden; }
 	    `;
@@ -1544,7 +1547,47 @@ const modal = document.getElementById('twitflix-modal');
       return row;
     }
 
-    function tfBuildCard(cat){
+    
+function tfEnsurePeekBar(){
+  let bar = document.getElementById('tf-peekbar');
+  if(bar) return bar;
+  bar = document.createElement('div');
+  bar.id = 'tf-peekbar';
+  bar.className = 'tf-peekbar';
+  bar.style.cssText = 'position:fixed;left:18px;bottom:18px;z-index:99999;max-width:520px;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.68);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(10px);opacity:0;transform:translateY(8px);transition:opacity .18s ease, transform .18s ease;pointer-events:none;';
+  bar.innerHTML = '<div style="font-weight:900;letter-spacing:.4px"> </div><div style="opacity:.85;font-size:12px;margin-top:2px"></div>';
+  document.body.appendChild(bar);
+  return bar;
+}
+let tfPeekTimer = null;
+function tfShowPeek(meta){
+  const bar = tfEnsurePeekBar();
+  const t = bar.children[0], s = bar.children[1];
+  t.textContent = meta.title || '';
+  s.textContent = meta.sub || '';
+  bar.style.opacity = '1';
+  bar.style.transform = 'translateY(0px)';
+}
+function tfHidePeek(){
+  const bar = document.getElementById('tf-peekbar');
+  if(!bar) return;
+  bar.style.opacity = '0';
+  bar.style.transform = 'translateY(8px)';
+}
+function tfSchedulePeekFromCard(card){
+  if(tfPeekTimer) clearTimeout(tfPeekTimer);
+  tfPeekTimer = setTimeout(()=>{
+    try{
+      if(document.activeElement !== card) return;
+      const title = card.dataset.gameName || card.getAttribute('aria-label') || 'Contenu';
+      const platform = card.dataset.platform || 'Twitch';
+      const viewers = card.dataset.viewers ? ` • ${card.dataset.viewers} viewers` : '';
+      const tags = card.dataset.tags ? ` • ${card.dataset.tags}` : '';
+      tfShowPeek({ title: title.replace('(ouvrir)','').trim(), sub: platform + viewers + tags });
+    }catch(_){}
+  }, 320);
+}
+function tfBuildCard(cat){
       const div = document.createElement('div');
       div.className = 'tf-card';
       div.tabIndex = 0;
@@ -1569,8 +1612,11 @@ const modal = document.getElementById('twitflix-modal');
       `;
 
       // hero update on hover/focus
-      div.addEventListener('mouseenter', () => tfSetHero({ title: cat.name, poster }));
-      div.addEventListener('focus', () => tfSetHero({ title: cat.name, poster }));
+      div.addEventListener('mouseenter', () => { tfSetHero({ title: cat.name, poster }); tfSchedulePeekFromCard(div); });
+      div.addEventListener('focus', () => { tfSetHero({ title: cat.name, poster }); tfSchedulePeekFromCard(div); });
+
+      div.addEventListener('mouseleave', tfHidePeek);
+      div.addEventListener('blur', tfHidePeek);
 
       // click play
       div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
@@ -2635,28 +2681,64 @@ function tfSetupRowPaging(rowEl){
   }catch(_){}
 }
 
+
+// tfGlobalClickDelegate: make mouse clicks reliable even with draggable rows / overlays
+(function tfGlobalClickDelegate(){
+  if (window.__tfGlobalClickDelegate) return;
+  window.__tfGlobalClickDelegate = true;
+  document.addEventListener('click', function(e){
+    const t = e.target;
+    if(!t) return;
+    const pill = t.closest && t.closest('.tf-pill');
+    const card = t.closest && t.closest('.tf-card');
+    if(!card) return;
+
+    // if user clicked on a pill, prioritize its intent
+    if(pill){
+      const txt = (pill.textContent||'').toLowerCase();
+      if(txt.includes('lire') || txt.includes('play')){
+        e.preventDefault(); e.stopPropagation();
+        card.click(); // card.onclick already routes (category or VOD)
+        return;
+      }
+      if(txt.includes('preview')){
+        e.preventDefault(); e.stopPropagation();
+        try{ window.tfPreviewCard && window.tfPreviewCard(card); }catch(_){}
+        return;
+      }
+    }
+  }, true);
+})();
 function tfEnableTrackDrag(track){
   if(!track || track.__tfDrag) return;
-  let down=false, startX=0, startScroll=0;
+  track.__tfDrag = true;
+  let down=false, startX=0, startScroll=0, moved=false;
+  const TAP_SLOP = 6; // px
   track.addEventListener('pointerdown',(e)=>{
-    down=true; startX=e.clientX; startScroll=track.scrollLeft;
-    track.setPointerCapture(e.pointerId);
-  });
+    down=true; moved=false;
+    startX=e.clientX; startScroll=track.scrollLeft;
+  }, {passive:true});
   track.addEventListener('pointermove',(e)=>{
     if(!down) return;
     const dx = e.clientX - startX;
+    if (Math.abs(dx) > TAP_SLOP) moved=true;
     track.scrollLeft = startScroll - dx;
-  });
-  track.addEventListener('pointerup',()=>{ down=false; });
-  track.addEventListener('pointercancel',()=>{ down=false; });
-  // wheel vertical => horizontal when over track
-  track.addEventListener('wheel',(e)=>{
-    if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
-      track.scrollLeft += e.deltaY;
-      e.preventDefault();
+  }, {passive:true});
+  track.addEventListener('pointerup',(e)=>{
+    if(!down) return;
+    down=false;
+    // If it was a tap (no drag), forward a click to the card under cursor
+    if(!moved){
+      try{
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const card = el && el.closest ? el.closest('.tf-card') : null;
+        if(card){
+          card.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true, view:window}));
+        }
+      }catch(_){}
     }
-  }, {passive:false});
-  track.__tfDrag=true;
+  }, {passive:true});
+  track.addEventListener('pointercancel',()=>{ down=false; moved=false; }, {passive:true});
 }
 
 function tfEnableBigPictureNav(){
