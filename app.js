@@ -1361,7 +1361,8 @@ async function youtubeScrapeFirstVideoId(query){
 
 app.get('/api/youtube/trailer', async (req, res) => {
   try{
-    const title = String(req.query.title || '').trim();
+    // Compatibility: front calls with ?q=..., older builds used ?title=...
+    const title = String(req.query.title || req.query.q || req.query.query || '').trim();
     if(!title) return res.status(400).json({ ok:false, error:'missing title' });
 
     const q = `${title} official trailer`;
