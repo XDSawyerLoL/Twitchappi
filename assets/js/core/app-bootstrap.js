@@ -1202,6 +1202,11 @@ const modal = document.getElementById('twitflix-modal');
 	      /* sharper posters */
 	      .tf-card .tf-poster{ image-rendering:auto; filter:none !important; transform:none !important; backface-visibility:hidden; }\n\t      .tf-card{ transform: translateZ(0); }
 	      .tf-card{ overflow: hidden; }
+	      /* VOD aesthetics */
+	      .tf-card.tf-is-vod .tf-name{ font-size: 13px; line-height: 1.15; }
+	      .tf-card.tf-is-vod .tf-subline{ margin-top: 6px; font-size: 11px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	      .tf-card.tf-is-vod .tf-overlay{ background: linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.35), rgba(0,0,0,0)); }
+	      .tf-card.tf-is-vod .tf-vod-badge{ position:absolute; top:10px; left:10px; padding:4px 8px; border-radius: 999px; font-size: 11px; background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(4px); }
 	      /* overlays must not steal mouse clicks */
 	      .tf-card .tf-overlay, .tf-card .tf-preview{ pointer-events:none !important; }
       .tf-card .tf-actions-row, .tf-card .tf-actions-row *{ pointer-events:auto !important; }
@@ -1352,7 +1357,9 @@ const modal = document.getElementById('twitflix-modal');
       if (tfTopVodLoading) return;
       tfTopVodLoading = true;
       try{
-        const r = await fetch(`${API_BASE}/api/twitch/vods/top?limit=28`, { credentials:'include' });
+        // FR + "small creators" (best-effort) to match ORYON UX target.
+        // We fetch more than we display so we can build category rails client-side.
+        const r = await fetch(`${API_BASE}/api/twitch/vods/top?lang=fr&small=1&limit=80`, { credentials:'include' });
         const d = await r.json().catch(()=>null);
         if (r.ok && d && Array.isArray(d.items)){
           tfTopVodResults = d.items.map(v=>({
@@ -1370,6 +1377,75 @@ const modal = document.getElementById('twitflix-modal');
       }finally{
         tfTopVodLoading = false;
       }
+    }
+
+    // Simple game->genre mapping for "Top VOD par catégories".
+    // (Best-effort: Twitch does not provide a universal genre taxonomy.)
+    function tfVodGenreFromGameName(gameName){
+      const g = String(gameName || '').toLowerCase();
+      if(!g) return '';
+      // FPS
+      if(/counter-?strike|cs2|valorant|apex|fortnite|call of duty|warzone|overwatch|rainbow six|tarkov|battlefield|pubg/.test(g)) return 'fps';
+      // RPG / ARPG / MMO
+      if(/world of warcraft|wow|diablo|path of exile|elden ring|baldur|skyrim|final fantasy|guild wars|lost ark|genshin|starfield/.test(g)) return 'rpg';
+      // Fighting / combat
+      if(/street fighter|tekken|mortal kombat|smash|guilty gear|dragon ball fighterz|ufc|boxing/.test(g)) return 'combat';
+      return '';
+    }
+
+    function tfDecorateVodCard(card, vod){
+      try{
+        if(!card || !vod) return;
+        card.classList.add('tf-is-vod');
+        // Disable game preview for VOD cards
+        card.querySelectorAll('.tf-preview').forEach(el=>{ try{ el.remove(); }catch(_){} });
+        // Replace title with a shorter one for readability
+        const nameEl = card.querySelector('.tf-name');
+        if(nameEl){
+          const t = String(vod.title || vod.game_name || 'VOD');
+          nameEl.textContent = t.length > 56 ? (t.slice(0,56) + '…') : t;
+          nameEl.title = t;
+        }
+        // Subline (channel • game • views)
+        const ov = card.querySelector('.tf-overlay');
+        if(ov && !ov.querySelector('.tf-subline')){
+          const sub = document.createElement('div');
+          sub.className = 'tf-subline';
+          const ch = vod.broadcaster_name || vod.user_name || '';
+          const gm = vod.game_name || '';
+          const vw = vod.view_count ? `${Number(vod.view_count).toLocaleString()} vues` : '';
+          sub.textContent = [ch, gm, vw].filter(Boolean).join(' • ');
+          ov.insertBefore(sub, ov.querySelector('.tf-actions-row') || null);
+        }
+        // Badge (duration)
+        if(!card.querySelector('.tf-vod-badge')){
+          const b = document.createElement('div');
+          b.className = 'tf-vod-badge';
+          b.textContent = String(vod.duration || '').toUpperCase();
+          card.appendChild(b);
+        }
+        // Ensure clicks open VOD (delegate already does), but prevent game click fallback
+        card.onclick = null;
+      }catch(_){ }
+    }
+
+    function tfBuildVodRow(titleHtml, vodItems, rowId){
+      const cats = (vodItems||[]).map(v=>({
+        id: v.id,
+        name: v.title || v.game_name || 'VOD',
+        box_art_url: tfNormalizeTwitchThumb(v.thumbnail_url || ''),
+        _vod: v
+      }));
+      const row = tfBuildRow(titleHtml, cats, rowId);
+      row.querySelectorAll('.tf-card').forEach((card, idx)=>{
+        const v = vodItems[idx];
+        if(!v) return;
+        card.dataset.vodId = String(v.id || '').replace(/^v/i,'');
+        card.dataset.platform = 'Twitch VOD';
+        card.dataset.viewers = v.view_count ? String(v.view_count) : '';
+        tfDecorateVodCard(card, v);
+      });
+      return row;
     }
 
     async function tfRunSearch(query){
@@ -1597,7 +1673,7 @@ const modal = document.getElementById('twitflix-modal');
       }
 
 
-      // Netflix-like: Global Top VOD row (Twitch archives)
+      // Netflix-like: Top VOD rows (Twitch archives)
       if (tfViewMode !== 'az'){
         if (tfTopVodLoading && !tfTopVodResults.length){
           const row = document.createElement('div');
@@ -1611,16 +1687,19 @@ const modal = document.getElementById('twitflix-modal');
           `;
           host.appendChild(row);
         } else if (tfTopVodResults && tfTopVodResults.length){
-          const vodRow = tfBuildRow('Top VOD <span>(Global)</span>', tfTopVodResults.map(x => ({ id:x.id, name:x.name, box_art_url:x.box_art_url })), 'tf-top-vod-row');
-          vodRow.querySelectorAll('.tf-card').forEach((card, idx)=>{
-            const v = tfTopVodResults[idx]?._vod;
-            if(!v) return;
-            card.dataset.vodId = String(v.id || '').replace(/^v/i,'');
-            // metadata for peekbar
-            card.dataset.platform = 'Twitch VOD';
-            card.dataset.viewers = v.view_count ? String(v.view_count) : '';
-          });
-          host.appendChild(vodRow);
+          const vodAll = tfTopVodResults.map(x=>x._vod).filter(Boolean);
+
+          // Global row
+          host.appendChild(tfBuildVodRow('Top VOD <span>(FR)</span>', vodAll.slice(0, 22), 'tf-top-vod-row'));
+
+          // Category rows (best-effort mapping)
+          const fps = vodAll.filter(v=>tfVodGenreFromGameName(v.game_name)==='fps').slice(0, 22);
+          const rpg = vodAll.filter(v=>tfVodGenreFromGameName(v.game_name)==='rpg').slice(0, 22);
+          const combat = vodAll.filter(v=>tfVodGenreFromGameName(v.game_name)==='combat').slice(0, 22);
+
+          if (fps.length >= 8) host.appendChild(tfBuildVodRow('Top VOD FPS <span>(FR)</span>', fps, 'tf-top-vod-fps-row'));
+          if (rpg.length >= 8) host.appendChild(tfBuildVodRow('Top VOD RPG <span>(FR)</span>', rpg, 'tf-top-vod-rpg-row'));
+          if (combat.length >= 8) host.appendChild(tfBuildVodRow('Top VOD Combat <span>(FR)</span>', combat, 'tf-top-vod-combat-row'));
         } else {
           // if not loaded yet, trigger load once
           try{ tfLoadTopVods(false).then(()=>{ if(tfModalOpen && !tfSearchQuery) renderTwitFlix(); }); }catch(_){ }
@@ -3299,7 +3378,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     }
 
     async function fetchTopVods(){
-      const u = `${API_BASE}/api/twitch/vods/top?limit=28`;
+      const u = `${API_BASE}/api/twitch/vods/top?lang=fr&small=1&limit=28`;
       const r = await fetch(u, { credentials:'include' });
       const j = await r.json().catch(()=>null);
       return (j && j.items) ? j.items : [];

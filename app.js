@@ -758,6 +758,30 @@ app.get('/api/twitch/vods/search', heavyLimiter, async (req, res) => {
 // =========================================================
 const __oryonTopVodCache = { ts: 0, items: [], meta: null };
 
+// Channel enrichment cache (broadcaster_language, display_name, etc.)
+// Note: Twitch Helix does not expose follower count with an app token.
+// We can still enrich videos with broadcaster_language via /helix/channels.
+const __oryonChannelCache = new Map(); // broadcaster_id -> { ts:number, data:object|null }
+
+async function __getChannelInfo(broadcasterId, token){
+  const id = String(broadcasterId || '').trim();
+  if (!id) return null;
+  const now = Date.now();
+  const cached = __oryonChannelCache.get(id);
+  const TTL = 60 * 60 * 1000; // 1h
+  if (cached && cached.ts && (now - cached.ts) < TTL) return cached.data;
+
+  try{
+    const d = await twitchAPI(`channels?broadcaster_id=${encodeURIComponent(id)}`, token);
+    const ch = (d?.data && d.data[0]) ? d.data[0] : null;
+    __oryonChannelCache.set(id, { ts: now, data: ch });
+    return ch;
+  }catch(_){
+    __oryonChannelCache.set(id, { ts: now, data: null });
+    return null;
+  }
+}
+
 function __normalizeTwitchThumb(url, w=540, h=720){
   if(!url) return '';
   return String(url)
@@ -807,8 +831,16 @@ app.get('/api/twitch/vods/top', heavyLimiter, async (req, res) => {
     const limit = Math.min(Math.max(1, parseInt(req.query.limit || '60', 10) || 60), 120);
     const ttlMs = Math.min(Math.max(60_000, parseInt(req.query.ttlMs || '900000', 10) || 900_000), 3_600_000); // 1m..60m
 
+    // Filters (best-effort)
+    const lang = String(req.query.lang || '').trim().toLowerCase(); // e.g. 'fr'
+    // "small" tries to favor smaller creators. Twitch follower counts are not available with an app token,
+    // so we approximate using view_count thresholds + diversity (1 VOD per channel).
+    const small = String(req.query.small || '').trim() === '1' || String(req.query.small || '').trim().toLowerCase() === 'true';
+    const maxViews = Math.min(Math.max(0, parseInt(req.query.maxViews || (small ? '200000' : '0'), 10) || 0), 5_000_000);
+
     if(__oryonTopVodCache.ts && (Date.now() - __oryonTopVodCache.ts) < ttlMs && Array.isArray(__oryonTopVodCache.items) && __oryonTopVodCache.items.length){
-      return res.json({ success:true, cached:true, meta:__oryonTopVodCache.meta, items: __oryonTopVodCache.items.slice(0,limit) });
+      const filtered = await __filterTopVodItems(__oryonTopVodCache.items, { lang, small, maxViews });
+      return res.json({ success:true, cached:true, meta:__oryonTopVodCache.meta, items: filtered.slice(0,limit) });
     }
 
     const token = await getTwitchToken('app');
@@ -855,7 +887,7 @@ app.get('/api/twitch/vods/top', heavyLimiter, async (req, res) => {
       byId.set(row.id, row);
     }
 
-    const items = [...byId.values()]
+    let items = [...byId.values()]
       .map(v => ({
         type:'vod', provider:'twitch',
         id: v.id,
@@ -875,17 +907,72 @@ app.get('/api/twitch/vods/top', heavyLimiter, async (req, res) => {
       .sort((a,b)=> (b.score||0) - (a.score||0))
       .slice(0, Math.max(limit, 60));
 
+    // Best-effort enrichment: broadcaster language from /helix/channels
+    const tokenForEnrich = token;
+    const uniqUsers = [...new Set(items.map(x=>x.user_id).filter(Boolean))].slice(0, 80);
+    const enrichTasks = uniqUsers.map(uid => async ()=>({ uid, ch: await __getChannelInfo(uid, tokenForEnrich) }));
+    const enrichRes = await __twitchFetchWithConcurrency(enrichTasks, 4);
+    const byUser = new Map();
+    for(const r of enrichRes){
+      if(r && r.uid) byUser.set(r.uid, r.ch || null);
+    }
+    items = items.map(it => {
+      const ch = byUser.get(it.user_id) || null;
+      const bl = ch && ch.broadcaster_language ? String(ch.broadcaster_language).toLowerCase() : '';
+      return {
+        ...it,
+        broadcaster_language: bl,
+        broadcaster_name: ch?.broadcaster_name || it.user_name
+      };
+    });
+
+    // Apply requested filters after caching base list
+    const filteredNow = await __filterTopVodItems(items, { lang, small, maxViews });
+
     const meta = { streams: streams.length, users: streamUserIds.length, games: gameIds.length, pool: pool.length, unique: byId.size, ttlMs };
     __oryonTopVodCache.ts = Date.now();
     __oryonTopVodCache.items = items;
     __oryonTopVodCache.meta = meta;
 
-    return res.json({ success:true, cached:false, meta, items: items.slice(0,limit) });
+    return res.json({ success:true, cached:false, meta, items: filteredNow.slice(0,limit) });
   }catch(e){
     console.warn('⚠️ /api/twitch/vods/top', e.message);
     return res.json({ success:true, items:[], reason:'server_error', error:e.message });
   }
 });
+
+async function __filterTopVodItems(items, opts){
+  const arr = Array.isArray(items) ? items : [];
+  const lang = String(opts?.lang || '').trim().toLowerCase();
+  const small = !!opts?.small;
+  const maxViews = Number(opts?.maxViews || 0) || 0;
+
+  // Language filter: prefer video.language, fallback to broadcaster_language.
+  const langFiltered = !lang ? arr : arr.filter(it => {
+    const l = String(it.language || it.broadcaster_language || '').toLowerCase();
+    return l === lang || l.startsWith(lang);
+  });
+
+  // Best-effort "small creators" filter.
+  // Twitch follower count is not exposed with an app token, so we use view_count threshold + diversity.
+  let out = langFiltered;
+  if (maxViews > 0){
+    out = out.filter(it => (Number(it.view_count || 0) || 0) <= maxViews);
+  }
+  if (small){
+    const seen = new Set();
+    const dedup = [];
+    for (const it of out){
+      const uid = String(it.user_id || '');
+      if (!uid) continue;
+      if (seen.has(uid)) continue; // 1 VOD per channel
+      seen.add(uid);
+      dedup.push(it);
+    }
+    out = dedup;
+  }
+  return out;
+}
 
 
 async function runGeminiAnalysis(prompt) {
