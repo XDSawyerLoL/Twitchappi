@@ -849,8 +849,62 @@ window.addEventListener('message', (ev) => {
     };
 
     // ====== AUTO TRAILER RESOLVER (no more manual IDs) ======
+    // We throttle + persist results.
+    // Reason: the UI can request many trailers at once (18+ tiles) and we hit API
+    // limits (YouTube/Invidious). Persisting lets us load instantly on next visit.
+
+    const TF_TRAILER_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+    const TF_TRAILER_LS_KEY = 'oryon_tv_trailer_cache_v1';
+
     const tfTrailerCache = new Map(); // key -> { id, t }
-    const TF_TRAILER_TTL = 24 * 60 * 60 * 1000;
+
+    (function tfLoadTrailerCache(){
+      try {
+        const raw = localStorage.getItem(TF_TRAILER_LS_KEY);
+        if(!raw) return;
+        const obj = JSON.parse(raw);
+        const now = Date.now();
+        for(const k of Object.keys(obj||{})){
+          const v = obj[k];
+          if(v && v.id && v.t && (now - v.t) < TF_TRAILER_TTL){
+            tfTrailerCache.set(k, { id: v.id, t: v.t });
+          }
+        }
+      } catch(e) {}
+    })();
+
+    function tfPersistTrailerCache(){
+      try {
+        const out = {};
+        for(const [k,v] of tfTrailerCache.entries()) out[k] = v;
+        localStorage.setItem(TF_TRAILER_LS_KEY, JSON.stringify(out));
+      } catch(e) {}
+    }
+
+    // Small promise queue to avoid firing too many parallel trailer lookups.
+    const tfTrailerQueue = [];
+    let tfTrailerInFlight = 0;
+    const TF_TRAILER_CONCURRENCY = 2;
+
+    function tfEnqueueTrailerLookup(fn){
+      return new Promise((resolve) => {
+        tfTrailerQueue.push(async () => {
+          try { resolve(await fn()); } catch(e){ resolve(null); }
+        });
+        tfDrainTrailerQueue();
+      });
+    }
+
+    async function tfDrainTrailerQueue(){
+      while(tfTrailerInFlight < TF_TRAILER_CONCURRENCY && tfTrailerQueue.length){
+        const job = tfTrailerQueue.shift();
+        tfTrailerInFlight++;
+        Promise.resolve().then(job).finally(() => {
+          tfTrailerInFlight--;
+          setTimeout(tfDrainTrailerQueue, 0);
+        });
+      }
+    }
 
     async function tfResolveTrailerId(gameName){
       const name = String(gameName || '').trim();
@@ -868,19 +922,36 @@ window.addEventListener('message', (ev) => {
       }
 
       // 2) server resolver (best, avoids CORS + no API key)
+      // Throttled via a tiny queue to avoid 18 parallel calls.
       try{
-        const q = `${name} game trailer`;
-        const r = await fetch(`${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}`);
-        if (r.ok){
-          const d = await r.json();
-          if (d && d.success && d.videoId){
-            tfTrailerCache.set(key, { id: d.videoId, t: now });
-            return d.videoId;
+        const base = name;
+        const variants = [
+          base,
+          `${base} trailer`,
+          `${base} bande annonce`,
+          `${base} official trailer`,
+        ];
+
+        const resolved = await tfTrailerEnqueue(async () => {
+          for (const q of variants){
+            const url = `${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}&hl=fr&gl=FR`;
+            const r = await fetch(url, { cache: 'no-store' });
+            if (!r.ok) continue;
+            const d = await r.json();
+            if (d && d.success && d.videoId) return d.videoId;
           }
+          return null;
+        });
+
+        if (resolved){
+          tfTrailerCache.set(key, { id: resolved, t: now });
+          tfTrailerPersist();
+          return resolved;
         }
       }catch(_){}
 
       tfTrailerCache.set(key, { id: null, t: now });
+      tfTrailerPersist();
       return null;
     }
 
