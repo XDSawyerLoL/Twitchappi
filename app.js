@@ -27,24 +27,6 @@ const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
 
 // =========================================================
-// HTTP helper: fetch with timeout (node-fetch)
-// =========================================================
-// Some routes (notably /api/youtube/trailer) used to reference fetchWithTimeout
-// without defining it, which could make the YouTube lookup "partially" work only
-// when cached (and otherwise 500). Keep the helper local and dependency-free.
-function fetchWithTimeout(url, options = {}, timeoutMs = 5500){
-  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const t = setTimeout(() => {
-    try{ controller?.abort(); }catch(_){ }
-  }, Math.max(100, Number(timeoutMs) || 5500));
-
-  const opts = controller ? { ...options, signal: controller.signal } : { ...options };
-
-  return Promise.resolve(fetch(url, opts))
-    .finally(() => clearTimeout(t));
-}
-
-// =========================================================
 // 0. INITIALISATION FIREBASE
 // =========================================================
 let serviceAccount;
@@ -549,6 +531,39 @@ const YT_TRAILER_CACHE = new Map();
 const YT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 
+
+
+// --- fetchWithTimeout helper (prevents hanging requests) ---
+function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  const opts = { ...options, signal: controller.signal };
+  return fetch(url, opts).finally(() => clearTimeout(t));
+}
+
+// --- simple concurrency gate for YouTube requests (avoid quota bursts) ---
+const YT_MAX_CONCURRENCY = Number(process.env.YT_MAX_CONCURRENCY || 2);
+let ytActive = 0;
+const ytQueue = [];
+const YT_INFLIGHT = new Map(); // key -> Promise
+
+function ytGate(fn) {
+  return new Promise((resolve, reject) => {
+    const run = () => {
+      ytActive++;
+      Promise.resolve()
+        .then(fn)
+        .then(resolve, reject)
+        .finally(() => {
+          ytActive--;
+          const next = ytQueue.shift();
+          if (next) next();
+        });
+    };
+    if (ytActive < YT_MAX_CONCURRENCY) run();
+    else ytQueue.push(run);
+  });
+}
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
 function yyyy_mm_dd_from_ms(ms) {
@@ -1398,55 +1413,39 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
     return res.json({ success:true, ...cached.data, cached:true });
   }
 
-  // Build query variants.
-  // Front sometimes already sends strings like "<game> trailer"; avoid "trailer trailer".
+
+
+// Coalesce identical concurrent requests (prevents quota burst)
+const inFlight = YT_INFLIGHT.get(key);
+if (inFlight) {
+  try {
+    const data = await inFlight;
+    return res.json({ success:true, ...data, coalesced:true });
+  } catch (e) {
+    // fall through: try fresh fetch
+  }
+}
   const queries = (() => {
-    const baseRaw = q;
-    const lower = baseRaw.toLowerCase();
-    const hasTrailerWord = /(\btrailer\b|\bteaser\b|bande\s*-?\s*annonce)/i.test(lower);
-    const baseStripped = hasTrailerWord
-      ? baseRaw
-          .replace(/\btrailer\b/gi, '')
-          .replace(/\bteaser\b/gi, '')
-          .replace(/bande\s*-?\s*annonce/gi, '')
-          .replace(/\bofficiel(le)?\b/gi, '')
-          .replace(/\bofficial\b/gi, '')
-          .replace(/\s+/g, ' ')
-          .trim()
-      : baseRaw;
-
-    const base = baseStripped || baseRaw;
-    const list = [];
-    const push = (s) => {
-      const v = sanitizeText(s, 180);
-      if (!v) return;
-      const k = v.toLowerCase();
-      if (list.some(x => x.toLowerCase() === k)) return;
-      list.push(v);
-    };
-
-    // Always try the raw query first.
-    push(baseRaw);
-
+    const base = q;
     if (type === 'movie') {
-      push(`${base} bande annonce officielle`);
-      push(`${base} bande-annonce officielle`);
-      push(`${base} trailer officiel`);
-      push(`${base} official trailer`);
-      push(`${base} trailer`);
-      return list;
+      return [
+        `${base} bande annonce officielle`,
+        `${base} bande-annonce officielle`,
+        `${base} trailer officiel`,
+        `${base} official trailer`
+      ];
     }
-
     // game
-    push(`${base} trailer officiel`);
-    push(`${base} bande annonce officielle`);
-    push(`${base} bande-annonce officielle`);
-    push(`${base} gameplay trailer`);
-    push(`${base} official trailer`);
-    push(`${base} cinematic trailer`);
-    push(`${base} launch trailer`);
-    push(`${base} trailer`);
-    return list;
+    return [
+      `${base} trailer officiel`,
+      `${base} bande annonce officielle`,
+      `${base} bande-annonce officielle`,
+      `${base} gameplay trailer`,
+      `${base} official trailer`,
+      `${base} cinematic trailer`,
+      `${base} launch trailer`,
+      `${base} trailer`
+    ];
   })();
 
   // -------- YouTube Data API (if key works) --------
@@ -1504,14 +1503,14 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
     };
   }
 
-  try {
+
+  const p = ytGate(async () => {
     // 1) Try YouTube API with multiple query variants
     let lastApiErr = null;
     for (const qq of queries) {
       const r = await ytApiSearch(qq);
       if (r.ok) {
-        YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: r.data });
-        return res.json({ success:true, ...r.data, provider:'youtube_api' });
+        return { success:true, ...r.data, provider:'youtube_api' };
       }
       lastApiErr = r;
       // If key missing, don't keep trying API
@@ -1524,16 +1523,32 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
       for (const qq of queries) {
         const out = await invSearch(inst, qq);
         if (out) {
-          YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
-          return res.json({ success:true, ...out, provider:'invidious' });
+          return { success:true, ...out, provider:'invidious' };
         }
       }
     }
 
     // no result
-    return res.json({ success:false, error:'no_result', details: debug ? lastApiErr : undefined });
+    return { success:false, error:'no_result', details: debug ? lastApiErr : undefined };
+  });
+
+  YT_INFLIGHT.set(key, p);
+  try {
+    const out = await p;
+    if (out && out.success && out.videoId) {
+      const cacheData = {
+        videoId: out.videoId,
+        title: out.title || '',
+        channelTitle: out.channelTitle || '',
+        publishedAt: out.publishedAt || ''
+      };
+      YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: cacheData });
+    }
+    return res.json(out);
   } catch (e) {
     return res.status(500).json({ success:false, error:e.message });
+  } finally {
+    YT_INFLIGHT.delete(key);
   }
 });
 
