@@ -846,32 +846,59 @@ app.get('/api/twitch/vods/top', heavyLimiter, async (req, res) => {
     const token = await getTwitchToken('app');
     if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
 
-    // A) top streams now
-    const streamsData = await twitchAPI('streams?first=60', token);
-    const streams = (streamsData?.data || []).slice(0,60);
-    const streamUserIds = [...new Set(streams.map(s=>s.user_id).filter(Boolean))].slice(0,35);
+    // A) seed streams
+    // Twitch has no "global top VOD" endpoint. We build a pool from live streams + top games,
+    // then rank VOD archives by views + recency.
+    //
+    // Important UX detail: if a language is requested (e.g. lang=fr), seeding from FR streams
+    // yields dramatically more FR VODs than filtering an EN-heavy global pool after the fact.
+    const seedLang = String(req.query.seedLang || lang || '').trim().toLowerCase();
 
-    // B) top games
-    const gamesData = await twitchAPI('games/top?first=20', token);
-    const games = (gamesData?.data || []).slice(0,20);
-    const gameIds = games.map(g=>g.id).filter(Boolean).slice(0,14);
+    // 1) language-seeded streams (if requested)
+    let streams = [];
+    if(seedLang){
+      const s1 = await twitchAPI(`streams?first=100&language=${encodeURIComponent(seedLang)}`, token);
+      streams = (s1?.data || []).slice(0, 100);
+    }
+
+    // 2) global streams as fallback (to fill the pool if needed)
+    if(streams.length < 60){
+      const s2 = await twitchAPI('streams?first=80', token);
+      const more = (s2?.data || []).slice(0, 80);
+      const seen = new Set(streams.map(x=>x.user_id).filter(Boolean));
+      for(const it of more){
+        if(!it?.user_id) continue;
+        if(seen.has(it.user_id)) continue;
+        streams.push(it);
+        seen.add(it.user_id);
+        if(streams.length >= 100) break;
+      }
+    }
+
+    const streamUserIds = [...new Set(streams.map(s=>s.user_id).filter(Boolean))].slice(0, 55);
+
+    // B) top games (optionally language-biased by first taking games currently streamed in seedLang)
+    const gamesData = await twitchAPI('games/top?first=25', token);
+    const games = (gamesData?.data || []).slice(0,25);
+    const gameIds = games.map(g=>g.id).filter(Boolean).slice(0,18);
 
     const pool = [];
 
     // fetch videos by user
     const userTasks = streamUserIds.map(uid => async () => {
-      const v = await twitchAPI(`videos?user_id=${encodeURIComponent(uid)}&first=3&type=archive`, token);
-      return (v?.data || []).slice(0,3);
+      // Pull a bit more per channel so filters (FR/small) still leave enough.
+      const v = await twitchAPI(`videos?user_id=${encodeURIComponent(uid)}&first=6&type=archive`, token);
+      return (v?.data || []).slice(0,6);
     });
-    const userResults = await __twitchFetchWithConcurrency(userTasks, 3);
+    const userResults = await __twitchFetchWithConcurrency(userTasks, 4);
     for(const arr of userResults){ if(Array.isArray(arr)) pool.push(...arr); }
 
     // fetch videos by game
     const gameTasks = gameIds.map(gid => async () => {
-      const v = await twitchAPI(`videos?game_id=${encodeURIComponent(gid)}&first=5&type=archive`, token);
-      return (v?.data || []).slice(0,5);
+      const v = await twitchAPI(`videos?game_id=${encodeURIComponent(gid)}&first=8&type=archive`, token);
+      return (v?.data || []).slice(0,8);
     });
-    const gameResults = await __twitchFetchWithConcurrency(gameTasks, 3);
+    const gameResults = await __twitchFetchWithConcurrency(gameTasks, 4);
     for(const arr of gameResults){ if(Array.isArray(arr)) pool.push(...arr); }
 
     // de-dup by video id
@@ -882,7 +909,8 @@ app.get('/api/twitch/vods/top', heavyLimiter, async (req, res) => {
       // basic filtering: public, not too old
       const created = Date.parse(row.created_at || '') || 0;
       const ageDays = created ? ((Date.now()-created)/(24*36e5)) : 0;
-      if(ageDays > 30) continue;
+      // keep a larger window so FR filters still have enough items
+      if(ageDays > 60) continue;
       if(String(row.type||'').toLowerCase() !== 'archive') continue;
       byId.set(row.id, row);
     }

@@ -1203,10 +1203,19 @@ const modal = document.getElementById('twitflix-modal');
 	      .tf-card .tf-poster{ image-rendering:auto; filter:none !important; transform:none !important; backface-visibility:hidden; }\n\t      .tf-card{ transform: translateZ(0); }
 	      .tf-card{ overflow: hidden; }
 	      /* VOD aesthetics */
+	      /* VOD cards are landscape (true video covers) to avoid empty black space */
+	      .tf-card.tf-is-vod{ flex: 0 0 320px; aspect-ratio: 16/9; }
+	      body.tf-bigpicture #twitflix-modal .tf-card.tf-is-vod{ width: 320px; height: auto; }
+	      .tf-card.tf-is-vod .tf-poster{ width:100%; height:100%; object-fit:cover; }
 	      .tf-card.tf-is-vod .tf-name{ font-size: 13px; line-height: 1.15; }
 	      .tf-card.tf-is-vod .tf-subline{ margin-top: 6px; font-size: 11px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	      .tf-card.tf-is-vod .tf-overlay{ background: linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.35), rgba(0,0,0,0)); }
 	      .tf-card.tf-is-vod .tf-vod-badge{ position:absolute; top:10px; left:10px; padding:4px 8px; border-radius: 999px; font-size: 11px; background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(4px); }
+	      /* Row scroll indicator (Netflix-like bar) */
+	      .tf-row{ position: relative; }
+	      .tf-row .tf-row-bar{ height:6px; margin-top:10px; width: 520px; max-width: 70vw; border-radius: 999px; background: rgba(255,255,255,.10); overflow:hidden; }
+	      .tf-row .tf-row-bar .tf-row-bar-thumb{ height:100%; width: 20%; border-radius: 999px; background: rgba(255,255,255,.35); transform: translateX(0); transition: transform .08s linear; }
+	      .tf-row .tf-row-bar.is-hidden{ display:none; }
 	      /* overlays must not steal mouse clicks */
 	      .tf-card .tf-overlay, .tf-card .tf-preview{ pointer-events:none !important; }
       .tf-card .tf-actions-row, .tf-card .tf-actions-row *{ pointer-events:auto !important; }
@@ -1359,10 +1368,28 @@ const modal = document.getElementById('twitflix-modal');
       try{
         // FR + "small creators" (best-effort) to match ORYON UX target.
         // We fetch more than we display so we can build category rails client-side.
-        const r = await fetch(`${API_BASE}/api/twitch/vods/top?lang=fr&small=1&limit=80`, { credentials:'include' });
-        const d = await r.json().catch(()=>null);
-        if (r.ok && d && Array.isArray(d.items)){
-          tfTopVodResults = d.items.map(v=>({
+        // 1) seedLang=fr -> get streams seeded by FR live pool (more likely to yield enough FR VODs)
+        // 2) if not enough items, relax the "small" heuristic while keeping FR.
+        let r = await fetch(`${API_BASE}/api/twitch/vods/top?lang=fr&seedLang=fr&small=1&maxViews=200000&limit=120`, { credentials:'include' });
+        let d = await r.json().catch(()=>null);
+        let items = (r.ok && d && Array.isArray(d.items)) ? d.items : [];
+
+        if (items.length < 30){
+          r = await fetch(`${API_BASE}/api/twitch/vods/top?lang=fr&seedLang=fr&limit=160`, { credentials:'include' });
+          d = await r.json().catch(()=>null);
+          const items2 = (r.ok && d && Array.isArray(d.items)) ? d.items : [];
+          // merge, keep unique ids
+          const byId = new Map();
+          for (const it of [...items, ...items2]){
+            if(!it || !it.id) continue;
+            if(byId.has(it.id)) continue;
+            byId.set(it.id, it);
+          }
+          items = [...byId.values()];
+        }
+
+        if (items.length){
+          tfTopVodResults = items.map(v=>({
             id: v.id,
             name: `${v.title || v.game_name || 'VOD'}`,
             box_art_url: tfNormalizeTwitchThumb(v.thumbnail_url || ''),
@@ -1792,7 +1819,45 @@ const modal = document.getElementById('twitflix-modal');
 
       row.appendChild(title);
       row.appendChild(track);
+
+      // Netflix-like scroll indicator bar (shows row horizontal scroll position)
+      const bar = document.createElement('div');
+      bar.className = 'tf-row-bar is-hidden';
+      bar.innerHTML = '<div class="tf-row-bar-thumb"></div>';
+      row.appendChild(bar);
+
+      // attach after layout
+      setTimeout(()=>{
+        try{ tfAttachRowBar(track, bar); }catch(_){ }
+      }, 0);
       return row;
+    }
+
+    function tfAttachRowBar(track, bar){
+      if(!track || !bar) return;
+      const thumb = bar.querySelector('.tf-row-bar-thumb');
+      if(!thumb) return;
+
+      const refresh = () => {
+        const scrollW = track.scrollWidth || 0;
+        const clientW = track.clientWidth || 0;
+        const maxScroll = Math.max(0, scrollW - clientW);
+        if(maxScroll <= 4){
+          bar.classList.add('is-hidden');
+          return;
+        }
+        bar.classList.remove('is-hidden');
+        const ratio = clientW / scrollW; // visible fraction
+        const barW = bar.clientWidth || Math.min(520, clientW);
+        const thumbW = Math.max(32, Math.round(barW * ratio));
+        thumb.style.width = thumbW + 'px';
+        const x = (track.scrollLeft / maxScroll) * Math.max(0, (barW - thumbW));
+        thumb.style.transform = `translateX(${Math.round(x)}px)`;
+      };
+
+      track.addEventListener('scroll', refresh, { passive:true });
+      window.addEventListener('resize', refresh);
+      refresh();
     }
 
     
