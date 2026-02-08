@@ -1076,8 +1076,6 @@ function tfNormalizeBoxArt(url){
   document.body.classList.add('modal-open');
 const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
-      try{ tfRenderGenreRows(host); }catch(_){}
-      try{ tfRenderMovieTrailers(host); }catch(_){}
 
       // ORYON TV: delegated click for VOD cards (mouse)
       try{
@@ -1225,8 +1223,6 @@ const modal = document.getElementById('twitflix-modal');
 
     function tfSetupObserver(){
       const host = document.getElementById('twitflix-grid');
-      try{ tfRenderGenreRows(host); }catch(_){}
-      try{ tfRenderMovieTrailers(host); }catch(_){}
       if (!host) return;
 
       let sentinel = document.getElementById('tf-sentinel');
@@ -1258,8 +1254,6 @@ const modal = document.getElementById('twitflix-modal');
     async function tfRunSearch(query){
       const q = String(query || '').trim();
       const host = document.getElementById('twitflix-grid');
-      try{ tfRenderGenreRows(host); }catch(_){}
-      try{ tfRenderMovieTrailers(host); }catch(_){}
       if (!host) return;
 
       if (!q){
@@ -1393,8 +1387,6 @@ const modal = document.getElementById('twitflix-modal');
 
     function tfRenderError(msg){
       const host = document.getElementById('twitflix-grid');
-      try{ tfRenderGenreRows(host); }catch(_){}
-      try{ tfRenderMovieTrailers(host); }catch(_){}
       if (!host) return;
       host.innerHTML = `
         <div class="tf-empty" style="color:#ff8080;">
@@ -1416,8 +1408,6 @@ const modal = document.getElementById('twitflix-modal');
 
     function renderTwitFlix(){
       const host = document.getElementById('twitflix-grid');
-      try{ tfRenderGenreRows(host); }catch(_){}
-      try{ tfRenderMovieTrailers(host); }catch(_){}
       if (!host) return;
 
       // Keep sentinel at bottom
@@ -3243,157 +3233,3 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     window.__oryonSo = { open, close };
   }catch(_){}
 })();
-
-
-// =========================================================
-// ORYON TV: Trailer resolver (server-side) - Netflix style
-// =========================================================
-async function tfGetTrailerForGame(gameName){
-  const q = String(gameName||'').trim();
-  if(!q) return null;
-  try{
-    const r = await fetch(`${API_BASE}/api/youtube/trailer?type=game&q=${encodeURIComponent(q)}&lang=fr`, { credentials:'include' });
-    const j = await r.json().catch(()=>null);
-    const items = (j && j.ok && Array.isArray(j.items)) ? j.items : [];
-    return items.length ? items[0] : null;
-  }catch(_){ return null; }
-}
-async function tfGetTrailerForMovie(title){
-  const q = String(title||'').trim();
-  if(!q) return null;
-  try{
-    const r = await fetch(`${API_BASE}/api/youtube/trailer?type=movie&q=${encodeURIComponent(q)}&lang=fr`, { credentials:'include' });
-    const j = await r.json().catch(()=>null);
-    const items = (j && j.ok && Array.isArray(j.items)) ? j.items : [];
-    return items.length ? items[0] : null;
-  }catch(_){ return null; }
-}
-
-
-// =========================================================
-// ORYON TV: Netflix-like Genre Rows (RPG/FPS/Combat/...)
-// =========================================================
-const TF_GENRES = [
-  { key:'fps', label:'FPS' },
-  { key:'rpg', label:'RPG' },
-  { key:'combat', label:'Combat' },
-  { key:'survie', label:'Survie' },
-  { key:'strategie', label:'Stratégie' },
-  { key:'course', label:'Course' },
-];
-
-async function tfFetchContent(params={}){
-  const usp = new URLSearchParams();
-  Object.entries(params).forEach(([k,v])=>{
-    if(v===undefined || v===null || v==='') return;
-    usp.set(k, String(v));
-  });
-  const url = `${API_BASE}/api/content?${usp.toString()}`;
-  const r = await fetch(url, { credentials:'include' });
-  const j = await r.json().catch(()=>null);
-  return (j && j.ok && Array.isArray(j.items)) ? j.items : [];
-}
-
-async function tfRenderGenreRows(container){
-  try{
-    if(!container) return;
-    // prevent duplicates
-    if(container.querySelector('.tf-genre-block')) return;
-
-    const block = document.createElement('div');
-    block.className = 'tf-genre-block';
-    // Header "Catégories"
-    const h = document.createElement('div');
-    h.className = 'tf-row-title';
-    h.textContent = 'Catégories';
-    block.appendChild(h);
-
-    container.appendChild(block);
-
-    for(const g of TF_GENRES){
-      const row = tfBuildRow(`${g.label}`, []); // creates structure
-      row.dataset.genreKey = g.key;
-      block.appendChild(row);
-
-      // load items async
-      (async ()=>{
-        const items = await tfFetchContent({ provider:'twitch', type:'live', lang:'fr', min:20, max:200, limit:40, genre:g.key });
-        tfFillRow(row, items, { type:'live' });
-      })();
-    }
-  }catch(_){}
-}
-
-// Fill row cards using existing card builder; safe wrapper
-function tfFillRow(rowEl, items, meta={}){
-  try{
-    const track = rowEl.querySelector('.tf-row-track');
-    if(!track) return;
-    track.innerHTML = '';
-    (items||[]).forEach((it)=>{
-      const card = tfBuildCard(it, meta.type || it.type || 'live');
-      track.appendChild(card);
-    });
-    // ensure paging/dots
-    try{ tfSetupRowPaging(rowEl); }catch(_){}
-  }catch(_){}
-}
-
-
-const TF_GAME_MOVIES = [
-  'The Super Mario Bros. Movie',
-  'Sonic the Hedgehog',
-  'Uncharted',
-  'Tomb Raider',
-  'Detective Pikachu',
-  'Warcraft',
-  'Resident Evil',
-  'Five Nights at Freddy’s'
-];
-
-async function tfRenderMovieTrailers(container){
-  try{
-    if(!container) return;
-    if(container.querySelector('.tf-movie-block')) return;
-
-    const block = document.createElement('div');
-    block.className='tf-movie-block';
-    const title = document.createElement('div');
-    title.className='tf-row-title';
-    title.textContent='Films (adaptations JV)';
-    block.appendChild(title);
-
-    const row = tfBuildRow('Films (adaptations JV)', []);
-    block.appendChild(row);
-    container.appendChild(block);
-
-    const track = row.querySelector('.tf-row-track');
-    track.innerHTML = '';
-    // load a few trailers
-    for(const name of TF_GAME_MOVIES.slice(0, 10)){
-      const tr = await tfGetTrailerForMovie(name);
-      if(!tr) continue;
-      const item = { title: tr.title || name, thumbnail: tr.thumb || '', embedUrl: tr.embedUrl, type:'movie', channel: tr.channelTitle || 'YouTube' };
-      const card = document.createElement('div');
-      card.className='tf-card';
-      card.tabIndex=0;
-      card.innerHTML = `
-        <div class="tf-poster-wrap">
-          <img class="tf-poster" src="${item.thumbnail}" alt="">
-        </div>
-        <div class="tf-meta">
-          <div class="tf-name">${item.title}</div>
-          <div class="tf-sub">${item.channel}</div>
-        </div>
-      `;
-      card.addEventListener('click', ()=>{
-        try{
-          const player = document.getElementById('oryon-player');
-          if(player){ player.innerHTML = `<iframe src="${item.embedUrl}" allow="autoplay; fullscreen" allowfullscreen style="width:100%;height:100%;border:0;"></iframe>`; }
-        }catch(_){}
-      });
-      track.appendChild(card);
-    }
-    try{ tfSetupRowPaging(row); }catch(_){}
-  }catch(_){}
-}
