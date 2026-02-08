@@ -1032,17 +1032,25 @@ window.addEventListener('message', (ev) => {
     }
 
 function tfNormalizeBoxArt(url){
-  
-  const desiredW=1000, desiredH=1400;
-const u = String(url || '');
+  // Force HD boxarts to avoid "blurry" upscale in the ORYON TV rows.
+  // Twitch templates often return URLs with {width}x{height} (or %{width}x%{height}).
+  const desiredW = 600, desiredH = 800;
+  const u = String(url || '');
   if (!u) return '';
-  let out = u.replace('{width}','desiredW').replace('{height}','desiredH');
+  let out = u
+    .replace(/%\{width\}|\{width\}/g, String(desiredW))
+    .replace(/%\{height\}|\{height\}/g, String(desiredH));
+
+  // IGDB size upgrades (if the upstream provider uses IGDB-style paths)
   out = out.replace(/\/t_thumb\//g,'/t_cover_big_2x/')
            .replace(/\/t_cover_small\//g,'/t_cover_big_2x/')
            .replace(/\/t_cover_big\//g,'/t_cover_big_2x/');
-  out = out.replace(/([?&])w=\d+/g,'$1w=600').replace(/([?&])h=\d+/g,'$1h=800');
+
+  // Common query params
+  out = out.replace(/([?&])w=\d+/g,'$1w=' + desiredW).replace(/([?&])h=\d+/g,'$1h=' + desiredH);
   return out;
 }
+
 
     function setTwitFlixView(mode){
       tfViewMode = (mode === 'az') ? 'az' : 'rows';
