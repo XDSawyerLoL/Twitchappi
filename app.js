@@ -969,6 +969,95 @@ app.get('/api/twitch/vods/top', heavyLimiter, async (req, res) => {
   }
 });
 
+// =========================================================
+// ORYON TV — VODs by game (Helix videos?game_id=...)
+// Purpose: "VOD derrière les vignettes de jeux" on TwitFlix.
+// =========================================================
+const __oryonVodByGameCache = new Map(); // key -> {ts, items}
+
+async function __oryonResolveGameIdByName(gameName, token){
+  const q = String(gameName || '').trim();
+  if(!q) return null;
+  // Helix search/categories expects query
+  const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`, token);
+  return d?.data?.[0]?.id || null;
+}
+
+app.get('/api/twitch/vods/by-game', heavyLimiter, async (req, res) => {
+  try{
+    const name = String(req.query.name || '').trim();
+    const game_id_q = String(req.query.game_id || '').trim();
+    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 60);
+    const days = Math.min(Math.max(7, parseInt(req.query.days || '60', 10) || 60), 180);
+
+    // "small" best-effort: followers not available with app token; use view_count ceiling + unique broadcasters.
+    const small = String(req.query.small || '1') === '1';
+    const maxViews = Math.max(10_000, parseInt(req.query.maxViews || (small ? '120000' : '10000000'), 10) || (small ? 120000 : 10000000));
+
+    if(!name && !game_id_q) return res.json({ success:true, items:[], reason:'missing_name' });
+
+    const cacheKey = `bygame:${game_id_q || name}:${lang}:${limit}:${days}:${small}:${maxViews}`;
+    const cached = __oryonCacheGet(__oryonVodByGameCache, cacheKey, 10 * 60_000);
+    if(cached) return res.json({ success:true, items: cached, cached:true });
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+
+    const game_id = game_id_q || await __oryonResolveGameIdByName(name, token);
+    if(!game_id) return res.json({ success:true, items:[], reason:'game_not_found' });
+
+    const raw = await twitchAPI(`videos?game_id=${encodeURIComponent(game_id)}&type=archive&first=${encodeURIComponent(String(Math.min(100, Math.max(20, limit*3))))}`, token);
+    const rows = Array.isArray(raw?.data) ? raw.data : [];
+
+    const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+    const uniqueBroadcasters = new Set();
+
+    const items = [];
+    for(const row of rows){
+      if(!row) continue;
+      const created = Date.parse(row.created_at || row.published_at || '') || 0;
+      if(created && created < cutoff) continue;
+
+      const vLang = String(row.language || '').toLowerCase();
+      if(lang && vLang && vLang !== lang) continue;
+
+      const vc = Number(row.view_count || 0) || 0;
+      if(vc > maxViews) continue;
+
+      // small creators best-effort: one VOD per broadcaster
+      const bid = String(row.user_id || row.broadcaster_id || '') || '';
+      if(small && bid){
+        if(uniqueBroadcasters.has(bid)) continue;
+        uniqueBroadcasters.add(bid);
+      }
+
+      items.push({
+        id: row.id,
+        title: row.title,
+        user_id: row.user_id,
+        user_name: row.user_name,
+        game_id: row.game_id,
+        game_name: row.game_name,
+        duration: row.duration,
+        view_count: row.view_count,
+        created_at: row.created_at,
+        language: row.language,
+        thumbnail_url: row.thumbnail_url,
+        url: row.url,
+        vod_type: row.type
+      });
+      if(items.length >= limit) break;
+    }
+
+    __oryonCacheSet(__oryonVodByGameCache, cacheKey, items);
+    return res.json({ success:true, game_id, items });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/vods/by-game', e.message);
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 async function __filterTopVodItems(items, opts){
   const arr = Array.isArray(items) ? items : [];
   const lang = String(opts?.lang || '').trim().toLowerCase();

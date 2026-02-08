@@ -1475,6 +1475,65 @@ const modal = document.getElementById('twitflix-modal');
       return row;
     }
 
+    // =========================================================
+    // VOD derrière les vignettes (par jeu sélectionné)
+    // =========================================================
+    const __tfGameVodCache = new Map(); // gameName -> {ts, items}
+
+    function tfEnsureUnderVodsContainer(row){
+      if(!row) return null;
+      let under = row.querySelector(':scope > .tf-under-vods');
+      if(!under){
+        under = document.createElement('div');
+        under.className = 'tf-under-vods';
+        under.style.marginTop = '10px';
+        under.style.display = 'none';
+        row.appendChild(under);
+      }
+      return under;
+    }
+
+    async function tfShowVodsUnderRow(row, gameName){
+      const under = tfEnsureUnderVodsContainer(row);
+      if(!under) return;
+      const name = String(gameName || '').trim();
+      if(!name) return;
+
+      // Toggle if same game already open
+      if(under.dataset.gameName === name && under.style.display !== 'none'){
+        under.style.display = 'none';
+        return;
+      }
+      under.dataset.gameName = name;
+      under.style.display = 'block';
+
+      const TTL = 15 * 60 * 1000;
+      const cached = __tfGameVodCache.get(name);
+      if(cached && (Date.now()-cached.ts) < TTL && Array.isArray(cached.items) && cached.items.length){
+        under.innerHTML = '';
+        under.appendChild(tfBuildVodRow(`<div class="tf-strip-title"><h4>VOD • ${escapeHtml(name)}</h4><span class="tf-strip-sub">FR • sélection globale</span></div>`, cached.items, `tf-vod-under-${name.replace(/[^a-z0-9]/ig,'_')}`));
+        return;
+      }
+
+      // Loading state
+      under.innerHTML = `<div class="tf-empty" style="padding:14px;opacity:.85"><i class="fas fa-spinner fa-spin"></i> Chargement des VOD pour <strong>${escapeHtml(name)}</strong>…</div>`;
+
+      try{
+        const r = await fetch(`${API_BASE}/api/twitch/vods/by-game?name=${encodeURIComponent(name)}&lang=fr&small=1&maxViews=200000&limit=24&days=60`, { credentials:'include' });
+        const d = await r.json().catch(()=>null);
+        const items = (r.ok && d && d.success && Array.isArray(d.items)) ? d.items : [];
+        __tfGameVodCache.set(name, { ts: Date.now(), items });
+        under.innerHTML = '';
+        if(items.length){
+          under.appendChild(tfBuildVodRow(`<div class="tf-strip-title"><h4>VOD • ${escapeHtml(name)}</h4><span class="tf-strip-sub">FR • petits créateurs (best‑effort)</span></div>`, items, `tf-vod-under-${name.replace(/[^a-z0-9]/ig,'_')}`));
+        } else {
+          under.innerHTML = `<div class="tf-empty" style="padding:14px;opacity:.9">Aucune VOD trouvée pour <strong>${escapeHtml(name)}</strong>.</div>`;
+        }
+      }catch(_){
+        under.innerHTML = `<div class="tf-empty" style="padding:14px;color:#ff8080;">Erreur chargement VOD.</div>`;
+      }
+    }
+
     async function tfRunSearch(query){
       const q = String(query || '').trim();
       const host = document.getElementById('twitflix-grid');
@@ -1920,6 +1979,7 @@ function tfBuildCard(cat){
           <div class="tf-actions-row">
             <span class="tf-pill"><i class="fas fa-play"></i> Lire</span>
             <span class="tf-pill ghost"><i class="fas fa-volume-mute"></i> Preview</span>
+            <span class="tf-pill ghost" data-action="vod"><i class="fas fa-film"></i> VOD</span>
           </div>
         </div>
       `;
@@ -1931,8 +1991,19 @@ function tfBuildCard(cat){
       div.addEventListener('mouseleave', tfHidePeek);
       div.addEventListener('blur', tfHidePeek);
 
-      // click play
+      // click play (default)
       div.onclick = () => playTwitFlixCategory(cat.id, cat.name);
+
+      // VOD derrière la vignette (Netflix-like)
+      const vodBtn = div.querySelector('[data-action="vod"]');
+      if(vodBtn){
+        vodBtn.addEventListener('click', (e)=>{
+          e.preventDefault();
+          e.stopPropagation();
+          const row = div.closest('.tf-row');
+          if(row) tfShowVodsUnderRow(row, cat.name);
+        });
+      }
 
       div.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
