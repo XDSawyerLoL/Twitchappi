@@ -2947,7 +2947,20 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 <div class="tf-sub" style="display:none;"></div>
 <div class="tf-body" id="tf-body">
-<div class="tf-hero"><img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/><div class="tf-hero-content"><div><div class="tf-hero-title" id="tf-hero-title">ORYON TV</div><div class="tf-hero-sub" id="tf-hero-sub">Découvre des jeux, survole pour une preview, clique pour lancer un stream.</div></div></div></div>
+<div class="tf-hero tf-nx-hero">
+  <img alt="" class="tf-hero-bg" id="tf-hero-bg" src=""/>
+  <div class="tf-hero-media" id="tf-hero-media" aria-hidden="true"></div>
+  <div class="tf-hero-content">
+    <div class="tf-hero-left">
+      <div class="tf-hero-title" id="tf-hero-title">ORYON TV</div>
+      <div class="tf-hero-sub" id="tf-hero-sub">Choisis un jeu, puis regarde des LIVE et VOD.</div>
+      <div class="tf-hero-btns">
+        <button class="tf-nx-btn tf-nx-primary" id="tf-hero-play" type="button"><span>▶</span> Lecture</button>
+        <button class="tf-nx-btn tf-nx-ghost" type="button" onclick="document.querySelector('#tf-live-carousel')?.scrollIntoView({behavior:'smooth',block:'start'})">Plus d'infos</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="tf-header-block">
   <div class="tf-strip-title">
@@ -3309,5 +3322,75 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 
 <script src="/assets/js/modules/ui/help-tooltips.js" defer></script>
+
+<style id="tf-netflix-overrides">
+/* ===== Netflix visual override (TwitFlix only) ===== */
+#twitflix-modal{ background: rgba(0,0,0,.82); }
+#twitflix-modal .tf-topbar{ background: rgba(0,0,0,.75); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,.08); }
+#twitflix-modal .twitflix-wordmark{ color:#e50914 !important; letter-spacing:.08em; }
+#twitflix-modal .tf-row-title span,
+#twitflix-modal .tf-dot.active{ color:#e50914; background: rgba(229,9,20,.95) !important; }
+#twitflix-modal .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#e50914 !important; }
+
+/* Hero */
+#twitflix-modal .tf-nx-hero{ position:relative; min-height: 520px; border-radius: 0; overflow:hidden; }
+#twitflix-modal .tf-nx-hero::before{ content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.55) 45%, rgba(0,0,0,.15) 70%, rgba(0,0,0,0) 100%); z-index:2; }
+#twitflix-modal .tf-hero-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter: blur(0px); opacity:.55; transform: scale(1.03); }
+#twitflix-modal .tf-hero-media{ position:absolute; inset:0; z-index:1; }
+#twitflix-modal .tf-hero-media iframe.tf-hero-iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none; opacity:.78; }
+#twitflix-modal .tf-hero-content{ position:relative; z-index:3; padding: 70px 60px 60px 60px; max-width: 780px; }
+#twitflix-modal .tf-hero-title{ font-size: 64px; line-height: 1.0; font-weight: 900; letter-spacing: .01em; text-transform:none; }
+#twitflix-modal .tf-hero-sub{ font-size: 18px; opacity:.92; max-width: 520px; margin-top: 12px; }
+#twitflix-modal .tf-hero-btns{ margin-top: 22px; display:flex; gap: 12px; align-items:center; flex-wrap:wrap; }
+
+#twitflix-modal .tf-nx-btn{ border-radius: 6px; padding: 12px 18px; font-weight: 800; letter-spacing:.02em; border:1px solid rgba(255,255,255,.14); background: rgba(90,90,90,.25); color:#fff; display:inline-flex; align-items:center; gap:10px; }
+#twitflix-modal .tf-nx-btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,.35); }
+#twitflix-modal .tf-nx-primary{ background: #fff; color:#000; border-color: rgba(255,255,255,.18); }
+#twitflix-modal .tf-nx-primary span{ font-size: 14px; }
+#twitflix-modal .tf-nx-ghost{ background: rgba(120,120,120,.28); }
+
+#twitflix-modal .tf-card{ border-radius: 8px; }
+#twitflix-modal .tf-overlay{ padding: 10px; }
+#twitflix-modal .tf-actions-row .tf-pill{ border-radius: 999px; font-weight: 900; }
+#twitflix-modal .tf-actions-row .tf-pill:not(.ghost){ background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.18); }
+#twitflix-modal .tf-actions-row .tf-pill:not(.ghost):hover{ background: rgba(229,9,20,.18); border-color: rgba(229,9,20,.55); }
+#twitflix-modal .tf-compat-badge{ background: rgba(229,9,20,.88); }
+
+/* Preview iframe inside cards */
+#twitflix-modal .tf-preview{ position:absolute; inset:0; z-index:2; border-radius: 8px; overflow:hidden; }
+#twitflix-modal .tf-preview iframe.tf-preview-iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+
+/* Landscape cards for LIVE/VOD lists */
+#twitflix-modal .tf-landscape{ width: 320px !important; height: 180px !important; }
+#twitflix-modal .tf-landscape .tf-poster{ object-fit: cover; }
+#twitflix-modal .tf-landscape .tf-name{ font-size: 13px; }
+
+/* Game info modal */
+.tf-info-modal{ position: fixed; inset:0; z-index: 99999; }
+.tf-info-backdrop{ position:absolute; inset:0; background: rgba(0,0,0,.78); display:flex; align-items:center; justify-content:center; padding: 40px 18px; }
+.tf-info-sheet{ width:min(1120px, 96vw); background: #141414; border-radius: 10px; overflow:hidden; box-shadow: 0 24px 80px rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.08); }
+.tf-info-close{ position:absolute; right: 26px; top: 18px; width: 42px; height: 42px; border-radius: 999px; border:0; background: rgba(0,0,0,.55); color:#fff; font-size: 18px; cursor:pointer; z-index:5; }
+.tf-info-hero{ position:relative; height: 420px; }
+.tf-info-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.55; transform: scale(1.02); }
+.tf-info-grad{ position:absolute; inset:0; background: linear-gradient(90deg, rgba(20,20,20,.98) 0%, rgba(20,20,20,.78) 40%, rgba(20,20,20,.25) 70%, rgba(20,20,20,0) 100%); }
+.tf-info-meta{ position:absolute; left: 42px; bottom: 28px; right: 42px; z-index:3; }
+.tf-info-title{ font-size: 54px; font-weight: 900; line-height:1.0; }
+.tf-info-actions{ margin-top: 14px; display:flex; gap: 12px; }
+.tf-info-tabs{ margin-top: 18px; display:flex; gap: 10px; }
+.tf-tab{ padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.10); color:#fff; font-weight: 900; cursor:pointer; }
+.tf-tab.active{ background: rgba(229,9,20,.28); border-color: rgba(229,9,20,.55); }
+.tf-info-body{ padding: 18px 26px 26px 26px; }
+.tf-info-rowhead{ display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 12px; }
+.tf-info-rowtitle{ font-weight: 900; letter-spacing:.04em; opacity:.95; }
+.tf-info-filters{ display:flex; gap: 8px; align-items:center; }
+.tf-chip{ padding: 7px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color:#fff; font-weight: 900; cursor:pointer; }
+.tf-chip.active{ background: rgba(229,9,20,.22); border-color: rgba(229,9,20,.55); }
+.tf-info-track{ display:flex; gap: 14px; overflow-x:auto; padding-bottom: 10px; }
+.tf-info-track::-webkit-scrollbar{ height: 10px; }
+.tf-info-track::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
+.tf-info-track::-webkit-scrollbar-thumb:hover{ background: rgba(229,9,20,.35); }
+.tf-info-empty{ color: rgba(255,255,255,.72); padding: 16px 6px; }
+</style>
+
 </body>
 </html>
