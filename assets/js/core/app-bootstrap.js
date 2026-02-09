@@ -41,7 +41,10 @@ const API_BASE = window.location.origin;
     // preview: click toggles preview; hover previews are more aggressive
     let tfContentMode = 'live';
     let tfDrawerOpenForGameId = null;
-    let tfDrawerFilters = { lang: 'fr', small: true, days: 60, maxViews: 200000 };
+    let tfDrawerFilters = { lang: 'fr', small: true, days: 60, maxViews: 200000, minViewers: 20, maxViewers: 200 };
+    // Drawer mode is the primary, Netflix-like "More like this" interaction.
+    // Keep it simple: click a game -> open drawer -> switch LIVE/VOD inside the drawer.
+    let tfDrawerMode = 'live'; // live | vod | preview
 
     // INIT
     window.addEventListener('load', async () => {
@@ -1228,8 +1231,8 @@ const modal = document.getElementById('twitflix-modal');
       .tf-card .tf-actions-row, .tf-card .tf-actions-row *{ pointer-events:auto !important; }
 	      /* keep images crisp when scaled */
 	      .tf-card .tf-poster{ transform: translateZ(0); backface-visibility:hidden; }
-	      /* Mode switch (LIVE / VOD / PREVIEW) */
-	      .tf-modebar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin: 8px 0 14px; }
+	      /* Global mode switch removed (too complex). Mode is handled inside the drawer. */
+	      .tf-modebar{ display:none !important; }
 	      .tf-modebar .tf-mode-title{ font-weight:900; letter-spacing:.6px; opacity:.92; }
 	      .tf-seg{ display:inline-flex; border:1px solid rgba(255,255,255,.14); border-radius: 999px; overflow:hidden; background: rgba(0,0,0,.35); backdrop-filter: blur(8px); }
 	      .tf-seg button{ appearance:none; border:0; background:transparent; color: rgba(255,255,255,.78); padding:8px 14px; font-weight:900; letter-spacing:.5px; font-size: 12px; cursor:pointer; }
@@ -1862,15 +1865,18 @@ const modal = document.getElementById('twitflix-modal');
       drawer.id = 'tf-drawer';
       drawer.className = 'tf-drawer';
 
-      const titleMode = (tfContentMode === 'vod') ? 'VOD' : (tfContentMode === 'live' ? 'LIVE' : 'PREVIEW');
+      const titleMode = (tfDrawerMode === 'vod') ? 'VOD' : (tfDrawerMode === 'live' ? 'LIVE' : 'PREVIEW');
       drawer.innerHTML = `
         <div class="tf-row" id="tf-drawer-row">
           <div class="tf-row-title">
             <span>${titleMode} • ${escapeHtml(gameName)} <span style="opacity:.7">(${escapeHtml(String(tfDrawerFilters.lang || ''))})</span></span>
             <div class="tf-chips">
+              <button type="button" class="tf-chip" data-tab="live">LIVE</button>
+              <button type="button" class="tf-chip" data-tab="vod">VOD</button>
               <button type="button" class="tf-chip" data-chip="lang">FR</button>
-              <button type="button" class="tf-chip" data-chip="small">SMALL</button>
-              ${(tfContentMode === 'vod') ? `<button type="button" class="tf-chip" data-chip="days">${Number(tfDrawerFilters.days)||60}J</button>` : ``}
+              <button type="button" class="tf-chip" data-chip="small">DÉCOUVERTE</button>
+              <button type="button" class="tf-chip" data-chip="band">20–200</button>
+              ${(tfDrawerMode === 'vod') ? `<button type="button" class="tf-chip" data-chip="days">${Number(tfDrawerFilters.days)||60}J</button>` : ``}
             </div>
           </div>
           <div class="tf-row-track"><div class="tf-empty" style="padding:18px;opacity:.85"><i class="fas fa-spinner fa-spin"></i> Chargement…</div></div>
@@ -1881,15 +1887,28 @@ const modal = document.getElementById('twitflix-modal');
       rowEl.insertAdjacentElement('afterend', drawer);
 
       // chips behavior
+      const tabLive = drawer.querySelector('[data-tab="live"]');
+      const tabVod = drawer.querySelector('[data-tab="vod"]');
       const chipLang = drawer.querySelector('[data-chip="lang"]');
       const chipSmall = drawer.querySelector('[data-chip="small"]');
+      const chipBand = drawer.querySelector('[data-chip="band"]');
       const chipDays = drawer.querySelector('[data-chip="days"]');
       const syncChips = () => {
+        if (tabLive) tabLive.classList.toggle('active', tfDrawerMode === 'live');
+        if (tabVod) tabVod.classList.toggle('active', tfDrawerMode === 'vod');
         if (chipLang) chipLang.classList.toggle('active', (tfDrawerFilters.lang || 'fr') === 'fr');
         if (chipSmall) chipSmall.classList.toggle('active', !!tfDrawerFilters.small);
+        if (chipBand) chipBand.classList.toggle('active', true);
         if (chipDays) chipDays.classList.add('active');
       };
       syncChips();
+
+      if (tabLive){
+        tabLive.addEventListener('click', ()=>{ tfDrawerMode = 'live'; tfReloadDrawer(cat); });
+      }
+      if (tabVod){
+        tabVod.addEventListener('click', ()=>{ tfDrawerMode = 'vod'; tfReloadDrawer(cat); });
+      }
 
       if (chipLang){
         chipLang.addEventListener('click', ()=>{
@@ -1903,9 +1922,32 @@ const modal = document.getElementById('twitflix-modal');
           tfReloadDrawer(cat);
         });
       }
+      if (chipBand){
+        chipBand.addEventListener('click', ()=>{
+          const curMin = Number(tfDrawerFilters.minViewers ?? 20);
+          const curMax = Number(tfDrawerFilters.maxViewers ?? 200);
+          // Toggle between strict band (20–200) and wider band (0–200)
+          if (curMin === 20 && curMax === 200){
+            tfDrawerFilters.minViewers = 0;
+            tfDrawerFilters.maxViewers = 200;
+          } else {
+            tfDrawerFilters.minViewers = 20;
+            tfDrawerFilters.maxViewers = 200;
+          }
+          tfReloadDrawer(cat);
+        });
+      }
       if (chipDays){
         chipDays.addEventListener('click', ()=>{
           tfDrawerFilters.days = (Number(tfDrawerFilters.days)||60) === 60 ? 30 : 60;
+          tfReloadDrawer(cat);
+        });
+      }
+
+      if (chipBand){
+        chipBand.addEventListener('click', ()=>{
+          // Toggle between 20–200 and 20–100 for stricter discovery
+          tfDrawerFilters.maxViewers = (Number(tfDrawerFilters.maxViewers)||200) === 200 ? 100 : 200;
           tfReloadDrawer(cat);
         });
       }
@@ -1922,7 +1964,7 @@ const modal = document.getElementById('twitflix-modal');
       if (!row || !track) return;
 
       // update title
-      const titleMode = (tfContentMode === 'vod') ? 'VOD' : (tfContentMode === 'live' ? 'LIVE' : 'PREVIEW');
+      const titleMode = (tfDrawerMode === 'vod') ? 'VOD' : (tfDrawerMode === 'live' ? 'LIVE' : 'PREVIEW');
       const titleEl = row.querySelector('.tf-row-title > span');
       if (titleEl){
         titleEl.innerHTML = `${titleMode} • ${escapeHtml(String(cat.name||''))} <span style="opacity:.7">(${escapeHtml(String(tfDrawerFilters.lang||''))})</span>`;
@@ -1931,7 +1973,7 @@ const modal = document.getElementById('twitflix-modal');
       track.innerHTML = `<div class="tf-empty" style="padding:18px;opacity:.85"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>`;
 
       try{
-        if (tfContentMode === 'vod'){
+        if (tfDrawerMode === 'vod'){
           const items = await tfFetchVodsByGame(cat.id, tfDrawerFilters);
           track.innerHTML = '';
           if (!items.length){
@@ -1953,7 +1995,7 @@ const modal = document.getElementById('twitflix-modal');
               tfDecorateVodCard(card, v);
             });
           }
-        } else if (tfContentMode === 'live'){
+        } else if (tfDrawerMode === 'live'){
           const items = await tfFetchLivesByGame(cat.id, tfDrawerFilters);
           track.innerHTML = '';
           if (!items.length){
@@ -2017,7 +2059,10 @@ const modal = document.getElementById('twitflix-modal');
       const small = filters?.small ? '1' : '0';
       const days = Math.min(Math.max(7, parseInt(filters?.days || 60, 10) || 60), 180);
       const maxViews = Math.min(Math.max(0, parseInt(filters?.maxViews || 200000, 10) || 0), 5000000);
-      const url = `${API_BASE}/api/twitch/vods/by-game?game_id=${encodeURIComponent(id)}&lang=${encodeURIComponent(lang)}&small=${small}&maxViews=${encodeURIComponent(String(maxViews))}&limit=24&days=${encodeURIComponent(String(days))}`;
+      // If "small" is enabled, seed VOD from small live channels (20–200 viewers) for this game.
+      const base = (filters?.small) ? '/api/twitch/vods/by-game-small' : '/api/twitch/vods/by-game';
+      const extra = (filters?.small) ? `&minViewers=${encodeURIComponent(String(filters?.minViewers ?? 20))}&maxViewers=${encodeURIComponent(String(filters?.maxViewers ?? 200))}` : `&small=${small}&maxViews=${encodeURIComponent(String(maxViews))}`;
+      const url = `${API_BASE}${base}?game_id=${encodeURIComponent(id)}&lang=${encodeURIComponent(lang)}&limit=24&days=${encodeURIComponent(String(days))}${extra}`;
       const r = await fetch(url, { credentials:'include' });
       const d = await r.json().catch(()=>null);
       return (r.ok && d && Array.isArray(d.items)) ? d.items : [];
@@ -2027,7 +2072,10 @@ const modal = document.getElementById('twitflix-modal');
       const id = String(gameId || '').trim();
       if (!id) return [];
       const lang = String(filters?.lang || '').trim().toLowerCase();
-      const url = `${API_BASE}/api/twitch/streams/by-game?game_id=${encodeURIComponent(id)}&lang=${encodeURIComponent(lang)}&limit=24`;
+      // Discovery-first: bias toward emerging streamers (e.g. 20–200 viewers)
+      const minViewers = Math.max(0, parseInt(filters?.minViewers ?? 20, 10) || 0);
+      const maxViewers = Math.max(0, parseInt(filters?.maxViewers ?? 200, 10) || 0);
+      const url = `${API_BASE}/api/twitch/streams/by-game?game_id=${encodeURIComponent(id)}&lang=${encodeURIComponent(lang)}&limit=24&minViewers=${encodeURIComponent(String(minViewers))}&maxViewers=${encodeURIComponent(String(maxViewers))}`;
       const r = await fetch(url, { credentials:'include' });
       const d = await r.json().catch(()=>null);
       return (r.ok && d && Array.isArray(d.items)) ? d.items : [];
@@ -2202,8 +2250,8 @@ function tfBuildCard(cat){
         <div class="tf-overlay">
           <div class="tf-name" title="${escapeHtml(cat.name)}">${escapeHtml(cat.name)}</div>
           <div class="tf-actions-row">
-            ${isGame ? `<span class="tf-pill"><i class="fas fa-layer-group"></i> ${tfContentMode === 'vod' ? 'VOD' : (tfContentMode === 'preview' ? 'Preview' : 'Live')}</span>` : `<span class="tf-pill"><i class="fas fa-play"></i> Lire</span>`}
-            ${isGame ? `<span class="tf-pill ghost"><i class="fas fa-mouse-pointer"></i> Ouvrir</span>` : `<span class="tf-pill ghost"><i class="fas fa-info-circle"></i> Détails</span>`}
+            ${isGame ? `<span class="tf-pill"><i class="fas fa-layer-group"></i> Voir</span>` : `<span class="tf-pill"><i class="fas fa-play"></i> Lire</span>`}
+            ${isGame ? `<span class="tf-pill ghost"><i class="fas fa-mouse-pointer"></i> Plus</span>` : `<span class="tf-pill ghost"><i class="fas fa-info-circle"></i> Détails</span>`}
           </div>
         </div>
       `;
@@ -2217,10 +2265,34 @@ function tfBuildCard(cat){
 
       // click behavior
       div.onclick = () => {
-        if (!isGame) return;
-        const rowEl = div.closest('.tf-row');
-        // LIVE/VOD/PREVIEW are now contextual to the game and shown via a drawer under the row
-        tfOpenDrawerForGame(rowEl, cat);
+        // Game => open contextual drawer
+        if (isGame){
+          const rowEl = div.closest('.tf-row');
+          tfOpenDrawerForGame(rowEl, cat);
+          return;
+        }
+
+        // Live card => play channel
+        if (cat && cat._live){
+          const s = cat._live;
+          const channel = (s.user_login || div.dataset.channel || '').trim();
+          if (!channel) return;
+          try{ closeTwitFlix(); }catch(_){ }
+          try{ loadTwitchStream(channel); }catch(_){ }
+          try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
+          return;
+        }
+
+        // VOD card => play VOD
+        if (cat && cat._vod){
+          const v = cat._vod;
+          const vodId = String(v.id || div.dataset.vodId || '').replace(/^v/i,'').trim();
+          if (!vodId) return;
+          try{ closeTwitFlix(); }catch(_){ }
+          try{ loadVodEmbed(vodId); }catch(_){ }
+          try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
+          return;
+        }
       };
 
       div.addEventListener('keydown', (e) => {

@@ -837,15 +837,20 @@ app.get('/api/twitch/vods/by-game', heavyLimiter, async (req, res) => {
 });
 
 // =========================================================
-// ORYON TV — Streams by game (used by TwitFlix drawer)
+// ORYON TV — VOD by game seeded from small live streamers
+// Goal: Netflix-like discovery for emerging creators (e.g. 20–200 viewers)
+// Strategy: get current small streams for a game -> fetch 1–2 recent archives per channel
 // =========================================================
-const __oryonStreamsByGameCache = new Map();
-app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
+app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
   try{
     const gameIdIn = String(req.query.game_id || '').trim();
     const gameNameIn = String(req.query.game_name || req.query.q || '').trim();
     const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 40);
+    const days = Math.min(Math.max(1, parseInt(req.query.days || '60', 10) || 60), 180);
     const lang = String(req.query.lang || '').trim().toLowerCase();
+    const minViewers = Math.max(0, parseInt(req.query.minViewers || '20', 10) || 0);
+    const maxViewers = Math.max(0, parseInt(req.query.maxViewers || '200', 10) || 0);
+    const perChannel = Math.min(Math.max(1, parseInt(req.query.perChannel || '2', 10) || 2), 3);
 
     const token = await getTwitchToken('app');
     if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
@@ -858,7 +863,104 @@ app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
       if(!gameId) return res.json({ success:true, items:[], reason:'game_not_found' });
     }
 
-    const key = `sbg:${gameId}:${limit}:${lang}`;
+    const key = `vodsmall:${gameId}:${limit}:${days}:${lang}:${minViewers}:${maxViewers}:${perChannel}`;
+    const cached = __oryonCacheGet(__oryonVodSearchCache, key, 90_000);
+    if(cached) return res.json({ success:true, items:cached, cached:true });
+
+    // 1) get live streams in band
+    const qs = new URLSearchParams();
+    qs.set('game_id', gameId);
+    qs.set('first', '100');
+    if(lang) qs.set('language', lang);
+    const sres = await twitchAPI(`streams?${qs.toString()}`, token);
+    const streams = (sres?.data || []).filter(s => {
+      const v = Number(s?.viewer_count || 0);
+      if (minViewers && v < minViewers) return false;
+      if (maxViewers && v > maxViewers) return false;
+      return true;
+    });
+
+    // Deduplicate channels, keep order (higher viewers first inside the band)
+    const channelIds = [];
+    const seen = new Set();
+    for(const s of streams){
+      const uid = String(s.user_id || '');
+      if(!uid || seen.has(uid)) continue;
+      seen.add(uid);
+      channelIds.push(uid);
+      if(channelIds.length >= 35) break; // cap work
+    }
+
+    const cutoff = Date.now() - (days * 24 * 36e5);
+    const out = [];
+
+    // 2) fetch archives per channel (limited)
+    for(const uid of channelIds){
+      if(out.length >= limit) break;
+      const vqs = new URLSearchParams();
+      vqs.set('user_id', uid);
+      vqs.set('first', String(perChannel));
+      vqs.set('type', 'archive');
+      if(lang) vqs.set('language', lang);
+      const v = await twitchAPI(`videos?${vqs.toString()}`, token);
+      const rows = (v?.data || []).slice(0, perChannel);
+      for(const r of rows){
+        const t = Date.parse(r.created_at || '') || 0;
+        if(t && t < cutoff) continue;
+        out.push({
+          id: r.id,
+          title: r.title,
+          url: r.url,
+          thumbnail_url: r.thumbnail_url,
+          duration: r.duration,
+          view_count: r.view_count,
+          created_at: r.created_at,
+          vod_type: r.type,
+          user_id: r.user_id,
+          user_name: r.user_name,
+          game_id: r.game_id,
+          game_name: r.game_name,
+          language: r.language,
+          platform: 'twitch'
+        });
+        if(out.length >= limit) break;
+      }
+    }
+
+    __oryonCacheSet(__oryonVodSearchCache, key, out);
+    return res.json({ success:true, items: out, seeded:true, band:{ minViewers, maxViewers } });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/vods/by-game-small', e.message);
+    return res.json({ success:true, items:[], reason:'server_error', error:e.message });
+  }
+});
+
+// =========================================================
+// ORYON TV — Streams by game (used by TwitFlix drawer)
+// =========================================================
+const __oryonStreamsByGameCache = new Map();
+app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
+  try{
+    const gameIdIn = String(req.query.game_id || '').trim();
+    const gameNameIn = String(req.query.game_name || req.query.q || '').trim();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 40);
+    const lang = String(req.query.lang || '').trim().toLowerCase();
+    // Discovery filters (viewer bands)
+    const minViewers = Math.max(0, parseInt(req.query.minViewers || '0', 10) || 0);
+    const maxViewers = Math.max(0, parseInt(req.query.maxViewers || '0', 10) || 0);
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+
+    let gameId = gameIdIn;
+    if(!gameId){
+      if(!gameNameIn) return res.json({ success:true, items:[], reason:'missing_game' });
+      const s = await twitchAPI(`search/categories?query=${encodeURIComponent(gameNameIn)}&first=1`, token);
+      gameId = s?.data?.[0]?.id || '';
+      if(!gameId) return res.json({ success:true, items:[], reason:'game_not_found' });
+    }
+
+    const key = `sbg:${gameId}:${limit}:${lang}:${minViewers}:${maxViewers}`;
     const cached = __oryonCacheGet(__oryonStreamsByGameCache, key, 45_000);
     if(cached) return res.json({ success:true, items:cached, cached:true });
 
@@ -869,7 +971,15 @@ app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
     const d = await twitchAPI(`streams?${qs.toString()}`, token);
     const rows = (d?.data || []).slice(0, 100);
 
-    const items = rows.slice(0, limit).map(s => ({
+    // Apply viewer band filter (best-effort)
+    const filtered = rows.filter(s => {
+      const v = Number(s?.viewer_count || 0);
+      if (minViewers && v < minViewers) return false;
+      if (maxViewers && v > maxViewers) return false;
+      return true;
+    });
+
+    const items = filtered.slice(0, limit).map(s => ({
       user_id: s.user_id,
       user_login: s.user_login,
       user_name: s.user_name,
