@@ -2578,6 +2578,7 @@ function tfBuildCard(cat){
       media.dataset.locked = '1';
       media.innerHTML = '';
       const iframe = document.createElement('iframe');
+      iframe.className = 'tf-hero-iframe';
       iframe.src = src;
       iframe.width = '100%';
       iframe.height = '100%';
@@ -2617,6 +2618,14 @@ function tfBuildCard(cat){
 
       const p = (async ()=>{
         try{
+          // 0) Netflix-like HERO: prefer official GAME trailers (YouTube) first.
+          // This makes the HERO behave like Netflix (trailers that change on hover).
+          const ytId = await tfResolveTrailerId(gameName);
+          if (ytId){
+            tfHeroCache.set(key, { t: Date.now(), youtubeId: String(ytId).trim() });
+            return;
+          }
+
           // Prefer small creators VODs for this game
           const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(key)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
           const r = await fetch(url, { credentials:'include' });
@@ -2647,6 +2656,22 @@ function tfBuildCard(cat){
     }
 
     function tfHeroApplyAutoplay(obj, gameName, poster){
+      // 1) YouTube trailer in HERO (autoplay muted)
+      if (obj.youtubeId){
+        const vid = String(obj.youtubeId).trim();
+        const origin = encodeURIComponent(window.location.origin);
+        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`;
+        tfHeroMountIframe(src);
+
+        // Play button opens the game modal (Netflix: hero is teaser; click leads to details)
+        const playBtn = document.getElementById('tf-hero-play');
+        if (playBtn){
+          playBtn.onclick = ()=>{ try{ tfOpenGameModal({ id: String(tfHeroCurrentKey||''), name: gameName, box_art_url: poster }); }catch(_){}; };
+        }
+        tfSetHero({ title: gameName || 'Trailer', sub: 'Trailer officiel • Prévisualisation automatique', poster });
+        return;
+      }
+
       const parentParams = (Array.isArray(PARENT_DOMAINS) && PARENT_DOMAINS.length)
         ? PARENT_DOMAINS.map(p=>`parent=${encodeURIComponent(p)}`).join('&')
         : `parent=${encodeURIComponent(TWITCH_PARENT || window.location.hostname)}`;
