@@ -753,6 +753,146 @@ app.get('/api/twitch/vods/search', heavyLimiter, async (req, res) => {
 
 
 // =========================================================
+// ORYON TV — VODs by game (used by TwitFlix drawer: LIVE/VOD/PREVIEW)
+// =========================================================
+app.get('/api/twitch/vods/by-game', heavyLimiter, async (req, res) => {
+  try{
+    const gameIdIn = String(req.query.game_id || '').trim();
+    const gameNameIn = String(req.query.game_name || req.query.q || '').trim();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 40);
+    const days = Math.min(Math.max(1, parseInt(req.query.days || '60', 10) || 60), 180);
+    const lang = String(req.query.lang || '').trim().toLowerCase();
+    const small = String(req.query.small || '').trim() === '1' || String(req.query.small || '').trim().toLowerCase() === 'true';
+    const maxViews = Math.min(Math.max(0, parseInt(req.query.maxViews || (small ? '200000' : '0'), 10) || 0), 5_000_000);
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+
+    let gameId = gameIdIn;
+    if(!gameId){
+      if(!gameNameIn) return res.json({ success:true, items:[], reason:'missing_game' });
+      const s = await twitchAPI(`search/categories?query=${encodeURIComponent(gameNameIn)}&first=1`, token);
+      gameId = s?.data?.[0]?.id || '';
+      if(!gameId) return res.json({ success:true, items:[], reason:'game_not_found' });
+    }
+
+    const key = `bygame:${gameId}:${limit}:${days}:${lang}:${small ? 1 : 0}:${maxViews}`;
+    const cached = __oryonCacheGet(__oryonVodSearchCache, key, 90_000);
+    if(cached) return res.json({ success:true, items:cached, cached:true });
+
+    // Pull more to allow filtering (lang/small/maxViews)
+    const first = 50;
+    const qs = new URLSearchParams();
+    qs.set('game_id', gameId);
+    qs.set('first', String(first));
+    qs.set('type', 'archive');
+    if(lang) qs.set('language', lang);
+    // Helix videos supports sort/time and period, but keep defaults (relevance) and filter ourselves.
+    const v = await twitchAPI(`videos?${qs.toString()}`, token);
+    const rows = (v?.data || []).slice(0, first);
+
+    const cutoff = Date.now() - (days * 24 * 36e5);
+    let items = rows
+      .filter(r => {
+        const t = Date.parse(r.created_at || '') || 0;
+        return !t || t >= cutoff;
+      })
+      .map(r => ({
+        id: r.id,
+        title: r.title,
+        url: r.url,
+        thumbnail_url: r.thumbnail_url,
+        duration: r.duration,
+        view_count: r.view_count,
+        created_at: r.created_at,
+        vod_type: r.type,
+        user_id: r.user_id,
+        user_name: r.user_name,
+        game_id: r.game_id,
+        game_name: r.game_name,
+        language: r.language,
+        platform: 'twitch'
+      }));
+
+    // Filters
+    if(maxViews > 0) items = items.filter(it => (Number(it.view_count || 0) || 0) <= maxViews);
+    if(small){
+      const seen = new Set();
+      items = items.filter(it => {
+        const uid = String(it.user_id || '');
+        if(!uid) return false;
+        if(seen.has(uid)) return false;
+        seen.add(uid);
+        return true;
+      });
+    }
+
+    items = items.slice(0, limit);
+    __oryonCacheSet(__oryonVodSearchCache, key, items);
+    return res.json({ success:true, items });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/vods/by-game', e.message);
+    return res.json({ success:true, items:[], reason:'server_error', error:e.message });
+  }
+});
+
+// =========================================================
+// ORYON TV — Streams by game (used by TwitFlix drawer)
+// =========================================================
+const __oryonStreamsByGameCache = new Map();
+app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
+  try{
+    const gameIdIn = String(req.query.game_id || '').trim();
+    const gameNameIn = String(req.query.game_name || req.query.q || '').trim();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 40);
+    const lang = String(req.query.lang || '').trim().toLowerCase();
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+
+    let gameId = gameIdIn;
+    if(!gameId){
+      if(!gameNameIn) return res.json({ success:true, items:[], reason:'missing_game' });
+      const s = await twitchAPI(`search/categories?query=${encodeURIComponent(gameNameIn)}&first=1`, token);
+      gameId = s?.data?.[0]?.id || '';
+      if(!gameId) return res.json({ success:true, items:[], reason:'game_not_found' });
+    }
+
+    const key = `sbg:${gameId}:${limit}:${lang}`;
+    const cached = __oryonCacheGet(__oryonStreamsByGameCache, key, 45_000);
+    if(cached) return res.json({ success:true, items:cached, cached:true });
+
+    const qs = new URLSearchParams();
+    qs.set('game_id', gameId);
+    qs.set('first', '100');
+    if(lang) qs.set('language', lang);
+    const d = await twitchAPI(`streams?${qs.toString()}`, token);
+    const rows = (d?.data || []).slice(0, 100);
+
+    const items = rows.slice(0, limit).map(s => ({
+      user_id: s.user_id,
+      user_login: s.user_login,
+      user_name: s.user_name,
+      game_id: s.game_id,
+      game_name: s.game_name,
+      viewer_count: s.viewer_count,
+      title: s.title,
+      thumbnail_url: s.thumbnail_url,
+      language: s.language,
+      started_at: s.started_at,
+      platform: 'twitch'
+    }));
+
+    __oryonCacheSet(__oryonStreamsByGameCache, key, items);
+    return res.json({ success:true, items });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/streams/by-game', e.message);
+    return res.json({ success:true, items:[], reason:'server_error', error:e.message });
+  }
+});
+
+
+// =========================================================
 // ORYON TV — Top VOD (global) — Netflix-like
 // Heuristic: top streams + top games -> recent archives, ranked
 // =========================================================
@@ -966,95 +1106,6 @@ app.get('/api/twitch/vods/top', heavyLimiter, async (req, res) => {
   }catch(e){
     console.warn('⚠️ /api/twitch/vods/top', e.message);
     return res.json({ success:true, items:[], reason:'server_error', error:e.message });
-  }
-});
-
-// =========================================================
-// ORYON TV — VODs by game (Helix videos?game_id=...)
-// Purpose: "VOD derrière les vignettes de jeux" on TwitFlix.
-// =========================================================
-const __oryonVodByGameCache = new Map(); // key -> {ts, items}
-
-async function __oryonResolveGameIdByName(gameName, token){
-  const q = String(gameName || '').trim();
-  if(!q) return null;
-  // Helix search/categories expects query
-  const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`, token);
-  return d?.data?.[0]?.id || null;
-}
-
-app.get('/api/twitch/vods/by-game', heavyLimiter, async (req, res) => {
-  try{
-    const name = String(req.query.name || '').trim();
-    const game_id_q = String(req.query.game_id || '').trim();
-    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 60);
-    const days = Math.min(Math.max(7, parseInt(req.query.days || '60', 10) || 60), 180);
-
-    // "small" best-effort: followers not available with app token; use view_count ceiling + unique broadcasters.
-    const small = String(req.query.small || '1') === '1';
-    const maxViews = Math.max(10_000, parseInt(req.query.maxViews || (small ? '120000' : '10000000'), 10) || (small ? 120000 : 10000000));
-
-    if(!name && !game_id_q) return res.json({ success:true, items:[], reason:'missing_name' });
-
-    const cacheKey = `bygame:${game_id_q || name}:${lang}:${limit}:${days}:${small}:${maxViews}`;
-    const cached = __oryonCacheGet(__oryonVodByGameCache, cacheKey, 10 * 60_000);
-    if(cached) return res.json({ success:true, items: cached, cached:true });
-
-    const token = await getTwitchToken('app');
-    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
-
-    const game_id = game_id_q || await __oryonResolveGameIdByName(name, token);
-    if(!game_id) return res.json({ success:true, items:[], reason:'game_not_found' });
-
-    const raw = await twitchAPI(`videos?game_id=${encodeURIComponent(game_id)}&type=archive&first=${encodeURIComponent(String(Math.min(100, Math.max(20, limit*3))))}`, token);
-    const rows = Array.isArray(raw?.data) ? raw.data : [];
-
-    const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
-    const uniqueBroadcasters = new Set();
-
-    const items = [];
-    for(const row of rows){
-      if(!row) continue;
-      const created = Date.parse(row.created_at || row.published_at || '') || 0;
-      if(created && created < cutoff) continue;
-
-      const vLang = String(row.language || '').toLowerCase();
-      if(lang && vLang && vLang !== lang) continue;
-
-      const vc = Number(row.view_count || 0) || 0;
-      if(vc > maxViews) continue;
-
-      // small creators best-effort: one VOD per broadcaster
-      const bid = String(row.user_id || row.broadcaster_id || '') || '';
-      if(small && bid){
-        if(uniqueBroadcasters.has(bid)) continue;
-        uniqueBroadcasters.add(bid);
-      }
-
-      items.push({
-        id: row.id,
-        title: row.title,
-        user_id: row.user_id,
-        user_name: row.user_name,
-        game_id: row.game_id,
-        game_name: row.game_name,
-        duration: row.duration,
-        view_count: row.view_count,
-        created_at: row.created_at,
-        language: row.language,
-        thumbnail_url: row.thumbnail_url,
-        url: row.url,
-        vod_type: row.type
-      });
-      if(items.length >= limit) break;
-    }
-
-    __oryonCacheSet(__oryonVodByGameCache, cacheKey, items);
-    return res.json({ success:true, game_id, items });
-  }catch(e){
-    console.warn('⚠️ /api/twitch/vods/by-game', e.message);
-    return res.status(500).json({ success:false, error:e.message });
   }
 });
 
