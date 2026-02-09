@@ -46,6 +46,14 @@ const API_BASE = window.location.origin;
     // Keep it simple: click a game -> open drawer -> switch LIVE/VOD inside the drawer.
     let tfDrawerMode = 'live'; // live | vod | preview
 
+    // Netflix-like HERO autoplay preview (changes when hovering a game cover)
+    const TF_HERO_TTL = 10 * 60 * 1000;
+    const tfHeroCache = new Map(); // gameId -> { t, vodId, channel }
+    const tfHeroInflight = new Map();
+    let tfHeroHoverTimer = null;
+    let tfHeroCurrentKey = null;
+    let tfHeroCyclerTimer = null;
+
     // INIT
     window.addEventListener('load', async () => {
       initUnderTabs();
@@ -1279,7 +1287,7 @@ const modal = document.getElementById('twitflix-modal');
       if (search) search.value = '';
 
       // hero default
-      tfSetHero({ title: 'TWITFLIX', sub: 'Découvre des jeux, survole pour une preview, clique pour lancer un stream.' });
+      tfSetHero({ title: 'ORYON TV', sub: 'Survole un jeu pour lancer un trailer automatique (muet). Clique pour voir LIVE/VOD.', poster: '' });
 
       // empty ui
       if (host){
@@ -1322,8 +1330,12 @@ const modal = document.getElementById('twitflix-modal');
       await tfLoadPersonalization();
 
       tfRenderLiveCarousel();
-      tfRenderTrailerCarousel();
+      // Trailer carousel is hidden in the Netflix-like mode; hero is the trailer.
+      try{ tfRenderTrailerCarousel(); }catch(_){ }
       renderTwitFlix();
+
+      // Start hero cycler once some categories exist
+      try{ tfStartHeroCycler(); }catch(_){ }
     }
 
     function closeTwitFlix(){
@@ -2469,12 +2481,19 @@ function tfBuildCard(cat){
         </div>
       `;
 
-      // hero update on hover/focus
-      div.addEventListener('mouseenter', () => { tfSetHero({ title: cat.name, poster }); tfSchedulePeekFromCard(div); });
-      div.addEventListener('focus', () => { tfSetHero({ title: cat.name, poster }); tfSchedulePeekFromCard(div); });
-
-      div.addEventListener('mouseleave', tfHidePeek);
-      div.addEventListener('blur', tfHidePeek);
+      // Netflix-like HERO behavior:
+      // - Hover a GAME cover => update the HERO autoplay preview for that game
+      // - Hover a LIVE/VOD card => card-local preview (handled below)
+      if (isGame){
+        const hoverSet = () => {
+          if (tfHeroHoverTimer) clearTimeout(tfHeroHoverTimer);
+          tfHeroHoverTimer = setTimeout(() => {
+            tfHeroSetAutoplayForGame(cat.id, cat.name, poster);
+          }, 180);
+        };
+        div.addEventListener('mouseenter', hoverSet);
+        div.addEventListener('focus', hoverSet);
+      }
 
       // click behavior
       div.onclick = () => {
@@ -2536,6 +2555,7 @@ function tfBuildCard(cat){
 
     function tfSetHero({ title, sub, poster }){
       const bg = document.getElementById('tf-hero-bg');
+      const media = document.getElementById('tf-hero-media');
       const t = document.getElementById('tf-hero-title');
       const s = document.getElementById('tf-hero-sub');
       if (t) t.textContent = String(title || 'TWITFLIX');
@@ -2544,6 +2564,144 @@ function tfBuildCard(cat){
         if (poster) { bg.src = poster; bg.style.opacity = (String(title||'').toUpperCase()==='TWITFLIX' ? '.55' : '.78'); }
         else { bg.removeAttribute('src'); bg.style.opacity = '.15'; }
       }
+
+      // Default: if no explicit media is mounted elsewhere, clear the hero media.
+      // (Hero autoplay is handled by tfHeroSetAutoplayForGame.)
+      if (media && !media.dataset.locked){
+        media.innerHTML = '';
+      }
+    }
+
+    function tfHeroMountIframe(src){
+      const media = document.getElementById('tf-hero-media');
+      if (!media) return;
+      media.dataset.locked = '1';
+      media.innerHTML = '';
+      const iframe = document.createElement('iframe');
+      iframe.src = src;
+      iframe.width = '100%';
+      iframe.height = '100%';
+      iframe.allow = 'autoplay; fullscreen';
+      iframe.frameBorder = '0';
+      media.appendChild(iframe);
+    }
+
+    function tfHeroClearMedia(){
+      const media = document.getElementById('tf-hero-media');
+      if (!media) return;
+      media.dataset.locked = '';
+      media.innerHTML = '';
+    }
+
+    async function tfHeroSetAutoplayForGame(gameId, gameName, poster){
+      const key = String(gameId || '');
+      if (!key) return;
+      if (tfHeroCurrentKey === key) return;
+      tfHeroCurrentKey = key;
+
+      // optimistic UI
+      tfSetHero({ title: gameName || 'Trailer', sub: 'Prévisualisation automatique (muette)', poster });
+
+      const cached = tfHeroCache.get(key);
+      const now = Date.now();
+      if (cached && (now - cached.t) < TF_HERO_TTL){
+        return tfHeroApplyAutoplay(cached, gameName, poster);
+      }
+
+      if (tfHeroInflight.has(key)){
+        try{ await tfHeroInflight.get(key); }catch(_){ }
+        const cc = tfHeroCache.get(key);
+        if (cc) return tfHeroApplyAutoplay(cc, gameName, poster);
+        return;
+      }
+
+      const p = (async ()=>{
+        try{
+          // Prefer small creators VODs for this game
+          const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(key)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
+          const r = await fetch(url, { credentials:'include' });
+          const d = await r.json().catch(()=>null);
+          const items = (r.ok && d && Array.isArray(d.items)) ? d.items : [];
+          const first = items.find(x=>x && x.id) || null;
+          if (first){
+            tfHeroCache.set(key, { t: Date.now(), vodId: String(first.id).replace(/^v/i,'') });
+            return;
+          }
+
+          // Fallback to a live preview channel
+          const ch = await tfGetPreviewChannel(key);
+          if (ch){
+            tfHeroCache.set(key, { t: Date.now(), channel: ch });
+            return;
+          }
+        }catch(_){ }
+      })();
+
+      tfHeroInflight.set(key, p);
+      try{ await p; }catch(_){ }
+      tfHeroInflight.delete(key);
+
+      const final = tfHeroCache.get(key);
+      if (final) return tfHeroApplyAutoplay(final, gameName, poster);
+      tfHeroClearMedia();
+    }
+
+    function tfHeroApplyAutoplay(obj, gameName, poster){
+      const parentParams = (Array.isArray(PARENT_DOMAINS) && PARENT_DOMAINS.length)
+        ? PARENT_DOMAINS.map(p=>`parent=${encodeURIComponent(p)}`).join('&')
+        : `parent=${encodeURIComponent(TWITCH_PARENT || window.location.hostname)}`;
+
+      if (obj.vodId){
+        const vodId = String(obj.vodId).replace(/^v/i,'');
+        const src = `https://player.twitch.tv/?video=v${encodeURIComponent(vodId)}&${parentParams}&muted=true&autoplay=true`;
+        tfHeroMountIframe(src);
+
+        // Play button launches the VOD
+        const playBtn = document.getElementById('tf-hero-play');
+        if (playBtn){
+          playBtn.onclick = ()=>{ try{ closeTwitFlix(); }catch(_){}; try{ loadVodEmbed(vodId); }catch(_){}; };
+        }
+        tfSetHero({ title: gameName || 'VOD', sub: 'Trailer (VOD) • FR • Découverte', poster });
+        return;
+      }
+
+      if (obj.channel){
+        const ch = String(obj.channel);
+        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&${parentParams}&muted=true&autoplay=true`;
+        tfHeroMountIframe(src);
+        const playBtn = document.getElementById('tf-hero-play');
+        if (playBtn){
+          playBtn.onclick = ()=>{ try{ closeTwitFlix(); }catch(_){}; try{ loadTwitchEmbed(ch); }catch(_){}; };
+        }
+        tfSetHero({ title: gameName || 'LIVE', sub: 'Trailer (LIVE) • FR • Découverte', poster });
+      }
+    }
+
+    function tfStartHeroCycler(){
+      if (tfHeroCyclerTimer) clearInterval(tfHeroCyclerTimer);
+      // Rotate featured games in the HERO to mimic Netflix autoplay trailers.
+      // User hover always takes precedence (tfHeroCurrentKey is set then).
+      tfHeroCyclerTimer = setInterval(() => {
+        try{
+          if (!tfModalOpen) return;
+          if (!Array.isArray(tfAllCategories) || !tfAllCategories.length) return;
+          // pick a semi-random game from the first loaded batch
+          const pool = tfAllCategories.slice(0, Math.min(24, tfAllCategories.length));
+          const pick = pool[Math.floor(Math.random() * pool.length)];
+          if (!pick || !pick.id) return;
+          // do not override if the user is hovering/focused on a game recently
+          // (we treat "current key" as "user selected" for the next few seconds)
+          tfHeroSetAutoplayForGame(pick.id, pick.name, tfNormalizeBoxArt(pick.box_art_url || ''));
+        }catch(_){ }
+      }, 9000);
+
+      // initial kick
+      try{
+        const first = (Array.isArray(tfAllCategories) && tfAllCategories[0]) ? tfAllCategories[0] : null;
+        if (first && first.id){
+          tfHeroSetAutoplayForGame(first.id, first.name, tfNormalizeBoxArt(first.box_art_url || ''));
+        }
+      }catch(_){ }
     }
 
     async function tfStartPreview(cardEl){
