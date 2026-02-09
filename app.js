@@ -1625,15 +1625,111 @@ app.get('/api/categories/search', async (req, res) => {
     const q = String(req.query.q || '').trim();
     if (!q) return res.json({ success: true, categories: [] });
 
-    // Twitch: search/categories?query=...&first=100
+    // Twitch: search/categories?query=...&first=50
+    // Twitch does not guarantee best ordering for multi-word queries.
+    // We re-rank server-side to make exact/prefix matches appear first.
+    const qLow = q.toLowerCase();
     const d = await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=50`);
-    const categories = (d.data || []).map(g => ({
+    const raw = (d.data || []).map(g => ({
       id: g.id,
       name: g.name,
       box_art_url: (g.box_art_url || '').replace('{width}', '285').replace('{height}', '380')
     }));
+
+    function norm(s){
+      return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+    }
+    function scoreName(name){
+      const n = norm(name);
+      if(!n) return 0;
+      if(n === norm(q)) return 10000;
+      if(n.startsWith(norm(q))) return 8000;
+      // token / word scoring
+      const qTokens = norm(q).split(/\s+/).filter(Boolean);
+      const nTokens = n.split(/\s+/).filter(Boolean);
+      let hit = 0;
+      for(const t of qTokens){ if(nTokens.includes(t)) hit += 1; }
+      const contains = n.includes(norm(q)) ? 1 : 0;
+      // prefer shorter names when score tie
+      const lenPenalty = Math.min(200, n.length);
+      return (contains*2000) + (hit*900) + (Math.max(0, 500 - lenPenalty));
+    }
+
+    const categories = raw
+      .map(x => ({...x, _score: scoreName(x.name)}))
+      .sort((a,b)=> (b._score - a._score) || (String(a.name).length - String(b.name).length))
+      .map(({_score, ...rest}) => rest);
+
     return res.json({ success: true, categories });
   } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+
+// =========================================================
+// Twitch Streams: Top (for LIVE banner)
+//  - Returns streams filtered by language/viewers
+//  - Enriches with game box art for better UI
+// =========================================================
+app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
+  try {
+    const lang = String(req.query.lang || '').trim();
+    const minViewers = Math.max(0, parseInt(req.query.minViewers || req.query.min || '0', 10) || 0);
+    const maxViewers = Math.max(0, parseInt(req.query.maxViewers || req.query.max || '0', 10) || 0);
+    const limit = Math.min(100, Math.max(10, parseInt(req.query.limit || '60', 10) || 60));
+
+    // Pull a bigger pool and filter server-side
+    const first = 100;
+    let url = `streams?first=${first}`;
+    if (lang) url += `&language=${encodeURIComponent(lang)}`;
+    const d = await twitchAPI(url);
+    let items = Array.isArray(d.data) ? d.data.slice(0) : [];
+
+    if (minViewers || maxViewers){
+      items = items.filter(s => {
+        const v = Number(s.viewer_count || 0);
+        if (minViewers && v < minViewers) return false;
+        if (maxViewers && v > maxViewers) return false;
+        return true;
+      });
+    }
+
+    // Prefer diversity by game (one stream per game)
+    const byGame = new Map();
+    for (const s of items){
+      const gid = String(s.game_id || '');
+      if (!gid) continue;
+      if (!byGame.has(gid)) byGame.set(gid, s);
+      if (byGame.size >= limit) break;
+    }
+
+    const unique = Array.from(byGame.values());
+    const gameIds = Array.from(byGame.keys());
+
+    // Enrich with box art
+    const artMap = {};
+    if (gameIds.length){
+      const chunks = [];
+      for(let i=0;i<gameIds.length;i+=50) chunks.push(gameIds.slice(i,i+50));
+      for(const ch of chunks){
+        const q = ch.map(id => `id=${encodeURIComponent(id)}`).join('&');
+        const gd = await twitchAPI(`games?${q}`);
+        const arr = Array.isArray(gd.data) ? gd.data : [];
+        for(const g of arr){
+          artMap[String(g.id)] = (g.box_art_url || '').replace('{width}','285').replace('{height}','380');
+        }
+      }
+    }
+
+    const out = unique.map(s => ({
+      ...s,
+      box_art_url: artMap[String(s.game_id||'')] || null
+    }));
+
+    return res.json({ success: true, items: out });
+  } catch (e) {
+    console.warn('⚠️ /api/twitch/streams/top', e.message);
     return res.status(500).json({ success: false, error: e.message });
   }
 });

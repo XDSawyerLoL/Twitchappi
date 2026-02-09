@@ -990,51 +990,66 @@ window.addEventListener('message', (ev) => {
       }, { passive: false });
     }
 
-    function tfRenderLiveCarousel(){
+    // LIVE banner should show enough distinct games (Netflix-like "EN LIVE")
+    // We source it from real streams (FR + 20–200 viewers) and keep one per game for diversity.
+    async function tfRenderLiveCarousel(){
       const wrap = document.getElementById('tf-live-carousel');
       if (!wrap) return;
-
       tfBindHorizontalWheel(wrap);
 
-      // Build from categories already loaded in TwitFlix
-      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
-      if (!cats.length){
-        wrap.innerHTML = '<div class="tf-empty">Chargement des lives…</div>';
-        return;
+      wrap.innerHTML = '<div class="tf-empty">Chargement des lives…</div>';
+      try{
+        const url = `/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=200&limit=40`;
+        const r = await fetch(url, { credentials:'include' });
+        const d = r.ok ? await r.json() : null;
+        const items = d && Array.isArray(d.items) ? d.items : [];
+        if (!items.length){
+          wrap.innerHTML = '<div class="tf-empty">Aucun live trouvé (FR) pour le moment.</div>';
+          return;
+        }
+
+        wrap.innerHTML = '';
+        for(const s of items){
+          const gameId = String(s.game_id || '');
+          const gameName = String(s.game_name || 'Jeu');
+          const boxArt = tfNormalizeBoxArt(s.box_art_url || '');
+          const channel = String(s.user_login || '').trim();
+          if(!gameId || !channel) continue;
+
+          const card = document.createElement('div');
+          card.className = 'tf-live-card';
+          card.dataset.gameId = gameId;
+          card.dataset.channel = channel;
+          card.dataset.__previewChannel = channel; // used by tfStartPreview
+
+          card.innerHTML = `
+            <div class="tf-live-thumb" style="background-image:url('${boxArt}')">
+              <div class="tf-preview"></div>
+              <div class="tf-live-badge">EN LIVE</div>
+            </div>
+            <div class="tf-live-meta">
+              <div class="t1">${escapeHtml(gameName)}</div>
+              <div class="t2">${escapeHtml(s.user_name || channel)} · ${Number(s.viewer_count||0)} viewers</div>
+            </div>
+          `;
+
+          // Preview on hover: direct channel preview
+          card.addEventListener('mouseenter', () => tfStartPreview(card));
+          card.addEventListener('mouseleave', () => tfStopPreview(card));
+
+          // Click => launch that channel immediately (no extra selection step)
+          card.addEventListener('click', (e) => {
+            e.preventDefault();
+            try{ closeTwitFlix(); }catch(_){ }
+            try{ loadTwitchStream(channel); }catch(_){ }
+            try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
+          });
+
+          wrap.appendChild(card);
+        }
+      }catch(_){
+        wrap.innerHTML = '<div class="tf-empty">Erreur chargement des lives.</div>';
       }
-
-      wrap.innerHTML = '';
-      cats.forEach(cat => {
-        const gameId = String(cat.id || '');
-        const gameName = String(cat.name || 'Jeu');
-        const boxArt = tfNormalizeBoxArt(cat.box_art_url || cat.boxArt || '');
-
-        const card = document.createElement('div');
-        card.className = 'tf-live-card';
-        card.dataset.gameId = gameId;
-
-        card.innerHTML = `
-          <div class="tf-live-thumb" style="background-image:url('${boxArt}')">
-            <div class="tf-preview"></div>
-            <div class="tf-live-badge">LIVE</div>
-          </div>
-          <div class="tf-live-meta">
-            <div class="t1">${gameName}</div>
-            <div class="t2">Survole pour preview · Clique pour lancer</div>
-          </div>
-        `;
-
-        // Preview on hover (uses existing TwitFlix preview logic)
-        card.addEventListener('mouseenter', () => tfStartPreview(card));
-        card.addEventListener('mouseleave', () => tfStopPreview(card));
-
-        // Click => launch a stream for this category
-        card.addEventListener('click', () => {
-          try { playTwitFlixCategory(gameId, gameName, boxArt); } catch(_) {}
-        });
-
-        wrap.appendChild(card);
-      });
     }
 
     function tfRenderTrailerCarousel(){
@@ -1184,23 +1199,50 @@ function tfNormalizeBoxArt(url){
 const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
 
-      // ORYON TV: delegated click for VOD cards (mouse)
+      // ORYON TV: delegated click safety-net (keeps everything clickable)
+      // - game cards: open the Netflix-like info modal
+      // - live cards: open stream
+      // - VOD cards: open VOD
+      // This runs in capture phase to avoid drag/overlay interference.
       try{
         const __grid = document.getElementById('twitflix-grid');
-        if(__grid && !__grid.dataset.oryonVodClickDelegate){
-          __grid.dataset.oryonVodClickDelegate = '1';
+        if(__grid && !__grid.dataset.oryonClickDelegate){
+          __grid.dataset.oryonClickDelegate = '1';
           __grid.addEventListener('click', (e)=>{
             const card = e.target.closest && e.target.closest('.tf-card');
             if(!card) return;
+
+            // VOD
             const vodId = card.dataset && card.dataset.vodId;
-            if(!vodId) return;
-            e.preventDefault(); e.stopPropagation();
-            try{ closeTwitFlix(); }catch(_){}
-            try{ loadVodEmbed(vodId); }catch(_){}
-            try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
+            if(vodId){
+              e.preventDefault(); e.stopPropagation();
+              try{ closeTwitFlix(); }catch(_){ }
+              try{ loadVodEmbed(String(vodId).replace(/^v/i,'')); }catch(_){ }
+              try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
+              return;
+            }
+
+            // Live
+            const ch = card.dataset && (card.dataset.channel || card.dataset.__previewChannel);
+            if(ch && !card.dataset.gameId){
+              e.preventDefault(); e.stopPropagation();
+              try{ closeTwitFlix(); }catch(_){ }
+              try{ loadTwitchStream(String(ch)); }catch(_){ }
+              try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
+              return;
+            }
+
+            // Game
+            const gid = card.dataset && card.dataset.gameId;
+            if(gid){
+              // If the card already has its own onclick it will run anyway, but we keep this as a fallback.
+              e.preventDefault();
+              try{ card.onclick && card.onclick(); }catch(_){ }
+              return;
+            }
           }, true);
         }
-      }catch(_){}
+      }catch(_){ }
       const search = document.getElementById('twitflix-search');
 
       tfModalOpen = true;
@@ -2012,6 +2054,31 @@ const modal = document.getElementById('twitflix-modal');
           tfCloseGameModal();
           try{ closeTwitFlix(); }catch(_){ }
           try{ loadVodEmbed(vid); }catch(_){ }
+        }
+      });
+
+      // "Plus d'infos" should not scroll the page; it toggles an info panel inside the modal
+      modal.querySelector('#tf-info-more')?.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const body = modal.querySelector('.tf-info-body');
+        if(!body) return;
+        let extra = modal.querySelector('#tf-info-extra');
+        if(!extra){
+          extra = document.createElement('div');
+          extra.id = 'tf-info-extra';
+          extra.style.cssText = 'margin:12px 0 0 0;padding:12px 12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.35);color:rgba(255,255,255,.85);font-size:12px;line-height:1.45;';
+          extra.innerHTML = `
+            <div style="font-weight:900;letter-spacing:.4px;margin-bottom:6px">${escapeHtml(tfInfoGame.name)}</div>
+            <div style="opacity:.85">Catalogue Streamer (FR) · Découverte petits créateurs · Hover = preview, clic = lecture.</div>
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+              <a class="tf-nx-btn tf-nx-ghost" href="https://www.twitch.tv/search?term=${encodeURIComponent(tfInfoGame.name)}" target="_blank" rel="noopener noreferrer">Voir sur Twitch</a>
+              <button class="tf-nx-btn tf-nx-ghost" id="tf-info-close2">Fermer</button>
+            </div>
+          `;
+          body.prepend(extra);
+          extra.querySelector('#tf-info-close2')?.addEventListener('click', (ev)=>{ ev.preventDefault(); extra.remove(); });
+        } else {
+          extra.remove();
         }
       });
 
