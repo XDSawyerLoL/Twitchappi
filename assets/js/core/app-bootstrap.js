@@ -1983,17 +1983,11 @@ const modal = document.getElementById('twitflix-modal');
 
     async function tfOpenGameModal(cat){
       if (!cat || !cat.id) return;
-      // Always close previous modal first. IMPORTANT: tfCloseGameModal() resets tfInfoGame,
-      // so we must call it BEFORE setting tfInfoGame for the new modal.
+      // Close any existing modal FIRST (it resets tfInfoGame)
       tfCloseGameModal();
 
       tfInfoGame = { id:String(cat.id), name:String(cat.name||''), poster: tfNormalizeBoxArt(cat.box_art_url||'') };
-      // Fallback poster to avoid runtime crashes if box art is missing.
-      if(!tfInfoGame.poster){
-        tfInfoGame.poster = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-          `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="100%" height="100%" fill="#111"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#666" font-family="Arial" font-size="42">${(tfInfoGame.name||'').replace(/</g,'&lt;')}</text></svg>`
-        );
-      }
+      // VOD-only modal per UX request
       tfInfoTab = 'vod';
       const modal = document.createElement('div');
       modal.id = 'tf-info-modal';
@@ -2007,13 +2001,10 @@ const modal = document.getElementById('twitflix-modal');
               <div class="tf-info-grad"></div>
               <div class="tf-info-meta">
                 <div class="tf-info-title">${escapeHtml(tfInfoGame.name)}</div>
+                <div class="tf-info-desc" id="tf-info-desc">${escapeHtml(tfGetGameDesc(tfInfoGame.name))}</div>
                 <div class="tf-info-actions">
                   <button class="tf-nx-btn tf-nx-primary" id="tf-info-play"><span>▶</span> Lecture</button>
                   <button class="tf-nx-btn tf-nx-ghost" id="tf-info-more">Plus d'infos</button>
-                </div>
-                <div class="tf-info-tabs" role="tablist" aria-label="Choix contenu">
-                  <button type="button" class="tf-tab active" data-tab="vod">VOD</button>
-                  <button type="button" class="tf-tab" data-tab="live">LIVE</button>
                 </div>
               </div>
             </div>
@@ -2036,33 +2027,18 @@ const modal = document.getElementById('twitflix-modal');
       modal.querySelector('.tf-info-close')?.addEventListener('click', (e)=>{ e.preventDefault(); tfCloseGameModal(); });
       modal.querySelector('.tf-info-backdrop')?.addEventListener('click', (e)=>{ if (e.target.classList.contains('tf-info-backdrop')) tfCloseGameModal(); });
 
-      modal.querySelectorAll('.tf-tab').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          modal.querySelectorAll('.tf-tab').forEach(b=>b.classList.toggle('active', b===btn));
-          tfInfoTab = String(btn.dataset.tab||'vod');
-          tfRenderInfoContent();
-        });
-      });
-
       modal.querySelector('#tf-info-play')?.addEventListener('click', (e)=>{
         e.preventDefault();
         const cache = tfInfoCache.get(tfInfoGame.id) || {};
-        const list = (tfInfoTab==='live' ? cache.lives : cache.vods) || [];
+        const list = (cache.vods || []);
         if (!list.length) return;
-        const first = list[0];
-        if (first._live){
-          const ch = String(first._live.user_login||'');
-          if (!ch) return;
-          tfCloseGameModal();
-          try{ closeTwitFlix(); }catch(_){ }
-          try{ loadTwitchStream(ch); }catch(_){ }
-        } else if (first._vod){
-          const vid = String(first._vod.id||'').replace(/^v/i,'');
-          if (!vid) return;
-          tfCloseGameModal();
-          try{ closeTwitFlix(); }catch(_){ }
-          try{ loadVodEmbed(vid); }catch(_){ }
-        }
+        // Random VOD (FR small) for this game
+        const pick = list[Math.floor(Math.random() * list.length)];
+        const vid = String(pick?._vod?.id || pick?.id || '').replace(/^v/i,'');
+        if (!vid) return;
+        tfCloseGameModal();
+        try{ closeTwitFlix(); }catch(_){ }
+        try{ loadVodEmbed(vid); }catch(_){ }
       });
 
       // "Plus d'infos" should not scroll the page; it toggles an info panel inside the modal
@@ -2099,24 +2075,19 @@ const modal = document.getElementById('twitflix-modal');
       const gameId = tfInfoGame.id;
       if (tfInfoCache.has(gameId)) return;
 
-      const cache = { vods: [], lives: [] };
+      const cache = { vods: [] };
       try{
-        const vodUrl = `/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gameId)}&lang=fr&minViewers=20&maxViewers=200&limit=30&days=60&maxViews=200000`;
+        const vodUrl = `/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gameId)}&lang=fr&minViewers=20&maxViewers=200&limit=60&days=90&maxViews=200000&perChannel=2`;
         const rv = await fetch(vodUrl, { credentials:'include' });
         if (rv.ok){
           const dv = await rv.json();
           const items = Array.isArray(dv.items) ? dv.items : [];
-          cache.vods = items.map(v => ({ id:v.id, name:v.title||'VOD', box_art_url:(v.thumbnail_url||'').replace('{width}','320').replace('{height}','180'), _vod:v }));
-        }
-      }catch(_){ }
-
-      try{
-        const liveUrl = `/api/twitch/streams/by-game?game_id=${encodeURIComponent(gameId)}&lang=fr&minViewers=20&maxViewers=200&limit=30`;
-        const rl = await fetch(liveUrl, { credentials:'include' });
-        if (rl.ok){
-          const dl = await rl.json();
-          const items = Array.isArray(dl.items) ? dl.items : [];
-          cache.lives = items.map(s => ({ id:s.id, name:s.user_name||s.user_login||'Live', box_art_url:(s.thumbnail_url||'').replace('{width}','320').replace('{height}','180'), _live:s }));
+          cache.vods = items.map(v => ({
+            id:v.id,
+            name:v.title||'VOD',
+            box_art_url: tfFixThumb((v.thumbnail_url||''), 320, 180),
+            _vod:v
+          }));
         }
       }catch(_){ }
 
@@ -2129,8 +2100,8 @@ const modal = document.getElementById('twitflix-modal');
       if (!track || !tfInfoGame) return;
 
       const cache = tfInfoCache.get(tfInfoGame.id) || { vods:[], lives:[] };
-      const list = tfInfoTab === 'live' ? cache.lives : cache.vods;
-      if (title) title.textContent = (tfInfoTab==='live' ? `LIVE • ${tfInfoGame.name} • FR • 20–200` : `VOD • ${tfInfoGame.name} • FR • Découverte`);
+      const list = cache.vods;
+      if (title) title.textContent = `VOD • ${tfInfoGame.name} • FR • Découverte`;
 
       track.innerHTML = '';
       if (!list || !list.length){
@@ -2143,6 +2114,25 @@ const modal = document.getElementById('twitflix-modal');
         card.classList.add('tf-landscape');
         track.appendChild(card);
       });
+    }
+
+    function tfFixThumb(url, w, h){
+      if(!url) return '';
+      return String(url)
+        .replace('{width}', String(w)).replace('{height}', String(h))
+        .replace('%{width}', String(w)).replace('%{height}', String(h));
+    }
+
+    function tfGetGameDesc(name){
+      const n = String(name||'').toLowerCase();
+      const map = {
+        'league of legends': "MOBA compétitif. Sélection FR de VOD (petits créateurs) sur la Faille de l’invocateur.",
+        'valorant': "FPS tactique 5v5. VOD FR de petits créateurs : clutch, stratégies, ranked.",
+        'grand theft auto v': "Open-world. VOD FR : RP, braquages, défis et sessions libres.",
+        'minecraft': "Sandbox créatif. VOD FR : survie, builds, serveurs, modpacks.",
+        'just chatting': "Talk-show live. VOD FR de discussions et segments marquants.",
+      };
+      return map[n] || "Sélection de VOD FR (découverte) liées à ce jeu, avec priorité aux petits créateurs.";
     }
 
     async function tfOpenDrawerForGame(rowEl, cat){
@@ -2803,6 +2793,19 @@ function tfBuildCard(cat){
         }
       }catch(_){ }
     }
+
+    // HERO "Plus d'infos" (Netflix-like): open the game modal for the currently previewed game.
+    function tfHeroMoreInfo(){
+      try{
+        const key = String(tfHeroCurrentKey || '').trim();
+        if(!key) return;
+        const cat = (Array.isArray(tfAllCategories) ? tfAllCategories.find(c=>String(c.id)===key) : null);
+        const heroTitle = (document.getElementById('tf-hero-title')?.textContent || '').trim();
+        const bgSrc = document.getElementById('tf-hero-bg')?.getAttribute('src') || '';
+        tfOpenGameModal(cat || { id: key, name: heroTitle || 'Jeu', box_art_url: bgSrc });
+      }catch(_){ }
+    }
+    window.tfHeroMoreInfo = tfHeroMoreInfo;
 
     async function tfStartPreview(cardEl){
       try{

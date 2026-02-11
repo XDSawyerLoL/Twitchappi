@@ -759,7 +759,8 @@ app.get('/api/twitch/vods/by-game', heavyLimiter, async (req, res) => {
   try{
     const gameIdIn = String(req.query.game_id || '').trim();
     const gameNameIn = String(req.query.game_name || req.query.q || '').trim();
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 40);
+    // Allow larger lists for UI carousels/modals
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 80);
     const days = Math.min(Math.max(1, parseInt(req.query.days || '60', 10) || 60), 180);
     const lang = String(req.query.lang || '').trim().toLowerCase();
     const small = String(req.query.small || '').trim() === '1' || String(req.query.small || '').trim().toLowerCase() === 'true';
@@ -867,18 +868,38 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
     const cached = __oryonCacheGet(__oryonVodSearchCache, key, 90_000);
     if(cached) return res.json({ success:true, items:cached, cached:true });
 
-    // 1) get live streams in band
-    const qs = new URLSearchParams();
-    qs.set('game_id', gameId);
-    qs.set('first', '100');
-    if(lang) qs.set('language', lang);
-    const sres = await twitchAPI(`streams?${qs.toString()}`, token);
-    const streams = (sres?.data || []).filter(s => {
-      const v = Number(s?.viewer_count || 0);
-      if (minViewers && v < minViewers) return false;
-      if (maxViewers && v > maxViewers) return false;
-      return true;
-    });
+    // 1) Discover small creators via live streams for this game.
+    // Paginate a bit to avoid "only 4 results" when FR is sparse.
+    const streams = [];
+    const fetchStreams = async (useLang) => {
+      let after = '';
+      for(let page=0; page<4; page++){
+        const qs = new URLSearchParams();
+        qs.set('game_id', gameId);
+        qs.set('first', '100');
+        if(useLang) qs.set('language', useLang);
+        if(after) qs.set('after', after);
+        const sres = await twitchAPI(`streams?${qs.toString()}`, token);
+        const rows = (sres?.data || []).filter(s => {
+          const v = Number(s?.viewer_count || 0);
+          if (minViewers && v < minViewers) return false;
+          if (maxViewers && v > maxViewers) return false;
+          return true;
+        });
+        streams.push(...rows);
+        after = sres?.pagination?.cursor || '';
+        if(!after) break;
+        // If we already have enough candidates, stop early
+        if(streams.length >= 240) break;
+      }
+    };
+
+    // Prefer lang (FR). If too few streams, fallback to any language.
+    await fetchStreams(lang || '');
+    if(lang && streams.length < 20){
+      streams.length = 0;
+      await fetchStreams('');
+    }
 
     // Deduplicate channels, keep order (higher viewers first inside the band)
     const channelIds = [];
@@ -888,7 +909,7 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
       if(!uid || seen.has(uid)) continue;
       seen.add(uid);
       channelIds.push(uid);
-      if(channelIds.length >= 35) break; // cap work
+      if(channelIds.length >= 60) break; // cap work
     }
 
     const cutoff = Date.now() - (days * 24 * 36e5);
@@ -903,7 +924,9 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
       vqs.set('type', 'archive');
       if(lang) vqs.set('language', lang);
       const v = await twitchAPI(`videos?${vqs.toString()}`, token);
-      const rows = (v?.data || []).slice(0, perChannel);
+      let rows = (v?.data || []).slice(0, perChannel);
+      // Keep only VODs actually matching the game (Twitch videos endpoint is per-user)
+      rows = rows.filter(r => String(r?.game_id || '') === String(gameId));
       for(const r of rows){
         const t = Date.parse(r.created_at || '') || 0;
         if(t && t < cutoff) continue;
