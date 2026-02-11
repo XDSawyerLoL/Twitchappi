@@ -2533,6 +2533,16 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-arrow{width:30px;height:30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
 #twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
 
+
+/* Streamflix nav */
+#twitflix-modal .tf-nav{ display:flex; align-items:center; gap:18px; margin-left: 18px; }
+#twitflix-modal .tf-nav a{ color: rgba(255,255,255,.78); font-weight: 700; font-size: 13px; text-decoration:none; padding: 6px 4px; }
+#twitflix-modal .tf-nav a.active{ color:#fff; }
+#twitflix-modal .tf-nav a:hover{ color:#fff; }
+#twitflix-modal .tf-nav .tf-nav-dd{ position:relative; }
+#twitflix-modal .tf-nav .tf-nav-panel{ position:absolute; top: 32px; left:0; width: 320px; max-height: 60vh; overflow:auto; background: rgba(20,20,20,.98); border:1px solid rgba(255,255,255,.10); border-radius: 10px; padding: 10px; display:none; box-shadow:0 18px 60px rgba(0,0,0,.6); }
+#twitflix-modal .tf-nav .tf-nav-panel a{ display:block; padding:8px 10px; border-radius:8px; }
+#twitflix-modal .tf-nav .tf-nav-panel a:hover{ background: rgba(255,255,255,.08); }
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2925,6 +2935,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-modal-content">
 <div class="tf-topbar">
 <div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">ORYON TV</span></div>
+<div class="tf-nav" id="tf-nav"></div>
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
@@ -2956,7 +2967,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
       <div class="tf-hero-sub" id="tf-hero-sub">Choisis un jeu, puis regarde des LIVE et VOD.</div>
       <div class="tf-hero-btns">
         <button class="tf-nx-btn tf-nx-primary" id="tf-hero-play" type="button"><span>▶</span> Lecture</button>
-        <button class="tf-nx-btn tf-nx-ghost" type="button" onclick="document.querySelector('#tf-live-carousel')?.scrollIntoView({behavior:'smooth',block:'start'})">Plus d'infos</button>
+        <button class="tf-nx-btn tf-nx-ghost" type="button" id="tf-hero-more">Plus d'infos</button>
       </div>
     </div>
   </div>
@@ -3379,6 +3390,10 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 .tf-info-close{ position:absolute; right: 26px; top: 18px; width: 42px; height: 42px; border-radius: 999px; border:0; background: rgba(0,0,0,.55); color:#fff; font-size: 18px; cursor:pointer; z-index:5; }
 .tf-info-hero{ position:relative; height: 420px; }
 .tf-info-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.55; transform: scale(1.02); }
+.tf-info-media{ position:absolute; inset:0; z-index:2; overflow:hidden; }
+.tf-info-media iframe{ width:100%; height:100%; border:0; }
+.tf-info-media::after{ content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(20,20,20,.98) 0%, rgba(20,20,20,.78) 42%, rgba(20,20,20,.20) 72%, rgba(20,20,20,0) 100%); pointer-events:none; }
+
 .tf-info-grad{ position:absolute; inset:0; background: linear-gradient(90deg, rgba(20,20,20,.98) 0%, rgba(20,20,20,.78) 40%, rgba(20,20,20,.25) 70%, rgba(20,20,20,0) 100%); }
 .tf-info-meta{ position:absolute; left: 42px; bottom: 28px; right: 42px; z-index:3; }
 .tf-info-title{ font-size: 54px; font-weight: 900; line-height:1.0; }

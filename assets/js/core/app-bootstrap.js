@@ -70,28 +70,11 @@ const API_BASE = window.location.origin;
       if(tfGrid){
         tfGrid.addEventListener('scroll', () => {
              if (tfGrid.scrollTop + tfGrid.clientHeight >= tfGrid.scrollHeight - 200) {
-                 // Legacy bugfix: loadMoreCategories() never existed and was breaking infinite scroll.
-                 // Use the TwitFlix loader instead.
-                 try{ tfLoadMore(false); }catch(_){ }
+                 loadMoreCategories();
              }
         });
       }
     });
-
-    // --- TwitFlix playback helpers (single source of truth) ---
-    // Several TwitFlix components call loadTwitchStream(). Historically this function
-    // didn't exist (only changeChannel/loadPlayerEmbed), so clicks appeared "dead".
-    function loadTwitchStream(channel){
-      const ch = String(channel || '').trim();
-      if(!ch) return;
-      try{ changeChannel(ch); }catch(_){ try{ loadPlayerEmbed(ch); }catch(__){} }
-      try{ document.getElementById('player-mode-badge').innerText = 'TWITCH'; }catch(_){ }
-    }
-
-    function tfSafeCloseAndScrollTop(){
-      try{ closeTwitFlix(); }catch(_){ }
-      try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
-    }
 
     function initUnderTabs(){
       const nav = document.getElementById('under-tabs-nav');
@@ -1016,8 +999,7 @@ window.addEventListener('message', (ev) => {
 
       wrap.innerHTML = '<div class="tf-empty">Chargement des lives…</div>';
       try{
-        // More density for the LIVE rail (still focused on small channels by viewers)
-        const url = `/api/twitch/streams/top?lang=fr&minViewers=10&maxViewers=250&limit=80`;
+        const url = `/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=200&limit=40`;
         const r = await fetch(url, { credentials:'include' });
         const d = r.ok ? await r.json() : null;
         const items = d && Array.isArray(d.items) ? d.items : [];
@@ -1266,6 +1248,82 @@ const modal = document.getElementById('twitflix-modal');
       tfModalOpen = true;
       modal.classList.add('active');
 
+      // Streamflix top navigation (Netflix-like)
+      try{
+        const nav = document.getElementById('tf-nav');
+        if (nav && !nav.dataset.inited){
+          nav.dataset.inited = '1';
+          nav.innerHTML = `
+            <a href="#" class="active" data-nav="home">Accueil</a>
+            <a href="#" data-nav="live">En live</a>
+            <a href="#" data-nav="vod">VOD</a>
+            <span class="tf-nav-dd">
+              <a href="#" data-nav="games">Jeux ▾</a>
+              <div class="tf-nav-panel" id="tf-nav-games"></div>
+            </span>
+            <a href="#" data-nav="events">Événements</a>
+          `;
+          const panel = nav.querySelector('#tf-nav-games');
+          const closePanels = ()=>{ try{ panel.style.display='none'; }catch(_){ } };
+          document.addEventListener('click', (ev)=>{ if(!nav.contains(ev.target)) closePanels(); }, true);
+
+          nav.addEventListener('click', (ev)=>{
+            const a = ev.target.closest && ev.target.closest('a[data-nav]');
+            if(!a) return;
+            ev.preventDefault();
+
+            const key = a.dataset.nav;
+            // active marker
+            nav.querySelectorAll('a[data-nav]').forEach(x=>x.classList.toggle('active', x===a && key!=='games'));
+
+            if (key === 'home'){
+              try{ document.getElementById('tf-body')?.scrollTo({top:0,behavior:'smooth'}); }catch(_){}
+              try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(_){}
+              closePanels();
+              return;
+            }
+            if (key === 'live'){
+              try{ document.querySelector('#tf-live-carousel')?.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){}
+              closePanels();
+              return;
+            }
+            if (key === 'vod'){
+              try{ document.querySelector('.tf-row')?.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){}
+              closePanels();
+              return;
+            }
+            if (key === 'events'){
+              // Placeholder: can later bind to an "Événements spéciaux" row.
+              // TODO: bind to an "Événements spéciaux" row when available.
+              closePanels();
+              return;
+            }
+            if (key === 'games'){
+              // Toggle games panel
+              panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+              if (panel.style.display === 'block'){
+                // Populate from current categories (keep it lightweight)
+                const list = (Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 60) : []);
+                panel.innerHTML = list.map(g=>`<a href="#" data-game-id="${g.id}" data-game-name="${escapeHtml(g.name)}">${escapeHtml(g.name)}</a>`).join('') || '<div style="opacity:.7;padding:8px 10px">Chargement…</div>';
+              }
+              return;
+            }
+          });
+
+          nav.addEventListener('click', async (ev)=>{
+            const g = ev.target.closest && ev.target.closest('a[data-game-id]');
+            if(!g) return;
+            ev.preventDefault();
+            const gid = g.dataset.gameId;
+            const gname = g.dataset.gameName || '';
+            try{ panel.style.display='none'; }catch(_){}
+
+            // Direct open modal for that game
+            try{ tfOpenGameModal({ id: gid, name: gname, box_art_url:'' }); }catch(_){}
+          });
+        }
+      }catch(_){ }
+
       // NOTE: VOD are now contextual to games (via mode switch). No global Top VOD preload.
 
       document.body.classList.add('tf-bigpicture'); tfBigPicture = true; tfViewMode='rows';
@@ -1348,30 +1406,6 @@ const modal = document.getElementById('twitflix-modal');
 
       // hero default
       tfSetHero({ title: 'ORYON TV', sub: 'Survole un jeu pour lancer un trailer automatique (muet). Clique pour voir LIVE/VOD.', poster: '' });
-
-      // Fix "Plus d'infos" hero button: should open the current hovered game modal,
-      // not scroll the page.
-      try{
-        const ghost = document.querySelector('#twitflix-modal .tf-hero-btns .tf-nx-ghost');
-        if (ghost){
-          ghost.onclick = (e)=>{
-            try{ e.preventDefault(); e.stopPropagation(); }catch(_){ }
-            // Prefer last hovered game (tfHeroCurrentKey), fallback to the featured hero game by name.
-            const gid = String(tfHeroCurrentKey || '').trim();
-            let cat = null;
-            if (gid){
-              cat = tfAllCategories.find(c => String(c?.id) === gid) || null;
-            }
-            if (!cat && tfFeaturedHero && tfFeaturedHero.game){
-              const gname = String(tfFeaturedHero.game||'').toLowerCase();
-              cat = tfAllCategories.find(c => String(c?.name||'').toLowerCase() === gname) || null;
-            }
-            if (cat){
-              try{ tfOpenGameModal(cat); }catch(_){ }
-            }
-          };
-        }
-      }catch(_){ }
 
       // empty ui
       if (host){
@@ -1544,55 +1578,6 @@ const modal = document.getElementById('twitflix-modal');
       return '';
     }
 
-    // Search re-rank: prioritise exact / prefix matches and numeric matches.
-    function tfRerankSearchResults(items, rawQuery){
-      const q0 = String(rawQuery || '').trim().toLowerCase();
-      if (!q0) return items || [];
-      const q = q0.replace(/[^a-z0-9]+/g,' ').trim();
-      const qTokens = q.split(/\s+/).filter(Boolean);
-      const qDigits = (q0.match(/\d+/g) || []).join('');
-
-      const scoreOne = (name) => {
-        const n0 = String(name || '').toLowerCase();
-        const n = n0.replace(/[^a-z0-9]+/g,' ').trim();
-        const nDigits = (n0.match(/\d+/g) || []).join('');
-
-        let s = 0;
-        if (n0 === q0) s += 1000;
-        if (n === q) s += 980;
-        if (n.startsWith(q)) s += 920;
-        if (n0.startsWith(q0)) s += 900;
-        if (n.includes(` ${q} `) || n.startsWith(`${q} `) || n.endsWith(` ${q}`)) s += 820;
-
-        // token coverage
-        let covered = 0;
-        for (const t of qTokens){
-          if (!t) continue;
-          if (n.includes(t)) covered += 1;
-          if (n.startsWith(t)) s += 20;
-        }
-        s += covered * 60;
-
-        // numeric requirement ("fallout 3" should outrank "final fantasy")
-        if (qDigits){
-          if (nDigits === qDigits) s += 220;
-          else if (nDigits.includes(qDigits)) s += 120;
-          else s -= 140; // hard penalty if query contains digits and result doesn't
-        }
-
-        // shorter names are usually closer
-        s -= Math.min(40, Math.max(0, (n.length - q.length)) * 0.5);
-        return s;
-      };
-
-      return (items || []).slice().sort((a,b)=>{
-        const sa = scoreOne(a?.name);
-        const sb = scoreOne(b?.name);
-        if (sb !== sa) return sb - sa;
-        return String(a?.name||'').length - String(b?.name||'').length;
-      });
-    }
-
     function tfDecorateVodCard(card, vod){
       try{
         if(!card || !vod) return;
@@ -1709,7 +1694,8 @@ const modal = document.getElementById('twitflix-modal');
       }
 
       // IA-assisted: if query is a sentence, ask the server to translate it into a curated list.
-      const looksComplex = (q.length >= 22) || /\bcomme\b|\bmais\b|\bmoins\b|\bplus\b|\bstress\b|\bcraft\b/i.test(q);
+      const isLikelyTitle = /[a-zA-Z].*\d/.test(q) || /^[-\w\s:]{2,}$/.test(q);
+      const looksComplex = (!isLikelyTitle && ((q.length >= 22) || /\bcomme\b|\bmais\b|\bmoins\b|\bplus\b|\bstress\b|\bcraft\b/i.test(q)));
       if(looksComplex){
         try{
           const r0 = await fetch(`${API_BASE}/api/search/intent`, {
@@ -1755,20 +1741,38 @@ const modal = document.getElementById('twitflix-modal');
         tfVodResults = [];
       }
 
+
+      const norm = (s)=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      const qn = norm(q);
+      const qTokens = qn.split(/\s+/).filter(Boolean);
+
+      const scoreName = (name)=>{
+        const n = norm(name);
+        if(!n) return 0;
+        if(n === qn) return 10000;
+        if(n.startsWith(qn)) return 8500;
+        let hit = 0;
+        for (const t of qTokens){ if (t && n.split(/\s+/).includes(t)) hit += 1; }
+        const contains = n.includes(qn) ? 1 : 0;
+        const lenPenalty = Math.min(200, n.length);
+        return (contains*2200) + (hit*950) + (Math.max(0, 520 - lenPenalty));
+      };
+
 // Try server search (best)
       try{
         const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
           if (d && d.success && Array.isArray(d.categories)){
-	            tfSearchResults = d.categories.map(c => ({
-	              id: c.id,
-	              name: c.name,
-	              box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
-	            }));
-	            // Re-rank locally: keep exact/prefix matches above loose matches.
-	            try{ tfSearchResults = tfRerankSearchResults(tfSearchResults, q); }catch(_){ }
-	            renderTwitFlix();
+            tfSearchResults = d.categories.map(c => ({
+              id: c.id,
+              name: c.name,
+              box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
+            }));
+            tfSearchResults = tfSearchResults.map(x=>({ ...x, _s: scoreName(x.name) }))
+              .sort((a,b)=> (b._s-a._s) || (String(a.name).length-String(b.name).length))
+              .map(({_s, ...rest})=>rest);
+            renderTwitFlix();
             return;
           }
         }
@@ -1778,7 +1782,10 @@ const modal = document.getElementById('twitflix-modal');
       const low = q.toLowerCase();
       tfSearchResults = tfAllCategories
         .filter(c => (c.name||'').toLowerCase().includes(low))
-        .slice(0, 120);
+        .map(c=>({ ...c, _s: scoreName(c.name) }))
+        .sort((a,b)=> (b._s-a._s) || (String(a.name).length-String(b.name).length))
+        .slice(0, 120)
+        .map(({_s, ...rest})=>rest);
       renderTwitFlix();
     }
 
@@ -2059,6 +2066,26 @@ const modal = document.getElementById('twitflix-modal');
           try{ loadVodEmbed(tfFeaturedHero.vodId); }catch(_){ }
         };
       }
+
+      const btnMore = document.getElementById('tf-hero-more');
+      if (btnMore){
+        btnMore.onclick = async (e) => {
+          e.preventDefault();
+          try{
+            // Open the same Netflix-like info modal for the featured game's category.
+            const gname = String(tfFeaturedHero.game || tfFeaturedHero.title || '').trim();
+            if (!gname) return;
+            const r = await fetch(`/api/categories/search?q=${encodeURIComponent(gname)}`);
+            const d = r.ok ? await r.json() : null;
+            const best = d && Array.isArray(d.categories) ? d.categories[0] : null;
+            if (best && best.id){
+              tfOpenGameModal(best);
+            }
+          }catch(_){
+            try{ document.querySelector('#tf-live-carousel')?.scrollIntoView({behavior:'smooth',block:'start'}); }catch(__){}
+          }
+        };
+      }
     }
 
     // ===== NETFLIX-LIKE INFO MODAL (Game -> LIVE/VOD) =====
@@ -2089,6 +2116,7 @@ const modal = document.getElementById('twitflix-modal');
             <button class="tf-info-close" aria-label="Fermer">✕</button>
             <div class="tf-info-hero">
               <img class="tf-info-bg" alt="" src="${tfInfoGame.poster}">
+              <div class="tf-info-media" id="tf-info-media" aria-hidden="true"></div>
               <div class="tf-info-grad"></div>
               <div class="tf-info-meta">
                 <div class="tf-info-title">${escapeHtml(tfInfoGame.name)}</div>
@@ -2208,7 +2236,33 @@ const modal = document.getElementById('twitflix-modal');
       tfInfoCache.set(gameId, cache);
     }
 
-    function tfRenderInfoContent(){
+    
+    function tfInfoSetHeroPreview(item){
+      const media = document.getElementById('tf-info-media');
+      if (!media) return;
+
+      try{ media.innerHTML = ''; }catch(_){}
+
+      const parent = encodeURIComponent(window.location.hostname);
+
+      // Prefer VOD preview (stable) then LIVE
+      if (item && item._vod){
+        const vid = String(item._vod.id || item.id || '').replace(/^v/i,'').trim();
+        if (!vid) return;
+        const src = `https://player.twitch.tv/?video=${encodeURIComponent(vid)}&parent=${parent}&autoplay=true&muted=true`;
+        media.innerHTML = `<iframe src="${src}" allow="autoplay; fullscreen" title="preview"></iframe>`;
+        return;
+      }
+      if (item && item._live){
+        const ch = String(item._live.user_login || item._live.user_name || '').trim();
+        if (!ch) return;
+        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&parent=${parent}&autoplay=true&muted=true`;
+        media.innerHTML = `<iframe src="${src}" allow="autoplay; fullscreen" title="preview"></iframe>`;
+        return;
+      }
+    }
+
+function tfRenderInfoContent(){
       const track = document.getElementById('tf-info-track');
       const title = document.getElementById('tf-info-rowtitle');
       if (!track || !tfInfoGame) return;
@@ -2223,9 +2277,15 @@ const modal = document.getElementById('twitflix-modal');
         return;
       }
 
+      // Auto preview in the modal header (Netflix-like)
+      try{ tfInfoSetHeroPreview(list[0]); }catch(_){}
+
       list.slice(0, 24).forEach(item => {
         const card = tfBuildCard(item);
         card.classList.add('tf-landscape');
+        // Hover/focus over an item updates the modal hero preview
+        card.addEventListener('mouseenter', ()=>{ try{ tfInfoSetHeroPreview(item); }catch(_){ } });
+        card.addEventListener('focus', ()=>{ try{ tfInfoSetHeroPreview(item); }catch(_){ } });
         track.appendChild(card);
       });
     }
