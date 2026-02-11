@@ -388,7 +388,7 @@
       padding: 18px;
       display: block;
     }
-    .tf-row{ margin-bottom: 12px; }
+    .tf-row{ margin-bottom: 22px; }
     .tf-row-title{
       font-family: Orbitron, sans-serif;
       font-size: 12px;
@@ -1458,7 +1458,7 @@ body.modal-open #player-tools{display:none !important;}
       padding: 18px;
       display: block;
     }
-    .tf-row{ margin-bottom: 12px; }
+    .tf-row{ margin-bottom: 22px; }
     .tf-row-title{
       font-family: Orbitron, sans-serif;
       font-size: 12px;
@@ -2925,20 +2925,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-modal-content">
 <div class="tf-topbar">
 <div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">ORYON TV</span></div>
-
-<div class="tf-nx-nav" id="tf-nx-nav">
-  <button class="tf-nx-link active" type="button" data-nav="home">Accueil</button>
-  <div class="tf-nx-dd">
-    <button class="tf-nx-link" type="button" data-nav="games">Jeux ▾</button>
-    <div class="tf-nx-dd-panel" id="tf-nx-games-panel">
-      <div class="tf-nx-dd-title">Catégories</div>
-      <div class="tf-nx-dd-items" id="tf-nx-games-items"></div>
-    </div>
-  </div>
-  <button class="tf-nx-link" type="button" data-nav="live">Live</button>
-  <button class="tf-nx-link" type="button" data-nav="events">Événements</button>
-</div>
-
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
@@ -2970,8 +2956,8 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
       <div class="tf-hero-sub" id="tf-hero-sub">Choisis un jeu, puis regarde des LIVE et VOD.</div>
       <div class="tf-hero-btns">
         <button class="tf-nx-btn tf-nx-primary" id="tf-hero-play" type="button"><span>▶</span> Lecture</button>
-        <button class="tf-nx-btn tf-nx-ghost" id="tf-hero-more" type="button"><span>i</span> Plus d'infos</button>
-</div>
+        <button class="tf-nx-btn tf-nx-ghost" type="button" onclick="document.querySelector('#tf-live-carousel')?.scrollIntoView({behavior:'smooth',block:'start'})">Plus d'infos</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3411,23 +3397,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 .tf-info-track::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
 .tf-info-track::-webkit-scrollbar-thumb:hover{ background: rgba(229,9,20,.35); }
 .tf-info-empty{ color: rgba(255,255,255,.72); padding: 16px 6px; }
-
-/* Netflix-like nav inside TwitFlix topbar */
-#twitflix-modal .tf-nx-nav{ display:flex; gap:18px; align-items:center; margin-left:22px; }
-#twitflix-modal .tf-nx-link{ background:transparent; border:0; color:rgba(255,255,255,.88); font-weight:600; font-size:14px; padding:6px 4px; cursor:pointer; }
-#twitflix-modal .tf-nx-link:hover{ color:#fff; }
-#twitflix-modal .tf-nx-link.active{ color:#fff; }
-#twitflix-modal .tf-nx-dd{ position:relative; }
-#twitflix-modal .tf-nx-dd-panel{ position:absolute; top:34px; left:0; min-width:340px; background:rgba(0,0,0,.88); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; display:none; box-shadow:0 24px 70px rgba(0,0,0,.55); }
-#twitflix-modal .tf-nx-dd:hover .tf-nx-dd-panel{ display:block; }
-#twitflix-modal .tf-nx-dd-title{ font-size:12px; opacity:.72; margin-bottom:10px; letter-spacing:.08em; text-transform:uppercase; }
-#twitflix-modal .tf-nx-dd-items{ display:flex; flex-wrap:wrap; gap:8px; }
-#twitflix-modal .tf-nx-chip{ background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.08); color:#fff; padding:6px 10px; border-radius:999px; font-size:12px; cursor:pointer; }
-#twitflix-modal .tf-nx-chip:hover{ background:rgba(255,255,255,.14); }
-@media (max-width: 880px){
-  #twitflix-modal .tf-nx-nav{ display:none; }
-}
-
 </style>
 
 </body>
