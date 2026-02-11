@@ -1679,41 +1679,35 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
     const maxViewers = Math.max(0, parseInt(req.query.maxViewers || req.query.max || '0', 10) || 0);
     const limit = Math.min(100, Math.max(10, parseInt(req.query.limit || '60', 10) || 60));
 
-    // Twitch "streams?first=100" is dominated by very large channels.
-    // If we filter to 20–200 viewers after a single page, we often end up with too few items.
-    // So we paginate several pages until we collect enough items in the target band.
+    // Pull pages until we have enough items in the requested viewer band.
+    // Helix /streams is naturally dominated by huge channels, so filtering only the first page
+    // yields almost nothing. We paginate and keep one stream per game for diversity.
     const first = 100;
-    const maxPages = 8;
-
-    const byGame = new Map(); // game_id -> stream
+    const byGame = new Map();
     let cursor = null;
-    let pages = 0;
-
-    while (byGame.size < limit && pages < maxPages) {
+    const maxPages = 10; // 1000 streams max scanned
+    for (let page = 0; page < maxPages; page++){
       let url = `streams?first=${first}`;
       if (lang) url += `&language=${encodeURIComponent(lang)}`;
       if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
 
       const d = await twitchAPI(url);
-      const items = Array.isArray(d.data) ? d.data : [];
+      const arr = Array.isArray(d.data) ? d.data : [];
+      if (!arr.length) break;
 
-      for (const s of items) {
+      for (const s of arr){
         const v = Number(s.viewer_count || 0);
         if (minViewers && v < minViewers) continue;
         if (maxViewers && v > maxViewers) continue;
-
         const gid = String(s.game_id || '');
         if (!gid) continue;
-
-        // one stream per game for diversity
         if (!byGame.has(gid)) byGame.set(gid, s);
         if (byGame.size >= limit) break;
       }
 
-      cursor = d && d.pagination && d.pagination.cursor ? d.pagination.cursor : null;
-      pages += 1;
+      if (byGame.size >= limit) break;
+      cursor = d.pagination && d.pagination.cursor ? d.pagination.cursor : null;
       if (!cursor) break;
-      if (!items.length) break;
     }
 
     const unique = Array.from(byGame.values());
@@ -1721,22 +1715,22 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
 
     // Enrich with box art
     const artMap = {};
-    if (gameIds.length) {
+    if (gameIds.length){
       const chunks = [];
-      for (let i = 0; i < gameIds.length; i += 50) chunks.push(gameIds.slice(i, i + 50));
-      for (const ch of chunks) {
+      for(let i=0;i<gameIds.length;i+=50) chunks.push(gameIds.slice(i,i+50));
+      for(const ch of chunks){
         const q = ch.map(id => `id=${encodeURIComponent(id)}`).join('&');
         const gd = await twitchAPI(`games?${q}`);
         const arr = Array.isArray(gd.data) ? gd.data : [];
-        for (const g of arr) {
-          artMap[String(g.id)] = (g.box_art_url || '').replace('{width}', '285').replace('{height}', '380');
+        for(const g of arr){
+          artMap[String(g.id)] = (g.box_art_url || '').replace('{width}','285').replace('{height}','380');
         }
       }
     }
 
     const out = unique.map(s => ({
       ...s,
-      box_art_url: artMap[String(s.game_id || '')] || null
+      box_art_url: artMap[String(s.game_id||'')] || null
     }));
 
     return res.json({ success: true, items: out });
