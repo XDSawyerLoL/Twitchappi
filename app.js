@@ -1679,35 +1679,29 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
     const maxViewers = Math.max(0, parseInt(req.query.maxViewers || req.query.max || '0', 10) || 0);
     const limit = Math.min(100, Math.max(10, parseInt(req.query.limit || '60', 10) || 60));
 
-    // Pull pages until we have enough items in the requested viewer band.
-    // Helix /streams is naturally dominated by huge channels, so filtering only the first page
-    // yields almost nothing. We paginate and keep one stream per game for diversity.
+    // Pull a bigger pool and filter server-side
     const first = 100;
-    const byGame = new Map();
-    let cursor = null;
-    const maxPages = 10; // 1000 streams max scanned
-    for (let page = 0; page < maxPages; page++){
-      let url = `streams?first=${first}`;
-      if (lang) url += `&language=${encodeURIComponent(lang)}`;
-      if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
+    let url = `streams?first=${first}`;
+    if (lang) url += `&language=${encodeURIComponent(lang)}`;
+    const d = await twitchAPI(url);
+    let items = Array.isArray(d.data) ? d.data.slice(0) : [];
 
-      const d = await twitchAPI(url);
-      const arr = Array.isArray(d.data) ? d.data : [];
-      if (!arr.length) break;
-
-      for (const s of arr){
+    if (minViewers || maxViewers){
+      items = items.filter(s => {
         const v = Number(s.viewer_count || 0);
-        if (minViewers && v < minViewers) continue;
-        if (maxViewers && v > maxViewers) continue;
-        const gid = String(s.game_id || '');
-        if (!gid) continue;
-        if (!byGame.has(gid)) byGame.set(gid, s);
-        if (byGame.size >= limit) break;
-      }
+        if (minViewers && v < minViewers) return false;
+        if (maxViewers && v > maxViewers) return false;
+        return true;
+      });
+    }
 
+    // Prefer diversity by game (one stream per game)
+    const byGame = new Map();
+    for (const s of items){
+      const gid = String(s.game_id || '');
+      if (!gid) continue;
+      if (!byGame.has(gid)) byGame.set(gid, s);
       if (byGame.size >= limit) break;
-      cursor = d.pagination && d.pagination.cursor ? d.pagination.cursor : null;
-      if (!cursor) break;
     }
 
     const unique = Array.from(byGame.values());
