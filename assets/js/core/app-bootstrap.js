@@ -52,8 +52,6 @@ const API_BASE = window.location.origin;
     const tfHeroInflight = new Map();
     let tfHeroHoverTimer = null;
     let tfHeroCurrentKey = null;
-    let tfHeroCurrentGame = null; // {id,name,poster}
-
     let tfHeroCyclerTimer = null;
 
     // INIT
@@ -742,8 +740,6 @@ function startAuth() {
     let tfModalOpen = false;
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
-    const tfGameIndex = new Map(); // gameId -> category object (for reliable click delegation)
-
 
     // Personalisation (Steam ADN) — prefers Steam OpenID session (no manual SteamID64)
 let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
@@ -1056,66 +1052,19 @@ window.addEventListener('message', (ev) => {
       }
     }
 
-    async function tfRenderEventsCarousel(){
-      const wrap = document.getElementById('tf-events-carousel');
+    function tfRenderTrailerCarousel(){
+      const wrap = document.getElementById('tf-trailer-carousel');
       if (!wrap) return;
 
       tfBindHorizontalWheel(wrap);
-      wrap.innerHTML = '<div class="tf-empty">Chargement des événements…</div>';
 
-      try{
-        // "Événements" = sélection plus large (petits créateurs + variété), FR en priorité
-        const url = `/api/twitch/streams/top?lang=fr&minViewers=10&maxViewers=180&limit=30`;
-        const r = await fetch(url, { credentials:'include' });
-        const d = r.ok ? await r.json() : null;
-        const items = d && Array.isArray(d.items) ? d.items : [];
-        if(!items.length){
-          wrap.innerHTML = '<div class="tf-empty">Aucun événement trouvé.</div>';
-          return;
-        }
+      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
+      wrap.innerHTML = '';
 
-        wrap.innerHTML = '';
-        // shuffle for "éditorial"
-        items.sort(()=>Math.random()-0.5);
-
-        for(const s of items.slice(0, 18)){
-          const gameName = String(s.game_name || 'Événement');
-          const boxArt = tfNormalizeBoxArt(s.box_art_url || '');
-          const channel = String(s.user_login || '').trim();
-          const title = String(s.title || '').trim();
-          if(!channel) continue;
-
-          const card = document.createElement('div');
-          card.className = 'tf-live-card tf-event-card';
-          card.dataset.channel = channel;
-          card.dataset.__previewChannel = channel;
-
-          card.innerHTML = `
-            <div class="tf-live-thumb" style="background-image:url('${boxArt}')">
-              <div class="tf-preview"></div>
-              <div class="tf-live-badge">SPÉCIAL</div>
-            </div>
-            <div class="tf-live-meta">
-              <div class="t1">${escapeHtml(gameName)}</div>
-              <div class="t2">${escapeHtml(title || channel)}</div>
-            </div>
-          `;
-
-          card.addEventListener('mouseenter', () => tfStartPreview(card));
-          card.addEventListener('mouseleave', () => tfStopPreview(card));
-          card.addEventListener('click', (e)=>{
-            e.preventDefault();
-            try{ closeTwitFlix(); }catch(_){}
-            try{ loadTwitchStream(channel); }catch(_){}
-            try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
-          });
-
-          wrap.appendChild(card);
-        }
-      }catch(_){
-        wrap.innerHTML = '<div class="tf-empty">Erreur chargement événements.</div>';
+      if (!cats.length){
+        wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
+        return;
       }
-    }
 
       cats.forEach(cat => {
         const gameName = String(cat.name || '').trim();
@@ -1298,99 +1247,9 @@ const modal = document.getElementById('twitflix-modal');
 
       tfModalOpen = true;
       modal.classList.add('active');
-      // Bind HERO buttons (always clickable)
-      try{
-        const moreBtn = document.getElementById('tf-hero-more');
-        if(moreBtn && !moreBtn.__tfBound){
-          moreBtn.__tfBound = true;
-          moreBtn.addEventListener('click', (e)=>{
-            e.preventDefault();
-            // open info modal for current hero game (if any)
-            const g = tfHeroCurrentGame || (tfFeaturedHero && tfFeaturedHero.gameId ? {id:String(tfFeaturedHero.gameId), name:String(tfFeaturedHero.title||''), poster:String(tfFeaturedHero.poster||'')} : null);
-            if(!g || !g.id) return;
-            const cat = tfGameIndex.get(String(g.id)) || { id:g.id, name:g.name || g.title || '', box_art_url:g.poster };
-            try{ tfOpenGameModal(cat); }catch(_){}
-          }, true);
-        }
-      }catch(_){}
+      try{ tfBindTopNav(); }catch(_){ }
 
-
-     
-      // Top nav (Netflix-like) + dropdown categories
-      try{
-        const nav = modal.querySelector('.tf-nx-nav');
-        if(nav && !nav.__tfBound){
-          nav.__tfBound = true;
-
-          const setActive = (key)=>{
-            nav.querySelectorAll('.tf-nx-navitem').forEach(b=>{
-              b.classList.toggle('active', String(b.dataset.nav||'')===String(key||''));
-            });
-          };
-
-          const scrollToId = (id)=>{
-            const el = document.getElementById(id);
-            if(el){
-              try{ el.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){ }
-            }
-          };
-
-          nav.addEventListener('click', async (e)=>{
-            const btn = e.target.closest && e.target.closest('.tf-nx-navitem');
-            if(!btn) return;
-            const key = String(btn.dataset.nav||'');
-            if(!key) return;
-
-            if(key==='home'){ setActive('home'); try{ window.scrollTo({top:0, behavior:'smooth'});}catch(_){ } return; }
-            if(key==='live'){ setActive('live'); scrollToId('tf-live-carousel'); return; }
-            if(key==='events'){ setActive('events'); scrollToId('tf-events-section'); return; }
-            if(key==='games'){
-              // toggled by its own button (dropdown), handled below
-              return;
-            }
-          }, true);
-
-          const gamesBtn = document.getElementById('tf-nav-games');
-          const drop = document.getElementById('tf-games-drop');
-          const closeDrop = ()=>{ if(drop){ drop.style.display='none'; gamesBtn?.setAttribute('aria-expanded','false'); } };
-          const openDrop = ()=>{ if(drop){ drop.style.display='block'; gamesBtn?.setAttribute('aria-expanded','true'); } };
-
-          if(gamesBtn && drop){
-            gamesBtn.addEventListener('click', (e)=>{
-              e.preventDefault();
-              e.stopPropagation();
-              const open = (drop.style.display==='block');
-              if(open) closeDrop(); else openDrop();
-            }, true);
-
-            document.addEventListener('click', (ev)=>{
-              if(!drop) return;
-              const inside = ev.target.closest && (ev.target.closest('#tf-games-drop') || ev.target.closest('#tf-nav-games'));
-              if(!inside) closeDrop();
-            }, true);
-
-            drop.addEventListener('click', async (e)=>{
-              const chip = e.target.closest && e.target.closest('.tf-nx-chip');
-              if(!chip) return;
-              const q = String(chip.dataset.q||'').trim();
-              if(!q) return;
-              closeDrop();
-              setActive('games');
-
-              const input = document.getElementById('twitflix-search');
-              if(input){
-                input.value = q;
-                try{ input.dispatchEvent(new Event('input', {bubbles:true})); }catch(_){}
-              }else{
-                try{ await tfRunSearch(q); }catch(_){}
-              }
-              // jump to grid start
-              scrollToId('twitflix-grid');
-            }, true);
-          }
-        }
-      }catch(_){}
- // NOTE: VOD are now contextual to games (via mode switch). No global Top VOD preload.
+      // NOTE: VOD are now contextual to games (via mode switch). No global Top VOD preload.
 
       document.body.classList.add('tf-bigpicture'); tfBigPicture = true; tfViewMode='rows';
 
@@ -1402,6 +1261,7 @@ const modal = document.getElementById('twitflix-modal');
 	    st.id = 'tf-ux-hotfix';
 	    st.textContent = `
 	      /* sharper posters */
+	      .tf-card{ cursor:pointer; }
 	      .tf-card .tf-poster{ image-rendering:auto; filter:none !important; transform:none !important; backface-visibility:hidden; }\n\t      .tf-card{ transform: translateZ(0); }
 	      .tf-card{ overflow: hidden; }
 	      /* VOD aesthetics */
@@ -1515,7 +1375,7 @@ const modal = document.getElementById('twitflix-modal');
 
       tfRenderLiveCarousel();
       // Trailer carousel is hidden in the Netflix-like mode; hero is the trailer.
-      try{ tfRenderEventsCarousel(); }catch(_){ }
+      try{ tfRenderTrailerCarousel(); }catch(_){ }
       renderTwitFlix();
 
       // Start hero cycler once some categories exist
@@ -2032,6 +1892,57 @@ const modal = document.getElementById('twitflix-modal');
       return bar;
     }
 
+
+function tfBindTopNav(){
+  try{
+    const nav = document.getElementById('tf-nx-nav');
+    if(!nav || nav.__bound) return;
+    nav.__bound = true;
+
+    // Populate "Jeux" dropdown with top categories (first N from catalogue)
+    const itemsWrap = document.getElementById('tf-nx-games-items');
+    const fill = ()=>{
+      if(!itemsWrap) return;
+      itemsWrap.innerHTML = '';
+      const take = (tfAllCategories || []).slice(0, 24);
+      for(const c of take){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tf-nx-chip';
+        b.textContent = c.name;
+        b.addEventListener('click', ()=>{
+          tfSearchQuery = c.name;
+          tfSearchResults = [];
+          tfVodResults = [];
+          try{ document.getElementById('twitflix-search').value = c.name; }catch(_){}
+          try{ tfSearchCategories(c.name); }catch(_){}
+        });
+        itemsWrap.appendChild(b);
+      }
+    };
+    fill();
+
+    nav.querySelectorAll('.tf-nx-link').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const key = btn.dataset.nav || 'home';
+        nav.querySelectorAll('.tf-nx-link').forEach(x=>x.classList.toggle('active', x===btn));
+        if(key==='home'){
+          try{ document.getElementById('tf-body')?.scrollTo({ top: 0, behavior:'smooth' }); }catch(_){}
+        }else if(key==='live'){
+          try{ document.getElementById('tf-live-carousel')?.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){}
+        }else if(key==='events'){
+          try{ document.getElementById('tf-events-row')?.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){}
+        }else if(key==='games'){
+          // dropdown handled by CSS hover
+        }
+      });
+    });
+
+    // re-fill when catalogue updates
+    window.addEventListener('tf:catalogue', fill);
+  }catch(_){}
+}
+
     function tfCloseDrawer(){
       try{
         const existing = document.getElementById('tf-drawer');
@@ -2109,6 +2020,19 @@ const modal = document.getElementById('twitflix-modal');
         };
       }
     }
+
+const btnMore = document.getElementById('tf-hero-more');
+if (btnMore){
+  btnMore.onclick = (e)=>{
+    e.preventDefault();
+    try{
+      const gid = String(window.__tfHeroGameId || '').trim();
+      if(!gid) return;
+      const cat = (window.__tfCatById && window.__tfCatById.get) ? window.__tfCatById.get(gid) : null;
+      if(cat) tfOpenGameModal(cat);
+    }catch(_){}
+  };
+}
 
     // ===== NETFLIX-LIKE INFO MODAL (Game -> LIVE/VOD) =====
     let tfInfoModalOpen = false;
@@ -2668,9 +2592,7 @@ function tfBuildCard(cat){
       if (isGame){
         div.dataset.gameId = cat.id;
         div.dataset.gameName = cat.name;
-      
-        try{ tfGameIndex.set(String(cat.id), cat); }catch(_){ }
-} else {
+      } else {
         if (cat && cat._vod && cat._vod.id) div.dataset.vodId = String(cat._vod.id).replace(/^v/i,'');
         if (cat && cat._live && cat._live.user_login) div.dataset.channel = String(cat._live.user_login || '').trim();
       }
@@ -2810,7 +2732,7 @@ function tfBuildCard(cat){
       if (!key) return;
       if (tfHeroCurrentKey === key) return;
       tfHeroCurrentKey = key;
-      tfHeroCurrentGame = { id:String(gameId), name:String(gameName||''), poster:String(poster||'') };
+      window.__tfHeroGameId = key; window.__tfHeroGameName = gameName || ''; window.__tfHeroPoster = poster || '';
 
       // optimistic UI
       tfSetHero({ title: gameName || 'Trailer', sub: 'Prévisualisation automatique (muette)', poster });
@@ -3967,90 +3889,65 @@ function tfSetupRowPaging(rowEl){
 }
 
 
-// tfGlobalClickDelegate: make mouse clicks reliable even with draggable rows / overlays
+// tfGlobalClickDelegate: keep everything clickable even with draggable rows / overlays
 (function tfGlobalClickDelegate(){
   if (window.__tfGlobalClickDelegate) return;
   window.__tfGlobalClickDelegate = true;
+
   document.addEventListener('click', function(e){
-    const t = e.target;
-    if(!t) return;
-    const pill = t.closest && t.closest('.tf-pill');
-    const card = t.closest && t.closest('.tf-card');
-    if(!card) return;
-
-    // if user clicked on a pill, prioritize its intent
-    if(pill){
-      const txt = (pill.textContent||'').toLowerCase();
-      if(txt.includes('lire') || txt.includes('play')){
-        e.preventDefault(); e.stopPropagation();
-        card.click(); // card.onclick already routes (category or VOD)
-        return;
-      }
-      if(txt.includes('preview')){
-        e.preventDefault(); e.stopPropagation();
-        try{ window.tfPreviewCard && window.tfPreviewCard(card); }catch(_){}
-        return;
-      }
-    }
-  }, true);
-
-// tfHardClickDelegate: ultra reliable clicks (fixes cases where cards don't open due to drag/overlays)
-(function tfHardClickDelegate(){
-  if (window.__tfHardClickDelegate) return;
-  window.__tfHardClickDelegate = true;
-
-  document.addEventListener('click', (e)=>{
-    const modal = document.getElementById('twitflix-modal');
-    if(!modal || !modal.classList.contains('active')) return;
-
-    const t = e.target;
-    if(!t) return;
+    const root = document.getElementById('twitflix-modal');
+    if(!root || !root.classList.contains('active')) return;
 
     // LIVE banner cards
-    const liveCard = t.closest && t.closest('.tf-live-card');
+    const liveCard = e.target && e.target.closest ? e.target.closest('.tf-live-card') : null;
     if(liveCard){
-      // let its own handler run, but ensure it fires if prevented by something
-      if(!liveCard.__tfClickedOnce){
-        liveCard.__tfClickedOnce = true;
-        setTimeout(()=>{ liveCard.__tfClickedOnce = false; }, 250);
+      const ch = String(liveCard.dataset.channel || '').trim();
+      if(ch){
+        e.preventDefault(); e.stopPropagation();
+        try{ closeTwitFlix(); }catch(_){}
+        try{ loadTwitchStream(ch); }catch(_){}
+        try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
       }
       return;
     }
 
-    // game / vod cards in rows
-    const card = t.closest && t.closest('.tf-card');
+    // Standard cards (games / vod / live)
+    const card = e.target && e.target.closest ? e.target.closest('.tf-card') : null;
     if(!card) return;
 
-    // If a drag just happened, ignore (drag handler will re-dispatch click)
-    if(card.closest('.tf-row-track')?.__tfDraggingNow) return;
+    // avoid double-trigger when clicking on UI buttons already handled
+    if(e.target && e.target.closest && e.target.closest('.tf-menu, .tf-menu-panel, .tf-close-btn')) return;
 
-    // If card has onclick, rely on it
-    if(typeof card.onclick === 'function') return;
+    // Route by dataset
+    const vodId = String(card.dataset.vodId || '').trim();
+    const channel = String(card.dataset.channel || card.dataset.__previewChannel || '').trim();
+    const gameId = String(card.dataset.gameId || '').trim();
 
-    // Fallback: open modal / play based on dataset
-    const gameId = (card.dataset && card.dataset.gameId) ? String(card.dataset.gameId) : '';
-    const vodId = (card.dataset && card.dataset.vodId) ? String(card.dataset.vodId).replace(/^v/i,'') : '';
-    const channel = (card.dataset && card.dataset.channel) ? String(card.dataset.channel) : '';
-
-    if(gameId){
-      const cat = tfGameIndex.get(gameId);
-      if(cat){
-        try{ tfOpenGameModal(cat); }catch(_){}
-      }
-      return;
-    }
     if(vodId){
+      e.preventDefault(); e.stopPropagation();
       try{ closeTwitFlix(); }catch(_){}
-      try{ loadVodEmbed(vodId); }catch(_){}
+      try{ loadVodEmbed(vodId.replace(/^v/i,'')); }catch(_){}
+      try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
       return;
     }
-    if(channel){
+    if(channel && !gameId){
+      e.preventDefault(); e.stopPropagation();
       try{ closeTwitFlix(); }catch(_){}
       try{ loadTwitchStream(channel); }catch(_){}
+      try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
       return;
     }
+    if(gameId){
+      e.preventDefault();
+      try{
+        if(card.onclick) return card.onclick();
+        if(window.__tfCatById && window.__tfCatById.get){
+          const cat = window.__tfCatById.get(gameId);
+          if(cat) tfOpenGameModal(cat);
+        }
+      }catch(_){}
+    }
   }, true);
-})();
 })();
 function tfEnableTrackDrag(track){
   if(!track || track.__tfDrag) return;
@@ -4065,15 +3962,11 @@ function tfEnableTrackDrag(track){
     if(!down) return;
     const dx = e.clientX - startX;
     if (Math.abs(dx) > TAP_SLOP) moved=true;
-    track.__tfDraggingNow = moved;
-
     track.scrollLeft = startScroll - dx;
   }, {passive:true});
   track.addEventListener('pointerup',(e)=>{
     if(!down) return;
     down=false;
-    track.__tfDraggingNow = false;
-
     // If it was a tap (no drag), forward a click to the card under cursor
     if(!moved){
       try{
