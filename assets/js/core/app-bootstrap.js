@@ -52,6 +52,8 @@ const API_BASE = window.location.origin;
     const tfHeroInflight = new Map();
     let tfHeroHoverTimer = null;
     let tfHeroCurrentKey = null;
+    let tfHeroCurrentGame = null; // {id,name,poster}
+
     let tfHeroCyclerTimer = null;
 
     // INIT
@@ -65,19 +67,13 @@ const API_BASE = window.location.origin;
       initFirebaseStatus();
       setInterval(loadStatsDashboard, 5 * 60 * 1000);
       
-      // TwitFlix infinite loading is handled by an IntersectionObserver.
-      // Keep a lightweight scroll fallback (no undefined function calls).
+      // Infinite scroll listener
       const tfGrid = document.getElementById('twitflix-grid');
       if(tfGrid){
-        tfGrid.addEventListener('scroll', async () => {
-          try{
-            if (!tfModalOpen) return;
-            if (tfSearchQuery) return;
-            if (tfGrid.scrollTop + tfGrid.clientHeight >= tfGrid.scrollHeight - 220) {
-              await tfLoadMore(false);
-              renderTwitFlix();
-            }
-          }catch(_){ }
+        tfGrid.addEventListener('scroll', () => {
+             if (tfGrid.scrollTop + tfGrid.clientHeight >= tfGrid.scrollHeight - 200) {
+                 loadMoreCategories();
+             }
         });
       }
     });
@@ -746,6 +742,8 @@ function startAuth() {
     let tfModalOpen = false;
     let tfViewMode = 'rows'; // rows | az
     let tfAllCategories = [];
+    const tfGameIndex = new Map(); // gameId -> category object (for reliable click delegation)
+
 
     // Personalisation (Steam ADN) — prefers Steam OpenID session (no manual SteamID64)
 let tfPersonalization = null; // {title, seedGame, categories:[...]} from /api/reco/personalized
@@ -1058,19 +1056,66 @@ window.addEventListener('message', (ev) => {
       }
     }
 
-    function tfRenderTrailerCarousel(){
-      const wrap = document.getElementById('tf-trailer-carousel');
+    async function tfRenderEventsCarousel(){
+      const wrap = document.getElementById('tf-events-carousel');
       if (!wrap) return;
 
       tfBindHorizontalWheel(wrap);
+      wrap.innerHTML = '<div class="tf-empty">Chargement des événements…</div>';
 
-      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
-      wrap.innerHTML = '';
+      try{
+        // "Événements" = sélection plus large (petits créateurs + variété), FR en priorité
+        const url = `/api/twitch/streams/top?lang=fr&minViewers=10&maxViewers=180&limit=30`;
+        const r = await fetch(url, { credentials:'include' });
+        const d = r.ok ? await r.json() : null;
+        const items = d && Array.isArray(d.items) ? d.items : [];
+        if(!items.length){
+          wrap.innerHTML = '<div class="tf-empty">Aucun événement trouvé.</div>';
+          return;
+        }
 
-      if (!cats.length){
-        wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
-        return;
+        wrap.innerHTML = '';
+        // shuffle for "éditorial"
+        items.sort(()=>Math.random()-0.5);
+
+        for(const s of items.slice(0, 18)){
+          const gameName = String(s.game_name || 'Événement');
+          const boxArt = tfNormalizeBoxArt(s.box_art_url || '');
+          const channel = String(s.user_login || '').trim();
+          const title = String(s.title || '').trim();
+          if(!channel) continue;
+
+          const card = document.createElement('div');
+          card.className = 'tf-live-card tf-event-card';
+          card.dataset.channel = channel;
+          card.dataset.__previewChannel = channel;
+
+          card.innerHTML = `
+            <div class="tf-live-thumb" style="background-image:url('${boxArt}')">
+              <div class="tf-preview"></div>
+              <div class="tf-live-badge">SPÉCIAL</div>
+            </div>
+            <div class="tf-live-meta">
+              <div class="t1">${escapeHtml(gameName)}</div>
+              <div class="t2">${escapeHtml(title || channel)}</div>
+            </div>
+          `;
+
+          card.addEventListener('mouseenter', () => tfStartPreview(card));
+          card.addEventListener('mouseleave', () => tfStopPreview(card));
+          card.addEventListener('click', (e)=>{
+            e.preventDefault();
+            try{ closeTwitFlix(); }catch(_){}
+            try{ loadTwitchStream(channel); }catch(_){}
+            try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){}
+          });
+
+          wrap.appendChild(card);
+        }
+      }catch(_){
+        wrap.innerHTML = '<div class="tf-empty">Erreur chargement événements.</div>';
       }
+    }
 
       cats.forEach(cat => {
         const gameName = String(cat.name || '').trim();
@@ -1253,8 +1298,99 @@ const modal = document.getElementById('twitflix-modal');
 
       tfModalOpen = true;
       modal.classList.add('active');
+      // Bind HERO buttons (always clickable)
+      try{
+        const moreBtn = document.getElementById('tf-hero-more');
+        if(moreBtn && !moreBtn.__tfBound){
+          moreBtn.__tfBound = true;
+          moreBtn.addEventListener('click', (e)=>{
+            e.preventDefault();
+            // open info modal for current hero game (if any)
+            const g = tfHeroCurrentGame || (tfFeaturedHero && tfFeaturedHero.gameId ? {id:String(tfFeaturedHero.gameId), name:String(tfFeaturedHero.title||''), poster:String(tfFeaturedHero.poster||'')} : null);
+            if(!g || !g.id) return;
+            const cat = tfGameIndex.get(String(g.id)) || { id:g.id, name:g.name || g.title || '', box_art_url:g.poster };
+            try{ tfOpenGameModal(cat); }catch(_){}
+          }, true);
+        }
+      }catch(_){}
 
-      // NOTE: VOD are now contextual to games (via mode switch). No global Top VOD preload.
+
+     
+      // Top nav (Netflix-like) + dropdown categories
+      try{
+        const nav = modal.querySelector('.tf-nx-nav');
+        if(nav && !nav.__tfBound){
+          nav.__tfBound = true;
+
+          const setActive = (key)=>{
+            nav.querySelectorAll('.tf-nx-navitem').forEach(b=>{
+              b.classList.toggle('active', String(b.dataset.nav||'')===String(key||''));
+            });
+          };
+
+          const scrollToId = (id)=>{
+            const el = document.getElementById(id);
+            if(el){
+              try{ el.scrollIntoView({behavior:'smooth', block:'start'}); }catch(_){ }
+            }
+          };
+
+          nav.addEventListener('click', async (e)=>{
+            const btn = e.target.closest && e.target.closest('.tf-nx-navitem');
+            if(!btn) return;
+            const key = String(btn.dataset.nav||'');
+            if(!key) return;
+
+            if(key==='home'){ setActive('home'); try{ window.scrollTo({top:0, behavior:'smooth'});}catch(_){ } return; }
+            if(key==='live'){ setActive('live'); scrollToId('tf-live-carousel'); return; }
+            if(key==='events'){ setActive('events'); scrollToId('tf-events-section'); return; }
+            if(key==='games'){
+              // toggled by its own button (dropdown), handled below
+              return;
+            }
+          }, true);
+
+          const gamesBtn = document.getElementById('tf-nav-games');
+          const drop = document.getElementById('tf-games-drop');
+          const closeDrop = ()=>{ if(drop){ drop.style.display='none'; gamesBtn?.setAttribute('aria-expanded','false'); } };
+          const openDrop = ()=>{ if(drop){ drop.style.display='block'; gamesBtn?.setAttribute('aria-expanded','true'); } };
+
+          if(gamesBtn && drop){
+            gamesBtn.addEventListener('click', (e)=>{
+              e.preventDefault();
+              e.stopPropagation();
+              const open = (drop.style.display==='block');
+              if(open) closeDrop(); else openDrop();
+            }, true);
+
+            document.addEventListener('click', (ev)=>{
+              if(!drop) return;
+              const inside = ev.target.closest && (ev.target.closest('#tf-games-drop') || ev.target.closest('#tf-nav-games'));
+              if(!inside) closeDrop();
+            }, true);
+
+            drop.addEventListener('click', async (e)=>{
+              const chip = e.target.closest && e.target.closest('.tf-nx-chip');
+              if(!chip) return;
+              const q = String(chip.dataset.q||'').trim();
+              if(!q) return;
+              closeDrop();
+              setActive('games');
+
+              const input = document.getElementById('twitflix-search');
+              if(input){
+                input.value = q;
+                try{ input.dispatchEvent(new Event('input', {bubbles:true})); }catch(_){}
+              }else{
+                try{ await tfRunSearch(q); }catch(_){}
+              }
+              // jump to grid start
+              scrollToId('twitflix-grid');
+            }, true);
+          }
+        }
+      }catch(_){}
+ // NOTE: VOD are now contextual to games (via mode switch). No global Top VOD preload.
 
       document.body.classList.add('tf-bigpicture'); tfBigPicture = true; tfViewMode='rows';
 
@@ -1379,7 +1515,7 @@ const modal = document.getElementById('twitflix-modal');
 
       tfRenderLiveCarousel();
       // Trailer carousel is hidden in the Netflix-like mode; hero is the trailer.
-      try{ tfRenderTrailerCarousel(); }catch(_){ }
+      try{ tfRenderEventsCarousel(); }catch(_){ }
       renderTwitFlix();
 
       // Start hero cycler once some categories exist
@@ -1670,33 +1806,13 @@ const modal = document.getElementById('twitflix-modal');
         tfVodResults = [];
       }
 
-      // Try server search (best). We also re-rank client-side to guarantee that exact/prefix matches
-      // appear first even if the catalogue fallback order was used previously.
-      const tfNorm = (s)=> String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-      const tfScore = (queryText, name)=>{
-        const qn = tfNorm(queryText);
-        const nn = tfNorm(name);
-        if(!nn) return 0;
-        if(nn === qn) return 10000;
-        if(nn.startsWith(qn)) return 8000;
-        const qTokens = qn.split(/\s+/).filter(Boolean);
-        const nTokens = nn.split(/\s+/).filter(Boolean);
-        let hit = 0;
-        for(const t of qTokens){ if(nTokens.includes(t)) hit += 1; }
-        const contains = nn.includes(qn) ? 1 : 0;
-        const lenPenalty = Math.min(200, nn.length);
-        return (contains*2000) + (hit*900) + (Math.max(0, 500 - lenPenalty));
-      };
-
+// Try server search (best)
       try{
         const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
           if (d && d.success && Array.isArray(d.categories)){
-            const ranked = d.categories
-              .map(c => ({ ...c, __s: tfScore(q, c.name) }))
-              .sort((a,b)=> (b.__s - a.__s) || (String(a.name||'').length - String(b.name||'').length));
-            tfSearchResults = ranked.map(c => ({
+            tfSearchResults = d.categories.map(c => ({
               id: c.id,
               name: c.name,
               box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
@@ -2552,7 +2668,9 @@ function tfBuildCard(cat){
       if (isGame){
         div.dataset.gameId = cat.id;
         div.dataset.gameName = cat.name;
-      } else {
+      
+        try{ tfGameIndex.set(String(cat.id), cat); }catch(_){ }
+} else {
         if (cat && cat._vod && cat._vod.id) div.dataset.vodId = String(cat._vod.id).replace(/^v/i,'');
         if (cat && cat._live && cat._live.user_login) div.dataset.channel = String(cat._live.user_login || '').trim();
       }
@@ -2692,6 +2810,7 @@ function tfBuildCard(cat){
       if (!key) return;
       if (tfHeroCurrentKey === key) return;
       tfHeroCurrentKey = key;
+      tfHeroCurrentGame = { id:String(gameId), name:String(gameName||''), poster:String(poster||'') };
 
       // optimistic UI
       tfSetHero({ title: gameName || 'Trailer', sub: 'Prévisualisation automatique (muette)', poster });
@@ -3874,6 +3993,64 @@ function tfSetupRowPaging(rowEl){
       }
     }
   }, true);
+
+// tfHardClickDelegate: ultra reliable clicks (fixes cases where cards don't open due to drag/overlays)
+(function tfHardClickDelegate(){
+  if (window.__tfHardClickDelegate) return;
+  window.__tfHardClickDelegate = true;
+
+  document.addEventListener('click', (e)=>{
+    const modal = document.getElementById('twitflix-modal');
+    if(!modal || !modal.classList.contains('active')) return;
+
+    const t = e.target;
+    if(!t) return;
+
+    // LIVE banner cards
+    const liveCard = t.closest && t.closest('.tf-live-card');
+    if(liveCard){
+      // let its own handler run, but ensure it fires if prevented by something
+      if(!liveCard.__tfClickedOnce){
+        liveCard.__tfClickedOnce = true;
+        setTimeout(()=>{ liveCard.__tfClickedOnce = false; }, 250);
+      }
+      return;
+    }
+
+    // game / vod cards in rows
+    const card = t.closest && t.closest('.tf-card');
+    if(!card) return;
+
+    // If a drag just happened, ignore (drag handler will re-dispatch click)
+    if(card.closest('.tf-row-track')?.__tfDraggingNow) return;
+
+    // If card has onclick, rely on it
+    if(typeof card.onclick === 'function') return;
+
+    // Fallback: open modal / play based on dataset
+    const gameId = (card.dataset && card.dataset.gameId) ? String(card.dataset.gameId) : '';
+    const vodId = (card.dataset && card.dataset.vodId) ? String(card.dataset.vodId).replace(/^v/i,'') : '';
+    const channel = (card.dataset && card.dataset.channel) ? String(card.dataset.channel) : '';
+
+    if(gameId){
+      const cat = tfGameIndex.get(gameId);
+      if(cat){
+        try{ tfOpenGameModal(cat); }catch(_){}
+      }
+      return;
+    }
+    if(vodId){
+      try{ closeTwitFlix(); }catch(_){}
+      try{ loadVodEmbed(vodId); }catch(_){}
+      return;
+    }
+    if(channel){
+      try{ closeTwitFlix(); }catch(_){}
+      try{ loadTwitchStream(channel); }catch(_){}
+      return;
+    }
+  }, true);
+})();
 })();
 function tfEnableTrackDrag(track){
   if(!track || track.__tfDrag) return;
@@ -3888,11 +4065,15 @@ function tfEnableTrackDrag(track){
     if(!down) return;
     const dx = e.clientX - startX;
     if (Math.abs(dx) > TAP_SLOP) moved=true;
+    track.__tfDraggingNow = moved;
+
     track.scrollLeft = startScroll - dx;
   }, {passive:true});
   track.addEventListener('pointerup',(e)=>{
     if(!down) return;
     down=false;
+    track.__tfDraggingNow = false;
+
     // If it was a tap (no drag), forward a click to the card under cursor
     if(!moved){
       try{

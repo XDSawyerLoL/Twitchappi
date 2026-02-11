@@ -388,7 +388,7 @@
       padding: 18px;
       display: block;
     }
-    .tf-row{ margin-bottom: 22px; }
+    .tf-row{ margin-bottom: 14px; }
     .tf-row-title{
       font-family: Orbitron, sans-serif;
       font-size: 12px;
@@ -1458,7 +1458,7 @@ body.modal-open #player-tools{display:none !important;}
       padding: 18px;
       display: block;
     }
-    .tf-row{ margin-bottom: 22px; }
+    .tf-row{ margin-bottom: 14px; }
     .tf-row-title{
       font-family: Orbitron, sans-serif;
       font-size: 12px;
@@ -2533,6 +2533,55 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-arrow{width:30px;height:30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
 #twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
 
+
+/* --- StreamFlix top nav (Netflix-like) --- */
+#twitflix-modal .tf-topbar{ gap:18px; }
+#twitflix-modal .tf-nx-nav{ display:flex; align-items:center; gap:18px; margin-left:18px; }
+#twitflix-modal .tf-nx-navitem{
+  color: rgba(255,255,255,.82);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+#twitflix-modal .tf-nx-navitem.active{ color:#fff; }
+#twitflix-modal .tf-nx-navitem:hover{ color:#fff; }
+#twitflix-modal .tf-nx-navdrop{ position:relative; display:inline-block; }
+#twitflix-modal .tf-nx-drop{
+  position:absolute; top: 36px; left: 0;
+  min-width: 280px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(18,18,20,.92);
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 24px 70px rgba(0,0,0,.65);
+  backdrop-filter: blur(10px);
+  z-index: 10040;
+}
+#twitflix-modal .tf-nx-drop-title{ font-weight: 900; letter-spacing:.08em; font-size: 12px; opacity:.9; margin-bottom: 10px; }
+#twitflix-modal .tf-nx-chipgrid{ display:flex; flex-wrap:wrap; gap:8px; }
+#twitflix-modal .tf-nx-chip{
+  border-radius: 999px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.88);
+  font-weight: 800;
+  font-size: 12px;
+  cursor:pointer;
+}
+#twitflix-modal .tf-nx-chip:hover{ background: rgba(229,9,20,.16); border-color: rgba(229,9,20,.35); }
+
+/* Row bar */
+#twitflix-modal .tf-row-bar{ height: 4px; background: rgba(255,255,255,.10); border-radius: 999px; overflow:hidden; margin-top: 8px; }
+#twitflix-modal .tf-row-bar.is-hidden{ display:none; }
+#twitflix-modal .tf-row-bar-thumb{ height: 100%; width: 20%; background: rgba(229,9,20,.65); border-radius:999px; transform: translateX(0); }
+
+/* Reduce vertical spacing */
+#twitflix-modal .tf-header-block{ margin-bottom: 18px; }
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2925,6 +2974,29 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-modal-content">
 <div class="tf-topbar">
 <div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">ORYON TV</span></div>
+<nav class="tf-nx-nav" aria-label="Navigation ORYON">
+  <button type="button" class="tf-nx-navitem active" data-nav="home">Accueil</button>
+  <div class="tf-nx-navdrop">
+    <button type="button" class="tf-nx-navitem" data-nav="games" aria-haspopup="true" aria-expanded="false" id="tf-nav-games">Jeux ▾</button>
+    <div class="tf-nx-drop" id="tf-games-drop" style="display:none;">
+      <div class="tf-nx-drop-title">Catégories</div>
+      <div class="tf-nx-chipgrid">
+        <button type="button" class="tf-nx-chip" data-q="FPS">FPS</button>
+        <button type="button" class="tf-nx-chip" data-q="RPG">RPG</button>
+        <button type="button" class="tf-nx-chip" data-q="Combat">Combat</button>
+        <button type="button" class="tf-nx-chip" data-q="Survie">Survie</button>
+        <button type="button" class="tf-nx-chip" data-q="Horreur">Horreur</button>
+        <button type="button" class="tf-nx-chip" data-q="Stratégie">Stratégie</button>
+        <button type="button" class="tf-nx-chip" data-q="Indé">Indé</button>
+        <button type="button" class="tf-nx-chip" data-q="Coop">Coop</button>
+        <button type="button" class="tf-nx-chip" data-q="MMO">MMO</button>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="tf-nx-navitem" data-nav="live">Live</button>
+  <button type="button" class="tf-nx-navitem" data-nav="events">Événements</button>
+</nav>
+
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
@@ -2956,7 +3028,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
       <div class="tf-hero-sub" id="tf-hero-sub">Choisis un jeu, puis regarde des LIVE et VOD.</div>
       <div class="tf-hero-btns">
         <button class="tf-nx-btn tf-nx-primary" id="tf-hero-play" type="button"><span>▶</span> Lecture</button>
-        <button class="tf-nx-btn tf-nx-ghost" type="button" onclick="document.querySelector('#tf-live-carousel')?.scrollIntoView({behavior:'smooth',block:'start'})">Plus d'infos</button>
+        <button class="tf-nx-btn tf-nx-ghost" id="tf-hero-more" type="button">Plus d'infos</button>
       </div>
     </div>
   </div>
