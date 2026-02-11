@@ -65,13 +65,19 @@ const API_BASE = window.location.origin;
       initFirebaseStatus();
       setInterval(loadStatsDashboard, 5 * 60 * 1000);
       
-      // Infinite scroll listener
+      // TwitFlix infinite loading is handled by an IntersectionObserver.
+      // Keep a lightweight scroll fallback (no undefined function calls).
       const tfGrid = document.getElementById('twitflix-grid');
       if(tfGrid){
-        tfGrid.addEventListener('scroll', () => {
-             if (tfGrid.scrollTop + tfGrid.clientHeight >= tfGrid.scrollHeight - 200) {
-                 loadMoreCategories();
-             }
+        tfGrid.addEventListener('scroll', async () => {
+          try{
+            if (!tfModalOpen) return;
+            if (tfSearchQuery) return;
+            if (tfGrid.scrollTop + tfGrid.clientHeight >= tfGrid.scrollHeight - 220) {
+              await tfLoadMore(false);
+              renderTwitFlix();
+            }
+          }catch(_){ }
         });
       }
     });
@@ -1664,13 +1670,33 @@ const modal = document.getElementById('twitflix-modal');
         tfVodResults = [];
       }
 
-// Try server search (best)
+      // Try server search (best). We also re-rank client-side to guarantee that exact/prefix matches
+      // appear first even if the catalogue fallback order was used previously.
+      const tfNorm = (s)=> String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      const tfScore = (queryText, name)=>{
+        const qn = tfNorm(queryText);
+        const nn = tfNorm(name);
+        if(!nn) return 0;
+        if(nn === qn) return 10000;
+        if(nn.startsWith(qn)) return 8000;
+        const qTokens = qn.split(/\s+/).filter(Boolean);
+        const nTokens = nn.split(/\s+/).filter(Boolean);
+        let hit = 0;
+        for(const t of qTokens){ if(nTokens.includes(t)) hit += 1; }
+        const contains = nn.includes(qn) ? 1 : 0;
+        const lenPenalty = Math.min(200, nn.length);
+        return (contains*2000) + (hit*900) + (Math.max(0, 500 - lenPenalty));
+      };
+
       try{
         const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
         if (r.ok){
           const d = await r.json();
           if (d && d.success && Array.isArray(d.categories)){
-            tfSearchResults = d.categories.map(c => ({
+            const ranked = d.categories
+              .map(c => ({ ...c, __s: tfScore(q, c.name) }))
+              .sort((a,b)=> (b.__s - a.__s) || (String(a.name||'').length - String(b.name||'').length));
+            tfSearchResults = ranked.map(c => ({
               id: c.id,
               name: c.name,
               box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')

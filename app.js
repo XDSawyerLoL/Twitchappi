@@ -895,6 +895,8 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
     const out = [];
 
     // 2) fetch archives per channel (limited)
+    // IMPORTANT: a channel's recent archives may be for other games.
+    // We therefore filter returned VODs to the requested game_id to avoid unrelated results.
     for(const uid of channelIds){
       if(out.length >= limit) break;
       const vqs = new URLSearchParams();
@@ -905,6 +907,9 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
       const v = await twitchAPI(`videos?${vqs.toString()}`, token);
       const rows = (v?.data || []).slice(0, perChannel);
       for(const r of rows){
+        // Keep only VODs for the requested game.
+        // (Some channels mix content; we want the rail to match the hovered game.)
+        if (String(r.game_id || '') !== String(gameId)) continue;
         const t = Date.parse(r.created_at || '') || 0;
         if(t && t < cutoff) continue;
         out.push({
@@ -1679,29 +1684,46 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
     const maxViewers = Math.max(0, parseInt(req.query.maxViewers || req.query.max || '0', 10) || 0);
     const limit = Math.min(100, Math.max(10, parseInt(req.query.limit || '60', 10) || 60));
 
-    // Pull a bigger pool and filter server-side
+    // IMPORTANT:
+    // "streams?first=100" returns the biggest channels first.
+    // If we want a discovery band like 20–200 viewers, we must paginate until
+    // we collect enough results in the band.
     const first = 100;
-    let url = `streams?first=${first}`;
-    if (lang) url += `&language=${encodeURIComponent(lang)}`;
-    const d = await twitchAPI(url);
-    let items = Array.isArray(d.data) ? d.data.slice(0) : [];
+    const byGame = new Map(); // one stream per game for diversity
+    let after = null;
+    let safetyPages = 0;
 
-    if (minViewers || maxViewers){
-      items = items.filter(s => {
-        const v = Number(s.viewer_count || 0);
-        if (minViewers && v < minViewers) return false;
-        if (maxViewers && v > maxViewers) return false;
-        return true;
-      });
-    }
+    while (byGame.size < limit && safetyPages < 8) {
+      safetyPages++;
+      let url = `streams?first=${first}`;
+      if (lang) url += `&language=${encodeURIComponent(lang)}`;
+      if (after) url += `&after=${encodeURIComponent(after)}`;
 
-    // Prefer diversity by game (one stream per game)
-    const byGame = new Map();
-    for (const s of items){
-      const gid = String(s.game_id || '');
-      if (!gid) continue;
-      if (!byGame.has(gid)) byGame.set(gid, s);
-      if (byGame.size >= limit) break;
+      const d = await twitchAPI(url);
+      const pageItems = Array.isArray(d?.data) ? d.data : [];
+      after = d?.pagination?.cursor || null;
+
+      // Apply viewer band filter (best-effort)
+      const filtered = (minViewers || maxViewers)
+        ? pageItems.filter(s => {
+            const v = Number(s.viewer_count || 0);
+            if (minViewers && v < minViewers) return false;
+            if (maxViewers && v > maxViewers) return false;
+            return true;
+          })
+        : pageItems;
+
+      for (const s of filtered) {
+        const gid = String(s.game_id || '');
+        if (!gid) continue;
+        if (!byGame.has(gid)) byGame.set(gid, s);
+        if (byGame.size >= limit) break;
+      }
+
+      // no more pages
+      if (!after) break;
+      // if the page is empty, stop
+      if (!pageItems.length) break;
     }
 
     const unique = Array.from(byGame.values());
