@@ -2007,8 +2007,10 @@ const modal = document.getElementById('twitflix-modal');
       if (m) m.remove();
       tfInfoModalOpen = false;
       tfInfoGame = null;
+      if (__tfModalTrailerTimer) { try{ clearTimeout(__tfModalTrailerTimer); }catch(_){ } __tfModalTrailerTimer = null; }
     }
 
+    let __tfModalTrailerTimer = null;
     async function tfOpenGameModal(cat){
       if (!cat || !cat.id) return;
       // Close any existing modal FIRST (it resets tfInfoGame)
@@ -2016,7 +2018,7 @@ const modal = document.getElementById('twitflix-modal');
 
       const safePoster = (cat.box_art_url ? tfNormalizeBoxArt(cat.box_art_url) : '') || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221280%22 height=%22720%22%3E%3Crect width=%22100%25%22 height=%22100%25%22 fill=%22%230b0b0f%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 fill=%22%23666%22 font-size=%2248%22 font-family=%22Arial%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3EORYON%20TV%3C/text%3E%3C/svg%3E';
       tfInfoGame = { id:String(cat.id), name:String(cat.name||''), poster: safePoster };
-      // VOD-first modal: list is VOD-only, but the header preview can use LIVE if available.
+      // VOD-only modal. No list/choices shown; the Play button launches a random VOD for this game.
       tfInfoTab = 'vod';
       const modal = document.createElement('div');
       modal.id = 'tf-info-modal';
@@ -2036,16 +2038,6 @@ const modal = document.getElementById('twitflix-modal');
                   <button class="tf-nx-btn tf-nx-primary" id="tf-info-play"><span>▶</span> Lecture</button>
                 </div>
               </div>
-            </div>
-            <div class="tf-info-body">
-              <div class="tf-info-rowhead">
-                <div class="tf-info-rowtitle" id="tf-info-rowtitle">VOD • FR • Découverte</div>
-                <div class="tf-info-filters">
-                  <span class="tf-chip active" data-chip="fr">FR</span>
-                  <span class="tf-chip active" data-chip="small">SMALL</span>
-                </div>
-              </div>
-              <div class="tf-info-track" id="tf-info-track"></div>
             </div>
           </div>
         </div>
@@ -2077,21 +2069,16 @@ const modal = document.getElementById('twitflix-modal');
 
       btnPlay?.addEventListener('click', async (e)=>{
         e.preventDefault();
-        // Ensure VOD list is loaded before trying to play.
-        if (!tfInfoCache.has(tfInfoGame.id)) {
-          try{ await tfLoadInfoContent(); }catch(_){ }
-          try{ tfRenderInfoContent(); }catch(_){ }
-        }
-        const cache = tfInfoCache.get(tfInfoGame.id) || {};
-        const list = (cache.vods || []);
-        if (!list.length) return;
-        // If resume exists, play it; otherwise pick random
+        // Ultra-fast: ask the server for a random VOD for this game (FR + small).
         let vid = resumeVod ? String(resumeVod).replace(/^v/i,'') : '';
         if (!vid){
-          const pick = list[Math.floor(Math.random() * list.length)];
-          vid = String(pick?._vod?.id || pick?.id || '').replace(/^v/i,'');
+          try{
+            const r = await fetch(`/api/twiflix/play?game_id=${encodeURIComponent(tfInfoGame.id)}&game_name=${encodeURIComponent(tfInfoGame.name)}&lang=fr&maxViews=800`, { credentials:'include' });
+            const j = r.ok ? await r.json().catch(()=>null) : null;
+            vid = j && (j.vod_id || j.id) ? String(j.vod_id || j.id).replace(/^v/i,'') : '';
+          }catch(_){ }
         }
-        if (!vid) return;
+        if (!vid) return; // nothing found
         tfSetResumeVod(tfInfoGame.id, vid);
         tfCloseGameModal();
         try{ closeTwitFlix(); }catch(_){ }
@@ -2100,11 +2087,40 @@ const modal = document.getElementById('twitflix-modal');
 
       // Removed "Plus d'infos" button: description is always visible.
 
-      await tfLoadInfoContent();
-      tfRenderInfoContent();
-      // Mount an autoplay preview in the modal header:
-      // Prefer a SMALL FR live if available; otherwise use first VOD.
-      try{ await tfInfoMountHeaderPreview(); }catch(_){ }
+      // Trailer preview: wait 5 seconds, then autoplay the game trailer behind the hero.
+      try{ await tfInfoScheduleTrailerPreview(); }catch(_){ }
+    }
+
+    async function tfInfoScheduleTrailerPreview(){
+      if (!tfInfoGame) return;
+      if (__tfModalTrailerTimer) { try{ clearTimeout(__tfModalTrailerTimer); }catch(_){ } __tfModalTrailerTimer = null; }
+
+      // Pre-resolve trailer id quickly (cached server-side)
+      let videoId = '';
+      try{
+        const r = await fetch(`/api/youtube/trailer?q=${encodeURIComponent(tfInfoGame.name)}&type=game&lang=fr`, { credentials:'include' });
+        const j = r.ok ? await r.json().catch(()=>null) : null;
+        videoId = j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '';
+      }catch(_){ }
+
+      if (!videoId) return;
+
+      __tfModalTrailerTimer = setTimeout(()=>{
+        // Only mount if modal is still open
+        if (!tfInfoModalOpen || !tfInfoGame) return;
+        const media = document.getElementById('tf-info-media');
+        if (!media) return;
+        media.innerHTML = '';
+        const iframe = document.createElement('iframe');
+        iframe.className = 'tf-info-iframe';
+        iframe.allow = 'autoplay; encrypted-media; fullscreen';
+        iframe.frameBorder = '0';
+        iframe.width = '100%';
+        iframe.height = '100%';
+        const origin = encodeURIComponent(window.location.origin);
+        iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${encodeURIComponent(videoId)}&origin=${origin}`;
+        media.appendChild(iframe);
+      }, 5000);
     }
 
     async function tfInfoMountHeaderPreview(){

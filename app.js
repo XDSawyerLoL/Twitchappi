@@ -587,6 +587,8 @@ async function twitchAPI(endpoint, token = null) {
 // ORYON TV — VODs by title (FR streamers 20-200 viewers)
 // =========================================================
 const __oryonVodSearchCache = new Map(); // key -> {ts, items}
+// Ultra-fast: Twiflix "play" cache (game_id -> eligible vod ids)
+const __twiflixPlayCache = new Map(); // key -> {ts, vods:[{id, thumbnail_url, title, url, view_count, user_name, user_login}]}
 
 function __oryonCacheGet(map, key, ttlMs){
   const v = map.get(key);
@@ -597,6 +599,86 @@ function __oryonCacheGet(map, key, ttlMs){
 function __oryonCacheSet(map, key, items){
   map.set(key, { ts: Date.now(), items });
 }
+
+function __twiflixCacheGet(key, ttlMs){
+  const v = __twiflixPlayCache.get(key);
+  if(!v) return null;
+  if((Date.now()-v.ts) > ttlMs) { __twiflixPlayCache.delete(key); return null; }
+  return v.vods;
+}
+function __twiflixCacheSet(key, vods){
+  __twiflixPlayCache.set(key, { ts: Date.now(), vods });
+}
+
+// =========================================================
+// ORYON TV — Twiflix: play one random VOD for a game (ULTRA RAPIDE)
+// GET /api/twiflix/play?game_id=...&lang=fr&maxViews=800
+// Returns: { ok:true, vod_id, url, title, thumbnail_url }
+// =========================================================
+app.get('/api/twiflix/play', async (req, res) => {
+  try{
+    const game_id = String(req.query.game_id || '').trim();
+    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+    const maxViews = Math.max(10, parseInt(req.query.maxViews || '800', 10) || 800);
+    const cacheKey = `${game_id}:${lang}:${maxViews}`;
+
+    if(!game_id) return res.json({ ok:false, reason:'missing_game_id' });
+
+    // 5 minutes cache of eligible VODs for this game
+    let vods = __twiflixCacheGet(cacheKey, 5 * 60 * 1000);
+    if(!vods){
+      const token = await getTwitchToken('app');
+      if(!token) return res.json({ ok:false, reason:'missing_app_token' });
+
+      // One single Helix call for speed (first=50). Filter client-side.
+      const data = await twitchAPI(`videos?game_id=${encodeURIComponent(game_id)}&first=50&type=archive`, token);
+      const rows = data?.data || [];
+      vods = rows
+        .filter(v => {
+          const vc = v.view_count || 0;
+          // Best-effort language: prefer FR; allow unknown.
+          const vlang = String(v.language || '').toLowerCase();
+          if(lang && vlang && vlang !== lang) return false;
+          if(vc > maxViews) return false;
+          // Exclude very short clips / anomalies
+          if(!v.duration || String(v.duration).length < 2) return false;
+          return true;
+        })
+        .map(v => ({
+          id: v.id,
+          url: v.url,
+          title: v.title,
+          thumbnail_url: v.thumbnail_url,
+          view_count: v.view_count,
+          user_name: v.user_name,
+          user_login: v.user_login,
+        }));
+
+      // If too strict (no FR), relax language filter once
+      if(!vods.length && lang){
+        vods = rows
+          .filter(v => (v.view_count || 0) <= maxViews)
+          .map(v => ({
+            id: v.id,
+            url: v.url,
+            title: v.title,
+            thumbnail_url: v.thumbnail_url,
+            view_count: v.view_count,
+            user_name: v.user_name,
+            user_login: v.user_login,
+          }));
+      }
+
+      __twiflixCacheSet(cacheKey, vods);
+    }
+
+    if(!vods || !vods.length) return res.json({ ok:false, reason:'no_vods' });
+    const pick = vods[Math.floor(Math.random() * vods.length)];
+    return res.json({ ok:true, vod_id: pick.id, url: pick.url, title: pick.title, thumbnail_url: pick.thumbnail_url });
+  }catch(e){
+    return res.json({ ok:false, reason:'error', message: String(e?.message || e) });
+  }
+});
 
 async function twitchGetUserIdByLogin(login, token){
   const d = await twitchAPI(`users?login=${encodeURIComponent(login)}`, token);
