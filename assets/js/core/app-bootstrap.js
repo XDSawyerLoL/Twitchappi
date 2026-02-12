@@ -2109,41 +2109,31 @@ const modal = document.getElementById('twitflix-modal');
 
     async function tfInfoMountHeaderPreview(){
       if (!tfInfoGame) return;
-      const host = window.location.hostname;
       const media = document.getElementById('tf-info-media');
       if (!media) return;
       media.innerHTML = '';
 
-      // Try to fetch a live preview for the game (small creators).
-      let liveChannel = '';
+      // Header preview MUST be the GAME TRAILER (YouTube), not a live stream.
+      // We use the backend trailer resolver /api/youtube/trailer (cached).
+      let videoId = '';
       try{
-        const rl = await fetch(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(tfInfoGame.id)}&lang=fr&minViewers=20&maxViewers=200&limit=20`, { credentials:'include' });
-        if (rl.ok){
-          const jl = await rl.json().catch(()=>null);
-          const items = Array.isArray(jl.items) ? jl.items : [];
-          const pick = items.find(x=>x && (x.user_login || x.user_name)) || null;
-          liveChannel = pick ? String(pick.user_login || pick.user_name || '').trim() : '';
-        }
+        const r = await fetch(`/api/youtube/trailer?q=${encodeURIComponent(tfInfoGame.name)}&type=game&lang=fr`, { credentials:'include' });
+        const j = r.ok ? await r.json().catch(()=>null) : null;
+        videoId = j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '';
       }catch(_){ }
 
-      // Fallback to first VOD
-      const cache = tfInfoCache.get(tfInfoGame.id) || {};
-      const vodPick = (cache.vods || [])[0];
-      const vodId = vodPick ? String(vodPick._vod?.id || vodPick.id || '').replace(/^v/i,'').trim() : '';
+      if (!videoId) return;
 
       const iframe = document.createElement('iframe');
       iframe.className = 'tf-info-iframe';
-      iframe.allow = 'autoplay; fullscreen';
+      iframe.allow = 'autoplay; encrypted-media; fullscreen';
       iframe.frameBorder = '0';
       iframe.width = '100%';
       iframe.height = '100%';
-      if (liveChannel){
-        iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(liveChannel)}&parent=${encodeURIComponent(host)}&autoplay=true&muted=true`;
-      } else if (vodId){
-        iframe.src = `https://player.twitch.tv/?video=v${encodeURIComponent(vodId)}&parent=${encodeURIComponent(host)}&autoplay=true&muted=true`;
-      } else {
-        return;
-      }
+
+      // Loop + muted autoplay (Netflix-like preview)
+      const origin = encodeURIComponent(window.location.origin);
+      iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${encodeURIComponent(videoId)}&origin=${origin}`;
       media.appendChild(iframe);
     }
 

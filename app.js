@@ -851,6 +851,7 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
     const lang = String(req.query.lang || '').trim().toLowerCase();
     const minViewers = Math.max(0, parseInt(req.query.minViewers || '20', 10) || 0);
     const maxViewers = Math.max(0, parseInt(req.query.maxViewers || '200', 10) || 0);
+    const maxViews = Math.max(0, parseInt(req.query.maxViews || '200000', 10) || 0);
     const perChannel = Math.min(Math.max(1, parseInt(req.query.perChannel || '2', 10) || 2), 3);
 
     const token = await getTwitchToken('app');
@@ -938,13 +939,15 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
       for(const r of rows){
         const t = Date.parse(r.created_at || '') || 0;
         if(t && t < cutoff) continue;
+        const vc = Number(r.view_count || 0);
+        if (maxViews && vc > maxViews) continue;
         out.push({
           id: r.id,
           title: r.title,
           url: r.url,
           thumbnail_url: normalizeThumb(r.thumbnail_url),
           duration: r.duration,
-          view_count: r.view_count,
+          view_count: vc,
           created_at: r.created_at,
           vod_type: r.type,
           user_id: r.user_id,
@@ -955,6 +958,60 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
           platform: 'twitch'
         });
         if(out.length >= limit) break;
+      }
+    }
+
+    // 3) Fallback: if we still have too few VODs (FR sparse), query videos directly by game.
+    // This is much more reliable than "seed with small live channels" for some games.
+    if (out.length < Math.min(8, limit)) {
+      const seenVod = new Set(out.map(x => String(x.id)));
+      const fetchByGame = async (useLang) => {
+        let after = '';
+        for (let page = 0; page < 3; page++) {
+          if (out.length >= limit) break;
+          const qs = new URLSearchParams();
+          qs.set('game_id', gameId);
+          qs.set('first', '100');
+          qs.set('type', 'archive');
+          if (useLang) qs.set('language', useLang);
+          if (after) qs.set('after', after);
+          const vres = await twitchAPI(`videos?${qs.toString()}`, token);
+          const rows = (vres?.data || []);
+          for (const r of rows) {
+            if (out.length >= limit) break;
+            const id = String(r?.id || '');
+            if (!id || seenVod.has(id)) continue;
+            const t = Date.parse(r.created_at || '') || 0;
+            if (t && t < cutoff) continue;
+            const vc = Number(r.view_count || 0);
+            if (maxViews && vc > maxViews) continue;
+            out.push({
+              id: r.id,
+              title: r.title,
+              url: r.url,
+              thumbnail_url: normalizeThumb(r.thumbnail_url),
+              duration: r.duration,
+              view_count: vc,
+              created_at: r.created_at,
+              vod_type: r.type,
+              user_id: r.user_id,
+              user_name: r.user_name,
+              game_id: r.game_id,
+              game_name: r.game_name,
+              language: r.language,
+              platform: 'twitch'
+            });
+            seenVod.add(id);
+          }
+          after = vres?.pagination?.cursor || '';
+          if (!after) break;
+        }
+      };
+
+      // Prefer FR, then fallback any language
+      await fetchByGame(lang || '');
+      if (lang && out.length < Math.min(8, limit)) {
+        await fetchByGame('');
       }
     }
 
