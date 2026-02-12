@@ -1057,7 +1057,8 @@ window.addEventListener('message', (ev) => {
           card.addEventListener('click', (e) => {
             e.preventDefault();
             try{ closeTwitFlix(); }catch(_){ }
-            try{ loadTwitchStream(channel); }catch(_){ }
+            // Use the main player loader (live)
+            try{ loadPlayerEmbed(channel); }catch(_){ }
             try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
           });
 
@@ -1243,7 +1244,7 @@ const modal = document.getElementById('twitflix-modal');
             if(ch && !card.dataset.gameId){
               e.preventDefault(); e.stopPropagation();
               try{ closeTwitFlix(); }catch(_){ }
-              try{ loadTwitchStream(String(ch)); }catch(_){ }
+              try{ loadPlayerEmbed(String(ch)); }catch(_){ }
               try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
               return;
             }
@@ -2015,7 +2016,7 @@ const modal = document.getElementById('twitflix-modal');
 
       const safePoster = (cat.box_art_url ? tfNormalizeBoxArt(cat.box_art_url) : '') || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221280%22 height=%22720%22%3E%3Crect width=%22100%25%22 height=%22100%25%22 fill=%22%230b0b0f%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 fill=%22%23666%22 font-size=%2248%22 font-family=%22Arial%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3EORYON%20TV%3C/text%3E%3C/svg%3E';
       tfInfoGame = { id:String(cat.id), name:String(cat.name||''), poster: safePoster };
-      // VOD-only modal per UX request
+      // VOD-first modal: list is VOD-only, but the header preview can use LIVE if available.
       tfInfoTab = 'vod';
       const modal = document.createElement('div');
       modal.id = 'tf-info-modal';
@@ -2026,13 +2027,13 @@ const modal = document.getElementById('twitflix-modal');
             <button class="tf-info-close" aria-label="Fermer">✕</button>
             <div class="tf-info-hero">
               <img class="tf-info-bg" alt="" src="${tfInfoGame.poster}">
+              <div class="tf-info-media" id="tf-info-media" aria-hidden="true"></div>
               <div class="tf-info-grad"></div>
               <div class="tf-info-meta">
                 <div class="tf-info-title">${escapeHtml(tfInfoGame.name)}</div>
                 <div class="tf-info-desc" id="tf-info-desc">Chargement de la description…</div>
                 <div class="tf-info-actions">
                   <button class="tf-nx-btn tf-nx-primary" id="tf-info-play"><span>▶</span> Lecture</button>
-                  <button class="tf-nx-btn tf-nx-ghost" id="tf-info-more">Plus d'infos</button>
                 </div>
               </div>
             </div>
@@ -2074,8 +2075,13 @@ const modal = document.getElementById('twitflix-modal');
         btnPlay.innerHTML = `<span>▶</span> Reprendre`;
       }
 
-      btnPlay?.addEventListener('click', (e)=>{
+      btnPlay?.addEventListener('click', async (e)=>{
         e.preventDefault();
+        // Ensure VOD list is loaded before trying to play.
+        if (!tfInfoCache.has(tfInfoGame.id)) {
+          try{ await tfLoadInfoContent(); }catch(_){ }
+          try{ tfRenderInfoContent(); }catch(_){ }
+        }
         const cache = tfInfoCache.get(tfInfoGame.id) || {};
         const list = (cache.vods || []);
         if (!list.length) return;
@@ -2092,33 +2098,53 @@ const modal = document.getElementById('twitflix-modal');
         try{ loadVodEmbed(vid); }catch(_){ }
       });
 
-      // "Plus d'infos" should not scroll the page; it toggles an info panel inside the modal
-      modal.querySelector('#tf-info-more')?.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const body = modal.querySelector('.tf-info-body');
-        if(!body) return;
-        let extra = modal.querySelector('#tf-info-extra');
-        if(!extra){
-          extra = document.createElement('div');
-          extra.id = 'tf-info-extra';
-          extra.style.cssText = 'margin:12px 0 0 0;padding:12px 12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.35);color:rgba(255,255,255,.85);font-size:12px;line-height:1.45;';
-          extra.innerHTML = `
-            <div style="font-weight:900;letter-spacing:.4px;margin-bottom:6px">${escapeHtml(tfInfoGame.name)}</div>
-            <div style="opacity:.85">Catalogue Streamer (FR) · Découverte petits créateurs · Hover = preview, clic = lecture.</div>
-            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-              <a class="tf-nx-btn tf-nx-ghost" href="https://www.twitch.tv/search?term=${encodeURIComponent(tfInfoGame.name)}" target="_blank" rel="noopener noreferrer">Voir sur Twitch</a>
-              <button class="tf-nx-btn tf-nx-ghost" id="tf-info-close2">Fermer</button>
-            </div>
-          `;
-          body.prepend(extra);
-          extra.querySelector('#tf-info-close2')?.addEventListener('click', (ev)=>{ ev.preventDefault(); extra.remove(); });
-        } else {
-          extra.remove();
-        }
-      });
+      // Removed "Plus d'infos" button: description is always visible.
 
       await tfLoadInfoContent();
       tfRenderInfoContent();
+      // Mount an autoplay preview in the modal header:
+      // Prefer a SMALL FR live if available; otherwise use first VOD.
+      try{ await tfInfoMountHeaderPreview(); }catch(_){ }
+    }
+
+    async function tfInfoMountHeaderPreview(){
+      if (!tfInfoGame) return;
+      const host = window.location.hostname;
+      const media = document.getElementById('tf-info-media');
+      if (!media) return;
+      media.innerHTML = '';
+
+      // Try to fetch a live preview for the game (small creators).
+      let liveChannel = '';
+      try{
+        const rl = await fetch(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(tfInfoGame.id)}&lang=fr&minViewers=20&maxViewers=200&limit=20`, { credentials:'include' });
+        if (rl.ok){
+          const jl = await rl.json().catch(()=>null);
+          const items = Array.isArray(jl.items) ? jl.items : [];
+          const pick = items.find(x=>x && (x.user_login || x.user_name)) || null;
+          liveChannel = pick ? String(pick.user_login || pick.user_name || '').trim() : '';
+        }
+      }catch(_){ }
+
+      // Fallback to first VOD
+      const cache = tfInfoCache.get(tfInfoGame.id) || {};
+      const vodPick = (cache.vods || [])[0];
+      const vodId = vodPick ? String(vodPick._vod?.id || vodPick.id || '').replace(/^v/i,'').trim() : '';
+
+      const iframe = document.createElement('iframe');
+      iframe.className = 'tf-info-iframe';
+      iframe.allow = 'autoplay; fullscreen';
+      iframe.frameBorder = '0';
+      iframe.width = '100%';
+      iframe.height = '100%';
+      if (liveChannel){
+        iframe.src = `https://player.twitch.tv/?channel=${encodeURIComponent(liveChannel)}&parent=${encodeURIComponent(host)}&autoplay=true&muted=true`;
+      } else if (vodId){
+        iframe.src = `https://player.twitch.tv/?video=v${encodeURIComponent(vodId)}&parent=${encodeURIComponent(host)}&autoplay=true&muted=true`;
+      } else {
+        return;
+      }
+      media.appendChild(iframe);
     }
 
     async function tfLoadInfoContent(){
@@ -2625,7 +2651,7 @@ function tfBuildCard(cat){
           const channel = (s.user_login || div.dataset.channel || '').trim();
           if (!channel) return;
           try{ closeTwitFlix(); }catch(_){ }
-          try{ loadTwitchStream(channel); }catch(_){ }
+          try{ loadPlayerEmbed(channel); }catch(_){ }
           try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
           return;
         }
@@ -2812,7 +2838,7 @@ function tfBuildCard(cat){
         tfHeroMountIframe(src);
         const playBtn = document.getElementById('tf-hero-play');
         if (playBtn){
-          playBtn.onclick = ()=>{ try{ closeTwitFlix(); }catch(_){}; try{ loadTwitchEmbed(ch); }catch(_){}; };
+          playBtn.onclick = ()=>{ try{ closeTwitFlix(); }catch(_){}; try{ loadPlayerEmbed(ch); }catch(_){}; };
         }
         tfSetHero({ title: gameName || 'LIVE', sub: 'Trailer (LIVE) • FR • Découverte', poster });
       }
