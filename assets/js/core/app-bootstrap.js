@@ -999,12 +999,28 @@ window.addEventListener('message', (ev) => {
 
       wrap.innerHTML = '<div class="tf-empty">Chargement des lives…</div>';
       try{
-        const url = `/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=200&limit=40`;
-        const r = await fetch(url, { credentials:'include' });
-        const d = r.ok ? await r.json() : null;
-        const items = d && Array.isArray(d.items) ? d.items : [];
+        // Primary target: FR small/mid streams
+        let items = [];
+        const primary = await fetch(`/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=200&limit=40`, { credentials:'include' });
+        const pd = primary.ok ? await primary.json() : null;
+        items = (pd && Array.isArray(pd.items)) ? pd.items : [];
+
+        // Fallback: widen viewer range (still FR)
         if (!items.length){
-          wrap.innerHTML = '<div class="tf-empty">Aucun live trouvé (FR) pour le moment.</div>';
+          const fb1 = await fetch(`/api/twitch/streams/top?lang=fr&minViewers=5&maxViewers=800&limit=40`, { credentials:'include' });
+          const fd1 = fb1.ok ? await fb1.json() : null;
+          items = (fd1 && Array.isArray(fd1.items)) ? fd1.items : [];
+        }
+
+        // Fallback: any language (keeps the rail populated rather than empty)
+        if (!items.length){
+          const fb2 = await fetch(`/api/twitch/streams/top?minViewers=5&maxViewers=800&limit=40`, { credentials:'include' });
+          const fd2 = fb2.ok ? await fb2.json() : null;
+          items = (fd2 && Array.isArray(fd2.items)) ? fd2.items : [];
+        }
+
+        if (!items.length){
+          wrap.innerHTML = '<div class="tf-empty">Aucun live trouvé pour le moment.</div>';
           return;
         }
 
@@ -1974,6 +1990,17 @@ const modal = document.getElementById('twitflix-modal');
     let tfInfoTab = 'vod';
     let tfInfoCache = new Map();
 
+    // Local resume store: last played VOD per game (coarse "Reprendre")
+    function tfResumeKey(gameId){ return `tf_resume_vod_${String(gameId||'')}`; }
+    function tfGetResumeVod(gameId){ try{ return localStorage.getItem(tfResumeKey(gameId)) || ''; }catch(_){ return ''; } }
+    function tfSetResumeVod(gameId, vodId){
+      try{
+        if (!gameId || !vodId) return;
+        localStorage.setItem(tfResumeKey(gameId), String(vodId));
+        localStorage.setItem(`${tfResumeKey(gameId)}_t`, String(Date.now()));
+      }catch(_){ }
+    }
+
     function tfCloseGameModal(){
       const m = document.getElementById('tf-info-modal');
       if (m) m.remove();
@@ -1986,7 +2013,8 @@ const modal = document.getElementById('twitflix-modal');
       // Close any existing modal FIRST (it resets tfInfoGame)
       tfCloseGameModal();
 
-      tfInfoGame = { id:String(cat.id), name:String(cat.name||''), poster: tfNormalizeBoxArt(cat.box_art_url||'') };
+      const safePoster = (cat.box_art_url ? tfNormalizeBoxArt(cat.box_art_url) : '') || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221280%22 height=%22720%22%3E%3Crect width=%22100%25%22 height=%22100%25%22 fill=%22%230b0b0f%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 fill=%22%23666%22 font-size=%2248%22 font-family=%22Arial%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3EORYON%20TV%3C/text%3E%3C/svg%3E';
+      tfInfoGame = { id:String(cat.id), name:String(cat.name||''), poster: safePoster };
       // VOD-only modal per UX request
       tfInfoTab = 'vod';
       const modal = document.createElement('div');
@@ -2001,7 +2029,7 @@ const modal = document.getElementById('twitflix-modal');
               <div class="tf-info-grad"></div>
               <div class="tf-info-meta">
                 <div class="tf-info-title">${escapeHtml(tfInfoGame.name)}</div>
-                <div class="tf-info-desc" id="tf-info-desc">${escapeHtml(tfGetGameDesc(tfInfoGame.name))}</div>
+                <div class="tf-info-desc" id="tf-info-desc">Chargement de la description…</div>
                 <div class="tf-info-actions">
                   <button class="tf-nx-btn tf-nx-primary" id="tf-info-play"><span>▶</span> Lecture</button>
                   <button class="tf-nx-btn tf-nx-ghost" id="tf-info-more">Plus d'infos</button>
@@ -2024,18 +2052,41 @@ const modal = document.getElementById('twitflix-modal');
       document.body.appendChild(modal);
       tfInfoModalOpen = true;
 
+      // Fetch an AI description (French). Falls back silently.
+      try{
+        const rd = await fetch(`/api/ai/game_desc?name=${encodeURIComponent(tfInfoGame.name)}`, { credentials:'include' });
+        const jd = rd.ok ? await rd.json().catch(()=>null) : null;
+        const desc = jd && (jd.description || jd.text) ? String(jd.description || jd.text) : '';
+        const el = document.getElementById('tf-info-desc');
+        if (el) el.textContent = desc || tfGetGameDesc(tfInfoGame.name);
+      }catch(_){
+        const el = document.getElementById('tf-info-desc');
+        if (el) el.textContent = tfGetGameDesc(tfInfoGame.name);
+      }
+
       modal.querySelector('.tf-info-close')?.addEventListener('click', (e)=>{ e.preventDefault(); tfCloseGameModal(); });
       modal.querySelector('.tf-info-backdrop')?.addEventListener('click', (e)=>{ if (e.target.classList.contains('tf-info-backdrop')) tfCloseGameModal(); });
 
-      modal.querySelector('#tf-info-play')?.addEventListener('click', (e)=>{
+      // "Lecture" becomes "Reprendre" if we have a local resume VOD for this game.
+      const resumeVod = tfGetResumeVod(tfInfoGame.id);
+      const btnPlay = modal.querySelector('#tf-info-play');
+      if (btnPlay && resumeVod){
+        btnPlay.innerHTML = `<span>▶</span> Reprendre`;
+      }
+
+      btnPlay?.addEventListener('click', (e)=>{
         e.preventDefault();
         const cache = tfInfoCache.get(tfInfoGame.id) || {};
         const list = (cache.vods || []);
         if (!list.length) return;
-        // Random VOD (FR small) for this game
-        const pick = list[Math.floor(Math.random() * list.length)];
-        const vid = String(pick?._vod?.id || pick?.id || '').replace(/^v/i,'');
+        // If resume exists, play it; otherwise pick random
+        let vid = resumeVod ? String(resumeVod).replace(/^v/i,'') : '';
+        if (!vid){
+          const pick = list[Math.floor(Math.random() * list.length)];
+          vid = String(pick?._vod?.id || pick?.id || '').replace(/^v/i,'');
+        }
         if (!vid) return;
+        tfSetResumeVod(tfInfoGame.id, vid);
         tfCloseGameModal();
         try{ closeTwitFlix(); }catch(_){ }
         try{ loadVodEmbed(vid); }catch(_){ }

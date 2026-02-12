@@ -915,6 +915,14 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
     const cutoff = Date.now() - (days * 24 * 36e5);
     const out = [];
 
+    const normalizeThumb = (u) => {
+      const s = String(u || '').trim();
+      if (!s) return '';
+      return s
+        .replace(/%\{width\}/g, '640')
+        .replace(/%\{height\}/g, '360');
+    };
+
     // 2) fetch archives per channel (limited)
     for(const uid of channelIds){
       if(out.length >= limit) break;
@@ -934,7 +942,7 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
           id: r.id,
           title: r.title,
           url: r.url,
-          thumbnail_url: r.thumbnail_url,
+          thumbnail_url: normalizeThumb(r.thumbnail_url),
           duration: r.duration,
           view_count: r.view_count,
           created_at: r.created_at,
@@ -1297,6 +1305,65 @@ async function runGeminiAnalysis(prompt) {
     return { success: false, html_response: `<p style='color:red;'>❌ Erreur IA: ${e.message}</p>` };
   }
 }
+
+// ---------------------------------------------------------
+// AI: short French game descriptions for StreamFlix modal
+// ---------------------------------------------------------
+const GAME_DESC_CACHE = new Map(); // key -> { t, text }
+const GAME_DESC_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+function __getGameDescCache(key){
+  const it = GAME_DESC_CACHE.get(key);
+  if (!it) return '';
+  if ((Date.now() - (it.t||0)) > GAME_DESC_TTL_MS){
+    GAME_DESC_CACHE.delete(key);
+    return '';
+  }
+  return String(it.text || '').trim();
+}
+
+function __setGameDescCache(key, text){
+  const t = String(text || '').trim();
+  if (!t) return;
+  GAME_DESC_CACHE.set(key, { t: Date.now(), text: t });
+}
+
+async function runGeminiPlainText(prompt){
+  if (!aiClient) return '';
+  try{
+    const response = await aiClient.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: "Réponds en FRANÇAIS, en TEXTE BRUT uniquement (sans HTML, sans markdown). 2-3 phrases maximum."
+      }
+    });
+    return String(response.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+  }catch(e){
+    console.error("❌ Erreur IA (plain):", e.message);
+    return '';
+  }
+}
+
+app.get('/api/ai/game_desc', async (req, res) => {
+  try{
+    const name = String(req.query.name || req.query.game || '').trim();
+    if (!name) return res.status(400).json({ success:false, description:'' });
+    const key = name.toLowerCase();
+    const cached = __getGameDescCache(key);
+    if (cached) return res.json({ success:true, description: cached, cached:true });
+
+    // Compact prompt: usable as a short pitch in the hero/modal
+    const prompt = `Écris une description courte et premium du jeu vidéo "${name}".\n` +
+      `Contraintes:\n- 2 à 3 phrases maximum\n- ton neutre/premium, orienté "à regarder"\n- pas de spoilers\n- pas de liens\n- pas de listes\n- en français.`;
+    const text = await runGeminiPlainText(prompt);
+    const out = text || '';
+    if (out) __setGameDescCache(key, out);
+    return res.json({ success: !!out, description: out, cached:false });
+  }catch(e){
+    return res.status(500).json({ success:false, description:'', error:e.message });
+  }
+});
 
 // =========================================================
 // 2B. ANALYTICS SCORE
