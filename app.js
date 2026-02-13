@@ -2026,8 +2026,9 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
     if (!token) return res.status(500).json({ error: 'No Twitch token' });
 
     const lang = String(req.query.lang || 'fr').toLowerCase();
-    const maxViewers = parseInt(req.query.maxViewers || '200', 10);
-    const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10), 5), 60);
+    // More resilient defaults: focus on smaller streams, but don't return an empty rail.
+    const maxViewers = parseInt(req.query.maxViewers || '500', 10);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '40', 10), 8), 80);
 
     // Pull multiple pages to avoid "no live found" when filtering hard (FR + small viewers)
     const raw = [];

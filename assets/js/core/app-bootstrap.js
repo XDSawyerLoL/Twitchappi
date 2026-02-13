@@ -2068,7 +2068,7 @@ const modal = document.getElementById('twitflix-modal');
 	              <div class="tf-episodes-head">
 	                <div>
 	                  <div class="tf-episodes-title">Épisodes</div>
-	                  <div class="tf-episodes-sub">10 streamers FR (petites chaînes) autour de ce jeu</div>
+	                  <div class="tf-episodes-sub">5 streamers FR (petites chaînes) autour de ce jeu</div>
 	                </div>
 	              </div>
 	              <div id="tf-episodes-list">
@@ -2177,7 +2177,8 @@ const modal = document.getElementById('twitflix-modal');
       qs.set('game_name', game_name || '');
       qs.set('lang', 'fr');
       qs.set('maxViewers', '200');
-      qs.set('limit','10');
+      // Keep it short and readable (user asked max 5).
+      qs.set('limit','5');
 
       let data = null;
       try{
@@ -3458,7 +3459,10 @@ function tfBuildCard(cat){
       el = document.createElement("div");
       el.id = PORTAL_ID;
       el.className = "paywall-portal";
-      el.style.cssText = "position:fixed; inset:0; z-index:2147483647; pointer-events:none;";
+      // Twiflix/Streamflix must never be blocked by the upsell portal.
+      // Keep it below modals and fully non-interactive.
+      // Hidden by default: Streamflix/Twiflix should not have a floating upsell card.
+      el.style.cssText = "position:fixed; inset:0; z-index:50; pointer-events:none; display:none;";
       document.documentElement.appendChild(el);
     }
     return el;
@@ -3553,9 +3557,9 @@ function tfBuildCard(cat){
     const cy = r.top + Math.min(r.height/2, 220);
 
     card.style.cssText = `position:fixed; left:${cx}px; top:${cy}px; transform:translate(-50%,-50%); pointer-events:none;`;
-    // make inner card clickable
+    // Never intercept clicks (Twiflix player and cards need to work reliably)
     const inner = card.firstElementChild;
-    if(inner) inner.style.pointerEvents = "auto";
+    if(inner) inner.style.pointerEvents = "none";
 
     wrap.appendChild(card);
     portal.appendChild(wrap);
