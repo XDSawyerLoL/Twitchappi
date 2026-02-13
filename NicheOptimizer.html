@@ -2533,13 +2533,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-arrow{width:30px;height:30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
 #twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
 
-
-/* Hide Premium paywall card while TwitFlix modal is open */
-body.tf-modal-open .paywall-portal,
-body.tf-modal-open #paywallOverlay,
-body.tf-modal-open .paywall-overlay,
-body.tf-modal-open .premium-gate,
-body.tf-modal-open .premium-card{ display:none !important; }
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -3385,10 +3378,10 @@ body.tf-modal-open .premium-card{ display:none !important; }
 .tf-info-sheet{ width:min(1120px, 96vw); background: #141414; border-radius: 10px; overflow:hidden; box-shadow: 0 24px 80px rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.08); }
 .tf-info-close{ position:absolute; right: 26px; top: 18px; width: 42px; height: 42px; border-radius: 999px; border:0; background: rgba(0,0,0,.55); color:#fff; font-size: 18px; cursor:pointer; z-index:5; }
 .tf-info-hero{ position:relative; height: 420px; }
-.tf-info-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.38; transform: scale(1.02); }
+.tf-info-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.55; transform: scale(1.02); }
 .tf-info-media{ position:absolute; inset:0; z-index:2; pointer-events:none; }
 .tf-info-media iframe.tf-info-iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
-.tf-info-grad{ position:absolute; inset:0; background: linear-gradient(90deg, rgba(20,20,20,.92) 0%, rgba(20,20,20,.62) 42%, rgba(20,20,20,.18) 72%, rgba(20,20,20,0) 100%); }
+.tf-info-grad{ position:absolute; inset:0; background: linear-gradient(90deg, rgba(20,20,20,.98) 0%, rgba(20,20,20,.78) 40%, rgba(20,20,20,.25) 70%, rgba(20,20,20,0) 100%); }
 .tf-info-meta{ position:absolute; left: 42px; bottom: 28px; right: 42px; z-index:3; }
 .tf-info-title{ font-size: 54px; font-weight: 900; line-height:1.0; }
 .tf-info-actions{ margin-top: 14px; display:flex; gap: 12px; }
@@ -3406,22 +3399,6 @@ body.tf-modal-open .premium-card{ display:none !important; }
 .tf-info-track::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
 .tf-info-track::-webkit-scrollbar-thumb:hover{ background: rgba(229,9,20,.35); }
 .tf-info-empty{ color: rgba(255,255,255,.72); padding: 16px 6px; }
-
-/* "Episodes" list (streamers as episodes) */
-.tf-episodes{ padding: 18px 26px 28px 26px; border-top: 1px solid rgba(255,255,255,.08); }
-.tf-episodes-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 10px; }
-.tf-episodes-title{ font-weight: 900; font-size: 18px; letter-spacing: .02em; }
-.tf-episodes-sub{ color: rgba(255,255,255,.72); font-size: 12px; }
-.tf-episode{ display:grid; grid-template-columns: 42px 160px 1fr 72px; gap: 14px; align-items:center; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.08); }
-.tf-episode:first-of-type{ border-top:0; }
-.tf-ep-num{ opacity:.8; font-weight:900; text-align:center; }
-.tf-ep-thumb{ width:160px; height: 90px; border-radius: 6px; overflow:hidden; background: rgba(255,255,255,.06); position:relative; }
-.tf-ep-thumb img{ width:100%; height:100%; object-fit:cover; }
-.tf-ep-meta{ min-width: 0; }
-.tf-ep-title{ font-weight: 900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.tf-ep-desc{ color: rgba(255,255,255,.72); font-size: 12px; margin-top: 4px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient: vertical; }
-.tf-ep-pill{ justify-self:end; padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color:#fff; font-weight:900; font-size: 12px; cursor:pointer; }
-.tf-ep-pill:hover{ background: rgba(229,9,20,.22); border-color: rgba(229,9,20,.55); }
 </style>
 
 </body>

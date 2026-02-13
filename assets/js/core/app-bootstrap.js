@@ -157,15 +157,8 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   const ok = !!(d && (d.success === undefined ? true : d.success));
   if(!ok){
-    // Guest / non-auth: keep wallet visible with safe defaults (don't hide UI)
-    try{
-      const creditsEl = wrap.querySelector('[data-credits]');
-      const planEl = wrap.querySelector('[data-plan]');
-      if(creditsEl) creditsEl.textContent = '0';
-      if(planEl) planEl.textContent = 'FREE';
-      wrap.classList.remove('hidden');
-      wrap.classList.add('is-guest');
-    }catch(e){}
+    if(wrap) wrap.classList.add('hidden');
+    window.dispatchEvent(new Event('billing:updated'));
     return;
   }
 
@@ -1220,7 +1213,6 @@ function tfNormalizeBoxArt(url){
 
     async function openTwitFlix(){
   document.body.classList.add('modal-open');
-  document.body.classList.add('tf-modal-open');
 const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
 
@@ -1407,7 +1399,6 @@ const modal = document.getElementById('twitflix-modal');
 
     function closeTwitFlix(){
   document.body.classList.remove('modal-open');
-  document.body.classList.remove('tf-modal-open');
   tfModalOpen = false;
   try{ tfCloseDrawer(); }catch(_){ }
   document.querySelectorAll('.tf-card.previewing').forEach(tfStopPreview);
@@ -2011,22 +2002,6 @@ const modal = document.getElementById('twitflix-modal');
       }catch(_){ }
     }
 
-
-    function tfPlayVodById(vodId){
-      try{
-        if(!vodId) return;
-        // Close modal if open
-        const modal = document.getElementById('tf-modal');
-        if(modal) modal.remove();
-        document.body.classList.remove('modal-open');
-        document.body.classList.remove('tf-modal-open');
-
-        // Play inside ORYON player (Twitch video embed)
-        loadVodEmbed(vodId);
-        // Scroll to player like Netflix "Lecture"
-        document.getElementById('twiflix-player')?.scrollIntoView({ behavior:'smooth', block:'start' });
-      }catch(_e){}
-    }
     function tfCloseGameModal(){
       const m = document.getElementById('tf-info-modal');
       if (m) m.remove();
@@ -2048,36 +2023,25 @@ const modal = document.getElementById('twitflix-modal');
       const modal = document.createElement('div');
       modal.id = 'tf-info-modal';
       modal.className = 'tf-info-modal';
-	      modal.innerHTML = `
-	        <div class="tf-info-backdrop" role="dialog" aria-modal="true">
-	          <div class="tf-info-sheet">
-	            <button class="tf-info-close" aria-label="Fermer">✕</button>
-	            <div class="tf-info-hero">
-	              <img class="tf-info-bg" alt="" src="${tfInfoGame.poster}">
-	              <div class="tf-info-media" id="tf-info-media" aria-hidden="true"></div>
-	              <div class="tf-info-grad"></div>
-	              <div class="tf-info-meta">
-	                <div class="tf-info-title">${escapeHtml(tfInfoGame.name)}</div>
-	                <div class="tf-info-desc" id="tf-info-desc">Chargement de la description…</div>
-	                <div class="tf-info-actions">
-	                  <button class="tf-nx-btn tf-nx-primary" id="tf-info-play"><span>▶</span> Lecture</button>
-	                </div>
-	              </div>
-	            </div>
-	            <div class="tf-episodes" id="tf-episodes">
-	              <div class="tf-episodes-head">
-	                <div>
-	                  <div class="tf-episodes-title">Épisodes</div>
-	                  <div class="tf-episodes-sub">5 streamers FR (petites chaînes) autour de ce jeu</div>
-	                </div>
-	              </div>
-	              <div id="tf-episodes-list">
-	                <div class="tf-info-empty">Chargement…</div>
-	              </div>
-	            </div>
-	          </div>
-	        </div>
-	      `;
+      modal.innerHTML = `
+        <div class="tf-info-backdrop" role="dialog" aria-modal="true">
+          <div class="tf-info-sheet">
+            <button class="tf-info-close" aria-label="Fermer">✕</button>
+            <div class="tf-info-hero">
+              <img class="tf-info-bg" alt="" src="${tfInfoGame.poster}">
+              <div class="tf-info-media" id="tf-info-media" aria-hidden="true"></div>
+              <div class="tf-info-grad"></div>
+              <div class="tf-info-meta">
+                <div class="tf-info-title">${escapeHtml(tfInfoGame.name)}</div>
+                <div class="tf-info-desc" id="tf-info-desc">Chargement de la description…</div>
+                <div class="tf-info-actions">
+                  <button class="tf-nx-btn tf-nx-primary" id="tf-info-play"><span>▶</span> Lecture</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
       document.body.appendChild(modal);
       tfInfoModalOpen = true;
 
@@ -2092,11 +2056,6 @@ const modal = document.getElementById('twitflix-modal');
         const el = document.getElementById('tf-info-desc');
         if (el) el.textContent = tfGetGameDesc(tfInfoGame.name);
       }
-
-      // Load "episodes" (streamers as episodes) for this game.
-      try{ tfLoadEpisodes({ game_id: tfInfoGame.id, game_name: tfInfoGame.name }); }catch(_){ }
-	      // Warm VOD cache in the background so the Play button feels instant.
-	      try{ fetch(`/api/twiflix/play?game_id=${encodeURIComponent(tfInfoGame.id)}&game_name=${encodeURIComponent(tfInfoGame.name)}&lang=fr&maxViews=800&dry=1`, { credentials:'include' }); }catch(_){ }
 
       modal.querySelector('.tf-info-close')?.addEventListener('click', (e)=>{ e.preventDefault(); tfCloseGameModal(); });
       modal.querySelector('.tf-info-backdrop')?.addEventListener('click', (e)=>{ if (e.target.classList.contains('tf-info-backdrop')) tfCloseGameModal(); });
@@ -2164,74 +2123,6 @@ const modal = document.getElementById('twitflix-modal');
       }, 5000);
     }
 
-	    // Netflix-like "Episodes": we show small French streamers for this game.
-	    async function tfLoadEpisodes({ game_id, game_name }){
-      const holder = document.getElementById('tf-episodes');
-      if(!holder) return;
-
-      holder.innerHTML = `<div class="tf-episodes-title">Épisodes</div><div class="tf-episodes-sub">10 VOD FR (petites chaînes) autour de ce jeu</div><div class="tf-episodes-list" id="tf-episodes-list"></div>`;
-      const list = document.getElementById('tf-episodes-list');
-
-      const qs = new URLSearchParams();
-      qs.set('game_id', game_id);
-      qs.set('game_name', game_name || '');
-      qs.set('lang', 'fr');
-      qs.set('maxViewers', '200');
-      // Keep it short and readable (user asked max 5).
-      qs.set('limit','5');
-
-      let data = null;
-      try{
-        const r = await fetch(`/api/twiflix/episodes?${qs.toString()}`, { cache:'no-store' });
-        data = await r.json();
-      }catch(e){
-        data = { success:false, items:[] };
-      }
-
-      const items = (data && data.items) ? data.items : [];
-      if(!items.length){
-        list.innerHTML = `<div class="tf-empty">Aucun résultat.</div>`;
-        return;
-      }
-
-      const safeThumb = (u) => {
-        if(!u) return '';
-        return u.replace('{width}','320').replace('{height}','180');
-      };
-
-      list.innerHTML = items.map((it, idx) => {
-        const thumb = safeThumb(it.thumbnail_url) || '';
-        const title = escapeHtml(it.user_name || 'Créateur');
-        const desc = escapeHtml(it.title || 'VOD');
-        const dur = escapeHtml(it.duration || '');
-        return `
-          <div class="tf-ep">
-            <div class="tf-ep-left">
-              <div class="tf-ep-num">${idx+1}</div>
-              <img class="tf-ep-thumb" src="${thumb}" alt="">
-            </div>
-            <div class="tf-ep-mid">
-              <div class="tf-ep-title">${title}</div>
-              <div class="tf-ep-desc">${desc}</div>
-            </div>
-            <div class="tf-ep-right">
-              <div class="tf-ep-dur">${dur}</div>
-              <button class="tf-ep-pill" data-vod="${it.id}">Voir</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Clicking "Voir" plays this VOD inside ORYON player (no Twitch redirect)
-      list.querySelectorAll('.tf-ep-pill').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault(); e.stopPropagation();
-          const vodId = btn.getAttribute('data-vod');
-          if(vodId) tfPlayVodById(vodId);
-        });
-      });
-    }
-
     async function tfInfoMountHeaderPreview(){
       if (!tfInfoGame) return;
       const media = document.getElementById('tf-info-media');
@@ -2269,7 +2160,7 @@ const modal = document.getElementById('twitflix-modal');
 
       const cache = { vods: [] };
       try{
-        const vodUrl = `/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gameId)}&lang=fr&minViewers=20&maxViewers=200&limit=5&days=90&maxViews=200000&perChannel=1`;
+        const vodUrl = `/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gameId)}&lang=fr&minViewers=20&maxViewers=200&limit=60&days=90&maxViews=200000&perChannel=2`;
         const rv = await fetch(vodUrl, { credentials:'include' });
         if (rv.ok){
           const dv = await rv.json();
@@ -2531,44 +2422,152 @@ const modal = document.getElementById('twitflix-modal');
       }
     }
 
-    async function tfFetchVodsByGame(gameId, opts={}){
-  const lang = (opts.lang||'fr').toLowerCase();
-  const max = Math.min(parseInt(opts.limit||5,10)||5, 5);
-  const key = `${gameId}:${lang}:${opts.small?'1':'0'}`;
-
-  // Ultra-fast cache (memory)
-  window.__tfVodCache = window.__tfVodCache || {};
-  if(window.__tfVodCache[key] && Array.isArray(window.__tfVodCache[key])){
-    return window.__tfVodCache[key].slice(0, max);
-  }
-
-  // If a global VOD pool is already loaded, filter locally (fast, no network)
-  try{
-    const pool = (window.TF_STATE && Array.isArray(window.TF_STATE.vodsPool)) ? window.TF_STATE.vodsPool : null;
-    if(pool && pool.length){
-      const out = pool.filter(v => (v && (v.game_id==gameId || v.gameId==gameId)) && (!lang || (v.language||'').toLowerCase().startsWith(lang)))
-                      .slice(0, max);
-      window.__tfVodCache[key] = out;
-      return out;
+    async function tfFetchVodsByGame(gameId, filters){
+      const id = String(gameId || '').trim();
+      if (!id) return [];
+      const lang = String(filters?.lang || '').trim().toLowerCase();
+      const small = filters?.small ? '1' : '0';
+      const days = Math.min(Math.max(7, parseInt(filters?.days || 60, 10) || 60), 180);
+      const maxViews = Math.min(Math.max(0, parseInt(filters?.maxViews || 200000, 10) || 0), 5000000);
+      // If "small" is enabled, seed VOD from small live channels (20–200 viewers) for this game.
+      const base = (filters?.small) ? '/api/twitch/vods/by-game-small' : '/api/twitch/vods/by-game';
+      const extra = (filters?.small) ? `&minViewers=${encodeURIComponent(String(filters?.minViewers ?? 20))}&maxViewers=${encodeURIComponent(String(filters?.maxViewers ?? 200))}` : `&small=${small}&maxViews=${encodeURIComponent(String(maxViews))}`;
+      const url = `${API_BASE}${base}?game_id=${encodeURIComponent(id)}&lang=${encodeURIComponent(lang)}&limit=24&days=${encodeURIComponent(String(days))}${extra}`;
+      const r = await fetch(url, { credentials:'include' });
+      const d = await r.json().catch(()=>null);
+      return (r.ok && d && Array.isArray(d.items)) ? d.items : [];
     }
-  }catch(e){}
 
-  // Network fallback (kept small for speed)
-  const q = new URLSearchParams();
-  q.set('game_id', gameId);
-  q.set('lang', lang);
-  q.set('limit', String(max));
-  if(opts.max_followers) q.set('max_followers', String(opts.max_followers));
-  if(opts.max_viewers) q.set('max_viewers', String(opts.max_viewers));
-  if(opts.exclude_sub_only) q.set('exclude_sub_only', '1');
+    async function tfFetchLivesByGame(gameId, filters){
+      const id = String(gameId || '').trim();
+      if (!id) return [];
+      const lang = String(filters?.lang || '').trim().toLowerCase();
+      // Discovery-first: bias toward emerging streamers (e.g. 20–200 viewers)
+      const minViewers = Math.max(0, parseInt(filters?.minViewers ?? 20, 10) || 0);
+      const maxViewers = Math.max(0, parseInt(filters?.maxViewers ?? 200, 10) || 0);
+      const url = `${API_BASE}/api/twitch/streams/by-game?game_id=${encodeURIComponent(id)}&lang=${encodeURIComponent(lang)}&limit=24&minViewers=${encodeURIComponent(String(minViewers))}&maxViewers=${encodeURIComponent(String(maxViewers))}`;
+      const r = await fetch(url, { credentials:'include' });
+      const d = await r.json().catch(()=>null);
+      return (r.ok && d && Array.isArray(d.items)) ? d.items : [];
+    }
 
-  const url = `/api/twitch/vods/by_game?${q.toString()}`;
-  const r = await fetch(url, {credentials:'include'});
-  const j = await r.json().catch(()=>({}));
-  const vods = (j && j.data) ? j.data : (Array.isArray(j)? j : []);
-  const out = (vods||[]).slice(0, max);
-  window.__tfVodCache[key] = out;
-  return out;
+    function tfRenderRows(host, list){
+      const picks1 = list.slice(0, 28);
+      const picks2 = list.slice(28, 56);
+      const picks3 = tfShuffle(list).slice(0, 28);
+      const picks4 = tfShuffle(list).slice(28, 56);
+
+      host.appendChild(tfBuildRow('Top du moment <span>(Twitch)</span>', picks1));
+
+      // ADN row (Steam-based) if available
+      if (tfPersonalization && Array.isArray(tfPersonalization.categories) && tfPersonalization.categories.length){
+        host.appendChild(tfBuildRow(tfPersonalization.title || 'Parce que tu as aimé', tfPersonalization.categories.slice(0,28)));
+      } else {
+        host.appendChild(tfBuildRow('Tendances <span>FR</span>', picks2));
+      }
+
+      host.appendChild(tfBuildRow('Découverte <span>(aléatoire)</span>', picks3));
+      host.appendChild(tfBuildRow('À essayer <span>ce soir</span>', picks4));
+    }
+
+    function tfRenderAZ(host, list){
+      // group
+      const groups = {};
+      for (const c of list){
+        const n = (c.name || '').trim();
+        if (!n) continue;
+        const first = n[0].toUpperCase();
+        const key = /[A-Z]/.test(first) ? first : (/[0-9]/.test(first) ? '0-9' : '#');
+        (groups[key] ||= []).push(c);
+      }
+      const keys = Object.keys(groups).sort((a,b)=>{
+        if (a==='0-9') return -1;
+        if (b==='0-9') return 1;
+        if (a==='#') return 1;
+        if (b==='#') return -1;
+        return a.localeCompare(b);
+      });
+
+      const bar = document.createElement('div');
+      bar.className = 'tf-azbar';
+      bar.innerHTML = keys.map(k => `<a class="tf-azlink" href="#tf-${k.replace(/[^a-z0-9]/ig,'_')}">${k}</a>`).join('');
+      host.appendChild(bar);
+
+      keys.forEach(k => {
+        groups[k].sort((x,y)=> (x.name||'').localeCompare(y.name||''));
+        const row = tfBuildRow(`<span>${k}</span>`, groups[k], `tf-${k.replace(/[^a-z0-9]/ig,'_')}`);
+        host.appendChild(row);
+      });
+    }
+
+    function tfBuildRow(titleHtml, items, id){
+      const row = document.createElement('div');
+      row.className = 'tf-row';
+      if (id) row.id = id;
+
+      const title = document.createElement('div');
+      title.className = 'tf-row-title';
+      title.innerHTML = titleHtml;
+
+      const track = document.createElement('div');
+      track.className = 'tf-row-track';
+
+      (items || []).forEach(cat => track.appendChild(tfBuildCard(cat)));
+
+      row.appendChild(title);
+      row.appendChild(track);
+
+      // Netflix-like scroll indicator bar (shows row horizontal scroll position)
+      const bar = document.createElement('div');
+      bar.className = 'tf-row-bar is-hidden';
+      bar.innerHTML = '<div class="tf-row-bar-thumb"></div>';
+      row.appendChild(bar);
+
+      // attach after layout
+      setTimeout(()=>{
+        try{ tfAttachRowBar(track, bar); }catch(_){ }
+      }, 0);
+      return row;
+    }
+
+    function tfAttachRowBar(track, bar){
+      if(!track || !bar) return;
+      const thumb = bar.querySelector('.tf-row-bar-thumb');
+      if(!thumb) return;
+
+      const refresh = () => {
+        const scrollW = track.scrollWidth || 0;
+        const clientW = track.clientWidth || 0;
+        const maxScroll = Math.max(0, scrollW - clientW);
+        if(maxScroll <= 4){
+          bar.classList.add('is-hidden');
+          return;
+        }
+        bar.classList.remove('is-hidden');
+        const ratio = clientW / scrollW; // visible fraction
+        const barW = bar.clientWidth || Math.min(520, clientW);
+        const thumbW = Math.max(32, Math.round(barW * ratio));
+        thumb.style.width = thumbW + 'px';
+        const x = (track.scrollLeft / maxScroll) * Math.max(0, (barW - thumbW));
+        thumb.style.transform = `translateX(${Math.round(x)}px)`;
+      };
+
+      track.addEventListener('scroll', refresh, { passive:true });
+      window.addEventListener('resize', refresh);
+      refresh();
+    }
+
+    
+function tfEnsurePeekBar(){
+  let bar = document.getElementById('tf-peekbar');
+  if(bar) return bar;
+  bar = document.createElement('div');
+  bar.id = 'tf-peekbar';
+  bar.className = 'tf-peekbar';
+  bar.style.cssText = 'position:fixed;left:18px;bottom:18px;z-index:99999;max-width:520px;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.68);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(10px);opacity:0;transform:translateY(8px);transition:opacity .18s ease, transform .18s ease;pointer-events:none;';
+  bar.innerHTML = '<div style="font-weight:900;letter-spacing:.4px"> </div><div style="opacity:.85;font-size:12px;margin-top:2px"></div>';
+  document.body.appendChild(bar);
+  return bar;
 }
 let tfPeekTimer = null;
 function tfShowPeek(meta){
@@ -3459,10 +3458,7 @@ function tfBuildCard(cat){
       el = document.createElement("div");
       el.id = PORTAL_ID;
       el.className = "paywall-portal";
-      // Twiflix/Streamflix must never be blocked by the upsell portal.
-      // Keep it below modals and fully non-interactive.
-      // Hidden by default: Streamflix/Twiflix should not have a floating upsell card.
-      el.style.cssText = "position:fixed; inset:0; z-index:50; pointer-events:none; display:none;";
+      el.style.cssText = "position:fixed; inset:0; z-index:2147483647; pointer-events:none;";
       document.documentElement.appendChild(el);
     }
     return el;
@@ -3557,9 +3553,9 @@ function tfBuildCard(cat){
     const cy = r.top + Math.min(r.height/2, 220);
 
     card.style.cssText = `position:fixed; left:${cx}px; top:${cy}px; transform:translate(-50%,-50%); pointer-events:none;`;
-    // Never intercept clicks (Twiflix player and cards need to work reliably)
+    // make inner card clickable
     const inner = card.firstElementChild;
-    if(inner) inner.style.pointerEvents = "none";
+    if(inner) inner.style.pointerEvents = "auto";
 
     wrap.appendChild(card);
     portal.appendChild(wrap);
