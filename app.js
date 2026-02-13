@@ -785,7 +785,7 @@ app.get('/api/twiflix/episodes', async (req, res) => {
   }
 });
 
-async function twitchGetUserIdByLoginasync function twitchGetUserIdByLogin(login, token){
+async function twitchGetUserIdByLogin(login, token){
   const d = await twitchAPI(`users?login=${encodeURIComponent(login)}`, token);
   return d?.data?.[0]?.id || null;
 }
