@@ -687,8 +687,12 @@ app.get('/api/twiflix/play', async (req, res) => {
 });
 
 // =========================================================
-// GET /api/twiflix/episodes?game_id=...&lang=fr&maxViewers=200&limit=10
-// Returns a Netflix-like "episodes" list: small FR streamers currently live on this game.
+// GET /api/twiflix/episodes?game_id=...&game_name=...&lang=fr&maxViewers=200&limit=10
+// Returns "episodes" as VODs (archives) from small FR creators for this game.
+// Strategy (fast + relevant):
+//  1) pull small live channels on this game (viewer_count <= maxViewers) to get candidate creators
+//  2) fetch latest VODs from those creators
+//  3) if not enough, fallback to game VODs and filter by lang + low view_count
 // =========================================================
 app.get('/api/twiflix/episodes', async (req, res) => {
   try{
@@ -697,62 +701,96 @@ app.get('/api/twiflix/episodes', async (req, res) => {
     const lang = String(req.query.lang || 'fr').trim().toLowerCase();
     const maxViewers = Math.max(5, parseInt(req.query.maxViewers || '200', 10) || 200);
     const limit = Math.min(Math.max(1, parseInt(req.query.limit || '10', 10) || 10), 20);
+
     if(!game_id) return res.json({ success:false, items:[], reason:'missing_game_id' });
 
-    const cacheKey = `eps:${game_id}:${lang}:${maxViewers}:${limit}`;
-    const cached = __twiflixCacheGet(cacheKey, 60_000);
+    const cacheKey = `vod_eps:${game_id}:${lang}:${maxViewers}:${limit}`;
+    const cached = __twiflixCacheGet(cacheKey, 90_000); // 90s
     if(cached) return res.json({ success:true, items:cached, cached:true });
 
     const token = await getTwitchToken('app');
     if(!token) return res.json({ success:false, items:[], reason:'missing_app_token' });
 
-    // Find small FR streams for this game.
-    const qs = new URLSearchParams();
-    qs.set('game_id', game_id);
-    qs.set('first','100');
-    if(lang) qs.set('language', lang);
-    const data = await twitchAPI(`streams?${qs.toString()}`, token);
-    const rows = (data?.data || []).filter(s => (s.viewer_count||0) <= maxViewers);
+    const out = [];
 
-    // Unique users
-    const seen = new Set();
-    const picks = [];
-    for(const s of rows){
-      if(seen.has(s.user_id)) continue;
-      seen.add(s.user_id);
-      picks.push({
-        user_id: s.user_id,
-        login: s.user_login,
-        display_name: s.user_name,
-        viewer_count: s.viewer_count||0,
-        title: s.title||'',
-        thumbnail_url: s.thumbnail_url||''
-      });
-      if(picks.length >= limit) break;
+    // ---- step 1: candidate creators from small live streams on this game (paged)
+    const candidateUserIds = [];
+    try{
+      let after = null;
+      for(let page=0; page<3 && candidateUserIds.length < 60; page++){
+        const qs = new URLSearchParams();
+        qs.set('game_id', game_id);
+        qs.set('first','100');
+        if(lang) qs.set('language', lang);
+        if(after) qs.set('after', after);
+        const data = await twitchAPI(`streams?${qs.toString()}`, token);
+        const rows = (data?.data || []).filter(s => (s.viewer_count||0) <= maxViewers);
+        for(const s of rows){
+          if(candidateUserIds.includes(s.user_id)) continue;
+          candidateUserIds.push(s.user_id);
+          if(candidateUserIds.length >= 60) break;
+        }
+        after = data?.pagination?.cursor || null;
+        if(!after) break;
+      }
+    }catch(_e){ /* ignore */ }
+
+    // ---- step 2: fetch latest VODs for those creators
+    const seenVod = new Set();
+    for(const uid of candidateUserIds){
+      if(out.length >= limit) break;
+      try{
+        const d = await twitchAPI(`videos?user_id=${uid}&first=5&type=archive`, token);
+        const vids = (d?.data || []).filter(x => !lang || (String(x.language||'').toLowerCase() === lang));
+        const v = vids[0] || null;
+        if(v && !seenVod.has(v.id)){
+          seenVod.add(v.id);
+          out.push({
+            id: v.id,
+            type: 'vod',
+            title: v.title || '',
+            url: v.url || '',
+            duration: v.duration || '',
+            created_at: v.created_at || '',
+            language: v.language || '',
+            view_count: v.view_count || 0,
+            user_id: v.user_id || '',
+            user_name: v.user_name || '',
+            thumbnail_url: v.thumbnail_url || '',
+            game_name: game_name || ''
+          });
+        }
+      }catch(_e){ /* ignore */ }
     }
 
-    if(!picks.length){
-      __twiflixCacheSet(cacheKey, []);
-      return res.json({ success:true, items:[], reason:'no_streams' });
+    // ---- step 3: fallback to game VODs
+    if(out.length < limit){
+      try{
+        const d = await twitchAPI(`videos?game_id=${encodeURIComponent(game_id)}&first=100&type=archive`, token);
+        const vids = (d?.data || [])
+          .filter(v => !lang || (String(v.language||'').toLowerCase() === lang))
+          .filter(v => (v.view_count||0) <= 10000);
+        for(const v of vids){
+          if(out.length >= limit) break;
+          if(seenVod.has(v.id)) continue;
+          seenVod.add(v.id);
+          out.push({
+            id: v.id,
+            type: 'vod',
+            title: v.title || '',
+            url: v.url || '',
+            duration: v.duration || '',
+            created_at: v.created_at || '',
+            language: v.language || '',
+            view_count: v.view_count || 0,
+            user_id: v.user_id || '',
+            user_name: v.user_name || '',
+            thumbnail_url: v.thumbnail_url || '',
+            game_name: game_name || ''
+          });
+        }
+      }catch(_e){ /* ignore */ }
     }
-
-    // Enrich with user description + profile image.
-    const ids = picks.map(p=>p.user_id).join('&id=');
-    const users = await twitchAPI(`users?id=${ids}`, token);
-    const umap = new Map();
-    for(const u of (users?.data||[])) umap.set(u.id, u);
-    const out = picks.map(p => {
-      const u = umap.get(p.user_id);
-      return {
-        login: p.login,
-        display_name: p.display_name,
-        viewer_count: p.viewer_count,
-        description: u?.description || '',
-        profile_image_url: u?.profile_image_url || '',
-        thumbnail_url: p.thumbnail_url,
-        game_name: game_name || ''
-      };
-    });
 
     __twiflixCacheSet(cacheKey, out);
     return res.json({ success:true, items: out });
@@ -1984,63 +2022,75 @@ app.get('/api/categories/search', async (req, res) => {
 // =========================================================
 app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
   try {
-    const lang = String(req.query.lang || '').trim();
-    const minViewers = Math.max(0, parseInt(req.query.minViewers || req.query.min || '0', 10) || 0);
-    const maxViewers = Math.max(0, parseInt(req.query.maxViewers || req.query.max || '0', 10) || 0);
-    const limit = Math.min(100, Math.max(10, parseInt(req.query.limit || '60', 10) || 60));
+    const token = await getTwitchToken('app');
+    if (!token) return res.status(500).json({ error: 'No Twitch token' });
 
-    // Pull a bigger pool and filter server-side
-    const first = 100;
-    let url = `streams?first=${first}`;
-    if (lang) url += `&language=${encodeURIComponent(lang)}`;
-    const d = await twitchAPI(url);
-    let items = Array.isArray(d.data) ? d.data.slice(0) : [];
+    const lang = String(req.query.lang || 'fr').toLowerCase();
+    const maxViewers = parseInt(req.query.maxViewers || '200', 10);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10), 5), 60);
 
-    if (minViewers || maxViewers){
-      items = items.filter(s => {
-        const v = Number(s.viewer_count || 0);
-        if (minViewers && v < minViewers) return false;
-        if (maxViewers && v > maxViewers) return false;
-        return true;
-      });
+    // Pull multiple pages to avoid "no live found" when filtering hard (FR + small viewers)
+    const raw = [];
+    let after = null;
+    for (let page = 0; page < 4 && raw.length < 380; page++) {
+      const qs = new URLSearchParams();
+      qs.set('first', '100');
+      if (after) qs.set('after', after);
+      const data = await twitchAPI(`streams?${qs.toString()}`, token);
+      raw.push(...(data?.data || []));
+      after = data?.pagination?.cursor || null;
+      if (!after) break;
     }
 
-    // Prefer diversity by game (one stream per game)
-    const byGame = new Map();
-    for (const s of items){
-      const gid = String(s.game_id || '');
-      if (!gid) continue;
-      if (!byGame.has(gid)) byGame.set(gid, s);
-      if (byGame.size >= limit) break;
-    }
+    // Filter + diversify by game
+    const passes = [];
+    const addPass = (useLang) => {
+      const seenGame = new Set();
+      const out = [];
+      for (const s of raw) {
+        if (out.length >= limit) break;
+        if (useLang && lang && String(s.language || '').toLowerCase() !== lang) continue;
+        if (!isNaN(maxViewers) && (s.viewer_count || 0) > maxViewers) continue;
+        const gid = s.game_id || '';
+        if (!gid) continue;
+        if (seenGame.has(gid)) continue;
+        seenGame.add(gid);
+        out.push(s);
+      }
+      return out;
+    };
 
-    const unique = Array.from(byGame.values());
-    const gameIds = Array.from(byGame.keys());
+    let result = addPass(true);
 
-    // Enrich with box art
-    const artMap = {};
-    if (gameIds.length){
-      const chunks = [];
-      for(let i=0;i<gameIds.length;i+=50) chunks.push(gameIds.slice(i,i+50));
-      for(const ch of chunks){
-        const q = ch.map(id => `id=${encodeURIComponent(id)}`).join('&');
-        const gd = await twitchAPI(`games?${q}`);
-        const arr = Array.isArray(gd.data) ? gd.data : [];
-        for(const g of arr){
-          artMap[String(g.id)] = (g.box_art_url || '').replace('{width}','285').replace('{height}','380');
-        }
+    // Fallback: if too few FR small streams, fill remaining without language constraint
+    if (result.length < Math.min(10, limit)) {
+      const fill = addPass(false);
+      const existing = new Set(result.map(s => s.id));
+      for (const s of fill) {
+        if (result.length >= limit) break;
+        if (existing.has(s.id)) continue;
+        result.push(s);
       }
     }
 
-    const out = unique.map(s => ({
-      ...s,
-      box_art_url: artMap[String(s.game_id||'')] || null
+    // Map to lightweight payload for the front
+    const items = result.map(s => ({
+      id: s.id,
+      user_id: s.user_id,
+      user_login: s.user_login,
+      user_name: s.user_name,
+      game_id: s.game_id,
+      game_name: s.game_name,
+      title: s.title,
+      viewer_count: s.viewer_count,
+      thumbnail_url: s.thumbnail_url,
+      language: s.language
     }));
 
-    return res.json({ success: true, items: out });
+    return res.json({ items });
   } catch (e) {
-    console.warn('⚠️ /api/twitch/streams/top', e.message);
-    return res.status(500).json({ success: false, error: e.message });
+    console.error('[API] /api/twitch/streams/top error', e);
+    return res.status(500).json({ error: String(e?.message || e) });
   }
 });
 

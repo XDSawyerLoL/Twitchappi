@@ -2533,6 +2533,13 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-arrow{width:30px;height:30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
 #twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
 
+
+/* Hide Premium paywall card while TwitFlix modal is open */
+body.tf-modal-open .paywall-portal,
+body.tf-modal-open #paywallOverlay,
+body.tf-modal-open .paywall-overlay,
+body.tf-modal-open .premium-gate,
+body.tf-modal-open .premium-card{ display:none !important; }
 </style>
 
 <style id="tabs-exclusive-patch">
