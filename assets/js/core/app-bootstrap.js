@@ -2023,25 +2023,36 @@ const modal = document.getElementById('twitflix-modal');
       const modal = document.createElement('div');
       modal.id = 'tf-info-modal';
       modal.className = 'tf-info-modal';
-      modal.innerHTML = `
-        <div class="tf-info-backdrop" role="dialog" aria-modal="true">
-          <div class="tf-info-sheet">
-            <button class="tf-info-close" aria-label="Fermer">✕</button>
-            <div class="tf-info-hero">
-              <img class="tf-info-bg" alt="" src="${tfInfoGame.poster}">
-              <div class="tf-info-media" id="tf-info-media" aria-hidden="true"></div>
-              <div class="tf-info-grad"></div>
-              <div class="tf-info-meta">
-                <div class="tf-info-title">${escapeHtml(tfInfoGame.name)}</div>
-                <div class="tf-info-desc" id="tf-info-desc">Chargement de la description…</div>
-                <div class="tf-info-actions">
-                  <button class="tf-nx-btn tf-nx-primary" id="tf-info-play"><span>▶</span> Lecture</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
+	      modal.innerHTML = `
+	        <div class="tf-info-backdrop" role="dialog" aria-modal="true">
+	          <div class="tf-info-sheet">
+	            <button class="tf-info-close" aria-label="Fermer">✕</button>
+	            <div class="tf-info-hero">
+	              <img class="tf-info-bg" alt="" src="${tfInfoGame.poster}">
+	              <div class="tf-info-media" id="tf-info-media" aria-hidden="true"></div>
+	              <div class="tf-info-grad"></div>
+	              <div class="tf-info-meta">
+	                <div class="tf-info-title">${escapeHtml(tfInfoGame.name)}</div>
+	                <div class="tf-info-desc" id="tf-info-desc">Chargement de la description…</div>
+	                <div class="tf-info-actions">
+	                  <button class="tf-nx-btn tf-nx-primary" id="tf-info-play"><span>▶</span> Lecture</button>
+	                </div>
+	              </div>
+	            </div>
+	            <div class="tf-episodes" id="tf-episodes">
+	              <div class="tf-episodes-head">
+	                <div>
+	                  <div class="tf-episodes-title">Épisodes</div>
+	                  <div class="tf-episodes-sub">10 streamers FR (petites chaînes) autour de ce jeu</div>
+	                </div>
+	              </div>
+	              <div id="tf-episodes-list">
+	                <div class="tf-info-empty">Chargement…</div>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	      `;
       document.body.appendChild(modal);
       tfInfoModalOpen = true;
 
@@ -2056,6 +2067,11 @@ const modal = document.getElementById('twitflix-modal');
         const el = document.getElementById('tf-info-desc');
         if (el) el.textContent = tfGetGameDesc(tfInfoGame.name);
       }
+
+      // Load "episodes" (streamers as episodes) for this game.
+      try{ tfLoadEpisodes(tfInfoGame.id, tfInfoGame.name); }catch(_){ }
+	      // Warm VOD cache in the background so the Play button feels instant.
+	      try{ fetch(`/api/twiflix/play?game_id=${encodeURIComponent(tfInfoGame.id)}&game_name=${encodeURIComponent(tfInfoGame.name)}&lang=fr&maxViews=800&dry=1`, { credentials:'include' }); }catch(_){ }
 
       modal.querySelector('.tf-info-close')?.addEventListener('click', (e)=>{ e.preventDefault(); tfCloseGameModal(); });
       modal.querySelector('.tf-info-backdrop')?.addEventListener('click', (e)=>{ if (e.target.classList.contains('tf-info-backdrop')) tfCloseGameModal(); });
@@ -2122,6 +2138,47 @@ const modal = document.getElementById('twitflix-modal');
         media.appendChild(iframe);
       }, 5000);
     }
+
+	    // Netflix-like "Episodes": we show small French streamers for this game.
+	    async function tfLoadEpisodes(gameId, gameName){
+	      const list = document.getElementById('tf-episodes-list');
+	      if (!list) return;
+	      list.innerHTML = `<div class="tf-info-empty">Chargement…</div>`;
+	      try{
+	        const r = await fetch(`/api/twiflix/episodes?game_id=${encodeURIComponent(gameId)}&game_name=${encodeURIComponent(gameName||'')}&lang=fr&maxViewers=200&maxFollowers=10000&limit=10`, { credentials:'include' });
+	        const j = r.ok ? await r.json().catch(()=>null) : null;
+	        const items = j && Array.isArray(j.items) ? j.items : [];
+	        if (!items.length){
+	          list.innerHTML = `<div class="tf-info-empty">Aucun streamer trouvé (FR) pour le moment.</div>`;
+	          return;
+	        }
+	        list.innerHTML = '';
+	        items.forEach((it, idx)=>{
+	          const el = document.createElement('div');
+	          el.className = 'tf-ep-item';
+	          const thumb = (it.thumbnail_url || it.profile_image_url || '').replace('{width}','320').replace('{height}','180');
+	          const title = it.display_name || it.login || 'Streamer';
+	          const desc = it.description || `Streamer FR sur ${gameName||'ce jeu'}.`;
+	          const views = (typeof it.viewer_count==='number') ? it.viewer_count : null;
+	          const duration = views!==null ? `${views} spectateurs` : '';
+	          el.innerHTML = `
+	            <div class="tf-ep-num">${idx+1}</div>
+	            <div class="tf-ep-thumb">${thumb ? `<img alt="" src="${escapeHtml(thumb)}">` : ''}</div>
+	            <div class="tf-ep-meta">
+	              <div class="tf-ep-title">${escapeHtml(title)}</div>
+	              <div class="tf-ep-desc">${escapeHtml(desc)}</div>
+	            </div>
+	            <div class="tf-ep-right">
+	              ${duration ? `<div class="tf-ep-dur">${escapeHtml(duration)}</div>` : ''}
+	              <a class="tf-ep-pill" href="https://www.twitch.tv/${encodeURIComponent(it.login||'')}" target="_blank" rel="noopener">Voir</a>
+	            </div>
+	          `;
+	          list.appendChild(el);
+	        });
+	      }catch(_){
+	        list.innerHTML = `<div class="tf-info-empty">Impossible de charger les "épisodes".</div>`;
+	      }
+	    }
 
     async function tfInfoMountHeaderPreview(){
       if (!tfInfoGame) return;

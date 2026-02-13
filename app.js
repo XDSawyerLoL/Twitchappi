@@ -528,6 +528,8 @@ const CACHE = {
 
 // YouTube trailer cache (reduces quota + stabilizes TwitFlix trailer search)
 const YT_TRAILER_CACHE = new Map();
+// VOD cache: keep short-lived lists per (game_id|lang|maxViews) to make "Lecture" instant.
+const TWIFLIX_VOD_CACHE = new Map();
 const YT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 
@@ -673,10 +675,89 @@ app.get('/api/twiflix/play', async (req, res) => {
     }
 
     if(!vods || !vods.length) return res.json({ ok:false, reason:'no_vods' });
+	    // Warm-cache call: do not select a VOD, just report availability.
+	    if(String(req.query.dry || '') === '1'){
+	      return res.json({ ok:true, warmed:true, count: vods.length });
+	    }
     const pick = vods[Math.floor(Math.random() * vods.length)];
     return res.json({ ok:true, vod_id: pick.id, url: pick.url, title: pick.title, thumbnail_url: pick.thumbnail_url });
   }catch(e){
     return res.json({ ok:false, reason:'error', message: String(e?.message || e) });
+  }
+});
+
+// =========================================================
+// GET /api/twiflix/episodes?game_id=...&lang=fr&maxViewers=200&limit=10
+// Returns a Netflix-like "episodes" list: small FR streamers currently live on this game.
+// =========================================================
+app.get('/api/twiflix/episodes', async (req, res) => {
+  try{
+    const game_id = String(req.query.game_id || '').trim();
+    const game_name = String(req.query.game_name || '').trim();
+    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+    const maxViewers = Math.max(5, parseInt(req.query.maxViewers || '200', 10) || 200);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '10', 10) || 10), 20);
+    if(!game_id) return res.json({ success:false, items:[], reason:'missing_game_id' });
+
+    const cacheKey = `eps:${game_id}:${lang}:${maxViewers}:${limit}`;
+    const cached = __twiflixCacheGet(cacheKey, 60_000);
+    if(cached) return res.json({ success:true, items:cached, cached:true });
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:false, items:[], reason:'missing_app_token' });
+
+    // Find small FR streams for this game.
+    const qs = new URLSearchParams();
+    qs.set('game_id', game_id);
+    qs.set('first','100');
+    if(lang) qs.set('language', lang);
+    const data = await twitchAPI(`streams?${qs.toString()}`, token);
+    const rows = (data?.data || []).filter(s => (s.viewer_count||0) <= maxViewers);
+
+    // Unique users
+    const seen = new Set();
+    const picks = [];
+    for(const s of rows){
+      if(seen.has(s.user_id)) continue;
+      seen.add(s.user_id);
+      picks.push({
+        user_id: s.user_id,
+        login: s.user_login,
+        display_name: s.user_name,
+        viewer_count: s.viewer_count||0,
+        title: s.title||'',
+        thumbnail_url: s.thumbnail_url||''
+      });
+      if(picks.length >= limit) break;
+    }
+
+    if(!picks.length){
+      __twiflixCacheSet(cacheKey, []);
+      return res.json({ success:true, items:[], reason:'no_streams' });
+    }
+
+    // Enrich with user description + profile image.
+    const ids = picks.map(p=>p.user_id).join('&id=');
+    const users = await twitchAPI(`users?id=${ids}`, token);
+    const umap = new Map();
+    for(const u of (users?.data||[])) umap.set(u.id, u);
+    const out = picks.map(p => {
+      const u = umap.get(p.user_id);
+      return {
+        login: p.login,
+        display_name: p.display_name,
+        viewer_count: p.viewer_count,
+        description: u?.description || '',
+        profile_image_url: u?.profile_image_url || '',
+        thumbnail_url: p.thumbnail_url,
+        game_name: game_name || ''
+      };
+    });
+
+    __twiflixCacheSet(cacheKey, out);
+    return res.json({ success:true, items: out });
+  }catch(e){
+    return res.json({ success:false, items:[], reason:'error', message:String(e?.message||e) });
   }
 });
 
@@ -2309,6 +2390,23 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
         }
       }
     }
+
+	    // 3) Last resort: scrape YouTube search HTML for a videoId (no API key).
+	    // Best-effort: may fail if YouTube returns consent/captcha.
+	    try {
+	      for (const qq of queries) {
+	        const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(qq)}`;
+	        const r = await fetchWithTimeout(url, { headers: { 'user-agent': 'Mozilla/5.0' } }, 5500).catch(()=>null);
+	        if (!r || !r.ok) continue;
+	        const html = await r.text().catch(()=> '');
+	        const m = html.match(/\"videoId\"\s*:\s*\"([a-zA-Z0-9_-]{11})\"/);
+	        if (m && m[1]) {
+	          const out = { videoId: m[1], title: '', channelTitle: '', publishedAt: '' };
+	          YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
+	          return res.json({ success:true, ...out, provider:'youtube_scrape' });
+	        }
+	      }
+	    } catch(_) {}
 
     // no result
     return res.json({ success:false, error:'no_result', details: debug ? lastApiErr : undefined });
