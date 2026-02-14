@@ -3823,6 +3823,12 @@ function requireTwitchSession(req, res) {
   return u;
 }
 
+function getTwitchSessionUser(req){
+  const u = req.session?.twitchUser;
+  if (!u || (u.expiry && u.expiry <= Date.now())) return null;
+  return u;
+}
+
 // =========================================================
 // BILLING (Firestore source of truth)
 // - credits live in billing_users/{twitchUserId}
@@ -3926,8 +3932,10 @@ async function requireActionQuota(req, res, actionName){
 
 app.get('/api/fantasy/profile', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    const tu = getTwitchSessionUser(req);
+    if(!tu){
+      return res.json({ success:true, connected:false, user:'Guest', wallet:{ cash:0, shares:{} }, positions:[], netWorth:0 });
+    }
     const user = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
     const w = await getUserWallet(user);
 
@@ -4083,8 +4091,10 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 // =========================================================
 app.get('/api/billing/me', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    const tu = getTwitchSessionUser(req);
+    if(!tu){
+      return res.json({ success:true, connected:false, plan:'free', credits:0, premium:false, pro:false });
+    }
     let b = await getBillingDoc(tu);
 
     // Migration safety: if billing credits are 0 but fantasy wallet cash exists, sync it once.
