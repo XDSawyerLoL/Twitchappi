@@ -1229,8 +1229,14 @@ const modal = document.getElementById('twitflix-modal');
             const card = e.target.closest && e.target.closest('.tf-card');
             if(!card) return;
 
-            // VOD
-            const vodId = card.dataset && card.dataset.vodId;
+            const ext = card.dataset && card.dataset.externalUrl;
+            if(ext){
+              e.preventDefault(); e.stopPropagation();
+              try{ window.open(String(ext), '_blank', 'noopener'); }catch(_){ }
+              return;
+            }
+
+            $1
             if(vodId){
               e.preventDefault(); e.stopPropagation();
               try{ closeTwitFlix(); }catch(_){ }
@@ -2452,6 +2458,9 @@ const modal = document.getElementById('twitflix-modal');
     }
 
     function tfRenderRows(host, list){
+      // Animés / animations libres de droits (row)
+      try{ host.appendChild(tfBuildExternalRow('Animés libres <span>(CC BY / domaine public)</span>', TF_FREE_ANIME, 'tf-free-anime')); }catch(_){ }
+
       const picks1 = list.slice(0, 28);
       const picks2 = list.slice(28, 56);
       const picks3 = tfShuffle(list).slice(0, 28);
@@ -2597,6 +2606,127 @@ function tfSchedulePeekFromCard(card){
     }catch(_){}
   }, 320);
 }
+
+// ===== ORYON TV: "Animé libre de droits" (CC BY / Domaine public) =====
+// "Libre de droits" is exposed as: Public Domain or permissive licenses (mainly CC BY).
+// We only link out (no hosting) to reduce legal ambiguity.
+const TF_FREE_ANIME = [
+  {
+    name: 'Big Buck Bunny',
+    poster: 'https://i.ytimg.com/vi/YE7VzlLtp-4/hqdefault.jpg',
+    url: 'https://peach.blender.org/about/',
+    license: 'CC BY 3.0 (Blender)',
+    tags: 'Open Movie'
+  },
+  {
+    name: 'Sintel',
+    poster: 'https://i.ytimg.com/vi/RBL1cVzIQik/hqdefault.jpg',
+    url: 'https://durian.blender.org/about/',
+    license: 'CC BY 3.0 (Blender)',
+    tags: 'Open Movie'
+  },
+  {
+    name: 'Tears of Steel',
+    poster: 'https://i.ytimg.com/vi/41hv2tW5Lc4/hqdefault.jpg',
+    url: 'https://mango.blender.org/about/',
+    license: 'CC BY 3.0 (Blender)',
+    tags: 'VFX Open Movie'
+  },
+  {
+    name: 'Elephants Dream',
+    poster: 'https://i.ytimg.com/vi/TLkA0RELQ1g/hqdefault.jpg',
+    url: 'https://orange.blender.org/',
+    license: 'CC BY 2.5 (Blender)',
+    tags: 'Open Movie'
+  },
+  {
+    name: 'Cosmos Laundromat',
+    poster: 'https://i.ytimg.com/vi/Y-rmzh0PI3c/hqdefault.jpg',
+    url: 'https://gooseberry.blender.org/license/',
+    license: 'CC BY 3.0 (Blender)',
+    tags: 'Open Movie'
+  },
+  {
+    name: 'Cartoons (domaine public)',
+    poster: 'https://archive.org/services/img/pdcartooncollection',
+    url: 'https://archive.org/details/pdcartooncollection',
+    license: 'Domaine public (Internet Archive)',
+    tags: 'Classiques'
+  }
+];
+
+function tfBuildExternalCard(item){
+  const div = document.createElement('div');
+  div.className = 'tf-card';
+  div.tabIndex = 0;
+  div.setAttribute('role','button');
+  div.setAttribute('aria-label', `${item.name} (ouvrir)`);
+  div.dataset.externalUrl = item.url || '';
+  div.dataset.platform = 'Libre';
+  div.dataset.tags = item.license || item.tags || '';
+
+  const poster = item.poster || '';
+
+  div.innerHTML = `
+    <img class="tf-poster" src="${poster}" loading="lazy" alt="">
+    <div class="tf-preview" aria-hidden="true"></div>
+    <div class="tf-overlay">
+      <div class="tf-name" title="${escapeHtml(item.name||'')}">${escapeHtml(item.name||'')}</div>
+      <div class="tf-actions-row">
+        <span class="tf-pill"><i class="fas fa-external-link-alt"></i> Ouvrir</span>
+        <span class="tf-pill ghost"><i class="fas fa-balance-scale"></i> Licence</span>
+      </div>
+    </div>
+  `;
+
+  div.onclick = () => {
+    const u = String(item.url || '').trim();
+    if (!u) return;
+    try{ window.open(u, '_blank', 'noopener'); }catch(_){ }
+  };
+
+  div.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      div.click();
+    }
+  });
+
+  // Peek bar integration
+  div.addEventListener('focus', ()=>{ try{ tfSchedulePeekFromCard(div); }catch(_){ } });
+  div.addEventListener('mouseenter', ()=>{ try{ tfSchedulePeekFromCard(div); }catch(_){ } });
+  div.addEventListener('mouseleave', ()=>{ try{ tfHidePeek(); }catch(_){ } });
+
+  return div;
+}
+
+function tfBuildExternalRow(titleHtml, items, id){
+  const row = document.createElement('div');
+  row.className = 'tf-row';
+  if (id) row.id = id;
+
+  const title = document.createElement('div');
+  title.className = 'tf-row-title';
+  title.innerHTML = titleHtml;
+
+  const track = document.createElement('div');
+  track.className = 'tf-row-track';
+
+  (items || []).forEach(it => track.appendChild(tfBuildExternalCard(it)));
+
+  row.appendChild(title);
+  row.appendChild(track);
+
+  const bar = document.createElement('div');
+  bar.className = 'tf-row-bar is-hidden';
+  bar.innerHTML = '<div class="tf-row-bar-thumb"></div>';
+  row.appendChild(bar);
+
+  setTimeout(()=>{ try{ tfAttachRowBar(track, bar); }catch(_){ } }, 0);
+  return row;
+}
+
+
 function tfBuildCard(cat){
       const div = document.createElement('div');
       div.className = 'tf-card';
