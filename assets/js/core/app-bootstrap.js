@@ -1229,14 +1229,8 @@ const modal = document.getElementById('twitflix-modal');
             const card = e.target.closest && e.target.closest('.tf-card');
             if(!card) return;
 
-            const ext = card.dataset && card.dataset.externalUrl;
-            if(ext){
-              e.preventDefault(); e.stopPropagation();
-              try{ window.open(String(ext), '_blank', 'noopener'); }catch(_){ }
-              return;
-            }
-
-            $1
+            // VOD
+            const vodId = card.dataset && card.dataset.vodId;
             if(vodId){
               e.preventDefault(); e.stopPropagation();
               try{ closeTwitFlix(); }catch(_){ }
@@ -1983,10 +1977,9 @@ const modal = document.getElementById('twitflix-modal');
 
       const btnPlay = document.getElementById('tf-hero-play');
       if (btnPlay){
-        btnPlay.onclick = (e)=>{
+        btnPlay.onclick = async (e)=>{
           e.preventDefault();
-          try{ closeTwitFlix(); }catch(_){ }
-          try{ loadVodEmbed(tfFeaturedHero.vodId); }catch(_){ }
+          await tfPlayVodWithBilling(tfFeaturedHero.vodId, { source:'hero', game: tfFeaturedHero.gameName || '' });
         };
       }
     }
@@ -2087,8 +2080,7 @@ const modal = document.getElementById('twitflix-modal');
         if (!vid) return; // nothing found
         tfSetResumeVod(tfInfoGame.id, vid);
         tfCloseGameModal();
-        try{ closeTwitFlix(); }catch(_){ }
-        try{ loadVodEmbed(vid); }catch(_){ }
+        await tfPlayVodWithBilling(vid, { source:'modal', game: tfInfoGame.name || '' });
       });
 
       // Removed "Plus d'infos" button: description is always visible.
@@ -2458,9 +2450,6 @@ const modal = document.getElementById('twitflix-modal');
     }
 
     function tfRenderRows(host, list){
-      // Animés / animations libres de droits (row)
-      try{ host.appendChild(tfBuildExternalRow('Animés libres <span>(CC BY / domaine public)</span>', TF_FREE_ANIME, 'tf-free-anime')); }catch(_){ }
-
       const picks1 = list.slice(0, 28);
       const picks2 = list.slice(28, 56);
       const picks3 = tfShuffle(list).slice(0, 28);
@@ -2606,127 +2595,6 @@ function tfSchedulePeekFromCard(card){
     }catch(_){}
   }, 320);
 }
-
-// ===== ORYON TV: "Animé libre de droits" (CC BY / Domaine public) =====
-// "Libre de droits" is exposed as: Public Domain or permissive licenses (mainly CC BY).
-// We only link out (no hosting) to reduce legal ambiguity.
-const TF_FREE_ANIME = [
-  {
-    name: 'Big Buck Bunny',
-    poster: 'https://i.ytimg.com/vi/YE7VzlLtp-4/hqdefault.jpg',
-    url: 'https://peach.blender.org/about/',
-    license: 'CC BY 3.0 (Blender)',
-    tags: 'Open Movie'
-  },
-  {
-    name: 'Sintel',
-    poster: 'https://i.ytimg.com/vi/RBL1cVzIQik/hqdefault.jpg',
-    url: 'https://durian.blender.org/about/',
-    license: 'CC BY 3.0 (Blender)',
-    tags: 'Open Movie'
-  },
-  {
-    name: 'Tears of Steel',
-    poster: 'https://i.ytimg.com/vi/41hv2tW5Lc4/hqdefault.jpg',
-    url: 'https://mango.blender.org/about/',
-    license: 'CC BY 3.0 (Blender)',
-    tags: 'VFX Open Movie'
-  },
-  {
-    name: 'Elephants Dream',
-    poster: 'https://i.ytimg.com/vi/TLkA0RELQ1g/hqdefault.jpg',
-    url: 'https://orange.blender.org/',
-    license: 'CC BY 2.5 (Blender)',
-    tags: 'Open Movie'
-  },
-  {
-    name: 'Cosmos Laundromat',
-    poster: 'https://i.ytimg.com/vi/Y-rmzh0PI3c/hqdefault.jpg',
-    url: 'https://gooseberry.blender.org/license/',
-    license: 'CC BY 3.0 (Blender)',
-    tags: 'Open Movie'
-  },
-  {
-    name: 'Cartoons (domaine public)',
-    poster: 'https://archive.org/services/img/pdcartooncollection',
-    url: 'https://archive.org/details/pdcartooncollection',
-    license: 'Domaine public (Internet Archive)',
-    tags: 'Classiques'
-  }
-];
-
-function tfBuildExternalCard(item){
-  const div = document.createElement('div');
-  div.className = 'tf-card';
-  div.tabIndex = 0;
-  div.setAttribute('role','button');
-  div.setAttribute('aria-label', `${item.name} (ouvrir)`);
-  div.dataset.externalUrl = item.url || '';
-  div.dataset.platform = 'Libre';
-  div.dataset.tags = item.license || item.tags || '';
-
-  const poster = item.poster || '';
-
-  div.innerHTML = `
-    <img class="tf-poster" src="${poster}" loading="lazy" alt="">
-    <div class="tf-preview" aria-hidden="true"></div>
-    <div class="tf-overlay">
-      <div class="tf-name" title="${escapeHtml(item.name||'')}">${escapeHtml(item.name||'')}</div>
-      <div class="tf-actions-row">
-        <span class="tf-pill"><i class="fas fa-external-link-alt"></i> Ouvrir</span>
-        <span class="tf-pill ghost"><i class="fas fa-balance-scale"></i> Licence</span>
-      </div>
-    </div>
-  `;
-
-  div.onclick = () => {
-    const u = String(item.url || '').trim();
-    if (!u) return;
-    try{ window.open(u, '_blank', 'noopener'); }catch(_){ }
-  };
-
-  div.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      div.click();
-    }
-  });
-
-  // Peek bar integration
-  div.addEventListener('focus', ()=>{ try{ tfSchedulePeekFromCard(div); }catch(_){ } });
-  div.addEventListener('mouseenter', ()=>{ try{ tfSchedulePeekFromCard(div); }catch(_){ } });
-  div.addEventListener('mouseleave', ()=>{ try{ tfHidePeek(); }catch(_){ } });
-
-  return div;
-}
-
-function tfBuildExternalRow(titleHtml, items, id){
-  const row = document.createElement('div');
-  row.className = 'tf-row';
-  if (id) row.id = id;
-
-  const title = document.createElement('div');
-  title.className = 'tf-row-title';
-  title.innerHTML = titleHtml;
-
-  const track = document.createElement('div');
-  track.className = 'tf-row-track';
-
-  (items || []).forEach(it => track.appendChild(tfBuildExternalCard(it)));
-
-  row.appendChild(title);
-  row.appendChild(track);
-
-  const bar = document.createElement('div');
-  bar.className = 'tf-row-bar is-hidden';
-  bar.innerHTML = '<div class="tf-row-bar-thumb"></div>';
-  row.appendChild(bar);
-
-  setTimeout(()=>{ try{ tfAttachRowBar(track, bar); }catch(_){ } }, 0);
-  return row;
-}
-
-
 function tfBuildCard(cat){
       const div = document.createElement('div');
       div.className = 'tf-card';
@@ -2848,6 +2716,96 @@ function tfBuildCard(cat){
       if (media && !media.dataset.locked){
         media.innerHTML = '';
       }
+    }
+
+    
+
+    // ===== UX helpers (toast + billing) =====
+    function tfToast(msg){
+      try{
+        if(!document.getElementById('tf-toast-css')){
+          const st=document.createElement('style');
+          st.id='tf-toast-css';
+          st.textContent=`.tf-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(0,0,0,.82);border:1px solid rgba(255,255,255,.12);color:#fff;padding:10px 12px;border-radius:12px;z-index:999999;font-size:12px;box-shadow:0 16px 40px rgba(0,0,0,.55);max-width:min(720px,92vw);} `;
+          document.head.appendChild(st);
+        }
+        const t=document.createElement('div');
+        t.className='tf-toast';
+        t.textContent=String(msg||'');
+        document.body.appendChild(t);
+        setTimeout(()=>{ try{ t.remove(); }catch(_){ } }, 2800);
+      }catch(_){ }
+    }
+
+    const __tfBillingCache = { ts:0, data:null };
+    async function tfGetEntitlements(force=false){
+      const now=Date.now();
+      if(!force && __tfBillingCache.data && (now-__tfBillingCache.ts)<30000) return __tfBillingCache.data;
+      try{
+        const r = await fetch('/api/billing/entitlements', { credentials:'include' });
+        const j = r.ok ? await r.json().catch(()=>null) : null;
+        __tfBillingCache.ts = now;
+        __tfBillingCache.data = j;
+        return j;
+      }catch(_){ return null; }
+    }
+
+    function tfUUID(){
+      // RFC4122-ish, good enough for idempotency
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+        const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
+        return v.toString(16);
+      });
+    }
+
+    async function tfConsume(action, context){
+      const ent = await tfGetEntitlements(false);
+      const data = ent && (ent.data || ent);
+      if(!data || !data.is_connected){
+        tfToast('Connecte Twitch pour lancer la lecture.');
+        return { ok:false, code:'not_connected' };
+      }
+      const plan = String(data.plan||'free').toLowerCase();
+      if(plan==='premium' || plan==='pro') return { ok:true, skipped:true, plan };
+
+      const costs = data.costs || {};
+      const cost = Number(costs[action] || 0);
+      if(cost <= 0) return { ok:true, skipped:true, plan };
+
+      const idem = tfUUID();
+      try{
+        const r = await fetch('/api/billing/consume', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', 'X-Idempotency-Key': idem },
+          credentials:'include',
+          body: JSON.stringify({ action, context: context || {} })
+        });
+        const j = r.ok ? await r.json().catch(()=>null) : await r.json().catch(()=>null);
+        if(r.status===402 || (j && j.error && j.error.code==='credits_insufficient')){
+          tfToast('Crédits insuffisants. Ouvre /pricing pour recharger ou passer Premium.');
+          return { ok:false, code:'credits_insufficient', cost };
+        }
+        if(!r.ok || !j || j.ok===false){
+          tfToast('Erreur de paiement. Réessaie.');
+          return { ok:false, code:'consume_failed' };
+        }
+        // refresh cached credits
+        __tfBillingCache.ts = 0;
+        return { ok:true, cost, newBalance: j.data?.newBalance };
+      }catch(_){
+        tfToast('Erreur réseau.');
+        return { ok:false, code:'network' };
+      }
+    }
+
+    async function tfPlayVodWithBilling(vodId, ctx){
+      const vid = String(vodId||'').replace(/^v/i,'').trim();
+      if(!vid) return;
+      const pay = await tfConsume('twitflix_play', ctx || {});
+      if(!pay.ok) return;
+      try{ closeTwitFlix(); }catch(_){ }
+      try{ loadVodEmbed(vid); }catch(_){ }
+      try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
     }
 
     function tfHeroMountIframe(src){

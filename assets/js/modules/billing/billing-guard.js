@@ -1,13 +1,13 @@
 /* billing-guard.js — Paywall (credits/premium) with no-dup + works even not connected */
 (function () {
-  const COST = 200;
+  let COST = 200;
 
   // Feature -> UI selector(s) + teaser
   const FEATURES = [
     { key: "overview", selector: "#under-overview", title: "OVERVIEW", teaser: "Vue synthèse actionnable : KPIs, signaux, état du live et priorités." },
     { key: "analytics", selector: "#under-analytics", title: "ANALYTICS PRO", teaser: "Analyse avancée : courbes, segments, performance, signaux et comparaisons." },
     { key: "niche", selector: "#under-niche", title: "NICHE", teaser: "Opportunités de niche : angles gagnants, concurrence, timing et idées de contenu." },
-    { key: "besttime", selector: ".best-time-tool", title: "BEST TIME TO STREAM", teaser: "Créneaux optimisés : meilleur ratio visibilité / concurrence + recommandations." },
+    { key: "bestTime", selector: ".best-time-tool", title: "BEST TIME TO STREAM", teaser: "Créneaux optimisés : meilleur ratio visibilité / concurrence + recommandations." },
   ];
 
   function $(sel, root=document){ return root.querySelector(sel); }
@@ -195,7 +195,7 @@
       btnLogin.textContent = 'Se connecter Twitch';
       btnLogin.onclick = startTwitchLogin;
       actions.appendChild(btnLogin);
-    } else if (state.plan === 'premium') {
+    } else if (state.plan === 'premium' || state.plan === 'pro') {
       // should not happen (premium is open), but keep safe
       const b = document.createElement('button');
       b.className = 'evey-btn primary';
@@ -212,7 +212,7 @@
         const r = await fetchJSON('/api/billing/unlock-feature', {
           method:'POST',
           headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ feature: cfg.key })
+          body: JSON.stringify({ feature: cfg.key, cost: COST })
         });
         btnUnlock.disabled = false;
         btnUnlock.textContent = `Débloquer (${COST})`;
@@ -263,12 +263,16 @@
   }
 
   function computeStateMe(me){
+    const costs = me?.data?.costs || me?.costs || {};
+    const plan = (me?.data?.plan || me?.plan || 'free');
+    COST = Number(costs.premium_unlock || 200);
     return {
-      is_connected: !!me?.is_connected,
-      plan: me?.plan || 'free',
-      credits: Number(me?.credits || 0),
-      entitlements: me?.entitlements || {}
+      is_connected: !!(me?.data?.is_connected ?? me?.is_connected),
+      plan: plan,
+      credits: Number((me?.data?.wallet?.credits ?? me?.credits) || 0),
+      entitlements: (me?.data?.entitlements || me?.entitlements || {})
     };
+  };
   }
 
   async function run(){
@@ -276,14 +280,14 @@
     let state = { is_connected:false, plan:'free', credits:0, entitlements:{} };
 
     // Try fetch billing/me (will also tell if connected)
-    const me = await fetchJSON('/api/billing/me');
+    const me = await fetchJSON('/api/billing/entitlements');
     if (me.ok && me.json) state = computeStateMe(me.json);
 
     FEATURES.forEach(cfg => {
       const target = $(cfg.selector);
       if (!target) return;
 
-      const isUnlocked = (state.plan === 'premium') || (state.entitlements && state.entitlements[cfg.key] === true);
+      const isUnlocked = (state.plan === 'premium' || state.plan === 'pro') || (state.entitlements && state.entitlements[cfg.key] === true);
       if (isUnlocked) applyOpen(target);
       else applyLock(target, cfg, state);
     });
