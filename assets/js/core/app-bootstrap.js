@@ -991,22 +991,67 @@ window.addEventListener('message', (ev) => {
     }
 
     // Public-domain anime rail (small loop previews + click to open a large player)
-    function tfInitPublicDomainAnimeRail(){
+    
+    // Public-domain rail — The Lone Ranger (Archive.org) + click to open a large player
+    async function tfInitPublicDomainAnimeRail(){
       const rail = document.getElementById('tf-anime-carousel');
       if(!rail || rail.__animeBound) return;
       rail.__animeBound = true;
 
-      rail.querySelectorAll('.tf-card.tf-anime').forEach(card => {
-        card.addEventListener('click', (e)=>{
-          e.preventDefault();
-          const title = card.getAttribute('data-anime-title') || 'Animé';
-          const year = card.getAttribute('data-anime-year') || '';
-          const src = card.getAttribute('data-anime-src') || '';
-          const embed = card.getAttribute('data-anime-embed') || '';
-          const thumb = card.getAttribute('data-anime-thumb') || '';
-          tfOpenAnimeModal({ title, year, src, embed, thumb });
+      const bindCards = ()=>{
+        rail.querySelectorAll('.tf-card.tf-anime').forEach(card => {
+          if(card.__bound) return;
+          card.__bound = true;
+          card.addEventListener('click', (e)=>{
+            e.preventDefault();
+            const title = card.getAttribute('data-anime-title') || 'Épisode';
+            const year = card.getAttribute('data-anime-year') || '';
+            const src = card.getAttribute('data-anime-src') || '';
+            const embed = card.getAttribute('data-anime-embed') || '';
+            const thumb = card.getAttribute('data-anime-thumb') || '';
+            tfOpenAnimeModal({ title, year, src, embed, thumb });
+          });
         });
-      });
+      };
+
+      try{
+        // loader
+        rail.innerHTML = `<div class="tf-trailer-fallback" style="min-width:360px">Chargement des épisodes…</div>`;
+        const r = await fetch('/api/public-domain/lone-ranger');
+        const j = await r.json();
+        if(!j || !j.ok || !j.data || !Array.isArray(j.data.items) || j.data.items.length === 0){
+          rail.innerHTML = `<div class="tf-trailer-fallback" style="min-width:360px">Aucun épisode trouvé (Archive.org).</div>`;
+          return;
+        }
+
+        // Build cards
+        rail.innerHTML = '';
+        j.data.items.forEach((it)=>{
+          const a = document.createElement('a');
+          a.href = '#';
+          a.className = 'tf-card tf-anime';
+          a.style.textDecoration = 'none';
+          a.setAttribute('data-anime-title', it.title || 'Épisode');
+          a.setAttribute('data-anime-year', it.year || '1966');
+          a.setAttribute('data-anime-src', it.mp4 || '');
+          a.setAttribute('data-anime-thumb', it.thumb || '');
+
+          a.innerHTML = `
+            <div class="tf-card-img">
+              <video class="tf-card-vid" muted loop autoplay playsinline preload="metadata"
+                     ${it.thumb ? `poster="${it.thumb}"` : ''}>
+                <source src="${it.mp4}" type="video/mp4" />
+              </video>
+            </div>
+            <div class="tf-card-title">${escapeHtml(it.title || 'Épisode')} · ${escapeHtml(it.year || '1966')}</div>
+          `;
+          rail.appendChild(a);
+        });
+
+        bindCards();
+      }catch(err){
+        rail.innerHTML = `<div class="tf-trailer-fallback" style="min-width:360px">Erreur chargement épisodes (réseau).</div>`;
+      }
     }
 
     function tfOpenAnimeModal({ title, year, src, embed, thumb }){
@@ -1027,7 +1072,7 @@ window.addEventListener('message', (ev) => {
                   <iframe class="tf-info-iframe" src="${embed}" allow="autoplay; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
                 ` : `
                   <video class="tf-info-iframe" controls autoplay playsinline preload="metadata" style="background:#000">
-                    <source src="${src}" type="video/webm" />
+                    ${(()=>{ const ext=(src||"").split("?")[0].split("#")[0].toLowerCase(); const type = ext.endsWith(".mp4") ? "video/mp4" : (ext.endsWith(".webm") ? "video/webm" : "video/mp4"); return `<source src="${src}" type="${type}" />`; })()}
                   </video>
                 `}
               </div>

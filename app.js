@@ -593,6 +593,30 @@ async function twitchAPI(endpoint, token = null) {
 const __oryonVodSearchCache = new Map(); // key -> {ts, items}
 // Ultra-fast: Twiflix "play" cache (game_id -> eligible vod ids)
 const __twiflixPlayCache = new Map(); // key -> {ts, vods:[{id, thumbnail_url, title, url, view_count, user_name, user_login}]}
+// Public-domain series cache (Archive.org) — Lone Ranger cartoons
+const __pdLoneRangerCache = new Map(); // key -> {ts, data}
+const __PD_LR_TTL_MS = 24 * 60 * 60 * 1000;
+
+function __pdCacheGet(map, key, ttlMs){
+  const v = map.get(key);
+  if(!v) return null;
+  if((Date.now()-v.ts) > ttlMs){ map.delete(key); return null; }
+  return v.data;
+}
+function __pdCacheSet(map, key, data){ map.set(key, { ts: Date.now(), data }); }
+
+function __cleanEpisodeTitle(name){
+  try{
+    let t = name.replace(/\.[a-z0-9]{2,4}$/i,'');
+    t = t.replace(/_/g,' ').replace(/\+/g,' ');
+    t = t.replace(/\s*\(.*?\)\s*/g,' ').trim();
+    t = t.replace(/\s+/g,' ');
+    // Remove common prefixes
+    t = t.replace(/^Lone Ranger\s*\d{4}\s*[-–]\s*/i,'');
+    t = t.replace(/^Lone\s*Ranger\s*\d{4}\s*[-–]\s*/i,'');
+    return t || name;
+  }catch(_){ return name; }
+}
 
 function __oryonCacheGet(map, key, ttlMs){
   const v = map.get(key);
@@ -4285,5 +4309,53 @@ app.use((err, req, res, next) => {
     console.error('[ERROR]', req.__rid || '-', err && (err.stack || err.message || err));
   }catch(_){}
   if(res.headersSent) return next(err);
+// =========================================================
+// Public domain — Lone Ranger cartoons (Archive.org)
+// =========================================================
+app.get('/api/public-domain/lone-ranger', async (req,res)=>{
+  try{
+    const identifier = 'LoneRangerCartoon1966CrackOfDoom';
+    const cacheKey = identifier;
+    const cached = __pdCacheGet(__pdLoneRangerCache, cacheKey, __PD_LR_TTL_MS);
+    if(cached) return apiOk(res, cached, { cached:true, ttl: __PD_LR_TTL_MS/1000 });
+
+    const metaUrl = `https://archive.org/metadata/${identifier}`;
+    const r = await fetch(metaUrl);
+    if(!r.ok) return apiErr(res, 502, 'ARCHIVE_META_FAILED', `Archive metadata error (${r.status})`);
+    const j = await r.json();
+
+    const files = Array.isArray(j?.files) ? j.files : [];
+    const mp4s = files
+      .filter(f => typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.mp4'))
+      .filter(f => (String(f.format||'').toLowerCase().includes('mp4') || true))
+      .map(f => {
+        const fn = f.name;
+        const title = f.title || __cleanEpisodeTitle(fn);
+        const mp4 = `https://archive.org/download/${identifier}/${encodeURIComponent(fn)}`;
+        return {
+          id: fn.replace(/[^a-z0-9]+/ig,'-').replace(/^-+|-+$/g,'').toLowerCase(),
+          title,
+          year: '1966',
+          mp4,
+          thumb: `https://archive.org/services/img/${identifier}`,
+          source: 'archive.org'
+        };
+      });
+
+    // stable sort: alphabetical by title (good enough)
+    mp4s.sort((a,b)=> (a.title||'').localeCompare(b.title||''));
+
+    const data = {
+      title: 'The Lone Ranger (cartoon, 1966)',
+      identifier,
+      items: mp4s
+    };
+
+    __pdCacheSet(__pdLoneRangerCache, cacheKey, data);
+    return apiOk(res, data, { cached:false, ttl: __PD_LR_TTL_MS/1000 });
+  }catch(e){
+    return apiErr(res, 500, 'PD_LONE_RANGER_ERROR', e?.message || 'error');
+  }
+});
   return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
 });
