@@ -2533,6 +2533,13 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-arrow{width:30px;height:30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
 #twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
 
+
+/* Clips rail */
+.tf-clip-card{ position:relative; overflow:hidden; }
+.tf-clip-video{ width:100%; height:100%; object-fit:cover; display:block; }
+.tf-clip-title{ position:absolute; left:10px; right:10px; bottom:10px; font-size:12px; font-weight:800; text-shadow:0 1px 12px rgba(0,0,0,.75); line-height:1.2; max-height:2.4em; overflow:hidden; }
+.tf-clip-badge{ position:absolute; top:10px; left:10px; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.14); padding:4px 8px; border-radius:999px; font-size:11px; font-weight:900; letter-spacing:.06em; }
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2987,6 +2994,13 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
     <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, ORYON TV tente une recherche automatique.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
+</div>
+
+<div class="tf-header-block">
+  <div class="tf-strip-title">
+    <h4>Clips du jeu <span class="help" data-help="Clips Twitch du jeu sélectionné (auto, muet). Clique pour lire en grand.">?</span></h4>
+  </div>
+  <div class="tf-carousel" id="tf-clips-carousel" aria-label="Clips du jeu"></div>
 </div>
 
 <div class="tf-header-block">

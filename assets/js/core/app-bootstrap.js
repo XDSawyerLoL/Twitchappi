@@ -846,7 +846,8 @@ window.addEventListener('message', (ev) => {
   const data = ev?.data;
   if(!data || data.type !== 'steam:connected') return;
   if(data.ok){
-    tfRefreshSteamSession().then(()=> tfLoadPersonalization().then(()=>{ if(tfModalOpen) renderTwitFlix(); }).catch(()=>{})).catch(()=>{});
+    tfRefreshSteamSession().then(()=> tfLoadPersonalization().then(()=>{ if(tfModalOpen) renderTwitFlix(); }).catch(()=>{
+            try{ clearTimeout(tfTrailerFallbackTimer); }catch(_){}})).catch(()=>{});
   }else{
     tfRefreshSteamSession().catch(()=>{});
     alert('Connexion Steam échouée.');
@@ -1180,7 +1181,80 @@ window.addEventListener('message', (ev) => {
       }
     }
 
-    function tfRenderTrailerCarousel(){
+    
+    async function tfRenderClipsCarousel(){
+      const wrap = document.getElementById('tf-clips-carousel');
+      if (!wrap) return;
+
+      tfBindHorizontalWheel(wrap);
+
+      // Use the current selected game if available, otherwise the first top category.
+      const gameId = currentGameId || (Array.isArray(tfAllCategories) && tfAllCategories[0] ? tfAllCategories[0].id : null);
+      const gameName = currentGameName || (Array.isArray(tfAllCategories) && tfAllCategories[0] ? tfAllCategories[0].name : '');
+
+      if (!gameId){
+        wrap.innerHTML = '<div class="tf-empty">Sélectionne un jeu pour afficher des clips.</div>';
+        return;
+      }
+
+      wrap.innerHTML = `<div class="tf-trailer-fallback" style="min-width:360px">Chargement des clips…</div>`;
+
+      try{
+        const r = await fetch(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=18`, { cache:'no-store' });
+        const j = await r.json();
+        const items = (j && j.success && Array.isArray(j.items)) ? j.items : [];
+
+        if (!items.length){
+          wrap.innerHTML = `<div class="tf-empty">Aucun clip trouvé pour ${tfEsc(gameName || 'ce jeu')}.</div>`;
+          return;
+        }
+
+        wrap.innerHTML = '';
+        for (const it of items){
+          const title = String(it.title || 'Clip').trim();
+          const src = String(it.mp4 || '').trim();
+          const thumb = String(it.thumbnail_url || '').trim();
+          const card = document.createElement('div');
+          card.className = 'tf-trailer-card tf-clip-card';
+          card.setAttribute('data-anime-title', title);
+          card.setAttribute('data-anime-year', '');
+          card.setAttribute('data-anime-src', src);
+          card.setAttribute('data-anime-embed', it.embed_url || it.url || '');
+          card.setAttribute('data-anime-thumb', thumb);
+
+          // autoplay muted loop preview
+          card.innerHTML = `
+            <div class="tf-clip-badge">CLIP</div>
+            <video class="tf-clip-video" muted playsinline autoplay loop preload="metadata" poster="${tfEsc(thumb)}">
+              <source src="${tfEsc(src)}" type="video/mp4">
+            </video>
+            <div class="tf-clip-title">${tfEsc(title)}</div>
+          `;
+          wrap.appendChild(card);
+        }
+
+        // Click -> reuse anime modal player (supports MP4)
+        try{
+          [...wrap.querySelectorAll('.tf-clip-card')].forEach(card => {
+            if(card.__bound) return;
+            card.__bound = true;
+            card.addEventListener('click', (e)=>{
+              e.preventDefault();
+              const title = card.getAttribute('data-anime-title') || 'Clip';
+              const src = card.getAttribute('data-anime-src') || '';
+              const embed = card.getAttribute('data-anime-embed') || '';
+              const thumb = card.getAttribute('data-anime-thumb') || '';
+              tfOpenAnimeModal({ title, year:'', src, embed, thumb });
+            });
+          });
+        }catch(_){}
+
+      }catch(e){
+        wrap.innerHTML = '<div class="tf-empty">Erreur chargement des clips.</div>';
+      }
+    }
+
+function tfRenderTrailerCarousel(){
       const wrap = document.getElementById('tf-trailer-carousel');
       if (!wrap) return;
 
@@ -1222,10 +1296,25 @@ window.addEventListener('message', (ev) => {
                 </div>
               </div>
             </div>
+
+          // Safety: if the resolver hangs, don't leave placeholders forever.
+          const tfTrailerFallbackTimer = setTimeout(() => {
+            try{
+              if (card.querySelector('.tf-trailer-fallback')){
+                const q = `${gameName} trailer`;
+                const src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(q)}&autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}`;
+                card.innerHTML = `<iframe src="${src}"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  loading="lazy" title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+              }
+            }catch(_){}
+          }, 1500);
+
           `;
 
           // Auto-resolve, then swap in the iframe
           tfResolveTrailerId(gameName).then((autoId)=>{
+            try{ clearTimeout(tfTrailerFallbackTimer); }catch(_){}
             // If the resolver can't find an ID (often missing YouTube key),
             // fall back to YouTube's built-in search playlist (no API key needed).
             const q = (autoId ? null : `${gameName} trailer`);
@@ -1547,7 +1636,8 @@ const modal = document.getElementById('twitflix-modal');
 
       tfRenderLiveCarousel();
       // Trailer carousel is hidden in the Netflix-like mode; hero is the trailer.
-      try{ tfRenderTrailerCarousel(); }catch(_){ }
+      try{ tfRenderTrailerCarousel();
+          try{ tfRenderClipsCarousel(); }catch(_){ } }catch(_){ }
       try{ tfInitPublicDomainAnimeRail(); }catch(_){ }
       renderTwitFlix();
 
@@ -1931,6 +2021,7 @@ const modal = document.getElementById('twitflix-modal');
       await tfLoadMore(true);
       tfRenderLiveCarousel();
           tfRenderTrailerCarousel();
+          try{ tfRenderClipsCarousel(); }catch(_){ }
           renderTwitFlix();
       tfSetupObserver();
     }

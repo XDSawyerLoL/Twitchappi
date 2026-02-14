@@ -2133,6 +2133,58 @@ app.get('/api/categories/search', async (req, res) => {
 //  - Returns streams filtered by language/viewers
 //  - Enriches with game box art for better UI
 // =========================================================
+
+
+// =========================================================
+// ORYON TV — Twitch Clips by Game (auto-preview mp4)
+// =========================================================
+const __twitchClipsCache = new Map(); // key -> {ts, items}
+const __TWITCH_CLIPS_TTL_MS = 2 * 60 * 1000;
+
+function __clipMp4FromThumb(thumb){
+  const t = String(thumb||'');
+  // typical: https://...-preview-480x272.jpg -> https://... .mp4
+  return t.replace(/-preview-[0-9]+x[0-9]+\.jpg$/i, '.mp4').replace(/-preview-.*\.jpg$/i, '.mp4');
+}
+
+app.get('/api/twitch/clips/by-game', heavyLimiter, async (req, res) => {
+  try{
+    const gameId = String(req.query.game_id || '').trim();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '18', 10) || 18), 30);
+    if(!gameId) return res.json({ success:true, items:[], reason:'missing_game_id' });
+
+    const key = `clips:${gameId}:${limit}`;
+    const c = __twitchClipsCache.get(key);
+    if(c && (Date.now()-c.ts) < __TWITCH_CLIPS_TTL_MS){
+      return res.json({ success:true, items:c.items, cached:true });
+    }
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+
+    const d = await twitchAPI(`clips?game_id=${encodeURIComponent(gameId)}&first=${limit}`, token);
+    const items = (d?.data || []).map(cl => ({
+      id: cl.id,
+      title: cl.title,
+      url: cl.url,
+      embed_url: cl.embed_url,
+      broadcaster_name: cl.broadcaster_name,
+      creator_name: cl.creator_name,
+      view_count: cl.view_count,
+      created_at: cl.created_at,
+      thumbnail_url: cl.thumbnail_url,
+      mp4: __clipMp4FromThumb(cl.thumbnail_url),
+      duration: cl.duration,
+      language: cl.language
+    }));
+
+    __twitchClipsCache.set(key, { ts: Date.now(), items });
+    res.json({ success:true, items, cached:false });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
   try {
     const lang = String(req.query.lang || '').trim();
