@@ -486,6 +486,14 @@ app.post('/api/steam/unlink', async (req, res) => {
 
 
 // Static assets (kept simple: UI + /assets folder)
+// IMPORTANT: disable aggressive caching for JS so Render deploys don't leave clients stuck on old bundles ("hub déconnecté" loops).
+app.use((req,res,next)=>{
+  const p = req.path || "";
+  if(p.endsWith(".js") || p.endsWith(".css")) {
+    res.setHeader("Cache-Control", "no-store");
+  }
+  next();
+});
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use(express.static(path.join(__dirname)));
 
