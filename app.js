@@ -705,10 +705,18 @@ app.get('/api/twitflix/playable', async (req,res)=>{
       qs.set('first', '50');
       qs.set('type', 'archive');
       qs.set('sort', preferRecent === 'views' ? 'views' : 'time');
-      if(strictLang && lang) qs.set('language', lang);
+      // NOTE: Helix "Get Videos" does NOT support a `language` query parameter.
+      // We filter client-side to keep behavior stable.
       const data = await twitchAPI(`videos?${qs.toString()}`, token);
       const rows = data?.data || [];
-      let vods = rows.filter(v => (v.view_count||0) <= maxVodViews);
+      let vods = rows
+        .filter(v => (v.view_count||0) <= maxVodViews)
+        .filter(v => {
+          if(!strictLang || !lang) return true;
+          const vlang = String(v.language||'').toLowerCase();
+          // Prefer exact match, but allow unknown to avoid empty results.
+          return !vlang || vlang === lang;
+        });
       // Filter short durations (keep best-effort)
       vods = vods.filter(v => String(v.duration||'').length >= 2);
       // Sort by created_at desc (recent) or views desc
@@ -788,9 +796,16 @@ app.get('/api/twitflix/episodes', async (req,res)=>{
     qs.set('first', '50');
     qs.set('type', 'archive');
     qs.set('sort', 'time');
-    if(lang) qs.set('language', lang);
     const data = await twitchAPI(`videos?${qs.toString()}`, token);
-    const rows = (data?.data||[]).filter(v => (v.view_count||0) <= maxVodViews);
+    // NOTE: Helix "Get Videos" does NOT support a `language` query parameter.
+    // Filter client-side.
+    const rows = (data?.data||[])
+      .filter(v => (v.view_count||0) <= maxVodViews)
+      .filter(v => {
+        if(!lang) return true;
+        const vlang = String(v.language||'').toLowerCase();
+        return !vlang || vlang === lang;
+      });
     const picks = rows.slice(0, limit);
 
     // fetch channel bios (best-effort)

@@ -1094,7 +1094,7 @@ window.addEventListener('message', (ev) => {
         if (vid){
           card.innerHTML = `
             <iframe
-              src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+              src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               loading="lazy"
               title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
@@ -1129,7 +1129,7 @@ window.addEventListener('message', (ev) => {
             }
             card.innerHTML = `
               <iframe
-                src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+                src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 loading="lazy"
                 title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
@@ -1376,6 +1376,45 @@ const modal = document.getElementById('twitflix-modal');
           }, 180);
         };
       }
+
+      // Theme chips (quick UX browsing)
+      try{
+        const themeBar = document.getElementById('tf-themebar');
+        if(themeBar && !themeBar.__bound){
+          themeBar.__bound = true;
+          const THEME_Q = {
+            '': '',
+            rpg: 'RPG',
+            fps: 'FPS',
+            survival: 'Survival',
+            moba: 'MOBA',
+            mmo: 'MMO',
+            strategy: 'Strategy',
+            racing: 'Racing',
+            sports: 'Sports',
+            horror: 'Horror',
+            indie: 'Indie'
+          };
+          themeBar.querySelectorAll('.tf-chip').forEach(btn=>{
+            btn.addEventListener('click', async ()=>{
+              themeBar.querySelectorAll('.tf-chip').forEach(b=>b.classList.remove('active'));
+              btn.classList.add('active');
+              const key = btn.getAttribute('data-theme') || '';
+              const q = THEME_Q[key] || '';
+              if(!q){
+                tfSearchQuery = '';
+                tfSearchResults = [];
+                if(search) search.value = '';
+                renderTwitFlix();
+                return;
+              }
+              tfSearchQuery = q;
+              if(search) search.value = q;
+              await tfRunSearch(q);
+            });
+          });
+        }
+      }catch(_){ }
 
       // sentinel observer for infinite loading
       tfSetupObserver();
