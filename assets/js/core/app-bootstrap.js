@@ -990,6 +990,72 @@ window.addEventListener('message', (ev) => {
       }, { passive: false });
     }
 
+    // Public-domain anime rail (small loop previews + click to open a large player)
+    function tfInitPublicDomainAnimeRail(){
+      const rail = document.getElementById('tf-anime-carousel');
+      if(!rail || rail.__animeBound) return;
+      rail.__animeBound = true;
+
+      rail.querySelectorAll('.tf-card.tf-anime').forEach(card => {
+        card.addEventListener('click', (e)=>{
+          e.preventDefault();
+          const title = card.getAttribute('data-anime-title') || 'Animé';
+          const year = card.getAttribute('data-anime-year') || '';
+          const src = card.getAttribute('data-anime-src') || '';
+          const embed = card.getAttribute('data-anime-embed') || '';
+          const thumb = card.getAttribute('data-anime-thumb') || '';
+          tfOpenAnimeModal({ title, year, src, embed, thumb });
+        });
+      });
+    }
+
+    function tfOpenAnimeModal({ title, year, src, embed, thumb }){
+      try{ document.getElementById('tf-anime-modal')?.remove(); }catch(_){ }
+
+      const root = document.createElement('div');
+      root.id = 'tf-anime-modal';
+      root.className = 'tf-info-modal';
+
+      root.innerHTML = `
+        <div class="tf-info-backdrop" role="dialog" aria-modal="true">
+          <button class="tf-info-close" aria-label="Fermer">✕</button>
+          <div class="tf-info-sheet">
+            <div class="tf-info-hero" style="height:520px">
+              ${thumb ? `<img class="tf-info-bg" src="${thumb}" alt=""/>` : `<div class="tf-info-bg" style="background:#000"></div>`}
+              <div class="tf-info-media">
+                ${embed ? `
+                  <iframe class="tf-info-iframe" src="${embed}" allow="autoplay; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                ` : `
+                  <video class="tf-info-iframe" controls autoplay playsinline preload="metadata" style="background:#000">
+                    <source src="${src}" type="video/webm" />
+                  </video>
+                `}
+              </div>
+              <div class="tf-info-grad"></div>
+              <div class="tf-info-meta">
+                <div class="tf-info-title" style="font-size:44px">${escapeHtml(title)}${year ? ` <span style="opacity:.65;font-size:18px;font-weight:800">(${escapeHtml(year)})</span>` : ''}</div>
+                <div style="margin-top:8px;opacity:.78;font-weight:700">Domaine public · Lecture intégrée</div>
+              </div>
+            </div>
+            <div class="tf-info-body">
+              <div class="tf-info-empty">Astuce: ces vidéos sont muettes/anciennes. Pour plus, utilise le bouton “Plus (Wikimedia Commons)”.</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const close = ()=>{
+        try{ root.remove(); }catch(_){ }
+      };
+
+      root.querySelector('.tf-info-close')?.addEventListener('click', close);
+      root.querySelector('.tf-info-backdrop')?.addEventListener('click', (e)=>{
+        if(e.target.classList.contains('tf-info-backdrop')) close();
+      });
+
+      document.body.appendChild(root);
+    }
+
     // LIVE banner should show enough distinct games (Netflix-like "EN LIVE")
     // We source it from real streams (FR + 20–200 viewers) and keep one per game for diversity.
     async function tfRenderLiveCarousel(){
@@ -1115,27 +1181,34 @@ window.addEventListener('message', (ev) => {
 
           // Auto-resolve, then swap in the iframe
           tfResolveTrailerId(gameName).then((autoId)=>{
-            if (!autoId){
-              // Show a deterministic end state instead of a forever-loading card.
-              const meta = card.querySelector('.tf-trailer-meta');
-              if(meta){
-                meta.innerHTML = `
-                  <div class="tf-title">${gameName}</div>
-                  <div class="tf-sub">Trailer introuvable</div>
-                `;
-              }
-              card.classList.add('tf-no-trailer');
-              return;
-            }
+            // If the resolver can't find an ID (often missing YouTube key),
+            // fall back to YouTube's built-in search playlist (no API key needed).
+            const q = (autoId ? null : `${gameName} trailer`);
+            const src = autoId
+              ? `https://www.youtube.com/embed/${encodeURIComponent(autoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}`
+              : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(q)}&autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}`;
+
             card.innerHTML = `
               <iframe
-                src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}"
+                src="${src}"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 loading="lazy"
                 title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
               </iframe>
             `;
-          }).catch(()=>{});
+          }).catch(()=>{
+            // last resort: still show search playlist
+            const q = `${gameName} trailer`;
+            const src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(q)}&autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}`;
+            card.innerHTML = `
+              <iframe
+                src="${src}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                loading="lazy"
+                title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
+              </iframe>
+            `;
+          });
         }
 
         wrap.appendChild(card);
@@ -1430,6 +1503,7 @@ const modal = document.getElementById('twitflix-modal');
       tfRenderLiveCarousel();
       // Trailer carousel is hidden in the Netflix-like mode; hero is the trailer.
       try{ tfRenderTrailerCarousel(); }catch(_){ }
+      try{ tfInitPublicDomainAnimeRail(); }catch(_){ }
       renderTwitFlix();
 
       // Start hero cycler once some categories exist

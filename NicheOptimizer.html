@@ -2991,24 +2991,47 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 <div class="tf-header-block">
   <div class="tf-strip-title">
-    <h4>Anime libre de droits <span class="help" data-help="Ressources gratuites utilisables comme fonds/loops (royalty-free). Ouvre les sources dans un nouvel onglet.">?</span></h4>
+    <h4>Animé — domaine public <span class="help" data-help="Courts métrages anciens (domaine public) lisibles directement ici. Clique une carte pour agrandir.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-anime-carousel" aria-label="Anime libre de droits">
-    <a class="tf-card" href="https://pixabay.com/videos/search/anime%20loop/" target="_blank" rel="noopener" style="text-decoration:none;">
-      <div class="tf-card-img" style="background-image:url('https://cdn.pixabay.com/photo/2020/05/09/15/06/anime-5148201_1280.jpg');"></div>
-      <div class="tf-card-title">Pixabay — Anime loops</div>
+    <!-- Public domain / very old "anime" fragments (plays muted in the rail; click to open) -->
+    <a class="tf-card tf-anime" href="#" data-anime-title="Katsudō Shashin (1907)" data-anime-year="1907"
+       data-anime-src="https://commons.wikimedia.org/wiki/Special:FilePath/Katsud%C5%8D%20Shashin%20(1907).webm"
+       data-anime-thumb="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Katsud%C5%8D_Shashin_1907.jpg/512px-Katsud%C5%8D_Shashin_1907.jpg"
+       style="text-decoration:none;">
+      <div class="tf-card-img">
+        <video class="tf-card-vid" muted loop autoplay playsinline preload="metadata"
+               poster="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Katsud%C5%8D_Shashin_1907.jpg/512px-Katsud%C5%8D_Shashin_1907.jpg">
+          <source src="https://commons.wikimedia.org/wiki/Special:FilePath/Katsud%C5%8D%20Shashin%20(1907).webm" type="video/webm" />
+        </video>
+      </div>
+      <div class="tf-card-title">Katsudō Shashin · 1907</div>
     </a>
-    <a class="tf-card" href="https://www.pexels.com/search/videos/anime/" target="_blank" rel="noopener" style="text-decoration:none;">
-      <div class="tf-card-img" style="background-image:url('https://images.pexels.com/photos/7130555/pexels-photo-7130555.jpeg?auto=compress&cs=tinysrgb&w=1280');"></div>
-      <div class="tf-card-title">Pexels — Anime / animation</div>
+
+    <a class="tf-card tf-anime" href="#" data-anime-title="Namakura Gatana (1917)" data-anime-year="1917"
+       data-anime-src="https://commons.wikimedia.org/wiki/Special:FilePath/Kouichi%20Jun%27ichi%20-%20Namakura%20Gatana%20(1917)%20-%204-minute%20restored%20version.webm"
+       data-anime-thumb="https://archive.org/download/namakura-gatana-1917/__ia_thumb.jpg"
+       style="text-decoration:none;">
+      <div class="tf-card-img">
+        <video class="tf-card-vid" muted loop autoplay playsinline preload="metadata"
+               poster="https://archive.org/download/namakura-gatana-1917/__ia_thumb.jpg">
+          <source src="https://commons.wikimedia.org/wiki/Special:FilePath/Kouichi%20Jun%27ichi%20-%20Namakura%20Gatana%20(1917)%20-%204-minute%20restored%20version.webm" type="video/webm" />
+        </video>
+      </div>
+      <div class="tf-card-title">Namakura Gatana · 1917</div>
     </a>
-    <a class="tf-card" href="https://coverr.co/stock-video-footage/anime-style" target="_blank" rel="noopener" style="text-decoration:none;">
-      <div class="tf-card-img" style="background-image:url('https://images.unsplash.com/photo-1533158326335-6e3f1a1f8606?auto=format&fit=crop&w=1280&q=60');"></div>
-      <div class="tf-card-title">Coverr — Anime style</div>
+
+    <a class="tf-card tf-anime" href="#" data-anime-title="Namakura Gatana (Internet Archive)" data-anime-year="1917"
+       data-anime-embed="https://archive.org/embed/namakura-gatana-1917"
+       data-anime-thumb="https://archive.org/download/namakura-gatana-1917/__ia_thumb.jpg"
+       style="text-decoration:none;">
+      <div class="tf-card-img" style="background-image:url('https://archive.org/download/namakura-gatana-1917/__ia_thumb.jpg');"></div>
+      <div class="tf-card-title">IA player · Namakura · 1917</div>
     </a>
-    <a class="tf-card" href="https://opengameart.org/content/cc0-resources" target="_blank" rel="noopener" style="text-decoration:none;">
-      <div class="tf-card-img" style="background-image:url('https://opengameart.org/sites/default/files/styles/medium/public/preview_11.png');"></div>
-      <div class="tf-card-title">OpenGameArt — CC0 packs</div>
+
+    <a class="tf-card" href="https://commons.wikimedia.org/wiki/User:Spinster/WikiFlix/Anime_films" target="_blank" rel="noopener" style="text-decoration:none;">
+      <div class="tf-card-img" style="background-image:url('https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Katsud%C5%8D_Shashin_1907.jpg/512px-Katsud%C5%8D_Shashin_1907.jpg');"></div>
+      <div class="tf-card-title">Plus (Wikimedia Commons)</div>
     </a>
   </div>
 </div>
@@ -3414,6 +3437,18 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   background-position: center;
   border-radius: 10px;
   box-shadow: inset 0 -50px 80px rgba(0,0,0,.55);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Public-domain anime rail: small muted looping videos */
+#twitflix-modal .tf-card-vid{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  filter: saturate(1.05) contrast(1.05);
 }
 #twitflix-modal .tf-card .tf-card-title{
   margin-top: 10px;
