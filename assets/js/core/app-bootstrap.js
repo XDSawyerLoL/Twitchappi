@@ -121,18 +121,37 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       if (data.is_connected) {
         currentUser = data.display_name;
         window.currentUser = currentUser; // expose for modules (Market)
-        document.getElementById('hub-user-display').innerText = data.display_name;
+        const hud = document.getElementById('hub-user-display');
+        if(hud) hud.innerText = data.display_name;
 
-        document.getElementById('btn-auth').classList.add('hidden');
-        document.getElementById('user-area').classList.remove('hidden');
+        const btnAuth = document.getElementById('btn-auth');
+        const userArea = document.getElementById('user-area');
+        if(btnAuth) btnAuth.classList.add('hidden');
+        if(userArea) userArea.classList.remove('hidden');
 
-        document.getElementById('user-name').innerText = data.display_name;
-        if (data.profile_image_url) document.getElementById('user-avatar').src = data.profile_image_url;
+        const userName = document.getElementById('user-name');
+        const avatar = document.getElementById('user-avatar');
+        if(userName) userName.innerText = data.display_name;
+        if (avatar && data.profile_image_url) avatar.src = data.profile_image_url;
 
         // Billing / credits (user space)
         await loadBillingMe().catch(()=>{});
 
         await loadFollowed();
+      } else {
+        // Guest mode: do NOT block the hub and do NOT reload.
+        currentUser = 'Guest';
+        window.currentUser = currentUser;
+        const hud = document.getElementById('hub-user-display');
+        if(hud) hud.innerText = 'INVITÉ';
+
+        const btnAuth = document.getElementById('btn-auth');
+        const userArea = document.getElementById('user-area');
+        if(btnAuth) btnAuth.classList.remove('hidden');
+        if(userArea) userArea.classList.add('hidden');
+
+        // Still load billing to display credits=0 / plan=FREE cleanly.
+        await loadBillingMe().catch(()=>{});
       }
     }
 
@@ -253,11 +272,20 @@ function startAuth() {
       const check = setInterval(async () => {
         const res = await fetch(`${API_BASE}/twitch_user_status`);
         const data = await res.json();
-        if (data.is_connected) { clearInterval(check); location.reload(); }
+        if (data.is_connected) {
+          clearInterval(check);
+          try{ await initUser(); }catch(_e){}
+        }
       }, 1000);
     }
 
-    function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
+    function logout() {
+      fetch(`${API_BASE}/twitch_logout`, { method:'POST' })
+        .then(async ()=>{
+          try{ currentUser = 'Guest'; window.currentUser = currentUser; }catch(_e){}
+          try{ await initUser(); }catch(_e){}
+        });
+    }
 
     // PLAYER
     async function initPlayer() {

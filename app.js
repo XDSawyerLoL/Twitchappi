@@ -499,6 +499,8 @@ app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
 app.get('/', (req, res) => {
+  // Avoid caching the HTML shell; otherwise clients may keep pointing to stale JS bundles.
+  res.setHeader('Cache-Control', 'no-store, must-revalidate');
   const candidates = [
     process.env.UI_FILE,
     'NicheOptimizer.html',
