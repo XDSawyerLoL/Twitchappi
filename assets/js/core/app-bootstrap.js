@@ -1324,6 +1324,7 @@ function tfRenderTrailerCarousel(){
                 </div>
               </div>
             </div>
+          `;
 
           // Safety: if the resolver hangs, don't leave placeholders forever.
           const tfTrailerFallbackTimer = setTimeout(() => {
@@ -1338,7 +1339,6 @@ function tfRenderTrailerCarousel(){
             }catch(_){}
           }, 1500);
 
-          `;
 
           // Auto-resolve, then swap in the iframe
           tfResolveTrailerId(gameName).then((autoId)=>{
@@ -1701,6 +1701,10 @@ const modal = document.getElementById('twitflix-modal');
     modal.classList.remove('closing');
   }, 260);
 }
+    // Expose TwitFlix controls for inline onclick handlers
+    window.openTwitFlix = openTwitFlix;
+    window.closeTwitFlix = closeTwitFlix;
+
 
     function tfSetupObserver(){
       const host = document.getElementById('twitflix-grid');
