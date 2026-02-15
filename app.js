@@ -419,6 +419,32 @@ app.get('/steam/connected', (req, res) => {
 </body></html>`);
 });
 
+
+// Tiny page to close popup + notify opener (Twitch)
+app.get('/twitch/connected', (req, res) => {
+  const ok = String(req.query.ok || '0') === '1';
+  const payload = JSON.stringify({ type: 'twitch:connected', ok });
+  res.setHeader('content-type','text/html; charset=utf-8');
+  return res.send(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Twitch</title></head>
+<body style="font-family:system-ui;background:#0b0c10;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+  <div style="max-width:520px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04)">
+    <h2 style="margin:0 0 10px 0">${ok ? 'Twitch connecté ✅' : 'Twitch: échec ❌'}</h2>
+    <p style="margin:0 0 12px 0;opacity:.85">Tu peux fermer cette fenêtre.</p>
+  </div>
+  <script>
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(${payload}, '*');
+      }
+    } catch (e) {}
+    try { window.close(); } catch(e) {}
+    if (!window.opener) setTimeout(()=>{ try{ location.href = '/'; }catch(_){ } }, 350);
+  </script>
+</body></html>`);
+});
+
+
 // Session info (used by TwitFlix)
 app.get('/api/steam/me', async (req, res) => {
   const s = req.session?.steam;
@@ -1733,16 +1759,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
 
     // S’assure que la session est persistée avant fermeture de la popup
     req.session.save(() => {
-      res.send(`
-        <script>
-          try {
-            if (window.opener && !window.opener.closed) {
-              window.opener.location.reload();
-            }
-          } catch (e) {}
-          window.close();
-        </script>
-      `);
+      return res.redirect(`/twitch/connected?ok=1`);
     });
 
   } catch (e) {
@@ -1894,6 +1911,107 @@ app.get('/api/categories/search', async (req, res) => {
     return res.status(500).json({ success: false, error: e.message });
   }
 });
+
+
+/* =========================================================
+ * PUBLIC DOMAIN (Archive.org) PROXY (fix CORS "Failed to fetch")
+ * ========================================================= */
+const __pdProxyCache = new Map(); // key -> { t, data }
+function __pdProxyGet(key, ttlMs){
+  const v = __pdProxyCache.get(key);
+  if(!v) return null;
+  if(Date.now() - v.t > ttlMs) { __pdProxyCache.delete(key); return null; }
+  return v.data;
+}
+function __pdProxySet(key, data){
+  __pdProxyCache.set(key, { t: Date.now(), data });
+}
+
+app.get('/api/public-domain/list', async (req, res) => {
+  try{
+    const identifier = String(req.query.identifier || '').trim();
+    if(!identifier) return res.status(400).json({ ok:false, error:'missing_identifier' });
+
+    const ttl = 24 * 60 * 60 * 1000;
+    const key = `ia:${identifier}`;
+    const cached = __pdProxyGet(key, ttl);
+    if(cached) return res.json({ ok:true, cached:true, ...cached });
+
+    const url = `https://archive.org/metadata/${encodeURIComponent(identifier)}`;
+    const r = await fetch(url, { headers: { 'user-agent': 'oryon-tv/1.0' }});
+    if(!r.ok) return res.status(502).json({ ok:false, error:'archive_bad_status', status:r.status });
+
+    const meta = await r.json();
+    const files = Array.isArray(meta?.files) ? meta.files : [];
+    const out = {
+      identifier,
+      title: meta?.metadata?.title || identifier,
+      files
+    };
+    __pdProxySet(key, out);
+    return res.json({ ok:true, cached:false, ...out });
+  }catch(e){
+    return res.status(500).json({ ok:false, error:'archive_proxy_error', message:String(e?.message||e) });
+  }
+});
+
+
+/* =========================================================
+ * TWITCH CLIPS (used as "Trailers" - autoplay MP4)
+ * ========================================================= */
+const __clipsCache = new Map(); // key -> { t, data }
+function __clipsGet(key, ttlMs){
+  const v = __clipsCache.get(key);
+  if(!v) return null;
+  if(Date.now() - v.t > ttlMs) { __clipsCache.delete(key); return null; }
+  return v.data;
+}
+function __clipsSet(key, data){ __clipsCache.set(key, { t: Date.now(), data }); }
+
+// GET /api/twitch/clips/by-game?game_id=...&limit=6
+app.get('/api/twitch/clips/by-game', heavyLimiter, async (req, res) => {
+  try{
+    const gameId = String(req.query.game_id || '').trim();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '6', 10) || 6), 20);
+
+    if(!gameId) return res.json({ success:true, items:[], reason:'missing_game_id' });
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+
+    const key = `clips:${gameId}:${limit}`;
+    const cached = __clipsGet(key, 2 * 60 * 1000);
+    if(cached) return res.json({ success:true, items:cached, cached:true });
+
+    const d = await twitchAPI(`clips?game_id=${encodeURIComponent(gameId)}&first=${limit}`, token);
+    const items = (d?.data || []).map(c => {
+      const thumb = String(c.thumbnail_url || '');
+      // Twitch clip MP4 is derived from thumbnail URL
+      const mp4 = thumb ? thumb.replace(/-preview-\d+x\d+\.jpg$/i, '.mp4') : '';
+      return {
+        id: c.id,
+        url: c.url,
+        embed_url: c.embed_url,
+        broadcaster_name: c.broadcaster_name,
+        creator_name: c.creator_name,
+        title: c.title,
+        game_id: c.game_id,
+        game_name: c.game_name,
+        view_count: c.view_count,
+        created_at: c.created_at,
+        thumbnail_url: c.thumbnail_url,
+        duration: c.duration,
+        mp4
+      };
+    }).filter(x=>x.mp4);
+
+    __clipsSet(key, items);
+    return res.json({ success:true, items, cached:false });
+  }catch(e){
+    return res.status(500).json({ success:false, items:[], error:'clips_error', message:String(e?.message||e) });
+  }
+});
+
 
 
 // =========================================================

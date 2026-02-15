@@ -559,6 +559,8 @@ function startAuth() {
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
       }[m]));
     }
+
+    const tfEsc = escapeHtml;
     // ================== HUB UI (persistant + emotes + gifs + réactions) ==================
     const EMOTE_MAP = {
       ':kappa:':'😏', ':pog:':'🤯', ':gg:':'🏆', ':love:':'💖',
@@ -851,6 +853,15 @@ window.addEventListener('message', (ev) => {
     tfRefreshSteamSession().catch(()=>{});
     alert('Connexion Steam échouée.');
   }
+
+addEventListener('message', (ev) => {
+  const data = ev?.data;
+  if(!data || data.type !== 'twitch:connected') return;
+  // Simple: full reload so followed lives appear
+  try{ window.location.reload(); }catch(_){ }
+});
+
+
 });
 
 
@@ -1069,108 +1080,78 @@ window.addEventListener('message', (ev) => {
       }
     }
 
-    function tfRenderTrailerCarousel(){
-      const wrap = document.getElementById('tf-trailer-carousel');
-      if (!wrap) return;
+    
+function tfRenderTrailerCarousel(){
+  const wrap = document.getElementById('tf-trailer-carousel');
+  if (!wrap) return;
+  tfBindHorizontalWheel(wrap);
 
-      tfBindHorizontalWheel(wrap);
+  // Use top game categories, but exclude "chat/irl" type categories for better UX
+  const banned = new Set(['just chatting','music','asmr','irl','talk shows & podcasts']);
+  const catsAll = Array.isArray(tfAllCategories) ? tfAllCategories : [];
+  const cats = catsAll.filter(c => !banned.has(String(c?.name||'').trim().toLowerCase())).slice(0, 12);
 
-      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
-      wrap.innerHTML = '';
+  wrap.innerHTML = '';
+  if (!cats.length){
+    wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
+    return;
+  }
 
-      if (!cats.length){
-        wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
-        return;
-      }
+  cats.forEach(cat => {
+    const gameName = String(cat.name || '').trim();
+    const gameId = String(cat.id || '').trim();
 
-      cats.forEach(cat => {
-        const gameName = String(cat.name || '').trim();
-        const key = gameName.toLowerCase();
-        const vid = TRAILER_MAP[key];
+    const card = document.createElement('div');
+    card.className = 'tf-trailer-card';
+    card.innerHTML = `
+      <div class="tf-trailer-fallback">
+        <div>
+          <div style="font-weight:800;margin-bottom:6px">${tfEsc(gameName || 'Trailer')}</div>
+          <div style="opacity:.85">
+            Chargement du trailer…
+            <div style="opacity:.7;font-size:12px;margin-top:4px">Auto-play (muet)</div>
+          </div>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(card);
 
-        const card = document.createElement('div');
-        card.className = 'tf-trailer-card';
-
-        if (vid){
-          card.innerHTML = `
-            <iframe
-              src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              loading="lazy"
-              title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
-            </iframe>
-          `;
-        } else {
-          card.innerHTML = `
-            <div class="tf-trailer-fallback">
-              <div>
-                <div style="font-weight:800;margin-bottom:6px">${gameName || 'Trailer'}</div>
-                <div style="opacity:.85">
-                  Recherche du trailer…<br/>
-                  <span style="opacity:.7;font-size:12px">On tente une récupération automatique.</span>
-                </div>
-              </div>
+    // Fetch a clip MP4 for this game (used as trailer preview)
+    (async () => {
+      try{
+        if(!gameId) return;
+        const r = await fetch(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`, { credentials:'include' });
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        const clip = Array.isArray(d.items) ? d.items[0] : null;
+        const mp4 = clip?.mp4 ? String(clip.mp4) : '';
+        if(!mp4) throw new Error('no_mp4');
+        card.innerHTML = `
+          <video class="tf-trailer-video" src="${tfEsc(mp4)}" muted autoplay loop playsinline preload="metadata"></video>
+        `;
+        card.addEventListener('click', (e)=>{
+          e.preventDefault();
+          // open clip in the main modal player (mp4)
+          try{ tfOpenVideoModal(mp4, gameName || 'Trailer', 'Trailer (clip Twitch)'); }catch(_){
+            window.open(mp4, '_blank');
+          }
+        }, { once:true });
+      }catch(_e){
+        card.innerHTML = `
+          <div class="tf-trailer-fallback">
+            <div>
+              <div style="font-weight:800;margin-bottom:6px">${tfEsc(gameName || 'Trailer')}</div>
+              <div style="opacity:.85">Trailer indisponible</div>
             </div>
-          `;
+          </div>
+        `;
+      }
+    })();
+  });
+}
 
-          // Auto-resolve, then swap in the iframe
-          tfResolveTrailerId(gameName).then((autoId)=>{
-            if (!autoId){
-              // Show a deterministic end state instead of a forever-loading card.
-              const meta = card.querySelector('.tf-trailer-meta');
-              if(meta){
-                meta.innerHTML = `
-                  <div class="tf-title">${gameName}</div>
-                  <div class="tf-sub">Trailer introuvable</div>
-                `;
-              }
-              card.classList.add('tf-no-trailer');
-              return;
-            }
-            card.innerHTML = `
-              <iframe
-                src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                loading="lazy"
-                title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
-              </iframe>
-            `;
-          }).catch(()=>{});
-        }
 
-        wrap.appendChild(card);
-      });
-    }
-
-    let tfCursor = null;
-    let tfLoading = false;
-    let tfHasMore = true;
-    let tfLastLoadAt = 0;
-
-    let tfSearchQuery = '';
-    let tfSearchResults = [];
-    let tfVodResults = [];
-    let tfTopVodResults = [];
-    let tfTopVodLoading = false;
-    let tfTopVodLoadedAt = 0;
-    let tfVodTimer = null;
-    let tfSearchTimer = null;
-
-    let tfObserver = null;
-
-    // Preview cache
-    const tfPreviewCache = new Map(); // gameId -> {channel, t}
-    const tfPreviewInflight = new Map();
-    const TF_PREVIEW_TTL = 10 * 60 * 1000;
-
-    function tfNormalizeTwitchThumb(url){
-      const u = String(url||'');
-      if(!u) return '';
-      // Twitch thumbnails use {width}x{height}
-      return u.replace('%{width}','1000').replace('%{height}','562').replace('{width}','1000').replace('{height}','562');
-    }
-
-function tfNormalizeBoxArt(url){
+    functionfunction tfNormalizeBoxArt(url){
   // Force higher-res boxarts to avoid "blurry" upscale in the ORYON TV rows.
   // Uses devicePixelRatio to request sharper images on HiDPI screens.
   const u = String(url || '');
@@ -1949,6 +1930,18 @@ const modal = document.getElementById('twitflix-modal');
           channel: String(v.user_name || ''),
           game: String(v.game_name || pick.name || '')
         };
+
+// Try to get a short MP4 clip for autoplay "trailer" feel
+try{
+  const cr = await fetch(`/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`, { credentials:'include' });
+  if (cr.ok){
+    const cd = await cr.json();
+    const clip = Array.isArray(cd.items) ? cd.items[0] : null;
+    const mp4 = clip?.mp4 ? String(clip.mp4) : '';
+    if (mp4) tfFeaturedHero.clipMp4 = mp4;
+  }
+}catch(_){ }
+
       }catch(_){ }
       finally{
         tfFeaturedLoading = false;
@@ -1967,7 +1960,12 @@ const modal = document.getElementById('twitflix-modal');
 
       const parent = encodeURIComponent(window.location.hostname);
       const src = `https://player.twitch.tv/?video=${encodeURIComponent(tfFeaturedHero.vodId)}&parent=${parent}&autoplay=true&muted=true`;
-      media.innerHTML = `<iframe class="tf-hero-iframe" src="${src}" allow="autoplay; fullscreen" frameborder="0" scrolling="no" title="preview"></iframe>`;
+      if (tfFeaturedHero.clipMp4){
+        const mp4 = tfFeaturedHero.clipMp4;
+        media.innerHTML = `<video class="tf-hero-video" src="${tfEsc(mp4)}" muted autoplay loop playsinline preload="metadata"></video>`;
+      } else {
+        media.innerHTML = `<iframe class="tf-hero-iframe" src="${src}" allow="autoplay; fullscreen" frameborder="0" scrolling="no" title="preview"></iframe>`;
+      }
 
       tfSetHero({
         title: tfFeaturedHero.title || 'ORYON TV',
@@ -4491,6 +4489,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     // keep hero visible always; optional: adjust hero button label
     try{ localStorage.setItem('tf_last_tab', tab); }catch(_){}
     if(tab==='anime') ensureAnimeLoaded();
+    if(tab==='live') ensureLiveMultiLoaded();
   }
 
   async function fetchJson(url){
@@ -4515,7 +4514,107 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   let __animeLoadedOnce = false;
   let __animeLoading = false;
 
-  function mp4FromIAFile(identifier, name){
+  
+
+// ===== LIVE: multiple rails by theme (RPG/FPS/etc) =====
+let __liveMultiLoadedOnce = false;
+let __liveMultiLoading = false;
+
+const __LIVE_THEMES = [
+  { key:'top', label:'Top', q:'Top' },
+  { key:'rpg', label:'RPG', q:'RPG' },
+  { key:'fps', label:'FPS', q:'FPS' },
+  { key:'survie', label:'Survie', q:'Survie' },
+  { key:'moba', label:'MOBA', q:'MOBA' },
+  { key:'mmo', label:'MMO', q:'MMO' },
+  { key:'strategie', label:'Stratégie', q:'Strategy' },
+  { key:'course', label:'Course', q:'Racing' },
+  { key:'sport', label:'Sport', q:'Sports' },
+  { key:'horreur', label:'Horreur', q:'Horror' },
+  { key:'inde', label:'Indé', q:'Indie' },
+];
+
+function renderLiveMultiSkeleton(){
+  const host = q('#tf-live-multi');
+  if(!host) return;
+  host.innerHTML = __LIVE_THEMES.map(t=>`
+    <div class="tf-header-block" style="margin-top:14px">
+      <div class="tf-strip-title"><h4>${escapeHtml(t.label)} <span style="opacity:.6;font-weight:700">(sélection)</span></h4></div>
+      <div class="tf-carousel" id="tf-live-rail-${t.key}" aria-label="Live ${escapeHtml(t.label)}">
+        <div class="tf-empty">Chargement…</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderLiveRail(key, items){
+  const wrap = q('#tf-live-rail-'+key);
+  if(!wrap) return;
+  tfBindHorizontalWheel(wrap);
+  if(!items || !items.length){
+    wrap.innerHTML = '<div class="tf-empty">Aucun live trouvé.</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  items.slice(0, 24).forEach(channel=>{
+    const thumb = (channel.thumbnail_url || '').replace('{width}','320').replace('{height}','180');
+    const card = document.createElement('div');
+    card.className = 'tf-live-card';
+    card.innerHTML = `
+      <img class="tf-live-thumb" src="${escapeHtml(thumb)}" alt="">
+      <div class="tf-live-meta">
+        <div class="tf-title">${escapeHtml(channel.game_name || '')}</div>
+        <div class="tf-sub">${escapeHtml(channel.user_name || channel.user_login || '')} · ${escapeHtml(String(channel.viewer_count||0))} viewers</div>
+      </div>
+      <div class="tf-badge-live">EN LIVE</div>
+    `;
+    card.addEventListener('click', (e)=>{
+      e.preventDefault();
+      try{ closeTwitFlix(); }catch(_){ }
+      try{ loadPlayerEmbed(channel); }catch(_){ }
+      try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
+    });
+    wrap.appendChild(card);
+  });
+}
+
+async function ensureLiveMultiLoaded(){
+  if(__liveMultiLoadedOnce || __liveMultiLoading) return;
+  __liveMultiLoading = true;
+  renderLiveMultiSkeleton();
+
+  try{
+    // For each theme, resolve a category, then load streams for that game_id
+    for(const t of __LIVE_THEMES){
+      try{
+        if(t.key === 'top'){
+          const r = await fetch(`${API_BASE}/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=800&limit=30`, { credentials:'include' });
+          const d = r.ok ? await r.json() : null;
+          renderLiveRail(t.key, Array.isArray(d?.items) ? d.items : []);
+          continue;
+        }
+
+        const cr = await fetch(`${API_BASE}/api/categories/search?query=${encodeURIComponent(t.q)}&first=6`, { credentials:'include' });
+        const cd = cr.ok ? await cr.json() : null;
+        const cat = Array.isArray(cd?.items) ? cd.items.find(x=>x && x.id) : null;
+        const gameId = String(cat?.id || '').trim();
+        if(!gameId){ renderLiveRail(t.key, []); continue; }
+
+        const sr = await fetch(`${API_BASE}/api/twitch/streams/by-game?game_id=${encodeURIComponent(gameId)}&lang=fr&minViewers=20&maxViewers=800&limit=24`, { credentials:'include' });
+        const sd = sr.ok ? await sr.json() : null;
+        renderLiveRail(t.key, Array.isArray(sd?.items) ? sd.items : []);
+      }catch(_){
+        renderLiveRail(t.key, []);
+      }
+    }
+    __liveMultiLoadedOnce = true;
+  }catch(_){}
+  finally{
+    __liveMultiLoading = false;
+  }
+}
+
+function mp4FromIAFile(identifier, name){
     return `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(name)}`;
   }
   function iaThumb(identifier){
@@ -4523,7 +4622,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   }
 
   async function loadIAIdentifier(identifier){
-    const meta = await fetchJson(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
+    const meta = await fetchJson(`${API_BASE}/api/public-domain/list?identifier=${encodeURIComponent(identifier)}`);
     const files = (meta && meta.files) ? meta.files : [];
     const items = [];
     for(const f of files){

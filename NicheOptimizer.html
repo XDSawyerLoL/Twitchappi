@@ -2567,6 +2567,23 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   background: rgba(255,255,255,.05); color: rgba(255,255,255,.9); font-weight:700; font-size:12px;
 }
 .tf-chip.active{ border-color: rgba(229,9,20,.75); box-shadow: 0 0 0 1px rgba(229,9,20,.25) inset; }
+
+/* ORYON: Trailer clips autoplay */
+.tf-trailer-video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:14px;
+  background:#0b0c10;
+}
+.tf-hero-video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:24px;
+  background:#000;
+}
+
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -3011,6 +3028,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div>
 
+<div id="tf-live-multi"></div>
 
 <div id="tf-panel-anime" class="tf-panel">
   <div class="tf-header-block">
@@ -3031,7 +3049,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 <div class="tf-header-block">
   <div class="tf-strip-title">
-    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, ORYON TV tente une recherche automatique.">?</span></h4>
+    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers en autoplay (clips Twitch). Si un trailer manque, ORYON TV affiche une carte de secours.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
 </div>
