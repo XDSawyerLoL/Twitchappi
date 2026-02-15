@@ -157,67 +157,6 @@
       z-index: 9999; display: none; align-items: center; justify-content: center;
     }
     .tf-modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
-
-/* Player overlay (readable, centered) */
-.tf-player-overlay{
-  position:fixed; inset:0; z-index:10000;
-  display:flex; align-items:center; justify-content:center;
-  background: rgba(0,0,0,.88);
-  padding: 18px;
-}
-.tf-player-sheet{
-  width:min(1100px, 96vw);
-  max-height: 92vh;
-  background: #0b0b0f;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 18px;
-  box-shadow: 0 24px 80px rgba(0,0,0,.65);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-}
-.tf-player-close{
-  position:absolute;
-  right: 22px; top: 16px;
-  width: 42px; height: 42px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.45);
-  color: #fff; font-size: 18px;
-  cursor:pointer;
-  z-index: 2;
-}
-.tf-player-head{
-  padding: 18px 72px 12px 18px;
-}
-.tf-player-title{
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: .01em;
-  line-height: 1.1;
-  color: #fff;
-}
-.tf-player-sub{ margin-top:6px; opacity:.72; font-weight:700; }
-.tf-player-media{
-  aspect-ratio: 16 / 9;
-  width:100%;
-  background:#000;
-}
-.tf-player-media iframe,
-.tf-player-media video{ width:100%; height:100%; display:block; }
-.tf-player-foot{
-  padding: 12px 18px 18px 18px;
-  display:flex; gap:12px; align-items:center; justify-content:flex-end;
-  border-top: 1px solid rgba(255,255,255,.06);
-}
-.tf-player-link{
-  color:#e50914;
-  text-decoration:none;
-  font-weight:900;
-  letter-spacing:.02em;
-}
-.tf-player-link:hover{ text-decoration:underline; }
-
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
 
 /* ORYON TV logo (Netflix-like) */
@@ -2595,41 +2534,39 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
 
 
-/* Clips rail */
-.tf-clip-card{ position:relative; overflow:hidden; }
-.tf-clip-video{ width:100%; height:100%; object-fit:cover; display:block; }
-.tf-clip-title{ position:absolute; left:10px; right:10px; bottom:10px; font-size:12px; font-weight:800; text-shadow:0 1px 12px rgba(0,0,0,.75); line-height:1.2; max-height:2.4em; overflow:hidden; }
-.tf-clip-badge{ position:absolute; top:10px; left:10px; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.14); padding:4px 8px; border-radius:999px; font-size:11px; font-weight:900; letter-spacing:.06em; }
-
-
-/* === UX FIX: ORYON TV modal layout (prevents huge blank & enables scroll) === */
-#twitflix-modal.tf-modal-overlay{ padding: 18px; }
-#twitflix-modal .tf-modal-content{
-  width: min(1400px, 96vw);
-  height: min(900px, 92vh);
+/* ORYON TV section tabs */
+.tf-navtabs{
   display:flex;
-  flex-direction:column;
-  border-radius: 18px;
-  overflow:hidden;
-  background: rgba(8,8,10,.96);
-  border: 1px solid rgba(255,255,255,.06);
-  box-shadow: 0 30px 80px rgba(0,0,0,.55);
+  gap:8px;
+  padding:10px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: linear-gradient(to bottom, rgba(0,0,0,.78), rgba(0,0,0,.35));
+  backdrop-filter: blur(8px);
 }
-#twitflix-modal .tf-topbar, #twitflix-modal .tf-themebar{
-  flex: 0 0 auto;
+.tf-tabbtn{
+  padding:6px 10px;
+  border-radius: 999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.9);
+  font-weight: 700;
+  font-size: 12px;
 }
-#twitflix-modal .tf-body{
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding-bottom: 24px;
+.tf-tabbtn.active{
+  border-color: rgba(229,9,20,.75);
+  box-shadow: 0 0 0 1px rgba(229,9,20,.25) inset;
 }
-#twitflix-modal .tf-section{ margin-top: 16px; }
-#twitflix-modal .tf-section-title{ margin: 14px 0 10px; }
-/* Player overlay readability */
-.tf-player-sheet{ border-radius: 18px; }
-.tf-player-meta h2{ font-size: 28px; line-height: 1.05; max-width: 80ch; }
-.tf-player-meta .tf-player-sub{ opacity:.85; }
+.tf-panel{ display:none; }
+.tf-panel.active{ display:block; }
+
+.tf-anime-tabs{ display:flex; gap:8px; padding:6px 0 10px; flex-wrap:wrap; }
+.tf-chip{
+  padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.05); color: rgba(255,255,255,.9); font-weight:700; font-size:12px;
+}
+.tf-chip.active{ border-color: rgba(229,9,20,.75); box-shadow: 0 0 0 1px rgba(229,9,20,.25) inset; }
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -3034,7 +2971,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-menu">
   <button class="tf-menu-btn" type="button" aria-label="Menu ORYON" onclick="tfToggleMenu(event)">☰</button>
   <div class="tf-menu-panel" id="tf-menu-panel" style="display:none;">
-    <button type="button" onclick="window.location.href='/anime'">Animés (domaine public)</button>
     <button type="button" onclick="closeTwitFlix(); tfHideMenu();">Fermer ORYON TV</button>
     <button type="button" onclick="tfQuitApp()">Quitter l’application</button>
   </div>
@@ -3042,19 +2978,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 <button class="tf-close-btn" type="button" aria-label="Fermer ORYON TV" onclick="closeTwitFlix()">✕</button>
 </div>
-</div>
-<div class="tf-themebar" id="tf-themebar" aria-label="Thèmes Twitch">
-  <button class="tf-chip active" data-theme="" type="button">Top</button>
-  <button class="tf-chip" data-theme="rpg" type="button">RPG</button>
-  <button class="tf-chip" data-theme="fps" type="button">FPS</button>
-  <button class="tf-chip" data-theme="survival" type="button">Survie</button>
-  <button class="tf-chip" data-theme="moba" type="button">MOBA</button>
-  <button class="tf-chip" data-theme="mmo" type="button">MMO</button>
-  <button class="tf-chip" data-theme="strategy" type="button">Stratégie</button>
-  <button class="tf-chip" data-theme="racing" type="button">Course</button>
-  <button class="tf-chip" data-theme="sports" type="button">Sport</button>
-  <button class="tf-chip" data-theme="horror" type="button">Horreur</button>
-  <button class="tf-chip" data-theme="indie" type="button">Indé</button>
 </div>
 <div class="tf-sub" style="display:none;"></div>
 <div class="tf-body" id="tf-body">
@@ -3073,37 +2996,45 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   </div>
 </div>
 
+
+<div class="tf-navtabs" role="tablist" aria-label="Sections ORYON TV">
+  <button class="tf-tabbtn active" id="tf-tab-vod" type="button" onclick="tfSetTab('vod')">VOD</button>
+  <button class="tf-tabbtn" id="tf-tab-live" type="button" onclick="tfSetTab('live')">Live</button>
+  <button class="tf-tabbtn" id="tf-tab-anime" type="button" onclick="tfSetTab('anime')">Animé</button>
+</div>
+<div id="tf-panel-live" class="tf-panel">
 <div class="tf-header-block">
   <div class="tf-strip-title">
     <h4><span style="color:#e50914; font-weight:900; letter-spacing:.08em;">EN LIVE</span> <span style="opacity:.8; font-weight:800;">maintenant</span> <span class="help" data-help="Survole une carte pour une preview. Clique pour lancer un live correspondant au jeu.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
 </div>
+</div>
+
+
+<div id="tf-panel-anime" class="tf-panel">
+  <div class="tf-header-block">
+    <div class="tf-strip-title">
+      <h4>Animé — domaine public <span class="help" data-help="Épisodes (Archive.org).">?</span></h4>
+    </div>
+    <div class="tf-anime-tabs" aria-label="Séries animées">
+      <button type="button" class="tf-chip active" data-series="lone">Lone Ranger</button>
+      <button type="button" class="tf-chip" data-series="superman">Superman (Fleischer)</button>
+      <button type="button" class="tf-chip" data-series="popeye">Popeye</button>
+      <button type="button" class="tf-chip" data-series="felix">Felix le Chat</button>
+    </div>
+    <div class="tf-carousel" id="tf-anime-carousel" aria-label="Animés domaine public"></div>
+  </div>
+</div>
+
+<div id="tf-panel-vod" class="tf-panel active">
 
 <div class="tf-header-block">
   <div class="tf-strip-title">
-    <h4>Trailers jeux vidéo <span class="help" data-help="Prévisualisations automatiques via clips Twitch (muet). Plus fiable que YouTube (pas de vidéos bloquées).">?</span></h4>
+    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, ORYON TV tente une recherche automatique.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
 </div>
-
-<div class="tf-header-block">
-  <div class="tf-strip-title">
-    <h4>Animé — domaine public <span class="help" data-help="Courts métrages anciens (domaine public) lisibles directement ici. Clique une carte pour agrandir.">?</span></h4>
-  <div class="tf-anime-tabs" role="tablist" aria-label="Séries domaine public">
-    <button class="tf-chip tf-chip-active" data-anime-series="lone-ranger" type="button">Lone Ranger</button>
-    <button class="tf-chip" data-anime-series="superman" type="button">Superman (Fleischer)</button>
-    <button class="tf-chip" data-anime-series="popeye" type="button">Popeye</button>
-    <button class="tf-chip" data-anime-series="felix" type="button">Felix le Chat</button>
-  </div>
-  </div>
-  <div class="tf-carousel" id="tf-anime-carousel" aria-label="Anime libre de droits">
-    <div class="tf-trailer-fallback" style="min-width:360px">
-      Chargement des épisodes “The Lone Ranger” (domaine public)…
-    </div>
-</div>
-</div>
-
 
 <div class="tf-grid" id="twitflix-grid">
 <div class="text-center w-full text-gray-500 py-20" id="tf-loading">
@@ -3112,9 +3043,10 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div>
 </div>
+</div>
 </div></div>
 <div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="ORYON" class="oryon-logo" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;pointer-events:none;">ORYON</div></div>
-<script src="/assets/js/core/app-bootstrap.js?v=1771192729" defer></script>
+<script src="/assets/js/core/app-bootstrap.js?v=1770565485" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
 <div class="modal-head">
@@ -3468,65 +3400,10 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-hero-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter: blur(0px); opacity:.55; transform: scale(1.03); }
 #twitflix-modal .tf-hero-media{ position:absolute; inset:0; z-index:1; }
 #twitflix-modal .tf-hero-media iframe.tf-hero-iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none; opacity:.86; filter: saturate(1.05) contrast(1.03); }
-#twitflix-modal .tf-hero-media video.tf-hero-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; opacity:.9; filter:saturate(1.05) contrast(1.03); }
 #twitflix-modal .tf-hero-content{ position:relative; z-index:3; padding: 82px 64px 64px 64px; max-width: 820px; }
 #twitflix-modal .tf-hero-title{ font-size: 66px; line-height: 0.98; font-weight: 900; letter-spacing: .005em; text-transform:none; text-shadow: 0 18px 60px rgba(0,0,0,.65); }
 #twitflix-modal .tf-hero-sub{ font-size: 18px; opacity:.92; max-width: 520px; margin-top: 12px; }
 #twitflix-modal .tf-hero-btns{ margin-top: 22px; display:flex; gap: 12px; align-items:center; flex-wrap:wrap; }
-
-/* Theme chips bar */
-#twitflix-modal .tf-themebar{
-  display:flex;
-  gap: 10px;
-  padding: 10px 18px 2px 18px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-#twitflix-modal .tf-chip{
-  appearance:none;
-  border: 1px solid rgba(255,255,255,.16);
-  background: rgba(20,20,20,.65);
-  color: rgba(255,255,255,.9);
-  padding: 8px 12px;
-  border-radius: 999px;
-  font-weight: 800;
-  font-size: 12px;
-  cursor: pointer;
-  transition: transform .12s ease, background .12s ease, border-color .12s ease;
-  white-space: nowrap;
-}
-#twitflix-modal .tf-chip:hover{ transform: translateY(-1px); border-color: rgba(0,242,234,.45); }
-#twitflix-modal .tf-chip.active{ background: rgba(0,242,234,.12); border-color: rgba(0,242,234,.65); }
-
-/* Small cards with real thumbnails (used by "Anime libre de droits") */
-#twitflix-modal .tf-card .tf-card-img{
-  width:100%;
-  height: 76%;
-  background-size: cover;
-  background-position: center;
-  border-radius: 10px;
-  box-shadow: inset 0 -50px 80px rgba(0,0,0,.55);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Public-domain anime rail: small muted looping videos */
-#twitflix-modal .tf-card-vid{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit: cover;
-  filter: saturate(1.05) contrast(1.05);
-}
-#twitflix-modal .tf-card .tf-card-title{
-  margin-top: 10px;
-  font-size: 13px;
-  font-weight: 800;
-  opacity: .92;
-  white-space: normal;
-  line-height: 1.2;
-}
 
 @media (max-width: 900px){
   #twitflix-modal .tf-nx-hero{ min-height: 420px; }
