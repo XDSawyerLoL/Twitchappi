@@ -1339,9 +1339,10 @@ async function tfRenderTrailerCarousel(){
         `;
         wrap.appendChild(card);
 
+        let resp = null;
         try{
-          const resp = await tfFetchJsonSafe(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`);
-          const j = resp.json;
+          resp = await tfFetchJsonSafe(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`);
+          const j = resp && resp.json;
           const it = (j && j.success && Array.isArray(j.items) && j.items[0]) ? j.items[0] : null;
 
           if(it && it.mp4){
@@ -1389,11 +1390,14 @@ async function tfRenderTrailerCarousel(){
     let tfSearchQuery = '';
     let tfSearchResults = [];
     let tfVodResults = [];
+    let tfThemeRegex = null;
     let tfTopVodResults = [];
     let tfTopVodLoading = false;
     let tfTopVodLoadedAt = 0;
     let tfVodTimer = null;
     let tfSearchTimer = null;
+    let tfSearchAbort = null;
+    const tfSearchCache = new Map(); // q -> {ts, categories, vods}
 
     let tfObserver = null;
 
@@ -1594,7 +1598,7 @@ const modal = document.getElementById('twitflix-modal');
 
       setTwitFlixView('rows');
 
-      // search handler (IA-assisted)
+      // Search handler (fast): debounce + cancel in-flight + avoid heavy IA calls.
       if (search){
         search.onkeydown = async (ev)=>{
           if(ev.key === 'Enter'){
@@ -1612,7 +1616,7 @@ const modal = document.getElementById('twitflix-modal');
           if (tfSearchTimer) clearTimeout(tfSearchTimer);
           tfSearchTimer = setTimeout(async () => {
             await tfRunSearch(v);
-          }, 180);
+          }, 360);
         };
       }
 
@@ -1621,35 +1625,39 @@ const modal = document.getElementById('twitflix-modal');
         const themeBar = document.getElementById('tf-themebar');
         if(themeBar && !themeBar.__bound){
           themeBar.__bound = true;
-          const THEME_Q = {
-            '': '',
-            rpg: 'RPG',
-            fps: 'FPS',
-            survival: 'Survival',
-            moba: 'MOBA',
-            mmo: 'MMO',
-            strategy: 'Strategy',
-            racing: 'Racing',
-            sports: 'Sports',
-            horror: 'Horror',
-            indie: 'Indie'
+          const THEME_FILTERS = {
+            '': null,
+            rpg: /(rpg|elden|baldur|final fantasy|diablo|poe|path of exile|souls|dragon|witcher)/i,
+            fps: /(fps|valorant|counter\-strike|cs2|call of duty|warzone|overwatch|apex|rainbow|fortnite)/i,
+            survival: /(survival|ark|rust|dayz|valheim|minecraft|subnautica|palworld|no man)/i,
+            moba: /(moba|league of legends|dota|smite)/i,
+            mmo: /(mmo|world of warcraft|wow|ffxiv|final fantasy xiv|guild wars|eso|runescape)/i,
+            strategy: /(strategy|strat|civilization|age of empires|aoe|total war|starcraft|tft)/i,
+            racing: /(racing|forza|gran turismo|f1|motorsport|need for speed|assetto|rocket league)/i,
+            sports: /(sports|ea sports|fifa|fc\s?2\d|nba|madden|mlb|nhl)/i,
+            horror: /(horror|resident evil|dead by daylight|phasmophobia|outlast|silent hill|amnesia)/i,
+            indie: /(indie|hades|stardew|hollow knight|celeste|terraria|undertale|slay the spire)/i
           };
           themeBar.querySelectorAll('.tf-chip').forEach(btn=>{
             btn.addEventListener('click', async ()=>{
               themeBar.querySelectorAll('.tf-chip').forEach(b=>b.classList.remove('active'));
               btn.classList.add('active');
               const key = btn.getAttribute('data-theme') || '';
-              const q = THEME_Q[key] || '';
-              if(!q){
+              const re = THEME_FILTERS[key] || null;
+              // Theme mode = local filter on already loaded catalogue (instant). No network.
+              if(!re){
+                tfThemeRegex = null;
                 tfSearchQuery = '';
                 tfSearchResults = [];
                 if(search) search.value = '';
                 renderTwitFlix();
                 return;
               }
-              tfSearchQuery = q;
-              if(search) search.value = q;
-              await tfRunSearch(q);
+              tfThemeRegex = re;
+              tfSearchQuery = '';
+              tfSearchResults = [];
+              if(search) search.value = '';
+              renderTwitFlix();
             });
           });
         }
@@ -1667,9 +1675,8 @@ const modal = document.getElementById('twitflix-modal');
       await tfLoadPersonalization();
 
       tfRenderLiveCarousel();
-      // Trailer carousel is hidden in the Netflix-like mode; hero is the trailer.
-      try{ tfRenderTrailerCarousel();
-          try{ tfRenderClipsCarousel(); }catch(_){ } }catch(_){ }
+      // Trailers: use Twitch clips (more reliable than YouTube embeds).
+      try{ tfRenderTrailerCarousel(); }catch(_){ }
       try{ tfInitPublicDomainAnimeRail(); }catch(_){ }
       renderTwitFlix();
 
@@ -1911,6 +1918,11 @@ const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
       if (!host) return;
 
+      // Cancel previous in-flight searches (typing stays instant)
+      try{ if (tfSearchAbort) tfSearchAbort.abort(); }catch(_){ }
+      tfSearchAbort = new AbortController();
+      const sig = tfSearchAbort.signal;
+
       if (!q){
         tfSearchResults = [];
         tfVodResults = [];
@@ -1918,75 +1930,73 @@ const modal = document.getElementById('twitflix-modal');
         return;
       }
 
-      // IA-assisted: if query is a sentence, ask the server to translate it into a curated list.
-      const looksComplex = (q.length >= 22) || /\bcomme\b|\bmais\b|\bmoins\b|\bplus\b|\bstress\b|\bcraft\b/i.test(q);
-      if(looksComplex){
-        try{
-          const r0 = await fetch(`${API_BASE}/api/search/intent`, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ text: q })
-          });
-          if(r0.ok){
-            const d0 = await r0.json();
-            if(d0 && d0.success && Array.isArray(d0.categories)){
-              tfSearchResults = d0.categories.map(c => ({
-                id: c.id,
-                name: c.name,
-                box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
-              }));
-              renderTwitFlix();
-              return;
-            }
-          }
-        }catch(_){ }
+      // Don't spam network for tiny queries
+      if (q.length < 3){
+        tfSearchResults = [];
+        tfVodResults = [];
+        renderTwitFlix();
+        return;
       }
 
-      
-      // Also fetch Twitch VODs by title (FR, streamers 20-200 viewers)
-      try{
-        const rV = await fetch(`${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=18`);
-        if(rV.ok){
-          const dV = await rV.json();
-          if(dV && dV.success && Array.isArray(dV.items)){
-            tfVodResults = dV.items.map(v=>({
+      // 60s cache (backspace/retape becomes instant)
+      const cached = tfSearchCache.get(q);
+      if (cached && (Date.now()-cached.ts) < 60000){
+        tfSearchResults = cached.categories || [];
+        tfVodResults = cached.vods || [];
+        renderTwitFlix();
+        return;
+      }
+
+      // Fast mode: categories + VODs in parallel (no IA intent call)
+      const pCats = (async ()=>{
+        try{
+          const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`, { signal: sig });
+          const d = await r.json().catch(()=>null);
+          if (r.ok && d && d.success && Array.isArray(d.categories)){
+            return d.categories.map(c => ({
+              id: c.id,
+              name: c.name,
+              box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
+            }));
+          }
+        }catch(_){ }
+        return null;
+      })();
+
+      const pVods = (async ()=>{
+        try{
+          const rV = await fetch(`${API_BASE}/api/twitch/vods/search?title=${encodeURIComponent(q)}&lang=fr&min=20&max=200&limit=18`, { signal: sig });
+          const dV = await rV.json().catch(()=>null);
+          if (rV.ok && dV && dV.success && Array.isArray(dV.items)){
+            return dV.items.map(v=>({
               id: v.id,
               name: `${v.title}`,
               box_art_url: tfNormalizeTwitchThumb(v.thumbnail_url || ''),
               _vod: v
             }));
-          } else {
-            tfVodResults = [];
           }
-        } else {
-          tfVodResults = [];
-        }
-      }catch(_){
-        tfVodResults = [];
-      }
+        }catch(_){ }
+        return [];
+      })();
 
-// Try server search (best)
-      try{
-        const r = await fetch(`${API_BASE}/api/categories/search?q=${encodeURIComponent(q)}`);
-        if (r.ok){
-          const d = await r.json();
-          if (d && d.success && Array.isArray(d.categories)){
-            tfSearchResults = d.categories.map(c => ({
-              id: c.id,
-              name: c.name,
-              box_art_url: tfNormalizeBoxArt(c.box_art_url || c.boxArtUrl || '')
-            }));
-            renderTwitFlix();
-            return;
-          }
-        }
-      }catch(_){}
+      const [cats, vods] = await Promise.all([pCats, pVods]);
+      if (sig.aborted) return;
+
+      tfVodResults = vods || [];
+      if (cats){
+        tfSearchResults = cats;
+        tfSearchCache.set(q, { ts: Date.now(), categories: tfSearchResults, vods: tfVodResults });
+        renderTwitFlix();
+        return;
+      }
 
       // Fallback: local filter on already loaded catalogue
       const low = q.toLowerCase();
       tfSearchResults = tfAllCategories
         .filter(c => (c.name||'').toLowerCase().includes(low))
         .slice(0, 120);
+
+      tfSearchCache.set(q, { ts: Date.now(), categories: tfSearchResults, vods: tfVodResults });
       renderTwitFlix();
     }
 
@@ -2125,7 +2135,12 @@ const modal = document.getElementById('twitflix-modal');
       tfSetHero({ title: 'ORYON TV', sub: 'Choisis un jeu. LIVE et VOD (petits créateurs) — interface Netflix.' });
       try{ tfRenderHeroMedia(); }catch(_){ }
 
-      const list = tfAllCategories.slice(0);
+      let list = tfAllCategories.slice(0);
+      if (tfThemeRegex){
+        list = list.filter(c => tfThemeRegex.test(String(c.name||'')));
+        // If filter is too strict, keep a small fallback slice to avoid empty UI.
+        if (list.length < 8) list = tfAllCategories.slice(0, 24);
+      }
       if (!list.length){
         host.innerHTML = '<div class="tf-empty"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
         if (sentinel) host.appendChild(sentinel);
@@ -3108,6 +3123,25 @@ function tfBuildCard(cat){
       media.appendChild(iframe);
     }
 
+    function tfHeroMountVideo(mp4, poster){
+      const media = document.getElementById('tf-hero-media');
+      if (!media) return;
+      media.dataset.locked = '1';
+      media.innerHTML = '';
+      const v = document.createElement('video');
+      v.className = 'tf-hero-video';
+      v.src = mp4;
+      v.muted = true;
+      v.autoplay = true;
+      v.playsInline = true;
+      v.loop = true;
+      v.preload = 'metadata';
+      if (poster) v.poster = poster;
+      media.appendChild(v);
+      // Avoid hard failure on autoplay policies
+      try{ const p = v.play(); if (p && p.catch) p.catch(()=>{}); }catch(_){ }
+    }
+
     function tfHeroClearMedia(){
       const media = document.getElementById('tf-hero-media');
       if (!media) return;
@@ -3139,13 +3173,17 @@ function tfBuildCard(cat){
 
       const p = (async ()=>{
         try{
-          // 0) Netflix-like HERO: prefer official GAME trailers (YouTube) first.
-          // This makes the HERO behave like Netflix (trailers that change on hover).
-          const ytId = await tfResolveTrailerId(gameName);
-          if (ytId){
-            tfHeroCache.set(key, { t: Date.now(), youtubeId: String(ytId).trim() });
-            return;
-          }
+          // 0) HERO: prefer Twitch clips (MP4) => no YouTube embed restrictions (error 153/150).
+          try{
+            const rC = await fetch(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(key)}&limit=8`, { credentials:'include' });
+            const dC = await rC.json().catch(()=>null);
+            const clips = (rC.ok && dC && dC.success && Array.isArray(dC.items)) ? dC.items : [];
+            const best = clips.find(c=>c && c.mp4) || null;
+            if (best && best.mp4){
+              tfHeroCache.set(key, { t: Date.now(), clipMp4: String(best.mp4), clipTitle: String(best.title||'') });
+              return;
+            }
+          }catch(_){ }
 
           // Prefer small creators VODs for this game
           const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(key)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
@@ -3177,19 +3215,14 @@ function tfBuildCard(cat){
     }
 
     function tfHeroApplyAutoplay(obj, gameName, poster){
-      // 1) YouTube trailer in HERO (autoplay muted)
-      if (obj.youtubeId){
-        const vid = String(obj.youtubeId).trim();
-        const origin = encodeURIComponent(window.location.origin);
-        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`;
-        tfHeroMountIframe(src);
-
-        // Play button opens the game modal (Netflix: hero is teaser; click leads to details)
+      // 1) Twitch clip MP4 in HERO (autoplay muted)
+      if (obj.clipMp4){
+        tfHeroMountVideo(String(obj.clipMp4), poster);
         const playBtn = document.getElementById('tf-hero-play');
         if (playBtn){
           playBtn.onclick = ()=>{ try{ tfOpenGameModal({ id: String(tfHeroCurrentKey||''), name: gameName, box_art_url: poster }); }catch(_){}; };
         }
-        tfSetHero({ title: gameName || 'Trailer', sub: 'Trailer officiel • Prévisualisation automatique', poster });
+        tfSetHero({ title: gameName || 'Trailer', sub: 'Clip Twitch • Prévisualisation automatique (muette)', poster });
         return;
       }
 
