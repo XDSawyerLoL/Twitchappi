@@ -4686,17 +4686,26 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 // =========================================================
 (function(){
   const THEMES = [
-    ['Top', null],
-    ['RPG', 'rpg'],
-    ['FPS', 'fps'],
-    ['Survie', 'survival'],
-    ['MOBA', 'moba'],
-    ['MMO', 'mmo'],
-    ['Stratégie', 'strategy'],
-    ['Course', 'racing'],
-    ['Sport', 'sport'],
-    ['Horreur', 'horror'],
-    ['Indé', 'indie']
+    { label:'Top', type:'top' },
+
+    // Genre-like rails (picked from well-known games on Twitch)
+    { label:'RPG', games:['Baldur\'s Gate 3','Elden Ring','Diablo IV','Final Fantasy XIV Online','Path of Exile'] },
+    { label:'FPS', games:['VALORANT','Counter-Strike','Apex Legends','Overwatch 2','Call of Duty: Warzone'] },
+    { label:'Survie', games:['Rust','DayZ','ARK: Survival Ascended','Valheim','The Forest'] },
+    { label:'MOBA', games:['League of Legends','Dota 2','SMITE','Heroes of the Storm'] },
+    { label:'MMO', games:['World of Warcraft','Final Fantasy XIV Online','Lost Ark','Black Desert'] },
+    { label:'Stratégie', games:['Teamfight Tactics','Age of Empires IV','StarCraft II','Civilization VI'] },
+    { label:'Course', games:['iRacing','Forza Horizon 5','Assetto Corsa','Gran Turismo 7'] },
+    { label:'Sport', games:['EA Sports FC 26','NBA 2K25','Rocket League','F1 25'] },
+    { label:'Horreur', games:['Dead by Daylight','Phasmophobia','Resident Evil 4','The Outlast Trials'] },
+    { label:'Indé', games:['Hades','Stardew Valley','Hollow Knight','Balatro'] },
+
+    // Extra rails to feel “as rich as VOD”
+    { label:'Action', games:['Grand Theft Auto V','Fortnite','Minecraft','Genshin Impact'] },
+    { label:'Rogue‑lite', games:['Hades','Dead Cells','The Binding of Isaac: Rebirth','Balatro'] },
+    { label:'JRPG', games:['Persona 5 Royal','Final Fantasy VII Rebirth','Like a Dragon: Infinite Wealth'] },
+    { label:'Fight', games:['Street Fighter 6','Tekken 8','Mortal Kombat 1'] },
+    { label:'Sandbox', games:['Minecraft','Garry\'s Mod','Terraria','Roblox'] }
   ];
   let rendered=false;
   const cache = new Map();
@@ -4758,16 +4767,25 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     if(rendered) return;
     rendered=true;
     container.innerHTML = '';
-    for (const [label, q] of THEMES){
+    for (const t of THEMES){
+      const label = t.label;
       try{
-        if(label==='Top'){
+        if(t.type==='top'){
           const j = await getJson('/api/twitch/streams/top?limit=24');
-          renderRail(container, 'Top', j?.data || j?.streams || j?.items || j?.data?.data || j?.data || []);
+          renderRail(container, label, j?.data || j?.streams || j?.items || j?.data?.data || j?.data || []);
           continue;
         }
-        const cats = await getJson(`/api/categories/search?q=${encodeURIComponent(label)}&limit=1`);
-        const game = (cats?.data||cats?.categories||[])[0];
+
+        // Find a real Twitch game id from a list of candidates
+        let game = null;
+        for (const gname of (t.games||[])){
+          const cats = await getJson(`/api/categories/search?q=${encodeURIComponent(gname)}&limit=1`);
+          game = (cats?.data || cats?.categories || [])[0] || null;
+          if(game?.id) break;
+        }
+
         if(!game?.id){ renderRail(container, label, []); continue; }
+
         const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(game.id)}&limit=24`);
         renderRail(container, label, s?.data || s?.streams || []);
       }catch(_e){
