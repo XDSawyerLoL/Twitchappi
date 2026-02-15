@@ -4375,39 +4375,6 @@ if(process.env.NODE_ENV !== 'production'){
   });
 }
 
-
-
-// Express fallback error handler: always JSON for /api/*
-app.use((err, req, res, next)=>{
-  try{
-    if(req.path && req.path.startsWith('/api/')){
-      const code = Number(err?.status || err?.statusCode || 500);
-      return res.status(code).json({ success:false, error: String(err?.message || err) });
-    }
-  }catch(_){}
-  next(err);
-});
-
-process.on('unhandledRejection', (reason)=>{
-  console.error('❌ [UNHANDLED_REJECTION]', reason);
-});
-process.on('uncaughtException', (err)=>{
-  console.error('❌ [UNCAUGHT_EXCEPTION]', err);
-});
-server.listen(PORT, () => {
-  console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
-  console.log("✅ Routes prêtes");
-});
-
-
-// =========================================================
-// 9. SAFE ERROR HANDLER (évite crash silencieux)
-// =========================================================
-app.use((err, req, res, next) => {
-  try{
-    console.error('[ERROR]', req.__rid || '-', err && (err.stack || err.message || err));
-  }catch(_){}
-  if(res.headersSent) return next(err);
 // =========================================================
 // Public domain — Lone Ranger cartoons (Archive.org)
 // =========================================================
@@ -4426,7 +4393,6 @@ app.get('/api/public-domain/lone-ranger', async (req,res)=>{
     const files = Array.isArray(j?.files) ? j.files : [];
     const mp4s = files
       .filter(f => typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.mp4'))
-      .filter(f => (String(f.format||'').toLowerCase().includes('mp4') || true))
       .map(f => {
         const fn = f.name;
         const title = f.title || __cleanEpisodeTitle(fn);
@@ -4441,7 +4407,6 @@ app.get('/api/public-domain/lone-ranger', async (req,res)=>{
         };
       });
 
-    // stable sort: alphabetical by title (good enough)
     mp4s.sort((a,b)=> (a.title||'').localeCompare(b.title||''));
 
     const data = {
@@ -4456,5 +4421,30 @@ app.get('/api/public-domain/lone-ranger', async (req,res)=>{
     return apiErr(res, 500, 'PD_LONE_RANGER_ERROR', e?.message || 'error');
   }
 });
-  return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
+
+
+// =========================================================
+// SAFE ERROR HANDLER (always JSON for /api/*)
+// =========================================================
+app.use((err, req, res, next) => {
+  try{
+    console.error('[ERROR]', req.__rid || '-', err && (err.stack || err.message || err));
+  }catch(_){}
+  if(res.headersSent) return next(err);
+  if(String(req.path||'').startsWith('/api/')){
+    return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
+  }
+  return res.status(500).send('Internal error');
+});
+
+process.on('unhandledRejection', (reason)=>{
+  console.error('❌ [UNHANDLED_REJECTION]', reason);
+});
+process.on('uncaughtException', (err)=>{
+  console.error('❌ [UNCAUGHT_EXCEPTION]', err);
+});
+
+server.listen(PORT, () => {
+  console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
+  console.log("✅ Routes prêtes");
 });
