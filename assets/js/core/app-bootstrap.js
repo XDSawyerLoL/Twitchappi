@@ -587,6 +587,12 @@ function startAuth() {
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
       }[m]));
     }
+
+    // TwitFlix helper: unify escaping helper used across modules.
+    function tfEsc(v){
+      return escapeHtml(String(v ?? ""));
+    }
+
     // ================== HUB UI (persistant + emotes + gifs + réactions) ==================
     const EMOTE_MAP = {
       ':kappa:':'😏', ':pog:':'🤯', ':gg:':'🏆', ':love:':'💖',
@@ -2067,7 +2073,7 @@ const modal = document.getElementById('twitflix-modal');
       await tfLoadMore(true);
       tfRenderLiveCarousel();
           tfRenderTrailerCarousel();
-          try{ tfRenderClipsCarousel(); }catch(_){ }
+
           renderTwitFlix();
       tfSetupObserver();
     }
