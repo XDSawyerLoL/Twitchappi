@@ -150,6 +150,15 @@ async function addXP(user, delta){
 // 1. CONFIGURATION
 // =========================================================
 const app = express();
+
+// Force JSON errors for API routes (avoid HTML error pages breaking fetch().json())
+app.use('/api', (req,res,next)=>{
+  res.setHeader('Content-Type','application/json; charset=utf-8');
+  next();
+});
+
+// Small health endpoint
+app.get('/api/health', (req,res)=>res.json({ ok:true, ts: Date.now() }));
 app.set('trust proxy', 1);
 
 // Helmet: iframe-safe (NE BLOQUE PAS Fourthwall/iframe)
@@ -4367,6 +4376,24 @@ if(process.env.NODE_ENV !== 'production'){
 }
 
 
+
+// Express fallback error handler: always JSON for /api/*
+app.use((err, req, res, next)=>{
+  try{
+    if(req.path && req.path.startsWith('/api/')){
+      const code = Number(err?.status || err?.statusCode || 500);
+      return res.status(code).json({ success:false, error: String(err?.message || err) });
+    }
+  }catch(_){}
+  next(err);
+});
+
+process.on('unhandledRejection', (reason)=>{
+  console.error('❌ [UNHANDLED_REJECTION]', reason);
+});
+process.on('uncaughtException', (err)=>{
+  console.error('❌ [UNCAUGHT_EXCEPTION]', err);
+});
 server.listen(PORT, () => {
   console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
   console.log("✅ Routes prêtes");

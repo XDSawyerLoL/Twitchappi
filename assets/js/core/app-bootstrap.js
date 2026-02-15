@@ -1022,7 +1022,33 @@ window.addEventListener('message', (ev) => {
     // Public-domain anime rail (small loop previews + click to open a large player)
     
     // Public-domain rail — The Lone Ranger (Archive.org) + click to open a large player
-    async function tfInitPublicDomainAnimeRail(){
+    
+    // Robust fetch helper: handles non-JSON responses and exposes HTTP status for UX debugging
+    async function tfFetchJsonSafe(url, opts){
+      const o = Object.assign({ cache:'no-store', credentials:'include' }, opts||{});
+      try{
+        const r = await fetch(url, o);
+        const ct = (r.headers.get('content-type') || '').toLowerCase();
+        const txt = await r.text();
+        let j = null;
+        if (ct.includes('application/json')){
+          try{ j = JSON.parse(txt); }catch(_){}
+        }else{
+          // Try parse anyway (some servers forget content-type)
+          try{ j = JSON.parse(txt); }catch(_){}
+        }
+        return { ok:r.ok, status:r.status, json:j, text:txt };
+      }catch(e){
+        return { ok:false, status:0, json:null, text:String(e && e.message ? e.message : e) };
+      }
+    }
+    function tfErrMsg(resp){
+      if(!resp) return 'Erreur réseau';
+      if(resp.status===0) return 'Erreur réseau';
+      const msg = resp.json && (resp.json.error || resp.json.message);
+      return `HTTP ${resp.status}${msg ? ' — ' + msg : ''}`;
+    }
+async function tfInitPublicDomainAnimeRail(){
       const rail = document.getElementById('tf-anime-carousel');
       if(!rail || rail.__animeBound) return;
       rail.__animeBound = true;
@@ -1228,8 +1254,8 @@ window.addEventListener('message', (ev) => {
       wrap.innerHTML = `<div class="tf-trailer-fallback" style="min-width:360px">Chargement des clips…</div>`;
 
       try{
-        const r = await fetch(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=18`, { cache:'no-store' });
-        const j = await r.json();
+        const resp = await tfFetchJsonSafe(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=18`);
+        const j = resp.json;
         const items = (j && j.success && Array.isArray(j.items)) ? j.items : [];
 
         if (!items.length){
@@ -1278,7 +1304,7 @@ window.addEventListener('message', (ev) => {
         }catch(_){}
 
       }catch(e){
-        wrap.innerHTML = '<div class="tf-empty">Erreur chargement des clips.</div>';
+        wrap.innerHTML = `<div class="tf-empty">Erreur chargement des clips (${tfEsc(tfErrMsg(resp))}).</div>`;
       }
     }
 
@@ -1314,8 +1340,8 @@ async function tfRenderTrailerCarousel(){
         wrap.appendChild(card);
 
         try{
-          const r = await fetch(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`, { cache:'no-store', credentials:'include' });
-          const j = await r.json().catch(()=>null);
+          const resp = await tfFetchJsonSafe(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`);
+          const j = resp.json;
           const it = (j && j.success && Array.isArray(j.items) && j.items[0]) ? j.items[0] : null;
 
           if(it && it.mp4){
@@ -1347,7 +1373,7 @@ async function tfRenderTrailerCarousel(){
             <div class="tf-trailer-fallback">
               <div>
                 <div style="font-weight:800;margin-bottom:6px">${escapeHtml(gameName || 'Clip')}</div>
-                <div style="opacity:.75">Erreur chargement</div>
+                <div style="opacity:.75">Erreur: ${escapeHtml(tfErrMsg(resp || null))}</div>
               </div>
             </div>
           `;
