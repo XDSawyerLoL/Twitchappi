@@ -499,8 +499,11 @@ app.post('/api/steam/logout', (req, res) => {
 // Remove the persisted Steam link for the current Twitch user
 app.post('/api/steam/unlink', async (req, res) => {
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    // Guest-friendly: do NOT hard-fail (401) for hub status.
+    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    if(!tu){
+      return res.json({ success:true, connected:false, plan:'free', credits:0, entitlements:{}, steam:{ connected:false } });
+    }
     await setBillingSteam(tu, null);
     if(req.session) req.session.steam = null;
     return res.json({ success:true });
@@ -3760,8 +3763,11 @@ async function requireActionQuota(req, res, actionName){
 
 app.get('/api/fantasy/profile', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    // Guest-friendly: do NOT hard-fail (401) for hub status.
+    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    if(!tu){
+      return res.json({ success:true, connected:false, user:'Guest', plan:'free', credits:0, cash:0, holdings:[] });
+    }
     const user = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
     const w = await getUserWallet(user);
 
@@ -3788,7 +3794,8 @@ app.get('/api/fantasy/profile', async (req,res)=>{
     }
 
     // keep wallet cash in sync for leaderboard compatibility (do not erase holdings)
-    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }res.json({ success:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
+    try{ w.cash = cash; await saveUserWallet(w); }catch(_){ }
+    res.json({ success:true, connected:true, user: w.user, plan: bill.plan || 'free', credits: cash, cash, holdings: enriched });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -3797,8 +3804,11 @@ app.get('/api/fantasy/profile', async (req,res)=>{
 // Invest (amount in credits -> shares at current market price)
 app.post('/api/fantasy/invest', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    // Guest-friendly: do NOT hard-fail (401) for hub status.
+    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    if(!tu){
+      return res.json({ success:true, connected:false, plan:'free', credits:0, entitlements:{}, steam:{ connected:false } });
+    }
     const user = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
     // Market action consumes credits unless Premium
     const quota = await requireActionQuota(req, res, 'market_trade');
@@ -3917,8 +3927,11 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 // =========================================================
 app.get('/api/billing/me', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    // Guest-friendly: do NOT hard-fail (401) for hub status.
+    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    if(!tu){
+      return res.json({ success:true, connected:false, plan:'free', credits:0, entitlements:{}, steam:{ connected:false } });
+    }
     let b = await getBillingDoc(tu);
 
     // Migration safety: if billing credits are 0 but fantasy wallet cash exists, sync it once.
@@ -3934,7 +3947,7 @@ app.get('/api/billing/me', async (req,res)=>{
     }
 
     const steam = b.steam && b.steam.steamid ? { connected:true, steamid:b.steam.steamid, profile:b.steam.profile || null } : { connected:false };
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
+    res.json({ success:true, connected:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
