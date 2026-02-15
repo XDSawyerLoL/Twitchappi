@@ -1171,6 +1171,37 @@ app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
   }
 });
 
+// =========================================================
+// ORYON TV — Clips by game (used as "trailers" - MP4 autoplay)
+// =========================================================
+app.get('/api/twitch/clips/by-game', async (req,res)=>{
+  try{
+    const game_id = String(req.query.game_id||'').trim();
+    const limit = Math.min(parseInt(req.query.limit||'6',10)||6, 20);
+    if(!game_id) return res.status(400).json({ ok:false, error:'missing game_id' });
+
+    const data = await twitchAPI(`clips?game_id=${encodeURIComponent(game_id)}&first=${limit}`);
+    const items = (data?.data||[]).map(c=>({
+      id: c.id,
+      title: c.title,
+      url: c.url,
+      embed_url: c.embed_url,
+      thumbnail_url: c.thumbnail_url,
+      creator_name: c.creator_name,
+      view_count: c.view_count,
+      created_at: c.created_at,
+      // MP4 derived from thumbnail_url
+      mp4: c.thumbnail_url ? c.thumbnail_url.replace(/-preview-\d+x\d+\.jpg.*/,'\.mp4') : null
+    })).filter(x=>x.mp4);
+
+    res.json({ ok:true, items });
+  }catch(e){
+    res.status(500).json({ ok:false, error:e.message });
+  }
+});
+
+
+
 
 // =========================================================
 // ORYON TV — Top VOD (global) — Netflix-like
@@ -1773,11 +1804,42 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 app.get('/firebase_status', (req, res) => {
-  // Avoid 304 with empty body in browsers; always return fresh JSON.
-  res.setHeader('Cache-Control','no-store, must-revalidate');
   try {
+    res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma','no-cache');
+    res.setHeader('Expires','0');
+    res.setHeader('Surrogate-Control','no-store');
     if (db && admin.apps.length > 0) {
       res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
+
+// =========================================================
+// Public Domain proxy (Archive.org metadata) — avoids browser CORS
+// =========================================================
+app.get('/api/public-domain/list', async (req,res)=>{
+  try{
+    const identifier = String(req.query.identifier||'').trim();
+    if(!identifier) return res.status(400).json({ ok:false, error:'missing identifier' });
+    const metaRes = await fetch(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
+    const meta = await metaRes.json();
+    const files = Array.isArray(meta?.files) ? meta.files : [];
+    const mp4s = files
+      .filter(f=>f && f.name && String(f.name).toLowerCase().endsWith('.mp4'))
+      .map(f=>{
+        const name = String(f.name);
+        const title = name.replace(/\.mp4$/i,'').replace(/[_+]/g,' ').replace(/\s+/g,' ').trim();
+        return {
+          title,
+          mp4: `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(name)}`
+        };
+      });
+    res.setHeader('Cache-Control','public, max-age=86400');
+    res.json({ ok:true, identifier, items: mp4s });
+  }catch(e){
+    res.status(500).json({ ok:false, error:e.message });
+  }
+});
+
+
     } else {
       res.json({ connected: false, message: 'Firebase not initialized' });
     }
@@ -3644,11 +3706,12 @@ async function requireActionQuota(req, res, actionName){
 
 app.get('/api/fantasy/profile', async (req,res)=>{
   try{
-    // Guest-friendly: do NOT hard-fail (401) for hub status.
-    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    const tu = req.session?.twitchUser;
     if(!tu){
-      return res.json({ success:true, connected:false, user:'Guest', plan:'free', credits:0, cash:0, holdings:[] });
+      return res.json({ success:true, connected:false, user:'Guest', holdings:[], wallet:{cash:0}, history:[] });
     }
+    if (tu.expiry && tu.expiry <= Date.now()) { req.session.twitchUser=null; return res.json({ success:true, connected:false, user:'Guest', holdings:[], wallet:{cash:0}, history:[] }); }
+
     const user = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
     const w = await getUserWallet(user);
 
@@ -3804,11 +3867,12 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 // =========================================================
 app.get('/api/billing/me', async (req,res)=>{
   try{
-    // Guest-friendly: do NOT hard-fail (401) for hub status.
-    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    const tu = req.session?.twitchUser;
     if(!tu){
-      return res.json({ success:true, connected:false, plan:'free', credits:0, entitlements:{}, steam:{ connected:false } });
+      return res.json({ success:true, connected:false, plan:'free', credits:0, premium:false, pro:false });
     }
+    if (tu.expiry && tu.expiry <= Date.now()) { req.session.twitchUser=null; return res.json({ success:true, connected:false, plan:'free', credits:0, premium:false, pro:false }); }
+
     let b = await getBillingDoc(tu);
 
     // Migration safety: if billing credits are 0 but fantasy wallet cash exists, sync it once.
@@ -3824,7 +3888,7 @@ app.get('/api/billing/me', async (req,res)=>{
     }
 
     const steam = b.steam && b.steam.steamid ? { connected:true, steamid:b.steam.steamid, profile:b.steam.profile || null } : { connected:false };
-    res.json({ success:true, connected:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
