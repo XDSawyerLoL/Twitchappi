@@ -1178,10 +1178,10 @@ async function tfInitPublicDomainAnimeRail(){
         await renderSeries(initial);
 
       }catch(e){
-        wrap.innerHTML = `<div class="tf-empty">Erreur chargement des clips (${tfEsc(tfErrMsg(resp))}).</div>`;
+        console.error("[TF] anime rail error", e);
+        try{ rail.innerHTML = `<div class="tf-empty">Erreur chargement épisodes.</div>`; }catch(_){ }
       }
     }
-
 async function tfRenderTrailerCarousel(){
       const wrap = document.getElementById('tf-trailer-carousel');
       if (!wrap) return;
@@ -1189,7 +1189,9 @@ async function tfRenderTrailerCarousel(){
       tfBindHorizontalWheel(wrap);
 
       // Use Twitch clips as "trailers" (auto MP4). YouTube embeds are frequently blocked/unavailable.
-      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 6) : [];
+      const _all = Array.isArray(tfAllCategories) ? tfAllCategories : [];
+      const _ban = new Set(['Just Chatting','Music','ASMR','IRL','Sports','Talk Shows & Podcasts']);
+      const cats = _all.filter(c=>c && c.name && !_ban.has(String(c.name)) && String(c.id||'').length>0).slice(0,6);
       wrap.innerHTML = '';
 
       if (!cats.length){
@@ -1223,7 +1225,7 @@ async function tfRenderTrailerCarousel(){
             const thumb = String(it.thumbnail_url || '');
             const src = String(it.mp4 || '');
             card.innerHTML = `
-              <div class="tf-clip-badge">CLIP</div>
+              <div class="tf-clip-badge">TRAILER</div>
               <video class="tf-clip-video" muted playsinline autoplay loop preload="metadata" poster="${tfEsc(thumb)}">
                 <source src="${tfEsc(src)}" type="video/mp4">
               </video>
