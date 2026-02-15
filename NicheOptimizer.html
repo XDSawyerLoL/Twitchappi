@@ -2533,57 +2533,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-arrow{width:30px;height:30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
 #twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
 
-
-/* ORYON TV section tabs */
-.tf-navtabs{
-  display:flex;
-  gap:8px;
-  padding:10px 14px;
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  background: linear-gradient(to bottom, rgba(0,0,0,.78), rgba(0,0,0,.35));
-  backdrop-filter: blur(8px);
-}
-.tf-tabbtn{
-  padding:6px 10px;
-  border-radius: 999px;
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.06);
-  color: rgba(255,255,255,.9);
-  font-weight: 700;
-  font-size: 12px;
-}
-.tf-tabbtn.active{
-  border-color: rgba(229,9,20,.75);
-  box-shadow: 0 0 0 1px rgba(229,9,20,.25) inset;
-}
-.tf-panel{ display:none; }
-.tf-panel.active{ display:block; }
-
-.tf-anime-tabs{ display:flex; gap:8px; padding:6px 0 10px; flex-wrap:wrap; }
-.tf-chip{
-  padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.05); color: rgba(255,255,255,.9); font-weight:700; font-size:12px;
-}
-.tf-chip.active{ border-color: rgba(229,9,20,.75); box-shadow: 0 0 0 1px rgba(229,9,20,.25) inset; }
-
-/* ORYON: Trailer clips autoplay */
-.tf-trailer-video{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  border-radius:14px;
-  background:#0b0c10;
-}
-.tf-hero-video{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  border-radius:24px;
-  background:#000;
-}
-
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -3013,43 +2962,16 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   </div>
 </div>
 
-
-<div class="tf-navtabs" role="tablist" aria-label="Sections ORYON TV">
-  <button class="tf-tabbtn active" id="tf-tab-vod" type="button" onclick="tfSetTab('vod')">VOD</button>
-  <button class="tf-tabbtn" id="tf-tab-live" type="button" onclick="tfSetTab('live')">Live</button>
-  <button class="tf-tabbtn" id="tf-tab-anime" type="button" onclick="tfSetTab('anime')">Animé</button>
-</div>
-<div id="tf-panel-live" class="tf-panel">
 <div class="tf-header-block">
   <div class="tf-strip-title">
     <h4><span style="color:#e50914; font-weight:900; letter-spacing:.08em;">EN LIVE</span> <span style="opacity:.8; font-weight:800;">maintenant</span> <span class="help" data-help="Survole une carte pour une preview. Clique pour lancer un live correspondant au jeu.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
 </div>
-</div>
 
-<div id="tf-live-multi"></div>
-
-<div id="tf-panel-anime" class="tf-panel">
-  <div class="tf-header-block">
-    <div class="tf-strip-title">
-      <h4>Animé — domaine public <span class="help" data-help="Épisodes (Archive.org).">?</span></h4>
-    </div>
-    <div class="tf-anime-tabs" aria-label="Séries animées">
-      <button type="button" class="tf-chip active" data-series="lone">Lone Ranger</button>
-      <button type="button" class="tf-chip" data-series="superman">Superman (Fleischer)</button>
-      <button type="button" class="tf-chip" data-series="popeye">Popeye</button>
-      <button type="button" class="tf-chip" data-series="felix">Felix le Chat</button>
-    </div>
-    <div class="tf-carousel" id="tf-anime-carousel" aria-label="Animés domaine public"></div>
-  </div>
-</div>
-
-<div id="tf-panel-vod" class="tf-panel active">
-
-<div class="tf-header-block">
+<div class="tf-header-block" style="display:none">
   <div class="tf-strip-title">
-    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers en autoplay (clips Twitch). Si un trailer manque, ORYON TV affiche une carte de secours.">?</span></h4>
+    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, ORYON TV tente une recherche automatique.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
 </div>
@@ -3061,10 +2983,9 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div>
 </div>
-</div>
 </div></div>
 <div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="ORYON" class="oryon-logo" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;pointer-events:none;">ORYON</div></div>
-<script src="/assets/js/core/app-bootstrap.js?v=1770565485" defer></script>
+<script src="/assets/js/core/app-bootstrap.js?v=1771197263" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
 <div class="modal-head">

@@ -96,22 +96,28 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     async function initFirebaseStatus() {
       async function checkStatus() {
         try {
-          const response = await fetch(`${API_BASE}/firebase_status`);
+          const response = await fetch(`${API_BASE}/firebase_status`, { cache: 'no-store' });
           const data = await response.json();
           const statusEl = document.getElementById('socket-status');
           if (data.connected) {
-            statusEl.innerText = 'HUB SECURE';
+            statusEl.innerText = 'HUB ONLINE';
             statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
           } else {
-            statusEl.innerText = 'HUB DISCONNECTED';
-            statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
+            // Firebase not initialized is not a hard failure for the app.
+            statusEl.innerText = 'HUB ONLINE (LIMITED)';
+            statusEl.className = 'text-[10px] font-bold text-amber-300 border border-amber-300 px-2 rounded';
           }
         } catch (error) {
           console.error('Firebase status error:', error);
+          const statusEl = document.getElementById('socket-status');
+          if(statusEl){
+            statusEl.innerText = 'HUB OFFLINE';
+            statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
+          }
         }
       }
       checkStatus();
-      setInterval(checkStatus, 5000);
+      setInterval(checkStatus, 15000);
     }
 
     // AUTH
@@ -559,8 +565,6 @@ function startAuth() {
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
       }[m]));
     }
-
-    const tfEsc = escapeHtml;
     // ================== HUB UI (persistant + emotes + gifs + réactions) ==================
     const EMOTE_MAP = {
       ':kappa:':'😏', ':pog:':'🤯', ':gg:':'🏆', ':love:':'💖',
@@ -853,15 +857,6 @@ window.addEventListener('message', (ev) => {
     tfRefreshSteamSession().catch(()=>{});
     alert('Connexion Steam échouée.');
   }
-
-addEventListener('message', (ev) => {
-  const data = ev?.data;
-  if(!data || data.type !== 'twitch:connected') return;
-  // Simple: full reload so followed lives appear
-  try{ window.location.reload(); }catch(_){ }
-});
-
-
 });
 
 
@@ -1080,78 +1075,108 @@ addEventListener('message', (ev) => {
       }
     }
 
-    
-function tfRenderTrailerCarousel(){
-  const wrap = document.getElementById('tf-trailer-carousel');
-  if (!wrap) return;
-  tfBindHorizontalWheel(wrap);
+    function tfRenderTrailerCarousel(){
+      const wrap = document.getElementById('tf-trailer-carousel');
+      if (!wrap) return;
 
-  // Use top game categories, but exclude "chat/irl" type categories for better UX
-  const banned = new Set(['just chatting','music','asmr','irl','talk shows & podcasts']);
-  const catsAll = Array.isArray(tfAllCategories) ? tfAllCategories : [];
-  const cats = catsAll.filter(c => !banned.has(String(c?.name||'').trim().toLowerCase())).slice(0, 12);
+      tfBindHorizontalWheel(wrap);
 
-  wrap.innerHTML = '';
-  if (!cats.length){
-    wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
-    return;
-  }
+      const cats = Array.isArray(tfAllCategories) ? tfAllCategories.slice(0, 18) : [];
+      wrap.innerHTML = '';
 
-  cats.forEach(cat => {
-    const gameName = String(cat.name || '').trim();
-    const gameId = String(cat.id || '').trim();
-
-    const card = document.createElement('div');
-    card.className = 'tf-trailer-card';
-    card.innerHTML = `
-      <div class="tf-trailer-fallback">
-        <div>
-          <div style="font-weight:800;margin-bottom:6px">${tfEsc(gameName || 'Trailer')}</div>
-          <div style="opacity:.85">
-            Chargement du trailer…
-            <div style="opacity:.7;font-size:12px;margin-top:4px">Auto-play (muet)</div>
-          </div>
-        </div>
-      </div>
-    `;
-    wrap.appendChild(card);
-
-    // Fetch a clip MP4 for this game (used as trailer preview)
-    (async () => {
-      try{
-        if(!gameId) return;
-        const r = await fetch(`${API_BASE}/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`, { credentials:'include' });
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        const d = await r.json();
-        const clip = Array.isArray(d.items) ? d.items[0] : null;
-        const mp4 = clip?.mp4 ? String(clip.mp4) : '';
-        if(!mp4) throw new Error('no_mp4');
-        card.innerHTML = `
-          <video class="tf-trailer-video" src="${tfEsc(mp4)}" muted autoplay loop playsinline preload="metadata"></video>
-        `;
-        card.addEventListener('click', (e)=>{
-          e.preventDefault();
-          // open clip in the main modal player (mp4)
-          try{ tfOpenVideoModal(mp4, gameName || 'Trailer', 'Trailer (clip Twitch)'); }catch(_){
-            window.open(mp4, '_blank');
-          }
-        }, { once:true });
-      }catch(_e){
-        card.innerHTML = `
-          <div class="tf-trailer-fallback">
-            <div>
-              <div style="font-weight:800;margin-bottom:6px">${tfEsc(gameName || 'Trailer')}</div>
-              <div style="opacity:.85">Trailer indisponible</div>
-            </div>
-          </div>
-        `;
+      if (!cats.length){
+        wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
+        return;
       }
-    })();
-  });
-}
 
+      cats.forEach(cat => {
+        const gameName = String(cat.name || '').trim();
+        const key = gameName.toLowerCase();
+        const vid = TRAILER_MAP[key];
 
-    functionfunction tfNormalizeBoxArt(url){
+        const card = document.createElement('div');
+        card.className = 'tf-trailer-card';
+
+        if (vid){
+          card.innerHTML = `
+            <iframe
+              src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              loading="lazy"
+              title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
+            </iframe>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="tf-trailer-fallback">
+              <div>
+                <div style="font-weight:800;margin-bottom:6px">${gameName || 'Trailer'}</div>
+                <div style="opacity:.85">
+                  Recherche du trailer…<br/>
+                  <span style="opacity:.7;font-size:12px">On tente une récupération automatique.</span>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Auto-resolve, then swap in the iframe
+          tfResolveTrailerId(gameName).then((autoId)=>{
+            if (!autoId){
+              // Show a deterministic end state instead of a forever-loading card.
+              const meta = card.querySelector('.tf-trailer-meta');
+              if(meta){
+                meta.innerHTML = `
+                  <div class="tf-title">${gameName}</div>
+                  <div class="tf-sub">Trailer introuvable</div>
+                `;
+              }
+              card.classList.add('tf-no-trailer');
+              return;
+            }
+            card.innerHTML = `
+              <iframe
+                src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                loading="lazy"
+                title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
+              </iframe>
+            `;
+          }).catch(()=>{});
+        }
+
+        wrap.appendChild(card);
+      });
+    }
+
+    let tfCursor = null;
+    let tfLoading = false;
+    let tfHasMore = true;
+    let tfLastLoadAt = 0;
+
+    let tfSearchQuery = '';
+    let tfSearchResults = [];
+    let tfVodResults = [];
+    let tfTopVodResults = [];
+    let tfTopVodLoading = false;
+    let tfTopVodLoadedAt = 0;
+    let tfVodTimer = null;
+    let tfSearchTimer = null;
+
+    let tfObserver = null;
+
+    // Preview cache
+    const tfPreviewCache = new Map(); // gameId -> {channel, t}
+    const tfPreviewInflight = new Map();
+    const TF_PREVIEW_TTL = 10 * 60 * 1000;
+
+    function tfNormalizeTwitchThumb(url){
+      const u = String(url||'');
+      if(!u) return '';
+      // Twitch thumbnails use {width}x{height}
+      return u.replace('%{width}','1000').replace('%{height}','562').replace('{width}','1000').replace('{height}','562');
+    }
+
+function tfNormalizeBoxArt(url){
   // Force higher-res boxarts to avoid "blurry" upscale in the ORYON TV rows.
   // Uses devicePixelRatio to request sharper images on HiDPI screens.
   const u = String(url || '');
@@ -1930,18 +1955,6 @@ const modal = document.getElementById('twitflix-modal');
           channel: String(v.user_name || ''),
           game: String(v.game_name || pick.name || '')
         };
-
-// Try to get a short MP4 clip for autoplay "trailer" feel
-try{
-  const cr = await fetch(`/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`, { credentials:'include' });
-  if (cr.ok){
-    const cd = await cr.json();
-    const clip = Array.isArray(cd.items) ? cd.items[0] : null;
-    const mp4 = clip?.mp4 ? String(clip.mp4) : '';
-    if (mp4) tfFeaturedHero.clipMp4 = mp4;
-  }
-}catch(_){ }
-
       }catch(_){ }
       finally{
         tfFeaturedLoading = false;
@@ -1960,12 +1973,7 @@ try{
 
       const parent = encodeURIComponent(window.location.hostname);
       const src = `https://player.twitch.tv/?video=${encodeURIComponent(tfFeaturedHero.vodId)}&parent=${parent}&autoplay=true&muted=true`;
-      if (tfFeaturedHero.clipMp4){
-        const mp4 = tfFeaturedHero.clipMp4;
-        media.innerHTML = `<video class="tf-hero-video" src="${tfEsc(mp4)}" muted autoplay loop playsinline preload="metadata"></video>`;
-      } else {
-        media.innerHTML = `<iframe class="tf-hero-iframe" src="${src}" allow="autoplay; fullscreen" frameborder="0" scrolling="no" title="preview"></iframe>`;
-      }
+      media.innerHTML = `<iframe class="tf-hero-iframe" src="${src}" allow="autoplay; fullscreen" frameborder="0" scrolling="no" title="preview"></iframe>`;
 
       tfSetHero({
         title: tfFeaturedHero.title || 'ORYON TV',
@@ -4469,295 +4477,3 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     window.__oryonSo = { open, close };
   }catch(_){}
 })();
-
-
-// ===== ORYON TV: Section Tabs (VOD / LIVE / ANIME) + Public-domain anime loader =====
-(function(){
-  const __TF_TABS = ['vod','live','anime'];
-  function q(sel, root=document){ return root.querySelector(sel); }
-  function qa(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
-
-  function setActiveTab(tab){
-    if(!__TF_TABS.includes(tab)) tab='vod';
-    // panels
-    __TF_TABS.forEach(t=>{
-      const p = q('#tf-panel-'+t);
-      if(p) p.classList.toggle('active', t===tab);
-      const b = q('#tf-tab-'+t);
-      if(b) b.classList.toggle('active', t===tab);
-    });
-    // keep hero visible always; optional: adjust hero button label
-    try{ localStorage.setItem('tf_last_tab', tab); }catch(_){}
-    if(tab==='anime') ensureAnimeLoaded();
-    if(tab==='live') ensureLiveMultiLoaded();
-  }
-
-  async function fetchJson(url){
-    const r = await fetch(url, { credentials:'include' });
-    const txt = await r.text();
-    let j=null;
-    try{ j = JSON.parse(txt); }catch(_){}
-    if(!r.ok){
-      const msg = (j && (j.error||j.message)) ? (j.error||j.message) : (txt||('HTTP '+r.status));
-      throw new Error(msg);
-    }
-    return j ?? {};
-  }
-
-  const __ANIME_SERIES = {
-    lone: { label:'Lone Ranger', ia:'LoneRangerCartoon1966CrackOfDoom' },
-    superman: { label:'Superman (Fleischer)', ia:'superman_1941' },
-    popeye: { label:'Popeye', ia:'popeye-pubdomain' },
-    felix: { label:'Felix le Chat', iaList:['FelixTheCat-FelineFollies1919','FelixTheCat-FelixTheGhostBreaker1923','FelixTheCat-FelixGoesA-huntin1923'] },
-  };
-
-  let __animeLoadedOnce = false;
-  let __animeLoading = false;
-
-  
-
-// ===== LIVE: multiple rails by theme (RPG/FPS/etc) =====
-let __liveMultiLoadedOnce = false;
-let __liveMultiLoading = false;
-
-const __LIVE_THEMES = [
-  { key:'top', label:'Top', q:'Top' },
-  { key:'rpg', label:'RPG', q:'RPG' },
-  { key:'fps', label:'FPS', q:'FPS' },
-  { key:'survie', label:'Survie', q:'Survie' },
-  { key:'moba', label:'MOBA', q:'MOBA' },
-  { key:'mmo', label:'MMO', q:'MMO' },
-  { key:'strategie', label:'Stratégie', q:'Strategy' },
-  { key:'course', label:'Course', q:'Racing' },
-  { key:'sport', label:'Sport', q:'Sports' },
-  { key:'horreur', label:'Horreur', q:'Horror' },
-  { key:'inde', label:'Indé', q:'Indie' },
-];
-
-function renderLiveMultiSkeleton(){
-  const host = q('#tf-live-multi');
-  if(!host) return;
-  host.innerHTML = __LIVE_THEMES.map(t=>`
-    <div class="tf-header-block" style="margin-top:14px">
-      <div class="tf-strip-title"><h4>${escapeHtml(t.label)} <span style="opacity:.6;font-weight:700">(sélection)</span></h4></div>
-      <div class="tf-carousel" id="tf-live-rail-${t.key}" aria-label="Live ${escapeHtml(t.label)}">
-        <div class="tf-empty">Chargement…</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderLiveRail(key, items){
-  const wrap = q('#tf-live-rail-'+key);
-  if(!wrap) return;
-  tfBindHorizontalWheel(wrap);
-  if(!items || !items.length){
-    wrap.innerHTML = '<div class="tf-empty">Aucun live trouvé.</div>';
-    return;
-  }
-  wrap.innerHTML = '';
-  items.slice(0, 24).forEach(channel=>{
-    const thumb = (channel.thumbnail_url || '').replace('{width}','320').replace('{height}','180');
-    const card = document.createElement('div');
-    card.className = 'tf-live-card';
-    card.innerHTML = `
-      <img class="tf-live-thumb" src="${escapeHtml(thumb)}" alt="">
-      <div class="tf-live-meta">
-        <div class="tf-title">${escapeHtml(channel.game_name || '')}</div>
-        <div class="tf-sub">${escapeHtml(channel.user_name || channel.user_login || '')} · ${escapeHtml(String(channel.viewer_count||0))} viewers</div>
-      </div>
-      <div class="tf-badge-live">EN LIVE</div>
-    `;
-    card.addEventListener('click', (e)=>{
-      e.preventDefault();
-      try{ closeTwitFlix(); }catch(_){ }
-      try{ loadPlayerEmbed(channel); }catch(_){ }
-      try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
-    });
-    wrap.appendChild(card);
-  });
-}
-
-async function ensureLiveMultiLoaded(){
-  if(__liveMultiLoadedOnce || __liveMultiLoading) return;
-  __liveMultiLoading = true;
-  renderLiveMultiSkeleton();
-
-  try{
-    // For each theme, resolve a category, then load streams for that game_id
-    for(const t of __LIVE_THEMES){
-      try{
-        if(t.key === 'top'){
-          const r = await fetch(`${API_BASE}/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=800&limit=30`, { credentials:'include' });
-          const d = r.ok ? await r.json() : null;
-          renderLiveRail(t.key, Array.isArray(d?.items) ? d.items : []);
-          continue;
-        }
-
-        const cr = await fetch(`${API_BASE}/api/categories/search?query=${encodeURIComponent(t.q)}&first=6`, { credentials:'include' });
-        const cd = cr.ok ? await cr.json() : null;
-        const cat = Array.isArray(cd?.items) ? cd.items.find(x=>x && x.id) : null;
-        const gameId = String(cat?.id || '').trim();
-        if(!gameId){ renderLiveRail(t.key, []); continue; }
-
-        const sr = await fetch(`${API_BASE}/api/twitch/streams/by-game?game_id=${encodeURIComponent(gameId)}&lang=fr&minViewers=20&maxViewers=800&limit=24`, { credentials:'include' });
-        const sd = sr.ok ? await sr.json() : null;
-        renderLiveRail(t.key, Array.isArray(sd?.items) ? sd.items : []);
-      }catch(_){
-        renderLiveRail(t.key, []);
-      }
-    }
-    __liveMultiLoadedOnce = true;
-  }catch(_){}
-  finally{
-    __liveMultiLoading = false;
-  }
-}
-
-function mp4FromIAFile(identifier, name){
-    return `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(name)}`;
-  }
-  function iaThumb(identifier){
-    return `https://archive.org/services/img/${encodeURIComponent(identifier)}`;
-  }
-
-  async function loadIAIdentifier(identifier){
-    const meta = await fetchJson(`${API_BASE}/api/public-domain/list?identifier=${encodeURIComponent(identifier)}`);
-    const files = (meta && meta.files) ? meta.files : [];
-    const items = [];
-    for(const f of files){
-      const name = f.name || '';
-      if(!name) continue;
-      if(!name.toLowerCase().endsWith('.mp4')) continue;
-      // avoid tiny derivatives when possible
-      if((f.source||'').toLowerCase()==='derivative' && (f.format||'').toLowerCase().includes('h.264')) {
-        // keep ok
-      }
-      const title = (f.title || name.replace(/\.[^.]+$/,'')).replace(/_/g,' ').trim();
-      items.push({
-        title,
-        mp4: mp4FromIAFile(identifier, name),
-        thumb: iaThumb(identifier),
-        year: (meta && meta.metadata && (meta.metadata.year||meta.metadata.date)) ? (meta.metadata.year||meta.metadata.date) : '',
-        source: 'archive'
-      });
-    }
-    // stable sort by title
-    items.sort((a,b)=>a.title.localeCompare(b.title));
-    return items.slice(0, 40); // keep UI snappy
-  }
-
-  function renderAnime(items){
-    const wrap = q('#tf-anime-carousel');
-    if(!wrap) return;
-    if(!items || !items.length){
-      wrap.innerHTML = `<div class="tf-empty">Aucun épisode trouvé.</div>`;
-      return;
-    }
-    wrap.innerHTML = items.map((it, idx)=>{
-      const safeTitle = (window.escapeHtml ? window.escapeHtml(it.title) : it.title);
-      const mp4 = it.mp4;
-      const poster = it.thumb;
-      return `
-        <div class="tf-card tf-card-video" data-idx="${idx}">
-          <div class="tf-card-media">
-            <video class="tf-card-video-el" muted playsinline preload="metadata" poster="${poster}"
-              onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause()">
-              <source src="${mp4}" type="video/mp4">
-            </video>
-            <div class="tf-badge">PD</div>
-          </div>
-          <div class="tf-card-meta">
-            <div class="tf-card-title">${safeTitle}</div>
-            <div class="tf-card-sub">Archive.org</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-    // click to open in existing player modal if present, else open new tab
-    wrap.querySelectorAll('.tf-card').forEach((card, i)=>{
-      card.addEventListener('click', ()=>{
-        const it = items[i];
-        if(window.tfOpenPlayer){
-          window.tfOpenPlayer({
-            title: it.title,
-            subtitle: 'Domaine public · Lecture intégrée',
-            src: it.mp4,
-            type: 'video/mp4',
-            poster: it.thumb
-          });
-        } else {
-          window.open(it.mp4, '_blank', 'noopener');
-        }
-      });
-    });
-  }
-
-  async function ensureAnimeLoaded(){
-    if(__animeLoading) return;
-    const wrap = q('#tf-anime-carousel');
-    if(!wrap) return;
-    __animeLoading = true;
-    try{
-      // default series
-      let seriesKey='lone';
-      const active = q('.tf-anime-tabs .tf-chip.active');
-      if(active && active.dataset && active.dataset.series) seriesKey = active.dataset.series;
-      const conf = __ANIME_SERIES[seriesKey] || __ANIME_SERIES.lone;
-      wrap.innerHTML = `<div class="tf-empty">Chargement…</div>`;
-      let items = [];
-      if(conf.iaList){
-        for(const id of conf.iaList){
-          const part = await loadIAIdentifier(id);
-          items = items.concat(part);
-        }
-      } else {
-        items = await loadIAIdentifier(conf.ia);
-      }
-      renderAnime(items);
-      __animeLoadedOnce = true;
-    } catch(e){
-      const wrap = q('#tf-anime-carousel');
-      if(wrap) wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${String(e.message||e)}</div>`;
-    } finally {
-      __animeLoading = false;
-    }
-  }
-
-  function bindAnimeChips(){
-    const root = q('.tf-anime-tabs');
-    if(!root) return;
-    root.addEventListener('click', (ev)=>{
-      const btn = ev.target.closest('.tf-chip');
-      if(!btn) return;
-      qa('.tf-anime-tabs .tf-chip').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      ensureAnimeLoaded();
-    });
-  }
-
-  // expose
-  window.tfSetTab = function(tab){ setActiveTab(tab); };
-  // init bindings once DOM ready
-  document.addEventListener('DOMContentLoaded', ()=>{
-    bindAnimeChips();
-    // restore last tab
-    let last='vod';
-    try{ last = localStorage.getItem('tf_last_tab') || 'vod'; }catch(_){}
-    setActiveTab(last);
-  });
-
-  // hook into openTwitFlix (if defined later)
-  const _origOpen = window.openTwitFlix;
-  if(typeof _origOpen === 'function'){
-    window.openTwitFlix = async function(){
-      const r = await _origOpen.apply(this, arguments);
-      // ensure panels initialized when opening
-      let last='vod';
-      try{ last = localStorage.getItem('tf_last_tab') || 'vod'; }catch(_){}
-      setActiveTab(last);
-      return r;
-    };
-  }
-})();
-
