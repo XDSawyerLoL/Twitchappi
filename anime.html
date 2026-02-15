@@ -2631,8 +2631,19 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 
 <style id="tools-padding-fix">#tab-tools .tools-scroll{padding:16px 14px !important;}</style>
+<style>
+  /* Anime-only page: show only the public-domain rail inside ORYON TV for a cleaner UX */
+  body.anime-only .tf-hero,
+  body.anime-only #tf-live-carousel,
+  body.anime-only #tf-trailer-carousel,
+  body.anime-only #twitflix-grid,
+  body.anime-only #tf-loading,
+  body.anime-only .tf-themebar { display:none !important; }
+  body.anime-only .tf-modal-content { max-width: min(1400px, 98vw); }
+  body.anime-only #tf-anime-carousel { min-height: 220px; }
+</style>
 </head>
-<body class="min-h-screen flex flex-col p-4">
+<body class="min-h-screen flex flex-col p-4 anime-only">
 <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
 <div style="height:18px;"></div>
 <header class="flex justify-between items-center mb-4 pb-2 border-b border-[#222]">
@@ -3005,7 +3016,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-menu">
   <button class="tf-menu-btn" type="button" aria-label="Menu ORYON" onclick="tfToggleMenu(event)">☰</button>
   <div class="tf-menu-panel" id="tf-menu-panel" style="display:none;">
-    <button type="button" onclick="window.location.href='/anime'">Animés (domaine public)</button>
     <button type="button" onclick="closeTwitFlix(); tfHideMenu();">Fermer ORYON TV</button>
     <button type="button" onclick="tfQuitApp()">Quitter l’application</button>
   </div>
@@ -3086,6 +3096,36 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div></div>
 <div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="ORYON" class="oryon-logo" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;pointer-events:none;">ORYON</div></div>
 <script src="/assets/js/core/app-bootstrap.js?v=1771191002" defer></script>
+<script>
+  // Anime-only UX: open ORYON TV immediately and focus the “Animé — domaine public” rail.
+  window.addEventListener('DOMContentLoaded', () => {
+    const tryOpen = () => {
+      if (typeof window.openTwitFlix === 'function') {
+        window.openTwitFlix();
+        // Scroll inside modal body to the anime strip
+        setTimeout(() => {
+          const body = document.getElementById('tf-body');
+          const h = document.querySelector('h4')?.closest('.tf-header-block');
+          const animeBlock = document.getElementById('tf-anime-carousel')?.closest('.tf-header-block');
+          if (body && animeBlock) body.scrollTop = animeBlock.offsetTop - 24;
+        }, 250);
+        // Close button becomes “back”
+        const closeBtn = document.querySelector('.tf-close-btn');
+        if (closeBtn) {
+          closeBtn.onclick = () => { window.location.href = '/'; };
+        }
+        return true;
+      }
+      return false;
+    };
+    // Retry briefly (script is deferred)
+    let n = 0;
+    const t = setInterval(() => {
+      n++;
+      if (tryOpen() || n > 30) clearInterval(t);
+    }, 100);
+  });
+</script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
 <div class="modal-head">

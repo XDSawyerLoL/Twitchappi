@@ -4419,7 +4419,20 @@ app.get('/api/public-domain/lone-ranger', async (req,res)=>{
       items: mp4s
     };
 
-    __pdCacheSet(__pdLoneRangerCache, c
+    __pdCacheSet(__pdLoneRangerCache, cacheKey, data);
+    return apiOk(res, data, { cached:false, ttl: __PD_LR_TTL_MS/1000 });
+  }catch(e){
+    return apiErr(res, 500, 'PD_LONE_RANGER_FAILED', e?.message||'error');
+  }
+});
+
+// Anime-only page (UI)
+app.get('/anime', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, must-revalidate');
+  const f = path.join(__dirname, 'anime.html');
+  if (!fs.existsSync(f)) return res.status(404).send('Page animés introuvable.');
+  return res.sendFile(f);
+});
 // =========================================================
 // Public domain — Superman (Fleischer, 1941) (Archive.org)
 // Identifier: superman_1941
@@ -4544,14 +4557,6 @@ app.get('/api/public-domain/felix', async (req,res)=>{
     return apiErr(res, 500, 'PD_FELIX_FAILED', e?.message || 'Error');
   }
 });
-
-acheKey, data);
-    return apiOk(res, data, { cached:false, ttl: __PD_LR_TTL_MS/1000 });
-  }catch(e){
-    return apiErr(res, 500, 'PD_LONE_RANGER_ERROR', e?.message || 'error');
-  }
-});
-
 
 // =========================================================
 // SAFE ERROR HANDLER (always JSON for /api/*)
