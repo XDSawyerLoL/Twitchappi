@@ -1,3 +1,16 @@
+
+// If we just came back from Twitch OAuth, refresh once so followed lives appear.
+(function(){
+  try{
+    const u = new URL(window.location.href);
+    if(u.searchParams.get('twitch')==='1' && !sessionStorage.getItem('__twitch_oauth_refreshed')){
+      sessionStorage.setItem('__twitch_oauth_refreshed','1');
+      u.searchParams.delete('twitch');
+      window.location.replace(u.toString());
+    }
+  }catch(_){}
+})();
+
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
@@ -2748,20 +2761,30 @@ function tfBuildCard(cat){
       media.innerHTML = '';
     }
 
-    async function tfHeroSetAutoplayForGame(gameId, gameName, poster){
-      const key = String(gameId || '');
-      if (!key) return;
-      if (tfHeroCurrentKey === key) return;
-      tfHeroCurrentKey = key;
+    async 
+function tfHeroSetAutoplayForGame(gameId, gameName, poster){
+  const key = String(gameId || gameName || '');
+  if(!key) return;
+  if (tfHeroCurrentKey === key) return;
+  tfHeroCurrentKey = key;
 
-      // optimistic UI
-      tfSetHero({ title: gameName || 'Trailer', sub: 'Prévisualisation automatique (muette)', poster });
+  // Title + poster
+  tfSetHero({ title: gameName || 'Trailer', sub: 'Trailer (YouTube) — autoplay muet', poster });
 
-      const cached = tfHeroCache.get(key);
-      const now = Date.now();
-      if (cached && (now - cached.t) < TF_HERO_TTL){
-        return tfHeroApplyAutoplay(cached, gameName, poster);
-      }
+  // YouTube embed: use "search" style query (no API key), starts muted.
+  const q = encodeURIComponent(`${gameName || ''} official trailer`);
+  // Note: autoplay works only muted; we keep mute=1 and modestbranding.
+  const src = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`;
+  tfHeroMountIframe(src);
+
+  // unlock so other hovers can replace after a short cooldown
+  setTimeout(()=>{
+    try{
+      const media = document.getElementById('tf-hero-media');
+      if(media) delete media.dataset.locked;
+    }catch(_){}
+  }, 5000);
+}
 
       if (tfHeroInflight.has(key)){
         try{ await tfHeroInflight.get(key); }catch(_){ }
@@ -4635,8 +4658,10 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       card.className='tf-card';
       card.style.minWidth='260px';
       card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
-          <video class="tf-card-video" muted playsinline loop preload="metadata" src="${it.mp4}"></video>
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#0b0b0b;border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 30px rgba(0,0,0,.35);">
+          <video class="tf-card-video" muted playsinline loop preload="metadata" poster="${it.thumb||''}" src="${it.mp4}"></video>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.65));pointer-events:none;"></div>
+          <div style="position:absolute;left:10px;bottom:10px;font-weight:900;font-size:12px;opacity:.9;letter-spacing:.6px;">▶</div>
         </div>
         <div class="tf-card-meta">
           <div class="tf-card-title">${esc(it.title||'')}</div>
@@ -4748,45 +4773,55 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     return `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0`;
   }
 
-  window.tfRenderTrailerCarousel = async function(){
-    const wrap = document.getElementById('tf-trailer-carousel');
-    if(!wrap) return;
-    wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
+  
+window.tfRenderTrailerCarousel = async function(){
+  const wrap = document.getElementById('tf-trailer-carousel');
+  if(!wrap) return;
+  wrap.innerHTML = '';
 
+  // We rely on embed search (no API key). Not every query yields a playable video, but it's immediate and consistent.
+  const banned = new Set(['Just Chatting','Talk Shows & Podcasts','Music','ASMR','Pools, Hot Tubs, and Beaches','Sports','Art','IRL']);
+  let cats = [];
+  try{
+    const j = await fetchJson('/api/categories/top');
+    cats = Array.isArray(j?.categories) ? j.categories : (Array.isArray(j?.items)?j.items:[]);
+  }catch(_){ cats = []; }
+
+  // Fallback: use whatever is in the current LIVE carousel if needed
+  if(!cats.length){
     try{
-      const cats = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
-      const picks = cats.filter(c=>c && c.id && c.name && !BAD.has(String(c.name))).slice(0,6);
-      if(!picks.length){ wrap.innerHTML='<div class="tf-empty">Aucun jeu trouvé.</div>'; return; }
+      const jj = await fetchJson('/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=800&limit=12');
+      const items = Array.isArray(jj?.items) ? jj.items : [];
+      cats = items.map(s => ({ id: s.game_id, name: s.game_name, box_art_url: s.box_art_url }));
+    }catch(_){}
+  }
 
-      wrap.innerHTML='';
-      for (const g of picks){
-        const query = `${g.name} official trailer`;
-        const src = ytSearchEmbed(query);
+  cats = cats.filter(c => c?.name && !banned.has(String(c.name)));
+  cats = cats.slice(0, 10);
 
-        const card = document.createElement('div');
-        card.className='tf-card';
-        card.style.minWidth='360px';
-        card.innerHTML = `
-          <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:202px;background:#000;">
-            <iframe
-              title="${esc(g.name)} trailer"
-              src="${src}"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              referrerpolicy="strict-origin-when-cross-origin"
-              style="border:0;width:100%;height:100%;"></iframe>
-            <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">TRAILER</div>
-          </div>
-          <div class="tf-card-meta">
-            <div class="tf-card-title">${esc(g.name)}</div>
-            <div class="tf-card-sub" style="opacity:.7;font-weight:700;">YouTube (recherche)</div>
-          </div>`;
+  if(!cats.length){
+    wrap.innerHTML = '<div class="tf-empty">Aucun trailer.</div>';
+    return;
+  }
 
-        wrap.appendChild(card);
-      }
-    }catch(e){
-      wrap.innerHTML = `<div class="tf-empty">Erreur trailers: ${esc(e.message||e)}</div>`;
-    }
-  };
+  for(const c of cats){
+    const name = String(c.name || '');
+    const q = encodeURIComponent(`${name} official trailer`);
+    const src = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`;
+    const card = document.createElement('div');
+    card.className = 'tf-trailer-card';
+    card.innerHTML = `
+      <div class="tf-trailer-frame">
+        <iframe src="${src}" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="origin-when-cross-origin" loading="lazy"></iframe>
+      </div>
+      <div class="tf-trailer-meta">
+        <div class="tf-trailer-title">${esc(name)}</div>
+        <div class="tf-trailer-sub">Trailer (YouTube)</div>
+      </div>
+    `;
+    wrap.appendChild(card);
+  }
+};
 })();
 
 
@@ -4854,7 +4889,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       card.className='tf-card';
       card.style.minWidth='260px';
       card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#0b0b0b;border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 30px rgba(0,0,0,.35);">
           <img class="tf-card-video" alt="" src="${(s.thumbnail_url||'').replace('{width}','480').replace('{height}','272')}" />
         </div>
         <div class="tf-card-meta">
@@ -4872,56 +4907,52 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
   
   
-  window.tfRenderLiveThemes = async function(){
-    const container = ensureContainer();
-    if(!container) return;
-    if(rendered) return;
-    rendered = true;
+  
+window.tfRenderLiveThemes = async function(){
+  const root = document.getElementById('tf-live-themes');
+  if(!root) return;
 
-    // 1) Fetch Top games directly (do NOT rely on VOD state)
-    let topGames = [];
+  root.innerHTML = '<div class="tf-empty">Chargement…</div>';
+
+  let rails = [];
+  try{
+    const j = await fetchJson('/api/twitch/streams/fr-small-grouped?lang=fr&maxViewers=500&rails=16&perRail=20');
+    rails = Array.isArray(j?.rails) ? j.rails : [];
+  }catch(_){ rails = []; }
+
+  if(!rails.length){
+    // fallback: show one rail from top endpoint
     try{
-      const cats = await getJson('/api/categories/top');
-      topGames = (cats && Array.isArray(cats.categories)) ? cats.categories.slice(0, 14) : [];
-    }catch(_e){
-      topGames = [];
-    }
+      const jj = await fetchJson('/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=800&limit=30');
+      const items = Array.isArray(jj?.items) ? jj.items : [];
+      rails = [{ game_name: 'Découverte', items }];
+    }catch(_){}
+  }
 
-    container.innerHTML = '';
+  if(!rails.length){
+    root.innerHTML = '<div class="tf-empty">Aucun live trouvé pour le moment.</div>';
+    return;
+  }
 
-    // 2) Rail "Top FR < 500" (diverse games, FR only)
-    try{
-      const j = await getJson('/api/twitch/streams/top?lang=fr&maxViewers=500&limit=30');
-      renderRail(container, 'Top FR (<500 spectateurs)', (j?.items || []));
-    }catch(_e){
-      renderRail(container, 'Top FR (<500 spectateurs)', []);
-    }
+  root.innerHTML = '';
+  rails.forEach((r, idx)=>{
+    const title = String(r.game_name || r.title || 'Live');
+    const items = Array.isArray(r.items) ? r.items : [];
+    if(!items.length) return;
 
-    // 3) Multiple rails by game (FR only, <500 viewers)
-    //    If a rail is empty, we simply skip it (keeps UX clean).
-    for(const g of topGames){
-      const gid = String(g.id||'');
-      const gname = String(g.name||'').trim();
-      if(!gid || !gname) continue;
-      try{
-        const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(gid)}&limit=24&lang=fr&maxViewers=500`);
-        const items = (s?.items || []);
-        if(items.length){
-          renderRail(container, gname, items);
-        }
-      }catch(_e){
-        // skip
-      }
-    }
-
-    // Fallback if nothing rendered besides Top
-    if(!container.querySelector('.tf-live-rail:nth-of-type(2)')){
-      const empty = document.createElement('div');
-      empty.className='tf-empty';
-      empty.textContent = "Aucun live FR (<500 viewers) trouvé pour le moment.";
-      container.appendChild(empty);
-    }
-  };
+    const block = document.createElement('div');
+    block.className = 'tf-header-block';
+    block.innerHTML = `
+      <div class="tf-strip-title">
+        <h4>${esc(title)} <span style="opacity:.6;font-weight:700;">(FR ≤ 500)</span></h4>
+      </div>
+      <div class="tf-carousel" id="tf-live-theme-${idx}"></div>
+    `;
+    root.appendChild(block);
+    const car = block.querySelector(`#tf-live-theme-${idx}`);
+    items.slice(0, 18).forEach(s => car.appendChild(tfRenderLiveCard(s)));
+  });
+};
 
 
 })();
@@ -5042,7 +5073,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       card.className='tf-card';
       card.style.minWidth='260px';
       card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#0b0b0b;border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 30px rgba(0,0,0,.35);">
           <img class="tf-card-video" alt="" src="${esc(thumb)}" />
           <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">EN LIVE</div>
         </div>
