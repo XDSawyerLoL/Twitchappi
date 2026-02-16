@@ -1803,24 +1803,47 @@ app.get('/twitch_user_status', (req, res) => {
   res.json({ is_connected: false });
 });
 
+
 app.get('/firebase_status', (req, res) => {
   try {
     res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma','no-cache');
     res.setHeader('Expires','0');
     res.setHeader('Surrogate-Control','no-store');
+
     if (db && admin.apps.length > 0) {
-      res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
+      return res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
+    }
+    return res.json({ connected: false, message: 'Firebase not initialized' });
+  } catch (error) {
+    return res.json({ connected: false, error: error.message });
+  }
+});
 
 // =========================================================
-// Public Domain proxy (Archive.org metadata) — avoids browser CORS
+// Public Domain proxy (Archive.org) — avoids browser CORS
 // =========================================================
+const __pdCache = new Map();
+function __pdCacheGet(key, ttlMs){
+  const v = __pdCache.get(key);
+  if(!v) return null;
+  if(Date.now() - v.t > ttlMs){ __pdCache.delete(key); return null; }
+  return v.v;
+}
+function __pdCacheSet(key, val){ __pdCache.set(key, { t:Date.now(), v:val }); }
+
+// List MP4 files for a known Archive.org identifier
 app.get('/api/public-domain/list', async (req,res)=>{
   try{
     const identifier = String(req.query.identifier||'').trim();
     if(!identifier) return res.status(400).json({ ok:false, error:'missing identifier' });
+
+    const key = `list:${identifier}`;
+    const cached = __pdCacheGet(key, 24*60*60*1000);
+    if(cached) return res.json({ ok:true, identifier, items: cached, cached:true });
+
     const metaRes = await fetch(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
-    const meta = await metaRes.json();
+    const meta = await metaRes.json().catch(()=>null);
     const files = Array.isArray(meta?.files) ? meta.files : [];
     const mp4s = files
       .filter(f=>f && f.name && String(f.name).toLowerCase().endsWith('.mp4'))
@@ -1832,21 +1855,65 @@ app.get('/api/public-domain/list', async (req,res)=>{
           mp4: `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(name)}`
         };
       });
+
+    __pdCacheSet(key, mp4s);
     res.setHeader('Cache-Control','public, max-age=86400');
-    res.json({ ok:true, identifier, items: mp4s });
+    return res.json({ ok:true, identifier, items: mp4s });
   }catch(e){
-    res.status(500).json({ ok:false, error:e.message });
+    return res.status(500).json({ ok:false, error:e.message });
   }
 });
 
+// Search Archive.org for public-domain cartoons and return MP4s (best-effort)
+app.get('/api/public-domain/search', async (req,res)=>{
+  try{
+    const q = String(req.query.q||'').trim();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit||'24',10)||24), 48);
+    if(!q) return res.status(400).json({ ok:false, error:'missing q' });
 
-    } else {
-      res.json({ connected: false, message: 'Firebase not initialized' });
+    const key = `search:${q}:${limit}`;
+    const cached = __pdCacheGet(key, 6*60*60*1000);
+    if(cached) return res.json({ ok:true, q, items: cached, cached:true });
+
+    // Prefer items tagged publicdomain / public domain / PD
+    const query = `(${q}) AND (mediatype:movies) AND (format:mp4) AND (publicdomain OR "public domain" OR "public domain mark")`;
+    const asUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=identifier&sort[]=downloads+desc&rows=5&page=1&output=json`;
+    const asRes = await fetch(asUrl);
+    const asJson = await asRes.json().catch(()=>null);
+    const ids = (asJson?.response?.docs||[]).map(d=>d.identifier).filter(Boolean);
+
+    const out = [];
+    for(const identifier of ids){
+      if(out.length >= limit) break;
+      const metaRes = await fetch(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
+      const meta = await metaRes.json().catch(()=>null);
+      const files = Array.isArray(meta?.files) ? meta.files : [];
+      const mp4s = files
+        .filter(f=>f && f.name && String(f.name).toLowerCase().endsWith('.mp4'))
+        .slice(0, 20)
+        .map(f=>{
+          const name = String(f.name);
+          const title = name.replace(/\.mp4$/i,'').replace(/[_+]/g,' ').replace(/\s+/g,' ').trim();
+          return {
+            title,
+            mp4: `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(name)}`,
+            identifier
+          };
+        });
+      for(const it of mp4s){
+        out.push(it);
+        if(out.length >= limit) break;
+      }
     }
-  } catch (error) {
-    res.json({ connected: false, error: error.message });
+
+    __pdCacheSet(key, out);
+    res.setHeader('Cache-Control','public, max-age=21600');
+    return res.json({ ok:true, q, items: out });
+  }catch(e){
+    return res.status(500).json({ ok:false, error:e.message });
   }
 });
+
 
 // =========================================================
 // 4. STREAM INFO & TWITFLIX

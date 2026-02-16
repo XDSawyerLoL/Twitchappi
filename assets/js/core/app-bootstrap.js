@@ -4565,11 +4565,17 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   };
 })();
 
+
 // =========================================================
 // ORYON TV — Anime (Public Domain) via server proxy (Archive.org)
+//   - rails stacked (no sub-tabs)
+//   - some rails are "best-effort" via Archive search
 // =========================================================
 (function(){
   let inited=false;
+
+  function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
   async function fetchJsonSafe(url){
     const r = await fetch(url, { cache:'no-store' });
     const txt = await r.text();
@@ -4578,108 +4584,133 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     return j;
   }
 
-  async function loadSeries(identifier){
-    const wrap = document.getElementById('tf-anime-carousel');
+  function renderItemsInto(carouselId, items){
+    const wrap = document.getElementById(carouselId);
+    if(!wrap) return;
+    if(!items?.length){ wrap.innerHTML = '<div class="tf-empty">Aucun épisode.</div>'; return; }
+    wrap.innerHTML='';
+    items.slice(0,24).forEach(it=>{
+      const card = document.createElement('div');
+      card.className='tf-card';
+      card.style.minWidth='260px';
+      card.innerHTML = `
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
+          <video class="tf-card-video" muted playsinline loop preload="metadata" src="${it.mp4}"></video>
+        </div>
+        <div class="tf-card-meta">
+          <div class="tf-card-title">${esc(it.title||'')}</div>
+          <div class="tf-card-sub" style="opacity:.7;font-weight:700;">Archive.org</div>
+        </div>`;
+      const v=card.querySelector('video');
+      v.autoplay=true; v.play().catch(()=>{});
+      card.addEventListener('click',()=>window.tfPlayMp4(it.mp4, it.title));
+      wrap.appendChild(card);
+    });
+  }
+
+  async function loadByIdentifier(carouselId, identifier){
+    const wrap = document.getElementById(carouselId);
     if(!wrap) return;
     wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
     try{
       const j = await fetchJsonSafe(`/api/public-domain/list?identifier=${encodeURIComponent(identifier)}`);
-      const items = j?.items || [];
-      if(!items.length){ wrap.innerHTML='<div class="tf-empty">Aucun épisode trouvé.</div>'; return; }
-      wrap.innerHTML='';
-      items.slice(0,24).forEach(it=>{
-        const card = document.createElement('div');
-        card.className='tf-card';
-        card.style.minWidth='260px';
-        card.innerHTML = `
-          <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
-            <video class="tf-card-video" muted playsinline loop preload="metadata" src="${it.mp4}"></video>
-          </div>
-          <div class="tf-card-meta">
-            <div class="tf-card-title">${(it.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-            <div class="tf-card-sub" style="opacity:.7;font-weight:700;">Archive.org</div>
-          </div>`;
-        const v=card.querySelector('video');
-        v.autoplay=true;
-        v.play().catch(()=>{});
-        card.addEventListener('click',()=>window.tfPlayMp4(it.mp4, it.title));
-        wrap.appendChild(card);
-      });
+      renderItemsInto(carouselId, j?.items || []);
     }catch(e){
-      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${String(e.message||e).replace(/</g,'&lt;')}</div>`;
+      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
+    }
+  }
+
+  async function loadBySearch(carouselId, q){
+    const wrap = document.getElementById(carouselId);
+    if(!wrap) return;
+    wrap.innerHTML = '<div class="tf-empty">Recherche…</div>';
+    try{
+      const j = await fetchJsonSafe(`/api/public-domain/search?q=${encodeURIComponent(q)}&limit=24`);
+      renderItemsInto(carouselId, j?.items || []);
+    }catch(e){
+      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
     }
   }
 
   window.tfInitAnime = function(){
     if(inited) return;
     inited=true;
-    const seriesBar = document.getElementById('tf-anime-series');
-    if(seriesBar){
-      seriesBar.addEventListener('click', (e)=>{
-        const btn = e.target.closest('.tf-chip');
-        if(!btn) return;
-        Array.from(seriesBar.querySelectorAll('.tf-chip')).forEach(b=>b.classList.toggle('active', b===btn));
-        loadSeries(btn.dataset.series);
-      });
-      const first = seriesBar.querySelector('.tf-chip.active') || seriesBar.querySelector('.tf-chip');
-      if(first) loadSeries(first.dataset.series);
-    }
+
+    // Known identifiers (stable)
+    loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom');
+    loadByIdentifier('tf-anime-superman', 'superman_1941');
+    loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain');
+    loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919');
+
+    // Best-effort search rails
+    loadBySearch('tf-anime-betty', 'Betty Boop public domain');
+    loadBySearch('tf-anime-bugs', 'Bugs Bunny A Tale of Two Kitties The Wabbit Who Came to Supper public domain');
+    loadBySearch('tf-anime-daffy', 'Daffy Duck and the Dinosaur 1939 public domain');
+    loadBySearch('tf-anime-porky', 'Porky Pig black and white 1930 public domain');
+    loadBySearch('tf-anime-casper', 'Casper The Friendly Ghost 1945 public domain');
+    loadBySearch('tf-anime-gabby', 'Gabby Gulliver 1939 public domain');
+    loadBySearch('tf-anime-gertie', 'Gertie the Dinosaur 1914 public domain');
   };
 })();
 
+
+
 // =========================================================
-// ORYON TV — Trailers (auto) = Twitch clips MP4 (not lives, not YouTube)
+// ORYON TV — Trailers jeux vidéo (YouTube search embeds)
+//  - avoids Helix clips confusion
+//  - best-effort: some videos can be blocked from embed
 // =========================================================
 (function(){
   const BAD = new Set(['Just Chatting','Music','ASMR','IRL','Talk Shows & Podcasts','Slots','Art','Sports','Travel & Outdoors']);
-  function clipMp4FromThumb(thumb){
-    if(!thumb) return null;
-    // Twitch clip thumb -> mp4
-    return thumb.replace(/-preview-\d+x\d+\.jpg.*/,'\.mp4');
-  }
-  async function getClipForGame(gameId){
-    const r = await fetch(`/api/twitch/clips/by-game?game_id=${encodeURIComponent(gameId)}&limit=1`, { cache:'no-store' });
-    const j = await r.json().catch(()=>null);
-    return j?.items?.[0] || null;
+  function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function ytSearchEmbed(query){
+    // listType=search autoplay allowed when muted; keep controls minimal
+    const q = encodeURIComponent(query);
+    return `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0`;
   }
 
   window.tfRenderTrailerCarousel = async function(){
     const wrap = document.getElementById('tf-trailer-carousel');
     if(!wrap) return;
     wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
+
     try{
       const cats = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
       const picks = cats.filter(c=>c && c.id && c.name && !BAD.has(String(c.name))).slice(0,6);
       if(!picks.length){ wrap.innerHTML='<div class="tf-empty">Aucun jeu trouvé.</div>'; return; }
+
       wrap.innerHTML='';
       for (const g of picks){
-        const clip = await getClipForGame(g.id);
-        if(!clip) continue;
-        const mp4 = clip.mp4 || clipMp4FromThumb(clip.thumbnail_url);
-        if(!mp4) continue;
+        const query = `${g.name} official trailer`;
+        const src = ytSearchEmbed(query);
+
         const card = document.createElement('div');
         card.className='tf-card';
-        card.style.minWidth='300px';
+        card.style.minWidth='360px';
         card.innerHTML = `
-          <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:170px;background:#000;">
-            <video class="tf-card-video" muted playsinline loop preload="metadata" src="${mp4}"></video>
+          <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:202px;background:#000;">
+            <iframe
+              title="${esc(g.name)} trailer"
+              src="${src}"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin"
+              style="border:0;width:100%;height:100%;"></iframe>
             <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">TRAILER</div>
           </div>
           <div class="tf-card-meta">
-            <div class="tf-card-title">${String(g.name).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-            <div class="tf-card-sub" style="opacity:.7;font-weight:700;">${String(clip.title||'Clip').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            <div class="tf-card-title">${esc(g.name)}</div>
+            <div class="tf-card-sub" style="opacity:.7;font-weight:700;">YouTube (recherche)</div>
           </div>`;
-        const v=card.querySelector('video');
-        v.autoplay=true; v.play().catch(()=>{});
-        card.addEventListener('click', ()=> window.tfPlayMp4(mp4, `${g.name} — ${clip.title||'Trailer'}`));
+
         wrap.appendChild(card);
       }
-      if(!wrap.children.length) wrap.innerHTML='<div class="tf-empty">Aucun trailer disponible.</div>';
     }catch(e){
-      wrap.innerHTML = `<div class="tf-empty">Erreur trailers: ${String(e.message||e).replace(/</g,'&lt;')}</div>`;
+      wrap.innerHTML = `<div class="tf-empty">Erreur trailers: ${esc(e.message||e)}</div>`;
     }
   };
 })();
+
 
 // =========================================================
 // ORYON TV — LIVE tab: multiple rails by themes (fast, cached, debounced)
@@ -4761,36 +4792,34 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     parent.appendChild(block);
   }
 
+  
   window.tfRenderLiveThemes = async function(){
     const container = ensureContainer();
     if(!container) return;
     if(rendered) return;
     rendered=true;
+
+    // Build rails from current Top games (guaranteed to exist on Twitch)
+    const cats = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
+    const topGames = cats.filter(c=>c && c.id && c.name).slice(0, 12);
+
     container.innerHTML = '';
-    for (const t of THEMES){
-      const label = t.label;
+    // Always keep one "Top" rail
+    try{
+      const j = await getJson('/api/twitch/streams/top?limit=24');
+      renderRail(container, 'Top', j?.data || j?.streams || j?.items || []);
+    }catch(_e){
+      renderRail(container, 'Top', []);
+    }
+
+    for(const g of topGames){
       try{
-        if(t.type==='top'){
-          const j = await getJson('/api/twitch/streams/top?limit=24');
-          renderRail(container, label, j?.data || j?.streams || j?.items || j?.data?.data || j?.data || []);
-          continue;
-        }
-
-        // Find a real Twitch game id from a list of candidates
-        let game = null;
-        for (const gname of (t.games||[])){
-          const cats = await getJson(`/api/categories/search?q=${encodeURIComponent(gname)}&limit=1`);
-          game = (cats?.data || cats?.categories || [])[0] || null;
-          if(game?.id) break;
-        }
-
-        if(!game?.id){ renderRail(container, label, []); continue; }
-
-        const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(game.id)}&limit=24`);
-        renderRail(container, label, s?.data || s?.streams || []);
+        const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(g.id)}&limit=24`);
+        renderRail(container, String(g.name).replace(/</g,'&lt;'), s?.items || s?.data || s?.streams || []);
       }catch(_e){
-        renderRail(container, label, []);
+        renderRail(container, String(g.name).replace(/</g,'&lt;'), []);
       }
     }
   };
+
 })();
