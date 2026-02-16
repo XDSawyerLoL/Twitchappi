@@ -4871,33 +4871,57 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   }
 
   
+  
   window.tfRenderLiveThemes = async function(){
     const container = ensureContainer();
     if(!container) return;
     if(rendered) return;
-    rendered=true;
+    rendered = true;
 
-    // Build rails from current Top games (guaranteed to exist on Twitch)
-    const cats = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
-    const topGames = cats.filter(c=>c && c.id && c.name).slice(0, 12);
+    // 1) Fetch Top games directly (do NOT rely on VOD state)
+    let topGames = [];
+    try{
+      const cats = await getJson('/api/categories/top');
+      topGames = (cats && Array.isArray(cats.categories)) ? cats.categories.slice(0, 14) : [];
+    }catch(_e){
+      topGames = [];
+    }
 
     container.innerHTML = '';
-    // Always keep one "Top" rail
+
+    // 2) Rail "Top FR < 500" (diverse games, FR only)
     try{
-      const j = await getJson('/api/twitch/streams/top?limit=24');
-      renderRail(container, 'Top', j?.data || j?.streams || j?.items || []);
+      const j = await getJson('/api/twitch/streams/top?lang=fr&maxViewers=500&limit=30');
+      renderRail(container, 'Top FR (<500 spectateurs)', (j?.items || []));
     }catch(_e){
-      renderRail(container, 'Top', []);
+      renderRail(container, 'Top FR (<500 spectateurs)', []);
     }
 
+    // 3) Multiple rails by game (FR only, <500 viewers)
+    //    If a rail is empty, we simply skip it (keeps UX clean).
     for(const g of topGames){
+      const gid = String(g.id||'');
+      const gname = String(g.name||'').trim();
+      if(!gid || !gname) continue;
       try{
-        const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(g.id)}&limit=24`);
-        renderRail(container, String(g.name).replace(/</g,'&lt;'), s?.items || s?.data || s?.streams || []);
+        const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(gid)}&limit=24&lang=fr&maxViewers=500`);
+        const items = (s?.items || []);
+        if(items.length){
+          renderRail(container, gname, items);
+        }
       }catch(_e){
-        renderRail(container, String(g.name).replace(/</g,'&lt;'), []);
+        // skip
       }
     }
+
+    // Fallback if nothing rendered besides Top
+    if(!container.querySelector('.tf-live-rail:nth-of-type(2)')){
+      const empty = document.createElement('div');
+      empty.className='tf-empty';
+      empty.textContent = "Aucun live FR (<500 viewers) trouvé pour le moment.";
+      container.appendChild(empty);
+    }
   };
+
 
 })();
