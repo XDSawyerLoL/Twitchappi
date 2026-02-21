@@ -1520,21 +1520,25 @@ async function tfApplyPrimaryMode(){
     });
   }
 
+  const isLive  = (tfPrimaryMode === 'live');
+  const isVod   = (tfPrimaryMode === 'vod');
   const isAnime = (tfPrimaryMode === 'anime');
 
-  const liveBlock = document.getElementById('tf-live-block');
+  const liveCarousel = document.getElementById('tf-live-carousel');
   const trailerHeader = document.getElementById('tf-header-trailers');
   const grid = document.getElementById('twitflix-grid');
 
-  if (liveBlock) liveBlock.style.display = isAnime ? 'none' : '';
+  if (liveCarousel) liveCarousel.style.display = isLive ? '' : 'none';
   if (trailerHeader) trailerHeader.style.display = isAnime ? 'none' : '';
 
-  tfDrawerMode = (tfPrimaryMode === 'vod') ? 'vod' : 'live';
+  tfDrawerMode = isVod ? 'vod' : 'live';
 
   if (!grid) return;
 
   if (isAnime){
     await tfRenderAnimeGrid();
+  } else if (isVod){
+    await tfRenderVodHome();
   } else {
     try{ renderTwitFlix(); }catch(_){ }
   }
@@ -1618,6 +1622,38 @@ async function tfRenderAnimeGrid(){
     }, true);
   });
 }
+
+async function tfRenderVodHome(){
+  const grid = document.getElementById('twitflix-grid');
+  if (!grid) return;
+
+  grid.innerHTML = '';
+  try{ tfSetHero({ title: 'VOD', sub: 'Sélection automatique (FR) — Twitch' }); }catch(_){}
+
+  try{ await tfLoadTopVods(false); }catch(_){}
+
+  const items = Array.isArray(tfTopVodResults) ? tfTopVodResults : [];
+  if (!items.length){
+    const empty = document.createElement('div');
+    empty.className = 'tf-empty';
+    empty.textContent = "Aucun VOD trouvé pour l’instant.";
+    grid.appendChild(empty);
+    return;
+  }
+
+  const slice = items.slice(0, 28);
+  const row = tfBuildVodRow(
+    `<div class="tf-strip-title"><h4>Top VOD FR</h4><span class="tf-strip-sub">auto</span></div>`,
+    slice,
+    'tf-vod-top-row'
+  );
+  grid.appendChild(row);
+
+  const sentinel = document.getElementById('tf-sentinel');
+  if (sentinel) grid.appendChild(sentinel);
+  try{ tfAnnotateRows(); }catch(_){}
+}
+
 
     function closeTwitFlix(){
   document.body.classList.remove('modal-open');
