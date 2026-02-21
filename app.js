@@ -528,8 +528,6 @@ const CACHE = {
 
 // YouTube trailer cache (reduces quota + stabilizes TwitFlix trailer search)
 const YT_TRAILER_CACHE = new Map();
-// VOD cache: keep short-lived lists per (game_id|lang|maxViews) to make "Lecture" instant.
-const TWIFLIX_VOD_CACHE = new Map();
 const YT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 
@@ -675,127 +673,10 @@ app.get('/api/twiflix/play', async (req, res) => {
     }
 
     if(!vods || !vods.length) return res.json({ ok:false, reason:'no_vods' });
-	    // Warm-cache call: do not select a VOD, just report availability.
-	    if(String(req.query.dry || '') === '1'){
-	      return res.json({ ok:true, warmed:true, count: vods.length });
-	    }
     const pick = vods[Math.floor(Math.random() * vods.length)];
     return res.json({ ok:true, vod_id: pick.id, url: pick.url, title: pick.title, thumbnail_url: pick.thumbnail_url });
   }catch(e){
     return res.json({ ok:false, reason:'error', message: String(e?.message || e) });
-  }
-});
-
-// =========================================================
-// GET /api/twiflix/episodes?game_id=...&game_name=...&lang=fr&maxViewers=200&limit=10
-// Returns "episodes" as VODs (archives) from small FR creators for this game.
-// Strategy (fast + relevant):
-//  1) pull small live channels on this game (viewer_count <= maxViewers) to get candidate creators
-//  2) fetch latest VODs from those creators
-//  3) if not enough, fallback to game VODs and filter by lang + low view_count
-// =========================================================
-app.get('/api/twiflix/episodes', async (req, res) => {
-  try{
-    const game_id = String(req.query.game_id || '').trim();
-    const game_name = String(req.query.game_name || '').trim();
-    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
-    const maxViewers = Math.max(5, parseInt(req.query.maxViewers || '200', 10) || 200);
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '10', 10) || 10), 20);
-
-    if(!game_id) return res.json({ success:false, items:[], reason:'missing_game_id' });
-
-    const cacheKey = `vod_eps:${game_id}:${lang}:${maxViewers}:${limit}`;
-    const cached = __twiflixCacheGet(cacheKey, 90_000); // 90s
-    if(cached) return res.json({ success:true, items:cached, cached:true });
-
-    const token = await getTwitchToken('app');
-    if(!token) return res.json({ success:false, items:[], reason:'missing_app_token' });
-
-    const out = [];
-
-    // ---- step 1: candidate creators from small live streams on this game (paged)
-    const candidateUserIds = [];
-    try{
-      let after = null;
-      for(let page=0; page<3 && candidateUserIds.length < 60; page++){
-        const qs = new URLSearchParams();
-        qs.set('game_id', game_id);
-        qs.set('first','100');
-        if(lang) qs.set('language', lang);
-        if(after) qs.set('after', after);
-        const data = await twitchAPI(`streams?${qs.toString()}`, token);
-        const rows = (data?.data || []).filter(s => (s.viewer_count||0) <= maxViewers);
-        for(const s of rows){
-          if(candidateUserIds.includes(s.user_id)) continue;
-          candidateUserIds.push(s.user_id);
-          if(candidateUserIds.length >= 60) break;
-        }
-        after = data?.pagination?.cursor || null;
-        if(!after) break;
-      }
-    }catch(_e){ /* ignore */ }
-
-    // ---- step 2: fetch latest VODs for those creators
-    const seenVod = new Set();
-    for(const uid of candidateUserIds){
-      if(out.length >= limit) break;
-      try{
-        const d = await twitchAPI(`videos?user_id=${uid}&first=5&type=archive`, token);
-        const vids = (d?.data || []).filter(x => !lang || (String(x.language||'').toLowerCase() === lang));
-        const v = vids[0] || null;
-        if(v && !seenVod.has(v.id)){
-          seenVod.add(v.id);
-          out.push({
-            id: v.id,
-            type: 'vod',
-            title: v.title || '',
-            url: v.url || '',
-            duration: v.duration || '',
-            created_at: v.created_at || '',
-            language: v.language || '',
-            view_count: v.view_count || 0,
-            user_id: v.user_id || '',
-            user_name: v.user_name || '',
-            thumbnail_url: v.thumbnail_url || '',
-            game_name: game_name || ''
-          });
-        }
-      }catch(_e){ /* ignore */ }
-    }
-
-    // ---- step 3: fallback to game VODs
-    if(out.length < limit){
-      try{
-        const d = await twitchAPI(`videos?game_id=${encodeURIComponent(game_id)}&first=100&type=archive`, token);
-        const vids = (d?.data || [])
-          .filter(v => !lang || (String(v.language||'').toLowerCase() === lang))
-          .filter(v => (v.view_count||0) <= 10000);
-        for(const v of vids){
-          if(out.length >= limit) break;
-          if(seenVod.has(v.id)) continue;
-          seenVod.add(v.id);
-          out.push({
-            id: v.id,
-            type: 'vod',
-            title: v.title || '',
-            url: v.url || '',
-            duration: v.duration || '',
-            created_at: v.created_at || '',
-            language: v.language || '',
-            view_count: v.view_count || 0,
-            user_id: v.user_id || '',
-            user_name: v.user_name || '',
-            thumbnail_url: v.thumbnail_url || '',
-            game_name: game_name || ''
-          });
-        }
-      }catch(_e){ /* ignore */ }
-    }
-
-    __twiflixCacheSet(cacheKey, out);
-    return res.json({ success:true, items: out });
-  }catch(e){
-    return res.json({ success:false, items:[], reason:'error', message:String(e?.message||e) });
   }
 });
 
@@ -2022,76 +1903,117 @@ app.get('/api/categories/search', async (req, res) => {
 // =========================================================
 app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
   try {
-    const token = await getTwitchToken('app');
-    if (!token) return res.status(500).json({ error: 'No Twitch token' });
+    const lang = String(req.query.lang || '').trim();
+    const minViewers = Math.max(0, parseInt(req.query.minViewers || req.query.min || '0', 10) || 0);
+    const maxViewers = Math.max(0, parseInt(req.query.maxViewers || req.query.max || '0', 10) || 0);
+    const limit = Math.min(100, Math.max(10, parseInt(req.query.limit || '60', 10) || 60));
 
-    const lang = String(req.query.lang || 'fr').toLowerCase();
-    // More resilient defaults: focus on smaller streams, but don't return an empty rail.
-    const maxViewers = parseInt(req.query.maxViewers || '500', 10);
-    const limit = Math.min(Math.max(parseInt(req.query.limit || '40', 10), 8), 80);
+    // Pull a bigger pool and filter server-side
+    const first = 100;
+    let url = `streams?first=${first}`;
+    if (lang) url += `&language=${encodeURIComponent(lang)}`;
+    const d = await twitchAPI(url);
+    let items = Array.isArray(d.data) ? d.data.slice(0) : [];
 
-    // Pull multiple pages to avoid "no live found" when filtering hard (FR + small viewers)
-    const raw = [];
-    let after = null;
-    for (let page = 0; page < 4 && raw.length < 380; page++) {
-      const qs = new URLSearchParams();
-      qs.set('first', '100');
-      if (after) qs.set('after', after);
-      const data = await twitchAPI(`streams?${qs.toString()}`, token);
-      raw.push(...(data?.data || []));
-      after = data?.pagination?.cursor || null;
-      if (!after) break;
+    if (minViewers || maxViewers){
+      items = items.filter(s => {
+        const v = Number(s.viewer_count || 0);
+        if (minViewers && v < minViewers) return false;
+        if (maxViewers && v > maxViewers) return false;
+        return true;
+      });
     }
 
-    // Filter + diversify by game
-    const passes = [];
-    const addPass = (useLang) => {
-      const seenGame = new Set();
-      const out = [];
-      for (const s of raw) {
-        if (out.length >= limit) break;
-        if (useLang && lang && String(s.language || '').toLowerCase() !== lang) continue;
-        if (!isNaN(maxViewers) && (s.viewer_count || 0) > maxViewers) continue;
-        const gid = s.game_id || '';
-        if (!gid) continue;
-        if (seenGame.has(gid)) continue;
-        seenGame.add(gid);
-        out.push(s);
-      }
-      return out;
-    };
+    // Prefer diversity by game (one stream per game)
+    const byGame = new Map();
+    for (const s of items){
+      const gid = String(s.game_id || '');
+      if (!gid) continue;
+      if (!byGame.has(gid)) byGame.set(gid, s);
+      if (byGame.size >= limit) break;
+    }
 
-    let result = addPass(true);
+    const unique = Array.from(byGame.values());
+    const gameIds = Array.from(byGame.keys());
 
-    // Fallback: if too few FR small streams, fill remaining without language constraint
-    if (result.length < Math.min(10, limit)) {
-      const fill = addPass(false);
-      const existing = new Set(result.map(s => s.id));
-      for (const s of fill) {
-        if (result.length >= limit) break;
-        if (existing.has(s.id)) continue;
-        result.push(s);
+    // Enrich with box art
+    const artMap = {};
+    if (gameIds.length){
+      const chunks = [];
+      for(let i=0;i<gameIds.length;i+=50) chunks.push(gameIds.slice(i,i+50));
+      for(const ch of chunks){
+        const q = ch.map(id => `id=${encodeURIComponent(id)}`).join('&');
+        const gd = await twitchAPI(`games?${q}`);
+        const arr = Array.isArray(gd.data) ? gd.data : [];
+        for(const g of arr){
+          artMap[String(g.id)] = (g.box_art_url || '').replace('{width}','285').replace('{height}','380');
+        }
       }
     }
 
-    // Map to lightweight payload for the front
-    const items = result.map(s => ({
-      id: s.id,
-      user_id: s.user_id,
-      user_login: s.user_login,
-      user_name: s.user_name,
-      game_id: s.game_id,
-      game_name: s.game_name,
-      title: s.title,
-      viewer_count: s.viewer_count,
-      thumbnail_url: s.thumbnail_url,
-      language: s.language
+    const out = unique.map(s => ({
+      ...s,
+      box_art_url: artMap[String(s.game_id||'')] || null
     }));
 
-    return res.json({ items });
+    return res.json({ success: true, items: out });
   } catch (e) {
-    console.error('[API] /api/twitch/streams/top error', e);
-    return res.status(500).json({ error: String(e?.message || e) });
+    console.warn('⚠️ /api/twitch/streams/top', e.message);
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+
+// =========================================================
+// ORYON TV — ANIME (Public domain / CC0 only)
+// Source: Internet Archive advancedsearch (filters by licenseurl)
+// =========================================================
+let __animeCache = { t: 0, items: [] };
+app.get('/api/anime/public', heavyLimiter, async (req, res) => {
+  try{
+    const now = Date.now();
+    const ttl = 60 * 60 * 1000; // 1h
+    const limit = Math.max(1, Math.min(80, Number(req.query.limit || 36) || 36));
+
+    if (__animeCache.items.length && (now - __animeCache.t) < ttl){
+      return res.json({ success:true, items: __animeCache.items.slice(0, limit), cached:true });
+    }
+
+    // We are conservative: only Public Domain / CC0 markers.
+    // NOTE: Internet Archive metadata is user-provided; we still filter strictly.
+    const q = [
+      'subject:(anime OR animation)',
+      'AND mediatype:(movies)',
+      'AND collection:(opensource_movies)'
+    ].join(' ');
+    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=licenseurl&fl%5B%5D=year&rows=80&page=1&output=json`;
+
+    const r = await fetch(url);
+    if(!r.ok) return res.status(502).json({ success:false, error:'ARCHIVE_UPSTREAM_ERROR' });
+    const d = await r.json().catch(()=>null);
+    const docs = d?.response?.docs || [];
+
+    const okLicense = (u)=>{
+      const s = String(u||'').toLowerCase();
+      // public domain / CC0 only
+      return s.includes('creativecommons.org/publicdomain') || s.includes('publicdomain') || s.includes('cc0');
+    };
+
+    const items = docs
+      .filter(x => x && x.identifier && okLicense(x.licenseurl))
+      .map(x => ({
+        id: String(x.identifier),
+        title: String(x.title || x.identifier),
+        year: x.year ? String(x.year) : null,
+        licenseurl: String(x.licenseurl || ''),
+        poster: `https://archive.org/services/img/${encodeURIComponent(String(x.identifier))}`,
+        embed: `https://archive.org/embed/${encodeURIComponent(String(x.identifier))}`
+      }));
+
+    __animeCache = { t: now, items };
+    return res.json({ success:true, items: items.slice(0, limit), cached:false });
+  }catch(e){
+    return res.status(500).json({ success:false, error: e.message });
   }
 });
 
@@ -2441,23 +2363,6 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
         }
       }
     }
-
-	    // 3) Last resort: scrape YouTube search HTML for a videoId (no API key).
-	    // Best-effort: may fail if YouTube returns consent/captcha.
-	    try {
-	      for (const qq of queries) {
-	        const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(qq)}`;
-	        const r = await fetchWithTimeout(url, { headers: { 'user-agent': 'Mozilla/5.0' } }, 5500).catch(()=>null);
-	        if (!r || !r.ok) continue;
-	        const html = await r.text().catch(()=> '');
-	        const m = html.match(/\"videoId\"\s*:\s*\"([a-zA-Z0-9_-]{11})\"/);
-	        if (m && m[1]) {
-	          const out = { videoId: m[1], title: '', channelTitle: '', publishedAt: '' };
-	          YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
-	          return res.json({ success:true, ...out, provider:'youtube_scrape' });
-	        }
-	      }
-	    } catch(_) {}
 
     // no result
     return res.json({ success:false, error:'no_result', details: debug ? lastApiErr : undefined });
