@@ -533,6 +533,10 @@ const YT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
+function apiOk(res, data, meta={}){ return res.json({ ok:true, data, meta }); }
+function apiErr(res, status, code, message=null, meta={}){ return res.status(status).json({ ok:false, error:{ code, message: (message || code) }, meta }); }
+
+
 function yyyy_mm_dd_from_ms(ms) {
   const d = new Date(ms);
   const yyyy = d.getUTCFullYear();
@@ -589,6 +593,30 @@ async function twitchAPI(endpoint, token = null) {
 const __oryonVodSearchCache = new Map(); // key -> {ts, items}
 // Ultra-fast: Twiflix "play" cache (game_id -> eligible vod ids)
 const __twiflixPlayCache = new Map(); // key -> {ts, vods:[{id, thumbnail_url, title, url, view_count, user_name, user_login}]}
+// Public-domain series cache (Archive.org) — Lone Ranger cartoons
+const __pdLoneRangerCache = new Map(); // key -> {ts, data}
+const __PD_LR_TTL_MS = 24 * 60 * 60 * 1000;
+
+function __pdCacheGet(map, key, ttlMs){
+  const v = map.get(key);
+  if(!v) return null;
+  if((Date.now()-v.ts) > ttlMs){ map.delete(key); return null; }
+  return v.data;
+}
+function __pdCacheSet(map, key, data){ map.set(key, { ts: Date.now(), data }); }
+
+function __cleanEpisodeTitle(name){
+  try{
+    let t = name.replace(/\.[a-z0-9]{2,4}$/i,'');
+    t = t.replace(/_/g,' ').replace(/\+/g,' ');
+    t = t.replace(/\s*\(.*?\)\s*/g,' ').trim();
+    t = t.replace(/\s+/g,' ');
+    // Remove common prefixes
+    t = t.replace(/^Lone Ranger\s*\d{4}\s*[-–]\s*/i,'');
+    t = t.replace(/^Lone\s*Ranger\s*\d{4}\s*[-–]\s*/i,'');
+    return t || name;
+  }catch(_){ return name; }
+}
 
 function __oryonCacheGet(map, key, ttlMs){
   const v = map.get(key);
@@ -677,6 +705,210 @@ app.get('/api/twiflix/play', async (req, res) => {
     return res.json({ ok:true, vod_id: pick.id, url: pick.url, title: pick.title, thumbnail_url: pick.thumbnail_url });
   }catch(e){
     return res.json({ ok:false, reason:'error', message: String(e?.message || e) });
+  }
+});
+
+
+// Normalized Twitflix endpoints (UX-first)
+app.get('/api/twitflix/playable', async (req,res)=>{
+  try{
+    const game_id = String(req.query.game_id || '').trim();
+    const game_name = String(req.query.game_name || '').trim();
+    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+    const maxVodViews = clamp(parseInt(req.query.maxVodViews || String(process.env.SMALL_MAX_VOD_VIEWS||'50000'),10) || 50000, 100, 1_000_000);
+    const preferRecent = String(req.query.prefer || 'recent').toLowerCase();
+
+    if(!game_id) return apiErr(res, 400, 'missing_game_id');
+
+    const token = await getTwitchToken('app');
+    if(!token) return apiErr(res, 503, 'missing_app_token');
+
+    async function fetchVods(gid, strictLang){
+      const qs = new URLSearchParams();
+      qs.set('game_id', gid);
+      qs.set('first', '50');
+      qs.set('type', 'archive');
+      qs.set('sort', preferRecent === 'views' ? 'views' : 'time');
+      // NOTE: Helix "Get Videos" does NOT support a `language` query parameter.
+      // We filter client-side to keep behavior stable.
+      const data = await twitchAPI(`videos?${qs.toString()}`, token);
+      const rows = data?.data || [];
+      let vods = rows
+        .filter(v => (v.view_count||0) <= maxVodViews)
+        .filter(v => {
+          if(!strictLang || !lang) return true;
+          const vlang = String(v.language||'').toLowerCase();
+          // Prefer exact match, but allow unknown to avoid empty results.
+          return !vlang || vlang === lang;
+        });
+      // Filter short durations (keep best-effort)
+      vods = vods.filter(v => String(v.duration||'').length >= 2);
+      // Sort by created_at desc (recent) or views desc
+      if(preferRecent === 'views') vods.sort((a,b)=>(b.view_count||0)-(a.view_count||0));
+      else vods.sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+      return vods;
+    }
+
+    // 1) Primary pick
+    let vods = await fetchVods(game_id, true);
+    let reason = 'primary';
+
+    // 2) Relax language if empty
+    if(!vods.length){
+      vods = await fetchVods(game_id, false);
+      reason = 'fallback_lang';
+    }
+
+    // 3) Fallback to a top game if still empty
+    let usedGame = game_id;
+    let usedGameName = game_name;
+    if(!vods.length){
+      const top = await twitchAPI('games/top?first=20', token);
+      const games = top?.data || [];
+      if(games.length){
+        const g = games[Math.floor(Math.random()*games.length)];
+        usedGame = String(g.id||game_id);
+        usedGameName = String(g.name||usedGameName);
+        vods = await fetchVods(usedGame, true);
+        reason = 'fallback_game';
+        if(!vods.length){
+          vods = await fetchVods(usedGame, false);
+          reason = 'fallback_trending';
+        }
+      }
+    }
+
+    if(!vods.length) return apiErr(res, 404, 'no_vods');
+
+    // Pick within the top 10 for variety
+    const topN = vods.slice(0, 10);
+    const pick = topN[Math.floor(Math.random()*topN.length)];
+
+    const vod = {
+      id: String(pick.id||''),
+      url: String(pick.url||''),
+      title: String(pick.title||''),
+      thumbnail_url: String(pick.thumbnail_url||''),
+      language: String(pick.language||''),
+      views: Number(pick.view_count||0),
+      duration: String(pick.duration||''),
+      created_at: String(pick.created_at||''),
+      channel: { name: String(pick.user_name||''), login: String(pick.user_login||''), id: String(pick.user_id||'') },
+      game: { id: usedGame, name: usedGameName }
+    };
+
+    return apiOk(res, { vod, reason }, { cached:false });
+  }catch(e){
+    return apiErr(res, 500, 'server_error', e.message);
+  }
+});
+
+app.get('/api/twitflix/episodes', async (req,res)=>{
+  try{
+    const game_id = String(req.query.game_id || '').trim();
+    const game_name = String(req.query.game_name || '').trim();
+    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+    const limit = clamp(parseInt(req.query.limit||'5',10)||5, 1, 10);
+    const maxVodViews = clamp(parseInt(req.query.maxVodViews || String(process.env.SMALL_MAX_VOD_VIEWS||'50000'),10) || 50000, 100, 1_000_000);
+    if(!game_id) return apiErr(res, 400, 'missing_game_id');
+
+    const token = await getTwitchToken('app');
+    if(!token) return apiErr(res, 503, 'missing_app_token');
+
+    const qs = new URLSearchParams();
+    qs.set('game_id', game_id);
+    qs.set('first', '50');
+    qs.set('type', 'archive');
+    qs.set('sort', 'time');
+    const data = await twitchAPI(`videos?${qs.toString()}`, token);
+    // NOTE: Helix "Get Videos" does NOT support a `language` query parameter.
+    // Filter client-side.
+    const rows = (data?.data||[])
+      .filter(v => (v.view_count||0) <= maxVodViews)
+      .filter(v => {
+        if(!lang) return true;
+        const vlang = String(v.language||'').toLowerCase();
+        return !vlang || vlang === lang;
+      });
+    const picks = rows.slice(0, limit);
+
+    // fetch channel bios (best-effort)
+    const userIds = Array.from(new Set(picks.map(v=>String(v.user_id||'')).filter(Boolean)));
+    let biosById = {};
+    if(userIds.length){
+      try{
+        const chunks=[];
+        for(let i=0;i<userIds.length;i+=100) chunks.push(userIds.slice(i,i+100));
+        for(const ch of chunks){
+          const q = ch.map(id=>`id=${encodeURIComponent(id)}`).join('&');
+          const u = await twitchAPI(`users?${q}`, token);
+          for(const row of (u?.data||[])){
+            biosById[String(row.id)] = { bio: String(row.description||''), profile_image_url: String(row.profile_image_url||'') };
+          }
+        }
+      }catch(_){ biosById = {}; }
+    }
+
+    const items = picks.map(v=>({
+      vod: {
+        id:String(v.id||''), url:String(v.url||''), title:String(v.title||''), thumbnail_url:String(v.thumbnail_url||''),
+        language:String(v.language||''), views:Number(v.view_count||0), duration:String(v.duration||''), created_at:String(v.created_at||'')
+      },
+      channel: {
+        id:String(v.user_id||''), login:String(v.user_login||''), name:String(v.user_name||''),
+        bio: (biosById[String(v.user_id||'')]||{}).bio || '',
+        profile_image_url: (biosById[String(v.user_id||'')]||{}).profile_image_url || ''
+      },
+      game: { id: game_id, name: game_name },
+      badges: [`<${process.env.SMALL_MAX_LIVE_VIEWERS||500} live`, (lang||'').toUpperCase(), `<${maxVodViews} VOD`]
+    }));
+
+    return apiOk(res, { items }, { cached:false });
+  }catch(e){
+    return apiErr(res, 500, 'server_error', e.message);
+  }
+});
+
+
+app.get('/api/twitflix/live', async (req,res)=>{
+  try{
+    const game_id = String(req.query.game_id || '').trim();
+    const game_name = String(req.query.game_name || '').trim();
+    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+    const limit = clamp(parseInt(req.query.limit||String(process.env.LIVE_CARDS||'50'),10)||50, 1, 80);
+    const cursor = String(req.query.cursor || '').trim();
+    if(!game_id) return apiErr(res, 400, 'missing_game_id');
+
+    const token = await getTwitchToken('app');
+    if(!token) return apiErr(res, 503, 'missing_app_token');
+
+    const qs = new URLSearchParams();
+    qs.set('first', String(limit));
+    qs.set('game_id', game_id);
+    if(lang) qs.set('language', lang);
+    if(cursor) qs.set('after', cursor);
+    const data = await twitchAPI(`streams?${qs.toString()}`, token);
+    const rows = data?.data || [];
+    const next = data?.pagination?.cursor || '';
+
+    const maxLive = Number(process.env.SMALL_MAX_LIVE_VIEWERS || 500);
+    const items = rows.map(s=>({
+      id: String(s.id||''),
+      user_id: String(s.user_id||''),
+      user_login: String(s.user_login||''),
+      user_name: String(s.user_name||''),
+      title: String(s.title||''),
+      viewer_count: Number(s.viewer_count||0),
+      thumbnail_url: String(s.thumbnail_url||''),
+      started_at: String(s.started_at||''),
+      language: String(s.language||''),
+      game_name: String(s.game_name||game_name),
+      badges: [ (Number(s.viewer_count||0) <= maxLive ? `<${maxLive} live` : null), (lang||'').toUpperCase() ].filter(Boolean)
+    }));
+
+    return apiOk(res, { items, cursor: next, game:{id:game_id, name:game_name} }, { cached:false });
+  }catch(e){
+    return apiErr(res, 500, 'server_error', e.message);
   }
 });
 
@@ -1773,8 +2005,6 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 app.get('/firebase_status', (req, res) => {
-  // Avoid 304 with empty body in browsers; always return fresh JSON.
-  res.setHeader('Cache-Control','no-store, must-revalidate');
   try {
     if (db && admin.apps.length > 0) {
       res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
@@ -3644,11 +3874,8 @@ async function requireActionQuota(req, res, actionName){
 
 app.get('/api/fantasy/profile', async (req,res)=>{
   try{
-    // Guest-friendly: do NOT hard-fail (401) for hub status.
-    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
-    if(!tu){
-      return res.json({ success:true, connected:false, user:'Guest', plan:'free', credits:0, cash:0, holdings:[] });
-    }
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
     const user = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
     const w = await getUserWallet(user);
 
@@ -3804,11 +4031,8 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 // =========================================================
 app.get('/api/billing/me', async (req,res)=>{
   try{
-    // Guest-friendly: do NOT hard-fail (401) for hub status.
-    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
-    if(!tu){
-      return res.json({ success:true, connected:false, plan:'free', credits:0, entitlements:{}, steam:{ connected:false } });
-    }
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
     let b = await getBillingDoc(tu);
 
     // Migration safety: if billing credits are 0 but fantasy wallet cash exists, sync it once.
@@ -3824,9 +4048,129 @@ app.get('/api/billing/me', async (req,res)=>{
     }
 
     const steam = b.steam && b.steam.steamid ? { connected:true, steamid:b.steam.steamid, profile:b.steam.profile || null } : { connected:false };
-    res.json({ success:true, connected:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+// New: single source of truth for paywall rules (works even if not connected)
+app.get('/api/billing/entitlements', async (req,res)=>{
+  try{
+    const tu = req.session && req.session.twitchUser ? req.session.twitchUser : null;
+    const connected = !!tu;
+    let plan = 'free';
+    let credits = 0;
+    let ent = {};
+    if(connected){
+      const b = await getBillingDoc(tu);
+      plan = String(b.plan||'free');
+      credits = Number(b.credits||0);
+      ent = b.entitlements || {};
+    }
+
+    // Centralized costs (override with ENV)
+    const costs = {
+      premium_unlock: Number(process.env.COST_PREMIUM_UNLOCK || 200),
+      twitflix_play:  Number(process.env.COST_TWITFLIX_PLAY  || 200),
+      vod_episode:    Number(process.env.COST_VOD_EPISODE    || 80)
+    };
+
+    // Centralized small-streamer rules
+    const smallRules = {
+      maxLiveViewers: Number(process.env.SMALL_MAX_LIVE_VIEWERS || 500),
+      maxVodViews: Number(process.env.SMALL_MAX_VOD_VIEWS || 50000),
+      logic: String(process.env.SMALL_LOGIC || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND'
+    };
+
+    const features = {
+      twitflix: true,
+      episodes: true,
+      live_now: true,
+      premium_analytics: true
+    };
+
+    return apiOk(res, {
+      is_connected: connected,
+      user: connected ? { uid:String(tu.id||''), login:String(tu.login||''), display_name:String(tu.display_name||tu.login||'') } : null,
+      plan, wallet:{ credits }, entitlements: ent,
+      costs, rules:{ small: smallRules },
+      cooldowns: {},
+      features
+    }, { cached:false });
+  }catch(e){
+    return apiErr(res, 500, 'server_error', e.message);
+  }
+});
+
+// New: debit credits atomically (idempotent)
+const __IDEMP_CACHE = new Map(); // key -> {ts, resp}
+function __idemGet(key){
+  const v = __IDEMP_CACHE.get(key);
+  if(!v) return null;
+  if(Date.now()-v.ts > 10*60*1000){ __IDEMP_CACHE.delete(key); return null; }
+  return v.resp;
+}
+function __idemSet(key, resp){ __IDEMP_CACHE.set(key, {ts:Date.now(), resp}); }
+
+app.post('/api/billing/consume', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+
+    const action = String(req.body?.action || '').trim();
+    const idem = String(req.get('X-Idempotency-Key') || '').trim();
+    if(!idem) return apiErr(res, 400, 'missing_idempotency_key');
+
+    const cached = __idemGet(`${tu.id}:${idem}`);
+    if(cached) return res.json(cached);
+
+    const costs = {
+      twitflix_play:  Number(process.env.COST_TWITFLIX_PLAY  || 200),
+      vod_episode:    Number(process.env.COST_VOD_EPISODE    || 80)
+    };
+    if(!(action in costs)) return apiErr(res, 400, 'invalid_action');
+
+    const cost = Number(costs[action]||0);
+
+    let newBalance = 0;
+    let plan = 'free';
+
+    if(firestoreOk){
+      const id = String(tu.id || tu.login || tu.display_name || 'unknown');
+      const ref = db.collection(BILLING_USERS).doc(id);
+      await db.runTransaction(async (tx)=>{
+        const snap = await tx.get(ref);
+        const cur = snap.exists ? snap.data() : {};
+        plan = String(cur.plan || 'free').toLowerCase();
+        const credits = Number(cur.credits || 0);
+
+        if(plan === 'premium' || plan === 'pro'){
+          newBalance = credits;
+          return;
+        }
+        if(credits < cost) throw new Error('credits_insufficient');
+        newBalance = credits - cost;
+        tx.set(ref, { credits: newBalance, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+      });
+    }else{
+      global.__inMemCredits = global.__inMemCredits || new Map();
+      const key = String(tu.id||tu.login||'anon');
+      const cur = Number(global.__inMemCredits.get(key) || 0);
+      if(cur < cost) throw new Error('credits_insufficient');
+      newBalance = cur - cost;
+      global.__inMemCredits.set(key, newBalance);
+    }
+
+    const resp = { ok:true, data:{ granted:true, action, cost, newBalance, plan }, meta:{ idempotent:false } };
+    __idemSet(`${tu.id}:${idem}`, resp);
+    return res.json(resp);
+  }catch(e){
+    if(String(e.message||'') === 'credits_insufficient'){
+      return apiErr(res, 402, 'credits_insufficient');
+    }
+    return apiErr(res, 500, 'server_error', e.message);
   }
 });
 
@@ -3965,5 +4309,53 @@ app.use((err, req, res, next) => {
     console.error('[ERROR]', req.__rid || '-', err && (err.stack || err.message || err));
   }catch(_){}
   if(res.headersSent) return next(err);
+// =========================================================
+// Public domain — Lone Ranger cartoons (Archive.org)
+// =========================================================
+app.get('/api/public-domain/lone-ranger', async (req,res)=>{
+  try{
+    const identifier = 'LoneRangerCartoon1966CrackOfDoom';
+    const cacheKey = identifier;
+    const cached = __pdCacheGet(__pdLoneRangerCache, cacheKey, __PD_LR_TTL_MS);
+    if(cached) return apiOk(res, cached, { cached:true, ttl: __PD_LR_TTL_MS/1000 });
+
+    const metaUrl = `https://archive.org/metadata/${identifier}`;
+    const r = await fetch(metaUrl);
+    if(!r.ok) return apiErr(res, 502, 'ARCHIVE_META_FAILED', `Archive metadata error (${r.status})`);
+    const j = await r.json();
+
+    const files = Array.isArray(j?.files) ? j.files : [];
+    const mp4s = files
+      .filter(f => typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.mp4'))
+      .filter(f => (String(f.format||'').toLowerCase().includes('mp4') || true))
+      .map(f => {
+        const fn = f.name;
+        const title = f.title || __cleanEpisodeTitle(fn);
+        const mp4 = `https://archive.org/download/${identifier}/${encodeURIComponent(fn)}`;
+        return {
+          id: fn.replace(/[^a-z0-9]+/ig,'-').replace(/^-+|-+$/g,'').toLowerCase(),
+          title,
+          year: '1966',
+          mp4,
+          thumb: `https://archive.org/services/img/${identifier}`,
+          source: 'archive.org'
+        };
+      });
+
+    // stable sort: alphabetical by title (good enough)
+    mp4s.sort((a,b)=> (a.title||'').localeCompare(b.title||''));
+
+    const data = {
+      title: 'The Lone Ranger (cartoon, 1966)',
+      identifier,
+      items: mp4s
+    };
+
+    __pdCacheSet(__pdLoneRangerCache, cacheKey, data);
+    return apiOk(res, data, { cached:false, ttl: __PD_LR_TTL_MS/1000 });
+  }catch(e){
+    return apiErr(res, 500, 'PD_LONE_RANGER_ERROR', e?.message || 'error');
+  }
+});
   return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
 });
