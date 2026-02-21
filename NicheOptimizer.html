@@ -2533,17 +2533,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #twitflix-modal .tf-row-arrow{width:30px;height:30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.35);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
 #twitflix-modal .tf-row-arrow:hover{background:rgba(255,255,255,.08);}
 
-
-/* ORYON TV tabs */
-.tf-tabsbar{display:flex;gap:.6rem;align-items:center;justify-content:center;padding:.65rem .9rem;background:linear-gradient(180deg, rgba(255,0,153,.10), rgba(0,0,0,0));border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
-.tf-tabbtn{padding:.45rem .9rem;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-weight:800;letter-spacing:.02em;opacity:.85}
-.tf-tabbtn.active{background:#ff0099;color:#fff;border-color:rgba(255,0,153,.6);opacity:1}
-.tf-anime-series{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;padding:.5rem .25rem}
-.tf-chip{padding:.35rem .7rem;border-radius:999px;border:1px solid rgba(255,255,255,.14);font-weight:800;opacity:.85}
-.tf-chip.active{background:rgba(0,242,234,.12);border-color:rgba(0,242,234,.5);opacity:1}
-.tf-empty{padding:1.2rem;color:rgba(255,255,255,.65)}
-.tf-card-video{width:100%;height:100%;object-fit:cover;border-radius:14px}
-
 </style>
 
 <style id="tabs-exclusive-patch">
@@ -2926,8 +2915,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <input class="cyber-input mb-2" id="boost-query" placeholder="Chaîne..." type="text"/>
 <button class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition" onclick="runBoost()">ACTIVER</button>
 <div class="text-center text-xs mt-2 text-green-400" id="boost-msg"></div>
-
-
 </div>
 </div>
 </div>
@@ -2975,90 +2962,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   </div>
 </div>
 
-
-<div class="tf-tabsbar" id="tf-tabsbar">
-  <button type="button" class="tf-tabbtn active" data-tab="vod">VOD</button>
-  <button type="button" class="tf-tabbtn" data-tab="live">Live</button>
-  <button type="button" class="tf-tabbtn" data-tab="anime">Animé</button>
-</div>
-
-
-<div class="tf-header-block" id="tf-anime-block" style="display:none;">
-  <div class="tf-strip-title">
-    <h4>Animé — domaine public <span class="help" data-help="Épisodes récupérés depuis Archive.org (proxy serveur). Certains titres sont en 'best-effort' via recherche Archive.">?</span></h4>
-  </div>
-
-  <div class="tf-anime-note" style="opacity:.75;margin:.35rem 0 .9rem 0;font-weight:700;">
-    Astuce: autoplay muet sur les vignettes. Clique pour lecture plein écran.
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Lone Ranger (1966)</h4></div>
-    <div class="tf-carousel" id="tf-anime-loneranger"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Superman (Fleischer, 1941)</h4></div>
-    <div class="tf-carousel" id="tf-anime-superman"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Popeye (Public Domain Collection)</h4></div>
-    <div class="tf-carousel" id="tf-anime-popeye"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Felix le Chat (années 1920)</h4></div>
-    <div class="tf-carousel" id="tf-anime-felix"></div>
-  </div>
-
-  
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Private Snafu (1943–1945) — playlists YouTube</h4></div>
-    <div class="tf-anime-note" style="opacity:.7;margin:.2rem 0 .6rem 0;font-weight:700;">
-      Note: lecture via playlists YouTube (autoplay muet). Clique pour ouvrir la playlist.
-    </div>
-    <div class="tf-carousel" id="tf-anime-snafu"></div>
-  </div>
-
-<div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Betty Boop (sélection PD)</h4></div>
-    <div class="tf-carousel" id="tf-anime-betty"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Bugs Bunny (best‑effort)</h4></div>
-    <div class="tf-carousel" id="tf-anime-bugs"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Daffy Duck — Daffy Duck and the Dinosaur (1939) (best‑effort)</h4></div>
-    <div class="tf-carousel" id="tf-anime-daffy"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Porky Pig — courts noirs & blancs (années 30) (best‑effort)</h4></div>
-    <div class="tf-carousel" id="tf-anime-porky"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Casper — The Friendly Ghost (1945) (best‑effort)</h4></div>
-    <div class="tf-carousel" id="tf-anime-casper"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Gabby (Gulliver, 1939) (best‑effort)</h4></div>
-    <div class="tf-carousel" id="tf-anime-gabby"></div>
-  </div>
-
-  <div class="tf-header-block">
-    <div class="tf-strip-title"><h4>Gertie the Dinosaur (1914) (best‑effort)</h4></div>
-    <div class="tf-carousel" id="tf-anime-gertie"></div>
-  </div>
-</div>
-
-
-
 <div class="tf-header-block">
   <div class="tf-strip-title">
     <h4><span style="color:#e50914; font-weight:900; letter-spacing:.08em;">EN LIVE</span> <span style="opacity:.8; font-weight:800;">maintenant</span> <span class="help" data-help="Survole une carte pour une preview. Clique pour lancer un live correspondant au jeu.">?</span></h4>
@@ -3066,7 +2969,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
 </div>
 
-<div class="tf-header-block">
+<div class="tf-header-block" style="display:none">
   <div class="tf-strip-title">
     <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, ORYON TV tente une recherche automatique.">?</span></h4>
   </div>
@@ -3082,7 +2985,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div></div>
 <div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="ORYON" class="oryon-logo" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;pointer-events:none;">ORYON</div></div>
-<script src="/assets/js/core/app-bootstrap.js?v=1771198752" defer></script>
+<script src="/assets/js/core/app-bootstrap.js?v=1770565485" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
 <div class="modal-head">
