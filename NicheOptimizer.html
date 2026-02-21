@@ -510,41 +510,6 @@
       pointer-events:none;
     }
 
-    /* ORYON TV primary tabs (LIVE / VOD / ANIME) */
-    .tf-primary-tabs{
-      display:inline-flex;
-      gap:6px;
-      padding:6px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.20);
-    }
-    .tf-primary-tab{
-      appearance:none;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.72);
-      border-radius:10px;
-      padding:10px 12px;
-      font-family: Orbitron, system-ui, sans-serif;
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      cursor:pointer;
-      transition: .18s;
-      text-transform: uppercase;
-      line-height: 1;
-      user-select:none;
-      white-space: nowrap;
-    }
-    .tf-primary-tab:hover{ color:#fff; border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.10); }
-    .tf-primary-tab.active{
-      color:#000;
-      background: #fff;
-      border-color: rgba(255,255,255,.25);
-      box-shadow: 0 10px 24px rgba(0,0,0,.35);
-    }
-
 
 /* === ORYON TV UX Overhaul (Netflix-like) — overrides only (does not touch rest of app) === */
 #twitflix-modal .tf-modal-content{ max-width: 1400px; }
@@ -2287,11 +2252,17 @@ body.modal-open #player-tools{display:none !important;}
     .tf-trailer-card{width: 440px;
       height: 248px; /* ~16:9 */
       flex: 0 0 auto;
+      position: relative;
       border-radius: 16px;
       overflow:hidden;
       background:#000;
       border: 1px solid rgba(255,255,255,.10);}
     .tf-trailer-card iframe{ width:100%; height:100%; border:0; display:block; }
+    .tf-trailer-thumb{ width:100%; height: 100%; background-size: cover; background-position: center; position: relative; }
+    .tf-trailer-thumb::after{ content:''; position:absolute; inset:0; background: linear-gradient(to top, rgba(0,0,0,.78) 0%, rgba(0,0,0,.15) 55%, rgba(0,0,0,0) 100%); }
+    .tf-trailer-meta{ position:absolute; left:0; right:0; bottom:0; padding: 14px 14px 12px 14px; z-index:2; }
+    .tf-trailer-meta .tf-title{ font-weight: 900; font-size: 13px; line-height: 1.15; color: rgba(255,255,255,.96); text-shadow: 0 10px 24px rgba(0,0,0,.55); }
+    .tf-trailer-meta .tf-sub{ margin-top: 6px; font-size: 11px; color: rgba(255,255,255,.72); }
     .tf-trailer-fallback{
       width:100%;
       height:100%;
@@ -2960,18 +2931,18 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-modal-content">
 <div class="tf-topbar">
 <div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">ORYON TV</span></div>
+
+<!-- Primary content tabs (LIVE / VOD / ANIME) -->
+<div class="tf-primary-tabs" id="tf-primary-tabs" role="tablist" aria-label="Modes ORYON TV">
+  <button type="button" class="tf-primary-tab active" data-tf-primary="live" role="tab" aria-selected="true">LIVE</button>
+  <button type="button" class="tf-primary-tab" data-tf-primary="vod" role="tab" aria-selected="false">VOD</button>
+  <button type="button" class="tf-primary-tab" data-tf-primary="anime" role="tab" aria-selected="false">ANIME</button>
+</div>
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
 <input autocomplete="off" class="tf-search" id="twitflix-search" placeholder="Décris ce que tu veux (ex: \"comme Zomboid mais plus de craft et moins de stress\")" type="text"/>
 </div>
-
-  <!-- ORYON TV: Primary tabs (LIVE / VOD / ANIME) -->
-  <div class="tf-primary-tabs" id="tf-primary-tabs" aria-label="Choix contenu ORYON TV">
-    <button type="button" class="tf-primary-tab active" data-tf-primary="live">LIVE</button>
-    <button type="button" class="tf-primary-tab" data-tf-primary="vod">VOD</button>
-    <button type="button" class="tf-primary-tab" data-tf-primary="anime">ANIME</button>
-  </div>
 <button class="tf-toggle-btn tf-steam-btn" id="tf-btn-steam" type="button" onclick="tfPromptSteam()">
   <i class="fab fa-steam" aria-hidden="true"></i>
   <span class="tf-steam-label">Connecter Steam</span>
@@ -3004,14 +2975,14 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   </div>
 </div>
 
-<div class="tf-header-block">
+<div class="tf-header-block" id="tf-live-block">
   <div class="tf-strip-title">
     <h4><span style="color:#e50914; font-weight:900; letter-spacing:.08em;">EN LIVE</span> <span style="opacity:.8; font-weight:800;">maintenant</span> <span class="help" data-help="Survole une carte pour une preview. Clique pour lancer un live correspondant au jeu.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
 </div>
 
-<div class="tf-header-block" id="tf-trailer-block" style="display:none">
+<div class="tf-header-block" id="tf-trailer-block">
   <div class="tf-strip-title">
     <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, ORYON TV tente une recherche automatique.">?</span></h4>
   </div>
@@ -3369,6 +3340,18 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 /* ===== Netflix visual override (TwitFlix only) ===== */
 #twitflix-modal{ background: rgba(0,0,0,.82); }
 #twitflix-modal .tf-topbar{ background: rgba(0,0,0,.75); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,.08); }
+
+/* Primary tabs (LIVE / VOD / ANIME) */
+#twitflix-modal .tf-topbar{ display:flex; align-items:center; gap: 14px; }
+#twitflix-modal .tf-brand{ flex: 0 0 auto; }
+#twitflix-modal .tf-primary-tabs{ flex: 0 0 auto; display:inline-flex; align-items:center; gap: 6px; padding: 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.35); backdrop-filter: blur(10px); }
+#twitflix-modal .tf-primary-tab{ appearance:none; border:0; background: transparent; color: rgba(255,255,255,.82); padding: 8px 14px; border-radius: 999px; font-weight: 900; letter-spacing: .08em; font-size: 12px; cursor: pointer; }
+#twitflix-modal .tf-primary-tab:hover{ background: rgba(255,255,255,.06); }
+#twitflix-modal .tf-primary-tab.active{ background: rgba(0,242,234,.16); color: #00f2ea; box-shadow: 0 0 0 1px rgba(0,242,234,.24) inset; }
+
+@media (max-width: 900px){
+  #twitflix-modal .tf-primary-tabs{ transform: scale(.95); transform-origin: left center; }
+}
 #twitflix-modal .twitflix-wordmark{ color:#e50914 !important; letter-spacing:.08em; }
 #twitflix-modal .tf-row-title span,
 #twitflix-modal .tf-dot.active{ color:#e50914; background: rgba(229,9,20,.95) !important; }
