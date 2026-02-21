@@ -483,6 +483,128 @@ app.post('/api/steam/unlink', async (req, res) => {
   }
 });
 
+// =========================================================
+// YouTube search (no API key) — used by TwitFlix header trailers
+// =========================================================
+function __findFirstVideoRenderer(obj){
+  if(!obj) return null;
+  if(Array.isArray(obj)){
+    for(const it of obj){
+      const r = __findFirstVideoRenderer(it);
+      if(r) return r;
+    }
+    return null;
+  }
+  if(typeof obj === 'object'){
+    if(obj.videoRenderer) return obj.videoRenderer;
+    for(const k of Object.keys(obj)){
+      const r = __findFirstVideoRenderer(obj[k]);
+      if(r) return r;
+    }
+  }
+  return null;
+}
+
+function __extractYtInitialData(html){
+  const patterns = [
+    /var\s+ytInitialData\s*=\s*(\{[\s\S]*?\});/,
+    /window\["ytInitialData"\]\s*=\s*(\{[\s\S]*?\});/,
+    /ytInitialData\s*=\s*(\{[\s\S]*?\});/,
+  ];
+  for(const re of patterns){
+    const m = html.match(re);
+    if(m && m[1]) return m[1];
+  }
+  return null;
+}
+
+app.get('/api/youtube/search', async (req, res) => {
+  try{
+    const q = String(req.query.q || '').trim();
+    if(!q) return res.status(400).json({ ok:false, error:'Missing q' });
+
+    const url = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+    const r = await fetch(url, {
+      headers: {
+        'user-agent': 'Mozilla/5.0',
+        'accept-language': 'en-US,en;q=0.9'
+      }
+    });
+
+    const html = await r.text();
+    const jsonStr = __extractYtInitialData(html);
+    if(!jsonStr) return res.status(502).json({ ok:false, error:'ytInitialData not found' });
+
+    let data;
+    try{ data = JSON.parse(jsonStr); }
+    catch(e){ return res.status(502).json({ ok:false, error:'ytInitialData parse failed' }); }
+
+    const vr = __findFirstVideoRenderer(data);
+    if(!vr || !vr.videoId) return res.status(404).json({ ok:false, error:'No video found' });
+
+    const title = (vr.title && (vr.title.simpleText || (vr.title.runs && vr.title.runs[0] && vr.title.runs[0].text))) || '';
+    const channel = (vr.ownerText && vr.ownerText.runs && vr.ownerText.runs[0] && vr.ownerText.runs[0].text) || '';
+    return res.json({ ok:true, videoId: vr.videoId, title, channel });
+  }catch(e){
+    return res.status(500).json({ ok:false, error:'Search failed' });
+  }
+});
+
+// =========================================================
+// Anime (Public Domain / CC0) — via Internet Archive
+// =========================================================
+app.get('/api/anime/public', async (req, res) => {
+  try{
+    const rows = Math.min(80, Math.max(10, parseInt(req.query.rows || '48', 10) || 48));
+    const page = Math.min(5, Math.max(1, parseInt(req.query.page || '1', 10) || 1));
+
+    const q = [
+      '(mediatype:(movies) OR mediatype:(video))',
+      '(subject:(anime) OR title:(anime))',
+      '(licenseurl:(*creativecommons.org/publicdomain*) OR licenseurl:(*creativecommons.org/licenses/cc0*))'
+    ].join(' AND ');
+
+    const url = 'https://archive.org/advancedsearch.php'
+      + '?q=' + encodeURIComponent(q)
+      + '&fl[]=' + encodeURIComponent('identifier')
+      + '&fl[]=' + encodeURIComponent('title')
+      + '&fl[]=' + encodeURIComponent('year')
+      + '&fl[]=' + encodeURIComponent('licenseurl')
+      + '&rows=' + encodeURIComponent(String(rows))
+      + '&page=' + encodeURIComponent(String(page))
+      + '&output=json';
+
+    const r = await fetch(url, {
+      headers: {
+        'user-agent': 'Mozilla/5.0',
+        'accept-language': 'en-US,en;q=0.9'
+      }
+    });
+    const d = await r.json().catch(()=>null);
+    const docs = d?.response?.docs;
+    if(!Array.isArray(docs)) return res.json({ items: [] });
+
+    const items = docs.map(x => {
+      const identifier = String(x.identifier || '').trim();
+      const title = String(x.title || '').trim();
+      const year = x.year ? String(x.year) : '';
+      const licenseurl = String(x.licenseurl || '').trim();
+      return {
+        identifier,
+        title,
+        year,
+        licenseurl,
+        pageUrl: identifier ? `https://archive.org/details/${identifier}` : '',
+        embedUrl: identifier ? `https://archive.org/embed/${identifier}` : ''
+      };
+    }).filter(it => it.identifier && it.title);
+
+    return res.json({ items });
+  }catch(e){
+    return res.status(500).json({ items: [] });
+  }
+});
+
 
 
 // Static assets (kept simple: UI + /assets folder)
@@ -1960,60 +2082,6 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
   } catch (e) {
     console.warn('⚠️ /api/twitch/streams/top', e.message);
     return res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-
-// =========================================================
-// ORYON TV — ANIME (Public domain / CC0 only)
-// Source: Internet Archive advancedsearch (filters by licenseurl)
-// =========================================================
-let __animeCache = { t: 0, items: [] };
-app.get('/api/anime/public', heavyLimiter, async (req, res) => {
-  try{
-    const now = Date.now();
-    const ttl = 60 * 60 * 1000; // 1h
-    const limit = Math.max(1, Math.min(80, Number(req.query.limit || 36) || 36));
-
-    if (__animeCache.items.length && (now - __animeCache.t) < ttl){
-      return res.json({ success:true, items: __animeCache.items.slice(0, limit), cached:true });
-    }
-
-    // We are conservative: only Public Domain / CC0 markers.
-    // NOTE: Internet Archive metadata is user-provided; we still filter strictly.
-    const q = [
-      'subject:(anime OR animation)',
-      'AND mediatype:(movies)',
-      'AND collection:(opensource_movies)'
-    ].join(' ');
-    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=licenseurl&fl%5B%5D=year&rows=80&page=1&output=json`;
-
-    const r = await fetch(url);
-    if(!r.ok) return res.status(502).json({ success:false, error:'ARCHIVE_UPSTREAM_ERROR' });
-    const d = await r.json().catch(()=>null);
-    const docs = d?.response?.docs || [];
-
-    const okLicense = (u)=>{
-      const s = String(u||'').toLowerCase();
-      // public domain / CC0 only
-      return s.includes('creativecommons.org/publicdomain') || s.includes('publicdomain') || s.includes('cc0');
-    };
-
-    const items = docs
-      .filter(x => x && x.identifier && okLicense(x.licenseurl))
-      .map(x => ({
-        id: String(x.identifier),
-        title: String(x.title || x.identifier),
-        year: x.year ? String(x.year) : null,
-        licenseurl: String(x.licenseurl || ''),
-        poster: `https://archive.org/services/img/${encodeURIComponent(String(x.identifier))}`,
-        embed: `https://archive.org/embed/${encodeURIComponent(String(x.identifier))}`
-      }));
-
-    __animeCache = { t: now, items };
-    return res.json({ success:true, items: items.slice(0, limit), cached:false });
-  }catch(e){
-    return res.status(500).json({ success:false, error: e.message });
   }
 });
 

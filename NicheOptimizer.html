@@ -2945,6 +2945,12 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <button class="tf-close-btn" type="button" aria-label="Fermer ORYON TV" onclick="closeTwitFlix()">✕</button>
 </div>
 </div>
+<!-- Primary modes: LIVE / VOD / ANIME -->
+<div id="tf-primary-tabs" class="tf-primary-tabs" role="tablist" aria-label="Modes ORYON TV">
+  <button type="button" class="tf-primary-tab active" role="tab" aria-selected="true" data-tf-primary="live">LIVE</button>
+  <button type="button" class="tf-primary-tab" role="tab" aria-selected="false" data-tf-primary="vod">VOD</button>
+  <button type="button" class="tf-primary-tab" role="tab" aria-selected="false" data-tf-primary="anime">ANIME</button>
+</div>
 <!-- Header trailers (rotating YouTube official) -->
 <div id="tf-header-trailers" class="tf-header-trailers" aria-label="Trailers officiels"></div>
 <div class="tf-sub" style="display:none;"></div>
@@ -2969,13 +2975,6 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
     <h4><span style="color:#e50914; font-weight:900; letter-spacing:.08em;">EN LIVE</span> <span style="opacity:.8; font-weight:800;">maintenant</span> <span class="help" data-help="Survole une carte pour une preview. Clique pour lancer un live correspondant au jeu.">?</span></h4>
   </div>
   <div class="tf-carousel" id="tf-live-carousel" aria-label="Lives en cours"></div>
-</div>
-
-<div class="tf-header-block" style="display:none">
-  <div class="tf-strip-title">
-    <h4>Trailers jeux vidéo <span class="help" data-help="Trailers intégrés (YouTube). Si un trailer manque, ORYON TV tente une recherche automatique.">?</span></h4>
-  </div>
-  <div class="tf-carousel" id="tf-trailer-carousel" aria-label="Trailers jeux vidéo"></div>
 </div>
 
 <div class="tf-grid" id="twitflix-grid">
@@ -3336,6 +3335,34 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   border-bottom: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.55);
   backdrop-filter: blur(10px);
+}
+
+/* Primary tabs (LIVE / VOD / ANIME) */
+#twitflix-modal .tf-primary-tabs{
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display:flex;
+  gap:10px;
+  padding: 10px 18px 0 18px;
+  align-items:center;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(10px);
+}
+#twitflix-modal .tf-primary-tab{
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  font-size: 12px;
+  cursor:pointer;
+}
+#twitflix-modal .tf-primary-tab.active{
+  background: rgba(229,9,20,.22);
+  border-color: rgba(229,9,20,.45);
 }
 #twitflix-modal .tf-header-trailers-inner{
   display:flex;
