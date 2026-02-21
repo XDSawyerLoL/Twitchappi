@@ -1773,6 +1773,8 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 app.get('/firebase_status', (req, res) => {
+  // Avoid 304 with empty body in browsers; always return fresh JSON.
+  res.setHeader('Cache-Control','no-store, must-revalidate');
   try {
     if (db && admin.apps.length > 0) {
       res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
@@ -3642,8 +3644,11 @@ async function requireActionQuota(req, res, actionName){
 
 app.get('/api/fantasy/profile', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    // Guest-friendly: do NOT hard-fail (401) for hub status.
+    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    if(!tu){
+      return res.json({ success:true, connected:false, user:'Guest', plan:'free', credits:0, cash:0, holdings:[] });
+    }
     const user = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
     const w = await getUserWallet(user);
 
@@ -3799,8 +3804,11 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 // =========================================================
 app.get('/api/billing/me', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    // Guest-friendly: do NOT hard-fail (401) for hub status.
+    const tu = (req.session && req.session.twitchUser) ? req.session.twitchUser : null;
+    if(!tu){
+      return res.json({ success:true, connected:false, plan:'free', credits:0, entitlements:{}, steam:{ connected:false } });
+    }
     let b = await getBillingDoc(tu);
 
     // Migration safety: if billing credits are 0 but fantasy wallet cash exists, sync it once.
@@ -3816,7 +3824,7 @@ app.get('/api/billing/me', async (req,res)=>{
     }
 
     const steam = b.steam && b.steam.steamid ? { connected:true, steamid:b.steam.steamid, profile:b.steam.profile || null } : { connected:false };
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
+    res.json({ success:true, connected:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
