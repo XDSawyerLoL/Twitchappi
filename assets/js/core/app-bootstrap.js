@@ -4637,11 +4637,34 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       <div style="width:min(1100px,96vw);max-height:92vh;display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div id="tf-yt-title" style="font-weight:900;letter-spacing:.02em;opacity:.95;"></div>
-          <button id="tf-yt-close" type="button" style="padding:.4rem .7rem;border-radius:10px;border:1px solid rgba(255,255,255,.18);font-weight:900;">✕</button>
+          <button id="tf-yt-next" style="margin-right:.5rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;padding:.45rem .75rem;border-radius:10px;font-weight:900;display:none;">Source suivante</button>
+        <a id="tf-yt-open" href="#" target="_blank" rel="noopener" style="margin-right:.5rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;padding:.45rem .75rem;border-radius:10px;font-weight:900;text-decoration:none;">Ouvrir YouTube</a>
+        <button id="tf-yt-close" type="button" style="padding:.4rem .7rem;border-radius:10px;border:1px solid rgba(255,255,255,.18);font-weight:900;">✕</button>
         </div>
         <iframe id="tf-yt-frame" style="width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
       </div>`;
     document.body.appendChild(overlay);
+    overlay.querySelector('#tf-yt-next').onclick = ()=>{
+      try{
+        const ids = JSON.parse(overlay.dataset.ids||'[]');
+        let idx = parseInt(overlay.dataset.idx||'0',10);
+        idx = (idx + 1) % Math.max(1, ids.length);
+        overlay.dataset.idx = String(idx);
+        const id = ids[idx];
+        const kind = overlay.dataset.kind;
+        const origin = encodeURIComponent(window.location.origin);
+        const f = overlay.querySelector('#tf-yt-frame');
+        const open = overlay.querySelector('#tf-yt-open');
+        if(kind==='playlist'){
+          f.src = `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(id)}&autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
+          open.href = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+        } else {
+          f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
+          open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+        }
+      }catch(e){}
+    };
+
     overlay.querySelector('#tf-yt-close').onclick = ()=>{
       overlay.style.display='none';
       const f=overlay.querySelector('#tf-yt-frame');
@@ -4651,25 +4674,45 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     return overlay;
   }
 
-  window.tfPlayYouTubeVideo = function(videoId, title){
-    if(!videoId) return;
-    const o = ensureYT();
-    o.querySelector('#tf-yt-title').textContent = title || 'Vidéo';
-    const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&playsinline=1&rel=0`;
-    const f = o.querySelector('#tf-yt-frame');
-    f.src = src;
-    o.style.display='flex';
-  };
+  window.tfPlayYouTubeVideo = function(videoIdOrList, title){
+  const ids = Array.isArray(videoIdOrList) ? videoIdOrList.filter(Boolean) : [videoIdOrList].filter(Boolean);
+  if(!ids.length) return;
+  const o = ensureYT();
+  o.querySelector('#tf-yt-title').textContent = title || 'Vidéo';
+  o.dataset.kind = 'video';
+  o.dataset.ids = JSON.stringify(ids);
+  o.dataset.idx = '0';
+  const origin = encodeURIComponent(window.location.origin);
+  const id = ids[0];
+  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
+  const f = o.querySelector('#tf-yt-frame');
+  f.src = src;
+  const open = o.querySelector('#tf-yt-open');
+  open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+  const nextBtn = o.querySelector('#tf-yt-next');
+  nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
+  o.style.display='flex';
+};
 
-  window.tfPlayYouTubePlaylist = function(listId, title){
-    if(!listId) return;
-    const o = ensureYT();
-    o.querySelector('#tf-yt-title').textContent = title || 'Playlist';
-    const src = `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(listId)}&autoplay=1&mute=1&playsinline=1&rel=0`;
-    const f = o.querySelector('#tf-yt-frame');
-    f.src = src;
-    o.style.display='flex';
-  };
+  window.tfPlayYouTubePlaylist = function(listIdOrList, title){
+  const ids = Array.isArray(listIdOrList) ? listIdOrList.filter(Boolean) : [listIdOrList].filter(Boolean);
+  if(!ids.length) return;
+  const o = ensureYT();
+  o.querySelector('#tf-yt-title').textContent = title || 'Playlist';
+  o.dataset.kind = 'playlist';
+  o.dataset.ids = JSON.stringify(ids);
+  o.dataset.idx = '0';
+  const origin = encodeURIComponent(window.location.origin);
+  const id = ids[0];
+  const src = `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(id)}&autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
+  const f = o.querySelector('#tf-yt-frame');
+  f.src = src;
+  const open = o.querySelector('#tf-yt-open');
+  open.href = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+  const nextBtn = o.querySelector('#tf-yt-next');
+  nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
+  o.style.display='flex';
+};
 })();
 
 ;
