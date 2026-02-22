@@ -35,7 +35,7 @@ if (typeof window.iaEmbed !== 'function') {
   };
 }
 if (typeof window.iaItemFromIdentifier !== 'function') {
-  window.iaItemFromIdentifier = async function iaItemFromIdentifier(identifier, fallbackTitle){
+window.iaItemFromIdentifier = async function iaItemFromIdentifier(identifier, fallbackTitle){
     return {
       title: fallbackTitle || identifier,
       identifier,
@@ -3736,7 +3736,7 @@ async function fetchAccess(){
   }
 
   // Return a list of playable mp4 files inside a single IA item (used when one identifier contains many episodes).
-  async function iaListMp4Files(identifier, limit=80){
+  async function iaListMp4Files(identifier, limit=500){
     const meta = await iaJson(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
     const files = Array.isArray(meta?.files) ? meta.files : [];
     const mp4s = files
@@ -3776,6 +3776,17 @@ async function fetchAccess(){
       embedUrl: iaEmbed(d.identifier)
     }));
   }
+
+  // Expose IA helpers for other parts of the app (module/classic-script safe)
+  try{
+    window.iaJson = window.iaJson || iaJson;
+    window.iaThumb = window.iaThumb || iaThumb;
+    window.iaEmbed = window.iaEmbed || iaEmbed;
+    window.iaPickMp4 = window.iaPickMp4 || iaPickMp4;
+    window.iaListMp4Files = window.iaListMp4Files || iaListMp4Files;
+    window.iaItemFromIdentifier = window.iaItemFromIdentifier || iaItemFromIdentifier;
+    window.iaSearchItems = window.iaSearchItems || iaSearchItems;
+  }catch(e){}
 
 function dashboardCardHTML(access){
     const plan = normPlan(access.plan);
@@ -5096,7 +5107,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     if(!wrap) return;
     wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
     try{
-      const eps = await iaListMp4Files(identifier, 80);
+      const eps = await window.iaListMp4Files(identifier, 80);
       const thumb = iaThumb(identifier);
       const items = (eps||[]).map((e, idx)=>({
         title: (label ? `${label} — ${e.title || e.name}` : (e.title || e.name || `Épisode ${idx+1}`)),
@@ -5115,7 +5126,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     if(!wrap) return;
     wrap.innerHTML = '<div class="tf-empty">Recherche…</div>';
     try{
-      const items = await iaSearchItems(q, 24);
+      const items = await window.iaSearchItems(q, 24);
       renderItemsInto(carouselId, items || []);
     }catch(e){
       wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
