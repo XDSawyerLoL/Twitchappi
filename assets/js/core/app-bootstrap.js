@@ -3735,6 +3735,22 @@ async function fetchAccess(){
     return `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(mp4.name)}`;
   }
 
+  // Return a list of playable mp4 files inside a single IA item (used when one identifier contains many episodes).
+  async function iaListMp4Files(identifier, limit=80){
+    const meta = await iaJson(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
+    const files = Array.isArray(meta?.files) ? meta.files : [];
+    const mp4s = files
+      .filter(f => (f?.name||'').toLowerCase().endsWith('.mp4'))
+      .filter(f => !String(f.name).includes('_thumb') && !String(f.name).includes('__ia_thumb'))
+      .sort((a,b)=> String(a.name||'').localeCompare(String(b.name||''), undefined, {numeric:true, sensitivity:'base'}));
+    const picked = mp4s.slice(0, Math.max(1, limit));
+    return picked.map(f => ({
+      name: f.name,
+      title: (f.title || f.original || f.name || '').toString(),
+      url: `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(f.name)}`
+    }));
+  }
+
   async function iaItemFromIdentifier(identifier, fallbackTitle){
     const mp4 = await iaPickMp4(identifier);
     return {
@@ -5074,6 +5090,26 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     }
   }
 
+  // For IA items that contain many episodes as separate mp4 files.
+  async function loadByItemFiles(carouselId, identifier, label){
+    const wrap = document.getElementById(carouselId);
+    if(!wrap) return;
+    wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
+    try{
+      const eps = await iaListMp4Files(identifier, 80);
+      const thumb = iaThumb(identifier);
+      const items = (eps||[]).map((e, idx)=>({
+        title: (label ? `${label} — ${e.title || e.name}` : (e.title || e.name || `Épisode ${idx+1}`)),
+        identifier,
+        thumbnail: thumb,
+        mp4: e.url
+      }));
+      renderItemsInto(carouselId, items);
+    }catch(e){
+      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
+    }
+  }
+
   async function loadBySearch(carouselId, q){
     const wrap = document.getElementById(carouselId);
     if(!wrap) return;
@@ -5093,10 +5129,11 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     inited=true;
 
     // Known identifiers (stable)
-    loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom');
+    // Use per-file listing when the IA item is a bundle of many episodes.
+    loadByItemFiles('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom', 'Lone Ranger (1966)');
     loadByIdentifier('tf-anime-superman', 'superman_1941');
-    loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain');
-    loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919');
+    loadByItemFiles('tf-anime-popeye', 'popeye-pubdomain', 'Popeye');
+    loadByItemFiles('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat');
 
 
     // Curated YouTube playlists (non-Archive)
