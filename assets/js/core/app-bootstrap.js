@@ -3,6 +3,33 @@ const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
 
+// --- IA helpers safety (v13) ---
+// Certains builds appellent iaItemFromIdentifier sans que le helper soit présent (ordre de chargement / merge).
+// On garantit des fallback simples basés sur l'embed Archive.org.
+if (typeof window.iaThumb !== 'function') {
+  window.iaThumb = function iaThumb(identifier){
+    return `https://archive.org/services/img/${encodeURIComponent(identifier)}`;
+  };
+}
+if (typeof window.iaEmbed !== 'function') {
+  window.iaEmbed = function iaEmbed(identifier){
+    return `https://archive.org/embed/${encodeURIComponent(identifier)}`;
+  };
+}
+if (typeof window.iaItemFromIdentifier !== 'function') {
+  window.iaItemFromIdentifier = async function iaItemFromIdentifier(identifier, fallbackTitle){
+    return {
+      title: fallbackTitle || identifier,
+      identifier,
+      mp4: '',
+      thumb: window.iaThumb(identifier),
+      embedUrl: window.iaEmbed(identifier),
+      sourceLabel: 'Archive.org'
+    };
+  };
+}
+// --------------------------------
+
 
 // =========================================================
 // Global API fetch guard: single-flight + concurrency limit + 429 backoff
@@ -5009,7 +5036,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     if(!wrap) return;
     wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
     try{
-      const it = await iaItemFromIdentifier(identifier, identifier);
+      const it = await window.iaItemFromIdentifier(identifier, identifier);
       renderItemsInto(carouselId, it ? [it] : []);
     }catch(e){
       wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
