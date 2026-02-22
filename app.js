@@ -613,7 +613,11 @@ const __oryonVodSearchCache = new Map(); // key -> {ts, items}
 // Ultra-fast: Twiflix "play" cache (game_id -> eligible vod ids)
 const __twiflixPlayCache = new Map(); // key -> {ts, vods:[{id, thumbnail_url, title, url, view_count, user_name, user_login}]}
 // Public-domain series cache (Archive.org) — Lone Ranger cartoons
-const __pdLoneRangerCache = new Map(); // key -> {ts, data}
+const __pdLoneRangerCache = new Map();
+// Public-domain series cache (Archive.org) — other series (Superman/Popeye/Felix)
+const __pdSeriesCache = new Map(); // key -> {ts, data}
+const __PD_SERIES_TTL_MS = 24 * 60 * 60 * 1000;
+ // key -> {ts, data}
 const __PD_LR_TTL_MS = 24 * 60 * 60 * 1000;
 
 function __pdCacheGet(map, key, ttlMs){
@@ -4415,7 +4419,133 @@ app.get('/api/public-domain/lone-ranger', async (req,res)=>{
       items: mp4s
     };
 
-    __pdCacheSet(__pdLoneRangerCache, cacheKey, data);
+    __pdCacheSet(__pdLoneRangerCache, c
+// =========================================================
+// Public domain — Superman (Fleischer, 1941) (Archive.org)
+// Identifier: superman_1941
+// =========================================================
+app.get('/api/public-domain/superman-fleischer', async (req,res)=>{
+  try{
+    const identifier = 'superman_1941';
+    const cacheKey = 'superman-fleischer';
+    const cached = __pdCacheGet(__pdSeriesCache, cacheKey, __PD_SERIES_TTL_MS);
+    if(cached) return apiOk(res, cached, { cached:true, ttl: __PD_SERIES_TTL_MS/1000 });
+
+    const metaUrl = `https://archive.org/metadata/${identifier}`;
+    const r = await fetch(metaUrl);
+    if(!r.ok) return apiErr(res, 502, 'ARCHIVE_META_FAILED', `Archive metadata error (${r.status})`);
+    const j = await r.json();
+
+    const files = Array.isArray(j?.files) ? j.files : [];
+    const mp4s = files
+      .filter(f => typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.mp4'))
+      .map(f => {
+        const fn = f.name;
+        const title = f.title || __cleanEpisodeTitle(fn);
+        const mp4 = `https://archive.org/download/${identifier}/${encodeURIComponent(fn)}`;
+        return {
+          id: fn.replace(/[^a-z0-9]+/ig,'-').replace(/^-+|-+$/g,'').toLowerCase(),
+          title,
+          year: '1941',
+          mp4,
+          thumb: `https://archive.org/services/img/${identifier}`,
+          source: 'archive.org'
+        };
+      });
+
+    const payload = { title: 'Superman (Fleischer, 1941)', items: mp4s };
+    __pdSeriesCache.set(cacheKey, { ts: Date.now(), data: payload });
+    return apiOk(res, payload, { cached:false, ttl: __PD_SERIES_TTL_MS/1000 });
+  }catch(e){
+    return apiErr(res, 500, 'PD_SUPERMAN_FAILED', e?.message || 'Error');
+  }
+});
+
+// =========================================================
+// Public domain — Popeye (Public Domain Collection) (Archive.org)
+// Identifier: popeye-pubdomain
+// =========================================================
+app.get('/api/public-domain/popeye', async (req,res)=>{
+  try{
+    const identifier = 'popeye-pubdomain';
+    const cacheKey = 'popeye-pubdomain';
+    const cached = __pdCacheGet(__pdSeriesCache, cacheKey, __PD_SERIES_TTL_MS);
+    if(cached) return apiOk(res, cached, { cached:true, ttl: __PD_SERIES_TTL_MS/1000 });
+
+    const metaUrl = `https://archive.org/metadata/${identifier}`;
+    const r = await fetch(metaUrl);
+    if(!r.ok) return apiErr(res, 502, 'ARCHIVE_META_FAILED', `Archive metadata error (${r.status})`);
+    const j = await r.json();
+
+    const files = Array.isArray(j?.files) ? j.files : [];
+    const mp4s = files
+      .filter(f => typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.mp4'))
+      .map(f => {
+        const fn = f.name;
+        const title = f.title || __cleanEpisodeTitle(fn);
+        const mp4 = `https://archive.org/download/${identifier}/${encodeURIComponent(fn)}`;
+        return {
+          id: fn.replace(/[^a-z0-9]+/ig,'-').replace(/^-+|-+$/g,'').toLowerCase(),
+          title,
+          year: '',
+          mp4,
+          thumb: `https://archive.org/services/img/${identifier}`,
+          source: 'archive.org'
+        };
+      });
+
+    const payload = { title: 'Popeye (Public Domain)', items: mp4s };
+    __pdSeriesCache.set(cacheKey, { ts: Date.now(), data: payload });
+    return apiOk(res, payload, { cached:false, ttl: __PD_SERIES_TTL_MS/1000 });
+  }catch(e){
+    return apiErr(res, 500, 'PD_POPEYE_FAILED', e?.message || 'Error');
+  }
+});
+
+// =========================================================
+// Public domain — Felix le Chat (curated Archive.org items)
+// Identifiers: FelixTheCat-FelineFollies1919, FelixTheCat-FelixTheGhostBreaker1923, FelixTheCat-FelixGoesA-huntin1923
+// =========================================================
+app.get('/api/public-domain/felix', async (req,res)=>{
+  try{
+    const identifiers = [
+      'FelixTheCat-FelineFollies1919',
+      'FelixTheCat-FelixTheGhostBreaker1923',
+      'FelixTheCat-FelixGoesA-huntin1923'
+    ];
+    const cacheKey = 'felix-curated';
+    const cached = __pdCacheGet(__pdSeriesCache, cacheKey, __PD_SERIES_TTL_MS);
+    if(cached) return apiOk(res, cached, { cached:true, ttl: __PD_SERIES_TTL_MS/1000 });
+
+    const results = [];
+    for(const identifier of identifiers){
+      const metaUrl = `https://archive.org/metadata/${identifier}`;
+      const r = await fetch(metaUrl);
+      if(!r.ok) continue;
+      const j = await r.json();
+      const files = Array.isArray(j?.files) ? j.files : [];
+      const mp4 = files.find(f => typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.mp4'));
+      if(!mp4?.name) continue;
+      const fn = mp4.name;
+      results.push({
+        id: identifier.toLowerCase(),
+        title: (mp4.title || j?.metadata?.title || __cleanEpisodeTitle(fn)),
+        year: String(j?.metadata?.year || ''),
+        mp4: `https://archive.org/download/${identifier}/${encodeURIComponent(fn)}`,
+        thumb: `https://archive.org/services/img/${identifier}`,
+        source: 'archive.org'
+      });
+    }
+
+    const payload = { title: 'Felix le Chat (Public Domain)', items: results };
+    __pdSeriesCache.set(cacheKey, { ts: Date.now(), data: payload });
+    return apiOk(res, payload, { cached:false, ttl: __PD_SERIES_TTL_MS/1000 });
+  }catch(e){
+    return apiErr(res, 500, 'PD_FELIX_FAILED', e?.message || 'Error');
+  }
+});
+
+acheKey, data);
     return apiOk(res, data, { cached:false, ttl: __PD_LR_TTL_MS/1000 });
   }catch(e){
     return apiErr(res, 500, 'PD_LONE_RANGER_ERROR', e?.message || 'error');
