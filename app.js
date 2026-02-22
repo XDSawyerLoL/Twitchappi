@@ -150,6 +150,15 @@ async function addXP(user, delta){
 // 1. CONFIGURATION
 // =========================================================
 const app = express();
+
+// Force JSON errors for API routes (avoid HTML error pages breaking fetch().json())
+app.use('/api', (req,res,next)=>{
+  res.setHeader('Content-Type','application/json; charset=utf-8');
+  next();
+});
+
+// Small health endpoint
+app.get('/api/health', (req,res)=>res.json({ ok:true, ts: Date.now() }));
 app.set('trust proxy', 1);
 
 // Helmet: iframe-safe (NE BLOQUE PAS Fourthwall/iframe)
@@ -486,11 +495,21 @@ app.post('/api/steam/unlink', async (req, res) => {
 
 
 // Static assets (kept simple: UI + /assets folder)
+// IMPORTANT: disable aggressive caching for JS so Render deploys don't leave clients stuck on old bundles ("hub déconnecté" loops).
+app.use((req,res,next)=>{
+  const p = req.path || "";
+  if(p.endsWith(".js") || p.endsWith(".css")) {
+    res.setHeader("Cache-Control", "no-store");
+  }
+  next();
+});
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
 app.get('/', (req, res) => {
+  // Avoid caching the HTML shell; otherwise clients may keep pointing to stale JS bundles.
+  res.setHeader('Cache-Control', 'no-store, must-revalidate');
   const candidates = [
     process.env.UI_FILE,
     'NicheOptimizer.html',
@@ -2133,6 +2152,58 @@ app.get('/api/categories/search', async (req, res) => {
 //  - Returns streams filtered by language/viewers
 //  - Enriches with game box art for better UI
 // =========================================================
+
+
+// =========================================================
+// ORYON TV — Twitch Clips by Game (auto-preview mp4)
+// =========================================================
+const __twitchClipsCache = new Map(); // key -> {ts, items}
+const __TWITCH_CLIPS_TTL_MS = 2 * 60 * 1000;
+
+function __clipMp4FromThumb(thumb){
+  const t = String(thumb||'');
+  // typical: https://...-preview-480x272.jpg -> https://... .mp4
+  return t.replace(/-preview-[0-9]+x[0-9]+\.jpg$/i, '.mp4').replace(/-preview-.*\.jpg$/i, '.mp4');
+}
+
+app.get('/api/twitch/clips/by-game', heavyLimiter, async (req, res) => {
+  try{
+    const gameId = String(req.query.game_id || '').trim();
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit || '18', 10) || 18), 30);
+    if(!gameId) return res.json({ success:true, items:[], reason:'missing_game_id' });
+
+    const key = `clips:${gameId}:${limit}`;
+    const c = __twitchClipsCache.get(key);
+    if(c && (Date.now()-c.ts) < __TWITCH_CLIPS_TTL_MS){
+      return res.json({ success:true, items:c.items, cached:true });
+    }
+
+    const token = await getTwitchToken('app');
+    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+
+    const d = await twitchAPI(`clips?game_id=${encodeURIComponent(gameId)}&first=${limit}`, token);
+    const items = (d?.data || []).map(cl => ({
+      id: cl.id,
+      title: cl.title,
+      url: cl.url,
+      embed_url: cl.embed_url,
+      broadcaster_name: cl.broadcaster_name,
+      creator_name: cl.creator_name,
+      view_count: cl.view_count,
+      created_at: cl.created_at,
+      thumbnail_url: cl.thumbnail_url,
+      mp4: __clipMp4FromThumb(cl.thumbnail_url),
+      duration: cl.duration,
+      language: cl.language
+    }));
+
+    __twitchClipsCache.set(key, { ts: Date.now(), items });
+    res.json({ success:true, items, cached:false });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
   try {
     const lang = String(req.query.lang || '').trim();
@@ -3771,6 +3842,12 @@ function requireTwitchSession(req, res) {
   return u;
 }
 
+function getTwitchSessionUser(req){
+  const u = req.session?.twitchUser;
+  if (!u || (u.expiry && u.expiry <= Date.now())) return null;
+  return u;
+}
+
 // =========================================================
 // BILLING (Firestore source of truth)
 // - credits live in billing_users/{twitchUserId}
@@ -3874,8 +3951,10 @@ async function requireActionQuota(req, res, actionName){
 
 app.get('/api/fantasy/profile', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    const tu = getTwitchSessionUser(req);
+    if(!tu){
+      return res.json({ success:true, connected:false, user:'Guest', wallet:{ cash:0, shares:{} }, positions:[], netWorth:0 });
+    }
     const user = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
     const w = await getUserWallet(user);
 
@@ -4031,8 +4110,10 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 // =========================================================
 app.get('/api/billing/me', async (req,res)=>{
   try{
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
+    const tu = getTwitchSessionUser(req);
+    if(!tu){
+      return res.json({ success:true, connected:false, plan:'free', credits:0, premium:false, pro:false });
+    }
     let b = await getBillingDoc(tu);
 
     // Migration safety: if billing credits are 0 but fantasy wallet cash exists, sync it once.
@@ -4294,21 +4375,6 @@ if(process.env.NODE_ENV !== 'production'){
   });
 }
 
-
-server.listen(PORT, () => {
-  console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
-  console.log("✅ Routes prêtes");
-});
-
-
-// =========================================================
-// 9. SAFE ERROR HANDLER (évite crash silencieux)
-// =========================================================
-app.use((err, req, res, next) => {
-  try{
-    console.error('[ERROR]', req.__rid || '-', err && (err.stack || err.message || err));
-  }catch(_){}
-  if(res.headersSent) return next(err);
 // =========================================================
 // Public domain — Lone Ranger cartoons (Archive.org)
 // =========================================================
@@ -4327,7 +4393,6 @@ app.get('/api/public-domain/lone-ranger', async (req,res)=>{
     const files = Array.isArray(j?.files) ? j.files : [];
     const mp4s = files
       .filter(f => typeof f?.name === 'string' && f.name.toLowerCase().endsWith('.mp4'))
-      .filter(f => (String(f.format||'').toLowerCase().includes('mp4') || true))
       .map(f => {
         const fn = f.name;
         const title = f.title || __cleanEpisodeTitle(fn);
@@ -4342,7 +4407,6 @@ app.get('/api/public-domain/lone-ranger', async (req,res)=>{
         };
       });
 
-    // stable sort: alphabetical by title (good enough)
     mp4s.sort((a,b)=> (a.title||'').localeCompare(b.title||''));
 
     const data = {
@@ -4357,5 +4421,30 @@ app.get('/api/public-domain/lone-ranger', async (req,res)=>{
     return apiErr(res, 500, 'PD_LONE_RANGER_ERROR', e?.message || 'error');
   }
 });
-  return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
+
+
+// =========================================================
+// SAFE ERROR HANDLER (always JSON for /api/*)
+// =========================================================
+app.use((err, req, res, next) => {
+  try{
+    console.error('[ERROR]', req.__rid || '-', err && (err.stack || err.message || err));
+  }catch(_){}
+  if(res.headersSent) return next(err);
+  if(String(req.path||'').startsWith('/api/')){
+    return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
+  }
+  return res.status(500).send('Internal error');
+});
+
+process.on('unhandledRejection', (reason)=>{
+  console.error('❌ [UNHANDLED_REJECTION]', reason);
+});
+process.on('uncaughtException', (err)=>{
+  console.error('❌ [UNCAUGHT_EXCEPTION]', err);
+});
+
+server.listen(PORT, () => {
+  console.log(`\n🚀 [SERVER] Démarré sur http://localhost:${PORT}`);
+  console.log("✅ Routes prêtes");
 });
