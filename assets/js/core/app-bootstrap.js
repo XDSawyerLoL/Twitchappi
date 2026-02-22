@@ -4710,59 +4710,19 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
 
 
-  function renderArchiveIdentifierInto(carouselId, identifier, titleOverride){
-  const wrap = document.getElementById(carouselId);
-  if(!wrap) return;
-  const title = titleOverride || identifier;
-  const thumb = `https://archive.org/services/img/${encodeURIComponent(identifier)}`;
-  const embed = `https://archive.org/embed/${encodeURIComponent(identifier)}`;
-  wrap.innerHTML = '';
-  const card = document.createElement('div');
-  card.className = 'tf-card';
-  card.style.minWidth = '260px';
-  card.innerHTML = `
-    <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
-      <img src="${thumb}" alt="${esc(title)}" style="width:100%;height:100%;object-fit:cover;opacity:.95;" loading="lazy" />
-      <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">ARCHIVE</div>
-    </div>
-    <div style="padding:.55rem .1rem .1rem .1rem;">
-      <div style="font-weight:900;font-size:13px;line-height:1.2">${esc(title)}</div>
-      <div style="opacity:.75;font-size:12px;margin-top:.25rem">Lecture via archive.org (embed)</div>
-    </div>
-  `;
-  card.addEventListener('click', ()=>{
-    const overlay = document.getElementById('tf-player-overlay');
-    const holder = document.getElementById('tf-player-holder');
-    if(overlay && holder){
-      holder.innerHTML = `<iframe src="${embed}" style="width:min(1100px,92vw);height:min(680px,82vh);border:0;border-radius:16px;background:#000;" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-      overlay.style.display = 'flex';
-    } else {
-      window.open(embed, '_blank', 'noopener');
+  async function loadByIdentifier(carouselId, identifier){
+    const wrap = document.getElementById(carouselId);
+    if(!wrap) return;
+    wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
+    try{
+      const j = await fetchJsonSafe(`/api/public-domain/list?identifier=${encodeURIComponent(identifier)}`);
+      renderItemsInto(carouselId, j?.items || []);
+    }catch(e){
+      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
     }
-  });
-  wrap.appendChild(card);
-}
+  }
 
-async function loadByIdentifier(carouselId, identifier, titleOverride){
-  const wrap = document.getElementById(carouselId);
-  if(!wrap) return;
-  wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
-
-  // 1) Try backend endpoint if available
-  try{
-    const j = await fetchJsonSafe(`/api/public-domain/list?identifier=${encodeURIComponent(identifier)}`);
-    const items = Array.isArray(j?.items) ? j.items : [];
-    if(items.length){
-      renderItemsInto(carouselId, items);
-      return;
-    }
-  }catch(_e){}
-
-  // 2) Fallback: direct archive.org embed (works without any backend)
-  renderArchiveIdentifierInto(carouselId, identifier, titleOverride);
-}
-
-async function loadBySearch(carouselId, q){
+  async function loadBySearch(carouselId, q){
     const wrap = document.getElementById(carouselId);
     if(!wrap) return;
     wrap.innerHTML = '<div class="tf-empty">Recherche…</div>';
@@ -4781,10 +4741,10 @@ async function loadBySearch(carouselId, q){
     inited=true;
 
     // Known identifiers (stable)
-    loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom', 'Lone Ranger (1966)');
-    loadByIdentifier('tf-anime-superman', 'superman_1941', 'Superman (Fleischer, 1941)');
-    loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain', 'Popeye (Public Domain Collection)');
-    loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat (années 1920)');
+    loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom');
+    loadByIdentifier('tf-anime-superman', 'superman_1941');
+    loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain');
+    loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919');
 
 
     // Curated YouTube playlists (non-Archive)
