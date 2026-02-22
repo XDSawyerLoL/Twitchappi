@@ -1,4 +1,3 @@
-/* TWITFLIX_TABS_FIX_v4 */
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
@@ -4484,13 +4483,15 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 // ORYON TV — Tabs (VOD / LIVE / ANIME)
 // =========================================================
 (function(){
+  // Robust tab binding: works even if openTwitFlix is never called or scripts load out-of-order.
   function qs(sel){ return document.querySelector(sel); }
   function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 
+  function safeCall(fn){ try{ if(typeof fn === "function") fn(); }catch(_e){} }
+
   function setTab(tab){
-    // buttons
     qsa('#tf-tabsbar .tf-tabbtn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-    // panels = we reuse existing blocks and toggle via display
+
     const hero = qs('.tf-hero');
     const grid = qs('#twitflix-grid');
     const trailerBlock = qs('#tf-trailer-carousel')?.closest('.tf-header-block');
@@ -4507,28 +4508,58 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     if (liveBlock) liveBlock.style.display = showLive ? '' : 'none';
     if (animeBlock) animeBlock.style.display = showAnime ? '' : 'none';
 
-    if (showLive) { window.tfRenderLiveCarousel?.(); }
-    if (showAnime) { window.tfInitAnime?.(true); }
-    if (showVod) { window.tfRenderTrailerCarousel?.(); }
+    // Force init/rerender AFTER toggles (prevents "ran while hidden" races)
+    if (showVod) setTimeout(()=> safeCall(window.tfRenderTrailerCarousel), 0);
+
+    if (showLive) {
+      setTimeout(()=>{
+        try{ window.__tfLiveForceRerender = true; }catch(_e){}
+        safeCall(window.tfRenderLiveThemes);
+      }, 0);
+    }
+
+    if (showAnime) {
+      setTimeout(()=>{
+        if (typeof window.tfInitAnime === 'function') {
+          try{ window.tfInitAnime(true); }catch(_e){}
+        } else {
+          const any = document.querySelector('#tf-anime-block .tf-carousel');
+          if (any && !any.querySelector('.tf-empty')) {
+            any.innerHTML = '<div class="tf-empty">Chargement animés indisponible (script non chargé).</div>';
+          }
+        }
+      }, 0);
+    }
   }
 
-  function initTabs(){
+  function initTabsOnce(){
+    if (window.__tfTabsInit) return;
     const bar = qs('#tf-tabsbar');
     if(!bar) return;
+    window.__tfTabsInit = true;
+
     bar.addEventListener('click', (e)=>{
       const btn = e.target.closest('.tf-tabbtn');
       if(!btn) return;
       setTab(btn.dataset.tab);
     });
+
     // default
     setTab('vod');
   }
 
-  // hook openTwitFlix to init tabs once modal opens
+  // Init as soon as possible
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTabsOnce, { once:true });
+  } else {
+    initTabsOnce();
+  }
+
+  // Also hook openTwitFlix if it exists (harmless)
   const _open = window.openTwitFlix;
   window.openTwitFlix = function(){
     const r = _open?.apply(this, arguments);
-    try{ initTabs(); }catch(_){}
+    try{ initTabsOnce(); }catch(_e){}
     return r;
   };
 })();
@@ -4704,8 +4735,9 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   }
 
   window.tfInitAnime = function(force){
-    if(inited && !force) return;
-    if(force){ inited=false; }
+    // Re-try if the first init happened while the tab was hidden or if a previous attempt produced no content.
+    const hasContent = !!document.querySelector('#tf-anime-block .tf-card, #tf-anime-block .tf-empty');
+    if(inited && hasContent && !force) return;
     inited=true;
 
     // Known identifiers (stable)
@@ -4844,7 +4876,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
   function renderRail(parent, title, items){
     const block = document.createElement('div');
-    block.className='tf-header-block';
+    block.className='tf-header-block tf-live-rail';
     block.innerHTML = `
       <div class="tf-strip-title"><h4>${title}</h4></div>
       <div class="tf-carousel" aria-label="${title}"></div>`;
@@ -4877,7 +4909,17 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   window.tfRenderLiveThemes = async function(){
     const container = ensureContainer();
     if(!container) return;
-    if(rendered) return;
+
+    // Allow a forced re-render when switching back to LIVE.
+    try{
+      if (window.__tfLiveForceRerender){
+        rendered = false;
+        window.__tfLiveForceRerender = false;
+      }
+    }catch(_e){}
+
+    // If we've already rendered and content exists, keep it.
+    if(rendered && container.childElementCount) return;
     rendered = true;
 
     // 1) Fetch Top games directly (do NOT rely on VOD state)
@@ -4887,6 +4929,14 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       topGames = (cats && Array.isArray(cats.categories)) ? cats.categories.slice(0, 14) : [];
     }catch(_e){
       topGames = [];
+    }
+
+    // Fallback: if /api/categories/top failed, reuse any categories already loaded for VOD
+    if(!topGames.length){
+      try{
+        const cached = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
+        topGames = cached.slice(0, 14);
+      }catch(_e){}
     }
 
     container.innerHTML = '';
