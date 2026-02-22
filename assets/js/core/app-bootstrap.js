@@ -1,6 +1,63 @@
+/* ORYON TV app-bootstrap v12 IA direct anime (no YT embed) */
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
+
+
+// =========================================================
+// Global API fetch guard: single-flight + concurrency limit + 429 backoff
+// =========================================================
+const __apiInflight = new Map();       // key -> Promise
+const __apiCooldownUntil = new Map();  // key -> timestamp (ms)
+let __apiActive = 0;
+const __apiQueue = [];
+
+function __apiKey(url, opts){
+  const method = (opts && opts.method) ? String(opts.method).toUpperCase() : 'GET';
+  return method + ' ' + String(url);
+}
+function __apiNow(){ return Date.now(); }
+function __apiSleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+async function __apiAcquire(){
+  if(__apiActive < 4){ __apiActive++; return; }
+  await new Promise(res => __apiQueue.push(res));
+  __apiActive++;
+}
+function __apiRelease(){
+  __apiActive = Math.max(0, __apiActive - 1);
+  const next = __apiQueue.shift();
+  if(next) next();
+}
+
+async function __apiFetch(url, opts){
+  const key = __apiKey(url, opts);
+  const until = __apiCooldownUntil.get(key) || 0;
+  if(__apiNow() < until){
+    // Respect cooldown: don't spam server.
+    return new Response(null, { status: 429, statusText: 'Cooldown' });
+  }
+  if(__apiInflight.has(key)) return __apiInflight.get(key);
+
+  const p = (async ()=>{
+    await __apiAcquire();
+    try{
+      const res = await fetch(url, opts);
+      if(res.status === 429){
+        const ra = res.headers.get('Retry-After');
+        const waitMs = ra && !isNaN(parseInt(ra,10)) ? Math.max(1000, parseInt(ra,10)*1000) : 15000;
+        __apiCooldownUntil.set(key, __apiNow() + waitMs);
+      }
+      return res;
+    } finally {
+      __apiRelease();
+    }
+  })().finally(()=>__apiInflight.delete(key));
+
+  __apiInflight.set(key, p);
+  return p;
+}
+
     const PARENT_DOMAINS = ['localhost','127.0.0.1',window.location.hostname,'justplayer.fr','www.justplayer.fr'];
 
     // --- SFX (Base64 short sounds) ---
@@ -909,12 +966,7 @@ window.addEventListener('message', (ev) => {
     // Small promise queue to avoid firing too many parallel trailer lookups.
     const tfTrailerQueue = [];
     let tfTrailerInFlight = 0;
-    // Keep this low: trailer resolver is fragile (can 500/429) and we don't want to spam.
-    const TF_TRAILER_CONCURRENCY = 1;
-
-    // If the backend trailer resolver is down (500) or rate-limited, pause trailer lookups for a while.
-    let tfTrailerResolverDownUntil = 0;
-    const TF_TRAILER_RESOLVER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+    const TF_TRAILER_CONCURRENCY = 2;
 
     function tfEnqueueTrailerLookup(fn){
       return new Promise((resolve) => {
@@ -942,11 +994,6 @@ window.addEventListener('message', (ev) => {
       const key = name.toLowerCase();
       const now = Date.now();
 
-      if (now < tfTrailerResolverDownUntil) {
-        // Resolver recently failed (500/429). Don't spam.
-        return null;
-      }
-
       const cached = tfTrailerCache.get(key);
       if (cached && (now - cached.t) < TF_TRAILER_TTL) return cached.id;
 
@@ -957,19 +1004,25 @@ window.addEventListener('message', (ev) => {
       }
 
       // 2) server resolver (best, avoids CORS + no API key)
-      // Throttled via a tiny queue and guarded by cooldown to avoid spamming when the resolver is down.
+      // Throttled via a tiny queue to avoid 18 parallel calls.
       try{
-        // Single request per game. If it fails with 500/429, set cooldown.
+        const base = name;
+        const variants = [
+          base,
+          `${base} trailer`,
+          `${base} bande annonce`,
+          `${base} official trailer`,
+        ];
+
+        // bugfix: use the actual queue function name
         const resolved = await tfEnqueueTrailerLookup(async () => {
-          const url = `${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(name)}&hl=fr&gl=FR`;
-          const r = await fetch(url, { cache: 'no-store' });
-          if (r.status === 500 || r.status === 429) {
-            tfTrailerResolverDownUntil = Date.now() + TF_TRAILER_RESOLVER_COOLDOWN_MS;
-            return null;
+          for (const q of variants){
+            const url = `${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}&hl=fr&gl=FR`;
+            const r = await fetch(url, { cache: 'no-store' });
+            if (!r.ok) continue;
+            const d = await r.json();
+            if (d && d.success && d.videoId) return d.videoId;
           }
-          if (!r.ok) return null;
-          const d = await r.json().catch(() => null);
-          if (d && d.success && d.videoId) return d.videoId;
           return null;
         });
 
@@ -2105,9 +2158,13 @@ const modal = document.getElementById('twitflix-modal');
       if (!tfInfoGame) return;
       if (__tfModalTrailerTimer) { try{ clearTimeout(__tfModalTrailerTimer); }catch(_){ } __tfModalTrailerTimer = null; }
 
-      // Pre-resolve trailer id via the throttled resolver (handles 500/429 cooldown)
+      // Pre-resolve trailer id quickly (cached server-side)
       let videoId = '';
-      try{ videoId = await tfResolveTrailerId(tfInfoGame.name); }catch(_){ }
+      try{
+        const r = await fetch(`/api/youtube/trailer?q=${encodeURIComponent(tfInfoGame.name)}&type=game&lang=fr`, { credentials:'include' });
+        const j = r.ok ? await r.json().catch(()=>null) : null;
+        videoId = j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '';
+      }catch(_){ }
 
       if (!videoId) return;
 
@@ -2136,9 +2193,13 @@ const modal = document.getElementById('twitflix-modal');
       media.innerHTML = '';
 
       // Header preview MUST be the GAME TRAILER (YouTube), not a live stream.
-      // Resolve via throttled resolver (handles 500/429 cooldown).
+      // We use the backend trailer resolver /api/youtube/trailer (cached).
       let videoId = '';
-      try{ videoId = await tfResolveTrailerId(tfInfoGame.name); }catch(_){ }
+      try{
+        const r = await fetch(`/api/youtube/trailer?q=${encodeURIComponent(tfInfoGame.name)}&type=game&lang=fr`, { credentials:'include' });
+        const j = r.ok ? await r.json().catch(()=>null) : null;
+        videoId = j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '';
+      }catch(_){ }
 
       if (!videoId) return;
 
@@ -3037,8 +3098,8 @@ function tfBuildCard(cat){
           renderChart('chartViewers','line',data.history.live.labels,data.history.live.values,'Viewers');
         }
 
-        const resGames = await fetch(`${API_BASE}/api/stats/top_games`);
-        const dGames = await resGames.json();
+        const dGamesR = await fetchJSON("/api/stats/top_games");
+        const dGames = (dGamesR && dGamesR.ok && dGamesR.json) ? dGamesR.json : { games: [] };
         const labels = (dGames.games||[]).map(g=>g.name);
         const values = (dGames.games||[]).map((g,i)=>(i+1)*20);
         renderChart('chartGames','bar',labels.slice(0,5),values.slice(0,5),'Popularité');
@@ -3405,43 +3466,130 @@ function tfBuildCard(cat){
   function normPlan(p){ return String(p || "FREE").trim().toUpperCase(); }
   function isPremium(plan){ plan = normPlan(plan); return plan !== "FREE"; }
 
-  async function fetchJSON(url){
-  // single-flight + backoff 429 (avoid spamming billing/fantasy endpoints)
-  const key = String(url);
-  fetchJSON.__inflight = fetchJSON.__inflight || new Map();
-  fetchJSON.__cooldown = fetchJSON.__cooldown || new Map();
+  // ---- API fetch guard (v8) ----
+const __apiInflight = new Map();      // url -> Promise
+let __apiGlobalCooldownUntil = 0;     // timestamp
+let __apiActive = 0;
+const __apiQueue = [];
+const __API_MAX_CONCURRENCY = 4;
 
-  const now = Date.now();
-  const until = fetchJSON.__cooldown.get(key) || 0;
-  if(now < until){
-    return { ok:false, json:null, rate_limited:true };
+function __apiNow(){ return Date.now(); }
+
+function __apiSleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+async function __apiAcquire(){
+  if (__apiActive < __API_MAX_CONCURRENCY){
+    __apiActive++;
+    return;
+  }
+  await new Promise(resolve => __apiQueue.push(resolve));
+  __apiActive++;
+}
+function __apiRelease(){
+  __apiActive = Math.max(0, __apiActive - 1);
+  const next = __apiQueue.shift();
+  if (next) next();
+}
+
+function __cacheKey(url){ return "oryon_cache:" + url; }
+function __cacheGet(url){
+  try{
+    const raw = localStorage.getItem(__cacheKey(url));
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(!obj || !obj.t || (__apiNow() - obj.t) > obj.ttl) return null;
+    return obj.v ?? null;
+  }catch(e){ return null; }
+}
+function __cacheSet(url, v, ttl){
+  try{
+    localStorage.setItem(__cacheKey(url), JSON.stringify({ t: __apiNow(), ttl, v }));
+  }catch(e){}
+}
+function __ttlFor(url){
+  // Cache only GET endpoints that are read-only and hit a lot
+  if(!url || typeof url !== "string") return 0;
+  if(url.startsWith("/api/billing/me")) return 30_000;
+  if(url.startsWith("/api/fantasy/profile")) return 30_000;
+  if(url.startsWith("/api/stats/top_games")) return 5 * 60_000;
+  if(url.startsWith("/api/categories/top")) return 5 * 60_000;
+  if(url.startsWith("/api/twitch/streams/top")) return 60_000;
+  if(url.startsWith("/api/public-domain/")) return 60 * 60_000;
+  return 0;
+}
+
+async function fetchJSON(url, opts){
+  opts = opts || {};
+  const method = (opts.method || "GET").toUpperCase();
+  const key = method + " " + url;
+
+  // Global cooldown if we were rate-limited recently
+  if (__apiNow() < __apiGlobalCooldownUntil){
+    return { ok:false, status:429, json:null, text:"Too many requests (cooldown)" };
   }
 
-  if(fetchJSON.__inflight.has(key)) return fetchJSON.__inflight.get(key);
+  // cache only GET
+  const ttl = (method === "GET") ? __ttlFor(url) : 0;
+  if (ttl){
+    const cached = __cacheGet(key);
+    if (cached !== null) return { ok:true, status:200, json: cached };
+  }
+
+  if (__apiInflight.has(key)) return __apiInflight.get(key);
 
   const p = (async ()=>{
+    await __apiAcquire();
     try{
-      const r = await fetch(url, { credentials:"include" });
-      if(r.status === 429){
-        const ra = r.headers.get("Retry-After");
-        const waitMs = ra ? Math.max(1000, (parseInt(ra,10)||0) * 1000) : 15000;
-        fetchJSON.__cooldown.set(key, Date.now() + waitMs);
-        return { ok:false, json:null, rate_limited:true };
-      }
-      const j = await r.json().catch(()=>null);
-      return { ok: r.ok, json: j };
-    }catch(e){
-      return { ok:false, json:null, error: String(e && e.message || e) };
-    }
-  })().finally(()=>{
-    fetchJSON.__inflight.delete(key);
-  });
+      const r = await fetch(url, Object.assign({ credentials:"include" }, opts));
 
-  fetchJSON.__inflight.set(key, p);
+      // Handle 429 with cooldown
+      if (r.status === 429){
+        const ra = r.headers.get("Retry-After");
+        const waitMs = ra ? Math.max(1000, parseInt(ra,10)*1000) : 15_000;
+        __apiGlobalCooldownUntil = __apiNow() + waitMs;
+        // Don't throw; return a safe object
+        return { ok:false, status:429, json:null, text:"Too many requests" };
+      }
+
+      const ct = (r.headers.get("content-type") || "").toLowerCase();
+      let j = null;
+      let t = null;
+
+      if (ct.includes("application/json")){
+        j = await r.json().catch(()=>null);
+      } else {
+        t = await r.text().catch(()=>null);
+        // If server returns text error, don't crash JSON consumers
+        if (t && t.trim().startsWith("{")){
+          try{ j = JSON.parse(t); }catch(e){}
+        }
+      }
+
+      if (r.ok && ttl && j !== null){
+        __cacheSet(key, j, ttl);
+      }
+
+      return { ok: r.ok, status: r.status, json: j, text: t };
+    } finally {
+      __apiRelease();
+    }
+  })().finally(()=>__apiInflight.delete(key));
+
+  __apiInflight.set(key, p);
   return p;
 }
 
+
+  
+  // ---- access memo (v8) ----
+  let __accessMemo = { t:0, v:null };
+  let __accessInflightP = null;
+
 async function fetchAccess(){
+    const ttl = 30_000;
+    if(__accessMemo.v && (Date.now()-__accessMemo.t) < ttl) return __accessMemo.v;
+    if(__accessInflightP) return __accessInflightP;
+    __accessInflightP = (async ()=>{
     // 1) billing
     let plan = "FREE";
     let credits = 0;
@@ -3479,7 +3627,11 @@ async function fetchAccess(){
         }
       }catch(_e){}
     }
-    return { plan, credits };
+    const out = { plan, credits };
+      __accessMemo = { t: Date.now(), v: out };
+      return out;
+    })().finally(()=>{ __accessInflightP = null; });
+    return __accessInflightP;
   }
 
   // ---------- Portal overlay (Dashboard) ----------
@@ -3510,7 +3662,61 @@ async function fetchAccess(){
       .replaceAll("'","&#039;");
   }
 
-  function dashboardCardHTML(access){
+  
+
+  // Internet Archive direct client (no backend dependency)
+  async function iaJson(url){
+    try{
+      const r = await fetch(url, {method:"GET", mode:"cors"});
+      if(!r.ok) return null;
+      return await r.json();
+    }catch(_e){ return null; }
+  }
+
+  function iaThumb(identifier){
+    return `https://archive.org/services/img/${encodeURIComponent(identifier)}`;
+  }
+  function iaEmbed(identifier){
+    return `https://archive.org/embed/${encodeURIComponent(identifier)}`;
+  }
+
+  async function iaPickMp4(identifier){
+    const meta = await iaJson(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
+    const files = meta?.files || [];
+    // pick a reasonable mp4
+    const mp4 = files.find(f => (f.name||'').toLowerCase().endsWith('.mp4') && !String(f.name).includes('_thumb'))
+              || files.find(f => (f.format||'').toLowerCase().includes('mpeg4') || (f.format||'').toLowerCase().includes('h.264'));
+    if(!mp4?.name) return null;
+    return `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(mp4.name)}`;
+  }
+
+  async function iaItemFromIdentifier(identifier, fallbackTitle){
+    const mp4 = await iaPickMp4(identifier);
+    return {
+      title: fallbackTitle || identifier,
+      identifier,
+      mp4: mp4 || '',
+      thumb: iaThumb(identifier),
+      embedUrl: iaEmbed(identifier)
+    };
+  }
+
+  async function iaSearchItems(query, limit=24){
+    const q = `(${query}) AND mediatype:(movies)`;
+    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl[]=identifier&fl[]=title&rows=${limit}&page=1&output=json`;
+    const j = await iaJson(url);
+    const docs = j?.response?.docs || [];
+    // lightweight items (no metadata calls)
+    return docs.map(d=>({
+      title: d.title || d.identifier,
+      identifier: d.identifier,
+      mp4: '',
+      thumb: iaThumb(d.identifier),
+      embedUrl: iaEmbed(d.identifier)
+    }));
+  }
+
+function dashboardCardHTML(access){
     const plan = normPlan(access.plan);
     const credits = Number(access.credits||0) || 0;
 
@@ -4265,7 +4471,7 @@ window.renderTwitFlix = function(){
 
 
 // ORYON_TV_BUILD_MARK v1770423290
-console.log('ORYON TV v10 anime youtube fallback build', 1770423290);
+console.log('ORYON TV build', 1770423290);
 
 
 // ORYON TV menu (close / quit)
@@ -4607,9 +4813,10 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
           <button id="tf-player-close" type="button" style="padding:.4rem .7rem;border-radius:10px;border:1px solid rgba(255,255,255,.18);font-weight:900;">✕</button>
         </div>
         <video id="tf-player-video" controls playsinline style="width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;"></video>
+        <iframe id=\"tf-player-iframe\" allow=\"autoplay; encrypted-media\" referrerpolicy=\"origin\" style=\"display:none;width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;border:0;\"></iframe>
       </div>`;
     document.body.appendChild(overlay);
-    overlay.querySelector('#tf-player-close').onclick = ()=>{ overlay.style.display='none'; const v=overlay.querySelector('#tf-player-video'); v.pause(); v.removeAttribute('src'); v.load(); };
+    overlay.querySelector('#tf-player-close').onclick = ()=>{ overlay.style.display='none'; const v=overlay.querySelector('#tf-player-video'); const f=overlay.querySelector('#tf-player-iframe'); try{ v.pause(); }catch(_e){} v.removeAttribute('src'); v.load(); v.style.display='block'; if(f){ f.removeAttribute('src'); f.style.display='none'; } };
     overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.querySelector('#tf-player-close').click(); });
     return overlay;
   }
@@ -4621,6 +4828,22 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     o.style.display = 'flex';
     v.play().catch(()=>{});
   };
+  window.tfPlayIframe = function(url, title){
+    const o = ensurePlayer();
+    o.querySelector('#tf-player-title').textContent = title || '';
+    const v = o.querySelector('#tf-player-video');
+    const f = o.querySelector('#tf-player-iframe');
+    // reset
+    try{ v.pause(); }catch(_e){}
+    v.style.display='none';
+    v.removeAttribute('src');
+    v.load();
+
+    f.style.display='block';
+    f.src = url || '';
+    o.style.display = 'flex';
+  };
+
 })()
 
 // =========================================================
@@ -4674,26 +4897,6 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     return overlay;
   }
 
-  window.tfPlayYouTubeVideo = function(videoIdOrList, title){
-  const ids = Array.isArray(videoIdOrList) ? videoIdOrList.filter(Boolean) : [videoIdOrList].filter(Boolean);
-  if(!ids.length) return;
-  const o = ensureYT();
-  o.querySelector('#tf-yt-title').textContent = title || 'Vidéo';
-  o.dataset.kind = 'video';
-  o.dataset.ids = JSON.stringify(ids);
-  o.dataset.idx = '0';
-  const origin = encodeURIComponent(window.location.origin);
-  const id = ids[0];
-  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
-  const f = o.querySelector('#tf-yt-frame');
-  f.src = src;
-  const open = o.querySelector('#tf-yt-open');
-  open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
-  const nextBtn = o.querySelector('#tf-yt-next');
-  nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
-  o.style.display='flex';
-};
-
   window.tfPlayYouTubePlaylist = function(listIdOrList, title){
   const ids = Array.isArray(listIdOrList) ? listIdOrList.filter(Boolean) : [listIdOrList].filter(Boolean);
   if(!ids.length) return;
@@ -4726,28 +4929,17 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 ;(function(){
   let inited=false;
 
-  function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }  const __pdInflight = new Map();
-  let __pdCooldownUntil = 0;
-  async function fetchJsonSafe(url){
-    if(Date.now() < __pdCooldownUntil) return null;
-    if(__pdInflight.has(url)) return __pdInflight.get(url);
-    const p = (async()=>{
-      const r = await fetch(url, { cache:'no-store' });
-      const txt = await r.text();
-      if(r.status === 429){
-        const ra = r.headers.get('Retry-After');
-        const waitMs = ra ? Math.max(1000, parseInt(ra,10)*1000) : 60000;
-        __pdCooldownUntil = Date.now() + waitMs;
-        return null;
-      }
-      let j=null; try{ j=JSON.parse(txt); }catch(_){ j=null; }
-      if(!r.ok) return null;
-      return j;
-    })().finally(()=>__pdInflight.delete(url));
-    __pdInflight.set(url,p);
-    return p;
-  }
+  function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+  async function fetchJsonSafe(url){
+  try{
+    const r = await fetchJSON(url, { method:"GET" });
+    if(!r || !r.ok) return null;
+    return r.json;
+  }catch(_e){
+    return null;
+  }
+}
 
   function renderItemsInto(carouselId, items){
     const wrap = document.getElementById(carouselId);
@@ -4758,17 +4950,27 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       const card = document.createElement('div');
       card.className='tf-card';
       card.style.minWidth='260px';
+
+      const hasMp4 = !!(it.mp4 && String(it.mp4).trim());
+      const thumb = it.thumb || (it.identifier ? iaThumb(it.identifier) : '');
       card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
-          <video class="tf-card-video" muted playsinline loop preload="metadata" src="${it.mp4}"></video>
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;display:flex;align-items:center;justify-content:center;">
+          ${hasMp4 ? `<video class="tf-card-video" muted playsinline loop preload="metadata" src="${it.mp4}"></video>`
+                   : `<img alt="" loading="lazy" src="${thumb}" style="width:100%;height:100%;object-fit:cover;opacity:.95;" />`}
         </div>
         <div class="tf-card-meta">
           <div class="tf-card-title">${esc(it.title||'')}</div>
-          <div class="tf-card-sub" style="opacity:.7;font-weight:700;">Archive.org</div>
+          <div class="tf-card-sub" style="opacity:.7;font-weight:700;">${it.sourceLabel || 'Archive.org'}</div>
         </div>`;
-      const v=card.querySelector('video');
-      v.autoplay=true; v.play().catch(()=>{});
-      card.addEventListener('click',()=>window.tfPlayMp4(it.mp4, it.title));
+
+      if(hasMp4){
+        const v=card.querySelector('video');
+        try{ v.autoplay=true; v.play().catch(()=>{}); }catch(_e){}
+        card.addEventListener('click',()=>window.tfPlayMp4(it.mp4, it.title));
+      }else{
+        const u = it.embedUrl || (it.identifier ? iaEmbed(it.identifier) : '');
+        card.addEventListener('click',()=>window.tfPlayIframe(u, it.title));
+      }
       wrap.appendChild(card);
     });
   }
@@ -4801,104 +5003,29 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   }
 
 
-  function renderYouTubeVideosInto(carouselId, videos){
+
+  async function loadByIdentifier(carouselId, identifier){
     const wrap = document.getElementById(carouselId);
     if(!wrap) return;
-    if(!videos?.length){ wrap.innerHTML = '<div class="tf-empty">Aucune vidéo.</div>'; return; }
-    wrap.innerHTML='';
-    videos.forEach(vd=>{
-      const card = document.createElement('div');
-      card.className='tf-card';
-      card.style.minWidth='260px';
-      const thumb = vd.thumb || (vd.videoId ? `https://i.ytimg.com/vi/${vd.videoId}/hqdefault.jpg` : '');
-      card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
-          <img src="${thumb}" alt="" style="width:100%;height:100%;object-fit:cover;opacity:.92;" />
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-            <div style="background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);padding:.35rem .55rem;border-radius:999px;font-weight:900;">▶ Vidéo</div>
-          </div>
-        </div>
-        <div class="tf-card-meta">
-          <div class="tf-card-title">${esc(vd.title||'')}</div>
-          <div class="tf-card-sub" style="opacity:.7;font-weight:700;">YouTube</div>
-        </div>`;
-      card.addEventListener('click', ()=> window.tfPlayYouTubeVideo?.(vd.videoId, vd.title));
-      wrap.appendChild(card);
-    });
+    wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
+    try{
+      const it = await iaItemFromIdentifier(identifier, identifier);
+      renderItemsInto(carouselId, it ? [it] : []);
+    }catch(e){
+      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
+    }
   }
 
-
-  function renderArchiveIdentifierInto(carouselId, identifier, titleOverride){
-  const wrap = document.getElementById(carouselId);
-  if(!wrap) return;
-  const title = titleOverride || identifier;
-  const thumb = `https://archive.org/services/img/${encodeURIComponent(identifier)}`;
-  const embed = `https://archive.org/embed/${encodeURIComponent(identifier)}`;
-  wrap.innerHTML = '';
-  const card = document.createElement('div');
-  card.className = 'tf-card';
-  card.style.minWidth = '260px';
-  card.innerHTML = `
-    <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
-      <img src="${thumb}" alt="${esc(title)}" style="width:100%;height:100%;object-fit:cover;opacity:.95;" loading="lazy" />
-      <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">ARCHIVE</div>
-    </div>
-    <div style="padding:.55rem .1rem .1rem .1rem;">
-      <div style="font-weight:900;font-size:13px;line-height:1.2">${esc(title)}</div>
-      <div style="opacity:.75;font-size:12px;margin-top:.25rem">Lecture via archive.org (embed)</div>
-    </div>
-  `;
-  card.addEventListener('click', ()=>{
-    const overlay = document.getElementById('tf-player-overlay');
-    const holder = document.getElementById('tf-player-holder');
-    if(overlay && holder){
-      holder.innerHTML = `<iframe src="${embed}" style="width:min(1100px,92vw);height:min(680px,82vh);border:0;border-radius:16px;background:#000;" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-      overlay.style.display = 'flex';
-    } else {
-      window.open(embed, '_blank', 'noopener');
-    }
-  });
-  wrap.appendChild(card);
-}
-
-async function loadByIdentifier(carouselId, identifier, titleOverride){
-  const wrap = document.getElementById(carouselId);
-  if(!wrap) return;
-  wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
-
-  // 1) Try backend endpoint if available
-  try{
-    const j = await fetchJsonSafe(`/api/public-domain/list?identifier=${encodeURIComponent(identifier)}`);
-    const items = Array.isArray(j?.items) ? j.items : [];
-    if(items.length){
-      renderItemsInto(carouselId, items);
-      return;
-    }
-  }catch(_e){}
-
-  // 2) Fallback: direct archive.org embed (works without any backend)
-  renderArchiveIdentifierInto(carouselId, identifier, titleOverride);
-}
-
-async function loadBySearch(carouselId, q, fallback){
+  async function loadBySearch(carouselId, q){
     const wrap = document.getElementById(carouselId);
     if(!wrap) return;
-    wrap.innerHTML = '<div class=\"tf-empty\">Recherche…</div>';
-    const j = await fetchJsonSafe(`/api/public-domain/search?q=${encodeURIComponent(q)}&limit=24`);
-    const items = j?.items || [];
-    if(items && items.length){
-      renderItemsInto(carouselId, items);
-      return;
+    wrap.innerHTML = '<div class="tf-empty">Recherche…</div>';
+    try{
+      const items = await iaSearchItems(q, 24);
+      renderItemsInto(carouselId, items || []);
+    }catch(e){
+      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
     }
-    if(fallback?.type==='playlist'){
-      renderYouTubePlaylistsInto(carouselId, [fallback]);
-      return;
-    }
-    if(fallback?.type==='video'){
-      renderYouTubeVideosInto(carouselId, [fallback]);
-      return;
-    }
-    wrap.innerHTML = '<div class=\"tf-empty\">Aucun épisode.</div>';
   }
 
   window.tfInitAnime = function(force){
@@ -4908,10 +5035,10 @@ async function loadBySearch(carouselId, q, fallback){
     inited=true;
 
     // Known identifiers (stable)
-    loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom', 'Lone Ranger (1966)');
-    loadByIdentifier('tf-anime-superman', 'superman_1941', 'Superman (Fleischer, 1941)');
-    loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain', 'Popeye (Public Domain Collection)');
-    loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat (années 1920)');
+    loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom');
+    loadByIdentifier('tf-anime-superman', 'superman_1941');
+    loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain');
+    loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919');
 
 
     // Curated YouTube playlists (non-Archive)
@@ -4922,13 +5049,13 @@ async function loadBySearch(carouselId, q, fallback){
     ]);
 
     // Best-effort search rails
-    loadBySearch('tf-anime-betty', 'Betty Boop public domain', {type:'playlist', title:'Public Domain Cartoons (sélection)', listId:'PLAR7BwVhHQUF4oiQkluzfKGbovZNdKRZk', thumb:'https://i.ytimg.com/vi/imGNdac-hIY/hqdefault.jpg'});
-    loadBySearch('tf-anime-bugs', 'Bugs Bunny A Tale of Two Kitties The Wabbit Who Came to Supper public domain', {type:'playlist', title:'Looney Tunes / Public Domain (Bugs & co)', listId:'PLMr3_oT2YHoVLV2bqkB0PS1WXg62sXJsS', thumb:'https://i.ytimg.com/vi/t2E2eixSLK8/hqdefault.jpg'});
-    loadBySearch('tf-anime-daffy', 'Daffy Duck and the Dinosaur 1939 public domain', {type:'playlist', title:'Public Domain Cartoons (incl. Daffy 1939)', listId:'PLAR7BwVhHQUF4oiQkluzfKGbovZNdKRZk', thumb:'https://i.ytimg.com/vi/imGNdac-hIY/hqdefault.jpg'});
-    loadBySearch('tf-anime-porky', 'Porky Pig black and white 1930 public domain', {type:'playlist', title:'Public Domain Cartoons (Porky & N&B)', listId:'PLS-NcOPieTwLUcAjtP1c-IIcdaIMoRlql', thumb:'https://i.ytimg.com/vi/_51mFXshTXc/hqdefault.jpg'});
-    loadBySearch('tf-anime-casper', 'Casper The Friendly Ghost 1945 public domain', {type:'playlist', title:'Casper the Friendly Ghost (playlist)', listId:'PLKQt1W7buSoxsAbPlBHUyOQl4o5FQdUs7', thumb:'https://i.ytimg.com/vi/mhdo7U_Knhc/hqdefault.jpg'});
-    loadBySearch('tf-anime-gabby', 'Gabby Gulliver 1939 public domain', {type:'playlist', title:"Gulliver's Travels (1939) - playlist", listId:'PL5AABB1C88AE4B5D2', thumb:'https://i.ytimg.com/vi/VEDrB4VyaeQ/hqdefault.jpg'});
-    loadBySearch('tf-anime-gertie', 'Gertie the Dinosaur 1914 public domain', {type:'video', title:'Gertie the Dinosaur (1914)', videoId:'zzott0PcPtM', thumb:'https://i.ytimg.com/vi/zzott0PcPtM/hqdefault.jpg'});
+    loadBySearch('tf-anime-betty', 'Betty Boop public domain');
+    loadBySearch('tf-anime-bugs', 'Bugs Bunny A Tale of Two Kitties The Wabbit Who Came to Supper public domain');
+    loadBySearch('tf-anime-daffy', 'Daffy Duck and the Dinosaur 1939 public domain');
+    loadBySearch('tf-anime-porky', 'Porky Pig black and white 1930 public domain');
+    loadBySearch('tf-anime-casper', 'Casper The Friendly Ghost 1945 public domain');
+    loadBySearch('tf-anime-gabby', 'Gabby Gulliver 1939 public domain');
+    loadBySearch('tf-anime-gertie', 'Gertie the Dinosaur 1914 public domain');
   };
 })();
 
