@@ -5007,7 +5007,14 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
   const wrap = document.getElementById(containerId);
   if(!wrap) return;
   wrap.innerHTML = '<div class="tf-empty">Chargement de la playlist…</div>';
-  const safeList = String(listId||'').trim();
+  // Accept a raw listId (PL/OL...), or a full YouTube URL containing ?list=...
+  const raw = String(listId||'').trim();
+  let safeList = raw;
+  try{
+    const m = raw.match(/[?&]list=([^&#]+)/i);
+    if(m && m[1]) safeList = decodeURIComponent(m[1]);
+  }catch(_e){ /* ignore */ }
+  safeList = String(safeList||'').trim();
   if(!safeList){ wrap.innerHTML = '<div class="tf-empty">Aucun épisode.</div>'; return; }
 
   let json = null;

@@ -2326,8 +2326,14 @@ app.get('/api/youtube/health', async (req,res)=>{
 // Front can call: GET /api/youtube/playlist?listId=PLAYLIST_ID
 app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
   try{
-    const listId0 = String(req.query.listId || '').trim();
+    let listId0 = String(req.query.listId || '').trim();
     if(!listId0) return res.status(400).json({ success:false, error:'listId manquant' });
+
+    // Accept full YouTube URLs too (extract ?list=...)
+    try{
+      const m = listId0.match(/[?&]list=([^&#]+)/i);
+      if(m && m[1]) listId0 = decodeURIComponent(m[1]);
+    }catch(_e){ /* ignore */ }
 
     // Basic allow-listing: playlist ids are usually 16-34 chars of [A-Za-z0-9_-]
     const listId = listId0.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
@@ -2357,15 +2363,13 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
       if(fr2.ok) fr = fr2;
     }
 
-    if(!fr.ok){
-      return res.status(502).json({ success:false, error:'fetch_failed', status: fr.status || 0 });
-    }
-
-    const xml = fr.text || '';
+    // If Atom feed fetch fails, we still try a best-effort HTML scrape.
+    let xml = '';
+    if(fr.ok) xml = fr.text || '';
 
     // Minimal parsing (enough for YT Atom feeds)
     // Entries contain: <entry> ... <yt:videoId>...</yt:videoId> <title>...</title> <media:thumbnail url="..." />
-    const entries = xml.split('<entry>').slice(1);
+    const entries = xml ? xml.split('<entry>').slice(1) : [];
     const items = [];
     for(const chunk0 of entries){
       const chunk = chunk0.split('</entry>')[0] || chunk0;
@@ -2388,6 +2392,33 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
       const thumb = (chunk.match(/<media:thumbnail[^>]+url="([^"]+)"/) || [])[1] || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
       items.push({ videoId: vid, title, thumb });
       if(items.length >= 120) break;
+    }
+
+    // Fallback: scrape playlist page to recover videoIds when the Atom feed is blocked/empty.
+    if(!items.length){
+      const pageUrl = `https://www.youtube.com/playlist?list=${encodeURIComponent(listId)}`;
+      const pr = await fetchWithTimeout(pageUrl, { headers: ytHeaders, redirect: 'follow' }, 9000).catch(()=>null);
+      if(pr && pr.ok){
+        const html = await pr.text().catch(()=> '');
+        const seen = new Set();
+        const re = /\"videoId\":\"([a-zA-Z0-9_-]{11})\"/g;
+        let m;
+        while((m = re.exec(html)) && items.length < 120){
+          const vid = m[1];
+          if(seen.has(vid)) continue;
+          seen.add(vid);
+          items.push({
+            videoId: vid,
+            title: vid,
+            url: `https://www.youtube.com/watch?v=${vid}&list=${listId}`,
+            thumb: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`
+          });
+        }
+      }
+    }
+
+    if(!items.length && !fr.ok){
+      return res.status(502).json({ success:false, error:'fetch_failed', status: fr.status || 0 });
     }
 
     return res.json({ success:true, listId, items });
