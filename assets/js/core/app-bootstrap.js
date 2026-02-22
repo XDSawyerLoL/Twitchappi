@@ -1,18 +1,18 @@
 
 // --- ORYON: ensure fetchJSON is globally available (used by multiple modules) ---
 window.fetchJSON = window.fetchJSON || (async function(url, opts){
-  const res = await fetch(url, Object.assign({ credentials: 'include' }, opts || {}));
-  const ct = (res.headers.get('content-type') || '').toLowerCase();
+  const res = await fetch(url, Object.assign({ credentials: "include" }, opts || {}));
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
   if (!res.ok) {
-    const body = ct.includes('application/json') ? await res.json().catch(()=>null) : await res.text().catch(()=> '');
-    const err = new Error((body && body.error) ? body.error : ((typeof body === 'string' && body) ? body : ('HTTP ' + res.status)));
+    const body = ct.includes("application/json") ? await res.json().catch(()=>null) : await res.text().catch(()=>"");
+    const err = new Error((body && body.error) ? body.error : ((typeof body === "string" && body) ? body : ("HTTP " + res.status)));
     err.status = res.status;
     err.body = body;
     throw err;
   }
-  if (ct.includes('application/json')) return res.json();
+  if (ct.includes("application/json")) return res.json();
   const t = await res.text();
-  eval { return JSON.parse(t); };
+  try { return JSON.parse(t); } catch(e) { /* not json */ }
   return t;
 });
 // -------------------------------------------------------------------------------
