@@ -2333,13 +2333,35 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
     const listId = listId0.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
     if(!listId) return res.status(400).json({ success:false, error:'listId invalide' });
 
-    const feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(listId)}`;
-    const r = await fetchWithTimeout(feedUrl, { headers: { 'accept':'application/xml,text/xml;q=0.9,*/*;q=0.8' } }, 6500).catch(()=>null);
-    if(!r || !r.ok){
-      return res.status(502).json({ success:false, error:'fetch_failed', status: r?.status || 0 });
+    // YouTube RSS can return 403/empty feeds in some hosting environments unless we send browser-like headers.
+    const ytHeaders = {
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'accept': 'application/xml,text/xml;q=0.9,*/*;q=0.8',
+      'accept-language': 'fr-FR,fr;q=0.9,en;q=0.8',
+      'referer': 'https://www.youtube.com/',
+    };
+
+    const feedUrl1 = `https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(listId)}`;
+    const feedUrl2 = `https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(listId)}&hl=fr&gl=FR`;
+
+    async function tryFeed(url){
+      const r = await fetchWithTimeout(url, { headers: ytHeaders }, 7500).catch(()=>null);
+      if(!r || !r.ok) return { ok:false, status: r?.status || 0, text:'' };
+      const text = await r.text().catch(()=> '');
+      return { ok:true, status: r.status, text };
     }
 
-    const xml = await r.text().catch(()=> '');
+    let fr = await tryFeed(feedUrl1);
+    if(!fr.ok || !fr.text || !fr.text.includes('<entry')){
+      const fr2 = await tryFeed(feedUrl2);
+      if(fr2.ok) fr = fr2;
+    }
+
+    if(!fr.ok){
+      return res.status(502).json({ success:false, error:'fetch_failed', status: fr.status || 0 });
+    }
+
+    const xml = fr.text || '';
 
     // Minimal parsing (enough for YT Atom feeds)
     // Entries contain: <entry> ... <yt:videoId>...</yt:videoId> <title>...</title> <media:thumbnail url="..." />
@@ -2348,7 +2370,8 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
     for(const chunk0 of entries){
       const chunk = chunk0.split('</entry>')[0] || chunk0;
 
-      const vid = (chunk.match(/<yt:videoId>([^<]+)<\/yt:videoId>/) || [])[1];
+      const vid = (chunk.match(/<yt:videoId>([^<]+)<\/yt:videoId>/) || [])[1]
+        || (chunk.match(/watch\?v=([a-zA-Z0-9_-]{6,})/) || [])[1];
       if(!vid) continue;
 
       let title = (chunk.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
