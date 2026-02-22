@@ -1,3 +1,4 @@
+/* TWITFLIX_TABS_FIX_v4 */
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
@@ -4506,8 +4507,8 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     if (liveBlock) liveBlock.style.display = showLive ? '' : 'none';
     if (animeBlock) animeBlock.style.display = showAnime ? '' : 'none';
 
-    if (showLive) { window.tfRenderLiveThemes?.({ force:true }); }
-    if (showAnime) { window.tfInitAnime?.({ force:true }); }
+    if (showLive) { window.tfRenderLiveCarousel?.(); }
+    if (showAnime) { window.tfInitAnime?.(true); }
     if (showVod) { window.tfRenderTrailerCarousel?.(); }
   }
 
@@ -4702,13 +4703,10 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     }
   }
 
-  window.tfInitAnime = function(opts){
-    opts = opts || {};
-    // Retry allowed when called too early (e.g. modal not yet laid out)
-    if(inited && !opts.force) return;
-    if(opts.force) inited = false;
-    if(inited) return;
-    inited = true;
+  window.tfInitAnime = function(force){
+    if(inited && !force) return;
+    if(force){ inited=false; }
+    inited=true;
 
     // Known identifiers (stable)
     loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom');
@@ -4876,33 +4874,24 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
   
   
-  window.tfRenderLiveThemes = async function(opts){
-    opts = opts || {};
+  window.tfRenderLiveThemes = async function(){
     const container = ensureContainer();
     if(!container) return;
-
-    // Allow retries if a previous attempt ran too early (e.g. Twitch token not ready)
-    if(opts.force){
-      rendered = false;
-      container.innerHTML = '';
-    }
     if(rendered) return;
+    rendered = true;
 
-    // 1) Fetch Top games
+    // 1) Fetch Top games directly (do NOT rely on VOD state)
     let topGames = [];
-    let catsOk = false;
     try{
       const cats = await getJson('/api/categories/top');
       topGames = (cats && Array.isArray(cats.categories)) ? cats.categories.slice(0, 14) : [];
-      catsOk = topGames.length > 0;
     }catch(_e){
       topGames = [];
-      catsOk = false;
     }
 
     container.innerHTML = '';
 
-    // 2) Rail "Top FR < 500"
+    // 2) Rail "Top FR < 500" (diverse games, FR only)
     try{
       const j = await getJson('/api/twitch/streams/top?lang=fr&maxViewers=500&limit=30');
       renderRail(container, 'Top FR (<500 spectateurs)', (j?.items || []));
@@ -4910,21 +4899,8 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       renderRail(container, 'Top FR (<500 spectateurs)', []);
     }
 
-    // 3) If top games not available, we can still try a curated list by name -> search -> id
-    if(!topGames.length){
-      const fallbackNames = ['Just Chatting','League of Legends','Counter-Strike','Valorant','Fortnite','Minecraft','Grand Theft Auto V','World of Warcraft','EA Sports FC 26','Rocket League','Dota 2','Teamfight Tactics'];
-      for(const name of fallbackNames){
-        try{
-          const s = await getJson(`/api/categories/search?q=${encodeURIComponent(name)}`);
-          const first = (s?.categories || [])[0];
-          if(first?.id && first?.name) topGames.push(first);
-        }catch(_e){}
-        if(topGames.length >= 10) break;
-      }
-    }
-
-    // 4) Rails by game (FR only, <500 viewers)
-    let railsCount = 0;
+    // 3) Multiple rails by game (FR only, <500 viewers)
+    //    If a rail is empty, we simply skip it (keeps UX clean).
     for(const g of topGames){
       const gid = String(g.id||'');
       const gname = String(g.name||'').trim();
@@ -4934,36 +4910,19 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         const items = (s?.items || []);
         if(items.length){
           renderRail(container, gname, items);
-          railsCount++;
         }
       }catch(_e){
         // skip
       }
     }
 
-    // If we couldn't build game rails, keep rendered=false so next tab open can retry
-    if(railsCount === 0){
-      rendered = false;
-
-      const msg = document.createElement('div');
-      msg.className = 'tf-empty';
-      msg.style.marginTop = '10px';
-      msg.textContent = catsOk
-        ? "Aucun rail live additionnel n'a pu être généré (streams FR <500 indisponibles ou quota)."
-        : "Les catégories Twitch n'étaient pas prêtes au moment du chargement. Réessaie.";
-      container.appendChild(msg);
-
-      const retry = document.createElement('button');
-      retry.className = 'tf-retry';
-      retry.type = 'button';
-      retry.textContent = 'Recharger Live';
-      retry.style.marginTop = '10px';
-      retry.onclick = ()=>window.tfRenderLiveThemes({ force:true });
-      container.appendChild(retry);
-      return;
+    // Fallback if nothing rendered besides Top
+    if(!container.querySelector('.tf-live-rail:nth-of-type(2)')){
+      const empty = document.createElement('div');
+      empty.className='tf-empty';
+      empty.textContent = "Aucun live FR (<500 viewers) trouvé pour le moment.";
+      container.appendChild(empty);
     }
-
-    rendered = true;
   };
 
 
