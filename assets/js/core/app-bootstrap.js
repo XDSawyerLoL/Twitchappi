@@ -909,7 +909,12 @@ window.addEventListener('message', (ev) => {
     // Small promise queue to avoid firing too many parallel trailer lookups.
     const tfTrailerQueue = [];
     let tfTrailerInFlight = 0;
-    const TF_TRAILER_CONCURRENCY = 2;
+    // Keep this low: trailer resolver is fragile (can 500/429) and we don't want to spam.
+    const TF_TRAILER_CONCURRENCY = 1;
+
+    // If the backend trailer resolver is down (500) or rate-limited, pause trailer lookups for a while.
+    let tfTrailerResolverDownUntil = 0;
+    const TF_TRAILER_RESOLVER_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 
     function tfEnqueueTrailerLookup(fn){
       return new Promise((resolve) => {
@@ -937,6 +942,11 @@ window.addEventListener('message', (ev) => {
       const key = name.toLowerCase();
       const now = Date.now();
 
+      if (now < tfTrailerResolverDownUntil) {
+        // Resolver recently failed (500/429). Don't spam.
+        return null;
+      }
+
       const cached = tfTrailerCache.get(key);
       if (cached && (now - cached.t) < TF_TRAILER_TTL) return cached.id;
 
@@ -947,25 +957,19 @@ window.addEventListener('message', (ev) => {
       }
 
       // 2) server resolver (best, avoids CORS + no API key)
-      // Throttled via a tiny queue to avoid 18 parallel calls.
+      // Throttled via a tiny queue and guarded by cooldown to avoid spamming when the resolver is down.
       try{
-        const base = name;
-        const variants = [
-          base,
-          `${base} trailer`,
-          `${base} bande annonce`,
-          `${base} official trailer`,
-        ];
-
-        // bugfix: use the actual queue function name
+        // Single request per game. If it fails with 500/429, set cooldown.
         const resolved = await tfEnqueueTrailerLookup(async () => {
-          for (const q of variants){
-            const url = `${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(q)}&hl=fr&gl=FR`;
-            const r = await fetch(url, { cache: 'no-store' });
-            if (!r.ok) continue;
-            const d = await r.json();
-            if (d && d.success && d.videoId) return d.videoId;
+          const url = `${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(name)}&hl=fr&gl=FR`;
+          const r = await fetch(url, { cache: 'no-store' });
+          if (r.status === 500 || r.status === 429) {
+            tfTrailerResolverDownUntil = Date.now() + TF_TRAILER_RESOLVER_COOLDOWN_MS;
+            return null;
           }
+          if (!r.ok) return null;
+          const d = await r.json().catch(() => null);
+          if (d && d.success && d.videoId) return d.videoId;
           return null;
         });
 
@@ -2101,13 +2105,9 @@ const modal = document.getElementById('twitflix-modal');
       if (!tfInfoGame) return;
       if (__tfModalTrailerTimer) { try{ clearTimeout(__tfModalTrailerTimer); }catch(_){ } __tfModalTrailerTimer = null; }
 
-      // Pre-resolve trailer id quickly (cached server-side)
+      // Pre-resolve trailer id via the throttled resolver (handles 500/429 cooldown)
       let videoId = '';
-      try{
-        const r = await fetch(`/api/youtube/trailer?q=${encodeURIComponent(tfInfoGame.name)}&type=game&lang=fr`, { credentials:'include' });
-        const j = r.ok ? await r.json().catch(()=>null) : null;
-        videoId = j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '';
-      }catch(_){ }
+      try{ videoId = await tfResolveTrailerId(tfInfoGame.name); }catch(_){ }
 
       if (!videoId) return;
 
@@ -2136,13 +2136,9 @@ const modal = document.getElementById('twitflix-modal');
       media.innerHTML = '';
 
       // Header preview MUST be the GAME TRAILER (YouTube), not a live stream.
-      // We use the backend trailer resolver /api/youtube/trailer (cached).
+      // Resolve via throttled resolver (handles 500/429 cooldown).
       let videoId = '';
-      try{
-        const r = await fetch(`/api/youtube/trailer?q=${encodeURIComponent(tfInfoGame.name)}&type=game&lang=fr`, { credentials:'include' });
-        const j = r.ok ? await r.json().catch(()=>null) : null;
-        videoId = j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '';
-      }catch(_){ }
+      try{ videoId = await tfResolveTrailerId(tfInfoGame.name); }catch(_){ }
 
       if (!videoId) return;
 
