@@ -4011,6 +4011,19 @@ function dashboardCardHTML(access){
   }else{
     apply();
   }
+
+  // --- Expose helpers globally (needed by other modules) ---
+  try{
+    window.fetchJSON = fetchJSON;
+    if (typeof fetchJsonSafe === 'function') window.fetchJsonSafe = fetchJsonSafe;
+  }catch(e){}
+  try{
+    window.iaSearchItems = iaSearchItems;
+    window.iaItemFromIdentifier = iaItemFromIdentifier;
+    window.iaThumb = iaThumb;
+    window.iaEmbed = iaEmbed;
+  }catch(e){}
+
 })();
 
 
