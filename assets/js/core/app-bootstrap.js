@@ -4486,6 +4486,11 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   function qs(sel){ return document.querySelector(sel); }
   function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 
+  // Helpers: explicit display toggling (some blocks start with inline display:none)
+  function show(el){ if(el) el.style.display = 'block'; }
+  function hide(el){ if(el) el.style.display = 'none'; }
+  function showDefault(el){ if(el) el.style.display = ''; }
+
   function setTab(tab){
     // buttons
     qsa('#tf-tabsbar .tf-tabbtn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
@@ -4500,20 +4505,45 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     const showLive = (tab==='live');
     const showAnime = (tab==='anime');
 
-    if (hero) hero.style.display = showVod ? '' : 'none';
-    if (grid) grid.style.display = showVod ? '' : 'none';
-    if (trailerBlock) trailerBlock.style.display = showVod ? '' : 'none';
-    if (liveBlock) liveBlock.style.display = showLive ? '' : 'none';
-    if (animeBlock) animeBlock.style.display = showAnime ? '' : 'none';
+    // VOD tab
+    if (showVod){
+      showDefault(hero);
+      showDefault(grid);
+      showDefault(trailerBlock);
+      hide(liveBlock);
+      hide(animeBlock);
+      try{ window.tfRenderTrailerCarousel?.(); }catch(_e){}
+      return;
+    }
 
-    if (showLive) { window.tfRenderLiveThemes?.(); }
-    if (showAnime) { window.tfInitAnime?.(); }
-    if (showVod) { window.tfRenderTrailerCarousel?.(); }
+    // LIVE tab
+    if (showLive){
+      hide(hero);
+      hide(grid);
+      // Trailers should also be visible in LIVE
+      showDefault(trailerBlock);
+      showDefault(liveBlock);
+      hide(animeBlock);
+      // Render rails after visibility is applied (avoids occasional race conditions)
+      setTimeout(()=>{ try{ window.tfRenderLiveThemes?.(); }catch(_e){} }, 0);
+      setTimeout(()=>{ try{ window.tfRenderTrailerCarousel?.(); }catch(_e){} }, 0);
+      return;
+    }
+
+    // ANIME tab
+    hide(hero);
+    hide(grid);
+    hide(trailerBlock);
+    hide(liveBlock);
+    show(animeBlock);
+    setTimeout(()=>{ try{ window.tfInitAnime?.(); }catch(_e){} }, 0);
   }
 
   function initTabs(){
     const bar = qs('#tf-tabsbar');
     if(!bar) return;
+    if(bar.dataset.bound==='1') return;
+    bar.dataset.bound='1';
     bar.addEventListener('click', (e)=>{
       const btn = e.target.closest('.tf-tabbtn');
       if(!btn) return;
@@ -4527,9 +4557,15 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   const _open = window.openTwitFlix;
   window.openTwitFlix = function(){
     const r = _open?.apply(this, arguments);
-    try{ initTabs(); }catch(_){}
+    try{ setTimeout(initTabs, 0); }catch(_){}
     return r;
   };
+
+  // Safety: bind tabs even if TwitFlix is opened from another codepath.
+  try{
+    if(document.readyState==='complete' || document.readyState==='interactive') setTimeout(initTabs, 0);
+    else document.addEventListener('DOMContentLoaded', ()=>setTimeout(initTabs,0), {once:true});
+  }catch(_e){}
 })();
 
 // =========================================================
