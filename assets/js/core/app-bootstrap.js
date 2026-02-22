@@ -883,7 +883,7 @@ window.addEventListener('message', (ev) => {
 
     const tfTrailerCache = new Map(); // key -> { id, t }
 
-    (function tfLoadTrailerCache(){
+    ;(function tfLoadTrailerCache(){
       try {
         const raw = localStorage.getItem(TF_TRAILER_LS_KEY);
         if(!raw) return;
@@ -3402,7 +3402,7 @@ function tfBuildCard(cat){
    - En FREE: si crédits > 0 (billing OU portefeuille marché), on ne bloque pas
    - Jamais "blur sans fenêtre": l'overlay est en portal (enfant de <html>)
    =========================== */
-(function(){
+;(function(){
   const PRICING_URL = "/pricing";
   const DASHBOARD_SEL = '[data-paywall-feature="dashboard_premium"]';
 
@@ -3410,12 +3410,42 @@ function tfBuildCard(cat){
   function isPremium(plan){ plan = normPlan(plan); return plan !== "FREE"; }
 
   async function fetchJSON(url){
-    const r = await fetch(url, { credentials:"include" });
-    const j = await r.json().catch(()=>null);
-    return { ok: r.ok, json: j };
+  // single-flight + backoff 429 (avoid spamming billing/fantasy endpoints)
+  const key = String(url);
+  fetchJSON.__inflight = fetchJSON.__inflight || new Map();
+  fetchJSON.__cooldown = fetchJSON.__cooldown || new Map();
+
+  const now = Date.now();
+  const until = fetchJSON.__cooldown.get(key) || 0;
+  if(now < until){
+    return { ok:false, json:null, rate_limited:true };
   }
 
-  async function fetchAccess(){
+  if(fetchJSON.__inflight.has(key)) return fetchJSON.__inflight.get(key);
+
+  const p = (async ()=>{
+    try{
+      const r = await fetch(url, { credentials:"include" });
+      if(r.status === 429){
+        const ra = r.headers.get("Retry-After");
+        const waitMs = ra ? Math.max(1000, (parseInt(ra,10)||0) * 1000) : 15000;
+        fetchJSON.__cooldown.set(key, Date.now() + waitMs);
+        return { ok:false, json:null, rate_limited:true };
+      }
+      const j = await r.json().catch(()=>null);
+      return { ok: r.ok, json: j };
+    }catch(e){
+      return { ok:false, json:null, error: String(e && e.message || e) };
+    }
+  })().finally(()=>{
+    fetchJSON.__inflight.delete(key);
+  });
+
+  fetchJSON.__inflight.set(key, p);
+  return p;
+}
+
+async function fetchAccess(){
     // 1) billing
     let plan = "FREE";
     let credits = 0;
@@ -3923,7 +3953,7 @@ function tfSetupRowPaging(rowEl){
 
 
 // tfGlobalClickDelegate: make mouse clicks reliable even with draggable rows / overlays
-(function tfGlobalClickDelegate(){
+;(function tfGlobalClickDelegate(){
   if (window.__tfGlobalClickDelegate) return;
   window.__tfGlobalClickDelegate = true;
   document.addEventListener('click', function(e){
@@ -4279,7 +4309,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 //  - Gamepad: Y opens, B closes, A selects
 //  - Fetches VOD via /api/twitch/vods/search?title=...
 // =========================================================
-(function oryonTvSearchOverlay(){
+;(function oryonTvSearchOverlay(){
   try{
     const css = `
     .oryon-so{position:fixed;inset:0;z-index:100000;display:none;align-items:flex-start;justify-content:center;padding:34px 24px;background:rgba(0,0,0,.86);backdrop-filter:blur(7px);}
@@ -4482,7 +4512,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 // =========================================================
 // ORYON TV — Tabs (VOD / LIVE / ANIME)
 // =========================================================
-(function(){
+;(function(){
   // Robust tab binding: works even if openTwitFlix is never called or scripts load out-of-order.
   function qs(sel){ return document.querySelector(sel); }
   function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
@@ -4567,7 +4597,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 // =========================================================
 // ORYON TV — Simple MP4 player overlay (for Public Domain anime)
 // =========================================================
-(function(){
+;(function(){
   function ensurePlayer(){
     let overlay = document.getElementById('tf-player-overlay');
     if(overlay) return overlay;
@@ -4600,7 +4630,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 // =========================================================
 // ORYON TV — YouTube playlist overlay (for curated collections)
 // =========================================================
-(function(){
+;(function(){
   function ensureYT(){
     let overlay = document.getElementById('tf-yt-overlay');
     if(overlay) return overlay;
@@ -4644,7 +4674,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 //   - rails stacked (no sub-tabs)
 //   - some rails are "best-effort" via Archive search
 // =========================================================
-(function(){
+;(function(){
   let inited=false;
 
   function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -4710,19 +4740,59 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
 
 
-  async function loadByIdentifier(carouselId, identifier){
-    const wrap = document.getElementById(carouselId);
-    if(!wrap) return;
-    wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
-    try{
-      const j = await fetchJsonSafe(`/api/public-domain/list?identifier=${encodeURIComponent(identifier)}`);
-      renderItemsInto(carouselId, j?.items || []);
-    }catch(e){
-      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
+  function renderArchiveIdentifierInto(carouselId, identifier, titleOverride){
+  const wrap = document.getElementById(carouselId);
+  if(!wrap) return;
+  const title = titleOverride || identifier;
+  const thumb = `https://archive.org/services/img/${encodeURIComponent(identifier)}`;
+  const embed = `https://archive.org/embed/${encodeURIComponent(identifier)}`;
+  wrap.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'tf-card';
+  card.style.minWidth = '260px';
+  card.innerHTML = `
+    <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
+      <img src="${thumb}" alt="${esc(title)}" style="width:100%;height:100%;object-fit:cover;opacity:.95;" loading="lazy" />
+      <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">ARCHIVE</div>
+    </div>
+    <div style="padding:.55rem .1rem .1rem .1rem;">
+      <div style="font-weight:900;font-size:13px;line-height:1.2">${esc(title)}</div>
+      <div style="opacity:.75;font-size:12px;margin-top:.25rem">Lecture via archive.org (embed)</div>
+    </div>
+  `;
+  card.addEventListener('click', ()=>{
+    const overlay = document.getElementById('tf-player-overlay');
+    const holder = document.getElementById('tf-player-holder');
+    if(overlay && holder){
+      holder.innerHTML = `<iframe src="${embed}" style="width:min(1100px,92vw);height:min(680px,82vh);border:0;border-radius:16px;background:#000;" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+      overlay.style.display = 'flex';
+    } else {
+      window.open(embed, '_blank', 'noopener');
     }
-  }
+  });
+  wrap.appendChild(card);
+}
 
-  async function loadBySearch(carouselId, q){
+async function loadByIdentifier(carouselId, identifier, titleOverride){
+  const wrap = document.getElementById(carouselId);
+  if(!wrap) return;
+  wrap.innerHTML = '<div class="tf-empty">Chargement…</div>';
+
+  // 1) Try backend endpoint if available
+  try{
+    const j = await fetchJsonSafe(`/api/public-domain/list?identifier=${encodeURIComponent(identifier)}`);
+    const items = Array.isArray(j?.items) ? j.items : [];
+    if(items.length){
+      renderItemsInto(carouselId, items);
+      return;
+    }
+  }catch(_e){}
+
+  // 2) Fallback: direct archive.org embed (works without any backend)
+  renderArchiveIdentifierInto(carouselId, identifier, titleOverride);
+}
+
+async function loadBySearch(carouselId, q){
     const wrap = document.getElementById(carouselId);
     if(!wrap) return;
     wrap.innerHTML = '<div class="tf-empty">Recherche…</div>';
@@ -4741,10 +4811,10 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     inited=true;
 
     // Known identifiers (stable)
-    loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom');
-    loadByIdentifier('tf-anime-superman', 'superman_1941');
-    loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain');
-    loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919');
+    loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom', 'Lone Ranger (1966)');
+    loadByIdentifier('tf-anime-superman', 'superman_1941', 'Superman (Fleischer, 1941)');
+    loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain', 'Popeye (Public Domain Collection)');
+    loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat (années 1920)');
 
 
     // Curated YouTube playlists (non-Archive)
@@ -4772,7 +4842,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 //  - avoids Helix clips confusion
 //  - best-effort: some videos can be blocked from embed
 // =========================================================
-(function(){
+;(function(){
   const BAD = new Set(['Just Chatting','Music','ASMR','IRL','Talk Shows & Podcasts','Slots','Art','Sports','Travel & Outdoors']);
   function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -4827,7 +4897,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 // =========================================================
 // ORYON TV — LIVE tab: multiple rails by themes (fast, cached, debounced)
 // =========================================================
-(function(){
+;(function(){
   const THEMES = [
     { label:'Top', type:'top' },
 
