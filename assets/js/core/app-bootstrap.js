@@ -5001,6 +5001,69 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
   o.style.display='flex';
 };
+
+// Expand a YouTube playlist into a real rail by fetching its items server-side (no API key)
+window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, label){
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  wrap.innerHTML = '<div class="tf-empty">Chargement de la playlist…</div>';
+  const safeList = String(listId||'').trim();
+  if(!safeList){ wrap.innerHTML = '<div class="tf-empty">Aucun épisode.</div>'; return; }
+
+  let json = null;
+  try{
+    const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(safeList)}`);
+    if(r && r.ok) json = r.json;
+  }catch(_e){ json = null; }
+
+  if(!json || !json.success || !Array.isArray(json.items) || !json.items.length){
+    wrap.innerHTML = '<div class="tf-empty">Aucun épisode (playlist YouTube indisponible).</div>';
+    return;
+  }
+
+  const items = json.items.map((it)=>{
+    const vid = String(it.videoId || '').trim();
+    const t = (it.title || '').trim() || 'Épisode';
+    return {
+      title: t,
+      thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : ''),
+      sourceLabel: 'YouTube',
+      embedUrl: vid
+        ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=0&controls=1&modestbranding=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}`
+        : ''
+    };
+  }).filter(x => x.embedUrl);
+
+  wrap.innerHTML = '';
+  const meta = document.createElement('div');
+  meta.className = 'text-sm opacity-70 mb-2';
+  meta.textContent = label ? `${label} — ${items.length} épisodes` : `${items.length} épisodes`;
+  wrap.appendChild(meta);
+  const rail = document.createElement('div');
+  rail.id = `${containerId}__rail`;
+  wrap.appendChild(rail);
+  // renderItemsInto is defined below in the Anime IIFE; call lazily when available
+  if(typeof window.__tf_renderItemsInto === 'function'){
+    window.__tf_renderItemsInto(rail.id, items);
+  }else{
+    // fallback: use a minimal card renderer
+    items.slice(0,24).forEach(it=>{
+      const card=document.createElement('div');
+      card.className='tf-card';
+      const img=document.createElement('img');
+      img.className='tf-thumb';
+      img.loading='lazy';
+      img.src=it.thumb;
+      card.appendChild(img);
+      const t=document.createElement('div');
+      t.className='tf-title';
+      t.textContent=it.title;
+      card.appendChild(t);
+      card.onclick=()=>window.tfPlayIframe(it.embedUrl,it.title);
+      rail.appendChild(card);
+    });
+  }
+};
 })();
 
 ;
@@ -5059,6 +5122,9 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       wrap.appendChild(card);
     });
   }
+
+  // expose for other modules
+  window.__tf_renderItemsInto = renderItemsInto;
   function renderYouTubePlaylistsInto(carouselId, playlists){
     const wrap = document.getElementById(carouselId);
     if(!wrap) return;
@@ -5142,10 +5208,14 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     // Known identifiers (stable)
     // Use per-file listing when the IA item is a bundle of many episodes.
     loadByItemFiles('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom', 'Lone Ranger (1966)');
-    // Superman: use a complete YouTube playlist (17 épisodes) instead of a single IA item.
-    renderYouTubePlaylistsInto('tf-anime-superman', [
-      { title: 'Superman (Fleischer, 1941–1943) — playlist', listId: 'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb: 'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' }
-    ]);
+    // Superman: render playlist as episode rail (avoid single tile + YouTube error 153)
+    if(typeof window.tfLoadYouTubePlaylistEpisodesInto === 'function'){
+      window.tfLoadYouTubePlaylistEpisodesInto('tf-anime-superman', 'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', 'Superman (Fleischer, 1941–1943)');
+    }else{
+      renderYouTubePlaylistsInto('tf-anime-superman', [
+        { title: 'Superman (Fleischer, 1941–1943) — playlist', listId: 'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb: 'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' }
+      ]);
+    }
     loadByItemFiles('tf-anime-popeye', 'popeye-pubdomain', 'Popeye');
     loadByItemFiles('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat');
 

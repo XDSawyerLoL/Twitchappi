@@ -2322,6 +2322,57 @@ app.get('/api/youtube/health', async (req,res)=>{
   }
 });
 
+// Public YouTube playlist items (no API key) via Atom feed
+// Front can call: GET /api/youtube/playlist?listId=PLAYLIST_ID
+app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
+  try{
+    const listId0 = String(req.query.listId || '').trim();
+    if(!listId0) return res.status(400).json({ success:false, error:'listId manquant' });
+
+    // Basic allow-listing: playlist ids are usually 16-34 chars of [A-Za-z0-9_-]
+    const listId = listId0.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+    if(!listId) return res.status(400).json({ success:false, error:'listId invalide' });
+
+    const feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(listId)}`;
+    const r = await fetchWithTimeout(feedUrl, { headers: { 'accept':'application/xml,text/xml;q=0.9,*/*;q=0.8' } }, 6500).catch(()=>null);
+    if(!r || !r.ok){
+      return res.status(502).json({ success:false, error:'fetch_failed', status: r?.status || 0 });
+    }
+
+    const xml = await r.text().catch(()=> '');
+
+    // Minimal parsing (enough for YT Atom feeds)
+    // Entries contain: <entry> ... <yt:videoId>...</yt:videoId> <title>...</title> <media:thumbnail url="..." />
+    const entries = xml.split('<entry>').slice(1);
+    const items = [];
+    for(const chunk0 of entries){
+      const chunk = chunk0.split('</entry>')[0] || chunk0;
+
+      const vid = (chunk.match(/<yt:videoId>([^<]+)<\/yt:videoId>/) || [])[1];
+      if(!vid) continue;
+
+      let title = (chunk.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
+      // strip common xml entities
+      title = title
+        .replace(/<!\[CDATA\[|\]\]>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .trim();
+
+      const thumb = (chunk.match(/<media:thumbnail[^>]+url="([^"]+)"/) || [])[1] || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+      items.push({ videoId: vid, title, thumb });
+      if(items.length >= 120) break;
+    }
+
+    return res.json({ success:true, listId, items });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
   const q0 = String(req.query.q || '').trim();
   const type = String(req.query.type || 'game'); // game|movie
