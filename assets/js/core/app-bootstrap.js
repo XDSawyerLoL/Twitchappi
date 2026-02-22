@@ -1,3 +1,21 @@
+
+// --- ORYON: ensure fetchJSON is globally available (used by multiple modules) ---
+window.fetchJSON = window.fetchJSON || (async function(url, opts){
+  const res = await fetch(url, Object.assign({ credentials: 'include' }, opts || {}));
+  const ct = (res.headers.get('content-type') || '').toLowerCase();
+  if (!res.ok) {
+    const body = ct.includes('application/json') ? await res.json().catch(()=>null) : await res.text().catch(()=> '');
+    const err = new Error((body && body.error) ? body.error : ((typeof body === 'string' && body) ? body : ('HTTP ' + res.status)));
+    err.status = res.status;
+    err.body = body;
+    throw err;
+  }
+  if (ct.includes('application/json')) return res.json();
+  const t = await res.text();
+  eval { return JSON.parse(t); };
+  return t;
+});
+// -------------------------------------------------------------------------------
 /* ORYON TV app-bootstrap v12 IA direct anime (no YT embed) */
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
@@ -3125,7 +3143,7 @@ function tfBuildCard(cat){
           renderChart('chartViewers','line',data.history.live.labels,data.history.live.values,'Viewers');
         }
 
-        const dGamesR = await fetchJSON("/api/stats/top_games");
+        const dGamesR = await window.fetchJSON("/api/stats/top_games");
         const dGames = (dGamesR && dGamesR.ok && dGamesR.json) ? dGamesR.json : { games: [] };
         const labels = (dGames.games||[]).map(g=>g.name);
         const values = (dGames.games||[]).map((g,i)=>(i+1)*20);
@@ -3622,7 +3640,7 @@ async function fetchAccess(){
     let credits = 0;
 
     try{
-      const b = await fetchJSON("/api/billing/me");
+      const b = await window.fetchJSON("/api/billing/me");
       const j = b.json;
       const success = !!(j && (j.success === undefined ? true : j.success));
       if(b.ok && success){
@@ -3634,7 +3652,7 @@ async function fetchAccess(){
     // 2) portefeuille marché (source de vérité "wallet" si plus haut que billing)
 // On ne modifie pas billing; on s'en sert juste pour décider l'accès via crédits.
     try{
-      const f = await fetchJSON("/api/fantasy/profile");
+      const f = await window.fetchJSON("/api/fantasy/profile");
       const j = f.json;
       if(f.ok && j){
         const cash = Number(j.cash ?? j.wallet?.cash ?? 0) || 0;
@@ -4973,7 +4991,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
   async function fetchJsonSafe(url){
   try{
-    const r = await fetchJSON(url, { method:"GET" });
+    const r = await window.fetchJSON(url, { method:"GET" });
     if(!r || !r.ok) return null;
     return r.json;
   }catch(_e){
