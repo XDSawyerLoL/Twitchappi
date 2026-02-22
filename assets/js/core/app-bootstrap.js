@@ -5216,6 +5216,15 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
         { title: 'Superman (Fleischer, 1941–1943) — playlist', listId: 'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb: 'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' }
       ]);
     }
+
+    // The Black Bat: playlist rail
+    if(typeof window.tfLoadYouTubePlaylistEpisodesInto === 'function'){
+      window.tfLoadYouTubePlaylistEpisodesInto('tf-anime-blackbat', 'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', 'The Black Bat — playlist');
+    }else{
+      renderYouTubePlaylistsInto('tf-anime-blackbat', [
+        { title: 'The Black Bat — playlist', listId: 'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb: 'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' }
+      ]);
+    }
     loadByItemFiles('tf-anime-popeye', 'popeye-pubdomain', 'Popeye');
     loadByItemFiles('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat');
 
