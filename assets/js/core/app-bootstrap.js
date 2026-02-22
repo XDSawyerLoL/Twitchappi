@@ -4265,7 +4265,7 @@ window.renderTwitFlix = function(){
 
 
 // ORYON_TV_BUILD_MARK v1770423290
-console.log('ORYON TV build', 1770423290);
+console.log('ORYON TV v10 anime youtube fallback build', 1770423290);
 
 
 // ORYON TV menu (close / quit)
@@ -4651,6 +4651,16 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     return overlay;
   }
 
+  window.tfPlayYouTubeVideo = function(videoId, title){
+    if(!videoId) return;
+    const o = ensureYT();
+    o.querySelector('#tf-yt-title').textContent = title || 'Vidéo';
+    const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&playsinline=1&rel=0`;
+    const f = o.querySelector('#tf-yt-frame');
+    f.src = src;
+    o.style.display='flex';
+  };
+
   window.tfPlayYouTubePlaylist = function(listId, title){
     if(!listId) return;
     const o = ensureYT();
@@ -4673,15 +4683,28 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 ;(function(){
   let inited=false;
 
-  function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
+  function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }  const __pdInflight = new Map();
+  let __pdCooldownUntil = 0;
   async function fetchJsonSafe(url){
-    const r = await fetch(url, { cache:'no-store' });
-    const txt = await r.text();
-    let j=null; try{ j=JSON.parse(txt); }catch(_){}
-    if(!r.ok) throw new Error(`HTTP ${r.status} ${txt.slice(0,120)}`);
-    return j;
+    if(Date.now() < __pdCooldownUntil) return null;
+    if(__pdInflight.has(url)) return __pdInflight.get(url);
+    const p = (async()=>{
+      const r = await fetch(url, { cache:'no-store' });
+      const txt = await r.text();
+      if(r.status === 429){
+        const ra = r.headers.get('Retry-After');
+        const waitMs = ra ? Math.max(1000, parseInt(ra,10)*1000) : 60000;
+        __pdCooldownUntil = Date.now() + waitMs;
+        return null;
+      }
+      let j=null; try{ j=JSON.parse(txt); }catch(_){ j=null; }
+      if(!r.ok) return null;
+      return j;
+    })().finally(()=>__pdInflight.delete(url));
+    __pdInflight.set(url,p);
+    return p;
   }
+
 
   function renderItemsInto(carouselId, items){
     const wrap = document.getElementById(carouselId);
@@ -4734,6 +4757,32 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     });
   }
 
+
+  function renderYouTubeVideosInto(carouselId, videos){
+    const wrap = document.getElementById(carouselId);
+    if(!wrap) return;
+    if(!videos?.length){ wrap.innerHTML = '<div class="tf-empty">Aucune vidéo.</div>'; return; }
+    wrap.innerHTML='';
+    videos.forEach(vd=>{
+      const card = document.createElement('div');
+      card.className='tf-card';
+      card.style.minWidth='260px';
+      const thumb = vd.thumb || (vd.videoId ? `https://i.ytimg.com/vi/${vd.videoId}/hqdefault.jpg` : '');
+      card.innerHTML = `
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
+          <img src="${thumb}" alt="" style="width:100%;height:100%;object-fit:cover;opacity:.92;" />
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+            <div style="background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);padding:.35rem .55rem;border-radius:999px;font-weight:900;">▶ Vidéo</div>
+          </div>
+        </div>
+        <div class="tf-card-meta">
+          <div class="tf-card-title">${esc(vd.title||'')}</div>
+          <div class="tf-card-sub" style="opacity:.7;font-weight:700;">YouTube</div>
+        </div>`;
+      card.addEventListener('click', ()=> window.tfPlayYouTubeVideo?.(vd.videoId, vd.title));
+      wrap.appendChild(card);
+    });
+  }
 
 
   function renderArchiveIdentifierInto(carouselId, identifier, titleOverride){
@@ -4788,16 +4837,25 @@ async function loadByIdentifier(carouselId, identifier, titleOverride){
   renderArchiveIdentifierInto(carouselId, identifier, titleOverride);
 }
 
-async function loadBySearch(carouselId, q){
+async function loadBySearch(carouselId, q, fallback){
     const wrap = document.getElementById(carouselId);
     if(!wrap) return;
-    wrap.innerHTML = '<div class="tf-empty">Recherche…</div>';
-    try{
-      const j = await fetchJsonSafe(`/api/public-domain/search?q=${encodeURIComponent(q)}&limit=24`);
-      renderItemsInto(carouselId, j?.items || []);
-    }catch(e){
-      wrap.innerHTML = `<div class="tf-empty">Erreur animés: ${esc(e.message||e)}</div>`;
+    wrap.innerHTML = '<div class=\"tf-empty\">Recherche…</div>';
+    const j = await fetchJsonSafe(`/api/public-domain/search?q=${encodeURIComponent(q)}&limit=24`);
+    const items = j?.items || [];
+    if(items && items.length){
+      renderItemsInto(carouselId, items);
+      return;
     }
+    if(fallback?.type==='playlist'){
+      renderYouTubePlaylistsInto(carouselId, [fallback]);
+      return;
+    }
+    if(fallback?.type==='video'){
+      renderYouTubeVideosInto(carouselId, [fallback]);
+      return;
+    }
+    wrap.innerHTML = '<div class=\"tf-empty\">Aucun épisode.</div>';
   }
 
   window.tfInitAnime = function(force){
@@ -4821,13 +4879,13 @@ async function loadBySearch(carouselId, q){
     ]);
 
     // Best-effort search rails
-    loadBySearch('tf-anime-betty', 'Betty Boop public domain');
-    loadBySearch('tf-anime-bugs', 'Bugs Bunny A Tale of Two Kitties The Wabbit Who Came to Supper public domain');
-    loadBySearch('tf-anime-daffy', 'Daffy Duck and the Dinosaur 1939 public domain');
-    loadBySearch('tf-anime-porky', 'Porky Pig black and white 1930 public domain');
-    loadBySearch('tf-anime-casper', 'Casper The Friendly Ghost 1945 public domain');
-    loadBySearch('tf-anime-gabby', 'Gabby Gulliver 1939 public domain');
-    loadBySearch('tf-anime-gertie', 'Gertie the Dinosaur 1914 public domain');
+    loadBySearch('tf-anime-betty', 'Betty Boop public domain', {type:'playlist', title:'Public Domain Cartoons (sélection)', listId:'PLAR7BwVhHQUF4oiQkluzfKGbovZNdKRZk', thumb:'https://i.ytimg.com/vi/imGNdac-hIY/hqdefault.jpg'});
+    loadBySearch('tf-anime-bugs', 'Bugs Bunny A Tale of Two Kitties The Wabbit Who Came to Supper public domain', {type:'playlist', title:'Looney Tunes / Public Domain (Bugs & co)', listId:'PLMr3_oT2YHoVLV2bqkB0PS1WXg62sXJsS', thumb:'https://i.ytimg.com/vi/t2E2eixSLK8/hqdefault.jpg'});
+    loadBySearch('tf-anime-daffy', 'Daffy Duck and the Dinosaur 1939 public domain', {type:'playlist', title:'Public Domain Cartoons (incl. Daffy 1939)', listId:'PLAR7BwVhHQUF4oiQkluzfKGbovZNdKRZk', thumb:'https://i.ytimg.com/vi/imGNdac-hIY/hqdefault.jpg'});
+    loadBySearch('tf-anime-porky', 'Porky Pig black and white 1930 public domain', {type:'playlist', title:'Public Domain Cartoons (Porky & N&B)', listId:'PLS-NcOPieTwLUcAjtP1c-IIcdaIMoRlql', thumb:'https://i.ytimg.com/vi/_51mFXshTXc/hqdefault.jpg'});
+    loadBySearch('tf-anime-casper', 'Casper The Friendly Ghost 1945 public domain', {type:'playlist', title:'Casper the Friendly Ghost (playlist)', listId:'PLKQt1W7buSoxsAbPlBHUyOQl4o5FQdUs7', thumb:'https://i.ytimg.com/vi/mhdo7U_Knhc/hqdefault.jpg'});
+    loadBySearch('tf-anime-gabby', 'Gabby Gulliver 1939 public domain', {type:'playlist', title:"Gulliver's Travels (1939) - playlist", listId:'PL5AABB1C88AE4B5D2', thumb:'https://i.ytimg.com/vi/VEDrB4VyaeQ/hqdefault.jpg'});
+    loadBySearch('tf-anime-gertie', 'Gertie the Dinosaur 1914 public domain', {type:'video', title:'Gertie the Dinosaur (1914)', videoId:'zzott0PcPtM', thumb:'https://i.ytimg.com/vi/zzott0PcPtM/hqdefault.jpg'});
   };
 })();
 
