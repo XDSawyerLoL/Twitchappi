@@ -5142,7 +5142,10 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     // Known identifiers (stable)
     // Use per-file listing when the IA item is a bundle of many episodes.
     loadByItemFiles('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom', 'Lone Ranger (1966)');
-    loadByIdentifier('tf-anime-superman', 'superman_1941');
+    // Superman: use a complete YouTube playlist (17 épisodes) instead of a single IA item.
+    renderYouTubePlaylistsInto('tf-anime-superman', [
+      { title: 'Superman (Fleischer, 1941–1943) — playlist', listId: 'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb: 'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' }
+    ]);
     loadByItemFiles('tf-anime-popeye', 'popeye-pubdomain', 'Popeye');
     loadByItemFiles('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat');
 
