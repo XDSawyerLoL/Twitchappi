@@ -4563,7 +4563,48 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     o.style.display = 'flex';
     v.play().catch(()=>{});
   };
+})()
+
+// =========================================================
+// ORYON TV — YouTube playlist overlay (for curated collections)
+// =========================================================
+(function(){
+  function ensureYT(){
+    let overlay = document.getElementById('tf-yt-overlay');
+    if(overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'tf-yt-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:18px;';
+    overlay.innerHTML = `
+      <div style="width:min(1100px,96vw);max-height:92vh;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div id="tf-yt-title" style="font-weight:900;letter-spacing:.02em;opacity:.95;"></div>
+          <button id="tf-yt-close" type="button" style="padding:.4rem .7rem;border-radius:10px;border:1px solid rgba(255,255,255,.18);font-weight:900;">✕</button>
+        </div>
+        <iframe id="tf-yt-frame" style="width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#tf-yt-close').onclick = ()=>{
+      overlay.style.display='none';
+      const f=overlay.querySelector('#tf-yt-frame');
+      f.removeAttribute('src');
+    };
+    overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.querySelector('#tf-yt-close').click(); });
+    return overlay;
+  }
+
+  window.tfPlayYouTubePlaylist = function(listId, title){
+    if(!listId) return;
+    const o = ensureYT();
+    o.querySelector('#tf-yt-title').textContent = title || 'Playlist';
+    const src = `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(listId)}&autoplay=1&mute=1&playsinline=1&rel=0`;
+    const f = o.querySelector('#tf-yt-frame');
+    f.src = src;
+    o.style.display='flex';
+  };
 })();
+
+;
 
 
 // =========================================================
@@ -4607,6 +4648,35 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       wrap.appendChild(card);
     });
   }
+  function renderYouTubePlaylistsInto(carouselId, playlists){
+    const wrap = document.getElementById(carouselId);
+    if(!wrap) return;
+    if(!playlists?.length){ wrap.innerHTML = '<div class="tf-empty">Aucune playlist.</div>'; return; }
+    wrap.innerHTML='';
+    playlists.forEach(pl=>{
+      const card = document.createElement('div');
+      card.className='tf-card';
+      card.style.minWidth='260px';
+      const thumb = pl.thumb || '';
+      card.innerHTML = `
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
+          <img src="${thumb}" alt="" style="width:100%;height:100%;object-fit:cover;opacity:.92;" />
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+            <div style="background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);padding:.35rem .55rem;border-radius:999px;font-weight:900;">
+              ▶ Playlist
+            </div>
+          </div>
+        </div>
+        <div class="tf-card-meta">
+          <div class="tf-card-title">${esc(pl.title||'')}</div>
+          <div class="tf-card-sub" style="opacity:.7;font-weight:700;">YouTube</div>
+        </div>`;
+      card.addEventListener('click', ()=> window.tfPlayYouTubePlaylist?.(pl.listId, pl.title));
+      wrap.appendChild(card);
+    });
+  }
+
+
 
   async function loadByIdentifier(carouselId, identifier){
     const wrap = document.getElementById(carouselId);
@@ -4641,6 +4711,14 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     loadByIdentifier('tf-anime-superman', 'superman_1941');
     loadByIdentifier('tf-anime-popeye', 'popeye-pubdomain');
     loadByIdentifier('tf-anime-felix', 'FelixTheCat-FelineFollies1919');
+
+
+    // Curated YouTube playlists (non-Archive)
+    renderYouTubePlaylistsInto('tf-anime-snafu', [
+      { title: 'Private Snafu — playlist 1', listId: 'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb: 'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg' },
+      { title: 'Private Snafu — playlist 2', listId: 'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb: 'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg' },
+      { title: 'Private Snafu — playlist 3', listId: 'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb: 'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg' }
+    ]);
 
     // Best-effort search rails
     loadBySearch('tf-anime-betty', 'Betty Boop public domain');
@@ -4793,33 +4871,57 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   }
 
   
+  
   window.tfRenderLiveThemes = async function(){
     const container = ensureContainer();
     if(!container) return;
     if(rendered) return;
-    rendered=true;
+    rendered = true;
 
-    // Build rails from current Top games (guaranteed to exist on Twitch)
-    const cats = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
-    const topGames = cats.filter(c=>c && c.id && c.name).slice(0, 12);
+    // 1) Fetch Top games directly (do NOT rely on VOD state)
+    let topGames = [];
+    try{
+      const cats = await getJson('/api/categories/top');
+      topGames = (cats && Array.isArray(cats.categories)) ? cats.categories.slice(0, 14) : [];
+    }catch(_e){
+      topGames = [];
+    }
 
     container.innerHTML = '';
-    // Always keep one "Top" rail
+
+    // 2) Rail "Top FR < 500" (diverse games, FR only)
     try{
-      const j = await getJson('/api/twitch/streams/top?limit=24');
-      renderRail(container, 'Top', j?.data || j?.streams || j?.items || []);
+      const j = await getJson('/api/twitch/streams/top?lang=fr&maxViewers=500&limit=30');
+      renderRail(container, 'Top FR (<500 spectateurs)', (j?.items || []));
     }catch(_e){
-      renderRail(container, 'Top', []);
+      renderRail(container, 'Top FR (<500 spectateurs)', []);
     }
 
+    // 3) Multiple rails by game (FR only, <500 viewers)
+    //    If a rail is empty, we simply skip it (keeps UX clean).
     for(const g of topGames){
+      const gid = String(g.id||'');
+      const gname = String(g.name||'').trim();
+      if(!gid || !gname) continue;
       try{
-        const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(g.id)}&limit=24`);
-        renderRail(container, String(g.name).replace(/</g,'&lt;'), s?.items || s?.data || s?.streams || []);
+        const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(gid)}&limit=24&lang=fr&maxViewers=500`);
+        const items = (s?.items || []);
+        if(items.length){
+          renderRail(container, gname, items);
+        }
       }catch(_e){
-        renderRail(container, String(g.name).replace(/</g,'&lt;'), []);
+        // skip
       }
     }
+
+    // Fallback if nothing rendered besides Top
+    if(!container.querySelector('.tf-live-rail:nth-of-type(2)')){
+      const empty = document.createElement('div');
+      empty.className='tf-empty';
+      empty.textContent = "Aucun live FR (<500 viewers) trouvé pour le moment.";
+      container.appendChild(empty);
+    }
   };
+
 
 })();
