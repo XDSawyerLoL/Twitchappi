@@ -4504,24 +4504,12 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     if (grid) grid.style.display = showVod ? '' : 'none';
     if (trailerBlock) trailerBlock.style.display = showVod ? '' : 'none';
     if (liveBlock) liveBlock.style.display = showLive ? '' : 'none';
-    if (animeBlock) animeBlock.style.display = showAnime ? '' : 'none';if (showLive) {
-  // allow re-render when user returns to LIVE (first render may have run before data was ready)
-  try{ window.__tfLiveForceRerender = true; }catch(_e){}
-  try{ window.tfRenderLiveThemes?.(); }catch(_e){}
-}
-if (showAnime) {
-  try{
-    if (typeof window.tfInitAnime === 'function') window.tfInitAnime();
-    else {
-      const any = document.querySelector('#tf-anime-block .tf-carousel');
-      if (any && !any.querySelector('.tf-empty')) any.innerHTML = '<div class="tf-empty">Chargement animés indisponible (script non chargé).</div>';
-    }
-  }catch(_e){}
-}
-if (showVod) {
-  try{ window.tfRenderTrailerCarousel?.(); }catch(_e){}
-}
-}
+    if (animeBlock) animeBlock.style.display = showAnime ? '' : 'none';
+
+    if (showLive) { window.tfRenderLiveThemes?.({ force:true }); }
+    if (showAnime) { window.tfInitAnime?.({ force:true }); }
+    if (showVod) { window.tfRenderTrailerCarousel?.(); }
+  }
 
   function initTabs(){
     const bar = qs('#tf-tabsbar');
@@ -4714,11 +4702,13 @@ if (showVod) {
     }
   }
 
-  window.tfInitAnime = function(force){
-    // Re-try if the first init happened while the tab was hidden or if a previous attempt produced no content.
-    const hasContent = !!document.querySelector('#tf-anime-block .tf-card, #tf-anime-block .tf-empty');
-    if(inited && hasContent && !force) return;
-    inited=true;
+  window.tfInitAnime = function(opts){
+    opts = opts || {};
+    // Retry allowed when called too early (e.g. modal not yet laid out)
+    if(inited && !opts.force) return;
+    if(opts.force) inited = false;
+    if(inited) return;
+    inited = true;
 
     // Known identifiers (stable)
     loadByIdentifier('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom');
@@ -4856,7 +4846,7 @@ if (showVod) {
 
   function renderRail(parent, title, items){
     const block = document.createElement('div');
-    block.className='tf-header-block tf-live-rail';
+    block.className='tf-header-block';
     block.innerHTML = `
       <div class="tf-strip-title"><h4>${title}</h4></div>
       <div class="tf-carousel" aria-label="${title}"></div>`;
@@ -4886,42 +4876,33 @@ if (showVod) {
 
   
   
-  window.tfRenderLiveThemes = async function(){
+  window.tfRenderLiveThemes = async function(opts){
+    opts = opts || {};
     const container = ensureContainer();
     if(!container) return;
 
-    // Allow a forced re-render when switching back to LIVE.
-    try{
-      if (window.__tfLiveForceRerender){
-        rendered = false;
-        window.__tfLiveForceRerender = false;
-      }
-    }catch(_e){}
+    // Allow retries if a previous attempt ran too early (e.g. Twitch token not ready)
+    if(opts.force){
+      rendered = false;
+      container.innerHTML = '';
+    }
+    if(rendered) return;
 
-    // If we've already rendered and content exists, keep it.
-    if(rendered && container.childElementCount) return;
-    rendered = true;
-
-    // 1) Fetch Top games directly (do NOT rely on VOD state)
+    // 1) Fetch Top games
     let topGames = [];
+    let catsOk = false;
     try{
       const cats = await getJson('/api/categories/top');
       topGames = (cats && Array.isArray(cats.categories)) ? cats.categories.slice(0, 14) : [];
+      catsOk = topGames.length > 0;
     }catch(_e){
       topGames = [];
-    }
-
-    // Fallback: if /api/categories/top failed, reuse any categories already loaded for VOD
-    if(!topGames.length){
-      try{
-        const cached = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
-        topGames = cached.slice(0, 14);
-      }catch(_e){}
+      catsOk = false;
     }
 
     container.innerHTML = '';
 
-    // 2) Rail "Top FR < 500" (diverse games, FR only)
+    // 2) Rail "Top FR < 500"
     try{
       const j = await getJson('/api/twitch/streams/top?lang=fr&maxViewers=500&limit=30');
       renderRail(container, 'Top FR (<500 spectateurs)', (j?.items || []));
@@ -4929,8 +4910,21 @@ if (showVod) {
       renderRail(container, 'Top FR (<500 spectateurs)', []);
     }
 
-    // 3) Multiple rails by game (FR only, <500 viewers)
-    //    If a rail is empty, we simply skip it (keeps UX clean).
+    // 3) If top games not available, we can still try a curated list by name -> search -> id
+    if(!topGames.length){
+      const fallbackNames = ['Just Chatting','League of Legends','Counter-Strike','Valorant','Fortnite','Minecraft','Grand Theft Auto V','World of Warcraft','EA Sports FC 26','Rocket League','Dota 2','Teamfight Tactics'];
+      for(const name of fallbackNames){
+        try{
+          const s = await getJson(`/api/categories/search?q=${encodeURIComponent(name)}`);
+          const first = (s?.categories || [])[0];
+          if(first?.id && first?.name) topGames.push(first);
+        }catch(_e){}
+        if(topGames.length >= 10) break;
+      }
+    }
+
+    // 4) Rails by game (FR only, <500 viewers)
+    let railsCount = 0;
     for(const g of topGames){
       const gid = String(g.id||'');
       const gname = String(g.name||'').trim();
@@ -4940,19 +4934,36 @@ if (showVod) {
         const items = (s?.items || []);
         if(items.length){
           renderRail(container, gname, items);
+          railsCount++;
         }
       }catch(_e){
         // skip
       }
     }
 
-    // Fallback if nothing rendered besides Top
-    if(!container.querySelector('.tf-live-rail:nth-of-type(2)')){
-      const empty = document.createElement('div');
-      empty.className='tf-empty';
-      empty.textContent = "Aucun live FR (<500 viewers) trouvé pour le moment.";
-      container.appendChild(empty);
+    // If we couldn't build game rails, keep rendered=false so next tab open can retry
+    if(railsCount === 0){
+      rendered = false;
+
+      const msg = document.createElement('div');
+      msg.className = 'tf-empty';
+      msg.style.marginTop = '10px';
+      msg.textContent = catsOk
+        ? "Aucun rail live additionnel n'a pu être généré (streams FR <500 indisponibles ou quota)."
+        : "Les catégories Twitch n'étaient pas prêtes au moment du chargement. Réessaie.";
+      container.appendChild(msg);
+
+      const retry = document.createElement('button');
+      retry.className = 'tf-retry';
+      retry.type = 'button';
+      retry.textContent = 'Recharger Live';
+      retry.style.marginTop = '10px';
+      retry.onclick = ()=>window.tfRenderLiveThemes({ force:true });
+      container.appendChild(retry);
+      return;
     }
+
+    rendered = true;
   };
 
 
