@@ -1109,13 +1109,13 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
 // ORYON TV — Streams by game (used by TwitFlix drawer)
 // =========================================================
 const __oryonStreamsByGameCache = new Map();
-
 app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
   try{
     const gameIdIn = String(req.query.game_id || '').trim();
     const gameNameIn = String(req.query.game_name || req.query.q || '').trim();
     const limit = Math.min(Math.max(1, parseInt(req.query.limit || '24', 10) || 24), 40);
     const lang = String(req.query.lang || '').trim().toLowerCase();
+    // Discovery filters (viewer bands)
     const minViewers = Math.max(0, parseInt(req.query.minViewers || '0', 10) || 0);
     const maxViewers = Math.max(0, parseInt(req.query.maxViewers || '0', 10) || 0);
 
@@ -1134,151 +1134,40 @@ app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
     const cached = __oryonCacheGet(__oryonStreamsByGameCache, key, 45_000);
     if(cached) return res.json({ success:true, items:cached, cached:true });
 
-    const items = [];
-    let cursor = '';
-    let safety = 0;
+    const qs = new URLSearchParams();
+    qs.set('game_id', gameId);
+    qs.set('first', '100');
+    if(lang) qs.set('language', lang);
+    const d = await twitchAPI(`streams?${qs.toString()}`, token);
+    const rows = (d?.data || []).slice(0, 100);
 
-    while(items.length < limit && safety < 6){
-      safety++;
-      const qs = new URLSearchParams();
-      qs.set('game_id', gameId);
-      qs.set('first','100');
-      if(lang) qs.set('language', lang);
-      if(cursor) qs.set('after', cursor);
+    // Apply viewer band filter (best-effort)
+    const filtered = rows.filter(s => {
+      const v = Number(s?.viewer_count || 0);
+      if (minViewers && v < minViewers) return false;
+      if (maxViewers && v > maxViewers) return false;
+      return true;
+    });
 
-      const d = await twitchAPI(`streams?${qs.toString()}`, token);
-      const rows = Array.isArray(d?.data) ? d.data : [];
-      cursor = d?.pagination?.cursor || '';
-
-      for(const s of rows){
-        const v = Number(s?.viewer_count || 0);
-        if (minViewers && v < minViewers) continue;
-        if (maxViewers && v > maxViewers) continue;
-
-        items.push({
-          user_id: s.user_id,
-          user_login: s.user_login,
-          user_name: s.user_name,
-          game_id: s.game_id,
-          game_name: s.game_name,
-          viewer_count: s.viewer_count,
-          title: s.title,
-          thumbnail_url: s.thumbnail_url,
-          language: s.language,
-          started_at: s.started_at,
-          platform: 'twitch'
-        });
-        if(items.length >= limit) break;
-      }
-
-      if(!cursor || !rows.length) break;
-    }
+    const items = filtered.slice(0, limit).map(s => ({
+      user_id: s.user_id,
+      user_login: s.user_login,
+      user_name: s.user_name,
+      game_id: s.game_id,
+      game_name: s.game_name,
+      viewer_count: s.viewer_count,
+      title: s.title,
+      thumbnail_url: s.thumbnail_url,
+      language: s.language,
+      started_at: s.started_at,
+      platform: 'twitch'
+    }));
 
     __oryonCacheSet(__oryonStreamsByGameCache, key, items);
     return res.json({ success:true, items });
   }catch(e){
     console.warn('⚠️ /api/twitch/streams/by-game', e.message);
     return res.json({ success:true, items:[], reason:'server_error', error:e.message });
-  }
-});
-
-
-// =========================================================
-// ORYON TV — Live rails (FR small) — grouped by game
-// Returns ready-to-render rails to keep the LIVE tab populated.
-// =========================================================
-app.get('/api/twitch/streams/fr-small-grouped', heavyLimiter, async (req,res)=>{
-  try{
-    const lang = String(req.query.lang || 'fr').trim().toLowerCase() || 'fr';
-    const maxViewers = Math.max(0, parseInt(req.query.maxViewers || '500', 10) || 500);
-    const minViewers = Math.max(0, parseInt(req.query.minViewers || '0', 10) || 0);
-    const railsLimit = Math.min(30, Math.max(6, parseInt(req.query.rails || '14', 10) || 14));
-    const perRail = Math.min(30, Math.max(6, parseInt(req.query.perRail || '18', 10) || 18));
-
-    const token = await getTwitchToken('app');
-    if(!token) return res.json({ ok:true, rails:[], reason:'missing_app_token' });
-
-    const key = `frsg:${lang}:${minViewers}:${maxViewers}:${railsLimit}:${perRail}`;
-    const cached = __oryonCacheGet(__oryonTopVodCache, key, 25_000); // reuse cache util map
-    if(cached) return res.json({ ok:true, rails: cached, cached:true });
-
-    const groups = new Map(); // game_id -> {game_id, game_name, items:[]}
-    let cursor = '';
-    let safety = 0;
-
-    while (safety < 10){
-      safety++;
-      const qs = new URLSearchParams();
-      qs.set('first','100');
-      if(lang) qs.set('language', lang);
-      if(cursor) qs.set('after', cursor);
-
-      const d = await twitchAPI(`streams?${qs.toString()}`, token);
-      const rows = Array.isArray(d?.data) ? d.data : [];
-      cursor = d?.pagination?.cursor || '';
-
-      for(const s of rows){
-        const v = Number(s?.viewer_count || 0);
-        if (minViewers && v < minViewers) continue;
-        if (maxViewers && v > maxViewers) continue;
-
-        const gid = String(s?.game_id || '');
-        if(!gid) continue;
-        if(!groups.has(gid)){
-          groups.set(gid, { game_id: gid, game_name: s.game_name || 'Jeu', items: [] });
-        }
-        const g = groups.get(gid);
-        if(g.items.length < perRail){
-          g.items.push({
-            user_id: s.user_id,
-            user_login: s.user_login,
-            user_name: s.user_name,
-            game_id: s.game_id,
-            game_name: s.game_name,
-            viewer_count: s.viewer_count,
-            title: s.title,
-            thumbnail_url: s.thumbnail_url,
-            language: s.language,
-            started_at: s.started_at,
-            platform: 'twitch'
-          });
-        }
-      }
-
-      // stop early if we already have enough rails with enough items
-      const ready = Array.from(groups.values()).filter(r => r.items.length >= 6).length;
-      if(ready >= railsLimit) break;
-      if(!cursor || !rows.length) break;
-    }
-
-    // rank rails by: number of items then sum viewers
-    const railsArr = Array.from(groups.values())
-      .filter(r => r.items.length >= 6)
-      .map(r => ({...r, _score: (r.items.length*100000) + r.items.reduce((a,x)=>a+Number(x.viewer_count||0),0)}))
-      .sort((a,b)=>b._score-a._score)
-      .slice(0, railsLimit);
-
-    // box arts
-    const gameIds = railsArr.map(r=>r.game_id);
-    const artMap = {};
-    if(gameIds.length){
-      for(let i=0;i<gameIds.length;i+=50){
-        const ch = gameIds.slice(i,i+50);
-        const q = ch.map(id => `id=${encodeURIComponent(id)}`).join('&');
-        const gd = await twitchAPI(`games?${q}`, token);
-        const arr = Array.isArray(gd?.data) ? gd.data : [];
-        for(const g of arr){
-          artMap[String(g.id)] = (g.box_art_url || '').replace('{width}','285').replace('{height}','380');
-        }
-      }
-    }
-    railsArr.forEach(r=>{ r.box_art_url = artMap[String(r.game_id)] || null; delete r._score; });
-
-    __oryonCacheSet(__oryonTopVodCache, key, railsArr); // ok for short TTL usage
-    return res.json({ ok:true, rails: railsArr });
-  }catch(e){
-    console.warn('⚠️ /api/twitch/streams/fr-small-grouped', e.message);
-    return res.status(200).json({ ok:true, rails:[], reason:'server_error', error:e.message });
   }
 });
 
@@ -1962,9 +1851,7 @@ app.get('/api/public-domain/list', async (req,res)=>{
         const name = String(f.name);
         const title = name.replace(/\.mp4$/i,'').replace(/[_+]/g,' ').replace(/\s+/g,' ').trim();
         return {
-          identifier,
           title,
-          thumb: `https://archive.org/services/img/${encodeURIComponent(identifier)}`,
           mp4: `https://archive.org/download/${encodeURIComponent(identifier)}/${encodeURIComponent(name)}`
         };
       });
@@ -2145,45 +2032,36 @@ app.get('/api/categories/search', async (req, res) => {
 //  - Returns streams filtered by language/viewers
 //  - Enriches with game box art for better UI
 // =========================================================
-
 app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
   try {
-    const lang = String(req.query.lang || '').trim().toLowerCase();
+    const lang = String(req.query.lang || '').trim();
     const minViewers = Math.max(0, parseInt(req.query.minViewers || req.query.min || '0', 10) || 0);
     const maxViewers = Math.max(0, parseInt(req.query.maxViewers || req.query.max || '0', 10) || 0);
     const limit = Math.min(100, Math.max(10, parseInt(req.query.limit || '60', 10) || 60));
 
-    const token = await getTwitchToken('app');
-    if(!token) return res.json({ success:true, items:[], reason:'missing_app_token' });
+    // Pull a bigger pool and filter server-side
+    const first = 100;
+    let url = `streams?first=${first}`;
+    if (lang) url += `&language=${encodeURIComponent(lang)}`;
+    const d = await twitchAPI(url);
+    let items = Array.isArray(d.data) ? d.data.slice(0) : [];
 
-    // We paginate until we get enough distinct games matching the viewer band.
+    if (minViewers || maxViewers){
+      items = items.filter(s => {
+        const v = Number(s.viewer_count || 0);
+        if (minViewers && v < minViewers) return false;
+        if (maxViewers && v > maxViewers) return false;
+        return true;
+      });
+    }
+
+    // Prefer diversity by game (one stream per game)
     const byGame = new Map();
-    let cursor = '';
-    let safety = 0;
-
-    while (byGame.size < limit && safety < 8) { // up to 800 results scanned
-      safety++;
-      const qs = new URLSearchParams();
-      qs.set('first','100');
-      if (lang) qs.set('language', lang);
-      if (cursor) qs.set('after', cursor);
-
-      const d = await twitchAPI(`streams?${qs.toString()}`, token);
-      const arr = Array.isArray(d?.data) ? d.data : [];
-      cursor = d?.pagination?.cursor || '';
-
-      for (const s of arr){
-        const v = Number(s?.viewer_count || 0);
-        if (minViewers && v < minViewers) continue;
-        if (maxViewers && v > maxViewers) continue;
-
-        const gid = String(s?.game_id || '');
-        if (!gid) continue;
-        if (!byGame.has(gid)) byGame.set(gid, s);
-        if (byGame.size >= limit) break;
-      }
-
-      if (!cursor || !arr.length) break;
+    for (const s of items){
+      const gid = String(s.game_id || '');
+      if (!gid) continue;
+      if (!byGame.has(gid)) byGame.set(gid, s);
+      if (byGame.size >= limit) break;
     }
 
     const unique = Array.from(byGame.values());
@@ -2196,8 +2074,8 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
       for(let i=0;i<gameIds.length;i+=50) chunks.push(gameIds.slice(i,i+50));
       for(const ch of chunks){
         const q = ch.map(id => `id=${encodeURIComponent(id)}`).join('&');
-        const gd = await twitchAPI(`games?${q}`, token);
-        const arr = Array.isArray(gd?.data) ? gd.data : [];
+        const gd = await twitchAPI(`games?${q}`);
+        const arr = Array.isArray(gd.data) ? gd.data : [];
         for(const g of arr){
           artMap[String(g.id)] = (g.box_art_url || '').replace('{width}','285').replace('{height}','380');
         }
@@ -2212,7 +2090,7 @@ app.get('/api/twitch/streams/top', heavyLimiter, async (req, res) => {
     return res.json({ success: true, items: out });
   } catch (e) {
     console.warn('⚠️ /api/twitch/streams/top', e.message);
-    return res.json({ success:true, items:[], reason:'server_error', error:e.message });
+    return res.status(500).json({ success: false, error: e.message });
   }
 });
 

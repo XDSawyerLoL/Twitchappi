@@ -1,16 +1,3 @@
-
-// If we just came back from Twitch OAuth, refresh once so followed lives appear.
-(function(){
-  try{
-    const u = new URL(window.location.href);
-    if(u.searchParams.get('twitch')==='1' && !sessionStorage.getItem('__twitch_oauth_refreshed')){
-      sessionStorage.setItem('__twitch_oauth_refreshed','1');
-      u.searchParams.delete('twitch');
-      window.location.replace(u.toString());
-    }
-  }catch(_){}
-})();
-
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
@@ -2761,30 +2748,20 @@ function tfBuildCard(cat){
       media.innerHTML = '';
     }
 
-    async 
-function tfHeroSetAutoplayForGame(gameId, gameName, poster){
-  const key = String(gameId || gameName || '');
-  if(!key) return;
-  if (tfHeroCurrentKey === key) return;
-  tfHeroCurrentKey = key;
+    async function tfHeroSetAutoplayForGame(gameId, gameName, poster){
+      const key = String(gameId || '');
+      if (!key) return;
+      if (tfHeroCurrentKey === key) return;
+      tfHeroCurrentKey = key;
 
-  // Title + poster
-  tfSetHero({ title: gameName || 'Trailer', sub: 'Trailer (YouTube) — autoplay muet', poster });
+      // optimistic UI
+      tfSetHero({ title: gameName || 'Trailer', sub: 'Prévisualisation automatique (muette)', poster });
 
-  // YouTube embed: use "search" style query (no API key), starts muted.
-  const q = encodeURIComponent(`${gameName || ''} official trailer`);
-  // Note: autoplay works only muted; we keep mute=1 and modestbranding.
-  const src = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`;
-  tfHeroMountIframe(src);
-
-  // unlock so other hovers can replace after a short cooldown
-  setTimeout(()=>{
-    try{
-      const media = document.getElementById('tf-hero-media');
-      if(media) delete media.dataset.locked;
-    }catch(_){}
-  }, 5000);
-}
+      const cached = tfHeroCache.get(key);
+      const now = Date.now();
+      if (cached && (now - cached.t) < TF_HERO_TTL){
+        return tfHeroApplyAutoplay(cached, gameName, poster);
+      }
 
       if (tfHeroInflight.has(key)){
         try{ await tfHeroInflight.get(key); }catch(_){ }
@@ -4658,10 +4635,8 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       card.className='tf-card';
       card.style.minWidth='260px';
       card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#0b0b0b;border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 30px rgba(0,0,0,.35);">
-          <video class="tf-card-video" muted playsinline loop preload="metadata" poster="${it.thumb||''}" src="${it.mp4}"></video>
-          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.65));pointer-events:none;"></div>
-          <div style="position:absolute;left:10px;bottom:10px;font-weight:900;font-size:12px;opacity:.9;letter-spacing:.6px;">▶</div>
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
+          <video class="tf-card-video" muted playsinline loop preload="metadata" src="${it.mp4}"></video>
         </div>
         <div class="tf-card-meta">
           <div class="tf-card-title">${esc(it.title||'')}</div>
@@ -4773,55 +4748,45 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     return `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0`;
   }
 
-  
-window.tfRenderTrailerCarousel = async function(){
-  const wrap = document.getElementById('tf-trailer-carousel');
-  if(!wrap) return;
-  wrap.innerHTML = '';
+  window.tfRenderTrailerCarousel = async function(){
+    const wrap = document.getElementById('tf-trailer-carousel');
+    if(!wrap) return;
+    wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
 
-  // We rely on embed search (no API key). Not every query yields a playable video, but it's immediate and consistent.
-  const banned = new Set(['Just Chatting','Talk Shows & Podcasts','Music','ASMR','Pools, Hot Tubs, and Beaches','Sports','Art','IRL']);
-  let cats = [];
-  try{
-    const j = await fetchJson('/api/categories/top');
-    cats = Array.isArray(j?.categories) ? j.categories : (Array.isArray(j?.items)?j.items:[]);
-  }catch(_){ cats = []; }
-
-  // Fallback: use whatever is in the current LIVE carousel if needed
-  if(!cats.length){
     try{
-      const jj = await fetchJson('/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=800&limit=12');
-      const items = Array.isArray(jj?.items) ? jj.items : [];
-      cats = items.map(s => ({ id: s.game_id, name: s.game_name, box_art_url: s.box_art_url }));
-    }catch(_){}
-  }
+      const cats = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
+      const picks = cats.filter(c=>c && c.id && c.name && !BAD.has(String(c.name))).slice(0,6);
+      if(!picks.length){ wrap.innerHTML='<div class="tf-empty">Aucun jeu trouvé.</div>'; return; }
 
-  cats = cats.filter(c => c?.name && !banned.has(String(c.name)));
-  cats = cats.slice(0, 10);
+      wrap.innerHTML='';
+      for (const g of picks){
+        const query = `${g.name} official trailer`;
+        const src = ytSearchEmbed(query);
 
-  if(!cats.length){
-    wrap.innerHTML = '<div class="tf-empty">Aucun trailer.</div>';
-    return;
-  }
+        const card = document.createElement('div');
+        card.className='tf-card';
+        card.style.minWidth='360px';
+        card.innerHTML = `
+          <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:202px;background:#000;">
+            <iframe
+              title="${esc(g.name)} trailer"
+              src="${src}"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin"
+              style="border:0;width:100%;height:100%;"></iframe>
+            <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">TRAILER</div>
+          </div>
+          <div class="tf-card-meta">
+            <div class="tf-card-title">${esc(g.name)}</div>
+            <div class="tf-card-sub" style="opacity:.7;font-weight:700;">YouTube (recherche)</div>
+          </div>`;
 
-  for(const c of cats){
-    const name = String(c.name || '');
-    const q = encodeURIComponent(`${name} official trailer`);
-    const src = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3`;
-    const card = document.createElement('div');
-    card.className = 'tf-trailer-card';
-    card.innerHTML = `
-      <div class="tf-trailer-frame">
-        <iframe src="${src}" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="origin-when-cross-origin" loading="lazy"></iframe>
-      </div>
-      <div class="tf-trailer-meta">
-        <div class="tf-trailer-title">${esc(name)}</div>
-        <div class="tf-trailer-sub">Trailer (YouTube)</div>
-      </div>
-    `;
-    wrap.appendChild(card);
-  }
-};
+        wrap.appendChild(card);
+      }
+    }catch(e){
+      wrap.innerHTML = `<div class="tf-empty">Erreur trailers: ${esc(e.message||e)}</div>`;
+    }
+  };
 })();
 
 
@@ -4889,7 +4854,7 @@ window.tfRenderTrailerCarousel = async function(){
       card.className='tf-card';
       card.style.minWidth='260px';
       card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#0b0b0b;border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 30px rgba(0,0,0,.35);">
+        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
           <img class="tf-card-video" alt="" src="${(s.thumbnail_url||'').replace('{width}','480').replace('{height}','272')}" />
         </div>
         <div class="tf-card-meta">
@@ -4907,251 +4872,56 @@ window.tfRenderTrailerCarousel = async function(){
 
   
   
-  
-window.tfRenderLiveThemes = async function(){
-  const root = document.getElementById('tf-live-themes');
-  if(!root) return;
-
-  root.innerHTML = '<div class="tf-empty">Chargement…</div>';
-
-  let rails = [];
-  try{
-    const j = await fetchJson('/api/twitch/streams/fr-small-grouped?lang=fr&maxViewers=500&rails=16&perRail=20');
-    rails = Array.isArray(j?.rails) ? j.rails : [];
-  }catch(_){ rails = []; }
-
-  if(!rails.length){
-    // fallback: show one rail from top endpoint
-    try{
-      const jj = await fetchJson('/api/twitch/streams/top?lang=fr&minViewers=20&maxViewers=800&limit=30');
-      const items = Array.isArray(jj?.items) ? jj.items : [];
-      rails = [{ game_name: 'Découverte', items }];
-    }catch(_){}
-  }
-
-  if(!rails.length){
-    root.innerHTML = '<div class="tf-empty">Aucun live trouvé pour le moment.</div>';
-    return;
-  }
-
-  root.innerHTML = '';
-  rails.forEach((r, idx)=>{
-    const title = String(r.game_name || r.title || 'Live');
-    const items = Array.isArray(r.items) ? r.items : [];
-    if(!items.length) return;
-
-    const block = document.createElement('div');
-    block.className = 'tf-header-block';
-    block.innerHTML = `
-      <div class="tf-strip-title">
-        <h4>${esc(title)} <span style="opacity:.6;font-weight:700;">(FR ≤ 500)</span></h4>
-      </div>
-      <div class="tf-carousel" id="tf-live-theme-${idx}"></div>
-    `;
-    root.appendChild(block);
-    const car = block.querySelector(`#tf-live-theme-${idx}`);
-    items.slice(0, 18).forEach(s => car.appendChild(tfRenderLiveCard(s)));
-  });
-};
-
-
-})();
-
-// =========================================================
-// PATCH v24 — Trailers YouTube (robust) + LIVE rails FR<500 (non-empty)
-//  - Trailers: never stuck on "Recherche..."; uses YouTube search embed fallback.
-//  - Live: builds multiple rails from real FR streams (<500 viewers), grouped by game.
-// =========================================================
-(function(){
-  const BAD_CATS = new Set(['Just Chatting','Music','ASMR','IRL','Talk Shows & Podcasts','Slots','Art','Sports','Travel & Outdoors','Pools, Hot Tubs, and Beaches']);
-
-  function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-  function ytSearchEmbed(query){
-    const q = encodeURIComponent(query);
-    // If embed of a specific video is blocked, search embed still returns something most of the time.
-    return `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0`;
-  }
-
-  // ---- TRAILERS (override)
-  window.tfRenderTrailerCarousel = async function(){
-    const wrap = document.getElementById('tf-trailer-carousel');
-    if(!wrap) return;
-    wrap.innerHTML = '<div class="tf-empty">Chargement des trailers…</div>';
-
-    let gameNames = [];
-    try{
-      const cats = Array.isArray(window.tfAllCategories) ? window.tfAllCategories : [];
-      gameNames = cats
-        .map(c=>c?.name)
-        .filter(Boolean)
-        .filter(n=>!BAD_CATS.has(String(n)))
-        .slice(0, 12);
-    }catch(_){ }
-
-    // fallback: use live streams to get real game names
-    if(!gameNames.length){
-      try{
-        const r = await fetch('/api/twitch/streams/top?lang=fr&minViewers=1&maxViewers=500&limit=60', { credentials:'include', cache:'no-store' });
-        const d = r.ok ? await r.json().catch(()=>null) : null;
-        const items = Array.isArray(d?.items) ? d.items : [];
-        const seen = new Set();
-        for(const s of items){
-          const gn = String(s?.game_name||'').trim();
-          if(!gn || BAD_CATS.has(gn)) continue;
-          if(seen.has(gn)) continue;
-          seen.add(gn);
-          gameNames.push(gn);
-          if(gameNames.length>=12) break;
-        }
-      }catch(_){ }
-    }
-
-    if(!gameNames.length){
-      wrap.innerHTML = '<div class="tf-empty">Aucun jeu disponible pour les trailers.</div>';
-      return;
-    }
-
-    wrap.innerHTML = '';
-    // show 6 cards max for perf
-    for(const name of gameNames.slice(0,6)){
-      const query = `${name} official trailer`;
-      const src = ytSearchEmbed(query);
-      const card = document.createElement('div');
-      card.className='tf-card';
-      card.style.minWidth='360px';
-      card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:202px;background:#000;">
-          <iframe title="${esc(name)} trailer" src="${src}"
-            allow="autoplay; encrypted-media; picture-in-picture"
-            referrerpolicy="strict-origin-when-cross-origin"
-            style="border:0;width:100%;height:100%;"></iframe>
-          <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">TRAILER</div>
-        </div>
-        <div class="tf-card-meta">
-          <div class="tf-card-title">${esc(name)}</div>
-          <div class="tf-card-sub" style="opacity:.7;font-weight:700;">YouTube (recherche)</div>
-        </div>`;
-      wrap.appendChild(card);
-    }
-
-    try{ window.tfBindHorizontalWheel?.(wrap); }catch(_){ }
-  };
-
-
-  // ---- LIVE (override) : FR only, <500 viewers, multiple rails by game, no empty rails
-  function ensureLiveContainer(){
-    const liveBlock = document.getElementById('tf-live-carousel')?.closest('.tf-header-block');
-    if(!liveBlock) return null;
-    let c = document.getElementById('tf-live-rails');
-    if(c) return c;
-    c = document.createElement('div');
-    c.id = 'tf-live-rails';
-    c.style.marginTop = '14px';
-    liveBlock.appendChild(c);
-    return c;
-  }
-
-  function renderLiveRail(parent, title, items){
-    const block = document.createElement('div');
-    block.className='tf-header-block';
-    block.innerHTML = `
-      <div class="tf-strip-title"><h4>${esc(title)}</h4></div>
-      <div class="tf-carousel" aria-label="${esc(title)}"></div>`;
-    const wrap = block.querySelector('.tf-carousel');
-
-    if(!items?.length){
-      wrap.innerHTML = '<div class="tf-empty">Aucun live.</div>';
-      parent.appendChild(block);
-      return;
-    }
-
-    wrap.innerHTML = '';
-    items.slice(0,24).forEach(s=>{
-      const thumb = String(s.thumbnail_url||'').replace('{width}','480').replace('{height}','272');
-      const card = document.createElement('div');
-      card.className='tf-card';
-      card.style.minWidth='260px';
-      card.innerHTML = `
-        <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#0b0b0b;border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 30px rgba(0,0,0,.35);">
-          <img class="tf-card-video" alt="" src="${esc(thumb)}" />
-          <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">EN LIVE</div>
-        </div>
-        <div class="tf-card-meta">
-          <div class="tf-card-title">${esc(s.game_name||'Jeu')}</div>
-          <div class="tf-card-sub" style="opacity:.7;font-weight:800;">${esc(s.user_name||s.user_login||'')}</div>
-          <div class="tf-card-sub" style="opacity:.65;">${esc(String(s.viewer_count||0))} viewers</div>
-        </div>`;
-      card.addEventListener('click', ()=>{
-        try{ closeTwitFlix(); }catch(_){ }
-        try{ loadPlayerEmbed(String(s.user_login||'')); }catch(_){ }
-      });
-      wrap.appendChild(card);
-    });
-
-    try{ window.tfBindHorizontalWheel?.(wrap); }catch(_){ }
-    parent.appendChild(block);
-  }
-
   window.tfRenderLiveThemes = async function(){
-    const container = ensureLiveContainer();
+    const container = ensureContainer();
     if(!container) return;
-    container.innerHTML = '<div class="tf-empty">Chargement des lives FR…</div>';
+    if(rendered) return;
+    rendered = true;
 
+    // 1) Fetch Top games directly (do NOT rely on VOD state)
+    let topGames = [];
     try{
-      const r = await fetch('/api/twitch/streams/top?lang=fr&minViewers=1&maxViewers=500&limit=120', { credentials:'include', cache:'no-store' });
-      const d = r.ok ? await r.json().catch(()=>null) : null;
-      const items = Array.isArray(d?.items) ? d.items : [];
+      const cats = await getJson('/api/categories/top');
+      topGames = (cats && Array.isArray(cats.categories)) ? cats.categories.slice(0, 14) : [];
+    }catch(_e){
+      topGames = [];
+    }
 
-      if(!items.length){
-        container.innerHTML = '<div class="tf-empty">Aucun live FR (<500) trouvé.</div>';
-        return;
+    container.innerHTML = '';
+
+    // 2) Rail "Top FR < 500" (diverse games, FR only)
+    try{
+      const j = await getJson('/api/twitch/streams/top?lang=fr&maxViewers=500&limit=30');
+      renderRail(container, 'Top FR (<500 spectateurs)', (j?.items || []));
+    }catch(_e){
+      renderRail(container, 'Top FR (<500 spectateurs)', []);
+    }
+
+    // 3) Multiple rails by game (FR only, <500 viewers)
+    //    If a rail is empty, we simply skip it (keeps UX clean).
+    for(const g of topGames){
+      const gid = String(g.id||'');
+      const gname = String(g.name||'').trim();
+      if(!gid || !gname) continue;
+      try{
+        const s = await getJson(`/api/twitch/streams/by-game?game_id=${encodeURIComponent(gid)}&limit=24&lang=fr&maxViewers=500`);
+        const items = (s?.items || []);
+        if(items.length){
+          renderRail(container, gname, items);
+        }
+      }catch(_e){
+        // skip
       }
+    }
 
-      // group by game
-      const byGame = new Map();
-      for(const s of items){
-        const gid = String(s.game_id||'').trim();
-        const gname = String(s.game_name||'').trim();
-        if(!gid || !gname) continue;
-        if(BAD_CATS.has(gname)) continue;
-        if(!byGame.has(gid)) byGame.set(gid, { name:gname, total:0, streams:[] });
-        const g = byGame.get(gid);
-        g.total += (Number(s.viewer_count)||0);
-        g.streams.push(s);
-      }
-
-      const gamesSorted = Array.from(byGame.entries())
-        .sort((a,b)=> (b[1].total - a[1].total));
-
-      container.innerHTML = '';
-
-      // Rail 1: Top FR (<500)
-      renderLiveRail(container, 'Top FR (moins de 500 viewers)', items.filter(s=>!BAD_CATS.has(String(s.game_name||''))));
-
-      // Then: one rail per top game (skip if too few)
-      let rails = 0;
-      for(const [gid,g] of gamesSorted){
-        if(rails >= 14) break; // enough rails
-        const streams = (g.streams||[]).slice(0,24);
-        if(streams.length < 6) continue;
-        renderLiveRail(container, g.name, streams);
-        rails++;
-      }
-
-      if(!rails){
-        // still show at least top rail exists
-      }
-
-    }catch(e){
-      container.innerHTML = `<div class="tf-empty">Erreur Live: ${esc(e.message||e)}</div>`;
+    // Fallback if nothing rendered besides Top
+    if(!container.querySelector('.tf-live-rail:nth-of-type(2)')){
+      const empty = document.createElement('div');
+      empty.className='tf-empty';
+      empty.textContent = "Aucun live FR (<500 viewers) trouvé pour le moment.";
+      container.appendChild(empty);
     }
   };
 
-  // ---- ANIME: force init when tab is shown (some builds were missing the call)
-  const _setTimeout = window.setTimeout;
-  window.setTimeout = function(fn, t){
-    // keep normal behavior
-    return _setTimeout(fn, t);
-  };
+
 })();
