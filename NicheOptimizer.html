@@ -2663,11 +2663,13 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <span class="font-orbitron text-[#00f2ea] text-sm tracking-wider truncate" id="current-channel-display">OFFLINE</span>
 <span class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0" id="player-mode-badge">AUTO</span>
 <span class="text-[10px] text-[#ff0099] font-bold flex-shrink-0" id="viewer-count">0 viewers</span>
+
+<!-- Quick streamer search (visible, compact) -->
+<div class="hidden md:flex items-center gap-2 ml-2 flex-shrink-0" id="player-streamer-search">
+  <i class="fas fa-search text-white/60 text-xs"></i>
+  <input id="streamer-quicksearch" type="text" autocomplete="off" placeholder="Chercher un streamer…" class="w-[220px] px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs outline-none focus:border-[#00f2ea]" />
+  <button id="streamer-quickgo" class="px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-white text-xs hover:bg-white/15">Go</button>
 </div>
-<div class="hidden md:flex items-center gap-2 mr-3" id="streamer-search-wrap">
-  <i class="fas fa-search" style="opacity:.7"></i>
-  <input id="streamer-search" type="text" placeholder="Chercher un streamer…" class="cyber-input" style="padding:8px 10px;font-size:12px;width:240px;max-width:28vw;" />
-  <button id="streamer-search-btn" class="bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded font-bold transition text-xs">Go</button>
 </div>
 <div class="flex gap-2 flex-shrink-0">
 <button class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center" onclick="cycle('prev')">

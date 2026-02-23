@@ -836,22 +836,6 @@ function startAuth() {
           if (e.target === gifModal) gifModal.classList.add('hidden');
         });
       }
-
-      // Streamer search (outside TwitFlix) — quick jump to a channel
-      const ss = document.getElementById('streamer-search');
-      const ssBtn = document.getElementById('streamer-search-btn');
-      const go = () => {
-        const q = (ss?.value || '').trim();
-        if(!q) return;
-        try{ changeChannel(q); }catch(_){ }
-        try{ ss.blur(); }catch(_){ }
-      };
-      if (ss){
-        ss.addEventListener('keydown', (e)=>{
-          if(e.key === 'Enter'){ e.preventDefault(); go(); }
-        });
-      }
-      if (ssBtn) ssBtn.addEventListener('click', (e)=>{ e.preventDefault(); go(); });
     });
 
 
@@ -4107,12 +4091,14 @@ function dashboardCardHTML(access){
 })();
 
 // ===== Global Big-Picture Navigation (outside TwitFlix) =====
-// Arrow keys + gamepad D-pad move focus between visible UI elements.
-// TwitFlix keeps its own row-based navigator; this one is for the main app.
+// Console-style snap navigation (zones): Menu → Hero → Rails → Player
+// - Up/Down: change zone
+// - Left/Right: move inside zone
+// - Enter/A: click
 ;(function(){
-  let spEnabled = false;
+  let enabled = false;
   let gpTimer = null;
-  let gpPrev = { t:0, l:false, r:false, u:false, d:false, A:false };
+  let gpPrev = { t:0, l:false, r:false, u:false, d:false, A:false, B:false };
 
   function isVisible(el){
     if(!el) return false;
@@ -4123,53 +4109,99 @@ function dashboardCardHTML(access){
     return true;
   }
 
-  function getFocusables(){
-    // Avoid elements inside TwitFlix modal when it's open.
+  function focusablesIn(scope){
+    if(!scope) return [];
     const modal = document.getElementById('twitflix-modal');
     const modalOpen = modal && modal.classList.contains('active');
-    const scope = modalOpen ? [] : Array.from(document.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'));
-    return scope.filter(el => isVisible(el) && !el.closest('#twitflix-modal'));
+    if(modalOpen) return [];
+    const els = Array.from(scope.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'));
+    return els.filter(el => isVisible(el) && !el.closest('#twitflix-modal'));
   }
 
-  function centerOf(el){
-    const r = el.getBoundingClientRect();
-    return { x: r.left + r.width/2, y: r.top + r.height/2, r };
+  function getZones(){
+    // Best-effort mapping for current layout (fallbacks included)
+    const header = document.querySelector('header');
+    const hero   = document.querySelector('#left-col .player-shell') || document.querySelector('#video-container') || document.querySelector('#left-col');
+    const rails  = document.getElementById('carousel') || document.querySelector('.carousel-track') || document.getElementById('under-tabs-nav');
+    const player = document.getElementById('side-panel') || document.querySelector('#main-layout .col-span-4') || document.querySelector('#tabs-viewport');
+
+    const zones = [];
+    if(header) zones.push({ name:'menu', el: header });
+    if(hero)   zones.push({ name:'hero', el: hero });
+    if(rails)  zones.push({ name:'rails', el: rails });
+    if(player) zones.push({ name:'player', el: player });
+
+    // If something is missing, still allow navigation in document body.
+    if(!zones.length) zones.push({ name:'all', el: document.body });
+    return zones;
   }
 
-  function pickNext(dir){
-    const list = getFocusables();
-    if(!list.length) return null;
+  function zoneIndexFromActive(zones){
+    const a = document.activeElement;
+    if(!a) return 0;
+    const idx = zones.findIndex(z => a === z.el || z.el.contains(a));
+    return idx >= 0 ? idx : 0;
+  }
+
+  function orderHoriz(list){
+    // Order by rows (top→bottom) then left→right
+    return list.map(el=>{
+      const r = el.getBoundingClientRect();
+      return { el, x: r.left, y: r.top, w:r.width, h:r.height };
+    }).sort((a,b)=>{
+      const dy = a.y - b.y;
+      if(Math.abs(dy) > 18) return dy;
+      return a.x - b.x;
+    }).map(o=>o.el);
+  }
+
+  function focusFirstInZone(z){
+    const list = orderHoriz(focusablesIn(z.el));
+    const target = list[0] || z.el;
+    if(target){
+      try{ target.focus({ preventScroll:false }); }catch(_){ }
+      try{ target.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'smooth' }); }catch(_){ }
+    }
+  }
+
+  function moveInZone(dir){
+    const zones = getZones();
+    const zi = zoneIndexFromActive(zones);
+    const z = zones[zi];
+    const list = orderHoriz(focusablesIn(z.el));
+    if(!list.length){
+      // if nothing focusable, try to jump to next zone
+      if(dir==='down') return changeZone(1);
+      if(dir==='up') return changeZone(-1);
+      return;
+    }
     const cur = document.activeElement && list.includes(document.activeElement) ? document.activeElement : list[0];
-    const c = centerOf(cur);
-    const isRight = dir === 'right', isLeft = dir === 'left', isUp = dir === 'up', isDown = dir === 'down';
-    let best = null;
-    let bestScore = Infinity;
+    const i = list.indexOf(cur);
 
-    for(const el of list){
-      if(el === cur) continue;
-      const p = centerOf(el);
-      const dx = p.x - c.x;
-      const dy = p.y - c.y;
-      if(isRight && dx <= 8) continue;
-      if(isLeft  && dx >= -8) continue;
-      if(isDown  && dy <= 8) continue;
-      if(isUp    && dy >= -8) continue;
-
-      // Score = primary distance in direction + penalty for off-axis drift.
-      const primary = (isRight||isLeft) ? Math.abs(dx) : Math.abs(dy);
-      const drift   = (isRight||isLeft) ? Math.abs(dy) : Math.abs(dx);
-      const score = primary + drift * 2.2;
-      if(score < bestScore){ bestScore = score; best = el; }
+    // Left/Right move to previous/next within ordered list
+    if(dir==='left'){
+      const nxt = list[Math.max(0, i-1)];
+      if(nxt){ try{ nxt.focus({preventScroll:false}); }catch(_){} }
+      try{ nxt?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'}); }catch(_){}
+      return;
     }
-    return best;
+    if(dir==='right'){
+      const nxt = list[Math.min(list.length-1, i+1)];
+      if(nxt){ try{ nxt.focus({preventScroll:false}); }catch(_){} }
+      try{ nxt?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'}); }catch(_){}
+      return;
+    }
+
+    // Up/Down change zone (console snap)
+    if(dir==='up') return changeZone(-1);
+    if(dir==='down') return changeZone(1);
   }
 
-  function move(dir){
-    const nxt = pickNext(dir);
-    if(nxt){
-      try{ nxt.focus({ preventScroll:false }); }catch(_){ }
-      try{ nxt.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'smooth' }); }catch(_){ }
-    }
+  function changeZone(delta){
+    const zones = getZones();
+    const zi = zoneIndexFromActive(zones);
+    const next = Math.max(0, Math.min(zones.length-1, zi + delta));
+    focusFirstInZone(zones[next]);
   }
 
   function onKey(e){
@@ -4180,31 +4212,33 @@ function dashboardCardHTML(access){
     const typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable);
     if(typing && !['Escape','Enter'].includes(e.key)) return;
 
-    if(e.key === 'ArrowLeft'){ e.preventDefault(); move('left'); }
-    if(e.key === 'ArrowRight'){ e.preventDefault(); move('right'); }
-    if(e.key === 'ArrowUp'){ e.preventDefault(); move('up'); }
-    if(e.key === 'ArrowDown'){ e.preventDefault(); move('down'); }
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); moveInZone('left'); }
+    if(e.key === 'ArrowRight'){ e.preventDefault(); moveInZone('right'); }
+    if(e.key === 'ArrowUp'){ e.preventDefault(); moveInZone('up'); }
+    if(e.key === 'ArrowDown'){ e.preventDefault(); moveInZone('down'); }
     if(e.key === 'Enter'){
-      // If focused element is a non-input clickable container, trigger click.
       const el = document.activeElement;
       if(el && el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA'){
-        const btn = (el.tagName === 'BUTTON') ? el : (el.click ? el : null);
-        if(btn){ try{ el.click(); }catch(_){ } }
+        try{ el.click?.(); }catch(_){ }
       }
+    }
+    if(e.key === 'Escape'){
+      // Escape goes one zone up (console feeling)
+      e.preventDefault();
+      changeZone(-1);
     }
   }
 
   function pressed(btn){ return !!(btn && (btn.pressed || btn.value > 0.5)); }
 
   function pollGamepad(){
-    // Skip when TwitFlix BigPicture is active.
     if(typeof window.tfBigPicture !== 'undefined' && window.tfBigPicture) return;
     const gps = navigator.getGamepads ? navigator.getGamepads() : [];
     const gp = gps && (gps[0] || gps[1] || gps[2] || gps[3]);
     if(!gp) return;
 
     const now = Date.now();
-    const cooldown = 160;
+    const cooldown = 170;
     const dead = 0.35;
     const ax = gp.axes?.[0] ?? 0;
     const ay = gp.axes?.[1] ?? 0;
@@ -4213,6 +4247,7 @@ function dashboardCardHTML(access){
     const u = pressed(gp.buttons?.[12]) || ay < -dead;
     const d = pressed(gp.buttons?.[13]) || ay >  dead;
     const A = pressed(gp.buttons?.[0]);
+    const B = pressed(gp.buttons?.[1]) || pressed(gp.buttons?.[2]);
 
     function edge(name, cur){
       const was = !!gpPrev[name];
@@ -4221,28 +4256,58 @@ function dashboardCardHTML(access){
     }
 
     if(now - gpPrev.t > cooldown){
-      if(edge('l', l)){ move('left'); gpPrev.t = now; return; }
-      if(edge('r', r)){ move('right'); gpPrev.t = now; return; }
-      if(edge('u', u)){ move('up'); gpPrev.t = now; return; }
-      if(edge('d', d)){ move('down'); gpPrev.t = now; return; }
+      if(edge('l', l)){ moveInZone('left'); gpPrev.t = now; return; }
+      if(edge('r', r)){ moveInZone('right'); gpPrev.t = now; return; }
+      if(edge('u', u)){ moveInZone('up'); gpPrev.t = now; return; }
+      if(edge('d', d)){ moveInZone('down'); gpPrev.t = now; return; }
     }
     if(edge('A', A)){
       try{ document.activeElement?.click?.(); }catch(_){ }
     }
+    if(edge('B', B)){
+      // B = back one zone
+      changeZone(-1);
+    }
   }
 
   function enable(){
-    if(spEnabled) return;
-    spEnabled = true;
+    if(enabled) return;
+    enabled = true;
     document.addEventListener('keydown', onKey, true);
-    if(!gpTimer) gpTimer = setInterval(pollGamepad, 80);
+    if(!gpTimer) gpTimer = setInterval(pollGamepad, 90);
+
+    // Put focus on the first menu item on load (console default)
+    try{ focusFirstInZone(getZones()[0]); }catch(_){ }
   }
 
   document.addEventListener('DOMContentLoaded', enable, { once:true });
 })();
 
-
-
+// Quick streamer search in player header (outside TwitFlix)
+(function(){
+  function go(){
+    const inp = document.getElementById('streamer-quicksearch');
+    const name = (inp?.value || '').trim();
+    if(!name) return;
+    try{
+      // changeChannel is defined in this file (followed carousel + cycle)
+      if(typeof window.changeChannel === 'function') window.changeChannel(name);
+      else if(typeof changeChannel === 'function') changeChannel(name);
+    }catch(_){ }
+    try{ inp.blur(); }catch(_){ }
+  }
+  function init(){
+    const inp = document.getElementById('streamer-quicksearch');
+    const btn = document.getElementById('streamer-quickgo');
+    if(btn) btn.addEventListener('click', go);
+    if(inp){
+      inp.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){ e.preventDefault(); go(); }
+      });
+    }
+  }
+  document.addEventListener('DOMContentLoaded', init, { once:true });
+})();
 
 /* ===========================
    ORYON Big Picture (Steam-like)
