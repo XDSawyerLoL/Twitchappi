@@ -23,6 +23,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 const openid = require('openid');
 
+
+
+
 // --- Helpers (server) ---
 function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   const controller = new AbortController();
@@ -33,19 +36,18 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
 
 function _decodeHtmlEntities(s) {
   if (!s) return s;
-  return s
-    .replace(/\\u0026/g, "&")
-    .replace(/&amp;/g, "&")
+  return String(s)
+    .replace(/\u0026/g, '&')
+    .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    ;
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
 }
 
 function parseYouTubePlaylistFromRSS(xml) {
-  // Minimal RSS parser using regex (no extra deps).
-  const entries = xml.split(/<entry>/g).slice(1);
+  // Minimal feed parser (no extra deps).
+  const entries = String(xml || '').split(/<entry>/g).slice(1);
   const items = [];
   for (const chunk of entries) {
     const vid = (chunk.match(/<yt:videoId>([^<]+)<\/yt:videoId>/) || [])[1];
@@ -53,7 +55,7 @@ function parseYouTubePlaylistFromRSS(xml) {
     if (!vid) continue;
     items.push({
       id: vid,
-      title: _decodeHtmlEntities(title || "Vidéo"),
+      title: _decodeHtmlEntities(title || 'Vidéo'),
       url: `https://www.youtube.com/watch?v=${vid}`,
       thumb: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,
     });
@@ -62,7 +64,7 @@ function parseYouTubePlaylistFromRSS(xml) {
 }
 
 function parseYouTubePlaylistFromHTML(html) {
-  const m = html.match(/var ytInitialData = (\\{.*?\\});<\/script>/s);
+  const m = String(html || '').match(/var ytInitialData = (\{.*?\});<\/script>/s);
   if (!m) return null;
   let jsonText = m[1];
   try {
@@ -81,7 +83,7 @@ function parseYouTubePlaylistFromHTML(html) {
         if (!vid) continue;
         items.push({
           id: vid,
-          title: _decodeHtmlEntities(title || "Vidéo"),
+          title: _decodeHtmlEntities(title || 'Vidéo'),
           url: `https://www.youtube.com/watch?v=${vid}`,
           thumb: thumb || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,
         });
@@ -92,10 +94,6 @@ function parseYouTubePlaylistFromHTML(html) {
     return null;
   }
 }
-
-
-
-// --- Helpers (server) ---function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {  const controller = new AbortController();  const id = setTimeout(() => controller.abort(), timeoutMs);  const opts = { ...options, signal: controller.signal };  return fetch(url, opts).finally(() => clearTimeout(id));}function _decodeHtmlEntities(s) {  if (!s) return s;  return s    .replace(/\\u0026/g, "&")    .replace(/&amp;/g, "&")    .replace(/&quot;/g, '"')    .replace(/&#39;/g, "'")    .replace(/&lt;/g, "<")    .replace(/&gt;/g, ">"");}function parseYouTubePlaylistFromRSS(xml) {  // Minimal RSS parser using regex (no extra deps).  const entries = xml.split(/<entry>/g).slice(1);  const items = [];  for (const chunk of entries) {    const vid = (chunk.match(/<yt:videoId>([^<]+)<\/yt:videoId>/) || [])[1];    const title = (chunk.match(/<title>([^<]+)<\/title>/) || [])[1];    if (!vid) continue;    items.push({      id: vid,      title: _decodeHtmlEntities(title || "Vidéo"),      url: `https://www.youtube.com/watch?v=${vid}`,      thumb: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,    });  }  return items;}function parseYouTubePlaylistFromHTML(html) {  const m = html.match(/var ytInitialData = (\\{.*?\\});<\/script>/s);  if (!m) return null;  let jsonText = m[1];  try {    jsonText = jsonText.trim();    const data = JSON.parse(jsonText);    const contents = data?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents || [];    const items = [];    for (const c of contents) {      const shelf = c?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents;      if (!Array.isArray(shelf)) continue;      for (const it of shelf) {        const v = it?.playlistVideoRenderer;        const vid = v?.videoId;        const title = v?.title?.runs?.[0]?.text || v?.title?.simpleText;        const thumb = v?.thumbnail?.thumbnails?.slice(-1)?.[0]?.url;        if (!vid) continue;        items.push({          id: vid,          title: _decodeHtmlEntities(title || "Vidéo"),          url: `https://www.youtube.com/watch?v=${vid}`,          thumb: thumb || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,        });      }    }    return items.length ? items : null;  } catch {    return null;  }}
 
 const { GoogleGenAI } = require('@google/genai');
 const admin = require('firebase-admin');
@@ -2399,44 +2397,105 @@ app.get('/api/youtube/health', async (req,res)=>{
 // Public YouTube playlist items (no API key) via Atom feed
 // Front can call: GET /api/youtube/playlist?listId=PLAYLIST_ID
 app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
-  try {
-    const listId = (req.query.listId || req.query.list || req.query.listid || '').trim();
-    if (!listId) return res.status(400).json({ error: 'Missing listId' });
+  try{
+    let listId0 = String(req.query.listId || '').trim();
+    if(!listId0) return res.status(400).json({ success:false, error:'listId manquant' });
 
+    // Accept full YouTube URLs too (extract ?list=...)
+    try{
+      const m = listId0.match(/[?&]list=([^&#]+)/i);
+      if(m && m[1]) listId0 = decodeURIComponent(m[1]);
+    }catch(_e){ /* ignore */ }
+
+    // Basic allow-listing: playlist ids are usually 16-34 chars of [A-Za-z0-9_-]
+    const listId = listId0.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+    if(!listId) return res.status(400).json({ success:false, error:'listId invalide' });
+
+    // YouTube RSS can return 403/empty feeds in some hosting environments unless we send browser-like headers.
     const ytHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-      'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'accept': 'application/xml,text/xml;q=0.9,*/*;q=0.8',
+      'accept-language': 'fr-FR,fr;q=0.9,en;q=0.8',
+      'referer': 'https://www.youtube.com/',
     };
 
-    // 1) Prefer the public RSS feed (stable, no API key)
-    let items = [];
-    try {
-      const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(listId)}`;
-      const r = await fetchWithTimeout(rssUrl, { headers: ytHeaders }, 10000);
-      if (r.ok) {
-        const xml = await r.text();
-        items = parseYouTubePlaylistFromRSS(xml);
-      }
-    } catch {}
+    const feedUrl1 = `https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(listId)}`;
+    const feedUrl2 = `https://www.youtube.com/feeds/videos.xml?playlist_id=${encodeURIComponent(listId)}&hl=fr&gl=FR`;
 
-    // 2) Fallback to HTML scraping if RSS is empty
-    if (!items.length) {
-      try {
-        const url = `https://www.youtube.com/playlist?list=${encodeURIComponent(listId)}&hl=fr&gl=FR`;
-        const r = await fetchWithTimeout(url, { headers: ytHeaders }, 10000);
-        if (r.ok) {
-          const html = await r.text();
-          const parsed = parseYouTubePlaylistFromHTML(html);
-          if (Array.isArray(parsed) && parsed.length) items = parsed;
-        }
-      } catch {}
+    async function tryFeed(url){
+      const r = await fetchWithTimeout(url, { headers: ytHeaders }, 7500).catch(()=>null);
+      if(!r || !r.ok) return { ok:false, status: r?.status || 0, text:'' };
+      const text = await r.text().catch(()=> '');
+      return { ok:true, status: r.status, text };
     }
 
-    return res.json({ items });
-  } catch (e) {
-    console.error('YT playlist error:', e);
-    return res.status(500).json({ error: 'YT playlist error' });
+    let fr = await tryFeed(feedUrl1);
+    if(!fr.ok || !fr.text || !fr.text.includes('<entry')){
+      const fr2 = await tryFeed(feedUrl2);
+      if(fr2.ok) fr = fr2;
+    }
+
+    // If Atom feed fetch fails, we still try a best-effort HTML scrape.
+    let xml = '';
+    if(fr.ok) xml = fr.text || '';
+
+    // Minimal parsing (enough for YT Atom feeds)
+    // Entries contain: <entry> ... <yt:videoId>...</yt:videoId> <title>...</title> <media:thumbnail url="..." />
+    const entries = xml ? xml.split('<entry>').slice(1) : [];
+    const items = [];
+    for(const chunk0 of entries){
+      const chunk = chunk0.split('</entry>')[0] || chunk0;
+
+      const vid = (chunk.match(/<yt:videoId>([^<]+)<\/yt:videoId>/) || [])[1]
+        || (chunk.match(/watch\?v=([a-zA-Z0-9_-]{6,})/) || [])[1];
+      if(!vid) continue;
+
+      let title = (chunk.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
+      // strip common xml entities
+      title = title
+        .replace(/<!\[CDATA\[|\]\]>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .trim();
+
+      const thumb = (chunk.match(/<media:thumbnail[^>]+url="([^"]+)"/) || [])[1] || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+      items.push({ videoId: vid, title, thumb });
+      if(items.length >= 120) break;
+    }
+
+    // Fallback: scrape playlist page to recover videoIds when the Atom feed is blocked/empty.
+    if(!items.length){
+      const pageUrl = `https://www.youtube.com/playlist?list=${encodeURIComponent(listId)}`;
+      const pr = await fetchWithTimeout(pageUrl, { headers: ytHeaders, redirect: 'follow' }, 9000).catch(()=>null);
+      if(pr && pr.ok){
+        const html = await pr.text().catch(()=> '');
+        const seen = new Set();
+        const re = /\"videoId\":\"([a-zA-Z0-9_-]{11})\"/g;
+        let m;
+        while((m = re.exec(html)) && items.length < 120){
+          const vid = m[1];
+          if(seen.has(vid)) continue;
+          seen.add(vid);
+          items.push({
+            videoId: vid,
+            title: vid,
+            url: `https://www.youtube.com/watch?v=${vid}&list=${listId}`,
+            thumb: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`
+          });
+        }
+      }
+    }
+
+    if(!items.length && !fr.ok){
+      return res.status(502).json({ success:false, error:'fetch_failed', status: fr.status || 0 });
+    }
+
+    return res.json({ success:true, listId, items });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
   }
 });
 
