@@ -479,7 +479,7 @@ function startAuth() {
           data.streams.forEach(s=>{
             const thumb = (s.thumbnail_url||'').replace('{width}','1000').replace('{height}','1333');
             el.innerHTML += `
-              <div class="stream-card flex-shrink-0" onclick="changeChannel('${s.user_login}')">
+              <div class="stream-card flex-shrink-0" role="button" tabindex="0" onclick="changeChannel('${s.user_login}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                 <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
                 <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
                   <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
@@ -836,6 +836,22 @@ function startAuth() {
           if (e.target === gifModal) gifModal.classList.add('hidden');
         });
       }
+
+      // Streamer search (outside TwitFlix) — quick jump to a channel
+      const ss = document.getElementById('streamer-search');
+      const ssBtn = document.getElementById('streamer-search-btn');
+      const go = () => {
+        const q = (ss?.value || '').trim();
+        if(!q) return;
+        try{ changeChannel(q); }catch(_){ }
+        try{ ss.blur(); }catch(_){ }
+      };
+      if (ss){
+        ss.addEventListener('keydown', (e)=>{
+          if(e.key === 'Enter'){ e.preventDefault(); go(); }
+        });
+      }
+      if (ssBtn) ssBtn.addEventListener('click', (e)=>{ e.preventDefault(); go(); });
     });
 
 
@@ -1202,7 +1218,7 @@ window.addEventListener('message', (ev) => {
         if (vid){
           card.innerHTML = `
             <iframe
-              src="https://www.youtube.com/embed/${encodeURIComponent(vid)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+              src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               loading="lazy"
               title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
@@ -1237,7 +1253,7 @@ window.addEventListener('message', (ev) => {
             }
             card.innerHTML = `
               <iframe
-                src="https://www.youtube.com/embed/${encodeURIComponent(autoId)}?rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+                src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(autoId)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 loading="lazy"
                 title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
@@ -1384,6 +1400,11 @@ const modal = document.getElementById('twitflix-modal');
 	    const st = document.createElement('style');
 	    st.id = 'tf-ux-hotfix';
 	    st.textContent = `
+	      /* Readable focus states for top nav / genres (avoid red highlight hiding labels) */
+	      #twitflix-modal .tf-nx-link:focus-visible{ outline:2px solid rgba(229,9,20,.95); outline-offset:3px; color:#fff !important; background: rgba(229,9,20,.12); border-radius: 10px; }
+	      #twitflix-modal .tf-nx-genres-btn:focus-visible{ outline:2px solid rgba(229,9,20,.95); outline-offset:3px; color:#fff !important; }
+	      #twitflix-modal .tf-nx-genres-panel button:focus-visible{ outline:2px solid rgba(229,9,20,.75); outline-offset:2px; background: rgba(229,9,20,.16); color:#fff !important; }
+	      #twitflix-modal .tf-nx-genres-panel button:hover{ color:#fff !important; }
 	      /* sharper posters */
 	      .tf-card .tf-poster{ image-rendering:auto; filter:none !important; transform:none !important; backface-visibility:hidden; }\n\t      .tf-card{ transform: translateZ(0); }
 	      .tf-card{ overflow: hidden; }
@@ -2064,7 +2085,7 @@ const modal = document.getElementById('twitflix-modal');
       }
     }
 
-    function tfRenderHeroMedia(){
+    async function tfRenderHeroMedia(){
       const media = document.getElementById('tf-hero-media');
       if (!media) return;
 
@@ -2073,9 +2094,25 @@ const modal = document.getElementById('twitflix-modal');
         return;
       }
 
-      const parent = encodeURIComponent(window.location.hostname);
-      const src = `https://player.twitch.tv/?video=${encodeURIComponent(tfFeaturedHero.vodId)}&parent=${parent}&autoplay=true&muted=true`;
-      media.innerHTML = `<iframe class="tf-hero-iframe" src="${src}" allow="autoplay; fullscreen" frameborder="0" scrolling="no" title="preview"></iframe>`;
+      // HERO: autoplay YouTube trailer (muted). The Play button launches the Twitch VOD.
+      // This avoids Twitch player errors/noise in the header and keeps a VOD-like UX.
+      const gameName = String(tfFeaturedHero.game || tfFeaturedHero.title || '').trim();
+      let trailerId = String(tfFeaturedHero.trailerId || '').trim();
+
+      if (!trailerId && gameName){
+        try{
+          trailerId = await tfResolveTrailerId(gameName);
+          if (trailerId) tfFeaturedHero.trailerId = trailerId;
+        }catch(_){ }
+      }
+
+      if (trailerId){
+        const origin = encodeURIComponent(location.origin);
+        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailerId)}?autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&origin=${origin}`;
+        media.innerHTML = `<iframe class="tf-hero-iframe" src="${src}" allow="autoplay; fullscreen" frameborder="0" scrolling="no" title="trailer"></iframe>`;
+      }else{
+        media.innerHTML = '';
+      }
 
       tfSetHero({
         title: tfFeaturedHero.title || 'ORYON TV',
@@ -4067,6 +4104,141 @@ function dashboardCardHTML(access){
     window.iaEmbed = iaEmbed;
   }catch(e){}
 
+})();
+
+// ===== Global Big-Picture Navigation (outside TwitFlix) =====
+// Arrow keys + gamepad D-pad move focus between visible UI elements.
+// TwitFlix keeps its own row-based navigator; this one is for the main app.
+;(function(){
+  let spEnabled = false;
+  let gpTimer = null;
+  let gpPrev = { t:0, l:false, r:false, u:false, d:false, A:false };
+
+  function isVisible(el){
+    if(!el) return false;
+    const r = el.getBoundingClientRect();
+    if(r.width < 2 || r.height < 2) return false;
+    const st = window.getComputedStyle(el);
+    if(st.visibility === 'hidden' || st.display === 'none' || st.opacity === '0') return false;
+    return true;
+  }
+
+  function getFocusables(){
+    // Avoid elements inside TwitFlix modal when it's open.
+    const modal = document.getElementById('twitflix-modal');
+    const modalOpen = modal && modal.classList.contains('active');
+    const scope = modalOpen ? [] : Array.from(document.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'));
+    return scope.filter(el => isVisible(el) && !el.closest('#twitflix-modal'));
+  }
+
+  function centerOf(el){
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2, r };
+  }
+
+  function pickNext(dir){
+    const list = getFocusables();
+    if(!list.length) return null;
+    const cur = document.activeElement && list.includes(document.activeElement) ? document.activeElement : list[0];
+    const c = centerOf(cur);
+    const isRight = dir === 'right', isLeft = dir === 'left', isUp = dir === 'up', isDown = dir === 'down';
+    let best = null;
+    let bestScore = Infinity;
+
+    for(const el of list){
+      if(el === cur) continue;
+      const p = centerOf(el);
+      const dx = p.x - c.x;
+      const dy = p.y - c.y;
+      if(isRight && dx <= 8) continue;
+      if(isLeft  && dx >= -8) continue;
+      if(isDown  && dy <= 8) continue;
+      if(isUp    && dy >= -8) continue;
+
+      // Score = primary distance in direction + penalty for off-axis drift.
+      const primary = (isRight||isLeft) ? Math.abs(dx) : Math.abs(dy);
+      const drift   = (isRight||isLeft) ? Math.abs(dy) : Math.abs(dx);
+      const score = primary + drift * 2.2;
+      if(score < bestScore){ bestScore = score; best = el; }
+    }
+    return best;
+  }
+
+  function move(dir){
+    const nxt = pickNext(dir);
+    if(nxt){
+      try{ nxt.focus({ preventScroll:false }); }catch(_){ }
+      try{ nxt.scrollIntoView({ block:'nearest', inline:'nearest', behavior:'smooth' }); }catch(_){ }
+    }
+  }
+
+  function onKey(e){
+    // If TwitFlix BigPicture is active, let its own handler win.
+    if(typeof window.tfBigPicture !== 'undefined' && window.tfBigPicture) return;
+
+    const a = document.activeElement;
+    const typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable);
+    if(typing && !['Escape','Enter'].includes(e.key)) return;
+
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); move('left'); }
+    if(e.key === 'ArrowRight'){ e.preventDefault(); move('right'); }
+    if(e.key === 'ArrowUp'){ e.preventDefault(); move('up'); }
+    if(e.key === 'ArrowDown'){ e.preventDefault(); move('down'); }
+    if(e.key === 'Enter'){
+      // If focused element is a non-input clickable container, trigger click.
+      const el = document.activeElement;
+      if(el && el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA'){
+        const btn = (el.tagName === 'BUTTON') ? el : (el.click ? el : null);
+        if(btn){ try{ el.click(); }catch(_){ } }
+      }
+    }
+  }
+
+  function pressed(btn){ return !!(btn && (btn.pressed || btn.value > 0.5)); }
+
+  function pollGamepad(){
+    // Skip when TwitFlix BigPicture is active.
+    if(typeof window.tfBigPicture !== 'undefined' && window.tfBigPicture) return;
+    const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+    const gp = gps && (gps[0] || gps[1] || gps[2] || gps[3]);
+    if(!gp) return;
+
+    const now = Date.now();
+    const cooldown = 160;
+    const dead = 0.35;
+    const ax = gp.axes?.[0] ?? 0;
+    const ay = gp.axes?.[1] ?? 0;
+    const l = pressed(gp.buttons?.[14]) || ax < -dead;
+    const r = pressed(gp.buttons?.[15]) || ax >  dead;
+    const u = pressed(gp.buttons?.[12]) || ay < -dead;
+    const d = pressed(gp.buttons?.[13]) || ay >  dead;
+    const A = pressed(gp.buttons?.[0]);
+
+    function edge(name, cur){
+      const was = !!gpPrev[name];
+      gpPrev[name] = cur;
+      return cur && !was;
+    }
+
+    if(now - gpPrev.t > cooldown){
+      if(edge('l', l)){ move('left'); gpPrev.t = now; return; }
+      if(edge('r', r)){ move('right'); gpPrev.t = now; return; }
+      if(edge('u', u)){ move('up'); gpPrev.t = now; return; }
+      if(edge('d', d)){ move('down'); gpPrev.t = now; return; }
+    }
+    if(edge('A', A)){
+      try{ document.activeElement?.click?.(); }catch(_){ }
+    }
+  }
+
+  function enable(){
+    if(spEnabled) return;
+    spEnabled = true;
+    document.addEventListener('keydown', onKey, true);
+    if(!gpTimer) gpTimer = setInterval(pollGamepad, 80);
+  }
+
+  document.addEventListener('DOMContentLoaded', enable, { once:true });
 })();
 
 

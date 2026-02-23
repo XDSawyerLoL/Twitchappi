@@ -2664,6 +2664,11 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <span class="text-[10px] bg-[#222] px-2 py-0.5 rounded text-gray-400 flex-shrink-0" id="player-mode-badge">AUTO</span>
 <span class="text-[10px] text-[#ff0099] font-bold flex-shrink-0" id="viewer-count">0 viewers</span>
 </div>
+<div class="hidden md:flex items-center gap-2 mr-3" id="streamer-search-wrap">
+  <i class="fas fa-search" style="opacity:.7"></i>
+  <input id="streamer-search" type="text" placeholder="Chercher un streamer…" class="cyber-input" style="padding:8px 10px;font-size:12px;width:240px;max-width:28vw;" />
+  <button id="streamer-search-btn" class="bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded font-bold transition text-xs">Go</button>
+</div>
 <div class="flex gap-2 flex-shrink-0">
 <button class="bg-[#1a1a1a] hover:bg-[#333] text-white w-8 h-8 rounded flex items-center justify-center" onclick="cycle('prev')">
 <i class="fas fa-chevron-left"></i>
