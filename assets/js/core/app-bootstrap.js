@@ -2874,31 +2874,11 @@ function tfBuildCard(cat){
 
       const p = (async ()=>{
         try{
-          // 0) Netflix-like HERO: prefer official GAME trailers (YouTube) first.
-          // This makes the HERO behave like Netflix (trailers that change on hover).
+          // 0) HERO: always use YouTube for the header preview.
+          // We still resolve a trailer id (for caching), but rendering uses a search-embed to avoid embed errors (ex: error 153).
           const ytId = await tfResolveTrailerId(gameName);
-          if (ytId){
-            tfHeroCache.set(key, { t: Date.now(), youtubeId: String(ytId).trim() });
-            return;
-          }
-
-          // Prefer small creators VODs for this game
-          const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(key)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
-          const r = await fetch(url, { credentials:'include' });
-          const d = await r.json().catch(()=>null);
-          const items = (r.ok && d && Array.isArray(d.items)) ? d.items : [];
-          const first = items.find(x=>x && x.id) || null;
-          if (first){
-            tfHeroCache.set(key, { t: Date.now(), vodId: String(first.id).replace(/^v/i,'') });
-            return;
-          }
-
-          // Fallback to a live preview channel
-          const ch = await tfGetPreviewChannel(key);
-          if (ch){
-            tfHeroCache.set(key, { t: Date.now(), channel: ch });
-            return;
-          }
+          tfHeroCache.set(key, { t: Date.now(), youtubeId: String(ytId || 'search').trim() });
+          return;
         }catch(_){ }
       })();
 
@@ -2913,16 +2893,31 @@ function tfBuildCard(cat){
 
     function tfHeroApplyAutoplay(obj, gameName, poster){
       // 1) YouTube trailer in HERO (autoplay muted)
+      // Use a SEARCH embed to avoid YouTube embed errors on non-embeddable videos (ex: error 153).
       if (obj.youtubeId){
-        const vid = String(obj.youtubeId).trim();
+        const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
         const origin = encodeURIComponent(window.location.origin);
-        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`;
+        const src = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`;
         tfHeroMountIframe(src);
 
-        // Play button opens the game modal (Netflix: hero is teaser; click leads to details)
+        // Play button launches an actual VOD of the game (not the hero trailer).
         const playBtn = document.getElementById('tf-hero-play');
         if (playBtn){
-          playBtn.onclick = ()=>{ try{ tfOpenGameModal({ id: String(tfHeroCurrentKey||''), name: gameName, box_art_url: poster }); }catch(_){}; };
+          playBtn.onclick = async ()=>{
+            try{
+              const gid = String(tfHeroCurrentKey||'');
+              if(!gid) return;
+              const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gid)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
+              const r = await fetch(url, { credentials:'include' });
+              const d = await r.json().catch(()=>null);
+              const items = (r.ok && d && Array.isArray(d.items)) ? d.items : [];
+              const first = items.find(x=>x && x.id) || null;
+              if(!first) return;
+              const vodId = String(first.id).replace(/^v/i,'');
+              try{ closeTwitFlix(); }catch(_){}
+              try{ loadVodEmbed(vodId); }catch(_){}
+            }catch(_e){}
+          };
         }
         tfSetHero({ title: gameName || 'Trailer', sub: 'Trailer officiel • Prévisualisation automatique', poster });
         return;
@@ -2932,29 +2927,32 @@ function tfBuildCard(cat){
         ? PARENT_DOMAINS.map(p=>`parent=${encodeURIComponent(p)}`).join('&')
         : `parent=${encodeURIComponent(TWITCH_PARENT || window.location.hostname)}`;
 
-      if (obj.vodId){
-        const vodId = String(obj.vodId).replace(/^v/i,'');
-        const src = `https://player.twitch.tv/?video=v${encodeURIComponent(vodId)}&${parentParams}&muted=true&autoplay=true`;
-        tfHeroMountIframe(src);
+      if (obj.vodId || obj.channel){
+        // Legacy cache (older sessions) — keep HERO YouTube-only.
+        const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
+        const origin = encodeURIComponent(window.location.origin);
+        tfHeroMountIframe(`https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`);
 
-        // Play button launches the VOD
         const playBtn = document.getElementById('tf-hero-play');
         if (playBtn){
-          playBtn.onclick = ()=>{ try{ closeTwitFlix(); }catch(_){}; try{ loadVodEmbed(vodId); }catch(_){}; };
+          playBtn.onclick = async ()=>{
+            try{
+              const gid = String(tfHeroCurrentKey||'');
+              if(!gid) return;
+              const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gid)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
+              const r = await fetch(url, { credentials:'include' });
+              const d = await r.json().catch(()=>null);
+              const items = (r.ok && d && Array.isArray(d.items)) ? d.items : [];
+              const first = items.find(x=>x && x.id) || null;
+              if(!first) return;
+              const vodId = String(first.id).replace(/^v/i,'');
+              try{ closeTwitFlix(); }catch(_){}
+              try{ loadVodEmbed(vodId); }catch(_){}
+            }catch(_e){}
+          };
         }
-        tfSetHero({ title: gameName || 'VOD', sub: 'Trailer (VOD) • FR • Découverte', poster });
+        tfSetHero({ title: gameName || 'Trailer', sub: 'Trailer officiel • Prévisualisation automatique', poster });
         return;
-      }
-
-      if (obj.channel){
-        const ch = String(obj.channel);
-        const src = `https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&${parentParams}&muted=true&autoplay=true`;
-        tfHeroMountIframe(src);
-        const playBtn = document.getElementById('tf-hero-play');
-        if (playBtn){
-          playBtn.onclick = ()=>{ try{ closeTwitFlix(); }catch(_){}; try{ loadPlayerEmbed(ch); }catch(_){}; };
-        }
-        tfSetHero({ title: gameName || 'LIVE', sub: 'Trailer (LIVE) • FR • Découverte', poster });
       }
     }
 
@@ -4866,17 +4864,19 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
   function initTabsOnce(){
     if (window.__tfTabsInit) return;
-    const bar = qs('#tf-tabsbar');
-    if(!bar) return;
     window.__tfTabsInit = true;
 
-    bar.addEventListener('click', (e)=>{
-      const btn = e.target.closest('.tf-tabbtn');
-      if(!btn) return;
-      setTab(btn.dataset.tab);
-    });
+    // Optional legacy tabsbar (may be removed in HTML)
+    const bar = qs('#tf-tabsbar');
+    if(bar){
+      bar.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.tf-tabbtn');
+        if(!btn) return;
+        setTab(btn.dataset.tab);
+      });
+    }
 
-    // Top nav binding
+    // Top nav binding (primary)
     const nav = qs('#twitflix-modal .tf-nx-nav');
     if(nav){
       nav.addEventListener('click', (e)=>{
