@@ -386,6 +386,10 @@ function startAuth() {
       const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
       container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
       loadStreamInfo(channel);
+
+      // Live auto-next guard (5min): ask user to continue or next.
+      try{ window.__oryonPlayerMode = 'live'; }catch(_){ }
+      try{ scheduleLiveAutoNextPrompt(); }catch(_){ }
     }
 
 	    // Play a Twitch VOD inside the main player (Netflix-like inline playback)
@@ -404,6 +408,10 @@ function startAuth() {
 	        try { document.getElementById('current-channel-display').innerText = `VOD`; } catch(_){ }
 	      }
 	      try { document.getElementById('player-mode-badge').innerText = 'VOD'; } catch(_){ }
+
+      // VOD: disable live auto-next prompt.
+      try{ window.__oryonPlayerMode = 'vod'; }catch(_){ }
+      try{ clearLiveAutoNextPrompt(); }catch(_){ }
 	    }
 
     function loadStreamInfo(channel) {
@@ -459,6 +467,127 @@ function startAuth() {
         loadPlayerEmbed(currentChannel);
         updateTwitchChatFrame(currentChannel);
       }
+    }
+
+    // =============================================
+    // Live Auto-Next (5 minutes) + Continue/Next prompt
+    // - Every 5 minutes of LIVE playback: ask user to continue or go next
+    // - "Suivant" uses the existing server-side cycle_stream to keep variety
+    // =============================================
+    let __liveAutoTimer = null;
+    let __livePromptOpen = false;
+    const LIVE_AUTONEXT_MS = 5 * 60 * 1000;
+
+    function clearLiveAutoNextPrompt(){
+      try{ if(__liveAutoTimer) clearTimeout(__liveAutoTimer); }catch(_){ }
+      __liveAutoTimer = null;
+      __livePromptOpen = false;
+      try{
+        const el = document.getElementById('oryon-live-autonext');
+        if(el) el.remove();
+      }catch(_){ }
+    }
+    window.clearLiveAutoNextPrompt = clearLiveAutoNextPrompt;
+
+    function scheduleLiveAutoNextPrompt(){
+      // Only for LIVE (never for VOD / TwitFlix modal)
+      try{
+        const tfModal = document.getElementById('twitflix-modal');
+        if(tfModal && tfModal.classList.contains('active')) return;
+      }catch(_){ }
+      if(window.__oryonPlayerMode !== 'live') return;
+      if(__livePromptOpen) return;
+      try{ if(__liveAutoTimer) clearTimeout(__liveAutoTimer); }catch(_){ }
+      __liveAutoTimer = setTimeout(showLiveAutoNextPrompt, LIVE_AUTONEXT_MS);
+    }
+    window.scheduleLiveAutoNextPrompt = scheduleLiveAutoNextPrompt;
+
+    function showLiveAutoNextPrompt(){
+      if(window.__oryonPlayerMode !== 'live') return;
+      try{
+        const tfModal = document.getElementById('twitflix-modal');
+        if(tfModal && tfModal.classList.contains('active')){ __livePromptOpen = false; return; }
+      }catch(_){ }
+      if(__livePromptOpen) return;
+      __livePromptOpen = true;
+
+      // Build overlay (minimal CSS, consistent with current theme)
+      const wrap = document.createElement('div');
+      wrap.id = 'oryon-live-autonext';
+      wrap.setAttribute('role','dialog');
+      wrap.setAttribute('aria-modal','true');
+      wrap.innerHTML = `
+        <div class="oryon-live-autonext__backdrop"></div>
+        <div class="oryon-live-autonext__panel">
+          <div class="oryon-live-autonext__title">Continuer le live&nbsp;?</div>
+          <div class="oryon-live-autonext__sub">5 minutes écoulées. Tu veux continuer à regarder ou passer au prochain live&nbsp;?</div>
+          <div class="oryon-live-autonext__actions">
+            <button type="button" id="oryon-live-continue" class="oryon-live-btn" tabindex="0">Continuer</button>
+            <button type="button" id="oryon-live-next" class="oryon-live-btn alt" tabindex="0">Suivant</button>
+          </div>
+        </div>
+      `;
+
+      // Inject styles once
+      if(!document.getElementById('oryon-live-autonext-style')){
+        const st = document.createElement('style');
+        st.id = 'oryon-live-autonext-style';
+        st.textContent = `
+          #oryon-live-autonext{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;}
+          #oryon-live-autonext .oryon-live-autonext__backdrop{position:absolute;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);}
+          #oryon-live-autonext .oryon-live-autonext__panel{position:relative;max-width:520px;width:92%;border:1px solid rgba(255,255,255,.12);background:rgba(12,12,12,.92);border-radius:14px;padding:18px 18px 16px;box-shadow:0 18px 60px rgba(0,0,0,.55);}
+          #oryon-live-autonext .oryon-live-autonext__title{font-weight:900;letter-spacing:.3px;font-size:18px;margin-bottom:6px;color:#fff;}
+          #oryon-live-autonext .oryon-live-autonext__sub{font-size:13px;line-height:1.35;color:rgba(255,255,255,.78);margin-bottom:14px;}
+          #oryon-live-autonext .oryon-live-autonext__actions{display:flex;gap:10px;justify-content:flex-end;}
+          #oryon-live-autonext .oryon-live-btn{appearance:none;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-weight:800;padding:10px 12px;border-radius:10px;cursor:pointer;min-width:130px;}
+          #oryon-live-autonext .oryon-live-btn.alt{border-color:rgba(0,242,234,.35);}
+          #oryon-live-autonext .oryon-live-btn:focus{outline:none;box-shadow:0 0 0 2px rgba(0,242,234,.35), 0 0 0 6px rgba(255,0,153,.18);}
+        `;
+        document.head.appendChild(st);
+      }
+
+      document.body.appendChild(wrap);
+
+      const btnContinue = document.getElementById('oryon-live-continue');
+      const btnNext = document.getElementById('oryon-live-next');
+
+      function close(){
+        __livePromptOpen = false;
+        try{ wrap.remove(); }catch(_){ }
+      }
+
+      btnContinue.addEventListener('click', ()=>{
+        close();
+        scheduleLiveAutoNextPrompt();
+      });
+
+      btnNext.addEventListener('click', async ()=>{
+        close();
+        try{ await cycle('next'); }catch(_){ }
+        scheduleLiveAutoNextPrompt();
+      });
+
+      // Keyboard/gamepad feel: Enter triggers, Escape = continue, Left/Right switch buttons
+      wrap.addEventListener('keydown', (e)=>{
+        if(e.key==='Escape'){
+          e.preventDefault();
+          btnContinue.click();
+        }
+        if(e.key==='ArrowLeft' || e.key==='ArrowRight'){
+          e.preventDefault();
+          const a = document.activeElement;
+          if(a===btnContinue) btnNext.focus();
+          else btnContinue.focus();
+        }
+        if(e.key==='Enter'){
+          const a = document.activeElement;
+          if(a===btnNext) btnNext.click();
+          else btnContinue.click();
+        }
+      }, true);
+
+      // Default focus
+      try{ btnContinue.focus({preventScroll:true}); }catch(_){ }
     }
 
     // CAROUSEL
