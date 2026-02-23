@@ -1,0 +1,70 @@
+version: 1
+
+modes:
+  advisor:
+    can_write_repo: false
+    can_open_pr: false
+    can_merge: false
+    can_deploy: false
+  operator:
+    can_write_repo: true
+    can_open_pr: false
+    can_merge: false
+    can_deploy: false
+  autopilot:
+    can_write_repo: true
+    can_open_pr: true
+    can_merge: false
+    can_deploy: false
+  sovereign:
+    can_write_repo: true
+    can_open_pr: true
+    can_merge: true
+    can_deploy: true
+
+repo:
+  # Chemins autorisés à modifier (relative to repo root)
+  allow_write_globs:
+    - "**/*.js"
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.json"
+    - "**/*.md"
+    - "**/*.yml"
+    - "**/*.yaml"
+    - "**/*.html"
+    - "**/*.css"
+    - "**/*.py"
+
+  deny_write_globs:
+    - ".git/**"
+    - "**/.env"
+    - "**/*secret*"
+    - "**/*token*"
+    - "**/node_modules/**"
+
+sandbox:
+  # Commandes autorisées
+  allow_commands:
+    - "npm ci"
+    - "npm test"
+    - "npm run build"
+    - "node -v"
+    - "npm -v"
+    - "python -V"
+    - "pytest"
+  # Temps max pour une étape
+  step_timeout_seconds: 900
+
+quality:
+  # Seuil pour autoriser auto-merge / auto-deploy (0..1)
+  min_confidence_for_merge: 0.78
+  min_confidence_for_deploy: 0.82
+
+guards:
+  # Patterns explicitement interdits dans les patches
+  forbidden_regex:
+    - "(?i)curl\s+.*(metadata|169\.254\.169\.254)"
+    - "(?i)process\.env\.[A-Z0-9_]+\s*\+"
+    - "(?i)fetch\(\s*['\"]http://127\.0\.0\.1"
+    - "(?i)rm\s+-rf\s+/"
