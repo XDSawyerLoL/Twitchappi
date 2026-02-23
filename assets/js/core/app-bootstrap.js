@@ -5041,13 +5041,20 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
     };
   }).filter(x => x.embedUrl);
 
+  // NOTE: containerId targets a div that is styled as a horizontal rail (.tf-carousel).
+  // For playlists we want a *real* rail of episodes, so we convert the container to a block wrapper
+  // and create an inner .tf-carousel rail that holds the cards.
   wrap.innerHTML = '';
+  try{ wrap.classList.remove('tf-carousel'); }catch(_e){}
+  wrap.style.display = 'block';
+  wrap.style.overflow = 'visible';
   const meta = document.createElement('div');
   meta.className = 'text-sm opacity-70 mb-2';
   meta.textContent = label ? `${label} — ${items.length} épisodes` : `${items.length} épisodes`;
   wrap.appendChild(meta);
   const rail = document.createElement('div');
   rail.id = `${containerId}__rail`;
+  rail.className = 'tf-carousel';
   wrap.appendChild(rail);
   // renderItemsInto is defined below in the Anime IIFE; call lazily when available
   if(typeof window.__tf_renderItemsInto === 'function'){
