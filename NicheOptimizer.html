@@ -2574,6 +2574,19 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 
 <style id="tools-padding-fix">#tab-tools .tools-scroll{padding:16px 14px !important;}</style>
+
+<style>
+@media (max-width: 900px){
+  #player-streamer-search{max-width:55vw;}
+  #streamer-quicksearch{width:160px !important; max-width:45vw !important;}
+}
+@media (max-width: 520px){
+  #player-streamer-search{display:flex; max-width:92vw; margin-top:6px;}
+  /* allow wrap in player header */
+  .player-shell .bg-\[\#080808\]{flex-wrap:wrap;}
+}
+</style>
+
 </head>
 <body class="min-h-screen flex flex-col p-4">
 <!-- Spacer (embed-safe): évite que le haut soit coupé dans certains iframes -->
@@ -2665,9 +2678,9 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <span class="text-[10px] text-[#ff0099] font-bold flex-shrink-0" id="viewer-count">0 viewers</span>
 
 <!-- Quick streamer search (visible, compact) -->
-<div class="hidden md:flex items-center gap-2 ml-2 flex-shrink-0" id="player-streamer-search">
+<div class="flex items-center gap-2 ml-2 flex-shrink-0" id="player-streamer-search" style="max-width:45vw;">
   <i class="fas fa-search text-white/60 text-xs"></i>
-  <input id="streamer-quicksearch" type="text" autocomplete="off" placeholder="Chercher un streamer…" class="w-[220px] px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs outline-none focus:border-[#00f2ea]" />
+  <input id="streamer-quicksearch" type="text" autocomplete="off" placeholder="Chercher un streamer…" class="w-[220px] px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs outline-none focus:border-[#00f2ea]" style="width:220px;max-width:32vw;min-width:140px;" />
   <button id="streamer-quickgo" class="px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-white text-xs hover:bg-white/15">Go</button>
 </div>
 </div>
