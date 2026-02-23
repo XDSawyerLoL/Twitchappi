@@ -5231,12 +5231,12 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       ]);
     }
 
-    // The Black Bat: playlist rail
+    // Blake et Mortimer (Black Cat): playlist rail
     if(typeof window.tfLoadYouTubePlaylistEpisodesInto === 'function'){
-      window.tfLoadYouTubePlaylistEpisodesInto('tf-anime-blackbat', 'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', 'The Black Bat — playlist');
+      window.tfLoadYouTubePlaylistEpisodesInto('tf-anime-blackbat', 'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', 'Blake et Mortimer (Black Cat) — playlist');
     }else{
       renderYouTubePlaylistsInto('tf-anime-blackbat', [
-        { title: 'The Black Bat — playlist', listId: 'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb: 'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' }
+        { title: 'Blake et Mortimer (Black Cat) — playlist', listId: 'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb: 'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' }
       ]);
     }
     loadByItemFiles('tf-anime-popeye', 'popeye-pubdomain', 'Popeye');
