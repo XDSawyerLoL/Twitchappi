@@ -2938,6 +2938,32 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-modal-content">
 <div class="tf-topbar">
 <div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">ORYON TV</span></div>
+<div class="tf-nx-nav" aria-label="Navigation ORYON TV">
+  <button type="button" class="tf-nx-link active" data-tab="vod">Accueil</button>
+  <button type="button" class="tf-nx-link" data-tab="vod">VOD</button>
+  <button type="button" class="tf-nx-link" data-tab="live">Live</button>
+  <button type="button" class="tf-nx-link" data-tab="anime">Animé</button>
+
+  <div class="tf-nx-genres" id="tf-nx-genres" style="display:none;">
+    <button type="button" class="tf-nx-genres-btn" onclick="tfToggleGenres(event)">
+      Catégories <span aria-hidden="true" style="opacity:.85;">▾</span>
+    </button>
+    <div class="tf-nx-genres-panel" id="tf-genres-panel" style="display:none;" role="menu" aria-label="Catégories Animé">
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-loneranger">Lone Ranger (1966)</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-superman">Superman (Fleischer)</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-blackbat">Blake &amp; Mortimer (Black Cat)</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-popeye">Popeye</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-felix">Felix le Chat</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-snafu">Private Snafu</button>
+      <div class="tf-nx-sep" aria-hidden="true"></div>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-betty">Betty Boop</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-bugs">Bugs Bunny</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-daffy">Daffy Duck</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-casper">Casper</button>
+      <button type="button" role="menuitem" data-tf-scroll="tf-anime-gertie">Gertie the Dinosaur</button>
+    </div>
+  </div>
+</div>
 <div class="tf-actions">
 <div class="tf-search-wrap">
 <i class="fas fa-search tf-search-ico"></i>
@@ -3429,10 +3455,34 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 /* ===== Netflix visual override (TwitFlix only) ===== */
 #twitflix-modal{ background: rgba(0,0,0,.82); }
 #twitflix-modal .tf-topbar{ background: rgba(0,0,0,.75); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,.08); }
+#twitflix-modal .tf-topbar{ display:flex; align-items:center; justify-content:space-between; gap: 14px; padding-right: 10px; }
+
+/* Top nav (Netflix-like, but custom) */
+#twitflix-modal .tf-nx-nav{ display:flex; align-items:center; gap: 14px; margin-left: 12px; flex: 1 1 auto; min-width: 0; }
+#twitflix-modal .tf-nx-link{ background:transparent; border:0; color: rgba(255,255,255,.86); font-weight: 800; padding: 10px 6px; cursor:pointer; letter-spacing:.02em; }
+#twitflix-modal .tf-nx-link:hover{ color:#fff; }
+#twitflix-modal .tf-nx-link.active{ color:#fff; text-shadow: 0 0 18px rgba(255,255,255,.12); }
+
+#twitflix-modal .tf-nx-genres{ position:relative; margin-left: 6px; }
+#twitflix-modal .tf-nx-genres-btn{ display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); color:#fff; font-weight: 900; cursor:pointer; }
+#twitflix-modal .tf-nx-genres-btn:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); }
+#twitflix-modal .tf-nx-genres-panel{ position:absolute; left:0; top: calc(100% + 10px); width: min(520px, 86vw); background: rgba(0,0,0,.92); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; box-shadow: 0 24px 70px rgba(0,0,0,.65); padding: 10px; display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; z-index: 99999; }
+#twitflix-modal .tf-nx-genres-panel button{ text-align:left; border:0; background: rgba(255,255,255,.04); color: rgba(255,255,255,.92); padding: 10px 10px; border-radius: 8px; font-weight: 800; cursor:pointer; }
+#twitflix-modal .tf-nx-genres-panel button:hover{ background: rgba(255,255,255,.10); }
+#twitflix-modal .tf-nx-sep{ grid-column: 1 / -1; height:1px; background: rgba(255,255,255,.10); margin: 6px 2px; border-radius: 999px; }
+
+@media (max-width: 900px){
+  #twitflix-modal .tf-nx-nav{ gap: 10px; }
+  #twitflix-modal .tf-nx-link{ padding: 10px 4px; font-size: 12px; }
+  #twitflix-modal .tf-nx-genres-panel{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 #twitflix-modal .twitflix-wordmark{ color:#e50914 !important; letter-spacing:.08em; }
 #twitflix-modal .tf-row-title span,
 #twitflix-modal .tf-dot.active{ color:#e50914; background: rgba(229,9,20,.95) !important; }
 #twitflix-modal .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#e50914 !important; }
+
+/* Remove hamburger menu (keep close button) */
+#twitflix-modal .tf-menu{ display:none !important; }
 
 /* Hero */
 #twitflix-modal .tf-nx-hero{ position:relative; min-height: 520px; border-radius: 0; overflow:hidden; }

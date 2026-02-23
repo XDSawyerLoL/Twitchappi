@@ -4809,6 +4809,18 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   function setTab(tab){
     qsa('#tf-tabsbar .tf-tabbtn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
 
+    // Top nav links (Netflix-like header)
+    qsa('#twitflix-modal .tf-nx-link').forEach(b=>{
+      const t = String(b.dataset.tab||'').trim();
+      // "Accueil" and "VOD" both map to vod; treat both as active for vod tab
+      const active = (t===tab) || (tab==='vod' && t==='vod');
+      b.classList.toggle('active', active);
+    });
+
+    // Show categories dropdown only for Animé
+    const genresWrap = qs('#tf-nx-genres');
+    if(genresWrap) genresWrap.style.display = (tab==='anime') ? '' : 'none';
+
     const hero = qs('.tf-hero');
     const grid = qs('#twitflix-grid');
     const trailerBlock = qs('#tf-trailer-carousel')?.closest('.tf-header-block');
@@ -4847,6 +4859,9 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         }
       }, 0);
     }
+
+    // expose current tab
+    try{ window.__tfCurrentTab = tab; }catch(_e){}
   }
 
   function initTabsOnce(){
@@ -4861,9 +4876,23 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       setTab(btn.dataset.tab);
     });
 
+    // Top nav binding
+    const nav = qs('#twitflix-modal .tf-nx-nav');
+    if(nav){
+      nav.addEventListener('click', (e)=>{
+        const b = e.target.closest('.tf-nx-link');
+        if(!b) return;
+        const t = String(b.dataset.tab||'vod');
+        setTab(t);
+      });
+    }
+
     // default
     setTab('vod');
   }
+
+  // Public setter (used by genres dropdown)
+  window.tfSetTab = setTab;
 
   // Init as soon as possible
   if (document.readyState === 'loading') {
@@ -4879,6 +4908,78 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     try{ initTabsOnce(); }catch(_e){}
     return r;
   };
+})();
+
+// =========================================================
+// ORYON TV — "Catégories" dropdown (Animé) + Big-picture style
+//  - Opens a grid dropdown similar to streaming platforms.
+//  - Selecting an item scrolls to the matching rail.
+// =========================================================
+;(function(){
+  function qs(sel){ return document.querySelector(sel); }
+  function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
+
+  function hide(){
+    const p = qs('#tf-genres-panel');
+    if(p) p.style.display='none';
+  }
+
+  function show(){
+    const p = qs('#tf-genres-panel');
+    if(p) p.style.display='grid';
+  }
+
+  window.tfHideGenres = hide;
+  window.tfToggleGenres = function(ev){
+    try{ ev?.stopPropagation?.(); }catch(_e){}
+    const p = qs('#tf-genres-panel');
+    if(!p) return;
+    const isOpen = (p.style.display && p.style.display !== 'none');
+    if(isOpen) hide(); else show();
+  };
+
+  // Click on an item -> switch to anime and scroll to rail
+  function bind(){
+    const p = qs('#tf-genres-panel');
+    if(!p || p.__bound) return;
+    p.__bound = true;
+
+    p.addEventListener('click', (e)=>{
+      const b = e.target.closest('button[data-tf-scroll]');
+      if(!b) return;
+      const targetId = String(b.getAttribute('data-tf-scroll')||'').trim();
+      hide();
+      try{ window.tfSetTab?.('anime'); }catch(_e){}
+      // Ensure rails exist, then scroll
+      setTimeout(()=>{
+        const el = document.getElementById(targetId);
+        if(el){
+          try{ el.scrollIntoView({ behavior:'smooth', block:'start' }); }catch(_e){ el.scrollIntoView(true); }
+        }
+      }, 60);
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e)=>{
+      const panel = qs('#tf-genres-panel');
+      if(!panel) return;
+      if(panel.style.display==='none' || !panel.style.display) return;
+      const wrap = qs('#tf-nx-genres');
+      if(wrap && wrap.contains(e.target)) return;
+      hide();
+    }, true);
+
+    // Escape closes
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape') hide();
+    }, true);
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', bind, { once:true });
+  }else{
+    bind();
+  }
 })();
 
 // =========================================================
