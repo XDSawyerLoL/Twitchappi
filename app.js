@@ -645,9 +645,6 @@ async function fetchDailyStatsAny(userId, days){
   return { source:null, docs: [] };
 }
 
--${mm}-${dd}`;
-}
-
 async function getTwitchToken(tokenType = 'app') {
   if (CACHE.twitchTokens[tokenType] && CACHE.twitchTokens[tokenType].expiry > Date.now()) {
     return CACHE.twitchTokens[tokenType].access_token;
