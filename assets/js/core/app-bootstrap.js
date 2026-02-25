@@ -16,7 +16,7 @@ window.fetchJSON = window.fetchJSON || (async function(url, opts){
   return t;
 });
 // -------------------------------------------------------------------------------
-/* ORYON TV app-bootstrap v12 IA direct anime (no YT embed) */
+/* DISCOVERY app-bootstrap v12 IA direct anime (no YT embed) */
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
@@ -404,7 +404,7 @@ function startAuth() {
     }
 
 	    // Play a Twitch VOD inside the main player (Netflix-like inline playback)
-	    function loadVodEmbed(videoId, channelHint) {
+	    function window.loadVodEmbed && window.loadVodEmbed(videoId, channelHint) {
 	      const container = document.getElementById('video-container');
 	      const parentParam = PARENT_DOMAINS.join('&parent=');
 	      const vid = String(videoId || '').replace(/^v/i,'');
@@ -980,7 +980,7 @@ function startAuth() {
     });
 
 
-    // TWITFLIX — Netflix-like catalogue (only). Does NOT touch the rest of the app.
+    // DISCOVERY — Netflix-like catalogue (only). Does NOT touch the rest of the app.
     // Requires:
     //  - GET  /api/categories/top?cursor=...
     //  - (optional) GET /api/categories/search?q=...
@@ -1103,7 +1103,7 @@ window.addEventListener('message', (ev) => {
 });
 
 
-    // ====== TWITFLIX: LIVE CAROUSEL + TRAILERS ======
+    // ====== DISCOVERY: LIVE CAROUSEL + TRAILERS ======
     // Add YouTube video IDs here to enable embedded trailers in TwitFlix.
     // Key: game name (lowercased). Value: YouTube videoId.
     const TRAILER_MAP = {
@@ -1420,7 +1420,7 @@ window.addEventListener('message', (ev) => {
     }
 
 function tfNormalizeBoxArt(url){
-  // Force higher-res boxarts to avoid "blurry" upscale in the ORYON TV rows.
+  // Force higher-res boxarts to avoid "blurry" upscale in the DISCOVERY rows.
   // Uses devicePixelRatio to request sharper images on HiDPI screens.
   const u = String(url || '');
   if (!u) return '';
@@ -1465,7 +1465,7 @@ function tfNormalizeBoxArt(url){
 const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
 
-      // ORYON TV: delegated click safety-net (keeps everything clickable)
+      // DISCOVERY: delegated click safety-net (keeps everything clickable)
       // - game cards: open the Netflix-like info modal
       // - live cards: open stream
       // - VOD cards: open VOD
@@ -1483,7 +1483,7 @@ const modal = document.getElementById('twitflix-modal');
             if(vodId){
               e.preventDefault(); e.stopPropagation();
               try{ closeTwitFlix(); }catch(_){ }
-              try{ loadVodEmbed(String(vodId).replace(/^v/i,'')); }catch(_){ }
+              try{ window.loadVodEmbed && window.loadVodEmbed(String(vodId).replace(/^v/i,'')); }catch(_){ }
               try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
               return;
             }
@@ -1580,7 +1580,7 @@ const modal = document.getElementById('twitflix-modal');
     intro.innerHTML = `
       <div class="tf-intro-box">
         <div class="tf-scanline"></div>
-        <div class="tf-intro-logo">TWITFLIX</div>
+        <div class="tf-intro-logo">DISCOVERY</div>
         <div class="tf-intro-sub">Mode Netflix • Chargement des streams</div>
       </div>
     `;
@@ -2283,7 +2283,7 @@ const modal = document.getElementById('twitflix-modal');
         btnPlay.onclick = (e)=>{
           e.preventDefault();
           try{ closeTwitFlix(); }catch(_){ }
-          try{ loadVodEmbed(tfFeaturedHero.vodId); }catch(_){ }
+          try{ window.loadVodEmbed && window.loadVodEmbed(tfFeaturedHero.vodId); }catch(_){ }
         };
       }
     }
@@ -2385,7 +2385,7 @@ const modal = document.getElementById('twitflix-modal');
         tfSetResumeVod(tfInfoGame.id, vid);
         tfCloseGameModal();
         try{ closeTwitFlix(); }catch(_){ }
-        try{ loadVodEmbed(vid); }catch(_){ }
+        try{ window.loadVodEmbed && window.loadVodEmbed(vid); }catch(_){ }
       });
 
       // Removed "Plus d'infos" button: description is always visible.
@@ -2971,7 +2971,7 @@ function tfBuildCard(cat){
           const vodId = String(v.id || div.dataset.vodId || '').replace(/^v/i,'').trim();
           if (!vodId) return;
           try{ closeTwitFlix(); }catch(_){ }
-          try{ loadVodEmbed(vodId); }catch(_){ }
+          try{ window.loadVodEmbed && window.loadVodEmbed(vodId); }catch(_){ }
           try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
           return;
         }
@@ -3009,10 +3009,10 @@ function tfBuildCard(cat){
       const media = document.getElementById('tf-hero-media');
       const t = document.getElementById('tf-hero-title');
       const s = document.getElementById('tf-hero-sub');
-      if (t) t.textContent = String(title || 'TWITFLIX');
+      if (t) t.textContent = String(title || 'DISCOVERY');
       if (s) s.textContent = String(sub || '');
       if (bg){
-        if (poster) { bg.src = poster; bg.style.opacity = (String(title||'').toUpperCase()==='TWITFLIX' ? '.55' : '.78'); }
+        if (poster) { bg.src = poster; bg.style.opacity = (String(title||'').toUpperCase()==='DISCOVERY' ? '.55' : '.78'); }
         else { bg.removeAttribute('src'); bg.style.opacity = '.15'; }
       }
 
@@ -3033,7 +3033,8 @@ function tfBuildCard(cat){
       iframe.src = src;
       iframe.width = '100%';
       iframe.height = '100%';
-      iframe.allow = 'autoplay; fullscreen';
+      iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      iframe.setAttribute("allowfullscreen", "");
       iframe.frameBorder = '0';
       media.appendChild(iframe);
     }
@@ -3090,9 +3091,22 @@ function tfBuildCard(cat){
       // 1) YouTube trailer in HERO (autoplay muted)
       // Use a SEARCH embed to avoid YouTube embed errors on non-embeddable videos (ex: error 153).
       if (obj.youtubeId){
-        const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
+        const yt = String(obj.youtubeId || 'search').trim();
         const origin = encodeURIComponent(window.location.origin);
-        const src = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`;
+        let src = '';
+        if (yt && yt !== 'search'){
+          // Direct video embed (autoplay muted + loop) => more reliable than search embeds
+          src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt)
+              + '?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
+              + '&loop=1&playlist=' + encodeURIComponent(yt)
+              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+        } else {
+          // Fallback: search embed
+          const q = encodeURIComponent(((gameName||'').trim() + ' trailer officiel') || 'game trailer');
+          src = 'https://www.youtube-nocookie.com/embed?listType=search&list=' + q
+              + '&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
+              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+        }
         tfHeroMountIframe(src);
 
         // Play button launches an actual VOD of the game (not the hero trailer).
@@ -3110,7 +3124,7 @@ function tfBuildCard(cat){
               if(!first) return;
               const vodId = String(first.id).replace(/^v/i,'');
               try{ closeTwitFlix(); }catch(_){}
-              try{ loadVodEmbed(vodId); }catch(_){}
+              try{ window.loadVodEmbed && window.loadVodEmbed(vodId); }catch(_){}
             }catch(_e){}
           };
         }
@@ -3142,7 +3156,7 @@ function tfBuildCard(cat){
               if(!first) return;
               const vodId = String(first.id).replace(/^v/i,'');
               try{ closeTwitFlix(); }catch(_){}
-              try{ loadVodEmbed(vodId); }catch(_){}
+              try{ window.loadVodEmbed && window.loadVodEmbed(vodId); }catch(_){}
             }catch(_e){}
           };
         }
@@ -3261,7 +3275,7 @@ function tfBuildCard(cat){
 
     async function playTwitFlixCategory(gameId, gameName){
       closeTwitFlix();
-      document.getElementById('current-channel-display').innerText = "TWITFLIX…";
+      document.getElementById('current-channel-display').innerText = "DISCOVERY…";
 
       try{
         const res = await fetch(`${API_BASE}/api/stream/by_category`,{
@@ -3274,7 +3288,7 @@ function tfBuildCard(cat){
         if (data && data.success && data.channel){
           changeChannel(data.channel);
           const badge = document.getElementById('player-mode-badge');
-          if (badge) badge.innerText = "TWITFLIX";
+          if (badge) badge.innerText = "DISCOVERY";
         } else {
           alert("Aucun stream trouvé pour ce jeu.");
           document.getElementById('current-channel-display').innerText = "OFFLINE";
@@ -4064,6 +4078,52 @@ function dashboardCardHTML(access){
     portal.appendChild(wrap);
   }
 
+  // Dashboard paywall portal should NOT be always-on (it blocks Discovery rails).
+  let __dashPortalBound = false;
+  let __dashPortalEl = null;
+  let __dashPortalGetHtml = null;
+
+  function unbindDashboardPortal(){
+    try{
+      if(__dashPortalEl){
+        __dashPortalEl.removeEventListener('mouseenter', __dashPortalShow);
+        __dashPortalEl.removeEventListener('mouseleave', __dashPortalHide);
+        __dashPortalEl.removeEventListener('focusin', __dashPortalShow);
+        __dashPortalEl.removeEventListener('focusout', __dashPortalHide);
+      }
+      window.removeEventListener('scroll', __dashPortalHide, true);
+      window.removeEventListener('resize', __dashPortalHide, true);
+    }catch(e){}
+    __dashPortalBound = false;
+    __dashPortalEl = null;
+    __dashPortalGetHtml = null;
+    removePortal();
+  }
+
+  function __dashPortalShow(){
+    if(!__dashPortalEl || !__dashPortalGetHtml) return;
+    // Never show over TwitFlix/Discovery modal contexts
+    if(document.body.classList.contains('modal-open') || document.body.classList.contains('tf-modal-open')) return;
+    positionPortalCard(__dashPortalEl, __dashPortalGetHtml());
+  }
+  function __dashPortalHide(){
+    removePortal();
+  }
+
+  function bindDashboardPortal(el, getHtml){
+    if(!el) return;
+    __dashPortalEl = el;
+    __dashPortalGetHtml = getHtml;
+    if(__dashPortalBound) return;
+    __dashPortalBound = true;
+    el.addEventListener('mouseenter', __dashPortalShow);
+    el.addEventListener('mouseleave', __dashPortalHide);
+    el.addEventListener('focusin', __dashPortalShow);
+    el.addEventListener('focusout', __dashPortalHide);
+    window.addEventListener('scroll', __dashPortalHide, true);
+    window.addEventListener('resize', __dashPortalHide, true);
+  }
+
   // ---------- Inline overlays (tools) ----------
   function ensureScopeClass(el){
     if(!el.classList.contains("paywall-scope")) el.classList.add("paywall-scope");
@@ -4168,8 +4228,10 @@ function dashboardCardHTML(access){
       const lockedDash = !(premium || canUseByCredits);
       if(lockedDash){
         dashboard.setAttribute("data-paywall-locked","1");
-        positionPortalCard(dashboard, dashboardCardHTML(access));
+        // Show paywall card only on hover/focus (otherwise it blocks Discovery rails).
+        bindDashboardPortal(dashboard, ()=>dashboardCardHTML(access));
       }else{
+        unbindDashboardPortal();
         dashboard.removeAttribute("data-paywall-locked");
         removePortal();
         clearResidualBlur(dashboard);
@@ -4722,7 +4784,7 @@ function tfDisableBigPictureNav(){
 }
 
 function tfToggleBigPicture(){
-  // ORYON TV: Big Picture mandatory (button removed)
+  // DISCOVERY: Big Picture mandatory (button removed)
   tfBigPicture = true;
   document.body.classList.add('tf-bigpicture');
   tfViewMode = 'rows';
@@ -4968,7 +5030,7 @@ window.renderTwitFlix = function(){
 console.log('DISCOVERY build', 1770423290);
 
 
-// ORYON TV menu (close / quit)
+// DISCOVERY menu (close / quit)
 function tfToggleMenu(e){
   try{ e && e.stopPropagation(); }catch(_){}
   const p = document.getElementById('tf-menu-panel');
@@ -5127,7 +5189,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         `;
         b.addEventListener('focus',()=>{ focusIndex=i; });
         b.addEventListener('click',()=>{
-          try{ loadVodEmbed(it.id, it.user_login || it.user_name); }catch(_){}
+          try{ window.loadVodEmbed && window.loadVodEmbed(it.id, it.user_login || it.user_name); }catch(_){}
           close();
         });
         grid.appendChild(b);
@@ -5206,7 +5268,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
 
 // =========================================================
-// ORYON TV — Tabs (VOD / LIVE / ANIME)
+// DISCOVERY — Tabs (VOD / LIVE / ANIME)
 // =========================================================
 ;(function(){
   // Robust tab binding: works even if openTwitFlix is never called or scripts load out-of-order.
@@ -5322,7 +5384,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 })();
 
 // =========================================================
-// ORYON TV — "Catégories" dropdown (Animé) + Big-picture style
+// DISCOVERY — "Catégories" dropdown (Animé) + Big-picture style
 //  - Opens a grid dropdown similar to streaming platforms.
 //  - Selecting an item scrolls to the matching rail.
 // =========================================================
@@ -5394,7 +5456,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 })();
 
 // =========================================================
-// ORYON TV — Simple MP4 player overlay (for Public Domain anime)
+// DISCOVERY — Simple MP4 player overlay (for Public Domain anime)
 // =========================================================
 ;(function(){
   function ensurePlayer(){
@@ -5444,7 +5506,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 })()
 
 // =========================================================
-// ORYON TV — YouTube playlist overlay (for curated collections)
+// DISCOVERY — YouTube playlist overlay (for curated collections)
 // =========================================================
 ;(function(){
   function ensureYT(){
@@ -5596,7 +5658,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
 
 
 // =========================================================
-// ORYON TV — Anime (Public Domain) via server proxy (Archive.org)
+// DISCOVERY — Anime (Public Domain) via server proxy (Archive.org)
 //   - rails stacked (no sub-tabs)
 //   - some rails are "best-effort" via Archive search
 // =========================================================
@@ -5731,6 +5793,81 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
     if(inited && hasContent && !force) return;
     inited=true;
 
+
+// === DISCOVERY Animé: catalogue (pochettes) + page épisodes (modal) ===
+const ytSeries = [
+  { key:'superman', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' },
+  { key:'blake', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' },
+  { key:'new', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' }
+];
+
+function ensureAnimeModal(){
+  const blk = document.getElementById('tf-anime-block');
+  if(!blk) return;
+  if(document.getElementById('tf-anime-series-catalog')) return;
+  const top = document.createElement('div');
+  top.className = 'tf-anime-series';
+  top.id = 'tf-anime-series-catalog';
+  blk.insertBefore(top, blk.querySelector('.tf-anime-note')?.nextSibling || blk.firstChild);
+
+  const modal = document.createElement('div');
+  modal.id = 'tf-anime-modal';
+  modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);backdrop-filter:blur(10px);';
+  modal.innerHTML = `
+    <div style="max-width:1200px;margin:22px auto;padding:16px 14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="font-size:22px;font-weight:900;letter-spacing:.02em;" id="tf-anime-modal-title">Animé</div>
+        <button id="tf-anime-modal-close" class="tf-btn" style="border-radius:999px;padding:.5rem .9rem;">Fermer ✕</button>
+      </div>
+      <div style="opacity:.75;font-weight:700;margin:.4rem 0 .9rem 0;">Clique sur un épisode pour lecture plein écran.</div>
+      <div class="tf-carousel" id="tf-anime-modal-episodes"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const close = ()=>{ modal.style.display='none'; document.body.classList.remove('tf-modal-open'); };
+  modal.addEventListener('click', (e)=>{ if(e.target===modal) close(); });
+  modal.querySelector('#tf-anime-modal-close')?.addEventListener('click', close);
+  window.tfCloseAnimeModal = close;
+}
+
+function renderAnimeCatalog(){
+  ensureAnimeModal();
+  const cat = document.getElementById('tf-anime-series-catalog');
+  if(!cat) return;
+  cat.innerHTML = '';
+  ytSeries.forEach(s=>{
+    const b = document.createElement('button');
+    b.type='button';
+    b.className='tf-card';
+    b.style.cssText='width:220px;min-width:220px;text-align:left;background:transparent;border:0;cursor:pointer;';
+    b.innerHTML = `
+      <div class="tf-thumb" style="height:124px;border-radius:16px;overflow:hidden;background:#000;">
+        <img src="${esc(s.thumb)}" alt="${esc(s.title)}" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+      </div>
+      <div class="tf-card-meta">
+        <div class="tf-card-title" style="white-space:normal;line-height:1.2;">${esc(s.title)}</div>
+        <div class="tf-card-sub" style="opacity:.7;font-weight:800;">YouTube • Série</div>
+      </div>`;
+    b.addEventListener('click', async ()=>{
+      ensureAnimeModal();
+      const modal = document.getElementById('tf-anime-modal');
+      const titleEl = document.getElementById('tf-anime-modal-title');
+      if(titleEl) titleEl.textContent = s.title;
+      if(modal){ modal.style.display='block'; document.body.classList.add('tf-modal-open'); }
+      // load episodes into modal rail
+      if(typeof window.tfLoadYouTubePlaylistEpisodesInto === 'function'){
+        window.tfLoadYouTubePlaylistEpisodesInto('tf-anime-modal-episodes', s.listId, s.title);
+      }else{
+        // fallback: show the playlist tile
+        renderYouTubePlaylistsInto('tf-anime-modal-episodes', [{ title: s.title, listId: s.listId, thumb: s.thumb }]);
+      }
+    });
+    cat.appendChild(b);
+  });
+}
+
+renderAnimeCatalog();
+
     // Known identifiers (stable)
     // Use per-file listing when the IA item is a bundle of many episodes.
     loadByItemFiles('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom', 'Lone Ranger (1966)');
@@ -5751,6 +5888,16 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
         { title: 'Blake et Mortimer (Black Cat) — playlist', listId: 'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb: 'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' }
       ]);
     }
+
+    // Nouveau dessin animé: playlist rail
+    if(typeof window.tfLoadYouTubePlaylistEpisodesInto === 'function'){
+      window.tfLoadYouTubePlaylistEpisodesInto('tf-anime-newcartoon', 'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', 'Dessin animé — playlist');
+    }else{
+      renderYouTubePlaylistsInto('tf-anime-newcartoon', [
+        { title: 'Dessin animé — playlist', listId: 'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb: 'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' }
+      ]);
+    }
+
     loadByItemFiles('tf-anime-popeye', 'popeye-pubdomain', 'Popeye');
     loadByItemFiles('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat');
 
@@ -5776,7 +5923,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
 
 
 // =========================================================
-// ORYON TV — Trailers jeux vidéo (YouTube search embeds)
+// DISCOVERY — Trailers jeux vidéo (YouTube search embeds)
 //  - avoids Helix clips confusion
 //  - best-effort: some videos can be blocked from embed
 // =========================================================
@@ -5833,7 +5980,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
 
 
 // =========================================================
-// ORYON TV — LIVE tab: multiple rails by themes (fast, cached, debounced)
+// DISCOVERY — LIVE tab: multiple rails by themes (fast, cached, debounced)
 // =========================================================
 ;(function(){
   const THEMES = [

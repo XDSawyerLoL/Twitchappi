@@ -688,7 +688,7 @@ async function twitchAPI(endpoint, token = null) {
   return res.json();
 }
 // =========================================================
-// ORYON TV — VODs by title (FR streamers 20-200 viewers)
+// DISCOVERY — VODs by title (FR streamers 20-200 viewers)
 // =========================================================
 const __oryonVodSearchCache = new Map(); // key -> {ts, items}
 // Ultra-fast: Twiflix "play" cache (game_id -> eligible vod ids)
@@ -715,7 +715,7 @@ function __twiflixCacheSet(key, vods){
 }
 
 // =========================================================
-// ORYON TV — Twiflix: play one random VOD for a game (ULTRA RAPIDE)
+// DISCOVERY — Twiflix: play one random VOD for a game (ULTRA RAPIDE)
 // GET /api/twiflix/play?game_id=...&lang=fr&maxViews=800
 // Returns: { ok:true, vod_id, url, title, thumbnail_url }
 // =========================================================
@@ -939,7 +939,7 @@ app.get('/api/twitch/vods/search', heavyLimiter, async (req, res) => {
 
 
 // =========================================================
-// ORYON TV — VODs by game (used by TwitFlix drawer: LIVE/VOD/PREVIEW)
+// DISCOVERY — VODs by game (used by TwitFlix drawer: LIVE/VOD/PREVIEW)
 // =========================================================
 app.get('/api/twitch/vods/by-game', heavyLimiter, async (req, res) => {
   try{
@@ -1024,7 +1024,7 @@ app.get('/api/twitch/vods/by-game', heavyLimiter, async (req, res) => {
 });
 
 // =========================================================
-// ORYON TV — VOD by game seeded from small live streamers
+// DISCOVERY — VOD by game seeded from small live streamers
 // Goal: Netflix-like discovery for emerging creators (e.g. 20–200 viewers)
 // Strategy: get current small streams for a game -> fetch 1–2 recent archives per channel
 // =========================================================
@@ -1210,7 +1210,7 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
 });
 
 // =========================================================
-// ORYON TV — Streams by game (used by TwitFlix drawer)
+// DISCOVERY — Streams by game (used by TwitFlix drawer)
 // =========================================================
 const __oryonStreamsByGameCache = new Map();
 app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
@@ -1276,7 +1276,7 @@ app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {
 });
 
 // =========================================================
-// ORYON TV — Clips by game (used as "trailers" - MP4 autoplay)
+// DISCOVERY — Clips by game (used as "trailers" - MP4 autoplay)
 // =========================================================
 app.get('/api/twitch/clips/by-game', async (req,res)=>{
   try{
@@ -1308,7 +1308,7 @@ app.get('/api/twitch/clips/by-game', async (req,res)=>{
 
 
 // =========================================================
-// ORYON TV — Top VOD (global) — Netflix-like
+// DISCOVERY — Top VOD (global) — Netflix-like
 // Heuristic: top streams + top games -> recent archives, ranked
 // =========================================================
 const __oryonTopVodCache = { ts: 0, items: [], meta: null };
@@ -2291,7 +2291,7 @@ app.get('/api/public-domain/search', async (req,res)=>{
 
 
 // =========================================================
-// 4. STREAM INFO & TWITFLIX
+// 4. STREAM INFO & DISCOVERY
 // =========================================================
 app.post('/stream_info', async (req, res) => {
   const channel = String(req.body?.channel || '').trim().toLowerCase();
@@ -2323,7 +2323,7 @@ app.post('/stream_info', async (req, res) => {
   }
 });
 
-// --- ROUTES TWITFLIX (Updated for Infinite Scroll) ---
+// --- ROUTES DISCOVERY (Updated for Infinite Scroll) ---
 
 app.get('/api/categories/top', async (req, res) => {
   try {
