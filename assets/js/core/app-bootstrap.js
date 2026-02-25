@@ -5589,28 +5589,61 @@ window.tfOpenYouTube = function(url){
   try{ window.open(u, '_blank', 'noopener,noreferrer'); }catch(_e){ location.href = u; }
 };
 
-window.tfPlayYouTubeVideo = function(videoIdOrList, title){
-  const ids = Array.isArray(videoIdOrList) ? videoIdOrList.filter(Boolean) : [videoIdOrList].filter(Boolean);
-  if(!ids.length) return;
-  const id = String(ids[0]||'').trim();
-  if(!id) return;
-  const watch = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
-  window.tfOpenYouTube(watch);
+window.tfPlayYouTubeVideo = function(videoOrIds, title){
+  // Accept:
+  // - string videoId
+  // - array of videoIds
+  // - object { videoId|id, title, embeddable, openUrl }
+  let ids = [];
+  let meta = null;
 
-  // Keep a minimal in-app overlay with a clear "Open" link (no iframe => no 153).
+  if(Array.isArray(videoOrIds)){
+    ids = videoOrIds.filter(Boolean).map(x=> String(x.videoId||x.id||x.youtubeId||x).trim()).filter(Boolean);
+  }else if(videoOrIds && typeof videoOrIds === 'object'){
+    meta = videoOrIds;
+    const id0 = String(meta.videoId || meta.id || meta.youtubeId || '').trim();
+    if(id0) ids = [id0];
+  }else{
+    const id0 = String(videoOrIds||'').trim();
+    if(id0) ids = [id0];
+  }
+
+  if(!ids.length) return;
+
   const o = ensureYT();
-  o.querySelector('#tf-yt-title').textContent = title || 'YouTube';
+  o.querySelector('#tf-yt-title').textContent = (meta && meta.title) ? meta.title : (title || 'YouTube');
   o.dataset.kind = 'video';
   o.dataset.ids = JSON.stringify(ids);
   o.dataset.idx = '0';
-  const f = o.querySelector('#tf-yt-frame');
-  try{ f.removeAttribute('src'); }catch(_e){}
+
+  const id = ids[0];
+  const embeddable = meta ? (meta.embeddable !== false) : true;
+  const openUrl = (meta && meta.openUrl) ? String(meta.openUrl) : `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+
   const open = o.querySelector('#tf-yt-open');
-  open.href = watch;
+  open.href = openUrl;
+
   const nextBtn = o.querySelector('#tf-yt-next');
   nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
+
+  const f = o.querySelector('#tf-yt-frame');
+
+  if(!embeddable){
+    // Never try to embed (would trigger error 153). Show overlay with Open link.
+    try{ f.removeAttribute('src'); }catch(_e){}
+    o.style.display='flex';
+    return;
+  }
+
+  // Embed using the privacy-enhanced domain. Autoplay requires mute.
+  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3`;
+  f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+  f.setAttribute('allowfullscreen', '1');
+  f.src = src;
+
   o.style.display='flex';
 };
+
 
 // Expand a YouTube playlist into a real rail by fetching its items server-side (no API key)
 window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, label){
@@ -5646,7 +5679,9 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : ''),
       sourceLabel: 'YouTube',
       youtubeId: vid,
-      watchUrl: vid ? `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` : ''
+      watchUrl: it.openUrl || (vid ? `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` : ''),
+      embeddable: (it.embeddable !== false),
+      openUrl: it.openUrl || (vid ? `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` : '')
     };
   }).filter(x => x.youtubeId);
 
@@ -5682,7 +5717,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       t.className='tf-title';
       t.textContent=it.title;
       card.appendChild(t);
-      card.onclick=()=>window.tfPlayYouTubeVideo(it.youtubeId,it.title);
+      card.onclick=()=>window.tfPlayYouTubeVideo({ videoId: it.youtubeId, title: it.title, embeddable: it.embeddable, openUrl: it.openUrl }, it.title);
       rail.appendChild(card);
     });
   }
@@ -5740,7 +5775,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
         try{ v.autoplay=true; v.play().catch(()=>{}); }catch(_e){}
         card.addEventListener('click',()=>window.tfPlayMp4(it.mp4, it.title));
       }else if(hasYouTube){
-        card.addEventListener('click',()=>window.tfPlayYouTubeVideo(String(it.youtubeId), it.title));
+        card.addEventListener('click',()=>window.tfPlayYouTubeVideo({ videoId: String(it.youtubeId), title: it.title, embeddable: it.embeddable, openUrl: it.openUrl }, it.title));
       }else{
         const u = it.embedUrl || (it.identifier ? iaEmbed(it.identifier) : '');
         card.addEventListener('click',()=>window.tfPlayIframe(u, it.title));
@@ -5984,7 +6019,7 @@ async function getEpisodesForSeries(series){
         title: (it.title||'').trim() || `Épisode ${idx+1}`,
         thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : series.thumb),
         source: 'YouTube',
-        play: ()=> window.tfPlayYouTubeVideo ? window.tfPlayYouTubeVideo(vid, it.title) : window.tfPlayYouTubePlaylist(series.listId, series.title)
+        play: ()=> window.tfPlayYouTubeVideo ? window.tfPlayYouTubeVideo({ videoId: vid, title: it.title, embeddable: true, openUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` }, it.title) : window.tfPlayYouTubePlaylist(series.listId, series.title)
       };
     }).filter(x=>x.thumb);
   }

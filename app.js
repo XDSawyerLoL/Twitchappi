@@ -2796,6 +2796,94 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
       return res.status(502).json({ success:false, error:'fetch_failed', status: fr.status || 0 });
     }
 
+
+    // If we have a YouTube Data API key, filter out non-embeddable videos to prevent "Erreur 153".
+    // This keeps playback inside the app (iframe) for all returned items.
+    const YT_KEY = String(process.env.YOUTUBE_API_KEY || '').trim();
+    if(YT_KEY && items.length){
+      async function ytVideosStatus(ids){
+        const out = new Map();
+        const chunks = [];
+        for(let i=0;i<ids.length;i+=50) chunks.push(ids.slice(i,i+50));
+        for(const c of chunks){
+          const url = `https://www.googleapis.com/youtube/v3/videos?part=status,snippet&id=${encodeURIComponent(c.join(','))}&key=${encodeURIComponent(YT_KEY)}`;
+          const r = await fetchWithTimeout(url, { headers: { 'accept':'application/json' } }, 8000).catch(()=>null);
+          if(!r || !r.ok) continue;
+          const j = await r.json().catch(()=>null);
+          const arr = j && Array.isArray(j.items) ? j.items : [];
+          for(const it of arr){
+            const vid = it?.id;
+            const emb = !!it?.status?.embeddable;
+            const t = it?.snippet?.title || '';
+            const th = it?.snippet?.thumbnails?.high?.url || it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '';
+            if(vid) out.set(String(vid), { embeddable: emb, title: t, thumb: th });
+          }
+        }
+        return out;
+      }
+
+      async function ytFindEmbeddableReplacement(query){
+        const q = String(query||'').trim();
+        if(!q) return null;
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&videoEmbeddable=true&safeSearch=none&q=${encodeURIComponent(q)}&key=${encodeURIComponent(YT_KEY)}`;
+        const r = await fetchWithTimeout(url, { headers: { 'accept':'application/json' } }, 8000).catch(()=>null);
+        if(!r || !r.ok) return null;
+        const j = await r.json().catch(()=>null);
+        const it = j?.items?.[0];
+        const vid = it?.id?.videoId;
+        const t = it?.snippet?.title || '';
+        const th = it?.snippet?.thumbnails?.high?.url || it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '';
+        return vid ? { videoId: String(vid), title: t, thumb: th } : null;
+      }
+
+      const ids = items.map(x=>String(x.videoId||'')).filter(Boolean);
+      const st = await ytVideosStatus(ids);
+
+      // Update titles/thumbs when available + mark embeddable
+      for(const it of items){
+        const s = st.get(String(it.videoId||''));
+        if(s){
+          it.embeddable = !!s.embeddable;
+          if(s.title) it.title = s.title;
+          if(s.thumb) it.thumb = s.thumb;
+        }else{
+          it.embeddable = true; // unknown: keep, we'll handle on the client with fallback
+        }
+        it.openUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(it.videoId)}&list=${encodeURIComponent(listId)}`;
+      }
+
+      // Try to replace non-embeddable items (limited to avoid quota spikes)
+      let replaced = 0;
+      for(const it of items){
+        if(it.embeddable) continue;
+        if(replaced >= 20) break;
+        const rep = await ytFindEmbeddableReplacement(it.title);
+        if(rep){
+          it.videoId = rep.videoId;
+          it.title = rep.title || it.title;
+          it.thumb = rep.thumb || it.thumb;
+          it.embeddable = true;
+          it.replaced = true;
+          it.openUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(it.videoId)}&list=${encodeURIComponent(listId)}`;
+          replaced++;
+        }
+      }
+
+      // Finally, remove items that are still not embeddable (prevents 153)
+      const filtered = items.filter(x=>x.embeddable);
+      // If filtering would empty the playlist, fall back to original list (better than nothing)
+      if(filtered.length >= 3) {
+        items.length = 0;
+        for(const x of filtered) items.push(x);
+      }
+    }else{
+      // Always include openUrl for the client
+      for(const it of items){
+        it.openUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(it.videoId)}&list=${encodeURIComponent(listId)}`;
+        it.embeddable = true;
+      }
+    }
+
     return res.json({ success:true, listId, items });
   }catch(e){
     return res.status(500).json({ success:false, error:e.message });
