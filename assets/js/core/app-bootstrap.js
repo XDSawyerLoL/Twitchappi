@@ -5817,16 +5817,54 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
 
 // === DISCOVERY Animé: catalogue type "Netflix" + fiche série (modal) ===
 // Objectif: une grille de pochettes, clic = fiche avec hero + liste d'épisodes verticale.
+function tfSvgPoster(title){
+  const t = String(title||'').slice(0,32);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#111827"/>
+        <stop offset="1" stop-color="#000000"/>
+      </linearGradient>
+    </defs>
+    <rect width="600" height="900" fill="url(#g)"/>
+    <text x="50" y="520" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="54" font-weight="800">${t.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
+    <text x="50" y="590" fill="#9ca3af" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700">Domaine public • Archive/YouTube</text>
+  </svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+// Prefer safe player wrappers (avoid missing globals / 153 hard-fail)
+window.tfPlayMP4 = window.tfPlayMP4 || function(url, title){
+  if(window.tfPlayMp4) return window.tfPlayMp4(url, title);
+};
+window.tfPlayYouTubeVideo = window.tfPlayYouTubeVideo || function(videoId, title){
+  // Many videos refuse iframe playback (YouTube embed restrictions). Default to opening directly.
+  const u = `https://www.youtube.com/watch?v=${encodeURIComponent(String(videoId||''))}`;
+  try{ window.open(u, '_blank', 'noopener'); }catch(_e){ location.href = u; }
+};
+
 const ANIME_SERIES = [
+  // YouTube playlists (note: some episodes may refuse iframe; click opens YouTube directly)
   { key:'superman', type:'yt', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' },
   { key:'blake', type:'yt', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' },
   { key:'new', type:'yt', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' },
-  { key:'snafu1', type:'yt', title:'Private Snafu — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg' },
-  { key:'snafu2', type:'yt', title:'Private Snafu — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg' },
-  { key:'snafu3', type:'yt', title:'Private Snafu — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg' },
+  { key:'snafu1', type:'yt', title:'Private Snafu (1943–1945) — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg' },
+  { key:'snafu2', type:'yt', title:'Private Snafu (1943–1945) — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg' },
+  { key:'snafu3', type:'yt', title:'Private Snafu (1943–1945) — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg' },
+
+  // Archive.org curated identifiers (MP4 direct)
   { key:'loneranger', type:'ia', title:'Lone Ranger (1966)', identifier:'LoneRangerCartoon1966CrackOfDoom', thumb: iaThumb('LoneRangerCartoon1966CrackOfDoom') },
   { key:'popeye', type:'ia', title:'Popeye (Public Domain)', identifier:'popeye-pubdomain', thumb: iaThumb('popeye-pubdomain') },
   { key:'felix', type:'ia', title:'Felix le Chat (1919)', identifier:'FelixTheCat-FelineFollies1919', thumb: iaThumb('FelixTheCat-FelineFollies1919') },
+
+  // Best-effort Archive.org searches (multiple items; opens Archive player per item)
+  { key:'betty', type:'ia_search', title:'Betty Boop (sélection PD)', query:'betty boop public domain', thumb: tfSvgPoster('Betty Boop') },
+  { key:'bugs', type:'ia_search', title:'Bugs Bunny (best‑effort)', query:'bugs bunny public domain', thumb: tfSvgPoster('Bugs Bunny') },
+  { key:'daffy', type:'ia_search', title:'Daffy Duck — Dinosaur (1939) (best‑effort)', query:'Daffy Duck and the Dinosaur 1939', thumb: tfSvgPoster('Daffy Duck') },
+  { key:'porky', type:'ia_search', title:'Porky Pig — courts N&B (années 30) (best‑effort)', query:'porky pig 1930s black and white', thumb: tfSvgPoster('Porky Pig') },
+  { key:'casper', type:'ia_search', title:'Casper — The Friendly Ghost (1945) (best‑effort)', query:'Casper The Friendly Ghost 1945', thumb: tfSvgPoster('Casper') },
+  { key:'gabby', type:'ia_search', title:'Gabby (Gulliver, 1939) (best‑effort)', query:'Gabby Gulliver 1939 cartoon', thumb: tfSvgPoster('Gabby') },
+  { key:'gertie', type:'ia_search', title:'Gertie the Dinosaur (1914) (best‑effort)', query:'Gertie the Dinosaur 1914', thumb: tfSvgPoster('Gertie') },
 ];
 
 function ensureAnimeUX(){
@@ -5941,9 +5979,20 @@ async function getEpisodesForSeries(series){
       title: (e.title || e.name || `Épisode ${idx+1}`),
       thumb: t,
       source: 'Archive.org',
-      play: ()=> window.tfPlayMP4 && window.tfPlayMP4(e.url, `${series.title} — ${e.title || e.name || `Épisode ${idx+1}`}`)
+      play: ()=> window.tfPlayMp4 && window.tfPlayMp4(e.url, `${series.title} — ${e.title || e.name || `Épisode ${idx+1}`}`)
     }));
   }
+
+if(series.type==='ia_search'){
+  const items = await (window.iaSearchItems ? window.iaSearchItems(series.query||'', 24) : Promise.resolve([]));
+  return (items||[]).map((it, idx)=>({
+    idx: idx+1,
+    title: (it.title||it.identifier||`Item ${idx+1}`),
+    thumb: it.thumb || tfSvgPoster(series.title),
+    source: 'Archive.org',
+    play: ()=> window.tfPlayIframe && window.tfPlayIframe(it.embedUrl || `https://archive.org/embed/${encodeURIComponent(it.identifier)}`, it.title || series.title)
+  }));
+}
   return [];
 }
 
@@ -6012,9 +6061,18 @@ function renderAnimeGrid(){
   ensureAnimeUX();
   const grid = document.getElementById('tf-anime-series-grid');
   if(!grid) return;
-  // Hide legacy rails (the old layout) to match the new catalogue UX
+  // Hide legacy rails (old layout) to match the new catalogue UX
   try{
-    document.querySelectorAll('#tf-anime-block .tf-row').forEach(el=>{ el.style.display='none'; });
+    const blk = document.getElementById('tf-anime-block');
+    if(blk){
+      Array.from(blk.children).forEach(ch=>{
+        if(ch && ch.id==='tf-anime-series-grid') return;
+        if(ch && ch.classList && ch.classList.contains('tf-anime-note')) return;
+        if(ch && ch.id==='tf-anime-modal') return;
+        // keep the injected grid; hide everything else in the anime block
+        ch.style.display = 'none';
+      });
+    }
   }catch(_e){}
   grid.innerHTML = '';
   ANIME_SERIES.forEach(s=>{
