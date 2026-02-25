@@ -1625,6 +1625,85 @@ function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hou
 const ENABLE_CRON = (process.env.ENABLE_CRON || 'true').toLowerCase() !== 'false';
 const SNAPSHOT_EVERY_MIN = parseInt(process.env.SNAPSHOT_EVERY_MIN || '5', 10);
 
+// Tracked channels (targeted collection for 20-200 viewers):
+// - stored by Twitch user_id (stable)
+// - snapshots collected even if the channel is not in top100 FR
+const ENABLE_TRACKED_CRON = (process.env.ENABLE_TRACKED_CRON || 'true').toLowerCase() !== 'false';
+const TRACKED_EVERY_MIN = parseInt(process.env.TRACKED_EVERY_MIN || String(SNAPSHOT_EVERY_MIN || 5), 10);
+const TRACKED_MAX = parseInt(process.env.TRACKED_MAX || '500', 10);
+
+function chunk(arr, size){
+  const out = [];
+  for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size));
+  return out;
+}
+
+async function resolveTwitchUserByLogin(login){
+  const l = String(login||'').trim().toLowerCase();
+  if(!l) return null;
+  const data = await twitchAPI(`users?login=${encodeURIComponent(l)}`);
+  const u = data?.data?.[0];
+  if(!u?.id) return null;
+  return {
+    id: String(u.id),
+    login: String(u.login || l),
+    display_name: String(u.display_name || u.login || l),
+    profile_image_url: u.profile_image_url || null
+  };
+}
+
+// API: add/enable a tracked channel by login (server resolves to user_id)
+app.post('/api/tracked_channels/add', async (req, res) => {
+  try{
+    const login = String(req.body?.login || req.query?.login || '').trim();
+    if(!login) return res.status(400).json({ success:false, message:'login requis' });
+    const enabled = String(req.body?.enabled ?? req.query?.enabled ?? 'true').toLowerCase() !== 'false';
+    const u = await resolveTwitchUserByLogin(login);
+    if(!u) return res.status(404).json({ success:false, message:'Utilisateur Twitch introuvable' });
+
+    const ref = db.collection('tracked_channels').doc(u.id);
+    await ref.set({
+      twitch_user_id: u.id,
+      login: u.login,
+      display_name: u.display_name,
+      profile_image_url: u.profile_image_url,
+      enabled,
+      updated_at: admin.firestore.Timestamp.fromMillis(Date.now()),
+      created_at: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge:true });
+
+    return res.json({ success:true, channel:{ id:u.id, login:u.login, display_name:u.display_name, enabled } });
+  }catch(e){
+    return res.status(500).json({ success:false, message:e.message });
+  }
+});
+
+app.post('/api/tracked_channels/disable', async (req, res) => {
+  try{
+    const id = String(req.body?.user_id || req.query?.user_id || '').trim();
+    if(!id) return res.status(400).json({ success:false, message:'user_id requis' });
+    await db.collection('tracked_channels').doc(id).set({
+      enabled:false,
+      updated_at: admin.firestore.Timestamp.fromMillis(Date.now())
+    }, { merge:true });
+    return res.json({ success:true });
+  }catch(e){
+    return res.status(500).json({ success:false, message:e.message });
+  }
+});
+
+app.get('/api/tracked_channels/list', async (req, res) => {
+  try{
+    const limit = Math.min(parseInt(String(req.query.limit || '50'),10) || 50, 200);
+    const q = await db.collection('tracked_channels').orderBy('updated_at','desc').limit(limit).get();
+    const items = [];
+    q.forEach(d => items.push({ id:d.id, ...(d.data()||{}) }));
+    return res.json({ success:true, items });
+  }catch(e){
+    return res.status(500).json({ success:false, message:e.message });
+  }
+});
+
 async function upsertChannelMetaFromStream(stream, nowMs) {
   const ref = db.collection('channels').doc(String(stream.user_id));
   try {
@@ -1760,12 +1839,149 @@ async function collectAnalyticsSnapshot() {
   }
 }
 
+// ---------------------------------------------------------
+// Tracked channels snapshots (by Twitch user_id)
+// ---------------------------------------------------------
+async function updateTrackedDailyRollups(userId, snapObj, nowMs){
+  const viewers = Number(snapObj.viewer_count || 0);
+  const dayKey = yyyy_mm_dd_from_ms(nowMs);
+  const ref = db.collection('tracked_channels').doc(String(userId))
+    .collection('daily').doc(dayKey);
+  try{
+    await db.runTransaction(async (tx) => {
+      const s = await tx.get(ref);
+      const prev = s.exists ? s.data() : {};
+      const prevSamples = Number(prev.samples || 0);
+      const prevSum = Number(prev.total_viewers_sum || 0);
+      const prevPeak = Number(prev.peak_viewers || 0);
+      const prevLive = Number(prev.live_samples || 0);
+
+      const isLive = !!snapObj.is_live;
+      const nextSamples = prevSamples + 1;
+      const nextSum = prevSum + viewers;
+      const nextPeak = viewers > prevPeak ? viewers : prevPeak;
+      const nextLive = prevLive + (isLive ? 1 : 0);
+
+      tx.set(ref, {
+        day: dayKey,
+        samples: nextSamples,
+        live_samples: nextLive,
+        total_viewers_sum: nextSum,
+        avg_viewers: Math.round(nextSum / nextSamples),
+        peak_viewers: nextPeak,
+        minutes_checked_est: nextSamples * TRACKED_EVERY_MIN,
+        minutes_live_est: nextLive * TRACKED_EVERY_MIN,
+        last_game_id: snapObj.game_id || null,
+        last_game_name: snapObj.game_name || null,
+        updated_at: admin.firestore.Timestamp.fromMillis(nowMs)
+      }, { merge:true });
+    });
+  }catch(e){
+    console.error('❌ [TRACKED][DAILY] rollup:', e.message);
+  }
+}
+
+async function collectTrackedSnapshot(){
+  const now = Date.now();
+  try{
+    const q = await db.collection('tracked_channels')
+      .where('enabled','==', true)
+      .limit(TRACKED_MAX)
+      .get();
+    const tracked = [];
+    q.forEach(d => {
+      const data = d.data() || {};
+      const id = String(d.id);
+      if(id) tracked.push({ id, ...data });
+    });
+    if(!tracked.length) return;
+
+    // Query Twitch in chunks of 100 user_ids
+    const ids = tracked.map(t => String(t.twitch_user_id || t.id)).filter(Boolean);
+    const chunks = chunk(ids, 100);
+    const liveMap = new Map(); // user_id -> stream
+
+    for(const part of chunks){
+      const qs = part.map(id => `user_id=${encodeURIComponent(id)}`).join('&');
+      const data = await twitchAPI(`streams?first=100&${qs}`);
+      const streams = data?.data || [];
+      for(const s of streams){
+        liveMap.set(String(s.user_id), s);
+      }
+    }
+
+    let batch = db.batch();
+    let ops = 0;
+    const commitIfNeeded = async () => {
+      if (ops >= 450) {
+        await batch.commit();
+        batch = db.batch();
+        ops = 0;
+      }
+    };
+
+    const rollups = [];
+
+    for(const t of tracked){
+      const uid = String(t.twitch_user_id || t.id);
+      const s = liveMap.get(uid);
+      const isLive = !!s;
+      const snapObj = {
+        timestamp: now,
+        is_live: isLive,
+        viewer_count: isLive ? (s.viewer_count || 0) : 0,
+        game_id: isLive ? (s.game_id || null) : null,
+        game_name: isLive ? (s.game_name || null) : null,
+        title: isLive ? (s.title || null) : null,
+        started_at: isLive ? (s.started_at || null) : null,
+        language: isLive ? (s.language || null) : null
+      };
+
+      // update metadata
+      const metaRef = db.collection('tracked_channels').doc(uid);
+      batch.set(metaRef, {
+        twitch_user_id: uid,
+        login: isLive ? (s.user_login || t.login || null) : (t.login || null),
+        display_name: isLive ? (s.user_name || t.display_name || null) : (t.display_name || null),
+        last_checked: admin.firestore.Timestamp.fromMillis(now),
+        last_seen_live: isLive ? admin.firestore.Timestamp.fromMillis(now) : (t.last_seen_live || null),
+        current_game_id: snapObj.game_id,
+        current_game_name: snapObj.game_name,
+        current_viewers: snapObj.viewer_count,
+        updated_at: admin.firestore.Timestamp.fromMillis(now)
+      }, { merge:true });
+      ops++; await commitIfNeeded();
+
+      const snapRef = db.collection('tracked_channels').doc(uid)
+        .collection('snapshots').doc(String(now));
+      batch.set(snapRef, snapObj, { merge:false });
+      ops++; await commitIfNeeded();
+
+      rollups.push(updateTrackedDailyRollups(uid, snapObj, now));
+    }
+
+    await batch.commit();
+    await Promise.allSettled(rollups);
+    console.log(`📌 [TRACKED] Snapshot saved: tracked=${tracked.length}, live=${liveMap.size}`);
+  }catch(e){
+    console.error('❌ [TRACKED] Snapshot error:', e.message);
+  }
+}
+
 if (ENABLE_CRON) {
   console.log(` - CRON ENABLED = true`);
   setInterval(collectAnalyticsSnapshot, SNAPSHOT_EVERY_MIN * 60 * 1000);
   collectAnalyticsSnapshot().catch(() => {});
 } else {
   console.log(` - CRON ENABLED = false`);
+}
+
+if (ENABLE_TRACKED_CRON) {
+  console.log(` - TRACKED CRON ENABLED = true`);
+  setInterval(collectTrackedSnapshot, TRACKED_EVERY_MIN * 60 * 1000);
+  collectTrackedSnapshot().catch(() => {});
+} else {
+  console.log(` - TRACKED CRON ENABLED = false`);
 }
 
 // =========================================================
