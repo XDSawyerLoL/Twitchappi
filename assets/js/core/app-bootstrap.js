@@ -5576,6 +5576,27 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   o.style.display='flex';
 };
 
+// Play a single YouTube video in the same overlay (fullscreen-ish)
+window.tfPlayYouTubeVideo = function(videoIdOrList, title){
+  const ids = Array.isArray(videoIdOrList) ? videoIdOrList.filter(Boolean) : [videoIdOrList].filter(Boolean);
+  if(!ids.length) return;
+  const o = ensureYT();
+  o.querySelector('#tf-yt-title').textContent = title || 'YouTube';
+  o.dataset.kind = 'video';
+  o.dataset.ids = JSON.stringify(ids);
+  o.dataset.idx = '0';
+  const origin = encodeURIComponent(window.location.origin);
+  const id = ids[0];
+  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=0&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
+  const f = o.querySelector('#tf-yt-frame');
+  f.src = src;
+  const open = o.querySelector('#tf-yt-open');
+  open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+  const nextBtn = o.querySelector('#tf-yt-next');
+  nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
+  o.style.display='flex';
+};
+
 // Expand a YouTube playlist into a real rail by fetching its items server-side (no API key)
 window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, label){
   const wrap = document.getElementById(containerId);
@@ -5794,79 +5815,221 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
     inited=true;
 
 
-// === DISCOVERY Animé: catalogue (pochettes) + page épisodes (modal) ===
-const ytSeries = [
-  { key:'superman', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' },
-  { key:'blake', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' },
-  { key:'new', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' }
+// === DISCOVERY Animé: catalogue type "Netflix" + fiche série (modal) ===
+// Objectif: une grille de pochettes, clic = fiche avec hero + liste d'épisodes verticale.
+const ANIME_SERIES = [
+  { key:'superman', type:'yt', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' },
+  { key:'blake', type:'yt', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' },
+  { key:'new', type:'yt', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' },
+  { key:'loneranger', type:'ia', title:'Lone Ranger (1966)', identifier:'LoneRangerCartoon1966CrackOfDoom', thumb: iaThumb('LoneRangerCartoon1966CrackOfDoom') },
+  { key:'popeye', type:'ia', title:'Popeye (Public Domain)', identifier:'popeye-pubdomain', thumb: iaThumb('popeye-pubdomain') },
+  { key:'felix', type:'ia', title:'Felix le Chat (1919)', identifier:'FelixTheCat-FelineFollies1919', thumb: iaThumb('FelixTheCat-FelineFollies1919') },
 ];
 
-function ensureAnimeModal(){
+function ensureAnimeUX(){
   const blk = document.getElementById('tf-anime-block');
   if(!blk) return;
-  if(document.getElementById('tf-anime-series-catalog')) return;
-  const top = document.createElement('div');
-  top.className = 'tf-anime-series';
-  top.id = 'tf-anime-series-catalog';
-  blk.insertBefore(top, blk.querySelector('.tf-anime-note')?.nextSibling || blk.firstChild);
+  if(document.getElementById('tf-anime-series-grid')) return;
+
+  // Inject minimal CSS
+  if(!document.getElementById('tf-anime-css')){
+    const st = document.createElement('style');
+    st.id = 'tf-anime-css';
+    st.textContent = `
+      .tf-anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin:10px 0 18px 0;}
+      .tf-anime-card{display:block;text-align:left;background:transparent;border:0;cursor:pointer;}
+      .tf-anime-poster{height:260px;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.45);}
+      .tf-anime-poster img{width:100%;height:100%;object-fit:cover;display:block;}
+      .tf-anime-title{margin-top:10px;font-weight:900;line-height:1.15;}
+      .tf-anime-sub{opacity:.7;font-weight:800;font-size:12px;margin-top:2px;}
+      .tf-anime-modal{display:none;position:fixed;inset:0;z-index:9999;background:#000;overflow:auto;}
+      .tf-anime-hero{position:relative;min-height:520px;padding:38px 34px 24px 34px;background-size:cover;background-position:center;}
+      .tf-anime-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.72) 55%,rgba(0,0,0,.35) 100%),linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.85) 92%);}
+      .tf-anime-hero-inner{position:relative;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.2fr .8fr;gap:22px;z-index:1;}
+      .tf-anime-h1{font-size:64px;line-height:1;letter-spacing:.02em;font-weight:1000;text-transform:uppercase;}
+      .tf-anime-actions{display:flex;gap:10px;align-items:center;margin-top:16px;}
+      .tf-anime-btn{border-radius:8px;padding:.7rem 1.05rem;font-weight:900;border:1px solid rgba(255,255,255,.18);}
+      .tf-anime-btn-primary{background:#fff;color:#000;border-color:#fff;}
+      .tf-anime-btn-ghost{background:rgba(255,255,255,.06);color:#fff;}
+      .tf-anime-meta{margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;opacity:.9;}
+      .tf-anime-badge{border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:.15rem .45rem;font-weight:900;font-size:12px;}
+      .tf-anime-desc{margin-top:14px;max-width:760px;opacity:.9;}
+      .tf-anime-close{position:fixed;top:18px;right:18px;z-index:10000;border-radius:999px;padding:.6rem .95rem;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:900;}
+      .tf-anime-body{max-width:1180px;margin:0 auto;padding:0 34px 40px 34px;}
+      .tf-anime-episodes-title{margin:18px 0 10px 0;font-size:26px;font-weight:1000;}
+      .tf-ep-list{display:flex;flex-direction:column;gap:12px;}
+      .tf-ep-row{display:grid;grid-template-columns:44px 360px 1fr 90px;gap:14px;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;cursor:pointer;}
+      .tf-ep-thumb{height:204px;border-radius:10px;overflow:hidden;background:#000;}
+      .tf-ep-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+      .tf-ep-num{font-weight:1000;opacity:.85;font-size:20px;text-align:center;}
+      .tf-ep-name{font-weight:1000;font-size:18px;line-height:1.2;}
+      .tf-ep-sub{opacity:.75;margin-top:4px;font-weight:700;}
+      .tf-ep-dur{opacity:.75;font-weight:900;text-align:right;}
+      @media(max-width:920px){
+        .tf-anime-hero-inner{grid-template-columns:1fr;}
+        .tf-anime-h1{font-size:46px;}
+        .tf-ep-row{grid-template-columns:36px 1fr;grid-template-rows:auto auto;}
+        .tf-ep-thumb{height:220px;}
+        .tf-ep-dur{display:none;}
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  const grid = document.createElement('div');
+  grid.id = 'tf-anime-series-grid';
+  grid.className = 'tf-anime-grid';
+  blk.insertBefore(grid, blk.querySelector('.tf-anime-note')?.nextSibling || blk.firstChild);
 
   const modal = document.createElement('div');
   modal.id = 'tf-anime-modal';
-  modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);backdrop-filter:blur(10px);';
+  modal.className = 'tf-anime-modal';
   modal.innerHTML = `
-    <div style="max-width:1200px;margin:22px auto;padding:16px 14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <div style="font-size:22px;font-weight:900;letter-spacing:.02em;" id="tf-anime-modal-title">Animé</div>
-        <button id="tf-anime-modal-close" class="tf-btn" style="border-radius:999px;padding:.5rem .9rem;">Fermer ✕</button>
+    <button class="tf-anime-close" id="tf-anime-close">Fermer ✕</button>
+    <div class="tf-anime-hero" id="tf-anime-hero">
+      <div class="tf-anime-hero-inner">
+        <div>
+          <div class="tf-anime-h1" id="tf-anime-h1">Animé</div>
+          <div class="tf-anime-actions">
+            <button class="tf-anime-btn tf-anime-btn-primary" id="tf-anime-play">▶ Lecture</button>
+            <button class="tf-anime-btn tf-anime-btn-ghost" id="tf-anime-add">＋</button>
+            <button class="tf-anime-btn tf-anime-btn-ghost" id="tf-anime-like">♡</button>
+          </div>
+          <div class="tf-anime-meta" id="tf-anime-meta"></div>
+          <div class="tf-anime-desc" id="tf-anime-desc"></div>
+        </div>
+        <div></div>
       </div>
-      <div style="opacity:.75;font-weight:700;margin:.4rem 0 .9rem 0;">Clique sur un épisode pour lecture plein écran.</div>
-      <div class="tf-carousel" id="tf-anime-modal-episodes"></div>
-    </div>`;
+    </div>
+    <div class="tf-anime-body">
+      <div class="tf-anime-episodes-title">Épisodes</div>
+      <div class="tf-ep-list" id="tf-anime-episodes"></div>
+    </div>
+  `;
   document.body.appendChild(modal);
 
   const close = ()=>{ modal.style.display='none'; document.body.classList.remove('tf-modal-open'); };
-  modal.addEventListener('click', (e)=>{ if(e.target===modal) close(); });
-  modal.querySelector('#tf-anime-modal-close')?.addEventListener('click', close);
+  modal.querySelector('#tf-anime-close')?.addEventListener('click', close);
   window.tfCloseAnimeModal = close;
 }
 
-function renderAnimeCatalog(){
-  ensureAnimeModal();
-  const cat = document.getElementById('tf-anime-series-catalog');
-  if(!cat) return;
-  cat.innerHTML = '';
-  ytSeries.forEach(s=>{
+async function getEpisodesForSeries(series){
+  if(!series) return [];
+  if(series.type==='yt'){
+    const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(String(series.listId||''))}`);
+    const json = (r && r.ok) ? r.json : null;
+    if(!json || !json.success || !Array.isArray(json.items)) return [];
+    return json.items.map((it, idx)=>{
+      const vid = String(it.videoId||'').trim();
+      return {
+        idx: idx+1,
+        title: (it.title||'').trim() || `Épisode ${idx+1}`,
+        thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : series.thumb),
+        source: 'YouTube',
+        play: ()=> window.tfPlayYouTubeVideo ? window.tfPlayYouTubeVideo(vid, it.title) : window.tfPlayYouTubePlaylist(series.listId, series.title)
+      };
+    }).filter(x=>x.thumb);
+  }
+  if(series.type==='ia'){
+    const eps = await window.iaListMp4Files(series.identifier, 120);
+    const t = iaThumb(series.identifier);
+    return (eps||[]).map((e, idx)=>({
+      idx: idx+1,
+      title: (e.title || e.name || `Épisode ${idx+1}`),
+      thumb: t,
+      source: 'Archive.org',
+      play: ()=> window.tfPlayMP4 && window.tfPlayMP4(e.url, `${series.title} — ${e.title || e.name || `Épisode ${idx+1}`}`)
+    }));
+  }
+  return [];
+}
+
+async function openAnimeSeries(series){
+  ensureAnimeUX();
+  const modal = document.getElementById('tf-anime-modal');
+  if(!modal) return;
+  document.body.classList.add('tf-modal-open');
+  modal.style.display='block';
+
+  const hero = document.getElementById('tf-anime-hero');
+  const h1 = document.getElementById('tf-anime-h1');
+  const meta = document.getElementById('tf-anime-meta');
+  const desc = document.getElementById('tf-anime-desc');
+  const list = document.getElementById('tf-anime-episodes');
+
+  const bg = series.thumb || '';
+  if(hero){
+    hero.style.backgroundImage = `url('${bg.replace(/'/g,"\\'")}')`;
+    hero.style.backgroundSize = 'cover';
+    hero.style.backgroundPosition = 'center';
+  }
+  if(h1) h1.textContent = series.title;
+  if(meta){
+    meta.innerHTML = '';
+    const b1 = document.createElement('span');
+    b1.className='tf-anime-badge';
+    b1.textContent = series.type==='yt' ? 'YouTube' : 'Archive.org';
+    meta.appendChild(b1);
+    const b2 = document.createElement('span');
+    b2.className='tf-anime-badge';
+    b2.textContent = 'Domaine public';
+    meta.appendChild(b2);
+  }
+  if(desc){
+    desc.textContent = series.type==='yt'
+      ? "Collection d'épisodes. Clique un épisode pour lecture plein écran."
+      : "Collection d'épisodes (Archive.org). Clique un épisode pour lecture plein écran.";
+  }
+
+  if(list) list.innerHTML = '<div class="tf-empty">Chargement…</div>';
+  const eps = await getEpisodesForSeries(series);
+  if(!eps.length){ if(list) list.innerHTML = '<div class="tf-empty">Aucun épisode.</div>'; return; }
+  if(list) list.innerHTML='';
+  eps.forEach((ep)=>{
+    const row = document.createElement('div');
+    row.className = 'tf-ep-row';
+    row.innerHTML = `
+      <div class="tf-ep-num">${ep.idx}</div>
+      <div class="tf-ep-thumb"><img src="${esc(ep.thumb)}" alt=""/></div>
+      <div>
+        <div class="tf-ep-name">${esc(ep.title)}</div>
+        <div class="tf-ep-sub">${esc(ep.source || '')}</div>
+      </div>
+      <div class="tf-ep-dur"></div>
+    `;
+    row.addEventListener('click', ()=>{ try{ ep.play && ep.play(); }catch(_e){} });
+    list.appendChild(row);
+  });
+
+  const playBtn = document.getElementById('tf-anime-play');
+  if(playBtn){ playBtn.onclick = ()=>{ try{ eps[0]?.play && eps[0].play(); }catch(_e){} }; }
+}
+
+function renderAnimeGrid(){
+  ensureAnimeUX();
+  const grid = document.getElementById('tf-anime-series-grid');
+  if(!grid) return;
+  // Hide legacy rails (the old layout) to match the new catalogue UX
+  try{
+    document.querySelectorAll('#tf-anime-block .tf-row').forEach(el=>{ el.style.display='none'; });
+  }catch(_e){}
+  grid.innerHTML = '';
+  ANIME_SERIES.forEach(s=>{
     const b = document.createElement('button');
     b.type='button';
-    b.className='tf-card';
-    b.style.cssText='width:220px;min-width:220px;text-align:left;background:transparent;border:0;cursor:pointer;';
+    b.className = 'tf-anime-card';
     b.innerHTML = `
-      <div class="tf-thumb" style="height:124px;border-radius:16px;overflow:hidden;background:#000;">
-        <img src="${esc(s.thumb)}" alt="${esc(s.title)}" style="width:100%;height:100%;object-fit:cover;display:block;"/>
-      </div>
-      <div class="tf-card-meta">
-        <div class="tf-card-title" style="white-space:normal;line-height:1.2;">${esc(s.title)}</div>
-        <div class="tf-card-sub" style="opacity:.7;font-weight:800;">YouTube • Série</div>
-      </div>`;
-    b.addEventListener('click', async ()=>{
-      ensureAnimeModal();
-      const modal = document.getElementById('tf-anime-modal');
-      const titleEl = document.getElementById('tf-anime-modal-title');
-      if(titleEl) titleEl.textContent = s.title;
-      if(modal){ modal.style.display='block'; document.body.classList.add('tf-modal-open'); }
-      // load episodes into modal rail
-      if(typeof window.tfLoadYouTubePlaylistEpisodesInto === 'function'){
-        window.tfLoadYouTubePlaylistEpisodesInto('tf-anime-modal-episodes', s.listId, s.title);
-      }else{
-        // fallback: show the playlist tile
-        renderYouTubePlaylistsInto('tf-anime-modal-episodes', [{ title: s.title, listId: s.listId, thumb: s.thumb }]);
-      }
-    });
-    cat.appendChild(b);
+      <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/></div>
+      <div class="tf-anime-title">${esc(s.title)}</div>
+      <div class="tf-anime-sub">${s.type==='yt' ? 'YouTube' : 'Archive.org'}</div>
+    `;
+    b.addEventListener('click', ()=> openAnimeSeries(s));
+    grid.appendChild(b);
   });
 }
 
-renderAnimeCatalog();
+ensureAnimeUX();
+renderAnimeGrid();
 
     // Known identifiers (stable)
     // Use per-file listing when the IA item is a bundle of many episodes.
