@@ -607,20 +607,24 @@ function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
 function yyyy_mm_dd_from_ms(ms) {
   const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
   const yyyy = d.getUTCFullYear();
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   const dd = String(d.getUTCDate()).padStart(2, '0');
-  return `${yyyy}
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 // Try to read daily rollups from tracked_channels/{userId}/daily first (more complete for 20–200),
 // then fallback to channels/{userId}/daily_stats (top100 FR cron).
 async function fetchDailyStatsAny(userId, days){
   const since = Date.now() - (days * 24 * 60 * 60 * 1000);
   const dayMin = yyyy_mm_dd_from_ms(since);
+  const uid = safeDocId(userId);
+  if (!uid) return { source:'none', docs: [] };
 
   // 1) tracked_channels
   try{
-    const tq = await db.collection('tracked_channels').doc(String(userId))
+    const tq = await db.collection('tracked_channels').doc(uid)
       .collection('daily')
       .where('day','>=', dayMin)
       .orderBy('day','asc')
@@ -631,7 +635,7 @@ async function fetchDailyStatsAny(userId, days){
   }
 
   // 2) channels
-  const cq = await db.collection('channels').doc(String(userId))
+  const cq = await db.collection('channels').doc(uid)
     .collection('daily_stats')
     .where('day', '>=', dayMin)
     .orderBy('day', 'asc')
@@ -1776,6 +1780,10 @@ function safeDocId(v) {
 async function updateDailyRollupsForStream(stream, nowMs) {
   const viewers = Number(stream.viewer_count || 0);
   const dayKey = yyyy_mm_dd_from_ms(nowMs);
+  if (!dayKey) {
+    console.warn('⚠️ [CRON] dayKey vide, rollup ignoré');
+    return;
+  }
 
   const uid = safeDocId(stream.user_id ?? stream.userId ?? stream.channel_id ?? stream.channelId);
   if (!uid) {
@@ -1783,8 +1791,14 @@ async function updateDailyRollupsForStream(stream, nowMs) {
     return;
   }
 
-  const chDailyRef = db.collection('channels').doc(uid)
-    .collection('daily_stats').doc(dayKey);
+  let chDailyRef;
+  try {
+    chDailyRef = db.collection('channels').doc(uid)
+      .collection('daily_stats').doc(dayKey);
+  } catch (e) {
+    console.error('❌ [DAILY] Ref Firestore invalide (channel/day):', e.message);
+    return;
+  }
 
   try {
     await db.runTransaction(async (tx) => {
@@ -1896,8 +1910,17 @@ async function collectAnalyticsSnapshot() {
 async function updateTrackedDailyRollups(userId, snapObj, nowMs){
   const viewers = Number(snapObj.viewer_count || 0);
   const dayKey = yyyy_mm_dd_from_ms(nowMs);
-  const ref = db.collection('tracked_channels').doc(String(userId))
-    .collection('daily').doc(dayKey);
+  if (!dayKey) return;
+  const tid = safeDocId(userId);
+  if (!tid) return;
+  let ref;
+  try {
+    ref = db.collection('tracked_channels').doc(tid)
+      .collection('daily').doc(dayKey);
+  } catch (e) {
+    console.error('❌ [TRACKED] Ref Firestore invalide (tracked/day):', e.message);
+    return;
+  }
   try{
     await db.runTransaction(async (tx) => {
       const s = await tx.get(ref);
@@ -1974,7 +1997,11 @@ async function collectTrackedSnapshot(){
     const rollups = [];
 
     for(const t of tracked){
-      const uid = String(t.twitch_user_id || t.id);
+      const uid = safeDocId(t.twitch_user_id || t.id);
+      if (!uid) {
+        console.warn('⚠️ [TRACKED] entrée sans twitch_user_id, ignorée');
+        continue;
+      }
       const s = liveMap.get(uid);
       const isLive = !!s;
       const snapObj = {
@@ -1989,7 +2016,13 @@ async function collectTrackedSnapshot(){
       };
 
       // update metadata
-      const metaRef = db.collection('tracked_channels').doc(uid);
+      let metaRef;
+      try {
+        metaRef = db.collection('tracked_channels').doc(uid);
+      } catch (e) {
+        console.error('❌ [TRACKED] Ref Firestore invalide (tracked/meta):', e.message);
+        continue;
+      }
       batch.set(metaRef, {
         twitch_user_id: uid,
         login: isLive ? (s.user_login || t.login || null) : (t.login || null),
@@ -2003,8 +2036,14 @@ async function collectTrackedSnapshot(){
       }, { merge:true });
       ops++; await commitIfNeeded();
 
-      const snapRef = db.collection('tracked_channels').doc(uid)
-        .collection('snapshots').doc(String(now));
+      let snapRef;
+      try {
+        snapRef = db.collection('tracked_channels').doc(uid)
+          .collection('snapshots').doc(String(now));
+      } catch (e) {
+        console.error('❌ [TRACKED] Ref Firestore invalide (tracked/snap):', e.message);
+        continue;
+      }
       batch.set(snapRef, snapObj, { merge:false });
       ops++; await commitIfNeeded();
 
