@@ -5960,18 +5960,40 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
 
 // === DISCOVERY Animé: catalogue type "Netflix" + fiche série (modal) ===
 // Objectif: une grille de pochettes, clic = fiche avec hero + liste d'épisodes verticale.
-function tfSvgPoster(title){
-  const t = String(title||'').slice(0,32);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900">
+function tfSvgPoster(title, accentA, accentB, badge){
+  const t = String(title||'').slice(0,32).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const a = accentA || '#00e5ff';
+  const b = accentB || '#ff2bd6';
+  const bd = (badge||'Archive.org').toString().slice(0,18).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
     <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#111827"/>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#05070b"/>
         <stop offset="1" stop-color="#000000"/>
       </linearGradient>
+      <radialGradient id="glow" cx="30%" cy="25%" r="70%">
+        <stop offset="0" stop-color="${a}" stop-opacity="0.55"/>
+        <stop offset="1" stop-color="${b}" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="${a}"/>
+        <stop offset="1" stop-color="${b}"/>
+      </linearGradient>
+      <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="18"/>
+      </filter>
     </defs>
-    <rect width="600" height="900" fill="url(#g)"/>
-    <text x="50" y="520" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="54" font-weight="800">${t.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
-    <text x="50" y="590" fill="#9ca3af" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700">Domaine public • Archive/YouTube</text>
+    <rect width="600" height="900" fill="url(#bg)"/>
+    <rect width="600" height="900" fill="url(#glow)"/>
+    <g opacity="0.55" filter="url(#soft)">
+      <circle cx="520" cy="110" r="120" fill="${b}"/>
+      <circle cx="120" cy="760" r="160" fill="${a}"/>
+    </g>
+    <rect x="0" y="690" width="600" height="8" fill="url(#bar)"/>
+    <rect x="42" y="56" rx="18" ry="18" width="180" height="44" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.18)"/>
+    <text x="62" y="86" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="800">${bd}</text>
+    <text x="52" y="560" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="58" font-weight="900" letter-spacing="0.5">${t}</text>
+    <text x="52" y="626" fill="#cbd5e1" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700">Domaine public • Sélection</text>
   </svg>`;
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
@@ -6001,13 +6023,13 @@ const ANIME_SERIES = [
   { key:'felix', type:'ia', title:'Felix le Chat (1919)', identifier:'FelixTheCat-FelineFollies1919', thumb: iaThumb('FelixTheCat-FelineFollies1919') },
 
   // Best-effort Archive.org searches (multiple items; opens Archive player per item)
-  { key:'betty', type:'ia_search', title:'Betty Boop (sélection PD)', query:'betty boop public domain', thumb: tfSvgPoster('Betty Boop') },
-  { key:'bugs', type:'ia_search', title:'Bugs Bunny (best‑effort)', query:'bugs bunny public domain', thumb: tfSvgPoster('Bugs Bunny') },
-  { key:'daffy', type:'ia_search', title:'Daffy Duck — Dinosaur (1939) (best‑effort)', query:'Daffy Duck and the Dinosaur 1939', thumb: tfSvgPoster('Daffy Duck') },
-  { key:'porky', type:'ia_search', title:'Porky Pig — courts N&B (années 30) (best‑effort)', query:'porky pig 1930s black and white', thumb: tfSvgPoster('Porky Pig') },
-  { key:'casper', type:'ia_search', title:'Casper — The Friendly Ghost (1945) (best‑effort)', query:'Casper The Friendly Ghost 1945', thumb: tfSvgPoster('Casper') },
-  { key:'gabby', type:'ia_search', title:'Gabby (Gulliver, 1939) (best‑effort)', query:'Gabby Gulliver 1939 cartoon', thumb: tfSvgPoster('Gabby') },
-  { key:'gertie', type:'ia_search', title:'Gertie the Dinosaur (1914) (best‑effort)', query:'Gertie the Dinosaur 1914', thumb: tfSvgPoster('Gertie') },
+  { key:'betty', type:'ia_search', title:'Betty Boop (sélection PD)', query:'betty boop public domain', thumb: tfSvgPoster('Betty Boop', '#ff5bd6', '#ffcc00', 'Archive.org') },
+  { key:'bugs', type:'ia_search', title:'Bugs Bunny (best‑effort)', query:'bugs bunny public domain', thumb: tfSvgPoster('Bugs Bunny', '#00e5ff', '#7c3aed', 'Archive.org') },
+  { key:'daffy', type:'ia_search', title:'Daffy Duck — Dinosaur (1939) (best‑effort)', query:'Daffy Duck and the Dinosaur 1939', thumb: tfSvgPoster('Daffy Duck', '#22c55e', '#f97316', 'Archive.org') },
+  { key:'porky', type:'ia_search', title:'Porky Pig — courts N&B (années 30) (best‑effort)', query:'porky pig 1930s black and white', thumb: tfSvgPoster('Porky Pig', '#60a5fa', '#ef4444', 'Archive.org') },
+  { key:'casper', type:'ia_search', title:'Casper (1945) (best‑effort)', query:'Casper The Friendly Ghost 1945', thumb: tfSvgPoster('Casper', '#a78bfa', '#22d3ee', 'Archive.org') },
+  { key:'gabby', type:'ia_search', title:'Gabby (Gulliver, 1939) (best‑effort)', query:'Gabby Gulliver 1939 cartoon', thumb: tfSvgPoster('Gabby', '#facc15', '#14b8a6', 'Archive.org') },
+  { key:'gertie', type:'ia_search', title:'Gertie (1914) (best‑effort)', query:'Gertie the Dinosaur 1914', thumb: tfSvgPoster('Gertie', '#34d399', '#60a5fa', 'Archive.org') },
 ];
 
 function ensureAnimeUX(){
@@ -6022,8 +6044,9 @@ function ensureAnimeUX(){
     st.textContent = `
       .tf-anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin:10px 0 18px 0;}
       .tf-anime-card{display:block;text-align:left;background:transparent;border:0;cursor:pointer;}
-      .tf-anime-poster{height:260px;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.45);}
-      .tf-anime-poster img{width:100%;height:100%;object-fit:cover;display:block;}
+      .tf-anime-poster{height:300px;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 10px 34px rgba(0,0,0,.55);}
+      .tf-anime-poster img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.15) contrast(1.08) brightness(1.02);}
+      .tf-anime-card:hover .tf-anime-poster{transform:translateY(-2px) scale(1.02);transition:transform .18s ease;}
       .tf-anime-title{margin-top:10px;font-weight:900;line-height:1.15;}
       .tf-anime-sub{opacity:.7;font-weight:800;font-size:12px;margin-top:2px;}
       .tf-anime-modal{display:none;position:fixed;inset:0;z-index:9999;background:#000;overflow:auto;}
