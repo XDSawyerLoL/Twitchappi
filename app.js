@@ -610,7 +610,38 @@ function yyyy_mm_dd_from_ms(ms) {
   const yyyy = d.getUTCFullYear();
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   const dd = String(d.getUTCDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return `${yyyy}
+
+// Try to read daily rollups from tracked_channels/{userId}/daily first (more complete for 20–200),
+// then fallback to channels/{userId}/daily_stats (top100 FR cron).
+async function fetchDailyStatsAny(userId, days){
+  const since = Date.now() - (days * 24 * 60 * 60 * 1000);
+  const dayMin = yyyy_mm_dd_from_ms(since);
+
+  // 1) tracked_channels
+  try{
+    const tq = await db.collection('tracked_channels').doc(String(userId))
+      .collection('daily')
+      .where('day','>=', dayMin)
+      .orderBy('day','asc')
+      .get();
+    if (!tq.empty) return { source:'tracked', docs: tq.docs.map(d=>d.data()) };
+  }catch(e){
+    // ignore and fallback
+  }
+
+  // 2) channels
+  const cq = await db.collection('channels').doc(String(userId))
+    .collection('daily_stats')
+    .where('day', '>=', dayMin)
+    .orderBy('day', 'asc')
+    .get();
+  if (!cq.empty) return { source:'channels', docs: cq.docs.map(d=>d.data()) };
+
+  return { source:null, docs: [] };
+}
+
+-${mm}-${dd}`;
 }
 
 async function getTwitchToken(tokenType = 'app') {
@@ -3301,11 +3332,9 @@ async function generateAlertsForLogin(login, days=30) {
     if (!uRes.data || !uRes.data.length) return { success:false, message:"introuvable" };
     const channelId = String(uRes.data[0].id);
 
-    const snaps = await db.collection('channels').doc(channelId)
-      .collection('daily_stats').orderBy('day', 'desc').limit(days).get();
-    if (snaps.empty) return { success:false, message:"pas de daily_stats" };
-
-    const series = snaps.docs.map(d => d.data()).reverse();
+    const rSeries = await fetchDailyStatsAny(channelId, days);
+    const series = (rSeries.docs || []).slice().sort((a,b)=>String(a.day).localeCompare(String(b.day)));
+    if (!series.length) return { success:false, message:"pas de daily_stats" };
     const first = series[0]?.avg_viewers || 0;
     const last = series[series.length-1]?.avg_viewers || 0;
     const growth_percent = first > 0 ? Math.round(((last-first)/first)*100) : (last>0?100:0);
@@ -3448,22 +3477,15 @@ app.get('/api/analytics/channel_by_login/:login', async (req, res) => {
     if (!uRes.data || !uRes.data.length) return res.json({ success:false, error:'introuvable' });
     const channelId = String(uRes.data[0].id);
 
-    const since = Date.now() - (days * 24 * 60 * 60 * 1000);
-    const q = await db.collection('channels').doc(channelId)
-      .collection('daily_stats')
-      .where('day', '>=', yyyy_mm_dd_from_ms(since))
-      .orderBy('day', 'asc')
-      .get();
-
-    if (q.empty) {
+    const rSeries = await fetchDailyStatsAny(channelId, days);
+    const rows = rSeries.docs || [];
+    if (!rows.length) {
       return res.json({
         success:false,
         channel_id: channelId,
         message:"Pas assez de données daily_stats (laisse tourner le cron quelques minutes/heures)."
       });
     }
-
-    const rows = q.docs.map(d => d.data());
     const labels = rows.map(r => r.day?.slice(5) || '—'); // MM-DD
     const values = rows.map(r => Number(r.avg_viewers || 0));
 
