@@ -5534,15 +5534,18 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         overlay.dataset.idx = String(idx);
         const id = ids[idx];
         const kind = overlay.dataset.kind;
-        const origin = encodeURIComponent(window.location.origin);
         const f = overlay.querySelector('#tf-yt-frame');
         const open = overlay.querySelector('#tf-yt-open');
         if(kind==='playlist'){
-          f.src = `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(id)}&autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
-          open.href = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+          const pl = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+          open.href = pl;
+          try{ f.removeAttribute('src'); }catch(_e){}
+          window.tfOpenYouTube?.(pl);
         } else {
-          f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
-          open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+          const w = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+          open.href = w;
+          try{ f.removeAttribute('src'); }catch(_e){}
+          window.tfOpenYouTube?.(w);
         }
       }catch(e){}
     };
@@ -5564,34 +5567,46 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   o.dataset.kind = 'playlist';
   o.dataset.ids = JSON.stringify(ids);
   o.dataset.idx = '0';
-  const origin = encodeURIComponent(window.location.origin);
   const id = ids[0];
-  const src = `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(id)}&autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
   const f = o.querySelector('#tf-yt-frame');
-  f.src = src;
   const open = o.querySelector('#tf-yt-open');
-  open.href = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+  const pl = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+  open.href = pl;
+  // Avoid embedding playlists to prevent playback errors on restricted content.
+  try{ f.removeAttribute('src'); }catch(_e){}
+  window.tfOpenYouTube(pl);
   const nextBtn = o.querySelector('#tf-yt-next');
   nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
   o.style.display='flex';
 };
 
 // Play a single YouTube video in the same overlay (fullscreen-ish)
+// YouTube embeds often fail with "Erreur 153" when the uploader disables embedding.
+// To guarantee playback, we open YouTube directly for episode playback.
+window.tfOpenYouTube = function(url){
+  const u = String(url||'').trim();
+  if(!u) return;
+  try{ window.open(u, '_blank', 'noopener,noreferrer'); }catch(_e){ location.href = u; }
+};
+
 window.tfPlayYouTubeVideo = function(videoIdOrList, title){
   const ids = Array.isArray(videoIdOrList) ? videoIdOrList.filter(Boolean) : [videoIdOrList].filter(Boolean);
   if(!ids.length) return;
+  const id = String(ids[0]||'').trim();
+  if(!id) return;
+  const watch = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+  window.tfOpenYouTube(watch);
+
+  // Keep a minimal in-app overlay with a clear "Open" link (no iframe => no 153).
   const o = ensureYT();
   o.querySelector('#tf-yt-title').textContent = title || 'YouTube';
   o.dataset.kind = 'video';
   o.dataset.ids = JSON.stringify(ids);
   o.dataset.idx = '0';
-  const origin = encodeURIComponent(window.location.origin);
-  const id = ids[0];
-  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
   const f = o.querySelector('#tf-yt-frame');
-  f.src = src;
+  try{ f.removeAttribute('src'); }catch(_e){}
   const open = o.querySelector('#tf-yt-open');
-  open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+  open.href = watch;
   const nextBtn = o.querySelector('#tf-yt-next');
   nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
   o.style.display='flex';
@@ -5630,11 +5645,10 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       title: t,
       thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : ''),
       sourceLabel: 'YouTube',
-      embedUrl: vid
-        ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=0&controls=1&modestbranding=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}`
-        : ''
+      youtubeId: vid,
+      watchUrl: vid ? `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` : ''
     };
-  }).filter(x => x.embedUrl);
+  }).filter(x => x.youtubeId);
 
   // NOTE: containerId targets a div that is styled as a horizontal rail (.tf-carousel).
   // For playlists we want a *real* rail of episodes, so we convert the container to a block wrapper
@@ -5668,7 +5682,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       t.className='tf-title';
       t.textContent=it.title;
       card.appendChild(t);
-      card.onclick=()=>window.tfPlayIframe(it.embedUrl,it.title);
+      card.onclick=()=>window.tfPlayYouTubeVideo(it.youtubeId,it.title);
       rail.appendChild(card);
     });
   }
@@ -5709,6 +5723,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       card.style.minWidth='260px';
 
       const hasMp4 = !!(it.mp4 && String(it.mp4).trim());
+      const hasYouTube = !!(it.youtubeId && String(it.youtubeId).trim());
       const thumb = it.thumb || (it.identifier ? iaThumb(it.identifier) : '');
       card.innerHTML = `
         <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;display:flex;align-items:center;justify-content:center;">
@@ -5724,6 +5739,8 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
         const v=card.querySelector('video');
         try{ v.autoplay=true; v.play().catch(()=>{}); }catch(_e){}
         card.addEventListener('click',()=>window.tfPlayMp4(it.mp4, it.title));
+      }else if(hasYouTube){
+        card.addEventListener('click',()=>window.tfPlayYouTubeVideo(String(it.youtubeId), it.title));
       }else{
         const u = it.embedUrl || (it.identifier ? iaEmbed(it.identifier) : '');
         card.addEventListener('click',()=>window.tfPlayIframe(u, it.title));
