@@ -6251,8 +6251,88 @@ function renderAnimeGrid(){
   });
 }
 
+function renderAnimeHome(){
+  ensureAnimeUX();
+  const blk = document.getElementById('tf-anime-block');
+  const rows = document.getElementById('tf-anime-rows');
+  const hero = document.getElementById('tf-anime-home-hero');
+  if(!blk || !rows || !hero) return;
+
+  // Hide legacy rails so the page looks like Netflix (hero + shelves)
+  try{
+    Array.from(blk.children).forEach(ch=>{
+      if(!ch) return;
+      if(ch.id==='tf-anime-home') return;
+      if(ch.classList && ch.classList.contains('tf-anime-note')) return;
+      if(ch.id==='tf-anime-modal') return;
+      ch.style.display = 'none';
+    });
+  }catch(_e){}
+
+  const seen = new Set();
+  const all = [];
+  ANIME_SERIES.forEach(s=>{ if(s && s.key && !seen.has(s.key)){ seen.add(s.key); all.push(s);} });
+  if(!all.length) return;
+
+  const groups = [
+    { title:'Pépites YouTube', items: all.filter(s=>s.type==='yt') },
+    { title:'Collections Archive.org', items: all.filter(s=>s.type==='ia') },
+    { title:'Sélections (best‑effort)', items: all.filter(s=>s.type==='ia_search') },
+  ].filter(g=>g.items && g.items.length);
+
+  let current = all[0];
+  function setHero(s){
+    if(!s) return;
+    current = s;
+    hero.style.backgroundImage = `url(${JSON.stringify(String(s.thumb||''))})`;
+    const t = document.getElementById('tf-anime-home-title');
+    const b = document.getElementById('tf-anime-home-badges');
+    const d = document.getElementById('tf-anime-home-desc');
+    if(t) t.textContent = String(s.title||'');
+    if(b){
+      const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,4) : [];
+      b.innerHTML = badges.map(x=>`<span class="tf-anime-home-badge">${esc(x)}</span>`).join('');
+    }
+    if(d){
+      const src = s.type==='yt' ? 'YouTube' : 'Archive.org';
+      d.textContent = s.desc ? String(s.desc) : `${src} • Clique pour voir les épisodes.`;
+    }
+  }
+  setHero(current);
+
+  const play = document.getElementById('tf-anime-home-play');
+  const more = document.getElementById('tf-anime-home-more');
+  if(play) play.onclick = ()=>{ current && openAnimeSeries(current); };
+  if(more) more.onclick = ()=>{ current && openAnimeSeries(current); };
+
+  rows.innerHTML = '';
+  groups.forEach(g=>{
+    const sec = document.createElement('div');
+    sec.className = 'tf-anime-row';
+    sec.innerHTML = `<h4>${esc(g.title)}</h4><div class="tf-anime-shelf"></div>`;
+    const shelf = sec.querySelector('.tf-anime-shelf');
+    g.items.forEach(s=>{
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.className='tf-anime-tile';
+      const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,3) : [];
+      const badgeHtml = badges.length ? `<div class="tf-anime-card-badges">${badges.map(x=>`<span class=\\"tf-anime-card-badge\\">${esc(x)}</span>`).join('')}</div>` : '';
+      btn.innerHTML = `
+        <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/>${badgeHtml}</div>
+        <div class="tf-anime-title">${esc(s.title)}</div>
+        <div class="tf-anime-sub">${s.type==='yt' ? 'YouTube' : 'Archive.org'}</div>
+      `;
+      btn.addEventListener('mouseenter', ()=> setHero(s));
+      btn.addEventListener('focus', ()=> setHero(s));
+      btn.addEventListener('click', ()=> openAnimeSeries(s));
+      shelf.appendChild(btn);
+    });
+    rows.appendChild(sec);
+  });
+}
+
 ensureAnimeUX();
-renderAnimeGrid();
+renderAnimeHome();
 return;
 
     // Known identifiers (stable)
