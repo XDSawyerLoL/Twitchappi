@@ -2223,7 +2223,6 @@ const modal = document.getElementById('twitflix-modal');
         tfHeroCandidates = items.slice(0, 10);
         tfHeroIndex = 0;
         const v = tfHeroCandidates[0];
-        const v = tfHeroCandidates[0];
         const vodId = String(v.id || '').replace(/^v/i,'').trim();
         if (!vodId) return;
 
