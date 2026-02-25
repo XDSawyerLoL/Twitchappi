@@ -698,6 +698,7 @@ function startAuth() {
 
         // Anti-doublon (évite le double affichage quand le serveur renvoie la même chose via 2 events)
         const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
 
         // Helpers: émettre "nouvelle" ET "ancienne" API (compat)
         window.emitHubMessage = (payload) => {
@@ -6022,6 +6023,21 @@ function ensureAnimeUX(){
     st.id = 'tf-anime-css';
     st.textContent = `
       .tf-anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin:10px 0 18px 0;}
+      .tf-anime-home-hero{position:relative;min-height:520px;border-radius:18px;overflow:hidden;background:#111;margin:10px 0 18px 0;background-size:cover;background-position:center;box-shadow:0 10px 40px rgba(0,0,0,.55);} 
+      .tf-anime-home-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.70) 55%,rgba(0,0,0,.28) 100%),linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.90) 92%);} 
+      .tf-anime-home-video{position:absolute;inset:0;opacity:.95;pointer-events:none;}
+      .tf-anime-home-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+      .tf-anime-home-hero-inner{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:44px 34px;}
+      .tf-anime-home-title{font-size:64px;line-height:1;font-weight:1000;letter-spacing:.02em;text-transform:uppercase;max-width:860px;}
+      .tf-anime-home-badges{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;}
+      .tf-anime-home-badge{border:1px solid rgba(255,255,255,.28);border-radius:7px;padding:.18rem .5rem;font-weight:1000;font-size:12px;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);} 
+      .tf-anime-home-desc{margin-top:12px;max-width:760px;opacity:.9;font-weight:700;}
+      .tf-anime-home-actions{display:flex;gap:10px;align-items:center;margin-top:16px;}
+      .tf-anime-home-rows{margin-top:10px;}
+      .tf-anime-row h4{margin:12px 0 8px 0;font-weight:1000;font-size:18px;}
+      .tf-anime-shelf{display:flex;gap:12px;overflow:auto;padding-bottom:8px;scrollbar-width:thin;}
+      .tf-anime-tile{min-width:220px;max-width:220px;}
+
       .tf-anime-card{display:block;text-align:left;background:transparent;border:0;cursor:pointer;}
       .tf-anime-poster{height:300px;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;}
       .tf-anime-poster img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -6067,6 +6083,30 @@ function ensureAnimeUX(){
   grid.id = 'tf-anime-series-grid';
   grid.className = 'tf-anime-grid';
   blk.insertBefore(grid, blk.querySelector('.tf-anime-note')?.nextSibling || blk.firstChild);
+
+  // Netflix-like home container (HERO + shelves)
+  if(!document.getElementById('tf-anime-home')){
+    const home = document.createElement('div');
+    home.id = 'tf-anime-home';
+    home.style.display = 'block';
+    home.innerHTML = `
+      <div class="tf-anime-home-hero" id="tf-anime-home-hero">
+        <div class="tf-anime-home-video" id="tf-anime-home-video" aria-hidden="true"></div>
+        <div class="tf-anime-home-hero-inner">
+          <div class="tf-anime-home-title" id="tf-anime-home-title">Animé</div>
+          <div class="tf-anime-home-badges" id="tf-anime-home-badges"></div>
+          <div class="tf-anime-home-desc" id="tf-anime-home-desc"></div>
+          <div class="tf-anime-home-actions">
+            <button class="tf-anime-btn tf-anime-btn-primary" id="tf-anime-home-play">▶ Lecture</button>
+            <button class="tf-anime-btn tf-anime-btn-ghost" id="tf-anime-home-more">Plus d'infos</button>
+          </div>
+        </div>
+      </div>
+      <div class="tf-anime-home-rows" id="tf-anime-rows"></div>
+    `;
+    // Put home at the top of the block, before legacy rails
+    blk.insertBefore(home, blk.firstChild);
+  }
 
   const modal = document.createElement('div');
   modal.id = 'tf-anime-modal';
@@ -6210,7 +6250,35 @@ async function openAnimeSeries(series){
 
   const playBtn = document.getElementById('tf-anime-play');
   if(playBtn){ playBtn.onclick = ()=>{ try{ window.tfCloseAnimeModal?.(); }catch(_e){} try{ eps[0]?.play && eps[0].play(); }catch(_e){} }; }
+  // Update 'recently viewed' for personalised shelf
+  try{
+    const recentKey='discovery_anime_recent_v1';
+    const arr = (()=>{ try{ return JSON.parse(localStorage.getItem(recentKey)||'[]')||[]; }catch(_e){ return []; }})();
+    const next = [series.key, ...arr.filter(k=>k!==series.key)].slice(0,24);
+    localStorage.setItem(recentKey, JSON.stringify(next));
+  }catch(_e){}
+
+  // Like button (local, tied to browser session; later can be linked to Twitch account)
+  try{
+    const likeBtn = document.getElementById('tf-anime-like');
+    if(likeBtn){
+      const likesKey='discovery_anime_likes_v1';
+      const arr = (()=>{ try{ return JSON.parse(localStorage.getItem(likesKey)||'[]')||[]; }catch(_e){ return []; }})();
+      const liked = arr.includes(series.key);
+      likeBtn.textContent = liked ? '♥' : '♡';
+      likeBtn.onclick = ()=>{
+        const cur = (()=>{ try{ return JSON.parse(localStorage.getItem(likesKey)||'[]')||[]; }catch(_e){ return []; }})();
+        const has = cur.includes(series.key);
+        const next = has ? cur.filter(k=>k!==series.key) : [series.key, ...cur];
+        localStorage.setItem(likesKey, JSON.stringify(next.slice(0,64)));
+        likeBtn.textContent = has ? '♡' : '♥';
+        // Refresh home ordering if present
+        try{ window.renderAnimeHome && window.renderAnimeHome(); }catch(_e){}
+      };
+    }
+  }catch(_e){}
 }
+
 
 function renderAnimeGrid(){
   ensureAnimeUX();
@@ -6232,6 +6300,7 @@ function renderAnimeGrid(){
   grid.innerHTML = '';
   // Deduplicate by key (avoid double entries if legacy code pushes extras)
   const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
   ANIME_SERIES.forEach(s=>{
     if(!s || !s.key) return;
     if(seen.has(s.key)) return;
@@ -6252,6 +6321,7 @@ function renderAnimeGrid(){
 }
 
 function renderAnimeHome(){
+  window.renderAnimeHome = renderAnimeHome;
   ensureAnimeUX();
   const blk = document.getElementById('tf-anime-block');
   const rows = document.getElementById('tf-anime-rows');
@@ -6270,11 +6340,25 @@ function renderAnimeHome(){
   }catch(_e){}
 
   const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
   const all = [];
   ANIME_SERIES.forEach(s=>{ if(s && s.key && !seen.has(s.key)){ seen.add(s.key); all.push(s);} });
   if(!all.length) return;
 
+  const likesKey='discovery_anime_likes_v1';
+  const recentKey='discovery_anime_recent_v1';
+  function readList(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]')||[]; }catch(_e){ return []; } }
+  function uniqByKey(arr){ const out=[]; const seen=new Set(); (arr||[]).forEach(x=>{ if(x && x.key && !seen.has(x.key)){ seen.add(x.key); out.push(x); } }); return out; }
+  const likedKeys = readList(likesKey);
+  const recentKeys = readList(recentKey);
+  const byKey = new Map(all.map(s=>[s.key,s]));
+  const liked = likedKeys.map(k=>byKey.get(k)).filter(Boolean);
+  const recent = recentKeys.map(k=>byKey.get(k)).filter(Boolean);
+  const trending = ['superman','blake','new','betty','bugs','daffy','porky','casper','gertie','popeye','felix'].map(k=>byKey.get(k)).filter(Boolean);
+  const pepites = uniqByKey([...liked,...recent,...trending]).slice(0,16);
+
   const groups = [
+    ...(pepites.length ? [{ title:'Pépites pour vous', items: pepites }] : []),
     { title:'Pépites YouTube', items: all.filter(s=>s.type==='yt') },
     { title:'Collections Archive.org', items: all.filter(s=>s.type==='ia') },
     { title:'Sélections (best‑effort)', items: all.filter(s=>s.type==='ia_search') },
@@ -6285,9 +6369,12 @@ function renderAnimeHome(){
     if(!s) return;
     current = s;
     hero.style.backgroundImage = `url(${JSON.stringify(String(s.thumb||''))})`;
+
     const t = document.getElementById('tf-anime-home-title');
     const b = document.getElementById('tf-anime-home-badges');
     const d = document.getElementById('tf-anime-home-desc');
+    const v = document.getElementById('tf-anime-home-video');
+
     if(t) t.textContent = String(s.title||'');
     if(b){
       const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,4) : [];
@@ -6296,6 +6383,37 @@ function renderAnimeHome(){
     if(d){
       const src = s.type==='yt' ? 'YouTube' : 'Archive.org';
       d.textContent = s.desc ? String(s.desc) : `${src} • Clique pour voir les épisodes.`;
+    }
+
+    // HERO autoplay preview (Netflix feel): only for YouTube series with an embeddable episode.
+    if(v){
+      v.innerHTML = '';
+      if(s.type==='yt' && s.listId){
+        (async()=>{
+          try{
+            const key = String(s.listId);
+            let items = __ytPlaylistCache.get(key);
+            if(!items){
+              const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(key)}`);
+              const json = (r && r.ok) ? r.json : null;
+              items = (json && json.success && Array.isArray(json.items)) ? json.items : [];
+              __ytPlaylistCache.set(key, items);
+            }
+            // Pick first embeddable item.
+            const pick = items.find(it=>it && it.videoId && (it.embeddable === true || it.embeddable === 'true'));
+            if(!pick || !pick.videoId) return;
+            const vid = String(pick.videoId).trim();
+            if(!vid) return;
+            const origin = encodeURIComponent(location.origin);
+            const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&loop=1&playlist=${encodeURIComponent(vid)}&enablejsapi=1&origin=${origin}`;
+            const ifr = document.createElement('iframe');
+            ifr.src = src;
+            ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
+            ifr.setAttribute('allowfullscreen','');
+            v.appendChild(ifr);
+          }catch(_e){}
+        })();
+      }
     }
   }
   setHero(current);
