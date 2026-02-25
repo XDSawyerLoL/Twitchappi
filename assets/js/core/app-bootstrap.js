@@ -627,6 +627,11 @@ function startAuth() {
 
     function changeChannel(channel){
       currentChannel = channel;
+      try{
+        if (channel && channel !== 'twitch'){
+          fetch(`/api/tracked_channels/add?login=${encodeURIComponent(String(channel).trim())}`, { method:'POST', credentials:'include' }).catch(()=>{});
+        }
+      }catch(_){ }
       document.getElementById('current-channel-display').innerText = channel.toUpperCase();
       document.getElementById('viewer-count').innerText = '-- viewers';
       loadPlayerEmbed(channel);
@@ -2161,6 +2166,36 @@ const modal = document.getElementById('twitflix-modal');
     let tfFeaturedHero = null; // { vodId, title, sub, poster, channel, game }
     let tfFeaturedLoading = false;
 
+    let tfHeroCandidates = [];
+    let tfHeroIndex = 0;
+    let tfHeroRotateTimer = null;
+    const TF_HERO_ROTATE_MS = 30000;
+
+    function tfStartHeroRotation(){
+      try{ if (tfHeroRotateTimer) clearInterval(tfHeroRotateTimer); }catch(_){ }
+      tfHeroRotateTimer = setInterval(()=>{
+        try{
+          if (!tfHeroCandidates || tfHeroCandidates.length < 2) return;
+          tfHeroIndex = (tfHeroIndex + 1) % tfHeroCandidates.length;
+          const v = tfHeroCandidates[tfHeroIndex];
+          if (!v) return;
+          const vodId = String(v.id || '').replace(/^v/i,'').trim();
+          if (!vodId) return;
+          const poster = (v.thumbnail_url || v.thumbnail || '').replace('{width}','1280').replace('{height}','720');
+          tfFeaturedHero = {
+            vodId,
+            title: String(v.game_name || tfFeaturedHero?.title || 'Sélection'),
+            sub: String(v.title || 'Regarder maintenant'),
+            poster,
+            channel: String(v.user_name || ''),
+            game: String(v.game_name || tfFeaturedHero?.game || '')
+          };
+          tfRenderHeroMedia();
+          tfSetHero(tfFeaturedHero);
+        }catch(_){ }
+      }, TF_HERO_ROTATE_MS);
+    }
+
     async function tfEnsureFeaturedHero(){
       if (tfFeaturedHero || tfFeaturedLoading) { tfRenderHeroMedia(); return; }
       tfFeaturedLoading = true;
@@ -2178,7 +2213,10 @@ const modal = document.getElementById('twitflix-modal');
         const items = Array.isArray(d.items) ? d.items : [];
         if (!items.length) return;
 
-        const v = items[0];
+        tfHeroCandidates = items.slice(0, 10);
+        tfHeroIndex = 0;
+        const v = tfHeroCandidates[0];
+        const v = tfHeroCandidates[0];
         const vodId = String(v.id || '').replace(/^v/i,'').trim();
         if (!vodId) return;
 
@@ -2195,6 +2233,7 @@ const modal = document.getElementById('twitflix-modal');
       finally{
         tfFeaturedLoading = false;
         tfRenderHeroMedia();
+        try{ tfStartHeroRotation(); }catch(_){ }
       }
     }
 

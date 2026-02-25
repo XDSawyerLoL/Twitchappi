@@ -1736,7 +1736,9 @@ app.get('/api/tracked_channels/list', async (req, res) => {
 });
 
 async function upsertChannelMetaFromStream(stream, nowMs) {
-  const ref = db.collection('channels').doc(String(stream.user_id));
+  const uid = safeDocId(stream.user_id ?? stream.userId);
+  if (!uid) return;
+  const ref = db.collection('channels').doc(uid);
   try {
     const snap = await ref.get();
     const payload = {
@@ -1764,11 +1766,24 @@ async function upsertGameMeta(gameId, gameName) {
   } catch (e) {}
 }
 
+// Firestore document IDs cannot be empty and must not introduce "//" in a path.
+function safeDocId(v) {
+  const id = String(v ?? '').trim();
+  if (!id || id === 'undefined' || id === 'null') return null;
+  return id;
+}
+
 async function updateDailyRollupsForStream(stream, nowMs) {
   const viewers = Number(stream.viewer_count || 0);
   const dayKey = yyyy_mm_dd_from_ms(nowMs);
 
-  const chDailyRef = db.collection('channels').doc(String(stream.user_id))
+  const uid = safeDocId(stream.user_id ?? stream.userId ?? stream.channel_id ?? stream.channelId);
+  if (!uid) {
+    console.warn('⚠️ [CRON] stream sans user_id, rollup ignoré');
+    return;
+  }
+
+  const chDailyRef = db.collection('channels').doc(uid)
     .collection('daily_stats').doc(dayKey);
 
   try {
@@ -1821,13 +1836,18 @@ async function collectAnalyticsSnapshot() {
     };
 
     for (const s of streams) {
+      const uid = safeDocId(s.user_id ?? s.userId);
+      if (!uid) {
+        console.warn('⚠️ [CRON] stream ignoré (user_id manquant)');
+        continue;
+      }
       totalViewers += (s.viewer_count || 0);
 
       await upsertChannelMetaFromStream(s, now);
       await upsertGameMeta(s.game_id, s.game_name);
       rollupPromises.push(updateDailyRollupsForStream(s, now));
 
-      const chRef = db.collection('channels').doc(String(s.user_id))
+      const chRef = db.collection('channels').doc(uid)
         .collection('hourly_stats').doc(String(now));
       batch.set(chRef, {
         timestamp: now,
@@ -1841,10 +1861,10 @@ async function collectAnalyticsSnapshot() {
 
       if (s.game_id) {
         const gRef = db.collection('games').doc(String(s.game_id))
-          .collection('hourly_stats').doc(`${s.user_id}_${now}`);
+          .collection('hourly_stats').doc(`${uid}_${now}`);
         batch.set(gRef, {
           timestamp: now,
-          channel_id: String(s.user_id),
+          channel_id: uid,
           viewers: s.viewer_count || 0
         }, { merge: false });
         ops++; await commitIfNeeded();
