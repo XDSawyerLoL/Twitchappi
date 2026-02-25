@@ -1588,7 +1588,7 @@ const modal = document.getElementById('twitflix-modal');
       if (search) search.value = '';
 
       // hero default
-      tfSetHero({ title: 'ORYON TV', sub: 'Survole un jeu pour lancer un trailer automatique (muet). Clique pour voir LIVE/VOD.', poster: '' });
+      tfSetHero({ title: 'DISCOVERY', sub: 'Survole un jeu pour lancer un trailer automatique (muet). Clique pour voir LIVE/VOD.', poster: '' });
 
       // empty ui
       if (host){
@@ -2079,7 +2079,7 @@ const modal = document.getElementById('twitflix-modal');
 
       // CATALOG MODE
       host.innerHTML = '';
-      tfSetHero({ title: 'ORYON TV', sub: 'Choisis un jeu. LIVE et VOD (petits créateurs) — interface Netflix.' });
+      tfSetHero({ title: 'DISCOVERY', sub: 'Choisis un jeu. LIVE et VOD (petits créateurs) — interface Netflix.' });
       try{ tfRenderHeroMedia(); }catch(_){ }
 
       const list = tfAllCategories.slice(0);
@@ -2228,7 +2228,7 @@ const modal = document.getElementById('twitflix-modal');
       }
 
       tfSetHero({
-        title: tfFeaturedHero.title || 'ORYON TV',
+        title: tfFeaturedHero.title || 'DISCOVERY',
         sub: tfFeaturedHero.sub || '',
         poster: tfFeaturedHero.poster || ''
       });
@@ -3055,7 +3055,7 @@ function tfBuildCard(cat){
         if (playBtn){
           playBtn.onclick = async ()=>{
             try{
-              const gid = String(tfHeroCurrentKey||'');
+              const gid = String(tfHeroCurrentKey || tfDrawerOpenForGameId || (tfFeaturedHero && (tfFeaturedHero.gameId || tfFeaturedHero.game_id)) || '').trim();
               if(!gid) return;
               const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gid)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
               const r = await fetch(url, { credentials:'include' });
@@ -3087,7 +3087,7 @@ function tfBuildCard(cat){
         if (playBtn){
           playBtn.onclick = async ()=>{
             try{
-              const gid = String(tfHeroCurrentKey||'');
+              const gid = String(tfHeroCurrentKey || tfDrawerOpenForGameId || (tfFeaturedHero && (tfFeaturedHero.gameId || tfFeaturedHero.game_id)) || '').trim();
               if(!gid) return;
               const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gid)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
               const r = await fetch(url, { credentials:'include' });
@@ -4920,7 +4920,7 @@ window.renderTwitFlix = function(){
 
 
 // ORYON_TV_BUILD_MARK v1770423290
-console.log('ORYON TV build', 1770423290);
+console.log('DISCOVERY build', 1770423290);
 
 
 // ORYON TV menu (close / quit)

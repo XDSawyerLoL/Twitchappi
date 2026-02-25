@@ -1096,6 +1096,9 @@
 
 /* Phase2: never overlay player tools above modals */
 body.modal-open #player-tools{display:none !important;}
+/* When TwitFlix (modal) is open, never let paywall overlays float above it */
+body.modal-open .paywall-inline-overlay{ display:none !important; }
+body.modal-open [data-paywall].paywall-scope[data-paywall-locked="1"]::before{ display:none !important; }
 
 
 /* === BINANCE MARKET UI === */
@@ -2362,6 +2365,22 @@ body.modal-open #player-tools{display:none !important;}
 #tab-tools{ padding: 14px 14px 24px !important; box-sizing:border-box; }
 #tab-tools .tools-scroll, #tab-tools .panel-scroll{ padding: 10px 10px 18px !important; box-sizing:border-box; }
 
+/* OUTILS: uniformiser les blocs (même lecture visuelle) */
+#tab-tools .tools-scroll > div{
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 14px;
+  padding: 14px;
+}
+#tab-tools .tools-scroll > div h3,
+#tab-tools .tools-scroll > div h4{
+  margin: 0 0 10px 0;
+}
+#tab-tools .tools-scroll input,
+#tab-tools .tools-scroll button{
+  border-radius: 12px;
+}
+
 
 /* Compat badge (Steam ADN) */
 #twitflix-modal .tf-compat-badge{
@@ -2603,7 +2622,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 <div class="flex items-center gap-3">
 <button class="bg-[#111] hover:bg-[#222] text-white px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] shadow-[0_0_10px_rgba(229,9,20,0.10)] twitflix-btn" onclick="openTwitFlix()">
-<i class="fas fa-play-circle" style="color:#e50914"></i> <span class="twitflix-wordmark">ORYON TV</span>
+<i class="fas fa-play-circle" style="color:#e50914"></i> <span class="twitflix-wordmark">DISCOVERY</span>
       </button>
 <button class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2" onclick="openMarketOverlay()">
 <i class="fas fa-chart-line"></i> MARCHÉ
@@ -2957,12 +2976,12 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <div class="tf-modal-overlay" id="twitflix-modal">
 <div class="tf-modal-content">
 <div class="tf-topbar">
-<div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">ORYON TV</span></div>
-<div class="tf-nx-nav" aria-label="Navigation ORYON TV">
-  <button type="button" class="tf-nx-link active" data-tab="vod">Accueil</button>
+<div class="tf-brand" style="cursor:pointer;" onclick="openTwitFlix()"><span class="tf-logo">DISCOVERY</span></div>
+<div class="tf-nx-nav" aria-label="Navigation DISCOVERY">
+  <button type="button" class="tf-nx-link active" data-tab="vod">ACCUEIL</button>
   <button type="button" class="tf-nx-link" data-tab="vod">VOD</button>
-  <button type="button" class="tf-nx-link" data-tab="live">Live</button>
-  <button type="button" class="tf-nx-link" data-tab="anime">Animé</button>
+  <button type="button" class="tf-nx-link" data-tab="live">LIVE</button>
+  <button type="button" class="tf-nx-link" data-tab="anime">ANIMÉ</button>
 
   <div class="tf-nx-genres" id="tf-nx-genres" style="display:none;">
     <button type="button" class="tf-nx-genres-btn" onclick="tfToggleGenres(event)">
@@ -2994,14 +3013,14 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   <span class="tf-steam-label">Connecter Steam</span>
 </button>
 <div class="tf-menu">
-  <button class="tf-menu-btn" type="button" aria-label="Menu ORYON" onclick="tfToggleMenu(event)">☰</button>
+  <button class="tf-menu-btn" type="button" aria-label="Menu DISCOVERY" onclick="tfToggleMenu(event)">☰</button>
   <div class="tf-menu-panel" id="tf-menu-panel" style="display:none;">
-    <button type="button" onclick="closeTwitFlix(); tfHideMenu();">Fermer ORYON TV</button>
+    <button type="button" onclick="closeTwitFlix(); tfHideMenu();">Fermer DISCOVERY</button>
     <button type="button" onclick="tfQuitApp()">Quitter l’application</button>
   </div>
 </div>
 
-<button class="tf-close-btn" type="button" aria-label="Fermer ORYON TV" onclick="closeTwitFlix()">✕</button>
+<button class="tf-close-btn" type="button" aria-label="Fermer DISCOVERY" onclick="closeTwitFlix()">✕</button>
 </div>
 </div>
 <div class="tf-sub" style="display:none;"></div>
@@ -3011,7 +3030,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   <div class="tf-hero-media" id="tf-hero-media" aria-hidden="true"></div>
   <div class="tf-hero-content">
     <div class="tf-hero-left">
-      <div class="tf-hero-title" id="tf-hero-title">ORYON TV</div>
+      <div class="tf-hero-title" id="tf-hero-title">DISCOVERY</div>
       <div class="tf-hero-sub" id="tf-hero-sub">Choisis un jeu, puis regarde des LIVE et VOD.</div>
       <div class="tf-hero-btns">
         <button class="tf-nx-btn tf-nx-primary" id="tf-hero-play" type="button"><span>▶</span> Lecture</button>
@@ -3126,7 +3145,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div>
 </div></div>
-<div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="ORYON" class="oryon-logo" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;pointer-events:none;">ORYON</div></div>
+<div class="tf-bp-transition" id="tf-bp-transition" aria-hidden="true"><div class="tf-bp-vignette"></div><div class="tf-bp-logo"><img src="assets/img/oryon-logo.png" alt="DISCOVERY" class="oryon-logo" style="height:22px;width:22px;border-radius:7px;margin-right:10px;vertical-align:-4px;pointer-events:none;">DISCOVERY</div></div>
 <script src="/assets/js/core/app-bootstrap.js?v=1771200001" defer></script>
 <div class="modal-overlay" id="mosaicModal" onclick="closeMosaic(event)">
 <div class="modal-card" onclick="event.stopPropagation()">
@@ -3491,7 +3510,16 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   #twitflix-modal .tf-nx-genres-panel{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 #twitflix-modal .twitflix-wordmark{ color:#e50914 !important; letter-spacing:.08em; }
-#twitflix-modal .tf-row-title span,
+/* Row title badges (keep the red identity, but readable) */
+#twitflix-modal .tf-row-title span{
+  color:#fff;
+  background: rgba(229,9,20,.22) !important;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display:inline-block;
+  line-height: 1.2;
+}
+/* Active dot stays solid */
 #twitflix-modal .tf-dot.active{ color:#e50914; background: rgba(229,9,20,.95) !important; }
 #twitflix-modal .tf-row-track::-webkit-scrollbar-thumb:hover{ background:#e50914 !important; }
 
