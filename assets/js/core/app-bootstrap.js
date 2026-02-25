@@ -5523,7 +5523,8 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         <a id="tf-yt-open" href="#" target="_blank" rel="noopener" style="margin-right:.5rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;padding:.45rem .75rem;border-radius:10px;font-weight:900;text-decoration:none;">Ouvrir YouTube</a>
         <button id="tf-yt-close" type="button" style="padding:.4rem .7rem;border-radius:10px;border:1px solid rgba(255,255,255,.18);font-weight:900;">✕</button>
         </div>
-        <iframe id="tf-yt-frame" style="width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        <div id="tf-yt-player" style="width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;overflow:hidden;"></div>
+        <iframe id="tf-yt-frame" style="display:none;width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen="1"></iframe>
       </div>`;
     document.body.appendChild(overlay);
     overlay.querySelector('#tf-yt-next').onclick = ()=>{
@@ -5559,7 +5560,78 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     return overlay;
   }
 
-  window.tfPlayYouTubePlaylist = function(listIdOrList, title){
+  
+  // YouTube Iframe API loader + player (to catch embed errors like 153 and auto-skip)
+  let __ytApiPromise = null;
+  let __ytPlayer = null;
+  function loadYouTubeApi(){
+    if(__ytApiPromise) return __ytApiPromise;
+    __ytApiPromise = new Promise((resolve) => {
+      if(window.YT && window.YT.Player){ return resolve(window.YT); }
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      tag.async = true;
+      document.head.appendChild(tag);
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = function(){
+        try{ if(typeof prev === 'function') prev(); }catch(_e){}
+        resolve(window.YT);
+      };
+      // safety timeout
+      setTimeout(()=> resolve(window.YT), 8000);
+    });
+    return __ytApiPromise;
+  }
+
+  function destroyYTPlayer(){
+    try{ if(__ytPlayer && __ytPlayer.destroy) __ytPlayer.destroy(); }catch(_e){}
+    __ytPlayer = null;
+  }
+
+  async function playYTInOverlay(videoId, onError){
+    const o = ensureYT();
+    const host = o.querySelector('#tf-yt-player');
+    const iframeFallback = o.querySelector('#tf-yt-frame');
+    if(iframeFallback) { iframeFallback.style.display='none'; try{ iframeFallback.removeAttribute('src'); }catch(_e){} }
+
+    const YT = await loadYouTubeApi().catch(()=>null);
+    if(!YT || !YT.Player || !host){
+      // fallback to plain iframe
+      if(iframeFallback){
+        iframeFallback.style.display='block';
+        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+        iframeFallback.setAttribute('allow','autoplay; encrypted-media; picture-in-picture');
+        iframeFallback.setAttribute('allowfullscreen','1');
+        iframeFallback.src = src;
+      }
+      return;
+    }
+
+    // Ensure host is empty
+    host.innerHTML = '';
+    destroyYTPlayer();
+
+    __ytPlayer = new YT.Player(host, {
+      width: '100%',
+      height: '100%',
+      videoId: String(videoId),
+      playerVars: {
+        autoplay: 1,
+        mute: 1,
+        playsinline: 1,
+        rel: 0,
+        modestbranding: 1,
+        iv_load_policy: 3,
+        origin: location.origin
+      },
+      events: {
+        onReady: (e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch(_e){} },
+        onError: (e)=>{ try{ if(typeof onError==='function') onError(e); }catch(_e){} }
+      }
+    });
+  }
+
+window.tfPlayYouTubePlaylist = function(listIdOrList, title){
   const ids = Array.isArray(listIdOrList) ? listIdOrList.filter(Boolean) : [listIdOrList].filter(Boolean);
   if(!ids.length) return;
   const o = ensureYT();
@@ -5635,11 +5707,30 @@ window.tfPlayYouTubeVideo = function(videoOrIds, title){
     return;
   }
 
-  // Embed using the privacy-enhanced domain. Autoplay requires mute.
-  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
-  f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
-  f.setAttribute('allowfullscreen', '1');
-  f.src = src;
+  // Use YouTube Iframe API so we can detect embed errors (101/150/153) and auto-skip without leaving the site.
+  const idsAll = ids.slice();
+  const playAt = async (idx0) => {
+    const vid = idsAll[idx0];
+    if(!vid) return;
+    // update openUrl to the current video
+    open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}`;
+    await playYTInOverlay(vid, (ev)=>{
+      // 2=invalid, 5=HTML5 error, 100=not found, 101/150=embed not allowed
+      const code = ev && typeof ev.data !== 'undefined' ? ev.data : null;
+      if(code === 101 || code === 150 || code === 2 || code === 5 || code === 100){
+        const next = idx0 + 1;
+        if(next < idsAll.length){
+          // auto-skip to next embeddable candidate
+          playAt(next);
+        }else{
+          // show fallback message (keep user on site)
+          const host = ensureYT().querySelector('#tf-yt-player');
+          if(host) host.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#fff;font-weight:700;">Épisode indisponible en lecture intégrée.</div>';
+        }
+      }
+    });
+  };
+  playAt(0);
 
   o.style.display='flex';
 };

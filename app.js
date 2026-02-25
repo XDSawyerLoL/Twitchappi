@@ -2801,22 +2801,27 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
     // This keeps playback inside the app (iframe) for all returned items.
     const YT_KEY = String(process.env.YOUTUBE_API_KEY || '').trim();
     if(YT_KEY && items.length){
-      async function ytVideosStatus(ids){
+      async async function ytVideosStatus(ids){
         const out = new Map();
         const chunks = [];
         for(let i=0;i<ids.length;i+=50) chunks.push(ids.slice(i,i+50));
         for(const c of chunks){
-          const url = `https://www.googleapis.com/youtube/v3/videos?part=status,snippet&id=${encodeURIComponent(c.join(','))}&key=${encodeURIComponent(YT_KEY)}`;
+          const url = `https://www.googleapis.com/youtube/v3/videos?part=status,snippet,contentDetails&id=${encodeURIComponent(c.join(','))}&key=${encodeURIComponent(YT_KEY)}`;
           const r = await fetchWithTimeout(url, { headers: { 'accept':'application/json' } }, 8000).catch(()=>null);
           if(!r || !r.ok) continue;
           const j = await r.json().catch(()=>null);
           const arr = j && Array.isArray(j.items) ? j.items : [];
           for(const it of arr){
             const vid = it?.id;
-            const emb = !!it?.status?.embeddable;
+            const emb0 = !!it?.status?.embeddable;
+            const privacy = String(it?.status?.privacyStatus || '').toLowerCase();
+            const upload = String(it?.status?.uploadStatus || '').toLowerCase();
+            const blocked = (it?.contentDetails?.regionRestriction?.blocked || []);
+            const blockedFR = Array.isArray(blocked) && blocked.includes('FR');
+            const emb = !!emb0 && (privacy ? privacy === 'public' : true) && (upload ? upload === 'processed' : true) && !blockedFR;
             const t = it?.snippet?.title || '';
             const th = it?.snippet?.thumbnails?.high?.url || it?.snippet?.thumbnails?.medium?.url || it?.snippet?.thumbnails?.default?.url || '';
-            if(vid) out.set(String(vid), { embeddable: emb, title: t, thumb: th });
+            if(vid) out.set(String(vid), { embeddable: emb, title: t, thumb: th, blockedFR });
           }
         }
         return out;
