@@ -2801,7 +2801,7 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
     // This keeps playback inside the app (iframe) for all returned items.
     const YT_KEY = String(process.env.YOUTUBE_API_KEY || '').trim();
     if(YT_KEY && items.length){
-      async async function ytVideosStatus(ids){
+      async function ytVideosStatus(ids){
         const out = new Map();
         const chunks = [];
         for(let i=0;i<ids.length;i+=50) chunks.push(ids.slice(i,i+50));
