@@ -194,28 +194,39 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       });
     }
 
-    // FIREBASE STATUS
+    // HUB STATUS (Socket + Firebase) — avoids false "HUB DÉCONNECTÉ" due to polling races
+    function updateHubStatusUI(){
+      const el = document.getElementById('socket-status');
+      if(!el) return;
+
+      const sockOk = !!window.__hubSocketOk;
+      const fbOk = !!window.__firebaseOk;
+
+      if(sockOk && fbOk){
+        el.textContent = 'HUB SECURE';
+        el.className = 'text-xs font-bold px-2 py-1 rounded bg-[#00f2ea] text-black';
+      } else if(sockOk && !fbOk){
+        el.textContent = 'HUB CONNECTÉ';
+        el.className = 'text-xs font-bold px-2 py-1 rounded bg-[#00f2ea] text-black';
+      } else {
+        el.textContent = 'HUB DÉCONNECTÉ';
+        el.className = 'text-xs font-bold px-2 py-1 rounded bg-red-600 text-white';
+      }
+    }
+
+    // FIREBASE STATUS (does NOT overwrite socket state)
     async function initFirebaseStatus() {
       async function checkStatus() {
         try {
           const response = await fetch(`${API_BASE}/firebase_status`, { cache: 'no-store' });
+          const txt = await response.text();
           let data = null;
-if (response.status === 304) {
-  data = { connected: true, message: 'cached' };
-} else {
-  const txt = await response.text();
-  try { data = JSON.parse(txt); } catch(_) { data = { connected: false, message: txt?.slice(0,200) }; }
-}
-          const statusEl = document.getElementById('socket-status');
-          if (data.connected) {
-            statusEl.innerText = 'HUB SECURE';
-            statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
-          } else {
-            statusEl.innerText = 'HUB DISCONNECTED';
-            statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
-          }
+          try { data = JSON.parse(txt); } catch(_) { data = { connected: false }; }
+          window.__firebaseOk = !!data?.connected;
+          updateHubStatusUI();
         } catch (error) {
-          console.error('Firebase status error:', error);
+          window.__firebaseOk = false;
+          updateHubStatusUI();
         }
       }
       checkStatus();
@@ -675,19 +686,15 @@ function startAuth() {
       try{
         socket = io(undefined, { transports: ['websocket','polling'] });
 
-        const status = document.getElementById('socket-status');
-        const setStatus = (ok) => {
-          if (!status) return;
-          status.textContent = ok ? 'HUB CONNECTÉ' : 'HUB DÉCONNECTÉ';
-          status.className = ok
-            ? 'text-xs font-bold px-2 py-1 rounded bg-[#00f2ea] text-black'
-            : 'text-xs font-bold px-2 py-1 rounded bg-red-600 text-white';
+        const setSocketOk = (ok) => {
+          window.__hubSocketOk = !!ok;
+          updateHubStatusUI();
         };
 
-        setStatus(false);
-        socket.on('connect', () => setStatus(true));
-        socket.on('disconnect', () => setStatus(false));
-        socket.on('connect_error', () => setStatus(false));
+        setSocketOk(false);
+        socket.on('connect', () => setSocketOk(true));
+        socket.on('disconnect', () => setSocketOk(false));
+        socket.on('connect_error', () => setSocketOk(false));
 
         // Anti-doublon (évite le double affichage quand le serveur renvoie la même chose via 2 events)
         const seen = new Set();
