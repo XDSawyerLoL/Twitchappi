@@ -5587,7 +5587,7 @@ window.tfPlayYouTubeVideo = function(videoIdOrList, title){
   o.dataset.idx = '0';
   const origin = encodeURIComponent(window.location.origin);
   const id = ids[0];
-  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=0&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
+  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
   const f = o.querySelector('#tf-yt-frame');
   f.src = src;
   const open = o.querySelector('#tf-yt-open');
@@ -5821,6 +5821,9 @@ const ANIME_SERIES = [
   { key:'superman', type:'yt', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' },
   { key:'blake', type:'yt', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' },
   { key:'new', type:'yt', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' },
+  { key:'snafu1', type:'yt', title:'Private Snafu — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg' },
+  { key:'snafu2', type:'yt', title:'Private Snafu — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg' },
+  { key:'snafu3', type:'yt', title:'Private Snafu — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg' },
   { key:'loneranger', type:'ia', title:'Lone Ranger (1966)', identifier:'LoneRangerCartoon1966CrackOfDoom', thumb: iaThumb('LoneRangerCartoon1966CrackOfDoom') },
   { key:'popeye', type:'ia', title:'Popeye (Public Domain)', identifier:'popeye-pubdomain', thumb: iaThumb('popeye-pubdomain') },
   { key:'felix', type:'ia', title:'Felix le Chat (1919)', identifier:'FelixTheCat-FelineFollies1919', thumb: iaThumb('FelixTheCat-FelineFollies1919') },
@@ -5858,8 +5861,8 @@ function ensureAnimeUX(){
       .tf-anime-body{max-width:1180px;margin:0 auto;padding:0 34px 40px 34px;}
       .tf-anime-episodes-title{margin:18px 0 10px 0;font-size:26px;font-weight:1000;}
       .tf-ep-list{display:flex;flex-direction:column;gap:12px;}
-      .tf-ep-row{display:grid;grid-template-columns:44px 360px 1fr 90px;gap:14px;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;cursor:pointer;}
-      .tf-ep-thumb{height:204px;border-radius:10px;overflow:hidden;background:#000;}
+      .tf-ep-row{display:grid;grid-template-columns:44px 520px 1fr 90px;gap:14px;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;cursor:pointer;}
+      .tf-ep-thumb{height:280px;border-radius:10px;overflow:hidden;background:#000;}
       .tf-ep-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
       .tf-ep-num{font-weight:1000;opacity:.85;font-size:20px;text-align:center;}
       .tf-ep-name{font-weight:1000;font-size:18px;line-height:1.2;}
@@ -5997,12 +6000,12 @@ async function openAnimeSeries(series){
       </div>
       <div class="tf-ep-dur"></div>
     `;
-    row.addEventListener('click', ()=>{ try{ ep.play && ep.play(); }catch(_e){} });
+    row.addEventListener('click', ()=>{ try{ window.tfCloseAnimeModal?.(); }catch(_e){} try{ ep.play && ep.play(); }catch(_e){} });
     list.appendChild(row);
   });
 
   const playBtn = document.getElementById('tf-anime-play');
-  if(playBtn){ playBtn.onclick = ()=>{ try{ eps[0]?.play && eps[0].play(); }catch(_e){} }; }
+  if(playBtn){ playBtn.onclick = ()=>{ try{ window.tfCloseAnimeModal?.(); }catch(_e){} try{ eps[0]?.play && eps[0].play(); }catch(_e){} }; }
 }
 
 function renderAnimeGrid(){
@@ -6030,6 +6033,7 @@ function renderAnimeGrid(){
 
 ensureAnimeUX();
 renderAnimeGrid();
+return;
 
     // Known identifiers (stable)
     // Use per-file listing when the IA item is a bundle of many episodes.
