@@ -404,7 +404,7 @@ function startAuth() {
     }
 
 	    // Play a Twitch VOD inside the main player (Netflix-like inline playback)
-	    function window.loadVodEmbed && window.loadVodEmbed(videoId, channelHint) {
+	    window.loadVodEmbed = function(videoId, channelHint) {
 	      const container = document.getElementById('video-container');
 	      const parentParam = PARENT_DOMAINS.join('&parent=');
 	      const vid = String(videoId || '').replace(/^v/i,'');
