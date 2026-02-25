@@ -5574,7 +5574,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   open.href = pl;
   // Avoid embedding playlists to prevent playback errors on restricted content.
   try{ f.removeAttribute('src'); }catch(_e){}
-  window.tfOpenYouTube(pl);
+  // Do not auto-open YouTube; keep playback inside the app via episode embeds.
   const nextBtn = o.querySelector('#tf-yt-next');
   nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
   o.style.display='flex';
@@ -5586,7 +5586,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 window.tfOpenYouTube = function(url){
   const u = String(url||'').trim();
   if(!u) return;
-  try{ window.open(u, '_blank', 'noopener,noreferrer'); }catch(_e){ location.href = u; }
+  try{ window.open(u, '_blank', 'noopener'); }catch(_e){}
 };
 
 window.tfPlayYouTubeVideo = function(videoOrIds, title){
@@ -5636,7 +5636,7 @@ window.tfPlayYouTubeVideo = function(videoOrIds, title){
   }
 
   // Embed using the privacy-enhanced domain. Autoplay requires mute.
-  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3`;
+  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
   f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
   f.setAttribute('allowfullscreen', '1');
   f.src = src;

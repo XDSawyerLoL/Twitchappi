@@ -2847,7 +2847,7 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
           if(s.title) it.title = s.title;
           if(s.thumb) it.thumb = s.thumb;
         }else{
-          it.embeddable = true; // unknown: keep, we'll handle on the client with fallback
+          it.embeddable = false; // unknown: safer to avoid embed errors (153)
         }
         it.openUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(it.videoId)}&list=${encodeURIComponent(listId)}`;
       }
