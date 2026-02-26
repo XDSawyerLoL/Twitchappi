@@ -3071,10 +3071,10 @@ function tfBuildCard(cat){
 
       const p = (async ()=>{
         try{
-          // 0) HERO: only use YouTube when we have a concrete videoId.
-          // IMPORTANT: do NOT fall back to search-embeds. They can trigger player config errors (ex: 153).
-          const ytId = String(await tfResolveTrailerId(gameName) || '').trim();
-          tfHeroCache.set(key, { t: Date.now(), youtubeId: ytId || '' });
+          // 0) HERO: always use YouTube for the header preview.
+          // We still resolve a trailer id (for caching), but rendering uses a search-embed to avoid embed errors (ex: error 153).
+          const ytId = await tfResolveTrailerId(gameName);
+          tfHeroCache.set(key, { t: Date.now(), youtubeId: String(ytId || 'search').trim() });
           return;
         }catch(_){ }
       })();
@@ -3090,20 +3090,24 @@ function tfBuildCard(cat){
 
     function tfHeroApplyAutoplay(obj, gameName, poster){
       // 1) YouTube trailer in HERO (autoplay muted)
-      // Only embed a DIRECT videoId. Never use search-embeds.
+      // Use a SEARCH embed to avoid YouTube embed errors on non-embeddable videos (ex: error 153).
       if (obj.youtubeId){
-        const yt = String(obj.youtubeId || '').trim();
+        const yt = String(obj.youtubeId || 'search').trim();
         const origin = encodeURIComponent(window.location.origin);
         let src = '';
-        if (yt){
+        if (yt && yt !== 'search'){
           // Direct video embed (autoplay muted + loop) => more reliable than search embeds
           src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt)
               + '?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
               + '&loop=1&playlist=' + encodeURIComponent(yt)
               + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+        } else {
+          // Fallback: search embed
+          const q = encodeURIComponent(((gameName||'').trim() + ' trailer officiel') || 'game trailer');
+          src = 'https://www.youtube-nocookie.com/embed?listType=search&list=' + q
+              + '&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
+              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
         }
-        // If we don't have a concrete videoId, do not mount any iframe (prevents error 153 in hero).
-        if (!src){ tfHeroClearMedia(); return; }
         tfHeroMountIframe(src);
 
         // Play button launches an actual VOD of the game (not the hero trailer).
@@ -3134,9 +3138,10 @@ function tfBuildCard(cat){
         : `parent=${encodeURIComponent(TWITCH_PARENT || window.location.hostname)}`;
 
       if (obj.vodId || obj.channel){
-        // Legacy cache: do NOT use search-embeds (can trigger error 153).
-        // Keep the hero as a static poster instead.
-        tfHeroClearMedia();
+        // Legacy cache (older sessions) — keep HERO YouTube-only.
+        const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
+        const origin = encodeURIComponent(window.location.origin);
+        tfHeroMountIframe(`https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`);
 
         const playBtn = document.getElementById('tf-hero-play');
         if (playBtn){
@@ -5987,7 +5992,6 @@ const ANIME_SERIES = [
   { key:'superman', type:'yt', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg', badges:['VF','N&B','1941–43'] },
   { key:'blake', type:'yt', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg', badges:['VF'] },
   { key:'new', type:'yt', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' },
-  { key:'martin', type:'yt', title:'Martin Mystère — playlist', listId:'PLOFx_59iP7NG_KmudokaId1neGIy_6bNq', thumb:'https://i.ytimg.com/vi/tw1uEOCy5CY/hqdefault.jpg', badges:['VF'] },
   { key:'snafu1', type:'yt', title:'Private Snafu (1943–1945) — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
   { key:'snafu2', type:'yt', title:'Private Snafu (1943–1945) — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
   { key:'snafu3', type:'yt', title:'Private Snafu (1943–1945) — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
@@ -6037,19 +6041,21 @@ function ensureAnimeUX(){
       .tf-anime-home-badge{border:1px solid rgba(255,255,255,.28);border-radius:7px;padding:.18rem .5rem;font-weight:1000;font-size:12px;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);} 
       .tf-anime-home-desc{margin-top:12px;max-width:760px;opacity:.9;font-weight:700;}
       .tf-anime-home-actions{display:flex;gap:10px;align-items:center;margin-top:16px;}
-      .tf-anime-home-rows{margin-top:10px;}
+      .tf-anime-home-rows{margin-top:10px;padding-bottom:46px;}
       .tf-anime-row h4{margin:12px 0 8px 0;font-weight:1000;font-size:18px;}
-      .tf-anime-shelf{display:flex;gap:12px;overflow:auto;padding-bottom:8px;scrollbar-width:thin;}
-      .tf-anime-tile{min-width:260px;max-width:260px;}
+      .tf-anime-shelf{display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;padding-bottom:12px;scrollbar-width:none;-ms-overflow-style:none;}
+      .tf-anime-shelf::-webkit-scrollbar{height:0;width:0;display:none;}
+      .tf-anime-tile{flex:0 0 auto;min-width:320px;max-width:320px;}
 
       .tf-anime-card{display:block;text-align:left;background:transparent;border:0;cursor:pointer;}
       .tf-anime-poster{height:300px;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;}
-      .tf-anime-tile .tf-anime-poster{height:146px;border-radius:10px;}
+      .tf-anime-tile .tf-anime-poster{height:180px;border-radius:12px;}
       .tf-anime-preview{position:absolute;inset:0;opacity:0;transition:opacity .18s ease;}
       .tf-anime-preview iframe,.tf-anime-preview video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;}
       .tf-anime-tile.tf-previewing .tf-anime-preview{opacity:1;}
       .tf-anime-tile.tf-previewing img{opacity:0;}
       .tf-anime-poster img{width:100%;height:100%;object-fit:cover;display:block;}
+      .tf-anime-recent{position:absolute;right:10px;top:10px;background:rgba(180,0,0,.92);color:#fff;border-radius:999px;padding:3px 10px;font-weight:1000;font-size:11px;letter-spacing:.06em;}
       .tf-anime-card-badges{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;}
       .tf-anime-card-badge{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:7px;padding:2px 7px;font-weight:1000;font-size:11px;backdrop-filter:blur(6px);}
       .tf-anime-title{margin-top:10px;font-weight:900;line-height:1.15;}
@@ -6364,7 +6370,8 @@ function renderAnimeHome(){
   const liked = likedKeys.map(k=>byKey.get(k)).filter(Boolean);
   const recent = recentKeys.map(k=>byKey.get(k)).filter(Boolean);
   const trending = ['superman','blake','new','betty','bugs','daffy','porky','casper','gertie','popeye','felix'].map(k=>byKey.get(k)).filter(Boolean);
-  const pepites = uniqByKey([...liked,...recent,...trending]).slice(0,12);
+  // Keep shelves tight (premium feel): limit pepites and each rail to 10 max.
+  const pepites = uniqByKey([...liked,...recent,...trending]).slice(0,10);
 
   const groups = [
     ...(pepites.length ? [{ title:'Pépites pour vous', items: pepites }] : []),
@@ -6551,14 +6558,16 @@ function renderAnimeHome(){
     sec.className = 'tf-anime-row';
     sec.innerHTML = `<h4>${esc(g.title)}</h4><div class="tf-anime-shelf"></div>`;
     const shelf = sec.querySelector('.tf-anime-shelf');
-    g.items.forEach(s=>{
+    g.items.slice(0,10).forEach(s=>{
       const btn = document.createElement('button');
       btn.type='button';
       btn.className='tf-anime-tile';
       const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,3) : [];
       const badgeHtml = badges.length ? `<div class="tf-anime-card-badges">${badges.map(x=>`<span class=\\"tf-anime-card-badge\\">${esc(x)}</span>`).join('')}</div>` : '';
+      const isRecent = recentKeys.includes(s.key);
+      const recentHtml = isRecent ? `<div class=\\"tf-anime-recent\\">AJOUT RÉCENT</div>` : '';
       btn.innerHTML = `
-        <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/>${badgeHtml}</div>
+        <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/>${badgeHtml}${recentHtml}</div>
         <div class="tf-anime-title">${esc(s.title)}</div>
         <div class="tf-anime-sub">${s.type==='yt' ? 'YouTube' : 'Archive.org'}</div>
       `;
