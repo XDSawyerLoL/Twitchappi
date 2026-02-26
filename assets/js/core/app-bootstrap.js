@@ -3071,10 +3071,11 @@ function tfBuildCard(cat){
 
       const p = (async ()=>{
         try{
-          // 0) HERO: always use YouTube for the header preview.
-          // We still resolve a trailer id (for caching), but rendering uses a search-embed to avoid embed errors (ex: error 153).
+          // 0) HERO: use a *direct* YouTube video id when available.
+          // IMPORTANT: never fall back to listType=search embeds because YouTube may pick a non-embeddable video (error 153).
           const ytId = await tfResolveTrailerId(gameName);
-          tfHeroCache.set(key, { t: Date.now(), youtubeId: String(ytId || 'search').trim() });
+          const clean = String(ytId || '').trim();
+          tfHeroCache.set(key, clean ? { t: Date.now(), youtubeId: clean } : { t: Date.now() });
           return;
         }catch(_){ }
       })();
@@ -3101,14 +3102,14 @@ function tfBuildCard(cat){
               + '?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
               + '&loop=1&playlist=' + encodeURIComponent(yt)
               + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+                }
+
+        // No safe youtube id => no iframe (prevents error 153 in the header)
+        if (!src){
+          tfHeroClearMedia();
         } else {
-          // Fallback: search embed
-          const q = encodeURIComponent(((gameName||'').trim() + ' trailer officiel') || 'game trailer');
-          src = 'https://www.youtube-nocookie.com/embed?listType=search&list=' + q
-              + '&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
-              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+          tfHeroMountIframe(src);
         }
-        tfHeroMountIframe(src);
 
         // Play button launches an actual VOD of the game (not the hero trailer).
         const playBtn = document.getElementById('tf-hero-play');
@@ -3141,7 +3142,7 @@ function tfBuildCard(cat){
         // Legacy cache (older sessions) — keep HERO YouTube-only.
         const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
         const origin = encodeURIComponent(window.location.origin);
-        tfHeroMountIframe(`https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`);
+        tfHeroClearMedia();
 
         const playBtn = document.getElementById('tf-hero-play');
         if (playBtn){
@@ -5991,8 +5992,9 @@ const ANIME_SERIES = [
   // YouTube playlists (note: some episodes may refuse iframe; click opens YouTube directly)
   { key:'superman', type:'yt', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg', badges:['VF','N&B','1941–43'] },
   { key:'blake', type:'yt', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg', badges:['VF'] },
-  { key:'martin', type:'yt', title:'Martin Mystère', listId:'PLOFx_59iP7NG_KmudokaId1neGIy_6bNq', thumb:'https://i.ytimg.com/vi/tw1uEOCy5CY/hqdefault.jpg', badges:['VF'] },
   { key:'new', type:'yt', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' },
+  { key:'martin', type:'yt', title:'Martin Mystère [Officiel]', listId:'PLOFx_59iP7NG_KmudokaId1neGIy_6bNq', thumb:'https://i.ytimg.com/vi/tw1uEOCy5CY/hqdefault.jpg', badges:['VF'] },
+  
   { key:'snafu1', type:'yt', title:'Private Snafu (1943–1945) — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
   { key:'snafu2', type:'yt', title:'Private Snafu (1943–1945) — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
   { key:'snafu3', type:'yt', title:'Private Snafu (1943–1945) — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg', badges:['VO','N&B','1943–45'] },

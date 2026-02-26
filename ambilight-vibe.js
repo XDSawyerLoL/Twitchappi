@@ -3063,10 +3063,11 @@ function tfBuildCard(cat){
 
       const p = (async ()=>{
         try{
-          // 0) HERO: always use YouTube for the header preview.
-          // We still resolve a trailer id (for caching), but rendering uses a search-embed to avoid embed errors (ex: error 153).
+          // 0) HERO: use a direct YouTube video id when available.
+          // IMPORTANT: never fall back to listType=search embeds because YouTube may pick a non-embeddable video (error 153).
           const ytId = await tfResolveTrailerId(gameName);
-          tfHeroCache.set(key, { t: Date.now(), youtubeId: String(ytId || 'search').trim() });
+          const clean = String(ytId || '').trim();
+          tfHeroCache.set(key, clean ? { t: Date.now(), youtubeId: clean } : { t: Date.now() });
           return;
         }catch(_){ }
       })();
@@ -3086,8 +3087,14 @@ function tfBuildCard(cat){
       if (obj.youtubeId){
         const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
         const origin = encodeURIComponent(window.location.origin);
-        const src = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`;
-        tfHeroMountIframe(src);
+        const yt = String(obj.youtubeId || '').trim();
+        if(yt){
+          const origin = encodeURIComponent(window.location.origin);
+          const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&loop=1&playlist=${encodeURIComponent(yt)}&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`;
+          tfHeroMountIframe(src);
+        } else {
+          tfHeroClearMedia();
+        }
 
         // Play button launches an actual VOD of the game (not the hero trailer).
         const playBtn = document.getElementById('tf-hero-play');
@@ -3120,7 +3127,7 @@ function tfBuildCard(cat){
         // Legacy cache (older sessions) — keep HERO YouTube-only.
         const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
         const origin = encodeURIComponent(window.location.origin);
-        tfHeroMountIframe(`https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`);
+        tfHeroClearMedia();
 
         const playBtn = document.getElementById('tf-hero-play');
         if (playBtn){
