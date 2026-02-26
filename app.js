@@ -2895,6 +2895,90 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
   }
 });
 
+// Resolve a YouTube channel by free-text query, then return its uploads as episodes (requires API key)
+// Front can call: GET /api/youtube/channel_uploads?query=C%C3%A9dric%20Officiel
+app.get('/api/youtube/channel_uploads', heavyLimiter, async (req, res) => {
+  try{
+    const YT_KEY = String(process.env.YOUTUBE_API_KEY || '').trim();
+    const q = String(req.query.query || '').trim();
+    if(!q) return res.status(400).json({ success:false, error:'query manquant' });
+    if(!YT_KEY) return res.status(400).json({ success:false, error:'missing_youtube_key' });
+
+    const ytHeaders = {
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'accept': 'application/json,text/plain,*/*',
+      'accept-language': 'fr-FR,fr;q=0.9,en;q=0.8',
+      'referer': 'https://www.youtube.com/',
+    };
+
+    // 1) Search channel
+    const sUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=1&q=${encodeURIComponent(q)}&key=${encodeURIComponent(YT_KEY)}`;
+    const sr = await fetchWithTimeout(sUrl, { headers: ytHeaders }, 9000).catch(()=>null);
+    if(!sr || !sr.ok) return res.status(502).json({ success:false, error:'search_failed', status: sr?.status||0 });
+    const sj = await sr.json().catch(()=>null);
+    const channelId = sj?.items?.[0]?.id?.channelId || '';
+    if(!channelId) return res.json({ success:true, items:[], reason:'no_channel' });
+
+    // 2) Get uploads playlist
+    const cUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails,snippet&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(YT_KEY)}`;
+    const cr = await fetchWithTimeout(cUrl, { headers: ytHeaders }, 9000).catch(()=>null);
+    if(!cr || !cr.ok) return res.status(502).json({ success:false, error:'channel_failed', status: cr?.status||0 });
+    const cj = await cr.json().catch(()=>null);
+    const uploads = cj?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads || '';
+    if(!uploads) return res.json({ success:true, items:[], reason:'no_uploads' });
+
+    // 3) Fetch items
+    const piUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&maxResults=25&playlistId=${encodeURIComponent(uploads)}&key=${encodeURIComponent(YT_KEY)}`;
+    const pir = await fetchWithTimeout(piUrl, { headers: ytHeaders }, 9000).catch(()=>null);
+    if(!pir || !pir.ok) return res.status(502).json({ success:false, error:'playlistitems_failed', status: pir?.status||0 });
+    const pij = await pir.json().catch(()=>null);
+    let items = [];
+    for(const it of (pij?.items||[])){
+      const vid = it?.contentDetails?.videoId || it?.snippet?.resourceId?.videoId;
+      if(!vid) continue;
+      let title = String(it?.snippet?.title || '').trim();
+      if(!title || title==='Private video' || title==='Deleted video') continue;
+      const thumb = it?.snippet?.thumbnails?.high?.url || it?.snippet?.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+      items.push({ videoId: vid, title, thumb });
+      if(items.length>=60) break;
+    }
+    if(!items.length) return res.json({ success:true, items:[] });
+
+    // 4) Filter embeddable + FR region (avoid 153)
+    async function ytVideosStatus(ids){
+      const out = new Map();
+      const chunks = [];
+      for(let i=0;i<ids.length;i+=50) chunks.push(ids.slice(i,i+50));
+      for(const c of chunks){
+        const url = `https://www.googleapis.com/youtube/v3/videos?part=status,snippet,contentDetails&id=${encodeURIComponent(c.join(','))}&key=${encodeURIComponent(YT_KEY)}`;
+        const r = await fetchWithTimeout(url, { headers: ytHeaders }, 9000).catch(()=>null);
+        if(!r || !r.ok) continue;
+        const j = await r.json().catch(()=>null);
+        for(const it of (j?.items||[])){
+          const id = it?.id;
+          if(!id) continue;
+          const emb = !!it?.status?.embeddable;
+          const priv = String(it?.status?.privacyStatus||'').toLowerCase();
+          const reg = it?.contentDetails?.regionRestriction || null;
+          const allowed = Array.isArray(reg?.allowed) ? reg.allowed.map(x=>String(x).toUpperCase()) : null;
+          const blocked = Array.isArray(reg?.blocked) ? reg.blocked.map(x=>String(x).toUpperCase()) : null;
+          const frOk = (allowed ? allowed.includes('FR') : true) && (blocked ? !blocked.includes('FR') : true);
+          const ok = emb && priv==='public' && frOk;
+          out.set(id, ok);
+        }
+      }
+      return out;
+    }
+
+    const ids = items.map(x=>x.videoId).filter(Boolean);
+    const st = await ytVideosStatus(ids);
+    items = items.filter(x=>st.get(x.videoId) === true);
+    return res.json({ success:true, items });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
   const q0 = String(req.query.q || '').trim();
   const type = String(req.query.type || 'game'); // game|movie

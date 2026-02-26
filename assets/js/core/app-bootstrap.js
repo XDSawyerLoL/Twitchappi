@@ -6064,8 +6064,14 @@ const ANIME_SERIES = [
   { key:'snafu1', type:'yt', title:'Private Snafu (1943–1945) — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg' },
   { key:'snafu2', type:'yt', title:'Private Snafu (1943–1945) — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg' },
   { key:'snafu3', type:'yt', title:'Private Snafu (1943–1945) — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg' },
+  // Classiques de la BD (chaînes officielles — best-effort via YouTube API uploads)
+  { key:'cedric', type:'ytq', group:'bd', title:'Cédric [Officiel] — compilations', query:'Cédric Officiel', badges:['VF'], thumb:'https://i.ytimg.com/vi/3cR8k9KpHnY/hqdefault.jpg' },
+  { key:'schtroumpfs', type:'ytq', group:'bd', title:'Les Schtroumpfs • Français — compilations', query:'Les Schtroumpfs Français', badges:['VF'], thumb:'https://i.ytimg.com/vi/6pI8r3oQf7w/hqdefault.jpg' },
+  { key:'titeuf', type:'ytq', group:'bd', title:'Titeuf Saison 4 [Officiel]', query:'Titeuf Officiel Saison 4', badges:['VF'], thumb:'https://i.ytimg.com/vi/8gqvHjK2p7o/hqdefault.jpg' },
+  // Autres séries populaires
+  { key:'lou', type:'ytq', group:'pop', title:'Lou! La Série [Officiel]', query:'Lou La Série Officiel', badges:['VF'], thumb:'https://i.ytimg.com/vi/7WcYf5l9t7c/hqdefault.jpg' },
 
-  // Archive.org curated identifiers (MP4 direct)
+// Archive.org curated identifiers (MP4 direct)
   { key:'loneranger', type:'ia', title:'Lone Ranger (1966)', identifier:'LoneRangerCartoon1966CrackOfDoom', thumb: iaThumb('LoneRangerCartoon1966CrackOfDoom') },
   { key:'popeye', type:'ia', title:'Popeye (Public Domain)', identifier:'popeye-pubdomain', thumb: iaThumb('popeye-pubdomain') },
   { key:'felix', type:'ia', title:'Felix le Chat (1919)', identifier:'FelixTheCat-FelineFollies1919', thumb: iaThumb('FelixTheCat-FelineFollies1919') },
@@ -6257,6 +6263,7 @@ function ensureAnimeUX(){
 
 async function getEpisodesForSeries(series){
   if(!series) return [];
+
   if(series.type==='yt'){
     const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(String(series.listId||''))}`);
     const json = (r && r.ok) ? r.json : null;
@@ -6273,6 +6280,24 @@ async function getEpisodesForSeries(series){
       };
     }).filter(x=>x.thumb);
   }
+
+  if(series.type==='ytq'){
+    const r = await window.fetchJSON(`/api/youtube/channel_uploads?query=${encodeURIComponent(String(series.query||''))}`);
+    const json = (r && r.ok) ? r.json : null;
+    if(!json || !json.success || !Array.isArray(json.items)) return [];
+    return json.items.map((it, idx)=>{
+      const vid = String(it.videoId||'').trim();
+      return {
+        idx: idx+1,
+        episodeId: vid || String(idx+1),
+        title: (it.title||'').trim() || `Épisode ${idx+1}`,
+        thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : series.thumb),
+        source: 'YouTube',
+        play: ()=> window.tfPlayYouTubeVideo ? window.tfPlayYouTubeVideo({ videoId: vid, title: it.title, embeddable: true, openUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}`, seriesKey: String(series.key||''), episodeId: vid }, it.title) : null
+      };
+    }).filter(x=>x.thumb);
+  }
+
   if(series.type==='ia'){
     const eps = await window.iaListMp4Files(series.identifier, 120);
     const t = iaThumb(series.identifier);
@@ -6286,20 +6311,20 @@ async function getEpisodesForSeries(series){
     }));
   }
 
-if(series.type==='ia_search'){
-  const items = await (window.iaSearchItems ? window.iaSearchItems(series.query||'', 24) : Promise.resolve([]));
-  return (items||[]).map((it, idx)=>({
-    idx: idx+1,
-    episodeId: String(it.identifier||idx+1),
-    title: (it.title||it.identifier||`Item ${idx+1}`),
-    thumb: it.thumb || tfSvgPoster(series.title),
-    source: 'Archive.org',
-    play: ()=> window.tfPlayIframe && window.tfPlayIframe(it.embedUrl || `https://archive.org/embed/${encodeURIComponent(it.identifier)}`, it.title || series.title)
-  }));
-}
+  if(series.type==='ia_search'){
+    const items = await (window.iaSearchItems ? window.iaSearchItems(series.query||'', 24) : Promise.resolve([]));
+    return (items||[]).map((it, idx)=>({
+      idx: idx+1,
+      episodeId: String(it.identifier||idx+1),
+      title: (it.title||it.identifier||`Item ${idx+1}`),
+      thumb: it.thumb || tfSvgPoster(series.title),
+      source: 'Archive.org',
+      play: ()=> window.tfPlayIframe && window.tfPlayIframe(it.embedUrl || `https://archive.org/embed/${encodeURIComponent(it.identifier)}`, it.title || series.title)
+    }));
+  }
+
   return [];
 }
-
 async function openAnimeSeries(series){
   ensureAnimeUX();
   const modal = document.getElementById('tf-anime-modal');
@@ -6330,7 +6355,7 @@ async function openAnimeSeries(series){
     meta.innerHTML = '';
     const b1 = document.createElement('span');
     b1.className='tf-anime-badge';
-    b1.textContent = series.type==='yt' ? 'YouTube' : 'Archive.org';
+    b1.textContent = series.type==='yt' || s.type==='ytq' || series.type==='ytq' ? 'YouTube' : 'Archive.org';
     meta.appendChild(b1);
     const b2 = document.createElement('span');
     b2.className='tf-anime-badge';
@@ -6338,7 +6363,7 @@ async function openAnimeSeries(series){
     meta.appendChild(b2);
   }
   if(desc){
-    desc.textContent = series.type==='yt'
+    desc.textContent = series.type==='yt' || s.type==='ytq' || series.type==='ytq'
       ? "Collection d'épisodes. Clique un épisode pour lecture plein écran."
       : "Collection d'épisodes (Archive.org). Clique un épisode pour lecture plein écran.";
   }
@@ -6475,6 +6500,15 @@ function ensureAnimeUX(){
       <div class="tf-anime-shelf-title">PÉPITES YOUTUBE</div>
       <div class="tf-anime-row" id="tf-anime-row-yt"></div>
     </div>
+
+    <div class="tf-anime-shelf" id="tf-anime-shelf-bd">
+      <div class="tf-anime-shelf-title">LES CLASSIQUES DE LA BD</div>
+      <div class="tf-anime-row" id="tf-anime-row-bd"></div>
+    </div>
+    <div class="tf-anime-shelf" id="tf-anime-shelf-pop">
+      <div class="tf-anime-shelf-title">AUTRES SÉRIES POPULAIRES</div>
+      <div class="tf-anime-row" id="tf-anime-row-pop"></div>
+    </div>
     <div class="tf-anime-shelf" id="tf-anime-shelf-ia">
       <div class="tf-anime-shelf-title">COLLECTIONS ARCHIVE.ORG</div>
       <div class="tf-anime-row" id="tf-anime-row-ia"></div>
@@ -6550,7 +6584,7 @@ function ensureAnimeUX(){
   };
 
   // Default hero = first YouTube series
-  setHero(ANIME_SERIES.find(s=>s.type==='yt') || ANIME_SERIES[0]);
+  setHero(ANIME_SERIES.find(s=>s.type==='yt' || s.type==='ytq') || ANIME_SERIES[0]);
 
   document.getElementById('tf-anime-hero-info')?.addEventListener('click', ()=>{
     const k = home.dataset.heroKey; const s = ANIME_SERIES.find(x=>x.key===k) || ANIME_SERIES[0];
@@ -6588,7 +6622,7 @@ function ensureAnimeUX(){
 
 async function getEpisodesForSeries(series){
   if(!series) return [];
-  if(series.type==='yt'){
+  if(series.type==='yt' || s.type==='ytq' || series.type==='ytq'){
     const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(String(series.listId||''))}`);
     const json = (r && r.ok) ? r.json : null;
     if(!json || !json.success || !Array.isArray(json.items)) return [];
@@ -6661,7 +6695,7 @@ async function openAnimeSeries(series){
     meta.innerHTML = '';
     const b1 = document.createElement('span');
     b1.className='tf-anime-badge';
-    b1.textContent = series.type==='yt' ? 'YouTube' : 'Archive.org';
+    b1.textContent = series.type==='yt' || s.type==='ytq' || series.type==='ytq' ? 'YouTube' : 'Archive.org';
     meta.appendChild(b1);
     const b2 = document.createElement('span');
     b2.className='tf-anime-badge';
@@ -6669,7 +6703,7 @@ async function openAnimeSeries(series){
     meta.appendChild(b2);
   }
   if(desc){
-    desc.textContent = series.type==='yt'
+    desc.textContent = series.type==='yt' || s.type==='ytq' || series.type==='ytq'
       ? "Collection d'épisodes. Clique un épisode pour lecture plein écran."
       : "Collection d'épisodes (Archive.org). Clique un épisode pour lecture plein écran.";
   }
@@ -6714,12 +6748,14 @@ function renderAnimeHome(){
 
   const rowContinue = document.getElementById('tf-anime-row-continue');
   const rowYt = document.getElementById('tf-anime-row-yt');
+  const rowBd = document.getElementById('tf-anime-row-bd');
+  const rowPop = document.getElementById('tf-anime-row-pop');
   const rowIa = document.getElementById('tf-anime-row-ia');
   const rowBest = document.getElementById('tf-anime-row-best');
-  if(!rowYt || !rowIa || !rowBest) return;
+  if(!rowYt || !rowIa || !rowBest || !rowBd || !rowPop) return;
 
   // Clear rows
-  [rowContinue,rowYt,rowIa,rowBest].forEach(r=>{ if(r) r.innerHTML=''; });
+  [rowContinue,rowYt,rowBd,rowPop,rowIa,rowBest].forEach(r=>{ if(r) r.innerHTML=''; });
 
   // Continue watching
   try{
@@ -6752,7 +6788,7 @@ function renderAnimeHome(){
       card.addEventListener('click', async ()=>{
         try{ await apiPostJSON('/api/user/discovery-recent', { key: String(s.key||'') }); }catch(_e){}
         try{
-          if(s.type==='yt'){
+          if(s.type==='yt' || s.type==='ytq'){
             window.tfPlayYouTubeVideo?.({ videoId: String(it.episodeId), title: s.title, embeddable: true, seriesKey: s.key, episodeId: String(it.episodeId), resumeSec: Number(it.positionSec||0) }, s.title);
           }else if(s.type==='ia'){
             const eps = await window.iaListMp4Files(s.identifier, 200);
@@ -6784,7 +6820,9 @@ function renderAnimeHome(){
     return 0;
   };
 
-  const yt = ANIME_SERIES.filter(s=>s.type==='yt').sort(sortFn);
+  const yt = ANIME_SERIES.filter(s=>(s.type==='yt' || s.type==='ytq') && !s.group).sort(sortFn);
+  const bd = ANIME_SERIES.filter(s=> (s.type==='ytq' || s.type==='yt') && s.group==='bd').sort(sortFn);
+  const pop = ANIME_SERIES.filter(s=> (s.type==='ytq' || s.type==='yt') && s.group==='pop').sort(sortFn);
   const ia = ANIME_SERIES.filter(s=>s.type==='ia').sort(sortFn);
   const best = ANIME_SERIES.filter(s=>s.type==='ia_search').sort(sortFn);
 
@@ -6808,7 +6846,7 @@ function renderAnimeHome(){
         </div>
       </div></div>
       <div class="tf-card16-title">${esc(s.title)}</div>
-      <div class="tf-card16-sub">${s.type==='yt' ? 'YouTube' : 'Archive.org'}</div>
+      <div class="tf-card16-sub">${s.type==='yt' || s.type==='ytq' ? 'YouTube' : 'Archive.org'}</div>
     `;
     b.addEventListener('mouseenter', ()=>{ try{ window.__tfAnimeSetHero?.(s); }catch(_e){} });
     b.addEventListener('focus', ()=>{ try{ window.__tfAnimeSetHero?.(s); }catch(_e){} });
@@ -6834,6 +6872,8 @@ function renderAnimeHome(){
   };
 
   yt.forEach(s=>renderCard(rowYt, s));
+  bd.forEach(s=>renderCard(rowBd, s));
+  pop.forEach(s=>renderCard(rowPop, s));
   ia.forEach(s=>renderCard(rowIa, s));
   best.forEach(s=>renderCard(rowBest, s));
 }
