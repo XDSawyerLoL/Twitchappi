@@ -16,7 +16,7 @@ window.fetchJSON = window.fetchJSON || (async function(url, opts){
   return t;
 });
 // -------------------------------------------------------------------------------
-/* ORYON TV app-bootstrap v12 IA direct anime (no YT embed) */
+/* DISCOVERY app-bootstrap v12 IA direct anime (no YT embed) */
 const API_BASE = window.location.origin;
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
@@ -194,28 +194,39 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       });
     }
 
-    // FIREBASE STATUS
+    // HUB STATUS (Socket + Firebase) — avoids false "HUB DÉCONNECTÉ" due to polling races
+    function updateHubStatusUI(){
+      const el = document.getElementById('socket-status');
+      if(!el) return;
+
+      const sockOk = !!window.__hubSocketOk;
+      const fbOk = !!window.__firebaseOk;
+
+      if(sockOk && fbOk){
+        el.textContent = 'HUB SECURE';
+        el.className = 'text-xs font-bold px-2 py-1 rounded bg-[#00f2ea] text-black';
+      } else if(sockOk && !fbOk){
+        el.textContent = 'HUB CONNECTÉ';
+        el.className = 'text-xs font-bold px-2 py-1 rounded bg-[#00f2ea] text-black';
+      } else {
+        el.textContent = 'HUB DÉCONNECTÉ';
+        el.className = 'text-xs font-bold px-2 py-1 rounded bg-red-600 text-white';
+      }
+    }
+
+    // FIREBASE STATUS (does NOT overwrite socket state)
     async function initFirebaseStatus() {
       async function checkStatus() {
         try {
           const response = await fetch(`${API_BASE}/firebase_status`, { cache: 'no-store' });
+          const txt = await response.text();
           let data = null;
-if (response.status === 304) {
-  data = { connected: true, message: 'cached' };
-} else {
-  const txt = await response.text();
-  try { data = JSON.parse(txt); } catch(_) { data = { connected: false, message: txt?.slice(0,200) }; }
-}
-          const statusEl = document.getElementById('socket-status');
-          if (data.connected) {
-            statusEl.innerText = 'HUB SECURE';
-            statusEl.className = 'text-[10px] font-bold text-[#00f2ea] border border-[#00f2ea] px-2 rounded connected';
-          } else {
-            statusEl.innerText = 'HUB DISCONNECTED';
-            statusEl.className = 'text-[10px] font-bold text-red-500 border border-red-500 px-2 rounded';
-          }
+          try { data = JSON.parse(txt); } catch(_) { data = { connected: false }; }
+          window.__firebaseOk = !!data?.connected;
+          updateHubStatusUI();
         } catch (error) {
-          console.error('Firebase status error:', error);
+          window.__firebaseOk = false;
+          updateHubStatusUI();
         }
       }
       checkStatus();
@@ -393,7 +404,7 @@ function startAuth() {
     }
 
 	    // Play a Twitch VOD inside the main player (Netflix-like inline playback)
-	    function loadVodEmbed(videoId, channelHint) {
+	    window.loadVodEmbed = function(videoId, channelHint) {
 	      const container = document.getElementById('video-container');
 	      const parentParam = PARENT_DOMAINS.join('&parent=');
 	      const vid = String(videoId || '').replace(/^v/i,'');
@@ -675,22 +686,19 @@ function startAuth() {
       try{
         socket = io(undefined, { transports: ['websocket','polling'] });
 
-        const status = document.getElementById('socket-status');
-        const setStatus = (ok) => {
-          if (!status) return;
-          status.textContent = ok ? 'HUB CONNECTÉ' : 'HUB DÉCONNECTÉ';
-          status.className = ok
-            ? 'text-xs font-bold px-2 py-1 rounded bg-[#00f2ea] text-black'
-            : 'text-xs font-bold px-2 py-1 rounded bg-red-600 text-white';
+        const setSocketOk = (ok) => {
+          window.__hubSocketOk = !!ok;
+          updateHubStatusUI();
         };
 
-        setStatus(false);
-        socket.on('connect', () => setStatus(true));
-        socket.on('disconnect', () => setStatus(false));
-        socket.on('connect_error', () => setStatus(false));
+        setSocketOk(false);
+        socket.on('connect', () => setSocketOk(true));
+        socket.on('disconnect', () => setSocketOk(false));
+        socket.on('connect_error', () => setSocketOk(false));
 
         // Anti-doublon (évite le double affichage quand le serveur renvoie la même chose via 2 events)
         const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
 
         // Helpers: émettre "nouvelle" ET "ancienne" API (compat)
         window.emitHubMessage = (payload) => {
@@ -973,7 +981,7 @@ function startAuth() {
     });
 
 
-    // TWITFLIX — Netflix-like catalogue (only). Does NOT touch the rest of the app.
+    // DISCOVERY — Netflix-like catalogue (only). Does NOT touch the rest of the app.
     // Requires:
     //  - GET  /api/categories/top?cursor=...
     //  - (optional) GET /api/categories/search?q=...
@@ -1096,7 +1104,7 @@ window.addEventListener('message', (ev) => {
 });
 
 
-    // ====== TWITFLIX: LIVE CAROUSEL + TRAILERS ======
+    // ====== DISCOVERY: LIVE CAROUSEL + TRAILERS ======
     // Add YouTube video IDs here to enable embedded trailers in TwitFlix.
     // Key: game name (lowercased). Value: YouTube videoId.
     const TRAILER_MAP = {
@@ -1413,7 +1421,7 @@ window.addEventListener('message', (ev) => {
     }
 
 function tfNormalizeBoxArt(url){
-  // Force higher-res boxarts to avoid "blurry" upscale in the ORYON TV rows.
+  // Force higher-res boxarts to avoid "blurry" upscale in the DISCOVERY rows.
   // Uses devicePixelRatio to request sharper images on HiDPI screens.
   const u = String(url || '');
   if (!u) return '';
@@ -1458,7 +1466,7 @@ function tfNormalizeBoxArt(url){
 const modal = document.getElementById('twitflix-modal');
       const host = document.getElementById('twitflix-grid');
 
-      // ORYON TV: delegated click safety-net (keeps everything clickable)
+      // DISCOVERY: delegated click safety-net (keeps everything clickable)
       // - game cards: open the Netflix-like info modal
       // - live cards: open stream
       // - VOD cards: open VOD
@@ -1476,7 +1484,7 @@ const modal = document.getElementById('twitflix-modal');
             if(vodId){
               e.preventDefault(); e.stopPropagation();
               try{ closeTwitFlix(); }catch(_){ }
-              try{ loadVodEmbed(String(vodId).replace(/^v/i,'')); }catch(_){ }
+              try{ window.loadVodEmbed && window.loadVodEmbed(String(vodId).replace(/^v/i,'')); }catch(_){ }
               try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
               return;
             }
@@ -1573,7 +1581,7 @@ const modal = document.getElementById('twitflix-modal');
     intro.innerHTML = `
       <div class="tf-intro-box">
         <div class="tf-scanline"></div>
-        <div class="tf-intro-logo">TWITFLIX</div>
+        <div class="tf-intro-logo">DISCOVERY</div>
         <div class="tf-intro-sub">Mode Netflix • Chargement des streams</div>
       </div>
     `;
@@ -2216,7 +2224,6 @@ const modal = document.getElementById('twitflix-modal');
         tfHeroCandidates = items.slice(0, 10);
         tfHeroIndex = 0;
         const v = tfHeroCandidates[0];
-        const v = tfHeroCandidates[0];
         const vodId = String(v.id || '').replace(/^v/i,'').trim();
         if (!vodId) return;
 
@@ -2277,7 +2284,7 @@ const modal = document.getElementById('twitflix-modal');
         btnPlay.onclick = (e)=>{
           e.preventDefault();
           try{ closeTwitFlix(); }catch(_){ }
-          try{ loadVodEmbed(tfFeaturedHero.vodId); }catch(_){ }
+          try{ window.loadVodEmbed && window.loadVodEmbed(tfFeaturedHero.vodId); }catch(_){ }
         };
       }
     }
@@ -2379,7 +2386,7 @@ const modal = document.getElementById('twitflix-modal');
         tfSetResumeVod(tfInfoGame.id, vid);
         tfCloseGameModal();
         try{ closeTwitFlix(); }catch(_){ }
-        try{ loadVodEmbed(vid); }catch(_){ }
+        try{ window.loadVodEmbed && window.loadVodEmbed(vid); }catch(_){ }
       });
 
       // Removed "Plus d'infos" button: description is always visible.
@@ -2965,7 +2972,7 @@ function tfBuildCard(cat){
           const vodId = String(v.id || div.dataset.vodId || '').replace(/^v/i,'').trim();
           if (!vodId) return;
           try{ closeTwitFlix(); }catch(_){ }
-          try{ loadVodEmbed(vodId); }catch(_){ }
+          try{ window.loadVodEmbed && window.loadVodEmbed(vodId); }catch(_){ }
           try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(_){ }
           return;
         }
@@ -3003,10 +3010,10 @@ function tfBuildCard(cat){
       const media = document.getElementById('tf-hero-media');
       const t = document.getElementById('tf-hero-title');
       const s = document.getElementById('tf-hero-sub');
-      if (t) t.textContent = String(title || 'TWITFLIX');
+      if (t) t.textContent = String(title || 'DISCOVERY');
       if (s) s.textContent = String(sub || '');
       if (bg){
-        if (poster) { bg.src = poster; bg.style.opacity = (String(title||'').toUpperCase()==='TWITFLIX' ? '.55' : '.78'); }
+        if (poster) { bg.src = poster; bg.style.opacity = (String(title||'').toUpperCase()==='DISCOVERY' ? '.55' : '.78'); }
         else { bg.removeAttribute('src'); bg.style.opacity = '.15'; }
       }
 
@@ -3027,7 +3034,8 @@ function tfBuildCard(cat){
       iframe.src = src;
       iframe.width = '100%';
       iframe.height = '100%';
-      iframe.allow = 'autoplay; fullscreen';
+      iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      iframe.setAttribute("allowfullscreen", "");
       iframe.frameBorder = '0';
       media.appendChild(iframe);
     }
@@ -3084,9 +3092,22 @@ function tfBuildCard(cat){
       // 1) YouTube trailer in HERO (autoplay muted)
       // Use a SEARCH embed to avoid YouTube embed errors on non-embeddable videos (ex: error 153).
       if (obj.youtubeId){
-        const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
+        const yt = String(obj.youtubeId || 'search').trim();
         const origin = encodeURIComponent(window.location.origin);
-        const src = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`;
+        let src = '';
+        if (yt && yt !== 'search'){
+          // Direct video embed (autoplay muted + loop) => more reliable than search embeds
+          src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt)
+              + '?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
+              + '&loop=1&playlist=' + encodeURIComponent(yt)
+              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+        } else {
+          // Fallback: search embed
+          const q = encodeURIComponent(((gameName||'').trim() + ' trailer officiel') || 'game trailer');
+          src = 'https://www.youtube-nocookie.com/embed?listType=search&list=' + q
+              + '&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
+              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+        }
         tfHeroMountIframe(src);
 
         // Play button launches an actual VOD of the game (not the hero trailer).
@@ -3104,7 +3125,7 @@ function tfBuildCard(cat){
               if(!first) return;
               const vodId = String(first.id).replace(/^v/i,'');
               try{ closeTwitFlix(); }catch(_){}
-              try{ loadVodEmbed(vodId); }catch(_){}
+              try{ window.loadVodEmbed && window.loadVodEmbed(vodId); }catch(_){}
             }catch(_e){}
           };
         }
@@ -3136,7 +3157,7 @@ function tfBuildCard(cat){
               if(!first) return;
               const vodId = String(first.id).replace(/^v/i,'');
               try{ closeTwitFlix(); }catch(_){}
-              try{ loadVodEmbed(vodId); }catch(_){}
+              try{ window.loadVodEmbed && window.loadVodEmbed(vodId); }catch(_){}
             }catch(_e){}
           };
         }
@@ -3255,7 +3276,7 @@ function tfBuildCard(cat){
 
     async function playTwitFlixCategory(gameId, gameName){
       closeTwitFlix();
-      document.getElementById('current-channel-display').innerText = "TWITFLIX…";
+      document.getElementById('current-channel-display').innerText = "DISCOVERY…";
 
       try{
         const res = await fetch(`${API_BASE}/api/stream/by_category`,{
@@ -3268,7 +3289,7 @@ function tfBuildCard(cat){
         if (data && data.success && data.channel){
           changeChannel(data.channel);
           const badge = document.getElementById('player-mode-badge');
-          if (badge) badge.innerText = "TWITFLIX";
+          if (badge) badge.innerText = "DISCOVERY";
         } else {
           alert("Aucun stream trouvé pour ce jeu.");
           document.getElementById('current-channel-display').innerText = "OFFLINE";
@@ -4058,6 +4079,52 @@ function dashboardCardHTML(access){
     portal.appendChild(wrap);
   }
 
+  // Dashboard paywall portal should NOT be always-on (it blocks Discovery rails).
+  let __dashPortalBound = false;
+  let __dashPortalEl = null;
+  let __dashPortalGetHtml = null;
+
+  function unbindDashboardPortal(){
+    try{
+      if(__dashPortalEl){
+        __dashPortalEl.removeEventListener('mouseenter', __dashPortalShow);
+        __dashPortalEl.removeEventListener('mouseleave', __dashPortalHide);
+        __dashPortalEl.removeEventListener('focusin', __dashPortalShow);
+        __dashPortalEl.removeEventListener('focusout', __dashPortalHide);
+      }
+      window.removeEventListener('scroll', __dashPortalHide, true);
+      window.removeEventListener('resize', __dashPortalHide, true);
+    }catch(e){}
+    __dashPortalBound = false;
+    __dashPortalEl = null;
+    __dashPortalGetHtml = null;
+    removePortal();
+  }
+
+  function __dashPortalShow(){
+    if(!__dashPortalEl || !__dashPortalGetHtml) return;
+    // Never show over TwitFlix/Discovery modal contexts
+    if(document.body.classList.contains('modal-open') || document.body.classList.contains('tf-modal-open')) return;
+    positionPortalCard(__dashPortalEl, __dashPortalGetHtml());
+  }
+  function __dashPortalHide(){
+    removePortal();
+  }
+
+  function bindDashboardPortal(el, getHtml){
+    if(!el) return;
+    __dashPortalEl = el;
+    __dashPortalGetHtml = getHtml;
+    if(__dashPortalBound) return;
+    __dashPortalBound = true;
+    el.addEventListener('mouseenter', __dashPortalShow);
+    el.addEventListener('mouseleave', __dashPortalHide);
+    el.addEventListener('focusin', __dashPortalShow);
+    el.addEventListener('focusout', __dashPortalHide);
+    window.addEventListener('scroll', __dashPortalHide, true);
+    window.addEventListener('resize', __dashPortalHide, true);
+  }
+
   // ---------- Inline overlays (tools) ----------
   function ensureScopeClass(el){
     if(!el.classList.contains("paywall-scope")) el.classList.add("paywall-scope");
@@ -4162,8 +4229,10 @@ function dashboardCardHTML(access){
       const lockedDash = !(premium || canUseByCredits);
       if(lockedDash){
         dashboard.setAttribute("data-paywall-locked","1");
-        positionPortalCard(dashboard, dashboardCardHTML(access));
+        // Show paywall card only on hover/focus (otherwise it blocks Discovery rails).
+        bindDashboardPortal(dashboard, ()=>dashboardCardHTML(access));
       }else{
+        unbindDashboardPortal();
         dashboard.removeAttribute("data-paywall-locked");
         removePortal();
         clearResidualBlur(dashboard);
@@ -4716,7 +4785,7 @@ function tfDisableBigPictureNav(){
 }
 
 function tfToggleBigPicture(){
-  // ORYON TV: Big Picture mandatory (button removed)
+  // DISCOVERY: Big Picture mandatory (button removed)
   tfBigPicture = true;
   document.body.classList.add('tf-bigpicture');
   tfViewMode = 'rows';
@@ -4962,7 +5031,7 @@ window.renderTwitFlix = function(){
 console.log('DISCOVERY build', 1770423290);
 
 
-// ORYON TV menu (close / quit)
+// DISCOVERY menu (close / quit)
 function tfToggleMenu(e){
   try{ e && e.stopPropagation(); }catch(_){}
   const p = document.getElementById('tf-menu-panel');
@@ -5121,7 +5190,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         `;
         b.addEventListener('focus',()=>{ focusIndex=i; });
         b.addEventListener('click',()=>{
-          try{ loadVodEmbed(it.id, it.user_login || it.user_name); }catch(_){}
+          try{ window.loadVodEmbed && window.loadVodEmbed(it.id, it.user_login || it.user_name); }catch(_){}
           close();
         });
         grid.appendChild(b);
@@ -5200,7 +5269,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 
 
 // =========================================================
-// ORYON TV — Tabs (VOD / LIVE / ANIME)
+// DISCOVERY — Tabs (VOD / LIVE / ANIME)
 // =========================================================
 ;(function(){
   // Robust tab binding: works even if openTwitFlix is never called or scripts load out-of-order.
@@ -5316,7 +5385,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 })();
 
 // =========================================================
-// ORYON TV — "Catégories" dropdown (Animé) + Big-picture style
+// DISCOVERY — "Catégories" dropdown (Animé) + Big-picture style
 //  - Opens a grid dropdown similar to streaming platforms.
 //  - Selecting an item scrolls to the matching rail.
 // =========================================================
@@ -5388,7 +5457,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 })();
 
 // =========================================================
-// ORYON TV — Simple MP4 player overlay (for Public Domain anime)
+// DISCOVERY — Simple MP4 player overlay (for Public Domain anime)
 // =========================================================
 ;(function(){
   function ensurePlayer(){
@@ -5438,7 +5507,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
 })()
 
 // =========================================================
-// ORYON TV — YouTube playlist overlay (for curated collections)
+// DISCOVERY — YouTube playlist overlay (for curated collections)
 // =========================================================
 ;(function(){
   function ensureYT(){
@@ -5455,7 +5524,8 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         <a id="tf-yt-open" href="#" target="_blank" rel="noopener" style="margin-right:.5rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;padding:.45rem .75rem;border-radius:10px;font-weight:900;text-decoration:none;">Ouvrir YouTube</a>
         <button id="tf-yt-close" type="button" style="padding:.4rem .7rem;border-radius:10px;border:1px solid rgba(255,255,255,.18);font-weight:900;">✕</button>
         </div>
-        <iframe id="tf-yt-frame" style="width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        <div id="tf-yt-player" style="width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;overflow:hidden;"></div>
+        <iframe id="tf-yt-frame" style="display:none;width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;border:0;" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen="1"></iframe>
       </div>`;
     document.body.appendChild(overlay);
     overlay.querySelector('#tf-yt-next').onclick = ()=>{
@@ -5466,15 +5536,18 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         overlay.dataset.idx = String(idx);
         const id = ids[idx];
         const kind = overlay.dataset.kind;
-        const origin = encodeURIComponent(window.location.origin);
         const f = overlay.querySelector('#tf-yt-frame');
         const open = overlay.querySelector('#tf-yt-open');
         if(kind==='playlist'){
-          f.src = `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(id)}&autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
-          open.href = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+          const pl = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+          open.href = pl;
+          try{ f.removeAttribute('src'); }catch(_e){}
+          window.tfOpenYouTube?.(pl);
         } else {
-          f.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
-          open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+          const w = `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+          open.href = w;
+          try{ f.removeAttribute('src'); }catch(_e){}
+          window.tfOpenYouTube?.(w);
         }
       }catch(e){}
     };
@@ -5488,7 +5561,78 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
     return overlay;
   }
 
-  window.tfPlayYouTubePlaylist = function(listIdOrList, title){
+  
+  // YouTube Iframe API loader + player (to catch embed errors like 153 and auto-skip)
+  let __ytApiPromise = null;
+  let __ytPlayer = null;
+  function loadYouTubeApi(){
+    if(__ytApiPromise) return __ytApiPromise;
+    __ytApiPromise = new Promise((resolve) => {
+      if(window.YT && window.YT.Player){ return resolve(window.YT); }
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      tag.async = true;
+      document.head.appendChild(tag);
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = function(){
+        try{ if(typeof prev === 'function') prev(); }catch(_e){}
+        resolve(window.YT);
+      };
+      // safety timeout
+      setTimeout(()=> resolve(window.YT), 8000);
+    });
+    return __ytApiPromise;
+  }
+
+  function destroyYTPlayer(){
+    try{ if(__ytPlayer && __ytPlayer.destroy) __ytPlayer.destroy(); }catch(_e){}
+    __ytPlayer = null;
+  }
+
+  async function playYTInOverlay(videoId, onError){
+    const o = ensureYT();
+    const host = o.querySelector('#tf-yt-player');
+    const iframeFallback = o.querySelector('#tf-yt-frame');
+    if(iframeFallback) { iframeFallback.style.display='none'; try{ iframeFallback.removeAttribute('src'); }catch(_e){} }
+
+    const YT = await loadYouTubeApi().catch(()=>null);
+    if(!YT || !YT.Player || !host){
+      // fallback to plain iframe
+      if(iframeFallback){
+        iframeFallback.style.display='block';
+        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+        iframeFallback.setAttribute('allow','autoplay; encrypted-media; picture-in-picture');
+        iframeFallback.setAttribute('allowfullscreen','1');
+        iframeFallback.src = src;
+      }
+      return;
+    }
+
+    // Ensure host is empty
+    host.innerHTML = '';
+    destroyYTPlayer();
+
+    __ytPlayer = new YT.Player(host, {
+      width: '100%',
+      height: '100%',
+      videoId: String(videoId),
+      playerVars: {
+        autoplay: 1,
+        mute: 1,
+        playsinline: 1,
+        rel: 0,
+        modestbranding: 1,
+        iv_load_policy: 3,
+        origin: location.origin
+      },
+      events: {
+        onReady: (e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch(_e){} },
+        onError: (e)=>{ try{ if(typeof onError==='function') onError(e); }catch(_e){} }
+      }
+    });
+  }
+
+window.tfPlayYouTubePlaylist = function(listIdOrList, title){
   const ids = Array.isArray(listIdOrList) ? listIdOrList.filter(Boolean) : [listIdOrList].filter(Boolean);
   if(!ids.length) return;
   const o = ensureYT();
@@ -5496,17 +5640,102 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
   o.dataset.kind = 'playlist';
   o.dataset.ids = JSON.stringify(ids);
   o.dataset.idx = '0';
-  const origin = encodeURIComponent(window.location.origin);
   const id = ids[0];
-  const src = `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(id)}&autoplay=1&mute=1&playsinline=1&rel=0&enablejsapi=1&origin=${origin}`;
   const f = o.querySelector('#tf-yt-frame');
-  f.src = src;
   const open = o.querySelector('#tf-yt-open');
-  open.href = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+  const pl = `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+  open.href = pl;
+  // Avoid embedding playlists to prevent playback errors on restricted content.
+  try{ f.removeAttribute('src'); }catch(_e){}
+  // Do not auto-open YouTube; keep playback inside the app via episode embeds.
   const nextBtn = o.querySelector('#tf-yt-next');
   nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
   o.style.display='flex';
 };
+
+// Play a single YouTube video in the same overlay (fullscreen-ish)
+// YouTube embeds often fail with "Erreur 153" when the uploader disables embedding.
+// To guarantee playback, we open YouTube directly for episode playback.
+window.tfOpenYouTube = function(url){
+  const u = String(url||'').trim();
+  if(!u) return;
+  try{ window.open(u, '_blank', 'noopener'); }catch(_e){}
+};
+
+window.tfPlayYouTubeVideo = function(videoOrIds, title){
+  // Accept:
+  // - string videoId
+  // - array of videoIds
+  // - object { videoId|id, title, embeddable, openUrl }
+  let ids = [];
+  let meta = null;
+
+  if(Array.isArray(videoOrIds)){
+    ids = videoOrIds.filter(Boolean).map(x=> String(x.videoId||x.id||x.youtubeId||x).trim()).filter(Boolean);
+  }else if(videoOrIds && typeof videoOrIds === 'object'){
+    meta = videoOrIds;
+    const id0 = String(meta.videoId || meta.id || meta.youtubeId || '').trim();
+    if(id0) ids = [id0];
+  }else{
+    const id0 = String(videoOrIds||'').trim();
+    if(id0) ids = [id0];
+  }
+
+  if(!ids.length) return;
+
+  const o = ensureYT();
+  o.querySelector('#tf-yt-title').textContent = (meta && meta.title) ? meta.title : (title || 'YouTube');
+  o.dataset.kind = 'video';
+  o.dataset.ids = JSON.stringify(ids);
+  o.dataset.idx = '0';
+
+  const id = ids[0];
+  const embeddable = meta ? (meta.embeddable !== false) : true;
+  const openUrl = (meta && meta.openUrl) ? String(meta.openUrl) : `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
+
+  const open = o.querySelector('#tf-yt-open');
+  open.href = openUrl;
+
+  const nextBtn = o.querySelector('#tf-yt-next');
+  nextBtn.style.display = ids.length > 1 ? 'inline-block' : 'none';
+
+  const f = o.querySelector('#tf-yt-frame');
+
+  if(!embeddable){
+    // Never try to embed (would trigger error 153). Show overlay with Open link.
+    try{ f.removeAttribute('src'); }catch(_e){}
+    o.style.display='flex';
+    return;
+  }
+
+  // Use YouTube Iframe API so we can detect embed errors (101/150/153) and auto-skip without leaving the site.
+  const idsAll = ids.slice();
+  const playAt = async (idx0) => {
+    const vid = idsAll[idx0];
+    if(!vid) return;
+    // update openUrl to the current video
+    open.href = `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}`;
+    await playYTInOverlay(vid, (ev)=>{
+      // 2=invalid, 5=HTML5 error, 100=not found, 101/150=embed not allowed
+      const code = ev && typeof ev.data !== 'undefined' ? ev.data : null;
+      if(code === 101 || code === 150 || code === 2 || code === 5 || code === 100){
+        const next = idx0 + 1;
+        if(next < idsAll.length){
+          // auto-skip to next embeddable candidate
+          playAt(next);
+        }else{
+          // show fallback message (keep user on site)
+          const host = ensureYT().querySelector('#tf-yt-player');
+          if(host) host.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#fff;font-weight:700;">Épisode indisponible en lecture intégrée.</div>';
+        }
+      }
+    });
+  };
+  playAt(0);
+
+  o.style.display='flex';
+};
+
 
 // Expand a YouTube playlist into a real rail by fetching its items server-side (no API key)
 window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, label){
@@ -5541,11 +5770,12 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       title: t,
       thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : ''),
       sourceLabel: 'YouTube',
-      embedUrl: vid
-        ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=0&controls=1&modestbranding=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}`
-        : ''
+      youtubeId: vid,
+      watchUrl: it.openUrl || (vid ? `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` : ''),
+      embeddable: (it.embeddable !== false),
+      openUrl: it.openUrl || (vid ? `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` : '')
     };
-  }).filter(x => x.embedUrl);
+  }).filter(x => x.youtubeId);
 
   // NOTE: containerId targets a div that is styled as a horizontal rail (.tf-carousel).
   // For playlists we want a *real* rail of episodes, so we convert the container to a block wrapper
@@ -5579,7 +5809,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       t.className='tf-title';
       t.textContent=it.title;
       card.appendChild(t);
-      card.onclick=()=>window.tfPlayIframe(it.embedUrl,it.title);
+      card.onclick=()=>window.tfPlayYouTubeVideo({ videoId: it.youtubeId, title: it.title, embeddable: it.embeddable, openUrl: it.openUrl }, it.title);
       rail.appendChild(card);
     });
   }
@@ -5590,7 +5820,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
 
 
 // =========================================================
-// ORYON TV — Anime (Public Domain) via server proxy (Archive.org)
+// DISCOVERY — Anime (Public Domain) via server proxy (Archive.org)
 //   - rails stacked (no sub-tabs)
 //   - some rails are "best-effort" via Archive search
 // =========================================================
@@ -5620,6 +5850,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
       card.style.minWidth='260px';
 
       const hasMp4 = !!(it.mp4 && String(it.mp4).trim());
+      const hasYouTube = !!(it.youtubeId && String(it.youtubeId).trim());
       const thumb = it.thumb || (it.identifier ? iaThumb(it.identifier) : '');
       card.innerHTML = `
         <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;display:flex;align-items:center;justify-content:center;">
@@ -5635,6 +5866,8 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
         const v=card.querySelector('video');
         try{ v.autoplay=true; v.play().catch(()=>{}); }catch(_e){}
         card.addEventListener('click',()=>window.tfPlayMp4(it.mp4, it.title));
+      }else if(hasYouTube){
+        card.addEventListener('click',()=>window.tfPlayYouTubeVideo({ videoId: String(it.youtubeId), title: it.title, embeddable: it.embeddable, openUrl: it.openUrl }, it.title));
       }else{
         const u = it.embedUrl || (it.identifier ? iaEmbed(it.identifier) : '');
         card.addEventListener('click',()=>window.tfPlayIframe(u, it.title));
@@ -5725,6 +5958,633 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
     if(inited && hasContent && !force) return;
     inited=true;
 
+
+// === DISCOVERY Animé: catalogue type "Netflix" + fiche série (modal) ===
+// Objectif: une grille de pochettes, clic = fiche avec hero + liste d'épisodes verticale.
+function tfSvgPoster(title){
+  const t = String(title||'').slice(0,32);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#111827"/>
+        <stop offset="1" stop-color="#000000"/>
+      </linearGradient>
+    </defs>
+    <rect width="600" height="900" fill="url(#g)"/>
+    <text x="50" y="520" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="54" font-weight="800">${t.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
+    <text x="50" y="590" fill="#9ca3af" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700">Domaine public • Archive/YouTube</text>
+  </svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+// Prefer safe player wrappers (avoid missing globals / 153 hard-fail)
+window.tfPlayMP4 = window.tfPlayMP4 || function(url, title){
+  if(window.tfPlayMp4) return window.tfPlayMp4(url, title);
+};
+window.tfPlayYouTubeVideo = window.tfPlayYouTubeVideo || function(videoId, title){
+  // Many videos refuse iframe playback (YouTube embed restrictions). Default to opening directly.
+  const u = `https://www.youtube.com/watch?v=${encodeURIComponent(String(videoId||''))}`;
+  try{ window.open(u, '_blank', 'noopener'); }catch(_e){ location.href = u; }
+};
+
+const ANIME_SERIES = [
+  // YouTube playlists (note: some episodes may refuse iframe; click opens YouTube directly)
+  { key:'superman', type:'yt', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg', badges:['VF','N&B','1941–43'] },
+  { key:'blake', type:'yt', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg', badges:['VF'] },
+  { key:'new', type:'yt', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' },
+  { key:'snafu1', type:'yt', title:'Private Snafu (1943–1945) — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
+  { key:'snafu2', type:'yt', title:'Private Snafu (1943–1945) — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
+  { key:'snafu3', type:'yt', title:'Private Snafu (1943–1945) — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
+
+  // Martin Mystère (YouTube)
+  { key:'martinmystere', type:'yt', title:'Martin Mystère', listId:'PLOFx_59iP7NG_KmudokaId1neGIy_6bNq', thumb:'https://i.ytimg.com/vi/tw1uEOCy5CY/hqdefault.jpg', badges:['VF'] },
+
+  // Archive.org curated identifiers (MP4 direct)
+  { key:'loneranger', type:'ia', title:'Lone Ranger (1966)', identifier:'LoneRangerCartoon1966CrackOfDoom', thumb: iaThumb('LoneRangerCartoon1966CrackOfDoom') },
+  { key:'popeye', type:'ia', title:'Popeye (Public Domain)', identifier:'popeye-pubdomain', thumb: iaThumb('popeye-pubdomain') },
+  { key:'felix', type:'ia', title:'Felix le Chat (1919)', identifier:'FelixTheCat-FelineFollies1919', thumb: iaThumb('FelixTheCat-FelineFollies1919') },
+
+  // Best-effort Archive.org searches (multiple items). Use REAL covers from representative Archive items.
+  // Covers: https://archive.org/services/img/<identifier>
+  { key:'betty', type:'ia_search', title:'Betty Boop (sélection PD)', query:'betty boop public domain', coverId:'BettyBoopCartoons', thumb:'https://archive.org/services/img/BettyBoopCartoons', badges:['N&B','1930s'] },
+  { key:'bugs', type:'ia_search', title:'Bugs Bunny (best‑effort)', query:'bugs bunny public domain', coverId:'bugs-bunny-metavideo-volume-9', thumb:'https://archive.org/services/img/bugs-bunny-metavideo-volume-9', badges:['N&B','1940s'] },
+  { key:'daffy', type:'ia_search', title:'Daffy Duck — Dinosaur (1939) (best‑effort)', query:'Daffy Duck and the Dinosaur 1939', coverId:'DaffyDuckAndTheDinosaur1939', thumb:'https://archive.org/services/img/DaffyDuckAndTheDinosaur1939', badges:['N&B','1939'] },
+  { key:'porky', type:'ia_search', title:'Porky Pig — courts N&B (années 30) (best‑effort)', query:'porky pig 1930s black and white', coverId:'comic-toons-porky-pig', thumb:'https://archive.org/services/img/comic-toons-porky-pig', badges:['N&B','1930s'] },
+  { key:'casper', type:'ia_search', title:'Casper — The Friendly Ghost (1945) (best‑effort)', query:'Casper The Friendly Ghost 1945', coverId:'TheFriendlyGhost', thumb:'https://archive.org/services/img/TheFriendlyGhost', badges:['N&B','1945'] },
+  { key:'gabby', type:'ia_search', title:'Gabby (Gulliver, 1939) (best‑effort)', query:'Gabby Gulliver 1939 cartoon', coverId:'LV27106', thumb:'https://archive.org/services/img/LV27106', badges:['1939'] },
+  { key:'gertie', type:'ia_search', title:'Gertie the Dinosaur (1914) (best‑effort)', query:'Gertie the Dinosaur 1914', coverId:'GertieTheDinosaur', thumb:'https://archive.org/services/img/GertieTheDinosaur', badges:['1914'] },
+
+
+  // 📘 Les Classiques de la BD (YouTube)
+  { key:'cedric', type:'yt', title:"Cédric [Officiel] — compilations", listId:'PLzYGYvLXM35zG3gqVhLZAT2lKBUuxLzmK', thumb:'https://i.ytimg.com/vi/VD1oi-remTU/hqdefault.jpg', badges:['VF'] , group:'bd' },
+  { key:'schtroumpfs', type:'yt', title:"Les Schtroumpfs • Français — compilations", listId:'PLEMKcYFLxBRCKXeXJFzyoR0CQMU9fFQeb', thumb:'https://i.ytimg.com/vi/bLKfk4C1f0I/hqdefault.jpg', badges:['VF'] , group:'bd' },
+  { key:'titeuf', type:'yt', title:"Titeuf Saison 4 [Officiel]", listId:'PLdaPDJALpgQ5B0seEhKER3THfg0OZ1qM-', thumb:'https://i.ytimg.com/vi/x0_coiAXaVg/hqdefault.jpg', badges:['VF'] , group:'bd' },
+  { key:'lou', type:'yt', title:"Lou! La Série [Officiel]", listId:'PLjLROwZ4SiKTPC9NyI6vKKMdtk1zDrdO2', thumb:'https://i.ytimg.com/vi/qjrP1lCY_N0/hqdefault.jpg', badges:['VF'] , group:'pop' },
+
+];
+
+function ensureAnimeUX(){
+  const blk = document.getElementById('tf-anime-block');
+  if(!blk) return;
+  if(document.getElementById('tf-anime-series-grid')) return;
+
+  // Inject minimal CSS
+  if(!document.getElementById('tf-anime-css')){
+    const st = document.createElement('style');
+    st.id = 'tf-anime-css';
+    st.textContent = `
+      .tf-anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:10px 0 18px 0;}
+      .tf-anime-home-hero{position:relative;min-height:520px;border-radius:18px;overflow:hidden;background:#111;margin:10px 0 18px 0;background-size:cover;background-position:center;box-shadow:0 10px 40px rgba(0,0,0,.55);} 
+      .tf-anime-home-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.70) 55%,rgba(0,0,0,.28) 100%),linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.90) 92%);} 
+      .tf-anime-home-video{position:absolute;inset:0;opacity:.95;pointer-events:none;}
+      .tf-anime-home-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+      .tf-anime-home-hero-inner{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:44px 34px;}
+      .tf-anime-home-title{font-size:64px;line-height:1;font-weight:1000;letter-spacing:.02em;text-transform:uppercase;max-width:860px;}
+      .tf-anime-home-badges{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;}
+      .tf-anime-home-badge{border:1px solid rgba(255,255,255,.28);border-radius:7px;padding:.18rem .5rem;font-weight:1000;font-size:12px;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);} 
+      .tf-anime-home-desc{margin-top:12px;max-width:760px;opacity:.9;font-weight:700;}
+      .tf-anime-home-actions{display:flex;gap:10px;align-items:center;margin-top:16px;}
+      .tf-anime-home-rows{margin-top:10px;}
+      .tf-anime-row h4{margin:12px 0 8px 0;font-weight:1000;font-size:18px;}
+      .tf-anime-shelf{display:flex;gap:12px;overflow:auto;padding-bottom:8px;scrollbar-width:thin;}
+      .tf-anime-tile{min-width:260px;max-width:260px;}
+
+      .tf-anime-card{display:block;text-align:left;background:transparent;border:0;cursor:pointer;}
+      .tf-anime-poster{height:300px;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;}
+      .tf-anime-tile .tf-anime-poster{height:146px;border-radius:10px;}
+      .tf-anime-preview{position:absolute;inset:0;opacity:0;transition:opacity .18s ease;}
+      .tf-anime-preview iframe,.tf-anime-preview video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;}
+      .tf-anime-tile.tf-previewing .tf-anime-preview{opacity:1;}
+      .tf-anime-tile.tf-previewing img{opacity:0;}
+      .tf-anime-poster img{width:100%;height:100%;object-fit:cover;display:block;}
+      .tf-anime-card-badges{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;}
+      .tf-anime-card-badge{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:7px;padding:2px 7px;font-weight:1000;font-size:11px;backdrop-filter:blur(6px);}
+      .tf-anime-title{margin-top:10px;font-weight:900;line-height:1.15;}
+      .tf-anime-sub{opacity:.7;font-weight:800;font-size:12px;margin-top:2px;}
+      .tf-anime-modal{display:none;position:fixed;inset:0;z-index:9999;background:#000;overflow:auto;}
+      .tf-anime-hero{position:relative;min-height:520px;padding:38px 34px 24px 34px;background-size:cover;background-position:center;}
+      .tf-anime-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.72) 55%,rgba(0,0,0,.35) 100%),linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.85) 92%);}
+      .tf-anime-hero-inner{position:relative;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.2fr .8fr;gap:22px;z-index:1;}
+      .tf-anime-h1{font-size:64px;line-height:1;letter-spacing:.02em;font-weight:1000;text-transform:uppercase;}
+      .tf-anime-actions{display:flex;gap:10px;align-items:center;margin-top:16px;}
+      .tf-anime-btn{border-radius:8px;padding:.7rem 1.05rem;font-weight:900;border:1px solid rgba(255,255,255,.18);}
+      .tf-anime-btn-primary{background:#fff;color:#000;border-color:#fff;}
+      .tf-anime-btn-ghost{background:rgba(255,255,255,.06);color:#fff;}
+      .tf-anime-meta{margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;opacity:.9;}
+      .tf-anime-badge{border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:.15rem .45rem;font-weight:900;font-size:12px;}
+      .tf-anime-desc{margin-top:14px;max-width:760px;opacity:.9;}
+      .tf-anime-close{position:fixed;top:18px;right:18px;z-index:10000;border-radius:999px;padding:.6rem .95rem;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:900;}
+      .tf-anime-body{max-width:1180px;margin:0 auto;padding:0 34px 40px 34px;}
+      .tf-anime-episodes-title{margin:18px 0 10px 0;font-size:26px;font-weight:1000;}
+      .tf-ep-list{display:flex;flex-direction:column;gap:12px;}
+      .tf-ep-row{display:grid;grid-template-columns:44px 520px 1fr 90px;gap:14px;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;cursor:pointer;}
+      .tf-ep-thumb{height:280px;border-radius:10px;overflow:hidden;background:#000;}
+      .tf-ep-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+      .tf-ep-num{font-weight:1000;opacity:.85;font-size:20px;text-align:center;}
+      .tf-ep-name{font-weight:1000;font-size:18px;line-height:1.2;}
+      .tf-ep-sub{opacity:.75;margin-top:4px;font-weight:700;}
+      .tf-ep-dur{opacity:.75;font-weight:900;text-align:right;}
+      @media(max-width:920px){
+        .tf-anime-hero-inner{grid-template-columns:1fr;}
+        .tf-anime-h1{font-size:46px;}
+        .tf-ep-row{grid-template-columns:36px 1fr;grid-template-rows:auto auto;}
+        .tf-ep-thumb{height:220px;}
+        .tf-ep-dur{display:none;}
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  const grid = document.createElement('div');
+  grid.id = 'tf-anime-series-grid';
+  grid.className = 'tf-anime-grid';
+  blk.insertBefore(grid, blk.querySelector('.tf-anime-note')?.nextSibling || blk.firstChild);
+
+  // Netflix-like home container (HERO + shelves)
+  if(!document.getElementById('tf-anime-home')){
+    const home = document.createElement('div');
+    home.id = 'tf-anime-home';
+    home.style.display = 'block';
+    home.innerHTML = `
+      <div class="tf-anime-home-hero" id="tf-anime-home-hero">
+        <div class="tf-anime-home-video" id="tf-anime-home-video" aria-hidden="true"></div>
+        <div class="tf-anime-home-hero-inner">
+          <div class="tf-anime-home-title" id="tf-anime-home-title">Animé</div>
+          <div class="tf-anime-home-badges" id="tf-anime-home-badges"></div>
+          <div class="tf-anime-home-desc" id="tf-anime-home-desc"></div>
+          <div class="tf-anime-home-actions">
+            <button class="tf-anime-btn tf-anime-btn-primary" id="tf-anime-home-play">▶ Lecture</button>
+            <button class="tf-anime-btn tf-anime-btn-ghost" id="tf-anime-home-more">Plus d'infos</button>
+          </div>
+        </div>
+      </div>
+      <div class="tf-anime-home-rows" id="tf-anime-rows"></div>
+    `;
+    // Put home at the top of the block, before legacy rails
+    blk.insertBefore(home, blk.firstChild);
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'tf-anime-modal';
+  modal.className = 'tf-anime-modal';
+  modal.innerHTML = `
+    <button class="tf-anime-close" id="tf-anime-close">Fermer ✕</button>
+    <div class="tf-anime-hero" id="tf-anime-hero">
+      <div class="tf-anime-hero-inner">
+        <div>
+          <div class="tf-anime-h1" id="tf-anime-h1">Animé</div>
+          <div class="tf-anime-actions">
+            <button class="tf-anime-btn tf-anime-btn-primary" id="tf-anime-play">▶ Lecture</button>
+            <button class="tf-anime-btn tf-anime-btn-ghost" id="tf-anime-add">＋</button>
+            <button class="tf-anime-btn tf-anime-btn-ghost" id="tf-anime-like">♡</button>
+          </div>
+          <div class="tf-anime-meta" id="tf-anime-meta"></div>
+          <div class="tf-anime-desc" id="tf-anime-desc"></div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+    <div class="tf-anime-body">
+      <div class="tf-anime-episodes-title">Épisodes</div>
+      <div class="tf-ep-list" id="tf-anime-episodes"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = ()=>{ modal.style.display='none'; document.body.classList.remove('tf-modal-open'); };
+  modal.querySelector('#tf-anime-close')?.addEventListener('click', close);
+  window.tfCloseAnimeModal = close;
+}
+
+async function getEpisodesForSeries(series){
+  if(!series) return [];
+  if(series.type==='yt'){
+    const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(String(series.listId||''))}`);
+    const json = (r && r.ok) ? r.json : null;
+    if(!json || !json.success || !Array.isArray(json.items)) return [];
+    return json.items.map((it, idx)=>{
+      const vid = String(it.videoId||'').trim();
+      return {
+        idx: idx+1,
+        title: (it.title||'').trim() || `Épisode ${idx+1}`,
+        thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : series.thumb),
+        source: 'YouTube',
+        play: ()=> window.tfPlayYouTubeVideo ? window.tfPlayYouTubeVideo({ videoId: vid, title: it.title, embeddable: true, openUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}` }, it.title) : window.tfPlayYouTubePlaylist(series.listId, series.title)
+      };
+    }).filter(x=>x.thumb);
+  }
+  if(series.type==='ia'){
+    const eps = await window.iaListMp4Files(series.identifier, 120);
+    const t = iaThumb(series.identifier);
+    return (eps||[]).map((e, idx)=>({
+      idx: idx+1,
+      title: (e.title || e.name || `Épisode ${idx+1}`),
+      thumb: t,
+      source: 'Archive.org',
+      play: ()=> window.tfPlayMp4 && window.tfPlayMp4(e.url, `${series.title} — ${e.title || e.name || `Épisode ${idx+1}`}`)
+    }));
+  }
+
+if(series.type==='ia_search'){
+  const items = await (window.iaSearchItems ? window.iaSearchItems(series.query||'', 24) : Promise.resolve([]));
+  return (items||[]).map((it, idx)=>({
+    idx: idx+1,
+    title: (it.title||it.identifier||`Item ${idx+1}`),
+    thumb: it.thumb || tfSvgPoster(series.title),
+    source: 'Archive.org',
+    play: ()=> window.tfPlayIframe && window.tfPlayIframe(it.embedUrl || `https://archive.org/embed/${encodeURIComponent(it.identifier)}`, it.title || series.title)
+  }));
+}
+  return [];
+}
+
+async function openAnimeSeries(series){
+  ensureAnimeUX();
+  const modal = document.getElementById('tf-anime-modal');
+  if(!modal) return;
+  document.body.classList.add('tf-modal-open');
+  modal.style.display='block';
+
+  const hero = document.getElementById('tf-anime-hero');
+  const h1 = document.getElementById('tf-anime-h1');
+  const meta = document.getElementById('tf-anime-meta');
+  const desc = document.getElementById('tf-anime-desc');
+  const list = document.getElementById('tf-anime-episodes');
+
+  const bg = series.thumb || '';
+  if(hero){
+    hero.style.backgroundImage = `url('${bg.replace(/'/g,"\\'")}')`;
+    hero.style.backgroundSize = 'cover';
+    hero.style.backgroundPosition = 'center';
+  }
+  if(h1) h1.textContent = series.title;
+  if(meta){
+    meta.innerHTML = '';
+    const b1 = document.createElement('span');
+    b1.className='tf-anime-badge';
+    b1.textContent = series.type==='yt' ? 'YouTube' : 'Archive.org';
+    meta.appendChild(b1);
+    const b2 = document.createElement('span');
+    b2.className='tf-anime-badge';
+    b2.textContent = 'Domaine public';
+    meta.appendChild(b2);
+    // Premium badges (VF / N&B / Année ...)
+    if(Array.isArray(series.badges)){
+      series.badges.filter(Boolean).slice(0,3).forEach(t=>{
+        const bx = document.createElement('span');
+        bx.className='tf-anime-badge';
+        bx.textContent = String(t);
+        meta.appendChild(bx);
+      });
+    }
+  }
+  if(desc){
+    desc.textContent = series.type==='yt'
+      ? "Collection d'épisodes. Clique un épisode pour lecture plein écran."
+      : "Collection d'épisodes (Archive.org). Clique un épisode pour lecture plein écran.";
+  }
+
+  if(list) list.innerHTML = '<div class="tf-empty">Chargement…</div>';
+  const eps = await getEpisodesForSeries(series);
+  if(!eps.length){ if(list) list.innerHTML = '<div class="tf-empty">Aucun épisode.</div>'; return; }
+  if(list) list.innerHTML='';
+  eps.forEach((ep)=>{
+    const row = document.createElement('div');
+    row.className = 'tf-ep-row';
+    row.innerHTML = `
+      <div class="tf-ep-num">${ep.idx}</div>
+      <div class="tf-ep-thumb"><img src="${esc(ep.thumb)}" alt=""/></div>
+      <div>
+        <div class="tf-ep-name">${esc(ep.title)}</div>
+        <div class="tf-ep-sub">${esc(ep.source || '')}</div>
+      </div>
+      <div class="tf-ep-dur"></div>
+    `;
+    row.addEventListener('click', ()=>{ try{ window.tfCloseAnimeModal?.(); }catch(_e){} try{ ep.play && ep.play(); }catch(_e){} });
+    list.appendChild(row);
+  });
+
+  const playBtn = document.getElementById('tf-anime-play');
+  if(playBtn){ playBtn.onclick = ()=>{ try{ window.tfCloseAnimeModal?.(); }catch(_e){} try{ eps[0]?.play && eps[0].play(); }catch(_e){} }; }
+  // Update 'recently viewed' for personalised shelf
+  try{
+    const recentKey='discovery_anime_recent_v1';
+    const arr = (()=>{ try{ return JSON.parse(localStorage.getItem(recentKey)||'[]')||[]; }catch(_e){ return []; }})();
+    const next = [series.key, ...arr.filter(k=>k!==series.key)].slice(0,24);
+    localStorage.setItem(recentKey, JSON.stringify(next));
+  }catch(_e){}
+
+  // Like button (local, tied to browser session; later can be linked to Twitch account)
+  try{
+    const likeBtn = document.getElementById('tf-anime-like');
+    if(likeBtn){
+      const likesKey='discovery_anime_likes_v1';
+      const arr = (()=>{ try{ return JSON.parse(localStorage.getItem(likesKey)||'[]')||[]; }catch(_e){ return []; }})();
+      const liked = arr.includes(series.key);
+      likeBtn.textContent = liked ? '♥' : '♡';
+      likeBtn.onclick = ()=>{
+        const cur = (()=>{ try{ return JSON.parse(localStorage.getItem(likesKey)||'[]')||[]; }catch(_e){ return []; }})();
+        const has = cur.includes(series.key);
+        const next = has ? cur.filter(k=>k!==series.key) : [series.key, ...cur];
+        localStorage.setItem(likesKey, JSON.stringify(next.slice(0,64)));
+        likeBtn.textContent = has ? '♡' : '♥';
+        // Refresh home ordering if present
+        try{ window.renderAnimeHome && window.renderAnimeHome(); }catch(_e){}
+      };
+    }
+  }catch(_e){}
+}
+
+
+function renderAnimeGrid(){
+  ensureAnimeUX();
+  const grid = document.getElementById('tf-anime-series-grid');
+  if(!grid) return;
+  // Hide legacy rails (old layout) to match the new catalogue UX
+  try{
+    const blk = document.getElementById('tf-anime-block');
+    if(blk){
+      Array.from(blk.children).forEach(ch=>{
+        if(ch && ch.id==='tf-anime-series-grid') return;
+        if(ch && ch.classList && ch.classList.contains('tf-anime-note')) return;
+        if(ch && ch.id==='tf-anime-modal') return;
+        // keep the injected grid; hide everything else in the anime block
+        ch.style.display = 'none';
+      });
+    }
+  }catch(_e){}
+  grid.innerHTML = '';
+  // Deduplicate by key (avoid double entries if legacy code pushes extras)
+  const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
+  ANIME_SERIES.forEach(s=>{
+    if(!s || !s.key) return;
+    if(seen.has(s.key)) return;
+    seen.add(s.key);
+    const b = document.createElement('button');
+    b.type='button';
+    b.className = 'tf-anime-card';
+    const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,3) : [];
+    const badgeHtml = badges.length ? `<div class="tf-anime-card-badges">${badges.map(x=>`<span class=\"tf-anime-card-badge\">${esc(x)}</span>`).join('')}</div>` : '';
+    b.innerHTML = `
+      <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/>${badgeHtml}</div>
+      <div class="tf-anime-title">${esc(s.title)}</div>
+      <div class="tf-anime-sub">${s.type==='yt' ? 'YouTube' : 'Archive.org'}</div>
+    `;
+    b.addEventListener('click', ()=> openAnimeSeries(s));
+    grid.appendChild(b);
+  });
+}
+
+function renderAnimeHome(){
+  window.renderAnimeHome = renderAnimeHome;
+  ensureAnimeUX();
+  const blk = document.getElementById('tf-anime-block');
+  const rows = document.getElementById('tf-anime-rows');
+  const hero = document.getElementById('tf-anime-home-hero');
+  if(!blk || !rows || !hero) return;
+
+  // Hide legacy rails so the page looks like Netflix (hero + shelves)
+  try{
+    Array.from(blk.children).forEach(ch=>{
+      if(!ch) return;
+      if(ch.id==='tf-anime-home') return;
+      if(ch.classList && ch.classList.contains('tf-anime-note')) return;
+      if(ch.id==='tf-anime-modal') return;
+      ch.style.display = 'none';
+    });
+  }catch(_e){}
+
+  const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
+  const all = [];
+  ANIME_SERIES.forEach(s=>{ if(s && s.key && !seen.has(s.key)){ seen.add(s.key); all.push(s);} });
+  if(!all.length) return;
+
+  const likesKey='discovery_anime_likes_v1';
+  const recentKey='discovery_anime_recent_v1';
+  function readList(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]')||[]; }catch(_e){ return []; } }
+  function uniqByKey(arr){ const out=[]; const seen=new Set(); (arr||[]).forEach(x=>{ if(x && x.key && !seen.has(x.key)){ seen.add(x.key); out.push(x); } }); return out; }
+  const likedKeys = readList(likesKey);
+  const recentKeys = readList(recentKey);
+  const byKey = new Map(all.map(s=>[s.key,s]));
+  const liked = likedKeys.map(k=>byKey.get(k)).filter(Boolean);
+  const recent = recentKeys.map(k=>byKey.get(k)).filter(Boolean);
+  const trending = ['superman','blake','new','betty','bugs','daffy','porky','casper','gertie','popeye','felix'].map(k=>byKey.get(k)).filter(Boolean);
+  // Keep the "Pépites pour vous" shelf tight (premium feel)
+  const pepites = uniqByKey([...liked,...recent,...trending]).slice(0,12);
+
+  const groups = [
+    ...(pepites.length ? [{ title:'Pépites pour vous', items: pepites }] : []),
+    { title:'📘 Les Classiques de la BD', items: all.filter(s=>s.group==='bd') },
+    { title:'🎥 Autres séries populaires', items: all.filter(s=>s.group==='pop') },
+    { title:'Pépites YouTube', items: all.filter(s=>s.type==='yt' && !s.group) },
+    { title:'Collections Archive.org', items: all.filter(s=>s.type==='ia') },
+    { title:'Sélections (best‑effort)', items: all.filter(s=>s.type==='ia_search') },
+  ].filter(g=>g.items && g.items.length);
+
+  let current = all[0];
+  function setHero(s){
+    if(!s) return;
+    current = s;
+    hero.style.backgroundImage = `url(${JSON.stringify(String(s.thumb||''))})`;
+
+    const t = document.getElementById('tf-anime-home-title');
+    const b = document.getElementById('tf-anime-home-badges');
+    const d = document.getElementById('tf-anime-home-desc');
+    const v = document.getElementById('tf-anime-home-video');
+
+    if(t) t.textContent = String(s.title||'');
+    if(b){
+      const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,4) : [];
+      b.innerHTML = badges.map(x=>`<span class="tf-anime-home-badge">${esc(x)}</span>`).join('');
+    }
+    if(d){
+      const src = s.type==='yt' ? 'YouTube' : 'Archive.org';
+      d.textContent = s.desc ? String(s.desc) : `${src} • Clique pour voir les épisodes.`;
+    }
+
+    // HERO autoplay preview (Netflix feel): only for YouTube series with an embeddable episode.
+    if(v){
+      v.innerHTML = '';
+      if(s.type==='yt' && s.listId){
+        (async()=>{
+          try{
+            const key = String(s.listId);
+            let items = __ytPlaylistCache.get(key);
+            if(!items){
+              const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(key)}`);
+              const json = (r && r.ok) ? r.json : null;
+              items = (json && json.success && Array.isArray(json.items)) ? json.items : [];
+              __ytPlaylistCache.set(key, items);
+            }
+            // Pick first embeddable item.
+            const pick = items.find(it=>it && it.videoId && (it.embeddable === true || it.embeddable === 'true'));
+            if(!pick || !pick.videoId) return;
+            const vid = String(pick.videoId).trim();
+            if(!vid) return;
+            const origin = encodeURIComponent(location.origin);
+            const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&loop=1&playlist=${encodeURIComponent(vid)}&enablejsapi=1&origin=${origin}`;
+            const ifr = document.createElement('iframe');
+            ifr.src = src;
+            ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
+            ifr.setAttribute('allowfullscreen','');
+            v.appendChild(ifr);
+          }catch(_e){}
+        })();
+      }
+    }
+  }
+  setHero(current);
+
+  // Netflix-like hover previews on tiles (autoplay muted). Only mount while hovered to keep perf.
+  const __tilePreview = window.__tilePreview || (window.__tilePreview = { cleanup:null, key:null });
+  const __ytFirstEmbeddable = window.__ytFirstEmbeddable || (window.__ytFirstEmbeddable = new Map());
+  const __iaFirstMp4 = window.__iaFirstMp4 || (window.__iaFirstMp4 = new Map());
+
+  function cleanupPreview(){
+    try{ __tilePreview.cleanup && __tilePreview.cleanup(); }catch(_e){}
+    __tilePreview.cleanup = null;
+    __tilePreview.key = null;
+  }
+
+  async function getFirstEmbeddableVideoId(series){
+    if(!series || series.type!=='yt' || !series.listId) return '';
+    const k = String(series.listId);
+    if(__ytFirstEmbeddable.has(k)) return __ytFirstEmbeddable.get(k) || '';
+    try{
+      let items = __ytPlaylistCache.get(k);
+      if(!items){
+        const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(k)}`);
+        const json = (r && r.ok) ? r.json : null;
+        items = (json && json.success && Array.isArray(json.items)) ? json.items : [];
+        __ytPlaylistCache.set(k, items);
+      }
+      const pick = items.find(it=>it && it.videoId && (it.embeddable === true || it.embeddable === 'true'));
+      const vid = pick && pick.videoId ? String(pick.videoId).trim() : '';
+      __ytFirstEmbeddable.set(k, vid);
+      return vid;
+    }catch(_e){
+      __ytFirstEmbeddable.set(k,'');
+      return '';
+    }
+  }
+
+  async function getFirstMp4Url(series){
+    if(!series) return '';
+    if(series.type==='ia' && series.identifier){
+      const k = String(series.identifier);
+      if(__iaFirstMp4.has(k)) return __iaFirstMp4.get(k) || '';
+      try{
+        const eps = await window.iaListMp4Files(series.identifier, 10);
+        const url = eps && eps[0] && eps[0].url ? String(eps[0].url) : '';
+        __iaFirstMp4.set(k, url);
+        return url;
+      }catch(_e){
+        __iaFirstMp4.set(k,'');
+        return '';
+      }
+    }
+    return '';
+  }
+
+  function mountPreviewOnTile(tileBtn, series){
+    if(!tileBtn || !series) return;
+    const key = String(series.key||'');
+    if(!key) return;
+
+    const token = Symbol('pv');
+    tileBtn.__pvToken = token;
+
+    setTimeout(async ()=>{
+      if(tileBtn.__pvToken !== token) return;
+      if(__tilePreview.key === key) return;
+      cleanupPreview();
+
+      const poster = tileBtn.querySelector('.tf-anime-poster');
+      if(!poster) return;
+
+      let layer = poster.querySelector('.tf-anime-preview');
+      if(!layer){
+        layer = document.createElement('div');
+        layer.className = 'tf-anime-preview';
+        poster.appendChild(layer);
+      }
+      layer.innerHTML = '';
+
+      let cleanup = ()=>{};
+      if(series.type==='yt'){
+        const vid = await getFirstEmbeddableVideoId(series);
+        if(!vid) return;
+        const origin = encodeURIComponent(location.origin);
+        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&loop=1&playlist=${encodeURIComponent(vid)}&enablejsapi=1&origin=${origin}`;
+        const ifr = document.createElement('iframe');
+        ifr.src = src;
+        ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
+        ifr.setAttribute('allowfullscreen','');
+        layer.appendChild(ifr);
+        cleanup = ()=>{ try{ ifr.src='about:blank'; }catch(_e){} layer.innerHTML=''; tileBtn.classList.remove('tf-previewing'); };
+      } else if(series.type==='ia'){
+        const mp4 = await getFirstMp4Url(series);
+        if(!mp4) return;
+        const v = document.createElement('video');
+        v.src = mp4;
+        v.muted = true;
+        v.autoplay = true;
+        v.loop = true;
+        v.playsInline = true;
+        v.preload = 'metadata';
+        layer.appendChild(v);
+        const p = v.play();
+        if(p && p.catch) p.catch(()=>{});
+        cleanup = ()=>{ try{ v.pause(); }catch(_e){} layer.innerHTML=''; tileBtn.classList.remove('tf-previewing'); };
+      } else {
+        return;
+      }
+
+      tileBtn.classList.add('tf-previewing');
+      __tilePreview.key = key;
+      __tilePreview.cleanup = cleanup;
+    }, 220);
+  }
+
+  const play = document.getElementById('tf-anime-home-play');
+  const more = document.getElementById('tf-anime-home-more');
+  if(play) play.onclick = ()=>{ current && openAnimeSeries(current); };
+  if(more) more.onclick = ()=>{ current && openAnimeSeries(current); };
+
+  rows.innerHTML = '';
+  groups.forEach(g=>{
+    const sec = document.createElement('div');
+    sec.className = 'tf-anime-row';
+    sec.innerHTML = `<h4>${esc(g.title)}</h4><div class="tf-anime-shelf"></div>`;
+    const shelf = sec.querySelector('.tf-anime-shelf');
+    g.items.forEach(s=>{
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.className='tf-anime-tile';
+      const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,3) : [];
+      const badgeHtml = badges.length ? `<div class="tf-anime-card-badges">${badges.map(x=>`<span class=\\"tf-anime-card-badge\\">${esc(x)}</span>`).join('')}</div>` : '';
+      btn.innerHTML = `
+        <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/>${badgeHtml}</div>
+        <div class="tf-anime-title">${esc(s.title)}</div>
+        <div class="tf-anime-sub">${s.type==='yt' ? 'YouTube' : 'Archive.org'}</div>
+      `;
+      btn.addEventListener('mouseenter', ()=>{ setHero(s); mountPreviewOnTile(btn, s); });
+      btn.addEventListener('mouseleave', ()=>{ btn.__pvToken = null; if(window.__tilePreview && window.__tilePreview.key===String(s.key||'')) { try{ window.__tilePreview.cleanup && window.__tilePreview.cleanup(); }catch(_e){} window.__tilePreview.key=null; window.__tilePreview.cleanup=null; } });
+      btn.addEventListener('focus', ()=>{ setHero(s); mountPreviewOnTile(btn, s); });
+      btn.addEventListener('blur', ()=>{ if(window.__tilePreview && window.__tilePreview.key===String(s.key||'')) { try{ window.__tilePreview.cleanup && window.__tilePreview.cleanup(); }catch(_e){} window.__tilePreview.key=null; window.__tilePreview.cleanup=null; } });
+      btn.addEventListener('click', ()=> openAnimeSeries(s));
+      shelf.appendChild(btn);
+    });
+    rows.appendChild(sec);
+  });
+}
+
+ensureAnimeUX();
+renderAnimeHome();
+return;
+
     // Known identifiers (stable)
     // Use per-file listing when the IA item is a bundle of many episodes.
     loadByItemFiles('tf-anime-loneranger', 'LoneRangerCartoon1966CrackOfDoom', 'Lone Ranger (1966)');
@@ -5745,6 +6605,16 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
         { title: 'Blake et Mortimer (Black Cat) — playlist', listId: 'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb: 'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' }
       ]);
     }
+
+    // Nouveau dessin animé: playlist rail
+    if(typeof window.tfLoadYouTubePlaylistEpisodesInto === 'function'){
+      window.tfLoadYouTubePlaylistEpisodesInto('tf-anime-newcartoon', 'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', 'Dessin animé — playlist');
+    }else{
+      renderYouTubePlaylistsInto('tf-anime-newcartoon', [
+        { title: 'Dessin animé — playlist', listId: 'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb: 'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' }
+      ]);
+    }
+
     loadByItemFiles('tf-anime-popeye', 'popeye-pubdomain', 'Popeye');
     loadByItemFiles('tf-anime-felix', 'FelixTheCat-FelineFollies1919', 'Felix le Chat');
 
@@ -5770,7 +6640,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
 
 
 // =========================================================
-// ORYON TV — Trailers jeux vidéo (YouTube search embeds)
+// DISCOVERY — Trailers jeux vidéo (YouTube search embeds)
 //  - avoids Helix clips confusion
 //  - best-effort: some videos can be blocked from embed
 // =========================================================
@@ -5827,7 +6697,7 @@ window.tfLoadYouTubePlaylistEpisodesInto = async function(containerId, listId, l
 
 
 // =========================================================
-// ORYON TV — LIVE tab: multiple rails by themes (fast, cached, debounced)
+// DISCOVERY — LIVE tab: multiple rails by themes (fast, cached, debounced)
 // =========================================================
 ;(function(){
   const THEMES = [
