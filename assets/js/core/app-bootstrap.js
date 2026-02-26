@@ -698,6 +698,7 @@ function startAuth() {
 
         // Anti-doublon (évite le double affichage quand le serveur renvoie la même chose via 2 events)
         const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
 
         // Helpers: émettre "nouvelle" ET "ancienne" API (compat)
         window.emitHubMessage = (payload) => {
@@ -5988,68 +5989,36 @@ window.tfPlayYouTubeVideo = window.tfPlayYouTubeVideo || function(videoId, title
 
 const ANIME_SERIES = [
   // YouTube playlists (note: some episodes may refuse iframe; click opens YouTube directly)
-  { key:'superman', type:'yt', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg' },
-  { key:'blake', type:'yt', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg' },
+  { key:'superman', type:'yt', title:'Superman (Fleischer, 1941–1943)', listId:'PLY0ZiQRbASD0wo9ISF2yJ3U7D6khG8I8K', thumb:'https://i.ytimg.com/vi/nJgKykPNLWI/hqdefault.jpg', badges:['VF','N&B','1941–43'] },
+  { key:'blake', type:'yt', title:'Blake et Mortimer (Black Cat)', listId:'PLROATyFwoQdeLIm6iYcu3WhFQc3jSgnWS', thumb:'https://i.ytimg.com/vi/0rePuQ_ER0Y/hqdefault.jpg', badges:['VF'] },
   { key:'new', type:'yt', title:'Dessin animé — playlist', listId:'PLAaxQLph8IiBZLpMBolbN6bg13gJZYwBK', thumb:'https://i.ytimg.com/vi/vWRUohM_3oE/hqdefault.jpg' },
-  { key:'snafu1', type:'yt', title:'Private Snafu (1943–1945) — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg' },
-  { key:'snafu2', type:'yt', title:'Private Snafu (1943–1945) — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg' },
-  { key:'snafu3', type:'yt', title:'Private Snafu (1943–1945) — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg' },
+  { key:'snafu1', type:'yt', title:'Private Snafu (1943–1945) — playlist 1', listId:'PL_ChVVP9EtuS5rDlqK1-Jhw8Y0cjRytbV', thumb:'https://i.ytimg.com/vi/aBp_0TsIHvU/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
+  { key:'snafu2', type:'yt', title:'Private Snafu (1943–1945) — playlist 2', listId:'PL-PEP3oDTy0boKsCSaMMAa7ZLQSs5mFF1', thumb:'https://i.ytimg.com/vi/dOWoT5gwHkY/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
+  { key:'snafu3', type:'yt', title:'Private Snafu (1943–1945) — playlist 3', listId:'PL_ChVVP9EtuT9bQfp4qH-6tfwyasFx-nA', thumb:'https://i.ytimg.com/vi/QJf01lZvT_w/hqdefault.jpg', badges:['VO','N&B','1943–45'] },
 
   // Archive.org curated identifiers (MP4 direct)
   { key:'loneranger', type:'ia', title:'Lone Ranger (1966)', identifier:'LoneRangerCartoon1966CrackOfDoom', thumb: iaThumb('LoneRangerCartoon1966CrackOfDoom') },
   { key:'popeye', type:'ia', title:'Popeye (Public Domain)', identifier:'popeye-pubdomain', thumb: iaThumb('popeye-pubdomain') },
   { key:'felix', type:'ia', title:'Felix le Chat (1919)', identifier:'FelixTheCat-FelineFollies1919', thumb: iaThumb('FelixTheCat-FelineFollies1919') },
 
-  // Best-effort Archive.org searches (multiple items; opens Archive player per item)
-  { key:'betty', type:'ia_search', title:'Betty Boop (sélection PD)', query:'betty boop public domain', thumb: tfSvgPoster('Betty Boop') },
-  { key:'bugs', type:'ia_search', title:'Bugs Bunny (best‑effort)', query:'bugs bunny public domain', thumb: tfSvgPoster('Bugs Bunny') },
-  { key:'daffy', type:'ia_search', title:'Daffy Duck — Dinosaur (1939) (best‑effort)', query:'Daffy Duck and the Dinosaur 1939', thumb: tfSvgPoster('Daffy Duck') },
-  { key:'porky', type:'ia_search', title:'Porky Pig — courts N&B (années 30) (best‑effort)', query:'porky pig 1930s black and white', thumb: tfSvgPoster('Porky Pig') },
-  { key:'casper', type:'ia_search', title:'Casper — The Friendly Ghost (1945) (best‑effort)', query:'Casper The Friendly Ghost 1945', thumb: tfSvgPoster('Casper') },
-  { key:'gabby', type:'ia_search', title:'Gabby (Gulliver, 1939) (best‑effort)', query:'Gabby Gulliver 1939 cartoon', thumb: tfSvgPoster('Gabby') },
-  { key:'gertie', type:'ia_search', title:'Gertie the Dinosaur (1914) (best‑effort)', query:'Gertie the Dinosaur 1914', thumb: tfSvgPoster('Gertie') },
+  // Best-effort Archive.org searches (multiple items). Use REAL covers from representative Archive items.
+  // Covers: https://archive.org/services/img/<identifier>
+  { key:'betty', type:'ia_search', title:'Betty Boop (sélection PD)', query:'betty boop public domain', coverId:'BettyBoopCartoons', thumb:'https://archive.org/services/img/BettyBoopCartoons', badges:['N&B','1930s'] },
+  { key:'bugs', type:'ia_search', title:'Bugs Bunny (best‑effort)', query:'bugs bunny public domain', coverId:'bugs-bunny-metavideo-volume-9', thumb:'https://archive.org/services/img/bugs-bunny-metavideo-volume-9', badges:['N&B','1940s'] },
+  { key:'daffy', type:'ia_search', title:'Daffy Duck — Dinosaur (1939) (best‑effort)', query:'Daffy Duck and the Dinosaur 1939', coverId:'DaffyDuckAndTheDinosaur1939', thumb:'https://archive.org/services/img/DaffyDuckAndTheDinosaur1939', badges:['N&B','1939'] },
+  { key:'porky', type:'ia_search', title:'Porky Pig — courts N&B (années 30) (best‑effort)', query:'porky pig 1930s black and white', coverId:'comic-toons-porky-pig', thumb:'https://archive.org/services/img/comic-toons-porky-pig', badges:['N&B','1930s'] },
+  { key:'casper', type:'ia_search', title:'Casper — The Friendly Ghost (1945) (best‑effort)', query:'Casper The Friendly Ghost 1945', coverId:'TheFriendlyGhost', thumb:'https://archive.org/services/img/TheFriendlyGhost', badges:['N&B','1945'] },
+  { key:'gabby', type:'ia_search', title:'Gabby (Gulliver, 1939) (best‑effort)', query:'Gabby Gulliver 1939 cartoon', coverId:'LV27106', thumb:'https://archive.org/services/img/LV27106', badges:['1939'] },
+  { key:'gertie', type:'ia_search', title:'Gertie the Dinosaur (1914) (best‑effort)', query:'Gertie the Dinosaur 1914', coverId:'GertieTheDinosaur', thumb:'https://archive.org/services/img/GertieTheDinosaur', badges:['1914'] },
+
+
+  // 📘 Les Classiques de la BD (YouTube)
+  { key:'cedric', type:'yt', title:"Cédric [Officiel] — compilations", listId:'PLzYGYvLXM35zG3gqVhLZAT2lKBUuxLzmK', thumb:'https://i.ytimg.com/vi/VD1oi-remTU/hqdefault.jpg', badges:['VF'] , group:'bd' },
+  { key:'schtroumpfs', type:'yt', title:"Les Schtroumpfs • Français — compilations", listId:'PLEMKcYFLxBRCKXeXJFzyoR0CQMU9fFQeb', thumb:'https://i.ytimg.com/vi/bLKfk4C1f0I/hqdefault.jpg', badges:['VF'] , group:'bd' },
+  { key:'titeuf', type:'yt', title:"Titeuf Saison 4 [Officiel]", listId:'PLdaPDJALpgQ5B0seEhKER3THfg0OZ1qM-', thumb:'https://i.ytimg.com/vi/x0_coiAXaVg/hqdefault.jpg', badges:['VF'] , group:'bd' },
+  { key:'lou', type:'yt', title:"Lou! La Série [Officiel]", listId:'PLjLROwZ4SiKTPC9NyI6vKKMdtk1zDrdO2', thumb:'https://i.ytimg.com/vi/qjrP1lCY_N0/hqdefault.jpg', badges:['VF'] , group:'pop' },
+
 ];
-
-// --- User space (likes / recents / progress) linked to Twitch session ---
-let __animeUserState = { likes:{}, recents:[], progress:{} };
-let __animeUserStateLoaded = false;
-
-async function apiPostJSON(url, body){
-  const r = await fetch(url, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify(body||{})
-  });
-  const j = await r.json().catch(()=>null);
-  return { ok:r.ok, json:j };
-}
-
-async function loadAnimeUserState(){
-  if(__animeUserStateLoaded) return __animeUserState;
-  __animeUserStateLoaded = true;
-  try{
-    const r = await fetch('/api/user/discovery-state');
-    if(!r.ok) return __animeUserState;
-    const j = await r.json();
-    if(j && j.success){
-      __animeUserState = { likes:j.likes||{}, recents:j.recents||[], progress:j.progress||{} };
-    }
-  }catch(_e){}
-  return __animeUserState;
-}
-
-function isSeriesLiked(key){
-  return !!(__animeUserState.likes && __animeUserState.likes[key] === true);
-}
-
-function getSeriesProgressPct(key){
-  const p = (__animeUserState.progress||{})[key];
-  if(!p) return null;
-  const pos = Number(p.positionSec||0);
-  const dur = Number(p.durationSec||0);
-  if(!(dur>0)) return 0;
-  return Math.max(0, Math.min(1, pos/dur));
-}
 
 function ensureAnimeUX(){
   const blk = document.getElementById('tf-anime-block');
@@ -6061,20 +6030,32 @@ function ensureAnimeUX(){
     const st = document.createElement('style');
     st.id = 'tf-anime-css';
     st.textContent = `
-      .tf-anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin:10px 0 18px 0;}
-      .tf-anime-card{display:block;text-align:left;background:transparent;border:0;cursor:pointer;position:relative;}
-      .tf-anime-poster{height:260px;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.45);}
+      .tf-anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:10px 0 18px 0;}
+      .tf-anime-home-hero{position:relative;min-height:520px;border-radius:18px;overflow:hidden;background:#111;margin:10px 0 18px 0;background-size:cover;background-position:center;box-shadow:0 10px 40px rgba(0,0,0,.55);} 
+      .tf-anime-home-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.70) 55%,rgba(0,0,0,.28) 100%),linear-gradient(180deg,rgba(0,0,0,.05) 0%,rgba(0,0,0,.90) 92%);} 
+      .tf-anime-home-video{position:absolute;inset:0;opacity:.95;pointer-events:none;}
+      .tf-anime-home-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+      .tf-anime-home-hero-inner{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:44px 34px;}
+      .tf-anime-home-title{font-size:64px;line-height:1;font-weight:1000;letter-spacing:.02em;text-transform:uppercase;max-width:860px;}
+      .tf-anime-home-badges{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;}
+      .tf-anime-home-badge{border:1px solid rgba(255,255,255,.28);border-radius:7px;padding:.18rem .5rem;font-weight:1000;font-size:12px;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);} 
+      .tf-anime-home-desc{margin-top:12px;max-width:760px;opacity:.9;font-weight:700;}
+      .tf-anime-home-actions{display:flex;gap:10px;align-items:center;margin-top:16px;}
+      .tf-anime-home-rows{margin-top:10px;}
+      .tf-anime-row h4{margin:12px 0 8px 0;font-weight:1000;font-size:18px;}
+      .tf-anime-shelf{display:flex;gap:12px;overflow:auto;padding-bottom:8px;scrollbar-width:thin;}
+      .tf-anime-tile{min-width:260px;max-width:260px;}
+
+      .tf-anime-card{display:block;text-align:left;background:transparent;border:0;cursor:pointer;}
+      .tf-anime-poster{height:300px;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.45);position:relative;}
+      .tf-anime-tile .tf-anime-poster{height:146px;border-radius:10px;}
+      .tf-anime-preview{position:absolute;inset:0;opacity:0;transition:opacity .18s ease;}
+      .tf-anime-preview iframe,.tf-anime-preview video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;}
+      .tf-anime-tile.tf-previewing .tf-anime-preview{opacity:1;}
+      .tf-anime-tile.tf-previewing img{opacity:0;}
       .tf-anime-poster img{width:100%;height:100%;object-fit:cover;display:block;}
-      .tf-anime-like-badge{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter: blur(6px);border-radius:999px;padding:.35rem .55rem;font-weight:1000;}
-      .tf-anime-progress{position:absolute;left:10px;right:10px;bottom:62px;height:6px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden;}
-      .tf-anime-progress > i{display:block;height:100%;background:var(--primary,#d4af37);width:0%;}
-      .tf-anime-hovercard{position:absolute;left:10px;right:10px;bottom:68px;transform:translateY(10px);opacity:0;pointer-events:none;transition:.18s ease;}
-      .tf-anime-card:hover .tf-anime-hovercard, .tf-anime-card:focus-within .tf-anime-hovercard{opacity:1;transform:translateY(0);pointer-events:auto;}
-      .tf-anime-hovercard-inner{background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.14);backdrop-filter: blur(8px);border-radius:14px;padding:10px;box-shadow:0 10px 40px rgba(0,0,0,.55);}
-      .tf-anime-hover-actions{display:flex;gap:8px;align-items:center;}
-      .tf-anime-mini{border-radius:10px;padding:.55rem .7rem;font-weight:1000;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;}
-      .tf-anime-mini.primary{background:var(--primary,#d4af37);border-color:var(--primary,#d4af37);color:#000;}
-      .tf-anime-mini.like{margin-left:auto;}
+      .tf-anime-card-badges{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;}
+      .tf-anime-card-badge{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:7px;padding:2px 7px;font-weight:1000;font-size:11px;backdrop-filter:blur(6px);}
       .tf-anime-title{margin-top:10px;font-weight:900;line-height:1.15;}
       .tf-anime-sub{opacity:.7;font-weight:800;font-size:12px;margin-top:2px;}
       .tf-anime-modal{display:none;position:fixed;inset:0;z-index:9999;background:#000;overflow:auto;}
@@ -6116,6 +6097,30 @@ function ensureAnimeUX(){
   grid.className = 'tf-anime-grid';
   blk.insertBefore(grid, blk.querySelector('.tf-anime-note')?.nextSibling || blk.firstChild);
 
+  // Netflix-like home container (HERO + shelves)
+  if(!document.getElementById('tf-anime-home')){
+    const home = document.createElement('div');
+    home.id = 'tf-anime-home';
+    home.style.display = 'block';
+    home.innerHTML = `
+      <div class="tf-anime-home-hero" id="tf-anime-home-hero">
+        <div class="tf-anime-home-video" id="tf-anime-home-video" aria-hidden="true"></div>
+        <div class="tf-anime-home-hero-inner">
+          <div class="tf-anime-home-title" id="tf-anime-home-title">Animé</div>
+          <div class="tf-anime-home-badges" id="tf-anime-home-badges"></div>
+          <div class="tf-anime-home-desc" id="tf-anime-home-desc"></div>
+          <div class="tf-anime-home-actions">
+            <button class="tf-anime-btn tf-anime-btn-primary" id="tf-anime-home-play">▶ Lecture</button>
+            <button class="tf-anime-btn tf-anime-btn-ghost" id="tf-anime-home-more">Plus d'infos</button>
+          </div>
+        </div>
+      </div>
+      <div class="tf-anime-home-rows" id="tf-anime-rows"></div>
+    `;
+    // Put home at the top of the block, before legacy rails
+    blk.insertBefore(home, blk.firstChild);
+  }
+
   const modal = document.createElement('div');
   modal.id = 'tf-anime-modal';
   modal.className = 'tf-anime-modal';
@@ -6146,21 +6151,6 @@ function ensureAnimeUX(){
   const close = ()=>{ modal.style.display='none'; document.body.classList.remove('tf-modal-open'); };
   modal.querySelector('#tf-anime-close')?.addEventListener('click', close);
   window.tfCloseAnimeModal = close;
-
-  // Like button in modal (sync to Firestore via Twitch session)
-  const likeBtn = modal.querySelector('#tf-anime-like');
-  if(likeBtn){
-    likeBtn.addEventListener('click', async ()=>{
-      const key = String(modal.dataset.seriesKey||'').trim();
-      if(!key) return;
-      const next = !isSeriesLiked(key);
-      __animeUserState.likes = __animeUserState.likes || {};
-      __animeUserState.likes[key] = next;
-      likeBtn.textContent = next ? '♥' : '♡';
-      try{ await apiPostJSON('/api/user/discovery-like', { key, liked: next }); }catch(_e){}
-      try{ renderAnimeGrid(); }catch(_e){}
-    });
-  }
 }
 
 async function getEpisodesForSeries(series){
@@ -6173,7 +6163,6 @@ async function getEpisodesForSeries(series){
       const vid = String(it.videoId||'').trim();
       return {
         idx: idx+1,
-        episodeId: vid || String(idx+1),
         title: (it.title||'').trim() || `Épisode ${idx+1}`,
         thumb: it.thumb || (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : series.thumb),
         source: 'YouTube',
@@ -6186,7 +6175,6 @@ async function getEpisodesForSeries(series){
     const t = iaThumb(series.identifier);
     return (eps||[]).map((e, idx)=>({
       idx: idx+1,
-      episodeId: String(e.url||e.name||idx+1),
       title: (e.title || e.name || `Épisode ${idx+1}`),
       thumb: t,
       source: 'Archive.org',
@@ -6198,7 +6186,6 @@ if(series.type==='ia_search'){
   const items = await (window.iaSearchItems ? window.iaSearchItems(series.query||'', 24) : Promise.resolve([]));
   return (items||[]).map((it, idx)=>({
     idx: idx+1,
-    episodeId: String(it.identifier||idx+1),
     title: (it.title||it.identifier||`Item ${idx+1}`),
     thumb: it.thumb || tfSvgPoster(series.title),
     source: 'Archive.org',
@@ -6228,12 +6215,6 @@ async function openAnimeSeries(series){
     hero.style.backgroundPosition = 'center';
   }
   if(h1) h1.textContent = series.title;
-  // attach state to modal
-  modal.dataset.seriesKey = String(series.key||'');
-  try{
-    const likeBtn = document.getElementById('tf-anime-like');
-    if(likeBtn) likeBtn.textContent = isSeriesLiked(series.key) ? '♥' : '♡';
-  }catch(_e){}
   if(meta){
     meta.innerHTML = '';
     const b1 = document.createElement('span');
@@ -6244,6 +6225,15 @@ async function openAnimeSeries(series){
     b2.className='tf-anime-badge';
     b2.textContent = 'Domaine public';
     meta.appendChild(b2);
+    // Premium badges (VF / N&B / Année ...)
+    if(Array.isArray(series.badges)){
+      series.badges.filter(Boolean).slice(0,3).forEach(t=>{
+        const bx = document.createElement('span');
+        bx.className='tf-anime-badge';
+        bx.textContent = String(t);
+        meta.appendChild(bx);
+      });
+    }
   }
   if(desc){
     desc.textContent = series.type==='yt'
@@ -6267,23 +6257,41 @@ async function openAnimeSeries(series){
       </div>
       <div class="tf-ep-dur"></div>
     `;
-    row.addEventListener('click', async ()=>{
-      try{ await apiPostJSON('/api/user/discovery-recent', { key: String(series.key||'') }); }catch(_e){}
-      try{ await apiPostJSON('/api/user/discovery-progress', { key: String(series.key||''), episodeId: String(ep.episodeId||ep.title||ep.idx), positionSec: 0, durationSec: 0 }); }catch(_e){}
-      try{ window.tfCloseAnimeModal?.(); }catch(_e){}
-      try{ ep.play && ep.play(); }catch(_e){}
-    });
+    row.addEventListener('click', ()=>{ try{ window.tfCloseAnimeModal?.(); }catch(_e){} try{ ep.play && ep.play(); }catch(_e){} });
     list.appendChild(row);
   });
 
   const playBtn = document.getElementById('tf-anime-play');
-  if(playBtn){ playBtn.onclick = async ()=>{
-    try{ await apiPostJSON('/api/user/discovery-recent', { key: String(series.key||'') }); }catch(_e){}
-    try{ await apiPostJSON('/api/user/discovery-progress', { key: String(series.key||''), episodeId: String(eps[0]?.episodeId||'ep1'), positionSec: 0, durationSec: 0 }); }catch(_e){}
-    try{ window.tfCloseAnimeModal?.(); }catch(_e){}
-    try{ eps[0]?.play && eps[0].play(); }catch(_e){}
-  }; }
+  if(playBtn){ playBtn.onclick = ()=>{ try{ window.tfCloseAnimeModal?.(); }catch(_e){} try{ eps[0]?.play && eps[0].play(); }catch(_e){} }; }
+  // Update 'recently viewed' for personalised shelf
+  try{
+    const recentKey='discovery_anime_recent_v1';
+    const arr = (()=>{ try{ return JSON.parse(localStorage.getItem(recentKey)||'[]')||[]; }catch(_e){ return []; }})();
+    const next = [series.key, ...arr.filter(k=>k!==series.key)].slice(0,24);
+    localStorage.setItem(recentKey, JSON.stringify(next));
+  }catch(_e){}
+
+  // Like button (local, tied to browser session; later can be linked to Twitch account)
+  try{
+    const likeBtn = document.getElementById('tf-anime-like');
+    if(likeBtn){
+      const likesKey='discovery_anime_likes_v1';
+      const arr = (()=>{ try{ return JSON.parse(localStorage.getItem(likesKey)||'[]')||[]; }catch(_e){ return []; }})();
+      const liked = arr.includes(series.key);
+      likeBtn.textContent = liked ? '♥' : '♡';
+      likeBtn.onclick = ()=>{
+        const cur = (()=>{ try{ return JSON.parse(localStorage.getItem(likesKey)||'[]')||[]; }catch(_e){ return []; }})();
+        const has = cur.includes(series.key);
+        const next = has ? cur.filter(k=>k!==series.key) : [series.key, ...cur];
+        localStorage.setItem(likesKey, JSON.stringify(next.slice(0,64)));
+        likeBtn.textContent = has ? '♡' : '♥';
+        // Refresh home ordering if present
+        try{ window.renderAnimeHome && window.renderAnimeHome(); }catch(_e){}
+      };
+    }
+  }catch(_e){}
 }
+
 
 function renderAnimeGrid(){
   ensureAnimeUX();
@@ -6303,68 +6311,274 @@ function renderAnimeGrid(){
     }
   }catch(_e){}
   grid.innerHTML = '';
-
-  // order: liked -> recents -> default
-  const recOrder = new Map();
-  (Array.isArray(__animeUserState.recents)?__animeUserState.recents:[]).forEach((it, idx)=>{
-    if(it && it.key && !recOrder.has(it.key)) recOrder.set(it.key, idx);
-  });
-  const ordered = ANIME_SERIES.slice().sort((a,b)=>{
-    const al = isSeriesLiked(a.key) ? 1 : 0;
-    const bl = isSeriesLiked(b.key) ? 1 : 0;
-    if(al !== bl) return bl - al;
-    const ar = recOrder.has(a.key) ? 1 : 0;
-    const br = recOrder.has(b.key) ? 1 : 0;
-    if(ar !== br) return br - ar;
-    if(ar && br) return (recOrder.get(a.key) - recOrder.get(b.key));
-    return 0;
-  });
-
-  ordered.forEach(s=>{
+  // Deduplicate by key (avoid double entries if legacy code pushes extras)
+  const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
+  ANIME_SERIES.forEach(s=>{
+    if(!s || !s.key) return;
+    if(seen.has(s.key)) return;
+    seen.add(s.key);
     const b = document.createElement('button');
     b.type='button';
     b.className = 'tf-anime-card';
-
-    const liked = isSeriesLiked(s.key);
-    const pct = getSeriesProgressPct(s.key);
+    const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,3) : [];
+    const badgeHtml = badges.length ? `<div class="tf-anime-card-badges">${badges.map(x=>`<span class=\"tf-anime-card-badge\">${esc(x)}</span>`).join('')}</div>` : '';
     b.innerHTML = `
-      <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/></div>
-      ${liked ? `<div class="tf-anime-like-badge">♥</div>` : ''}
-      ${pct!==null ? `<div class="tf-anime-progress"><i style="width:${Math.round(pct*100)}%"></i></div>` : ''}
-      <div class="tf-anime-hovercard"><div class="tf-anime-hovercard-inner">
-        <div class="tf-anime-hover-actions">
-          <button class="tf-anime-mini primary" data-act="play" type="button">▶</button>
-          <button class="tf-anime-mini" data-act="info" type="button">i</button>
-          <button class="tf-anime-mini like" data-act="like" type="button">${liked ? '♥' : '♡'}</button>
-        </div>
-      </div></div>
+      <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/>${badgeHtml}</div>
       <div class="tf-anime-title">${esc(s.title)}</div>
       <div class="tf-anime-sub">${s.type==='yt' ? 'YouTube' : 'Archive.org'}</div>
     `;
-    b.addEventListener('click', (ev)=>{
-      const act = ev?.target?.getAttribute?.('data-act');
-      if(act === 'play'){
-        ev.preventDefault(); ev.stopPropagation();
-        openAnimeSeries(s).then(()=>{ try{ document.getElementById('tf-anime-play')?.click(); }catch(_e){} });
-        return;
-      }
-      if(act === 'like'){
-        ev.preventDefault(); ev.stopPropagation();
-        const next = !isSeriesLiked(s.key);
-        __animeUserState.likes = __animeUserState.likes || {};
-        __animeUserState.likes[s.key] = next;
-        apiPostJSON('/api/user/discovery-like', { key: s.key, liked: next }).catch(()=>{});
-        renderAnimeGrid();
-        return;
-      }
-      openAnimeSeries(s);
-    });
+    b.addEventListener('click', ()=> openAnimeSeries(s));
     grid.appendChild(b);
   });
 }
 
+function renderAnimeHome(){
+  window.renderAnimeHome = renderAnimeHome;
+  ensureAnimeUX();
+  const blk = document.getElementById('tf-anime-block');
+  const rows = document.getElementById('tf-anime-rows');
+  const hero = document.getElementById('tf-anime-home-hero');
+  if(!blk || !rows || !hero) return;
+
+  // Hide legacy rails so the page looks like Netflix (hero + shelves)
+  try{
+    Array.from(blk.children).forEach(ch=>{
+      if(!ch) return;
+      if(ch.id==='tf-anime-home') return;
+      if(ch.classList && ch.classList.contains('tf-anime-note')) return;
+      if(ch.id==='tf-anime-modal') return;
+      ch.style.display = 'none';
+    });
+  }catch(_e){}
+
+  const seen = new Set();
+  const __ytPlaylistCache = window.__ytPlaylistCache || (window.__ytPlaylistCache = new Map());
+  const all = [];
+  ANIME_SERIES.forEach(s=>{ if(s && s.key && !seen.has(s.key)){ seen.add(s.key); all.push(s);} });
+  if(!all.length) return;
+
+  const likesKey='discovery_anime_likes_v1';
+  const recentKey='discovery_anime_recent_v1';
+  function readList(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]')||[]; }catch(_e){ return []; } }
+  function uniqByKey(arr){ const out=[]; const seen=new Set(); (arr||[]).forEach(x=>{ if(x && x.key && !seen.has(x.key)){ seen.add(x.key); out.push(x); } }); return out; }
+  const likedKeys = readList(likesKey);
+  const recentKeys = readList(recentKey);
+  const byKey = new Map(all.map(s=>[s.key,s]));
+  const liked = likedKeys.map(k=>byKey.get(k)).filter(Boolean);
+  const recent = recentKeys.map(k=>byKey.get(k)).filter(Boolean);
+  const trending = ['superman','blake','new','betty','bugs','daffy','porky','casper','gertie','popeye','felix'].map(k=>byKey.get(k)).filter(Boolean);
+  const pepites = uniqByKey([...liked,...recent,...trending]).slice(0,16);
+
+  const groups = [
+    ...(pepites.length ? [{ title:'Pépites pour vous', items: pepites }] : []),
+    { title:'📘 Les Classiques de la BD', items: all.filter(s=>s.group==='bd') },
+    { title:'🎥 Autres séries populaires', items: all.filter(s=>s.group==='pop') },
+    { title:'Pépites YouTube', items: all.filter(s=>s.type==='yt' && !s.group) },
+    { title:'Collections Archive.org', items: all.filter(s=>s.type==='ia') },
+    { title:'Sélections (best‑effort)', items: all.filter(s=>s.type==='ia_search') },
+  ].filter(g=>g.items && g.items.length);
+
+  let current = all[0];
+  function setHero(s){
+    if(!s) return;
+    current = s;
+    hero.style.backgroundImage = `url(${JSON.stringify(String(s.thumb||''))})`;
+
+    const t = document.getElementById('tf-anime-home-title');
+    const b = document.getElementById('tf-anime-home-badges');
+    const d = document.getElementById('tf-anime-home-desc');
+    const v = document.getElementById('tf-anime-home-video');
+
+    if(t) t.textContent = String(s.title||'');
+    if(b){
+      const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,4) : [];
+      b.innerHTML = badges.map(x=>`<span class="tf-anime-home-badge">${esc(x)}</span>`).join('');
+    }
+    if(d){
+      const src = s.type==='yt' ? 'YouTube' : 'Archive.org';
+      d.textContent = s.desc ? String(s.desc) : `${src} • Clique pour voir les épisodes.`;
+    }
+
+    // HERO autoplay preview (Netflix feel): only for YouTube series with an embeddable episode.
+    if(v){
+      v.innerHTML = '';
+      if(s.type==='yt' && s.listId){
+        (async()=>{
+          try{
+            const key = String(s.listId);
+            let items = __ytPlaylistCache.get(key);
+            if(!items){
+              const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(key)}`);
+              const json = (r && r.ok) ? r.json : null;
+              items = (json && json.success && Array.isArray(json.items)) ? json.items : [];
+              __ytPlaylistCache.set(key, items);
+            }
+            // Pick first embeddable item.
+            const pick = items.find(it=>it && it.videoId && (it.embeddable === true || it.embeddable === 'true'));
+            if(!pick || !pick.videoId) return;
+            const vid = String(pick.videoId).trim();
+            if(!vid) return;
+            const origin = encodeURIComponent(location.origin);
+            const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&loop=1&playlist=${encodeURIComponent(vid)}&enablejsapi=1&origin=${origin}`;
+            const ifr = document.createElement('iframe');
+            ifr.src = src;
+            ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
+            ifr.setAttribute('allowfullscreen','');
+            v.appendChild(ifr);
+          }catch(_e){}
+        })();
+      }
+    }
+  }
+  setHero(current);
+
+  // Netflix-like hover previews on tiles (autoplay muted). Only mount while hovered to keep perf.
+  const __tilePreview = window.__tilePreview || (window.__tilePreview = { cleanup:null, key:null });
+  const __ytFirstEmbeddable = window.__ytFirstEmbeddable || (window.__ytFirstEmbeddable = new Map());
+  const __iaFirstMp4 = window.__iaFirstMp4 || (window.__iaFirstMp4 = new Map());
+
+  function cleanupPreview(){
+    try{ __tilePreview.cleanup && __tilePreview.cleanup(); }catch(_e){}
+    __tilePreview.cleanup = null;
+    __tilePreview.key = null;
+  }
+
+  async function getFirstEmbeddableVideoId(series){
+    if(!series || series.type!=='yt' || !series.listId) return '';
+    const k = String(series.listId);
+    if(__ytFirstEmbeddable.has(k)) return __ytFirstEmbeddable.get(k) || '';
+    try{
+      let items = __ytPlaylistCache.get(k);
+      if(!items){
+        const r = await window.fetchJSON(`/api/youtube/playlist?listId=${encodeURIComponent(k)}`);
+        const json = (r && r.ok) ? r.json : null;
+        items = (json && json.success && Array.isArray(json.items)) ? json.items : [];
+        __ytPlaylistCache.set(k, items);
+      }
+      const pick = items.find(it=>it && it.videoId && (it.embeddable === true || it.embeddable === 'true'));
+      const vid = pick && pick.videoId ? String(pick.videoId).trim() : '';
+      __ytFirstEmbeddable.set(k, vid);
+      return vid;
+    }catch(_e){
+      __ytFirstEmbeddable.set(k,'');
+      return '';
+    }
+  }
+
+  async function getFirstMp4Url(series){
+    if(!series) return '';
+    if(series.type==='ia' && series.identifier){
+      const k = String(series.identifier);
+      if(__iaFirstMp4.has(k)) return __iaFirstMp4.get(k) || '';
+      try{
+        const eps = await window.iaListMp4Files(series.identifier, 10);
+        const url = eps && eps[0] && eps[0].url ? String(eps[0].url) : '';
+        __iaFirstMp4.set(k, url);
+        return url;
+      }catch(_e){
+        __iaFirstMp4.set(k,'');
+        return '';
+      }
+    }
+    return '';
+  }
+
+  function mountPreviewOnTile(tileBtn, series){
+    if(!tileBtn || !series) return;
+    const key = String(series.key||'');
+    if(!key) return;
+
+    const token = Symbol('pv');
+    tileBtn.__pvToken = token;
+
+    setTimeout(async ()=>{
+      if(tileBtn.__pvToken !== token) return;
+      if(__tilePreview.key === key) return;
+      cleanupPreview();
+
+      const poster = tileBtn.querySelector('.tf-anime-poster');
+      if(!poster) return;
+
+      let layer = poster.querySelector('.tf-anime-preview');
+      if(!layer){
+        layer = document.createElement('div');
+        layer.className = 'tf-anime-preview';
+        poster.appendChild(layer);
+      }
+      layer.innerHTML = '';
+
+      let cleanup = ()=>{};
+      if(series.type==='yt'){
+        const vid = await getFirstEmbeddableVideoId(series);
+        if(!vid) return;
+        const origin = encodeURIComponent(location.origin);
+        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&loop=1&playlist=${encodeURIComponent(vid)}&enablejsapi=1&origin=${origin}`;
+        const ifr = document.createElement('iframe');
+        ifr.src = src;
+        ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
+        ifr.setAttribute('allowfullscreen','');
+        layer.appendChild(ifr);
+        cleanup = ()=>{ try{ ifr.src='about:blank'; }catch(_e){} layer.innerHTML=''; tileBtn.classList.remove('tf-previewing'); };
+      } else if(series.type==='ia'){
+        const mp4 = await getFirstMp4Url(series);
+        if(!mp4) return;
+        const v = document.createElement('video');
+        v.src = mp4;
+        v.muted = true;
+        v.autoplay = true;
+        v.loop = true;
+        v.playsInline = true;
+        v.preload = 'metadata';
+        layer.appendChild(v);
+        const p = v.play();
+        if(p && p.catch) p.catch(()=>{});
+        cleanup = ()=>{ try{ v.pause(); }catch(_e){} layer.innerHTML=''; tileBtn.classList.remove('tf-previewing'); };
+      } else {
+        return;
+      }
+
+      tileBtn.classList.add('tf-previewing');
+      __tilePreview.key = key;
+      __tilePreview.cleanup = cleanup;
+    }, 220);
+  }
+
+  const play = document.getElementById('tf-anime-home-play');
+  const more = document.getElementById('tf-anime-home-more');
+  if(play) play.onclick = ()=>{ current && openAnimeSeries(current); };
+  if(more) more.onclick = ()=>{ current && openAnimeSeries(current); };
+
+  rows.innerHTML = '';
+  groups.forEach(g=>{
+    const sec = document.createElement('div');
+    sec.className = 'tf-anime-row';
+    sec.innerHTML = `<h4>${esc(g.title)}</h4><div class="tf-anime-shelf"></div>`;
+    const shelf = sec.querySelector('.tf-anime-shelf');
+    g.items.forEach(s=>{
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.className='tf-anime-tile';
+      const badges = Array.isArray(s.badges) ? s.badges.filter(Boolean).slice(0,3) : [];
+      const badgeHtml = badges.length ? `<div class="tf-anime-card-badges">${badges.map(x=>`<span class=\\"tf-anime-card-badge\\">${esc(x)}</span>`).join('')}</div>` : '';
+      btn.innerHTML = `
+        <div class="tf-anime-poster"><img src="${esc(s.thumb)}" alt="${esc(s.title)}"/>${badgeHtml}</div>
+        <div class="tf-anime-title">${esc(s.title)}</div>
+        <div class="tf-anime-sub">${s.type==='yt' ? 'YouTube' : 'Archive.org'}</div>
+      `;
+      btn.addEventListener('mouseenter', ()=>{ setHero(s); mountPreviewOnTile(btn, s); });
+      btn.addEventListener('mouseleave', ()=>{ btn.__pvToken = null; if(window.__tilePreview && window.__tilePreview.key===String(s.key||'')) { try{ window.__tilePreview.cleanup && window.__tilePreview.cleanup(); }catch(_e){} window.__tilePreview.key=null; window.__tilePreview.cleanup=null; } });
+      btn.addEventListener('focus', ()=>{ setHero(s); mountPreviewOnTile(btn, s); });
+      btn.addEventListener('blur', ()=>{ if(window.__tilePreview && window.__tilePreview.key===String(s.key||'')) { try{ window.__tilePreview.cleanup && window.__tilePreview.cleanup(); }catch(_e){} window.__tilePreview.key=null; window.__tilePreview.cleanup=null; } });
+      btn.addEventListener('click', ()=> openAnimeSeries(s));
+      shelf.appendChild(btn);
+    });
+    rows.appendChild(sec);
+  });
+}
+
 ensureAnimeUX();
-loadAnimeUserState().then(()=>{ try{ renderAnimeGrid(); }catch(_e){} });
+renderAnimeHome();
 return;
 
     // Known identifiers (stable)
