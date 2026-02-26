@@ -260,7 +260,7 @@ function hashColor(str){
   let h=0; for(let i=0;i<str.length;i++) h=(h*31 + str.charCodeAt(i))>>>0;
   const a = 120 + (h % 120);
   const b = 90 + ((h>>8)%140);
-  return `radial-gradient(circle at 25% 25%, rgba(0,242,234,.90), transparent 55%), radial-gradient(circle at 75% 75%, rgba(200,176,122,.78), transparent 55%), radial-gradient(circle at 50% 10%, rgba(${a},${b},255,.55), transparent 60%)`;
+  return `radial-gradient(circle at 25% 25%, rgba(0,242,234,.90), transparent 55%), radial-gradient(circle at 75% 75%, rgba(255,0,153,.78), transparent 55%), radial-gradient(circle at 50% 10%, rgba(${a},${b},255,.55), transparent 60%)`;
 }
 
 function refreshAmbilight(){
