@@ -1338,13 +1338,19 @@ window.addEventListener('message', (ev) => {
         const key = gameName.toLowerCase();
         const vid = TRAILER_MAP[key];
 
+        // Always prefer SEARCH embeds for in-page autoplay previews.
+        // Direct video embeds frequently fail with YouTube "Erreur 153" (embedding disabled).
+        const q = encodeURIComponent(((gameName||'').trim() + ' trailer officiel') || 'game trailer');
+        const srcSearch = `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&origin=${encodeURIComponent(location.origin)}`;
+
         const card = document.createElement('div');
         card.className = 'tf-trailer-card';
 
         if (vid){
+          // Keep the mapping as a hint (cache) but render safely.
           card.innerHTML = `
             <iframe
-              src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+              src="${srcSearch}"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               loading="lazy"
               title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
@@ -1377,9 +1383,10 @@ window.addEventListener('message', (ev) => {
               card.classList.add('tf-no-trailer');
               return;
             }
+            // Render safely with a search-embed (prevents 153)
             card.innerHTML = `
               <iframe
-                src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(autoId)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
+                src="${srcSearch}"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 loading="lazy"
                 title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
@@ -3092,22 +3099,13 @@ function tfBuildCard(cat){
       // 1) YouTube trailer in HERO (autoplay muted)
       // Use a SEARCH embed to avoid YouTube embed errors on non-embeddable videos (ex: error 153).
       if (obj.youtubeId){
-        const yt = String(obj.youtubeId || 'search').trim();
         const origin = encodeURIComponent(window.location.origin);
-        let src = '';
-        if (yt && yt !== 'search'){
-          // Direct video embed (autoplay muted + loop) => more reliable than search embeds
-          src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt)
-              + '?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
-              + '&loop=1&playlist=' + encodeURIComponent(yt)
-              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
-        } else {
-          // Fallback: search embed
-          const q = encodeURIComponent(((gameName||'').trim() + ' trailer officiel') || 'game trailer');
-          src = 'https://www.youtube-nocookie.com/embed?listType=search&list=' + q
-              + '&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
-              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
-        }
+        // Always use SEARCH embed in the HERO.
+        // Rationale: direct embeds often fail with YouTube error 153/101/150 when the uploader disables embedding.
+        const q = encodeURIComponent(((gameName||'').trim() + ' trailer officiel') || 'game trailer');
+        const src = 'https://www.youtube-nocookie.com/embed?listType=search&list=' + q
+            + '&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
+            + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
         tfHeroMountIframe(src);
 
         // Play button launches an actual VOD of the game (not the hero trailer).
