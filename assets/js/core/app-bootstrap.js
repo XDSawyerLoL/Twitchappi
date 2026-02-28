@@ -18,6 +18,20 @@ window.fetchJSON = window.fetchJSON || (async function(url, opts){
 // -------------------------------------------------------------------------------
 /* DISCOVERY app-bootstrap v12 IA direct anime (no YT embed) */
 const API_BASE = window.location.origin;
+
+    // Global image fallback to avoid Twitch _404 thumbnail spam in console/network
+    if (!window.__oryonImgErrFix){
+      window.__oryonImgErrFix = true;
+      window.addEventListener('error', (e)=>{
+        const t = e && e.target;
+        if (t && t.tagName === 'IMG'){
+          const src = t.currentSrc || t.src || '';
+          if (src.includes('vod-secure.twitch.tv/_404/') || src.includes('/_404/404_processing_')){
+            t.src = '/assets/img/vod-fallback.png';
+          }
+        }
+      }, true);
+    }
     const __urlParams = new URLSearchParams(window.location.search);
     const TWITCH_PARENT = __urlParams.get('parent') || window.location.hostname;
 
@@ -612,12 +626,18 @@ function startAuth() {
       const el = document.getElementById('carousel');
       el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
       try{
-        const res = await fetch(`${API_BASE}/followed_streams`);
+        const res = await fetch(`${API_BASE}/followed_streams`, { credentials: 'include' });
+        if (!res.ok){
+          // Silent when user is not authenticated
+          document.getElementById('carousel').innerHTML = '<div class="w-full text-center py-8 opacity-70">Connecte-toi à Twitch pour voir tes follows.</div>';
+          return;
+        }
         const data = await res.json();
         if (data.success && data.streams.length > 0){
           el.innerHTML = '';
           data.streams.forEach(s=>{
-            const thumb = (s.thumbnail_url||'').replace('{width}','1000').replace('{height}','1333');
+            let thumb = (s.thumbnail_url||'').replace('{width}','1000').replace('{height}','1333');
+            if (thumb.includes('/_404/')) thumb = '/assets/img/vod-fallback.png';
             el.innerHTML += `
               <div class="stream-card flex-shrink-0" role="button" tabindex="0" onclick="changeChannel('${s.user_login}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                 <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
@@ -5098,9 +5118,8 @@ window.renderTwitFlix = function(){
 
 
 // ORYON_TV_BUILD_MARK v1770423290
-console.log('DISCOVERY build', 1770423290);
-
-
+window.__oryonDebug = (new URLSearchParams(location.search)).has('debug');
+    if (window.__oryonDebug) console.log('DISCOVERY build', 1770423290);
 // DISCOVERY menu (close / quit)
 function tfToggleMenu(e){
   try{ e && e.stopPropagation(); }catch(_){}

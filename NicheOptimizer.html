@@ -7,6 +7,36 @@
 <title>ORYON – Data Analytics</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;family=Inter:wght@400;600;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script>
+(function(){
+  if (console.__oryonFiltered) return;
+  console.__oryonFiltered = true;
+  const patterns = [
+    'cdn.tailwindcss.com should not be used in production',
+    'Images loaded lazily and replaced with placeholders',
+    'Permissions policy violation:',
+    'The deviceorientation events are blocked by permissions policy',
+    'Allow attribute will take precedence over',
+    'ShoutoutHighlightServiceQuery: server error',
+    'Autoplay disabled. The following minimum requirements for autoplay were not met',
+    '(playback-monitor)'
+  ];
+  function shouldDrop(args){
+    try{
+      const a0 = args && args.length ? args[0] : '';
+      const s = (typeof a0 === 'string') ? a0 : (a0 && a0.message ? String(a0.message) : '');
+      return patterns.some(p => s.includes(p));
+    }catch(_){ return false; }
+  }
+  const wrap = (fn) => function(...args){
+    if (shouldDrop(args)) return;
+    return fn.apply(console, args);
+  };
+  console.warn = wrap(console.warn.bind(console));
+  console.error = wrap(console.error.bind(console));
+  console.log = wrap(console.log.bind(console));
+})();
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
