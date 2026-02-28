@@ -231,6 +231,20 @@ const CSP_ENABLED = (process.env.CSP_ENABLED || 'false').toLowerCase() === 'true
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
   frameguard: false,
+  // Reduce noisy browser console warnings for embedded players
+  permissionsPolicy: {
+    directives: {
+      accelerometer: ["self"],
+      gyroscope: ["self"],
+      magnetometer: ["self"],
+      camera: ["self"],
+      microphone: ["self"],
+      fullscreen: ["self"],
+      "picture-in-picture": ["self"],
+      "compute-pressure": ["self"],
+      "device-orientation": ["self"],
+    }
+  },
   // In dev we keep CSP off to avoid blocking CDNs; in prod enable via env.
   contentSecurityPolicy: CSP_ENABLED ? {
     useDefaults: true,
@@ -1051,56 +1065,12 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
       if(!gameId) return res.json({ success:true, items:[], reason:'game_not_found' });
     }
 
-    const key = `vodsmall:${gameId}:${limit}:${days}:${lang}:${minViewers}:${maxViewers}:${perChannel}`;
-    const cached = __oryonCacheGet(__oryonVodSearchCache, key, 90_000);
+    const key = `vodsmall:v2:${gameId}:${limit}:${days}:${lang}:${minViewers}:${maxViewers}:${perChannel}:${maxViews}`;
+    // Longer cache: this endpoint is expensive and "good enough" if it refreshes every few minutes.
+    const cached = __oryonCacheGet(__oryonVodSearchCache, key, 5 * 60_000);
     if(cached) return res.json({ success:true, items:cached, cached:true });
 
-    // 1) Discover small creators via live streams for this game.
-    // Paginate a bit to avoid "only 4 results" when FR is sparse.
-    const streams = [];
-    const fetchStreams = async (useLang) => {
-      let after = '';
-      for(let page=0; page<4; page++){
-        const qs = new URLSearchParams();
-        qs.set('game_id', gameId);
-        qs.set('first', '100');
-        if(useLang) qs.set('language', useLang);
-        if(after) qs.set('after', after);
-        const sres = await twitchAPI(`streams?${qs.toString()}`, token);
-        const rows = (sres?.data || []).filter(s => {
-          const v = Number(s?.viewer_count || 0);
-          if (minViewers && v < minViewers) return false;
-          if (maxViewers && v > maxViewers) return false;
-          return true;
-        });
-        streams.push(...rows);
-        after = sres?.pagination?.cursor || '';
-        if(!after) break;
-        // If we already have enough candidates, stop early
-        if(streams.length >= 240) break;
-      }
-    };
-
-    // Prefer lang (FR). If too few streams, fallback to any language.
-    await fetchStreams(lang || '');
-    if(lang && streams.length < 20){
-      streams.length = 0;
-      await fetchStreams('');
-    }
-
-    // Deduplicate channels, keep order (higher viewers first inside the band)
-    const channelIds = [];
-    const seen = new Set();
-    for(const s of streams){
-      const uid = String(s.user_id || '');
-      if(!uid || seen.has(uid)) continue;
-      seen.add(uid);
-      channelIds.push(uid);
-      if(channelIds.length >= 60) break; // cap work
-    }
-
     const cutoff = Date.now() - (days * 24 * 36e5);
-    const out = [];
 
     const normalizeThumb = (u) => {
       const s = String(u || '').trim();
@@ -1110,99 +1080,174 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
         .replace(/%\{height\}/g, '360');
     };
 
-    // 2) fetch archives per channel (limited)
-    for(const uid of channelIds){
-      if(out.length >= limit) break;
-      const vqs = new URLSearchParams();
-      vqs.set('user_id', uid);
-      vqs.set('first', String(perChannel));
-      vqs.set('type', 'archive');
-      if(lang) vqs.set('language', lang);
-      const v = await twitchAPI(`videos?${vqs.toString()}`, token);
-      let rows = (v?.data || []).slice(0, perChannel);
-      // Keep only VODs actually matching the game (Twitch videos endpoint is per-user)
-      rows = rows.filter(r => String(r?.game_id || '') === String(gameId));
-      for(const r of rows){
-        const t = Date.parse(r.created_at || '') || 0;
-        if(t && t < cutoff) continue;
-        const vc = Number(r.view_count || 0);
-        if (maxViews && vc > maxViews) continue;
-        out.push({
-          id: r.id,
-          title: r.title,
-          url: r.url,
-          thumbnail_url: normalizeThumb(r.thumbnail_url),
-          duration: r.duration,
-          view_count: vc,
-          created_at: r.created_at,
-          vod_type: r.type,
-          user_id: r.user_id,
-          user_name: r.user_name,
-          game_id: r.game_id,
-          game_name: r.game_name,
-          language: r.language,
-          platform: 'twitch'
-        });
-        if(out.length >= limit) break;
+    const out = [];
+    const seenVod = new Set();
+
+    // ---------------------------------------------------------
+    // FAST PATH (3 calls max): query VODs directly by game_id.
+    // Much faster and more reliable than "seed channels then fetch per-user videos".
+    // ---------------------------------------------------------
+    const fetchByGame = async (useLang) => {
+      let after = '';
+      for (let page = 0; page < 3; page++) {
+        if (out.length >= limit) break;
+        const qs = new URLSearchParams();
+        qs.set('game_id', gameId);
+        qs.set('first', '100');
+        qs.set('type', 'archive');
+        if (useLang) qs.set('language', useLang);
+        if (after) qs.set('after', after);
+
+        const vres = await twitchAPI(`videos?${qs.toString()}`, token);
+        const rows = (vres?.data || []);
+        for (const r of rows) {
+          if (out.length >= limit) break;
+          const id = String(r?.id || '');
+          if (!id || seenVod.has(id)) continue;
+
+          const t = Date.parse(r.created_at || '') || 0;
+          if (t && t < cutoff) continue;
+
+          const vc = Number(r.view_count || 0);
+          if (maxViews && vc > maxViews) continue;
+
+          out.push({
+            id: r.id,
+            title: r.title,
+            url: r.url,
+            thumbnail_url: normalizeThumb(r.thumbnail_url),
+            duration: r.duration,
+            view_count: vc,
+            created_at: r.created_at,
+            vod_type: r.type,
+            user_id: r.user_id,
+            user_name: r.user_name,
+            game_id: r.game_id,
+            game_name: r.game_name,
+            language: r.language,
+            platform: 'twitch'
+          });
+          seenVod.add(id);
+        }
+
+        after = vres?.pagination?.cursor || '';
+        if (!after) break;
       }
+    };
+
+    // Prefer FR, fallback any language
+    await fetchByGame(lang || '');
+    if (lang && out.length < Math.min(10, limit)) {
+      await fetchByGame('');
     }
 
-    // 3) Fallback: if we still have too few VODs (FR sparse), query videos directly by game.
-    // This is much more reliable than "seed with small live channels" for some games.
-    if (out.length < Math.min(8, limit)) {
-      const seenVod = new Set(out.map(x => String(x.id)));
-      const fetchByGame = async (useLang) => {
+    // ---------------------------------------------------------
+    // SLOW PATH (limited): If too few items, try "small streamers band" and fetch a couple VODs per channel.
+    // Concurrency-limited to keep latency down.
+    // ---------------------------------------------------------
+    if (out.length < Math.min(10, limit)) {
+      const streams = [];
+      const fetchStreams = async (useLang) => {
         let after = '';
-        for (let page = 0; page < 3; page++) {
-          if (out.length >= limit) break;
+        for(let page=0; page<2; page++){
           const qs = new URLSearchParams();
           qs.set('game_id', gameId);
           qs.set('first', '100');
-          qs.set('type', 'archive');
-          if (useLang) qs.set('language', useLang);
-          if (after) qs.set('after', after);
-          const vres = await twitchAPI(`videos?${qs.toString()}`, token);
-          const rows = (vres?.data || []);
-          for (const r of rows) {
-            if (out.length >= limit) break;
-            const id = String(r?.id || '');
-            if (!id || seenVod.has(id)) continue;
-            const t = Date.parse(r.created_at || '') || 0;
-            if (t && t < cutoff) continue;
-            const vc = Number(r.view_count || 0);
-            if (maxViews && vc > maxViews) continue;
-            out.push({
-              id: r.id,
-              title: r.title,
-              url: r.url,
-              thumbnail_url: normalizeThumb(r.thumbnail_url),
-              duration: r.duration,
-              view_count: vc,
-              created_at: r.created_at,
-              vod_type: r.type,
-              user_id: r.user_id,
-              user_name: r.user_name,
-              game_id: r.game_id,
-              game_name: r.game_name,
-              language: r.language,
-              platform: 'twitch'
-            });
-            seenVod.add(id);
-          }
-          after = vres?.pagination?.cursor || '';
-          if (!after) break;
+          if(useLang) qs.set('language', useLang);
+          if(after) qs.set('after', after);
+
+          const sres = await twitchAPI(`streams?${qs.toString()}`, token);
+          const rows = (sres?.data || []).filter(s => {
+            const v = Number(s?.viewer_count || 0);
+            if (minViewers && v < minViewers) return false;
+            if (maxViewers && v > maxViewers) return false;
+            return true;
+          });
+
+          streams.push(...rows);
+          after = sres?.pagination?.cursor || '';
+          if(!after) break;
+          if(streams.length >= 120) break;
         }
       };
 
-      // Prefer FR, then fallback any language
-      await fetchByGame(lang || '');
-      if (lang && out.length < Math.min(8, limit)) {
-        await fetchByGame('');
+      await fetchStreams(lang || '');
+      if(lang && streams.length < 15){
+        streams.length = 0;
+        await fetchStreams('');
+      }
+
+      // Deduplicate channels
+      const channelIds = [];
+      const seenCh = new Set();
+      for(const s of streams){
+        const uid = String(s.user_id || '');
+        if(!uid || seenCh.has(uid)) continue;
+        seenCh.add(uid);
+        channelIds.push(uid);
+        if(channelIds.length >= 20) break; // hard cap
+      }
+
+      const fetchVideosForChannel = async (uid) => {
+        const vqs = new URLSearchParams();
+        vqs.set('user_id', uid);
+        vqs.set('first', String(perChannel));
+        vqs.set('type', 'archive');
+        if(lang) vqs.set('language', lang);
+
+        const v = await twitchAPI(`videos?${vqs.toString()}`, token);
+        let rows = (v?.data || []).slice(0, perChannel);
+        rows = rows.filter(r => String(r?.game_id || '') === String(gameId));
+
+        const items = [];
+        for (const r of rows){
+          const id = String(r?.id || '');
+          if(!id || seenVod.has(id)) continue;
+
+          const t = Date.parse(r.created_at || '') || 0;
+          if(t && t < cutoff) continue;
+
+          const vc = Number(r.view_count || 0);
+          if (maxViews && vc > maxViews) continue;
+
+          items.push({
+            id: r.id,
+            title: r.title,
+            url: r.url,
+            thumbnail_url: normalizeThumb(r.thumbnail_url),
+            duration: r.duration,
+            view_count: vc,
+            created_at: r.created_at,
+            vod_type: r.type,
+            user_id: r.user_id,
+            user_name: r.user_name,
+            game_id: r.game_id,
+            game_name: r.game_name,
+            language: r.language,
+            platform: 'twitch'
+          });
+          seenVod.add(id);
+        }
+        return items;
+      };
+
+      // Concurrency = 4
+      const concurrency = 4;
+      for (let i = 0; i < channelIds.length && out.length < limit; i += concurrency) {
+        const batch = channelIds.slice(i, i + concurrency);
+        const results = await Promise.all(batch.map(uid => fetchVideosForChannel(uid).catch(()=>[])));
+        for (const arr of results) {
+          for (const it of arr) {
+            if (out.length >= limit) break;
+            out.push(it);
+          }
+          if (out.length >= limit) break;
+        }
       }
     }
 
     __oryonCacheSet(__oryonVodSearchCache, key, out);
-    return res.json({ success:true, items: out, seeded:true, band:{ minViewers, maxViewers } });
+    return res.json({ success:true, items: out, optimized:true, band:{ minViewers, maxViewers } });
   }catch(e){
     console.warn('⚠️ /api/twitch/vods/by-game-small', e.message);
     return res.json({ success:true, items:[], reason:'server_error', error:e.message });
@@ -1211,6 +1256,8 @@ app.get('/api/twitch/vods/by-game-small', heavyLimiter, async (req, res) => {
 
 // =========================================================
 // DISCOVERY — Streams by game (used by TwitFlix drawer)
+// =========================================================
+ (used by TwitFlix drawer)
 // =========================================================
 const __oryonStreamsByGameCache = new Map();
 app.get('/api/twitch/streams/by-game', heavyLimiter, async (req, res) => {

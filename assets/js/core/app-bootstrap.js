@@ -230,7 +230,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         }
       }
       checkStatus();
-      setInterval(checkStatus, 5000);
+      setInterval(checkStatus, 15000);
     }
 
     // AUTH
@@ -3514,19 +3514,34 @@ if (yt && yt.startsWith('mp4:')){
       if (!box) return;
       box.innerHTML = '<div class="text-gray-500 text-xs"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
 
+      // Avoid hammering /api/alerts/generate when the user is not authorized (401) or when it already failed once.
+      window.__alertsGenerateTried = window.__alertsGenerateTried || {};
+      const triedKey = String(login || '');
+
       try{
         let r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
         let data = await r.json();
 
         if (!data.success || !data.items || data.items.length === 0){
-          await fetch(`${API_BASE}/api/alerts/generate`,{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({ login, days:30 })
-          }).catch(()=>{});
+          if (!window.__alertsGenerateTried[triedKey]) {
+            // attempt once per login
+            window.__alertsGenerateTried[triedKey] = true;
 
-          r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
-          data = await r.json();
+            const genRes = await fetch(`${API_BASE}/api/alerts/generate`,{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({ login, days:30 })
+            }).catch(()=>null);
+
+            // If unauthorized, don't retry this session.
+            if (genRes && genRes.status === 401) {
+              // keep as tried
+            } else {
+              // refresh list after generation (best effort)
+              r = await fetch(`${API_BASE}/api/alerts/channel_by_login/${encodeURIComponent(login)}?limit=8`);
+              data = await r.json();
+            }
+          }
         }
 
         if (!data.success || !data.items){
@@ -5254,7 +5269,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         b.__item = it;
         const thumb = String(it.thumbnail_url||'').replace('%{width}','540').replace('%{height}','720').replace('{width}','540').replace('{height}','720');
         b.innerHTML = `
-          <img src="${thumb}" alt="">
+          <img src="${thumb}" alt="" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/assets/img/vod-fallback.png';">
           <div class="oryon-so-meta">
             <div class="oryon-so-title">${esc(it.title || it.game_name || it.user_name || 'VOD')}</div>
             <div class="oryon-so-sub">
@@ -6852,7 +6867,7 @@ return;
       card.style.minWidth='260px';
       card.innerHTML = `
         <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:146px;background:#000;">
-          <img class="tf-card-video" alt="" src="${(s.thumbnail_url||'').replace('{width}','480').replace('{height}','272')}" />
+          <img class="tf-card-video" alt="" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/assets/img/vod-fallback.png';" src="${(s.thumbnail_url||'').replace('{width}','480').replace('{height}','272')}" />
         </div>
         <div class="tf-card-meta">
           <div class="tf-card-title">${String(s.user_name||'').replace(/</g,'&lt;')}</div>
