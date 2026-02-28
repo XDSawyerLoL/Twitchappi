@@ -2925,7 +2925,9 @@ async function steamFindTrailerMp4(gameName, lang){
   const m = movies.find(x=>x && x.mp4) || null;
   if(!m) return null;
 
-  const mp4 = m?.mp4?.max || m?.mp4?.hd || m?.mp4?.480 || m?.mp4?.160 || '';
+  // Note: Steam's trailer map sometimes uses numeric keys like "480" / "160".
+  // Dot access would be a syntax error (e.g. m.mp4.480), so use bracket access.
+  const mp4 = m?.mp4?.max || m?.mp4?.hd || m?.mp4?.['480'] || m?.mp4?.['160'] || '';
   if(!mp4) return null;
 
   const poster = m?.thumbnail || d?.header_image || '';
