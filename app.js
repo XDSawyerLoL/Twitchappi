@@ -2988,6 +2988,19 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
     };
   }
 
+  // -------- Embeddable check without API key --------
+  // When we fall back to Invidious, we can get videoIds that are NOT embeddable.
+  // YouTube oEmbed is a lightweight way to verify an embed is allowed.
+  async function ytOembedEmbeddable(videoId){
+    const id = String(videoId||'').trim();
+    if(!/^[a-zA-Z0-9_-]{11}$/.test(id)) return false;
+    const url = `https://www.youtube.com/oembed?url=${encodeURIComponent('https://www.youtube.com/watch?v=' + id)}&format=json`;
+    const r = await fetchWithTimeout(url, { headers: { 'accept':'application/json' } }, 4500).catch(()=>null);
+    if(!r) return false;
+    // 200 => embeddable; 401/403/404 often => not embeddable / not found
+    return !!r.ok;
+  }
+
   try {
     // 1) Try YouTube API with multiple query variants
     let lastApiErr = null;
@@ -3007,10 +3020,15 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
     for (const inst of shuffled) {
       for (const qq of queries) {
         const out = await invSearch(inst, qq);
-        if (out) {
-          YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
-          return res.json({ success:true, ...out, provider:'invidious' });
-        }
+        if (!out) continue;
+
+        // Ensure embeddable before returning to the client.
+        // This is essential when the YouTube Data API key isn't configured.
+        const okEmbed = await ytOembedEmbeddable(out.videoId);
+        if (!okEmbed) continue;
+
+        YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
+        return res.json({ success:true, ...out, provider:'invidious_oembed' });
       }
     }
 
