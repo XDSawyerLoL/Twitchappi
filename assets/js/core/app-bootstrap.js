@@ -1208,6 +1208,7 @@ window.addEventListener('message', (ev) => {
             const r = await fetch(url, { cache: 'no-store' });
             if (!r.ok) continue;
             const d = await r.json();
+            if (d && d.success && d.mp4) return 'mp4:' + d.mp4;
             if (d && d.success && d.videoId) return d.videoId;
           }
           return null;
@@ -1338,17 +1339,13 @@ window.addEventListener('message', (ev) => {
         const key = gameName.toLowerCase();
         const vid = TRAILER_MAP[key];
 
-        // Trailer preview uses a real embeddable videoId (resolved by /api/youtube/trailer).
-        // If we can't resolve an embeddable id, we keep a clean fallback state (no broken iframe).
-
         const card = document.createElement('div');
         card.className = 'tf-trailer-card';
 
         if (vid){
-          // Keep the mapping as a hint (cache) but render safely.
           card.innerHTML = `
             <iframe
-              src="${makeVidSrc(vid)}"
+              src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               loading="lazy"
               title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
@@ -1381,10 +1378,9 @@ window.addEventListener('message', (ev) => {
               card.classList.add('tf-no-trailer');
               return;
             }
-            // Render with the resolved embeddable video id.
             card.innerHTML = `
               <iframe
-                src="${makeVidSrc(autoId)}"
+                src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(autoId)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&mute=1&origin=${encodeURIComponent(location.origin)}"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 loading="lazy"
                 title="Trailer - ${gameName}" allowfullscreen referrerpolicy="strict-origin-when-cross-origin">
@@ -2272,7 +2268,7 @@ const modal = document.getElementById('twitflix-modal');
 
       if (trailerId){
         const origin = encodeURIComponent(location.origin);
-        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailerId)}?autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3`;
+        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailerId)}?autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&origin=${origin}`;
         media.innerHTML = `<iframe class="tf-hero-iframe" src="${src}" allow="autoplay; fullscreen" frameborder="0" scrolling="no" title="trailer"></iframe>`;
       }else{
         media.innerHTML = '';
@@ -2409,7 +2405,7 @@ const modal = document.getElementById('twitflix-modal');
       try{
         const r = await fetch(`/api/youtube/trailer?q=${encodeURIComponent(tfInfoGame.name)}&type=game&lang=fr`, { credentials:'include' });
         const j = r.ok ? await r.json().catch(()=>null) : null;
-        videoId = j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '';
+        videoId = j && j.mp4 ? ('mp4:' + String(j.mp4).trim()) : (j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '');
       }catch(_){ }
 
       if (!videoId) return;
@@ -2426,9 +2422,25 @@ const modal = document.getElementById('twitflix-modal');
         iframe.frameBorder = '0';
         iframe.width = '100%';
         iframe.height = '100%';
-        // Do NOT pass origin= (prevents YouTube error 153 on some deployments).
-        iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${encodeURIComponent(videoId)}`;
-        media.appendChild(iframe);
+
+if (String(videoId).startsWith('mp4:')){
+  const mp4 = String(videoId).slice(4).trim();
+  const v = document.createElement('video');
+  v.className = 'tf-info-iframe';
+  v.src = mp4;
+  v.muted = true;
+  v.autoplay = true;
+  v.loop = true;
+  v.playsInline = true;
+  v.preload = 'metadata';
+  v.controls = false;
+  media.appendChild(v);
+  const p3 = v.play(); if(p3 && p3.catch) p3.catch(()=>{});
+} else {
+  const origin = encodeURIComponent(window.location.origin);
+  iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${encodeURIComponent(videoId)}&origin=${origin}`;
+  media.appendChild(iframe);
+}
       }, 5000);
     }
 
@@ -2444,7 +2456,7 @@ const modal = document.getElementById('twitflix-modal');
       try{
         const r = await fetch(`/api/youtube/trailer?q=${encodeURIComponent(tfInfoGame.name)}&type=game&lang=fr`, { credentials:'include' });
         const j = r.ok ? await r.json().catch(()=>null) : null;
-        videoId = j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '';
+        videoId = j && j.mp4 ? ('mp4:' + String(j.mp4).trim()) : (j && (j.videoId || j.id) ? String(j.videoId || j.id).trim() : '');
       }catch(_){ }
 
       if (!videoId) return;
@@ -2456,10 +2468,26 @@ const modal = document.getElementById('twitflix-modal');
       iframe.width = '100%';
       iframe.height = '100%';
 
-      // Loop + muted autoplay (Netflix-like preview)
-      const origin = encodeURIComponent(window.location.origin);
-      iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${encodeURIComponent(videoId)}`;
-      media.appendChild(iframe);
+
+// Loop + muted autoplay (Netflix-like preview)
+if (String(videoId).startsWith('mp4:')){
+  const mp4 = String(videoId).slice(4).trim();
+  const v = document.createElement('video');
+  v.className = 'tf-info-iframe';
+  v.src = mp4;
+  v.muted = true;
+  v.autoplay = true;
+  v.loop = true;
+  v.playsInline = true;
+  v.preload = 'metadata';
+  v.controls = false;
+  media.appendChild(v);
+  const p4 = v.play(); if(p4 && p4.catch) p4.catch(()=>{});
+} else {
+  const origin = encodeURIComponent(window.location.origin);
+  iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${encodeURIComponent(videoId)}&origin=${origin}`;
+  media.appendChild(iframe);
+}
     }
 
     async function tfLoadInfoContent(){
@@ -3095,13 +3123,89 @@ function tfBuildCard(cat){
 
     function tfHeroApplyAutoplay(obj, gameName, poster){
       // 1) YouTube trailer in HERO (autoplay muted)
-      // Always prefer a verified embeddable videoId (resolved server-side).
+      // Use a SEARCH embed to avoid YouTube embed errors on non-embeddable videos (ex: error 153).
       if (obj.youtubeId){
-        const ytId = String(obj.youtubeId||'').trim();
-        const makeSrc = (id)=> `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0`;
-        if (ytId && ytId !== 'search') tfHeroMountIframe(makeSrc(ytId));
-        else tfHeroClearMedia();
-return;
+        const yt = String(obj.youtubeId || 'search').trim();
+// Steam MP4 trailer (preferred when available)
+if (yt && yt.startsWith('mp4:')){
+  const mp4 = yt.slice(4).trim();
+  const media = document.getElementById('tf-hero-media');
+  if (media && mp4){
+    media.dataset.locked = '1';
+    media.innerHTML = '';
+    const v = document.createElement('video');
+    v.className = 'tf-hero-iframe'; // reuse same sizing rules
+    v.src = mp4;
+    v.muted = true;
+    v.autoplay = true;
+    v.loop = true;
+    v.playsInline = true;
+    v.preload = 'metadata';
+    v.controls = false;
+    media.appendChild(v);
+    const p2 = v.play(); if(p2 && p2.catch) p2.catch(()=>{});
+  }
+  // keep play button behavior unchanged (launches a VOD)
+  const playBtn = document.getElementById('tf-hero-play');
+  if (playBtn){
+    playBtn.onclick = async ()=>{
+      try{
+        const gid = String(tfHeroCurrentKey || tfDrawerOpenForGameId || (tfFeaturedHero && (tfFeaturedHero.gameId || tfFeaturedHero.game_id)) || '').trim();
+        if(!gid) return;
+        const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gid)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
+        const r = await fetch(url, { credentials:'include' });
+        const d = await r.json().catch(()=>null);
+        const items = (r.ok && d && Array.isArray(d.items)) ? d.items : [];
+        const first = items.find(x=>x && x.id) || null;
+        if(!first) return;
+        const vodId = String(first.id).replace(/^v/i,'');
+        try{ closeTwitFlix(); }catch(_){}
+        try{ window.loadVodEmbed && window.loadVodEmbed(vodId); }catch(_){}
+      }catch(_e){}
+    };
+  }
+  tfSetHero({ title: gameName || 'Trailer', sub: 'Prévisualisation automatique (muette)', poster });
+  return;
+}
+
+        const origin = encodeURIComponent(window.location.origin);
+        let src = '';
+        if (yt && yt !== 'search'){
+          // Direct video embed (autoplay muted + loop) => more reliable than search embeds
+          src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(yt)
+              + '?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
+              + '&loop=1&playlist=' + encodeURIComponent(yt)
+              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+        } else {
+          // Fallback: search embed
+          const q = encodeURIComponent(((gameName||'').trim() + ' trailer officiel') || 'game trailer');
+          src = 'https://www.youtube-nocookie.com/embed?listType=search&list=' + q
+              + '&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1'
+              + '&iv_load_policy=3&fs=0&disablekb=1&origin=' + origin;
+        }
+        tfHeroMountIframe(src);
+
+        // Play button launches an actual VOD of the game (not the hero trailer).
+        const playBtn = document.getElementById('tf-hero-play');
+        if (playBtn){
+          playBtn.onclick = async ()=>{
+            try{
+              const gid = String(tfHeroCurrentKey || tfDrawerOpenForGameId || (tfFeaturedHero && (tfFeaturedHero.gameId || tfFeaturedHero.game_id)) || '').trim();
+              if(!gid) return;
+              const url = `${API_BASE}/api/twitch/vods/by-game-small?game_id=${encodeURIComponent(gid)}&lang=fr&limit=12&days=60&minViewers=20&maxViewers=200&perChannel=1`;
+              const r = await fetch(url, { credentials:'include' });
+              const d = await r.json().catch(()=>null);
+              const items = (r.ok && d && Array.isArray(d.items)) ? d.items : [];
+              const first = items.find(x=>x && x.id) || null;
+              if(!first) return;
+              const vodId = String(first.id).replace(/^v/i,'');
+              try{ closeTwitFlix(); }catch(_){}
+              try{ window.loadVodEmbed && window.loadVodEmbed(vodId); }catch(_){}
+            }catch(_e){}
+          };
+        }
+        tfSetHero({ title: gameName || 'Trailer', sub: 'Trailer officiel • Prévisualisation automatique', poster });
+        return;
       }
 
       const parentParams = (Array.isArray(PARENT_DOMAINS) && PARENT_DOMAINS.length)
@@ -3110,7 +3214,9 @@ return;
 
       if (obj.vodId || obj.channel){
         // Legacy cache (older sessions) — keep HERO YouTube-only.
-        tfHeroClearMedia();
+        const q = encodeURIComponent(`${(gameName||'').trim()} trailer officiel` || 'game trailer');
+        const origin = encodeURIComponent(window.location.origin);
+        tfHeroMountIframe(`https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3&fs=0&disablekb=1&origin=${origin}`);
 
         const playBtn = document.getElementById('tf-hero-play');
         if (playBtn){
@@ -5569,8 +5675,7 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
       // fallback to plain iframe
       if(iframeFallback){
         iframeFallback.style.display='block';
-          // Do NOT pass origin= in fallback iframe; it can trigger YouTube "Erreur 153" on some deployments.
-          const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1`;
+        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
         iframeFallback.setAttribute('allow','autoplay; encrypted-media; picture-in-picture');
         iframeFallback.setAttribute('allowfullscreen','1');
         iframeFallback.src = src;
@@ -5592,7 +5697,8 @@ document.addEventListener('click', ()=>{ try{ tfHideMenu(); }catch(_){ } }, true
         playsinline: 1,
         rel: 0,
         modestbranding: 1,
-        iv_load_policy: 3
+        iv_load_policy: 3,
+        origin: location.origin
       },
       events: {
         onReady: (e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch(_e){} },
@@ -6413,7 +6519,7 @@ function renderAnimeHome(){
             const vid = String(pick.videoId).trim();
             if(!vid) return;
             const origin = encodeURIComponent(location.origin);
-            const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&fs=0`;
+            const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&loop=1&playlist=${encodeURIComponent(vid)}&enablejsapi=1&origin=${origin}`;
             const ifr = document.createElement('iframe');
             ifr.src = src;
             ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
@@ -6503,27 +6609,10 @@ function renderAnimeHome(){
 
       let cleanup = ()=>{};
       if(series.type==='yt'){
-        const vid = await getFirstEmbeddableVideoId(series);
-        if(!vid) return;
-        const origin = encodeURIComponent(location.origin);
-        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&fs=0`;
-        const ifr = document.createElement('iframe');
-        ifr.src = src;
-        ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
-        ifr.setAttribute('allowfullscreen','');
-        layer.appendChild(ifr);
-        cleanup = ()=>{ try{ ifr.src='about:blank'; }catch(_e){} layer.innerHTML=''; tileBtn.classList.remove('tf-previewing'); };
-      } else if(series.type==='yt_video'){
-        const resolved = (typeof tfResolveTrailerId === 'function') ? await tfResolveTrailerId(series.title) : null;
-        const id = String(resolved || series.videoId || '').trim();
-        if(!id) return;
-        const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0&iv_load_policy=3&fs=0`;
-        const ifr = document.createElement('iframe');
-        ifr.src = src;
-        ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
-        ifr.setAttribute('allowfullscreen','');
-        layer.appendChild(ifr);
-        cleanup = ()=>{ try{ ifr.src='about:blank'; }catch(_e){} layer.innerHTML=''; tileBtn.classList.remove('tf-previewing'); };
+        // YouTube playlist hover previews are unreliable (Erreur 153 / player config) depending on the video.
+        // We keep the tile dynamic via CSS (zoom/shine) and rely on click-to-open for playback.
+        layer.innerHTML = '<div class="tf-preview-fallback">Aperçu</div>';
+        cleanup = ()=>{ layer.innerHTML=''; tileBtn.classList.remove('tf-previewing'); };
       } else if(series.type==='ia'){
         const mp4 = await getFirstMp4Url(series);
         if(!mp4) return;
@@ -6642,7 +6731,7 @@ return;
 
 
 // =========================================================
-// DISCOVERY — Trailers jeux vidéo (YouTube videoId embeds)
+// DISCOVERY — Trailers jeux vidéo (YouTube search embeds)
 //  - avoids Helix clips confusion
 //  - best-effort: some videos can be blocked from embed
 // =========================================================
@@ -6650,23 +6739,10 @@ return;
   const BAD = new Set(['Just Chatting','Music','ASMR','IRL','Talk Shows & Podcasts','Slots','Art','Sports','Travel & Outdoors']);
   function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  function ytVideoEmbed(videoId){
-    const id = encodeURIComponent(String(videoId||'').trim());
-    if(!id) return '';
-    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&fs=0`;
-  }
-
-  async function resolveTrailerId(name){
-    try{
-      const url = `${API_BASE}/api/youtube/trailer?q=${encodeURIComponent(String(name||''))}&type=game&lang=fr`;
-      const r = await fetch(url, { credentials:'include' });
-      const d = await r.json().catch(()=>null);
-      if(!r.ok || !d || !d.success) return '';
-      const id = String(d.videoId||'').trim();
-      return /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : '';
-    }catch(_){
-      return '';
-    }
+  function ytSearchEmbed(query){
+    // listType=search autoplay allowed when muted; keep controls minimal
+    const q = encodeURIComponent(query);
+    return `https://www.youtube-nocookie.com/embed?listType=search&list=${q}&autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&rel=0`;
   }
 
   window.tfRenderTrailerCarousel = async function(){
@@ -6681,29 +6757,25 @@ return;
 
       wrap.innerHTML='';
       for (const g of picks){
-        const vid = await resolveTrailerId(g.name);
-        const src = vid ? ytVideoEmbed(vid) : '';
+        const query = `${g.name} official trailer`;
+        const src = ytSearchEmbed(query);
 
         const card = document.createElement('div');
         card.className='tf-card';
         card.style.minWidth='360px';
         card.innerHTML = `
           <div class="tf-thumb" style="position:relative;overflow:hidden;border-radius:14px;height:202px;background:#000;">
-            ${src ? `
             <iframe
               title="${esc(g.name)} trailer"
               src="${src}"
               allow="autoplay; encrypted-media; picture-in-picture"
               referrerpolicy="strict-origin-when-cross-origin"
               style="border:0;width:100%;height:100%;"></iframe>
-            ` : `
-            <div style=\"position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;opacity:.85;\">Trailer indisponible</div>
-            `}
             <div style="position:absolute;left:10px;top:10px;background:rgba(255,0,153,.85);padding:.2rem .5rem;border-radius:999px;font-weight:900;font-size:11px;letter-spacing:.08em;">TRAILER</div>
           </div>
           <div class="tf-card-meta">
             <div class="tf-card-title">${esc(g.name)}</div>
-            <div class="tf-card-sub" style="opacity:.7;font-weight:700;">${src ? 'YouTube' : 'Trailer indisponible'}</div>
+            <div class="tf-card-sub" style="opacity:.7;font-weight:700;">YouTube (recherche)</div>
           </div>`;
 
         wrap.appendChild(card);

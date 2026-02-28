@@ -2895,6 +2895,49 @@ app.get('/api/youtube/playlist', heavyLimiter, async (req, res) => {
   }
 });
 
+
+// -------- Steam trailer resolver (MP4) --------
+// Uses public Steam Store endpoints (no key) to retrieve an embeddable MP4 trailer.
+async function steamFindTrailerMp4(gameName, lang){
+  const term = String(gameName || '').trim();
+  if(!term) return null;
+
+  const cc = (String(lang||'fr').toLowerCase()==='fr') ? 'FR' : 'US';
+  const l  = (String(lang||'fr').toLowerCase()==='fr') ? 'french' : 'english';
+
+  // storesearch: pick best match (category1=998 => games)
+  const searchUrl = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(term)}&l=${encodeURIComponent(l)}&cc=${encodeURIComponent(cc)}&category1=998&infinite=0`;
+  const sr = await fetchWithTimeout(searchUrl, { headers: { 'accept':'application/json' } }, 5500).catch(()=>null);
+  if(!sr || !sr.ok) return null;
+  const sj = await sr.json().catch(()=>null);
+  const items = Array.isArray(sj?.items) ? sj.items : [];
+  const pick = items.find(x=>x && x.id) || null;
+  const appid = pick ? String(pick.id).trim() : '';
+  if(!appid) return null;
+
+  // appdetails: extract first trailer mp4 (prefer max quality)
+  const detUrl = `https://store.steampowered.com/api/appdetails?appids=${encodeURIComponent(appid)}&l=${encodeURIComponent(l)}&cc=${encodeURIComponent(cc)}`;
+  const dr = await fetchWithTimeout(detUrl, { headers: { 'accept':'application/json' } }, 6500).catch(()=>null);
+  if(!dr || !dr.ok) return null;
+  const dj = await dr.json().catch(()=>null);
+  const d = dj && dj[appid] && dj[appid].success ? dj[appid].data : null;
+  const movies = Array.isArray(d?.movies) ? d.movies : [];
+  const m = movies.find(x=>x && x.mp4) || null;
+  if(!m) return null;
+
+  const mp4 = m?.mp4?.max || m?.mp4?.hd || m?.mp4?.480 || m?.mp4?.160 || '';
+  if(!mp4) return null;
+
+  const poster = m?.thumbnail || d?.header_image || '';
+  return {
+    appid,
+    mp4: String(mp4),
+    poster: poster ? String(poster) : '',
+    title: String(d?.name || term),
+    provider: 'steam'
+  };
+}
+
 app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
   const q0 = String(req.query.q || '').trim();
   const type = String(req.query.type || 'game'); // game|movie
@@ -2933,7 +2976,20 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
     ];
   })();
 
-  // -------- YouTube Data API (if key works) --------
+  
+// -------- Steam MP4 first (most reliable, avoids YouTube embed errors like 153) --------
+if (type === 'game') {
+  try{
+    const steam = await steamFindTrailerMp4(q, lang);
+    if (steam && steam.mp4){
+      const data = { mp4: steam.mp4, poster: steam.poster || '', title: steam.title || q };
+      YT_TRAILER_CACHE.set(key, { ts: Date.now(), data });
+      return res.json({ success:true, ...data, provider: 'steam' });
+    }
+  }catch(_e){}
+}
+
+// -------- YouTube Data API (if key works) --------
   async function ytApiSearch(query){
     if (!YOUTUBE_API_KEY) return { ok:false, reason:'missing_key' };
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=6&safeSearch=moderate&relevanceLanguage=${encodeURIComponent(lang === 'fr' ? 'fr' : 'en')}&regionCode=${encodeURIComponent(lang === 'fr' ? 'FR' : 'US')}&q=${encodeURIComponent(query)}&key=${encodeURIComponent(YOUTUBE_API_KEY)}`;
@@ -2988,19 +3044,6 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
     };
   }
 
-  // -------- Embeddable check without API key --------
-  // When we fall back to Invidious, we can get videoIds that are NOT embeddable.
-  // YouTube oEmbed is a lightweight way to verify an embed is allowed.
-  async function ytOembedEmbeddable(videoId){
-    const id = String(videoId||'').trim();
-    if(!/^[a-zA-Z0-9_-]{11}$/.test(id)) return false;
-    const url = `https://www.youtube.com/oembed?url=${encodeURIComponent('https://www.youtube.com/watch?v=' + id)}&format=json`;
-    const r = await fetchWithTimeout(url, { headers: { 'accept':'application/json' } }, 4500).catch(()=>null);
-    if(!r) return false;
-    // 200 => embeddable; 401/403/404 often => not embeddable / not found
-    return !!r.ok;
-  }
-
   try {
     // 1) Try YouTube API with multiple query variants
     let lastApiErr = null;
@@ -3020,15 +3063,10 @@ app.get('/api/youtube/trailer', heavyLimiter, async (req, res) => {
     for (const inst of shuffled) {
       for (const qq of queries) {
         const out = await invSearch(inst, qq);
-        if (!out) continue;
-
-        // Ensure embeddable before returning to the client.
-        // This is essential when the YouTube Data API key isn't configured.
-        const okEmbed = await ytOembedEmbeddable(out.videoId);
-        if (!okEmbed) continue;
-
-        YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
-        return res.json({ success:true, ...out, provider:'invidious_oembed' });
+        if (out) {
+          YT_TRAILER_CACHE.set(key, { ts: Date.now(), data: out });
+          return res.json({ success:true, ...out, provider:'invidious' });
+        }
       }
     }
 
