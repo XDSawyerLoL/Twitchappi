@@ -37,7 +37,7 @@
   // --- Billing (credits/plan) ---
   async function fetchBilling(){
     try{
-      const r = await fetch('/api/billing/me');
+      const r = await fetch('/api/billing/me', { cache:'no-store', credentials:'include' });
       const j = await r.json();
       if(!j?.success) return { plan:'free', credits:0 };
       return { plan: String(j.plan||'free').toLowerCase(), credits: Number(j.credits||0) };
@@ -653,16 +653,31 @@
 
 
 // Server-side access decision (single source of truth)
-let allowed = false;
+// IMPORTANT: do NOT hard-redirect on network/parse errors (otherwise paid users can get stuck in a loop).
+let allowed = null;
 try{
   const r = await fetch('/api/market/access', { cache:'no-store', credentials:'include' });
-  const j = await r.json();
-  if(j && j.success){
-    allowed = !!j.allowed;
+  if(r.ok){
+    const j = await r.json();
+    if(j && j.success) allowed = !!j.allowed;
   }
-}catch(_){}
+}catch(_){ allowed = null; }
 
-if(!allowed){
+// Fallback: if market/access failed, use billing snapshot (credits/entitlements)
+if(allowed === null){
+  try{
+    const r2 = await fetch('/api/billing/me', { cache:'no-store', credentials:'include' });
+    if(r2.ok){
+      const j2 = await r2.json();
+      const plan = String(j2?.plan || 'free').toLowerCase();
+      const credits = Number(j2?.credits || 0);
+      const ent = j2?.entitlements || {};
+      allowed = (plan === 'premium' || plan === 'pro') || (ent.market === true) || (credits > 0);
+    }
+  }catch(_){ /* keep null */ }
+}
+
+if(allowed === false){
   window.location.href = '/pricing';
   return;
 }

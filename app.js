@@ -4825,7 +4825,20 @@ app.get('/api/market/access', async (req,res)=>{
     }
     if (tu.expiry && tu.expiry <= Date.now()) { req.session.twitchUser=null; return res.json({ success:true, connected:false, allowed:false, reason:'TWITCH_AUTH_EXPIRED' }); }
 
-    const b = await getBillingDoc(tu);
+    let b = await getBillingDoc(tu);
+    // Keep market/access consistent with /api/billing/me: if billing credits are empty but fantasy wallet cash exists,
+    // sync once to avoid "paid but denied" loops.
+    if(Number(b.credits||0) <= 0){
+      try{
+        const userKey = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
+        const w = await getUserWallet(userKey);
+        if(Number(w.cash||0) > 0){
+          await setBillingCreditsAbsolute(tu, Number(w.cash||0));
+          b = await getBillingDoc(tu);
+        }
+      }catch(_){ }
+    }
+
     const plan = String(b.plan || 'free').toLowerCase();
     const credits = Number(b.credits || 0);
     const ent = b.entitlements || {};
