@@ -26,6 +26,30 @@
     });
   }
 
+  // --- Base open/close (make Market usable even if other modules don't define these) ---
+  // Some builds load this file before any legacy openMarketOverlay() implementation.
+  // Without a base implementation, the menu button falls back to /pricing.
+  if(typeof window.openMarketOverlay !== 'function'){
+    window.openMarketOverlay = function(){
+      if(!overlay) return;
+      overlay.classList.remove('hidden');
+      overlay.setAttribute('aria-hidden','false');
+      setBodyModal(true);
+      setAuxUiHidden(true);
+      try{ overlay.querySelector('.overflow-y-auto')?.scrollTo({ top:0 }); }catch(_){ }
+      try{ window.refreshMarketAll && window.refreshMarketAll(); }catch(_){ }
+    };
+  }
+  if(typeof window.closeMarketOverlay !== 'function'){
+    window.closeMarketOverlay = function(){
+      if(!overlay) return;
+      overlay.classList.add('hidden');
+      overlay.setAttribute('aria-hidden','true');
+      setBodyModal(false);
+      setAuxUiHidden(false);
+    };
+  }
+
   // --- Data store ---
   let watchlist = [];
   let selected = null;
