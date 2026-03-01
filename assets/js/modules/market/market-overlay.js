@@ -662,12 +662,26 @@
         bPlan = String(bj.plan || 'free').toLowerCase();
         bCredits = Number(bj.credits || 0);
         entMarket = !!(bj.entitlements && bj.entitlements.market);
+        try{ window.__billing = bj; }catch(_e){}
       }
-    }catch(_){}
+    }catch(_){
+      // Fallback: use cached billing snapshot written by app-bootstrap (/pricing already writes too)
+      try{
+        const cu = window.currentUser || {};
+        const bid = (cu.id || cu.login || cu.display_name || '').toString() || 'anon';
+        const cached = JSON.parse(localStorage.getItem('billing_cache_' + bid) || 'null');
+        const bj = cached && cached.data;
+        if(bj && (bj.success === undefined ? true : bj.success)){
+          bPlan = String(bj.plan || 'free').toLowerCase();
+          bCredits = Number(bj.credits || 0);
+          entMarket = !!(bj.entitlements && bj.entitlements.market);
+        }
+      }catch(_e){}
+    }
 
     let holdingsCount = 0;
     try{
-      const r = await fetch('/api/fantasy/profile', { credentials:'include' });
+      const r = await fetch('/api/fantasy/profile', { credentials:'include', cache:'no-store' });
       const j = await r.json();
       if(j && j.success){
         holdingsCount = Array.isArray(j.holdings) ? j.holdings.length : 0;

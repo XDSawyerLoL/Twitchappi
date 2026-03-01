@@ -181,6 +181,7 @@
       if(me && me.success){
         badge.textContent = String(me.credits||0) + ' crédits';
         window.__billing = me;
+        try{ const bid = String((u.id||u.login||u.display_name||'')||'anon'); localStorage.setItem('billing_cache_'+bid, JSON.stringify({ ts: Date.now(), data: me })); }catch(_e){}
       }
 
       // Update unlock UI state

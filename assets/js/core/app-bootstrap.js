@@ -303,7 +303,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   let d = null;
   try{
-    const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include' });
+    const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include', cache:'no-store' });
     d = await r.json().catch(()=>null);
   }catch(_e){ d = null; }
 
@@ -316,6 +316,14 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   if(wrap) wrap.classList.remove('hidden');
 
+  // Cache billing snapshot for Market gating (multi-user, avoids redirect loops)
+  try{
+    window.__billing = d;
+    const cu = window.currentUser || {};
+    const bid = (cu.id || cu.login || cu.display_name || '').toString() || 'anon';
+    localStorage.setItem('billing_cache_' + bid, JSON.stringify({ ts: Date.now(), data: d }));
+  }catch(_e){}
+
   let credits = Number(d.credits ?? 0) || 0;
   const plan = String((d.plan || 'FREE')).toUpperCase();
 
@@ -326,7 +334,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   // Portfolio preview (fallback: use fantasy wallet cash)
   try{
-    const fr = await fetch(`${API_BASE}/api/fantasy/profile`, { credentials:'include' });
+    const fr = await fetch(`${API_BASE}/api/fantasy/profile`, { credentials:'include', cache:'no-store' });
     const fj = await fr.json().catch(()=>null);
     const cash = Number(fj?.cash ?? fj?.wallet?.cash ?? 0) || 0;
 
