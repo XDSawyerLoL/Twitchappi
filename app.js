@@ -4395,15 +4395,37 @@ function computeEffectiveEntitlements(entitlements, entitlementsUntil){
   const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, entitlements || {});
   const until = Object.assign({}, entitlementsUntil || {});
   let changed = false;
+  // Normalize Firestore timestamps / seconds to epoch ms.
+  function toMs(u){
+    if(!u) return 0;
+    if(typeof u === 'number') return (u > 0 && u < 1e11) ? (u * 1000) : u; // seconds -> ms
+    if(typeof u === 'string'){
+      const n = Number(u);
+      if(!Number.isFinite(n) || n <= 0) return 0;
+      return (n < 1e11) ? (n * 1000) : n;
+    }
+    // Firestore Timestamp-like shapes
+    if(typeof u.toMillis === 'function'){
+      try{ return u.toMillis(); }catch(e){ return 0; }
+    }
+    const sec = (u._seconds ?? u.seconds);
+    const ns  = (u._nanoseconds ?? u.nanoseconds);
+    if(Number.isFinite(sec) && sec > 0){
+      return (sec * 1000) + (Number.isFinite(ns) ? Math.floor(ns / 1e6) : 0);
+    }
+    return 0;
+  }
   for(const k of Object.keys(ent)){
     const u = until[k];
+    const ms = toMs(u);
     // If an entitlement exists without an expiry (legacy), convert it to a 7-day entitlement starting now.
-    if(ent[k] === true && (!u || Number(u) <= 0)){
+    if(ent[k] === true && ms <= 0){
       until[k] = now + ENTITLEMENT_TTL_MS;
       changed = true;
       continue;
     }
-    if(ent[k] === true && u && Number(u) > 0 && Number(u) <= now){
+    // Expire if past due.
+    if(ent[k] === true && ms > 0 && ms <= now){
       ent[k] = false;
       delete until[k];
       changed = true;
