@@ -4638,8 +4638,20 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 // =========================================================
 // BILLING API
 // =========================================================
+function noStore(res){
+  try{
+    res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma','no-cache');
+    res.set('Expires','0');
+    res.set('Surrogate-Control','no-store');
+    // Prevent 304 responses for volatile user state
+    res.removeHeader('ETag');
+  }catch(_){ }
+}
+
 app.get('/api/billing/me', async (req,res)=>{
   try{
+    noStore(res);
     const tu = req.session?.twitchUser;
     if(!tu){
       return res.json({ success:true, connected:false, plan:'free', credits:0, premium:false, pro:false });
@@ -4682,6 +4694,7 @@ const CREDIT_CATALOG = {
 
 app.get('/api/credits/catalog', async (req,res)=>{
   try{
+    noStore(res);
     const items = Object.keys(CREDIT_CATALOG).map(sku=>({
       sku,
       priceCredits: Number(CREDIT_CATALOG[sku].priceCredits||0)
@@ -4694,6 +4707,7 @@ app.get('/api/credits/catalog', async (req,res)=>{
 
 app.post('/api/credits/spend', async (req,res)=>{
   try{
+    noStore(res);
     const tu = requireTwitchSession(req, res);
     if(!tu) return;
     if(!firestoreOk) return res.status(503).json({ success:false, error:'firestore_unavailable' });

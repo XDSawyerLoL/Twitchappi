@@ -656,7 +656,7 @@
     // - Otherwise: require at least 1 credit in billing wallet OR existing holdings
     let bPlan = 'free', bCredits = 0, entMarket = false;
     try{
-      const bm = await fetch('/api/billing/me', { credentials:'include' });
+      const bm = await fetch('/api/billing/me', { credentials:'include', cache:'no-store' });
       const bj = await bm.json();
       if(bj && bj.success){
         bPlan = String(bj.plan || 'free').toLowerCase();

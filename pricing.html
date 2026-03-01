@@ -153,7 +153,7 @@
     const API = window.location.origin;
 
     async function getJson(url, opts){
-      const r = await fetch(url, Object.assign({ credentials:'include' }, opts||{}));
+      const r = await fetch(url, Object.assign({ credentials:'include', cache:'no-store' }, opts||{}));
       return r.json();
     }
 
@@ -238,6 +238,7 @@
       const r = await fetch(API + '/api/credits/spend', {
         method:'POST',
         credentials:'include',
+        cache:'no-store',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ sku })
       });
