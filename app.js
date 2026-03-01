@@ -577,12 +577,18 @@ app.use(express.static(path.join(__dirname)));
 
 // Page principale (UI)
 app.get('/', (req, res) => {
-  const candidates = [
+  // Serve only HTML UI files (prevents accidentally serving JS source if UI_FILE is mis-set on Render)
+  const rawCandidates = [
     process.env.UI_FILE,
     'NicheOptimizer.html',
     'NicheOptimizer_v56.html',
     'index.html'
   ].filter(Boolean);
+
+  const candidates = rawCandidates
+    .map(String)
+    .map(f => f.trim())
+    .filter(f => /\.html?$/i.test(f));
 
   const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
