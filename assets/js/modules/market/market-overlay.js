@@ -651,20 +651,32 @@
       return;
     }
 
-    // If FREE + 0 crédits, we redirect ONLY if portfolio is empty (otherwise allow view)
-    let plan = 'FREE', cash = 0, holdingsCount = 0;
+    // Access rule (multi-user):
+    // - Premium/Pro OR entitlement.market => always access
+    // - Otherwise: require at least 1 credit in billing wallet OR existing holdings
+    let bPlan = 'free', bCredits = 0, entMarket = false;
     try{
-      const r = await fetch('/api/fantasy/profile');
+      const bm = await fetch('/api/billing/me', { credentials:'include' });
+      const bj = await bm.json();
+      if(bj && bj.success){
+        bPlan = String(bj.plan || 'free').toLowerCase();
+        bCredits = Number(bj.credits || 0);
+        entMarket = !!(bj.entitlements && bj.entitlements.market);
+      }
+    }catch(_){}
+
+    let holdingsCount = 0;
+    try{
+      const r = await fetch('/api/fantasy/profile', { credentials:'include' });
       const j = await r.json();
       if(j && j.success){
-        plan = String((j.plan || 'FREE')).toUpperCase();
-        cash = Number(j.cash ?? j.credits ?? 0);
         holdingsCount = Array.isArray(j.holdings) ? j.holdings.length : 0;
       }
     }catch(_){}
 
-    const locked = (plan === 'FREE' && cash <= 0);
-    if(locked && holdingsCount === 0){
+    const planUnlock = (bPlan === 'premium' || bPlan === 'pro');
+    const hasAccess = planUnlock || entMarket || (bCredits > 0) || (holdingsCount > 0);
+    if(!hasAccess){
       window.location.href = '/pricing';
       return;
     }

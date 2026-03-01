@@ -96,6 +96,44 @@
       </div>
     </div>
 
+    <div class="mt-8 rounded-2xl border border-gray-800 bg-black/40 p-6">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <h2 class="text-xl font-extrabold">Débloquer avec tes crédits</h2>
+        <div class="text-sm text-gray-400">Déblocages liés à ton compte Twitch (multi-user).</div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-2xl border border-gray-800 bg-black/30 p-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-extrabold">Pass Marché</div>
+              <div class="text-sm text-gray-400">Déverrouille l'accès au Marché (si tu n'as pas de crédits).</div>
+            </div>
+            <div class="text-xs px-2 py-1 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300">200 crédits</div>
+          </div>
+          <button id="buy_market_pass" class="mt-4 w-full px-4 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-extrabold">Débloquer</button>
+          <div id="state_market" class="mt-2 text-xs text-gray-400"></div>
+        </div>
+
+        <div class="rounded-2xl border border-gray-800 bg-black/30 p-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-extrabold">Modules Premium à l'unité</div>
+              <div class="text-sm text-gray-400">Débloque des fonctions précises sans abonnement.</div>
+            </div>
+            <div class="text-xs px-2 py-1 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300">120–200 crédits</div>
+          </div>
+          <div class="mt-4 grid grid-cols-1 gap-2">
+            <button class="unlockBtn w-full px-4 py-2 rounded-xl bg-black/40 border border-gray-700 hover:border-teal-500/50" data-sku="unlock_overview">Débloquer Overview (120)</button>
+            <button class="unlockBtn w-full px-4 py-2 rounded-xl bg-black/40 border border-gray-700 hover:border-teal-500/50" data-sku="unlock_analytics">Débloquer Analytics (200)</button>
+            <button class="unlockBtn w-full px-4 py-2 rounded-xl bg-black/40 border border-gray-700 hover:border-teal-500/50" data-sku="unlock_niche">Débloquer Niche (200)</button>
+            <button class="unlockBtn w-full px-4 py-2 rounded-xl bg-black/40 border border-gray-700 hover:border-teal-500/50" data-sku="unlock_bestTime">Débloquer Best Time (120)</button>
+          </div>
+          <div id="state_modules" class="mt-2 text-xs text-gray-400"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="mt-10 rounded-2xl border border-gray-800 bg-black/40 p-6">
       <h2 class="text-xl font-extrabold">FAQ rapide</h2>
       <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
@@ -142,7 +180,75 @@
       const me = await getJson(API + '/api/billing/me').catch(()=>null);
       if(me && me.success){
         badge.textContent = String(me.credits||0) + ' crédits';
+        window.__billing = me;
       }
+
+      // Update unlock UI state
+      try{ updateUnlockUi(); }catch(_){ }
+    }
+
+    function ent(key){
+      const b = window.__billing || {};
+      return !!(b.entitlements && b.entitlements[key]);
+    }
+
+    function isPremium(){
+      const b = window.__billing || {};
+      const p = String(b.plan||'free').toLowerCase();
+      return p === 'premium' || p === 'pro';
+    }
+
+    function updateUnlockUi(){
+      const b = window.__billing;
+      if(!b || !b.success) return;
+      const credits = Number(b.credits||0);
+
+      const marketBtn = document.getElementById('buy_market_pass');
+      const stMarket = document.getElementById('state_market');
+      if(isPremium() || ent('market')){
+        marketBtn.disabled = true;
+        marketBtn.classList.add('opacity-60');
+        stMarket.textContent = isPremium() ? 'Inclus dans ton abonnement.' : 'Déjà déverrouillé.';
+      }else{
+        marketBtn.disabled = credits < 200;
+        marketBtn.classList.remove('opacity-60');
+        stMarket.textContent = credits < 200 ? ('Crédits insuffisants: il te manque ' + (200-credits) + '.') : 'Prêt à débloquer.';
+      }
+
+      const stMods = document.getElementById('state_modules');
+      const btns = Array.from(document.querySelectorAll('.unlockBtn'));
+      btns.forEach(btn=>{
+        const sku = btn.getAttribute('data-sku');
+        const map = { unlock_overview:'overview', unlock_analytics:'analytics', unlock_niche:'niche', unlock_bestTime:'bestTime' };
+        const k = map[sku];
+        const price = sku === 'unlock_analytics' || sku === 'unlock_niche' ? 200 : 120;
+        if(isPremium() || ent(k)){
+          btn.disabled = true;
+          btn.classList.add('opacity-60');
+          btn.textContent = btn.textContent.replace('Débloquer','Débloqué');
+        }else{
+          btn.disabled = credits < price;
+          btn.classList.remove('opacity-60');
+        }
+      });
+      stMods.textContent = isPremium() ? 'Tous les modules sont inclus en Premium/Pro.' : 'Achat à l\'unité via crédits.';
+    }
+
+    async function spendCredits(sku){
+      const r = await fetch(API + '/api/credits/spend', {
+        method:'POST',
+        credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ sku })
+      });
+      const d = await r.json().catch(()=>null);
+      if(!d || !d.success){
+        alert((d && d.error) ? d.error : 'Erreur');
+        return;
+      }
+      window.__billing = Object.assign({}, window.__billing || {}, d);
+      document.getElementById('creditsBadge').textContent = String(d.credits||0) + ' crédits';
+      updateUnlockUi();
     }
 
     async function startCheckout(sku){
@@ -164,8 +270,14 @@
       b.addEventListener('click', ()=> startCheckout(b.getAttribute('data-sku')));
     });
 
+    // Credits unlock buttons
+    document.getElementById('buy_market_pass').addEventListener('click', ()=> spendCredits('market_pass'));
+    document.querySelectorAll('.unlockBtn').forEach(b=>{
+      b.addEventListener('click', ()=> spendCredits(b.getAttribute('data-sku')));
+    });
+
     refresh();
-    setInterval(refresh, 2000);
+    setInterval(refresh, 5000);
   </script>
 </body>
 </html>

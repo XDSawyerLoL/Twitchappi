@@ -4667,6 +4667,115 @@ app.get('/api/billing/me', async (req,res)=>{
   }
 });
 
+// =========================================================
+// CREDITS SHOP (spend credits -> unlock features)
+// - Multi-user safe: keyed by Twitch user id
+// - Firestore transaction: atomic debit + entitlement grant + transaction log
+// =========================================================
+const CREDIT_CATALOG = {
+  market_pass:   { priceCredits: 200, grants: { entitlements: { market: true } } },
+  unlock_overview: { priceCredits: 120, grants: { entitlements: { overview: true } } },
+  unlock_analytics:{ priceCredits: 200, grants: { entitlements: { analytics: true } } },
+  unlock_niche:    { priceCredits: 200, grants: { entitlements: { niche: true } } },
+  unlock_bestTime: { priceCredits: 120, grants: { entitlements: { bestTime: true } } }
+};
+
+app.get('/api/credits/catalog', async (req,res)=>{
+  try{
+    const items = Object.keys(CREDIT_CATALOG).map(sku=>({
+      sku,
+      priceCredits: Number(CREDIT_CATALOG[sku].priceCredits||0)
+    }));
+    res.json({ success:true, items });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/credits/spend', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'firestore_unavailable' });
+
+    const sku = String((req.body && req.body.sku) || '').trim();
+    const item = CREDIT_CATALOG[sku];
+    if(!item) return res.status(400).json({ success:false, error:'invalid_sku' });
+
+    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
+    const ref = db.collection(BILLING_USERS).doc(id);
+    const txRef = ref.collection('transactions').doc();
+
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(ref);
+      const cur = snap.exists ? snap.data() : {};
+
+      const plan = String(cur.plan || 'free').toLowerCase();
+      const credits = Number(cur.credits || 0);
+      const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+
+      const grantEnt = (item.grants && item.grants.entitlements) ? item.grants.entitlements : {};
+
+      // Premium/Pro: grant without debit, still record transaction.
+      if(plan === 'premium' || plan === 'pro'){
+        Object.keys(grantEnt).forEach(k=>{ if(grantEnt[k] === true) ent[k] = true; });
+        tx.set(ref, { entitlements: ent, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+        tx.set(txRef, {
+          sku,
+          priceCredits: 0,
+          beforeCredits: credits,
+          afterCredits: credits,
+          status: 'committed',
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return;
+      }
+
+      // If already unlocked -> no debit
+      const already = Object.keys(grantEnt).some(k => ent[k] === true && grantEnt[k] === true);
+      if(already){
+        tx.set(txRef, {
+          sku,
+          priceCredits: 0,
+          beforeCredits: credits,
+          afterCredits: credits,
+          status: 'committed',
+          note: 'already_unlocked',
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return;
+      }
+
+      const cost = Number(item.priceCredits || 0);
+      if(credits < cost) throw new Error('credits_insufficient');
+
+      Object.keys(grantEnt).forEach(k=>{ if(grantEnt[k] === true) ent[k] = true; });
+
+      tx.set(ref, {
+        credits: credits - cost,
+        entitlements: ent,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+
+      tx.set(txRef, {
+        sku,
+        priceCredits: cost,
+        beforeCredits: credits,
+        afterCredits: credits - cost,
+        status: 'committed',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    const b = await ref.get();
+    const data = b.data() || {};
+    res.json({ success:true, credits:Number(data.credits||0), plan:data.plan||'free', entitlements:data.entitlements||{} });
+  }catch(e){
+    const msg = e.message === 'credits_insufficient' ? 'credits_insufficient' : e.message;
+    res.status(400).json({ success:false, error: msg });
+  }
+});
+
 // Unlock a premium feature with credits (200 by default)
 app.post('/api/billing/unlock-feature', async (req,res)=>{
   try{
@@ -4677,7 +4786,7 @@ app.post('/api/billing/unlock-feature', async (req,res)=>{
     const feature = String((req.body && req.body.feature) || '').trim();
     const cost = Number((req.body && req.body.cost) || 200);
 
-    const allowed = ['overview','analytics','niche','bestTime'];
+    const allowed = ['overview','analytics','niche','bestTime','market'];
     if(!allowed.includes(feature)) return res.status(400).json({ success:false, error:'invalid_feature' });
 
     const id = String(tu.id || tu.login || tu.display_name || 'unknown');
