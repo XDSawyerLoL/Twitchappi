@@ -4677,6 +4677,37 @@ app.get('/api/billing/me', async (req,res)=>{
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
+
+// Market access check (server source of truth)
+app.get('/api/market/access', async (req,res)=>{
+  try{
+    noStore(res);
+    const tu = req.session?.twitchUser;
+    if(!tu || (tu.expiry && tu.expiry <= Date.now())){
+      if(req.session) req.session.twitchUser = null;
+      return res.json({ success:true, allowed:false, reason:'not_connected', plan:'free', credits:0, entitlements:{} });
+    }
+    const bill = await getBillingDoc(tu);
+    const plan = String(bill.plan||'free').toLowerCase();
+    const credits = Number(bill.credits||0);
+    const ent = bill.entitlements || {};
+    const entMarket = !!ent.market;
+
+    let holdingsCount = 0;
+    try{
+      const userKey = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
+      const w = await getUserWallet(userKey);
+      holdingsCount = Object.keys(w?.holdings || {}).length;
+    }catch(_){ holdingsCount = 0; }
+
+    const planUnlock = (plan === 'premium' || plan === 'pro');
+    const allowed = planUnlock || entMarket || credits > 0 || holdingsCount > 0;
+    res.json({ success:true, allowed, plan, credits, entitlements: ent, holdingsCount });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
 });
 
 // =========================================================

@@ -651,46 +651,18 @@
       return;
     }
 
-    // Access rule (multi-user):
-    // - Premium/Pro OR entitlement.market => always access
-    // - Otherwise: require at least 1 credit in billing wallet OR existing holdings
-    let bPlan = 'free', bCredits = 0, entMarket = false;
+    // Access rule is decided by the server (single source of truth)
+    let allowed = false;
     try{
-      const bm = await fetch('/api/billing/me', { credentials:'include', cache:'no-store' });
-      const bj = await bm.json();
-      if(bj && bj.success){
-        bPlan = String(bj.plan || 'free').toLowerCase();
-        bCredits = Number(bj.credits || 0);
-        entMarket = !!(bj.entitlements && bj.entitlements.market);
-        try{ window.__billing = bj; }catch(_e){}
+      const ar = await fetch('/api/market/access', { credentials:'include', cache:'no-store' });
+      const aj = await ar.json();
+      if(aj && aj.success){
+        allowed = !!aj.allowed;
+        try{ window.__billing = { success:true, plan: aj.plan, credits: aj.credits, entitlements: aj.entitlements||{} }; }catch(_e){}
       }
-    }catch(_){
-      // Fallback: use cached billing snapshot written by app-bootstrap (/pricing already writes too)
-      try{
-        const cu = window.currentUser || {};
-        const bid = (cu.id || cu.login || cu.display_name || '').toString() || 'anon';
-        const cached = JSON.parse(localStorage.getItem('billing_cache_' + bid) || 'null');
-        const bj = cached && cached.data;
-        if(bj && (bj.success === undefined ? true : bj.success)){
-          bPlan = String(bj.plan || 'free').toLowerCase();
-          bCredits = Number(bj.credits || 0);
-          entMarket = !!(bj.entitlements && bj.entitlements.market);
-        }
-      }catch(_e){}
-    }
+    }catch(_e){ allowed = false; }
 
-    let holdingsCount = 0;
-    try{
-      const r = await fetch('/api/fantasy/profile', { credentials:'include', cache:'no-store' });
-      const j = await r.json();
-      if(j && j.success){
-        holdingsCount = Array.isArray(j.holdings) ? j.holdings.length : 0;
-      }
-    }catch(_){}
-
-    const planUnlock = (bPlan === 'premium' || bPlan === 'pro');
-    const hasAccess = planUnlock || entMarket || (bCredits > 0) || (holdingsCount > 0);
-    if(!hasAccess){
+    if(!allowed){
       window.location.href = '/pricing';
       return;
     }
