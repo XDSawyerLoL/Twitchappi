@@ -4387,9 +4387,58 @@ const ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
 
 async function getBillingDoc(twitchUser){
   if(!firestoreOk) return { credits: 0, plan: 'free', noFirestore: true };
-  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  // IMPORTANT (multi-user stability + migration):
+  // Some older deployments used login as the document id; newer ones may use numeric Twitch id.
+  // We resolve both and merge to avoid "paid but not unlocked" situations.
+  const primaryId = String(twitchUser.id || '');
+  const altId = String((twitchUser.login || '').toLowerCase());
+  const fallbackId = String(twitchUser.display_name || 'unknown');
+
+  const id = primaryId || altId || fallbackId || 'unknown';
   const ref = db.collection(BILLING_USERS).doc(id);
-  const snap = await ref.get();
+
+  // Try read primary
+  let snap = await ref.get();
+
+  // If we have both primary + alt and they differ, try merge
+  if(primaryId && altId && primaryId !== altId){
+    try{
+      const altRef = db.collection(BILLING_USERS).doc(altId);
+      const altSnap = await altRef.get();
+      if(altSnap.exists){
+        const a = altSnap.data() || {};
+        const p = snap.exists ? (snap.data() || {}) : null;
+
+        const aCredits = Number(a.credits||0);
+        const pCredits = Number((p && p.credits) || 0);
+        const aEnt = a.entitlements || {};
+        const pEnt = (p && p.entitlements) || {};
+        const aHasUnlock = !!(aEnt.market || aEnt.overview || aEnt.analytics || aEnt.niche || aEnt.bestTime);
+        const pHasUnlock = !!(pEnt.market || pEnt.overview || pEnt.analytics || pEnt.niche || pEnt.bestTime);
+
+        // Merge rule: if primary missing OR primary has no value but alt has credits/unlocks, copy alt -> primary.
+        const shouldMerge = (!snap.exists) || ((pCredits <= 0) && (aCredits > 0)) || (!pHasUnlock && aHasUnlock);
+        if(shouldMerge){
+          const merged = {
+            userId: id,
+            login: twitchUser.login || a.login || null,
+            display_name: twitchUser.display_name || a.display_name || null,
+            plan: (p && p.plan) || a.plan || 'free',
+            credits: Math.max(pCredits, aCredits),
+            entitlements: { market:false, overview:false, analytics:false, niche:false, bestTime:false, ...aEnt, ...pEnt },
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          };
+          // Preserve createdAt if any
+          if(!(p && p.createdAt) && a.createdAt) merged.createdAt = a.createdAt;
+          if(!(p && p.createdAt) && !a.createdAt) merged.createdAt = admin.firestore.FieldValue.serverTimestamp();
+          await ref.set(merged, { merge:true });
+          // Re-read primary after merge
+          snap = await ref.get();
+        }
+      }
+    }catch(_){ /* ignore migration errors */ }
+  }
+
   if(!snap.exists){
     const init = {
       userId: id,
