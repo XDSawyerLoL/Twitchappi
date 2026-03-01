@@ -190,14 +190,22 @@ function updateUnlockUI(me){
   if(!mBtn || !mNote) return;
 
   const ent = (me && me.entitlements) ? me.entitlements : {};
+  const until = (me && me.entitlementsUntil) ? me.entitlementsUntil : {};
   const credits = Number(me && me.credits || 0);
   const plan = String(me && me.plan || 'free').toLowerCase();
+  const now = Date.now();
+  const daysLeft = (u)=>{
+    const ms = Number(u||0) - now;
+    if(!u || ms <= 0) return 0;
+    return Math.ceil(ms / (24*60*60*1000));
+  };
 
   // Market pass state
   if(plan === 'premium' || plan === 'pro' || ent.market === true){
     mBtn.disabled = true;
     mBtn.classList.add('opacity-60','cursor-not-allowed');
-    mNote.textContent = 'Déjà déverrouillé.';
+    const dleft = daysLeft(until.market);
+    mNote.textContent = dleft ? ('Déverrouillé (expire dans ' + dleft + ' jour' + (dleft>1?'s':'') + ').') : 'Déjà déverrouillé.';
   }else{
     mBtn.disabled = credits < 200;
     mBtn.classList.toggle('opacity-60', mBtn.disabled);
@@ -210,6 +218,8 @@ function updateUnlockUI(me){
     const feat = btn.getAttribute('data-unlock-feature');
     const cost = Number(btn.getAttribute('data-unlock-cost')||0);
     const unlocked = (plan === 'premium' || plan === 'pro' || ent[feat] === true);
+    const dleft = daysLeft(until[feat]);
+    if(unlocked && dleft){ btn.setAttribute('title', 'Expire dans ' + dleft + ' jour' + (dleft>1?'s':'') ); }
     btn.disabled = unlocked || credits < cost;
     btn.classList.toggle('opacity-60', btn.disabled);
     btn.classList.toggle('cursor-not-allowed', btn.disabled);

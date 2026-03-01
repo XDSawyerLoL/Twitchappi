@@ -4383,6 +4383,34 @@ function requireTwitchSession(req, res) {
 // - 1 action = 20 credits (only if not premium)
 // =========================================================
 const BILLING_USERS = 'billing_users';
+const ENTITLEMENT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+function resolveBillingDocId(twitchUser){
+  const primaryId = String(twitchUser?.id || '');
+  const altId = String((twitchUser?.login || '').toLowerCase());
+  const fallbackId = String(twitchUser?.display_name || 'unknown');
+  return primaryId || altId || fallbackId || 'unknown';
+}
+function computeEffectiveEntitlements(entitlements, entitlementsUntil){
+  const now = Date.now();
+  const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, entitlements || {});
+  const until = Object.assign({}, entitlementsUntil || {});
+  let changed = false;
+  for(const k of Object.keys(ent)){
+    const u = until[k];
+    // If an entitlement exists without an expiry (legacy), convert it to a 7-day entitlement starting now.
+    if(ent[k] === true && (!u || Number(u) <= 0)){
+      until[k] = now + ENTITLEMENT_TTL_MS;
+      changed = true;
+      continue;
+    }
+    if(ent[k] === true && u && Number(u) > 0 && Number(u) <= now){
+      ent[k] = false;
+      delete until[k];
+      changed = true;
+    }
+  }
+  return { entitlements: ent, entitlementsUntil: until, changed };
+}
 const ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
 
 async function getBillingDoc(twitchUser){
@@ -4710,8 +4738,17 @@ app.get('/api/billing/me', async (req,res)=>{
       }catch(_){}
     }
 
+    // Apply 7-day entitlement expiry (server-side source of truth)
+    const eff = computeEffectiveEntitlements(b.entitlements || {}, b.entitlementsUntil || {});
+    if(eff.changed){
+      try{
+        const id = resolveBillingDocId(tu);
+        await db.collection(BILLING_USERS).doc(id).set({ entitlements: eff.entitlements, entitlementsUntil: eff.entitlementsUntil, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+      }catch(_){}
+    }
+
     const steam = b.steam && b.steam.steamid ? { connected:true, steamid:b.steam.steamid, profile:b.steam.profile || null } : { connected:false };
-    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: b.entitlements || {}, steam });
+    res.json({ success:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: eff.entitlements, entitlementsUntil: eff.entitlementsUntil, steam });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -4738,22 +4775,29 @@ app.post('/api/billing/unlock-feature', async (req,res)=>{
       const cur = snap.exists ? snap.data() : {};
       const plan = String(cur.plan || 'free').toLowerCase();
       const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+      const until = Object.assign({}, cur.entitlementsUntil || {});
       const credits = Number(cur.credits || 0);
+      const now = Date.now();
 
       // Premium: just mark as unlocked
       if(plan === 'premium'){
         ent[feature] = true;
-        tx.set(ref, { entitlements: ent, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+        until[feature] = now + ENTITLEMENT_TTL_MS;
+        tx.set(ref, { entitlements: ent, entitlementsUntil: until, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
         return;
       }
 
-      if(ent[feature] === true) return; // already unlocked
+      const isActive = (ent[feature] === true) && (!until[feature] || Number(until[feature]) > now);
+      if(isActive) return; // already unlocked (active)
+      // If expired, allow renew by spending credits again
       if(credits < cost) throw new Error('credits_insufficient');
 
       ent[feature] = true;
+      until[feature] = now + ENTITLEMENT_TTL_MS;
       tx.set(ref, {
         credits: credits - cost,
         entitlements: ent,
+        entitlementsUntil: until,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge:true });
     });
@@ -4784,22 +4828,29 @@ app.post('/api/billing/unlock-market', async (req,res)=>{
       const cur = snap.exists ? snap.data() : {};
       const plan = String(cur.plan || 'free').toLowerCase();
       const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+      const until = Object.assign({}, cur.entitlementsUntil || {});
       const credits = Number(cur.credits || 0);
+      const now = Date.now();
 
       // Premium/Pro: just mark as unlocked
       if(plan === 'premium' || plan === 'pro'){
         ent.market = true;
-        tx.set(ref, { entitlements: ent, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+        until.market = now + ENTITLEMENT_TTL_MS;
+        tx.set(ref, { entitlements: ent, entitlementsUntil: until, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
         return;
       }
 
-      if(ent.market === true) return; // already unlocked
+      const isActive = (ent.market === true) && (!until.market || Number(until.market) > now);
+      if(isActive) return; // already unlocked (active)
+      // If expired, allow renew by spending credits again
       if(credits < cost) throw new Error('credits_insufficient');
 
       ent.market = true;
+      until.market = now + ENTITLEMENT_TTL_MS;
       tx.set(ref, {
         credits: credits - cost,
         entitlements: ent,
+        entitlementsUntil: until,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge:true });
     });
@@ -4841,7 +4892,8 @@ app.get('/api/market/access', async (req,res)=>{
 
     const plan = String(b.plan || 'free').toLowerCase();
     const credits = Number(b.credits || 0);
-    const ent = b.entitlements || {};
+    const eff = computeEffectiveEntitlements(b.entitlements || {}, b.entitlementsUntil || {});
+    const ent = eff.entitlements;
 
     // holdings from fantasy wallet (if any)
     let holdingsCount = 0;
