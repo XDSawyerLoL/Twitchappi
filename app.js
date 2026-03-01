@@ -1665,6 +1665,38 @@ async function runGeminiPlainText(prompt){
   }
 }
 
+
+// =========================================================
+// Gemini Operator: Health + Chat
+// =========================================================
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', geminiConfigured: !!GEMINI_API_KEY });
+});
+
+// Simple chat endpoint expected by the front (TwitFlix / IA).
+// Body: { "message": "..." }
+app.post('/api/chat', heavyLimiter, async (req, res) => {
+  try {
+    if (!aiClient) return res.status(500).json({ error: 'Gemini API key not configured.' });
+    const message = String((req.body && req.body.message) || '').trim();
+    if (!message) return res.status(400).json({ error: 'Message is required.' });
+
+    const response = await aiClient.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ role: 'user', parts: [{ text: message }] }],
+      config: {
+        systemInstruction: 'Reponds en FRANCAIS. Reponse courte, claire, sans HTML.'
+      }
+    });
+
+    const text = String(response.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    return res.json({ reply: text });
+  } catch (e) {
+    console.error('[IA] /api/chat error:', e && e.message ? e.message : e);
+    return res.status(500).json({ error: 'Gemini request failed.' });
+  }
+});
+
 app.get('/api/ai/game_desc', async (req, res) => {
   try{
     const name = String(req.query.name || req.query.game || '').trim();
