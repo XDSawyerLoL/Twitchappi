@@ -3212,7 +3212,7 @@ app.get('/followed_streams', async (req, res) => {
   const u = req.session?.twitchUser;
   if (!u || (u.expiry && u.expiry <= Date.now())) {
     if (req.session) req.session.twitchUser = null;
-    return res.json({ success: false, streams: [], reason: "unauthorized" });
+    return res.status(401).json({ success: false });
   }
 
   try {
@@ -4397,7 +4397,7 @@ async function getBillingDoc(twitchUser){
       display_name: twitchUser.display_name || null,
       plan: 'free',
       credits: 0,
-      entitlements: { overview:false, analytics:false, niche:false, bestTime:false },
+      entitlements: { market:false, overview:false, analytics:false, niche:false, bestTime:false },
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
@@ -4638,20 +4638,9 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 // =========================================================
 // BILLING API
 // =========================================================
-function noStore(res){
-  try{
-    res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.set('Pragma','no-cache');
-    res.set('Expires','0');
-    res.set('Surrogate-Control','no-store');
-    // Prevent 304 responses for volatile user state
-    res.removeHeader('ETag');
-  }catch(_){ }
-}
-
 app.get('/api/billing/me', async (req,res)=>{
   try{
-    noStore(res);
+    res.set('Cache-Control','no-store');
     const tu = req.session?.twitchUser;
     if(!tu){
       return res.json({ success:true, connected:false, plan:'free', credits:0, premium:false, pro:false });
@@ -4677,148 +4666,6 @@ app.get('/api/billing/me', async (req,res)=>{
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
-
-// Market access check (server source of truth)
-app.get('/api/market/access', async (req,res)=>{
-  try{
-    noStore(res);
-    const tu = req.session?.twitchUser;
-    if(!tu || (tu.expiry && tu.expiry <= Date.now())){
-      if(req.session) req.session.twitchUser = null;
-      return res.json({ success:true, allowed:false, reason:'not_connected', plan:'free', credits:0, entitlements:{} });
-    }
-    const bill = await getBillingDoc(tu);
-    const plan = String(bill.plan||'free').toLowerCase();
-    const credits = Number(bill.credits||0);
-    const ent = bill.entitlements || {};
-    const entMarket = !!ent.market;
-
-    let holdingsCount = 0;
-    try{
-      const userKey = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
-      const w = await getUserWallet(userKey);
-      holdingsCount = Object.keys(w?.holdings || {}).length;
-    }catch(_){ holdingsCount = 0; }
-
-    const planUnlock = (plan === 'premium' || plan === 'pro');
-    const allowed = planUnlock || entMarket || credits > 0 || holdingsCount > 0;
-    res.json({ success:true, allowed, plan, credits, entitlements: ent, holdingsCount });
-  }catch(e){
-    res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-});
-
-// =========================================================
-// CREDITS SHOP (spend credits -> unlock features)
-// - Multi-user safe: keyed by Twitch user id
-// - Firestore transaction: atomic debit + entitlement grant + transaction log
-// =========================================================
-const CREDIT_CATALOG = {
-  market_pass:   { priceCredits: 200, grants: { entitlements: { market: true } } },
-  unlock_overview: { priceCredits: 120, grants: { entitlements: { overview: true } } },
-  unlock_analytics:{ priceCredits: 200, grants: { entitlements: { analytics: true } } },
-  unlock_niche:    { priceCredits: 200, grants: { entitlements: { niche: true } } },
-  unlock_bestTime: { priceCredits: 120, grants: { entitlements: { bestTime: true } } }
-};
-
-app.get('/api/credits/catalog', async (req,res)=>{
-  try{
-    noStore(res);
-    const items = Object.keys(CREDIT_CATALOG).map(sku=>({
-      sku,
-      priceCredits: Number(CREDIT_CATALOG[sku].priceCredits||0)
-    }));
-    res.json({ success:true, items });
-  }catch(e){
-    res.status(500).json({ success:false, error:e.message });
-  }
-});
-
-app.post('/api/credits/spend', async (req,res)=>{
-  try{
-    noStore(res);
-    const tu = requireTwitchSession(req, res);
-    if(!tu) return;
-    if(!firestoreOk) return res.status(503).json({ success:false, error:'firestore_unavailable' });
-
-    const sku = String((req.body && req.body.sku) || '').trim();
-    const item = CREDIT_CATALOG[sku];
-    if(!item) return res.status(400).json({ success:false, error:'invalid_sku' });
-
-    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
-    const ref = db.collection(BILLING_USERS).doc(id);
-    const txRef = ref.collection('transactions').doc();
-
-    await db.runTransaction(async (tx)=>{
-      const snap = await tx.get(ref);
-      const cur = snap.exists ? snap.data() : {};
-
-      const plan = String(cur.plan || 'free').toLowerCase();
-      const credits = Number(cur.credits || 0);
-      const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
-
-      const grantEnt = (item.grants && item.grants.entitlements) ? item.grants.entitlements : {};
-
-      // Premium/Pro: grant without debit, still record transaction.
-      if(plan === 'premium' || plan === 'pro'){
-        Object.keys(grantEnt).forEach(k=>{ if(grantEnt[k] === true) ent[k] = true; });
-        tx.set(ref, { entitlements: ent, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
-        tx.set(txRef, {
-          sku,
-          priceCredits: 0,
-          beforeCredits: credits,
-          afterCredits: credits,
-          status: 'committed',
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        return;
-      }
-
-      // If already unlocked -> no debit
-      const already = Object.keys(grantEnt).some(k => ent[k] === true && grantEnt[k] === true);
-      if(already){
-        tx.set(txRef, {
-          sku,
-          priceCredits: 0,
-          beforeCredits: credits,
-          afterCredits: credits,
-          status: 'committed',
-          note: 'already_unlocked',
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        return;
-      }
-
-      const cost = Number(item.priceCredits || 0);
-      if(credits < cost) throw new Error('credits_insufficient');
-
-      Object.keys(grantEnt).forEach(k=>{ if(grantEnt[k] === true) ent[k] = true; });
-
-      tx.set(ref, {
-        credits: credits - cost,
-        entitlements: ent,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge:true });
-
-      tx.set(txRef, {
-        sku,
-        priceCredits: cost,
-        beforeCredits: credits,
-        afterCredits: credits - cost,
-        status: 'committed',
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    });
-
-    const b = await ref.get();
-    const data = b.data() || {};
-    res.json({ success:true, credits:Number(data.credits||0), plan:data.plan||'free', entitlements:data.entitlements||{} });
-  }catch(e){
-    const msg = e.message === 'credits_insufficient' ? 'credits_insufficient' : e.message;
-    res.status(400).json({ success:false, error: msg });
-  }
 });
 
 // Unlock a premium feature with credits (200 by default)
@@ -4831,7 +4678,7 @@ app.post('/api/billing/unlock-feature', async (req,res)=>{
     const feature = String((req.body && req.body.feature) || '').trim();
     const cost = Number((req.body && req.body.cost) || 200);
 
-    const allowed = ['overview','analytics','niche','bestTime','market'];
+    const allowed = ['overview','analytics','niche','bestTime'];
     if(!allowed.includes(feature)) return res.status(400).json({ success:false, error:'invalid_feature' });
 
     const id = String(tu.id || tu.login || tu.display_name || 'unknown');
@@ -4841,7 +4688,7 @@ app.post('/api/billing/unlock-feature', async (req,res)=>{
       const snap = await tx.get(ref);
       const cur = snap.exists ? snap.data() : {};
       const plan = String(cur.plan || 'free').toLowerCase();
-      const ent = Object.assign({ overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+      const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
       const credits = Number(cur.credits || 0);
 
       // Premium: just mark as unlocked
@@ -4868,6 +4715,90 @@ app.post('/api/billing/unlock-feature', async (req,res)=>{
   }catch(e){
     const msg = e.message === 'credits_insufficient' ? 'credits_insufficient' : e.message;
     res.status(400).json({ success:false, error: msg });
+  }
+});
+
+// Unlock Market access with credits (Pass Marché)
+app.post('/api/billing/unlock-market', async (req,res)=>{
+  try{
+    const tu = requireTwitchSession(req, res);
+    if(!tu) return;
+    if(!firestoreOk) return res.status(503).json({ success:false, error:'firestore_unavailable' });
+
+    const cost = Number((req.body && req.body.cost) || 200);
+
+    const id = String(tu.id || tu.login || tu.display_name || 'unknown');
+    const ref = db.collection(BILLING_USERS).doc(id);
+
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(ref);
+      const cur = snap.exists ? snap.data() : {};
+      const plan = String(cur.plan || 'free').toLowerCase();
+      const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+      const credits = Number(cur.credits || 0);
+
+      // Premium/Pro: just mark as unlocked
+      if(plan === 'premium' || plan === 'pro'){
+        ent.market = true;
+        tx.set(ref, { entitlements: ent, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
+        return;
+      }
+
+      if(ent.market === true) return; // already unlocked
+      if(credits < cost) throw new Error('credits_insufficient');
+
+      ent.market = true;
+      tx.set(ref, {
+        credits: credits - cost,
+        entitlements: ent,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+    });
+
+    const b = await ref.get();
+    const data = b.data() || {};
+    res.json({ success:true, credits:Number(data.credits||0), plan:data.plan||'free', entitlements:data.entitlements||{} });
+  }catch(e){
+    if(String(e.message||'') === 'credits_insufficient'){
+      return res.status(400).json({ success:false, error:'credits_insufficient' });
+    }
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+
+// Server-side Market access decision (single source of truth)
+app.get('/api/market/access', async (req,res)=>{
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu){
+      return res.json({ success:true, connected:false, allowed:false, reason:'TWITCH_AUTH_REQUIRED' });
+    }
+    if (tu.expiry && tu.expiry <= Date.now()) { req.session.twitchUser=null; return res.json({ success:true, connected:false, allowed:false, reason:'TWITCH_AUTH_EXPIRED' }); }
+
+    const b = await getBillingDoc(tu);
+    const plan = String(b.plan || 'free').toLowerCase();
+    const credits = Number(b.credits || 0);
+    const ent = b.entitlements || {};
+
+    // holdings from fantasy wallet (if any)
+    let holdingsCount = 0;
+    try{
+      const userKey = sanitizeText(tu.login || tu.display_name || tu.id || 'Anon', 50) || 'Anon';
+      const w = await getUserWallet(userKey);
+      holdingsCount = Array.isArray(w.holdings) ? w.holdings.length : 0;
+    }catch(_){}
+
+    const allowed =
+      (plan === 'premium' || plan === 'pro') ||
+      (ent && ent.market === true) ||
+      credits > 0 ||
+      holdingsCount > 0;
+
+    res.set('Cache-Control','no-store');
+    res.json({ success:true, connected:true, allowed, plan, credits, entitlements: ent, holdingsCount });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
   }
 });
 

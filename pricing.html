@@ -96,45 +96,42 @@
       </div>
     </div>
 
-    <div class="mt-8 rounded-2xl border border-gray-800 bg-black/40 p-6">
-      <div class="flex items-center justify-between gap-4 flex-wrap">
+    
+    <div class="mt-10 rounded-2xl border border-gray-800 bg-black/40 p-6">
+      <div class="flex items-center justify-between">
         <h2 class="text-xl font-extrabold">Débloquer avec tes crédits</h2>
-        <div class="text-sm text-gray-400">Déblocages liés à ton compte Twitch (multi-user).</div>
+        <div class="text-xs text-gray-400">Déblocages liés à ton compte Twitch (multi-user).</div>
       </div>
 
       <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="rounded-2xl border border-gray-800 bg-black/30 p-5">
+        <div class="rounded-2xl border border-gray-800 bg-black/40 p-5">
           <div class="flex items-center justify-between">
-            <div>
-              <div class="font-extrabold">Pass Marché</div>
-              <div class="text-sm text-gray-400">Déverrouille l'accès au Marché (si tu n'as pas de crédits).</div>
-            </div>
-            <div class="text-xs px-2 py-1 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300">200 crédits</div>
+            <div class="text-lg font-extrabold">Pass Marché</div>
+            <div class="px-2 py-1 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs font-bold">200 crédits</div>
           </div>
-          <button id="buy_market_pass" class="mt-4 w-full px-4 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-extrabold">Débloquer</button>
-          <div id="state_market" class="mt-2 text-xs text-gray-400"></div>
+          <p class="mt-2 text-sm text-gray-300">Déverrouille l'accès au Marché (même si tu n'as plus de crédits).</p>
+          <button id="btnUnlockMarket" class="mt-4 w-full px-4 py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-extrabold">Débloquer</button>
+          <div id="marketUnlockNote" class="mt-2 text-xs text-gray-400"></div>
         </div>
 
-        <div class="rounded-2xl border border-gray-800 bg-black/30 p-5">
+        <div class="rounded-2xl border border-gray-800 bg-black/40 p-5">
           <div class="flex items-center justify-between">
-            <div>
-              <div class="font-extrabold">Modules Premium à l'unité</div>
-              <div class="text-sm text-gray-400">Débloque des fonctions précises sans abonnement.</div>
-            </div>
-            <div class="text-xs px-2 py-1 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300">120–200 crédits</div>
+            <div class="text-lg font-extrabold">Modules Premium à l'unité</div>
+            <div class="px-2 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-bold">120–200 crédits</div>
           </div>
-          <div class="mt-4 grid grid-cols-1 gap-2">
-            <button class="unlockBtn w-full px-4 py-2 rounded-xl bg-black/40 border border-gray-700 hover:border-teal-500/50" data-sku="unlock_overview">Débloquer Overview (120)</button>
-            <button class="unlockBtn w-full px-4 py-2 rounded-xl bg-black/40 border border-gray-700 hover:border-teal-500/50" data-sku="unlock_analytics">Débloquer Analytics (200)</button>
-            <button class="unlockBtn w-full px-4 py-2 rounded-xl bg-black/40 border border-gray-700 hover:border-teal-500/50" data-sku="unlock_niche">Débloquer Niche (200)</button>
-            <button class="unlockBtn w-full px-4 py-2 rounded-xl bg-black/40 border border-gray-700 hover:border-teal-500/50" data-sku="unlock_bestTime">Débloquer Best Time (120)</button>
+          <p class="mt-2 text-sm text-gray-300">Débloque des fonctions précises sans abonnement.</p>
+
+          <div class="mt-4 space-y-2">
+            <button class="w-full px-4 py-3 rounded-xl border border-gray-700 hover:border-gray-500 font-extrabold" data-unlock-feature="overview" data-unlock-cost="120">Débloquer Overview (120)</button>
+            <button class="w-full px-4 py-3 rounded-xl border border-gray-700 hover:border-gray-500 font-extrabold" data-unlock-feature="analytics" data-unlock-cost="200">Débloquer Analytics (200)</button>
+            <button class="w-full px-4 py-3 rounded-xl border border-gray-700 hover:border-gray-500 font-extrabold" data-unlock-feature="niche" data-unlock-cost="200">Débloquer Niche (200)</button>
+            <button class="w-full px-4 py-3 rounded-xl border border-gray-700 hover:border-gray-500 font-extrabold" data-unlock-feature="bestTime" data-unlock-cost="120">Débloquer Best Time (120)</button>
           </div>
-          <div id="state_modules" class="mt-2 text-xs text-gray-400"></div>
+          <div id="featureUnlockNote" class="mt-2 text-xs text-gray-400"></div>
         </div>
       </div>
     </div>
-
-    <div class="mt-10 rounded-2xl border border-gray-800 bg-black/40 p-6">
+<div class="mt-10 rounded-2xl border border-gray-800 bg-black/40 p-6">
       <h2 class="text-xl font-extrabold">FAQ rapide</h2>
       <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
         <div>
@@ -153,7 +150,7 @@
     const API = window.location.origin;
 
     async function getJson(url, opts){
-      const r = await fetch(url, Object.assign({ credentials:'include', cache:'no-store' }, opts||{}));
+      const r = await fetch(url, Object.assign({ credentials:'include' }, opts||{}));
       return r.json();
     }
 
@@ -180,80 +177,80 @@
       const me = await getJson(API + '/api/billing/me').catch(()=>null);
       if(me && me.success){
         badge.textContent = String(me.credits||0) + ' crédits';
-        window.__billing = me;
-        try{ const bid = String((u.id||u.login||u.display_name||'')||'anon'); localStorage.setItem('billing_cache_'+bid, JSON.stringify({ ts: Date.now(), data: me })); }catch(_e){}
       }
+      try{ window.__billingMe = me; updateUnlockUI(me); }catch(_){ }
 
-      // Update unlock UI state
-      try{ updateUnlockUi(); }catch(_){ }
     }
 
-    function ent(key){
-      const b = window.__billing || {};
-      return !!(b.entitlements && b.entitlements[key]);
-    }
+    
+function updateUnlockUI(me){
+  const mBtn = document.getElementById('btnUnlockMarket');
+  const mNote = document.getElementById('marketUnlockNote');
+  const fNote = document.getElementById('featureUnlockNote');
+  if(!mBtn || !mNote) return;
 
-    function isPremium(){
-      const b = window.__billing || {};
-      const p = String(b.plan||'free').toLowerCase();
-      return p === 'premium' || p === 'pro';
-    }
+  const ent = (me && me.entitlements) ? me.entitlements : {};
+  const credits = Number(me && me.credits || 0);
+  const plan = String(me && me.plan || 'free').toLowerCase();
 
-    function updateUnlockUi(){
-      const b = window.__billing;
-      if(!b || !b.success) return;
-      const credits = Number(b.credits||0);
+  // Market pass state
+  if(plan === 'premium' || plan === 'pro' || ent.market === true){
+    mBtn.disabled = true;
+    mBtn.classList.add('opacity-60','cursor-not-allowed');
+    mNote.textContent = 'Déjà déverrouillé.';
+  }else{
+    mBtn.disabled = credits < 200;
+    mBtn.classList.toggle('opacity-60', mBtn.disabled);
+    mBtn.classList.toggle('cursor-not-allowed', mBtn.disabled);
+    mNote.textContent = mBtn.disabled ? ('Crédits insuffisants (il te manque ' + (200-credits) + ').') : '';
+  }
 
-      const marketBtn = document.getElementById('buy_market_pass');
-      const stMarket = document.getElementById('state_market');
-      if(isPremium() || ent('market')){
-        marketBtn.disabled = true;
-        marketBtn.classList.add('opacity-60');
-        stMarket.textContent = isPremium() ? 'Inclus dans ton abonnement.' : 'Déjà déverrouillé.';
-      }else{
-        marketBtn.disabled = credits < 200;
-        marketBtn.classList.remove('opacity-60');
-        stMarket.textContent = credits < 200 ? ('Crédits insuffisants: il te manque ' + (200-credits) + '.') : 'Prêt à débloquer.';
-      }
+  // Feature buttons
+  document.querySelectorAll('button[data-unlock-feature]').forEach(btn=>{
+    const feat = btn.getAttribute('data-unlock-feature');
+    const cost = Number(btn.getAttribute('data-unlock-cost')||0);
+    const unlocked = (plan === 'premium' || plan === 'pro' || ent[feat] === true);
+    btn.disabled = unlocked || credits < cost;
+    btn.classList.toggle('opacity-60', btn.disabled);
+    btn.classList.toggle('cursor-not-allowed', btn.disabled);
+  });
 
-      const stMods = document.getElementById('state_modules');
-      const btns = Array.from(document.querySelectorAll('.unlockBtn'));
-      btns.forEach(btn=>{
-        const sku = btn.getAttribute('data-sku');
-        const map = { unlock_overview:'overview', unlock_analytics:'analytics', unlock_niche:'niche', unlock_bestTime:'bestTime' };
-        const k = map[sku];
-        const price = sku === 'unlock_analytics' || sku === 'unlock_niche' ? 200 : 120;
-        if(isPremium() || ent(k)){
-          btn.disabled = true;
-          btn.classList.add('opacity-60');
-          btn.textContent = btn.textContent.replace('Débloquer','Débloqué');
-        }else{
-          btn.disabled = credits < price;
-          btn.classList.remove('opacity-60');
-        }
-      });
-      stMods.textContent = isPremium() ? 'Tous les modules sont inclus en Premium/Pro.' : 'Achat à l\'unité via crédits.';
-    }
+  if(fNote) fNote.textContent = '';
+}
 
-    async function spendCredits(sku){
-      const r = await fetch(API + '/api/credits/spend', {
-        method:'POST',
-        credentials:'include',
-        cache:'no-store',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ sku })
-      });
-      const d = await r.json().catch(()=>null);
-      if(!d || !d.success){
-        alert((d && d.error) ? d.error : 'Erreur');
-        return;
-      }
-      window.__billing = Object.assign({}, window.__billing || {}, d);
-      document.getElementById('creditsBadge').textContent = String(d.credits||0) + ' crédits';
-      updateUnlockUi();
-    }
+async function unlockMarket(){
+  const r = await fetch(API + '/api/billing/unlock-market', {
+    method:'POST',
+    credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ cost: 200 })
+  });
+  const d = await r.json().catch(()=>null);
+  if(!d || !d.success){
+    alert((d && d.error) ? d.error : 'Erreur déblocage marché');
+    return;
+  }
+  await refresh();
+  alert('Marché déverrouillé.');
+}
 
-    async function startCheckout(sku){
+async function unlockFeature(feature, cost){
+  const r = await fetch(API + '/api/billing/unlock-feature', {
+    method:'POST',
+    credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ feature, cost })
+  });
+  const d = await r.json().catch(()=>null);
+  if(!d || !d.success){
+    alert((d && d.error) ? d.error : 'Erreur déblocage');
+    return;
+  }
+  await refresh();
+  alert('Débloqué: ' + feature);
+}
+
+async function startCheckout(sku){
       const r = await fetch(API + '/api/billing/create-checkout-session', {
         method:'POST',
         credentials:'include',
@@ -272,14 +269,16 @@
       b.addEventListener('click', ()=> startCheckout(b.getAttribute('data-sku')));
     });
 
-    // Credits unlock buttons
-    document.getElementById('buy_market_pass').addEventListener('click', ()=> spendCredits('market_pass'));
-    document.querySelectorAll('.unlockBtn').forEach(b=>{
-      b.addEventListener('click', ()=> spendCredits(b.getAttribute('data-sku')));
+    const mBtn = document.getElementById('btnUnlockMarket');
+    if(mBtn) mBtn.addEventListener('click', unlockMarket);
+
+    document.querySelectorAll('button[data-unlock-feature]').forEach(b=>{
+      b.addEventListener('click', ()=> unlockFeature(b.getAttribute('data-unlock-feature'), Number(b.getAttribute('data-unlock-cost')||0)));
     });
 
+
     refresh();
-    setInterval(refresh, 5000);
+    setInterval(refresh, 10000);
   </script>
 </body>
 </html>

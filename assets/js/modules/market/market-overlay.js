@@ -651,22 +651,21 @@
       return;
     }
 
-    // Access rule is decided by the server (single source of truth)
-    let allowed = false;
-    try{
-      const ar = await fetch('/api/market/access', { credentials:'include', cache:'no-store' });
-      const aj = await ar.json();
-      if(aj && aj.success){
-        allowed = !!aj.allowed;
-        try{ window.__billing = { success:true, plan: aj.plan, credits: aj.credits, entitlements: aj.entitlements||{} }; }catch(_e){}
-      }
-    }catch(_e){ allowed = false; }
 
-    if(!allowed){
-      window.location.href = '/pricing';
-      return;
-    }
+// Server-side access decision (single source of truth)
+let allowed = false;
+try{
+  const r = await fetch('/api/market/access', { cache:'no-store', credentials:'include' });
+  const j = await r.json();
+  if(j && j.success){
+    allowed = !!j.allowed;
+  }
+}catch(_){}
 
+if(!allowed){
+  window.location.href = '/pricing';
+  return;
+}
     if(_open){
       try{ _open(mode); }catch(_){ _open(); }
       setBodyModal(true);

@@ -17,25 +17,6 @@ window.fetchJSON = window.fetchJSON || (async function(url, opts){
 });
 // -------------------------------------------------------------------------------
 /* DISCOVERY app-bootstrap v12 IA direct anime (no YT embed) */
-
-// Global IMG src sanitizer (prevents Twitch _404 thumbnails from even requesting)
-(function(){
-  if(window.__oryonImgSrcSanitizer) return;
-  window.__oryonImgSrcSanitizer = true;
-  function isBad(u){
-    u = String(u||"");
-    return u.includes("vod-secure.twitch.tv/_404/") || u.includes("/_404/") || u.includes("404_processing");
-  }
-  try{
-    const d = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
-    if(d && d.set && d.get){
-      Object.defineProperty(HTMLImageElement.prototype, "src", {
-        get: function(){ return d.get.call(this); },
-        set: function(v){ if(isBad(v)) v = "/assets/img/vod-fallback.png"; return d.set.call(this, v); }
-      });
-    }
-  }catch(_){ }
-})();
 const API_BASE = window.location.origin;
 
     // Global image fallback to avoid Twitch _404 thumbnail spam in console/network
@@ -303,7 +284,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   let d = null;
   try{
-    const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include', cache:'no-store' });
+    const r = await fetch(`${API_BASE}/api/billing/me`, { credentials:'include' });
     d = await r.json().catch(()=>null);
   }catch(_e){ d = null; }
 
@@ -316,14 +297,6 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   if(wrap) wrap.classList.remove('hidden');
 
-  // Cache billing snapshot for Market gating (multi-user, avoids redirect loops)
-  try{
-    window.__billing = d;
-    const cu = window.currentUser || {};
-    const bid = (cu.id || cu.login || cu.display_name || '').toString() || 'anon';
-    localStorage.setItem('billing_cache_' + bid, JSON.stringify({ ts: Date.now(), data: d }));
-  }catch(_e){}
-
   let credits = Number(d.credits ?? 0) || 0;
   const plan = String((d.plan || 'FREE')).toUpperCase();
 
@@ -334,7 +307,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
   // Portfolio preview (fallback: use fantasy wallet cash)
   try{
-    const fr = await fetch(`${API_BASE}/api/fantasy/profile`, { credentials:'include', cache:'no-store' });
+    const fr = await fetch(`${API_BASE}/api/fantasy/profile`, { credentials:'include' });
     const fj = await fr.json().catch(()=>null);
     const cash = Number(fj?.cash ?? fj?.wallet?.cash ?? 0) || 0;
 
