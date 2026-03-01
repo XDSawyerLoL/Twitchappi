@@ -652,31 +652,32 @@
     }
 
 
-// Server-side access decision (single source of truth)
-// IMPORTANT: do NOT hard-redirect on network/parse errors (otherwise paid users can get stuck in a loop).
-let allowed = null;
+// Access gate
+// We intentionally double-check with /api/billing/me even if /api/market/access says "false".
+// Reason: any mismatch/session glitch must not trap a paid user in a pricing redirect loop.
+let allowedFromAccess = null;
+let allowedFromBilling = null;
+
 try{
   const r = await fetch('/api/market/access', { cache:'no-store', credentials:'include' });
   if(r.ok){
     const j = await r.json();
-    if(j && j.success) allowed = !!j.allowed;
+    if(j && j.success) allowedFromAccess = !!j.allowed;
   }
-}catch(_){ allowed = null; }
+}catch(_){ allowedFromAccess = null; }
 
-// Fallback: if market/access failed, use billing snapshot (credits/entitlements)
-if(allowed === null){
-  try{
-    const r2 = await fetch('/api/billing/me', { cache:'no-store', credentials:'include' });
-    if(r2.ok){
-      const j2 = await r2.json();
-      const plan = String(j2?.plan || 'free').toLowerCase();
-      const credits = Number(j2?.credits || 0);
-      const ent = j2?.entitlements || {};
-      allowed = (plan === 'premium' || plan === 'pro') || (ent.market === true) || (credits > 0);
-    }
-  }catch(_){ /* keep null */ }
-}
+try{
+  const r2 = await fetch('/api/billing/me', { cache:'no-store', credentials:'include' });
+  if(r2.ok){
+    const j2 = await r2.json();
+    const plan = String(j2?.plan || 'free').toLowerCase();
+    const credits = Number(j2?.credits || 0);
+    const ent = j2?.entitlements || {};
+    allowedFromBilling = (plan === 'premium' || plan === 'pro') || (ent.market === true) || (credits > 0);
+  }
+}catch(_){ allowedFromBilling = null; }
 
+const allowed = (allowedFromAccess === true) || (allowedFromBilling === true);
 if(allowed === false){
   window.location.href = '/pricing';
   return;
