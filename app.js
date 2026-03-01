@@ -3212,7 +3212,7 @@ app.get('/followed_streams', async (req, res) => {
   const u = req.session?.twitchUser;
   if (!u || (u.expiry && u.expiry <= Date.now())) {
     if (req.session) req.session.twitchUser = null;
-    return res.status(401).json({ success: false });
+    return res.json({ success: false, streams: [], reason: "unauthorized" });
   }
 
   try {
