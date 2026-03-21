@@ -682,7 +682,7 @@ function startAuth() {
         const r = await fetch(`${API_BASE}/boost_queue`, { credentials:'include' });
         const j = await r.json().catch(()=>null);
         const items = Array.isArray(j?.items) ? j.items : [];
-        if(!items.length){ box.innerHTML = 'Aucune demande pour le moment.'; return; }
+        if(!items.length){ box.innerHTML = '<div class="text-[12px] text-gray-500">Aucune demande en attente.</div>'; return; }
         box.innerHTML = items.map((it, idx)=>{
           const avatar = it.avatar || it.profile_image_url || '/assets/img/vod-fallback.png';
           const requester = it.requester || it.user || 'Utilisateur';

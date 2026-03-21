@@ -668,11 +668,10 @@
       }
     }catch(_){ allowed = null; }
 
-    // If we cannot determine access (network glitch), NEVER hard-redirect to pricing.
-    // Just open the overlay; backend actions inside will still be protected.
+    // Never redirect to pricing here.
+    // Open the overlay and let the UI/backend explain any remaining lock state.
     if(allowed === false){
-      window.location.href = '/pricing';
-      return;
+      console.warn('Market access reported as locked, overlay opened anyway for clarity.');
     }
     if(_open){
       try{ _open(mode); }catch(_){ _open(); }
@@ -690,7 +689,7 @@
       dash.scrollIntoView({ behavior:'smooth', block:'start' });
       return;
     }
-    window.location.href = '/pricing';
+console.warn('Market overlay fallback unavailable.');
   };
   window.closeMarketOverlay = function(){
     if(_close) _close();

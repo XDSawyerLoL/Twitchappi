@@ -3362,18 +3362,37 @@ app.post('/stream_boost', async (req, res) => {
   if (!channel) return res.status(400).json({ success:false, error:'channel manquant' });
 
   const now = Date.now();
+  const requester = String(req.session?.twitchUser?.login || req.session?.twitchUser?.display_name || 'Utilisateur');
+  const avatar = String(req.session?.twitchUser?.profile_image_url || '');
   try {
+    const hasActiveBoost = !!(CACHE.boostedStream && CACHE.boostedStream.endTime > now);
+    if(hasActiveBoost){
+      await db.collection('boosts').add({
+        channel,
+        requester,
+        avatar,
+        queued: true,
+        status: 'queued',
+        createdAt: now,
+        requestedAt: now
+      });
+      return res.json({ success: true, queued:true, html_response: "<p style='color:#00f2ea;'>⏳ Boost déjà actif. Demande ajoutée à la file d’attente.</p>" });
+    }
+
     await db.collection('boosts').add({
       channel,
-      requester: String(req.session?.twitchUser?.login || req.session?.twitchUser?.display_name || 'Utilisateur'),
-      avatar: String(req.session?.twitchUser?.profile_image_url || ''),
+      requester,
+      avatar,
+      queued: false,
+      status: 'active',
       startTime: now,
-      endTime: now + 900000 // 15 min
+      endTime: now + 900000,
+      createdAt: now
     });
 
     CACHE.boostedStream = { channel, endTime: now + 900000 };
 
-    res.json({ success: true, html_response: "<p style='color:green;'>\u2705 Boost activ\u00E9 pendant 15 minutes!</p>" });
+    res.json({ success: true, queued:false, html_response: "<p style='color:green;'>✅ Boost activé pendant 15 minutes.</p>" });
   } catch (e) {
     res.status(500).json({ success:false, error: "Erreur DB" });
   }
@@ -3382,7 +3401,7 @@ app.post('/stream_boost', async (req, res) => {
 app.get('/boost_queue', async (req, res) => {
   try{
     if(!firestoreOk){ return res.json({ success:true, items: [] }); }
-    const snap = await db.collection('boosts').orderBy('startTime','desc').limit(10).get();
+    const snap = await db.collection('boosts').where('status','==','queued').orderBy('createdAt','asc').limit(10).get();
     const items = snap.docs.map(d=>{
       const x = d.data() || {};
       return {
@@ -3390,7 +3409,7 @@ app.get('/boost_queue', async (req, res) => {
         requester: x.requester || x.user || 'Utilisateur',
         avatar: x.avatar || x.profile_image_url || ''
       };
-    });
+    }).filter(x => x.channel);
     return res.json({ success:true, items });
   }catch(e){
     return res.status(500).json({ success:false, error:e.message, items: [] });
