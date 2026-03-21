@@ -1099,13 +1099,13 @@
 .hidden{display:none !important;}
 /* force main layout: player left, side-panel right */
 #main-layout{display:grid !important; grid-template-columns:minmax(0,1fr) clamp(430px, 31vw, 560px); gap:16px; align-items:stretch;}
-#side-panel{grid-column:2 / 3 !important; min-width:430px; max-width:560px; width:100%;}
+#side-panel{grid-column:2 / 3 !important; min-width:520px; max-width:620px; width:100%;}
 #left-col{grid-column:1 / 2 !important; min-width:0;}
 /* player/side-panel height lock via CSS var */
 :root{ --playerH: 640px; --sideHeaderH: 44px; }
 #side-panel{height:var(--playerH) !important; min-height:640px !important;}
 #side-panel .tab-content{min-height:0;}
-#tab-chat, #tab-stats, #tab-tools{height:calc(var(--playerH) - var(--sideHeaderH)) !important; overflow:hidden;}
+#tab-chat, #tab-stats, #tab-tools{height:calc(var(--playerH) - var(--sideHeaderH) - 2px) !important; overflow:hidden;}
 #tab-chat{display:flex; flex-direction:column;}
 #tab-chat .chat-mode-bar{height:40px;}
 #chat-container-twitch, #chat-container-hub{min-height:0; height:calc(100% - 40px) !important;}
@@ -2669,22 +2669,39 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 
 /* v4 tools readability + clickable market */
 #tab-tools{padding:0 !important;}
-#tab-tools .tools-scroll{padding:18px 18px 28px !important; gap:18px !important;}
-#tab-tools .tool-card, #tab-tools .best-time-tool, #tab-tools .scanner-tool{overflow:visible !important; min-height:auto !important;}
-#tab-tools .tool-card h3, #tab-tools .tool-card h4, #tab-tools .best-time-tool h4{font-size:18px !important; line-height:1.25 !important; letter-spacing:.02em !important; white-space:normal !important; word-break:break-word !important;}
-#tab-tools .tool-help{font-size:13px !important; line-height:1.5 !important;}
-#tab-tools input, #tab-tools button{font-size:14px !important;}
+#tab-tools .tools-scroll{padding:16px 16px 32px !important; gap:14px !important; height:100% !important; box-sizing:border-box !important;}
+#tab-tools .tool-card, #tab-tools .best-time-tool, #tab-tools .scanner-tool{overflow:visible !important; min-height:auto !important; width:100% !important;}
+#tab-tools .tool-card h3, #tab-tools .tool-card h4, #tab-tools .best-time-tool h4{font-size:15px !important; line-height:1.35 !important; letter-spacing:.01em !important; white-space:normal !important; word-break:break-word !important; overflow-wrap:anywhere !important;}
+#tab-tools .tool-help{font-size:12px !important; line-height:1.45 !important;}
+#tab-tools input, #tab-tools button{font-size:13px !important;}
 #tab-tools .queue-head{gap:8px; flex-wrap:wrap;}
 #boost-queue{max-height:none !important; overflow:visible !important;}
 #boost-queue:empty::before{content:"Aucune demande en attente."; color:#6b7280; font-size:12px;}
 #header-market-btn, #open-market-from-menu, #goto-portfolio{cursor:pointer !important;}
 @media (max-width: 1280px){
-  #main-layout{grid-template-columns:minmax(0,1fr) 470px !important;}
-  #side-panel{min-width:470px !important; max-width:470px !important;}
+  #main-layout{grid-template-columns:minmax(0,1fr) 560px !important;}
+  #side-panel{min-width:560px !important; max-width:560px !important;}
 }
 @media (max-width: 1100px){
   #main-layout{grid-template-columns:1fr !important;}
   #side-panel{min-width:0 !important; max-width:none !important;}
+}
+
+
+/* v5 readability: wider tools panel and complete cards */
+#tabs-viewport{min-height:0 !important; height:100% !important;}
+#tab-tools .tools-scroll{overflow-y:auto !important; overflow-x:hidden !important;}
+#tab-tools .tool-card{padding:14px !important; border-radius:14px !important;}
+#tab-tools .tool-grid-2{grid-template-columns:minmax(0,1fr) 62px !important;}
+#tab-tools .tool-stack-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;}
+#tab-tools .tool-card input{min-width:0 !important;}
+#tab-tools .tool-card button{white-space:normal !important;}
+#boost-queue .boost-queue-item{display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.06);}
+#boost-queue .boost-queue-item:last-child{border-bottom:0;}
+#boost-queue .boost-queue-avatar{width:34px; height:34px; border-radius:9999px; object-fit:cover; border:1px solid rgba(255,255,255,.12);}
+@media (max-width: 1400px){
+  #main-layout{grid-template-columns:minmax(0,1fr) 500px !important;}
+  #side-panel{min-width:500px !important; max-width:500px !important;}
 }
 
 </style>
@@ -3684,6 +3701,93 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 .tf-info-track::-webkit-scrollbar-thumb:hover{ background: rgba(229,9,20,.35); }
 .tf-info-empty{ color: rgba(255,255,255,.72); padding: 16px 6px; }
 </style>
+
+
+<script>
+(function(){
+  function switchMarketTab(tabName){
+    const overlay = document.getElementById('market-overlay');
+    if(!overlay) return false;
+    const target = tabName || 'markets';
+    overlay.querySelectorAll('.mkt-view').forEach(v => v.classList.add('hidden'));
+    overlay.querySelectorAll('.mkt-tab').forEach(t => {
+      const on = t.getAttribute('data-tab') === target;
+      t.classList.toggle('bg-white/10', on);
+      t.classList.toggle('font-bold', on);
+      t.classList.toggle('bg-white/5', !on);
+    });
+    const view = overlay.querySelector('#mkt-tab-' + target);
+    if(view) view.classList.remove('hidden');
+    return !!view;
+  }
+  function forceOpenMarketOverlay(mode){
+    const overlay = document.getElementById('market-overlay');
+    if(!overlay) return false;
+    document.body.classList.add('modal-open');
+    overlay.classList.remove('hidden');
+    overlay.style.display = 'flex';
+    overlay.setAttribute('aria-hidden', 'false');
+    const tab = (mode === 'portfolio') ? 'portfolio' : (mode === 'overview' ? 'overview' : 'markets');
+    switchMarketTab(tab);
+    const scrollBox = overlay.querySelector('.overflow-y-auto');
+    if(scrollBox){ try{ scrollBox.scrollTo({ top:0, behavior:'auto' }); }catch(_){ scrollBox.scrollTop = 0; } }
+    return true;
+  }
+  function forceCloseMarketOverlay(){
+    const overlay = document.getElementById('market-overlay');
+    if(!overlay) return false;
+    overlay.classList.add('hidden');
+    overlay.style.removeProperty('display');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+    return true;
+  }
+  window.forceOpenMarketOverlay = forceOpenMarketOverlay;
+  window.forceCloseMarketOverlay = forceCloseMarketOverlay;
+  const prevOpen = window.openMarketOverlay;
+  window.openMarketOverlay = function(mode){
+    try{
+      if(typeof prevOpen === 'function'){
+        prevOpen(mode);
+        const overlay = document.getElementById('market-overlay');
+        if(overlay && !overlay.classList.contains('hidden')) return true;
+      }
+    }catch(e){ console.warn('openMarketOverlay fallback', e); }
+    return forceOpenMarketOverlay(mode);
+  };
+  const prevClose = window.closeMarketOverlay;
+  window.closeMarketOverlay = function(){
+    try{ if(typeof prevClose === 'function') prevClose(); }catch(_){}
+    return forceCloseMarketOverlay();
+  };
+  function handleOpenClick(e, mode){
+    e.preventDefault();
+    e.stopPropagation();
+    window.openMarketOverlay(mode);
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    const marketBtn = document.getElementById('header-market-btn');
+    const marketMenuBtn = document.getElementById('open-market-from-menu');
+    const portfolioBtn = document.getElementById('goto-portfolio');
+    if(marketBtn) marketBtn.onclick = null;
+    if(marketBtn) marketBtn.addEventListener('click', function(e){ handleOpenClick(e, 'markets'); }, true);
+    if(marketMenuBtn) marketMenuBtn.addEventListener('click', function(e){ handleOpenClick(e, 'markets'); }, true);
+    if(portfolioBtn) portfolioBtn.addEventListener('click', function(e){ handleOpenClick(e, 'portfolio'); }, true);
+    document.querySelectorAll('#market-overlay .mkt-tab').forEach(function(btn){
+      btn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        switchMarketTab(btn.getAttribute('data-tab') || 'markets');
+      }, true);
+    });
+  }, { once:true });
+  document.addEventListener('click', function(e){
+    const closer = e.target.closest('[data-open-market="1"], #header-market-btn, #open-market-from-menu');
+    if(closer){ handleOpenClick(e, 'markets'); return; }
+    const pf = e.target.closest('[data-open-portfolio="1"], #goto-portfolio');
+    if(pf){ handleOpenClick(e, 'portfolio'); return; }
+  }, true);
+})();
+</script>
 
 </body>
 </html>

@@ -3407,7 +3407,8 @@ app.get('/boost_queue', async (req, res) => {
       return {
         channel: x.channel || '',
         requester: x.requester || x.user || 'Utilisateur',
-        avatar: x.avatar || x.profile_image_url || ''
+        avatar: x.avatar || x.profile_image_url || '',
+        status: x.status || 'queued'
       };
     }).filter(x => x.channel);
     return res.json({ success:true, items });

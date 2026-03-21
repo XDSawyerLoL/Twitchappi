@@ -374,27 +374,39 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
     function openPortfolio(){
       closeMenu();
+      if(typeof window.openStreamerPortfolio === 'function'){
+        return window.openStreamerPortfolio();
+      }
       if(typeof window.openMarketOverlay === 'function'){
-        window.openMarketOverlay();
+        window.openMarketOverlay('portfolio');
         setTimeout(()=>{
           const tab = document.querySelector('#market-overlay .mkt-tab[data-tab="portfolio"]');
           if(tab) tab.click();
         }, 80);
-      }else{
-        window.location.href = '/pricing';
+        return;
+      }
+      if(typeof window.forceOpenMarketOverlay === 'function'){
+        window.forceOpenMarketOverlay('portfolio');
+        return;
       }
     }
 
     if(gotoPf) gotoPf.addEventListener('click', (e)=>{ e.preventDefault(); openPortfolio(); });
-    if(openMarket) openMarket.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); if(typeof window.openStreamerMarket==='function'){ window.openStreamerMarket(); } else if(typeof window.openMarketOverlay==='function'){ window.openMarketOverlay(); } else { window.location.href='/pricing'; } });
+    if(openMarket) openMarket.addEventListener('click', (e)=>{
+      e.preventDefault();
+      closeMenu();
+      if(typeof window.openStreamerMarket==='function') return window.openStreamerMarket();
+      if(typeof window.openMarketOverlay==='function') return window.openMarketOverlay('markets');
+      if(typeof window.forceOpenMarketOverlay==='function') return window.forceOpenMarketOverlay('markets');
+    });
 
     const headerMarketBtn = document.getElementById('header-market-btn');
     if(headerMarketBtn) headerMarketBtn.addEventListener('click', (e)=>{
       e.preventDefault();
       if(typeof window.openStreamerMarket==='function') return window.openStreamerMarket();
-      if(typeof window.openMarketOverlay==='function') return window.openMarketOverlay();
-      window.location.href='/pricing';
-    });
+      if(typeof window.openMarketOverlay==='function') return window.openMarketOverlay('markets');
+      if(typeof window.forceOpenMarketOverlay==='function') return window.forceOpenMarketOverlay('markets');
+    }, true);
 
     document.addEventListener('keydown', (e)=>{
       if((e.key === 'm' || e.key === 'M') && e.altKey){
@@ -695,7 +707,7 @@ function startAuth() {
       try{
         const r = await fetch(`${API_BASE}/boost_queue`, { credentials:'include' });
         const j = await r.json().catch(()=>null);
-        const items = Array.isArray(j?.items) ? j.items : [];
+        const items = Array.isArray(j?.items) ? j.items.filter(it => String(it.status || 'queued') === 'queued') : [];
         if(!items.length){ box.innerHTML = '<div class="text-[12px] text-gray-500">Aucune demande en attente.</div>'; return; }
         box.innerHTML = items.map((it, idx)=>{
           const avatar = it.avatar || it.profile_image_url || '/assets/img/vod-fallback.png';
@@ -3879,7 +3891,9 @@ if (yt && yt.startsWith('mp4:')){
           body:JSON.stringify({ channel })
         });
         const data = await r.json();
-        msg.innerText = data.success ? '✅ Boost activé (15 min)' : '❌ Boost refusé';
+        if(data && data.success && data.queued){ msg.innerText = '⏳ Demande ajoutée à la file d’attente'; }
+        else if(data && data.success){ msg.innerText = '✅ Boost activé (15 min)'; }
+        else { msg.innerText = '❌ Boost refusé'; }
       }catch(e){
         msg.innerText = '❌ Erreur';
       }

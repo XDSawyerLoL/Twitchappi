@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node app.js",
     "desktop": "electron .",
-    "dist:win": "electron-builder --win nsis"
+    "dist:win": "electron-builder --win nsis",
+    "audit:fix": "npm audit fix",
+    "audit": "npm audit"
   },
   "engines": {
     "node": ">=20"
