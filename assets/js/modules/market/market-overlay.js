@@ -757,3 +757,38 @@ console.warn('Market overlay fallback unavailable.');
   init();
 
 })();
+
+
+  window.openStreamerMarket = function(){
+    try{
+      if(typeof window.openMarketOverlay === 'function') return window.openMarketOverlay('markets');
+    }catch(e){ console.error('openStreamerMarket', e); }
+  };
+
+  window.openStreamerPortfolio = function(){
+    try{
+      if(typeof window.openMarketOverlay === 'function'){
+        window.openMarketOverlay('portfolio');
+        setTimeout(()=>{
+          const tab = document.querySelector('#market-overlay .mkt-tab[data-tab="portfolio"]');
+          if(tab) tab.click();
+        }, 100);
+        return;
+      }
+    }catch(e){ console.error('openStreamerPortfolio', e); }
+  };
+
+  document.addEventListener('click', (e)=>{
+    const marketBtn = e.target.closest('#header-market-btn, #open-market-from-menu, [data-open-market="1"]');
+    if(marketBtn){
+      e.preventDefault();
+      window.openStreamerMarket && window.openStreamerMarket();
+      return;
+    }
+    const pfBtn = e.target.closest('#goto-portfolio, [data-open-portfolio="1"]');
+    if(pfBtn){
+      e.preventDefault();
+      window.openStreamerPortfolio && window.openStreamerPortfolio();
+      return;
+    }
+  }, true);

@@ -1071,7 +1071,7 @@
 /* HARD LAYOUT FIX: keep player left + side panel right even if Tailwind CDN/CSP fails */
 #main-layout{
   display:grid !important;
-  grid-template-columns:minmax(0,1fr) 420px !important;
+  grid-template-columns:minmax(0,1fr) clamp(430px, 31vw, 560px) !important;
   gap:16px !important;
   align-items:stretch !important;
   min-height:0 !important;
@@ -1098,12 +1098,12 @@
 /* ======= HARD FIXES (no-tailwind fallback + layout locks) ======= */
 .hidden{display:none !important;}
 /* force main layout: player left, side-panel right */
-#main-layout{display:grid !important; grid-template-columns:minmax(0,1fr) 420px; gap:16px; align-items:stretch;}
-#side-panel{grid-column:2 / 3 !important; min-width:320px;}
+#main-layout{display:grid !important; grid-template-columns:minmax(0,1fr) clamp(430px, 31vw, 560px); gap:16px; align-items:stretch;}
+#side-panel{grid-column:2 / 3 !important; min-width:430px; max-width:560px; width:100%;}
 #left-col{grid-column:1 / 2 !important; min-width:0;}
 /* player/side-panel height lock via CSS var */
-:root{ --playerH: 520px; --sideHeaderH: 44px; }
-#side-panel{height:var(--playerH) !important;}
+:root{ --playerH: 640px; --sideHeaderH: 44px; }
+#side-panel{height:var(--playerH) !important; min-height:640px !important;}
 #side-panel .tab-content{min-height:0;}
 #tab-chat, #tab-stats, #tab-tools{height:calc(var(--playerH) - var(--sideHeaderH)) !important; overflow:hidden;}
 #tab-chat{display:flex; flex-direction:column;}
@@ -2136,7 +2136,7 @@ body.modal-open [data-paywall].paywall-scope[data-paywall-locked="1"]::before{ d
 /* HARD LAYOUT FIX: keep player left + side panel right even if Tailwind CDN/CSP fails */
 #main-layout{
   display:grid !important;
-  grid-template-columns:minmax(0,1fr) 420px !important;
+  grid-template-columns:minmax(0,1fr) clamp(430px, 31vw, 560px) !important;
   gap:16px !important;
   align-items:stretch !important;
   min-height:0 !important;
@@ -2666,6 +2666,27 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 #tab-tools .tool-card .queue-head{display:flex !important;align-items:center !important;justify-content:space-between !important;margin-bottom:10px !important;}
 @media (max-width: 640px){#tab-tools .tool-grid-2,#tab-tools .tool-stack-2{grid-template-columns:1fr !important;}}
 
+
+/* v4 tools readability + clickable market */
+#tab-tools{padding:0 !important;}
+#tab-tools .tools-scroll{padding:18px 18px 28px !important; gap:18px !important;}
+#tab-tools .tool-card, #tab-tools .best-time-tool, #tab-tools .scanner-tool{overflow:visible !important; min-height:auto !important;}
+#tab-tools .tool-card h3, #tab-tools .tool-card h4, #tab-tools .best-time-tool h4{font-size:18px !important; line-height:1.25 !important; letter-spacing:.02em !important; white-space:normal !important; word-break:break-word !important;}
+#tab-tools .tool-help{font-size:13px !important; line-height:1.5 !important;}
+#tab-tools input, #tab-tools button{font-size:14px !important;}
+#tab-tools .queue-head{gap:8px; flex-wrap:wrap;}
+#boost-queue{max-height:none !important; overflow:visible !important;}
+#boost-queue:empty::before{content:"Aucune demande en attente."; color:#6b7280; font-size:12px;}
+#header-market-btn, #open-market-from-menu, #goto-portfolio{cursor:pointer !important;}
+@media (max-width: 1280px){
+  #main-layout{grid-template-columns:minmax(0,1fr) 470px !important;}
+  #side-panel{min-width:470px !important; max-width:470px !important;}
+}
+@media (max-width: 1100px){
+  #main-layout{grid-template-columns:1fr !important;}
+  #side-panel{min-width:0 !important; max-width:none !important;}
+}
+
 </style>
 
 </head>
@@ -2686,7 +2707,7 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 <button class="bg-[#111] hover:bg-[#222] text-white px-4 py-2 rounded font-bold transition flex items-center gap-2 text-xs font-orbitron border border-[#333] shadow-[0_0_10px_rgba(229,9,20,0.10)] twitflix-btn" onclick="openTwitFlix()">
 <i class="fas fa-play-circle" style="color:#e50914"></i> <span class="twitflix-wordmark">DISCOVERY</span>
       </button>
-<button class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2" onclick="openMarketOverlay()">
+<button class="bg-[#111] hover:bg-[#161616] border border-[#00f2ea33] text-[#00f2ea] px-4 py-2 rounded font-bold transition flex items-center gap-2" id="header-market-btn" onclick="window.openStreamerMarket ? window.openStreamerMarket() : openMarketOverlay()">
 <i class="fas fa-chart-line"></i> MARCHÉ
       </button>
 <div class="h-6 w-[1px] bg-[#333]"></div>

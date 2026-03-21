@@ -386,7 +386,21 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     }
 
     if(gotoPf) gotoPf.addEventListener('click', (e)=>{ e.preventDefault(); openPortfolio(); });
-    if(openMarket) openMarket.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); if(typeof window.openMarketOverlay==='function'){ window.openMarketOverlay(); } else { window.location.href='/pricing'; } });
+    if(openMarket) openMarket.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); if(typeof window.openStreamerMarket==='function'){ window.openStreamerMarket(); } else if(typeof window.openMarketOverlay==='function'){ window.openMarketOverlay(); } else { window.location.href='/pricing'; } });
+
+    const headerMarketBtn = document.getElementById('header-market-btn');
+    if(headerMarketBtn) headerMarketBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      if(typeof window.openStreamerMarket==='function') return window.openStreamerMarket();
+      if(typeof window.openMarketOverlay==='function') return window.openMarketOverlay();
+      window.location.href='/pricing';
+    });
+
+    document.addEventListener('keydown', (e)=>{
+      if((e.key === 'm' || e.key === 'M') && e.altKey){
+        if(typeof window.openStreamerMarket==='function') window.openStreamerMarket();
+      }
+    });
   }
 
   window.dispatchEvent(new Event('billing:updated'));

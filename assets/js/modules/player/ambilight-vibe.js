@@ -524,19 +524,24 @@ setTimeout(()=>{ if(__ambOn) refreshAmbilight(); if(__vibeOn) applyVibe(); }, 70
 
 // (BOURSE PANEL removed — replaced by Market overlay)
 
-function openMarketOverlay(){
+function openMarketOverlay(mode){
   document.body.classList.add('modal-open');
-const ov = document.getElementById('market-overlay');
-      if(!ov) return;
-      ov.classList.remove('hidden');
-      // ensure overlay starts at top
-      try { ov.querySelector('.overflow-y-auto')?.scrollTo({ top:0, behavior:'smooth' }); } catch(_){}
-      // refresh when opened (soft)
-      try { refreshMarketAll(); } catch(_){}
-    }
+  const ov = document.getElementById('market-overlay');
+  if(!ov) return;
+  ov.classList.remove('hidden');
+  try { ov.querySelector('.overflow-y-auto')?.scrollTo({ top:0, behavior:'smooth' }); } catch(_){}
+  try { refreshMarketAll(); } catch(_){}
+  if(mode === 'portfolio'){
+    setTimeout(()=>document.querySelector('#market-overlay .mkt-tab[data-tab="portfolio"]')?.click(), 60);
+  }else if(mode === 'markets'){
+    setTimeout(()=>document.querySelector('#market-overlay .mkt-tab[data-tab="markets"]')?.click(), 60);
+  }
+}
+window.openMarketOverlay = openMarketOverlay;
     function closeMarketOverlay(){
   document.body.classList.remove('modal-open');
-const ov = document.getElementById('market-overlay');
-      if(!ov) return;
-      ov.classList.add('hidden');
+  const ov = document.getElementById('market-overlay');
+  if(!ov) return;
+  ov.classList.add('hidden');
     }
+    window.closeMarketOverlay = closeMarketOverlay;
