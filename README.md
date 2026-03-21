@@ -1,42 +1,77 @@
-# StreamerHub — Package final (Firestore only)
+# StreamerHub Pro
 
-Ce package garde le **visuel existant** et remet une structure propre :
-- `public/` pour l'UI
-- `public/assets/` pour les scripts
-- Backend Express dans `app.js`
+Base validée: **v6**. Cette version garde le rendu actuel et ajoute des correctifs de sécurité et de monétisation sans casser les flux existants.
 
-## Démarrage
+## Structure réelle
+- `NicheOptimizer.html` : interface principale
+- `assets/` : scripts, styles, images
+- `app.js` : serveur Express principal
+- `pricing.html` : page de monétisation
+- `electron-main.js` / `preload.js` : emballage Windows / Electron
+- `IA/` : module IA séparé
+- `scripts/` : scripts de vérification et nettoyage
+
+## Démarrage local
 ```bash
 npm install
 npm start
 ```
-Ouvre ensuite: `http://localhost:10000`
+Puis ouvrir `http://localhost:10000`.
 
-## Firestore (source unique de vérité)
-Le **marché** et le **portefeuille** (Portefeuille Marché du Streamer) utilisent Firestore **uniquement**.
-Si Firestore n'est pas correctement initialisé, les endpoints du marché renverront une erreur (503).
+## Variables d'environnement principales
+Créer un fichier `.env` à la racine.
 
-### Fournir les identifiants Firebase Admin
-Deux options :
-1) Variable d'environnement `FIREBASE_SERVICE_ACCOUNT_JSON` (JSON du service account, éventuellement échappé)
-2) Fichier `serviceAccountKey.json` à la racine (non inclus dans le repo)
+### Sécurité
+- `NODE_ENV=production`
+- `SESSION_SECRET=` secret long et unique, obligatoire en production
+- `CORS_ORIGINS=` liste d'origines autorisées séparées par des virgules
 
-## Dossiers
-- `public/NicheOptimizer.html` : page unique
-- `public/assets/js/...` : modules UI
-- `app.js` : API, sessions, sécurité, intégrations
+### Twitch
+- `TWITCH_CLIENT_ID=`
+- `TWITCH_CLIENT_SECRET=`
+- `TWITCH_REDIRECT_URI=`
+- `ADMIN_TWITCH_LOGINS=sansahd`
+- `ADMIN_TWITCH_IDS=` optionnel
 
-## Endpoints portefeuille/marché
-- `GET /api/fantasy/portfolio`
-- `POST /api/fantasy/buy`
-- `POST /api/fantasy/sell`
-- `GET /api/fantasy/market?streamer=<login>`
-- `GET /api/fantasy/leaderboard`
+### Firebase / Firestore
+- `FIREBASE_SERVICE_KEY=` JSON complet du compte de service
 
-> Les routes gardent `/api/fantasy/*` pour compatibilité front, mais l'UI affiche le nom **Portefeuille Marché du Streamer**.
+### Stripe
+- `STRIPE_SECRET_KEY=`
+- `STRIPE_WEBHOOK_SECRET=`
+- `STRIPE_PRICE_CREDITS_500=`
+- `STRIPE_PRICE_CREDITS_1250=`
+- `STRIPE_PRICE_PREMIUM_MONTHLY=`
+- `BILLING_SUCCESS_URL=`
+- `BILLING_CANCEL_URL=`
 
-## ORYON TV — Endpoints Twitch (VOD)
-- `GET /api/twitch/vods/top?limit=60` : sélection globale "Top VOD" (heuristique: top streams + top games, cache serveur)
-- `GET /api/twitch/vods/random?min=20&max=200&lang=fr&limit=18` : VOD aléatoires chez les lives (20–200 viewers)
-- `GET /api/twitch/vods/search?title=<q>&min=20&max=200&lang=fr&limit=18` : recherche VOD (titre) chez les lives (20–200 viewers)
+### Services optionnels
+- `GEMINI_API_KEY=` ou `GOOGLE_API_KEY=`
+- `YOUTUBE_API_KEY=`
+- `STEAM_API_KEY=`
 
+## Stripe
+L'application crée une session Checkout et expose maintenant un webhook serveur :
+- `POST /api/stripe/webhook`
+
+### Événements gérés
+- `checkout.session.completed`
+- `invoice.paid`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+Le webhook met à jour Firestore de manière idempotente via la collection `stripe_events` et crédite / active l'abonnement à partir des métadonnées Stripe.
+
+## Vérifications utiles
+```bash
+npm run verify:js
+npm run verify:all
+npm run audit:prod
+npm run clean:dead
+```
+
+## Remarques
+- en production, `SESSION_SECRET` vide ou égal à `dev_secret_change_me` bloque désormais le démarrage
+- si `CORS_ORIGINS` n'est pas défini, le serveur ne reste permissif qu'en développement local
+- `/api/health` expose l'état des dépendances critiques pour faciliter le diagnostic

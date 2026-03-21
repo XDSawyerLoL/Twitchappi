@@ -598,7 +598,7 @@ function startAuth() {
 
     function startBoostPlayerSync(){
       try{ if(__boostSyncTimer) clearInterval(__boostSyncTimer); }catch(_){ }
-      __boostSyncTimer = setInterval(()=>{ syncPlayerWithBoost(false); }, 15000);
+      __boostSyncTimer = setInterval(()=>{ syncPlayerWithBoost(false); }, 5000);
     }
 
     async function cycle(dir){
@@ -3935,12 +3935,14 @@ if (yt && yt.startsWith('mp4:')){
       try{
         const r = await fetch(`${API_BASE}/stream_boost`,{
           method:'POST',
+          credentials:'include',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ channel })
         });
         const data = await r.json();
         if(data && data.success && data.queued){
           msg.innerText = '⏳ Demande ajoutée à la file d’attente';
+          if(typeof window.refreshBoostQueue === 'function') window.refreshBoostQueue();
           setTimeout(()=>{ syncPlayerWithBoost(false); }, 1000);
         }
         else if(data && data.success){
@@ -3952,6 +3954,7 @@ if (yt && yt.startsWith('mp4:')){
             loadPlayerEmbed(currentChannel);
             updateTwitchChatFrame(currentChannel);
           }
+          if(typeof window.refreshBoostQueue === 'function') window.refreshBoostQueue();
           setTimeout(()=>{ syncPlayerWithBoost(true); }, 500);
         }
         else { msg.innerText = '❌ Boost refusé'; }

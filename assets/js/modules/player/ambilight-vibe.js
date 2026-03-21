@@ -290,10 +290,11 @@ function ensurePlayerTools(){
     tools = document.createElement('div');
     tools.id = 'player-tools';
     tools.innerHTML = `
-      <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()">📺</button>
-      <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()">🏆</button>
-      <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()">💡</button>
-      <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()">🧠</button>
+      <button id="tool-cinema" class="toolbtn toolbtn-wide" onclick="toggleCinemaMode()" title="Mode cinéma">🎬 Cinéma</button>
+      <button id="tool-mosaic" class="toolbtn" onclick="openMosaic()" title="Mosaic">📺</button>
+      <button id="tool-fantasy" class="toolbtn" onclick="openFantasy()" title="Marché">🏆</button>
+      <button id="tool-ambilight" class="toolbtn" onclick="toggleAmbilight()" title="Ambilight">💡</button>
+      <button id="tool-vibe" class="toolbtn" onclick="toggleVibe()" title="Vibe">🧠</button>
     `;
     vc.appendChild(tools);
   } else if (tools.parentElement !== vc) {
@@ -331,6 +332,27 @@ function ensurePlayerTools(){
   setTimeout(ensurePlayerTools, 1200);
 })();
 
+
+
+function toggleCinemaMode(){
+  const root = document.body;
+  const btn = document.getElementById('tool-cinema');
+  const isOn = !root.classList.contains('cinema-mode');
+  root.classList.toggle('cinema-mode', isOn);
+  if(btn) btn.classList.toggle('active', isOn);
+  try{ localStorage.setItem('jp_cinema_mode', isOn ? '1' : '0'); }catch(_){ }
+  toast(`Mode cinéma ${isOn ? 'activé' : 'désactivé'}`);
+}
+
+(function restoreCinemaMode(){
+  try{
+    const saved = localStorage.getItem('jp_cinema_mode') === '1';
+    if(saved){
+      document.body.classList.add('cinema-mode');
+      setTimeout(()=>document.getElementById('tool-cinema')?.classList.add('active'), 200);
+    }
+  }catch(_){ }
+})();
 
 function toggleAmbilight(){
   __ambOn = !__ambOn;

@@ -23,6 +23,57 @@ const http = require('http');
 const { Server } = require('socket.io');
 const openid = require('openid');
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+const DEV_SESSION_SECRET = 'dev_secret_change_me';
+const STRIPE_EVENTS = 'stripe_events';
+
+function safeOrigin(value){
+  try{
+    if(!value) return null;
+    return new URL(String(value)).origin;
+  }catch(_){ return null; }
+}
+
+function getAllowedCorsOrigins(){
+  const explicit = String(process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  if(explicit.length) return Array.from(new Set(explicit));
+
+  const derived = [
+    safeOrigin(process.env.APP_BASE_URL),
+    safeOrigin(process.env.PUBLIC_APP_URL),
+    safeOrigin(process.env.BILLING_SUCCESS_URL),
+    safeOrigin(process.env.BILLING_CANCEL_URL),
+    safeOrigin(process.env.RENDER_EXTERNAL_URL),
+    safeOrigin(process.env.API_BASE_URL),
+  ].filter(Boolean);
+
+  if(derived.length) return Array.from(new Set(derived));
+  if(IS_PROD) return [];
+  return [
+    'http://localhost:10000',
+    'http://127.0.0.1:10000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ];
+}
+
+const ALLOWED_CORS_ORIGINS = getAllowedCorsOrigins();
+
+function isOriginAllowed(origin){
+  if(!origin) return true;
+  if(ALLOWED_CORS_ORIGINS.includes(origin)) return true;
+  if(!IS_PROD) return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  return false;
+}
+
+function corsOriginHandler(origin, cb){
+  if(isOriginAllowed(origin)) return cb(null, true);
+  return cb(new Error('Origine refusée par CORS'));
+}
+
 
 
 
@@ -329,36 +380,39 @@ if (GEMINI_API_KEY) {
   }
 }
 
-// CORS: multi-domain (set CORS_ORIGINS="https://prod.com,https://staging.com")
-const CORS_ORIGINS = (process.env.CORS_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
+// CORS
 app.use(cors({
-  origin: function(origin, cb){
-    if(!origin) return cb(null, true);
-    if(!CORS_ORIGINS.length) return cb(null, true); // default: allow all (previous behavior)
-    return cb(null, CORS_ORIGINS.includes(origin));
-  },
+  origin: corsOriginHandler,
   credentials: true
 }));
-app.use(bodyParser.json({ limit: '2mb' }));
+app.use(bodyParser.json({
+  limit: '2mb',
+  verify: function(req, _res, buf){
+    if(req.originalUrl === '/api/stripe/webhook') req.rawBody = Buffer.from(buf);
+  }
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Sessions (memorystore) \u2014 supprime le warning MemoryStore
-if (!process.env.SESSION_SECRET) {
-  console.warn('\u26A0\uFE0F SESSION_SECRET manquant (OBLIGATOIRE en prod)');
+// Sessions (memorystore)
+const configuredSessionSecret = String(process.env.SESSION_SECRET || '').trim();
+if (!configuredSessionSecret) {
+  if(IS_PROD) throw new Error('SESSION_SECRET manquant en production.');
+  console.warn('⚠️ SESSION_SECRET manquant: secret de développement local utilisé.');
+}
+if (IS_PROD && configuredSessionSecret === DEV_SESSION_SECRET) {
+  throw new Error('SESSION_SECRET de développement interdit en production.');
 }
 const sessionMiddleware = session({
   name: 'streamerhub.sid',
   store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
-  secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
+  secret: configuredSessionSecret || DEV_SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    // If your UI is on a different domain (e.g. justplayer.fr) than the API (onrender.com),
-    // you NEED SameSite=None + Secure for the session cookie to be sent.
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: IS_PROD ? 'none' : 'lax',
+    secure: IS_PROD,
   }
 });
 
@@ -1676,7 +1730,19 @@ async function runGeminiPlainText(prompt){
 // Gemini Operator: Health + Chat
 // =========================================================
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', geminiConfigured: !!GEMINI_API_KEY });
+  res.json({
+    status: 'ok',
+    services: {
+      gemini: !!GEMINI_API_KEY,
+      firebase: !!firestoreOk,
+      stripe: !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
+      twitch: !!(TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET),
+      youtube: !!YOUTUBE_API_KEY,
+      steam: !!process.env.STEAM_API_KEY
+    },
+    corsOrigins: ALLOWED_CORS_ORIGINS,
+    timestamp: Date.now()
+  });
 });
 
 // Simple chat endpoint expected by the front (TwitFlix / IA).
@@ -3358,6 +3424,86 @@ app.post('/cycle_stream', async (req, res) => {
 
 
 const BOOST_DURATION_MS = 10 * 60 * 1000;
+const BOOST_STATE_COLLECTION = '_system_state';
+const BOOST_STATE_DOC_ID = 'global_boost';
+
+function boostStateRef(){
+  return db.collection(BOOST_STATE_COLLECTION).doc(BOOST_STATE_DOC_ID);
+}
+
+async function readBoostState(){
+  if(!firestoreOk) return null;
+  try{
+    const snap = await boostStateRef().get();
+    return snap.exists ? (snap.data() || {}) : null;
+  }catch(_){
+    return null;
+  }
+}
+
+async function setBoostStateActive(docId, payload = {}){
+  if(!firestoreOk) return;
+  await boostStateRef().set({
+    activeBoostId: docId || null,
+    activeChannel: payload.channel || null,
+    activeRequester: payload.requester || null,
+    activeAvatar: payload.avatar || null,
+    startTime: Number(payload.startTime || 0) || null,
+    endTime: Number(payload.endTime || 0) || null,
+    updatedAt: Date.now()
+  }, { merge:true });
+}
+
+async function clearBoostState(){
+  if(!firestoreOk) return;
+  await boostStateRef().set({
+    activeBoostId: null,
+    activeChannel: null,
+    activeRequester: null,
+    activeAvatar: null,
+    startTime: null,
+    endTime: null,
+    updatedAt: Date.now()
+  }, { merge:true });
+}
+
+async function activateNextQueuedBoost(now = Date.now()) {
+  if(!firestoreOk) return null;
+  try{
+    const queuedSnap = await db.collection('boosts')
+      .where('status', '==', 'queued')
+      .orderBy('createdAt', 'asc')
+      .limit(1)
+      .get();
+    if(queuedSnap.empty) return null;
+    const doc = queuedSnap.docs[0];
+    const data = doc.data() || {};
+    const startTime = now;
+    const endTime = now + BOOST_DURATION_MS;
+    await doc.ref.update({
+      status: 'active',
+      queued: false,
+      startTime,
+      endTime,
+      promotedAt: now,
+      updatedAt: now
+    });
+    const active = {
+      id: doc.id,
+      channel: String(data.channel || '').toLowerCase(),
+      requester: data.requester || '',
+      avatar: data.avatar || '',
+      startTime,
+      endTime
+    };
+    await setBoostStateActive(doc.id, active);
+    CACHE.boostedStream = active;
+    return active;
+  }catch(e){
+    console.error('activateNextQueuedBoost error:', e.message);
+    return null;
+  }
+}
 
 async function resolveActiveBoost(now = Date.now()) {
   if (!firestoreOk) {
@@ -3366,68 +3512,61 @@ async function resolveActiveBoost(now = Date.now()) {
     return null;
   }
 
-  let activeDoc = null;
-  try {
-    const activeSnap = await db.collection('boosts')
+  try{
+    const state = await readBoostState();
+    const stateId = String(state?.activeBoostId || '').trim();
+    const stateEnd = Number(state?.endTime || 0);
+    if(stateId){
+      const activeDoc = await db.collection('boosts').doc(stateId).get();
+      if(activeDoc.exists){
+        const data = activeDoc.data() || {};
+        const effectiveEnd = Number(data.endTime || stateEnd || 0);
+        if((data.status === 'active' || !data.status) && effectiveEnd > now){
+          CACHE.boostedStream = {
+            id: activeDoc.id,
+            channel: String(data.channel || state?.activeChannel || '').toLowerCase(),
+            endTime: effectiveEnd,
+            startTime: Number(data.startTime || state?.startTime || 0),
+            requester: data.requester || state?.activeRequester || '',
+            avatar: data.avatar || state?.activeAvatar || ''
+          };
+          return CACHE.boostedStream;
+        }
+        await activeDoc.ref.set({ status:'done', queued:false, finishedAt: now, updatedAt: now }, { merge:true });
+      }
+      await clearBoostState();
+    }
+
+    const fallbackActive = await db.collection('boosts')
       .where('status', '==', 'active')
       .orderBy('endTime', 'desc')
       .limit(1)
       .get();
-
-    if (!activeSnap.empty) {
-      const doc = activeSnap.docs[0];
+    if(!fallbackActive.empty){
+      const doc = fallbackActive.docs[0];
       const data = doc.data() || {};
-      if (Number(data.endTime || 0) > now) {
-        activeDoc = { id: doc.id, ...data };
-      } else {
-        await doc.ref.update({ status: 'done', queued: false, finishedAt: now });
+      const effectiveEnd = Number(data.endTime || 0);
+      if(effectiveEnd > now){
+        const active = {
+          id: doc.id,
+          channel: String(data.channel || '').toLowerCase(),
+          endTime: effectiveEnd,
+          startTime: Number(data.startTime || 0),
+          requester: data.requester || '',
+          avatar: data.avatar || ''
+        };
+        await setBoostStateActive(doc.id, active);
+        CACHE.boostedStream = active;
+        return active;
       }
+      await doc.ref.set({ status:'done', queued:false, finishedAt: now, updatedAt: now }, { merge:true });
+      await clearBoostState();
     }
-  } catch (e) {
-    console.error('resolveActiveBoost active lookup error:', e.message);
-  }
 
-  if (activeDoc) {
-    CACHE.boostedStream = {
-      id: activeDoc.id,
-      channel: activeDoc.channel,
-      endTime: Number(activeDoc.endTime || 0),
-      startTime: Number(activeDoc.startTime || 0),
-      requester: activeDoc.requester || ''
-    };
-    return CACHE.boostedStream;
-  }
-
-  try {
-    const queuedSnap = await db.collection('boosts')
-      .where('status', '==', 'queued')
-      .orderBy('createdAt', 'asc')
-      .limit(1)
-      .get();
-
-    if (!queuedSnap.empty) {
-      const doc = queuedSnap.docs[0];
-      const data = doc.data() || {};
-      const startTime = now;
-      const endTime = now + BOOST_DURATION_MS;
-      await doc.ref.update({
-        status: 'active',
-        queued: false,
-        startTime,
-        endTime,
-        promotedAt: now
-      });
-      CACHE.boostedStream = {
-        id: doc.id,
-        channel: data.channel,
-        endTime,
-        startTime,
-        requester: data.requester || ''
-      };
-      return CACHE.boostedStream;
-    }
-  } catch (e) {
-    console.error('resolveActiveBoost queue promotion error:', e.message);
+    const promoted = await activateNextQueuedBoost(now);
+    if(promoted) return promoted;
+  }catch (e) {
+    console.error('resolveActiveBoost error:', e.message);
   }
 
   CACHE.boostedStream = null;
@@ -3442,59 +3581,101 @@ app.post('/stream_boost', async (req, res) => {
   const requester = String(req.session?.twitchUser?.login || req.session?.twitchUser?.display_name || 'Utilisateur');
   const avatar = String(req.session?.twitchUser?.profile_image_url || '');
   try {
-    const activeBoost = await resolveActiveBoost(now);
-    if(activeBoost && Number(activeBoost.endTime || 0) > now){
-      await db.collection('boosts').add({
+    if(!firestoreOk){
+      return res.status(500).json({ success:false, error:'Firestore indisponible' });
+    }
+
+    const result = await db.runTransaction(async (tx) => {
+      const stateSnap = await tx.get(boostStateRef());
+      const state = stateSnap.exists ? (stateSnap.data() || {}) : {};
+      const activeId = String(state.activeBoostId || '').trim();
+      const activeEnd = Number(state.endTime || 0);
+      let activeChannel = String(state.activeChannel || '').trim().toLowerCase();
+
+      if(activeId && activeEnd > now){
+        const queuedRef = db.collection('boosts').doc();
+        tx.set(queuedRef, {
+          channel,
+          requester,
+          avatar,
+          queued: true,
+          status: 'queued',
+          createdAt: now,
+          requestedAt: now,
+          updatedAt: now
+        });
+        return { queued:true, activeChannel, activeEndsAt: activeEnd };
+      }
+
+      if(activeId){
+        const oldActiveRef = db.collection('boosts').doc(activeId);
+        tx.set(oldActiveRef, { status:'done', queued:false, finishedAt: now, updatedAt: now }, { merge:true });
+      }
+
+      const activeRef = db.collection('boosts').doc();
+      const endTime = now + BOOST_DURATION_MS;
+      tx.set(activeRef, {
         channel,
         requester,
         avatar,
-        queued: true,
-        status: 'queued',
+        queued: false,
+        status: 'active',
+        startTime: now,
+        endTime,
         createdAt: now,
-        requestedAt: now
+        updatedAt: now
       });
+      tx.set(boostStateRef(), {
+        activeBoostId: activeRef.id,
+        activeChannel: channel,
+        activeRequester: requester,
+        activeAvatar: avatar,
+        startTime: now,
+        endTime,
+        updatedAt: now
+      }, { merge:true });
+      return { queued:false, id: activeRef.id, channel, startTime: now, endTime };
+    });
+
+    if(result.queued){
       return res.json({
         success: true,
         queued:true,
-        activeChannel: activeBoost.channel || '',
-        activeEndsAt: Number(activeBoost.endTime || 0),
+        activeChannel: result.activeChannel || '',
+        activeEndsAt: Number(result.activeEndsAt || 0),
         durationMs: BOOST_DURATION_MS,
         html_response: "<p style='color:#00f2ea;'>⏳ Boost déjà actif. Demande ajoutée à la file d’attente.</p>"
       });
     }
 
-    const endTime = now + BOOST_DURATION_MS;
-    const ref = await db.collection('boosts').add({
-      channel,
+    CACHE.boostedStream = {
+      id: result.id,
+      channel: result.channel,
+      endTime: result.endTime,
+      startTime: result.startTime,
       requester,
-      avatar,
-      queued: false,
-      status: 'active',
-      startTime: now,
-      endTime,
-      createdAt: now
-    });
+      avatar
+    };
 
-    CACHE.boostedStream = { id: ref.id, channel, endTime, startTime: now, requester };
-
-    res.json({
+    return res.json({
       success: true,
       queued:false,
-      channel,
-      startTime: now,
-      endTime,
+      channel: result.channel,
+      startTime: result.startTime,
+      endTime: result.endTime,
       durationMs: BOOST_DURATION_MS,
       html_response: "<p style='color:green;'>✅ Boost activé pendant 10 minutes.</p>"
     });
   } catch (e) {
     console.error('stream_boost error:', e.message);
-    res.status(500).json({ success:false, error: "Erreur DB" });
+    return res.status(500).json({ success:false, error: "Erreur DB" });
   }
 });
 
 app.get('/boost_queue', async (req, res) => {
   try{
     if(!firestoreOk){ return res.json({ success:true, items: [] }); }
+    await resolveActiveBoost(Date.now());
     const snap = await db.collection('boosts').where('status','==','queued').orderBy('createdAt','asc').limit(10).get();
     const items = snap.docs.map(d=>{
       const x = d.data() || {};
@@ -4160,7 +4341,7 @@ server.headersTimeout = 125000;   // must be > keepAliveTimeout
 
 const io = new Server(server, {
   cors: {
-    origin: true,
+    origin: (origin, cb) => corsOriginHandler(origin, cb),
     credentials: true,
     methods: ['GET', 'POST']
   },
@@ -5182,6 +5363,110 @@ app.get('/api/market/access', async (req,res)=>{
   }
 });
 
+async function setBillingStripeState(twitchUser, stripeState){
+  if(!firestoreOk || !twitchUser) return;
+  const { ref } = await getBillingRefAndDoc(twitchUser);
+  const clean = Object.assign({}, stripeState || {});
+  Object.keys(clean).forEach((k)=>{ if(clean[k] === undefined) delete clean[k]; });
+  await ref.set({
+    stripe: Object.assign({}, clean, { updatedAt: admin.firestore.FieldValue.serverTimestamp() }),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge:true });
+}
+
+async function findBillingIdentityByStripeRefs({ customerId, subscriptionId, metadata }){
+  if(metadata && (metadata.twitch_user_id || metadata.twitch_login)){
+    return {
+      id: String(metadata.twitch_user_id || '').trim(),
+      login: String(metadata.twitch_login || '').trim().toLowerCase(),
+      display_name: String(metadata.twitch_login || metadata.twitch_user_id || '').trim() || null
+    };
+  }
+  if(!firestoreOk) return null;
+  const queries = [];
+  if(subscriptionId) queries.push(['stripe.subscriptionId', String(subscriptionId)]);
+  if(customerId) queries.push(['stripe.customerId', String(customerId)]);
+  for(const [field, value] of queries){
+    try{
+      const snap = await db.collection(BILLING_USERS).where(field, '==', value).limit(1).get();
+      if(!snap.empty){
+        const data = snap.docs[0].data() || {};
+        return {
+          id: String(data.userId || '').trim(),
+          login: String(data.login || '').trim().toLowerCase(),
+          display_name: String(data.display_name || data.login || data.userId || '').trim() || null
+        };
+      }
+    }catch(_){ }
+  }
+  return null;
+}
+
+async function markStripeEventProcessed(event){
+  if(!firestoreOk) return true;
+  const ref = db.collection(STRIPE_EVENTS).doc(String(event.id));
+  const snap = await ref.get();
+  if(snap.exists) return false;
+  await ref.set({
+    id: String(event.id),
+    type: String(event.type || ''),
+    created: Number(event.created || Date.now()),
+    processedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge:false });
+  return true;
+}
+
+async function applyStripeSessionPurchase(sessionObj){
+  const md = sessionObj?.metadata || {};
+  const twitchUser = {
+    id: String(md.twitch_user_id || sessionObj?.client_reference_id || '').trim(),
+    login: String(md.twitch_login || '').trim().toLowerCase(),
+    display_name: String(md.twitch_login || md.twitch_user_id || sessionObj?.client_reference_id || '').trim() || null
+  };
+  if(!twitchUser.id && !twitchUser.login) throw new Error('Identité Twitch absente dans la session Stripe');
+
+  const sku = String(md.sku || '').trim();
+  const credits = Number(md.credits || 0);
+  const plan = String(md.plan || '').trim().toLowerCase();
+
+  if(sessionObj.mode === 'payment' && credits > 0){
+    await updateBillingCredits(twitchUser, credits);
+  }
+  if(sessionObj.mode === 'subscription' && (plan === 'premium' || sku === 'premium_monthly')){
+    await setBillingPlan(twitchUser, 'premium');
+  }
+
+  await setBillingStripeState(twitchUser, {
+    customerId: sessionObj.customer || undefined,
+    subscriptionId: sessionObj.subscription || undefined,
+    lastCheckoutSessionId: sessionObj.id || undefined,
+    lastPaymentIntentId: sessionObj.payment_intent || undefined,
+    lastSku: sku || undefined,
+    lastMode: sessionObj.mode || undefined,
+    lastPaidAt: Date.now()
+  });
+}
+
+async function applyStripeSubscriptionStateFromObject(subscriptionObj){
+  const twitchUser = await findBillingIdentityByStripeRefs({
+    customerId: subscriptionObj?.customer,
+    subscriptionId: subscriptionObj?.id,
+    metadata: subscriptionObj?.metadata || {}
+  });
+  if(!twitchUser) return;
+
+  const status = String(subscriptionObj?.status || '').toLowerCase();
+  const active = ['active','trialing','past_due'].includes(status);
+  await setBillingPlan(twitchUser, active ? 'premium' : 'free');
+  await setBillingStripeState(twitchUser, {
+    customerId: subscriptionObj?.customer || undefined,
+    subscriptionId: subscriptionObj?.id || undefined,
+    subscriptionStatus: status || undefined,
+    cancelAtPeriodEnd: Boolean(subscriptionObj?.cancel_at_period_end),
+    currentPeriodEnd: subscriptionObj?.current_period_end ? Number(subscriptionObj.current_period_end) * 1000 : undefined
+  });
+}
+
 // Stripe (optional). If not configured, returns a clear error.
 let stripe = null;
 try{
@@ -5213,19 +5498,23 @@ app.post('/api/billing/create-checkout-session', async (req,res)=>{
       return res.status(400).json({ success:false, error:'SKU invalide ou Price ID manquant c\u00F4t\u00E9 serveur.' });
     }
 
+    const metadata = {
+      sku,
+      twitch_user_id: String(tu.id || ''),
+      twitch_login: String(tu.login || ''),
+      credits: item.credits ? String(item.credits) : '',
+      plan: item.plan || ''
+    };
+
     const session = await stripe.checkout.sessions.create({
       mode: item.mode,
       line_items: [{ price: item.price, quantity: 1 }],
       success_url: success_url + '?success=1',
       cancel_url: cancel_url + '?canceled=1',
       client_reference_id: String(tu.id || tu.login || ''),
-      metadata: {
-        sku,
-        twitch_user_id: String(tu.id || ''),
-        twitch_login: String(tu.login || ''),
-        credits: item.credits ? String(item.credits) : '',
-        plan: item.plan || ''
-      }
+      metadata,
+      customer_creation: item.mode === 'payment' ? 'always' : undefined,
+      subscription_data: item.mode === 'subscription' ? { metadata } : undefined
     });
 
     res.json({ success:true, url: session.url });
