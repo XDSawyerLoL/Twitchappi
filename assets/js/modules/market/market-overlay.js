@@ -31,9 +31,10 @@
   let selected = null;
   let autoOn = true;
   let autoTimer = null;
+  let marketOverviewChart = null;
+  let marketProChart = null;
+  let activeRange = '15m';
   let cache = new Map(); // login -> last market response
-  let marketChart = null;
-  let chartRange = '15m';
 
 
   // --- Billing (credits/plan) ---
@@ -297,106 +298,196 @@
     $('#mkt-sell').disabled = !login;
   }
 
+  function rangeMs(range){
+    const map = { '15m': 15*60*1000, '1h': 60*60*1000, '6h': 6*60*60*1000, '24h': 24*60*60*1000, '7d': 7*24*60*60*1000 };
+    return map[range] || null;
+  }
+
   function filterHistoryByRange(hist){
-    if(!Array.isArray(hist) || hist.length < 2) return hist || [];
-    if(chartRange === 'all') return hist;
-    const lastTs = Number(hist[hist.length-1]?.ts || 0);
-    const map = { '15m': 900000, '1h': 3600000, '6h': 21600000, '24h': 86400000, '7j': 604800000 };
-    const delta = map[chartRange] || map['15m'];
-    const cutoff = lastTs - delta;
-    const filtered = hist.filter(p => Number(p.ts||0) >= cutoff);
-    return filtered.length >= 2 ? filtered : hist.slice(-Math.min(hist.length, 40));
+    if(!hist || !hist.length) return [];
+    const ms = rangeMs(activeRange);
+    if(!ms) return hist.slice();
+    const end = Number(hist[hist.length-1].ts || Date.now());
+    const start = end - ms;
+    const filtered = hist.filter(p => Number(p.ts||0) >= start);
+    return filtered.length >= 2 ? filtered : hist.slice(-Math.min(hist.length, 60));
   }
 
-  function chartLabelForRange(){
-    return ({'15m':'15 minutes','1h':'1 heure','6h':'6 heures','24h':'24 heures','7j':'7 jours','all':'Historique complet'})[chartRange] || chartRange;
+  function downsampleHistory(hist, maxPoints=180){
+    if(!hist || hist.length <= maxPoints) return hist || [];
+    const step = Math.ceil(hist.length / maxPoints);
+    const out = [];
+    for(let i=0;i<hist.length;i+=step) out.push(hist[i]);
+    if(out[out.length-1] !== hist[hist.length-1]) out.push(hist[hist.length-1]);
+    return out;
   }
 
-  function renderChart(hist, ind){
-    const canvas = $('#mkt-chart-canvas');
-    const meta = $('#mkt-chart-meta');
-    if(!canvas || typeof Chart === 'undefined') return;
-    const source = filterHistoryByRange(hist || []);
-    if(!source || source.length < 2){
-      if(marketChart){ marketChart.destroy(); marketChart = null; }
-      meta.textContent = 'Pas assez de points historiques.';
-      return;
-    }
-
-    const prices = source.map(x=>Number(x.price||0));
-    const labels = source.map(x=>{
-      try{ return new Date(Number(x.ts||0)).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }
-      catch(_){ return ''; }
+  function makeLabels(hist){
+    const ms = rangeMs(activeRange);
+    return hist.map((p)=>{
+      const d = new Date(Number(p.ts||0));
+      if(ms && ms <= 60*60*1000) return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      if(ms && ms <= 24*60*60*1000) return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+      return d.toLocaleString([], { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
     });
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    const first = prices[0];
-    const last = prices[prices.length-1];
-    const perf = first ? ((last-first)/first)*100 : 0;
-    const amplitude = min ? ((max-min)/min)*100 : 0;
-    const trend = perf > 1 ? 'Haussière' : perf < -1 ? 'Baissière' : 'Stable';
-    const showSMA = $('#mkt-toggle-sma')?.checked;
-    const showEMA = $('#mkt-toggle-ema')?.checked;
+  }
 
-    function rollingSMA(values, n){
-      return values.map((_,i)=> i+1 < n ? null : values.slice(i-n+1, i+1).reduce((a,b)=>a+b,0)/n);
+  function rollingSmaSeries(values, period){
+    const out = new Array(values.length).fill(null);
+    let sum = 0;
+    for(let i=0;i<values.length;i++){
+      sum += Number(values[i]||0);
+      if(i >= period) sum -= Number(values[i-period]||0);
+      if(i >= period-1) out[i] = +(sum / period).toFixed(6);
     }
-    function rollingEMA(values, n){
-      const k = 2/(n+1); let cur = values[0];
-      return values.map((v,i)=>{ if(i===0){ cur=v; return v; } cur = v*k + cur*(1-k); return cur; });
-    }
+    return out;
+  }
 
-    const datasets = [{
-      label:'Prix',
-      data: prices,
-      borderColor: perf >= 0 ? '#00f2ea' : '#ff4d6d',
-      backgroundColor: perf >= 0 ? 'rgba(0,242,234,0.14)' : 'rgba(255,77,109,0.12)',
-      fill:true,
-      tension:0.22,
-      pointRadius:0,
-      borderWidth:2.4
-    }];
-    if(showSMA){
-      datasets.push({ label:'SMA 20', data: rollingSMA(prices, Math.min(20, Math.max(3, Math.floor(prices.length/5)||3))), borderColor:'#7dd3fc', pointRadius:0, borderWidth:1.4, tension:0.18, fill:false });
+  function rollingEmaSeries(values, period){
+    if(!values || !values.length) return [];
+    const out = new Array(values.length).fill(null);
+    const k = 2/(period+1);
+    let prev = Number(values[0]||0);
+    out[0] = +prev.toFixed(6);
+    for(let i=1;i<values.length;i++){
+      const cur = Number(values[i]||0);
+      prev = cur*k + prev*(1-k);
+      out[i] = +prev.toFixed(6);
     }
-    if(showEMA){
-      datasets.push({ label:'EMA 20', data: rollingEMA(prices, Math.min(20, Math.max(3, Math.floor(prices.length/5)||3))), borderColor:'#fbbf24', pointRadius:0, borderWidth:1.4, tension:0.18, fill:false });
-    }
+    return out;
+  }
 
-    if(marketChart){ marketChart.destroy(); marketChart = null; }
-    marketChart = new Chart(canvas.getContext('2d'), {
-      type:'line',
-      data:{ labels, datasets },
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        interaction:{ intersect:false, mode:'index' },
-        animation:false,
-        plugins:{
-          legend:{ labels:{ color:'rgba(255,255,255,0.72)', boxWidth:10 } },
-          tooltip:{
-            backgroundColor:'rgba(11,11,13,0.96)',
-            borderColor:'rgba(255,255,255,0.12)',
-            borderWidth:1,
-            titleColor:'#fff', bodyColor:'#d1d5db',
-            callbacks:{ label:(ctx)=> `${ctx.dataset.label}: ${format(ctx.parsed.y)}` }
+  function destroyMarketCharts(){
+    try{ marketOverviewChart && marketOverviewChart.destroy(); }catch(_){}
+    try{ marketProChart && marketProChart.destroy(); }catch(_){}
+    marketOverviewChart = null;
+    marketProChart = null;
+  }
+
+  function updateRangeButtons(){
+    $$('.mkt-range-btn').forEach(btn=>{
+      const on = btn.dataset.range === activeRange;
+      btn.classList.toggle('active', on);
+    });
+  }
+
+  function createMarketChart(canvas, labels, prices, sma20Series, ema20Series){
+    if(!canvas || typeof Chart === 'undefined') return null;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 320);
+    const up = prices[prices.length-1] >= prices[0];
+    gradient.addColorStop(0, up ? 'rgba(0,229,255,0.35)' : 'rgba(255,77,109,0.32)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Prix',
+            data: prices,
+            borderColor: up ? '#00e5ff' : '#ff4d6d',
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.24,
+            borderWidth: 2.4,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            pointHitRadius: 18
+          },
+          {
+            label: 'SMA20',
+            data: sma20Series,
+            borderColor: '#7dd3fc',
+            borderWidth: $('#mkt-toggle-sma')?.checked ? 1.8 : 0,
+            pointRadius: 0,
+            tension: 0.16,
+            fill: false
+          },
+          {
+            label: 'EMA20',
+            data: ema20Series,
+            borderColor: '#fbbf24',
+            borderWidth: $('#mkt-toggle-ema')?.checked ? 1.8 : 0,
+            pointRadius: 0,
+            tension: 0.16,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#090c10',
+            borderColor: 'rgba(255,255,255,0.14)',
+            borderWidth: 1,
+            titleColor: '#ffffff',
+            bodyColor: '#d1d5db',
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${format(ctx.parsed.y)}`
+            }
           }
         },
-        scales:{
-          x:{ ticks:{ color:'rgba(255,255,255,0.45)', maxTicksLimit:8 }, grid:{ color:'rgba(255,255,255,0.06)' } },
-          y:{ ticks:{ color:'rgba(255,255,255,0.55)', callback:(value)=>format(value) }, grid:{ color:'rgba(255,255,255,0.08)' } }
+        scales: {
+          x: {
+            ticks: { color:'rgba(255,255,255,0.56)', maxTicksLimit: 7, autoSkip: true },
+            grid: { color:'rgba(255,255,255,0.05)' }
+          },
+          y: {
+            ticks: {
+              color:'rgba(255,255,255,0.62)',
+              callback: (value)=> format(Number(value||0))
+            },
+            grid: { color:'rgba(255,255,255,0.06)' }
+          }
         }
       }
     });
+  }
 
-    $('#mkt-chart-var').textContent = pct(perf);
-    $('#mkt-chart-var').className = 'font-bold text-base ' + colorClass(perf);
-    $('#mkt-chart-trend').textContent = trend;
-    $('#mkt-chart-trend').className = 'font-bold text-base ' + colorClass(perf);
-    $('#mkt-chart-amp').textContent = pct(amplitude);
-    $('#mkt-chart-amp').className = 'font-bold text-base text-white';
-    $('#mkt-chart-points').textContent = String(source.length);
-    meta.textContent = `Fenêtre: ${chartLabelForRange()} · Min: ${format(min)} · Max: ${format(max)} · Dernier: ${format(last)}`;
+  function renderChart(hist, ind){
+    const meta = $('#mkt-chart-meta');
+    const overviewMeta = $('#mkt-overview-meta');
+    if(!hist || hist.length < 2){
+      if(meta) meta.textContent = 'Pas assez de points historiques.';
+      if(overviewMeta) overviewMeta.textContent = 'Pas assez de points pour afficher une tendance lisible.';
+      destroyMarketCharts();
+      return;
+    }
+
+    let filtered = filterHistoryByRange(hist);
+    filtered = downsampleHistory(filtered, activeRange === '15m' ? 90 : 180);
+    const prices = filtered.map(x=>Number(x.price||0));
+    const labels = makeLabels(filtered);
+    const low = Math.min(...prices);
+    const high = Math.max(...prices);
+    const deltaPct = prices[0] ? ((prices[prices.length-1] - prices[0]) / prices[0]) * 100 : null;
+    const trendText = deltaPct === null ? '—' : (deltaPct > 1.2 ? 'Hausse nette' : deltaPct < -1.2 ? 'Baisse nette' : 'Zone stable');
+    const period = Math.min(20, Math.max(3, Math.floor(prices.length / 4)));
+    const sma20Series = rollingSmaSeries(prices, period);
+    const ema20Series = rollingEmaSeries(prices, period);
+
+    destroyMarketCharts();
+    marketOverviewChart = createMarketChart($('#mkt-overview-chart'), labels, prices, sma20Series, ema20Series);
+    marketProChart = createMarketChart($('#mkt-chart-canvas'), labels, prices, sma20Series, ema20Series);
+
+    if($('#mkt-window-trend')) $('#mkt-window-trend').textContent = trendText;
+    if($('#mkt-window-change')){
+      $('#mkt-window-change').textContent = deltaPct === null ? '—' : pct(deltaPct);
+      $('#mkt-window-change').className = deltaPct === null ? '' : colorClass(deltaPct);
+    }
+    if($('#mkt-window-range')) $('#mkt-window-range').textContent = `${format(low)} → ${format(high)}`;
+    if($('#mkt-window-points')) $('#mkt-window-points').textContent = String(filtered.length);
+
+    const rangeLabelMap = { '15m':'15 minutes', '1h':'1 heure', '6h':'6 heures', '24h':'24 heures', '7d':'7 jours', 'all':'historique complet' };
+    const metaText = `Fenêtre: ${rangeLabelMap[activeRange] || activeRange} · Points: ${filtered.length} · Min: ${format(low)} · Max: ${format(high)} · Dernier: ${format(prices[prices.length-1])}`;
+    if(meta) meta.textContent = metaText;
+    if(overviewMeta) overviewMeta.textContent = `Lecture ${trendText.toLowerCase()} · variation ${deltaPct===null?'—':pct(deltaPct)} · actualisé automatiquement.`;
   }
 
   async function trade(side){
@@ -677,8 +768,8 @@
     $('#mkt-toggle-ema').addEventListener('change', ()=>refreshSelected());
     $$('.mkt-range-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        chartRange = btn.dataset.range || '15m';
-        $$('.mkt-range-btn').forEach(b=>b.classList.toggle('active', b===btn));
+        activeRange = btn.dataset.range || '15m';
+        updateRangeButtons();
         refreshSelected();
       });
     });
@@ -805,6 +896,7 @@ console.warn('Market overlay fallback unavailable.');
     if(!selected) selected = watchlist[0];
 
     setSelected(selected);
+    updateRangeButtons();
 
     // allow market open without errors
     lockSidePanelToPlayer();

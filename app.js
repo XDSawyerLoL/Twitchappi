@@ -4460,10 +4460,38 @@ function requireTwitchSession(req, res) {
 const BILLING_USERS = 'billing_users';
 const ENTITLEMENT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 function resolveBillingDocId(twitchUser){
-  const primaryId = String(twitchUser?.id || '');
-  const altId = String((twitchUser?.login || '').toLowerCase());
-  const fallbackId = String(twitchUser?.display_name || 'unknown');
+  const primaryId = String(twitchUser?.id || '').trim();
+  const altId = String((twitchUser?.login || '')).trim().toLowerCase();
+  const fallbackId = String(twitchUser?.display_name || '').trim().toLowerCase();
   return primaryId || altId || fallbackId || 'unknown';
+}
+function getBillingAltDocIds(twitchUser){
+  const ids = [
+    String(twitchUser?.id || '').trim(),
+    String(twitchUser?.login || '').trim().toLowerCase(),
+    String(twitchUser?.display_name || '').trim().toLowerCase()
+  ].filter(Boolean);
+  return Array.from(new Set(ids));
+}
+function getAdminEntitlements(){
+  return { market:true, overview:true, analytics:true, niche:true, bestTime:true, costream_match:true };
+}
+function getAdminCreditsFloor(){
+  return Number(process.env.ADMIN_CREDITS_FLOOR || 999999);
+}
+function effectivePlanForUser(twitchUser, plan){
+  return isAdminTwitchUser(twitchUser) ? 'admin' : String(plan || 'free').toLowerCase();
+}
+function isUnlimitedPlan(plan){
+  const p = String(plan || '').toLowerCase();
+  return p === 'admin' || p === 'premium' || p === 'pro';
+}
+function mergeEntitlementsForUser(twitchUser, entitlements){
+  return Object.assign(
+    { market:false, overview:false, analytics:false, niche:false, bestTime:false },
+    entitlements || {},
+    isAdminTwitchUser(twitchUser) ? getAdminEntitlements() : {}
+  );
 }
 function computeEffectiveEntitlements(entitlements, entitlementsUntil){
   const now = Date.now();
@@ -4511,82 +4539,98 @@ function computeEffectiveEntitlements(entitlements, entitlementsUntil){
 const ACTION_COST_CREDITS = Number(process.env.ACTION_COST_CREDITS || 20);
 
 async function getBillingDoc(twitchUser){
-  if(!firestoreOk) return { credits: 0, plan: 'free', noFirestore: true };
-  // IMPORTANT (multi-user stability + migration):
-  // Some older deployments used login as the document id; newer ones may use numeric Twitch id.
-  // We resolve both and merge to avoid "paid but not unlocked" situations.
-  const primaryId = String(twitchUser.id || '');
-  const altId = String((twitchUser.login || '').toLowerCase());
-  const fallbackId = String(twitchUser.display_name || 'unknown');
+  if(!firestoreOk) return { credits: 0, plan: 'free', noFirestore: true, entitlements: { market:false, overview:false, analytics:false, niche:false, bestTime:false } };
 
-  const id = primaryId || altId || fallbackId || 'unknown';
-  const ref = db.collection(BILLING_USERS).doc(id);
+  const docIds = getBillingAltDocIds(twitchUser);
+  const primaryId = resolveBillingDocId(twitchUser);
+  const ref = db.collection(BILLING_USERS).doc(primaryId);
 
-  // Try read primary
-  let snap = await ref.get();
-
-  // If we have both primary + alt and they differ, try merge
-  if(primaryId && altId && primaryId !== altId){
+  const snapshots = [];
+  for(const docId of docIds){
     try{
-      const altRef = db.collection(BILLING_USERS).doc(altId);
-      const altSnap = await altRef.get();
-      if(altSnap.exists){
-        const a = altSnap.data() || {};
-        const p = snap.exists ? (snap.data() || {}) : null;
-
-        const aCredits = Number(a.credits||0);
-        const pCredits = Number((p && p.credits) || 0);
-        const aEnt = a.entitlements || {};
-        const pEnt = (p && p.entitlements) || {};
-        const aHasUnlock = !!(aEnt.market || aEnt.overview || aEnt.analytics || aEnt.niche || aEnt.bestTime);
-        const pHasUnlock = !!(pEnt.market || pEnt.overview || pEnt.analytics || pEnt.niche || pEnt.bestTime);
-
-        // Merge rule: if primary missing OR primary has no value but alt has credits/unlocks, copy alt -> primary.
-        const shouldMerge = (!snap.exists) || ((pCredits <= 0) && (aCredits > 0)) || (!pHasUnlock && aHasUnlock);
-        if(shouldMerge){
-          const merged = {
-            userId: id,
-            login: twitchUser.login || a.login || null,
-            display_name: twitchUser.display_name || a.display_name || null,
-            plan: (p && p.plan) || a.plan || 'free',
-            credits: Math.max(pCredits, aCredits),
-            entitlements: { market:false, overview:false, analytics:false, niche:false, bestTime:false, ...aEnt, ...pEnt },
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          };
-          // Preserve createdAt if any
-          if(!(p && p.createdAt) && a.createdAt) merged.createdAt = a.createdAt;
-          if(!(p && p.createdAt) && !a.createdAt) merged.createdAt = admin.firestore.FieldValue.serverTimestamp();
-          await ref.set(merged, { merge:true });
-          // Re-read primary after merge
-          snap = await ref.get();
-        }
-      }
-    }catch(_){ /* ignore migration errors */ }
+      const snap = await db.collection(BILLING_USERS).doc(docId).get();
+      if(snap.exists) snapshots.push({ id: docId, data: snap.data() || {} });
+    }catch(_){ }
   }
 
-  if(!snap.exists){
+  if(!snapshots.length){
     const init = {
-      userId: id,
-      login: twitchUser.login || null,
-      display_name: twitchUser.display_name || null,
-      plan: 'free',
-      credits: 0,
-      entitlements: { market:false, overview:false, analytics:false, niche:false, bestTime:false },
+      userId: primaryId,
+      login: twitchUser?.login || null,
+      display_name: twitchUser?.display_name || null,
+      plan: isAdminTwitchUser(twitchUser) ? 'admin' : 'free',
+      credits: isAdminTwitchUser(twitchUser) ? getAdminCreditsFloor() : 0,
+      entitlements: mergeEntitlementsForUser(twitchUser, {}),
+      entitlementsUntil: {},
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
     await ref.set(init, { merge: true });
     return init;
   }
-  return snap.data();
+
+  const merged = {
+    userId: primaryId,
+    login: twitchUser?.login || snapshots.map(s=>s.data.login).find(Boolean) || null,
+    display_name: twitchUser?.display_name || snapshots.map(s=>s.data.display_name).find(Boolean) || null,
+    plan: 'free',
+    credits: 0,
+    entitlements: { market:false, overview:false, analytics:false, niche:false, bestTime:false },
+    entitlementsUntil: {}
+  };
+
+  const planPriority = { free:0, premium:1, pro:2, admin:3 };
+  for(const snap of snapshots){
+    const cur = snap.data || {};
+    const curPlan = effectivePlanForUser(twitchUser, cur.plan);
+    if((planPriority[curPlan] || 0) >= (planPriority[merged.plan] || 0)) merged.plan = curPlan;
+    merged.credits = Math.max(merged.credits, Number(cur.credits || 0));
+    merged.entitlements = Object.assign({}, merged.entitlements, cur.entitlements || {});
+    merged.entitlementsUntil = Object.assign({}, merged.entitlementsUntil, cur.entitlementsUntil || {});
+    if(!merged.createdAt && cur.createdAt) merged.createdAt = cur.createdAt;
+  }
+
+  merged.plan = effectivePlanForUser(twitchUser, merged.plan);
+  merged.entitlements = mergeEntitlementsForUser(twitchUser, merged.entitlements);
+  if(isAdminTwitchUser(twitchUser)) merged.credits = Math.max(merged.credits, getAdminCreditsFloor());
+  merged.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+  if(!merged.createdAt) merged.createdAt = admin.firestore.FieldValue.serverTimestamp();
+
+  await ref.set(merged, { merge: true });
+
+  for(const docId of docIds){
+    if(docId && docId !== primaryId){
+      try{
+        await db.collection(BILLING_USERS).doc(docId).set({
+          migratedTo: primaryId,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }catch(_){ }
+    }
+  }
+
+  return merged;
+}
+
+async function getBillingRefAndDoc(twitchUser){
+  const data = await getBillingDoc(twitchUser);
+  return { ref: db.collection(BILLING_USERS).doc(resolveBillingDocId(twitchUser)), data };
 }
 
 async function updateBillingCredits(twitchUser, delta){
   if(!firestoreOk) return;
-  const id = resolveBillingDocId(twitchUser);
-  const ref = db.collection(BILLING_USERS).doc(id);
+  const { ref, data } = await getBillingRefAndDoc(twitchUser);
+  if(isAdminTwitchUser(twitchUser)){
+    await ref.set({
+      plan: 'admin',
+      credits: Math.max(Number(data?.credits || 0), getAdminCreditsFloor()),
+      entitlements: mergeEntitlementsForUser(twitchUser, data?.entitlements || {}),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return;
+  }
   await ref.set({
-    credits: admin.firestore.FieldValue.increment(Number(delta||0)),
+    credits: Math.max(0, Number(data?.credits || 0) + Number(delta || 0)),
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 }
@@ -4594,20 +4638,19 @@ async function updateBillingCredits(twitchUser, delta){
 
 async function setBillingCreditsAbsolute(twitchUser, credits){
   if(!firestoreOk) return;
-  const id = resolveBillingDocId(twitchUser);
-  const ref = db.collection(BILLING_USERS).doc(id);
+  const { ref } = await getBillingRefAndDoc(twitchUser);
+  const nextCredits = isAdminTwitchUser(twitchUser) ? Math.max(Number(credits || 0), getAdminCreditsFloor()) : Math.max(0, Number(credits || 0));
   await ref.set({
-    credits: Number(credits||0),
+    credits: nextCredits,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 }
 
 async function setBillingPlan(twitchUser, plan){
   if(!firestoreOk) return;
-  const id = resolveBillingDocId(twitchUser);
-  const ref = db.collection(BILLING_USERS).doc(id);
+  const { ref } = await getBillingRefAndDoc(twitchUser);
   await ref.set({
-    plan: String(plan||'free'),
+    plan: effectivePlanForUser(twitchUser, plan),
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 }
@@ -4616,8 +4659,7 @@ async function setBillingPlan(twitchUser, plan){
 async function setBillingSteam(twitchUser, steam){
   if(!firestoreOk) return;
   if(!twitchUser) return;
-  const id = resolveBillingDocId(twitchUser);
-  const ref = db.collection(BILLING_USERS).doc(id);
+  const { ref } = await getBillingRefAndDoc(twitchUser);
   if(!steam){
     await ref.set({ steam: admin.firestore.FieldValue.delete(), updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
     return;
@@ -4863,7 +4905,9 @@ app.get('/api/billing/me', async (req,res)=>{
 
     const steam = b.steam && b.steam.steamid ? { connected:true, steamid:b.steam.steamid, profile:b.steam.profile || null } : { connected:false };
     const isAdmin = isAdminTwitchUser(tu);
-    const adminEntitlements = isAdmin ? { market:true, overview:true, analytics:true, niche:true, bestTime:true, costream_match:true } : {};
+    const finalPlan = effectivePlanForUser(tu, b.plan || 'free');
+    const finalEntitlements = mergeEntitlementsForUser(tu, eff.entitlements);
+    const finalCredits = isAdmin ? Math.max(Number(b.credits||0), getAdminCreditsFloor()) : Number(b.credits||0);
     res.json({
       success:true,
       connected:true,
@@ -4872,9 +4916,9 @@ app.get('/api/billing/me', async (req,res)=>{
       role:isAdmin ? 'admin' : 'user',
       login: tu.login || '',
       twitch_user_id: tu.id || '',
-      plan: isAdmin ? 'admin' : (b.plan || 'free'),
-      credits: isAdmin ? Math.max(Number(b.credits||0), 999999) : Number(b.credits||0),
-      entitlements: Object.assign({}, eff.entitlements, adminEntitlements),
+      plan: finalPlan,
+      credits: finalCredits,
+      entitlements: finalEntitlements,
       entitlementsUntil: eff.entitlementsUntil,
       steam
     });
@@ -4896,20 +4940,19 @@ app.post('/api/billing/unlock-feature', async (req,res)=>{
     const allowed = ['overview','analytics','niche','bestTime'];
     if(!allowed.includes(feature)) return res.status(400).json({ success:false, error:'invalid_feature' });
 
-    const id = resolveBillingDocId(tu);
-    const ref = db.collection(BILLING_USERS).doc(id);
+    const { ref, data: seedData } = await getBillingRefAndDoc(tu);
 
     await db.runTransaction(async (tx)=>{
       const snap = await tx.get(ref);
-      const cur = snap.exists ? snap.data() : {};
-      const plan = String(cur.plan || 'free').toLowerCase();
-      const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+      const cur = snap.exists ? snap.data() : (seedData || {});
+      const plan = effectivePlanForUser(tu, cur.plan || 'free');
+      const ent = mergeEntitlementsForUser(tu, cur.entitlements || {});
       const until = Object.assign({}, cur.entitlementsUntil || {});
       const credits = Number(cur.credits || 0);
       const now = Date.now();
 
-      // Premium: just mark as unlocked
-      if(isAdminTwitchUser(tu) || plan === 'premium' || plan === 'pro'){
+      // Premium/Pro/Admin: just mark as unlocked
+      if(isUnlimitedPlan(plan)){
         ent[feature] = true;
         until[feature] = now + ENTITLEMENT_TTL_MS;
         tx.set(ref, { entitlements: ent, entitlementsUntil: until, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
@@ -4949,20 +4992,19 @@ app.post('/api/billing/unlock-market', async (req,res)=>{
 
     const cost = Number((req.body && req.body.cost) || 200);
 
-    const id = resolveBillingDocId(tu);
-    const ref = db.collection(BILLING_USERS).doc(id);
+    const { ref, data: seedData } = await getBillingRefAndDoc(tu);
 
     await db.runTransaction(async (tx)=>{
       const snap = await tx.get(ref);
-      const cur = snap.exists ? snap.data() : {};
-      const plan = String(cur.plan || 'free').toLowerCase();
-      const ent = Object.assign({ market:false, overview:false, analytics:false, niche:false, bestTime:false }, cur.entitlements || {});
+      const cur = snap.exists ? snap.data() : (seedData || {});
+      const plan = effectivePlanForUser(tu, cur.plan || 'free');
+      const ent = mergeEntitlementsForUser(tu, cur.entitlements || {});
       const until = Object.assign({}, cur.entitlementsUntil || {});
       const credits = Number(cur.credits || 0);
       const now = Date.now();
 
-      // Premium/Pro: just mark as unlocked
-      if(isAdminTwitchUser(tu) || plan === 'premium' || plan === 'pro'){
+      // Premium/Pro/Admin: just mark as unlocked
+      if(isUnlimitedPlan(plan)){
         ent.market = true;
         until.market = now + ENTITLEMENT_TTL_MS;
         tx.set(ref, { entitlements: ent, entitlementsUntil: until, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
@@ -5019,10 +5061,10 @@ app.get('/api/market/access', async (req,res)=>{
       }catch(_){ }
     }
 
-    const plan = String(b.plan || 'free').toLowerCase();
-    const credits = Number(b.credits || 0);
+    const plan = effectivePlanForUser(tu, b.plan || 'free');
+    const credits = isAdminTwitchUser(tu) ? Math.max(Number(b.credits || 0), getAdminCreditsFloor()) : Number(b.credits || 0);
     const eff = computeEffectiveEntitlements(b.entitlements || {}, b.entitlementsUntil || {});
-    const ent = eff.entitlements;
+    const ent = mergeEntitlementsForUser(tu, eff.entitlements);
 
     // holdings from fantasy wallet (if any)
     let holdingsCount = 0;
@@ -5035,13 +5077,13 @@ app.get('/api/market/access', async (req,res)=>{
     const isAdmin = isAdminTwitchUser(tu);
     const allowed =
       isAdmin ||
-      (plan === 'premium' || plan === 'pro') ||
+      isUnlimitedPlan(plan) ||
       (ent && ent.market === true) ||
       credits > 0 ||
       holdingsCount > 0;
 
     res.set('Cache-Control','no-store');
-    res.json({ success:true, connected:true, allowed, is_admin:isAdmin, role:isAdmin ? 'admin' : 'user', plan: isAdmin ? 'admin' : plan, credits: isAdmin ? Math.max(credits, 999999) : credits, entitlements: Object.assign({}, ent, isAdmin ? { market:true, overview:true, analytics:true, niche:true, bestTime:true } : {}), holdingsCount });
+    res.json({ success:true, connected:true, allowed, is_admin:isAdmin, role:isAdmin ? 'admin' : 'user', plan, credits, entitlements: ent, holdingsCount });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
