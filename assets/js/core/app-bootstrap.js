@@ -3707,25 +3707,23 @@ if (yt && yt.startsWith('mp4:')){
       if (!currentChannel || currentChannel === 'twitch') return;
       const box = document.getElementById('ai-reco-box');
       const btn = document.getElementById('btn-ai-reco');
-      if(!box || !btn) return;
 
       box.classList.add('hidden');
       box.innerHTML = '';
       btn.disabled = true;
-      btn.innerHTML = '<span class="best-time-spinner"></span> Analyse IA...';
+      btn.innerHTML = '<span class="best-time-spinner"></span> Génération...';
 
       try{
         const res = await fetch(`${API_BASE}/api/ai/reco?login=${encodeURIComponent(currentChannel)}&days=30`);
         const data = await res.json();
         box.innerHTML = data.html_response || "<p style='color:#ff6666;'>❌ Pas de recommandation</p>";
         box.classList.remove('hidden');
-        try{ box.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(_e){}
       }catch(e){
         box.innerHTML = "<p style='color:#ff6666;'>❌ Erreur IA</p>";
         box.classList.remove('hidden');
       }finally{
         btn.disabled = false;
-        btn.innerHTML = '⚡ Reco IA';
+        btn.innerHTML = '⚡ Générer des recommandations';
       }
     }
 
