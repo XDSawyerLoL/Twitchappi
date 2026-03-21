@@ -68,10 +68,10 @@
   function syncRightPanelHeight(){
     const side = document.getElementById('side-panel');
     const player =
+      document.getElementById('video-container') ||
+      document.querySelector('#left-col .player-shell') ||
       document.getElementById('player-wrapper') ||
-      document.getElementById('player-container') ||
-      document.getElementById('twitch-embed')?.parentElement ||
-      document.querySelector('iframe[src*="twitch.tv"]')?.parentElement;
+      document.getElementById('player-container');
 
     if(!side || !player) return;
     const h = player.getBoundingClientRect().height;

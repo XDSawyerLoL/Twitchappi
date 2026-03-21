@@ -180,9 +180,6 @@ async function __apiFetch(url, opts){
       initSocket();
       initFirebaseStatus();
       setInterval(loadStatsDashboard, 5 * 60 * 1000);
-      if(!window.__boostQueueTimer){
-        window.__boostQueueTimer = setInterval(()=>{ if(window.currentUser){ loadBoostQueue().catch(()=>{}); } }, 20000);
-      }
       
       // Infinite scroll listener
       const tfGrid = document.getElementById('twitflix-grid');
@@ -250,42 +247,16 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       setInterval(checkStatus, 15000);
     }
 
-
-function formatPlanLabel(plan){
-  const p = String(plan || 'FREE').toUpperCase();
-  if(p === 'FREE') return 'GRATUIT';
-  if(p === 'ADMIN') return 'ADMINISTRATEUR';
-  if(p === 'PREMIUM') return 'PREMIUM';
-  if(p === 'PRO') return 'PRO';
-  return p;
-}
-
-function refreshUxHelperState(data){
-  const helper = document.getElementById('ux-helper-state');
-  const adminNote = document.getElementById('ux-admin-note');
-  if(helper){
-    if(!data){
-      helper.textContent = 'Connecte ton compte Twitch pour accéder à tes crédits, au marché et aux outils avancés.';
-    } else if(data.is_admin){
-      helper.textContent = 'Compte administrateur détecté : accès complet, sans restriction, sur l’ensemble de l’application.';
-    } else {
-      const plan = formatPlanLabel(data.plan || 'FREE');
-      const credits = Number(data.credits || 0);
-      helper.textContent = `Plan actuel : ${plan} • Crédits disponibles : ${credits}. Les fonctions payantes se débloquent ici ou depuis la page Offres.`;
-    }
-  }
-  if(adminNote){
-    adminNote.classList.toggle('hidden', !(data && data.is_admin));
-  }
-}
     // AUTH
     async function checkAuth() {
       const res = await fetch(`${API_BASE}/twitch_user_status`);
       const data = await res.json();
       if (data.is_connected) {
-        currentUser = data.display_name;
-        window.currentUser = currentUser; // expose for modules (Market)
-        window.currentUserProfile = data;
+        currentUser = data.login || data.display_name;
+        window.currentUser = currentUser;
+        window.currentUserLogin = data.login || '';
+        window.currentUserId = data.id || '';
+        window.currentUserIsAdmin = !!data.is_admin;
         document.getElementById('hub-user-display').innerText = data.display_name;
 
         document.getElementById('btn-auth').classList.add('hidden');
@@ -293,18 +264,19 @@ function refreshUxHelperState(data){
 
         document.getElementById('user-name').innerText = data.display_name;
         if (data.profile_image_url) document.getElementById('user-avatar').src = data.profile_image_url;
-        const roleBadge = document.getElementById('user-role-badge');
+
+        const roleBadge = document.getElementById('admin-badge');
         if(roleBadge){
           roleBadge.classList.toggle('hidden', !data.is_admin);
-          roleBadge.textContent = data.is_admin ? 'ADMINISTRATEUR' : '';
         }
-        refreshUxHelperState({ is_admin: !!data.is_admin, role: data.role || 'user' });
 
         // Billing / credits (user space)
         await loadBillingMe().catch(()=>{});
-        await loadBoostQueue().catch(()=>{});
 
         await loadFollowed();
+      } else {
+        const roleBadge = document.getElementById('admin-badge');
+        if(roleBadge) roleBadge.classList.add('hidden');
       }
     }
 
@@ -337,7 +309,7 @@ function refreshUxHelperState(data){
   if(wrap) wrap.classList.remove('hidden');
 
   let credits = Number(d.credits ?? 0) || 0;
-  const plan = formatPlanLabel(d.plan || 'FREE');
+  const plan = String((d.plan || 'FREE')).toUpperCase() === 'ADMIN' ? 'ADMINISTRATEUR' : String((d.plan || 'FREE')).toUpperCase();
 
   elCredits.textContent = String(credits);
   elPlan.textContent = plan;
@@ -416,7 +388,6 @@ function refreshUxHelperState(data){
     if(openMarket) openMarket.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); if(typeof window.openMarketOverlay==='function'){ window.openMarketOverlay(); } else { window.location.href='/pricing'; } });
   }
 
-  refreshUxHelperState(d);
   window.dispatchEvent(new Event('billing:updated'));
 }
 
@@ -432,25 +403,59 @@ function startAuth() {
 
     function logout() { fetch(`${API_BASE}/twitch_logout`, { method:'POST' }).then(()=>location.reload()); }
 
+    function renderPlayerPlaceholder(title, message){
+      const container = document.getElementById('video-container');
+      if(!container) return;
+      container.innerHTML = `
+        <div class="w-full h-full min-h-[320px] flex items-center justify-center bg-black">
+          <div class="max-w-[520px] mx-auto text-center px-6 py-10 border border-[#1f1f23] rounded-2xl bg-[#0b0b0d]">
+            <div class="text-sm font-orbitron text-[#00f2ea] mb-3">${title}</div>
+            <div class="text-sm text-gray-300 leading-relaxed">${message}</div>
+          </div>
+        </div>`;
+    }
+
+    async function loadFallbackLiveChannel(){
+      try{
+        const r = await fetch(`${API_BASE}/api/twitch/streams/top?lang=fr&minViewers=5&maxViewers=500&limit=12`, { credentials:'include' });
+        const j = await r.json().catch(()=>null);
+        const first = j?.streams?.[0];
+        return first?.user_login || first?.login || null;
+      }catch(_){ return null; }
+    }
+
     // PLAYER
     async function initPlayer() {
-      const res = await fetch(`${API_BASE}/get_default_stream`);
-      const data = await res.json();
-      if (data.success) {
-        currentChannel = data.channel;
+      try{
+        const res = await fetch(`${API_BASE}/get_default_stream`, { credentials:'include' });
+        const data = await res.json().catch(()=>null);
+        let channel = data?.success ? data.channel : null;
+        if(!channel || channel === 'twitch') channel = await loadFallbackLiveChannel();
+        if (!channel) {
+          renderPlayerPlaceholder('LECTEUR INDISPONIBLE', 'Aucune chaîne Twitch valide n’a été trouvée pour le moment. Vérifie les variables Twitch côté serveur puis recharge la page.');
+          return;
+        }
+        currentChannel = channel;
         document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
-        document.getElementById('player-mode-badge').innerText = data.mode || 'AUTO';
+        document.getElementById('player-mode-badge').innerText = data?.mode || 'AUTO';
         loadPlayerEmbed(currentChannel);
         updateTwitchChatFrame(currentChannel);
+      }catch(_){
+        renderPlayerPlaceholder('LECTEUR INDISPONIBLE', 'Le lecteur principal n’a pas pu charger un live automatiquement.');
       }
     }
 
     function loadPlayerEmbed(channel) {
+      const safeChannel = String(channel || '').trim().toLowerCase();
+      if(!safeChannel || safeChannel === 'twitch'){
+        renderPlayerPlaceholder('LECTEUR EN ATTENTE', 'Sélectionne un streamer ou reconnecte Twitch pour lancer un live.');
+        return;
+      }
       const container = document.getElementById('video-container');
       const parentParam = PARENT_DOMAINS.join('&parent=');
-      const iframeUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parentParam}&theme=dark`;
-      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
-      loadStreamInfo(channel);
+      const iframeUrl = `https://player.twitch.tv/?channel=${encodeURIComponent(safeChannel)}&parent=${parentParam}&theme=dark`;
+      container.innerHTML = `<iframe src="${iframeUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; fullscreen" scrolling="no" style="border:none;width:100%;height:100%;"></iframe>`;
+      loadStreamInfo(safeChannel);
 
       // Live auto-next guard (5min): ask user to continue or next.
       try{ window.__oryonPlayerMode = 'live'; }catch(_){ }
@@ -511,11 +516,16 @@ function startAuth() {
     }
 
     function updateTwitchChatFrame(channel){
-      const parentParam = PARENT_DOMAINS.join('&parent=');
-      // FORCE DARK THEME
-      const url = `https://www.twitch.tv/embed/${channel}/chat?parent=${parentParam}&theme=dark&darkpopout`;
+      const safeChannel = String(channel || '').trim().toLowerCase();
       const frame = document.getElementById('twitch-chat-frame');
-      if (frame) frame.src = url;
+      if (!frame) return;
+      if(!safeChannel || safeChannel === 'twitch'){
+        frame.removeAttribute('src');
+        return;
+      }
+      const parentParam = PARENT_DOMAINS.join('&parent=');
+      const url = `https://www.twitch.tv/embed/${encodeURIComponent(safeChannel)}/chat?parent=${parentParam}&theme=dark&darkpopout`;
+      frame.src = url;
     }
 
     async function cycle(dir){
@@ -666,33 +676,48 @@ function startAuth() {
       const el = document.getElementById('carousel');
       el.innerHTML = '<div class="w-full text-center py-10"><i class="fas fa-spinner fa-spin text-[#00f2ea]"></i></div>';
       try{
+        let data = null;
         const res = await fetch(`${API_BASE}/followed_streams`, { credentials: 'include' });
-        if (!res.ok){
-          // Silent when user is not authenticated
-          document.getElementById('carousel').innerHTML = '<div class="w-full text-center py-8 opacity-70">Connecte-toi à Twitch pour voir tes follows.</div>';
-          return;
+        if(res.ok){
+          data = await res.json().catch(()=>null);
         }
-        const data = await res.json();
-        if (data.success && data.streams.length > 0){
+        let streams = Array.isArray(data?.streams) ? data.streams : [];
+        if(!streams.length){
+          const alt = await fetch(`${API_BASE}/api/twitch/streams/top?lang=fr&minViewers=5&maxViewers=500&limit=24`, { credentials:'include' });
+          const altj = await alt.json().catch(()=>null);
+          streams = Array.isArray(altj?.streams) ? altj.streams.map(s => ({
+            user_login: s.user_login || s.login,
+            user_name: s.user_name || s.display_name || s.login,
+            thumbnail_url: s.thumbnail_url,
+            viewer_count: s.viewer_count || s.viewers || 0,
+            game_name: s.game_name || s.game || ''
+          })) : [];
+        }
+        if (streams.length > 0){
           el.innerHTML = '';
-          data.streams.forEach(s=>{
+          streams.forEach(s=>{
             let thumb = (s.thumbnail_url||'').replace('{width}','1000').replace('{height}','1333');
-            if (thumb.includes('/_404/')) thumb = '/assets/img/vod-fallback.png';
+            if (!thumb || thumb.includes('/_404/')) thumb = '/assets/img/vod-fallback.png';
+            const login = String(s.user_login || s.login || '').trim();
+            const name = String(s.user_name || s.display_name || login || 'Streamer');
+            if(!login) return;
             el.innerHTML += `
-              <div class="stream-card flex-shrink-0" role="button" tabindex="0" onclick="changeChannel('${s.user_login}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
-                <img src="${thumb}" class="card-img" onerror="this.src='https://via.placeholder.com/400x225'">
+              <div class="stream-card flex-shrink-0" role="button" tabindex="0" onclick="changeChannel('${login}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+                <img src="${thumb}" class="card-img" onerror="this.src='/assets/img/vod-fallback.png'">
                 <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black to-transparent p-3">
-                  <div class="font-bold text-white text-sm truncate">${s.user_name}</div>
+                  <div class="font-bold text-white text-sm truncate">${name}</div>
+                  <div class="text-[11px] text-gray-300 truncate">${s.game_name || 'En direct'}</div>
                 </div>
                 <div class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-1 rounded">LIVE</div>
               </div>`;
           });
+          if(!el.innerHTML.trim()) el.innerHTML = '<div class="w-full text-center py-10 text-gray-500">Aucune chaîne disponible.</div>';
         } else {
-          el.innerHTML = '<div class="w-full text-center py-10 text-gray-500">Aucune chaîne suivie en live.</div>';
+          el.innerHTML = '<div class="w-full text-center py-10 text-gray-500">Aucune chaîne disponible pour le moment.</div>';
         }
       }catch(e){
         console.error('Carousel error:', e);
-        el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Erreur</div>';
+        el.innerHTML = '<div class="w-full text-center py-10 text-red-500">Impossible de charger les lives.</div>';
       }
     }
 
@@ -3621,7 +3646,7 @@ if (yt && yt.startsWith('mp4:')){
         document.getElementById('niche-sat').innerText = best?.saturation_score!=null ? `${best.saturation_score}/100` : '--';
         document.getElementById('niche-discover').innerText = best?.discoverability_score!=null ? `${best.discoverability_score}/100` : '--';
         document.getElementById('niche-position').innerText = best ? `${String(best.hour).padStart(2,'0')}h UTC` : '--';
-        document.getElementById('niche-verdict').innerText = best?.discoverability_score>=70 ? '🔥 Très bon' : best?.discoverability_score>=45 ? '✅ Analyse prête' : '🟡 Risqué';
+        document.getElementById('niche-verdict').innerText = best?.discoverability_score>=70 ? '🔥 Très bon' : best?.discoverability_score>=45 ? '✅ OK' : '🟡 Risqué';
         document.getElementById('niche-details').innerText =
           best ? `Meilleure fenêtre détectée: ${String(best.hour).padStart(2,'0')}h UTC • viewers totaux observés: ${best.total_viewers || 0}` : '—';
       }catch(e){
@@ -3662,11 +3687,11 @@ if (yt && yt.startsWith('mp4:')){
       try{
         const res = await fetch(`${API_BASE}/api/simulate/growth?channel_id=${encodeURIComponent(currentChannelId)}&hours_per_week=${encodeURIComponent(hours)}&days=30`);
         const data = await res.json();
-        if (!data.success){ out.innerText = data.message || 'Données insuffisantes'; return; }
+        if (!data.success){ out.innerText = data.message || 'Pas assez de data'; return; }
         const delta = data.target?.expected_change_percent ?? null;
         const expected = data.target?.expected_avg_viewers ?? null;
         out.innerText = (delta==null || expected==null)
-          ? 'Analyse prête'
+          ? 'OK'
           : `${delta >= 0 ? '+' : ''}${delta}% • ~${expected} avg viewers`;
       }catch(e){
         out.innerText = 'Erreur';
@@ -3705,7 +3730,7 @@ if (yt && yt.startsWith('mp4:')){
           </div>
           <div class="text-[11px] text-gray-300">${escapeHtml(best?.why || '')}</div>
           ${list.length ? `
-            <div class="mt-3 text-[11px] text-gray-400 font-bold uppercase">Autres profils</div>
+            <div class="mt-3 text-[11px] text-gray-400 font-bold uppercase">Autres options</div>
             <ul class="mt-1 text-[11px] text-gray-300 list-disc pl-5">
               ${list.slice(0,5).map(x=>`<li>${escapeHtml(x.display_name)} — score ${x.score}</li>`).join('')}
             </ul>` : '' }
@@ -3761,8 +3786,8 @@ if (yt && yt.startsWith('mp4:')){
           const g = data.game_data;
           document.getElementById('scan-img').src = g.box_art_url || '';
           document.getElementById('scan-name').innerText = `${g.name}`;
-          document.getElementById('scan-game').innerText = `Spectateurs totaux (instantané) : ${g.total_viewers||0}`;
-          document.getElementById('scan-ai').innerHTML = `<p>Score de niche estimé : <strong>${g.ai_calculated_niche_score}</strong></p>`;
+          document.getElementById('scan-game').innerText = `Total viewers (snapshot): ${g.total_viewers||0}`;
+          document.getElementById('scan-ai').innerHTML = `<p>Score niche estimé: <strong>${g.ai_calculated_niche_score}</strong></p>`;
         }
       }catch(e){
         document.getElementById('scan-ai').innerHTML = `<p style="color:#ff6666;">❌ Erreur</p>`;
@@ -3807,26 +3832,21 @@ if (yt && yt.startsWith('mp4:')){
       const channel = document.getElementById('boost-query').value.trim();
       const msg = document.getElementById('boost-msg');
       msg.innerText = '';
-      if (!channel) {
-        msg.innerText = 'Indique un pseudo Twitch à booster.';
-        return;
-      }
+      if (!channel) return;
 
-      msg.innerText = 'Envoi de la demande...';
+      msg.innerText = '...';
       try{
         const r = await fetch(`${API_BASE}/stream_boost`,{
           method:'POST',
-          credentials:'include',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ channel })
         });
         const data = await r.json();
-        msg.innerText = data.success ? `✅ ${data.message || 'Demande envoyée.'}` : `❌ ${data.error || 'Boost refusé.'}`;
-        await loadBoostQueue().catch(()=>{});
+        msg.innerText = data.success ? '✅ Boost activé (15 min)' : '❌ Boost refusé';
       }catch(e){
-        msg.innerText = '❌ Erreur pendant l’envoi du boost.';
+        msg.innerText = '❌ Erreur';
       }
-      setTimeout(()=>{ msg.innerText=''; }, 6000);
+      setTimeout(()=>{ msg.innerText=''; }, 4000);
     }
   
     // Messenger-style reactions: tap message to reveal on mobile

@@ -2,11 +2,9 @@
   "name": "streamerhub",
   "version": "1.0.0",
   "private": true,
-  "main": "electron-main.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "desktop": "electron .",
-    "dist:win": "electron-builder --win nsis"
+    "start": "node app.js"
   },
   "engines": {
     "node": ">=20"
@@ -27,27 +25,5 @@
     "socket.io": "^4.7.5",
     "stripe": "^14.25.0",
     "openid": "^2.0.10"
-  },
-  "devDependencies": {
-    "electron": "^35.0.0",
-    "electron-builder": "^24.13.3"
-  },
-  "build": {
-    "appId": "com.oryon.streamerhub",
-    "productName": "StreamerHub",
-    "files": [
-      "**/*",
-      "!node_modules/.cache/**",
-      "!dist/**"
-    ],
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
   }
 }

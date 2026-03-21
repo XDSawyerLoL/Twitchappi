@@ -39,16 +39,10 @@
     try{
       const r = await fetch('/api/billing/me', { cache:'no-store', credentials:'include' });
       const j = await r.json();
-      if(!j?.success) return { plan:'free', credits:0, entitlements:{}, is_admin:false, role:'user' };
-      return {
-        plan: String(j.plan||'free').toLowerCase(),
-        credits: Number(j.credits||0),
-        entitlements: j.entitlements || {},
-        is_admin: !!j.is_admin,
-        role: String(j.role || (j.is_admin ? 'admin' : 'user')).toLowerCase()
-      };
+      if(!j?.success) return { plan:'free', credits:0 };
+      return { plan: String(j.plan||'free').toLowerCase(), credits: Number(j.credits||0) };
     }catch(_){
-      return { plan:'free', credits:0, entitlements:{}, is_admin:false, role:'user' };
+      return { plan:'free', credits:0 };
     }
   }
 
@@ -352,9 +346,8 @@
     if(!amount || amount<=0) return;
 
     const path = side === 'buy' ? '/api/fantasy/invest' : '/api/fantasy/sell';
-    const bill = await fetchBilling();
-    const hasMarketAccess = !!(bill.is_admin || String(bill.role||'').toLowerCase()==='admin' || ['premium','pro','admin'].includes(String(bill.plan||'free').toLowerCase()) || bill.entitlements?.market === true || Number(bill.credits||0) > 0);
-    if(!hasMarketAccess){ goPricing(); return; }
+        const bill = await fetchBilling();
+    if(String(bill.plan||'free').toLowerCase()==='free' && Number(bill.credits||0)<=0){ goPricing(); return; }
 
     await fetch(path, {
       method:'POST',
@@ -652,7 +645,7 @@
   const _close = window.closeMarketOverlay;
   window.openMarketOverlay = async function(mode){
     // Twitch login is mandatory for Market
-    if(!window.currentUser){
+    if(!window.currentUser && !window.currentUserIsAdmin){
       alert('Connexion Twitch obligatoire pour utiliser le Marché.');
       try{ window.startAuth && window.startAuth(); }catch(e){}
       return;
@@ -671,8 +664,7 @@
         const plan = String(j2?.plan || 'free').toLowerCase();
         const credits = Number(j2?.credits || 0);
         const ent = j2?.entitlements || {};
-        const isAdmin = !!j2?.is_admin || String(j2?.role || '').toLowerCase() === 'admin';
-        allowed = isAdmin || ['premium','pro','admin'].includes(plan) || (ent.market === true) || (credits > 0);
+        allowed = !!j2?.is_admin || (plan === 'premium' || plan === 'pro' || plan === 'admin') || (ent.market === true) || (credits > 0);
       }
     }catch(_){ allowed = null; }
 
