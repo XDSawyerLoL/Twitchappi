@@ -2252,7 +2252,10 @@ app.get('/twitch_user_status', (req, res) => {
     return res.json({
       is_connected: true,
       display_name: u.display_name,
-      profile_image_url: u.profile_image_url
+      profile_image_url: u.profile_image_url,
+      login: u.login,
+      is_admin: isAdminUser(u),
+      role: isAdminUser(u) ? 'admin' : 'user'
     });
   }
 
@@ -3264,10 +3267,8 @@ async function refreshGlobalStreamList() {
   }
 }
 
-app.get('/get_default_stream', async (req, res) => {
-  const now = Date.now();
+async function getActiveBoost(now = Date.now()){
   let boost = null;
-
   try {
     const q = await db.collection('boosts')
       .where('endTime', '>', now)
@@ -3276,17 +3277,84 @@ app.get('/get_default_stream', async (req, res) => {
       .get();
 
     if (!q.empty) {
-      boost = q.docs[0].data();
+      const d = q.docs[0].data() || {};
+      boost = { id:q.docs[0].id, ...d };
       CACHE.boostedStream = boost;
+      return boost;
     }
   } catch (e) {
     if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) {
       boost = CACHE.boostedStream;
+      return boost;
     }
   }
+  return null;
+}
+
+async function activateNextQueuedBoost(now = Date.now()){
+  if(!firestoreOk) return null;
+  const active = await getActiveBoost(now);
+  if(active) return active;
+  try{
+    const q = await db.collection('boost_requests')
+      .where('status', '==', 'queued')
+      .orderBy('createdAt', 'asc')
+      .limit(1)
+      .get();
+    if(q.empty) return null;
+    const doc = q.docs[0];
+    const data = doc.data() || {};
+    const boost = {
+      channel: String(data.channel || '').trim().toLowerCase(),
+      requester: data.requester || null,
+      requesterAvatar: data.requesterAvatar || null,
+      requesterDisplayName: data.requesterDisplayName || null,
+      startTime: now,
+      endTime: now + 900000,
+      sourceRequestId: doc.id
+    };
+    await db.collection('boosts').add(boost);
+    await doc.ref.set({ status:'active', activatedAt: now, endTime: boost.endTime, updatedAt: now }, { merge:true });
+    CACHE.boostedStream = boost;
+    return boost;
+  }catch(_){ return null; }
+}
+
+app.get('/api/boost/queue', async (req, res) => {
+  try{
+    const now = Date.now();
+    const active = await activateNextQueuedBoost(now);
+    let queued = [];
+    if(firestoreOk){
+      const q = await db.collection('boost_requests').where('status','==','queued').orderBy('createdAt','asc').limit(12).get();
+      queued = q.docs.map((doc, idx) => ({
+        id: doc.id,
+        position: idx + 1,
+        channel: String(doc.data()?.channel || '').toLowerCase(),
+        requester: doc.data()?.requester || null,
+        requesterAvatar: doc.data()?.requesterAvatar || null,
+        requesterDisplayName: doc.data()?.requesterDisplayName || null,
+        createdAt: Number(doc.data()?.createdAt || 0)
+      }));
+    }
+    res.json({ success:true, active: active ? {
+      channel: active.channel,
+      requester: active.requester || null,
+      requesterAvatar: active.requesterAvatar || null,
+      requesterDisplayName: active.requesterDisplayName || null,
+      remainingMs: Math.max(0, Number(active.endTime || 0) - now)
+    } : null, queue: queued });
+  }catch(e){
+    res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.get('/get_default_stream', async (req, res) => {
+  const now = Date.now();
+  const boost = await activateNextQueuedBoost(now);
 
   if (boost) {
-    return res.json({ success: true, channel: boost.channel, mode: 'BOOST', message: `\u26A1 BOOST ACTIF` });
+    return res.json({ success: true, channel: boost.channel, mode: 'BOOST', message: `⚡ BOOST ACTIF` });
   }
 
   await refreshGlobalStreamList();
@@ -3301,7 +3369,7 @@ app.get('/get_default_stream', async (req, res) => {
     channel: rot.streams[rot.currentIndex].channel,
     mode: 'AUTO',
     viewers: rot.streams[rot.currentIndex].viewers,
-    message: `\uD83D\uDC41\uFE0F AUTO`
+    message: `👁️ AUTO`
   });
 });
 
@@ -3324,20 +3392,50 @@ app.post('/cycle_stream', async (req, res) => {
 });
 
 app.post('/stream_boost', async (req, res) => {
+  const tu = requireTwitchSession(req, res);
+  if(!tu) return;
   const channel = String(req.body?.channel || '').trim().toLowerCase();
   if (!channel) return res.status(400).json({ success:false, error:'channel manquant' });
 
   const now = Date.now();
+  const requester = String(tu.login || tu.display_name || tu.id || 'anon').trim().toLowerCase();
+  const payload = {
+    channel,
+    requester,
+    requesterDisplayName: tu.display_name || tu.login || requester,
+    requesterAvatar: tu.profile_image_url || null,
+    createdAt: now,
+    updatedAt: now,
+    status: 'queued'
+  };
+
   try {
-    await db.collection('boosts').add({
-      channel,
-      startTime: now,
-      endTime: now + 900000 // 15 min
-    });
+    const active = await getActiveBoost(now);
+    if(!active){
+      const boost = { ...payload, startTime: now, endTime: now + 900000, status:'active' };
+      await db.collection('boosts').add(boost);
+      CACHE.boostedStream = boost;
+      return res.json({ success: true, active:true, queuePosition:0, message:'Boost activé immédiatement pour 15 minutes.' });
+    }
 
-    CACHE.boostedStream = { channel, endTime: now + 900000 };
+    const existing = await db.collection('boost_requests')
+      .where('status','==','queued')
+      .where('requester','==', requester)
+      .where('channel','==', channel)
+      .limit(1)
+      .get();
+    if(!existing.empty){
+      const queued = await db.collection('boost_requests').where('status','==','queued').orderBy('createdAt','asc').get();
+      const ids = queued.docs.map(d=>d.id);
+      const pos = Math.max(1, ids.indexOf(existing.docs[0].id) + 1);
+      return res.json({ success:true, queued:true, duplicate:true, queuePosition:pos, message:`Demande déjà en file d'attente (position ${pos}).` });
+    }
 
-    res.json({ success: true, html_response: "<p style='color:green;'>\u2705 Boost activ\u00E9 pendant 15 minutes!</p>" });
+    const created = await db.collection('boost_requests').add(payload);
+    const queued = await db.collection('boost_requests').where('status','==','queued').orderBy('createdAt','asc').get();
+    const ids = queued.docs.map(d=>d.id);
+    const pos = Math.max(1, ids.indexOf(created.id) + 1);
+    res.json({ success: true, queued:true, queuePosition: pos, message:`Demande ajoutée à la file d'attente (position ${pos}).` });
   } catch (e) {
     res.status(500).json({ success:false, error: "Erreur DB" });
   }
@@ -4376,6 +4474,36 @@ function requireTwitchSession(req, res) {
   return u;
 }
 
+const ADMIN_LOGINS = new Set(
+  String(process.env.ADMIN_TWITCH_LOGINS || 'sansahd')
+    .split(',')
+    .map(v => String(v || '').trim().toLowerCase())
+    .filter(Boolean)
+);
+
+function isAdminUser(twitchUser){
+  const login = String(twitchUser?.login || '').trim().toLowerCase();
+  const display = String(twitchUser?.display_name || '').trim().toLowerCase();
+  return !!(login && ADMIN_LOGINS.has(login)) || !!(display && ADMIN_LOGINS.has(display));
+}
+
+function getAdminEntitlements(){
+  return { market:true, overview:true, analytics:true, niche:true, bestTime:true };
+}
+
+function applyAdminBillingView(twitchUser, billing){
+  const out = Object.assign({}, billing || {});
+  if(!isAdminUser(twitchUser)) return out;
+  out.role = 'admin';
+  out.isAdmin = true;
+  out.plan = 'admin';
+  out.credits = Math.max(Number(out.credits || 0), 999999);
+  out.entitlements = { ...(out.entitlements || {}), ...getAdminEntitlements() };
+  out.entitlementsUntil = out.entitlementsUntil || {};
+  for(const k of Object.keys(getAdminEntitlements())) out.entitlementsUntil[k] = Date.now() + (3650 * 24 * 60 * 60 * 1000);
+  return out;
+}
+
 // =========================================================
 // BILLING (Firestore source of truth)
 // - credits live in billing_users/{twitchUserId}
@@ -4561,9 +4689,9 @@ async function setBillingSteam(twitchUser, steam){
 async function requireActionQuota(req, res, actionName){
   const tu = requireTwitchSession(req, res);
   if(!tu) return null;
-  const b = await getBillingDoc(tu);
+  const b = applyAdminBillingView(tu, await getBillingDoc(tu));
   const plan = String(b.plan || 'free').toLowerCase();
-  if(plan === 'premium') return { ok: true, plan, credits: Number(b.credits||0) };
+  if(plan === 'premium' || plan === 'admin' || isAdminUser(tu)) return { ok: true, plan, credits: Number(b.credits||0), isAdmin: isAdminUser(tu) };
 
   const credits = Number(b.credits||0);
   if(credits < ACTION_COST_CREDITS){
@@ -4746,7 +4874,7 @@ app.get('/api/billing/me', async (req,res)=>{
     }
     if (tu.expiry && tu.expiry <= Date.now()) { req.session.twitchUser=null; return res.json({ success:true, connected:false, is_connected:false, plan:'free', credits:0, premium:false, pro:false }); }
 
-    let b = await getBillingDoc(tu);
+    let b = applyAdminBillingView(tu, await getBillingDoc(tu));
 
     // Migration safety: if billing credits are 0 but fantasy wallet cash exists, sync it once.
     if(Number(b.credits||0) <= 0){
@@ -4755,7 +4883,7 @@ app.get('/api/billing/me', async (req,res)=>{
         const w = await getUserWallet(userKey);
         if(Number(w.cash||0) > 0){
           await setBillingCreditsAbsolute(tu, Number(w.cash||0));
-          b = await getBillingDoc(tu);
+          b = applyAdminBillingView(tu, await getBillingDoc(tu));
         }
       }catch(_){}
     }
@@ -4770,7 +4898,9 @@ app.get('/api/billing/me', async (req,res)=>{
     }
 
     const steam = b.steam && b.steam.steamid ? { connected:true, steamid:b.steam.steamid, profile:b.steam.profile || null } : { connected:false };
-    res.json({ success:true, connected:true, is_connected:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: eff.entitlements, entitlementsUntil: eff.entitlementsUntil, steam });
+    const effEnt = isAdminUser(tu) ? getAdminEntitlements() : eff.entitlements;
+    const effUntil = isAdminUser(tu) ? Object.fromEntries(Object.keys(getAdminEntitlements()).map(k => [k, Date.now() + (3650 * 24 * 60 * 60 * 1000)])) : eff.entitlementsUntil;
+    res.json({ success:true, connected:true, is_connected:true, plan: b.plan || 'free', credits: Number(b.credits||0), entitlements: effEnt, entitlementsUntil: effUntil, steam, is_admin:isAdminUser(tu), role:isAdminUser(tu)?'admin':'user' });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }
@@ -4802,8 +4932,8 @@ app.post('/api/billing/unlock-feature', async (req,res)=>{
       const credits = Number(cur.credits || 0);
       const now = Date.now();
 
-      // Premium: just mark as unlocked
-      if(plan === 'premium'){
+      // Premium/Admin: just mark as unlocked
+      if(plan === 'premium' || plan === 'admin' || isAdminUser(tu)){
         ent[feature] = true;
         until[feature] = now + ENTITLEMENT_TTL_MS;
         tx.set(ref, { entitlements: ent, entitlementsUntil: until, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
@@ -4856,8 +4986,8 @@ app.post('/api/billing/unlock-market', async (req,res)=>{
       const credits = Number(cur.credits || 0);
       const now = Date.now();
 
-      // Premium/Pro: just mark as unlocked
-      if(plan === 'premium' || plan === 'pro'){
+      // Premium/Pro/Admin: just mark as unlocked
+      if(plan === 'premium' || plan === 'pro' || plan === 'admin' || isAdminUser(tu)){
         ent.market = true;
         until.market = now + ENTITLEMENT_TTL_MS;
         tx.set(ref, { entitlements: ent, entitlementsUntil: until, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
@@ -4900,7 +5030,7 @@ app.get('/api/market/access', async (req,res)=>{
     }
     if (tu.expiry && tu.expiry <= Date.now()) { req.session.twitchUser=null; return res.json({ success:true, connected:false, allowed:false, reason:'TWITCH_AUTH_EXPIRED' }); }
 
-    let b = await getBillingDoc(tu);
+    let b = applyAdminBillingView(tu, await getBillingDoc(tu));
     // Keep market/access consistent with /api/billing/me: if billing credits are empty but fantasy wallet cash exists,
     // sync once to avoid "paid but denied" loops.
     if(Number(b.credits||0) <= 0){
@@ -4909,7 +5039,7 @@ app.get('/api/market/access', async (req,res)=>{
         const w = await getUserWallet(userKey);
         if(Number(w.cash||0) > 0){
           await setBillingCreditsAbsolute(tu, Number(w.cash||0));
-          b = await getBillingDoc(tu);
+          b = applyAdminBillingView(tu, await getBillingDoc(tu));
         }
       }catch(_){ }
     }
@@ -4928,13 +5058,14 @@ app.get('/api/market/access', async (req,res)=>{
     }catch(_){}
 
     const allowed =
-      (plan === 'premium' || plan === 'pro') ||
+      isAdminUser(tu) ||
+      (plan === 'premium' || plan === 'pro' || plan === 'admin') ||
       (ent && ent.market === true) ||
       credits > 0 ||
       holdingsCount > 0;
 
     res.set('Cache-Control','no-store');
-    res.json({ success:true, connected:true, allowed, plan, credits, entitlements: ent, holdingsCount });
+    res.json({ success:true, connected:true, allowed, plan, credits, entitlements: ent, holdingsCount, is_admin:isAdminUser(tu), role:isAdminUser(tu)?'admin':'user' });
   }catch(e){
     res.status(500).json({ success:false, error:e.message });
   }

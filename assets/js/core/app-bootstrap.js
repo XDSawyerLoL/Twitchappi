@@ -180,6 +180,9 @@ async function __apiFetch(url, opts){
       initSocket();
       initFirebaseStatus();
       setInterval(loadStatsDashboard, 5 * 60 * 1000);
+      if(!window.__boostQueueTimer){
+        window.__boostQueueTimer = setInterval(()=>{ if(window.currentUser){ loadBoostQueue().catch(()=>{}); } }, 20000);
+      }
       
       // Infinite scroll listener
       const tfGrid = document.getElementById('twitflix-grid');
@@ -254,6 +257,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       if (data.is_connected) {
         currentUser = data.display_name;
         window.currentUser = currentUser; // expose for modules (Market)
+        window.currentUserProfile = data;
         document.getElementById('hub-user-display').innerText = data.display_name;
 
         document.getElementById('btn-auth').classList.add('hidden');
@@ -261,9 +265,15 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
 
         document.getElementById('user-name').innerText = data.display_name;
         if (data.profile_image_url) document.getElementById('user-avatar').src = data.profile_image_url;
+        const roleBadge = document.getElementById('user-role-badge');
+        if(roleBadge){
+          roleBadge.classList.toggle('hidden', !data.is_admin);
+          roleBadge.textContent = data.is_admin ? 'ADMINISTRATEUR' : '';
+        }
 
         // Billing / credits (user space)
         await loadBillingMe().catch(()=>{});
+        await loadBoostQueue().catch(()=>{});
 
         await loadFollowed();
       }
@@ -3767,21 +3777,26 @@ if (yt && yt.startsWith('mp4:')){
       const channel = document.getElementById('boost-query').value.trim();
       const msg = document.getElementById('boost-msg');
       msg.innerText = '';
-      if (!channel) return;
+      if (!channel) {
+        msg.innerText = 'Indique un pseudo Twitch à booster.';
+        return;
+      }
 
-      msg.innerText = '...';
+      msg.innerText = 'Envoi de la demande...';
       try{
         const r = await fetch(`${API_BASE}/stream_boost`,{
           method:'POST',
+          credentials:'include',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({ channel })
         });
         const data = await r.json();
-        msg.innerText = data.success ? '✅ Boost activé (15 min)' : '❌ Boost refusé';
+        msg.innerText = data.success ? `✅ ${data.message || 'Demande envoyée.'}` : `❌ ${data.error || 'Boost refusé.'}`;
+        await loadBoostQueue().catch(()=>{});
       }catch(e){
-        msg.innerText = '❌ Erreur';
+        msg.innerText = '❌ Erreur pendant l’envoi du boost.';
       }
-      setTimeout(()=>{ msg.innerText=''; }, 4000);
+      setTimeout(()=>{ msg.innerText=''; }, 6000);
     }
   
     // Messenger-style reactions: tap message to reveal on mobile
