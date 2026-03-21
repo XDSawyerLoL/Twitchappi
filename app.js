@@ -3296,16 +3296,7 @@ app.get('/get_default_stream', async (req, res) => {
   let boost = null;
 
   try {
-    const q = await db.collection('boosts')
-      .where('endTime', '>', now)
-      .orderBy('endTime', 'desc')
-      .limit(1)
-      .get();
-
-    if (!q.empty) {
-      boost = q.docs[0].data();
-      CACHE.boostedStream = boost;
-    }
+    boost = await resolveActiveBoost(now);
   } catch (e) {
     if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) {
       boost = CACHE.boostedStream;
@@ -3313,7 +3304,14 @@ app.get('/get_default_stream', async (req, res) => {
   }
 
   if (boost) {
-    return res.json({ success: true, channel: boost.channel, mode: 'BOOST', message: `\u26A1 BOOST ACTIF` });
+    return res.json({
+      success: true,
+      channel: boost.channel,
+      mode: 'BOOST',
+      startTime: Number(boost.startTime || 0),
+      endTime: Number(boost.endTime || 0),
+      message: `⚡ BOOST ACTIF`
+    });
   }
 
   await refreshGlobalStreamList();
@@ -3342,8 +3340,9 @@ app.get('/get_default_stream', async (req, res) => {
 app.post('/cycle_stream', async (req, res) => {
   const { direction } = req.body;
 
-  if (CACHE.boostedStream && CACHE.boostedStream.endTime > Date.now()) {
-    return res.json({ success: false, error:'boost_active' });
+  const activeBoost = await resolveActiveBoost(Date.now());
+  if (activeBoost && activeBoost.endTime > Date.now()) {
+    return res.json({ success: false, error:'boost_active', channel: activeBoost.channel, endTime: activeBoost.endTime });
   }
 
   await refreshGlobalStreamList();
@@ -3357,6 +3356,84 @@ app.post('/cycle_stream', async (req, res) => {
   return res.json({ success: true, channel: rot.streams[rot.currentIndex].channel });
 });
 
+
+const BOOST_DURATION_MS = 10 * 60 * 1000;
+
+async function resolveActiveBoost(now = Date.now()) {
+  if (!firestoreOk) {
+    if (CACHE.boostedStream && CACHE.boostedStream.endTime > now) return CACHE.boostedStream;
+    CACHE.boostedStream = null;
+    return null;
+  }
+
+  let activeDoc = null;
+  try {
+    const activeSnap = await db.collection('boosts')
+      .where('status', '==', 'active')
+      .orderBy('endTime', 'desc')
+      .limit(1)
+      .get();
+
+    if (!activeSnap.empty) {
+      const doc = activeSnap.docs[0];
+      const data = doc.data() || {};
+      if (Number(data.endTime || 0) > now) {
+        activeDoc = { id: doc.id, ...data };
+      } else {
+        await doc.ref.update({ status: 'done', queued: false, finishedAt: now });
+      }
+    }
+  } catch (e) {
+    console.error('resolveActiveBoost active lookup error:', e.message);
+  }
+
+  if (activeDoc) {
+    CACHE.boostedStream = {
+      id: activeDoc.id,
+      channel: activeDoc.channel,
+      endTime: Number(activeDoc.endTime || 0),
+      startTime: Number(activeDoc.startTime || 0),
+      requester: activeDoc.requester || ''
+    };
+    return CACHE.boostedStream;
+  }
+
+  try {
+    const queuedSnap = await db.collection('boosts')
+      .where('status', '==', 'queued')
+      .orderBy('createdAt', 'asc')
+      .limit(1)
+      .get();
+
+    if (!queuedSnap.empty) {
+      const doc = queuedSnap.docs[0];
+      const data = doc.data() || {};
+      const startTime = now;
+      const endTime = now + BOOST_DURATION_MS;
+      await doc.ref.update({
+        status: 'active',
+        queued: false,
+        startTime,
+        endTime,
+        promotedAt: now
+      });
+      CACHE.boostedStream = {
+        id: doc.id,
+        channel: data.channel,
+        endTime,
+        startTime,
+        requester: data.requester || ''
+      };
+      return CACHE.boostedStream;
+    }
+  } catch (e) {
+    console.error('resolveActiveBoost queue promotion error:', e.message);
+  }
+
+  CACHE.boostedStream = null;
+  return null;
+}
+
 app.post('/stream_boost', async (req, res) => {
   const channel = String(req.body?.channel || '').trim().toLowerCase();
   if (!channel) return res.status(400).json({ success:false, error:'channel manquant' });
@@ -3365,8 +3442,8 @@ app.post('/stream_boost', async (req, res) => {
   const requester = String(req.session?.twitchUser?.login || req.session?.twitchUser?.display_name || 'Utilisateur');
   const avatar = String(req.session?.twitchUser?.profile_image_url || '');
   try {
-    const hasActiveBoost = !!(CACHE.boostedStream && CACHE.boostedStream.endTime > now);
-    if(hasActiveBoost){
+    const activeBoost = await resolveActiveBoost(now);
+    if(activeBoost && Number(activeBoost.endTime || 0) > now){
       await db.collection('boosts').add({
         channel,
         requester,
@@ -3376,24 +3453,41 @@ app.post('/stream_boost', async (req, res) => {
         createdAt: now,
         requestedAt: now
       });
-      return res.json({ success: true, queued:true, html_response: "<p style='color:#00f2ea;'>⏳ Boost déjà actif. Demande ajoutée à la file d’attente.</p>" });
+      return res.json({
+        success: true,
+        queued:true,
+        activeChannel: activeBoost.channel || '',
+        activeEndsAt: Number(activeBoost.endTime || 0),
+        durationMs: BOOST_DURATION_MS,
+        html_response: "<p style='color:#00f2ea;'>⏳ Boost déjà actif. Demande ajoutée à la file d’attente.</p>"
+      });
     }
 
-    await db.collection('boosts').add({
+    const endTime = now + BOOST_DURATION_MS;
+    const ref = await db.collection('boosts').add({
       channel,
       requester,
       avatar,
       queued: false,
       status: 'active',
       startTime: now,
-      endTime: now + 900000,
+      endTime,
       createdAt: now
     });
 
-    CACHE.boostedStream = { channel, endTime: now + 900000 };
+    CACHE.boostedStream = { id: ref.id, channel, endTime, startTime: now, requester };
 
-    res.json({ success: true, queued:false, html_response: "<p style='color:green;'>✅ Boost activé pendant 15 minutes.</p>" });
+    res.json({
+      success: true,
+      queued:false,
+      channel,
+      startTime: now,
+      endTime,
+      durationMs: BOOST_DURATION_MS,
+      html_response: "<p style='color:green;'>✅ Boost activé pendant 10 minutes.</p>"
+    });
   } catch (e) {
+    console.error('stream_boost error:', e.message);
     res.status(500).json({ success:false, error: "Erreur DB" });
   }
 });
@@ -5079,7 +5173,6 @@ app.get('/api/market/access', async (req,res)=>{
       isAdmin ||
       isUnlimitedPlan(plan) ||
       (ent && ent.market === true) ||
-      credits > 0 ||
       holdingsCount > 0;
 
     res.set('Cache-Control','no-store');

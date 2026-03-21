@@ -467,6 +467,7 @@ function startAuth() {
         document.getElementById('player-mode-badge').innerText = data?.mode || 'AUTO';
         loadPlayerEmbed(currentChannel);
         updateTwitchChatFrame(currentChannel);
+        startBoostPlayerSync();
       }catch(_){
         renderPlayerPlaceholder('LECTEUR INDISPONIBLE', 'Le lecteur principal n’a pas pu charger un live automatiquement.');
       }
@@ -553,6 +554,51 @@ function startAuth() {
       const parentParam = PARENT_DOMAINS.join('&parent=');
       const url = `https://www.twitch.tv/embed/${encodeURIComponent(safeChannel)}/chat?parent=${parentParam}&theme=dark&darkpopout`;
       frame.src = url;
+    }
+
+
+    let __boostSyncTimer = null;
+    let __boostLastChannel = null;
+    let __boostLastEndTime = 0;
+
+    async function syncPlayerWithBoost(forceReload = false){
+      try{
+        const res = await fetch(`${API_BASE}/get_default_stream`, { credentials:'include', cache:'no-store' });
+        const data = await res.json().catch(()=>null);
+        if(!data?.success) return;
+        const nextChannel = String(data.channel || '').trim().toLowerCase();
+        const nextMode = String(data.mode || 'AUTO').toUpperCase();
+        const nextEnd = Number(data.endTime || 0);
+        if(nextMode === 'BOOST' && nextChannel){
+          const shouldSwitch = forceReload || currentChannel !== nextChannel || document.getElementById('player-mode-badge')?.innerText !== 'BOOST' || nextEnd !== __boostLastEndTime;
+          if(shouldSwitch){
+            currentChannel = nextChannel;
+            __boostLastChannel = nextChannel;
+            __boostLastEndTime = nextEnd;
+            document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+            document.getElementById('player-mode-badge').innerText = 'BOOST';
+            loadPlayerEmbed(currentChannel);
+            updateTwitchChatFrame(currentChannel);
+          }
+          return;
+        }
+        if(__boostLastChannel && document.getElementById('player-mode-badge')?.innerText === 'BOOST'){
+          __boostLastChannel = null;
+          __boostLastEndTime = 0;
+          currentChannel = nextChannel || currentChannel;
+          if(currentChannel){
+            document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+            document.getElementById('player-mode-badge').innerText = nextMode || 'AUTO';
+            loadPlayerEmbed(currentChannel);
+            updateTwitchChatFrame(currentChannel);
+          }
+        }
+      }catch(_){ }
+    }
+
+    function startBoostPlayerSync(){
+      try{ if(__boostSyncTimer) clearInterval(__boostSyncTimer); }catch(_){ }
+      __boostSyncTimer = setInterval(()=>{ syncPlayerWithBoost(false); }, 15000);
     }
 
     async function cycle(dir){
@@ -3893,8 +3939,21 @@ if (yt && yt.startsWith('mp4:')){
           body:JSON.stringify({ channel })
         });
         const data = await r.json();
-        if(data && data.success && data.queued){ msg.innerText = '⏳ Demande ajoutée à la file d’attente'; }
-        else if(data && data.success){ msg.innerText = '✅ Boost activé (15 min)'; }
+        if(data && data.success && data.queued){
+          msg.innerText = '⏳ Demande ajoutée à la file d’attente';
+          setTimeout(()=>{ syncPlayerWithBoost(false); }, 1000);
+        }
+        else if(data && data.success){
+          msg.innerText = '✅ Boost activé (10 min)';
+          if(data.channel){
+            currentChannel = String(data.channel).trim().toLowerCase();
+            document.getElementById('current-channel-display').innerText = currentChannel.toUpperCase();
+            document.getElementById('player-mode-badge').innerText = 'BOOST';
+            loadPlayerEmbed(currentChannel);
+            updateTwitchChatFrame(currentChannel);
+          }
+          setTimeout(()=>{ syncPlayerWithBoost(true); }, 500);
+        }
         else { msg.innerText = '❌ Boost refusé'; }
       }catch(e){
         msg.innerText = '❌ Erreur';

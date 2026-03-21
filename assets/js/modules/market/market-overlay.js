@@ -810,26 +810,21 @@
     }
 
 
-    // Access gate (single source of truth)
-    // IMPORTANT: do NOT rely on /api/market/access here.
-    // We use /api/billing/me only, because it already reflects credits + entitlements (multi-user)
-    // and it avoids redirect loops caused by any mismatch/session issue.
+    // Access gate: only admin / paid plan / explicit market unlock / existing holdings.
+    // Mere credits are not enough to open the Marché.
     let allowed = null;
     try{
-      const r2 = await fetch('/api/billing/me', { cache:'no-store', credentials:'include' });
+      const r2 = await fetch('/api/market/access', { cache:'no-store', credentials:'include' });
       if(r2.ok){
         const j2 = await r2.json();
-        const plan = String(j2?.plan || 'free').toLowerCase();
-        const credits = Number(j2?.credits || 0);
-        const ent = j2?.entitlements || {};
-        allowed = !!j2?.is_admin || (plan === 'premium' || plan === 'pro' || plan === 'admin') || (ent.market === true) || (credits > 0);
+        allowed = !!j2?.allowed;
       }
     }catch(_){ allowed = null; }
 
-    // Never redirect to pricing here.
-    // Open the overlay and let the UI/backend explain any remaining lock state.
     if(allowed === false){
-      console.warn('Market access reported as locked, overlay opened anyway for clarity.');
+      try{ alert('Le Marché est verrouillé pour ce compte. Débloque-le depuis la page Tarifs ou avec l’accès prévu.'); }catch(_){ }
+      try{ window.location.href = '/pricing'; }catch(_){ }
+      return;
     }
     if(_open){
       try{ _open(mode); }catch(_){ _open(); }
