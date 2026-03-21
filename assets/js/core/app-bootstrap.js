@@ -250,6 +250,34 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
       setInterval(checkStatus, 15000);
     }
 
+
+function formatPlanLabel(plan){
+  const p = String(plan || 'FREE').toUpperCase();
+  if(p === 'FREE') return 'GRATUIT';
+  if(p === 'ADMIN') return 'ADMINISTRATEUR';
+  if(p === 'PREMIUM') return 'PREMIUM';
+  if(p === 'PRO') return 'PRO';
+  return p;
+}
+
+function refreshUxHelperState(data){
+  const helper = document.getElementById('ux-helper-state');
+  const adminNote = document.getElementById('ux-admin-note');
+  if(helper){
+    if(!data){
+      helper.textContent = 'Connecte ton compte Twitch pour accéder à tes crédits, au marché et aux outils avancés.';
+    } else if(data.is_admin){
+      helper.textContent = 'Compte administrateur détecté : accès complet, sans restriction, sur l’ensemble de l’application.';
+    } else {
+      const plan = formatPlanLabel(data.plan || 'FREE');
+      const credits = Number(data.credits || 0);
+      helper.textContent = `Plan actuel : ${plan} • Crédits disponibles : ${credits}. Les fonctions payantes se débloquent ici ou depuis la page Offres.`;
+    }
+  }
+  if(adminNote){
+    adminNote.classList.toggle('hidden', !(data && data.is_admin));
+  }
+}
     // AUTH
     async function checkAuth() {
       const res = await fetch(`${API_BASE}/twitch_user_status`);
@@ -270,6 +298,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
           roleBadge.classList.toggle('hidden', !data.is_admin);
           roleBadge.textContent = data.is_admin ? 'ADMINISTRATEUR' : '';
         }
+        refreshUxHelperState({ is_admin: !!data.is_admin, role: data.role || 'user' });
 
         // Billing / credits (user space)
         await loadBillingMe().catch(()=>{});
@@ -308,7 +337,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
   if(wrap) wrap.classList.remove('hidden');
 
   let credits = Number(d.credits ?? 0) || 0;
-  const plan = String((d.plan || 'FREE')).toUpperCase();
+  const plan = formatPlanLabel(d.plan || 'FREE');
 
   elCredits.textContent = String(credits);
   elPlan.textContent = plan;
@@ -387,6 +416,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
     if(openMarket) openMarket.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); if(typeof window.openMarketOverlay==='function'){ window.openMarketOverlay(); } else { window.location.href='/pricing'; } });
   }
 
+  refreshUxHelperState(d);
   window.dispatchEvent(new Event('billing:updated'));
 }
 
@@ -3591,7 +3621,7 @@ if (yt && yt.startsWith('mp4:')){
         document.getElementById('niche-sat').innerText = best?.saturation_score!=null ? `${best.saturation_score}/100` : '--';
         document.getElementById('niche-discover').innerText = best?.discoverability_score!=null ? `${best.discoverability_score}/100` : '--';
         document.getElementById('niche-position').innerText = best ? `${String(best.hour).padStart(2,'0')}h UTC` : '--';
-        document.getElementById('niche-verdict').innerText = best?.discoverability_score>=70 ? '🔥 Très bon' : best?.discoverability_score>=45 ? '✅ OK' : '🟡 Risqué';
+        document.getElementById('niche-verdict').innerText = best?.discoverability_score>=70 ? '🔥 Très bon' : best?.discoverability_score>=45 ? '✅ Analyse prête' : '🟡 Risqué';
         document.getElementById('niche-details').innerText =
           best ? `Meilleure fenêtre détectée: ${String(best.hour).padStart(2,'0')}h UTC • viewers totaux observés: ${best.total_viewers || 0}` : '—';
       }catch(e){
@@ -3632,11 +3662,11 @@ if (yt && yt.startsWith('mp4:')){
       try{
         const res = await fetch(`${API_BASE}/api/simulate/growth?channel_id=${encodeURIComponent(currentChannelId)}&hours_per_week=${encodeURIComponent(hours)}&days=30`);
         const data = await res.json();
-        if (!data.success){ out.innerText = data.message || 'Pas assez de data'; return; }
+        if (!data.success){ out.innerText = data.message || 'Données insuffisantes'; return; }
         const delta = data.target?.expected_change_percent ?? null;
         const expected = data.target?.expected_avg_viewers ?? null;
         out.innerText = (delta==null || expected==null)
-          ? 'OK'
+          ? 'Analyse prête'
           : `${delta >= 0 ? '+' : ''}${delta}% • ~${expected} avg viewers`;
       }catch(e){
         out.innerText = 'Erreur';
@@ -3675,7 +3705,7 @@ if (yt && yt.startsWith('mp4:')){
           </div>
           <div class="text-[11px] text-gray-300">${escapeHtml(best?.why || '')}</div>
           ${list.length ? `
-            <div class="mt-3 text-[11px] text-gray-400 font-bold uppercase">Autres options</div>
+            <div class="mt-3 text-[11px] text-gray-400 font-bold uppercase">Autres profils</div>
             <ul class="mt-1 text-[11px] text-gray-300 list-disc pl-5">
               ${list.slice(0,5).map(x=>`<li>${escapeHtml(x.display_name)} — score ${x.score}</li>`).join('')}
             </ul>` : '' }
@@ -3731,8 +3761,8 @@ if (yt && yt.startsWith('mp4:')){
           const g = data.game_data;
           document.getElementById('scan-img').src = g.box_art_url || '';
           document.getElementById('scan-name').innerText = `${g.name}`;
-          document.getElementById('scan-game').innerText = `Total viewers (snapshot): ${g.total_viewers||0}`;
-          document.getElementById('scan-ai').innerHTML = `<p>Score niche estimé: <strong>${g.ai_calculated_niche_score}</strong></p>`;
+          document.getElementById('scan-game').innerText = `Spectateurs totaux (instantané) : ${g.total_viewers||0}`;
+          document.getElementById('scan-ai').innerHTML = `<p>Score de niche estimé : <strong>${g.ai_calculated_niche_score}</strong></p>`;
         }
       }catch(e){
         document.getElementById('scan-ai').innerHTML = `<p style="color:#ff6666;">❌ Erreur</p>`;

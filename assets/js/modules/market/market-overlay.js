@@ -39,10 +39,16 @@
     try{
       const r = await fetch('/api/billing/me', { cache:'no-store', credentials:'include' });
       const j = await r.json();
-      if(!j?.success) return { plan:'free', credits:0 };
-      return { plan: String(j.plan||'free').toLowerCase(), credits: Number(j.credits||0) };
+      if(!j?.success) return { plan:'free', credits:0, entitlements:{}, is_admin:false, role:'user' };
+      return {
+        plan: String(j.plan||'free').toLowerCase(),
+        credits: Number(j.credits||0),
+        entitlements: j.entitlements || {},
+        is_admin: !!j.is_admin,
+        role: String(j.role || (j.is_admin ? 'admin' : 'user')).toLowerCase()
+      };
     }catch(_){
-      return { plan:'free', credits:0 };
+      return { plan:'free', credits:0, entitlements:{}, is_admin:false, role:'user' };
     }
   }
 
@@ -346,8 +352,9 @@
     if(!amount || amount<=0) return;
 
     const path = side === 'buy' ? '/api/fantasy/invest' : '/api/fantasy/sell';
-        const bill = await fetchBilling();
-    if(String(bill.plan||'free').toLowerCase()==='free' && Number(bill.credits||0)<=0){ goPricing(); return; }
+    const bill = await fetchBilling();
+    const hasMarketAccess = !!(bill.is_admin || String(bill.role||'').toLowerCase()==='admin' || ['premium','pro','admin'].includes(String(bill.plan||'free').toLowerCase()) || bill.entitlements?.market === true || Number(bill.credits||0) > 0);
+    if(!hasMarketAccess){ goPricing(); return; }
 
     await fetch(path, {
       method:'POST',
@@ -664,7 +671,8 @@
         const plan = String(j2?.plan || 'free').toLowerCase();
         const credits = Number(j2?.credits || 0);
         const ent = j2?.entitlements || {};
-        allowed = (plan === 'premium' || plan === 'pro') || (ent.market === true) || (credits > 0);
+        const isAdmin = !!j2?.is_admin || String(j2?.role || '').toLowerCase() === 'admin';
+        allowed = isAdmin || ['premium','pro','admin'].includes(plan) || (ent.market === true) || (credits > 0);
       }
     }catch(_){ allowed = null; }
 

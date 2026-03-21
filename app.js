@@ -4480,11 +4480,18 @@ const ADMIN_LOGINS = new Set(
     .map(v => String(v || '').trim().toLowerCase())
     .filter(Boolean)
 );
+const ADMIN_IDS = new Set(
+  String(process.env.ADMIN_TWITCH_IDS || '')
+    .split(',')
+    .map(v => String(v || '').trim())
+    .filter(Boolean)
+);
 
 function isAdminUser(twitchUser){
   const login = String(twitchUser?.login || '').trim().toLowerCase();
   const display = String(twitchUser?.display_name || '').trim().toLowerCase();
-  return !!(login && ADMIN_LOGINS.has(login)) || !!(display && ADMIN_LOGINS.has(display));
+  const id = String(twitchUser?.id || '').trim();
+  return !!(login && ADMIN_LOGINS.has(login)) || !!(display && ADMIN_LOGINS.has(display)) || !!(id && ADMIN_IDS.has(id));
 }
 
 function getAdminEntitlements(){

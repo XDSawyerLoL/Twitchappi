@@ -24,3 +24,11 @@
 
 ## Limite honnête
 - Je n’ai pas traduit l’intégralité de toutes les vues profondes de l’application. La zone la plus critique a été rendue plus compréhensible en français, mais une passe de francisation globale peut encore être faite sur d’autres modules secondaires.
+
+
+## Passe UX et francisation complémentaire
+- Ajout d’un bandeau d’aide en haut de l’application avec parcours guidé.
+- Renforcement du statut administrateur pour `sansahd` côté serveur et côté interface.
+- Vérification que la Bourse ne redirige plus l’administrateur vers `/pricing`.
+- Libellés principaux harmonisés en français : Bourse, Vue d’ensemble, Graphique Pro, Liste de suivi, etc.
+- Clarification visuelle de la fonction Boost et de sa logique de file d’attente.
