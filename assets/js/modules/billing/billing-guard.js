@@ -7,7 +7,7 @@
     { key: "overview", selector: "#under-overview", title: "OVERVIEW", teaser: "Vue synthèse actionnable : KPIs, signaux, état du live et priorités." },
     { key: "analytics", selector: "#under-analytics", title: "ANALYTICS PRO", teaser: "Analyse avancée : courbes, segments, performance, signaux et comparaisons." },
     { key: "niche", selector: "#under-niche", title: "NICHE", teaser: "Opportunités de niche : angles gagnants, concurrence, timing et idées de contenu." },
-    { key: "besttime", selector: ".best-time-tool", title: "BEST TIME TO STREAM", teaser: "Créneaux optimisés : meilleur ratio visibilité / concurrence + recommandations." },
+    { key: "bestTime", selector: ".best-time-tool", title: "BEST TIME TO STREAM", teaser: "Créneaux optimisés : meilleur ratio visibilité / concurrence + recommandations." },
   ];
 
   function $(sel, root=document){ return root.querySelector(sel); }
@@ -265,6 +265,7 @@
   function computeStateMe(me){
     return {
       is_connected: !!me?.is_connected,
+      is_admin: !!me?.is_admin,
       plan: me?.plan || 'free',
       credits: Number(me?.credits || 0),
       entitlements: me?.entitlements || {}
@@ -283,7 +284,7 @@
       const target = $(cfg.selector);
       if (!target) return;
 
-      const isUnlocked = (state.plan === 'premium') || (state.entitlements && state.entitlements[cfg.key] === true);
+      const isUnlocked = !!state.is_admin || (state.plan === 'premium') || (state.plan === 'pro') || (state.plan === 'admin') || (state.entitlements && (state.entitlements[cfg.key] === true || state.entitlements.besttime === true || state.entitlements.bestTime === true));
       if (isUnlocked) applyOpen(target);
       else applyLock(target, cfg, state);
     });

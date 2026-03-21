@@ -2,9 +2,11 @@
   "name": "streamerhub",
   "version": "1.0.0",
   "private": true,
-  "main": "app.js",
+  "main": "electron-main.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "desktop": "electron .",
+    "dist:win": "electron-builder --win nsis"
   },
   "engines": {
     "node": ">=20"
@@ -12,18 +14,22 @@
   "dependencies": {
     "@google/genai": "^1.0.0",
     "body-parser": "^1.20.3",
-    "cookie-parser": "^1.4.6",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "express": "^4.21.2",
     "express-rate-limit": "^7.4.1",
-    "express-session": "^1.17.3",
+    "express-session": "^1.18.1",
     "firebase-admin": "^12.5.0",
-    "helmet": "^7.1.0",
+    "helmet": "^8.1.0",
     "memorystore": "^1.6.7",
-    "node-fetch": "^2.6.12",
-    "socket.io": "^4.7.5",
+    "node-fetch": "^2.7.0",
+    "socket.io": "^4.8.1",
     "stripe": "^14.25.0",
-    "openid": "^2.0.10"
+    "openid": "^2.0.14"
+  },
+  "devDependencies": {
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3"
   }
 }

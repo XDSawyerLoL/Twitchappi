@@ -274,6 +274,7 @@ nav.querySelectorAll('.u-tab-btn').forEach(b=>b.classList.remove('active'));
         await loadBillingMe().catch(()=>{});
 
         await loadFollowed();
+        try{ await refreshBoostQueue(); }catch(_){ }
       } else {
         const roleBadge = document.getElementById('admin-badge');
         if(roleBadge) roleBadge.classList.add('hidden');
@@ -671,6 +672,28 @@ function startAuth() {
       if (!el) return;
       el.addEventListener('wheel',(evt)=>{ evt.preventDefault(); el.scrollLeft += evt.deltaY; }, { passive:false });
     }
+
+
+    async function refreshBoostQueue(){
+      const box = document.getElementById('boost-queue');
+      if(!box) return;
+      box.innerHTML = '<div class="text-gray-500">Chargement…</div>';
+      try{
+        const r = await fetch(`${API_BASE}/boost_queue`, { credentials:'include' });
+        const j = await r.json().catch(()=>null);
+        const items = Array.isArray(j?.items) ? j.items : [];
+        if(!items.length){ box.innerHTML = 'Aucune demande pour le moment.'; return; }
+        box.innerHTML = items.map((it, idx)=>{
+          const avatar = it.avatar || it.profile_image_url || '/assets/img/vod-fallback.png';
+          const requester = it.requester || it.user || 'Utilisateur';
+          const target = it.channel || it.streamer || '—';
+          return `<div class="boost-queue-item"><img class="boost-queue-avatar" src="${avatar}" onerror="this.src='/assets/img/vod-fallback.png'"/><div><div class="text-white text-[12px] font-bold">#${idx+1} ${String(target).toUpperCase()}</div><div class="text-[11px] text-gray-400">Demandé par ${requester}</div></div></div>`;
+        }).join('');
+      }catch(_){
+        box.innerHTML = 'Impossible de charger la file d’attente.';
+      }
+    }
+    window.refreshBoostQueue = refreshBoostQueue;
 
     async function loadFollowed(){
       const el = document.getElementById('carousel');

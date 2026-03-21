@@ -2652,6 +2652,10 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
   #chat-container-twitch iframe{min-height:320px;}
   #carousel{min-height:160px;}
   #user-area{align-items:center;}
+#boost-queue .boost-queue-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);}
+#boost-queue .boost-queue-item:last-child{border-bottom:none;}
+#boost-queue .boost-queue-avatar{width:28px;height:28px;border-radius:999px;object-fit:cover;border:1px solid rgba(255,255,255,.12);background:#111;}
+
 </style>
 
 </head>
@@ -2956,69 +2960,73 @@ body.tf-bigpicture #twitflix-modal .tf-row-track::-webkit-scrollbar-track{ backg
 </div>
 </div>
 </div>
-<div class="tab-content bg-[#0b0b0d]" id="tab-tools"><div class="tools-scroll p-4 space-y-6 scrollbar-thin">
-<div class="best-time-tool" data-paywall data-paywall-feature="best_time" data-paywall-title="Best Time to Stream" data-paywall-desc="Prédit les meilleurs horaires selon le jeu, tendances et audiences.">
-<h4>🎯 BEST TIME TO STREAM</h4>
-<input id="best-time-game" placeholder="Jeu ex: League of Legends..." type="text"/>
-<button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
-<div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
-<span class="best-time-spinner"></span>Analyse en cours...
+<div class="tab-content bg-[#0b0b0d]" id="tab-tools">
+  <div class="tools-scroll p-4 scrollbar-thin">
+    <div class="best-time-tool" data-paywall data-paywall-feature="best_time" data-paywall-title="Best Time to Stream" data-paywall-desc="Prédit les meilleurs horaires selon le jeu, tendances et audiences.">
+      <h4>🎯 BEST TIME TO STREAM</h4>
+      <input id="best-time-game" placeholder="Jeu ex: League of Legends..." type="text"/>
+      <button id="analyze-schedule-btn" onclick="analyzeBestTime()"><i class="fas fa-clock"></i> ANALYSER</button>
+      <div id="best-time-loading" style="display:none; text-align:center; margin-top:10px; color:#00f2ea;">
+        <span class="best-time-spinner"></span>Analyse en cours...
+      </div>
+      <div class="best-time-results" id="best-time-results" style="display:none;"></div>
+    </div>
+
+    <div class="scanner-tool">
+      <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
+      <div class="flex gap-2 mb-3">
+        <input class="cyber-input" id="scan-query" placeholder="Pseudo ex: ZeratoR" type="text"/>
+        <button class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white" onclick="runScan()"><i class="fas fa-search"></i></button>
+      </div>
+      <div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="scan-res">
+        <div class="flex gap-3 items-center mb-3">
+          <img class="w-12 h-12 rounded-full border border-[#00f2ea]" id="scan-img" src=""/>
+          <div>
+            <div class="font-bold text-white" id="scan-name">--</div>
+            <div class="text-xs text-gray-500" id="scan-game">--</div>
           </div>
-<div class="best-time-results" id="best-time-results" style="display:none;"></div>
-</div>
-<div class="scanner-tool">
-<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">SCANNER IA</h3>
-<div class="flex gap-2 mb-3">
-<input class="cyber-input" id="scan-query" placeholder="Pseudo ex: ZeratoR" type="text"/>
-<button class="bg-[#00f2ea] text-black px-4 rounded font-bold hover:bg-white" onclick="runScan()">
-<i class="fas fa-search"></i>
-</button>
-</div>
-<div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="scan-res">
-<div class="flex gap-3 items-center mb-3">
-<img class="w-12 h-12 rounded-full border border-[#00f2ea]" id="scan-img" src=""/>
-<div>
-<div class="font-bold text-white" id="scan-name">--</div>
-<div class="text-xs text-gray-500" id="scan-game">--</div>
-</div>
-</div>
-<div class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto" id="scan-ai"></div>
-</div>
-</div>
+        </div>
+        <div class="text-xs text-gray-300 leading-relaxed max-h-40 overflow-y-auto" id="scan-ai"></div>
+      </div>
+    </div>
 
-</div>
-<div>
-<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">RAID FINDER</h3>
-<div class="flex gap-2 mb-3">
-<input class="cyber-input" id="raid-game" placeholder="Jeu ex: League" type="text"/>
-<input class="cyber-input" id="raid-viewers" placeholder="Max viewers" type="number" value="100"/>
-</div>
-<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3" onclick="runRaid()">🔍 CHERCHER</button>
-<div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="raid-res">
-<img class="w-full h-40 rounded mb-3 object-cover" id="raid-img" src=""/>
-<div class="text-xs text-gray-300" id="raid-info"></div>
-<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white" id="raid-btn" onclick="goToRaid()">🎮 ALLER AU RAID</button>
-</div>
-</div>
-<div data-paywall data-paywall-feature="costream_match" data-paywall-title="Co‑Stream Match" data-paywall-desc="Trouve un co‑streamer compatible (jeu / langue / taille).">
-<h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
-<div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu/langue/taille).</div>
-<button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="costream-btn" onclick="loadCoStreamer()">
-            🤝 TROUVER
-          </button>
-<div class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" id="costream-out" style="display:none;"></div>
-</div>
-<div>
-<h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST</h3>
-<input class="cyber-input mb-2" id="boost-query" placeholder="Chaîne..." type="text"/>
-<button class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition" onclick="runBoost()">ACTIVER</button>
-<div class="text-center text-xs mt-2 text-green-400" id="boost-msg"></div>
+    <div>
+      <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">ASSISTANT RAID</h3>
+      <div class="flex gap-2 mb-3">
+        <input class="cyber-input" id="raid-game" placeholder="Jeu ex: League" type="text"/>
+        <input class="cyber-input" id="raid-viewers" placeholder="Max viewers" type="number" value="100"/>
+      </div>
+      <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white mb-3" onclick="runRaid()">🔍 CHERCHER</button>
+      <div class="hidden bg-[#151515] p-3 rounded border border-[#222]" id="raid-res">
+        <img class="w-full h-40 rounded mb-3 object-cover" id="raid-img" src=""/>
+        <div class="text-xs text-gray-300" id="raid-info"></div>
+        <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold mt-2 hover:bg-white" id="raid-btn" onclick="goToRaid()">🎮 ALLER AU RAID</button>
+      </div>
+    </div>
 
+    <div data-paywall data-paywall-feature="costream_match" data-paywall-title="Co‑Stream Match" data-paywall-desc="Trouve un co‑streamer compatible (jeu / langue / taille).">
+      <h3 class="text-[#00f2ea] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">CO-STREAM MATCH</h3>
+      <div class="text-xs text-gray-400 mb-2">Trouve un co-streamer compatible (jeu, langue, taille).</div>
+      <button class="w-full bg-[#00f2ea] text-black py-2 rounded font-bold hover:bg-white text-xs font-orbitron" id="costream-btn" onclick="loadCoStreamer()">🤝 TROUVER</button>
+      <div class="mt-3 bg-[#151515] p-3 rounded border border-[#222]" id="costream-out" style="display:none;"></div>
+    </div>
 
+    <div>
+      <h3 class="text-[#ff0099] font-orbitron text-sm mb-3 border-b border-[#222] pb-2">BOOST STREAMER</h3>
+      <div class="text-xs text-gray-400 mb-2">Choisis un streamer Twitch à mettre en avant. Si un boost est déjà actif, la demande part en file d’attente.</div>
+      <input class="cyber-input mb-2" id="boost-query" placeholder="Pseudo Twitch du streamer à booster" type="text"/>
+      <button class="w-full bg-[#ff0099] text-white py-2 rounded font-bold font-orbitron hover:bg-white hover:text-black transition" onclick="runBoost()">ENVOYER LA DEMANDE</button>
+      <div class="text-center text-xs mt-2 text-green-400" id="boost-msg"></div>
+      <div class="mt-3 bg-[#151515] p-3 rounded border border-[#222]">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-[11px] font-bold text-white/80 uppercase">File d’attente boost</div>
+          <button type="button" class="text-[11px] text-[#ff0099] hover:text-white" onclick="window.refreshBoostQueue && window.refreshBoostQueue()">Actualiser</button>
+        </div>
+        <div id="boost-queue" class="text-xs text-gray-400">Aucune demande pour le moment.</div>
+      </div>
+    </div>
+  </div>
 </div>
-</div>
-</div>
-</div></div>
 </div>
 </div>
 <div class="tf-modal-overlay" id="twitflix-modal">

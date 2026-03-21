@@ -3365,6 +3365,8 @@ app.post('/stream_boost', async (req, res) => {
   try {
     await db.collection('boosts').add({
       channel,
+      requester: String(req.session?.twitchUser?.login || req.session?.twitchUser?.display_name || 'Utilisateur'),
+      avatar: String(req.session?.twitchUser?.profile_image_url || ''),
       startTime: now,
       endTime: now + 900000 // 15 min
     });
@@ -3376,6 +3378,25 @@ app.post('/stream_boost', async (req, res) => {
     res.status(500).json({ success:false, error: "Erreur DB" });
   }
 });
+
+app.get('/boost_queue', async (req, res) => {
+  try{
+    if(!firestoreOk){ return res.json({ success:true, items: [] }); }
+    const snap = await db.collection('boosts').orderBy('startTime','desc').limit(10).get();
+    const items = snap.docs.map(d=>{
+      const x = d.data() || {};
+      return {
+        channel: x.channel || '',
+        requester: x.requester || x.user || 'Utilisateur',
+        avatar: x.avatar || x.profile_image_url || ''
+      };
+    });
+    return res.json({ success:true, items });
+  }catch(e){
+    return res.status(500).json({ success:false, error:e.message, items: [] });
+  }
+});
+
 
 // =========================================================
 // 6. STATS
@@ -4542,7 +4563,7 @@ async function getBillingDoc(twitchUser){
 
 async function updateBillingCredits(twitchUser, delta){
   if(!firestoreOk) return;
-  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const id = resolveBillingDocId(twitchUser);
   const ref = db.collection(BILLING_USERS).doc(id);
   await ref.set({
     credits: admin.firestore.FieldValue.increment(Number(delta||0)),
@@ -4553,7 +4574,7 @@ async function updateBillingCredits(twitchUser, delta){
 
 async function setBillingCreditsAbsolute(twitchUser, credits){
   if(!firestoreOk) return;
-  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const id = resolveBillingDocId(twitchUser);
   const ref = db.collection(BILLING_USERS).doc(id);
   await ref.set({
     credits: Number(credits||0),
@@ -4563,7 +4584,7 @@ async function setBillingCreditsAbsolute(twitchUser, credits){
 
 async function setBillingPlan(twitchUser, plan){
   if(!firestoreOk) return;
-  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const id = resolveBillingDocId(twitchUser);
   const ref = db.collection(BILLING_USERS).doc(id);
   await ref.set({
     plan: String(plan||'free'),
@@ -4575,7 +4596,7 @@ async function setBillingPlan(twitchUser, plan){
 async function setBillingSteam(twitchUser, steam){
   if(!firestoreOk) return;
   if(!twitchUser) return;
-  const id = String(twitchUser.id || twitchUser.login || twitchUser.display_name || 'unknown');
+  const id = resolveBillingDocId(twitchUser);
   const ref = db.collection(BILLING_USERS).doc(id);
   if(!steam){
     await ref.set({ steam: admin.firestore.FieldValue.delete(), updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge:true });
