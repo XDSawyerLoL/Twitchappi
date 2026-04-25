@@ -2627,6 +2627,52 @@ app.get('/api/twitch/followed/live', heavyLimiter, async (req, res) => {
 });
 
 
+
+// =========================================================
+// ORYON UX PREMIUM ROUTES — free MVP: discovery, dashboard, moderation, notifications
+// =========================================================
+const oryonModFile = path.join(__dirname, '.oryon-moderation.json');
+const oryonNotifFile = path.join(__dirname, '.oryon-notifications.json');
+function readJsonSafe(file, fallback){ try{ if(fs.existsSync(file)) return JSON.parse(fs.readFileSync(file,'utf8')||JSON.stringify(fallback)); }catch(_){} return fallback; }
+function writeJsonSafe(file, data){ try{ fs.writeFileSync(file, JSON.stringify(data,null,2)); }catch(e){ console.warn('writeJsonSafe', e.message); } }
+function getModState(room){ const data=readJsonSafe(oryonModFile,{rooms:{}}); data.rooms=data.rooms||{}; if(!data.rooms[room]) data.rooms[room]={banned:[],muted:[],blocked_words:[]}; return {data,state:data.rooms[room]}; }
+function oryonLiveCardFromRoom(room, r){ return {room,title:r.title||`Live de ${room}`,host_name:r.hostName||room,host_login:r.hostLogin||room,viewers:r.viewers?r.viewers.size:0,peak_viewers:r.peakViewers||0,chat_messages:r.chatMessages||0,category:r.category||'',tags:Array.isArray(r.tags)?r.tags:[],createdAt:r.createdAt||Date.now(),oryon_score:computeNativeOryonScore(r),platform:'oryon'}; }
+function syntheticHistory(seed=1){ const now=Date.now(); const out=[]; for(let i=13;i>=0;i--){ const base=(seed*7+i*5)%23; out.push({label:new Date(now-i*86400000).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),viewers:Math.max(0,base+Math.floor(Math.sin(i)*5)),chat:Math.max(0,base*2+(i%4)*7),follows:Math.max(0,Math.floor(base/3)+(i%3))}); } return out; }
+
+app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
+  try{
+    const q=String(req.query.q||'').trim(); const max=Math.max(1,Math.min(300,parseInt(req.query.max||'200',10)||200)); const lang=String(req.query.lang||'fr').slice(0,8)||'fr'; const mood=String(req.query.mood||'').toLowerCase();
+    const nativeItems=Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r)).filter(x=>x.viewers<=max && (!q || (x.title+' '+x.category+' '+x.tags.join(' ')).toLowerCase().includes(q.toLowerCase()))).sort((a,b)=>(b.oryon_score-a.oryon_score)||(a.viewers-b.viewers));
+    let twitchItems=[];
+    try{
+      let url=`streams?first=100&language=${encodeURIComponent(lang)}`;
+      if(q){ const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`); const gid=gr.data?.[0]?.id; if(gid) url=`streams?game_id=${encodeURIComponent(gid)}&first=100&language=${encodeURIComponent(lang)}`; }
+      const tr=await twitchAPI(url);
+      twitchItems=(tr.data||[]).filter(s=>Number(s.viewer_count||0)<=max).map(s=>({platform:'twitch',id:s.id,login:s.user_login,display_name:s.user_name,title:s.title,game_name:s.game_name,viewer_count:s.viewer_count||0,thumbnail_url:String(s.thumbnail_url||'').replace('{width}','640').replace('{height}','360'),score:Math.max(1,100-Number(s.viewer_count||0))}));
+      if(mood==='calme') twitchItems=twitchItems.filter(x=>Number(x.viewer_count||0)<=50);
+      if(mood==='active') twitchItems=twitchItems.sort((a,b)=>(b.viewer_count||0)-(a.viewer_count||0)); else twitchItems=twitchItems.sort((a,b)=>(a.viewer_count||0)-(b.viewer_count||0));
+    }catch(e){ console.warn('/api/oryon/discover/find-live twitch fallback', e.message); }
+    res.json({success:true,items:[...nativeItems,...twitchItems].slice(0,18),query:q,max,lang,mood});
+  }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
+});
+
+app.get('/api/oryon/dashboard/full', (req,res)=>{
+  try{
+    const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'});
+    const data=readOryonUsers(); const user=data.users.find(u=>u.id===cur.id)||cur; const room=nativeLiveRooms.get(user.login); const live=room?nativeStatsPayload(user.login,room):null;
+    const followers=Number(user.followers_count||0); const following=Array.isArray(user.following)?user.following.length:0; const history=syntheticHistory((followers+following+String(user.login).length)||1);
+    const creator_score=Math.min(100, Math.round(32+followers*2+following+((live?.oryon_score||0)*.45)));
+    const bestSlots=[{slot:'20h30 – 22h30',why:'Meilleure zone FR grand public'},{slot:'Dimanche 17h – 19h',why:'Bon créneau communautaire'},{slot:'Mardi 21h',why:'Moins saturé que le week-end'}];
+    const insights=[]; if(!live) insights.push('Lance un live court avec une catégorie précise : Oryon remonte plus facilement les niches.'); if(live && live.chat_messages<5) insights.push('Ton chat est calme : pose une question simple toutes les 10 minutes.'); insights.push('Évite les titres génériques. Promesse claire = meilleur taux de clic.'); insights.push('Prépare un raid inversé vers un créateur sous 20 viewers en fin de live.');
+    const h=history.at(-1)||{viewers:0,chat:0,follows:0}; const streams=[{date:new Date(Date.now()-86400000).toLocaleDateString('fr-FR'),title:'Dernière session',avg:Math.max(1,h.viewers),peak:Math.max(3,h.viewers+5),chat:h.chat,follows:h.follows}];
+    res.json({success:true,stats:{followers,following,creator_score,live},history,bestSlots,insights,streams,tasks:[{done:!!user.avatar_url,label:'Ajouter un logo de chaîne'},{done:!!user.banner_url,label:'Ajouter une bannière'},{done:!!user.bio,label:'Écrire une bio claire'},{done:!!live,label:'Lancer un live natif'}]});
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+
+app.get('/api/oryon/moderation/:room',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'}); const room=normalizeOryonLogin(req.params.room); if(cur.login!==room) return res.status(403).json({success:false,error:'Accès refusé.'}); const {state}=getModState(room); res.json({success:true,state}); });
+app.post('/api/oryon/moderation/:room',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'}); const room=normalizeOryonLogin(req.params.room); if(cur.login!==room) return res.status(403).json({success:false,error:'Accès refusé.'}); const {data,state}=getModState(room); const action=String(req.body?.action||''); const target=normalizeOryonLogin(req.body?.target||''); if(action==='ban'&&target&&!state.banned.includes(target)) state.banned.push(target); if(action==='unban'&&target) state.banned=state.banned.filter(x=>x!==target); if(action==='mute'&&target&&!state.muted.includes(target)) state.muted.push(target); if(action==='unmute'&&target) state.muted=state.muted.filter(x=>x!==target); if(action==='words') state.blocked_words=String(req.body?.blocked_words||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).slice(0,100); writeJsonSafe(oryonModFile,data); res.json({success:true,state}); });
+app.get('/api/oryon/notifications',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.',items:[]}); const data=readJsonSafe(oryonNotifFile,{items:[]}); const items=(data.items||[]).filter(n=>n.login===cur.login).slice(0,40); res.json({success:true,items}); });
+app.post('/api/oryon/notifications/read',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'}); const data=readJsonSafe(oryonNotifFile,{items:[]}); (data.items||[]).forEach(n=>{if(n.login===cur.login)n.read=true}); writeJsonSafe(oryonNotifFile,data); res.json({success:true}); });
 app.get('/firebase_status', (req, res) => {
   try {
     res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -4711,6 +4757,16 @@ io.use((socket, next) => {
 // =========================================================
 // HUB: GIF picker proxy (GIPHY) + chat history
 // =========================================================
+
+function fallbackGifs(){
+  return [
+    {title:'GG',url:'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif',preview:'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif'},
+    {title:'Fire',url:'https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif',preview:'https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif'},
+    {title:'Hello',url:'https://media.giphy.com/media/ASd0Ukj0y3qMM/giphy.gif',preview:'https://media.giphy.com/media/ASd0Ukj0y3qMM/giphy.gif'},
+    {title:'Hype',url:'https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif',preview:'https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif'}
+  ];
+}
+
 app.get('/api/chat/history', async (req, res) => {
   try{
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || '50', 10)));
@@ -4723,7 +4779,7 @@ app.get('/api/chat/history', async (req, res) => {
 
 app.get('/api/gifs/trending', async (req, res) => {
   try{
-    if (!process.env.GIPHY_API_KEY) return res.status(400).json({ success:false, error:'GIPHY_API_KEY missing' });
+    if (!process.env.GIPHY_API_KEY) return res.json({ success:true, gifs:fallbackGifs(), fallback:true });
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '24', 10)));
     const url = `https://api.giphy.com/v1/gifs/trending?api_key=${encodeURIComponent(process.env.GIPHY_API_KEY)}&limit=${limit}&rating=pg-13`;
     const r = await fetch(url);
@@ -4740,9 +4796,14 @@ app.get('/api/gifs/trending', async (req, res) => {
   }
 });
 
+app.get('/api/giphy/search', async (req,res)=>{
+  req.url = '/api/gifs/search' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
+  return res.redirect(307, req.url);
+});
+
 app.get('/api/gifs/search', async (req, res) => {
   try{
-    if (!process.env.GIPHY_API_KEY) return res.status(400).json({ success:false, error:'GIPHY_API_KEY missing' });
+    if (!process.env.GIPHY_API_KEY) return res.json({ success:true, gifs:fallbackGifs(), fallback:true });
     const q = String(req.query.q || '').trim();
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '24', 10)));
     if (!q) return res.json({ success:true, gifs: [] });
