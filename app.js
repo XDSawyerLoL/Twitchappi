@@ -2515,6 +2515,8 @@ app.post('/api/oryon/profile', (req, res) => {
     user.banner_url = String(req.body?.banner_url || '').trim().slice(0,5000000);
     user.language = String(req.body?.language || user.language || 'fr').trim().slice(0,16);
     user.content_rating = String(req.body?.content_rating || user.content_rating || 'general').trim().slice(0,30);
+    user.tags = safeTags(req.body?.tags || user.tags || []);
+    user.raid_ready = String(req.body?.raid_ready || '').toLowerCase() === 'true' || !!user.raid_ready;
     user.updatedAt = Date.now();
     writeOryonUsers(data);
     req.session.oryonUser = publicOryonUser(user);
@@ -2673,6 +2675,84 @@ app.get('/api/oryon/moderation/:room',(req,res)=>{ const cur=req.session?.oryonU
 app.post('/api/oryon/moderation/:room',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'}); const room=normalizeOryonLogin(req.params.room); if(cur.login!==room) return res.status(403).json({success:false,error:'Accès refusé.'}); const {data,state}=getModState(room); const action=String(req.body?.action||''); const target=normalizeOryonLogin(req.body?.target||''); if(action==='ban'&&target&&!state.banned.includes(target)) state.banned.push(target); if(action==='unban'&&target) state.banned=state.banned.filter(x=>x!==target); if(action==='mute'&&target&&!state.muted.includes(target)) state.muted.push(target); if(action==='unmute'&&target) state.muted=state.muted.filter(x=>x!==target); if(action==='words') state.blocked_words=String(req.body?.blocked_words||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).slice(0,100); writeJsonSafe(oryonModFile,data); res.json({success:true,state}); });
 app.get('/api/oryon/notifications',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.',items:[]}); const data=readJsonSafe(oryonNotifFile,{items:[]}); const items=(data.items||[]).filter(n=>n.login===cur.login).slice(0,40); res.json({success:true,items}); });
 app.post('/api/oryon/notifications/read',(req,res)=>{ const cur=req.session?.oryonUser; if(!cur?.id) return res.status(401).json({success:false,error:'Compte Oryon requis.'}); const data=readJsonSafe(oryonNotifFile,{items:[]}); (data.items||[]).forEach(n=>{if(n.login===cur.login)n.read=true}); writeJsonSafe(oryonNotifFile,data); res.json({success:true}); });
+
+
+// =========================================================
+// ORYON FOUNDATION — admin, teams, onboarding, planning, leveling, anti-farm
+// JSON local for MVP; ready to migrate to Supabase/PostgreSQL with DATABASE_URL.
+// =========================================================
+const ORYON_TEAMS_FILE = path.join(__dirname, '.oryon-teams.json');
+const ORYON_PLANNING_FILE = path.join(__dirname, '.oryon-planning.json');
+const ORYON_PROGRESS_FILE = path.join(__dirname, '.oryon-progress.json');
+const ORYON_EVENTS_FILE = path.join(__dirname, '.oryon-events.json');
+const ORYON_ADMIN_FILE = path.join(__dirname, '.oryon-admin-log.json');
+function oryonRead(file, fallback){ return readJsonSafe(file, fallback); }
+function oryonWrite(file, data){ return writeJsonSafe(file, data); }
+function requireOryon(req,res){ const cur=req.session?.oryonUser; if(!cur?.id){ res.status(401).json({success:false,error:'Compte Oryon requis.'}); return null; } return cur; }
+function adminLogins(){ return String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || '').split(',').map(normalizeOryonLogin).filter(Boolean); }
+function isOryonAdmin(req){ const cur=req.session?.oryonUser; const tw=req.session?.twitchUser; if(cur?.login && adminLogins().includes(cur.login)) return true; if(tw && (!tw.expiry || tw.expiry > Date.now()) && isAdminTwitchUser(tw)) return true; return false; }
+function slugifyOryon(v){ return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48) || crypto.randomBytes(4).toString('hex'); }
+function safeTags(v){ if(Array.isArray(v)) return v.map(x=>String(x).trim().toLowerCase()).filter(Boolean).slice(0,12); return String(v||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).slice(0,12); }
+function pushOryonEvent(type, actor, payload={}){ const data=oryonRead(ORYON_EVENTS_FILE,{events:[]}); data.events=Array.isArray(data.events)?data.events:[]; data.events.unshift({id:crypto.randomBytes(8).toString('hex'),type,actor:actor||'system',payload,ts:Date.now()}); data.events=data.events.slice(0,1000); oryonWrite(ORYON_EVENTS_FILE,data); }
+function progressFor(login){ const data=oryonRead(ORYON_PROGRESS_FILE,{users:{}}); data.users=data.users||{}; if(!data.users[login]) data.users[login]={points:0,claimed:[],history:[],level:1}; return {data, progress:data.users[login]}; }
+function creatorLevel(points){ const thresholds=[0,60,150,300,550,900,1400,2100,3000,4200]; let lvl=1; thresholds.forEach((t,i)=>{ if(points>=t) lvl=i+1; }); return Math.min(10,lvl); }
+function getCreatorObjectives(user){
+  const room = nativeLiveRooms.get(user.login);
+  const teams = oryonRead(ORYON_TEAMS_FILE,{teams:[]}).teams||[];
+  const mine = teams.find(t => (t.members||[]).some(m=>m.login===user.login));
+  const live = room ? nativeStatsPayload(user.login, room) : null;
+  return [
+    {id:'profile_avatar',label:'Ajouter un logo de chaîne',points:30,done:!!user.avatar_url},
+    {id:'profile_banner',label:'Ajouter une bannière',points:30,done:!!user.banner_url},
+    {id:'profile_bio',label:'Écrire une bio claire',points:25,done:String(user.bio||'').trim().length>=20},
+    {id:'tags',label:'Choisir au moins 3 tags',points:25,done:(Array.isArray(user.tags)?user.tags:[]).length>=3},
+    {id:'first_live',label:'Lancer un premier live natif',points:60,done:!!room || !!user.has_launched_live},
+    {id:'chat_10',label:'Atteindre 10 messages de tchat sur un live',points:80,done:Number(live?.chat_messages||user.best_chat_messages||0)>=10},
+    {id:'first_follow',label:'Obtenir ton premier follow Oryon',points:60,done:Number(user.followers_count||0)>=1},
+    {id:'team_join',label:'Créer ou rejoindre une équipe gratuite',points:50,done:!!mine},
+    {id:'planning',label:'Planifier ton prochain live',points:40,done:(oryonRead(ORYON_PLANNING_FILE,{items:[]}).items||[]).some(x=>x.login===user.login && Number(x.when)>Date.now())},
+    {id:'raid_inverse',label:'Préparer un raid inversé vers un petit créateur',points:70,done:!!user.raid_ready}
+  ];
+}
+function publicTeam(t){ return {id:t.id, slug:t.slug, name:t.name, description:t.description||'', logo_url:t.logo_url||'', banner_url:t.banner_url||'', tags:t.tags||[], members:t.members||[], createdAt:t.createdAt||null, points:Number(t.points||0)}; }
+
+app.get('/api/oryon/foundation/status', (req,res)=>{
+  res.json({success:true, persistence:{mode:process.env.DATABASE_URL?'postgres-ready':'json-local', databaseUrlConfigured:!!process.env.DATABASE_URL, note:process.env.DATABASE_URL?'DATABASE_URL présent. Migration Postgres/Supabase prête à brancher.':'MVP en JSON local. Ajoute DATABASE_URL pour Supabase/PostgreSQL.'}, limits:{maxNativeViewers:Number(process.env.MAX_NATIVE_VIEWERS||300)}, admin:{configured:adminLogins().length>0 || !!process.env.ADMIN_TWITCH_LOGINS}});
+});
+
+app.get('/api/oryon/tags', (req,res)=>{
+  res.json({success:true, tags:['fr','chill','rp','discussion','indé','débutant accepté','communauté calme','sans spoilers','compétitif','créatif','coop','horreur','rpg','fps','retro','famille','late night','découverte']});
+});
+
+app.get('/api/oryon/onboarding', (req,res)=>{
+  const cur=requireOryon(req,res); if(!cur) return;
+  const data=readOryonUsers(); const user=data.users.find(u=>u.id===cur.id)||cur;
+  res.json({success:true,onboarding:user.onboarding||null, completed:!!user.onboarding_completed, user:publicOryonUser(user)});
+});
+app.post('/api/oryon/onboarding', (req,res)=>{
+  const cur=requireOryon(req,res); if(!cur) return;
+  const data=readOryonUsers(); const user=data.users.find(u=>u.id===cur.id); if(!user) return res.status(404).json({success:false,error:'Utilisateur introuvable.'});
+  user.onboarding={intent:String(req.body?.intent||'both').slice(0,20), moods:safeTags(req.body?.moods), categories:safeTags(req.body?.categories), maxViewers:Math.max(20,Math.min(300,Number(req.body?.maxViewers||200)))};
+  user.onboarding_completed=true; user.tags=Array.from(new Set([...(user.tags||[]),...user.onboarding.moods,...user.onboarding.categories])).slice(0,12); user.updatedAt=Date.now();
+  writeOryonUsers(data); req.session.oryonUser=publicOryonUser(user); req.session.save(()=>res.json({success:true,user:publicOryonUser(user),onboarding:user.onboarding}));
+});
+
+app.get('/api/oryon/teams', (req,res)=>{ const data=oryonRead(ORYON_TEAMS_FILE,{teams:[]}); res.json({success:true,items:(data.teams||[]).map(publicTeam)}); });
+app.post('/api/oryon/teams', (req,res)=>{ const cur=requireOryon(req,res); if(!cur) return; const data=oryonRead(ORYON_TEAMS_FILE,{teams:[]}); data.teams=data.teams||[]; const name=String(req.body?.name||'').trim().slice(0,60); if(name.length<3) return res.status(400).json({success:false,error:'Nom d’équipe trop court.'}); const slug=slugifyOryon(name); if(data.teams.some(t=>t.slug===slug)) return res.status(409).json({success:false,error:'Cette équipe existe déjà.'}); const team={id:crypto.randomBytes(10).toString('hex'),slug,name,description:String(req.body?.description||'').trim().slice(0,600),logo_url:String(req.body?.logo_url||'').slice(0,2000000),banner_url:String(req.body?.banner_url||'').slice(0,5000000),tags:safeTags(req.body?.tags),members:[{login:cur.login,display_name:cur.display_name||cur.login,role:'fondateur',joinedAt:Date.now()}],points:0,createdAt:Date.now()}; data.teams.unshift(team); oryonWrite(ORYON_TEAMS_FILE,data); pushOryonEvent('team_created',cur.login,{slug}); res.json({success:true,team:publicTeam(team)}); });
+app.get('/api/oryon/teams/:slug', (req,res)=>{ const slug=slugifyOryon(req.params.slug); const data=oryonRead(ORYON_TEAMS_FILE,{teams:[]}); const team=(data.teams||[]).find(t=>t.slug===slug); if(!team) return res.status(404).json({success:false,error:'Équipe introuvable.'}); const lives=Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r)).filter(l=>(team.members||[]).some(m=>m.login===l.host_login)); res.json({success:true,team:publicTeam(team),live_members:lives}); });
+app.post('/api/oryon/teams/:slug/join', (req,res)=>{ const cur=requireOryon(req,res); if(!cur) return; const slug=slugifyOryon(req.params.slug); const data=oryonRead(ORYON_TEAMS_FILE,{teams:[]}); const team=(data.teams||[]).find(t=>t.slug===slug); if(!team) return res.status(404).json({success:false,error:'Équipe introuvable.'}); team.members=team.members||[]; if(!team.members.some(m=>m.login===cur.login)) team.members.push({login:cur.login,display_name:cur.display_name||cur.login,role:'membre',joinedAt:Date.now()}); oryonWrite(ORYON_TEAMS_FILE,data); pushOryonEvent('team_joined',cur.login,{slug}); res.json({success:true,team:publicTeam(team)}); });
+app.post('/api/oryon/teams/:slug/leave', (req,res)=>{ const cur=requireOryon(req,res); if(!cur) return; const slug=slugifyOryon(req.params.slug); const data=oryonRead(ORYON_TEAMS_FILE,{teams:[]}); const team=(data.teams||[]).find(t=>t.slug===slug); if(!team) return res.status(404).json({success:false,error:'Équipe introuvable.'}); team.members=(team.members||[]).filter(m=>m.login!==cur.login); oryonWrite(ORYON_TEAMS_FILE,data); pushOryonEvent('team_left',cur.login,{slug}); res.json({success:true,team:publicTeam(team)}); });
+
+app.get('/api/oryon/planning', (req,res)=>{ const login=normalizeOryonLogin(req.query.login||''); const data=oryonRead(ORYON_PLANNING_FILE,{items:[]}); let items=data.items||[]; if(login) items=items.filter(x=>x.login===login); res.json({success:true,items:items.sort((a,b)=>Number(a.when)-Number(b.when)).slice(0,80)}); });
+app.post('/api/oryon/planning', (req,res)=>{ const cur=requireOryon(req,res); if(!cur) return; const when=Date.parse(String(req.body?.when||'')); if(!Number.isFinite(when)) return res.status(400).json({success:false,error:'Date invalide.'}); const data=oryonRead(ORYON_PLANNING_FILE,{items:[]}); data.items=data.items||[]; const item={id:crypto.randomBytes(8).toString('hex'),login:cur.login,display_name:cur.display_name||cur.login,title:String(req.body?.title||'Live prévu').trim().slice(0,100),category:String(req.body?.category||'').trim().slice(0,60),tags:safeTags(req.body?.tags),when,createdAt:Date.now()}; data.items.unshift(item); oryonWrite(ORYON_PLANNING_FILE,data); res.json({success:true,item}); });
+app.delete('/api/oryon/planning/:id', (req,res)=>{ const cur=requireOryon(req,res); if(!cur) return; const data=oryonRead(ORYON_PLANNING_FILE,{items:[]}); const before=(data.items||[]).length; data.items=(data.items||[]).filter(x=>!(x.id===req.params.id && x.login===cur.login)); oryonWrite(ORYON_PLANNING_FILE,data); res.json({success:true,deleted:before-data.items.length}); });
+
+app.get('/api/oryon/creator/progression', (req,res)=>{ const cur=requireOryon(req,res); if(!cur) return; const data=readOryonUsers(); const user=data.users.find(u=>u.id===cur.id)||cur; const {progress}=progressFor(user.login); const objectives=getCreatorObjectives(user); const unclaimed=objectives.filter(o=>o.done && !progress.claimed.includes(o.id)); const points=Number(progress.points||0); res.json({success:true,points,level:creatorLevel(points),nextLevelAt:[0,60,150,300,550,900,1400,2100,3000,4200][creatorLevel(points)]||null,objectives,unclaimed,history:progress.history||[]}); });
+app.post('/api/oryon/creator/progression/claim', (req,res)=>{ const cur=requireOryon(req,res); if(!cur) return; const dataUsers=readOryonUsers(); const user=dataUsers.users.find(u=>u.id===cur.id)||cur; const {data,progress}=progressFor(user.login); const objectives=getCreatorObjectives(user); const claimable=objectives.filter(o=>o.done && !progress.claimed.includes(o.id)); let gained=0; claimable.forEach(o=>{progress.claimed.push(o.id); gained+=Number(o.points||0); progress.history.unshift({id:o.id,label:o.label,points:o.points,ts:Date.now()});}); progress.points=Number(progress.points||0)+gained; progress.level=creatorLevel(progress.points); progress.history=progress.history.slice(0,100); oryonWrite(ORYON_PROGRESS_FILE,data); pushOryonEvent('points_claimed',user.login,{gained}); res.json({success:true,gained,points:progress.points,level:progress.level,claimed:claimable}); });
+
+app.get('/api/oryon/admin/summary', (req,res)=>{ if(!isOryonAdmin(req)) return res.status(403).json({success:false,error:'Admin requis. Ajoute ton pseudo dans ORYON_ADMIN_LOGINS sur Render.'}); const users=readOryonUsers().users||[]; const reports=oryonRead(path.join(__dirname,'.oryon-reports.json'),{reports:[]}).reports||[]; const teams=oryonRead(ORYON_TEAMS_FILE,{teams:[]}).teams||[]; const events=oryonRead(ORYON_EVENTS_FILE,{events:[]}).events||[]; res.json({success:true,stats:{users:users.length,activeLives:nativeLiveRooms.size,reports:reports.length,teams:teams.length,events:events.length},reports:reports.slice(-80).reverse(),events:events.slice(0,80),users:users.slice(-100).map(publicOryonUser),lives:Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r))}); });
+app.post('/api/oryon/admin/global-ban', (req,res)=>{ if(!isOryonAdmin(req)) return res.status(403).json({success:false,error:'Admin requis.'}); const login=normalizeOryonLogin(req.body?.login); if(!login) return res.status(400).json({success:false,error:'Pseudo invalide.'}); const log=oryonRead(ORYON_ADMIN_FILE,{globalBans:[]}); log.globalBans=Array.from(new Set([...(log.globalBans||[]),login])); oryonWrite(ORYON_ADMIN_FILE,log); pushOryonEvent('global_ban','admin',{login}); res.json({success:true,globalBans:log.globalBans}); });
+
 app.get('/firebase_status', (req, res) => {
   try {
     res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -4887,6 +4967,7 @@ io.on('connection', async (socket) => {
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
     const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
     nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
+    try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ uu.has_launched_live=true; uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0),0); writeOryonUsers(ud); } pushOryonEvent('live_started', user.login, {room,title}); }catch(_e){}
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
     socket.emit('native:created', { room, title, host_name: hostName });
@@ -4926,13 +5007,22 @@ io.on('connection', async (socket) => {
     if(!room || !r) return socket.emit('native:error', { message:'Live introuvable pour le tchat.' });
     const user = getAnySocketDisplay(socket);
     if(!user) return socket.emit('native:error', { message:'Connecte-toi pour écrire dans le tchat.' });
+    const {state:modState}=getModState(room);
+    if((modState.banned||[]).includes(user.login)) return socket.emit('native:error', { message:'Tu es banni de ce salon.' });
+    if((modState.muted||[]).includes(user.login)) return socket.emit('native:error', { message:'Tu es mute dans ce salon.' });
+    const nowChat = Date.now();
+    if(socket.data.nativeLastChatAt && nowChat - socket.data.nativeLastChatAt < 900) return socket.emit('native:error', { message:'Ralentis le tchat.' });
+    socket.data.nativeLastChatAt = nowChat;
     const text = sanitizeText(msg?.text, 500);
+    const lowerText = String(text||'').toLowerCase();
+    if((modState.blocked_words||[]).some(w=>w && lowerText.includes(w))) return socket.emit('native:error', { message:'Message bloqué par la modération.' });
     let gif = '';
     if(msg?.gif && typeof msg.gif === 'string' && isValidHttpUrl(msg.gif)) gif = msg.gif.slice(0, 800);
     if(!text && !gif) return;
     const out = { id:makeId(), room, user:user.login, user_display:user.display_name, user_type:user.type, text, gif, ts:Date.now(), reactions:{} };
     const h = getNativeChat(room); h.push(out); while(h.length > 120) h.shift();
     r.chatMessages = Number(r.chatMessages || 0) + 1;
+    try{ const ud=readOryonUsers(); const host=ud.users.find(x=>x.login===room); if(host){ host.best_chat_messages=Math.max(Number(host.best_chat_messages||0),Number(r.chatMessages||0)); writeOryonUsers(ud); } }catch(_e){}
     io.to('native:' + room).emit('native:chat', out);
     emitNativeStats(room);
     io.emit('native:lives:update');
