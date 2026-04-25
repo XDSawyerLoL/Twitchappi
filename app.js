@@ -2392,12 +2392,12 @@ function getAnySocketDisplay(socket){
 function getSessionIdentity(req){
   const tu = req.session?.twitchUser;
   const lu = req.session?.oryonUser;
-  return {
-    local: publicOryonUser(lu),
-    twitch: tu && (!tu.expiry || tu.expiry > Date.now()) ? {
-      id: tu.id, login: tu.login, display_name: tu.display_name, profile_image_url: tu.profile_image_url
-    } : null
-  };
+  const local = publicOryonUser(lu);
+  if(local) local.is_admin = isOryonAdmin(req);
+  const twitch = tu && (!tu.expiry || tu.expiry > Date.now()) ? {
+    id: tu.id, login: tu.login, display_name: tu.display_name, profile_image_url: tu.profile_image_url, is_admin: false
+  } : null;
+  return { local, twitch };
 }
 
 
@@ -2501,6 +2501,17 @@ app.post('/api/oryon/logout', (req, res) => {
 });
 
 
+
+app.get('/api/oryon/profile/:login', (req, res) => {
+  try{
+    const login = normalizeOryonLogin(req.params.login);
+    const user = (readOryonUsers().users || []).find(u => u.login === login);
+    if(!user) return res.status(404).json({ success:false, error:'Chaîne introuvable.' });
+    const pub = publicOryonUser(user);
+    pub.tags = Array.isArray(user.tags) ? user.tags : [];
+    res.json({ success:true, user: pub });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
 
 app.post('/api/oryon/profile', (req, res) => {
   try{
@@ -2689,8 +2700,8 @@ const ORYON_ADMIN_FILE = path.join(__dirname, '.oryon-admin-log.json');
 function oryonRead(file, fallback){ return readJsonSafe(file, fallback); }
 function oryonWrite(file, data){ return writeJsonSafe(file, data); }
 function requireOryon(req,res){ const cur=req.session?.oryonUser; if(!cur?.id){ res.status(401).json({success:false,error:'Compte Oryon requis.'}); return null; } return cur; }
-function adminLogins(){ return String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || '').split(',').map(normalizeOryonLogin).filter(Boolean); }
-function isOryonAdmin(req){ const cur=req.session?.oryonUser; const tw=req.session?.twitchUser; if(cur?.login && adminLogins().includes(cur.login)) return true; if(tw && (!tw.expiry || tw.expiry > Date.now()) && isAdminTwitchUser(tw)) return true; return false; }
+function adminLogins(){ const raw = String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || 'sansahd'); return raw.split(',').map(normalizeOryonLogin).filter(Boolean); }
+function isOryonAdmin(req){ const cur=req.session?.oryonUser; return !!(cur?.login && adminLogins().includes(normalizeOryonLogin(cur.login))); }
 function slugifyOryon(v){ return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48) || crypto.randomBytes(4).toString('hex'); }
 function safeTags(v){ if(Array.isArray(v)) return v.map(x=>String(x).trim().toLowerCase()).filter(Boolean).slice(0,12); return String(v||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).slice(0,12); }
 function pushOryonEvent(type, actor, payload={}){ const data=oryonRead(ORYON_EVENTS_FILE,{events:[]}); data.events=Array.isArray(data.events)?data.events:[]; data.events.unshift({id:crypto.randomBytes(8).toString('hex'),type,actor:actor||'system',payload,ts:Date.now()}); data.events=data.events.slice(0,1000); oryonWrite(ORYON_EVENTS_FILE,data); }
@@ -2930,11 +2941,12 @@ app.get('/api/twitch/channels/search', heavyLimiter, async (req, res) => {
 app.get('/api/twitch/streams/small', heavyLimiter, async (req, res) => {
   try{
     const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+    const min = Math.max(0, Math.min(300, Number(req.query.min || 0)));
     const max = Math.max(1, Math.min(300, Number(req.query.max || 300)));
     const token = await getTwitchToken();
     const data = await twitchAPI(`streams?first=100&language=${encodeURIComponent(lang)}`, token);
     const items = (data.data || [])
-      .filter(s => Number(s.viewer_count || 0) <= max)
+      .filter(s => Number(s.viewer_count || 0) >= min && Number(s.viewer_count || 0) <= max)
       .sort((a,b) => Number(a.viewer_count || 0) - Number(b.viewer_count || 0))
       .slice(0, 24)
       .map(s => ({
