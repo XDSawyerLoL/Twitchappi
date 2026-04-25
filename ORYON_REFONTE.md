@@ -1,24 +1,48 @@
-# Refonte Oryon — streaming à taille humaine
+# Oryon — refonte anti-concentration
 
-Cette version remplace l'entrée principale par une nouvelle page `index.html` centrée sur la contre-culture produit :
+## Changements visibles
 
-- mise en avant des petits lives Twitch, avec filtre sous 300 viewers ;
-- recherche de streamers Twitch intégrée au site ;
-- lecture via Twitch Embed, donc sans coût vidéo pour l'infrastructure du projet ;
-- positionnement natif futur : salons limités à 300 viewers ;
-- Discovery et Trade/Market ne sont plus dans le parcours principal.
+- Discovery et Trade ne sont plus dans le parcours principal.
+- La page d’accueil ne montre plus le texte stratégique interne sur les seuils 0–20 / 20–300 / 300+.
+- L’utilisateur voit une proposition simple : découvrir des petits lives, chercher Twitch, lancer/rejoindre un live natif expérimental.
+- La recherche Twitch ouvre le player embed directement dans Oryon.
 
-## Fichiers modifiés
+## Live natif expérimental
 
-- `index.html` : nouvelle homepage Oryon complète.
-- `app.js` : ajout de `/api/twitch/channels/search` et priorité donnée à `index.html` sur la route `/`.
+Un bloc WebRTC a été ajouté dans `index.html`.
 
-## À configurer
+Fonctionnement :
 
-Les endpoints Twitch existants nécessitent les variables d'environnement Twitch déjà prévues dans le projet. Sans clés API, la recherche exacte peut quand même ouvrir un embed Twitch, mais les listes automatiques ne chargeront pas.
+1. Le streamer entre un nom de salon.
+2. Il clique sur `Lancer mon live`.
+3. Le navigateur demande le partage d’écran/caméra.
+4. Un viewer entre le même nom de salon.
+5. Il clique sur `Rejoindre un live`.
+6. Socket.IO sert uniquement à échanger les offres/réponses WebRTC et les ICE candidates.
+7. La vidéo passe en pair-à-pair quand la connexion WebRTC réussit.
 
-## Logique produit
+## Backend ajouté
 
-- Les gros streamers restent consultables via recherche/embed.
-- L'accueil donne l'avantage aux petits créateurs.
-- Le natif doit rester plafonné à 300 viewers pour éviter de recréer les mêmes effets de domination que les grosses plateformes.
+Dans `app.js` :
+
+- rooms WebRTC en mémoire via `nativeLiveRooms`
+- `native:create`
+- `native:join`
+- `native:offer`
+- `native:answer`
+- `native:ice`
+- `native:leave`
+- nettoyage à la déconnexion
+- limite de 300 viewers par salon natif
+
+## Limites actuelles
+
+Ce n’est pas encore un réseau P2P maillé entre viewers. C’est un prototype WebRTC host → viewers.
+
+Pour aller vers le vrai modèle décentralisé, il faudra ensuite ajouter :
+
+- TURN serveur pour les connexions derrière NAT strict
+- super-peers / relais volontaires
+- P2P Media Loader ou PeerTube si diffusion HLS segmentée
+- authentification streamer
+- annuaire public des salons natifs actifs

@@ -4444,6 +4444,14 @@ app.get('/api/gifs/search', async (req, res) => {
 });
 
 
+// Oryon native WebRTC rooms. The server only relays signaling messages; video stays peer-to-peer.
+const nativeLiveRooms = new Map();
+function cleanNativeRoom(room){
+  const r = nativeLiveRooms.get(room);
+  if(!r) return;
+  if(!r.host || !r.viewers || r.viewers.size === 0) nativeLiveRooms.delete(room);
+}
+
 io.on('connection', async (socket) => {
   console.log('\uD83D\uDD0C [SOCKET] client connected');
 
@@ -4455,6 +4463,49 @@ io.on('connection', async (socket) => {
 
   // simple anti-spam per socket
   let lastMsgAt = 0;
+
+  // ORYON NATIVE LIVE: WebRTC signaling only. No video is proxied by this server.
+  socket.on('native:create', (payload) => {
+    const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+    if(!room) return socket.emit('native:error', { message: 'Nom de salon invalide.' });
+    const existing = nativeLiveRooms.get(room);
+    if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Ce salon existe déjà.' });
+    nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now() });
+    socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
+    socket.join('native:' + room);
+    socket.emit('native:created', { room });
+  });
+
+  socket.on('native:join', (payload) => {
+    const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+    const r = nativeLiveRooms.get(room);
+    if(!room || !r?.host) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
+    if(r.viewers.size >= 300) return socket.emit('native:error', { message: 'Salon complet : limite 300 viewers atteinte.' });
+    r.viewers.add(socket.id);
+    socket.data.nativeRoom = room; socket.data.nativeRole = 'viewer';
+    socket.join('native:' + room);
+    io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
+  });
+
+  socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
+  socket.on('native:answer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:answer', { from: socket.id, room: payload?.room, answer: payload?.answer }); });
+  socket.on('native:ice', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:ice', { from: socket.id, room: payload?.room, candidate: payload?.candidate }); });
+
+  socket.on('native:leave', () => {
+    const room = socket.data.nativeRoom; const role = socket.data.nativeRole; const r = nativeLiveRooms.get(room);
+    if(r){
+      if(role === 'host'){
+        for(const viewerId of r.viewers) io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' });
+        nativeLiveRooms.delete(room);
+      }else{
+        r.viewers.delete(socket.id);
+        if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
+        cleanNativeRoom(room);
+      }
+    }
+    socket.leave('native:' + room);
+    socket.data.nativeRoom = null; socket.data.nativeRole = null;
+  });
 
   socket.on('chat message', async (msg) => {
     const now = Date.now();
@@ -4593,6 +4644,19 @@ io.on('connection', async (socket) => {
 
   
   socket.on('disconnect', () => {
+    const room = socket.data.nativeRoom;
+    const role = socket.data.nativeRole;
+    const r = nativeLiveRooms.get(room);
+    if(r){
+      if(role === 'host'){
+        for(const viewerId of r.viewers) io.to(viewerId).emit('native:error', { message: 'Le streamer a quitté le live.' });
+        nativeLiveRooms.delete(room);
+      }else{
+        r.viewers.delete(socket.id);
+        if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
+        cleanNativeRoom(room);
+      }
+    }
     console.log('\uD83D\uDD0C [SOCKET] client disconnected');
   });
 });
