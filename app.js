@@ -2371,7 +2371,7 @@ function verifyOryonPassword(password, stored){
 }
 function publicOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0) };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0) };
 }
 function normalizeOryonEmail(v){ return String(v || '').trim().toLowerCase().slice(0, 160); }
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '')); }
@@ -2524,6 +2524,7 @@ app.post('/api/oryon/profile', (req, res) => {
     user.bio = String(req.body?.bio || '').trim().slice(0,500);
     user.avatar_url = String(req.body?.avatar_url || '').trim().slice(0,2000000);
     user.banner_url = String(req.body?.banner_url || '').trim().slice(0,5000000);
+    user.offline_image_url = String(req.body?.offline_image_url || '').trim().slice(0,5000000);
     user.language = String(req.body?.language || user.language || 'fr').trim().slice(0,16);
     user.content_rating = String(req.body?.content_rating || user.content_rating || 'general').trim().slice(0,30);
     user.tags = safeTags(req.body?.tags || user.tags || []);
@@ -2532,6 +2533,33 @@ app.post('/api/oryon/profile', (req, res) => {
     writeOryonUsers(data);
     req.session.oryonUser = publicOryonUser(user);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+function makeOryonStreamKey(){ return crypto.randomBytes(24).toString('hex'); }
+function getOryonRtmpUrl(){ return process.env.OBS_RTMP_URL || process.env.RTMP_INGEST_URL || process.env.ORYON_RTMP_URL || 'RTMP non configuré'; }
+
+app.get('/api/oryon/stream-key', (req, res) => {
+  try{
+    const cur = req.session?.oryonUser;
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.id === cur.id);
+    if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
+    if(!user.stream_key){ user.stream_key = makeOryonStreamKey(); writeOryonUsers(data); }
+    return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key, obs_ready: !!(process.env.OBS_RTMP_URL || process.env.RTMP_INGEST_URL || process.env.ORYON_RTMP_URL), recommended:{ resolution:'1920x1080', fps:60, bitrate:'6000-8000 kbps', keyframe:'2s' } });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/stream-key/regenerate', (req, res) => {
+  try{
+    const cur = req.session?.oryonUser;
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.id === cur.id);
+    if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
+    user.stream_key = makeOryonStreamKey(); user.updatedAt = Date.now(); writeOryonUsers(data);
+    return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
