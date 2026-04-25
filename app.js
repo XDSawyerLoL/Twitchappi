@@ -2344,18 +2344,52 @@ app.get('/twitch_user_status', (req, res) => {
 // =========================================================
 // ORYON — comptes locaux, lives natifs publics, Twitch suivis
 // =========================================================
-const ORYON_USERS_FILE = path.join(__dirname, '.oryon-users.json');
-function readOryonUsers(){
+const ORYON_DATA_DIR = process.env.ORYON_DATA_DIR || __dirname;
+const ORYON_USERS_FILE = path.join(ORYON_DATA_DIR, '.oryon-users.json');
+let __oryonUsersCache = null;
+let __oryonUsersPersistence = 'json-local';
+async function loadOryonUsersPersistent(){
   try{
-    if(!fs.existsSync(ORYON_USERS_FILE)) return { users: [] };
-    const raw = fs.readFileSync(ORYON_USERS_FILE, 'utf8');
-    const data = JSON.parse(raw || '{}');
-    return { users: Array.isArray(data.users) ? data.users : [] };
-  }catch(_){ return { users: [] }; }
+    if(db && typeof db.collection === 'function'){
+      const snap = await db.collection('oryon_state').doc('users').get();
+      if(snap.exists && Array.isArray(snap.data()?.users)){
+        __oryonUsersCache = { users: snap.data().users };
+        __oryonUsersPersistence = 'firebase-firestore';
+        return;
+      }
+    }
+  }catch(e){ console.warn('[ORYON] Firestore users unavailable:', e.message); }
+  try{
+    if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true});
+    if(fs.existsSync(ORYON_USERS_FILE)){
+      const raw = fs.readFileSync(ORYON_USERS_FILE, 'utf8');
+      const data = JSON.parse(raw || '{}');
+      __oryonUsersCache = { users: Array.isArray(data.users) ? data.users : [] };
+      __oryonUsersPersistence = process.env.ORYON_DATA_DIR ? 'render-disk-json' : 'json-local';
+      return;
+    }
+  }catch(e){ console.warn('[ORYON] JSON users unavailable:', e.message); }
+  __oryonUsersCache = { users: [] };
+}
+function readOryonUsers(){
+  if(__oryonUsersCache) return { users: Array.isArray(__oryonUsersCache.users) ? __oryonUsersCache.users : [] };
+  try{
+    if(fs.existsSync(ORYON_USERS_FILE)){
+      const raw = fs.readFileSync(ORYON_USERS_FILE, 'utf8');
+      const data = JSON.parse(raw || '{}');
+      __oryonUsersCache = { users: Array.isArray(data.users) ? data.users : [] };
+      return __oryonUsersCache;
+    }
+  }catch(_){ }
+  __oryonUsersCache = { users: [] };
+  return __oryonUsersCache;
 }
 function writeOryonUsers(data){
-  fs.writeFileSync(ORYON_USERS_FILE, JSON.stringify(data, null, 2));
+  __oryonUsersCache = { users: Array.isArray(data?.users) ? data.users : [] };
+  try{ if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true}); fs.writeFileSync(ORYON_USERS_FILE, JSON.stringify(__oryonUsersCache, null, 2)); }catch(e){ console.warn('[ORYON] write json users failed:', e.message); }
+  try{ if(db && typeof db.collection === 'function') db.collection('oryon_state').doc('users').set(__oryonUsersCache,{merge:true}).catch(e=>console.warn('[ORYON] Firestore users write failed:', e.message)); }catch(e){}
 }
+loadOryonUsersPersistent();
 function normalizeOryonLogin(v){
   return String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32);
 }
@@ -2756,7 +2790,7 @@ function getCreatorObjectives(user){
 function publicTeam(t){ return {id:t.id, slug:t.slug, name:t.name, description:t.description||'', logo_url:t.logo_url||'', banner_url:t.banner_url||'', tags:t.tags||[], members:t.members||[], createdAt:t.createdAt||null, points:Number(t.points||0)}; }
 
 app.get('/api/oryon/foundation/status', (req,res)=>{
-  res.json({success:true, persistence:{mode:process.env.DATABASE_URL?'postgres-ready':'json-local', databaseUrlConfigured:!!process.env.DATABASE_URL, note:process.env.DATABASE_URL?'DATABASE_URL présent. Migration Postgres/Supabase prête à brancher.':'MVP en JSON local. Ajoute DATABASE_URL pour Supabase/PostgreSQL.'}, limits:{maxNativeViewers:Number(process.env.MAX_NATIVE_VIEWERS||300)}, admin:{configured:adminLogins().length>0 || !!process.env.ADMIN_TWITCH_LOGINS}});
+  res.json({success:true, persistence:{mode:process.env.DATABASE_URL?'postgres-ready':__oryonUsersPersistence, databaseUrlConfigured:!!process.env.DATABASE_URL, note:process.env.DATABASE_URL?'DATABASE_URL présent. Migration Postgres/Supabase prête à brancher.':(__oryonUsersPersistence==='json-local'?'JSON local : sera perdu si Render redéploie sans disque. Configure ORYON_DATA_DIR, Firebase ou Supabase/PostgreSQL.':'Persistance durable active via '+__oryonUsersPersistence)}, limits:{maxNativeViewers:Number(process.env.MAX_NATIVE_VIEWERS||300)}, admin:{configured:adminLogins().length>0 || !!process.env.ADMIN_TWITCH_LOGINS}});
 });
 
 app.get('/api/oryon/tags', (req,res)=>{
