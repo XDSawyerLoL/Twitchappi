@@ -361,8 +361,8 @@ const heavyLimiter = rateLimit({
 
 
 const PORT = process.env.PORT || 10000;
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || process.env.TWITCH_CLIENTID || process.env.CLIENT_ID;
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || process.env.TWITCH_SECRET || process.env.CLIENT_SECRET;
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || process.env.TWITCH_CLIENTID || process.env.TWITCH_CLIENT || process.env.CLIENT_ID || process.env.TWITCH_API_CLIENT_ID;
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || process.env.TWITCH_SECRET || process.env.TWITCH_CLIENT_SECRET_KEY || process.env.CLIENT_SECRET || process.env.TWITCH_API_SECRET;
 const PUBLIC_ORIGIN = safeOrigin(process.env.TWITCH_REDIRECT_URI) || safeOrigin(process.env.PUBLIC_BASE_URL) || safeOrigin(process.env.PUBLIC_APP_URL) || safeOrigin(process.env.APP_BASE_URL) || safeOrigin(process.env.RENDER_EXTERNAL_URL);
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || (PUBLIC_ORIGIN ? PUBLIC_ORIGIN + '/twitch_auth_callback' : undefined);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -2295,10 +2295,16 @@ app.get('/twitch_auth_callback', async (req, res) => {
         <script>
           try {
             if (window.opener && !window.opener.closed) {
+              window.opener.postMessage({ type: 'ORYON_TWITCH_CONNECTED' }, window.location.origin);
+              window.opener.location.hash = 'twitch';
               window.opener.location.reload();
+              window.close();
+            } else {
+              window.location.href = '/#twitch';
             }
-          } catch (e) {}
-          window.close();
+          } catch (e) {
+            window.location.href = '/#twitch';
+          }
         </script>
       `);
     });
