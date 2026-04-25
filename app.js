@@ -22,8 +22,6 @@ const MemoryStore = require('memorystore')(session);
 const http = require('http');
 const { Server } = require('socket.io');
 const openid = require('openid');
-let nodemailer = null;
-try { nodemailer = require('nodemailer'); } catch (_) { nodemailer = null; }
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const DEV_SESSION_SECRET = 'dev_secret_change_me';
@@ -2365,35 +2363,12 @@ function verifyOryonPassword(password, stored){
 }
 function publicOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0) };
 }
 function normalizeOryonEmail(v){ return String(v || '').trim().toLowerCase().slice(0, 160); }
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '')); }
-async function sendOryonVerificationEmail(req, user){
-  const token = user.email_verify_token;
-  if(!token || !user.email) return { sent:false, reason:'missing_email_or_token' };
-  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
-  const link = `${base}/api/oryon/verify-email?token=${encodeURIComponent(token)}`;
-  if(!nodemailer || !process.env.SMTP_HOST){
-    console.log(`[ORYON] Vérification email pour ${user.email}: ${link}`);
-    return { sent:false, reason:'SMTP non configuré', dev_link: IS_PROD ? undefined : link };
-  }
-  const port = Number(process.env.SMTP_PORT || 587);
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port,
-    secure: port === 465,
-    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || '' } : undefined
-  });
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || 'Oryon <no-reply@oryon.local>',
-    to: user.email,
-    subject: 'Confirme ton compte Oryon',
-    text: `Confirme ton compte Oryon : ${link}`,
-    html: `<p>Confirme ton compte Oryon :</p><p><a href=\"${link}\">Valider mon compte</a></p>`
-  });
-  return { sent:true };
-}
+// Vérification email désactivée pour accélérer les tests produit.
+// Les comptes sont utilisables immédiatement. La validation email pourra être réactivée plus tard.
 function getOryonSocketUser(socket){
   const local = socket.request?.session?.oryonUser;
   if(local?.id) return { id: local.id, login: local.login, display_name: local.display_name || local.login, type:'oryon' };
@@ -2480,11 +2455,10 @@ app.post('/api/oryon/register', async (req, res) => {
     const data = readOryonUsers();
     if(data.users.some(u => u.login === login)) return res.status(409).json({ success:false, error:'Ce pseudo existe déjà.' });
     if(data.users.some(u => normalizeOryonEmail(u.email) === email)) return res.status(409).json({ success:false, error:'Cet email est déjà utilisé.' });
-    const user = { id: crypto.randomBytes(12).toString('hex'), login, display_name: display, email, email_verified: false, email_verify_token: crypto.randomBytes(24).toString('hex'), password_hash: hashOryonPassword(password), createdAt: Date.now() };
+    const user = { id: crypto.randomBytes(12).toString('hex'), login, display_name: display, email, email_verified: true, email_verify_token: null, password_hash: hashOryonPassword(password), createdAt: Date.now() };
     data.users.push(user); writeOryonUsers(data);
-    const mail = await sendOryonVerificationEmail(req, user);
     req.session.oryonUser = publicOryonUser(user);
-    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), mail }));
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), emailVerificationRequired:false }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -2516,6 +2490,94 @@ app.post('/api/oryon/login', (req, res) => {
 app.post('/api/oryon/logout', (req, res) => {
   req.session.oryonUser = null;
   req.session.save(() => res.json({ success:true }));
+});
+
+
+
+app.post('/api/oryon/profile', (req, res) => {
+  try{
+    const cur = req.session?.oryonUser;
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.id === cur.id);
+    if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
+    user.display_name = String(req.body?.display_name || user.display_name || user.login).trim().slice(0,40) || user.login;
+    user.bio = String(req.body?.bio || '').trim().slice(0,500);
+    user.avatar_url = String(req.body?.avatar_url || '').trim().slice(0,800);
+    user.banner_url = String(req.body?.banner_url || '').trim().slice(0,800);
+    user.language = String(req.body?.language || user.language || 'fr').trim().slice(0,16);
+    user.content_rating = String(req.body?.content_rating || user.content_rating || 'general').trim().slice(0,30);
+    user.updatedAt = Date.now();
+    writeOryonUsers(data);
+    req.session.oryonUser = publicOryonUser(user);
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/follow/:login', (req, res) => {
+  try{
+    const cur = req.session?.oryonUser;
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+    const target = normalizeOryonLogin(req.params.login);
+    if(!target) return res.status(400).json({ success:false, error:'Créateur invalide.' });
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.id === cur.id);
+    const creator = data.users.find(u => u.login === target);
+    if(!user || !creator) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
+    user.following = Array.isArray(user.following) ? user.following : [];
+    if(!user.following.includes(target)) user.following.push(target);
+    creator.followers_count = Math.max(Number(creator.followers_count || 0), 0) + 1;
+    writeOryonUsers(data);
+    res.json({ success:true, following:user.following });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/report', (req, res) => {
+  try{
+    const reportsFile = path.join(__dirname, '.oryon-reports.json');
+    let data = { reports: [] };
+    try{ if(fs.existsSync(reportsFile)) data = JSON.parse(fs.readFileSync(reportsFile,'utf8')||'{"reports":[]}'); }catch(_){ data={reports:[]}; }
+    data.reports = Array.isArray(data.reports) ? data.reports : [];
+    data.reports.push({ id: crypto.randomBytes(8).toString('hex'), user:req.session?.oryonUser?.login || req.session?.twitchUser?.login || 'anonymous', room:String(req.body?.room||''), target:String(req.body?.target||''), reason:String(req.body?.reason||'').slice(0,500), ts:Date.now() });
+    fs.writeFileSync(reportsFile, JSON.stringify(data,null,2));
+    res.json({ success:true });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/api/oryon/creator/summary', (req, res) => {
+  try{
+    const cur = req.session?.oryonUser;
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.id === cur.id) || cur;
+    const room = nativeLiveRooms.get(user.login);
+    const followers = Number(user.followers_count || 0);
+    const livePayload = room ? nativeStatsPayload(user.login, room) : null;
+    const creator_score = Math.min(100, 35 + Math.min(25, followers * 2) + (livePayload ? livePayload.oryon_score/2 : 0));
+    const recommendations = [];
+    if(!room) recommendations.push('Lance un live court et régulier : Oryon favorise la présence, pas seulement les pics.');
+    if(room && livePayload.chat_messages < 5) recommendations.push('Pose une question simple dans le chat pour augmenter l’interaction utile.');
+    recommendations.push('Choisis une catégorie précise : les niches sont mieux recommandées que les catégories saturées.');
+    recommendations.push('Prépare une redirection vers un petit créateur similaire en fin de live.');
+    res.json({ success:true, followers, live: livePayload, creator_score: Math.round(creator_score), recommendations, user: publicOryonUser(user) });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/api/twitch/random-small-live', async (req, res) => {
+  try{
+    const game = String(req.query.game || '').trim();
+    const max = Math.max(1, Math.min(200, parseInt(req.query.max || '200', 10)));
+    const lang = String(req.query.language || 'fr').trim().slice(0,8) || 'fr';
+    if(!game) return res.status(400).json({ success:false, error:'Catégorie manquante.' });
+    const gRes = await twitchAPI(`search/categories?query=${encodeURIComponent(game)}&first=1`);
+    const gameId = gRes.data?.[0]?.id;
+    if(!gameId) return res.json({ success:false, error:'Catégorie introuvable.' });
+    const sRes = await twitchAPI(`streams?game_id=${gameId}&first=100&language=${encodeURIComponent(lang)}`);
+    const pool = (sRes.data || []).filter(s => (s.viewer_count || 0) >= 0 && (s.viewer_count || 0) <= max);
+    if(!pool.length) return res.json({ success:false, error:'Aucun live entre 0 et '+max+' viewers trouvé.' });
+    const target = pool[Math.floor(Math.random() * pool.length)];
+    res.json({ success:true, target:{ name:target.user_name, login:target.user_login, viewers:target.viewer_count, title:target.title, game:target.game_name, thumbnail_url:String(target.thumbnail_url||'').replace('{width}','640').replace('{height}','360') } });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
 app.get('/api/native/lives', (req, res) => {
@@ -4148,9 +4210,9 @@ app.post('/start_raid', async (req, res) => {
 
     const sRes = await twitchAPI(`streams?game_id=${gRes.data[0].id}&first=100&language=fr`);
 
-    const target = (sRes.data || [])
-      .filter(s => (s.viewer_count || 0) <= max_viewers)
-      .sort((a, b) => (b.viewer_count || 0) - (a.viewer_count || 0))[0];
+    const pool = (sRes.data || [])
+      .filter(s => (s.viewer_count || 0) <= max_viewers);
+    const target = pool[Math.floor(Math.random() * pool.length)];
 
     if (!target) return res.json({ success: false });
 
