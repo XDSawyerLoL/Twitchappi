@@ -634,9 +634,9 @@ app.get('/', (req, res) => {
   // Serve only HTML UI files (prevents accidentally serving JS source if UI_FILE is mis-set on Render)
   const rawCandidates = [
     process.env.UI_FILE,
+    'index.html',
     'NicheOptimizer.html',
-    'NicheOptimizer_v56.html',
-    'index.html'
+    'NicheOptimizer_v56.html'
   ].filter(Boolean);
 
   const candidates = rawCandidates
@@ -2477,6 +2477,33 @@ app.post('/stream_info', async (req, res) => {
   }
 });
 
+
+// Recherche de chaînes Twitch pour la nouvelle page Oryon.
+// Sert à intégrer des streamers Twitch sans héberger leur flux vidéo.
+app.get('/api/twitch/channels/search', heavyLimiter, async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    const liveOnly = String(req.query.live || '').toLowerCase() === 'true';
+    if (!q) return res.json({ success: true, items: [] });
+
+    const d = await twitchAPI(`search/channels?query=${encodeURIComponent(q)}&first=20${liveOnly ? '&live_only=true' : ''}`);
+    const items = (d.data || []).map(c => ({
+      id: c.id,
+      login: c.broadcaster_login,
+      display_name: c.display_name || c.broadcaster_name || c.broadcaster_login,
+      profile_image_url: c.thumbnail_url || '',
+      title: c.title || '',
+      game_name: c.game_name || '',
+      is_live: !!c.is_live,
+      started_at: c.started_at || null
+    }));
+
+    return res.json({ success: true, items });
+  } catch (e) {
+    console.warn('⚠️ /api/twitch/channels/search', e.message);
+    return res.status(500).json({ success: false, error: e.message, items: [] });
+  }
+});
 // --- ROUTES DISCOVERY (Updated for Infinite Scroll) ---
 
 app.get('/api/categories/top', async (req, res) => {
