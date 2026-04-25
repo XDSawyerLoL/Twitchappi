@@ -361,9 +361,10 @@ const heavyLimiter = rateLimit({
 
 
 const PORT = process.env.PORT || 10000;
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || process.env.TWITCH_CLIENTID || process.env.CLIENT_ID;
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || process.env.TWITCH_SECRET || process.env.CLIENT_SECRET;
+const PUBLIC_ORIGIN = safeOrigin(process.env.TWITCH_REDIRECT_URI) || safeOrigin(process.env.PUBLIC_BASE_URL) || safeOrigin(process.env.PUBLIC_APP_URL) || safeOrigin(process.env.APP_BASE_URL) || safeOrigin(process.env.RENDER_EXTERNAL_URL);
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || (PUBLIC_ORIGIN ? PUBLIC_ORIGIN + '/twitch_auth_callback' : undefined);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash";
 
@@ -386,7 +387,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(bodyParser.json({
-  limit: '2mb',
+  limit: '12mb',
   verify: function(req, _res, buf){
     if(req.originalUrl === '/api/stripe/webhook') req.rawBody = Buffer.from(buf);
   }
@@ -2225,6 +2226,7 @@ if (ENABLE_TRACKED_CRON) {
 // 3. AUTH (MULTI-USER SAFE)
 // =========================================================
 app.get('/twitch_auth_start', (req, res) => {
+  if(!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI) return res.status(500).send('Configuration Twitch manquante sur Render : TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_REDIRECT_URI ou RENDER_EXTERNAL_URL.');
   const state = crypto.randomBytes(16).toString('hex');
 
   // Stockage du state en session (anti-CSRF) \u2014 pas en variable globale
@@ -2503,8 +2505,8 @@ app.post('/api/oryon/profile', (req, res) => {
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
     user.display_name = String(req.body?.display_name || user.display_name || user.login).trim().slice(0,40) || user.login;
     user.bio = String(req.body?.bio || '').trim().slice(0,500);
-    user.avatar_url = String(req.body?.avatar_url || '').trim().slice(0,800);
-    user.banner_url = String(req.body?.banner_url || '').trim().slice(0,800);
+    user.avatar_url = String(req.body?.avatar_url || '').trim().slice(0,2000000);
+    user.banner_url = String(req.body?.banner_url || '').trim().slice(0,5000000);
     user.language = String(req.body?.language || user.language || 'fr').trim().slice(0,16);
     user.content_rating = String(req.body?.content_rating || user.content_rating || 'general').trim().slice(0,30);
     user.updatedAt = Date.now();
