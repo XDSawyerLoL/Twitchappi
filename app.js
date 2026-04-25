@@ -2417,6 +2417,53 @@ function getSessionIdentity(req){
   };
 }
 
+
+
+// WebRTC infra config. On Render, values are read from environment variables already configured there.
+// No secret is embedded in the code; TURN credentials are only exposed to the browser for ICE negotiation.
+function parseCsvEnv(name, fallback = []){
+  const raw = String(process.env[name] || '').trim();
+  if(!raw) return fallback;
+  return raw.split(',').map(x => x.trim()).filter(Boolean);
+}
+function getWebRtcIceServers(){
+  const stunUrls = parseCsvEnv('STUN_URLS', ['stun:stun.l.google.com:19302']);
+  const iceServers = [];
+  if(stunUrls.length) iceServers.push({ urls: stunUrls });
+
+  const turnUrls = parseCsvEnv('TURN_URLS');
+  const turnUsername = process.env.TURN_USERNAME || process.env.TURN_USER || '';
+  const turnCredential = process.env.TURN_CREDENTIAL || process.env.TURN_PASSWORD || process.env.TURN_PASS || '';
+  if(turnUrls.length){
+    const turnServer = { urls: turnUrls };
+    if(turnUsername) turnServer.username = turnUsername;
+    if(turnCredential) turnServer.credential = turnCredential;
+    iceServers.push(turnServer);
+  }
+  return iceServers;
+}
+function getWebRtcConfigPayload(){
+  return {
+    success: true,
+    mode: process.env.WEBRTC_MODE || 'p2p',
+    iceTransportPolicy: process.env.ICE_TRANSPORT_POLICY || 'all',
+    maxNativeViewers: Number(process.env.MAX_NATIVE_VIEWERS || 300),
+    iceServers: getWebRtcIceServers(),
+    sfu: {
+      enabled: String(process.env.SFU_ENABLED || '').toLowerCase() === 'true',
+      url: process.env.SFU_URL || null
+    },
+    p2pHybrid: {
+      enabled: String(process.env.P2P_HYBRID_ENABLED || '').toLowerCase() === 'true',
+      superPeerTarget: Number(process.env.P2P_SUPER_PEER_TARGET || 8)
+    }
+  };
+}
+
+app.get('/api/webrtc/config', (req, res) => {
+  res.json(getWebRtcConfigPayload());
+});
+
 app.get('/api/oryon/session', (req, res) => {
   return res.json({ success:true, ...getSessionIdentity(req) });
 });
@@ -2480,8 +2527,13 @@ app.get('/api/native/lives', (req, res) => {
     host_login: r.hostLogin || null,
     host_user_id: r.hostUserId || null,
     viewers: r.viewers ? r.viewers.size : 0,
-    limit: 300,
+    limit: Number(process.env.MAX_NATIVE_VIEWERS || 300),
     createdAt: r.createdAt || null,
+    category: r.category || '',
+    tags: Array.isArray(r.tags) ? r.tags : [],
+    peak_viewers: r.peakViewers || (r.viewers ? r.viewers.size : 0),
+    chat_messages: r.chatMessages || 0,
+    oryon_score: computeNativeOryonScore(r),
     native: true
   })).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
   res.json({ success:true, items });
@@ -4649,6 +4701,33 @@ function getNativeChat(room){
   if(!nativeChatHistory.has(key)) nativeChatHistory.set(key, []);
   return nativeChatHistory.get(key);
 }
+
+function computeNativeOryonScore(r){
+  if(!r) return 0;
+  const viewers = r.viewers ? r.viewers.size : 0;
+  const messages = Number(r.chatMessages || 0);
+  const ageMin = Math.max(1, Math.floor((Date.now() - Number(r.createdAt || Date.now())) / 60000));
+  const lowVisibilityBoost = viewers <= 20 ? 42 : viewers <= 80 ? 28 : viewers <= 300 ? 12 : -30;
+  const interaction = Math.min(28, Math.round((messages / ageMin) * 8));
+  const regularity = Math.min(12, Math.floor(ageMin / 10));
+  return Math.max(0, Math.min(100, lowVisibilityBoost + interaction + regularity + 18));
+}
+function nativeStatsPayload(room, r){
+  return {
+    room,
+    viewers: r?.viewers ? r.viewers.size : 0,
+    peak_viewers: r?.peakViewers || 0,
+    chat_messages: r?.chatMessages || 0,
+    oryon_score: computeNativeOryonScore(r),
+    mode: process.env.WEBRTC_MODE || 'p2p'
+  };
+}
+function emitNativeStats(room){
+  const r = nativeLiveRooms.get(room);
+  if(!r) return;
+  io.to('native:' + room).emit('native:stats', nativeStatsPayload(room, r));
+}
+
 function cleanNativeRoom(room){
   const r = nativeLiveRooms.get(room);
   if(!r) return;
@@ -4676,24 +4755,28 @@ io.on('connection', async (socket) => {
     if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Tu as déjà un live actif.' });
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
     const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
-    nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id });
+    nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
     socket.emit('native:created', { room, title, host_name: hostName });
     socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
     io.emit('native:lives:update');
+    emitNativeStats(room);
   });
 
   socket.on('native:join', (payload) => {
     const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
     if(!room || !r?.host) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
-    if(r.viewers.size >= 300) return socket.emit('native:error', { message: 'Salon complet : limite 300 viewers atteinte.' });
+    const maxViewers = Number(process.env.MAX_NATIVE_VIEWERS || 300);
+    if(r.viewers.size >= maxViewers) return socket.emit('native:error', { message: 'Salon complet : limite ' + maxViewers + ' viewers atteinte.' });
     r.viewers.add(socket.id);
+    r.peakViewers = Math.max(Number(r.peakViewers || 0), r.viewers.size);
     socket.data.nativeRoom = room; socket.data.nativeRole = 'viewer';
     socket.join('native:' + room);
     io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
     io.emit('native:lives:update');
+    emitNativeStats(room);
   });
 
   socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
@@ -4718,7 +4801,10 @@ io.on('connection', async (socket) => {
     if(!text && !gif) return;
     const out = { id:makeId(), room, user:user.login, user_display:user.display_name, user_type:user.type, text, gif, ts:Date.now(), reactions:{} };
     const h = getNativeChat(room); h.push(out); while(h.length > 120) h.shift();
+    r.chatMessages = Number(r.chatMessages || 0) + 1;
     io.to('native:' + room).emit('native:chat', out);
+    emitNativeStats(room);
+    io.emit('native:lives:update');
   });
 
   socket.on('native:leave', () => {
@@ -4733,6 +4819,7 @@ io.on('connection', async (socket) => {
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
         cleanNativeRoom(room);
         io.emit('native:lives:update');
+        emitNativeStats(room);
       }
     }
     socket.leave('native:' + room);
