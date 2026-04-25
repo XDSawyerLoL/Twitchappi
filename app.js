@@ -22,6 +22,8 @@ const MemoryStore = require('memorystore')(session);
 const http = require('http');
 const { Server } = require('socket.io');
 const openid = require('openid');
+let nodemailer = null;
+try { nodemailer = require('nodemailer'); } catch (_) { nodemailer = null; }
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const DEV_SESSION_SECRET = 'dev_secret_change_me';
@@ -2363,7 +2365,46 @@ function verifyOryonPassword(password, stored){
 }
 function publicOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, createdAt:u.createdAt || null };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null };
+}
+function normalizeOryonEmail(v){ return String(v || '').trim().toLowerCase().slice(0, 160); }
+function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '')); }
+async function sendOryonVerificationEmail(req, user){
+  const token = user.email_verify_token;
+  if(!token || !user.email) return { sent:false, reason:'missing_email_or_token' };
+  const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const link = `${base}/api/oryon/verify-email?token=${encodeURIComponent(token)}`;
+  if(!nodemailer || !process.env.SMTP_HOST){
+    console.log(`[ORYON] Vérification email pour ${user.email}: ${link}`);
+    return { sent:false, reason:'SMTP non configuré', dev_link: IS_PROD ? undefined : link };
+  }
+  const port = Number(process.env.SMTP_PORT || 587);
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || '' } : undefined
+  });
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || 'Oryon <no-reply@oryon.local>',
+    to: user.email,
+    subject: 'Confirme ton compte Oryon',
+    text: `Confirme ton compte Oryon : ${link}`,
+    html: `<p>Confirme ton compte Oryon :</p><p><a href=\"${link}\">Valider mon compte</a></p>`
+  });
+  return { sent:true };
+}
+function getOryonSocketUser(socket){
+  const local = socket.request?.session?.oryonUser;
+  if(local?.id) return { id: local.id, login: local.login, display_name: local.display_name || local.login, type:'oryon' };
+  return null;
+}
+function getAnySocketDisplay(socket){
+  const local = socket.request?.session?.oryonUser;
+  if(local?.id) return { id: local.id, login: local.login, display_name: local.display_name || local.login, type:'oryon' };
+  const tw = socket.request?.session?.twitchUser;
+  if(tw && (!tw.expiry || tw.expiry > Date.now())) return { id: tw.id, login: tw.login, display_name: tw.display_name || tw.login, type:'twitch' };
+  return null;
 }
 function getSessionIdentity(req){
   const tu = req.session?.twitchUser;
@@ -2380,20 +2421,37 @@ app.get('/api/oryon/session', (req, res) => {
   return res.json({ success:true, ...getSessionIdentity(req) });
 });
 
-app.post('/api/oryon/register', (req, res) => {
+app.post('/api/oryon/register', async (req, res) => {
   try{
     const login = normalizeOryonLogin(req.body?.login);
     const display = String(req.body?.display_name || login).trim().slice(0, 40) || login;
+    const email = normalizeOryonEmail(req.body?.email);
     const password = String(req.body?.password || '');
     if(login.length < 3) return res.status(400).json({ success:false, error:'Pseudo trop court.' });
+    if(!isValidEmail(email)) return res.status(400).json({ success:false, error:'Email invalide.' });
     if(password.length < 6) return res.status(400).json({ success:false, error:'Mot de passe trop court.' });
     const data = readOryonUsers();
     if(data.users.some(u => u.login === login)) return res.status(409).json({ success:false, error:'Ce pseudo existe déjà.' });
-    const user = { id: crypto.randomBytes(12).toString('hex'), login, display_name: display, password_hash: hashOryonPassword(password), createdAt: Date.now() };
+    if(data.users.some(u => normalizeOryonEmail(u.email) === email)) return res.status(409).json({ success:false, error:'Cet email est déjà utilisé.' });
+    const user = { id: crypto.randomBytes(12).toString('hex'), login, display_name: display, email, email_verified: false, email_verify_token: crypto.randomBytes(24).toString('hex'), password_hash: hashOryonPassword(password), createdAt: Date.now() };
     data.users.push(user); writeOryonUsers(data);
+    const mail = await sendOryonVerificationEmail(req, user);
     req.session.oryonUser = publicOryonUser(user);
-    req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), mail }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/api/oryon/verify-email', (req, res) => {
+  try{
+    const token = String(req.query.token || '').trim();
+    if(!token) return res.status(400).send('Token manquant.');
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.email_verify_token === token);
+    if(!user) return res.status(404).send('Lien invalide ou expiré.');
+    user.email_verified = true; user.email_verify_token = null; writeOryonUsers(data);
+    if(req.session?.oryonUser?.id === user.id) req.session.oryonUser = publicOryonUser(user);
+    res.send('<h1>Compte Oryon confirmé</h1><p>Tu peux retourner sur Oryon.</p><p><a href="/">Retour au site</a></p>');
+  }catch(e){ res.status(500).send('Erreur: ' + e.message); }
 });
 
 app.post('/api/oryon/login', (req, res) => {
@@ -2419,6 +2477,8 @@ app.get('/api/native/lives', (req, res) => {
     room,
     title: r.title || `Live de ${room}`,
     host_name: r.hostName || room,
+    host_login: r.hostLogin || null,
+    host_user_id: r.hostUserId || null,
     viewers: r.viewers ? r.viewers.size : 0,
     limit: 300,
     createdAt: r.createdAt || null,
@@ -4583,10 +4643,16 @@ app.get('/api/gifs/search', async (req, res) => {
 
 // Oryon native WebRTC rooms. The server only relays signaling messages; video stays peer-to-peer.
 const nativeLiveRooms = new Map();
+const nativeChatHistory = new Map(); // room -> messages
+function getNativeChat(room){
+  const key = String(room || '').trim().toLowerCase();
+  if(!nativeChatHistory.has(key)) nativeChatHistory.set(key, []);
+  return nativeChatHistory.get(key);
+}
 function cleanNativeRoom(room){
   const r = nativeLiveRooms.get(room);
   if(!r) return;
-  if(!r.host || !r.viewers || r.viewers.size === 0) nativeLiveRooms.delete(room);
+  if(!r.host) nativeLiveRooms.delete(room);
 }
 
 io.on('connection', async (socket) => {
@@ -4603,19 +4669,18 @@ io.on('connection', async (socket) => {
 
   // ORYON NATIVE LIVE: WebRTC signaling only. No video is proxied by this server.
   socket.on('native:create', (payload) => {
-    const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
-    if(!room) return socket.emit('native:error', { message: 'Nom de salon invalide.' });
+    const user = getOryonSocketUser(socket);
+    if(!user) return socket.emit('native:error', { message: 'Compte Oryon requis pour lancer un live.' });
+    const room = user.login;
     const existing = nativeLiveRooms.get(room);
-    if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Ce salon existe déjà.' });
-    const sess = socket.request?.session || {};
-    const local = sess.oryonUser;
-    const twitch = sess.twitchUser;
-    const hostName = String(local?.display_name || twitch?.display_name || twitch?.login || room).trim().slice(0, 40);
+    if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Tu as déjà un live actif.' });
+    const hostName = String(user.display_name || user.login).trim().slice(0, 40);
     const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
-    nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName });
+    nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id });
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
     socket.emit('native:created', { room, title, host_name: hostName });
+    socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
     io.emit('native:lives:update');
   });
 
@@ -4634,6 +4699,27 @@ io.on('connection', async (socket) => {
   socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
   socket.on('native:answer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:answer', { from: socket.id, room: payload?.room, answer: payload?.answer }); });
   socket.on('native:ice', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:ice', { from: socket.id, room: payload?.room, candidate: payload?.candidate }); });
+
+  socket.on('native:chat:history', (payload) => {
+    const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+    if(!room) return;
+    socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
+  });
+
+  socket.on('native:chat', (msg) => {
+    const room = String(msg?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+    const r = nativeLiveRooms.get(room);
+    if(!room || !r) return socket.emit('native:error', { message:'Live introuvable pour le tchat.' });
+    const user = getAnySocketDisplay(socket);
+    if(!user) return socket.emit('native:error', { message:'Connecte-toi pour écrire dans le tchat.' });
+    const text = sanitizeText(msg?.text, 500);
+    let gif = '';
+    if(msg?.gif && typeof msg.gif === 'string' && isValidHttpUrl(msg.gif)) gif = msg.gif.slice(0, 800);
+    if(!text && !gif) return;
+    const out = { id:makeId(), room, user:user.login, user_display:user.display_name, user_type:user.type, text, gif, ts:Date.now(), reactions:{} };
+    const h = getNativeChat(room); h.push(out); while(h.length > 120) h.shift();
+    io.to('native:' + room).emit('native:chat', out);
+  });
 
   socket.on('native:leave', () => {
     const room = socket.data.nativeRoom; const role = socket.data.nativeRole; const r = nativeLiveRooms.get(room);
