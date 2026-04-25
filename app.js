@@ -2333,6 +2333,118 @@ app.get('/twitch_user_status', (req, res) => {
 });
 
 
+// =========================================================
+// ORYON — comptes locaux, lives natifs publics, Twitch suivis
+// =========================================================
+const ORYON_USERS_FILE = path.join(__dirname, '.oryon-users.json');
+function readOryonUsers(){
+  try{
+    if(!fs.existsSync(ORYON_USERS_FILE)) return { users: [] };
+    const raw = fs.readFileSync(ORYON_USERS_FILE, 'utf8');
+    const data = JSON.parse(raw || '{}');
+    return { users: Array.isArray(data.users) ? data.users : [] };
+  }catch(_){ return { users: [] }; }
+}
+function writeOryonUsers(data){
+  fs.writeFileSync(ORYON_USERS_FILE, JSON.stringify(data, null, 2));
+}
+function normalizeOryonLogin(v){
+  return String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32);
+}
+function hashOryonPassword(password, salt = crypto.randomBytes(16).toString('hex')){
+  const hash = crypto.pbkdf2Sync(String(password || ''), salt, 120000, 32, 'sha256').toString('hex');
+  return `${salt}:${hash}`;
+}
+function verifyOryonPassword(password, stored){
+  const [salt, hash] = String(stored || '').split(':');
+  if(!salt || !hash) return false;
+  const test = hashOryonPassword(password, salt).split(':')[1];
+  try{ return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(test, 'hex')); }catch(_){ return false; }
+}
+function publicOryonUser(u){
+  if(!u) return null;
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, createdAt:u.createdAt || null };
+}
+function getSessionIdentity(req){
+  const tu = req.session?.twitchUser;
+  const lu = req.session?.oryonUser;
+  return {
+    local: publicOryonUser(lu),
+    twitch: tu && (!tu.expiry || tu.expiry > Date.now()) ? {
+      id: tu.id, login: tu.login, display_name: tu.display_name, profile_image_url: tu.profile_image_url
+    } : null
+  };
+}
+
+app.get('/api/oryon/session', (req, res) => {
+  return res.json({ success:true, ...getSessionIdentity(req) });
+});
+
+app.post('/api/oryon/register', (req, res) => {
+  try{
+    const login = normalizeOryonLogin(req.body?.login);
+    const display = String(req.body?.display_name || login).trim().slice(0, 40) || login;
+    const password = String(req.body?.password || '');
+    if(login.length < 3) return res.status(400).json({ success:false, error:'Pseudo trop court.' });
+    if(password.length < 6) return res.status(400).json({ success:false, error:'Mot de passe trop court.' });
+    const data = readOryonUsers();
+    if(data.users.some(u => u.login === login)) return res.status(409).json({ success:false, error:'Ce pseudo existe déjà.' });
+    const user = { id: crypto.randomBytes(12).toString('hex'), login, display_name: display, password_hash: hashOryonPassword(password), createdAt: Date.now() };
+    data.users.push(user); writeOryonUsers(data);
+    req.session.oryonUser = publicOryonUser(user);
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/login', (req, res) => {
+  try{
+    const login = normalizeOryonLogin(req.body?.login);
+    const password = String(req.body?.password || '');
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.login === login);
+    if(!user || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
+    req.session.oryonUser = publicOryonUser(user);
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/logout', (req, res) => {
+  req.session.oryonUser = null;
+  req.session.save(() => res.json({ success:true }));
+});
+
+app.get('/api/native/lives', (req, res) => {
+  const rooms = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.entries) ? nativeLiveRooms : new Map();
+  const items = Array.from(rooms.entries()).map(([room, r]) => ({
+    room,
+    title: r.title || `Live de ${room}`,
+    host_name: r.hostName || room,
+    viewers: r.viewers ? r.viewers.size : 0,
+    limit: 300,
+    createdAt: r.createdAt || null,
+    native: true
+  })).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  res.json({ success:true, items });
+});
+
+app.get('/api/twitch/followed/live', heavyLimiter, async (req, res) => {
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu || (tu.expiry && tu.expiry <= Date.now())) return res.status(401).json({ success:false, error:'Twitch non connecté.', items:[] });
+    const data = await twitchAPI(`streams/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
+    const items = (data.data || []).map(s => ({
+      id:s.id, user_id:s.user_id, login:s.user_login, display_name:s.user_name,
+      title:s.title, game_name:s.game_name, viewer_count:s.viewer_count || 0, started_at:s.started_at,
+      thumbnail_url:String(s.thumbnail_url || '').replace('{width}','640').replace('{height}','360'), platform:'twitch'
+    }));
+    res.json({ success:true, items });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/followed/live', e.message);
+    res.status(500).json({ success:false, error:e.message, items:[] });
+  }
+});
+
+
 app.get('/firebase_status', (req, res) => {
   try {
     res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -2504,6 +2616,31 @@ app.get('/api/twitch/channels/search', heavyLimiter, async (req, res) => {
     return res.status(500).json({ success: false, error: e.message, items: [] });
   }
 });
+
+
+// Oryon homepage: petits lives Twitch secondaires, plafonnés côté affichage.
+app.get('/api/twitch/streams/small', heavyLimiter, async (req, res) => {
+  try{
+    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+    const max = Math.max(1, Math.min(300, Number(req.query.max || 300)));
+    const token = await getTwitchToken();
+    const data = await twitchAPI(`streams?first=100&language=${encodeURIComponent(lang)}`, token);
+    const items = (data.data || [])
+      .filter(s => Number(s.viewer_count || 0) <= max)
+      .sort((a,b) => Number(a.viewer_count || 0) - Number(b.viewer_count || 0))
+      .slice(0, 24)
+      .map(s => ({
+        id:s.id, user_id:s.user_id, login:s.user_login, display_name:s.user_name,
+        title:s.title, game_name:s.game_name, viewer_count:s.viewer_count || 0, started_at:s.started_at,
+        thumbnail_url:String(s.thumbnail_url || '').replace('{width}','640').replace('{height}','360'), platform:'twitch'
+      }));
+    res.json({ success:true, items });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/streams/small', e.message);
+    res.json({ success:false, error:e.message, items:[] });
+  }
+});
+
 // --- ROUTES DISCOVERY (Updated for Infinite Scroll) ---
 
 app.get('/api/categories/top', async (req, res) => {
@@ -4470,10 +4607,16 @@ io.on('connection', async (socket) => {
     if(!room) return socket.emit('native:error', { message: 'Nom de salon invalide.' });
     const existing = nativeLiveRooms.get(room);
     if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Ce salon existe déjà.' });
-    nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now() });
+    const sess = socket.request?.session || {};
+    const local = sess.oryonUser;
+    const twitch = sess.twitchUser;
+    const hostName = String(local?.display_name || twitch?.display_name || twitch?.login || room).trim().slice(0, 40);
+    const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
+    nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName });
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
-    socket.emit('native:created', { room });
+    socket.emit('native:created', { room, title, host_name: hostName });
+    io.emit('native:lives:update');
   });
 
   socket.on('native:join', (payload) => {
@@ -4485,6 +4628,7 @@ io.on('connection', async (socket) => {
     socket.data.nativeRoom = room; socket.data.nativeRole = 'viewer';
     socket.join('native:' + room);
     io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
+    io.emit('native:lives:update');
   });
 
   socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
@@ -4497,10 +4641,12 @@ io.on('connection', async (socket) => {
       if(role === 'host'){
         for(const viewerId of r.viewers) io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' });
         nativeLiveRooms.delete(room);
+        io.emit('native:lives:update');
       }else{
         r.viewers.delete(socket.id);
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
         cleanNativeRoom(room);
+        io.emit('native:lives:update');
       }
     }
     socket.leave('native:' + room);
@@ -4651,10 +4797,12 @@ io.on('connection', async (socket) => {
       if(role === 'host'){
         for(const viewerId of r.viewers) io.to(viewerId).emit('native:error', { message: 'Le streamer a quitté le live.' });
         nativeLiveRooms.delete(room);
+        io.emit('native:lives:update');
       }else{
         r.viewers.delete(socket.id);
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
         cleanNativeRoom(room);
+        io.emit('native:lives:update');
       }
     }
     console.log('\uD83D\uDD0C [SOCKET] client disconnected');

@@ -3,64 +3,294 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Oryon — streaming à taille humaine</title>
-  <meta name="description" content="Oryon met en avant les petits créateurs, permet de regarder Twitch via embed, et prépare des lives natifs P2P plafonnés." />
+  <title>Oryon — Twitch en mieux</title>
+  <meta name="description" content="Oryon met en avant les lives à taille humaine, permet de lancer un live natif et d'intégrer Twitch dans une interface plus juste." />
   <style>
-    :root{--bg:#07080d;--panel:#0f111a;--text:#f7f7fb;--muted:#a6adbb;--line:rgba(255,255,255,.10);--accent:#7c3cff;--accent2:#00e5ff;--good:#36f28b;--shadow:0 22px 80px rgba(0,0,0,.45)}
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 20% 0%,rgba(124,60,255,.25),transparent 36%),radial-gradient(circle at 90% 10%,rgba(0,229,255,.14),transparent 32%),var(--bg);color:var(--text)}
+    :root{--bg:#07080d;--panel:#10121c;--panel2:#151827;--text:#f7f7fb;--muted:#aab1c2;--line:rgba(255,255,255,.11);--accent:#7c3cff;--accent2:#00e5ff;--good:#36f28b;--danger:#ff4d6d;--shadow:0 22px 80px rgba(0,0,0,.45)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 18% 0%,rgba(124,60,255,.25),transparent 34%),radial-gradient(circle at 88% 8%,rgba(0,229,255,.13),transparent 30%),var(--bg);color:var(--text)}
     a{color:inherit;text-decoration:none}button,input{font:inherit}.wrap{width:min(1180px,calc(100vw - 32px));margin:0 auto}.hidden{display:none!important}
-    .top{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:rgba(7,8,13,.72);border-bottom:1px solid var(--line)}.nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-weight:950;letter-spacing:-.04em;font-size:22px}.mark{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 30px rgba(124,60,255,.45)}.navlinks{display:flex;align-items:center;gap:18px;color:var(--muted);font-weight:700;font-size:14px}.navlinks a:hover{color:white}.pill{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);padding:10px 14px;border-radius:999px;color:white;font-weight:850}
-    .hero{padding:76px 0 42px;display:grid;grid-template-columns:1.05fr .95fr;gap:32px;align-items:center}.kicker{display:inline-flex;align-items:center;gap:8px;color:#d8d7ff;background:rgba(124,60,255,.13);border:1px solid rgba(124,60,255,.36);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:900}.dot{width:8px;height:8px;border-radius:999px;background:var(--good);box-shadow:0 0 18px var(--good)}h1{font-size:clamp(42px,7vw,82px);line-height:.92;letter-spacing:-.07em;margin:18px 0 18px}.lead{font-size:clamp(17px,2.2vw,22px);line-height:1.45;color:#d7dbe7;max-width:720px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:16px;padding:14px 18px;font-weight:950;cursor:pointer;color:white;background:linear-gradient(135deg,var(--accent),#b84dff);box-shadow:0 14px 35px rgba(124,60,255,.25)}.btn.secondary{background:rgba(255,255,255,.07);border:1px solid var(--line);box-shadow:none}.btn.ghost{background:transparent;border:1px solid var(--line);box-shadow:none;color:#dfe6ff}
-    .manifesto,.panel,.side{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.035));border:1px solid var(--line);border-radius:28px;padding:24px;box-shadow:var(--shadow)}.manifesto h2,.side h3{margin:0 0 12px}.rule{display:flex;gap:14px;padding:15px 0;border-top:1px solid var(--line)}.rule:first-of-type{border-top:0}.num{width:34px;height:34px;display:grid;place-items:center;border-radius:12px;background:rgba(0,229,255,.12);color:var(--accent2);font-weight:950}.rule b{display:block;margin-bottom:4px}.rule span{color:var(--muted);font-size:14px;line-height:1.45}
-    .section{padding:42px 0}.head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:18px}.head h2{font-size:32px;letter-spacing:-.05em;margin:0}.head p,.small{color:var(--muted);line-height:1.5}.head p{margin:6px 0 0;max-width:720px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:rgba(15,17,26,.86);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 12px 45px rgba(0,0,0,.22)}.thumb{aspect-ratio:16/9;background:linear-gradient(135deg,rgba(124,60,255,.35),rgba(0,229,255,.14));position:relative;overflow:hidden}.thumb img{width:100%;height:100%;object-fit:cover;display:block}.badge{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:950}.badge.live{color:white;background:rgba(255,77,109,.86)}.meta{padding:16px}.title{font-weight:950;line-height:1.25;margin-bottom:8px}.desc{font-size:13px;color:var(--muted);line-height:1.45;min-height:36px}.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.chip{font-size:12px;color:#ccd3e4;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:6px 9px;border-radius:999px}
-    .searchbox{display:grid;grid-template-columns:1fr auto;gap:10px;background:rgba(255,255,255,.06);border:1px solid var(--line);padding:10px;border-radius:20px}.searchbox input{background:transparent;border:0;outline:0;color:white;padding:0 8px;font-size:16px}.searchbox button{border-radius:13px}.playerShell,.nativeShell{display:grid;grid-template-columns:1.4fr .6fr;gap:16px;margin-top:18px}.player{border:1px solid var(--line);border-radius:24px;overflow:hidden;background:#000;min-height:390px}.player iframe,.player video{width:100%;height:100%;min-height:390px;border:0;display:block;background:#000}.results{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.result{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:18px;padding:12px;cursor:pointer}.result:hover{border-color:rgba(124,60,255,.75)}.avatar{width:46px;height:46px;border-radius:16px;object-fit:cover;background:rgba(255,255,255,.1)}.resultTop{display:flex;gap:10px;align-items:center}.result b{display:block;font-size:14px}.result span{font-size:12px;color:var(--muted)}.empty{padding:22px;border:1px dashed rgba(255,255,255,.15);border-radius:20px;color:var(--muted);background:rgba(255,255,255,.03)}
-    .nativeControls{display:grid;gap:12px}.nativeControls input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:14px;color:white;padding:13px}.status{padding:12px;border-radius:16px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.18);font-size:13px;color:#d8fbff}.footer{border-top:1px solid var(--line);padding:28px 0 44px;color:var(--muted);font-size:13px}
-    @media(max-width:900px){.hero,.playerShell,.nativeShell{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.results{grid-template-columns:1fr 1fr}.navlinks{display:none}.hero{padding-top:48px}}@media(max-width:560px){.grid,.results{grid-template-columns:1fr}.actions .btn{width:100%}.head{display:block}.searchbox{grid-template-columns:1fr}}
+    .top{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:rgba(7,8,13,.75);border-bottom:1px solid var(--line)}.nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-weight:950;letter-spacing:-.04em;font-size:22px}.mark{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 30px rgba(124,60,255,.45)}
+    .tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tab{border:1px solid var(--line);background:rgba(255,255,255,.05);color:#dce3f5;border-radius:999px;padding:10px 14px;font-weight:850;cursor:pointer}.tab.active{background:linear-gradient(135deg,var(--accent),#b84dff);border-color:transparent;color:white}.account{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}.avatarMini{width:28px;height:28px;border-radius:999px;object-fit:cover;background:#222}
+    .hero{padding:70px 0 28px;display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:center}.kicker{display:inline-flex;align-items:center;gap:8px;color:#d8d7ff;background:rgba(124,60,255,.13);border:1px solid rgba(124,60,255,.36);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:900}.dot{width:8px;height:8px;border-radius:999px;background:var(--good);box-shadow:0 0 18px var(--good)}h1{font-size:clamp(42px,7vw,82px);line-height:.92;letter-spacing:-.07em;margin:18px 0}.lead{font-size:clamp(17px,2.2vw,22px);line-height:1.45;color:#d7dbe7;max-width:720px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:16px;padding:13px 17px;font-weight:950;cursor:pointer;color:white;background:linear-gradient(135deg,var(--accent),#b84dff);box-shadow:0 14px 35px rgba(124,60,255,.25)}.btn.secondary{background:rgba(255,255,255,.07);border:1px solid var(--line);box-shadow:none}.btn.ghost{background:transparent;border:1px solid var(--line);box-shadow:none;color:#dfe6ff}.btn.danger{background:rgba(255,77,109,.16);border:1px solid rgba(255,77,109,.35);box-shadow:none}
+    .panel,.side{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.035));border:1px solid var(--line);border-radius:28px;padding:22px;box-shadow:var(--shadow)}.panel h2,.side h3{margin:0 0 12px}.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mini{padding:14px;border-radius:18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08)}.mini b{display:block;margin-bottom:5px}.mini span,.small{color:var(--muted);font-size:13px;line-height:1.45}
+    .section{padding:36px 0}.view{display:none}.view.active{display:block}.head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:18px}.head h2{font-size:32px;letter-spacing:-.05em;margin:0}.head p{margin:6px 0 0;color:var(--muted);line-height:1.5;max-width:760px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:rgba(15,17,26,.86);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 12px 45px rgba(0,0,0,.22)}.thumb{aspect-ratio:16/9;background:linear-gradient(135deg,rgba(124,60,255,.35),rgba(0,229,255,.14));position:relative;overflow:hidden;display:grid;place-items:center}.thumb img{width:100%;height:100%;object-fit:cover;display:block}.badge{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:950}.badge.live{background:rgba(255,77,109,.86)}.badge.right{left:auto;right:12px}.meta{padding:16px}.title{font-weight:950;line-height:1.25;margin-bottom:8px}.desc{font-size:13px;color:var(--muted);line-height:1.45;min-height:36px}.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.chip{font-size:12px;color:#ccd3e4;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:6px 9px;border-radius:999px}
+    .searchbox{display:grid;grid-template-columns:1fr auto;gap:10px;background:rgba(255,255,255,.06);border:1px solid var(--line);padding:10px;border-radius:20px}.searchbox input,.form input{background:rgba(255,255,255,.06);border:1px solid var(--line);outline:0;color:white;padding:12px 13px;border-radius:14px;width:100%}.searchbox input{border:0;background:transparent;font-size:16px}.playerShell,.nativeShell,.authShell{display:grid;grid-template-columns:1.4fr .6fr;gap:16px;margin-top:18px}.player{border:1px solid var(--line);border-radius:24px;overflow:hidden;background:#000;min-height:410px}.player iframe,.player video{width:100%;height:100%;min-height:410px;border:0;display:block;background:#000}.results{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.result{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:18px;padding:12px;cursor:pointer}.result:hover{border-color:rgba(124,60,255,.75)}.avatar{width:46px;height:46px;border-radius:16px;object-fit:cover;background:rgba(255,255,255,.1)}.resultTop{display:flex;gap:10px;align-items:center}.result b{display:block;font-size:14px}.result span{font-size:12px;color:var(--muted)}.empty{padding:22px;border:1px dashed rgba(255,255,255,.15);border-radius:20px;color:var(--muted);background:rgba(255,255,255,.03)}
+    .form{display:grid;gap:10px}.status{padding:12px;border-radius:16px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.18);font-size:13px;color:#d8fbff}.footer{border-top:1px solid var(--line);padding:28px 0 44px;color:var(--muted);font-size:13px}
+    @media(max-width:900px){.hero,.playerShell,.nativeShell,.authShell{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.results{grid-template-columns:1fr 1fr}.account{display:none}.hero{padding-top:48px}}@media(max-width:560px){.grid,.results,.split{grid-template-columns:1fr}.actions .btn{width:100%}.head{display:block}.searchbox{grid-template-columns:1fr}.nav{height:auto;padding:14px 0;align-items:flex-start;flex-direction:column}}
   </style>
 </head>
 <body>
-  <header class="top"><div class="wrap nav"><a class="brand" href="#top"><span class="mark"></span><span>Oryon</span></a><nav class="navlinks"><a href="#petits">Accueil</a><a href="#twitch">Twitch</a><a href="#native">Live natif</a></nav><a class="pill" href="#native">Lancer un live</a></div></header>
-  <main id="top">
-    <section class="wrap hero">
-      <div><div class="kicker"><span class="dot"></span> Streaming à taille humaine</div><h1>Les petits créateurs d’abord.</h1><p class="lead">Oryon sert à découvrir des lives qu’on ne voit pas ailleurs, regarder Twitch sans quitter le site, et préparer des salons natifs limités à taille humaine.</p><div class="actions"><a class="btn" href="#petits">Découvrir</a><a class="btn secondary" href="#twitch">Chercher Twitch</a><a class="btn ghost" href="#native">Créer un salon natif</a></div></div>
-      <aside class="manifesto"><h2>Ce que voit l’utilisateur</h2><div class="rule"><div class="num">1</div><div><b>Une home plus humaine.</b><span>Les lives émergents ont une vraie place au lieu d’être enterrés.</span></div></div><div class="rule"><div class="num">2</div><div><b>Un player Twitch intégré.</b><span>On cherche, on clique, on regarde ici. Le flux vidéo reste servi par Twitch.</span></div></div><div class="rule"><div class="num">3</div><div><b>Des salons natifs à venir.</b><span>Un créateur peut lancer un salon WebRTC expérimental depuis le site.</span></div></div></aside>
+  <header class="top">
+    <div class="wrap nav">
+      <a class="brand" href="#" data-tab="home"><span class="mark"></span><span>Oryon</span></a>
+      <nav class="tabs">
+        <button class="tab active" data-tab="home">Accueil</button>
+        <button class="tab" data-tab="native">Lancer un live</button>
+        <button class="tab" data-tab="twitch">Twitch</button>
+        <button class="tab" data-tab="account">Compte</button>
+      </nav>
+      <div class="account" id="accountMini">Non connecté</div>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-home" class="view active">
+      <div class="wrap hero">
+        <div>
+          <div class="kicker"><span class="dot"></span> Streaming à taille humaine</div>
+          <h1>Twitch en mieux, sans écraser les petits.</h1>
+          <p class="lead">La page principale affiche d’abord les lives natifs et les créateurs à taille humaine. Twitch reste disponible, mais dans son propre onglet.</p>
+          <div class="actions">
+            <button class="btn" data-tab="native">Lancer mon live</button>
+            <button class="btn secondary" id="reloadHome">Rafraîchir les lives</button>
+            <button class="btn ghost" data-tab="account">Créer un compte</button>
+          </div>
+        </div>
+        <aside class="panel">
+          <h2>Le principe</h2>
+          <div class="split">
+            <div class="mini"><b>Accueil natif</b><span>Les lives lancés sur Oryon apparaissent ici, même à zéro viewer.</span></div>
+            <div class="mini"><b>Découverte utile</b><span>L’interface met en valeur les créateurs qu’on ne voit pas ailleurs.</span></div>
+            <div class="mini"><b>Twitch intégré</b><span>Recherche, embed et suivis Twitch restent accessibles dans un onglet séparé.</span></div>
+            <div class="mini"><b>Compte utilisateur</b><span>Un utilisateur peut créer un compte Oryon et aussi connecter Twitch.</span></div>
+          </div>
+        </aside>
+      </div>
+
+      <section class="wrap section">
+        <div class="head">
+          <div><h2>Lives natifs en direct</h2><p>Quand un streamer lance un salon, il apparaît ici immédiatement, même si personne ne regarde encore.</p></div>
+          <button class="btn secondary" id="reloadNativeLives">Rafraîchir</button>
+        </div>
+        <div id="nativeLiveGrid" class="grid"><div class="empty">Aucun live natif pour le moment.</div></div>
+      </section>
+
+      <section class="wrap section">
+        <div class="head">
+          <div><h2>Petits lives Twitch repérés</h2><p>Une zone secondaire pour découvrir des lives Twitch à faible audience. Le vrai cœur reste les lives natifs.</p></div>
+        </div>
+        <div id="smallStreams" class="grid"><div class="empty">Chargement des lives Twitch émergents…</div></div>
+      </section>
     </section>
-    <section id="petits" class="wrap section"><div class="head"><div><h2>En direct maintenant</h2><p>La page d’accueil met volontairement l’accent sur les chaînes moins exposées.</p></div><button class="btn secondary" id="reloadSmall">Rafraîchir</button></div><div id="smallStreams" class="grid"><div class="empty">Chargement des lives…</div></div></section>
-    <section id="twitch" class="wrap section"><div class="head"><div><h2>Recherche Twitch</h2><p>Cherche une chaîne Twitch, puis regarde le live dans Oryon via embed.</p></div></div><form id="searchForm" class="searchbox"><input id="q" autocomplete="off" placeholder="Ex : gotaga, etoiles, ponce, zerator…" /><button class="btn" type="submit">Chercher</button></form><div id="results" class="results"></div><div class="playerShell"><div class="player" id="player"><div class="empty" style="margin:18px">Choisis un streamer pour ouvrir le player Twitch intégré.</div></div><aside class="side"><h3 id="currentTitle">Aucun live sélectionné</h3><p class="small" id="currentMeta">Le player Twitch fonctionne uniquement si ton domaine est accepté par Twitch avec le paramètre parent. En local, utilise localhost.</p><div class="chips"><span class="chip">Embed Twitch</span><span class="chip">Recherche</span><span class="chip">Coût vidéo nul</span></div></aside></div></section>
-    <section id="native" class="wrap section"><div class="head"><div><h2>Live natif expérimental</h2><p>Un streamer peut créer un salon et partager son écran/caméra en WebRTC. Le serveur ne transporte pas la vidéo : il met seulement les navigateurs en relation.</p></div></div><div class="nativeShell"><div class="player"><video id="nativeVideo" autoplay playsinline muted></video></div><aside class="side"><h3>Se connecter au live</h3><div class="nativeControls"><input id="roomName" placeholder="Nom du salon, ex : sansa-rp" maxlength="40"><button class="btn" id="startNative">Lancer mon live</button><button class="btn secondary" id="joinNative">Rejoindre un live</button><button class="btn ghost" id="stopNative">Arrêter / quitter</button><div class="status" id="nativeStatus">Entre un nom de salon. Le streamer clique “Lancer mon live”. Les viewers utilisent le même nom puis “Rejoindre”.</div></div><div class="chips"><span class="chip">WebRTC</span><span class="chip">Socket.IO</span><span class="chip">Prototype natif</span></div></aside></div></section>
+
+    <section id="view-native" class="view">
+      <div class="wrap section">
+        <div class="head"><div><h2>Live natif expérimental</h2><p>Tu peux lancer un live sans attendre de viewer. Il sera visible sur l’accueil et les viewers pourront rejoindre le salon.</p></div></div>
+        <div class="nativeShell">
+          <div class="player"><video id="nativeVideo" autoplay playsinline muted></video></div>
+          <aside class="side">
+            <h3>Lancer ou rejoindre</h3>
+            <div class="form">
+              <input id="roomName" placeholder="Nom du salon : ex. sansa-rp" />
+              <input id="liveTitle" placeholder="Titre du live : ex. JDR chill ce soir" />
+              <button class="btn" id="startNative">Lancer mon live</button>
+              <button class="btn secondary" id="joinNative">Rejoindre ce live</button>
+              <button class="btn danger" id="stopNative">Arrêter / quitter</button>
+              <div class="status" id="nativeStatus">Prêt. Le live peut être lancé sans viewer.</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-twitch" class="view">
+      <div class="wrap section">
+        <div class="head"><div><h2>Twitch intégré</h2><p>Cette partie n’est plus sur la page principale. Elle sert à chercher des streamers Twitch, regarder via embed, et afficher les lives suivis si Twitch est connecté.</p></div><button class="btn secondary" id="connectTwitch">Se connecter avec Twitch</button></div>
+
+        <section class="panel" style="margin-bottom:18px">
+          <div class="head" style="margin-bottom:12px"><div><h2 style="font-size:24px">Lives suivis</h2><p>Connecte Twitch pour afficher les chaînes que tu suis et qui sont en live.</p></div><button class="btn secondary" id="loadFollowed">Charger mes suivis</button></div>
+          <div id="followedGrid" class="grid"><div class="empty">Connecte Twitch pour voir tes suivis en direct.</div></div>
+        </section>
+
+        <form id="searchForm" class="searchbox">
+          <input id="q" autocomplete="off" placeholder="Chercher une chaîne Twitch…" />
+          <button class="btn" type="submit">Chercher</button>
+        </form>
+        <div id="results" class="results"></div>
+        <div class="playerShell">
+          <div class="player" id="player"><div class="empty" style="margin:18px">Choisis un streamer pour ouvrir le player Twitch intégré.</div></div>
+          <aside class="side">
+            <h3 id="currentTitle">Aucun live sélectionné</h3>
+            <p class="small" id="currentMeta">Le player Twitch utilise l’embed officiel. En local, le parent doit être localhost.</p>
+            <div class="chips"><span class="chip">Embed Twitch</span><span class="chip">Recherche</span><span class="chip">Suivis</span></div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-account" class="view">
+      <div class="wrap section">
+        <div class="head"><div><h2>Compte utilisateur</h2><p>Créer un compte Oryon permet d’avoir une identité sur le site. La connexion Twitch sert à récupérer tes lives suivis.</p></div></div>
+        <div class="authShell">
+          <div class="panel">
+            <h2>Créer un compte Oryon</h2>
+            <form class="form" id="registerForm">
+              <input id="regDisplay" placeholder="Nom affiché" />
+              <input id="regLogin" placeholder="Pseudo de connexion" />
+              <input id="regPass" type="password" placeholder="Mot de passe — 6 caractères minimum" />
+              <button class="btn" type="submit">Créer mon compte</button>
+            </form>
+          </div>
+          <aside class="side">
+            <h3>Connexion</h3>
+            <form class="form" id="loginForm">
+              <input id="loginName" placeholder="Pseudo" />
+              <input id="loginPass" type="password" placeholder="Mot de passe" />
+              <button class="btn secondary" type="submit">Me connecter</button>
+              <button class="btn ghost" type="button" id="connectTwitch2">Connecter Twitch</button>
+              <button class="btn danger" type="button" id="logoutAll">Déconnexion locale</button>
+              <div class="status" id="accountStatus">État du compte en cours de chargement…</div>
+            </form>
+          </aside>
+        </div>
+      </div>
+    </section>
   </main>
-  <footer class="wrap footer">Oryon · Discovery et Trade sont retirés du parcours principal. La stratégie interne n’est plus affichée comme contenu public.</footer>
+
+  <footer class="wrap footer">Oryon · Une interface de streaming centrée sur la découverte et les lives à taille humaine.</footer>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const $ = s => document.querySelector(s);
-const parentHost = location.hostname || 'localhost';
-function thumb(url){ return String(url||'').replace('{width}','640').replace('{height}','360'); }
-function safeLogin(x){ return String(x||'').toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,25); }
-function escapeHtml(s){ return String(s||'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
-function escapeAttr(s){ return escapeHtml(s).replace(/'/g,'&#39;'); }
-function streamCard(s){const login=safeLogin(s.user_login||s.login||s.broadcaster_login),name=s.user_name||s.display_name||login,img=thumb(s.thumbnail_url)||s.profile_image_url||'';return `<article class="card"><div class="thumb">${img?`<img src="${img}" loading="lazy" alt="${escapeAttr(name)}">`:''}<span class="badge live">${Number(s.viewer_count||0)} viewers</span></div><div class="meta"><div class="title">${escapeHtml(name)}</div><div class="desc">${escapeHtml(s.title||'Live Twitch intégré')}</div><div class="chips"><span class="chip">${escapeHtml(s.game_name||'Live')}</span><span class="chip">Découverte</span></div><div class="actions" style="margin-top:14px"><button class="btn secondary" onclick="openChannel('${login}','${escapeAttr(name)}')">Regarder ici</button></div></div></article>`}
-function resultCard(c){const login=safeLogin(c.login||c.broadcaster_login),name=c.display_name||c.broadcaster_name||login;return `<div class="result" onclick="openChannel('${login}','${escapeAttr(name)}')"><div class="resultTop"><img class="avatar" src="${c.profile_image_url||''}" alt=""><div><b>${escapeHtml(name)}</b><span>@${escapeHtml(login)}</span></div></div><p class="small">${escapeHtml(c.title||c.description||'Chaîne Twitch')}</p></div>`}
-async function loadSmall(){const box=$('#smallStreams');box.innerHTML='<div class="empty">Chargement des lives…</div>';try{const r=await fetch('/api/twitch/streams/top?lang=fr&maxViewers=300&limit=24');const j=await r.json();const items=(j.items||j.streams||[]).filter(x=>Number(x.viewer_count||0)<=300).sort((a,b)=>Number(a.viewer_count||0)-Number(b.viewer_count||0)).slice(0,12);box.innerHTML=items.length?items.map(streamCard).join(''):'<div class="empty">Aucun live trouvé. Vérifie tes clés Twitch API ou change le filtre.</div>'}catch(e){box.innerHTML='<div class="empty">Impossible de charger les lives. Le serveur Twitch API doit être configuré.</div>'}}
-async function searchChannels(q){const box=$('#results');box.innerHTML='<div class="empty">Recherche…</div>';try{const r=await fetch('/api/twitch/channels/search?q='+encodeURIComponent(q));const j=await r.json();const items=j.items||j.channels||[];box.innerHTML=items.length?items.slice(0,8).map(resultCard).join(''):'<div class="empty">Aucun résultat. Ouverture comme login exact.</div>';if(!items.length)openChannel(q,q)}catch(e){box.innerHTML='<div class="empty">Recherche API indisponible. Ouverture comme login exact.</div>';openChannel(q,q)}}
-function openChannel(login,name){login=safeLogin(login);if(!login)return;$('#player').innerHTML=`<iframe allowfullscreen="true" scrolling="no" src="https://player.twitch.tv/?channel=${encodeURIComponent(login)}&parent=${encodeURIComponent(parentHost)}&muted=false"></iframe>`;$('#currentTitle').textContent=name||login;$('#currentMeta').innerHTML='Lecture via Twitch embed. La vidéo reste servie par Twitch.';history.replaceState(null,'','#twitch')}
-$('#searchForm').addEventListener('submit',e=>{e.preventDefault();const q=$('#q').value.trim();if(q)searchChannels(q)});$('#reloadSmall').addEventListener('click',loadSmall);loadSmall();
+const $$ = s => Array.from(document.querySelectorAll(s));
+const API = (url, opts={}) => fetch(url, { credentials:'include', headers:{'Content-Type':'application/json'}, ...opts }).then(async r => {
+  const data = await r.json().catch(()=>({success:false,error:'Réponse invalide'}));
+  if(!r.ok && !data.error) data.error = 'Erreur HTTP ' + r.status;
+  return data;
+});
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function showTab(name){
+  $$('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  $$('.view').forEach(v=>v.classList.toggle('active', v.id === 'view-' + name));
+  window.scrollTo({top:0, behavior:'smooth'});
+  if(name==='home') loadNativeLives();
+  if(name==='twitch') loadSession();
+}
+$$('[data-tab]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); showTab(el.dataset.tab); }));
+
+function parentHost(){ return location.hostname || 'localhost'; }
+function openTwitch(login, title=''){
+  const parent = encodeURIComponent(parentHost());
+  $('#player').innerHTML = `<iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(login)}&parent=${parent}&muted=false"></iframe>`;
+  $('#currentTitle').textContent = title || login;
+  $('#currentMeta').textContent = `Chaîne Twitch : ${login}`;
+  showTab('twitch');
+}
+function liveCard(item, type='native'){
+  const isNative = type === 'native';
+  const login = item.login || item.user_login || '';
+  const title = item.title || (isNative ? `Live de ${item.host_name || item.room}` : `Live de ${login}`);
+  const viewers = isNative ? `${item.viewers || 0}/300` : `${item.viewer_count || item.viewers || 0}`;
+  const action = isNative ? `joinRoom('${esc(item.room)}')` : `openTwitch('${esc(login)}','${esc(title)}')`;
+  const thumb = item.thumbnail_url ? `<img src="${esc(item.thumbnail_url)}" alt="">` : `<div style="font-size:42px;font-weight:950;letter-spacing:-.08em;color:rgba(255,255,255,.76)">ORYON</div>`;
+  return `<article class="card">
+    <div class="thumb">${thumb}<span class="badge live">LIVE</span><span class="badge right">${esc(viewers)} viewers</span></div>
+    <div class="meta"><div class="title">${esc(title)}</div><div class="desc">${esc(isNative ? ('Salon ' + item.room + ' · ' + (item.host_name || 'Créateur Oryon')) : ((item.display_name || login) + ' · ' + (item.game_name || 'Twitch')))}</div>
+    <div class="chips"><span class="chip">${isNative ? 'Natif Oryon' : 'Twitch'}</span><span class="chip">${isNative ? 'WebRTC' : 'Embed'}</span></div>
+    <div style="margin-top:14px"><button class="btn secondary" onclick="${action}">${isNative ? 'Rejoindre' : 'Regarder'}</button></div></div>
+  </article>`;
+}
+async function loadNativeLives(){
+  const d = await API('/api/native/lives');
+  const items = d.items || [];
+  $('#nativeLiveGrid').innerHTML = items.length ? items.map(x=>liveCard(x,'native')).join('') : '<div class="empty">Aucun live natif pour le moment. Lance le tien : il apparaîtra ici même à zéro viewer.</div>';
+}
+async function loadSmallStreams(){
+  const box = $('#smallStreams');
+  try{
+    const d = await API('/api/twitch/streams/small?lang=fr&max=300');
+    const items = d.items || d.streams || [];
+    box.innerHTML = items.length ? items.slice(0,6).map(x=>liveCard(x,'twitch')).join('') : '<div class="empty">Aucun petit live Twitch trouvé pour le moment.</div>';
+  }catch(e){ box.innerHTML = '<div class="empty">Impossible de charger les lives Twitch émergents.</div>'; }
+}
+window.joinRoom = function(room){ showTab('native'); $('#roomName').value = room; setTimeout(()=>joinNative(), 200); };
+$('#reloadHome').addEventListener('click',()=>{loadNativeLives();loadSmallStreams();});
+$('#reloadNativeLives').addEventListener('click',loadNativeLives);
+
+async function searchTwitch(q){
+  $('#results').innerHTML = '<div class="empty">Recherche…</div>';
+  const d = await API('/api/twitch/channels/search?q=' + encodeURIComponent(q));
+  const items = d.items || [];
+  $('#results').innerHTML = items.length ? items.map(c => `<div class="result" onclick="openTwitch('${esc(c.login)}','${esc(c.display_name || c.login)}')"><div class="resultTop"><img class="avatar" src="${esc(c.profile_image_url || '')}" alt=""><div><b>${esc(c.display_name || c.login)}</b><span>${c.is_live ? 'En live' : 'Hors ligne'} ${c.game_name ? '· ' + esc(c.game_name) : ''}</span></div></div></div>`).join('') : '<div class="empty">Aucune chaîne trouvée.</div>';
+}
+$('#searchForm').addEventListener('submit', e=>{ e.preventDefault(); const q=$('#q').value.trim(); if(q) searchTwitch(q); });
+
+async function loadFollowed(){
+  $('#followedGrid').innerHTML = '<div class="empty">Chargement des suivis Twitch…</div>';
+  const d = await API('/api/twitch/followed/live');
+  if(!d.success){ $('#followedGrid').innerHTML = `<div class="empty">${esc(d.error || 'Connecte Twitch pour charger tes suivis.')}</div>`; return; }
+  const items = d.items || [];
+  $('#followedGrid').innerHTML = items.length ? items.map(x=>liveCard(x,'twitch')).join('') : '<div class="empty">Aucun de tes suivis Twitch n’est en live.</div>';
+}
+$('#loadFollowed').addEventListener('click',loadFollowed);
+
+async function loadSession(){
+  const d = await API('/api/oryon/session');
+  const bits = [];
+  if(d.local) bits.push(`Oryon: ${esc(d.local.display_name)}`);
+  if(d.twitch) bits.push(`Twitch: ${esc(d.twitch.display_name || d.twitch.login)}`);
+  $('#accountMini').innerHTML = d.twitch?.profile_image_url ? `<img class="avatarMini" src="${esc(d.twitch.profile_image_url)}"> ${bits.join(' · ') || 'Connecté'}` : (bits.join(' · ') || 'Non connecté');
+  $('#accountStatus').textContent = bits.length ? bits.join(' · ') : 'Aucun compte connecté.';
+}
+$('#connectTwitch').addEventListener('click',()=>{ window.location.href='/twitch_auth_start'; });
+$('#connectTwitch2').addEventListener('click',()=>{ window.location.href='/twitch_auth_start'; });
+$('#registerForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const d = await API('/api/oryon/register',{method:'POST',body:JSON.stringify({display_name:$('#regDisplay').value,login:$('#regLogin').value,password:$('#regPass').value})});
+  $('#accountStatus').textContent = d.success ? 'Compte créé et connecté.' : (d.error || 'Erreur.');
+  loadSession();
+});
+$('#loginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const d = await API('/api/oryon/login',{method:'POST',body:JSON.stringify({login:$('#loginName').value,password:$('#loginPass').value})});
+  $('#accountStatus').textContent = d.success ? 'Connecté.' : (d.error || 'Erreur.');
+  loadSession();
+});
+$('#logoutAll').addEventListener('click', async ()=>{
+  await API('/api/oryon/logout',{method:'POST',body:'{}'});
+  $('#accountStatus').textContent = 'Déconnecté côté Oryon.';
+  loadSession();
+});
+
+// WebRTC natif
 const socket = io({ transports:['websocket','polling'] });
+socket.on('native:lives:update', loadNativeLives);
 const rtcConfig = { iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}] };
 let nativeMode = null, nativeRoom = '', localStream = null; const peers = new Map(); const viewerPc = { current:null };
 function setNativeStatus(t){ $('#nativeStatus').textContent = t; }
 function room(){ return ($('#roomName').value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40); }
-function makePc(peerId){ const pc = new RTCPeerConnection(rtcConfig); pc.onicecandidate = e => { if(e.candidate) socket.emit('native:ice', { room:nativeRoom, to:peerId, candidate:e.candidate }); }; pc.onconnectionstatechange = () => setNativeStatus(`Connexion ${pc.connectionState}`); return pc; }
-async function startNative(){ nativeRoom = room(); if(!nativeRoom) return setNativeStatus('Choisis un nom de salon.'); try{ localStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:true }); $('#nativeVideo').srcObject = localStream; nativeMode='host'; socket.emit('native:create', { room:nativeRoom }); setNativeStatus(`Live lancé dans le salon ${nativeRoom}. Partage ce nom aux viewers.`); localStream.getTracks().forEach(t => t.onended = stopNative); }catch(e){ setNativeStatus('Permission écran/caméra refusée ou WebRTC indisponible.'); } }
-async function joinNative(){ nativeRoom = room(); if(!nativeRoom) return setNativeStatus('Entre le nom du salon à rejoindre.'); nativeMode='viewer'; $('#nativeVideo').muted=false; socket.emit('native:join', { room:nativeRoom }); setNativeStatus(`Connexion au salon ${nativeRoom}…`); }
-async function stopNative(){ for(const pc of peers.values()) pc.close(); peers.clear(); if(viewerPc.current) viewerPc.current.close(); viewerPc.current=null; if(localStream) localStream.getTracks().forEach(t=>t.stop()); localStream=null; $('#nativeVideo').srcObject=null; socket.emit('native:leave', { room:nativeRoom }); nativeMode=null; setNativeStatus('Live arrêté / salon quitté.'); }
-socket.on('native:created', d => setNativeStatus(`Salon ${d.room} créé. En attente de viewers.`));
+function makePc(peerId){ const pc = new RTCPeerConnection(rtcConfig); pc.onicecandidate = e => { if(e.candidate) socket.emit('native:ice', { room:nativeRoom, to:peerId, candidate:e.candidate }); }; pc.onconnectionstatechange = () => setNativeStatus(`Connexion ${pc.connectionState}. Viewers connectés : ${peers.size}`); return pc; }
+async function startNative(){
+  nativeRoom = room(); if(!nativeRoom) return setNativeStatus('Choisis un nom de salon.');
+  try{
+    localStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:true });
+    $('#nativeVideo').srcObject = localStream;
+    nativeMode='host';
+    socket.emit('native:create', { room:nativeRoom, title:($('#liveTitle').value || '').trim() });
+    setNativeStatus(`Live lancé dans le salon ${nativeRoom}. Il est visible sur l’accueil, même sans viewer.`);
+    loadNativeLives();
+    localStream.getTracks().forEach(t => t.onended = stopNative);
+  }catch(e){ setNativeStatus('Permission écran/caméra refusée ou WebRTC indisponible.'); }
+}
+async function joinNative(){
+  nativeRoom = room(); if(!nativeRoom) return setNativeStatus('Entre le nom du salon à rejoindre.');
+  nativeMode='viewer'; $('#nativeVideo').muted=false; socket.emit('native:join', { room:nativeRoom }); setNativeStatus(`Connexion au salon ${nativeRoom}…`);
+}
+async function stopNative(){
+  for(const pc of peers.values()) pc.close(); peers.clear(); if(viewerPc.current) viewerPc.current.close(); viewerPc.current=null;
+  if(localStream) localStream.getTracks().forEach(t=>t.stop()); localStream=null; $('#nativeVideo').srcObject=null;
+  socket.emit('native:leave', { room:nativeRoom }); nativeMode=null; setNativeStatus('Live arrêté / salon quitté.'); loadNativeLives();
+}
+socket.on('native:created', d => { setNativeStatus(`Salon ${d.room} créé. Le live est affiché sur l’accueil.`); loadNativeLives(); });
 socket.on('native:error', d => setNativeStatus(d.message || 'Erreur native.'));
-socket.on('native:viewer', async d => { if(nativeMode!=='host' || !localStream) return; const peerId=d.viewerId; const pc=makePc(peerId); peers.set(peerId,pc); localStream.getTracks().forEach(t=>pc.addTrack(t,localStream)); const offer=await pc.createOffer(); await pc.setLocalDescription(offer); socket.emit('native:offer',{ room:nativeRoom, to:peerId, offer }); setNativeStatus(`Viewer connecté : ${peers.size}`); });
+socket.on('native:viewer', async d => { if(nativeMode!=='host' || !localStream) return; const peerId=d.viewerId; const pc=makePc(peerId); peers.set(peerId,pc); localStream.getTracks().forEach(t=>pc.addTrack(t,localStream)); const offer=await pc.createOffer(); await pc.setLocalDescription(offer); socket.emit('native:offer',{ room:nativeRoom, to:peerId, offer }); setNativeStatus(`Viewer connecté. Viewers connectés : ${peers.size}`); loadNativeLives(); });
 socket.on('native:offer', async d => { if(nativeMode!=='viewer') return; const pc = new RTCPeerConnection(rtcConfig); viewerPc.current = pc; pc.ontrack = e => { $('#nativeVideo').srcObject = e.streams[0]; }; pc.onicecandidate = e => { if(e.candidate) socket.emit('native:ice',{ room:nativeRoom, to:d.from, candidate:e.candidate }); }; await pc.setRemoteDescription(new RTCSessionDescription(d.offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('native:answer',{ room:nativeRoom, to:d.from, answer }); setNativeStatus('Connecté au live natif.'); });
 socket.on('native:answer', async d => { const pc=peers.get(d.from); if(pc) await pc.setRemoteDescription(new RTCSessionDescription(d.answer)); });
 socket.on('native:ice', async d => { const pc = nativeMode==='host' ? peers.get(d.from) : viewerPc.current; if(pc && d.candidate) { try{ await pc.addIceCandidate(new RTCIceCandidate(d.candidate)); }catch(e){} } });
-socket.on('native:viewer-left', d => { const pc=peers.get(d.viewerId); if(pc) pc.close(); peers.delete(d.viewerId); setNativeStatus(`Viewer parti. Viewers connectés : ${peers.size}`); });
+socket.on('native:viewer-left', d => { const pc=peers.get(d.viewerId); if(pc) pc.close(); peers.delete(d.viewerId); setNativeStatus(`Viewer parti. Viewers connectés : ${peers.size}`); loadNativeLives(); });
 $('#startNative').addEventListener('click',startNative);$('#joinNative').addEventListener('click',joinNative);$('#stopNative').addEventListener('click',stopNative);
+
+loadSession(); loadNativeLives(); loadSmallStreams();
 </script>
 </body>
 </html>
