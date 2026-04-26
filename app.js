@@ -2684,6 +2684,8 @@ app.get('/api/oryon/local-agent/config', (req, res) => {
       local_player_url: `http://localhost:${localPort}/player/${encodeURIComponent(key)}`,
       local_status_url: `http://localhost:${localPort}/health`,
       stream_key: key,
+      download_url: '/downloads/oryon-local-app.zip',
+      app_name: 'Oryon Local',
       note: 'Oryon Local transforme le PC du streamer en mini-serveur. Un tunnel public reste nécessaire pour les viewers externes.'
     });
   } catch(e) {

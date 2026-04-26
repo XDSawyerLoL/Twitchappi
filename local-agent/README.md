@@ -1,34 +1,20 @@
-# Oryon Local Agent
+# Oryon Local
 
-Objectif : transformer le PC du streamer en mini-serveur vidéo local.
+Application locale pour streamer sur Oryon depuis OBS sans VPS.
 
-## Installation
+## Démarrage Windows
+Double-clique sur `LANCER-ORYON-LOCAL-WINDOWS.bat`.
 
-```bash
-cd local-agent
-npm install
-npm start
-```
+## Démarrage macOS / Linux
+Lance `./lancer-oryon-local-mac-linux.sh`.
 
 ## OBS
-
-Dans OBS :
-
-- Service : personnalisé
+- Service : Personnalisé
 - Serveur : `rtmp://localhost:1935/live`
-- Clé : ta clé Oryon affichée dans le Gestionnaire de stream
+- Clé : ta clé Oryon affichée dans le Gestionnaire de stream.
 
-## Player local
+## Rendre le live visible aux autres
+Sans tunnel, le player ne fonctionne que sur ton PC. Pour les viewers, expose `http://localhost:8081` avec Cloudflare Tunnel, ngrok ou Tailscale Funnel, puis colle l’URL publique du player dans ton profil Oryon.
 
-Le player local est disponible ici :
-
-```text
-http://localhost:8081/player/TA_CLE_ORYON
-```
-
-## Pour que les viewers externes voient le live
-
-Il faut exposer le player local via un tunnel public, par exemple Cloudflare Tunnel, ngrok ou Tailscale Funnel.
-Ensuite, colle l'URL publique du player dans Oryon > Compte > Profil de chaîne > "Lien player Oryon Local public".
-
-Limite : ce mode dépend de l'upload du streamer et de la stabilité de son PC. C'est une base auto-hébergée, pas encore une infra plateforme.
+## Important
+FFmpeg doit être disponible sur le PC pour convertir le flux OBS en HLS. Si la preview reste noire, installe FFmpeg et relance l’application.
