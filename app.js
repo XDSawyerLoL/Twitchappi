@@ -2448,6 +2448,17 @@ function getAnySocketDisplay(socket){
   if(tw && (!tw.expiry || tw.expiry > Date.now())) return { id: tw.id, login: tw.login, display_name: tw.display_name || tw.login, type:'twitch' };
   return null;
 }
+
+function getOryonUserByLogin(login){
+  const key = String(login || '').trim().toLowerCase();
+  if(!key) return null;
+  try { return (readOryonUsers().users || []).find(u => String(u.login || '').toLowerCase() === key) || null; } catch(_) { return null; }
+}
+function isOryonLocalLiveRoom(room){
+  const u = getOryonUserByLogin(room);
+  return !!(u && u.oryon_local_player_url && u.local_agent_live);
+}
+
 function getSessionIdentity(req){
   const tu = req.session?.twitchUser;
   const lu = req.session?.oryonUser;
@@ -5297,16 +5308,20 @@ io.on('connection', async (socket) => {
   socket.on('native:join', (payload) => {
     const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
-    if(!room || !r?.host) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
+    const localAgentLive = isOryonLocalLiveRoom(room);
+    if(!room || (!r?.host && !localAgentLive)) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
     const maxViewers = Number(process.env.MAX_NATIVE_VIEWERS || 300);
-    if(r.viewers.size >= maxViewers) return socket.emit('native:error', { message: 'Salon complet : limite ' + maxViewers + ' viewers atteinte.' });
-    r.viewers.add(socket.id);
-    r.peakViewers = Math.max(Number(r.peakViewers || 0), r.viewers.size);
+    if(r?.viewers && r.viewers.size >= maxViewers) return socket.emit('native:error', { message: 'Salon complet : limite ' + maxViewers + ' viewers atteinte.' });
+    if(r?.viewers){
+      r.viewers.add(socket.id);
+      r.peakViewers = Math.max(Number(r.peakViewers || 0), r.viewers.size);
+    }
     socket.data.nativeRoom = room; socket.data.nativeRole = 'viewer';
     socket.join('native:' + room);
-    io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
+    socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
+    if(r?.host) io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
     io.emit('native:lives:update');
-    emitNativeStats(room);
+    if(r) emitNativeStats(room);
   });
 
   socket.on('native:request-offer', (payload) => { const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40); const r = nativeLiveRooms.get(room); if(r?.host) io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id }); });
@@ -5323,7 +5338,8 @@ io.on('connection', async (socket) => {
   socket.on('native:chat', (msg) => {
     const room = String(msg?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
-    if(!room || !r) return socket.emit('native:error', { message:'Live introuvable pour le tchat.' });
+    const localAgentLive = isOryonLocalLiveRoom(room);
+    if(!room || (!r && !localAgentLive)) return socket.emit('native:error', { message:'Live introuvable pour le tchat.' });
     const user = getAnySocketDisplay(socket);
     if(!user) return socket.emit('native:error', { message:'Connecte-toi pour écrire dans le tchat.' });
     const {state:modState}=getModState(room);
@@ -5340,10 +5356,10 @@ io.on('connection', async (socket) => {
     if(!text && !gif) return;
     const out = { id:makeId(), room, user:user.login, user_display:user.display_name, user_type:user.type, text, gif, ts:Date.now(), reactions:{} };
     const h = getNativeChat(room); h.push(out); while(h.length > 120) h.shift();
-    r.chatMessages = Number(r.chatMessages || 0) + 1;
-    try{ const ud=readOryonUsers(); const host=ud.users.find(x=>x.login===room); if(host){ host.best_chat_messages=Math.max(Number(host.best_chat_messages||0),Number(r.chatMessages||0)); writeOryonUsers(ud); } }catch(_e){}
+    if(r) r.chatMessages = Number(r.chatMessages || 0) + 1;
+    try{ const ud=readOryonUsers(); const host=ud.users.find(x=>x.login===room); if(host){ host.best_chat_messages=Math.max(Number(host.best_chat_messages||0),Number(r?.chatMessages||0)); writeOryonUsers(ud); } }catch(_e){}
     io.to('native:' + room).emit('native:chat', out);
-    emitNativeStats(room);
+    if(r) emitNativeStats(room);
     io.emit('native:lives:update');
   });
 
