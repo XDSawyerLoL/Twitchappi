@@ -3,7 +3,7 @@ const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const qs=o=>new URLSearchParams(Object.entries(o).filter(([,v])=>v!==undefined&&v!==null&&v!==''));
-const state={session:{local:null,twitch:null},view:'home',socket:null,socketLogin:null,room:null,watchRoom:null,stream:null,peers:{},selectedGif:'',selectedEmote:null,channelEmotes:[],catsCursor:null,currentTwitch:null,lastChannelLogin:null,viewerProfile:null,zap:{items:[],index:0,last:null},mini:null,channelSupport:null};
+const state={session:{local:null,twitch:null},view:'home',socket:null,socketLogin:null,room:null,watchRoom:null,stream:null,peers:{},selectedGif:'',selectedEmote:null,channelEmotes:[],catsCursor:null,currentTwitch:null,lastChannelLogin:null,viewerProfile:null,zap:{items:[],index:0,last:null},discoverPlayer:null,mini:null,channelSupport:null};
 async function api(url,opt={}){const r=await fetch(url,{credentials:'include',headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});let j;try{j=await r.json()}catch{j={success:false,error:await r.text()}} if(!r.ok&&j.success!==false)j.success=false; return j}
 function toast(t){const el=$('#toast'); if(!el)return; el.textContent=t||''; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),3200)}
 function isAdmin(){return !!state.session?.local?.is_admin || (state.session?.local?.login||'').toLowerCase()==='sansahd'}
@@ -44,6 +44,14 @@ function liveCard(x){const platform=x.platform||((x.embed_url||x.watch_url)?'pee
  .flowHero{position:relative;overflow:hidden;border-radius:34px;border:1px solid rgba(139,92,246,.42);background:radial-gradient(circle at 24% 18%,rgba(34,211,238,.24),transparent 30%),linear-gradient(135deg,rgba(139,92,246,.28),rgba(8,11,18,.96) 58%,rgba(34,211,238,.11));min-height:430px;padding:28px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:end}.flowHero:before{content:"";position:absolute;inset:-30%;background:conic-gradient(from 160deg,transparent,rgba(139,92,246,.16),transparent,rgba(34,211,238,.13),transparent);animation:oryonFloat 16s linear infinite}.flowHero>*{position:relative;z-index:1}.flowTitle{font-size:clamp(54px,7vw,108px);line-height:.84;letter-spacing:-.08em;margin:12px 0}.flowDock{display:grid;gap:10px}.flowOrb{width:74px;height:74px;border-radius:26px;background:linear-gradient(135deg,var(--brand),var(--cyan));box-shadow:0 0 60px rgba(139,92,246,.45),inset 0 0 18px rgba(255,255,255,.24);display:grid;place-items:center;font-size:36px}.moodDeck{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px}.moodTile{position:relative;min-height:92px;border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.045);color:white;text-align:left;padding:14px;overflow:hidden}.moodTile:hover{transform:translateY(-1px);border-color:rgba(34,211,238,.52);background:rgba(34,211,238,.075)}.moodTile i{font-style:normal;font-size:24px;display:block;margin-bottom:8px}.flowStage{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:14px}.flowLive{position:relative;border:1px solid rgba(255,255,255,.14);border-radius:30px;overflow:hidden;min-height:420px;background:#030508;box-shadow:0 30px 90px rgba(0,0,0,.38)}.flowLive .zapThumb{aspect-ratio:auto;height:100%;min-height:420px}.flowLive .zapThumb:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,5,8,.04),rgba(3,5,8,.18) 38%,rgba(3,5,8,.88))}.flowOverlay{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:22px}.flowOverlay h2{font-size:clamp(28px,3.2vw,50px);line-height:.95;letter-spacing:-.045em;margin:8px 0}.signalStack{display:grid;gap:10px}.comfortRing{width:86px;height:86px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--cyan) var(--score),rgba(255,255,255,.11) 0);box-shadow:inset 0 0 0 10px rgba(8,11,18,.95);font-weight:1000;font-size:22px}.reasonChips,.emoteShelf,.reactionDock{display:flex;gap:8px;flex-wrap:wrap}.reasonChip{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.075);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900}.zapActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}.microHint{color:#d7e3f7;font-size:13px}.vibeBar{display:grid;gap:8px}.vibeLine{display:grid;grid-template-columns:70px 1fr 36px;gap:8px;align-items:center;font-size:12px;color:var(--muted)}.vibeLine i{height:7px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}.vibeLine i:after{content:"";display:block;height:100%;width:var(--w);background:linear-gradient(90deg,var(--brand),var(--cyan));border-radius:inherit}.flowQueue{display:flex;gap:8px;overflow:auto;padding-bottom:4px}.flowQueue .liveCard{min-width:210px}.channelBadgeRail{display:flex;gap:10px;overflow:auto;padding:4px 2px 12px}.channelBadgeBig{min-width:148px;border:1px solid rgba(245,158,11,.38);background:linear-gradient(135deg,rgba(245,158,11,.17),rgba(139,92,246,.08));border-radius:20px;padding:14px;text-align:center}.channelBadgeBig strong{display:block;font-size:28px;margin-bottom:5px}.channelBadgeBig b{display:block}.livePrelude{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;border:1px solid rgba(34,211,238,.28);background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(139,92,246,.05));border-radius:22px;padding:14px}.reactionDock button,.emoteBtn{border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;border-radius:13px;padding:9px 10px;font-weight:900}.emoteBtn.locked{opacity:.48;filter:saturate(.6)}.emoteBtn img{width:30px;height:30px;object-fit:contain;vertical-align:middle}.emotePanel{border-top:1px solid var(--line);padding:10px;background:rgba(255,255,255,.025);max-height:174px;overflow:auto}.emoteCreatorGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}.emoteCard{border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.04);padding:12px}.emoteCard img{width:58px;height:58px;object-fit:contain;display:block;margin-bottom:8px}.teamLogo{width:64px;height:64px;border-radius:18px;object-fit:cover;background:linear-gradient(135deg,var(--brand),var(--cyan));border:1px solid rgba(255,255,255,.18)}.teamCreateGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.viewerTrail{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.trailCard{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.04);padding:13px}.trailCard b{font-size:26px;display:block}.sparkCard{border:1px solid rgba(34,211,238,.26);background:linear-gradient(135deg,rgba(34,211,238,.10),rgba(139,92,246,.07));border-radius:22px;padding:16px}.nativeFixedChat .chatForm{grid-template-columns:minmax(0,1fr) 76px 58px 96px!important}.likePulse{animation:oryonPulse .45s ease}@keyframes oryonFloat{to{transform:rotate(360deg)}}@keyframes oryonPulse{0%{transform:scale(.98)}60%{transform:scale(1.04)}100%{transform:scale(1)}}@media(max-width:1040px){.flowHero,.flowStage{grid-template-columns:1fr}.flowHero{min-height:0}.flowLive,.flowLive .zapThumb{min-height:320px}.teamCreateGrid{grid-template-columns:1fr}.livePrelude{grid-template-columns:1fr}.flowTitle{font-size:54px}}
  `; document.head.appendChild(st);
 })();
+(function injectSpotlightFusionStyle(){
+ if(document.getElementById('oryonSpotlightFusionStyle'))return;
+ const st=document.createElement('style'); st.id='oryonSpotlightFusionStyle'; st.textContent=`
+ .discoverCommand{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;border:1px solid rgba(139,92,246,.32);background:linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.05));border-radius:26px;padding:14px}.discoverMoodRail{display:flex;gap:8px;overflow:auto;padding-bottom:2px}.discoverMoodRail .moodTile{min-width:132px;padding:10px 12px}.discoverMoodRail .moodTile span{display:none}.discoverControls{display:grid;grid-template-columns:minmax(170px,1fr) 150px 150px 98px auto auto;gap:8px}.spotlightFusion{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,430px);gap:16px;align-items:stretch}.spotlightStage{position:relative;min-height:clamp(460px,52vw,760px);border:1px solid rgba(139,92,246,.35);border-radius:28px;overflow:hidden;background:#030508;box-shadow:0 30px 90px rgba(0,0,0,.35)}.spotlightStage:before{content:"";position:absolute;inset:-1px;background:radial-gradient(circle at 18% 16%,rgba(139,92,246,.34),transparent 28%),radial-gradient(circle at 86% 12%,rgba(34,211,238,.22),transparent 28%);pointer-events:none;z-index:1}.spotlightMedia,.spotlightMedia iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}.spotlightPoster{position:absolute;inset:0}.spotlightPoster img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.08) contrast(1.04)}.spotlightPoster:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,5,8,.08),rgba(3,5,8,.25) 42%,rgba(3,5,8,.88));}.spotlightEmpty{height:100%;display:grid;place-items:center;color:#75839b;background:linear-gradient(135deg,#050814,#11172a)}.spotlightHud{position:absolute;left:18px;right:18px;bottom:18px;z-index:2;display:grid;gap:12px}.spotlightTop{position:absolute;left:16px;right:16px;top:14px;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px}.spotlightTitle{font-size:clamp(28px,3.4vw,58px);line-height:.95;margin:0;max-width:980px;text-shadow:0 10px 28px rgba(0,0,0,.48)}.spotlightSub{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:#d8e5ff}.spotlightActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.spotlightActions .btn{box-shadow:0 14px 40px rgba(139,92,246,.22)}.spotlightSide{display:flex;flex-direction:column;gap:12px;min-height:clamp(460px,52vw,760px)}.spotlightPanel{border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));padding:14px;box-shadow:0 16px 48px rgba(0,0,0,.20)}.spotlightPanel.compact{padding:12px}.spotlightPanel h2{margin:0 0 10px;font-size:18px}.signalGrid{display:grid;gap:8px}.signalChip{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);border-radius:14px;padding:9px 10px;font-weight:900}.signalChip span{color:var(--muted);font-size:12px}.spotlightChat{flex:1 1 auto;min-height:260px;overflow:hidden;padding:0;display:flex;flex-direction:column}.spotlightChat iframe{width:100%;height:100%;border:0;display:block;background:#111}.softChatPreview{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);padding:16px}.softChatPreview b{display:block;color:#fff;font-size:20px;margin-bottom:5px}.spotlightQueue{display:flex;gap:10px;overflow:auto;padding-bottom:4px}.queuePill{min-width:210px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.04);padding:10px;cursor:pointer}.queuePill:hover{border-color:rgba(139,92,246,.65);background:rgba(139,92,246,.10)}.queuePill b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.queuePill.active{border-color:rgba(34,211,238,.75);box-shadow:inset 0 0 0 1px rgba(34,211,238,.15)}.discoverAfter{display:grid;grid-template-columns:1fr 1fr;gap:14px}.discoverAfter .panel{margin:0}.discoverResultsSlim{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}.discoverResultsSlim:empty{display:none}.inlineTwitchConnect{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:18px;padding:12px;background:rgba(255,255,255,.035)}
+ @media(max-width:1180px){.spotlightFusion{grid-template-columns:1fr}.spotlightStage,.spotlightSide{min-height:auto}.spotlightStage{aspect-ratio:16/9}.spotlightSide{display:grid;grid-template-columns:1fr 1fr}.spotlightChat{min-height:360px}.discoverControls{grid-template-columns:1fr 1fr 1fr}.discoverAfter{grid-template-columns:1fr}}
+ @media(max-width:760px){.discoverCommand{grid-template-columns:1fr}.discoverControls{grid-template-columns:1fr}.spotlightSide{display:flex}.spotlightTitle{font-size:30px}.spotlightActions .btn{flex:1}.spotlightStage{border-radius:20px}.spotlightHud{left:12px;right:12px;bottom:12px}.spotlightTop{left:12px;right:12px}.spotlightChat{min-height:320px}}
+ `; document.head.appendChild(st);
+})();
 const AMBIANCES=[['chill','Chill','Détendu, sans pression','🌙'],['rp','RP / jeu de rôle','Univers, personnages, narration','🎭'],['discussion','Discussion','Chat lisible et conversation','💬'],['nuit','Nuit calme','Late night, petit comité','🫧'],['decouverte-jeu','Découverte jeu','Jeu ou catégorie à explorer','🎮'],['petite-commu','Petite commu','Créateur accessible','✨']];
 function ambianceIcon(id){return (AMBIANCES.find(x=>x[0]===id)||[])[3]||'✦'}
 function viewerStorageKey(){return 'oryon_viewer_impact_v1_'+(state.session?.local?.login||state.session?.twitch?.login||'guest')}
@@ -62,11 +70,33 @@ function viewerImpactCard(){const vp=loadViewerImpact(); const last=(vp.discover
 function renderViewerImpact(){const box=$('#viewerImpactBox'); if(box)box.innerHTML=viewerImpactCard()}
 function discoveryEventsHtml(){return `<div class="section"><div class="pageHead"><div><h1>Événements découverte</h1><p>Des rendez-vous pensés pour pousser les petits lives sans dépendre des gros raids.</p></div></div><div class="eventGrid"><article class="eventCard"><span class="pill">Bientôt</span><b>Soirée Pépites</b><p class="muted">Sélection de chaînes sous le radar, avec zapping guidé.</p><button class="btn secondary" onclick="discoverMood('petite-commu',50)">Préparer ma sélection</button></article><article class="eventCard"><span class="pill">Late</span><b>Nuit chill</b><p class="muted">Ambiances calmes, discussion posée, chat lisible.</p><button class="btn secondary" onclick="discoverMood('nuit',50)">Entrer en mode nuit</button></article><article class="eventCard"><span class="pill">Collectif</span><b>Raid inversé collectif</b><p class="muted">La commu part chercher un petit créateur à soutenir.</p><button class="btn secondary" onclick="discoverMood('petite-commu',20)">Trouver une cible</button></article></div></div>`}
 function openActionFor(x){const id=liveIdentity(x); return id.platform==='twitch'?`openTwitch('${esc(id.login)}')`:`openOryon('${esc(id.login)}')`}
-function renderZapCard(x){if(!x)return `<div class="flowLive"><div class="flowOverlay"><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h2>Choisis une ambiance.</h2><p class="muted">Puis Zapper.</p></div></div>`; const id=liveIdentity(x); const reasons=discoverReasonFor(x); const score=comfortScore(x); return `<article class="flowLive"><div class="zapThumb">${id.img?`<img src="${esc(id.img)}" alt="">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}<span class="zapBadge">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span></div><div class="flowOverlay"><div class="row"><span class="pill">${esc(microContextFor(x))}</span><span class="pill">${esc(id.game)}</span><span class="pill">${score}% confort</span></div><h2>${esc(id.title)}</h2><p class="muted">${esc(id.name)}</p><div class="reasonChips">${reasons.map(r=>`<span class="reasonChip">${esc(r)}</span>`).join('')}</div><div class="zapActions"><button class="btn good" onclick="zapOpenCurrent()">Entrer</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn ghost" onclick="findLive()">Zapper</button><span class="microHint">⏱ test sans pression</span></div></div></article>`}
-function renderZap(){const box=$('#zapResult'); if(!box)return; const items=state.zap.items||[]; const cur=items[state.zap.index]||null; const score=cur?comfortScore(cur):0; box.innerHTML=`<div class="flowStage"><div>${renderZapCard(cur)}</div><aside class="signalStack"><div class="panel"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Signal</h2><span class="small">${cur?esc(platformLabel(liveIdentity(cur).platform)):'Oryon + Twitch'}</span></div><div class="comfortRing" style="--score:${score}%">${cur?score:'—'}</div></div>${cur?`<div class="vibeBar section">${vibeMetrics(cur).map(v=>`<div class="vibeLine"><span>${esc(v.k)}</span><i style="--w:${v.v}%"></i><b>${v.v}</b></div>`).join('')}</div>`:'<div class="empty section">Aucun live sélectionné.</div>'}</div><div class="panel"><h2>Affiner</h2><div class="reactionDock"><button onclick="markZapFeedback('small')">+ petit</button><button onclick="markZapFeedback('quiet')">+ discussion</button><button onclick="markZapFeedback('rp')">RP</button><button onclick="markZapFeedback('game')">jeu</button></div></div><div id="viewerImpactBox" class="panel">${viewerImpactCard()}</div></aside></div>${items.length>1?`<div class="section"><h2>File douce</h2><div class="flowQueue">${queuePreview(items)}</div></div>`:''}`}
-function zapNext(){const items=state.zap.items||[]; if(!items.length)return findLive(); state.zap.index=(state.zap.index+1)%items.length; renderZap()}
-function zapBack(){const items=state.zap.items||[]; if(!items.length)return; state.zap.index=(state.zap.index-1+items.length)%items.length; renderZap()}
-function zapOpenCurrent(){const x=(state.zap.items||[])[state.zap.index]; if(!x)return; trackDiscovery(x); const id=liveIdentity(x); if(id.platform==='twitch')openTwitch(id.login); else openOryon(id.login)}
+function isSpotlightActive(x){const id=liveIdentity(x||{}); return !!(state.currentTwitch && id.platform==='twitch' && id.login===state.currentTwitch)}
+function spotlightMedia(x){
+ if(!x)return `<div class="spotlightEmpty"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h2>Choisis une ambiance</h2></div></div>`;
+ const id=liveIdentity(x), active=isSpotlightActive(x), parent=location.hostname;
+ if(active && id.platform==='twitch')return `<iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(id.login)}&parent=${encodeURIComponent(parent)}&autoplay=true&muted=false"></iframe>`;
+ return `<div class="spotlightPoster">${id.img?`<img src="${esc(id.img)}" alt="">`:`<div class="spotlightEmpty">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}</div>`;
+}
+function spotlightChat(x){
+ if(!x)return `<div class="softChatPreview"><div><b>Tchat prêt</b><span>Il apparaît quand tu entres.</span></div></div>`;
+ const id=liveIdentity(x), parent=location.hostname;
+ if(isSpotlightActive(x) && id.platform==='twitch')return `<iframe src="https://www.twitch.tv/embed/${encodeURIComponent(id.login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe>`;
+ return `<div class="softChatPreview"><div><b>Entrée douce</b><span>Regarde d'abord, parle ensuite.</span><div class="chatAssist section"><button onclick="toast('Question copiée quand le tchat est ouvert')">Question</button><button onclick="toast('Message de nouveau prêt')">Nouveau ici</button><button onclick="toast('Réaction douce prête')">Réagir</button></div></div></div>`;
+}
+function spotlightQueue(items){return (items||[]).slice(0,8).map((x,i)=>{const id=liveIdentity(x);return `<button class="queuePill ${i===state.zap.index?'active':''}" onclick="state.zap.index=${i};state.currentTwitch=null;renderZap()"><b>${esc(id.name)}</b><span class="small">${esc(platformLabel(id.platform))} · ${id.viewers} · ${esc(id.game)}</span></button>`}).join('')||''}
+function renderZapCard(x){
+ const id=x?liveIdentity(x):null, score=x?comfortScore(x):0, reasons=x?discoverReasonFor(x):[];
+ return `<div class="spotlightStage"><div class="spotlightMedia">${spotlightMedia(x)}</div>${x?`<div class="spotlightTop"><span class="zapBadge">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span><span class="pill">${score}% confort</span></div><div class="spotlightHud"><div class="spotlightSub"><span class="pill">${esc(microContextFor(x))}</span><span class="pill">${esc(id.game)}</span>${reasons.slice(0,2).map(r=>`<span class="pill">${esc(r)}</span>`).join('')}</div><h2 class="spotlightTitle">${esc(id.title)}</h2><div class="spotlightActions"><button class="btn good" onclick="zapOpenCurrent()">${isSpotlightActive(x)?'Ouvert':'Entrer'}</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn ghost" onclick="findLive()">Zapper</button></div></div>`:`<div class="spotlightHud"><h2 class="spotlightTitle">Trouve ton live.</h2><div class="spotlightActions"><button class="btn good" onclick="findLive()">Zapper</button></div></div>`}</div>`;
+}
+function renderZap(){
+ const box=$('#zapResult'); if(!box)return;
+ const items=state.zap.items||[], cur=items[state.zap.index]||null, score=cur?comfortScore(cur):0, id=cur?liveIdentity(cur):null;
+ box.innerHTML=`<div class="spotlightFusion"><div>${renderZapCard(cur)}</div><aside class="spotlightSide"><div class="spotlightPanel compact"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Signal</h2><span class="small">${cur?esc(platformLabel(id.platform)):'Oryon + Twitch'}</span></div><div class="comfortRing" style="--score:${score}%">${cur?score:'—'}</div></div>${cur?`<div class="vibeBar section">${vibeMetrics(cur).map(v=>`<div class="vibeLine"><span>${esc(v.k)}</span><i style="--w:${v.v}%"></i><b>${v.v}</b></div>`).join('')}</div>`:'<div class="empty section">Lance une proposition.</div>'}</div><div class="spotlightPanel compact"><h2>Pourquoi</h2><div class="signalGrid">${cur?discoverReasonFor(cur).map(r=>`<div class="signalChip"><b>${esc(r)}</b><span>✓</span></div>`).join(''):'<div class="empty">Aucun live sélectionné.</div>'}</div></div><div class="spotlightPanel spotlightChat"><div class="chatHeader"><span>${cur?`Tchat · ${esc(id.name)}`:'Tchat'}</span></div>${spotlightChat(cur)}</div></aside></div>${items.length?`<div class="section"><div class="spotlightQueue">${spotlightQueue(items)}</div></div>`:''}`;
+ renderViewerImpact();
+}
+function zapNext(){const items=state.zap.items||[]; if(!items.length)return findLive(); state.zap.index=(state.zap.index+1)%items.length; state.currentTwitch=null; renderZap()}
+function zapBack(){const items=state.zap.items||[]; if(!items.length)return; state.zap.index=(state.zap.index-1+items.length)%items.length; state.currentTwitch=null; renderZap()}
+function zapOpenCurrent(){const x=(state.zap.items||[])[state.zap.index]; if(!x)return; trackDiscovery(x); const id=liveIdentity(x); if(id.platform==='twitch'){state.currentTwitch=id.login; setMiniLive({type:'twitch',login:id.login,title:'Twitch · '+id.login}); renderZap(); return;} openOryon(id.login)}
 async function firstSupport(login){await loadSession(); if(!state.session.local){toast('Compte Oryon requis pour devenir premier soutien.');return setView('settings')} const r=await api('/api/oryon/support/first/'+encodeURIComponent(login),{method:'POST'}); if(r.success){const vp=loadViewerImpact(); if(!vp.firstSupports.some(x=>x.login===login)){vp.firstSupports.unshift({login,ts:Date.now()}); vp.points=Number(vp.points||0)+20; if(!vp.badges.includes('Premier soutien'))vp.badges.push('Premier soutien'); saveViewerImpact();} toast(r.message||'Premier soutien enregistré'); if(state.view==='channel')renderChannel();} else toast(r.error||'Impossible de soutenir cette chaîne')}
 function supportButton(login,support){if(!login||support?.is_self)return ''; if(support?.already)return `<span class="supportChip">⭐ Premier soutien</span>`; if(support?.full)return `<span class="supportChip">Premiers soutiens complets</span>`; return `<button class="btn secondary" onclick="firstSupport('${esc(login)}')">Premier soutien</button>`}
 async function likeOryon(login){if(!state.session.local){toast('Compte Oryon requis');return setView('settings')} const r=await api('/api/oryon/like/'+encodeURIComponent(login),{method:'POST'}); toast(r.success?'Aimé':r.error); const b=$('#likeBtn'); if(b)b.classList.add('likePulse'); await refreshEmoteShelf(login);}
@@ -112,18 +142,18 @@ async function loadDiscoverCats(){const box=$('#discoverCats'); if(!box)return; 
 function catCard(c){return `<button class="categoryCard" onclick="pickCat('${esc(c.name)}')"><img src="${esc(c.box_art_url||'')}" alt=""><b>${esc(c.name)}</b><span class="small">Petit live au hasard</span></button>`}
 async function renderDiscover(){
  const el=$('#discover');
- el.innerHTML=`<div class="flowHero section"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1 class="flowTitle">Trouve ton live.</h1><p class="lead">Ambiance d’abord. Signal clair. Zapping doux.</p><div class="row"><button class="btn good" onclick="findLive()">Zapper</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn ghost" onclick="quickGem()">Petite commu</button></div></div><aside class="flowDock"><div class="flowOrb">✦</div><div id="viewerImpactBox">${viewerImpactCard()}</div></aside></div>
- <div class="panel section"><div class="pageHead"><div><h2>Mode Ambiance</h2><p>Un choix. Oryon fait le tri.</p></div></div><div class="moodDeck">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="moodTile" onclick="$('#dMood').value='${id}';findLive()"><i>${icon}</i><b>${esc(label)}</b><span class="small">${esc(desc)}</span></button>`).join('')}</div><div class="searchLine discoverLine section"><input id="dQuery" placeholder="jeu, pseudo, ambiance"><select id="dSource"><option value="both" selected>Oryon + Twitch</option><option value="oryon">Oryon</option><option value="twitch">Twitch</option></select><select id="dMood"><option value="">Ambiance</option>${AMBIANCES.map(([id,label])=>`<option value="${id}">${esc(label)}</option>`).join('')}</select><select id="dMax"><option value="20">≤20</option><option value="50" selected>≤50</option><option value="200">≤200</option><option value="300">≤300</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn good" onclick="findLive()">Zapper</button><button class="btn secondary" onclick="zapNext()">Suivant</button></div></div>
- <div id="zapResult" class="section"></div><div id="discoverResults" class="grid section"></div>
- <div class="section panel"><div class="pageHead"><div><h2>Twitch intégré</h2><p>Suivis en live, recherche, lecteur et tchat officiel.</p></div><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrap"></div><div id="twitchPlayerArea" class="section"></div><div class="searchLine section" style="grid-template-columns:1fr auto"><input id="twSearch" placeholder="chercher un streamer Twitch"><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="twResults" class="rail section"></div><h2 class="section">Catégories populaires</h2><div id="discoverCats" class="grid smallCards section"><div class="empty">Chargement…</div></div></div>`;
- await loadFollowed(); loadDiscoverCats(); renderZap(); renderMiniPlayer();
+ el.innerHTML=`<div class="discoverCommand section"><div><div class="discoverMoodRail">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="moodTile" onclick="$('#dMood').value='${id}';state.currentTwitch=null;findLive()"><i>${icon}</i><b>${esc(label)}</b><span class="small">${esc(desc)}</span></button>`).join('')}</div></div><div class="discoverControls"><input id="dQuery" placeholder="jeu, pseudo, ambiance"><select id="dSource"><option value="both" selected>Oryon + Twitch</option><option value="oryon">Oryon</option><option value="twitch">Twitch</option></select><select id="dMood"><option value="">Ambiance</option>${AMBIANCES.map(([id,label])=>`<option value="${id}">${esc(label)}</option>`).join('')}</select><select id="dMax"><option value="20">≤20</option><option value="50" selected>≤50</option><option value="200">≤200</option><option value="300">≤300</option></select><button class="btn good" onclick="state.currentTwitch=null;findLive()">Zapper</button><button class="btn secondary" onclick="zapNext()">Suivant</button><select id="dLang" class="hidden"><option value="fr" selected>FR</option><option value="en">EN</option></select></div></div>
+ <div id="zapResult" class="section"></div>
+ <div class="discoverAfter section"><div class="panel"><div class="pageHead"><div><h2>À côté</h2><p>Autres propositions, sans quitter le spotlight.</p></div></div><div id="discoverResults" class="discoverResultsSlim"></div></div><div class="panel"><div class="pageHead"><div><h2>Viewer</h2><p>Impact, pépites, progression.</p></div></div><div id="viewerImpactBox">${viewerImpactCard()}</div></div></div>
+ <div class="section panel"><div class="pageHead"><div><h2>Catégories populaires</h2><p>Un raccourci vers une autre ambiance.</p></div>${state.session.twitch?`<button class="btn secondary" onclick="setView('twitch')">Mes suivis Twitch</button>`:`<button class="btn secondary" onclick="connectTwitch()">Connecter Twitch</button>`}</div><div id="discoverCats" class="grid smallCards section"><div class="empty">Chargement…</div></div></div>`;
+ loadDiscoverCats(); renderZap(); renderMiniPlayer();
 }
 
 async function findLive(){
  const q=$('#dQuery')?.value||'', mood=$('#dMood')?.value||'', max=$('#dMax')?.value||'50', lang=$('#dLang')?.value||'fr', source=$('#dSource')?.value||'both';
  $('#discoverResults').innerHTML='<div class="empty">Recherche…</div>'; $('#zapResult').innerHTML='<div class="empty">Oryon cherche une proposition lisible…</div>';
  const r=await api('/api/oryon/discover/find-live?'+qs({q,mood,max,lang,source}));
- const items=(r.items||[]).filter(x=>(x.platform||'')!=='peertube'); state.zap.items=items; state.zap.index=0; state.zap.last={q,mood,max,lang,source};
+ const items=(r.items||[]).filter(x=>(x.platform||'')!=='peertube'); state.zap.items=items; state.zap.index=0; state.currentTwitch=null; state.zap.last={q,mood,max,lang,source};
  renderZap();
  $('#discoverResults').innerHTML=items.length?items.slice(1).map(liveCard).join(''):'<div class="empty">Aucun résultat. Élargis le plafond, change la source ou choisis une catégorie.</div>';
 }
@@ -132,8 +162,21 @@ function connectTwitch(){const ret=encodeURIComponent(location.hash||'#discover'
 async function logoutTwitch(){const r=await api('/twitch_logout',{method:'POST'}); state.session.twitch=null; await loadSession(); if(state.view==='discover') await renderDiscover(); if(state.view==='settings') await renderSettings(); toast(r.success?'Twitch déconnecté':(r.error||'Erreur déconnexion Twitch'))}
 async function loadFollowed(){const wrap=$('#followedWrap'); if(!state.session.twitch){wrap.innerHTML='<div class="panel"><h2>Connecte Twitch</h2><p class="muted">Tes chaînes suivies en live apparaîtront ici en bandeau.</p><button class="btn" onclick="connectTwitch()">Connecter Twitch</button></div>';return} wrap.innerHTML='<h2>Chaînes suivies en live</h2><div id="followedRail" class="marquee"><div class="empty">Chargement…</div></div>'; let r=await api('/api/twitch/followed/live'); if(!r.success) r=await api('/followed_streams'); const items=r.items||r.streams||[]; $('#followedRail').innerHTML=items.length?items.map(liveCard).join(''):'<div class="empty">Aucune chaîne suivie en live actuellement.</div>'}
 async function searchTwitch(){const q=$('#twSearch').value.trim(); if(!q)return; const r=await api('/api/twitch/channels/search?'+qs({q,live:true})); $('#twResults').innerHTML=(r.items||[]).map(x=>`<article class="liveCard"><div class="liveBody"><div class="row"><img class="avatarMini" src="${esc(x.profile_image_url||'')}"><b>${esc(x.display_name)}</b><span class="pill">${x.is_live?'Live':'Offline'}</span></div><p class="desc">${esc(x.title||x.game_name||'')}</p><button class="btn" onclick="openTwitch('${esc(x.login)}')">Regarder</button></div></article>`).join('')||'<div class="empty">Aucun résultat.</div>'}
-function mountTwitchPlayer(login){const parent=location.hostname; const area=$('#twitchPlayerArea'); if(!area)return; area.innerHTML=`<div class="watchShell twitchWatch"><div class="player premiumPlayer"><iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(login)}&parent=${encodeURIComponent(parent)}"></iframe></div><aside class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe></aside></div>`; area.scrollIntoView({behavior:'smooth',block:'start'});}
-function openTwitch(login){state.currentTwitch=login; const item=(state.zap.items||[]).find(x=>(x.login||x.user_login)===login)||{platform:'twitch',login,display_name:login}; trackDiscovery(item); setMiniLive({type:'twitch',login,title:'Twitch · '+login}); setView('discover').then(()=>mountTwitchPlayer(login))}
+function mountTwitchPlayer(login){
+ const parent=location.hostname;
+ const area=$('#twitchPlayerArea');
+ if(area){area.innerHTML=`<div class="watchShell twitchWatch"><div class="player premiumPlayer"><iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(login)}&parent=${encodeURIComponent(parent)}"></iframe></div><aside class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe></aside></div>`; area.scrollIntoView({behavior:'smooth',block:'start'}); return;}
+ state.currentTwitch=login; renderZap();
+}
+function openTwitch(login){
+ state.currentTwitch=login;
+ const existing=(state.zap.items||[]).find(x=>(x.login||x.user_login)===login);
+ const item=existing||{platform:'twitch',login,display_name:login,title:'Twitch · '+login,game_name:'Live Twitch',viewer_count:0};
+ if(!existing)state.zap.items=[item,...(state.zap.items||[])];
+ state.zap.index=Math.max(0,(state.zap.items||[]).findIndex(x=>(x.login||x.user_login)===login));
+ trackDiscovery(item); setMiniLive({type:'twitch',login,title:'Twitch · '+login});
+ setView('discover').then(()=>mountTwitchPlayer(login));
+}
 
 async function searchPeerTube(){const q=$('#ptSearch')?.value?.trim()||''; const r=await api('/api/peertube/public/search?'+qs({q,max:200,lang:$('#dLang')?.value||'fr'})); $('#ptResults').innerHTML=(r.items||[]).length?(r.items||[]).map(liveCard).join(''):'<div class="empty">Aucun live PeerTube public trouvé.</div>'}
 function openPeerTubeFromInput(){const raw=$('#ptSearch')?.value?.trim(); if(!raw)return toast('Colle un lien PeerTube ou cherche un terme.'); if(raw.startsWith('http')) openPeerTube(raw,raw,'PeerTube public'); else searchPeerTube();}
@@ -334,3 +377,145 @@ init();
 
 
 /* Oryon clean live polish */
+
+
+/* Oryon Flow fusion — banner + lecteur + chat in one spotlight */
+(function injectFlowFusionStyle(){
+ if(document.getElementById('oryonFlowFusionStyle')) return;
+ const st=document.createElement('style');
+ st.id='oryonFlowFusionStyle';
+ st.textContent=`
+ .flowHero.compact{padding:18px 20px;border:1px solid var(--line);border-radius:28px;background:linear-gradient(135deg,rgba(139,92,246,.16),rgba(10,16,28,.96) 58%,rgba(34,211,238,.10));display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:center}
+ .flowHero.compact .flowTitle{margin:10px 0 0;font-size:clamp(32px,4.2vw,58px);line-height:.95}
+ .flowHero.compact .lead{margin:10px 0 0;font-size:15px;max-width:720px;color:#dbe7ff}
+ .flowHero.compact .flowDock{display:grid;gap:10px}
+ .flowStage.fused{grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start}
+ .spotlightShell{display:grid;gap:12px}
+ .flowLive.fused{position:relative;overflow:hidden;border:1px solid rgba(139,92,246,.42);border-radius:28px;background:#050810;box-shadow:var(--shadow)}
+ .flowLive.fused .zapThumb{aspect-ratio:16/9;position:relative;background:#030508}
+ .flowLive.fused .zapThumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,7,12,.10),rgba(4,7,12,.74))}
+ .flowLive.fused .zapThumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+ .flowOverlay.fused{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:24px;display:grid;gap:12px}
+ .reasonChips{display:flex;gap:8px;flex-wrap:wrap}
+ .reasonChip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(8,11,18,.72);font-weight:850;font-size:12px}
+ .zapActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+ .microHint{font-size:12px;color:#cbd5e1}
+ .spotlightPlay{display:grid;gap:12px}
+ .spotlightTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:4px 2px}
+ .spotlightTop h2{margin:4px 0 0;font-size:24px;letter-spacing:-.03em}
+ .spotlightTop p{margin:6px 0 0;color:var(--muted)}
+ .spotlightWatch{grid-template-columns:minmax(0,1fr) 390px!important;gap:12px;background:transparent;border:0}
+ .spotlightWatch .player,.spotlightWatch .chatPanel{height:clamp(440px,50vw,720px);min-height:440px;border-radius:22px}
+ .spotlightWatch .chatPanel{max-width:none;resize:none}
+ .spotlightBar{display:flex;gap:8px;flex-wrap:wrap}
+ .compactSignal{display:grid;gap:12px}
+ .compactSignal .panel{padding:16px}
+ .compactTools{display:grid;grid-template-columns:minmax(0,1fr) 260px auto;gap:10px;align-items:center}
+ .compactFollowRail{display:flex;gap:10px;overflow:auto;padding-bottom:4px}
+ .compactFollowChip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);white-space:nowrap}
+ .compactFollowChip img{width:26px;height:26px;border-radius:50%;object-fit:cover}
+ .compactSearchResults{display:flex;gap:10px;overflow:auto;padding-bottom:4px}
+ .compactSearchCard{min-width:240px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.04);padding:12px}
+ .compactSearchCard .row{justify-content:space-between}
+ .softQueueTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}
+ @media(max-width:1200px){.flowHero.compact,.flowStage.fused,.spotlightWatch,.compactTools{grid-template-columns:1fr!important}.spotlightWatch .player,.spotlightWatch .chatPanel{height:430px;min-height:430px}.flowHero.compact .flowDock{order:-1}.compactTools{align-items:stretch}}
+ `;
+ document.head.appendChild(st);
+})();
+
+function currentZapItem(){ return (state.zap.items||[])[state.zap.index]||null; }
+function currentZapIdentity(){ const x=currentZapItem(); return x?liveIdentity(x):null; }
+function ensureSpotlightItem(platform, login){
+ const items=state.zap.items||[];
+ const idx=items.findIndex(x=>{ const id=liveIdentity(x); return id.platform===platform && id.login===login; });
+ if(idx>=0){ state.zap.index=idx; return items[idx]; }
+ const seed = platform==='twitch' ? {platform:'twitch', login, display_name:login, user_name:login, title:'Live Twitch', viewer_count:0, game_name:'Twitch'} : {platform:'oryon', host_login:login, host_name:login, title:'Live Oryon', viewers:0, category:'Oryon'};
+ state.zap.items=[seed, ...items.filter(x=>liveIdentity(x).login!==login)];
+ state.zap.index=0;
+ return seed;
+}
+function clearSpotlightPlayer(){ state.discoverPlayer=null; }
+function spotlightIsPlaying(x){ const id=x&&liveIdentity(x); return !!(x && id && state.discoverPlayer && state.discoverPlayer.type===id.platform && state.discoverPlayer.login===id.login); }
+function renderSpotlightPreview(x){
+ if(!x)return `<div class="flowLive fused"><div class="zapThumb"></div><div class="flowOverlay fused"><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h2>Choisis une ambiance.</h2><p class="muted">Puis Zapper pour recevoir une proposition claire.</p></div></div>`;
+ const id=liveIdentity(x), reasons=discoverReasonFor(x), score=comfortScore(x);
+ return `<article class="flowLive fused"><div class="zapThumb">${id.img?`<img src="${esc(id.img)}" alt="">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}<span class="zapBadge">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span></div><div class="flowOverlay fused"><div class="row"><span class="pill">${esc(microContextFor(x))}</span><span class="pill">${esc(id.game)}</span><span class="pill">${score}% confort</span></div><h2 style="margin:0;font-size:clamp(28px,3.6vw,48px);line-height:.95">${esc(id.title)}</h2><p class="muted" style="margin:0">${esc(id.name)}</p><div class="reasonChips">${reasons.map(r=>`<span class="reasonChip">${esc(r)}</span>`).join('')}</div><div class="zapActions"><button class="btn good" onclick="zapOpenCurrent()">Regarder</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn ghost" onclick="findLive()">Zapper</button><span class="microHint">Test sans pression</span></div></div></article>`;
+}
+function renderSpotlightPlayer(x){
+ const id=liveIdentity(x);
+ if(!x || !spotlightIsPlaying(x) || id.platform!=='twitch') return renderSpotlightPreview(x);
+ const parent=location.hostname;
+ return `<div class="spotlightPlay"><div class="spotlightTop"><div><span class="eyebrow"><i class="dot"></i>Lecture en cours</span><h2>${esc(id.name)}</h2><p>${esc(id.title||'Live Twitch')}</p></div><div class="spotlightBar"><span class="pill">${id.viewers} viewers</span><span class="pill">${esc(id.game)}</span><button class="btn secondary" onclick="clearSpotlightPlayer();renderZap()">Retour carte</button><button class="btn ghost" onclick="zapNext()">Suivant</button></div></div><div class="watchShell twitchWatch spotlightWatch"><div class="player premiumPlayer"><iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(id.login)}&parent=${encodeURIComponent(parent)}"></iframe></div><aside class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(id.login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe></aside></div></div>`;
+}
+function renderCompactFollowed(){
+ if(!state.session.twitch){
+   const box=$('#followedWrapCompact'); if(box) box.innerHTML=`<div class="row" style="justify-content:space-between;gap:12px"><div><h2 style="margin:0">Twitch dans Oryon Flow</h2><p class="small" style="margin:6px 0 0">Connecte Twitch pour retrouver tes suivis sans quitter Découvrir.</p></div><button class="btn" onclick="connectTwitch()">Connecter Twitch</button></div>`;
+   return;
+ }
+ const box=$('#followedWrapCompact'); if(!box) return;
+ box.innerHTML='<div class="small">Chargement des suivis…</div>';
+ api('/api/twitch/followed/live').then(async r=>{
+   if(!r.success) r=await api('/followed_streams');
+   const items=r.items||r.streams||[];
+   box.innerHTML=items.length?`<div class="softQueueTitle"><h2 style="margin:0">Tes suivis en live</h2><span class="small">Accès direct</span></div><div class="compactFollowRail">${items.map(x=>`<button class="compactFollowChip" onclick="openTwitch('${esc(x.login||x.user_login)}')"><img src="${esc(x.profile_image_url||'')}" alt=""><span>${esc(x.display_name||x.user_name||x.login||x.user_login)}</span><b>${Number(x.viewer_count||x.viewers||0)}</b></button>`).join('')}</div>`:'<div class="small">Aucune chaîne suivie en live pour le moment.</div>';
+ }).catch(()=>{ box.innerHTML='<div class="small">Impossible de charger les suivis Twitch.</div>'; });
+}
+function renderCompactTwitchSearchResults(items){
+ const box=$('#twResults'); if(!box) return;
+ box.innerHTML=(items||[]).length ? `<div class="compactSearchResults">${items.map(x=>`<article class="compactSearchCard"><div class="row"><div class="row"><img class="avatarMini" src="${esc(x.profile_image_url||'')}"><b>${esc(x.display_name||x.login)}</b></div><span class="pill">${x.is_live?'Live':'Offline'}</span></div><p class="small" style="margin:10px 0">${esc(x.title||x.game_name||'')}</p><button class="btn" onclick="openTwitch('${esc(x.login)}')">Regarder</button></article>`).join('')}</div>` : '<div class="empty">Aucun résultat Twitch.</div>';
+}
+async function searchTwitch(){
+ const q=$('#twSearch')?.value.trim(); if(!q) return;
+ const r=await api('/api/twitch/channels/search?'+qs({q,live:true}));
+ renderCompactTwitchSearchResults(r.items||[]);
+}
+function renderSpotlightMeta(cur){
+ const score=cur?comfortScore(cur):0;
+ const id=cur?liveIdentity(cur):null;
+ const reasons=cur?discoverReasonFor(cur):[];
+ return `<aside class="compactSignal"><div class="panel"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Pourquoi ce live</h2><span class="small">${cur?esc(platformLabel(id.platform)):'Signal clair'}</span></div><div class="comfortRing" style="--score:${score}%">${cur?score:'—'}</div></div>${cur?`<div class="reasonChips section">${reasons.map(r=>`<span class="reasonChip">${esc(r)}</span>`).join('')}</div><div class="vibeBar section">${vibeMetrics(cur).map(v=>`<div class="vibeLine"><span>${esc(v.k)}</span><i style="--w:${v.v}%"></i><b>${v.v}</b></div>`).join('')}</div>`:'<div class="empty section">Aucune proposition pour le moment.</div>'}</div><div class="panel"><h2 style="margin-top:0">Affiner</h2><div class="reactionDock"><button onclick="markZapFeedback('small')">+ petit</button><button onclick="markZapFeedback('quiet')">+ discussion</button><button onclick="markZapFeedback('rp')">RP</button><button onclick="markZapFeedback('game')">jeu</button></div></div><div id="viewerImpactBox" class="panel">${viewerImpactCard()}</div></aside>`;
+}
+function renderZap(){
+ const box=$('#zapResult'); if(!box) return;
+ const items=state.zap.items||[];
+ const cur=items[state.zap.index]||null;
+ box.innerHTML=`<div class="flowStage fused"><div class="spotlightShell">${renderSpotlightPlayer(cur)}</div>${renderSpotlightMeta(cur)}</div>${items.length>1?`<div class="section panel"><div class="softQueueTitle"><h2 style="margin:0">File douce</h2><span class="small">Passe au suivant sans perdre le fil</span></div><div class="flowQueue">${queuePreview(items)}</div></div>`:''}`;
+ renderViewerImpact();
+}
+async function findLive(){
+ const q=$('#dQuery')?.value||'', mood=$('#dMood')?.value||'', max=$('#dMax')?.value||'50', lang=$('#dLang')?.value||'fr', source=$('#dSource')?.value||'both';
+ const results=$('#discoverResults'); if(results) results.innerHTML='<div class="empty">Recherche…</div>';
+ const zap=$('#zapResult'); if(zap) zap.innerHTML='<div class="empty">Oryon cherche une proposition lisible…</div>';
+ state.discoverPlayer=null;
+ const r=await api('/api/oryon/discover/find-live?'+qs({q,mood,max,lang,source}));
+ const items=(r.items||[]).filter(x=>(x.platform||'')!=='peertube');
+ state.zap.items=items; state.zap.index=0; state.zap.last={q,mood,max,lang,source};
+ renderZap();
+ if(results) results.innerHTML=items.length?items.slice(1).map(liveCard).join(''):'<div class="empty">Aucun résultat. Élargis le plafond ou change l’ambiance.</div>';
+}
+function zapNext(){ const items=state.zap.items||[]; if(!items.length) return findLive(); state.discoverPlayer=null; state.zap.index=(state.zap.index+1)%items.length; renderZap(); }
+function zapBack(){ const items=state.zap.items||[]; if(!items.length)return; state.discoverPlayer=null; state.zap.index=(state.zap.index-1+items.length)%items.length; renderZap(); }
+function zapOpenCurrent(){ const x=currentZapItem(); if(!x) return; const id=liveIdentity(x); trackDiscovery(x); if(id.platform==='twitch'){ state.discoverPlayer={type:'twitch',login:id.login}; setMiniLive({type:'twitch',login:id.login,title:'Twitch · '+id.login}); renderZap(); } else openOryon(id.login); }
+function mountTwitchPlayer(login){ const area=$('#twitchPlayerArea'); if(area){ const parent=location.hostname; area.innerHTML=`<div class="watchShell twitchWatch"><div class="player premiumPlayer"><iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(login)}&parent=${encodeURIComponent(parent)}"></iframe></div><aside class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe></aside></div>`; return; } state.discoverPlayer={type:'twitch',login}; renderZap(); }
+function openTwitch(login){
+ state.currentTwitch=login;
+ const item=ensureSpotlightItem('twitch', login);
+ trackDiscovery(item);
+ setMiniLive({type:'twitch',login,title:'Twitch · '+login});
+ if(state.view==='twitch') return mountTwitchPlayer(login);
+ const activate=()=>{ state.discoverPlayer={type:'twitch',login}; renderZap(); };
+ if(state.view==='discover') return activate();
+ setView('discover').then(activate);
+}
+async function renderDiscover(){
+ const el=$('#discover');
+ el.innerHTML=`<div class="flowHero compact section"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1 class="flowTitle">Trouve ton live.</h1><p class="lead">Une seule scène principale. Tu choisis l’ambiance, Oryon te sert la meilleure entrée.</p><div class="row"><button class="btn good" onclick="findLive()">Zapper</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn ghost" onclick="quickGem()">Petite commu</button></div></div><aside class="flowDock"><div id="viewerImpactHeroBox">${viewerImpactCard()}</div></aside></div>
+ <div class="panel section"><div class="pageHead"><div><h2>Mode Ambiance</h2><p>Des choix simples, sans pavé inutile.</p></div></div><div class="moodDeck">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="moodTile" onclick="$('#dMood').value='${id}';findLive()"><i>${icon}</i><b>${esc(label)}</b><span class="small">${esc(desc)}</span></button>`).join('')}</div><div class="searchLine discoverLine section"><input id="dQuery" placeholder="jeu, pseudo, ambiance"><select id="dSource"><option value="both" selected>Oryon + Twitch</option><option value="oryon">Oryon</option><option value="twitch">Twitch</option></select><select id="dMood"><option value="">Ambiance</option>${AMBIANCES.map(([id,label])=>`<option value="${id}">${esc(label)}</option>`).join('')}</select><select id="dMax"><option value="20">≤20</option><option value="50" selected>≤50</option><option value="200">≤200</option><option value="300">≤300</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn good" onclick="findLive()">Zapper</button><button class="btn secondary" onclick="zapNext()">Suivant</button></div></div>
+ <div id="zapResult" class="section"></div>
+ <div class="panel section"><div class="pageHead"><div><h2>Accès Twitch</h2><p>Suivis et recherche, intégrés sans casser la scène principale.</p></div><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="compactTools"><input id="twSearch" placeholder="chercher un streamer Twitch"><div id="followedHint" class="small">Tu peux ouvrir un suivi ou rechercher un live.</div><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="followedWrapCompact" class="section"></div><div id="twResults" class="section"></div></div>
+ <div id="discoverResults" class="grid section"></div>
+ ${discoveryEventsHtml()}`;
+ renderCompactFollowed();
+ renderZap();
+ renderMiniPlayer();
+}
