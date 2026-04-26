@@ -12,24 +12,44 @@
     "dist:dir": "electron-builder --dir"
   },
   "dependencies": {
-    "electron": "^37.3.1",
     "express": "^4.21.2",
     "node-media-server": "^2.7.0",
-    "ffmpeg-static": "^5.2.0"
+    "ffmpeg-static": "^5.2.0",
+    "localtunnel": "^2.0.2"
   },
   "devDependencies": {
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "electron": "^37.3.1"
   },
   "build": {
     "appId": "fr.oryon.local",
     "productName": "Oryon Local",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "server.js", "package.json", "README.md", "assets/**/*", "node_modules/**/*"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "server.js",
+      "package.json",
+      "README.md",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
     "asar": false,
     "win": {
       "target": [
-        { "target": "portable", "arch": ["x64"] },
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "Oryon-Local-${version}-${arch}.${ext}"
     },
@@ -40,7 +60,16 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Oryon Local"
     },
-    "mac": { "target": ["dmg"] },
-    "linux": { "target": ["AppImage"] }
-  }
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    }
+  },
+  "author": "Oryon"
 }

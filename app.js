@@ -2426,7 +2426,7 @@ function verifyOryonPassword(password, stored){
 }
 function publicOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:u.oryon_local_player_url||'', oryon_local_status_url:u.oryon_local_status_url||'' };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:u.oryon_local_player_url||'', oryon_local_status_url:u.oryon_local_status_url||'', local_agent_live:!!u.local_agent_live, local_agent_last_seen:u.local_agent_last_seen||null };
 }
 function sessionOryonUser(u){
   if(!u) return null;
@@ -2599,8 +2599,8 @@ app.post('/api/oryon/profile', (req, res) => {
     user.raid_ready = String(req.body?.raid_ready || '').toLowerCase() === 'true' || !!user.raid_ready;
     user.peertube_embed_url = String(req.body?.peertube_embed_url || '').trim().slice(0,1000);
     user.peertube_watch_url = String(req.body?.peertube_watch_url || '').trim().slice(0,1000);
-    user.oryon_local_player_url = String(req.body?.oryon_local_player_url || '').trim().slice(0,1000);
-    user.oryon_local_status_url = String(req.body?.oryon_local_status_url || '').trim().slice(0,1000);
+    if(Object.prototype.hasOwnProperty.call(req.body,'oryon_local_player_url')) user.oryon_local_player_url = String(req.body?.oryon_local_player_url || '').trim().slice(0,1000);
+    if(Object.prototype.hasOwnProperty.call(req.body,'oryon_local_status_url')) user.oryon_local_status_url = String(req.body?.oryon_local_status_url || '').trim().slice(0,1000);
     user.external_live_platform = user.oryon_local_player_url ? 'oryon-local' : (user.peertube_embed_url || user.peertube_watch_url ? 'peertube' : (user.external_live_platform||''));
     user.updatedAt = Date.now();
     writeOryonUsers(data);
@@ -2694,6 +2694,30 @@ app.get('/api/oryon/local-agent/config', (req, res) => {
 });
 
 
+app.post('/api/oryon/local-agent/register-public-url', (req, res) => {
+  try {
+    const streamKey = String(req.body?.stream_key || '').trim();
+    const playerUrl = String(req.body?.player_url || '').trim().slice(0, 1000);
+    const statusUrl = String(req.body?.status_url || '').trim().slice(0, 1000);
+    const publicBaseUrl = String(req.body?.public_base_url || '').trim().slice(0, 1000);
+    if(!streamKey || !playerUrl || !/^https?:\/\//i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL publique ou clé de stream invalide.' });
+    const data = readOryonUsers();
+    const user = (data.users || []).find(u => String(u.stream_key || '') === streamKey);
+    if(!user) return res.status(404).json({ success:false, error:'Aucun compte Oryon ne correspond à cette clé de stream.' });
+    user.oryon_local_player_url = playerUrl;
+    user.oryon_local_status_url = statusUrl;
+    user.oryon_local_public_base_url = publicBaseUrl;
+    user.oryon_local_provider = String(req.body?.provider || 'localtunnel').slice(0, 80);
+    user.external_live_platform = 'oryon-local';
+    user.local_agent_live = true;
+    user.local_agent_last_seen = Date.now();
+    user.updatedAt = Date.now();
+    writeOryonUsers(data);
+    res.json({ success:true, login:user.login, user:publicOryonUser(user), message:'Live Oryon Local publié sur la chaîne.' });
+  } catch(e) { res.status(500).json({ success:false, error:e.message }); }
+});
+
+
 app.post('/api/oryon/stream-key/regenerate', (req, res) => {
   try{
     const cur = req.session?.oryonUser;
@@ -2774,7 +2798,7 @@ app.get('/api/twitch/random-small-live', async (req, res) => {
 
 app.get('/api/native/lives', (req, res) => {
   const rooms = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.entries) ? nativeLiveRooms : new Map();
-  const items = Array.from(rooms.entries()).map(([room, r]) => ({
+  const nativeItems = Array.from(rooms.entries()).map(([room, r]) => ({
     room,
     title: r.title || `Live de ${room}`,
     host_name: r.hostName || room,
@@ -2789,7 +2813,28 @@ app.get('/api/native/lives', (req, res) => {
     chat_messages: r.chatMessages || 0,
     oryon_score: computeNativeOryonScore(r),
     native: true
-  })).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  }));
+  const users = readOryonUsers().users || [];
+  const localAgentItems = users.filter(u => u.oryon_local_player_url && u.local_agent_live).map(u => ({
+    room: u.login,
+    title: `Live Oryon Local de ${u.display_name || u.login}`,
+    host_name: u.display_name || u.login,
+    host_login: u.login,
+    host_user_id: u.id,
+    viewers: 0,
+    limit: Number(process.env.MAX_NATIVE_VIEWERS || 300),
+    createdAt: u.local_agent_last_seen || u.updatedAt || Date.now(),
+    category: 'Oryon Local',
+    tags: Array.isArray(u.tags) ? u.tags : [],
+    peak_viewers: 0,
+    chat_messages: 0,
+    oryon_score: 88,
+    native: true,
+    local_agent: true,
+    thumbnail_url: u.offline_image_url || u.banner_url || u.avatar_url || ''
+  }));
+  const seen = new Set();
+  const items = [...nativeItems, ...localAgentItems].filter(x => { const k=x.host_login||x.room; if(seen.has(k)) return false; seen.add(k); return true; }).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
   res.json({ success:true, items });
 });
 

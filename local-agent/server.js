@@ -2,6 +2,10 @@ const express = require('express');
 const NodeMediaServer = require('node-media-server');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
+let localtunnel = null;
+try { localtunnel = require('localtunnel'); } catch (_) { localtunnel = null; }
+
 let bundledFfmpeg = null;
 try { bundledFfmpeg = require('ffmpeg-static'); } catch (_) { bundledFfmpeg = null; }
 
@@ -10,77 +14,238 @@ const RTMP_PORT = Number(process.env.ORYON_LOCAL_RTMP_PORT || 1935);
 const MEDIA_ROOT = process.env.ORYON_LOCAL_MEDIA_ROOT || path.join(__dirname, 'media');
 const PUBLIC_BASE_URL = process.env.ORYON_LOCAL_PUBLIC_URL || `http://localhost:${HTTP_PORT}`;
 const DEFAULT_KEY = process.env.ORYON_STREAM_KEY || 'ta-cle-oryon';
+const FFMPEG_PATH = process.env.FFMPEG_PATH || bundledFfmpeg || 'ffmpeg';
+const TRANSCODE_MODE = String(process.env.ORYON_LOCAL_TRANSCODE || 'copy').toLowerCase();
+const DEFAULT_ORYON_SITE_URL = process.env.ORYON_SITE_URL || 'https://justplayerstreamhubpro.onrender.com';
+let publicTunnel = null;
+let publicTunnelInfo = null;
 
 fs.mkdirSync(MEDIA_ROOT, { recursive: true });
+fs.mkdirSync(path.join(MEDIA_ROOT, 'live'), { recursive: true });
 
 const active = {};
+const ffmpegJobs = {};
+const events = [];
+
+function log(type, message, data = {}) {
+  const entry = { at: new Date().toISOString(), type, message, data };
+  events.unshift(entry);
+  while (events.length > 150) events.pop();
+  console.log(`[Oryon Local] ${type}: ${message}`, data || '');
+}
+
+function safeKey(value) {
+  return String(value || DEFAULT_KEY).replace(/[^a-zA-Z0-9_-]/g, '') || DEFAULT_KEY;
+}
+function playerUrl(key = DEFAULT_KEY) { return `${PUBLIC_BASE_URL}/player/${encodeURIComponent(safeKey(key))}`; }
+function hlsDir(key = DEFAULT_KEY) { return path.join(MEDIA_ROOT, 'live', safeKey(key)); }
+function hlsPath(key = DEFAULT_KEY) { return path.join(hlsDir(key), 'index.m3u8'); }
+function hlsUrl(key = DEFAULT_KEY) { return `${PUBLIC_BASE_URL}/hls/${encodeURIComponent(safeKey(key))}/index.m3u8`; }
+function publicPlayerUrl(key = DEFAULT_KEY) {
+  if (!publicTunnelInfo?.url) return '';
+  return `${publicTunnelInfo.url}/player/${encodeURIComponent(safeKey(key))}`;
+}
+function publicStatusUrl() {
+  if (!publicTunnelInfo?.url) return '';
+  return `${publicTunnelInfo.url}/health`;
+}
+async function startPublicTunnel() {
+  if (publicTunnelInfo?.url && publicTunnel) return publicTunnelInfo;
+  if (!localtunnel) throw new Error('Le module localtunnel est manquant. Lance npm install puis recompile Oryon Local.');
+  publicTunnel = await localtunnel({ port: HTTP_PORT });
+  publicTunnelInfo = { url: publicTunnel.url, startedAt: new Date().toISOString(), provider: 'localtunnel' };
+  publicTunnel.on('close', () => { log('tunnel', 'Tunnel public fermé', publicTunnelInfo || {}); publicTunnel = null; publicTunnelInfo = null; });
+  log('tunnel', 'Tunnel public lancé', publicTunnelInfo);
+  return publicTunnelInfo;
+}
+async function stopPublicTunnel() { if (publicTunnel) { try { publicTunnel.close(); } catch (_) {} } publicTunnel = null; publicTunnelInfo = null; return { success: true }; }
+async function registerPublicUrlOnOryon({ siteUrl, key }) {
+  const k = safeKey(key);
+  const base = String(siteUrl || DEFAULT_ORYON_SITE_URL || '').trim().replace(/\/$/, '');
+  if (!base || !/^https?:\/\//i.test(base)) throw new Error('URL du site Oryon invalide.');
+  if (!publicTunnelInfo?.url) throw new Error('Lance d’abord le tunnel public.');
+  const payload = { stream_key: k, public_base_url: publicTunnelInfo.url, player_url: publicPlayerUrl(k), status_url: publicStatusUrl(), provider: publicTunnelInfo.provider || 'localtunnel' };
+  const r = await fetch(`${base}/api/oryon/local-agent/register-public-url`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.success) throw new Error(j.error || `Oryon a refusé l’enregistrement (${r.status}).`);
+  log('tunnel', 'URL publique envoyée à Oryon', { siteUrl: base, player_url: payload.player_url });
+  return { success: true, site_url: base, ...payload, response: j };
+}
+
+
+function ffmpegInfo() {
+  const exists = FFMPEG_PATH === 'ffmpeg' ? null : fs.existsSync(FFMPEG_PATH);
+  return { path: FFMPEG_PATH, bundled: Boolean(bundledFfmpeg), exists, mode: TRANSCODE_MODE };
+}
+
+function listFiles(dir) {
+  try { return fs.readdirSync(dir); } catch (_) { return []; }
+}
+function streamStatus(key = DEFAULT_KEY) {
+  const k = safeKey(key);
+  const files = listFiles(hlsDir(k));
+  return {
+    key: k,
+    active: Boolean(active[k]),
+    ffmpeg_running: Boolean(ffmpegJobs[k]),
+    hls_url: hlsUrl(k),
+    hls_path: hlsPath(k),
+    hls_exists: fs.existsSync(hlsPath(k)),
+    hls_files: files,
+    started_at: active[k]?.startedAt || null,
+    last_seen: active[k]?.lastSeen || null,
+  };
+}
+
+function cleanupHls(key) {
+  const dir = hlsDir(key);
+  fs.mkdirSync(dir, { recursive: true });
+  for (const file of listFiles(dir)) {
+    if (file.endsWith('.ts') || file.endsWith('.m3u8') || file.endsWith('.tmp')) {
+      try { fs.unlinkSync(path.join(dir, file)); } catch (_) {}
+    }
+  }
+}
+
+function startHlsTransmux(key) {
+  const k = safeKey(key);
+  if (ffmpegJobs[k]) return;
+
+  const dir = hlsDir(k);
+  fs.mkdirSync(dir, { recursive: true });
+  cleanupHls(k);
+
+  const input = `rtmp://127.0.0.1:${RTMP_PORT}/live/${k}`;
+  const output = hlsPath(k);
+  const segmentPattern = path.join(dir, 'seg_%03d.ts');
+  const args = [
+    '-hide_banner',
+    '-loglevel', 'warning',
+    '-fflags', 'nobuffer',
+    '-i', input,
+  ];
+
+  if (TRANSCODE_MODE === 'transcode') {
+    args.push('-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-ar', '44100', '-b:a', '128k');
+  } else {
+    args.push('-c:v', 'copy', '-c:a', 'aac', '-ar', '44100', '-b:a', '128k');
+  }
+
+  args.push(
+    '-f', 'hls',
+    '-hls_time', '2',
+    '-hls_list_size', '6',
+    '-hls_flags', 'delete_segments+append_list+omit_endlist',
+    '-hls_segment_filename', segmentPattern,
+    output
+  );
+
+  log('ffmpeg', 'Démarrage conversion RTMP vers HLS', { key: k, input, output, ffmpeg: FFMPEG_PATH, mode: TRANSCODE_MODE });
+  const child = spawn(FFMPEG_PATH, args, { windowsHide: true });
+  ffmpegJobs[k] = child;
+
+  child.stderr.on('data', (data) => {
+    const text = String(data).trim();
+    if (text) log('ffmpeg', text.slice(0, 1200), { key: k });
+  });
+  child.on('error', (err) => {
+    log('error', 'FFmpeg n’a pas pu démarrer', { key: k, error: err.message, ffmpeg: FFMPEG_PATH });
+    delete ffmpegJobs[k];
+  });
+  child.on('exit', (code, signal) => {
+    log('ffmpeg', 'FFmpeg arrêté', { key: k, code, signal });
+    delete ffmpegJobs[k];
+  });
+}
+
+function stopHlsTransmux(key) {
+  const k = safeKey(key);
+  const child = ffmpegJobs[k];
+  if (!child) return;
+  try { child.kill('SIGTERM'); } catch (_) {}
+  delete ffmpegJobs[k];
+}
 
 const nms = new NodeMediaServer({
+  logType: 2,
   rtmp: {
     port: RTMP_PORT,
     chunk_size: 60000,
     gop_cache: true,
     ping: 30,
-    ping_timeout: 60
+    ping_timeout: 60,
   },
-  http: {
-    port: HTTP_PORT + 1,
-    mediaroot: MEDIA_ROOT,
-    allow_origin: '*'
-  },
-  trans: {
-    ffmpeg: process.env.FFMPEG_PATH || bundledFfmpeg || 'ffmpeg',
-    tasks: [{
-      app: 'live',
-      hls: true,
-      hlsFlags: '[hls_time=2:hls_list_size=5:hls_flags=delete_segments]',
-      dash: false
-    }]
-  }
 });
 
-nms.on('prePublish', (id, streamPath) => {
-  const key = streamPath.split('/').pop();
-  active[key] = { key, streamPath, startedAt: new Date().toISOString() };
-  console.log('[Oryon Local] live started:', key);
+nms.on('prePublish', (id, streamPath, args) => {
+  const key = safeKey(streamPath.split('/').pop());
+  active[key] = { key, streamPath, startedAt: new Date().toISOString(), lastSeen: new Date().toISOString() };
+  log('rtmp', 'OBS essaie de publier le flux', { id, streamPath, key, args });
 });
 
-nms.on('donePublish', (id, streamPath) => {
-  const key = streamPath.split('/').pop();
+nms.on('postPublish', (id, streamPath, args) => {
+  const key = safeKey(streamPath.split('/').pop());
+  active[key] = { key, streamPath, startedAt: active[key]?.startedAt || new Date().toISOString(), lastSeen: new Date().toISOString() };
+  log('rtmp', 'Flux OBS reçu', { id, streamPath, key, args });
+  setTimeout(() => startHlsTransmux(key), 500);
+});
+
+nms.on('donePublish', (id, streamPath, args) => {
+  const key = safeKey(streamPath.split('/').pop());
   delete active[key];
-  console.log('[Oryon Local] live stopped:', key);
+  stopHlsTransmux(key);
+  log('rtmp', 'Flux OBS arrêté', { id, streamPath, key, args });
 });
 
-nms.run();
+try {
+  nms.run();
+  log('system', 'Serveur RTMP lancé', { rtmp: `rtmp://127.0.0.1:${RTMP_PORT}/live`, mediaRoot: MEDIA_ROOT, ffmpeg: ffmpegInfo() });
+} catch (err) {
+  log('error', 'Impossible de lancer le serveur RTMP', { error: err.message });
+}
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
-app.use((req,res,next)=>{res.setHeader('Access-Control-Allow-Origin','*'); next();});
+app.use((req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); next(); });
 
-function safeKey(value){ return String(value || DEFAULT_KEY).replace(/[^a-zA-Z0-9_-]/g,'') || DEFAULT_KEY; }
-function playerUrl(key=DEFAULT_KEY){ return `${PUBLIC_BASE_URL}/player/${encodeURIComponent(safeKey(key))}`; }
-function hlsUrl(key=DEFAULT_KEY){ return `${PUBLIC_BASE_URL}/hls/${encodeURIComponent(safeKey(key))}/index.m3u8`; }
-
-app.get('/', (req,res)=>{
+app.get('/', (req, res) => {
   const key = safeKey(req.query.key || DEFAULT_KEY);
-  const rtmp = `rtmp://localhost:${RTMP_PORT}/live`;
+  const rtmpIp = `rtmp://127.0.0.1:${RTMP_PORT}/live`;
+  const rtmpLocalhost = `rtmp://localhost:${RTMP_PORT}/live`;
   const purl = playerUrl(key);
   res.type('html').send(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oryon Local</title><style>
-  :root{color-scheme:dark;background:#070914;color:#f6f7fb;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#3b1b7a55,transparent 35%),#070914}.wrap{max-width:1100px;margin:auto;padding:28px}.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:stretch}.card{border:1px solid #262b42;background:#101423cc;border-radius:24px;padding:22px;box-shadow:0 20px 60px #0008}.tag{display:inline-flex;padding:7px 10px;border-radius:999px;background:#7c3aed22;border:1px solid #7c3aed66;color:#d7c6ff;font-size:13px}.code{background:#050710;border:1px solid #30364f;border-radius:14px;padding:13px;word-break:break-all;font-family:ui-monospace,monospace;color:#cfe5ff}.btn{border:0;border-radius:14px;padding:12px 15px;background:#7c3aed;color:white;font-weight:800;cursor:pointer}.btn.secondary{background:#1d2335}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}.small{color:#aab3c7;font-size:14px;line-height:1.5}.player{aspect-ratio:16/9;background:#02040a;border-radius:22px;overflow:hidden;border:1px solid #30364f}iframe{width:100%;height:100%;border:0}input{width:100%;background:#070914;border:1px solid #30364f;color:white;border-radius:12px;padding:12px;margin:6px 0}@media(max-width:850px){.hero,.grid{grid-template-columns:1fr}}</style></head><body><div class="wrap"><div class="hero"><section class="card"><span class="tag">Oryon Local est lancé</span><h1>Ton PC devient ton serveur de live.</h1><p class="small">Laisse cette application ouverte. Dans OBS, mets le serveur et la clé ci-dessous. Le player local permet de vérifier que ton flux arrive bien.</p><h3>Serveur OBS</h3><div class="code" id="rtmp">${rtmp}</div><h3>Clé de stream</h3><input id="key" value="${key}" oninput="updateKey()"><div class="row"><button class="btn" onclick="copy('rtmp')">Copier serveur</button><button class="btn secondary" onclick="copyKey()">Copier clé</button><a class="btn secondary" id="openPlayer" href="${purl}" target="_blank" style="text-decoration:none">Ouvrir le player</a></div><p class="small">OBS → Paramètres → Diffusion → Service personnalisé → Serveur + Clé.</p></section><section class="card"><h2>Prévisualisation locale</h2><div class="player"><iframe id="frame" src="${purl}"></iframe></div><p class="small">Si l’écran reste noir, vérifie que OBS diffuse et que FFmpeg est installé sur ton PC.</p></section></div><div class="grid"><div class="card"><h3>1. Lance OBS</h3><p class="small">Utilise le serveur RTMP local. Oryon Local transforme ensuite le flux en player web.</p></div><div class="card"><h3>2. Vérifie le player</h3><p class="small">Le player local doit afficher ton live avant de le publier sur Oryon.</p></div><div class="card"><h3>3. Rends-le public</h3><p class="small">Pour les viewers, expose http://localhost:${HTTP_PORT} avec un tunnel Cloudflare/ngrok puis colle l’URL publique dans ton profil Oryon.</p></div></div></div><script>function copy(id){navigator.clipboard.writeText(document.getElementById(id).textContent)}function copyKey(){navigator.clipboard.writeText(document.getElementById('key').value)}function updateKey(){const k=document.getElementById('key').value.replace(/[^a-zA-Z0-9_-]/g,''); const u='/player/'+encodeURIComponent(k||'${DEFAULT_KEY}'); document.getElementById('frame').src=u; document.getElementById('openPlayer').href=u}</script></body></html>`);
+  :root{color-scheme:dark;background:#070914;color:#f6f7fb;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#3b1b7a55,transparent 35%),#070914}.wrap{max-width:1180px;margin:auto;padding:28px}.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:stretch}.card{border:1px solid #262b42;background:#101423cc;border-radius:24px;padding:22px;box-shadow:0 20px 60px #0008}.tag{display:inline-flex;padding:7px 10px;border-radius:999px;background:#7c3aed22;border:1px solid #7c3aed66;color:#d7c6ff;font-size:13px}.code{background:#050710;border:1px solid #30364f;border-radius:14px;padding:13px;word-break:break-all;font-family:ui-monospace,monospace;color:#cfe5ff}.btn{border:0;border-radius:14px;padding:12px 15px;background:#7c3aed;color:white;font-weight:800;cursor:pointer}.btn.secondary{background:#1d2335}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}.small{color:#aab3c7;font-size:14px;line-height:1.5}.player{aspect-ratio:16/9;background:#02040a;border-radius:22px;overflow:hidden;border:1px solid #30364f}iframe{width:100%;height:100%;border:0}input{width:100%;background:#070914;border:1px solid #30364f;color:white;border-radius:12px;padding:12px;margin:6px 0}.status{margin-top:12px;padding:12px;border:1px solid #30364f;border-radius:14px;background:#070914;color:#cfe5ff;font-size:13px;white-space:pre-wrap}.ok{color:#45f0a1}.bad{color:#ff8585}@media(max-width:850px){.hero,.grid{grid-template-columns:1fr}}</style></head><body><div class="wrap"><div class="hero"><section class="card"><span class="tag">Oryon Local est lancé</span><h1>Ton PC devient ton serveur de live.</h1><p class="small">Laisse cette application ouverte. Dans OBS, mets le serveur et la clé ci-dessous. Le player local permet de vérifier que ton flux arrive bien.</p><h3>Serveur OBS recommandé</h3><div class="code" id="rtmp">${rtmpIp}</div><p class="small">Si OBS refuse, essaie aussi : <b>${rtmpLocalhost}</b></p><h3>Clé de stream</h3><input id="key" value="${key}" oninput="updateKey()"><div class="row"><button class="btn" onclick="copy('rtmp')">Copier serveur</button><button class="btn secondary" onclick="copyKey()">Copier clé</button><a class="btn secondary" id="openPlayer" href="${purl}" target="_blank" style="text-decoration:none">Ouvrir le player</a></div><p class="small">OBS → Paramètres → Diffusion → Service personnalisé → Serveur + Clé. Désactive la vidéo multipiste.</p><div id="diag" class="status">Diagnostic en cours…</div></section><section class="card"><h2>Prévisualisation locale</h2><div class="player"><iframe id="frame" src="${purl}"></iframe></div><p class="small">Le flux peut prendre 5 à 15 secondes avant d’apparaître après le démarrage OBS.</p></section></div><div class="grid"><div class="card"><h3>1. Lance OBS</h3><p class="small">Service personnalisé, serveur RTMP local, clé Oryon. Vidéo multipiste désactivée.</p></div><div class="card"><h3>2. Vérifie le player</h3><p class="small">Le player local doit afficher ton live avant de le publier sur Oryon.</p></div><div class="card"><h3>3. Envoie sur Oryon</h3><p class="small">Clique ci-dessous : l’app crée une URL publique et l’envoie automatiquement à ta page Oryon grâce à ta clé de stream.</p></div></div><section class="card" style="margin-top:16px"><span class="tag">Publication automatique</span><h2>Rendre mon live visible sur Oryon</h2><p class="small">Quand ton player local fonctionne, lance le tunnel puis publie l’URL sur Oryon. Garde cette app ouverte tant que tu streams.</p><label class="small">Adresse du site Oryon</label><input id="oryonSite" value="${DEFAULT_ORYON_SITE_URL}"><div class="row"><button class="btn" onclick="startTunnel()">1. Rendre public</button><button class="btn secondary" onclick="publishToOryon()">2. Envoyer sur Oryon</button><button class="btn secondary" onclick="stopTunnel()">Arrêter le tunnel</button></div><div id="publicUrl" class="status">Tunnel public non lancé.</div></section></div><script>function copy(id){navigator.clipboard.writeText(document.getElementById(id).textContent)}function copyKey(){navigator.clipboard.writeText(document.getElementById('key').value)}function updateKey(){const k=document.getElementById('key').value.replace(/[^a-zA-Z0-9_-]/g,''); const u='/player/'+encodeURIComponent(k||'${DEFAULT_KEY}'); document.getElementById('frame').src=u; document.getElementById('openPlayer').href=u; refreshDiag()}async function refreshDiag(){const k=document.getElementById('key').value.replace(/[^a-zA-Z0-9_-]/g,'')||'${DEFAULT_KEY}';try{const r=await fetch('/api/status?key='+encodeURIComponent(k)+'&t='+Date.now());const d=await r.json();const st=d.stream||{};const last=(d.events||[]).find(e=>e.type==='ffmpeg'||e.type==='error');document.getElementById('diag').innerHTML=(st.active?'✅ OBS envoie un flux RTMP.':'⚠️ Aucun flux OBS détecté pour cette clé.')+'\n'+(st.ffmpeg_running?'✅ Conversion FFmpeg active.':'⚠️ Conversion FFmpeg non active.')+'\n'+(st.hls_exists?'✅ Playlist HLS créée. Le player devrait lire le live.':'⏳ Playlist HLS pas encore créée. Attends 5-15s ou lis le dernier log.')+'\nFFmpeg: '+(d.ffmpeg.exists===false?'introuvable':d.ffmpeg.path)+'\nFichiers HLS: '+((st.hls_files||[]).join(', ')||'aucun')+'\nDernier log: '+(last?last.message:'aucun');}catch(e){document.getElementById('diag').textContent='Diagnostic indisponible: '+e.message}}async function startTunnel(){const k=document.getElementById('key').value.replace(/[^a-zA-Z0-9_-]/g,'')||'${DEFAULT_KEY}';const box=document.getElementById('publicUrl');box.textContent='Création du tunnel public…';try{const r=await fetch('/api/tunnel/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})});const d=await r.json();if(!d.success)throw new Error(d.error||'Erreur tunnel');box.innerHTML='✅ Tunnel public prêt\nPlayer public : '+d.player_url+'\n\nClique maintenant sur “Envoyer sur Oryon”.';}catch(e){box.textContent='❌ '+(e.message||e)}}
+async function stopTunnel(){try{await fetch('/api/tunnel/stop',{method:'POST'});document.getElementById('publicUrl').textContent='Tunnel public arrêté.'}catch(e){document.getElementById('publicUrl').textContent='Erreur arrêt tunnel: '+e.message}}
+async function publishToOryon(){const k=document.getElementById('key').value.replace(/[^a-zA-Z0-9_-]/g,'')||'${DEFAULT_KEY}';const site=document.getElementById('oryonSite').value.trim();const box=document.getElementById('publicUrl');box.textContent='Envoi de l’URL publique à Oryon…';try{const r=await fetch('/api/publish-to-oryon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,site_url:site})});const d=await r.json();if(!d.success)throw new Error(d.error||'Publication refusée');box.innerHTML='✅ Live envoyé sur Oryon\n'+d.player_url+'\n\nVa sur ta page chaîne Oryon : le lecteur doit afficher ce flux.';}catch(e){box.textContent='❌ '+(e.message||e)}}
+async function refreshTunnel(){try{const r=await fetch('/api/tunnel/status?t='+Date.now());const d=await r.json();if(d.active&&document.getElementById('publicUrl')){document.getElementById('publicUrl').innerHTML='✅ Tunnel actif\nPlayer public : '+d.player_url}}catch(e){}}
+setInterval(refreshDiag,2000);setInterval(refreshTunnel,4000);refreshDiag();refreshTunnel();</script></body></html>`);
 });
 
-app.get('/health', (req,res)=>res.json({success:true, name:'Oryon Local', rtmp:`rtmp://localhost:${RTMP_PORT}/live`, public_base_url:PUBLIC_BASE_URL, active:Object.values(active)}));
 
-app.get('/player/:key', (req,res)=>{
+app.post('/api/tunnel/start', async (req, res) => {
+  try { const key = safeKey(req.body?.key || DEFAULT_KEY); const info = await startPublicTunnel(); res.json({ success: true, ...info, player_url: publicPlayerUrl(key), status_url: publicStatusUrl() }); }
+  catch (e) { log('error', 'Tunnel public impossible', { error: e.message }); res.status(500).json({ success: false, error: e.message }); }
+});
+app.post('/api/tunnel/stop', async (_req, res) => { try { await stopPublicTunnel(); res.json({ success: true }); } catch(e){ res.status(500).json({ success:false, error:e.message }); } });
+app.get('/api/tunnel/status', (req, res) => { const key = safeKey(req.query.key || DEFAULT_KEY); res.json({ success: true, active: Boolean(publicTunnelInfo?.url), tunnel: publicTunnelInfo, player_url: publicPlayerUrl(key), status_url: publicStatusUrl() }); });
+app.post('/api/publish-to-oryon', async (req, res) => {
+  try { const key = safeKey(req.body?.key || DEFAULT_KEY); if (!publicTunnelInfo?.url) await startPublicTunnel(); const result = await registerPublicUrlOnOryon({ siteUrl: req.body?.site_url, key }); res.json(result); }
+  catch(e) { log('error', 'Publication Oryon impossible', { error: e.message }); res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/health', (req, res) => res.json({ success: true, name: 'Oryon Local', rtmp: `rtmp://127.0.0.1:${RTMP_PORT}/live`, alt_rtmp: `rtmp://localhost:${RTMP_PORT}/live`, public_base_url: PUBLIC_BASE_URL, media_root: MEDIA_ROOT, ffmpeg: ffmpegInfo(), active: Object.values(active), ffmpeg_jobs: Object.keys(ffmpegJobs) }));
+app.get('/api/status', (req, res) => res.json({ success: true, ffmpeg: ffmpegInfo(), media_root: MEDIA_ROOT, stream: streamStatus(req.query.key || DEFAULT_KEY), active: Object.values(active), ffmpeg_jobs: Object.keys(ffmpegJobs), events }));
+
+app.get('/player/:key', (req, res) => {
   const key = safeKey(req.params.key);
   const hls = hlsUrl(key);
-  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oryon Local Player</title><style>html,body{margin:0;width:100%;height:100%;background:#030508;color:white;font-family:system-ui}video{width:100%;height:100%;object-fit:contain;background:#030508}.state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#9ba7bb;padding:20px}</style></head><body><video id="v" controls autoplay playsinline></video><div id="s" class="state">Connexion au flux local…<br><small>Si rien ne s'affiche, lance OBS avec la bonne clé.</small></div><script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script><script>const src=${JSON.stringify(hls)};const v=document.getElementById('v'),s=document.getElementById('s');function ok(){s.style.display='none'}; if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=src;v.addEventListener('loadedmetadata',ok);v.play().catch(()=>{})}else if(window.Hls&&Hls.isSupported()){const h=new Hls({lowLatencyMode:true});h.loadSource(src);h.attachMedia(v);h.on(Hls.Events.MANIFEST_PARSED,()=>{ok();v.play().catch(()=>{})});h.on(Hls.Events.ERROR,()=>{s.innerHTML='Flux local indisponible.<br><small>Vérifie OBS, FFmpeg et ta clé de stream.</small>'})}else{s.textContent='Navigateur non compatible HLS.'}</script></body></html>`);
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oryon Local Player</title><style>html,body{margin:0;width:100%;height:100%;background:#030508;color:white;font-family:system-ui}video{width:100%;height:100%;object-fit:contain;background:#030508}.state{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#9ba7bb;padding:20px}.panel{position:absolute;left:12px;bottom:12px;right:12px;color:#b8c3d9;font-size:13px;pointer-events:none}</style></head><body><video id="v" controls autoplay muted playsinline></video><div id="s" class="state">Connexion au flux local…<br><small>Si rien ne s'affiche, lance OBS avec la bonne clé. Le flux peut prendre 5 à 15 secondes.</small></div><div id="p" class="panel"></div><script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script><script>const src=${JSON.stringify(hls)};const key=${JSON.stringify(key)};const v=document.getElementById('v'),s=document.getElementById('s'),p=document.getElementById('p');let h=null,tries=0;function ok(){s.style.display='none';p.textContent=''}function msg(t){s.style.display='grid';s.innerHTML=t}async function manifestReady(){try{const r=await fetch(src+'?t='+Date.now(),{cache:'no-store'});return r.ok}catch(e){return false}}async function status(){try{const r=await fetch('/api/status?key='+encodeURIComponent(key)+'&t='+Date.now());const d=await r.json();const st=d.stream||{};p.textContent=(st.active?'OBS reçu':'Aucun OBS')+' · '+(st.ffmpeg_running?'FFmpeg actif':'FFmpeg inactif')+' · '+(st.hls_exists?'HLS prêt':'HLS en attente')+' · fichiers: '+((st.hls_files||[]).length)}catch(e){}}async function boot(){tries++;await status();const ready=await manifestReady();if(!ready){msg('Connexion au flux local…<br><small>OBS peut être reçu mais le player attend la playlist HLS. Essai '+tries+'.</small>');setTimeout(boot,2000);return}if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=src+'?t='+Date.now();v.addEventListener('loadedmetadata',ok,{once:true});v.play().catch(()=>{});return}if(window.Hls&&Hls.isSupported()){if(h){h.destroy()}h=new Hls({lowLatencyMode:true,liveSyncDurationCount:2,maxLiveSyncPlaybackRate:1.5});h.loadSource(src+'?t='+Date.now());h.attachMedia(v);h.on(Hls.Events.MANIFEST_PARSED,()=>{ok();v.play().catch(()=>{})});h.on(Hls.Events.ERROR,(ev,data)=>{if(data&&data.fatal){msg('Flux interrompu, reconnexion…<br><small>Vérifie OBS si ça dure.</small>');setTimeout(boot,2000)}});return}msg('Navigateur non compatible HLS.')}setInterval(status,2000);boot();</script></body></html>`);
 });
 
-app.use('/hls', express.static(path.join(MEDIA_ROOT, 'live')));
+app.use('/hls', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, express.static(path.join(MEDIA_ROOT, 'live')));
 
 app.listen(HTTP_PORT, () => {
   console.log(`[Oryon Local] Interface: http://localhost:${HTTP_PORT}`);
-  console.log(`[Oryon Local] OBS server: rtmp://localhost:${RTMP_PORT}/live`);
+  console.log(`[Oryon Local] OBS server: rtmp://127.0.0.1:${RTMP_PORT}/live`);
   console.log(`[Oryon Local] Player example: ${playerUrl(DEFAULT_KEY)}`);
 });
