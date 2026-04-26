@@ -1547,3 +1547,100 @@ async function renderDiscover(){
   renderZap();
   renderMiniPlayer?.();
 }
+
+/* Pro watch fix — main player must open large, never only in mini-player */
+(function injectProWatchFix(){
+  if(document.getElementById('oryonProWatchFix')) return;
+  const st=document.createElement('style');
+  st.id='oryonProWatchFix';
+  st.textContent=`
+  .proStage.proStageWatching{display:block!important}
+  .proStage.proStageWatching .proMain{width:100%;min-width:0}
+  .proStage.proStageWatching .proPlayer{gap:14px}
+  .proStage.proStageWatching .proPlayerHead{padding:0 2px 2px}
+  .proStage.proStageWatching .proPlayerHead h2{font-size:clamp(32px,3.2vw,52px);line-height:.96}
+  .proStage.proStageWatching .proPlayerGrid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(300px,360px)!important;gap:14px;align-items:stretch}
+  .proStage.proStageWatching .proPlayerGrid .player,.proStage.proStageWatching .proPlayerGrid .chatPanel{height:clamp(620px,72vh,880px)!important;min-height:620px!important;border-radius:26px}
+  .proStage.proStageWatching .proPlayerGrid .player{box-shadow:0 30px 90px rgba(0,0,0,.46),0 0 0 1px rgba(139,92,246,.24)}
+  .proStage.proStageWatching .proSide{position:relative!important;top:auto!important;margin-top:16px;padding:10px;border-radius:22px}
+  .proStage.proStageWatching .proTabs{display:flex;gap:8px;margin-bottom:10px;overflow:auto;scrollbar-width:none}
+  .proStage.proStageWatching .proTabs::-webkit-scrollbar{display:none}
+  .proStage.proStageWatching .proTabBtn{min-width:120px}
+  .proStage.proStageWatching .proTabPanel{max-width:980px}
+  .proStage.proStageWatching + .proTwitchPanel{margin-top:26px}
+  .miniPlayer.proSuppressed{display:none!important}
+  @media(max-width:980px){
+    .proStage.proStageWatching .proPlayerGrid{grid-template-columns:1fr!important}
+    .proStage.proStageWatching .proPlayerGrid .player{height:auto!important;min-height:0!important;aspect-ratio:16/9}
+    .proStage.proStageWatching .proPlayerGrid .chatPanel{height:420px!important;min-height:420px!important}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+function spotlightIsPlaying(x){
+  const id=x&&liveIdentity(x);
+  return !!(x && id && state.discoverPlayer &&
+    String(state.discoverPlayer.type||'').toLowerCase()===String(id.platform||'').toLowerCase() &&
+    String(state.discoverPlayer.login||'').toLowerCase()===String(id.login||'').toLowerCase());
+}
+function proSuppressMiniWhileWatching(){
+  const host=document.getElementById('oryonMiniPlayer');
+  if(host) host.classList.add('proSuppressed');
+}
+function proOpenTwitchInMain(login, seed){
+  if(!login) return;
+  login=String(login).trim();
+  state.currentTwitch=login;
+  const item=ensureSpotlightItem('twitch', login, seed||{});
+  item.platform='twitch';
+  item.login=login;
+  item.user_login=login;
+  if(seed){
+    item.display_name=seed.display_name||seed.user_name||item.display_name||login;
+    item.user_name=seed.user_name||item.user_name||login;
+    item.title=seed.title||item.title||`Live Twitch`;
+    item.game_name=seed.game_name||item.game_name||'Twitch';
+    item.viewer_count=seed.viewer_count??seed.viewers??item.viewer_count??0;
+    item.thumbnail_url=seed.thumbnail_url||item.thumbnail_url||'';
+  }
+  state.discoverPlayer={type:'twitch',login};
+  state.roomIntro=null;
+  closeMini?.();
+  renderZap();
+  proSuppressMiniWhileWatching();
+  document.getElementById('zapResult')?.scrollIntoView({block:'start',behavior:'smooth'});
+}
+function zapOpenCurrent(){
+  const x=currentZapItem();
+  if(!x) return;
+  const id=liveIdentity(x);
+  trackDiscovery(x);
+  if(id.platform==='twitch') return proOpenTwitchInMain(id.login, x);
+  closeMini?.();
+  openOryon(id.login);
+}
+function mountTwitchPlayer(login){ proOpenTwitchInMain(login); }
+function openTwitch(login){
+  if(!login) return;
+  if(state.view==='discover') return proOpenTwitchInMain(login);
+  setView('discover').then(()=>proOpenTwitchInMain(login));
+}
+function startLiveIntro(){ zapOpenCurrent(); }
+function renderSpotlightPlayer(x){
+  const id=x?liveIdentity(x):null;
+  if(!x || !spotlightIsPlaying(x) || id.platform!=='twitch') return renderSpotlightPreview(x);
+  const parent=location.hostname;
+  return `<div class="proPlayer"><div class="proPlayerHead"><div><span class="eyebrow"><i class="dot"></i>Lecture grand format</span><h2>${esc(id.name)}</h2><p class="muted">${esc(id.title||'Live Twitch')}</p></div><div class="row"><span class="proPill">${id.viewers} viewers</span><button class="btn secondary" onclick="clearSpotlightPlayer();closeMini?.();renderZap()">Carte</button><button class="btn secondary" onclick="zapNext()">Suivant</button></div></div>
+  <div class="proPlayerGrid"><div class="player premiumPlayer"><iframe allow="autoplay; fullscreen" allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(id.login)}&parent=${encodeURIComponent(parent)}&autoplay=true&muted=false"></iframe></div><aside class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(id.login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe></aside></div></div>`;
+}
+function renderZap(){
+  const box=$('#zapResult'); if(!box) return;
+  const items=state.zap.items||[];
+  const cur=items[state.zap.index]||null;
+  const watching=!!(cur&&spotlightIsPlaying(cur));
+  const queue=items.length>1?`<div class="section"><div class="proQueue">${items.slice(0,10).map((x,i)=>{const id=liveIdentity(x);return `<button class="proQueueItem ${i===state.zap.index?'active':''}" onclick="state.zap.index=${i};clearSpotlightPlayer();closeMini?.();renderZap()"><b>${esc(id.name)}</b><span class="small">${esc(id.game)} · ${id.viewers} viewers</span></button>`}).join('')}</div></div>`:'';
+  box.innerHTML=`<div class="proStage ${watching?'proStageWatching':''}"><main class="proMain">${renderSpotlightPlayer(cur)}${queue}</main>${renderSpotlightMeta(cur)}</div>`;
+  if(watching) proSuppressMiniWhileWatching();
+  renderViewerImpact?.();
+}
