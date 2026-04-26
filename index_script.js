@@ -1300,3 +1300,250 @@ function chanTab(btn,tab){
     setTimeout(()=>app.classList.remove('routePulse'),420);
   });
 })();
+
+
+/* Pro clean pass — production-grade declutter and reliable Twitch followed list */
+(function injectOryonProClean(){
+  if(document.getElementById('oryonProCleanStyle')) return;
+  const st=document.createElement('style');
+  st.id='oryonProCleanStyle';
+  st.textContent=`
+  .proDiscover{display:grid;gap:22px}
+  .proHero{border:1px solid var(--oryon-border,rgba(148,163,184,.18));border-radius:28px;padding:22px;background:linear-gradient(135deg,rgba(17,24,39,.88),rgba(7,11,20,.96));box-shadow:var(--oryon-shadow-soft,0 20px 70px rgba(0,0,0,.32))}
+  .proHero h1{margin:0;font-size:clamp(34px,4vw,64px);letter-spacing:-.06em;line-height:.94;background:linear-gradient(90deg,#fff,#dce8ff 58%,#91f0ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .proHero p{margin:10px 0 0;color:var(--muted,#93a4bc);max-width:720px}
+  .proSearchPanel{border:1px solid var(--oryon-border,rgba(148,163,184,.18));border-radius:24px;background:rgba(10,15,26,.72);padding:16px;display:grid;gap:14px}
+  .proMoodRow{display:flex;gap:10px;overflow:auto;padding-bottom:2px;scrollbar-width:none}
+  .proMoodRow::-webkit-scrollbar{display:none}
+  .proMoodBtn{min-width:132px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:rgba(255,255,255,.045);padding:12px 14px;text-align:left;color:#fff;display:grid;gap:4px;cursor:pointer}
+  .proMoodBtn i{font-size:22px}
+  .proMoodBtn b{font-size:14px}
+  .proMoodBtn span{font-size:11px;color:var(--muted,#93a4bc);line-height:1.25}
+  .proSearchLine{display:grid;grid-template-columns:minmax(220px,1fr) 150px 135px 95px 84px auto auto;gap:10px;align-items:center}
+  .proStage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+  .proMain{min-width:0}
+  .proCard{position:relative;overflow:hidden;border:1px solid rgba(139,92,246,.30);border-radius:30px;background:#05070d;box-shadow:0 28px 80px rgba(0,0,0,.38),0 0 0 1px rgba(255,255,255,.03)}
+  .proMedia{position:relative;aspect-ratio:16/9;background:#060913}
+  .proMedia img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.06) contrast(1.03)}
+  .proMedia::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.24) 44%,rgba(3,5,10,.90))}
+  .proEmptyMedia{height:100%;display:grid;place-items:center;color:#64748b;font-weight:900;letter-spacing:.04em}
+  .proBadgeTop{position:absolute;top:16px;left:16px;z-index:2;display:flex;gap:8px;flex-wrap:wrap}
+  .proPill{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.10);background:rgba(5,8,15,.72);backdrop-filter:blur(12px);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:850;color:#f8fbff}
+  .proOverlay{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:clamp(20px,2.8vw,34px);display:grid;gap:13px}
+  .proOverlay h2{margin:0;font-size:clamp(30px,4vw,58px);line-height:.92;letter-spacing:-.055em;text-wrap:balance}
+  .proOverlay .muted{margin:0;color:#cbd5e1}
+  .proReasons{display:flex;gap:8px;flex-wrap:wrap}
+  .proActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .proActions .btn{min-height:42px}
+  .proPlayer{display:grid;gap:12px}
+  .proPlayerHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;padding:2px}
+  .proPlayerHead h2{margin:0 0 5px;font-size:clamp(24px,2.5vw,38px);letter-spacing:-.04em}
+  .proPlayerGrid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px}
+  .proPlayerGrid .player,.proPlayerGrid .chatPanel{height:clamp(430px,48vw,680px);min-height:430px;border-radius:24px;overflow:hidden;border:1px solid var(--oryon-border,rgba(148,163,184,.18))}
+  .proPlayerGrid iframe{width:100%;height:100%;border:0;background:#05070d}
+  .proSide{border:1px solid var(--oryon-border,rgba(148,163,184,.18));border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.022));padding:12px;position:sticky;top:86px}
+  .proTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+  .proTabBtn{border:1px solid transparent;border-radius:14px;background:rgba(255,255,255,.045);color:#cbd5e1;padding:10px 8px;font-weight:900;cursor:pointer}
+  .proTabBtn.active{background:linear-gradient(135deg,rgba(155,92,255,.34),rgba(53,214,244,.16));border-color:rgba(155,92,255,.38);color:#fff}
+  .proTabPanel{display:grid;gap:12px}
+  .proMetricGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .proMetric{border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(255,255,255,.045);padding:12px}
+  .proMetric span{display:block;font-size:11px;color:var(--muted,#93a4bc);margin-bottom:5px}
+  .proMetric b{font-size:16px}
+  .proActionGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .proActionGrid .softBtn,.proActionGrid button{min-height:42px;border-radius:14px;width:100%;justify-content:center}
+  .proMore{border-top:1px solid rgba(255,255,255,.08);padding-top:10px}
+  .proMore summary{cursor:pointer;color:var(--muted,#93a4bc);font-weight:850}
+  .proMore .row{margin-top:10px}
+  .proQueue{display:flex;gap:12px;overflow:auto;padding:2px 2px 8px;scrollbar-width:none}
+  .proQueue::-webkit-scrollbar{display:none}
+  .proQueueItem{min-width:220px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(255,255,255,.04);padding:10px;display:grid;gap:8px;text-align:left;color:#fff;cursor:pointer}
+  .proQueueItem.active{border-color:rgba(46,229,157,.40);background:rgba(46,229,157,.08)}
+  .proTwitchPanel{border:1px solid var(--oryon-border,rgba(148,163,184,.18));border-radius:24px;background:rgba(10,15,26,.66);padding:16px;display:grid;gap:14px}
+  .proTwitchHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .proTwitchSearch{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px}
+  .proFollowGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+  .proFollowCard{border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(255,255,255,.04);padding:11px 12px;display:flex;align-items:center;gap:10px;color:#fff;text-align:left;cursor:pointer;min-width:0}
+  .proFollowCard:hover,.proQueueItem:hover,.proMoodBtn:hover{transform:translateY(-1px);border-color:rgba(155,92,255,.38);background:rgba(255,255,255,.065)}
+  .proFollowText{min-width:0;display:grid;gap:2px;flex:1}
+  .proFollowText b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .proFollowText span{font-size:12px;color:var(--muted,#93a4bc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .proViewers{font-weight:900;font-size:13px;color:#cbd5e1}
+  .proAvatar{width:38px;height:38px;border-radius:14px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,rgba(155,92,255,.42),rgba(53,214,244,.20));flex:0 0 auto;border:1px solid rgba(255,255,255,.10)}
+  .proAvatar img{width:100%;height:100%;object-fit:cover;display:block}
+  .proAvatar i{width:100%;height:100%;display:grid;place-items:center;font-style:normal;font-weight:950;color:#fff}
+  .proResults{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+  .proNotice{border:1px dashed rgba(255,255,255,.12);border-radius:18px;padding:14px;color:var(--muted,#93a4bc);background:rgba(255,255,255,.025)}
+  .proHiddenNoise{display:none!important}
+  @media(max-width:1250px){.proStage,.proPlayerGrid{grid-template-columns:1fr}.proSide{position:relative;top:auto}.proSearchLine{grid-template-columns:1fr 1fr}.proSearchLine input{grid-column:1/-1}}
+  @media(max-width:720px){.proSearchLine,.proTwitchSearch{grid-template-columns:1fr}.proActions,.proActionGrid{grid-template-columns:1fr}.proActions .btn{width:100%}.proOverlay h2{font-size:34px}.proFollowGrid{grid-template-columns:1fr}}
+  `;
+  document.head.appendChild(st);
+})();
+
+function proInitial(name){
+  const s=String(name||'?').trim();
+  return esc((s[0]||'?').toUpperCase());
+}
+function proAvatarHtml(x){
+  const name=x.display_name||x.user_name||x.login||x.user_login||x.channel||'Live';
+  const img=x.profile_image_url||x.avatar_url||x.profile_image||'';
+  if(img){
+    return `<span class="proAvatar"><img src="${esc(img)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><i style="display:none">${proInitial(name)}</i></span>`;
+  }
+  return `<span class="proAvatar"><i>${proInitial(name)}</i></span>`;
+}
+function proLoginOf(x){ return String(x.login||x.user_login||x.broadcaster_login||x.host_login||x.channel||x.display_name||x.user_name||'').trim(); }
+function proNameOf(x){ return x.display_name||x.user_name||x.login||x.user_login||x.host_name||x.host_login||'Live'; }
+function proViewersOf(x){ return Number(x.viewer_count||x.viewers||x.viewerCount||0)||0; }
+function proSetTab(tab){ state.proTab=tab||'signal'; renderZap(); }
+function proCurrent(){ return (state.zap.items||[])[state.zap.index]||null; }
+function proTabButton(id,label){
+  const active=(state.proTab||'signal')===id?' active':'';
+  return `<button class="proTabBtn${active}" onclick="proSetTab('${id}')">${label}</button>`;
+}
+function proSignalTab(cur){
+  if(!cur) return `<div class="proNotice">Lance une proposition pour voir le signal utile.</div>`;
+  const id=liveIdentity(cur), score=comfortScore(cur), reasons=discoverReasonFor(cur).slice(0,3);
+  return `<div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2 style="margin:0">Signal</h2><span class="small">${esc(platformLabel(id.platform))}</span></div><div class="comfortRing" style="--score:${score}%">${score}</div></div>
+  <div class="proReasons">${reasons.map(r=>`<span class="proPill">${esc(r)}</span>`).join('')}</div>
+  <div class="proMetricGrid">
+    <div class="proMetric"><span>Confort</span><b>${score}%</b></div>
+    <div class="proMetric"><span>Taille</span><b>${id.viewers<=20?'Très petite':id.viewers<=80?'Petite':'Active'}</b></div>
+    <div class="proMetric"><span>Source</span><b>${esc(platformLabel(id.platform))}</b></div>
+    <div class="proMetric"><span>Entrée</span><b>${id.viewers<=50?'Facile':'Normale'}</b></div>
+  </div>`;
+}
+function proActionsTab(cur){
+  return `<h2 style="margin:0">Actions</h2>
+  <div class="proActionGrid">
+    <button class="softBtn" onclick="zapNext()">Suivant</button>
+    <button class="softBtn" onclick="saveCurrentLive()">Sauver</button>
+    <button class="softBtn" onclick="notMyVibe('mood')">Pas mon mood</button>
+    <button class="softBtn" onclick="markZapFeedback('quiet')">Plus calme</button>
+    <button class="softBtn" onclick="markZapFeedback('small')">Plus petit</button>
+    <button class="softBtn" onclick="findLive()">Surprends-moi</button>
+  </div>
+  <details class="proMore"><summary>Options avancées</summary><div class="row">
+    <button class="btn ghost" onclick="window.toggleRoomMode&&toggleRoomMode()">Room</button>
+    <button class="btn ghost" onclick="window.toggleCinema&&toggleCinema()">Cinéma</button>
+  </div></details>`;
+}
+function proProfileTab(){
+  const vp=state.viewerProfile||loadViewerProfile?.()||{};
+  return `<h2 style="margin:0">Profil</h2>
+  <div class="proMetricGrid">
+    <div class="proMetric"><span>Aura</span><b>${Number(vp.aura||5)}</b></div>
+    <div class="proMetric"><span>Pépites</span><b>${Number(vp.gems||vp.discoveries||0)}</b></div>
+    <div class="proMetric"><span>Sauvés</span><b>${(vp.saved||[]).length||0}</b></div>
+    <div class="proMetric"><span>Soutiens</span><b>${Number(vp.supports||vp.first_supports||0)}</b></div>
+  </div>
+  <div class="proNotice">Les traces viewer restent discrètes. L’écran principal reste concentré sur le live.</div>`;
+}
+function renderSpotlightMeta(cur){
+  const tab=state.proTab||'signal';
+  const panel=tab==='actions'?proActionsTab(cur):(tab==='profile'?proProfileTab():proSignalTab(cur));
+  return `<aside class="proSide"><div class="proTabs">${proTabButton('signal','Signal')}${proTabButton('actions','Actions')}${proTabButton('profile','Profil')}</div><div class="proTabPanel">${panel}</div></aside>`;
+}
+function renderSpotlightPreview(x){
+  if(!x) return `<article class="proCard"><div class="proMedia"><div class="proEmptyMedia">ORYON FLOW</div></div><div class="proOverlay"><h2>Trouve ton live.</h2><p class="muted">Choisis une ambiance, puis lance une proposition.</p><div class="proActions"><button class="btn good" onclick="findLive()">Zapper</button></div></div></article>`;
+  const id=liveIdentity(x), reasons=discoverReasonFor(x).slice(0,3), score=comfortScore(x);
+  return `<article class="proCard"><div class="proMedia">${id.img?`<img src="${esc(id.img)}" alt="" loading="lazy">`:`<div class="proEmptyMedia">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}</div>
+    <div class="proBadgeTop"><span class="proPill">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span><span class="proPill">${score}% confort</span></div>
+    <div class="proOverlay"><div class="proReasons">${reasons.map(r=>`<span class="proPill">${esc(r)}</span>`).join('')}</div><h2>${esc(id.title||'Live en cours')}</h2><p class="muted">${esc(id.name||id.login||'Streamer')}</p>
+      <div class="proActions"><button class="btn good" onclick="zapOpenCurrent()">Regarder</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn secondary" onclick="saveCurrentLive()">Sauver</button></div>
+    </div></article>`;
+}
+function renderSpotlightPlayer(x){
+  const id=x?liveIdentity(x):null;
+  if(!x || !spotlightIsPlaying(x) || id.platform!=='twitch') return renderSpotlightPreview(x);
+  const parent=location.hostname;
+  return `<div class="proPlayer"><div class="proPlayerHead"><div><span class="eyebrow"><i class="dot"></i>Lecture</span><h2>${esc(id.name)}</h2><p class="muted">${esc(id.title||'Live Twitch')}</p></div><div class="row"><span class="proPill">${id.viewers} viewers</span><button class="btn secondary" onclick="clearSpotlightPlayer();renderZap()">Carte</button><button class="btn secondary" onclick="zapNext()">Suivant</button></div></div>
+  <div class="proPlayerGrid"><div class="player premiumPlayer"><iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(id.login)}&parent=${encodeURIComponent(parent)}"></iframe></div><aside class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(id.login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe></aside></div></div>`;
+}
+function renderZap(){
+  const box=$('#zapResult'); if(!box) return;
+  const items=state.zap.items||[];
+  const cur=items[state.zap.index]||null;
+  const queue=items.length>1?`<div class="section"><div class="proQueue">${items.slice(0,10).map((x,i)=>{const id=liveIdentity(x);return `<button class="proQueueItem ${i===state.zap.index?'active':''}" onclick="state.zap.index=${i};clearSpotlightPlayer();renderZap()"><b>${esc(id.name)}</b><span class="small">${esc(id.game)} · ${id.viewers} viewers</span></button>`}).join('')}</div></div>`:'';
+  box.innerHTML=`<div class="proStage"><main class="proMain">${renderSpotlightPlayer(cur)}${queue}</main>${renderSpotlightMeta(cur)}</div>`;
+  renderViewerImpact?.();
+}
+function ensureSpotlightItem(platform, login, seed={}){
+  const items=state.zap.items||[];
+  const idx=items.findIndex(x=>{ const id=liveIdentity(x); return id.platform===platform && String(id.login||'').toLowerCase()===String(login||'').toLowerCase(); });
+  if(idx>=0){ state.zap.index=idx; return items[idx]; }
+  const item={platform, login, user_login:login, display_name:seed.display_name||seed.user_name||login, user_name:seed.user_name||login, title:seed.title||`Live ${platform}`, game_name:seed.game_name||'Live', viewer_count:proViewersOf(seed), thumbnail_url:seed.thumbnail_url||seed.img||''};
+  state.zap.items=[item,...items];
+  state.zap.index=0;
+  return item;
+}
+function mountTwitchPlayer(login){
+  state.discoverPlayer={type:'twitch',login};
+  const item=ensureSpotlightItem('twitch', login);
+  const id=liveIdentity(item);
+  if(id.login!==login){ item.login=login; item.user_login=login; }
+  renderZap();
+}
+function openTwitch(login){
+  if(!login) return;
+  state.currentTwitch=login;
+  const item=ensureSpotlightItem('twitch', login);
+  trackDiscovery(item);
+  setMiniLive({type:'twitch',login,title:'Twitch · '+login});
+  if(state.view==='discover') return mountTwitchPlayer(login);
+  setView('discover').then(()=>mountTwitchPlayer(login));
+}
+async function renderCompactFollowed(){
+  const box=$('#followedWrapCompact'); if(!box) return;
+  if(!state.session.twitch){
+    box.innerHTML=`<div class="proNotice">Connecte Twitch pour afficher tes suivis en direct ici.</div>`;
+    return;
+  }
+  box.innerHTML='<div class="proNotice">Chargement des suivis Twitch…</div>';
+  try{
+    let r=await api('/api/twitch/followed/live');
+    if(!r || !r.success) r=await api('/followed_streams');
+    const items=(r.items||r.streams||[]).filter(Boolean);
+    if(!items.length){ box.innerHTML='<div class="proNotice">Aucune chaîne suivie en live pour le moment.</div>'; return; }
+    box.innerHTML=`<div class="proFollowGrid">${items.map(x=>{
+      const login=proLoginOf(x), name=proNameOf(x), viewers=proViewersOf(x);
+      return `<button class="proFollowCard" onclick="openTwitch('${esc(login)}')">${proAvatarHtml(x)}<span class="proFollowText"><b>${esc(name)}</b><span>${esc(x.game_name||x.category||x.title||'Live Twitch')}</span></span><span class="proViewers">${viewers}</span></button>`;
+    }).join('')}</div>`;
+  }catch(e){
+    box.innerHTML='<div class="proNotice">Impossible de charger tes suivis Twitch.</div>';
+  }
+}
+function renderCompactTwitchSearchResults(items){
+  const box=$('#twResults'); if(!box) return;
+  const clean=(items||[]).filter(Boolean);
+  if(!clean.length){ box.innerHTML='<div class="proNotice">Aucun résultat Twitch.</div>'; return; }
+  box.innerHTML=`<div class="proResults">${clean.map(x=>{
+    const login=proLoginOf(x), name=proNameOf(x);
+    return `<button class="proFollowCard" onclick="openTwitch('${esc(login)}')">${proAvatarHtml(x)}<span class="proFollowText"><b>${esc(name)}</b><span>${esc(x.title||x.game_name||'Twitch')}</span></span><span class="proViewers">${x.is_live?'Live':'—'}</span></button>`;
+  }).join('')}</div>`;
+}
+async function searchTwitch(){
+  const q=$('#twSearch')?.value?.trim(); if(!q) return;
+  const box=$('#twResults'); if(box) box.innerHTML='<div class="proNotice">Recherche Twitch…</div>';
+  try{
+    const r=await api('/api/twitch/channels/search?'+qs({q,live:true}));
+    renderCompactTwitchSearchResults(r.items||[]);
+  }catch(e){
+    if(box) box.innerHTML='<div class="proNotice">Recherche Twitch indisponible.</div>';
+  }
+}
+async function renderDiscover(){
+  const el=$('#discover');
+  el.innerHTML=`<div class="proDiscover">
+    <section class="proHero"><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Un live, pas un bazar.</h1><p>Choisis une ambiance. Oryon propose. Tu regardes, tu sauves ou tu passes au suivant.</p></section>
+    <section class="proSearchPanel"><div class="proMoodRow">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="proMoodBtn" onclick="$('#dMood').value='${id}';findLive()"><i>${icon}</i><b>${esc(label)}</b><span>${esc(desc)}</span></button>`).join('')}</div>
+      <div class="proSearchLine"><input id="dQuery" placeholder="jeu, pseudo, ambiance"><select id="dSource"><option value="both" selected>Oryon + Twitch</option><option value="oryon">Oryon</option><option value="twitch">Twitch</option></select><select id="dMood"><option value="">Ambiance</option>${AMBIANCES.map(([id,label])=>`<option value="${id}">${esc(label)}</option>`).join('')}</select><select id="dMax"><option value="20">≤20</option><option value="50" selected>≤50</option><option value="200">≤200</option><option value="300">≤300</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn good" onclick="findLive()">Zapper</button><button class="btn secondary" onclick="zapNext()">Suivant</button></div></section>
+    <section id="zapResult"></section>
+    <section class="proTwitchPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Accès Twitch</h2><p class="small" style="margin:6px 0 0">Suivis et recherche, sans vignettes cassées ni surcharge.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="proTwitchSearch"><input id="twSearch" placeholder="chercher un streamer Twitch"><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="followedWrapCompact"></div><div id="twResults"></div></section>
+  </div>`;
+  state.proTab=state.proTab||'signal';
+  renderCompactFollowed();
+  renderZap();
+  renderMiniPlayer?.();
+}
