@@ -952,3 +952,351 @@ function chanTab(btn,tab){
  }
  $('#channelTab').innerHTML='<div class="empty">Section indisponible.</div>';
 }
+
+
+/* Premium final polish — visual coherence, breathing space, subtle motion */
+(function injectPremiumFinalPolish(){
+  if(document.getElementById('oryonPremiumFinalPolish')) return;
+  const st=document.createElement('style');
+  st.id='oryonPremiumFinalPolish';
+  st.textContent=`
+  :root{
+    --oryon-bg-0:#05070d;
+    --oryon-bg-1:#080c15;
+    --oryon-bg-2:#101624;
+    --oryon-card:rgba(13,19,32,.78);
+    --oryon-card-soft:rgba(255,255,255,.045);
+    --oryon-border:rgba(148,163,184,.18);
+    --oryon-border-soft:rgba(148,163,184,.11);
+    --oryon-text:#f8fbff;
+    --oryon-muted:#93a4bc;
+    --oryon-purple:#9b5cff;
+    --oryon-cyan:#35d6f4;
+    --oryon-green:#2ee59d;
+    --oryon-radius-xl:30px;
+    --oryon-radius-lg:22px;
+    --oryon-radius-md:16px;
+    --oryon-shadow-soft:0 20px 70px rgba(0,0,0,.34);
+    --oryon-shadow-glow:0 24px 90px rgba(139,92,246,.18);
+    --oryon-ease:cubic-bezier(.2,.8,.2,1);
+  }
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%,rgba(139,92,246,.16),transparent 34%),
+      radial-gradient(circle at 82% 12%,rgba(34,211,238,.09),transparent 30%),
+      linear-gradient(180deg,var(--oryon-bg-0),#070a11 44%,#05070d);
+  }
+  .app{max-width:1500px;padding-left:clamp(16px,2vw,30px);padding-right:clamp(16px,2vw,30px)}
+  .section{margin-top:clamp(18px,2vw,30px)}
+  .panel,.flowHero.compact,.flowLive.fused,.roomShell.clean,.compactSupportStrip,.channelBanner,.channelMeta,.watchShell{
+    border-color:var(--oryon-border)!important;
+    box-shadow:var(--oryon-shadow-soft);
+  }
+  .panel,.metaPanelTight,.roomCard.clean,.channelSideCard,.compactSupportStrip{
+    background:
+      linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.025)),
+      rgba(8,12,22,.72)!important;
+    backdrop-filter:blur(18px);
+  }
+  .top{
+    background:rgba(5,7,13,.72)!important;
+    backdrop-filter:blur(22px);
+    border-bottom:1px solid var(--oryon-border-soft);
+  }
+  .nav button,.creatorMenu button,.btn,.softBtn,.moodTile,.tabBtn,.chatAssist button,.ritualRow button,.reactionDock button{
+    transition:transform .22s var(--oryon-ease),border-color .22s var(--oryon-ease),background .22s var(--oryon-ease),box-shadow .22s var(--oryon-ease),opacity .22s var(--oryon-ease);
+  }
+  .btn:hover,.softBtn:hover,.moodTile:hover,.tabBtn:hover,.chatAssist button:hover,.ritualRow button:hover,.reactionDock button:hover{
+    transform:translateY(-1px);
+    border-color:rgba(155,92,255,.42)!important;
+    box-shadow:0 10px 28px rgba(0,0,0,.18);
+  }
+  .btn.good,.btn:not(.secondary):not(.ghost):not(.bad){
+    background:linear-gradient(135deg,var(--oryon-purple),#b44cff)!important;
+    box-shadow:0 12px 32px rgba(155,92,255,.28);
+  }
+  .btn.secondary,.softBtn{
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04))!important;
+    border:1px solid var(--oryon-border)!important;
+  }
+  input,select,textarea{
+    border-color:var(--oryon-border)!important;
+    background:rgba(6,10,18,.72)!important;
+    transition:border-color .2s var(--oryon-ease),box-shadow .2s var(--oryon-ease),background .2s var(--oryon-ease);
+  }
+  input:focus,select:focus,textarea:focus{
+    outline:none;
+    border-color:rgba(53,214,244,.5)!important;
+    box-shadow:0 0 0 4px rgba(53,214,244,.10);
+  }
+  .flowHero.compact{
+    position:relative;
+    overflow:hidden;
+    padding:clamp(20px,2.3vw,34px)!important;
+    background:
+      radial-gradient(circle at 18% 12%,rgba(155,92,255,.26),transparent 34%),
+      radial-gradient(circle at 90% 20%,rgba(53,214,244,.16),transparent 30%),
+      linear-gradient(135deg,rgba(15,21,35,.94),rgba(7,11,20,.96))!important;
+  }
+  .flowHero.compact::after{
+    content:"";
+    position:absolute;
+    inset:auto -80px -160px auto;
+    width:320px;
+    height:320px;
+    background:radial-gradient(circle,rgba(155,92,255,.22),transparent 68%);
+    pointer-events:none;
+  }
+  .flowTitle{
+    background:linear-gradient(90deg,#fff,#dce8ff 52%,#9eeeff);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent!important;
+    letter-spacing:-.065em;
+  }
+  .moodDeck{
+    display:grid!important;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;
+    gap:12px!important;
+  }
+  .moodTile{
+    min-height:88px!important;
+    padding:16px!important;
+    border-radius:20px!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025))!important;
+  }
+  .moodTile i{font-size:22px}
+  .discoverLine{
+    grid-template-columns:minmax(210px,1fr) 170px 150px 120px 110px auto auto!important;
+    gap:10px!important;
+  }
+  .premiumFlowWrap{
+    border-radius:32px;
+    padding:clamp(12px,1.4vw,20px);
+    background:
+      radial-gradient(circle at 20% 15%,rgba(155,92,255,.18),transparent 34%),
+      linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .flowStage.fused.premium{
+    grid-template-columns:minmax(0,1fr) minmax(300px,340px)!important;
+    gap:clamp(14px,1.6vw,22px)!important;
+  }
+  .flowLive.fused.premium{
+    border-radius:30px!important;
+    overflow:hidden;
+    box-shadow:var(--oryon-shadow-glow),var(--oryon-shadow-soft);
+  }
+  .flowLive.fused.premium .zapThumb{aspect-ratio:16/9}
+  .flowLive.fused.premium .zapThumb img{
+    transform:scale(1.01);
+    filter:saturate(1.05) contrast(1.03);
+    transition:transform .7s var(--oryon-ease),filter .7s var(--oryon-ease);
+  }
+  .flowLive.fused.premium:hover .zapThumb img{transform:scale(1.035);filter:saturate(1.16) contrast(1.06)}
+  .flowOverlay.fused.premium{
+    padding:clamp(20px,2.4vw,34px)!important;
+    background:linear-gradient(180deg,transparent,rgba(3,5,10,.62) 18%,rgba(3,5,10,.9))!important;
+  }
+  .premiumHeadline h2,.spotlightHeadClean h2,.roomTopClean h1{
+    text-wrap:balance;
+  }
+  .premiumActions,.spotlightActionDock,.roomActionBarClean{
+    gap:10px!important;
+  }
+  .reasonChip,.pill,.supportChip{
+    border:1px solid rgba(255,255,255,.10)!important;
+    background:rgba(8,12,22,.68)!important;
+    backdrop-filter:blur(10px);
+  }
+  .metaAsideClean,.compactSignal{
+    gap:clamp(12px,1.3vw,18px)!important;
+  }
+  .metaPanelTight{
+    padding:clamp(14px,1.4vw,20px)!important;
+    border-radius:22px!important;
+  }
+  .quickActionGrid{gap:10px!important}
+  .quickActionGrid .softBtn,.quickActionGrid button{
+    min-height:42px;
+    border-radius:14px!important;
+  }
+  .signalCards{
+    gap:10px!important;
+  }
+  .signalCard{
+    border-radius:16px!important;
+    background:rgba(255,255,255,.045)!important;
+  }
+  .comfortRing{
+    background:
+      conic-gradient(var(--oryon-cyan) var(--score),rgba(255,255,255,.09) 0),
+      rgba(255,255,255,.04)!important;
+    box-shadow:inset 0 0 0 8px rgba(5,7,13,.82),0 0 34px rgba(53,214,244,.12);
+  }
+  .watchShell.spotlightWatch.clean,.channelWatch.clean{
+    gap:16px!important;
+  }
+  .spotlightWatch.clean .player,.spotlightWatch.clean .chatPanel,.channelWatch.clean .player,.nativeFixedChat.compact{
+    border-radius:24px!important;
+    overflow:hidden;
+  }
+  .twitchChat iframe,.premiumPlayer iframe{background:#05070d}
+  .chatPanel,.nativeFixedChat.compact{
+    background:linear-gradient(180deg,rgba(8,12,22,.95),rgba(5,7,13,.98))!important;
+    border-color:var(--oryon-border)!important;
+  }
+  .chatHeader{
+    min-height:48px;
+    padding:12px 16px!important;
+    border-bottom:1px solid var(--oryon-border-soft)!important;
+    background:rgba(255,255,255,.035);
+  }
+  .chatAssist button{
+    border-radius:14px!important;
+    min-height:40px;
+  }
+  .chatForm{
+    gap:8px!important;
+  }
+  .roomShell.clean{
+    border-radius:32px!important;
+    padding:2px;
+  }
+  .roomGrid.clean{
+    grid-template-columns:minmax(0,1fr) minmax(300px,340px)!important;
+    gap:clamp(14px,1.7vw,24px)!important;
+    padding:clamp(16px,1.8vw,26px)!important;
+  }
+  .roomVideoFrame{
+    position:relative;
+    border-radius:28px!important;
+    box-shadow:0 28px 90px rgba(0,0,0,.38);
+  }
+  .roomVideoFrame::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    border-radius:28px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),inset 0 -90px 120px rgba(0,0,0,.22);
+  }
+  .roomCard.clean{
+    border-radius:22px!important;
+  }
+  .roomInfoStrip{margin-top:-2px}
+  .roomChatEmbed iframe{height:420px!important}
+  .questCard{
+    border-radius:16px!important;
+    background:rgba(255,255,255,.04)!important;
+  }
+  .questCard.done{
+    background:linear-gradient(135deg,rgba(46,229,157,.18),rgba(255,255,255,.04))!important;
+    border-color:rgba(46,229,157,.36)!important;
+  }
+  .viewerCapsule{
+    border-radius:20px!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02))!important;
+  }
+  .channelPage.publicChannel{
+    display:grid;
+    gap:clamp(14px,1.6vw,22px);
+  }
+  .channelBanner{
+    border-radius:28px!important;
+    max-height:240px;
+    overflow:hidden;
+  }
+  .channelBanner img{filter:saturate(1.04) contrast(1.02)}
+  .channelMeta{
+    border-radius:28px!important;
+    padding:clamp(18px,2vw,28px)!important;
+    background:
+      radial-gradient(circle at 15% 0%,rgba(155,92,255,.16),transparent 34%),
+      linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025))!important;
+  }
+  .channelHeroCompact{
+    margin-top:14px!important;
+  }
+  .compactSupportStrip{
+    margin-top:0!important;
+  }
+  .channelWatch.clean{
+    margin-top:0!important;
+  }
+  .channelSideClean{
+    gap:14px!important;
+  }
+  .channelSideCard{
+    border-radius:22px!important;
+  }
+  .channelBadgeBig{
+    border-radius:18px!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025))!important;
+  }
+  .tabs{
+    margin-top:14px!important;
+    gap:8px!important;
+  }
+  .tabBtn{
+    border-radius:999px!important;
+    padding:10px 14px!important;
+  }
+  #channelTab.panel{
+    margin-top:12px;
+    padding:18px!important;
+    border-radius:22px!important;
+  }
+  .flowQueue{
+    gap:12px!important;
+  }
+  .queueCard,.liveCard,.compactSearchCard{
+    border-radius:20px!important;
+    transition:transform .24s var(--oryon-ease),box-shadow .24s var(--oryon-ease),border-color .24s var(--oryon-ease);
+  }
+  .queueCard:hover,.liveCard:hover,.compactSearchCard:hover{
+    transform:translateY(-2px);
+    border-color:rgba(155,92,255,.36)!important;
+    box-shadow:0 16px 46px rgba(0,0,0,.28);
+  }
+  .view.active,.premiumFlowWrap,.roomShell.clean,.channelPage.publicChannel,.spotlightPlay.clean{
+    animation:oryonFadeLift .38s var(--oryon-ease) both;
+  }
+  @keyframes oryonFadeLift{
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  }
+  @media(max-width:1200px){
+    .flowStage.fused.premium,.roomGrid.clean,.discoverLine{grid-template-columns:1fr!important}
+    .roomSide.clean,.metaAsideClean{grid-template-columns:1fr}
+    .discoverLine .btn{width:100%}
+  }
+  @media(max-width:720px){
+    .app{padding-left:12px;padding-right:12px}
+    .flowHero.compact{border-radius:24px!important}
+    .premiumActions,.spotlightActionDock,.roomActionBarClean{display:grid!important;grid-template-columns:1fr 1fr}
+    .premiumActions .btn.good,.roomActionBarClean .btn.good{grid-column:1/-1}
+    .channelMeta{grid-template-columns:1fr!important}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+(function installPremiumMicroInteractions(){
+  if(window.__oryonPremiumMicroInteractions) return;
+  window.__oryonPremiumMicroInteractions=true;
+  let lastHash=location.hash;
+  window.addEventListener('hashchange',()=>{
+    const app=document.querySelector('.app');
+    if(!app || lastHash===location.hash) return;
+    lastHash=location.hash;
+    app.classList.remove('routePulse');
+    void app.offsetWidth;
+    app.classList.add('routePulse');
+    setTimeout(()=>app.classList.remove('routePulse'),420);
+  });
+})();
