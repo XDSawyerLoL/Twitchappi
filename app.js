@@ -2604,47 +2604,42 @@ app.post('/api/oryon/profile', (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-function makeOryonStreamKey(){ return 'oryon_' + crypto.randomBytes(24).toString('hex'); }
-function getOryonRtmpUrl(){
-  return process.env.ORYON_PUBLIC_RTMP_URL
-    || process.env.ORYON_RTMP_URL
-    || process.env.OBS_RTMP_URL
-    || process.env.RTMP_INGEST_URL
-    || 'Serveur live Oryon non configuré';
-}
-function getOryonVideoEngineConfig(){
-  const ingest = getOryonRtmpUrl();
-  const embedTemplate = process.env.ORYON_PLAYER_EMBED_TEMPLATE || process.env.ORYON_VIDEO_EMBED_TEMPLATE || '';
-  const watchTemplate = process.env.ORYON_VIDEO_WATCH_TEMPLATE || '';
-  const apiBase = process.env.ORYON_VIDEO_ENGINE_API_URL || process.env.PEERTUBE_API_URL || process.env.PEERTUBE_URL || '';
-  const tokenConfigured = !!(process.env.ORYON_VIDEO_ENGINE_TOKEN || process.env.PEERTUBE_API_TOKEN || process.env.PEERTUBE_TOKEN);
-  const ready = !!(ingest && !/^Serveur live Oryon non configuré$/i.test(ingest));
+function makeOryonStreamKey(){ return crypto.randomBytes(24).toString('hex'); }
+function getOryonRtmpUrl(){ return process.env.ORYON_PUBLIC_RTMP_URL || process.env.OBS_RTMP_URL || process.env.RTMP_INGEST_URL || process.env.ORYON_RTMP_URL || 'Moteur vidéo Oryon non configuré'; }
+function getOryonVideoEngine(){
+  const publicRtmp = getOryonRtmpUrl();
+  const apiUrl = process.env.ORYON_VIDEO_ENGINE_API_URL || process.env.PEERTUBE_BASE_URL || '';
+  const embedTemplate = process.env.ORYON_PLAYER_EMBED_TEMPLATE || '';
+  const mode = process.env.ORYON_VIDEO_MODE || (apiUrl ? 'oryon-engine' : 'browser-webrtc');
+  const configured = !!(apiUrl && publicRtmp && !publicRtmp.includes('non configuré'));
   return {
-    success:true,
-    brand:'Oryon Live',
-    mode: process.env.ORYON_VIDEO_MODE || 'oryon-engine',
-    ingest_url: ingest,
-    public_rtmp_url: ingest,
-    ready,
-    api_ready: !!apiBase && tokenConfigured,
-    embed_ready: !!embedTemplate,
-    watch_ready: !!watchTemplate,
-    recommended:{ resolution:'1920x1080', fps:60, bitrate:'6000-8000 kbps', keyframe:'2s', audio:'160 kbps' },
-    notes: ready ? 'Le serveur live Oryon est configuré.' : 'Ajoute ORYON_PUBLIC_RTMP_URL ou ORYON_RTMP_URL sur Render pour activer OBS.'
+    mode,
+    label: mode === 'oryon-engine' ? 'Oryon Live Engine' : 'Live navigateur expérimental',
+    configured,
+    public_rtmp_url: publicRtmp,
+    api_url: apiUrl,
+    embed_template_configured: !!embedTemplate,
+    obs_ready: configured || !!(publicRtmp && !publicRtmp.includes('non configuré')),
+    backend: configured ? 'video-engine' : 'local-webrtc',
+    public_note: configured ? 'OBS peut envoyer vers le serveur live Oryon.' : 'Aucun ingest vidéo Oryon configuré : seul le live navigateur expérimental est disponible.'
   };
 }
-function renderVideoTemplate(tpl, user){
-  if(!tpl || !user) return '';
-  return String(tpl)
-    .replaceAll('{login}', encodeURIComponent(user.login || ''))
-    .replaceAll('{display_name}', encodeURIComponent(user.display_name || user.login || ''))
-    .replaceAll('{stream_key}', encodeURIComponent(user.stream_key || ''))
-    .replaceAll('{id}', encodeURIComponent(user.id || ''));
-}
 
-app.get('/api/oryon/video-engine/status', (req,res)=>{
-  const cfg = getOryonVideoEngineConfig();
-  res.json({ success:true, engine:{ brand:cfg.brand, mode:cfg.mode, ready:cfg.ready, api_ready:cfg.api_ready, embed_ready:cfg.embed_ready, watch_ready:cfg.watch_ready, notes:cfg.notes, recommended:cfg.recommended } });
+app.get('/api/oryon/video-engine/status', async (req, res) => {
+  try{
+    const engine = getOryonVideoEngine();
+    let reachable = false;
+    let version = null;
+    if(engine.api_url){
+      try{
+        const r = await fetch(engine.api_url.replace(/\/$/,'') + '/api/v1/config', { timeout: 3500 });
+        reachable = r.ok;
+        const j = await r.json().catch(()=>null);
+        version = j?.serverVersion || j?.instance?.serverVersion || null;
+      }catch(_e){ reachable = false; }
+    }
+    res.json({ success:true, engine, reachable, version });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
 app.get('/api/oryon/stream-key', (req, res) => {
@@ -2655,8 +2650,7 @@ app.get('/api/oryon/stream-key', (req, res) => {
     const user = data.users.find(u => u.id === cur.id);
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
     if(!user.stream_key){ user.stream_key = makeOryonStreamKey(); writeOryonUsers(data); }
-    const cfg = getOryonVideoEngineConfig();
-    return res.json({ success:true, rtmp_url:cfg.public_rtmp_url, stream_key:user.stream_key, obs_ready:cfg.ready, engine:cfg });
+    return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key, obs_ready: getOryonVideoEngine().obs_ready, video_engine:getOryonVideoEngine(), recommended:{ resolution:'1920x1080', fps:60, bitrate:'6000-8000 kbps', keyframe:'2s' } });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -2668,8 +2662,7 @@ app.post('/api/oryon/stream-key/regenerate', (req, res) => {
     const user = data.users.find(u => u.id === cur.id);
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
     user.stream_key = makeOryonStreamKey(); user.updatedAt = Date.now(); writeOryonUsers(data);
-    const cfg = getOryonVideoEngineConfig();
-    return res.json({ success:true, rtmp_url:cfg.public_rtmp_url, stream_key:user.stream_key, obs_ready:cfg.ready, engine:cfg });
+    return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
