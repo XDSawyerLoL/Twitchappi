@@ -2426,7 +2426,7 @@ function verifyOryonPassword(password, stored){
 }
 function publicOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0) };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'' };
 }
 function sessionOryonUser(u){
   if(!u) return null;
@@ -2597,6 +2597,9 @@ app.post('/api/oryon/profile', (req, res) => {
     user.content_rating = String(req.body?.content_rating || user.content_rating || 'general').trim().slice(0,30);
     user.tags = safeTags(req.body?.tags || user.tags || []);
     user.raid_ready = String(req.body?.raid_ready || '').toLowerCase() === 'true' || !!user.raid_ready;
+    user.peertube_embed_url = String(req.body?.peertube_embed_url || '').trim().slice(0,1000);
+    user.peertube_watch_url = String(req.body?.peertube_watch_url || '').trim().slice(0,1000);
+    user.external_live_platform = user.peertube_embed_url || user.peertube_watch_url ? 'peertube' : (user.external_live_platform||'');
     user.updatedAt = Date.now();
     writeOryonUsers(data);
     req.session.oryonUser = sessionOryonUser(user);
@@ -2783,13 +2786,30 @@ function getModState(room){ const data=readJsonSafe(oryonModFile,{rooms:{}}); da
 function oryonLiveCardFromRoom(room, r){ const u=(readOryonUsers().users||[]).find(x=>x.login===(r.hostLogin||room)); return {room,title:r.title||`Live de ${room}`,host_name:r.hostName||room,host_login:r.hostLogin||room,viewers:r.viewers?r.viewers.size:0,peak_viewers:r.peakViewers||0,chat_messages:r.chatMessages||0,category:r.category||'',tags:Array.isArray(r.tags)?r.tags:[],createdAt:r.createdAt||Date.now(),oryon_score:computeNativeOryonScore(r),platform:'oryon',thumbnail_url:u?.offline_image_url||u?.banner_url||'',avatar_url:u?.avatar_url||''}; }
 function syntheticHistory(seed=1){ const now=Date.now(); const out=[]; for(let i=13;i>=0;i--){ const base=(seed*7+i*5)%23; out.push({label:new Date(now-i*86400000).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),viewers:Math.max(0,base+Math.floor(Math.sin(i)*5)),chat:Math.max(0,base*2+(i%4)*7),follows:Math.max(0,Math.floor(base/3)+(i%3))}); } return out; }
 
+function peertubeInstances(){
+  const raw = String(process.env.PEERTUBE_PUBLIC_INSTANCES || process.env.ORYON_PEERTUBE_INSTANCES || 'https://peertube.tv,https://tube.tchncs.de,https://video.blender.org').trim();
+  return raw.split(',').map(x=>x.trim().replace(/\/+$/,'')).filter(Boolean).slice(0,8);
+}
+function peertubeItem(base, v){
+  const embed = v.embedPath ? base + v.embedPath : (v.uuid ? base + '/videos/embed/' + v.uuid : '');
+  const watch = v.url || (v.uuid ? base + '/w/' + v.uuid : base);
+  const thumb = v.thumbnailPath ? base + v.thumbnailPath : (v.previewPath ? base + v.previewPath : '');
+  return {platform:'peertube', id:v.uuid||v.id||watch, login:(v.channel&&(v.channel.name||v.channel.displayName))||(v.account&&(v.account.name||v.account.displayName))||'peertube', display_name:(v.channel&&(v.channel.displayName||v.channel.name))||(v.account&&(v.account.displayName||v.account.name))||'PeerTube', title:v.name||'Live PeerTube', game_name:(v.category&&(v.category.label||v.category.name))||(Array.isArray(v.tags)&&v.tags[0])||'PeerTube', viewer_count:Number(v.viewers||v.views||0), thumbnail_url:thumb, embed_url:embed, watch_url:watch, instance:base};
+}
+async function searchPeerTubePublic({q='',max=200,lang='fr'}={}){
+  const out=[]; const params=new URLSearchParams({count:'20',sort:'-publishedAt',isLive:'true'}); if(q)params.set('search',q); if(lang)params.set('languageOneOf',lang);
+  for(const base of peertubeInstances()){ try{ const r=await fetch(base+'/api/v1/videos?'+params.toString(),{headers:{Accept:'application/json'}}); if(!r.ok)continue; const j=await r.json(); for(const v of (j.data||[])){ const item=peertubeItem(base,v); if(Number(item.viewer_count||0)<=max) out.push(item); } }catch(e){ console.warn('peertube public search failed', base, e.message); } }
+  return out.sort((a,b)=>(a.viewer_count||0)-(b.viewer_count||0)).slice(0,24);
+}
+app.get('/api/peertube/public/search', heavyLimiter, async (req,res)=>{ try{ const q=String(req.query.q||'').trim(); const max=Math.max(1,Math.min(1000,parseInt(req.query.max||'200',10)||200)); const lang=String(req.query.lang||'fr').slice(0,8)||'fr'; const items=await searchPeerTubePublic({q,max,lang}); res.json({success:true,items,instances:peertubeInstances()}); }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); } });
+
 app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
   try{
     const q=String(req.query.q||'').trim(); const max=Math.max(1,Math.min(300,parseInt(req.query.max||'200',10)||200)); const lang=String(req.query.lang||'fr').slice(0,8)||'fr'; const mood=String(req.query.mood||'').toLowerCase(); const source=String(req.query.source||'both').toLowerCase();
-    const nativeItems = source==='twitch' ? [] : Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r)).filter(x=>x.viewers<=max && (!q || (x.title+' '+x.category+' '+x.tags.join(' ')).toLowerCase().includes(q.toLowerCase()))).sort((a,b)=>(b.oryon_score-a.oryon_score)||(a.viewers-b.viewers));
+    const nativeItems = (source==='twitch'||source==='peertube') ? [] : Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r)).filter(x=>x.viewers<=max && (!q || (x.title+' '+x.category+' '+x.tags.join(' ')).toLowerCase().includes(q.toLowerCase()))).sort((a,b)=>(b.oryon_score-a.oryon_score)||(a.viewers-b.viewers));
     let twitchItems=[];
     try{
-      if(source!=='oryon'){
+      if(source!=='oryon' && source!=='peertube'){
         let url=`streams?first=100&language=${encodeURIComponent(lang)}`;
         if(q){ const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`); const gid=gr.data?.[0]?.id; if(gid) url=`streams?game_id=${encodeURIComponent(gid)}&first=100&language=${encodeURIComponent(lang)}`; }
         const tr=await twitchAPI(url);
@@ -2798,7 +2818,8 @@ app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
         if(mood==='active') twitchItems=twitchItems.sort((a,b)=>(b.viewer_count||0)-(a.viewer_count||0)); else twitchItems=twitchItems.sort((a,b)=>(a.viewer_count||0)-(b.viewer_count||0));
       }
     }catch(e){ console.warn('/api/oryon/discover/find-live twitch fallback', e.message); }
-    res.json({success:true,items:[...nativeItems,...twitchItems].slice(0,18),query:q,max,lang,mood,source});
+    const peertubeItems = (source==='twitch'||source==='oryon') ? [] : await searchPeerTubePublic({q,max,lang});
+    res.json({success:true,items:[...nativeItems,...twitchItems,...peertubeItems].slice(0,24),query:q,max,lang,mood,source});
   }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
 });
 
