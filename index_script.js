@@ -1644,3 +1644,31 @@ function renderZap(){
   if(watching) proSuppressMiniWhileWatching();
   renderViewerImpact?.();
 }
+
+
+/* Centering pass — discover/playback content centered and balanced */
+(function injectCenteringPass(){
+  if(document.getElementById('oryonCenteringPass')) return;
+  const st=document.createElement('style');
+  st.id='oryonCenteringPass';
+  st.textContent=`
+  #discover.view.active{max-width:1360px;margin:0 auto}
+  .proDiscover{max-width:1360px;margin:0 auto}
+  .proHero,.proSearchPanel,.proTwitchPanel,#zapResult{width:100%;margin-left:auto;margin-right:auto}
+  .proStage,.proStage.proStageWatching{max-width:1360px;margin:0 auto}
+  .proMain{max-width:100%;margin:0 auto}
+  .proPlayer{max-width:1360px;margin:0 auto}
+  .proPlayerHead{max-width:1220px;margin:0 auto;width:100%}
+  .proPlayerGrid{max-width:1220px;margin:0 auto;grid-template-columns:minmax(0,1fr) 320px!important}
+  .proStage.proStageWatching .proPlayerGrid{max-width:1220px;margin:0 auto;grid-template-columns:minmax(0,1fr) 320px!important}
+  .proStage.proStageWatching .proTabWrap,.proStage.proStageWatching .proTabPanel,.proQueue{max-width:1220px;margin-left:auto;margin-right:auto}
+  .proQueue{justify-content:center}
+  .proPlayerGrid .player{justify-self:center;width:100%}
+  .proPlayerGrid .chatPanel{justify-self:stretch;width:100%;max-width:320px}
+  .proSearchLine{grid-template-columns:minmax(260px,1fr) 150px 160px 90px 74px auto auto}
+  @media(max-width:1400px){#discover.view.active,.proDiscover,.proStage,.proStage.proStageWatching{max-width:1280px}.proPlayerGrid,.proStage.proStageWatching .proPlayerGrid,.proPlayerHead,.proQueue{max-width:1180px}}
+  @media(max-width:1250px){#discover.view.active,.proDiscover,.proStage,.proStage.proStageWatching{max-width:none}.proPlayerGrid,.proStage.proStageWatching .proPlayerGrid,.proPlayerHead,.proQueue{max-width:none}}
+  @media(max-width:980px){.proPlayerGrid,.proStage.proStageWatching .proPlayerGrid{grid-template-columns:1fr!important}.proPlayerGrid .chatPanel{max-width:none}}
+  `;
+  document.head.appendChild(st);
+})();
