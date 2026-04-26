@@ -2750,18 +2750,20 @@ function syntheticHistory(seed=1){ const now=Date.now(); const out=[]; for(let i
 
 app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
   try{
-    const q=String(req.query.q||'').trim(); const max=Math.max(1,Math.min(300,parseInt(req.query.max||'200',10)||200)); const lang=String(req.query.lang||'fr').slice(0,8)||'fr'; const mood=String(req.query.mood||'').toLowerCase();
-    const nativeItems=Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r)).filter(x=>x.viewers<=max && (!q || (x.title+' '+x.category+' '+x.tags.join(' ')).toLowerCase().includes(q.toLowerCase()))).sort((a,b)=>(b.oryon_score-a.oryon_score)||(a.viewers-b.viewers));
+    const q=String(req.query.q||'').trim(); const max=Math.max(1,Math.min(300,parseInt(req.query.max||'200',10)||200)); const lang=String(req.query.lang||'fr').slice(0,8)||'fr'; const mood=String(req.query.mood||'').toLowerCase(); const source=String(req.query.source||'both').toLowerCase();
+    const nativeItems = source==='twitch' ? [] : Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r)).filter(x=>x.viewers<=max && (!q || (x.title+' '+x.category+' '+x.tags.join(' ')).toLowerCase().includes(q.toLowerCase()))).sort((a,b)=>(b.oryon_score-a.oryon_score)||(a.viewers-b.viewers));
     let twitchItems=[];
     try{
-      let url=`streams?first=100&language=${encodeURIComponent(lang)}`;
-      if(q){ const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`); const gid=gr.data?.[0]?.id; if(gid) url=`streams?game_id=${encodeURIComponent(gid)}&first=100&language=${encodeURIComponent(lang)}`; }
-      const tr=await twitchAPI(url);
-      twitchItems=(tr.data||[]).filter(s=>Number(s.viewer_count||0)<=max).map(s=>({platform:'twitch',id:s.id,login:s.user_login,display_name:s.user_name,title:s.title,game_name:s.game_name,viewer_count:s.viewer_count||0,thumbnail_url:String(s.thumbnail_url||'').replace('{width}','640').replace('{height}','360'),score:Math.max(1,100-Number(s.viewer_count||0))}));
-      if(mood==='calme') twitchItems=twitchItems.filter(x=>Number(x.viewer_count||0)<=50);
-      if(mood==='active') twitchItems=twitchItems.sort((a,b)=>(b.viewer_count||0)-(a.viewer_count||0)); else twitchItems=twitchItems.sort((a,b)=>(a.viewer_count||0)-(b.viewer_count||0));
+      if(source!=='oryon'){
+        let url=`streams?first=100&language=${encodeURIComponent(lang)}`;
+        if(q){ const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`); const gid=gr.data?.[0]?.id; if(gid) url=`streams?game_id=${encodeURIComponent(gid)}&first=100&language=${encodeURIComponent(lang)}`; }
+        const tr=await twitchAPI(url);
+        twitchItems=(tr.data||[]).filter(s=>Number(s.viewer_count||0)<=max).map(s=>({platform:'twitch',id:s.id,login:s.user_login,display_name:s.user_name,title:s.title,game_name:s.game_name,viewer_count:s.viewer_count||0,thumbnail_url:String(s.thumbnail_url||'').replace('{width}','640').replace('{height}','360'),score:Math.max(1,100-Number(s.viewer_count||0))}));
+        if(mood==='calme') twitchItems=twitchItems.filter(x=>Number(x.viewer_count||0)<=50);
+        if(mood==='active') twitchItems=twitchItems.sort((a,b)=>(b.viewer_count||0)-(a.viewer_count||0)); else twitchItems=twitchItems.sort((a,b)=>(a.viewer_count||0)-(b.viewer_count||0));
+      }
     }catch(e){ console.warn('/api/oryon/discover/find-live twitch fallback', e.message); }
-    res.json({success:true,items:[...nativeItems,...twitchItems].slice(0,18),query:q,max,lang,mood});
+    res.json({success:true,items:[...nativeItems,...twitchItems].slice(0,18),query:q,max,lang,mood,source});
   }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
 });
 
@@ -5099,6 +5101,7 @@ io.on('connection', async (socket) => {
     emitNativeStats(room);
   });
 
+  socket.on('native:request-offer', (payload) => { const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40); const r = nativeLiveRooms.get(room); if(r?.host) io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id }); });
   socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
   socket.on('native:answer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:answer', { from: socket.id, room: payload?.room, answer: payload?.answer }); });
   socket.on('native:ice', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:ice', { from: socket.id, room: payload?.room, candidate: payload?.candidate }); });
