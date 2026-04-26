@@ -17,7 +17,7 @@ async function setView(id){
  if(id==='channel'&&!state.session.local&&!state.watchRoom)id='settings';
  if(id!=='channel') state.watchRoom=null;
  state.view=id;
- $('.view').forEach(v=>v.classList.toggle('active',v.id===id));
+ $$(".view").forEach(v=>v.classList.toggle("active",v.id===id));
  renderNav(); renderUserMenu();
  if(id==='channel' && state.watchRoom) location.hash='channel/'+encodeURIComponent(state.watchRoom); else location.hash=id;
  const map={home:renderHome,discover:renderDiscover,twitch:renderTwitch,categories:renderCategories,teams:renderTeams,channel:renderChannel,manager:renderManager,dashboard:renderDashboard,studio:renderStudio,settings:renderSettings,admin:renderAdmin};
