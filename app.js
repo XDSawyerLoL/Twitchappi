@@ -2687,6 +2687,40 @@ app.post('/api/oryon/local-agent/connect', (req, res) => {
   }catch(e){ return res.status(500).json({ success:false, error:e.message }); }
 });
 
+// Connexion Oryon Local sans mot de passe : l'app ouvre le navigateur, le site utilise la session Oryon existante,
+// puis renvoie un jeton local à http://127.0.0.1:8081.
+app.get('/api/oryon/local-agent/browser-connect', (req, res) => {
+  try {
+    const cur = req.session?.oryonUser;
+    const callback = String(req.query.callback || '').trim();
+    if (!/^http:\/\/(127\.0\.0\.1|localhost):8081\/api\/account\/browser-callback/i.test(callback)) {
+      return res.status(400).send('Callback Oryon Local invalide. Lance la connexion depuis l’application Oryon Local.');
+    }
+    if (!cur?.id) {
+      return res.status(401).send('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Oryon Local</title><style>body{font-family:system-ui;background:#080b12;color:white;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:560px;border:1px solid #2a3446;background:#101622;border-radius:22px;padding:24px}a{color:white;background:#8b5cf6;padding:12px 14px;border-radius:12px;text-decoration:none;font-weight:800;display:inline-block}</style></head><body><div class="box"><h1>Connexion Oryon requise</h1><p>Connecte-toi d’abord à ton compte Oryon dans ce navigateur, puis relance la connexion depuis Oryon Local.</p><a href="/#settings">Ouvrir Oryon</a></div></body></html>');
+    }
+    const data = readOryonUsers();
+    const user = (data.users || []).find(u => u.id === cur.id);
+    if (!user) return res.status(404).send('Compte Oryon introuvable.');
+    if (!user.stream_key) user.stream_key = makeOryonStreamKey();
+    user.local_agent_token = makeOryonLocalAgentToken();
+    user.local_agent_connected_at = Date.now();
+    user.local_agent_name = 'Oryon Local navigateur';
+    user.updatedAt = Date.now();
+    writeOryonUsers(data);
+    const cb = new URL(callback);
+    cb.searchParams.set('ok', '1');
+    cb.searchParams.set('token', user.local_agent_token);
+    cb.searchParams.set('stream_key', user.stream_key);
+    cb.searchParams.set('login', user.login);
+    cb.searchParams.set('display_name', user.display_name || user.login);
+    cb.searchParams.set('site_url', getBaseUrl(req));
+    return res.redirect(cb.toString());
+  } catch(e) {
+    return res.status(500).send('Erreur connexion Oryon Local: ' + e.message);
+  }
+});
+
 app.get('/api/oryon/local-agent/config', (req, res) => {
   try {
     const cur = req.session?.oryonUser;
