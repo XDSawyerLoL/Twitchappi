@@ -412,7 +412,7 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    sameSite: IS_PROD ? 'none' : 'lax',
+    sameSite: 'lax',
     secure: IS_PROD,
   }
 });
@@ -2231,6 +2231,7 @@ app.get('/twitch_auth_start', (req, res) => {
 
   // Stockage du state en session (anti-CSRF) \u2014 pas en variable globale
   req.session.twitch_oauth_state = state;
+  req.session.twitch_return_to = String(req.query.returnTo || '/#discover').slice(0, 160);
 
   const url =
     `https://id.twitch.tv/oauth2/authorize` +
@@ -2279,8 +2280,29 @@ app.get('/twitch_auth_callback', async (req, res) => {
       id: user.id,
       profile_image_url: user.profile_image_url,
       access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
       expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000)
     };
+
+    // Lie Twitch au compte Oryon connecté, pour retrouver la connexion après rechargement.
+    try{
+      const local = req.session?.oryonUser;
+      if(local?.id){
+        const ud = readOryonUsers();
+        const ou = (ud.users||[]).find(x => x.id === local.id);
+        if(ou){
+          ou.twitch_link = {
+            id:user.id, login:user.login, display_name:user.display_name,
+            profile_image_url:user.profile_image_url,
+            access_token:tokenData.access_token,
+            refresh_token:tokenData.refresh_token || null,
+            expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000),
+            linkedAt: Date.now()
+          };
+          writeOryonUsers(ud);
+        }
+      }
+    }catch(e){ console.warn('[ORYON] link twitch failed:', e.message); }
 
     // If Steam was connected before Twitch, persist it now so it becomes permanent.
     try{
@@ -2289,24 +2311,11 @@ app.get('/twitch_auth_callback', async (req, res) => {
       }
     }catch(_){ }
 
-    // S\u2019assure que la session est persist\u00E9e avant fermeture de la popup
+    // Retour normal sur le site, sans popup fragile.
+    const returnTo = String(req.session.twitch_return_to || '/#discover');
+    req.session.twitch_return_to = null;
     req.session.save(() => {
-      res.send(`
-        <script>
-          try {
-            if (window.opener && !window.opener.closed) {
-              window.opener.postMessage({ type: 'ORYON_TWITCH_CONNECTED' }, window.location.origin);
-              window.opener.location.hash = 'twitch';
-              window.opener.location.reload();
-              window.close();
-            } else {
-              window.location.href = '/#twitch';
-            }
-          } catch (e) {
-            window.location.href = '/#twitch';
-          }
-        </script>
-      `);
+      res.redirect(returnTo.startsWith('/#') ? returnTo : '/#discover');
     });
 
   } catch (e) {
@@ -2315,6 +2324,14 @@ app.get('/twitch_auth_callback', async (req, res) => {
 });
 
 app.post('/twitch_logout', (req, res) => {
+  try{
+    const local = req.session?.oryonUser;
+    if(local?.id){
+      const ud = readOryonUsers();
+      const ou = (ud.users||[]).find(x => x.id === local.id);
+      if(ou){ ou.twitch_link = null; writeOryonUsers(ud); }
+    }
+  }catch(e){ console.warn('[ORYON] unlink twitch failed:', e.message); }
   req.session.twitchUser = null;
   req.session.save(() => res.json({ success: true }));
 });
@@ -2389,7 +2406,11 @@ function writeOryonUsers(data){
   try{ if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true}); fs.writeFileSync(ORYON_USERS_FILE, JSON.stringify(__oryonUsersCache, null, 2)); }catch(e){ console.warn('[ORYON] write json users failed:', e.message); }
   try{ if(db && typeof db.collection === 'function') db.collection('oryon_state').doc('users').set(__oryonUsersCache,{merge:true}).catch(e=>console.warn('[ORYON] Firestore users write failed:', e.message)); }catch(e){}
 }
-loadOryonUsersPersistent();
+const ORYON_USERS_READY = loadOryonUsersPersistent();
+app.use('/api/oryon', async (_req, _res, next) => {
+  try { await ORYON_USERS_READY; } catch (_) {}
+  next();
+});
 function normalizeOryonLogin(v){
   return String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32);
 }
@@ -2406,6 +2427,10 @@ function verifyOryonPassword(password, stored){
 function publicOryonUser(u){
   if(!u) return null;
   return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0) };
+}
+function sessionOryonUser(u){
+  if(!u) return null;
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, is_admin: !!u.is_admin, avatar_url: String(u.avatar_url||'').slice(0,200000) };
 }
 function normalizeOryonEmail(v){ return String(v || '').trim().toLowerCase().slice(0, 160); }
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '')); }
@@ -2481,8 +2506,17 @@ app.get('/api/webrtc/config', (req, res) => {
   res.json(getWebRtcConfigPayload());
 });
 
-app.get('/api/oryon/session', (req, res) => {
-  return res.json({ success:true, ...getSessionIdentity(req) });
+app.get('/api/oryon/session', async (req, res) => {
+  try{
+    const local = req.session?.oryonUser;
+    if(local?.id && !req.session.twitchUser){
+      const ud = readOryonUsers();
+      const ou = (ud.users||[]).find(x => x.id === local.id);
+      const tw = ou?.twitch_link;
+      if(tw?.id && (!tw.expiry || tw.expiry > Date.now())) req.session.twitchUser = tw;
+    }
+    return res.json({ success:true, ...getSessionIdentity(req) });
+  }catch(e){ return res.status(500).json({success:false,error:e.message}); }
 });
 
 app.post('/api/oryon/register', async (req, res) => {
@@ -2499,7 +2533,7 @@ app.post('/api/oryon/register', async (req, res) => {
     if(data.users.some(u => normalizeOryonEmail(u.email) === email)) return res.status(409).json({ success:false, error:'Cet email est déjà utilisé.' });
     const user = { id: crypto.randomBytes(12).toString('hex'), login, display_name: display, email, email_verified: true, email_verify_token: null, password_hash: hashOryonPassword(password), createdAt: Date.now() };
     data.users.push(user); writeOryonUsers(data);
-    req.session.oryonUser = publicOryonUser(user);
+    req.session.oryonUser = sessionOryonUser(user);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), emailVerificationRequired:false }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
@@ -2512,7 +2546,7 @@ app.get('/api/oryon/verify-email', (req, res) => {
     const user = data.users.find(u => u.email_verify_token === token);
     if(!user) return res.status(404).send('Lien invalide ou expiré.');
     user.email_verified = true; user.email_verify_token = null; writeOryonUsers(data);
-    if(req.session?.oryonUser?.id === user.id) req.session.oryonUser = publicOryonUser(user);
+    if(req.session?.oryonUser?.id === user.id) req.session.oryonUser = sessionOryonUser(user);
     res.send('<h1>Compte Oryon confirmé</h1><p>Tu peux retourner sur Oryon.</p><p><a href="/">Retour au site</a></p>');
   }catch(e){ res.status(500).send('Erreur: ' + e.message); }
 });
@@ -2524,7 +2558,7 @@ app.post('/api/oryon/login', (req, res) => {
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
     if(!user || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
-    req.session.oryonUser = publicOryonUser(user);
+    req.session.oryonUser = sessionOryonUser(user);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
@@ -2565,7 +2599,7 @@ app.post('/api/oryon/profile', (req, res) => {
     user.raid_ready = String(req.body?.raid_ready || '').toLowerCase() === 'true' || !!user.raid_ready;
     user.updatedAt = Date.now();
     writeOryonUsers(data);
-    req.session.oryonUser = publicOryonUser(user);
+    req.session.oryonUser = sessionOryonUser(user);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
@@ -2711,7 +2745,7 @@ const oryonNotifFile = path.join(__dirname, '.oryon-notifications.json');
 function readJsonSafe(file, fallback){ try{ if(fs.existsSync(file)) return JSON.parse(fs.readFileSync(file,'utf8')||JSON.stringify(fallback)); }catch(_){} return fallback; }
 function writeJsonSafe(file, data){ try{ fs.writeFileSync(file, JSON.stringify(data,null,2)); }catch(e){ console.warn('writeJsonSafe', e.message); } }
 function getModState(room){ const data=readJsonSafe(oryonModFile,{rooms:{}}); data.rooms=data.rooms||{}; if(!data.rooms[room]) data.rooms[room]={banned:[],muted:[],blocked_words:[]}; return {data,state:data.rooms[room]}; }
-function oryonLiveCardFromRoom(room, r){ return {room,title:r.title||`Live de ${room}`,host_name:r.hostName||room,host_login:r.hostLogin||room,viewers:r.viewers?r.viewers.size:0,peak_viewers:r.peakViewers||0,chat_messages:r.chatMessages||0,category:r.category||'',tags:Array.isArray(r.tags)?r.tags:[],createdAt:r.createdAt||Date.now(),oryon_score:computeNativeOryonScore(r),platform:'oryon'}; }
+function oryonLiveCardFromRoom(room, r){ const u=(readOryonUsers().users||[]).find(x=>x.login===(r.hostLogin||room)); return {room,title:r.title||`Live de ${room}`,host_name:r.hostName||room,host_login:r.hostLogin||room,viewers:r.viewers?r.viewers.size:0,peak_viewers:r.peakViewers||0,chat_messages:r.chatMessages||0,category:r.category||'',tags:Array.isArray(r.tags)?r.tags:[],createdAt:r.createdAt||Date.now(),oryon_score:computeNativeOryonScore(r),platform:'oryon',thumbnail_url:u?.offline_image_url||u?.banner_url||'',avatar_url:u?.avatar_url||''}; }
 function syntheticHistory(seed=1){ const now=Date.now(); const out=[]; for(let i=13;i>=0;i--){ const base=(seed*7+i*5)%23; out.push({label:new Date(now-i*86400000).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),viewers:Math.max(0,base+Math.floor(Math.sin(i)*5)),chat:Math.max(0,base*2+(i%4)*7),follows:Math.max(0,Math.floor(base/3)+(i%3))}); } return out; }
 
 app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
@@ -2807,7 +2841,7 @@ app.post('/api/oryon/onboarding', (req,res)=>{
   const data=readOryonUsers(); const user=data.users.find(u=>u.id===cur.id); if(!user) return res.status(404).json({success:false,error:'Utilisateur introuvable.'});
   user.onboarding={intent:String(req.body?.intent||'both').slice(0,20), moods:safeTags(req.body?.moods), categories:safeTags(req.body?.categories), maxViewers:Math.max(20,Math.min(300,Number(req.body?.maxViewers||200)))};
   user.onboarding_completed=true; user.tags=Array.from(new Set([...(user.tags||[]),...user.onboarding.moods,...user.onboarding.categories])).slice(0,12); user.updatedAt=Date.now();
-  writeOryonUsers(data); req.session.oryonUser=publicOryonUser(user); req.session.save(()=>res.json({success:true,user:publicOryonUser(user),onboarding:user.onboarding}));
+  writeOryonUsers(data); req.session.oryonUser=sessionOryonUser(user); req.session.save(()=>res.json({success:true,user:publicOryonUser(user),onboarding:user.onboarding}));
 });
 
 app.get('/api/oryon/teams', (req,res)=>{ const data=oryonRead(ORYON_TEAMS_FILE,{teams:[]}); res.json({success:true,items:(data.teams||[]).map(publicTeam)}); });
@@ -5106,7 +5140,7 @@ io.on('connection', async (socket) => {
     const room = socket.data.nativeRoom; const role = socket.data.nativeRole; const r = nativeLiveRooms.get(room);
     if(r){
       if(role === 'host'){
-        for(const viewerId of r.viewers) io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' });
+        for(const viewerId of r.viewers){ io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' }); io.to(viewerId).emit('native:stopped', {room}); }
         nativeLiveRooms.delete(room);
         io.emit('native:lives:update');
       }else{
