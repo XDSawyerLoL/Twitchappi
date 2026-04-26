@@ -2659,6 +2659,34 @@ app.get('/api/oryon/stream-key', (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
+function makeOryonLocalAgentToken(){ return crypto.randomBytes(32).toString('hex'); }
+function bearerToken(req){
+  const h = String(req.headers.authorization || '').trim();
+  return h.toLowerCase().startsWith('bearer ') ? h.slice(7).trim() : '';
+}
+function findOryonUserByAgentToken(data, token){
+  const t = String(token || '').trim();
+  if(!t) return null;
+  return (data.users || []).find(u => String(u.local_agent_token || '') === t);
+}
+app.post('/api/oryon/local-agent/connect', (req, res) => {
+  try{
+    const login = normalizeOryonLogin(req.body?.login);
+    const password = String(req.body?.password || '');
+    if(!login || !password) return res.status(400).json({ success:false, error:'Pseudo et mot de passe requis.' });
+    const data = readOryonUsers();
+    const user = (data.users || []).find(u => u.login === login);
+    if(!user || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants Oryon invalides.' });
+    if(!user.stream_key) user.stream_key = makeOryonStreamKey();
+    user.local_agent_token = makeOryonLocalAgentToken();
+    user.local_agent_connected_at = Date.now();
+    user.local_agent_name = String(req.body?.app || 'Oryon Local').slice(0,80);
+    user.updatedAt = Date.now();
+    writeOryonUsers(data);
+    return res.json({ success:true, token:user.local_agent_token, stream_key:user.stream_key, user:publicOryonUser(user), message:'Oryon Local connecté au compte.' });
+  }catch(e){ return res.status(500).json({ success:false, error:e.message }); }
+});
+
 app.get('/api/oryon/local-agent/config', (req, res) => {
   try {
     const cur = req.session?.oryonUser;
@@ -2696,18 +2724,27 @@ app.get('/api/oryon/local-agent/config', (req, res) => {
 
 app.post('/api/oryon/local-agent/register-public-url', (req, res) => {
   try {
+    const token = bearerToken(req);
     const streamKey = String(req.body?.stream_key || '').trim();
     const playerUrl = String(req.body?.player_url || '').trim().slice(0, 1000);
     const statusUrl = String(req.body?.status_url || '').trim().slice(0, 1000);
     const publicBaseUrl = String(req.body?.public_base_url || '').trim().slice(0, 1000);
-    if(!streamKey || !playerUrl || !/^https?:\/\//i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL publique ou clé de stream invalide.' });
+    if(!playerUrl || !/^https?:\/\//i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL publique invalide.' });
+    if(/localhost|127\.0\.0\.1/i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL locale refusée : Oryon doit recevoir l’URL publique du tunnel, pas localhost.' });
+
     const data = readOryonUsers();
-    const user = (data.users || []).find(u => String(u.stream_key || '') === streamKey);
-    if(!user) return res.status(404).json({ success:false, error:'Aucun compte Oryon ne correspond à cette clé de stream.' });
+    let user = findOryonUserByAgentToken(data, token);
+    if(!user && streamKey) user = (data.users || []).find(u => String(u.stream_key || '') === streamKey);
+    if(!user) return res.status(404).json({ success:false, error:'Compte Oryon introuvable. Connecte Oryon Local à ton compte depuis l’application.' });
+
+    if(streamKey && String(user.stream_key || '') && String(user.stream_key) !== streamKey && token) {
+      return res.status(403).json({ success:false, error:'Cette clé de stream ne correspond pas au compte connecté.' });
+    }
+    if(!user.stream_key) user.stream_key = streamKey || makeOryonStreamKey();
     user.oryon_local_player_url = playerUrl;
     user.oryon_local_status_url = statusUrl;
     user.oryon_local_public_base_url = publicBaseUrl;
-    user.oryon_local_provider = String(req.body?.provider || 'localtunnel').slice(0, 80);
+    user.oryon_local_provider = String(req.body?.provider || 'tunnel').slice(0, 80);
     user.external_live_platform = 'oryon-local';
     user.local_agent_live = true;
     user.local_agent_last_seen = Date.now();
@@ -2716,7 +2753,6 @@ app.post('/api/oryon/local-agent/register-public-url', (req, res) => {
     res.json({ success:true, login:user.login, user:publicOryonUser(user), message:'Live Oryon Local publié sur la chaîne.' });
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
-
 
 app.post('/api/oryon/stream-key/regenerate', (req, res) => {
   try{
