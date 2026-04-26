@@ -2434,11 +2434,11 @@ function isOryonLiveSignalFresh(u){
 function publicOryonUser(u){
   if(!u) return null;
   const localLiveFresh = isOryonLiveSignalFresh(u);
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
 function sessionOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, is_admin: !!u.is_admin, avatar_url: String(u.avatar_url||'').slice(0,200000) };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, is_admin: !!u.is_admin, avatar_url: String(u.avatar_url||'').slice(0,200000), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[] };
 }
 function normalizeOryonEmail(v){ return String(v || '').trim().toLowerCase().slice(0, 160); }
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '')); }
@@ -2620,6 +2620,13 @@ app.post('/api/oryon/profile', (req, res) => {
     user.peertube_watch_url = String(req.body?.peertube_watch_url || '').trim().slice(0,1000);
     if(Object.prototype.hasOwnProperty.call(req.body,'oryon_local_player_url')) user.oryon_local_player_url = String(req.body?.oryon_local_player_url || '').trim().slice(0,1000);
     if(Object.prototype.hasOwnProperty.call(req.body,'oryon_local_status_url')) user.oryon_local_status_url = String(req.body?.oryon_local_status_url || '').trim().slice(0,1000);
+    if(Array.isArray(req.body?.channel_badges)){
+      user.channel_badges = req.body.channel_badges.map(b => ({
+        icon: String(b?.icon || '').trim().slice(0,4),
+        label: String(b?.label || '').trim().slice(0,28),
+        note: String(b?.note || '').trim().slice(0,70)
+      })).filter(b => b.icon && b.label).slice(0,8);
+    }
     user.external_live_platform = user.oryon_local_player_url ? 'oryon-local' : (user.peertube_embed_url || user.peertube_watch_url ? 'peertube' : (user.external_live_platform||''));
     user.updatedAt = Date.now();
     writeOryonUsers(data);
@@ -2876,10 +2883,92 @@ app.post('/api/oryon/follow/:login', (req, res) => {
     const creator = data.users.find(u => u.login === target);
     if(!user || !creator) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
     user.following = Array.isArray(user.following) ? user.following : [];
-    if(!user.following.includes(target)) user.following.push(target);
-    creator.followers_count = Math.max(Number(creator.followers_count || 0), 0) + 1;
+    const already = user.following.includes(target);
+    if(!already){
+      user.following.push(target);
+      creator.followers_count = Math.max(Number(creator.followers_count || 0), 0) + 1;
+    }
     writeOryonUsers(data);
     res.json({ success:true, following:user.following });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/like/:login', (req, res) => {
+  try{
+    const cur = req.session?.oryonUser;
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+    const target = normalizeOryonLogin(req.params.login);
+    if(!target) return res.status(400).json({ success:false, error:'Chaîne invalide.' });
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.id === cur.id);
+    const creator = data.users.find(u => u.login === target);
+    if(!user || !creator) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
+    user.liked_channels = Array.isArray(user.liked_channels) ? user.liked_channels : [];
+    const already = user.liked_channels.includes(target);
+    if(!already){
+      user.liked_channels.push(target);
+      creator.likes_count = Math.max(Number(creator.likes_count || 0), 0) + 1;
+    }
+    writeOryonUsers(data);
+    res.json({ success:true, liked:true, likes_count:Number(creator.likes_count||0), liked_channels:user.liked_channels });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+function sanitizeOryonEmoteCode(v){
+  return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0,20);
+}
+function normalizeOryonEmoteGate(v){
+  const x = String(v || '').toLowerCase();
+  return ['free','follow','like'].includes(x) ? x : 'follow';
+}
+function oryonEmoteAccess(channelLogin, viewerLogin){
+  const data = readOryonUsers();
+  const channel = data.users.find(u => u.login === normalizeOryonLogin(channelLogin));
+  const viewer = data.users.find(u => u.login === normalizeOryonLogin(viewerLogin));
+  const isOwner = !!(channel && viewer && channel.id === viewer.id);
+  const follows = !!(viewer && Array.isArray(viewer.following) && viewer.following.includes(channel?.login));
+  const likes = !!(viewer && Array.isArray(viewer.liked_channels) && viewer.liked_channels.includes(channel?.login));
+  return { data, channel, viewer, isOwner, follows, likes };
+}
+function decorateOryonEmotesForViewer(channelLogin, viewerLogin){
+  const ctx = oryonEmoteAccess(channelLogin, viewerLogin);
+  const emotes = Array.isArray(ctx.channel?.emotes) ? ctx.channel.emotes : [];
+  return { channel: ctx.channel, emotes: emotes.map(e => {
+    const gate = normalizeOryonEmoteGate(e?.gate);
+    const allowed = ctx.isOwner || gate === 'free' || (gate === 'follow' && ctx.follows) || (gate === 'like' && ctx.likes);
+    return { code:sanitizeOryonEmoteCode(e?.code), image_url:String(e?.image_url||'').slice(0,2000000), gate, allowed };
+  }).filter(e => e.code && e.image_url).slice(0,36) };
+}
+
+app.get('/api/oryon/emotes/:login', (req, res) => {
+  try{
+    const login = normalizeOryonLogin(req.params.login);
+    const viewer = req.session?.oryonUser?.login || '';
+    const payload = decorateOryonEmotesForViewer(login, viewer);
+    if(!payload.channel) return res.status(404).json({ success:false, error:'Chaîne introuvable.' });
+    res.json({ success:true, emotes:payload.emotes });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/emotes', (req, res) => {
+  try{
+    const cur = req.session?.oryonUser;
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+    const code = sanitizeOryonEmoteCode(req.body?.code);
+    const image_url = String(req.body?.image_url || '').trim().slice(0,2000000);
+    const gate = normalizeOryonEmoteGate(req.body?.gate);
+    if(!code || code.length < 2) return res.status(400).json({ success:false, error:'Code emote invalide.' });
+    if(!image_url || !(image_url.startsWith('data:image/') || isValidHttpUrl(image_url))) return res.status(400).json({ success:false, error:'Image emote invalide.' });
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.id === cur.id);
+    if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
+    user.emotes = Array.isArray(user.emotes) ? user.emotes : [];
+    const entry = { code, image_url, gate, updatedAt:Date.now() };
+    const idx = user.emotes.findIndex(e => sanitizeOryonEmoteCode(e?.code) === code);
+    if(idx >= 0) user.emotes[idx] = entry; else user.emotes.unshift(entry);
+    user.emotes = user.emotes.slice(0,36);
+    writeOryonUsers(data);
+    res.json({ success:true, emotes:user.emotes });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -5480,8 +5569,16 @@ io.on('connection', async (socket) => {
     if((modState.blocked_words||[]).some(w=>w && lowerText.includes(w))) return socket.emit('native:error', { message:'Message bloqué par la modération.' });
     let gif = '';
     if(msg?.gif && typeof msg.gif === 'string' && isValidHttpUrl(msg.gif)) gif = msg.gif.slice(0, 800);
-    if(!text && !gif) return;
-    const out = { id:makeId(), room, user:user.login, user_display:user.display_name, user_type:user.type, text, gif, ts:Date.now(), reactions:{} };
+    let emote = null;
+    if(msg?.emote && typeof msg.emote === 'object'){
+      const code = sanitizeOryonEmoteCode(msg.emote.code);
+      const payload = decorateOryonEmotesForViewer(room, user.type === 'oryon' ? user.login : '');
+      const found = (payload.emotes || []).find(e => e.code === code);
+      if(found && found.allowed) emote = { code:found.code, image_url:found.image_url };
+      else if(found) return socket.emit('native:error', { message: found.gate === 'like' ? 'Aime la chaîne pour utiliser cette emote.' : 'Suis la chaîne pour utiliser cette emote.' });
+    }
+    if(!text && !gif && !emote) return;
+    const out = { id:makeId(), room, user:user.login, user_display:user.display_name, user_type:user.type, text, gif, emote, ts:Date.now(), reactions:{} };
     const h = getNativeChat(room); h.push(out); while(h.length > 120) h.shift();
     if(r) r.chatMessages = Number(r.chatMessages || 0) + 1;
     try{ const ud=readOryonUsers(); const host=ud.users.find(x=>x.login===room); if(host){ host.best_chat_messages=Math.max(Number(host.best_chat_messages||0),Number(r?.chatMessages||0)); writeOryonUsers(ud); } }catch(_e){}
