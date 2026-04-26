@@ -1,8 +1,8 @@
 {
-  "name": "oryon-local-app",
+  "name": "oryon-live-app",
   "version": "0.3.0",
   "private": true,
-  "description": "Oryon Local - application Windows/macOS/Linux pour streamer OBS depuis son PC vers Oryon.",
+  "description": "Application locale pour diffuser sur Oryon avec OBS",
   "main": "main.js",
   "scripts": {
     "start": "node server.js",
@@ -71,5 +71,6 @@
       ]
     }
   },
-  "author": "Oryon"
+  "author": "Oryon",
+  "productName": "Oryon Live"
 }

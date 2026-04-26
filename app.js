@@ -54,9 +54,9 @@ function getAllowedCorsOrigins(){
   if(IS_PROD) return [];
   return [
     'http://localhost:10000',
-    'http://127.0.0.1:10000',
+    'http://127\.0\.0\.1:10000',
     'http://localhost:3000',
-    'http://127.0.0.1:3000'
+    'http://127\.0\.0\.1:3000'
   ];
 }
 
@@ -2424,9 +2424,17 @@ function verifyOryonPassword(password, stored){
   const test = hashOryonPassword(password, salt).split(':')[1];
   try{ return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(test, 'hex')); }catch(_){ return false; }
 }
+function oryonLiveSignalTimeoutMs(){ return Math.max(8000, Number(process.env.ORYON_LIVE_SIGNAL_TIMEOUT_MS || 25000)); }
+function isOryonLiveSignalFresh(u){
+  if(!u || !u.oryon_local_player_url || !u.local_agent_live) return false;
+  const last = Number(u.local_agent_last_seen || 0);
+  if(!last) return false;
+  return (Date.now() - last) <= oryonLiveSignalTimeoutMs();
+}
 function publicOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:u.oryon_local_player_url||'', oryon_local_status_url:u.oryon_local_status_url||'', local_agent_live:!!u.local_agent_live, local_agent_last_seen:u.local_agent_last_seen||null };
+  const localLiveFresh = isOryonLiveSignalFresh(u);
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
 function sessionOryonUser(u){
   if(!u) return null;
@@ -2456,7 +2464,7 @@ function getOryonUserByLogin(login){
 }
 function isOryonLocalLiveRoom(room){
   const u = getOryonUserByLogin(room);
-  return !!(u && u.oryon_local_player_url && u.local_agent_live);
+  return isOryonLiveSignalFresh(u);
 }
 
 function getSessionIdentity(req){
@@ -2699,7 +2707,7 @@ app.post('/api/oryon/local-agent/connect', (req, res) => {
 });
 
 // Connexion Oryon Local sans mot de passe : l'app ouvre le navigateur, le site utilise la session Oryon existante,
-// puis renvoie un jeton local à http://127.0.0.1:8081.
+// puis renvoie un jeton local à http://127\.0\.0\.1:8081.
 app.get('/api/oryon/local-agent/browser-connect', (req, res) => {
   try {
     const cur = req.session?.oryonUser;
@@ -2758,8 +2766,8 @@ app.get('/api/oryon/local-agent/config', (req, res) => {
       local_status_url: `http://localhost:${localPort}/health`,
       stream_key: key,
       download_url: '/downloads/oryon-local-app.zip',
-      app_name: 'Oryon Local',
-      note: 'Oryon Local transforme le PC du streamer en mini-serveur. Un tunnel public reste nécessaire pour les viewers externes.'
+      app_name: 'Oryon Live',
+      note: 'Oryon Live publie ton flux OBS sur ta chaîne Oryon.'
     });
   } catch(e) {
     res.status(500).json({ success:false, error:e.message });
@@ -2790,12 +2798,58 @@ app.post('/api/oryon/local-agent/register-public-url', (req, res) => {
     user.oryon_local_status_url = statusUrl;
     user.oryon_local_public_base_url = publicBaseUrl;
     user.oryon_local_provider = String(req.body?.provider || 'tunnel').slice(0, 80);
-    user.external_live_platform = 'oryon-local';
+    user.external_live_platform = 'oryon-live';
     user.local_agent_live = true;
     user.local_agent_last_seen = Date.now();
     user.updatedAt = Date.now();
     writeOryonUsers(data);
     res.json({ success:true, login:user.login, user:publicOryonUser(user), message:'Live Oryon Local publié sur la chaîne.' });
+  } catch(e) { res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/local-agent/heartbeat', (req, res) => {
+  try {
+    const token = bearerToken(req);
+    const streamKey = String(req.body?.stream_key || '').trim();
+    const liveActive = !!req.body?.live_active;
+    const playerUrl = String(req.body?.player_url || '').trim().slice(0, 1000);
+    const statusUrl = String(req.body?.status_url || '').trim().slice(0, 1000);
+    const data = readOryonUsers();
+    let user = findOryonUserByAgentToken(data, token);
+    if(!user && streamKey) user = (data.users || []).find(u => String(u.stream_key || '') === streamKey);
+    if(!user) return res.status(404).json({ success:false, error:'Compte Oryon introuvable.' });
+    if(streamKey && String(user.stream_key || '') && String(user.stream_key) !== streamKey && token) {
+      return res.status(403).json({ success:false, error:'Clé de stream incorrecte.' });
+    }
+    if(liveActive){
+      if(playerUrl && /^https?:\/\//i.test(playerUrl) && !/localhost|127\.0\.0\.1/i.test(playerUrl)) user.oryon_local_player_url = playerUrl;
+      if(statusUrl && /^https?:\/\//i.test(statusUrl)) user.oryon_local_status_url = statusUrl;
+      user.local_agent_live = true;
+      user.local_agent_last_seen = Date.now();
+      user.external_live_platform = 'oryon-live';
+    } else {
+      user.local_agent_live = false;
+      user.local_agent_last_seen = Date.now();
+    }
+    user.updatedAt = Date.now();
+    writeOryonUsers(data);
+    res.json({ success:true, live:user.local_agent_live, user:publicOryonUser(user) });
+  } catch(e) { res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/local-agent/stop', (req, res) => {
+  try {
+    const token = bearerToken(req);
+    const streamKey = String(req.body?.stream_key || '').trim();
+    const data = readOryonUsers();
+    let user = findOryonUserByAgentToken(data, token);
+    if(!user && streamKey) user = (data.users || []).find(u => String(u.stream_key || '') === streamKey);
+    if(!user) return res.status(404).json({ success:false, error:'Compte Oryon introuvable.' });
+    user.local_agent_live = false;
+    user.local_agent_last_seen = Date.now();
+    user.updatedAt = Date.now();
+    writeOryonUsers(data);
+    res.json({ success:true, user:publicOryonUser(user) });
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -2896,16 +2950,16 @@ app.get('/api/native/lives', (req, res) => {
     native: true
   }));
   const users = readOryonUsers().users || [];
-  const localAgentItems = users.filter(u => u.oryon_local_player_url && u.local_agent_live).map(u => ({
+  const localAgentItems = users.filter(u => isOryonLiveSignalFresh(u)).map(u => ({
     room: u.login,
-    title: `Live Oryon Local de ${u.display_name || u.login}`,
+    title: `Live Oryon de ${u.display_name || u.login}`,
     host_name: u.display_name || u.login,
     host_login: u.login,
     host_user_id: u.id,
     viewers: 0,
     limit: Number(process.env.MAX_NATIVE_VIEWERS || 300),
     createdAt: u.local_agent_last_seen || u.updatedAt || Date.now(),
-    category: 'Oryon Local',
+    category: 'Oryon Live',
     tags: Array.isArray(u.tags) ? u.tags : [],
     peak_viewers: 0,
     chat_messages: 0,
