@@ -2604,8 +2604,48 @@ app.post('/api/oryon/profile', (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-function makeOryonStreamKey(){ return crypto.randomBytes(24).toString('hex'); }
-function getOryonRtmpUrl(){ return process.env.OBS_RTMP_URL || process.env.RTMP_INGEST_URL || process.env.ORYON_RTMP_URL || 'RTMP non configuré'; }
+function makeOryonStreamKey(){ return 'oryon_' + crypto.randomBytes(24).toString('hex'); }
+function getOryonRtmpUrl(){
+  return process.env.ORYON_PUBLIC_RTMP_URL
+    || process.env.ORYON_RTMP_URL
+    || process.env.OBS_RTMP_URL
+    || process.env.RTMP_INGEST_URL
+    || 'Serveur live Oryon non configuré';
+}
+function getOryonVideoEngineConfig(){
+  const ingest = getOryonRtmpUrl();
+  const embedTemplate = process.env.ORYON_PLAYER_EMBED_TEMPLATE || process.env.ORYON_VIDEO_EMBED_TEMPLATE || '';
+  const watchTemplate = process.env.ORYON_VIDEO_WATCH_TEMPLATE || '';
+  const apiBase = process.env.ORYON_VIDEO_ENGINE_API_URL || process.env.PEERTUBE_API_URL || process.env.PEERTUBE_URL || '';
+  const tokenConfigured = !!(process.env.ORYON_VIDEO_ENGINE_TOKEN || process.env.PEERTUBE_API_TOKEN || process.env.PEERTUBE_TOKEN);
+  const ready = !!(ingest && !/^Serveur live Oryon non configuré$/i.test(ingest));
+  return {
+    success:true,
+    brand:'Oryon Live',
+    mode: process.env.ORYON_VIDEO_MODE || 'oryon-engine',
+    ingest_url: ingest,
+    public_rtmp_url: ingest,
+    ready,
+    api_ready: !!apiBase && tokenConfigured,
+    embed_ready: !!embedTemplate,
+    watch_ready: !!watchTemplate,
+    recommended:{ resolution:'1920x1080', fps:60, bitrate:'6000-8000 kbps', keyframe:'2s', audio:'160 kbps' },
+    notes: ready ? 'Le serveur live Oryon est configuré.' : 'Ajoute ORYON_PUBLIC_RTMP_URL ou ORYON_RTMP_URL sur Render pour activer OBS.'
+  };
+}
+function renderVideoTemplate(tpl, user){
+  if(!tpl || !user) return '';
+  return String(tpl)
+    .replaceAll('{login}', encodeURIComponent(user.login || ''))
+    .replaceAll('{display_name}', encodeURIComponent(user.display_name || user.login || ''))
+    .replaceAll('{stream_key}', encodeURIComponent(user.stream_key || ''))
+    .replaceAll('{id}', encodeURIComponent(user.id || ''));
+}
+
+app.get('/api/oryon/video-engine/status', (req,res)=>{
+  const cfg = getOryonVideoEngineConfig();
+  res.json({ success:true, engine:{ brand:cfg.brand, mode:cfg.mode, ready:cfg.ready, api_ready:cfg.api_ready, embed_ready:cfg.embed_ready, watch_ready:cfg.watch_ready, notes:cfg.notes, recommended:cfg.recommended } });
+});
 
 app.get('/api/oryon/stream-key', (req, res) => {
   try{
@@ -2615,7 +2655,8 @@ app.get('/api/oryon/stream-key', (req, res) => {
     const user = data.users.find(u => u.id === cur.id);
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
     if(!user.stream_key){ user.stream_key = makeOryonStreamKey(); writeOryonUsers(data); }
-    return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key, obs_ready: !!(process.env.OBS_RTMP_URL || process.env.RTMP_INGEST_URL || process.env.ORYON_RTMP_URL), recommended:{ resolution:'1920x1080', fps:60, bitrate:'6000-8000 kbps', keyframe:'2s' } });
+    const cfg = getOryonVideoEngineConfig();
+    return res.json({ success:true, rtmp_url:cfg.public_rtmp_url, stream_key:user.stream_key, obs_ready:cfg.ready, engine:cfg });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -2627,7 +2668,8 @@ app.post('/api/oryon/stream-key/regenerate', (req, res) => {
     const user = data.users.find(u => u.id === cur.id);
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
     user.stream_key = makeOryonStreamKey(); user.updatedAt = Date.now(); writeOryonUsers(data);
-    return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key });
+    const cfg = getOryonVideoEngineConfig();
+    return res.json({ success:true, rtmp_url:cfg.public_rtmp_url, stream_key:user.stream_key, obs_ready:cfg.ready, engine:cfg });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
