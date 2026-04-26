@@ -62,3 +62,11 @@
 <script src="/index_script.js"></script>
 </body>
 </html>
+<style>
+/* Oryon usability pass: creator tools, planning, channel identity */
+.channelIdentityRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.teamPill{border-color:rgba(34,211,238,.42);background:rgba(34,211,238,.09)}
+.planningTimeline{display:grid;gap:12px}.planCard{position:relative;border:1px solid var(--line);background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(34,211,238,.06));border-radius:18px;padding:14px 16px;overflow:hidden}.planCard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(var(--brand),var(--cyan))}.planCard b{display:block;font-size:17px}.planCard span{display:block;color:#dbe8ff;margin-top:5px}.planCard em{display:inline-block;margin-top:8px;color:var(--muted);font-style:normal}.plannerForm{display:grid;grid-template-columns:1.2fr .8fr .8fr .8fr auto;gap:10px}.funPlanner{border-color:rgba(34,211,238,.24)}
+.studioActionGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.studioAction{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(255,255,255,.04)}.studioAction b{display:block;margin-bottom:6px}.miniToggle{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.035)}
+.cameraPipHint{position:absolute;right:24px;top:24px;border-radius:16px;border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.42);padding:8px 10px;color:white;font-size:12px;z-index:4}
+@media(max-width:900px){.plannerForm{grid-template-columns:1fr}.channelIdentityRow{display:grid}.planCard{padding:13px}}
+</style>
