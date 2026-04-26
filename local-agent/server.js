@@ -2,6 +2,8 @@ const express = require('express');
 const NodeMediaServer = require('node-media-server');
 const path = require('path');
 const fs = require('fs');
+let bundledFfmpeg = null;
+try { bundledFfmpeg = require('ffmpeg-static'); } catch (_) { bundledFfmpeg = null; }
 
 const HTTP_PORT = Number(process.env.ORYON_LOCAL_HTTP_PORT || 8081);
 const RTMP_PORT = Number(process.env.ORYON_LOCAL_RTMP_PORT || 1935);
@@ -27,7 +29,7 @@ const nms = new NodeMediaServer({
     allow_origin: '*'
   },
   trans: {
-    ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg',
+    ffmpeg: process.env.FFMPEG_PATH || bundledFfmpeg || 'ffmpeg',
     tasks: [{
       app: 'live',
       hls: true,

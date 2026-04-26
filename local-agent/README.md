@@ -18,3 +18,27 @@ Sans tunnel, le player ne fonctionne que sur ton PC. Pour les viewers, expose `h
 
 ## Important
 FFmpeg doit être disponible sur le PC pour convertir le flux OBS en HLS. Si la preview reste noire, installe FFmpeg et relance l’application.
+
+## Créer une vraie application Windows (.exe)
+
+Cette version contient Electron Builder. Sur un PC Windows avec Node.js installé :
+
+1. Ouvre le dossier `local-agent`.
+2. Lance `BUILD-WINDOWS.bat`.
+3. Le `.exe` portable et l'installateur seront générés dans `local-agent/dist/`.
+
+Le package inclut `ffmpeg-static`, donc l'utilisateur final ne devrait plus avoir à installer FFmpeg séparément après build.
+
+Commandes manuelles :
+
+```bash
+npm install
+npm run dist:win
+```
+
+OBS :
+
+```text
+Serveur : rtmp://localhost:1935/live
+Clé : ta clé Oryon
+```
