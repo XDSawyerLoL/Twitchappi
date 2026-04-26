@@ -2659,21 +2659,38 @@ app.get('/api/oryon/stream-key', (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.get('/api/oryon/local-agent/config', requireOryonLogin, (req, res) => {
-  const u = req.session.oryonUser;
-  const key = getOrCreateStreamKey(u.id);
-  const localPort = Number(process.env.ORYON_LOCAL_AGENT_PORT || 8081);
-  const rtmpPort = Number(process.env.ORYON_LOCAL_RTMP_PORT || 1935);
-  res.json({
-    success: true,
-    mode: 'local-agent',
-    local_rtmp_url: `rtmp://localhost:${rtmpPort}/live`,
-    local_player_url: `http://localhost:${localPort}/player/${encodeURIComponent(key)}`,
-    local_status_url: `http://localhost:${localPort}/health`,
-    stream_key: key,
-    note: 'Oryon Local transforme le PC du streamer en mini-serveur. Un tunnel public reste nécessaire pour les viewers externes.'
-  });
+app.get('/api/oryon/local-agent/config', (req, res) => {
+  try {
+    const cur = req.session?.oryonUser;
+    if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
+
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.id === cur.id);
+    if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
+
+    if(!user.stream_key){
+      user.stream_key = makeOryonStreamKey();
+      user.updatedAt = Date.now();
+      writeOryonUsers(data);
+    }
+
+    const key = user.stream_key;
+    const localPort = Number(process.env.ORYON_LOCAL_AGENT_PORT || 8081);
+    const rtmpPort = Number(process.env.ORYON_LOCAL_RTMP_PORT || 1935);
+    res.json({
+      success: true,
+      mode: 'local-agent',
+      local_rtmp_url: `rtmp://localhost:${rtmpPort}/live`,
+      local_player_url: `http://localhost:${localPort}/player/${encodeURIComponent(key)}`,
+      local_status_url: `http://localhost:${localPort}/health`,
+      stream_key: key,
+      note: 'Oryon Local transforme le PC du streamer en mini-serveur. Un tunnel public reste nécessaire pour les viewers externes.'
+    });
+  } catch(e) {
+    res.status(500).json({ success:false, error:e.message });
+  }
 });
+
 
 app.post('/api/oryon/stream-key/regenerate', (req, res) => {
   try{
