@@ -1,0 +1,76 @@
+{
+  "name": "oryon-live-app",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Application locale pour diffuser sur Oryon avec OBS",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "app": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win portable nsis",
+    "dist:dir": "electron-builder --dir"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "node-media-server": "^2.7.0",
+    "ffmpeg-static": "^5.2.0",
+    "localtunnel": "^2.0.2"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.0.12",
+    "electron": "^37.3.1"
+  },
+  "build": {
+    "appId": "fr.oryon.local",
+    "productName": "Oryon Local",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "server.js",
+      "package.json",
+      "README.md",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "asar": false,
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Oryon-Local-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Oryon Local"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    }
+  },
+  "author": "Oryon",
+  "productName": "Oryon Live"
+}
