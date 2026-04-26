@@ -2426,7 +2426,7 @@ function verifyOryonPassword(password, stored){
 }
 function publicOryonUser(u){
   if(!u) return null;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'' };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:u.oryon_local_player_url||'', oryon_local_status_url:u.oryon_local_status_url||'' };
 }
 function sessionOryonUser(u){
   if(!u) return null;
@@ -2599,7 +2599,9 @@ app.post('/api/oryon/profile', (req, res) => {
     user.raid_ready = String(req.body?.raid_ready || '').toLowerCase() === 'true' || !!user.raid_ready;
     user.peertube_embed_url = String(req.body?.peertube_embed_url || '').trim().slice(0,1000);
     user.peertube_watch_url = String(req.body?.peertube_watch_url || '').trim().slice(0,1000);
-    user.external_live_platform = user.peertube_embed_url || user.peertube_watch_url ? 'peertube' : (user.external_live_platform||'');
+    user.oryon_local_player_url = String(req.body?.oryon_local_player_url || '').trim().slice(0,1000);
+    user.oryon_local_status_url = String(req.body?.oryon_local_status_url || '').trim().slice(0,1000);
+    user.external_live_platform = user.oryon_local_player_url ? 'oryon-local' : (user.peertube_embed_url || user.peertube_watch_url ? 'peertube' : (user.external_live_platform||''));
     user.updatedAt = Date.now();
     writeOryonUsers(data);
     req.session.oryonUser = sessionOryonUser(user);
@@ -2655,6 +2657,22 @@ app.get('/api/oryon/stream-key', (req, res) => {
     if(!user.stream_key){ user.stream_key = makeOryonStreamKey(); writeOryonUsers(data); }
     return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key, obs_ready: getOryonVideoEngine().obs_ready, video_engine:getOryonVideoEngine(), recommended:{ resolution:'1920x1080', fps:60, bitrate:'6000-8000 kbps', keyframe:'2s' } });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/api/oryon/local-agent/config', requireOryonLogin, (req, res) => {
+  const u = req.session.oryonUser;
+  const key = getOrCreateStreamKey(u.id);
+  const localPort = Number(process.env.ORYON_LOCAL_AGENT_PORT || 8081);
+  const rtmpPort = Number(process.env.ORYON_LOCAL_RTMP_PORT || 1935);
+  res.json({
+    success: true,
+    mode: 'local-agent',
+    local_rtmp_url: `rtmp://localhost:${rtmpPort}/live`,
+    local_player_url: `http://localhost:${localPort}/player/${encodeURIComponent(key)}`,
+    local_status_url: `http://localhost:${localPort}/health`,
+    stream_key: key,
+    note: 'Oryon Local transforme le PC du streamer en mini-serveur. Un tunnel public reste nécessaire pour les viewers externes.'
+  });
 });
 
 app.post('/api/oryon/stream-key/regenerate', (req, res) => {

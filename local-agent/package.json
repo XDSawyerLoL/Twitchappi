@@ -1,0 +1,14 @@
+{
+  "name": "oryon-local-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mini serveur local Oryon pour streamer OBS depuis le PC du streamer.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.3",
+    "node-media-server": "^2.7.0"
+  }
+}
