@@ -588,3 +588,128 @@ function renderZap(){
  if(window.__oryonPremiumKeys) return; window.__oryonPremiumKeys=true;
  document.addEventListener('keydown',e=>{if(state.view!=='discover')return; const tag=(e.target?.tagName||'').toLowerCase(); if(['input','textarea','select'].includes(tag))return; if(e.key==='ArrowRight'){e.preventDefault();zapNext()} if(e.key==='ArrowLeft'){e.preventDefault();zapBack()} if(e.key.toLowerCase()==='s'){e.preventDefault();saveCurrentLive()} if(e.key.toLowerCase()==='c'){e.preventDefault();toggleCinema()} if(e.code==='Space'){e.preventDefault();zapOpenCurrent()}});
 })();
+
+/* Oryon Room Depth v4 — immersive room, soft quests, duo discovery, living emotes */
+(function injectRoomDepthStyle(){
+ if(document.getElementById('oryonRoomDepthStyle')) return;
+ const st=document.createElement('style');
+ st.id='oryonRoomDepthStyle';
+ st.textContent=`
+ .roomMode .top{background:rgba(4,7,13,.82)}
+ .roomMode .flowHero.compact,.roomMode #discover>.panel:first-of-type,.roomMode #discover>.panel:nth-of-type(2),.roomMode #discoverResults{display:none!important}
+ .roomShell{position:relative;border:1px solid rgba(139,92,246,.36);border-radius:34px;overflow:hidden;background:#030508;min-height:calc(100vh - 126px);box-shadow:0 30px 120px rgba(0,0,0,.44)}
+ .roomShell::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,5,8,.92),rgba(3,5,8,.54) 48%,rgba(3,5,8,.88)),var(--roomBg,none);background-size:cover;background-position:center;filter:saturate(1.15) blur(0px);transform:scale(1.02)}
+ .roomShell::after{content:"";position:absolute;inset:-20%;background:radial-gradient(circle at 22% 18%,rgba(139,92,246,.36),transparent 24%),radial-gradient(circle at 80% 12%,rgba(34,211,238,.22),transparent 22%),radial-gradient(circle at 58% 92%,rgba(16,185,129,.12),transparent 24%);pointer-events:none}
+ .roomGrid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:16px;min-height:inherit;padding:18px}
+ .roomMain{display:flex;flex-direction:column;gap:14px;min-width:0}
+ .roomTopBar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+ .roomTitle{margin:auto 0 0;display:grid;gap:10px;max-width:980px;padding:0 4px 6px}.roomTitle h1{font-size:clamp(38px,5.4vw,86px);line-height:.86;letter-spacing:-.075em;margin:0;text-shadow:0 22px 70px rgba(0,0,0,.65)}.roomTitle p{margin:0;color:#dbeafe;font-size:16px}
+ .roomVideo{position:relative;border:1px solid rgba(255,255,255,.16);border-radius:30px;overflow:hidden;background:#000;min-height:360px;aspect-ratio:16/9;box-shadow:0 24px 80px rgba(0,0,0,.38)}
+ .roomVideo iframe,.roomVideo img{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}.roomVideo img{filter:saturate(1.08) contrast(1.03)}.roomVideo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,5,8,.04),rgba(3,5,8,.18) 58%,rgba(3,5,8,.74));pointer-events:none}
+ .roomOverlayActions{position:absolute;left:16px;right:16px;bottom:16px;z-index:3;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.roomOverlayActions .btn{box-shadow:0 16px 42px rgba(0,0,0,.34)}
+ .roomSide{display:flex;flex-direction:column;gap:12px;min-height:0}.roomCard{border:1px solid rgba(255,255,255,.12);border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.072),rgba(255,255,255,.032));backdrop-filter:blur(18px);padding:14px;box-shadow:0 18px 56px rgba(0,0,0,.24)}.roomCard h2{font-size:17px;margin:0 0 10px}.roomCard p{margin:0;color:var(--muted)}
+ .roomChat{flex:1 1 auto;min-height:330px;padding:0;overflow:hidden;display:flex;flex-direction:column}.roomChat iframe{width:100%;height:100%;border:0;background:#10141f}.roomNativeChatHint{flex:1;display:grid;place-items:center;text-align:center;padding:18px;color:var(--muted)}.roomNativeChatHint b{color:#fff;display:block;font-size:19px;margin-bottom:4px}
+ .introOverlay{position:absolute;inset:0;z-index:8;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,rgba(139,92,246,.22),transparent 28%),rgba(3,5,8,.78);backdrop-filter:blur(12px)}.introCard{width:min(560px,calc(100% - 34px));border:1px solid rgba(255,255,255,.18);border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.045));padding:22px;box-shadow:0 24px 90px rgba(0,0,0,.48)}.introCard h2{font-size:clamp(26px,3.4vw,44px);line-height:.95;margin:8px 0}.introTicks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.introTicks span{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.065);border-radius:16px;padding:10px;text-align:center;font-weight:900}.introProgress{height:6px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:16px}.introProgress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--cyan));animation:introLoad 3s linear forwards}@keyframes introLoad{to{width:100%}}
+ .questPanel{display:grid;gap:8px}.questItem{display:grid;grid-template-columns:28px 1fr auto;gap:9px;align-items:center;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.043);border-radius:15px;padding:9px}.questItem.done{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.075)}.questItem strong{font-size:13px}.questItem span{font-size:12px;color:var(--muted)}.questItem b{font-size:12px;color:#dbeafe}.questDot{width:23px;height:23px;border-radius:999px;display:grid;place-items:center;background:rgba(255,255,255,.08);font-size:12px}.questItem.done .questDot{background:rgba(34,197,94,.22)}
+ .duoPanel{display:grid;gap:9px}.duoCode{font-size:22px;letter-spacing:.12em;font-weight:1000;border:1px dashed rgba(34,211,238,.38);background:rgba(34,211,238,.07);border-radius:16px;padding:10px;text-align:center}.growthCard{border:1px solid rgba(245,158,11,.34);background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(139,92,246,.06));border-radius:18px;padding:12px}.growthCard b{display:block;font-size:20px}.growthCard span{color:var(--muted);font-size:12px}
+ .chatBadgeBig{display:inline-flex;align-items:center;gap:4px;margin-left:6px;border:1px solid rgba(245,158,11,.42);background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(139,92,246,.12));border-radius:999px;padding:3px 7px;font-size:11px;font-weight:1000;color:#fde68a;vertical-align:middle}.msg .chatNameLine{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.msg .emoteInline{max-width:54px!important;max-height:54px!important;margin-top:6px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(139,92,246,.35))}
+ .liveEmoteBurst{position:fixed;z-index:500;left:50%;bottom:110px;pointer-events:none;animation:emoteFloat 1.8s ease-out forwards;filter:drop-shadow(0 14px 24px rgba(0,0,0,.35))}.liveEmoteBurst img{width:72px;height:72px;object-fit:contain}.liveEmoteBurst span{font-size:56px}@keyframes emoteFloat{0%{opacity:0;transform:translate(-50%,20px) scale(.8) rotate(-8deg)}18%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)), -180px) scale(1.25) rotate(8deg)}}
+ .roomModeToggle{border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.08);color:white;border-radius:999px;padding:8px 11px;font-weight:950}.roomMiniRail{display:flex;gap:8px;overflow:auto;padding-bottom:2px}.roomMiniRail .reasonChip{white-space:nowrap}.roomActionsRow{display:flex;gap:8px;flex-wrap:wrap}.roomActionsRow button{border:1px solid var(--line);background:rgba(255,255,255,.055);color:white;border-radius:13px;padding:9px 10px;font-weight:900}
+ @media(max-width:1160px){.roomGrid{grid-template-columns:1fr}.roomShell{min-height:auto}.roomSide{display:grid;grid-template-columns:1fr 1fr}.roomChat{min-height:360px}.introTicks{grid-template-columns:1fr}}
+ @media(max-width:740px){.roomGrid{padding:12px}.roomSide{display:flex}.roomVideo{border-radius:22px;min-height:260px}.roomTitle h1{font-size:42px}.roomOverlayActions .btn{flex:1}.roomChat{min-height:310px}}
+ `;
+ document.head.appendChild(st);
+ try{state.roomMode=localStorage.getItem('oryon_room_mode')==='1'}catch{state.roomMode=false}
+ document.body?.classList.toggle('roomMode',!!state.roomMode);
+})();
+
+function activeLiveKey(x){const id=liveIdentity(x||{}); return id.platform+':'+id.login}
+function roomStatusText(cur){if(!cur)return 'Choisis une ambiance'; const id=liveIdentity(cur); return `${platformLabel(id.platform)} · ${id.viewers} viewers · ${id.game}`}
+function toggleRoomMode(){state.roomMode=!state.roomMode; try{localStorage.setItem('oryon_room_mode',state.roomMode?'1':'0')}catch{} document.body.classList.toggle('roomMode',!!state.roomMode); renderZap(); toast(state.roomMode?'Mode Room':'Mode Flow')}
+function showIntroFor(x){return !!(state.roomIntro && activeLiveKey(x)===state.roomIntro.key)}
+function liveIntroOverlay(x){if(!showIntroFor(x))return ''; const id=liveIdentity(x); const reasons=discoverReasonFor(x); return `<div class="introOverlay"><div class="introCard"><span class="eyebrow"><i class="dot"></i>Entrée douce</span><h2>${esc(id.name)}</h2><p class="muted">${esc(id.title)}</p><div class="introTicks"><span>${esc(reasons[0]||'Signal')}</span><span>${comfortScore(x)}% confort</span><span>${esc(microContextFor(x))}</span></div><div class="introProgress"><i></i></div></div></div>`}
+function startLiveIntro(){const x=currentZapItem(); if(!x)return; const id=liveIdentity(x); const token=Date.now(); state.roomIntro={key:activeLiveKey(x),token}; renderZap(); setTimeout(()=>{if(!state.roomIntro||state.roomIntro.token!==token)return; state.roomIntro=null; trackDiscovery(x); if(id.platform==='twitch'){state.discoverPlayer={type:'twitch',login:id.login}; setMiniLive({type:'twitch',login:id.login,title:'Twitch · '+id.login}); renderZap();}else{openOryon(id.login)}},3000)}
+function zapOpenCurrent(){startLiveIntro()}
+
+function trackDiscovery(x){
+ const id=liveIdentity(x); if(!id.login)return;
+ const vp=loadViewerImpact(); const key=activeLiveKey(x);
+ let item=(vp.discoveries||[]).find(d=>d.key===key);
+ if(!item){
+   item={key,platform:id.platform,login:id.login,name:id.name,title:id.title,game:id.game,firstViewers:id.viewers,bestViewers:id.viewers,lastViewers:id.viewers,ts:Date.now()};
+   vp.discoveries.unshift(item); vp.discoveries=vp.discoveries.slice(0,50); vp.points=Number(vp.points||0)+5;
+ }else{
+   item.lastViewers=id.viewers; item.bestViewers=Math.max(Number(item.bestViewers||0),id.viewers); item.seenAgain=Date.now();
+ }
+ if((vp.discoveries||[]).length>=3&&!vp.badges.includes('Chercheur de pépites'))vp.badges.push('Chercheur de pépites');
+ if((vp.discoveries||[]).length>=10&&!vp.badges.includes('Radar humain'))vp.badges.push('Radar humain');
+ if(id.viewers<=20&&!vp.badges.includes('Avant la foule'))vp.badges.push('Avant la foule');
+ saveViewerImpact(); renderViewerImpact();
+}
+function growthCardHtml(cur){
+ if(!cur)return '<div class="growthCard"><b>Trace</b><span>Découvre un live pour créer une trace.</span></div>';
+ const id=liveIdentity(cur); const vp=loadViewerImpact(); const d=(vp.discoveries||[]).find(x=>x.key===activeLiveKey(cur));
+ const first=Number(d?.firstViewers??id.viewers??0), now=Number(id.viewers||d?.lastViewers||0), best=Math.max(Number(d?.bestViewers||0),now);
+ if(!d)return `<div class="growthCard"><b>À découvrir tôt</b><span>${esc(id.name)} peut devenir une pépite de ton historique.</span></div>`;
+ if(best>first)return `<div class="growthCard"><b>+${best-first} depuis toi</b><span>Tu l’avais vu à ${first} viewer${first>1?'s':''}.</span></div>`;
+ return `<div class="growthCard"><b>Vu tôt</b><span>Première trace à ${first} viewer${first>1?'s':''}.</span></div>`;
+}
+function questData(){const vp=loadViewerImpact(); const saved=savedLives(); const supports=vp.firstSupports||[]; return [
+ {id:'discover3',icon:'✨',title:'Trouver 3 pépites',now:Math.min((vp.discoveries||[]).length,3),max:3,done:(vp.discoveries||[]).length>=3},
+ {id:'save1',icon:'💾',title:'Sauver un live',now:Math.min(saved.length,1),max:1,done:saved.length>=1},
+ {id:'support1',icon:'⭐',title:'Premier soutien',now:Math.min(supports.length,1),max:1,done:supports.length>=1},
+ {id:'room1',icon:'🌌',title:'Entrer en Room',now:readStore('oryon_room_used',false)?1:0,max:1,done:!!readStore('oryon_room_used',false)}
+ ];}
+function questPanelHtml(){return `<div class="questPanel">${questData().map(q=>`<div class="questItem ${q.done?'done':''}"><div class="questDot">${q.done?'✓':q.icon}</div><div><strong>${esc(q.title)}</strong><br><span>${q.done?'validé':'quête douce'}</span></div><b>${q.now}/${q.max}</b></div>`).join('')}</div>`}
+function newDuoCode(){return Math.random().toString(36).slice(2,6).toUpperCase()+'-'+Math.random().toString(36).slice(2,5).toUpperCase()}
+function startDuoSession(){const code=newDuoCode(); writeStore('oryon_duo_code',code); writeStore('oryon_duo_queue',(state.zap.items||[]).slice(0,8).map(liveIdentity)); try{navigator.clipboard?.writeText(code)}catch{} toast('Code duo copié'); renderZap()}
+function joinDuoPrompt(){const code=prompt('Code duo'); if(!code)return; writeStore('oryon_duo_code',code.trim().toUpperCase()); toast('Session duo prête'); renderZap()}
+function duoPanelHtml(){const code=readStore('oryon_duo_code',''); return `<div class="duoPanel"><div class="duoCode">${esc(code||'DUO')}</div><div class="roomActionsRow"><button onclick="startDuoSession()">Créer</button><button onclick="joinDuoPrompt()">Rejoindre</button></div></div>`}
+
+function spawnLiveEmote(emote){
+ const node=document.createElement('div'); node.className='liveEmoteBurst'; node.style.setProperty('--dx',(Math.round(Math.random()*120)-60)+'px');
+ if(emote?.image_url)node.innerHTML=`<img src="${esc(emote.image_url)}" alt="">`; else node.innerHTML='<span>✨</span>';
+ document.body.appendChild(node); setTimeout(()=>node.remove(),1900);
+}
+function viewerChatBadges(user){const u=(state.session.local?.login||state.session.twitch?.login||'').toLowerCase(); const mine=String(user||'').toLowerCase()===u; const vp=loadViewerImpact(); if(!mine)return ''; const labels=[]; if((vp.firstSupports||[]).length)labels.push('Premier soutien'); if((vp.discoveries||[]).length>=3)labels.push('Découvreur'); if((vp.badges||[]).includes('Avant la foule'))labels.push('Avant la foule'); return labels.slice(0,2).map(x=>`<span class="chatBadgeBig">${esc(x)}</span>`).join('')}
+function msgHtml(m){return `<div class="msg"><div class="chatNameLine"><b>${esc(m.user_display||m.user)}</b>${viewerChatBadges(m.user)}<span class="small">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span></div><div>${esc(m.text||'')}</div>${m.emote?`<img class="emoteInline" src="${esc(m.emote.image_url)}" title=":${esc(m.emote.code)}:">`:''}${m.gif?`<img src="${esc(m.gif)}">`:''}</div>`}
+function sendChat(){
+ if(!state.room)return toast('Aucun salon Oryon actif'); if(!state.socket)setupSocket(); if(!state.session.local)return toast('Connecte-toi à Oryon pour écrire dans le tchat natif.');
+ const payload={room:state.room,text:$('#chatInput')?.value||'',gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null};
+ state.socket.emit('native:chat',payload); if(payload.emote)spawnLiveEmote(payload.emote); $('#chatInput')&&($('#chatInput').value=''); state.selectedGif=''; state.selectedEmote=null; $('#gifGrid')?.classList.add('hidden')
+}
+function ritualButtonsHtml(){return `<div class="ritualRow"><button onclick="saveCurrentLive()">Sauver</button><button onclick="toast('Moment marqué')">Marquer</button><button onclick="spawnLiveEmote();toast('Bonne vibe')">Bonne vibe</button><button onclick="toggleCinema()">Cinéma</button><button onclick="toggleRoomMode()">Room</button></div>`}
+
+function renderRoomChat(cur){
+ if(!cur)return `<div class="roomNativeChatHint"><div><b>Chat prêt</b><span>Choisis un live.</span></div></div>`;
+ const id=liveIdentity(cur); const parent=location.hostname;
+ if(id.platform==='twitch' && spotlightIsPlaying(cur))return `<iframe src="https://www.twitch.tv/embed/${encodeURIComponent(id.login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe>`;
+ return `<div class="roomNativeChatHint"><div><b>Entrée sans pression</b><span>Regarde, sauve ou passe au suivant.</span><div class="roomActionsRow section"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="spawnLiveEmote();toast('Réaction douce')">Réagir</button></div></div></div>`;
+}
+function renderRoomShell(cur){
+ const id=cur?liveIdentity(cur):null; const reasons=cur?discoverReasonFor(cur):[]; const parent=location.hostname; const playing=cur&&spotlightIsPlaying(cur)&&id.platform==='twitch';
+ const media=cur?(playing?`<iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(id.login)}&parent=${encodeURIComponent(parent)}"></iframe>`:(id.img?`<img src="${esc(id.img)}" alt="">`:`<div class="spotlightEmpty">LIVE ${esc(id.platform||'Oryon').toUpperCase()}</div>`)):`<div class="spotlightEmpty">Choisis une ambiance</div>`;
+ return `<div class="roomShell" style="--roomBg:${id?.img?`url('${esc(id.img)}')`:'none'}"><div class="roomGrid"><main class="roomMain"><div class="roomTopBar"><span class="eyebrow"><i class="dot"></i>Mode Room</span><div class="row"><button class="roomModeToggle" onclick="toggleRoomMode()">Quitter Room</button><button class="btn secondary" onclick="zapNext()">Suivant</button></div></div><div class="roomVideo">${media}${cur?liveIntroOverlay(cur):''}<div class="roomOverlayActions"><button class="btn good" onclick="zapOpenCurrent()">${playing?'Regarder':'Entrer'}</button><button class="btn secondary" onclick="saveCurrentLive()">Sauver</button><button class="btn ghost" onclick="notMyVibe('mood')">Pas mon mood</button></div></div><div class="roomTitle"><div class="roomMiniRail">${reasons.map(r=>`<span class="reasonChip">${esc(r)}</span>`).join('')}</div><h1>${esc(id?.title||'Trouve ton live.')}</h1><p>${esc(id?`${id.name} · ${roomStatusText(cur)}`:'Une salle immersive, une ambiance claire, peu de texte.')}</p></div></main><aside class="roomSide"><div class="roomCard"><h2>Signal</h2>${cur?signalCardsHtml(cur):'<p>En attente.</p>'}</div><div class="roomCard">${growthCardHtml(cur)}</div><div class="roomCard"><h2>Quêtes de soirée</h2>${questPanelHtml()}</div><div class="roomCard"><h2>Duo viewer</h2>${duoPanelHtml()}</div><div class="roomCard roomChat"><div class="chatHeader"><span>Chat / présence</span><button class="btn ghost" onclick="spawnLiveEmote();toast('Bonne vibe')">✨</button></div>${renderRoomChat(cur)}</div></aside></div></div>`
+}
+function renderSpotlightPreview(x){
+ if(state.roomMode)return renderRoomShell(x);
+ if(!x)return `<div class="flowLive fused premium"><div class="zapThumb"></div><div class="flowOverlay fused premium"><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><div class="premiumHeadline"><h2>Choisis une ambiance.</h2><p class="muted">Une scène, un signal, une entrée simple.</p></div><div class="premiumActions"><button class="btn good" onclick="findLive()">Zapper</button><button class="softBtn" onclick="toggleRoomMode()">Room</button></div></div></div>`;
+ const id=liveIdentity(x), reasons=discoverReasonFor(x), score=comfortScore(x);
+ return `<article class="flowLive fused premium"><div class="zapThumb">${id.img?`<img src="${esc(id.img)}" alt="">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}<span class="zapBadge">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span></div>${liveIntroOverlay(x)}<div class="flowOverlay fused premium"><div class="quietProof"><span>${score}% confort</span><span>${esc(microContextFor(x))}</span><span>${esc(id.game)}</span></div><div class="premiumHeadline"><h2>${esc(id.title)}</h2><p class="muted">${esc(id.name)}</p></div><div class="reasonChips">${reasons.slice(0,4).map(r=>`<span class="reasonChip">${esc(r)}</span>`).join('')}</div><div class="premiumActions"><button class="btn good" onclick="zapOpenCurrent()">Regarder</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="softBtn" onclick="saveCurrentLive()">Sauver</button><button class="softBtn" onclick="toggleRoomMode()">Room</button><button class="softBtn" onclick="notMyVibe('mood')">Pas mon mood</button></div></div></article>`;
+}
+function renderSpotlightPlayer(x){
+ if(state.roomMode)return renderRoomShell(x);
+ const id=liveIdentity(x); if(!x || !spotlightIsPlaying(x) || id.platform!=='twitch') return renderSpotlightPreview(x);
+ const parent=location.hostname;
+ return `<div class="spotlightPlay premium"><div class="spotlightTop premium"><div><span class="eyebrow"><i class="dot"></i>Lecture en cours</span><h2>${esc(id.name)}</h2><p>${esc(id.title||'Live Twitch')}</p></div><div class="spotlightBar"><span class="pill">${id.viewers} viewers</span><span class="pill">${esc(id.game)}</span><button class="btn secondary" onclick="clearSpotlightPlayer();renderZap()">Carte</button><button class="btn ghost" onclick="zapNext()">Suivant</button><button class="btn ghost" onclick="toggleRoomMode()">Room</button><button class="btn ghost" onclick="toggleCinema()">Cinéma</button></div></div><div class="watchShell twitchWatch spotlightWatch premium"><div class="player premiumPlayer"><iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(id.login)}&parent=${encodeURIComponent(parent)}"></iframe></div><aside class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(id.login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe></aside></div></div>`;
+}
+function renderSpotlightMeta(cur){
+ const score=cur?comfortScore(cur):0; const id=cur?liveIdentity(cur):null; const reasons=cur?discoverReasonFor(cur):[];
+ return `<aside class="compactSignal"><div class="panel"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Signal</h2><span class="small">${cur?esc(platformLabel(id.platform)):'Prêt'}</span></div><div class="comfortRing" style="--score:${score}%">${cur?score:'—'}</div></div>${cur?`<div class="reasonChips section">${reasons.slice(0,4).map(r=>`<span class="reasonChip">${esc(r)}</span>`).join('')}</div><div class="section">${signalCardsHtml(cur)}</div>`:'<div class="empty section">Choisis une ambiance.</div>'}</div><div class="panel"><h2 style="margin-top:0">Contrôle mood</h2>${moodPadHtml()}</div><div class="panel"><h2 style="margin-top:0">Rituels</h2>${ritualButtonsHtml()}</div><div class="panel">${growthCardHtml(cur)}</div><div class="panel"><h2 style="margin-top:0">Quêtes</h2>${questPanelHtml()}</div><div class="panel"><h2 style="margin-top:0">Duo</h2>${duoPanelHtml()}</div><div class="panel">${viewerCapsuleHtml()}</div></aside>`;
+}
+function renderZap(){
+ const box=$('#zapResult'); if(!box) return;
+ const items=state.zap.items||[]; const cur=items[state.zap.index]||null; const id=cur?liveIdentity(cur):null; const bg=id?.img?`url('${esc(id.img)}')`:'none';
+ if(state.roomMode){writeStore('oryon_room_used',true); box.innerHTML=`${renderRoomShell(cur)}${items.length>1?`<div class="section panel"><div class="softQueueTitle"><h2 style="margin:0">File douce</h2><span class="small">Zapping partagé, sans rupture</span></div><div class="flowQueue">${queuePreview(items)}</div></div>`:''}`; return;}
+ box.innerHTML=`<div class="premiumFlowWrap" style="--spotBg:${bg}"><div class="ambientBackplate"></div><div class="flowStage fused premium"><div class="spotlightShell">${renderSpotlightPlayer(cur)}</div>${renderSpotlightMeta(cur)}</div>${items.length>1?`<div class="section panel"><div class="softQueueTitle"><h2 style="margin:0">File douce</h2><span class="small">Passe au suivant sans perdre le fil</span></div><div class="flowQueue">${queuePreview(items)}</div></div>`:''}</div>`;
+}
