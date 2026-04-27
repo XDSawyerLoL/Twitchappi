@@ -159,48 +159,51 @@ function parseYouTubePlaylistFromHTML(html) {
 }
 
 const { GoogleGenAI } = require('@google/genai');
-const admin = require('firebase-admin');
+let admin;
+try { admin = require('firebase-admin'); } catch(_) { admin = null; }
 
 // =========================================================
-// 0. INITIALISATION FIREBASE
+// 0. FIREBASE SAFE INIT
 // =========================================================
-let serviceAccount;
+// Render must start even when Firebase is not configured. The old build could hang
+// while trying to use Application Default Credentials. For the MVP, Firestore is
+// optional: if no explicit FIREBASE_SERVICE_KEY is present, we use a tiny in-memory
+// stub and all critical live/discovery routes remain available.
+function makeFirestoreStub(){
+  const emptySnap = { empty:true, docs:[], forEach(){}, size:0 };
+  const docSnap = { exists:false, data(){ return {}; } };
+  const chain = {
+    doc(){ return chain; }, collection(){ return chain; }, where(){ return chain; }, orderBy(){ return chain; }, limit(){ return chain; },
+    async get(){ return emptySnap; }, async set(){ return undefined; }, async update(){ return undefined; }, async delete(){ return undefined; },
+    async add(){ return { id: Date.now().toString(36) }; }
+  };
+  chain.getDoc = async () => docSnap;
+  return { collection(){ return chain; }, settings(){}, __stub:true };
+}
 
-if (process.env.FIREBASE_SERVICE_KEY) {
+let serviceAccount = null;
+let db = makeFirestoreStub();
+let firestoreOk = false;
+if (admin && process.env.FIREBASE_SERVICE_KEY) {
   try {
     let rawJson = process.env.FIREBASE_SERVICE_KEY;
     if (rawJson.startsWith("'") && rawJson.endsWith("'")) rawJson = rawJson.slice(1, -1);
     if (rawJson.startsWith('"') && rawJson.endsWith('"')) rawJson = rawJson.slice(1, -1);
-    rawJson = rawJson.replace(/\\r\\n/g, '\\n').replace(/\\n/g, '\\n').replace(/\\r/g, '\\n');
+    rawJson = rawJson.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
     serviceAccount = JSON.parse(rawJson);
+    if (!admin.apps.length) admin.initializeApp({ credential: admin.credential.cert(serviceAccount), projectId: serviceAccount.project_id });
+    db = admin.firestore();
+    db.settings({ projectId: serviceAccount.project_id, ignoreUndefinedProperties: true });
+    firestoreOk = true;
+    console.log('✅ [FIREBASE] Base connectée (serviceAccount).');
   } catch (error) {
-    console.error("\u274C Erreur JSON Firebase:", error.message);
+    firestoreOk = false;
+    db = makeFirestoreStub();
+    console.warn('⚠️ [FIREBASE] désactivé, fallback mémoire:', error.message);
   }
 } else {
-  try { serviceAccount = require('./serviceAccountKey.json'); } catch (e) {}
+  console.log('ℹ️ [FIREBASE] non configuré : fallback mémoire actif.');
 }
-
-try {
-  if (serviceAccount) {
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount), projectId: serviceAccount.project_id });
-    console.log("\u2705 [FIREBASE] Base connect\u00E9e (serviceAccount).");
-  } else {
-    admin.initializeApp();
-    console.log("\u2705 [FIREBASE] init default.");
-  }
-} catch (e) {
-  console.error("\u274C [FIREBASE] init error:", e.message);
-}
-
-const db = admin.firestore();
-try {
-  if (serviceAccount) {
-    db.settings({ projectId: serviceAccount.project_id, ignoreUndefinedProperties: true });
-  } else {
-    db.settings({ ignoreUndefinedProperties: true });
-  }
-} catch (e) {}
-
 
 // =========================================================
 // 0.B HUB CHAT PERSISTENCE + GIF PROXY (SAFE)
@@ -209,8 +212,7 @@ const CHAT_COLLECTION = 'hub_messages';
 const USER_COLLECTION = 'hub_users';
 const MAX_INMEM_HISTORY = 200;
 
-let firestoreOk = true;
-try { db.collection('_ping').limit(1); } catch (e) { firestoreOk = false; }
+// firestoreOk is set by safe Firebase init above.
 
 const inMemHistory = []; // fallback if firestore not available
 
@@ -1833,13 +1835,13 @@ function computeGrowthScore({ avgViewers = 0, growthPct = 0, volatility = 0, hou
 // =========================================================
 // 2C. CRON SNAPSHOTS -> Firestore
 // =========================================================
-const ENABLE_CRON = (process.env.ENABLE_CRON || 'true').toLowerCase() !== 'false';
+const ENABLE_CRON = (process.env.ENABLE_CRON || 'false').toLowerCase() === 'true';
 const SNAPSHOT_EVERY_MIN = parseInt(process.env.SNAPSHOT_EVERY_MIN || '5', 10);
 
 // Tracked channels (targeted collection for 20-200 viewers):
 // - stored by Twitch user_id (stable)
 // - snapshots collected even if the channel is not in top100 FR
-const ENABLE_TRACKED_CRON = (process.env.ENABLE_TRACKED_CRON || 'true').toLowerCase() !== 'false';
+const ENABLE_TRACKED_CRON = (process.env.ENABLE_TRACKED_CRON || 'false').toLowerCase() === 'true';
 const TRACKED_EVERY_MIN = parseInt(process.env.TRACKED_EVERY_MIN || String(SNAPSHOT_EVERY_MIN || 5), 10);
 const TRACKED_MAX = parseInt(process.env.TRACKED_MAX || '500', 10);
 
@@ -3178,24 +3180,82 @@ function discoverNativeItemsFor(q='', max=200, source='both'){
 
 app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
   try{
-    const q=String(req.query.q||'').trim(); const max=Math.max(1,Math.min(300,parseInt(req.query.max||'200',10)||200)); const lang=String(req.query.lang||'fr').slice(0,8)||'fr'; const mood=String(req.query.mood||'').toLowerCase(); const source=String(req.query.source||'both').toLowerCase();
-    const nativeItems = discoverNativeItemsFor(q, max, source);
-    let twitchItems=[];
-    try{
-      if(source!=='oryon' && source!=='peertube'){
-        let url=`streams?first=100&language=${encodeURIComponent(lang)}`;
-        if(q){ const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`); const gid=gr.data?.[0]?.id; if(gid) url=`streams?game_id=${encodeURIComponent(gid)}&first=100&language=${encodeURIComponent(lang)}`; }
-        const tr=await twitchAPI(url);
-        twitchItems=(tr.data||[]).filter(s=>Number(s.viewer_count||0)<=max).map(s=>({platform:'twitch',id:s.id,login:s.user_login,display_name:s.user_name,title:s.title,game_name:s.game_name,viewer_count:s.viewer_count||0,thumbnail_url:String(s.thumbnail_url||'').replace('{width}','640').replace('{height}','360'),score:Math.max(1,100-Number(s.viewer_count||0))}));
-        if(mood==='calme') twitchItems=twitchItems.filter(x=>Number(x.viewer_count||0)<=50);
-        if(mood==='active') twitchItems=twitchItems.sort((a,b)=>(b.viewer_count||0)-(a.viewer_count||0)); else twitchItems=twitchItems.sort((a,b)=>(a.viewer_count||0)-(b.viewer_count||0));
+    const q=String(req.query.q||'').trim();
+    const max=Math.max(1,Math.min(10000,parseInt(req.query.max||'200',10)||200));
+    const lang=String(req.query.lang||'fr').slice(0,8)||'fr';
+    const mood=String(req.query.mood||'').toLowerCase();
+    const source=String(req.query.source||'both').toLowerCase();
+    const items=[];
+    const seen=new Set();
+    function push(x){
+      if(!x) return;
+      const platform=x.platform||'twitch';
+      const login=String(x.login||x.user_login||x.host_login||x.room||x.display_name||x.user_name||'').toLowerCase();
+      const key=platform+':'+login+':'+String(x.id||'');
+      if(!login || seen.has(key)) return;
+      seen.add(key);
+      items.push(x);
+    }
+
+    discoverNativeItemsFor(q, max, source).forEach(x => push({...x, platform:'oryon'}));
+
+    if(source!=='oryon' && source!=='peertube'){
+      // 1) Category-specific search when a query is supplied.
+      if(TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET){
+        try{
+          let url=`streams?first=100&language=${encodeURIComponent(lang)}`;
+          if(q){
+            const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`);
+            const gid=gr.data?.[0]?.id;
+            if(gid) url=`streams?game_id=${encodeURIComponent(gid)}&first=100&language=${encodeURIComponent(lang)}`;
+          }
+          let tr=await twitchAPI(url);
+          let data=tr.data||[];
+          // 2) If strict category/language is empty, broaden once before giving up.
+          if(!data.length && q){
+            const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`);
+            const gid=gr.data?.[0]?.id;
+            if(gid){
+              tr=await twitchAPI(`streams?game_id=${encodeURIComponent(gid)}&first=100`);
+              data=tr.data||[];
+            }
+          }
+          if(!data.length){
+            tr=await twitchAPI(`streams?first=100&language=${encodeURIComponent(lang)}`);
+            data=tr.data||[];
+          }
+          data.filter(s=>Number(s.viewer_count||0)<=max).forEach(s=>push({
+            platform:'twitch',id:s.id,login:s.user_login,display_name:s.user_name,title:s.title,
+            game_name:s.game_name,viewer_count:s.viewer_count||0,
+            thumbnail_url:String(s.thumbnail_url||'').replace('{width}','640').replace('{height}','360'),
+            started_at:s.started_at,score:Math.max(1,100-Number(s.viewer_count||0))
+          }));
+        }catch(e){ console.warn('/api/oryon/discover/find-live public twitch fallback', e.message); }
       }
-    }catch(e){ console.warn('/api/oryon/discover/find-live twitch fallback', e.message); }
-    const peertubeItems = []; // PeerTube reste disponible techniquement, mais retiré du parcours Découvrir principal.
-    res.json({success:true,items:[...nativeItems,...twitchItems,...peertubeItems].slice(0,24),query:q,max,lang,mood,source});
+
+      // 3) Connected Twitch fallback. Essential when app credentials are absent.
+      const tu=req.session?.twitchUser;
+      if(items.length<6 && tu && (!tu.expiry || tu.expiry>Date.now())){
+        try{
+          const tr=await twitchAPI(`streams/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
+          (tr.data||[]).filter(s=>Number(s.viewer_count||0)<=max).forEach(s=>push({
+            platform:'twitch',id:s.id,login:s.user_login,display_name:s.user_name,title:s.title,
+            game_name:s.game_name,viewer_count:s.viewer_count||0,
+            thumbnail_url:String(s.thumbnail_url||'').replace('{width}','640').replace('{height}','360'),
+            started_at:s.started_at,score:Math.max(1,100-Number(s.viewer_count||0))
+          }));
+        }catch(e){ console.warn('/api/oryon/discover/find-live followed fallback', e.message); }
+      }
+    }
+
+    const normalized=items.sort((a,b)=>{
+      const av=Number(a.viewer_count??a.viewers??0)||0, bv=Number(b.viewer_count??b.viewers??0)||0;
+      return Math.abs(av-45)-Math.abs(bv-45) || bv-av;
+    }).slice(0,36);
+
+    res.json({success:true,items:normalized,query:q,max,lang,mood,source,source_detail:normalized.length?'live':'empty'});
   }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
 });
-
 
 function getFirstSupportPayload(login, viewerLogin=''){
   const data = readJsonSafe(oryonSupportFile, {channels:{}});
@@ -3499,26 +3559,92 @@ app.get('/api/twitch/channels/search', heavyLimiter, async (req, res) => {
 
 
 // Oryon homepage: petits lives Twitch secondaires, plafonnés côté affichage.
+// Oryon homepage/discover: live stream pool with robust fallbacks.
+// Priority:
+// 1) Twitch app token public streams, if TWITCH_CLIENT_ID/SECRET are configured.
+// 2) Twitch user-token followed streams, if the viewer connected Twitch.
+// 3) Oryon native lives.
+// The endpoint always returns JSON and never breaks the page with a hard 500.
 app.get('/api/twitch/streams/small', heavyLimiter, async (req, res) => {
+  const lang = String(req.query.lang || 'fr').trim().toLowerCase();
+  const min = Math.max(0, Math.min(10000, Number(req.query.min || 0)));
+  const max = Math.max(1, Math.min(10000, Number(req.query.max || 300)));
+  const first = Math.max(1, Math.min(100, Number(req.query.first || 100)));
+  const out = [];
+  const seen = new Set();
+
+  function pushStream(s, source='twitch'){
+    const login = String(s.user_login || s.login || '').toLowerCase();
+    const id = String(s.id || s.user_id || login || '');
+    const viewers = Number(s.viewer_count || s.viewers || 0);
+    if(viewers < min || viewers > max) return;
+    const key = login || id;
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    out.push({
+      id: s.id || id,
+      user_id: s.user_id || '',
+      login: s.user_login || s.login || '',
+      display_name: s.user_name || s.display_name || s.login || '',
+      title: s.title || 'Live en cours',
+      game_name: s.game_name || s.category || '',
+      viewer_count: viewers,
+      started_at: s.started_at || null,
+      thumbnail_url: String(s.thumbnail_url || '').replace('{width}','640').replace('{height}','360'),
+      platform: source
+    });
+  }
+
   try{
-    const lang = String(req.query.lang || 'fr').trim().toLowerCase();
-    const min = Math.max(0, Math.min(300, Number(req.query.min || 0)));
-    const max = Math.max(1, Math.min(300, Number(req.query.max || 300)));
-    const token = await getTwitchToken();
-    const data = await twitchAPI(`streams?first=100&language=${encodeURIComponent(lang)}`, token);
-    const items = (data.data || [])
-      .filter(s => Number(s.viewer_count || 0) >= min && Number(s.viewer_count || 0) <= max)
-      .sort((a,b) => Number(a.viewer_count || 0) - Number(b.viewer_count || 0))
-      .slice(0, 24)
-      .map(s => ({
-        id:s.id, user_id:s.user_id, login:s.user_login, display_name:s.user_name,
-        title:s.title, game_name:s.game_name, viewer_count:s.viewer_count || 0, started_at:s.started_at,
-        thumbnail_url:String(s.thumbnail_url || '').replace('{width}','640').replace('{height}','360'), platform:'twitch'
-      }));
-    res.json({ success:true, items });
+    // Public Twitch pool, when app credentials exist.
+    if(TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET){
+      try{
+        const token = await getTwitchToken();
+        if(token){
+          const data = await twitchAPI(`streams?first=${first}&language=${encodeURIComponent(lang)}`, token);
+          (data.data || []).forEach(s => pushStream(s, 'twitch'));
+        }
+      }catch(e){
+        console.warn('⚠️ /api/twitch/streams/small public pool failed:', e.message);
+      }
+    }
+
+    // Viewer-followed live fallback. This is what prevents empty screens when app credentials are absent.
+    const tu = req.session?.twitchUser;
+    if(out.length < 6 && tu && (!tu.expiry || tu.expiry > Date.now())){
+      try{
+        const followed = await twitchAPI(`streams/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
+        (followed.data || []).forEach(s => pushStream(s, 'twitch'));
+      }catch(e){
+        console.warn('⚠️ /api/twitch/streams/small followed fallback failed:', e.message);
+      }
+    }
+
+    // Oryon native fallback.
+    if(out.length < 6){
+      try{
+        for(const x of discoverNativeItemsFor('', max, 'both')){
+          const viewers = Number(x.viewer_count ?? x.viewers ?? 0);
+          if(viewers < min || viewers > max) continue;
+          const key = 'oryon:' + String(x.host_login || x.room || '').toLowerCase();
+          if(!key || seen.has(key)) continue;
+          seen.add(key);
+          out.push({...x, platform:'oryon', viewer_count:viewers});
+        }
+      }catch(_){ }
+    }
+
+    out.sort((a,b) => {
+      const av=Number(a.viewer_count||0), bv=Number(b.viewer_count||0);
+      const aBand=(av>=30&&av<=100)?0:Math.abs(av-45);
+      const bBand=(bv>=30&&bv<=100)?0:Math.abs(bv-45);
+      return aBand-bBand || bv-av;
+    });
+
+    return res.json({ success:true, items: out.slice(0,24), source: out.length ? 'live' : 'empty' });
   }catch(e){
-    console.warn('⚠️ /api/twitch/streams/small', e.message);
-    res.json({ success:false, error:e.message, items:[] });
+    console.warn('⚠️ /api/twitch/streams/small fatal', e.message);
+    return res.json({ success:false, error:e.message, items:[] });
   }
 });
 

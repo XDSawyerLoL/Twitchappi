@@ -3127,3 +3127,196 @@ async function loadTeams(){
   const r=await api('/api/oryon/teams').catch(()=>({items:[]}));
   $('#teamsList').innerHTML=(r.items||[]).map(t=>`<article class="teamCardFull"><div class="row"><img class="teamLogo" src="${esc(t.logo_url||'')}" alt=""><div><h2>${esc(t.name)}</h2><p class="muted">${esc(t.description||'Équipe Oryon')}</p></div></div><p><span class="pill">${t.members?.length||0} membres</span> <span class="pill">${t.points||0} points</span></p><div class="row"><button class="btn" onclick="joinTeam('${esc(t.slug)}')">Rejoindre</button><button class="btn secondary" onclick="viewTeam('${esc(t.slug)}')">Voir</button></div></article>`).join('')||'<div class="teamCardFull"><h2>Aucune équipe pour le moment.</h2><p class="muted">Crée la première équipe avec un logo, une identité et des membres live.</p></div>';
 }
+
+
+/* =========================================================
+   ORYON HARD FIX — full-width platform + working live pools
+   This block intentionally overrides previous experimental passes.
+   Goals:
+   - Desktop uses the full viewport like a live platform.
+   - Home always attempts to show real live recommendations.
+   - Discover never gets stuck on “already seen everything”.
+   - Mood cards trigger real discovery directly.
+   - Channel page behaves closer to Twitch: huge banner + huge player.
+========================================================= */
+(function injectOryonHardFixStyle(){
+  if(document.getElementById('oryonHardFixStyle')) return;
+  const st=document.createElement('style');
+  st.id='oryonHardFixStyle';
+  st.textContent=`
+  :root{--site-pad:clamp(18px,2.4vw,48px);--viewer-accent:var(--viewer-accent,#8b5cf6)}
+  html,body{width:100%;max-width:100%;overflow-x:hidden;background:radial-gradient(circle at 0% 10%,rgba(34,211,238,.12),transparent 30%),radial-gradient(circle at 20% 100%,rgba(139,92,246,.18),transparent 34%),#05070d!important}
+  .app{width:100%!important;max-width:none!important;margin:0!important;padding:0!important}
+  .view.active{width:100%!important;max-width:none!important;margin:0!important}
+  .topbar{padding:0 var(--site-pad)!important}
+
+  /* HOME: real platform showcase */
+  .hfHome{width:100%;display:grid;gap:28px;padding:34px var(--site-pad) 54px}
+  .hfHero{display:grid;grid-template-columns:minmax(360px,.54fr) minmax(680px,1fr);gap:30px;align-items:stretch;width:100%;min-height:clamp(520px,62vh,760px);border:1px solid rgba(148,163,184,.16);background:linear-gradient(125deg,rgba(45,28,95,.96),rgba(5,18,32,.96));box-shadow:0 30px 100px rgba(0,0,0,.38);overflow:hidden;border-radius:34px}
+  .hfHeroCopy{display:flex;flex-direction:column;justify-content:center;gap:20px;padding:clamp(28px,3.4vw,58px);min-width:0}
+  .hfHeroCopy h1{margin:0;font-size:clamp(66px,7.4vw,128px);line-height:.84;letter-spacing:-.09em;max-width:900px}
+  .hfHeroCopy p{margin:0;color:#dbe7fb;font-size:clamp(18px,1.35vw,24px);line-height:1.4;max-width:780px}
+  .hfMoodStrip{display:flex;gap:9px;flex-wrap:wrap}.hfMoodStrip button{border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:9px 13px;font-weight:1000}
+  .hfActions{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:780px}.hfActions .btn{min-height:64px;border-radius:18px;font-size:16px;display:grid;place-items:center}.hfActions .streamBtn{background:linear-gradient(135deg,var(--brand),#bd46ff)!important;box-shadow:0 18px 60px rgba(139,92,246,.32)}
+  .hfLiveStage{position:relative;min-width:0;display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;padding:clamp(18px,2vw,36px);align-items:stretch;background:linear-gradient(90deg,rgba(2,6,23,.12),rgba(2,6,23,.44))}.hfLiveStage::-webkit-scrollbar,.hfRail::-webkit-scrollbar{height:8px}.hfLiveStage::-webkit-scrollbar-thumb,.hfRail::-webkit-scrollbar-thumb{background:rgba(148,163,184,.42);border-radius:999px}
+  .hfLiveCard{position:relative;min-width:min(920px,70vw);width:min(920px,70vw);aspect-ratio:16/9;border:1px solid rgba(34,211,238,.32);border-radius:30px;overflow:hidden;background:#030712;scroll-snap-align:center;box-shadow:0 32px 110px rgba(0,0,0,.42);cursor:pointer;color:#fff;text-align:left}
+  .hfLiveCard>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.08) contrast(1.03)}
+  .hfLiveCard:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.12) 35%,rgba(2,6,23,.93));z-index:1}
+  .hfLiveBody{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:26px;display:grid;gap:12px}.hfLiveBody h2{font-size:clamp(34px,3.8vw,62px);line-height:.94;letter-spacing:-.065em;margin:0;max-width:880px}.hfLiveBody p{margin:0;color:#eaf2ff;font-weight:950;font-size:16px}.hfTagRow{display:flex;gap:8px;flex-wrap:wrap}.hfTag{display:inline-flex;border:1px solid rgba(255,255,255,.16);background:rgba(2,6,23,.58);backdrop-filter:blur(8px);color:#fff;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000}
+  .hfEmptyLive{min-width:min(920px,70vw);width:min(920px,70vw);aspect-ratio:16/9;border:1px dashed rgba(148,163,184,.32);border-radius:30px;background:radial-gradient(circle at 30% 25%,rgba(139,92,246,.24),transparent 34%),#050814;display:grid;place-items:center;text-align:center;padding:30px;scroll-snap-align:center}.hfEmptyLive h2{font-size:clamp(38px,4vw,68px);line-height:.92;margin:0 0 10px;letter-spacing:-.07em}.hfEmptyLive p{color:#cbd5e1;margin:0 0 18px;max-width:620px}
+  .hfBelow{display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,.82fr);gap:22px}.hfPanel{border:1px solid rgba(148,163,184,.16);background:linear-gradient(180deg,rgba(15,23,42,.72),rgba(15,23,42,.34));border-radius:28px;padding:22px;min-width:0}.hfPanel h2{font-size:clamp(28px,2.5vw,44px);letter-spacing:-.06em;margin:0 0 8px}.hfPanel p{color:#aebbd0;margin:0}.hfRail{display:flex;gap:14px;overflow-x:auto;padding:8px 0 14px}.hfFollowCard{position:relative;min-width:330px;width:330px;aspect-ratio:16/9;border-radius:24px;overflow:hidden;background:#030712;border:1px solid rgba(148,163,184,.18);color:#fff}.hfFollowCard img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.hfFollowCard:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(2,6,23,.90));z-index:1}.hfFollowBody{position:absolute;z-index:2;left:14px;right:14px;bottom:14px}.hfFollowBody b{font-size:20px}.hfAvatar{width:46px;height:46px;border-radius:15px;border:2px solid rgba(255,255,255,.24);object-fit:cover;background:#111827}.hfLivePill{position:absolute;z-index:3;top:12px;right:12px;border-radius:999px;padding:7px 10px;background:rgba(16,185,129,.9);font-weight:1000;font-size:12px}
+
+  /* DISCOVER: mood -> card -> swipe */
+  .hfDiscover{width:100%;padding:34px var(--site-pad) 70px;display:grid;gap:22px}.hfDiscoverHero{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:18px;border:1px solid rgba(139,92,246,.26);border-radius:32px;background:radial-gradient(circle at 18% 12%,rgba(139,92,246,.26),transparent 34%),linear-gradient(135deg,rgba(12,18,32,.96),rgba(5,8,16,.98));padding:clamp(24px,3vw,46px)}.hfDiscoverHero h1{font-size:clamp(58px,6.5vw,112px);line-height:.86;letter-spacing:-.09em;margin:8px 0}.hfDiscoverHero p{margin:0;color:#d5e0f3;font-size:18px}.hfDiscoverHint{display:flex;gap:8px}.hfDiscoverHint span{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:999px;padding:8px 12px;font-weight:950;font-size:12px}
+  .hfMoodPanel{border:1px solid rgba(148,163,184,.16);border-radius:28px;background:rgba(255,255,255,.035);padding:16px}.hfMoodHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.hfMoodHead h2{margin:0;font-size:34px;letter-spacing:-.055em}.hfMoodGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}.hfMoodCard{min-height:128px;border:1px solid rgba(255,255,255,.11);background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.024));color:#fff;border-radius:24px;padding:16px;text-align:left;display:grid;align-content:end;gap:6px}.hfMoodCard:hover,.hfMoodCard.active{border-color:rgba(34,211,238,.8);background:linear-gradient(145deg,rgba(139,92,246,.23),rgba(34,211,238,.10));transform:translateY(-2px)}.hfMoodCard i{font-size:32px;font-style:normal}.hfMoodCard b{font-size:17px}.hfMoodCard span{font-size:12px;color:#c8d4e7;line-height:1.25}.hfAdvanced{margin-top:12px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:rgba(255,255,255,.025);overflow:hidden}.hfAdvanced summary{cursor:pointer;list-style:none;padding:13px 15px;font-weight:950}.hfAdvanced summary::-webkit-details-marker{display:none}.hfAdvancedBody{display:grid;grid-template-columns:minmax(220px,1fr) 150px 120px 90px auto;gap:9px;padding:13px;border-top:1px solid rgba(255,255,255,.09)}
+  .hfZap{min-height:clamp(520px,56vw,820px);display:grid}.hfZap .hfLiveCard{width:100%;min-width:0;height:auto;max-width:none}.hfZap .hfLiveCard{aspect-ratio:16/9}.hfSwipeStamp{position:absolute;left:50%;top:50%;z-index:8;transform:translate(-50%,-50%) scale(.86);opacity:0;border:5px solid currentColor;border-radius:26px;padding:20px 30px;background:rgba(2,6,23,.72);backdrop-filter:blur(12px);font-size:clamp(50px,8vw,110px);font-weight:1000;text-transform:uppercase;letter-spacing:-.06em;pointer-events:none}.hfSwipeStamp.like{color:#22c55e}.hfSwipeStamp.nope{color:#fb7185}.hfLiveCard.swipe-like .hfSwipeStamp.like,.hfLiveCard.swipe-nope .hfSwipeStamp.nope{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-3deg)}.hfSwipeHint{position:absolute;z-index:2;top:16px;left:16px;border:1px solid rgba(255,255,255,.16);background:rgba(2,6,23,.62);border-radius:999px;padding:8px 11px;font-weight:950;font-size:12px}.hfDiscoverActions{display:grid;grid-template-columns:1.2fr .8fr .8fr;gap:10px;margin-top:4px}.hfDiscoverActions .btn{min-height:56px;border-radius:16px}
+
+  /* CHANNEL: full-width Twitch-like public page */
+  #channel{padding:0!important}.channelPage.twitchLike,.channelPage.viewerTint,.channelPage{width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;padding:0!important;background:transparent!important}.channelTopHero{width:100%!important;min-height:clamp(360px,32vw,560px)!important;border-radius:0!important;border-left:0!important;border-right:0!important;position:relative;overflow:hidden}.channelTopHero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.channelTopHero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.08),rgba(2,6,23,.78))}.channelHeroContent{position:absolute!important;z-index:2;left:var(--site-pad)!important;right:var(--site-pad)!important;bottom:28px!important;display:flex!important;justify-content:space-between!important;align-items:flex-end!important;gap:18px}.channelIdentity{display:flex!important;align-items:flex-end!important;gap:18px!important}.channelIdentity .avatar{width:130px!important;height:130px!important;border-radius:28px!important;border:4px solid rgba(2,6,23,.88)!important}.channelTitleBlock h1{font-size:clamp(52px,5vw,96px)!important;line-height:.9!important;letter-spacing:-.08em!important;margin:0!important}.channelSubNav{position:sticky;top:68px;z-index:40;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);background:rgba(5,7,13,.92);backdrop-filter:blur(12px);padding:0 var(--site-pad)!important;margin:0!important;display:flex;gap:22px}.channelSubNav button{min-height:56px;color:#dbeafe}.channelLiveLayout{width:100%!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(360px,430px)!important;gap:18px!important;padding:22px var(--site-pad) 0!important}.channelMainPlayer{min-width:0}.channelMainPlayer .oryonMainPlayer,.channelMainPlayer .player{width:100%!important;min-height:auto!important;height:auto!important;aspect-ratio:16/9!important;border-radius:24px!important;background:#030712!important}.channelLiveSidebar .chatPanel{height:auto!important;min-height:0!important;aspect-ratio:auto!important;max-height:none!important;border-radius:24px!important}.channelLiveSidebar{min-width:0}.channelContentGrid{width:100%!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(360px,430px)!important;gap:18px!important;padding:22px var(--site-pad) 80px!important}.channelInfoCard{border:1px solid rgba(148,163,184,.16);border-radius:22px;background:rgba(15,23,42,.52);padding:18px}
+
+  @media(max-width:1200px){.hfHero{grid-template-columns:1fr}.hfLiveCard,.hfEmptyLive{min-width:84vw;width:84vw}.hfBelow{grid-template-columns:1fr}.hfMoodGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.channelLiveLayout,.channelContentGrid{grid-template-columns:1fr!important}.channelLiveSidebar .chatPanel{height:480px!important}.channelHeroContent{align-items:flex-start!important;flex-direction:column}.channelIdentity .avatar{width:96px!important;height:96px!important}.channelTitleBlock h1{font-size:58px!important}}
+  @media(max-width:760px){:root{--site-pad:14px}.topbar{height:56px}.hfHome,.hfDiscover{padding:16px var(--site-pad) 96px}.hfHero{border-radius:24px;min-height:0}.hfHeroCopy{padding:20px}.hfHeroCopy h1{font-size:clamp(46px,14vw,74px)}.hfActions{grid-template-columns:1fr}.hfLiveStage{padding:14px}.hfLiveCard,.hfEmptyLive{min-width:88vw;width:88vw;border-radius:24px}.hfLiveBody{padding:16px}.hfLiveBody h2{font-size:28px}.hfBelow{gap:14px}.hfPanel{border-radius:22px;padding:16px}.hfMoodGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.hfMoodCard{min-height:112px;border-radius:19px;padding:12px}.hfAdvancedBody{grid-template-columns:1fr}.hfDiscoverHero{grid-template-columns:1fr;border-radius:24px;padding:18px}.hfDiscoverHero h1{font-size:clamp(42px,13vw,68px)}.hfDiscoverHint{display:none}.hfZap{min-height:auto}.hfDiscoverActions{grid-template-columns:1fr}.channelTopHero{min-height:340px!important}.channelHeroContent{left:14px!important;right:14px!important;bottom:16px!important}.channelSubNav{top:56px;overflow-x:auto}.channelSubNav button{white-space:nowrap}.channelLiveLayout{padding:12px 14px 0!important}.channelContentGrid{padding:14px 14px 96px!important}.channelLiveSidebar .chatPanel{height:420px!important}.hfFollowCard{min-width:82vw;width:82vw}}
+  `;
+  document.head.appendChild(st);
+})();
+
+function hfReadJson(key, fallback){ try{return JSON.parse(localStorage.getItem(key)||'')||fallback}catch{return fallback} }
+function hfWriteJson(key, value){ try{localStorage.setItem(key, JSON.stringify(value))}catch(_){} }
+function hfViewerKey(){ return String(state.session?.local?.login || state.session?.twitch?.login || 'guest').toLowerCase(); }
+function hfSeenKey(){ return 'oryon_seen_soft_v4:'+hfViewerKey(); }
+function hfLiveId(x){
+  const id = liveIdentity?.(x||{}) || {};
+  return {
+    platform:id.platform || x.platform || 'twitch',
+    login:String(id.login || x.login || x.user_login || x.host_login || x.room || '').toLowerCase(),
+    name:id.name || x.display_name || x.user_name || x.host_name || x.login || 'Live',
+    title:id.title || x.title || 'Live en cours',
+    game:id.game || x.game_name || x.category || 'Live',
+    viewers:Number(id.viewers ?? x.viewer_count ?? x.viewers ?? 0)||0,
+    img:id.img || x.thumbnail_url || ''
+  };
+}
+function hfLiveKey(x){ const id=hfLiveId(x); return `${id.platform}:${id.login}`; }
+function hfTags(x){ const id=hfLiveId(x); const base=[]; base.push(id.platform==='oryon'?'Oryon Live':'Twitch'); if(id.viewers) base.push(`${id.viewers} viewers`); if(id.game) base.push(id.game); const t=signalTagsFor?.(x)||[]; return [...new Set([...t,...base].filter(Boolean))].slice(0,5); }
+function hfOpenLive(x){ const id=hfLiveId(x); if(id.platform==='oryon') return openOryon(id.login); state.discoverPlayer={type:'twitch', login:id.login}; state.zap.items=[x]; state.zap.index=0; setView('discover'); }
+function hfMoodQuery(mood){ return ({chill:'chill',discussion:'Just Chatting','nuit-calme':'chill',rp:'RP','decouverte-jeu':'','petite-commu':''}[mood]||''); }
+function hfMoodScore(x,mood){
+  const id=hfLiveId(x); const text=[id.title,id.game,id.name,(x.tags||[]).join?.(' ')||''].join(' ').toLowerCase();
+  const v=id.viewers; let s=0;
+  const terms={chill:['chill','calme','relax','cozy','musique','music','lofi'],discussion:['just chatting','discussion','chat','talk','irl','débat','debat'], 'nuit-calme':['nuit','late','asmr','lofi','calme','chill'], rp:['rp','roleplay','jdr','dnd','gta rp','narration'], 'decouverte-jeu':['découverte','decouverte','first play','blind','exploration','nouveau'], 'petite-commu':['petit','commu','small','fr'] }[mood]||[];
+  for(const t of terms){ if(text.includes(t)) s+=40; }
+  if(mood==='discussion' && /just chatting|discussion|talk|irl|chat/.test(text)) s+=80;
+  if(mood==='rp' && /\brp\b|roleplay|jdr|dnd|gta rp/.test(text)) s+=80;
+  if(mood==='petite-commu'){ if(v>=3&&v<=80)s+=80; if(v>=15&&v<=50)s+=45; if(v>150)s-=140; }
+  else { if(v>=15&&v<=150)s+=35; if(v>400)s-=80; }
+  s += Math.max(0, 40 - Math.abs(v-45)/2);
+  return s;
+}
+async function hfFetchLivePool({mood='petite-commu', q='', min=0, max=200, lang='fr'}={}){
+  const calls=[];
+  calls.push(api('/api/oryon/discover/find-live?'+qs({q, mood, max, lang, source:'both'})).catch(()=>({items:[]})));
+  calls.push(api(`/api/twitch/streams/small?lang=${encodeURIComponent(lang)}&min=${encodeURIComponent(min)}&max=${encodeURIComponent(max)}`).catch(()=>({items:[]})));
+  calls.push(api('/api/twitch/followed/live').catch(()=>({items:[]})));
+  calls.push(api('/api/native/lives').catch(()=>({items:[]})));
+  const results=await Promise.all(calls);
+  const out=[]; const keys=new Set();
+  for(const r of results){
+    for(const item of (r.items||[])){
+      const x={...item, platform:item.platform || (item.host_login||item.room?'oryon':'twitch')};
+      const id=hfLiveId(x); if(!id.login) continue;
+      const v=id.viewers; if(v<min || v>Math.max(max, min)) continue;
+      const k=hfLiveKey(x); if(keys.has(k)) continue; keys.add(k); out.push(x);
+    }
+  }
+  return out.sort((a,b)=>hfMoodScore(b,mood)-hfMoodScore(a,mood));
+}
+function hfLiveCardHtml(x, i=0, opts={}){
+  const id=hfLiveId(x); const tags=hfTags(x); const safe=encodeURIComponent(JSON.stringify(x));
+  return `<article class="hfLiveCard ${opts.swipe?'hfSwipeCard':''}" data-live-json="${safe}" onclick="${opts.click!==false?`hfOpenLive(JSON.parse(decodeURIComponent(this.dataset.liveJson)))`:''}">
+    ${id.img?`<img src="${esc(id.img)}" alt="" loading="${i?'lazy':'eager'}">`:''}
+    ${opts.swipe?`<div class="hfSwipeStamp like">J'aime</div><div class="hfSwipeStamp nope">Pas ouf</div><div class="hfSwipeHint">Swipe droite / gauche</div>`:''}
+    <div class="hfLiveBody"><div class="hfTagRow">${tags.map(t=>`<span class="hfTag">${esc(t)}</span>`).join('')}</div><h2>${esc(id.title)}</h2><p>${esc(id.name)} · ${esc(id.game)} · ${id.viewers} viewers</p>${opts.actions?`<div class="hfDiscoverActions"><button class="btn good" onclick="event.stopPropagation();hfWatchCurrent()">Regarder</button><button class="btn secondary" onclick="event.stopPropagation();hfSwipeLeft()">Pas ouf</button><button class="btn secondary" onclick="event.stopPropagation();hfSwipeRight()">J'aime</button></div>`:''}</div>
+  </article>`;
+}
+function hfEmptyLiveHtml(){ return `<div class="hfEmptyLive"><div><h2>Aucun live récupéré.</h2><p>La page fonctionne, mais le serveur ne reçoit aucun flux exploitable. Vérifie les variables Twitch sur Render ou connecte Twitch pour utiliser tes suivis comme fallback.</p><button class="btn" onclick="autoProposeLive()">Relancer la recherche</button></div></div>`; }
+async function loadHomeRecommendations(){
+  const box=$('#homeShowcaseLives'); if(!box) return;
+  box.innerHTML=`<div class="hfEmptyLive"><div><h2>Chargement de la vitrine…</h2><p>Oryon cherche un live entre 30 et 100 viewers.</p></div></div>`;
+  const items=await hfFetchLivePool({mood:'petite-commu', min:30, max:100, lang:'fr'});
+  const fallback=items.length?items:await hfFetchLivePool({mood:'petite-commu', min:1, max:250, lang:'fr'});
+  box.innerHTML=fallback.length?fallback.slice(0,8).map((x,i)=>hfLiveCardHtml(x,i)).join(''):hfEmptyLiveHtml();
+}
+async function renderHome(){
+  const el=$('#home'); if(!el) return;
+  el.innerHTML=`<div class="hfHome"><section class="hfHero"><div class="hfHeroCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Oryon</span><h1>Des lives à taille humaine.</h1><p>Un live vitrine entre 30 et 100 viewers. Si le créneau est vide, Oryon élargit sans laisser l’accueil mort.</p><div class="hfMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div><div class="hfActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Oryon')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="hfLiveStage">${hfEmptyLiveHtml()}</div></section><div class="hfBelow"><section class="hfPanel">${viewerProfileCard?.()||'<h2>Profil Viewer</h2>'}</section><section class="hfPanel"><div class="proTwitchHead"><div><h2>Tes suivis Twitch en ligne</h2><p>Uniquement les chaînes live, en bandeau avec miniature.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact" class="hfRail"></div></section></div></div>`;
+  await loadHomeRecommendations();
+  await renderCompactFollowed?.();
+  closeMini?.();
+}
+async function renderCompactFollowed(){
+  const el=$('#followedWrapCompact'); if(!el) return;
+  if(!state.session.twitch){ el.innerHTML='<div class="followEmpty">Connecte Twitch pour voir tes suivis en ligne.</div>'; return; }
+  let r=await api('/api/twitch/followed/status').catch(()=>({items:[]}));
+  let items=(r.items||[]).filter(x=>x.is_live || Number(x.viewer_count||0)>0);
+  if(!items.length){ r=await api('/api/twitch/followed/live').catch(()=>({items:[]})); items=(r.items||[]); }
+  el.innerHTML=items.length?items.slice(0,12).map(x=>{const id=hfLiveId({...x,platform:'twitch'});return `<button class="hfFollowCard" onclick="openTwitch('${esc(id.login)}')"><img class="bg" src="${esc(id.img)}" alt=""><span class="hfLivePill">● Live · ${id.viewers}</span><div class="hfFollowBody"><img class="hfAvatar" src="${esc(x.profile_image_url||'')}" alt=""><br><b>${esc(id.name)}</b><br><span class="small">${esc(id.game)}</span></div></button>`}).join(''):'<div class="followEmpty">Aucun suivi Twitch en ligne maintenant.</div>';
+}
+async function setDiscoverMood(id){
+  state.moodFirstMood=id||'petite-commu';
+  await findLive();
+}
+async function findLive(){
+  const mood=state.moodFirstMood || $('#dMood')?.value || 'petite-commu';
+  const q=($('#dQuery')?.value || hfMoodQuery(mood) || '').trim();
+  const max=Number($('#dMax')?.value || (mood==='petite-commu'?120:250));
+  const lang=$('#dLang')?.value || 'fr';
+  const zap=$('#zapResult'); if(zap) zap.innerHTML=`<div class="hfEmptyLive"><div><h2>Recherche ${esc(moodFirstLabel?.(mood)||mood)}…</h2><p>Tri par mood, taille humaine et chat exploitable.</p></div></div>`;
+  state.currentTwitch=null; state.discoverPlayer=null; closeMini?.();
+  let items=await hfFetchLivePool({mood,q,max,lang});
+  if(!items.length) items=await hfFetchLivePool({mood,q:'',max:400,lang});
+  const seen=hfReadJson(hfSeenKey(),{});
+  let fresh=items.filter(x=>!seen[hfLiveKey(x)]);
+  // Important: never block the product because the local profile saw everything.
+  // If all are seen, reuse the best live instead of showing a dead screen.
+  if(!fresh.length && items.length){ fresh=items; }
+  state.zap.items=fresh.slice(0,20); state.zap.index=0; state.zap.last={q,mood,max,lang};
+  renderZap();
+}
+function renderZap(){
+  const zap=$('#zapResult'); if(!zap) return;
+  const x=(state.zap.items||[])[state.zap.index];
+  if(!x){ zap.innerHTML=hfEmptyLiveHtml(); return; }
+  const id=hfLiveId(x);
+  if(state.discoverPlayer?.type==='twitch' && state.discoverPlayer.login){
+    zap.innerHTML=`<section class="watchShell twitchWatch"><div class="player premiumPlayer"><iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(state.discoverPlayer.login)}&parent=${encodeURIComponent(location.hostname)}&autoplay=true&muted=false"></iframe></div><div class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(state.discoverPlayer.login)}/chat?parent=${encodeURIComponent(location.hostname)}&darkpopout"></iframe></div></section>`;
+    return;
+  }
+  zap.innerHTML=`<section class="hfZap">${hfLiveCardHtml(x,0,{swipe:true,actions:true,click:false})}</section>`;
+  hfBindSwipe();
+}
+function hfMark(x,action){ const seen=hfReadJson(hfSeenKey(),{}); seen[hfLiveKey(x)]={action,ts:Date.now(),live:hfLiveId(x)}; hfWriteJson(hfSeenKey(),seen); if(action==='like') saveCurrentLive?.(); }
+function hfNext(){ const items=state.zap.items||[]; if(!items.length) return findLive(); state.zap.index=(state.zap.index+1)%items.length; state.discoverPlayer=null; renderZap(); }
+function hfSwipeRight(){ const x=(state.zap.items||[])[state.zap.index]; if(!x) return; hfMark(x,'like'); toast?.('J’aime — ajouté au profil viewer'); setTimeout(hfNext,90); }
+function hfSwipeLeft(){ const x=(state.zap.items||[])[state.zap.index]; if(!x) return; hfMark(x,'nope'); toast?.('Pas ouf — retiré pour ce compte'); setTimeout(hfNext,90); }
+function hfWatchCurrent(){ const x=(state.zap.items||[])[state.zap.index]; if(!x) return; hfMark(x,'watch'); const id=hfLiveId(x); if(id.platform==='oryon') return openOryon(id.login); state.discoverPlayer={type:'twitch',login:id.login}; renderZap(); }
+function zapOpenCurrent(){ return hfWatchCurrent(); }
+function zapNext(){ return hfNext(); }
+function proSwipeRight(){ return hfSwipeRight(); }
+function proSwipeLeft(){ return hfSwipeLeft(); }
+function hfBindSwipe(){
+  const card=document.querySelector('.hfSwipeCard'); if(!card || card.__hfSwipe) return; card.__hfSwipe=true;
+  let sx=0,sy=0,dx=0,dy=0,drag=false;
+  const start=e=>{ if(e.target.closest('button,a,input,select,textarea')) return; const p=e.touches?e.touches[0]:e; sx=p.clientX; sy=p.clientY; dx=dy=0; drag=true; card.style.transition='none'; };
+  const move=e=>{ if(!drag) return; const p=e.touches?e.touches[0]:e; dx=p.clientX-sx; dy=p.clientY-sy; if(Math.abs(dx)>Math.abs(dy)*1.08 && e.cancelable) e.preventDefault(); const rot=Math.max(-10,Math.min(10,dx/18)); card.style.transform=`translateX(${dx}px) rotate(${rot}deg)`; card.classList.toggle('swipe-like',dx>35); card.classList.toggle('swipe-nope',dx<-35); };
+  const end=()=>{ if(!drag) return; drag=false; const threshold=Math.min(150,Math.max(80,window.innerWidth*.16)); card.style.transition='transform .18s ease, opacity .18s ease'; if(dx>threshold){ card.classList.add('swipe-like'); card.style.transform='translateX(120vw) rotate(10deg)'; card.style.opacity='.18'; return setTimeout(hfSwipeRight,120); } if(dx<-threshold){ card.classList.add('swipe-nope'); card.style.transform='translateX(-120vw) rotate(-10deg)'; card.style.opacity='.18'; return setTimeout(hfSwipeLeft,120); } card.style.transform=''; card.classList.remove('swipe-like','swipe-nope'); };
+  card.addEventListener('touchstart',start,{passive:true}); card.addEventListener('touchmove',move,{passive:false}); card.addEventListener('touchend',end,{passive:true}); card.addEventListener('pointerdown',start); window.addEventListener('pointermove',move,{passive:false}); window.addEventListener('pointerup',end);
+}
+async function renderDiscover(){
+  const el=$('#discover'); if(!el) return;
+  const current=state.moodFirstMood||'petite-commu';
+  el.innerHTML=`<div class="hfDiscover"><section class="hfDiscoverHero"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Choisis ton mood.</h1><p>Un tap lance une vraie proposition. Ensuite tu swipes : droite si ça te parle, gauche si ce n’est pas ta vibe.</p></div><div class="hfDiscoverHint"><span>mood</span><span>live</span><span>swipe</span></div></section><section class="hfMoodPanel"><div class="hfMoodHead"><h2>Ambiance</h2><span class="moodFirstSelected">${esc(moodFirstLabel?.(current)||current)}</span></div><div class="hfMoodGrid">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="hfMoodCard ${id===current?'active':''}" onclick="setDiscoverMood('${esc(id)}')"><i>${icon}</i><b>${esc(label)}</b><span>${esc(desc)}</span></button>`).join('')}</div><details class="hfAdvanced"><summary>Options avancées</summary><div class="hfAdvancedBody"><input id="dQuery" placeholder="jeu, pseudo, ambiance" onkeydown="if(event.key==='Enter')findLive()"><select id="dMax"><option value="80">≤80</option><option value="150" selected>≤150</option><option value="300">≤300</option><option value="500">≤500</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn secondary" onclick="localStorage.removeItem(hfSeenKey());findLive()">Réinitialiser swipes</button><button class="btn" onclick="findLive()">Relancer</button></div></details></section><section id="zapResult"></section><section class="hfPanel"><div class="proTwitchHead"><div><h2>Accès Twitch</h2><p>Recherche manuelle si tu sais déjà qui tu veux voir.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="proTwitchSearch"><input id="twSearch" placeholder="chercher un streamer Twitch" onkeydown="if(event.key==='Enter')searchTwitch()"><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="twResults"></div></section></div>`;
+  renderZap();
+  closeMini?.();
+}
+async function autoProposeLive(){ state.moodFirstMood=state.moodFirstMood||'petite-commu'; await setView('discover'); await findLive(); }
+async function quickGem(){ return autoProposeLive(); }
