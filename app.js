@@ -2407,6 +2407,16 @@ async function loadOryonUsersPersistent(){
     }
   }catch(e){ console.warn('[ORYON] Firestore users unavailable:', e.message); }
   try{
+    if(firestoreOk && db && typeof db.collection === 'function'){
+      const snapUsers = await db.collection('oryon_users').get();
+      if(!snapUsers.empty){
+        __oryonUsersCache = { users: snapUsers.docs.map(d => d.data()).filter(Boolean) };
+        __oryonUsersPersistence = 'firebase-firestore-collection';
+        return;
+      }
+    }
+  }catch(e){ console.warn('[ORYON] Firestore users collection unavailable:', e.message); }
+  try{
     if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true});
     if(fs.existsSync(ORYON_USERS_FILE)){
       const raw = fs.readFileSync(ORYON_USERS_FILE, 'utf8');
@@ -2433,13 +2443,37 @@ function readOryonUsers(){
 }
 function writeOryonUsers(data){
   __oryonUsersCache = { users: Array.isArray(data?.users) ? data.users : [] };
-  try{ if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true}); fs.writeFileSync(ORYON_USERS_FILE, JSON.stringify(__oryonUsersCache, null, 2)); }catch(e){ console.warn('[ORYON] write json users failed:', e.message); }
-  try{ if(db && typeof db.collection === 'function') db.collection('oryon_state').doc('users').set(__oryonUsersCache,{merge:true}).catch(e=>console.warn('[ORYON] Firestore users write failed:', e.message)); }catch(e){}
+  try{
+    if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true});
+    fs.writeFileSync(ORYON_USERS_FILE, JSON.stringify(__oryonUsersCache, null, 2));
+  }catch(e){ console.warn('[ORYON] write json users failed:', e.message); }
+  try{
+    if(firestoreOk && db && typeof db.collection === 'function'){
+      const batch = db.batch ? db.batch() : null;
+      const stateRef = db.collection('oryon_state').doc('users');
+      if(batch){
+        batch.set(stateRef, { users: __oryonUsersCache.users, updatedAt: Date.now(), persistence:'firebase-firestore' }, { merge:true });
+        for(const u of __oryonUsersCache.users){
+          if(!u?.id) continue;
+          batch.set(db.collection('oryon_users').doc(String(u.id)), { ...u, updatedAt: u.updatedAt || Date.now() }, { merge:true });
+          if(u.login) batch.set(db.collection('oryon_user_logins').doc(String(u.login).toLowerCase()), { userId:u.id, login:u.login, updatedAt:Date.now() }, { merge:true });
+        }
+        batch.commit().catch(e=>console.warn('[ORYON] Firestore users batch failed:', e.message));
+      }else{
+        db.collection('oryon_state').doc('users').set(__oryonUsersCache,{merge:true}).catch(e=>console.warn('[ORYON] Firestore users write failed:', e.message));
+      }
+    }
+  }catch(e){ console.warn('[ORYON] Firestore users persistence error:', e.message); }
 }
 const ORYON_USERS_READY = loadOryonUsersPersistent();
 app.use('/api/oryon', async (_req, _res, next) => {
   try { await ORYON_USERS_READY; } catch (_) {}
   next();
+});
+
+app.get('/api/oryon/persistence-status', async (_req, res) => {
+  try{ await ORYON_USERS_READY; }catch(_){}
+  res.json({ success:true, firestore: !!firestoreOk, persistence: __oryonUsersPersistence, users: (__oryonUsersCache?.users||[]).length, requires_env: firestoreOk ? [] : ['FIREBASE_SERVICE_KEY'] });
 });
 function normalizeOryonLogin(v){
   return String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32);
@@ -2799,9 +2833,11 @@ app.get('/api/oryon/local-agent/config', (req, res) => {
       success: true,
       mode: 'local-agent',
       local_rtmp_url: `rtmp://localhost:${rtmpPort}/live`,
-      local_player_url: `http://localhost:${localPort}/player/${encodeURIComponent(key)}`,
+      local_player_url: `http://localhost:${localPort}/player/${encodeURIComponent(user.login)}`,
+      local_player_key_url: `http://localhost:${localPort}/player/${encodeURIComponent(key)}`,
       local_status_url: `http://localhost:${localPort}/health`,
       stream_key: key,
+      channel_login: user.login,
       download_url: '/downloads/oryon-local-app.zip',
       app_name: 'Oryon Live',
       note: 'Oryon Live publie ton flux OBS sur ta chaîne Oryon.'
@@ -2831,7 +2867,15 @@ app.post('/api/oryon/local-agent/register-public-url', (req, res) => {
       return res.status(403).json({ success:false, error:'Cette clé de stream ne correspond pas au compte connecté.' });
     }
     if(!user.stream_key) user.stream_key = streamKey || makeOryonStreamKey();
-    user.oryon_local_player_url = playerUrl;
+    let normalizedPlayerUrl = playerUrl;
+    try{
+      const pu = new URL(playerUrl);
+      if(/\/player\/(channel|stream|live)(\/)?$/i.test(pu.pathname)){
+        pu.pathname = pu.pathname.replace(/\/player\/(channel|stream|live)(\/)?$/i, '/player/' + encodeURIComponent(user.login));
+        normalizedPlayerUrl = pu.toString();
+      }
+    }catch(_){}
+    user.oryon_local_player_url = normalizedPlayerUrl;
     user.oryon_local_status_url = statusUrl;
     user.oryon_local_public_base_url = publicBaseUrl;
     user.oryon_local_provider = String(req.body?.provider || 'tunnel').slice(0, 80);
@@ -2859,7 +2903,11 @@ app.post('/api/oryon/local-agent/heartbeat', (req, res) => {
       return res.status(403).json({ success:false, error:'Clé de stream incorrecte.' });
     }
     if(liveActive){
-      if(playerUrl && /^https?:\/\//i.test(playerUrl) && !/localhost|127\.0\.0\.1/i.test(playerUrl)) user.oryon_local_player_url = playerUrl;
+      if(playerUrl && /^https?:\/\//i.test(playerUrl) && !/localhost|127\.0\.0\.1/i.test(playerUrl)){
+        let normalizedPlayerUrl = playerUrl;
+        try{ const pu=new URL(playerUrl); if(/\/player\/(channel|stream|live)(\/)?$/i.test(pu.pathname)){ pu.pathname=pu.pathname.replace(/\/player\/(channel|stream|live)(\/)?$/i, '/player/' + encodeURIComponent(user.login)); normalizedPlayerUrl=pu.toString(); } }catch(_){}
+        user.oryon_local_player_url = normalizedPlayerUrl;
+      }
       if(statusUrl && /^https?:\/\//i.test(statusUrl)) user.oryon_local_status_url = statusUrl;
       user.local_agent_live = true;
       user.local_agent_last_seen = Date.now();
@@ -3234,8 +3282,9 @@ app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
       }
 
       // 3) Connected Twitch fallback. Essential when app credentials are absent.
+      const discoverOnly = String(req.query.discover || '').toLowerCase() === '1' || String(req.query.discover || '').toLowerCase() === 'true';
       const tu=req.session?.twitchUser;
-      if(items.length<6 && tu && (!tu.expiry || tu.expiry>Date.now())){
+      if(!discoverOnly && items.length<6 && tu && (!tu.expiry || tu.expiry>Date.now())){
         try{
           const tr=await twitchAPI(`streams/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
           (tr.data||[]).filter(s=>Number(s.viewer_count||0)<=max).forEach(s=>push({
@@ -3610,8 +3659,9 @@ app.get('/api/twitch/streams/small', heavyLimiter, async (req, res) => {
     }
 
     // Viewer-followed live fallback. This is what prevents empty screens when app credentials are absent.
+    const discoverOnly = String(req.query.discover || '').toLowerCase() === '1' || String(req.query.discover || '').toLowerCase() === 'true';
     const tu = req.session?.twitchUser;
-    if(out.length < 6 && tu && (!tu.expiry || tu.expiry > Date.now())){
+    if(!discoverOnly && out.length < 6 && tu && (!tu.expiry || tu.expiry > Date.now())){
       try{
         const followed = await twitchAPI(`streams/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
         (followed.data || []).forEach(s => pushStream(s, 'twitch'));
