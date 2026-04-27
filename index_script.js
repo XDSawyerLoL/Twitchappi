@@ -2503,3 +2503,129 @@ async function searchTwitch(){
   const items=r.items||[];
   box.innerHTML=items.length?`<div class="proFollowGrid status">${items.map(x=>`<button class="proFollowCard statusCard" onclick="openTwitch('${esc(x.login)}')">${proAvatarHtml(x)}<span class="proFollowText"><b>${esc(x.display_name||x.login)}</b><span>${esc(x.title||x.game_name||'Chaîne Twitch')}</span></span><span class="proFollowStatus ${x.is_live?'live':'offline'}">${x.is_live?'● Live':'Hors ligne'}${x.viewer_count?` · ${x.viewer_count}`:''}</span></button>`).join('')}</div>`:'<div class="proNotice">Aucun résultat.</div>';
 }
+
+/* Final UX polish — followed Twitch banners, category hero thumbnails, anchored top menu */
+(function injectBannerFollowAndMenuPass(){
+  if(document.getElementById('oryonBannerFollowAndMenuPass')) return;
+  const st=document.createElement('style');
+  st.id='oryonBannerFollowAndMenuPass';
+  st.textContent=`
+  .top{overflow:visible!important;z-index:120!important}
+  .userArea{position:relative!important}
+  .menu{top:calc(100% + 10px)!important;right:0!important;width:min(360px,calc(100vw - 24px))!important;max-height:calc(100vh - 92px)!important;overflow:auto!important;border-radius:20px!important;background:linear-gradient(180deg,rgba(15,23,42,.98),rgba(8,11,18,.98))!important;box-shadow:0 24px 80px rgba(0,0,0,.5)!important;z-index:140!important}
+  .menu.open{display:block!important;animation:oryonDrop .14s ease-out both}
+  @keyframes oryonDrop{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+  .homeShowcase{margin-top:18px!important}
+  .homeShowcaseActions .btn{font-size:16px!important;min-height:56px!important}
+  .homeFollowPanel{overflow:hidden}
+  .followBannerRail{display:flex;gap:14px;overflow:auto;padding:12px 2px 6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+  .followBannerRail::-webkit-scrollbar{height:7px}.followBannerRail::-webkit-scrollbar-thumb{background:rgba(148,163,184,.24);border-radius:99px}
+  .followBannerCard{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-rows:1fr auto;align-items:end;min-width:300px;width:300px;height:150px;scroll-snap-align:start;border:1px solid rgba(148,163,184,.18);border-radius:24px;background:#0b1020;color:white;text-align:left;padding:0;box-shadow:0 14px 50px rgba(0,0,0,.24);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+  .followBannerCard:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.65);box-shadow:0 22px 70px rgba(0,0,0,.36)}
+  .followBannerBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) contrast(1.04);transform:scale(1.02);z-index:-3}
+  .followBannerCard.offline .followBannerBg{filter:saturate(.75) brightness(.6) blur(1px)}
+  .followBannerFallback{position:absolute;inset:0;z-index:-3;background:radial-gradient(circle at 18% 20%,rgba(139,92,246,.45),transparent 38%),radial-gradient(circle at 80% 12%,rgba(34,211,238,.22),transparent 35%),#0b1020}
+  .followBannerCard:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.08),rgba(2,6,23,.35) 40%,rgba(2,6,23,.92));z-index:-1}
+  .followBannerTop{position:absolute;left:12px;right:12px;top:12px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .followBannerStatus{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 10px;border:1px solid rgba(255,255,255,.14);background:rgba(3,7,18,.55);backdrop-filter:blur(12px);font-size:12px;font-weight:1000;color:#e5edf8}
+  .followBannerStatus.live{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.45);color:#bbf7d0}.followBannerStatus.offline{color:#cbd5e1}
+  .followBannerBody{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:end;padding:0 14px 14px;width:100%}
+  .followBannerAvatar{width:52px;height:52px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 30px rgba(0,0,0,.35);background:linear-gradient(135deg,rgba(139,92,246,.65),rgba(34,211,238,.3));display:grid;place-items:center;font-size:22px;font-weight:1000}
+  .followBannerAvatar img{width:100%;height:100%;object-fit:cover;display:block}.followBannerText{min-width:0}.followBannerText b{display:block;font-size:18px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.followBannerText span{display:block;margin-top:5px;color:#cbd5e1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .followBannerSearch{display:grid;gap:12px;margin-top:14px}.followBannerSearch .followBannerCard{width:100%;min-width:0;height:170px}
+  .categoryPickHero{position:relative;overflow:hidden;border:1px solid rgba(148,163,184,.18);border-radius:30px;min-height:320px;background:#080d18;isolation:isolate;box-shadow:0 24px 80px rgba(0,0,0,.32)}
+  .categoryPickHero img.catBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) contrast(1.02);transform:scale(1.03);z-index:-3}.categoryPickHero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(2,6,23,.92),rgba(2,6,23,.58) 48%,rgba(2,6,23,.25));z-index:-1}.categoryPickContent{padding:28px;max-width:720px}.categoryPickContent h2{font-size:clamp(34px,5vw,64px);line-height:.95;letter-spacing:-.065em;margin:12px 0}.categoryPickContent p{color:#cbd5e1;font-size:18px;margin:0 0 18px}.categoryPickLive{margin-top:18px;max-width:560px}.categoryPickLive .liveCard{background:rgba(8,11,18,.70);backdrop-filter:blur(18px)}
+  .categoryCard{transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}.categoryCard:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.62);box-shadow:0 16px 50px rgba(0,0,0,.26)}
+  @media(max-width:1080px){
+    .userArea{position:static!important}.menu{position:fixed!important;top:76px!important;right:12px!important;left:auto!important;width:min(380px,calc(100vw - 24px))!important;max-height:calc(100vh - 152px)!important}.topbar{height:68px!important}.brand{font-size:15px}.brandMark{width:36px;height:36px}.userBtn{padding:6px!important}.userBtn span{display:none!important}.avatarMini{width:34px!important;height:34px!important}
+    .followBannerRail{gap:12px;padding-bottom:10px}.followBannerCard{min-width:82vw;width:82vw;height:168px;border-radius:24px}.followBannerText b{font-size:20px}.followBannerAvatar{width:56px;height:56px}.homeTwoGrid{grid-template-columns:1fr!important}.categoryPickHero{min-height:360px}.categoryPickHero:after{background:linear-gradient(180deg,rgba(2,6,23,.50),rgba(2,6,23,.92))}.categoryPickContent{padding:22px}.categoryPickContent h2{font-size:clamp(40px,12vw,68px)}
+  }
+  @media(max-width:520px){.followBannerCard{min-width:88vw;width:88vw;height:164px}.followBannerTop{top:10px;left:10px;right:10px}.followBannerBody{padding:0 12px 12px}.homeShowcaseActions .btn{min-height:60px!important}.categoryPickHero{border-radius:26px}.categoryPickContent{padding:18px}}
+  `;
+  document.head.appendChild(st);
+})();
+
+function proBannerImageOf(x){return String(x?.thumbnail_url||x?.preview_url||x?.offline_image_url||x?.banner_url||'').replace('{width}','640').replace('{height}','360');}
+function proProfileImageOf(x){return String(x?.profile_image_url||x?.avatar_url||x?.avatar||'');}
+function followBannerCard(x){
+  const login=proLoginOf(x), name=proNameOf(x), viewers=proViewersOf(x), live=!!(x?.is_live||x?.live||viewers>0);
+  const bg=proBannerImageOf(x), avatar=proProfileImageOf(x), game=x?.game_name||x?.category||x?.title||'Chaîne suivie';
+  const status=live?`● Live${viewers?` · ${viewers}`:''}`:'Hors ligne';
+  const cls=live?'live':'offline';
+  return `<button class="followBannerCard ${cls}" onclick="openTwitch('${esc(login)}')">${bg?`<img class="followBannerBg" src="${esc(bg)}" alt="" loading="lazy">`:`<div class="followBannerFallback"></div>`}<div class="followBannerTop"><span class="followBannerStatus ${cls}">${esc(status)}</span></div><div class="followBannerBody"><div class="followBannerAvatar">${avatar?`<img src="${esc(avatar)}" alt="">`:esc((name||login||'?').slice(0,1).toUpperCase())}</div><div class="followBannerText"><b>${esc(name||login||'Streamer')}</b><span>${esc(game)}</span></div></div></button>`;
+}
+
+async function renderCompactFollowed(){
+  const box=$('#followedWrapCompact'); if(!box) return;
+  if(!state.session.twitch){ box.innerHTML=`<div class="proNotice">Connecte Twitch pour voir tes suivis avec leur logo et leur statut.</div>`; return; }
+  box.innerHTML='<div class="proNotice">Chargement des suivis Twitch…</div>';
+  try{
+    let r=await api('/api/twitch/followed/status').catch(()=>null);
+    if(!r || !r.success) r=await api('/api/twitch/followed/live').catch(()=>null);
+    if(!r || !r.success) r=await api('/followed_streams').catch(()=>null);
+    const items=(r?.items||r?.streams||[]).filter(Boolean);
+    if(!items.length){ box.innerHTML='<div class="proNotice">Aucun suivi trouvé. Connecte Twitch avec les autorisations suivis pour afficher la vitrine.</div>'; return; }
+    const sorted=items.slice().sort((a,b)=>(Number(!!(b.is_live||b.live||proViewersOf(b)>0))-Number(!!(a.is_live||a.live||proViewersOf(a)>0))) || (proViewersOf(b)-proViewersOf(a)) || proNameOf(a).localeCompare(proNameOf(b)));
+    box.innerHTML=`<div class="followBannerRail">${sorted.slice(0,18).map(followBannerCard).join('')}</div>`;
+  }catch(e){ box.innerHTML='<div class="proNotice">Impossible de charger tes suivis Twitch.</div>'; }
+}
+
+async function searchTwitch(){
+  const q=$('#twSearch')?.value?.trim(); if(!q)return;
+  const box=$('#twResults'); if(box) box.innerHTML='<div class="proNotice">Recherche…</div>';
+  const r=await api('/api/twitch/channels/search?'+qs({q,live:false})).catch(()=>({items:[]}));
+  if(!box) return;
+  const items=r.items||[];
+  box.innerHTML=items.length?`<div class="followBannerSearch">${items.map(followBannerCard).join('')}</div>`:'<div class="proNotice">Aucun résultat.</div>';
+}
+
+function catCard(c){
+  const name=String(c?.name||'Catégorie');
+  const img=String(c?.box_art_url||c?.image_url||'').replace('{width}','420').replace('{height}','560');
+  return `<button class="categoryCard" onclick="pickCatEncoded('${encodeURIComponent(name)}','${encodeURIComponent(img)}')">${img?`<img src="${esc(img)}" alt="">`:`<div style="aspect-ratio:16/9;display:grid;place-items:center;background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(34,211,238,.12));color:#cbd5e1">${esc(name.slice(0,1))}</div>`}<b>${esc(name)}</b><span class="small">Trouver un live</span></button>`;
+}
+function pickCatEncoded(name,img){return pickCat(decodeURIComponent(name||''), decodeURIComponent(img||''));}
+async function pickCat(name,img=''){
+  await setView('categories');
+  const target=$('#catPick'); if(!target) return;
+  const safeName=String(name||'Jeu');
+  const safeImg=String(img||'').replace('{width}','640').replace('{height}','854');
+  target.innerHTML=`<section class="categoryPickHero">${safeImg?`<img class="catBg" src="${esc(safeImg)}" alt="">`:''}<div class="categoryPickContent"><span class="eyebrow"><i class="dot"></i>Jeu sélectionné</span><h2>${esc(safeName)}</h2><p>Oryon cherche un petit live dans cette catégorie, pas un flux saturé.</p><div class="homeTagCloud"><span class="homeTag">petit live</span><span class="homeTag">chat lisible</span><span class="homeTag">${esc(safeName)}</span></div><div class="categoryPickLive"><div class="proNotice">Recherche d’une pépite…</div></div></div></section>`;
+  try{
+    const r=await api('/api/twitch/random-small-live?'+qs({game:safeName,max:200,language:'fr'}));
+    const liveBox=target.querySelector('.categoryPickLive');
+    if(r.success&&r.target){
+      liveBox.innerHTML=liveCard({...r.target,platform:'twitch',login:r.target.login,display_name:r.target.name,viewer_count:r.target.viewers,game_name:r.target.game,thumbnail_url:r.target.thumbnail_url});
+    }else{
+      liveBox.innerHTML=`<div class="proNotice">${esc(r.error||'Aucun live trouvé pour cette catégorie.')}</div>`;
+    }
+  }catch(e){
+    const liveBox=target.querySelector('.categoryPickLive'); if(liveBox) liveBox.innerHTML='<div class="proNotice">Impossible de chercher un live pour ce jeu.</div>';
+  }
+}
+
+async function loadHomeRecommendations(){
+  const box=$('#homeShowcaseLives'); if(!box) return;
+  box.innerHTML='<div class="proNotice">Sélection des lives recommandés…</div>';
+  try{
+    const native=await api('/api/native/lives').catch(()=>({items:[]}));
+    let twitch=await api('/api/twitch/streams/small?lang=fr&min=15&max=30').catch(()=>({items:[]}));
+    if(!(twitch.items||[]).length) twitch=await api('/api/twitch/streams/small?lang=fr&min=5&max=80').catch(()=>({items:[]}));
+    let items=[...(native.items||[]).map(x=>({...x,platform:'oryon'})),...(twitch.items||[]).map(x=>({...x,platform:'twitch'}))];
+    items=items.filter(x=>{const v=Number(x.viewer_count??x.viewers??0)||0; return v>=0 && v<=100;});
+    items.sort((a,b)=>{
+      const av=Number(a.viewer_count??a.viewers??0)||0, bv=Number(b.viewer_count??b.viewers??0)||0;
+      const as=(av>=15&&av<=30?80:av>=5&&av<=50?45:0)+Math.min(30,Number(a.chat_messages||0));
+      const bs=(bv>=15&&bv<=30?80:bv>=5&&bv<=50?45:0)+Math.min(30,Number(b.chat_messages||0));
+      return bs-as || Math.abs(av-22)-Math.abs(bv-22);
+    });
+    items=items.slice(0,3);
+    if(!items.length){
+      box.innerHTML=`<div class="proNotice">Pas assez de lives recommandables maintenant. “Propose-moi un live” lance quand même une recherche directe.</div>`;
+      return;
+    }
+    box.innerHTML=items.map(homeRecommendationCard).join('');
+  }catch(e){
+    box.innerHTML='<div class="proNotice">Impossible de charger la vitrine pour le moment.</div>';
+  }
+}
