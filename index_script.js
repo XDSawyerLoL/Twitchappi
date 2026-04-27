@@ -1887,3 +1887,97 @@ async function renderDiscover(){
   window.addEventListener('orientationchange',()=>setTimeout(reset,80),{passive:true});
   window.addEventListener('scroll',reset,{passive:true});
 })();
+
+/* Category mobile density pass — compact by default, user can resize */
+(function injectCategoryDensityStyle(){
+  if(document.getElementById('oryonCategoryDensityStyle')) return;
+  const st=document.createElement('style');
+  st.id='oryonCategoryDensityStyle';
+  st.textContent=`
+  #categories.view.active{width:100%;max-width:1280px;margin-inline:auto;overflow-x:hidden;}
+  #categories .catHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px;}
+  #categories .catHead h1{margin:0;font-size:clamp(28px,4vw,46px);letter-spacing:-.055em;}
+  #categories .catHead p{margin:6px 0 0;color:var(--muted);}
+  #categories .catTools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+  #categories .catSearch{display:grid;grid-template-columns:minmax(180px,260px) auto;gap:8px;align-items:center;}
+  #categories .catSizeControl{display:flex;gap:4px;padding:4px;border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:999px;}
+  #categories .catSizeControl button{border:0;background:transparent;color:#dbe4f3;border-radius:999px;padding:8px 10px;font-weight:900;font-size:12px;}
+  #categories[data-cat-size="compact"] .catSizeControl button[data-size="compact"],
+  #categories[data-cat-size="normal"] .catSizeControl button[data-size="normal"],
+  #categories[data-cat-size="large"] .catSizeControl button[data-size="large"]{background:linear-gradient(135deg,rgba(139,92,246,.9),rgba(34,211,238,.45));color:white;}
+  #catGrid.catGridResponsive{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(var(--cat-min,140px),1fr))!important;gap:12px!important;align-items:start;}
+  #categories[data-cat-size="compact"] #catGrid{--cat-min:122px;}
+  #categories[data-cat-size="normal"] #catGrid{--cat-min:165px;}
+  #categories[data-cat-size="large"] #catGrid{--cat-min:230px;}
+  #categories .categoryCard{width:100%;min-width:0;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.028));box-shadow:none;transition:transform .18s ease,border-color .18s ease,background .18s ease;overflow:hidden;}
+  #categories .categoryCard:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.7);background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(255,255,255,.032));}
+  #categories .categoryCard img{width:100%;aspect-ratio:16/10!important;object-fit:cover;display:block;}
+  #categories .categoryCard b{display:block;padding:10px 11px 3px!important;font-size:14px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #categories .categoryCard span{display:block;padding:0 11px 11px!important;font-size:12px;line-height:1.25;}
+  #categories[data-cat-size="compact"] .categoryCard img{aspect-ratio:16/9!important;}
+  #categories[data-cat-size="compact"] .categoryCard b{font-size:13px;padding:8px 9px 2px!important;}
+  #categories[data-cat-size="compact"] .categoryCard span{font-size:11px;padding:0 9px 9px!important;}
+  #categories[data-cat-size="large"] .categoryCard img{aspect-ratio:3/4!important;}
+  #categories[data-cat-size="large"] .categoryCard b{font-size:17px;padding:12px 13px 4px!important;}
+  #categories[data-cat-size="large"] .categoryCard span{font-size:13px;padding:0 13px 13px!important;}
+  @media(max-width:760px){
+    #categories.view.active{max-width:none;margin:0;padding-bottom:92px;}
+    #categories .catHead{display:grid;grid-template-columns:1fr;gap:12px;margin:4px 0 12px;}
+    #categories .catTools{justify-content:stretch;width:100%;}
+    #categories .catSearch{grid-template-columns:1fr auto;width:100%;}
+    #categories .catSearch input{min-width:0;width:100%;height:42px;font-size:14px;}
+    #categories .catSearch .btn{height:42px;padding:0 12px;}
+    #categories .catSizeControl{width:100%;display:grid;grid-template-columns:repeat(3,1fr);border-radius:16px;}
+    #categories .catSizeControl button{padding:10px 6px;border-radius:12px;}
+    #catGrid.catGridResponsive{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin-top:12px!important;}
+    #categories[data-cat-size="large"] #catGrid.catGridResponsive{grid-template-columns:1fr!important;}
+    #categories[data-cat-size="normal"] #catGrid.catGridResponsive{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+    #categories .categoryCard{border-radius:16px;}
+    #categories .categoryCard img{aspect-ratio:16/9!important;}
+    #categories .categoryCard b{font-size:13px!important;padding:8px 9px 2px!important;}
+    #categories .categoryCard span{font-size:11px!important;padding:0 9px 9px!important;}
+    #categories[data-cat-size="compact"] .categoryCard img{aspect-ratio:16/8!important;}
+    #categories[data-cat-size="compact"] .categoryCard b{font-size:12px!important;}
+    #categories[data-cat-size="compact"] .categoryCard span{display:none!important;}
+    #categories[data-cat-size="large"] .categoryCard img{aspect-ratio:16/9!important;}
+    #categories[data-cat-size="large"] .categoryCard b{font-size:18px!important;padding:12px 14px 4px!important;}
+    #categories[data-cat-size="large"] .categoryCard span{display:block!important;font-size:13px!important;padding:0 14px 14px!important;}
+  }
+  @media(max-width:380px){
+    #catGrid.catGridResponsive{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;}
+    #categories[data-cat-size="normal"] #catGrid.catGridResponsive{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+    #categories[data-cat-size="large"] #catGrid.catGridResponsive{grid-template-columns:1fr!important;}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+function getCategorySize(){
+  const saved=localStorage.getItem('oryon_category_size');
+  return ['compact','normal','large'].includes(saved)?saved:'compact';
+}
+function setCategorySize(size){
+  if(!['compact','normal','large'].includes(size)) size='compact';
+  localStorage.setItem('oryon_category_size',size);
+  const el=document.getElementById('categories');
+  if(el) el.dataset.catSize=size;
+  document.querySelectorAll('#categories .catSizeControl button').forEach(b=>b.classList.toggle('active',b.dataset.size===size));
+}
+function catSizeControls(){
+  const cur=getCategorySize();
+  return `<div class="catSizeControl" role="group" aria-label="Taille des vignettes"><button type="button" data-size="compact" onclick="setCategorySize('compact')" ${cur==='compact'?'class="active"':''}>Compact</button><button type="button" data-size="normal" onclick="setCategorySize('normal')" ${cur==='normal'?'class="active"':''}>Normal</button><button type="button" data-size="large" onclick="setCategorySize('large')" ${cur==='large'?'class="active"':''}>Grand</button></div>`;
+}
+function catCard(c){
+  const img=c.box_art_url||c.image_url||'';
+  return `<button class="categoryCard" onclick="pickCat('${esc(c.name)}')">${img?`<img src="${esc(img)}" alt="">`:`<div style="aspect-ratio:16/9;display:grid;place-items:center;background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(34,211,238,.12));color:#cbd5e1">${esc((c.name||'?').slice(0,1))}</div>`}<b>${esc(c.name)}</b><span class="small">Petit live au hasard</span></button>`;
+}
+async function renderCategories(){
+  const el=document.getElementById('categories');
+  const size=getCategorySize();
+  el.dataset.catSize=size;
+  el.innerHTML=`<div class="catHead"><div><span class="eyebrow"><i class="dot"></i>Catégories</span><h1>Choisis une ambiance.</h1><p>Vignettes réglables : compact sur mobile, grand si tu veux explorer visuellement.</p></div><div class="catTools">${catSizeControls()}<div class="catSearch"><input id="catSearch" placeholder="Rechercher"><button class="btn secondary" onclick="searchCats()">OK</button></div></div></div><div id="catPick" class="section"></div><div id="catGrid" class="catGridResponsive section"><div class="empty">Chargement…</div></div><div class="row section"><button class="btn secondary" onclick="loadMoreCats()">Charger plus</button></div>`;
+  const input=document.getElementById('catSearch');
+  if(input) input.addEventListener('keydown',e=>{if(e.key==='Enter') searchCats();});
+  state.catsCursor=null;
+  await loadMoreCats(true);
+}
