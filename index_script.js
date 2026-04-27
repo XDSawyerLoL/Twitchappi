@@ -2123,3 +2123,172 @@ function renderZap(){
   renderViewerImpact?.();
   bindProSwipe();
 }
+
+
+/* Mood-first Discover pass — one tap, one live, swipe next */
+(function injectMoodFirstDiscoverPass(){
+  if(document.getElementById('oryonMoodFirstDiscoverPass')) return;
+  const st=document.createElement('style');
+  st.id='oryonMoodFirstDiscoverPass';
+  st.textContent=`
+  #discover.view.active{max-width:1320px!important;margin-inline:auto!important;}
+  .moodFirst{width:100%;display:grid;gap:18px;margin-inline:auto;}
+  .moodFirstHero{position:relative;overflow:hidden;border:1px solid rgba(139,92,246,.32);border-radius:30px;background:radial-gradient(circle at 18% 20%,rgba(139,92,246,.30),transparent 34%),radial-gradient(circle at 92% 12%,rgba(34,211,238,.16),transparent 28%),linear-gradient(135deg,rgba(10,16,28,.96),rgba(3,6,14,.98));padding:24px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:end;box-shadow:0 24px 70px rgba(0,0,0,.25);}
+  .moodFirstHero h1{margin:8px 0 6px;font-size:clamp(38px,5.4vw,78px);line-height:.88;letter-spacing:-.075em;max-width:780px;}
+  .moodFirstHero p{margin:0;color:#d7e4f8;max-width:620px;font-size:clamp(15px,1.6vw,18px);line-height:1.42;}
+  .moodFirstHint{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
+  .moodFirstHint span{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.055);border-radius:999px;padding:8px 11px;font-size:12px;font-weight:900;color:#e5eefc;}
+  .moodFirstPanel{border:1px solid var(--line);border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.052),rgba(255,255,255,.022));padding:16px;display:grid;gap:14px;}
+  .moodFirstPanelHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-end;flex-wrap:wrap;}
+  .moodFirstPanelHead h2{margin:0;font-size:clamp(22px,2.5vw,34px);letter-spacing:-.045em;}
+  .moodFirstPanelHead p{margin:4px 0 0;color:var(--muted);}
+  .moodFirstGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;}
+  .moodFirstCard{position:relative;min-height:118px;display:grid;align-content:end;gap:6px;text-align:left;color:white;border:1px solid rgba(255,255,255,.10);border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.026));padding:15px;overflow:hidden;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;}
+  .moodFirstCard::before{content:"";position:absolute;inset:auto -25% -48% -25%;height:76%;background:radial-gradient(circle,rgba(139,92,246,.30),transparent 64%);opacity:.8;transition:opacity .18s ease,transform .18s ease;}
+  .moodFirstCard:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.82);background:linear-gradient(145deg,rgba(139,92,246,.18),rgba(34,211,238,.055));}
+  .moodFirstCard.active{border-color:rgba(34,211,238,.9);box-shadow:0 0 0 1px rgba(34,211,238,.26),0 20px 60px rgba(34,211,238,.12);background:linear-gradient(145deg,rgba(139,92,246,.24),rgba(34,211,238,.10));}
+  .moodFirstCard i{position:relative;font-style:normal;font-size:30px;line-height:1;}
+  .moodFirstCard b{position:relative;font-size:16px;line-height:1.05;letter-spacing:-.025em;}
+  .moodFirstCard span{position:relative;color:#cbd8ec;font-size:12px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .moodFirstAdvanced{border:1px solid rgba(255,255,255,.09);border-radius:18px;background:rgba(255,255,255,.028);overflow:hidden;}
+  .moodFirstAdvanced summary{cursor:pointer;padding:12px 14px;font-weight:950;color:#dbe7fb;list-style:none;display:flex;justify-content:space-between;align-items:center;}
+  .moodFirstAdvanced summary::-webkit-details-marker{display:none;}
+  .moodFirstAdvanced summary::after{content:"Réglages";font-size:12px;color:var(--muted);font-weight:800;}
+  .moodFirstAdvanced[open] summary{border-bottom:1px solid var(--line);}
+  .moodFirstAdvanced .proSearchLine{padding:12px;display:grid!important;grid-template-columns:minmax(180px,1fr) 150px 128px 92px auto!important;gap:8px!important;}
+  .moodFirstAdvanced #dMood{display:none!important;}
+  .moodFirstStart{min-height:clamp(360px,42vw,560px);border:1px solid rgba(139,92,246,.28);border-radius:28px;background:radial-gradient(circle at 22% 12%,rgba(139,92,246,.32),transparent 34%),radial-gradient(circle at 80% 24%,rgba(34,211,238,.18),transparent 30%),linear-gradient(135deg,#050814,#0b1020);display:grid;place-items:center;text-align:center;padding:24px;overflow:hidden;}
+  .moodFirstStart h2{margin:10px auto 8px;font-size:clamp(30px,4.2vw,58px);line-height:.95;letter-spacing:-.06em;max-width:720px;}
+  .moodFirstStart p{margin:0 auto;color:#cbd8ec;max-width:560px;}
+  .moodFirstStart .moodFirstMiniGrid{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px;}
+  .moodFirstStart .moodFirstMiniGrid button{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:white;border-radius:999px;padding:10px 13px;font-weight:950;}
+  .moodFirstSelected{display:inline-flex;gap:8px;align-items:center;border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.08);border-radius:999px;padding:8px 12px;font-weight:950;}
+  .moodFirst #zapResult{display:block;width:100%;}
+  .moodFirst .proStage{margin-top:0!important;}
+  @media(max-width:1120px){
+    .moodFirstGrid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .moodFirstHero{grid-template-columns:1fr;}
+    .moodFirstHint{justify-content:flex-start;}
+  }
+  @media(max-width:760px){
+    #discover.view.active{padding-bottom:86px!important;}
+    .moodFirst{gap:12px;}
+    .moodFirstHero{border-radius:22px;padding:17px;}
+    .moodFirstHero h1{font-size:clamp(34px,10.5vw,48px);}
+    .moodFirstHero p{font-size:14px;}
+    .moodFirstHint{display:none;}
+    .moodFirstPanel{border-radius:22px;padding:12px;}
+    .moodFirstPanelHead{display:block;}
+    .moodFirstPanelHead h2{font-size:23px;}
+    .moodFirstPanelHead p{font-size:13px;}
+    .moodFirstGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+    .moodFirstCard{min-height:112px;border-radius:19px;padding:12px;}
+    .moodFirstCard i{font-size:27px;}
+    .moodFirstCard b{font-size:15px;}
+    .moodFirstCard span{font-size:11px;}
+    .moodFirstAdvanced summary{padding:12px;font-size:14px;}
+    .moodFirstAdvanced .proSearchLine{grid-template-columns:1fr!important;padding:10px!important;}
+    .moodFirstAdvanced .proSearchLine input,.moodFirstAdvanced .proSearchLine select,.moodFirstAdvanced .proSearchLine button{min-height:46px!important;}
+    .moodFirstStart{min-height:360px;border-radius:22px;padding:18px;}
+    .moodFirstStart h2{font-size:clamp(30px,9vw,42px);}
+    .moodFirstStart p{font-size:14px;}
+  }
+  @media(max-width:380px){
+    .moodFirstCard{min-height:104px;padding:11px;}
+    .moodFirstCard b{font-size:14px;}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+function moodFirstMaxFor(id){
+  if(id==='petite-commu') return '20';
+  if(id==='nuit' || id==='chill' || id==='discussion') return '50';
+  return '200';
+}
+
+function moodFirstLabel(id){
+  const m=(AMBIANCES||[]).find(x=>x[0]===id);
+  return m?m[1]:'Ambiance';
+}
+
+function setDiscoverMood(id){
+  const normalized=id||'chill';
+  state.moodFirstMood=normalized;
+  const mood=$('#dMood'); if(mood) mood.value=normalized;
+  const max=$('#dMax'); if(max) max.value=moodFirstMaxFor(normalized);
+  $$('.moodFirstCard,.proMoodBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.mood===normalized));
+  const zap=$('#zapResult');
+  if(zap) zap.innerHTML=`<div class="moodFirstStart"><div><span class="moodFirstSelected">${esc(moodFirstLabel(normalized))}</span><h2>Je cherche le bon live…</h2><p>Oryon filtre pour toi. Ensuite tu swipes.</p></div></div>`;
+  closeMini?.();
+  state.discoverPlayer=null;
+  requestAnimationFrame(()=>document.getElementById('zapResult')?.scrollIntoView({block:'start',behavior:'smooth'}));
+  return findLive();
+}
+
+async function findLive(){
+  const mood=state.moodFirstMood || $('#dMood')?.value || 'chill';
+  const q=$('#dQuery')?.value || '';
+  const source=$('#dSource')?.value || 'both';
+  const max=$('#dMax')?.value || moodFirstMaxFor(mood);
+  const lang=$('#dLang')?.value || 'fr';
+  const results=$('#discoverResults'); if(results) results.innerHTML='';
+  const zap=$('#zapResult');
+  if(zap) zap.innerHTML=`<div class="moodFirstStart"><div><span class="moodFirstSelected">${esc(moodFirstLabel(mood))}</span><h2>Recherche en cours…</h2><p>Une proposition adaptée arrive.</p></div></div>`;
+  state.currentTwitch=null;
+  state.discoverPlayer=null;
+  closeMini?.();
+  try{
+    const r=await api('/api/oryon/discover/find-live?'+qs({q,mood,max,lang,source}));
+    const items=(r.items||[]).filter(x=>(x.platform||'')!=='peertube');
+    state.zap.items=items;
+    state.zap.index=0;
+    state.zap.last={q,mood,max,lang,source};
+    renderZap();
+    if(results) results.innerHTML='';
+    if(!items.length && zap) zap.innerHTML=`<div class="moodFirstStart"><div><span class="moodFirstSelected">${esc(moodFirstLabel(mood))}</span><h2>Aucun live trouvé.</h2><p>Essaie une autre ambiance ou ouvre les options avancées.</p><div class="moodFirstMiniGrid">${AMBIANCES.map(([id,label])=>`<button onclick="setDiscoverMood('${esc(id)}')">${esc(label)}</button>`).join('')}</div></div></div>`;
+  }catch(e){
+    if(zap) zap.innerHTML=`<div class="moodFirstStart"><div><h2>Recherche impossible.</h2><p>Le service de découverte ne répond pas pour le moment.</p></div></div>`;
+    console.error(e);
+  }
+}
+
+function renderSpotlightPreview(x){
+  if(!x){
+    return `<article class="moodFirstStart"><div><span class="eyebrow"><i class="dot"></i>Découvrir</span><h2>Choisis ton mood. Oryon choisit le live.</h2><p>Pas de formulaire obligatoire. Un tap, une proposition, puis swipe droite ou gauche.</p><div class="moodFirstMiniGrid">${AMBIANCES.slice(0,4).map(([id,label])=>`<button onclick="setDiscoverMood('${esc(id)}')">${esc(label)}</button>`).join('')}</div></div></article>`;
+  }
+  const id=liveIdentity(x), reasons=discoverReasonFor(x).slice(0,3), score=comfortScore(x);
+  return `<article class="proCard" data-swipe-card="1"><div class="swipeStamp like">J'aime</div><div class="swipeStamp nope">Pas ouf</div><div class="proMedia">${id.img?`<img src="${esc(id.img)}" alt="" loading="eager">`:`<div class="proEmptyMedia">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}</div>
+    <div class="proBadgeTop"><span class="proPill">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span><span class="proPill">${score}% confort</span></div>
+    <div class="proOverlay"><div class="proReasons">${reasons.map(r=>`<span class="proPill">${esc(r)}</span>`).join('')}</div><h2>${esc(id.title||'Live en cours')}</h2><p class="muted">${esc(id.name||id.login||'Streamer')}</p><div class="swipeHint">Swipe droite : j’aime · gauche : pas ouf</div>
+      <div class="proActions"><button class="btn good" onclick="zapOpenCurrent()">Regarder</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn secondary" onclick="saveCurrentLive()">Sauver</button></div>
+    </div></article>`;
+}
+
+async function renderDiscover(){
+  const el=$('#discover');
+  if(!el) return;
+  const current=state.moodFirstMood || 'chill';
+  el.innerHTML=`<div class="moodFirst">
+    <section class="moodFirstHero">
+      <div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Choisis ton mood.</h1><p>Oryon te propose un live en deux secondes. Ensuite tu swipes : droite si ça te parle, gauche si ce n’est pas ta vibe.</p></div>
+      <div class="moodFirstHint"><span>1 tap</span><span>1 live</span><span>swipe ensuite</span></div>
+    </section>
+    <section class="moodFirstPanel">
+      <div class="moodFirstPanelHead"><div><h2>Ambiance</h2><p>Le choix technique reste caché. Le viewer choisit une intention.</p></div>${state.moodFirstMood?`<span class="moodFirstSelected">${esc(moodFirstLabel(state.moodFirstMood))}</span>`:''}</div>
+      <div class="moodFirstGrid">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="moodFirstCard ${id===current?'active':''}" data-mood="${esc(id)}" onclick="setDiscoverMood('${esc(id)}')"><i>${icon}</i><b>${esc(label)}</b><span>${esc(desc)}</span></button>`).join('')}</div>
+      <details class="moodFirstAdvanced">
+        <summary>Options avancées</summary>
+        <div class="proSearchLine"><input id="dQuery" placeholder="jeu, pseudo, ambiance" onkeydown="if(event.key==='Enter')findLive()"><select id="dSource"><option value="both" selected>Oryon + Twitch</option><option value="oryon">Oryon</option><option value="twitch">Twitch</option></select><select id="dMood"><option value="${esc(current)}">${esc(moodFirstLabel(current))}</option>${AMBIANCES.map(([id,label])=>`<option value="${esc(id)}">${esc(label)}</option>`).join('')}</select><select id="dMax"><option value="20">≤20</option><option value="50" selected>≤50</option><option value="200">≤200</option><option value="300">≤300</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn secondary" onclick="findLive()">Relancer</button></div>
+      </details>
+    </section>
+    <section id="zapResult"></section>
+    <section class="proTwitchPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Accès Twitch</h2><p class="small" style="margin:6px 0 0">Recherche manuelle si tu sais déjà qui tu veux voir.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="proTwitchSearch"><input id="twSearch" placeholder="chercher un streamer Twitch" onkeydown="if(event.key==='Enter')searchTwitch()"><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="followedWrapCompact"></div><div id="twResults"></div></section>
+  </div>`;
+  const mood=$('#dMood'); if(mood) mood.value=current;
+  const max=$('#dMax'); if(max) max.value=moodFirstMaxFor(current);
+  state.proTab=state.proTab||'signal';
+  renderZap();
+  renderCompactFollowed?.();
+  closeMini?.();
+}
