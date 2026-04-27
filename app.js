@@ -2844,7 +2844,8 @@ app.post('/api/oryon/profile', (req, res) => {
       const cleanPanels = incomingPanels.map((v, idx) => ({
         image_url: String(v?.image_url || v?.image || '').trim().slice(0,1200000),
         title: String(v?.title || `Vignette ${idx+1}`).trim().slice(0,60),
-        description: String(v?.description || v?.text || '').trim().slice(0,140)
+        description: String(v?.description || v?.text || '').trim().slice(0,220),
+        link_url: sanitizePanelUrl(v?.link_url || v?.url || v?.href || '')
       })).filter(v => v.image_url).slice(0,8);
       user.channel_vignettes = cleanPanels;
       user.channel_panels = cleanPanels;
@@ -7248,4 +7249,106 @@ app.get('/api/twitch/followed/status', heavyLimiter, async (req, res) => {
     console.warn('⚠️ /api/twitch/followed/status', e.message);
     res.status(500).json({ success:false, error:e.message, items:[] });
   }
+});
+
+
+// =========================================================
+// ORYON CLIENT RECOVERY — last-resort local rehydration
+// =========================================================
+function sanitizePanelUrl(raw){
+  const s = String(raw || '').trim().slice(0,1000);
+  if(!s) return '';
+  try{
+    const u = new URL(s);
+    if(u.protocol === 'http:' || u.protocol === 'https:') return u.toString();
+  }catch(_){ }
+  return '';
+}
+function publicRecoverUserPayload(input){
+  const login = normalizeOryonLogin(input?.login || input?.user?.login || '');
+  if(!login) return null;
+  const panelsRaw = Array.isArray(input?.channel_vignettes) ? input.channel_vignettes : (Array.isArray(input?.channel_panels) ? input.channel_panels : []);
+  const panels = panelsRaw.map((v, idx) => ({
+    image_url:String(v?.image_url || v?.image || '').trim().slice(0,1200000),
+    title:String(v?.title || `Vignette ${idx+1}`).trim().slice(0,60),
+    description:String(v?.description || v?.text || '').trim().slice(0,220),
+    link_url:sanitizePanelUrl(v?.link_url || v?.url || v?.href || '')
+  })).filter(v=>v.image_url).slice(0,8);
+  return {
+    login,
+    display_name:String(input?.display_name || input?.user?.display_name || login).trim().slice(0,40) || login,
+    email:normalizeOryonEmail(input?.email || input?.user?.email || `${login}@local.oryon.invalid`),
+    bio:String(input?.bio || input?.user?.bio || '').trim().slice(0,500),
+    avatar_url:String(input?.avatar_url || input?.user?.avatar_url || '').trim().slice(0,2000000),
+    banner_url:String(input?.banner_url || input?.user?.banner_url || '').trim().slice(0,5000000),
+    offline_image_url:String(input?.offline_image_url || input?.user?.offline_image_url || '').trim().slice(0,5000000),
+    tags:safeTags(input?.tags || input?.user?.tags || []),
+    channel_badges:Array.isArray(input?.channel_badges || input?.user?.channel_badges) ? (input.channel_badges || input.user.channel_badges).map(b=>({icon:String(b?.icon||'').slice(0,4),label:String(b?.label||'').slice(0,28),note:String(b?.note||'').slice(0,70)})).filter(b=>b.icon&&b.label).slice(0,8) : [],
+    channel_panels:panels,
+    channel_vignettes:panels
+  };
+}
+app.post('/api/oryon/client-recover', async (req, res) => {
+  try{
+    try{ await loadOryonUsersPersistent(); }catch(_){}
+    const backup = publicRecoverUserPayload(req.body?.user || req.body?.backup || req.body || {});
+    if(!backup) return res.status(400).json({success:false,error:'Sauvegarde locale invalide.'});
+    const token = String(req.body?.remember_token || req.body?.token || '').trim();
+    const data = readOryonUsers();
+    let user = (data.users||[]).find(u => u.login === backup.login);
+    if(user){
+      if(token && verifyOryonRememberToken(user, token)){
+        Object.assign(user, {...backup, id:user.id, password_hash:user.password_hash, remember_tokens:user.remember_tokens, createdAt:user.createdAt || Date.now(), updatedAt:Date.now()});
+      }
+    }else{
+      user = {
+        id: crypto.randomBytes(12).toString('hex'),
+        ...backup,
+        email_verified:true,
+        password_hash: hashOryonPassword(crypto.randomBytes(18).toString('hex')),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        recovered_from_client:true
+      };
+      data.users.push(user);
+    }
+    const remember_token = issueOryonRememberToken(user, data);
+    const persistResult = await writeOryonUsersAndWait(data);
+    req.session.oryonUser = sessionOryonUser(user);
+    req.session.save(() => res.json({success:true,user:publicOryonUser(user),remember_token,persistence:persistResult||null,recovered:true}));
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+
+app.post('/api/oryon/teams/recover', (req, res) => {
+  try{
+    const cur = requireOryon(req,res); if(!cur) return;
+    const incoming = Array.isArray(req.body?.teams) ? req.body.teams : [];
+    const data = oryonRead(ORYON_TEAMS_FILE,{teams:[]});
+    data.teams = data.teams || [];
+    let added = 0;
+    for(const raw of incoming.slice(0,30)){
+      const name = String(raw?.name || '').trim().slice(0,60);
+      if(name.length < 3) continue;
+      const slug = slugifyOryon(raw?.slug || name);
+      const members = Array.isArray(raw?.members) ? raw.members : [];
+      const belongs = members.some(m => m?.login === cur.login) || String(raw?.owner || raw?.creator_login || '').toLowerCase() === cur.login;
+      if(!belongs) continue;
+      if(data.teams.some(t => t.slug === slug)) continue;
+      data.teams.unshift({
+        id:String(raw?.id || crypto.randomBytes(10).toString('hex')).slice(0,40),
+        slug,
+        name,
+        description:String(raw?.description || '').trim().slice(0,600),
+        logo_url:String(raw?.logo_url || '').slice(0,2000000),
+        banner_url:String(raw?.banner_url || '').slice(0,5000000),
+        tags:safeTags(raw?.tags || []),
+        members: members.length ? members : [{login:cur.login,display_name:cur.display_name||cur.login,role:'fondateur',joinedAt:Date.now()}],
+        points:Number(raw?.points || 0),
+        createdAt:Number(raw?.createdAt || Date.now())
+      });
+      added++;
+    }
+    if(added) oryonWrite(ORYON_TEAMS_FILE,data);
+    res.json({success:true,added,items:(data.teams||[]).map(publicTeam)});
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
