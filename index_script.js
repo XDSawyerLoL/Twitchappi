@@ -2775,3 +2775,244 @@ async function renderDiscover(){
   el.innerHTML=`<div class="moodFirst"><section class="moodFirstHero"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Choisis ton mood.</h1><p>Un tap lance une vraie proposition. Ensuite tu swipes : droite si ça te parle, gauche si ce n’est pas ta vibe.</p></div><div class="moodFirstHint"><span>mood</span><span>live</span><span>swipe</span></div></section><section class="moodFirstPanel"><div class="moodFirstPanelHead"><div><h2>Ambiance</h2></div>${state.moodFirstMood?`<span class="moodFirstSelected">${esc(moodFirstLabel(state.moodFirstMood))}</span>`:''}</div><div class="moodFirstGrid">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="moodFirstCard ${id===current?'active':''}" data-mood="${esc(id)}" onclick="setDiscoverMood('${esc(id)}')"><i>${icon}</i><b>${esc(label)}</b><span>${esc(desc)}</span></button>`).join('')}</div><details class="moodFirstAdvanced"><summary>Options avancées</summary><div class="proSearchLine"><input id="dQuery" placeholder="jeu, pseudo, ambiance" onkeydown="if(event.key==='Enter')findLive()"><select id="dSource"><option value="both" selected>Oryon + Twitch</option><option value="oryon">Oryon</option><option value="twitch">Twitch</option></select><select id="dMood"><option value="${esc(current)}">${esc(moodFirstLabel(current))}</option>${AMBIANCES.map(([id,label])=>`<option value="${esc(id)}">${esc(label)}</option>`).join('')}</select><select id="dMax"><option value="50">≤50</option><option value="200" selected>≤200</option><option value="300">≤300</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn secondary" onclick="findLive()">Relancer</button></div></details></section><section id="zapResult"></section><section class="proTwitchPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Accès Twitch</h2><p class="small" style="margin:6px 0 0">Recherche manuelle si tu sais déjà qui tu veux voir.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="proTwitchSearch"><input id="twSearch" placeholder="chercher un streamer Twitch" onkeydown="if(event.key==='Enter')searchTwitch()"><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="followedWrapCompact"></div><div id="twResults"></div></section></div>`;
   const mood=$('#dMood'); if(mood) mood.value=current; const max=$('#dMax'); if(max) max.value='200'; state.proTab=state.proTab||'signal'; renderZap(); renderCompactFollowed?.(); closeMini?.();
 }
+
+
+/* Final product pass — swipe memory, viewer profile, live vitrine 30-100, followed-live banners, channel customization */
+(function injectOryonProductFinalPass(){
+  if(document.getElementById('oryonProductFinalPass')) return;
+  const st=document.createElement('style');
+  st.id='oryonProductFinalPass';
+  st.textContent=`
+  :root{--viewer-accent:var(--brand,#8b5cf6)}
+  body{background:radial-gradient(circle at 16% 10%, color-mix(in srgb,var(--viewer-accent) 20%, transparent), transparent 32%), var(--bg,#05070d)!important}
+  .homeShowcaseInner.finalReco{display:grid!important;grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr)!important;gap:26px!important;align-items:stretch!important;padding:28px!important}
+  .homeShowcaseActions.finalReco{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.homeShowcaseActions.finalReco .btn{min-height:60px;border-radius:17px;font-weight:1000}.homeShowcaseActions.finalReco .streamBtn{background:linear-gradient(135deg,var(--viewer-accent),#bd46ff)!important;border:0!important;box-shadow:0 18px 52px color-mix(in srgb,var(--viewer-accent) 30%, transparent)}
+  .homeLiveCarousel.finalReco{display:flex!important;gap:18px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;padding:3px 3px 16px!important;align-items:stretch!important}.homeLiveCarousel.finalReco::-webkit-scrollbar{height:8px}.homeLiveCarousel.finalReco::-webkit-scrollbar-thumb{background:rgba(148,163,184,.38);border-radius:999px}
+  .homeSlideCard.finalLive{min-width:min(820px,72vw)!important;width:min(820px,72vw)!important;aspect-ratio:16/9!important;border-radius:30px!important;background:#050914;position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--viewer-accent) 38%, rgba(148,163,184,.18));box-shadow:0 28px 90px rgba(0,0,0,.42);scroll-snap-align:center;cursor:pointer}.homeSlideCard.finalLive img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}.homeSlideCard.finalLive:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.18) 40%,rgba(2,6,23,.94));z-index:1}.homeSlideCard.finalLive .homeSlideBody{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:24px;display:grid;gap:12px}.homeSlideCard.finalLive h2{font-size:clamp(30px,3.4vw,52px)!important;line-height:.96!important;letter-spacing:-.06em!important;margin:0}.homeSlideCard.finalLive p{margin:0;color:#dbeafe;font-weight:900}.homeTagCloud{display:flex;gap:8px;flex-wrap:wrap}.homeTag{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.16);background:rgba(2,6,23,.58);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000;color:#fff;backdrop-filter:blur(10px)}
+  .viewerProfilePanel{border:1px solid rgba(148,163,184,.18);border-radius:28px;background:linear-gradient(180deg,rgba(15,23,42,.74),rgba(15,23,42,.36));padding:18px}.viewerProfileHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.viewerProfileHead h2{margin:0;font-size:clamp(24px,2vw,34px);letter-spacing:-.04em}.viewerProfileGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.viewerStat{border:1px solid rgba(148,163,184,.15);border-radius:18px;padding:14px;background:rgba(255,255,255,.045)}.viewerStat span{display:block;color:#aab6ca;font-size:12px}.viewerStat b{display:block;font-size:26px;margin-top:5px}.viewerPrefs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.viewerPref{border:1px solid rgba(34,211,238,.32);background:rgba(34,211,238,.08);border-radius:999px;padding:7px 10px;font-weight:1000;font-size:12px;color:#e0f7ff}.viewerHistory{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.viewerHistory .sparkCard{margin:0}.themeControl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.themeControl input[type=color]{width:44px;height:36px;border:0;border-radius:12px;background:transparent;padding:0;overflow:hidden}
+  .proFollowLiveRail{display:flex;gap:16px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x proximity}.proFollowLiveRail::-webkit-scrollbar{height:8px}.proFollowLiveRail::-webkit-scrollbar-thumb{background:rgba(148,163,184,.38);border-radius:999px}.followLiveBanner{position:relative;min-width:310px;width:310px;aspect-ratio:16/9;border-radius:24px;overflow:hidden;border:1px solid rgba(148,163,184,.18);background:#070b14;text-align:left;color:#fff;scroll-snap-align:start;box-shadow:0 18px 50px rgba(0,0,0,.28)}.followLiveBanner>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.08)}.followLiveBanner:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(2,6,23,.88));z-index:1}.followLiveBody{position:absolute;z-index:2;left:14px;right:14px;bottom:14px;display:grid;gap:8px}.followLiveTop{position:absolute;z-index:3;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}.followAvatar{width:46px;height:46px;border-radius:15px;border:2px solid rgba(255,255,255,.26);object-fit:cover;background:#111827}.liveDot{display:inline-flex;border-radius:999px;padding:7px 10px;background:rgba(16,185,129,.86);font-size:12px;font-weight:1000;box-shadow:0 10px 28px rgba(16,185,129,.24)}.followLiveBody b{font-size:20px;line-height:1.05}.followLiveBody span{color:#dbeafe;font-size:13px;font-weight:850}.followEmpty{border:1px dashed rgba(148,163,184,.28);border-radius:20px;padding:18px;color:#aab6ca;background:rgba(255,255,255,.025)}
+  .swipeStamp{position:absolute!important;left:50%!important;top:50%!important;z-index:8!important;transform:translate(-50%,-50%) scale(.86) rotate(0deg)!important;opacity:0!important;border:4px solid currentColor!important;border-radius:24px!important;padding:18px 28px!important;background:rgba(2,6,23,.72)!important;backdrop-filter:blur(12px)!important;font-size:clamp(34px,9vw,72px)!important;line-height:1!important;font-weight:1000!important;text-transform:uppercase!important;letter-spacing:-.04em!important;box-shadow:0 24px 90px rgba(0,0,0,.48);pointer-events:none}.swipeStamp.like{color:#22c55e!important}.swipeStamp.nope{color:#fb7185!important}.proCard.swipe-like .swipeStamp.like,.proCard.swipe-nope .swipeStamp.nope{opacity:1!important;transform:translate(-50%,-50%) scale(1) rotate(-3deg)!important}.proCard.swipe-like:before,.proCard.swipe-nope:before{content:"";position:absolute;inset:0;z-index:7;pointer-events:none}.proCard.swipe-like:before{background:radial-gradient(circle at center,rgba(34,197,94,.22),transparent 55%)}.proCard.swipe-nope:before{background:radial-gradient(circle at center,rgba(251,113,133,.22),transparent 55%)}
+  .signalTagCloud.profileTags{margin-top:12px}.proProfileFull{display:grid;gap:12px}.likedChannels{display:grid;gap:8px}.likedChannels .savedChip{border:1px solid rgba(148,163,184,.14);border-radius:14px;padding:10px;background:rgba(255,255,255,.04)}
+  .channelPage.viewerTint{background:radial-gradient(circle at 14% 6%, color-mix(in srgb,var(--viewer-accent) 24%, transparent), transparent 28%), linear-gradient(180deg,rgba(15,23,42,.62),rgba(2,6,23,.18));border-radius:30px;padding:18px}.channelPage .channelBanner{height:clamp(260px,34vw,520px)!important;border-radius:30px!important;overflow:hidden!important;background:#050914!important}.channelPage .channelBanner img,.channelPage .bannerFallback{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important}.channelPage .watchShell.channelWatch.clean{grid-template-columns:1fr!important;gap:16px!important}.channelPage .watchMain{width:100%!important}.channelPage .player.premiumPlayer.oryonMainPlayer,.channelPage .premiumPlayer.oryonMainPlayer{min-height:clamp(420px,56vw,880px)!important;aspect-ratio:16/9!important;border-radius:28px!important}.channelCustomizer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid rgba(148,163,184,.18);border-radius:22px;background:rgba(15,23,42,.54);padding:14px 16px;margin:14px 0}.channelCustomizer h3{margin:0;font-size:18px}.channelCustomizer p{margin:4px 0 0;color:#aab6ca;font-size:13px}.channelCustomizer .btn{min-height:42px}.channelSideClean{grid-template-columns:1fr!important}.nativeFixedChat.compact{max-height:none!important}
+  @media(max-width:1080px){.homeShowcaseInner.finalReco{grid-template-columns:1fr!important;padding:18px!important}.homeSlideCard.finalLive{min-width:88vw!important;width:88vw!important}.homeShowcaseActions.finalReco{grid-template-columns:1fr!important}.viewerProfileGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.viewerHistory{grid-template-columns:repeat(2,minmax(0,1fr))}.followLiveBanner{min-width:78vw;width:78vw}.channelPage.viewerTint{padding:10px;border-radius:22px}.channelPage .channelBanner{height:260px!important;border-radius:22px!important}.channelCustomizer{display:grid}.channelPage .player.premiumPlayer.oryonMainPlayer,.channelPage .premiumPlayer.oryonMainPlayer{min-height:auto!important;width:100%!important}}
+  @media(max-width:560px){.homeSlideCard.finalLive{min-width:90vw!important;width:90vw!important;border-radius:24px!important}.homeSlideCard.finalLive .homeSlideBody{padding:16px}.homeSlideCard.finalLive h2{font-size:26px!important}.viewerProfileGrid{grid-template-columns:1fr 1fr}.viewerStat b{font-size:24px}.followLiveBanner{min-width:84vw;width:84vw}.swipeStamp{font-size:clamp(38px,13vw,68px)!important;padding:16px 22px!important}.channelPage .channelBanner{height:220px!important}}
+  `;
+  document.head.appendChild(st);
+})();
+
+function viewerUserKey(){
+  const u=state.session?.local?.login || state.session?.local?.id || 'guest';
+  return 'oryon_viewer_profile_v2:'+String(u).toLowerCase();
+}
+function viewerSeenKey(){
+  const u=state.session?.local?.login || state.session?.local?.id || 'guest';
+  return 'oryon_seen_lives_v2:'+String(u).toLowerCase();
+}
+function readJsonSafe(k,fb){try{return JSON.parse(localStorage.getItem(k)||'')||fb}catch{return fb}}
+function writeJsonSafe(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+function liveKeyOf(x){const id=liveIdentity(x||{}); return `${id.platform}:${String(id.login||id.name||id.title||'').toLowerCase()}`;}
+function viewerProfileV2(){
+  const old=loadViewerImpact?.()||{};
+  const p=readJsonSafe(viewerUserKey(),null)||{};
+  p.aura=Number(p.aura ?? old.points ?? 0);
+  p.discoveries=Array.isArray(p.discoveries)?p.discoveries:(old.discoveries||[]);
+  p.saved=Array.isArray(p.saved)?p.saved:savedLives?.()||[];
+  p.supports=Array.isArray(p.supports)?p.supports:(old.firstSupports||[]);
+  p.badges=Array.isArray(p.badges)?p.badges:(old.badges||['Explorateur']);
+  p.likedChannels=Array.isArray(p.likedChannels)?p.likedChannels:[];
+  p.rejectedChannels=Array.isArray(p.rejectedChannels)?p.rejectedChannels:[];
+  p.likedCategories=Array.isArray(p.likedCategories)?p.likedCategories:[];
+  p.moodCounts=p.moodCounts&&typeof p.moodCounts==='object'?p.moodCounts:{};
+  return p;
+}
+function saveViewerProfileV2(p){writeJsonSafe(viewerUserKey(),p)}
+function markLiveSeen(x,action='seen'){
+  if(!x) return;
+  const id=liveIdentity(x), key=liveKeyOf(x);
+  if(!id.login && !id.name) return;
+  const seen=readJsonSafe(viewerSeenKey(),{});
+  seen[key]={key,action,platform:id.platform,login:id.login,name:id.name,title:id.title,game:id.game,img:id.img,ts:Date.now()};
+  writeJsonSafe(viewerSeenKey(),seen);
+  const p=viewerProfileV2();
+  p.aura=Number(p.aura||0)+(action==='like'?6:action==='open'?4:1);
+  p.moodCounts[state.moodFirstMood||'general']=Number(p.moodCounts[state.moodFirstMood||'general']||0)+1;
+  const channel={key,platform:id.platform,login:id.login,name:id.name,game:id.game,img:id.img,ts:Date.now()};
+  if(action==='like' || action==='open'){
+    p.likedChannels=[channel,...p.likedChannels.filter(c=>c.key!==key)].slice(0,48);
+    if(id.game) p.likedCategories=[id.game,...p.likedCategories.filter(g=>String(g).toLowerCase()!==String(id.game).toLowerCase())].slice(0,16);
+  }
+  if(action==='nope') p.rejectedChannels=[channel,...p.rejectedChannels.filter(c=>c.key!==key)].slice(0,80);
+  p.discoveries=[channel,...(p.discoveries||[]).filter(c=>c.key!==key)].slice(0,60);
+  p.saved=savedLives?.()||p.saved||[];
+  saveViewerProfileV2(p);
+}
+function isLiveSeen(x){return !!readJsonSafe(viewerSeenKey(),{})[liveKeyOf(x)]}
+function filterUnseen(items){return (items||[]).filter(x=>!isLiveSeen(x));}
+function moodTermsFor(mood){
+  return {
+    chill:['chill','calme','relax','cozy','music','musique','détente','detente','art','dessin','just chatting'],
+    discussion:['just chatting','discussion','talk','tchat','chat','irl','conversation','débat','debat','questions'],
+    'nuit-calme':['nuit','late','calme','chill','asmr','cozy','music','lofi','relax'],
+    'rp':['rp','roleplay','gta rp','jdr','dnd','donjons','narration','personnage','pirate'],
+    'decouverte-jeu':['découverte','decouverte','blind','first play','exploration','nouveau jeu','lets play','let\'s play'],
+    'petite-commu':['petit','small','commu','chill','discussion','nouveau','fr']
+  }[mood]||[];
+}
+function moodScoreItem(x,mood){
+  const id=liveIdentity(x); const v=Number(id.viewers||0); const text=[id.title,id.game,id.name,x.tags?.join?.(' ')||'',x.category||'',x.game_name||''].join(' ').toLowerCase();
+  const terms=moodTermsFor(mood); let score=0;
+  for(const t of terms){ if(text.includes(String(t).toLowerCase())) score+=24; }
+  if(mood==='petite-commu'){ if(v>=3&&v<=80)score+=80; if(v>=15&&v<=50)score+=40; if(v>120)score-=100; }
+  else { if(v>=15&&v<=120)score+=26; if(v>300)score-=80; }
+  if(mood==='discussion' && /just chatting|discussion|irl|talk|chat/.test(text)) score+=70;
+  if(mood==='chill' && /chill|calme|relax|music|musique|cozy/.test(text)) score+=55;
+  if(mood==='nuit-calme' && /late|nuit|asmr|lofi|calme|chill/.test(text)) score+=55;
+  if(mood==='rp' && /\brp\b|roleplay|jdr|dnd|gta rp|narr/.test(text)) score+=70;
+  if(mood==='decouverte-jeu' && !/just chatting/.test(text)) score+=28;
+  score += Math.min(40, Number(x.chat_messages||x.message_count||0));
+  score += Math.max(0, 30-Math.abs(v-45)/3);
+  return score;
+}
+function sortByMood(items,mood){return [...(items||[])].sort((a,b)=>moodScoreItem(b,mood)-moodScoreItem(a,mood));}
+function moodQueryFor(mood){
+  return {chill:'chill',discussion:'Just Chatting','nuit-calme':'chill','rp':'RP','decouverte-jeu':'','petite-commu':''}[mood]||'';
+}
+async function setDiscoverMood(id){
+  const normalized=id||'discussion'; state.moodFirstMood=normalized;
+  const mood=$('#dMood'); if(mood) mood.value=normalized;
+  const query=$('#dQuery'); if(query && !query.value) query.value=moodQueryFor(normalized);
+  $$('.moodFirstCard,.proMoodBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.mood===normalized));
+  const zap=$('#zapResult'); if(zap) zap.innerHTML=`<div class="moodFirstStart"><div><span class="moodFirstSelected">${esc(moodFirstLabel(normalized))}</span><h2>Je cherche un live vraiment dans cette vibe…</h2><p>Priorité au chat actif, aux petits créateurs et aux titres cohérents.</p></div></div>`;
+  clearSpotlightPlayer?.(); closeMini?.();
+  requestAnimationFrame(()=>document.getElementById('zapResult')?.scrollIntoView({block:'start',behavior:'smooth'}));
+  return findLive();
+}
+async function findLive(){
+  const mood=state.moodFirstMood || $('#dMood')?.value || 'discussion';
+  const q=($('#dQuery')?.value || moodQueryFor(mood) || '').trim();
+  const source=$('#dSource')?.value || 'both';
+  const max=$('#dMax')?.value || (mood==='petite-commu'?'80':'180');
+  const lang=$('#dLang')?.value || 'fr';
+  const zap=$('#zapResult');
+  if(zap) zap.innerHTML=`<div class="moodFirstStart"><div><span class="moodFirstSelected">${esc(moodFirstLabel(mood))}</span><h2>Recherche en cours…</h2><p>Oryon trie selon ton mood, puis retire ce que tu as déjà swipé.</p></div></div>`;
+  state.currentTwitch=null; state.discoverPlayer=null; closeMini?.();
+  async function call(params){const r=await api('/api/oryon/discover/find-live?'+qs(params)).catch(()=>({items:[]}));return (r.items||[]).filter(x=>(x.platform||'')!=='peertube');}
+  try{
+    let items=await call({q,mood,max,lang,source});
+    if(items.length<4) items=[...items,...await call({q:'',mood,max:mood==='petite-commu'?'120':'220',lang,source:'both'})];
+    if(items.length<4){const t=await api(`/api/twitch/streams/small?lang=${encodeURIComponent(lang)}&min=0&max=${encodeURIComponent(mood==='petite-commu'?'120':'250')}`).catch(()=>({items:[]}));items=[...items,...(t.items||[]).map(x=>({...x,platform:'twitch'}))];}
+    const seenFiltered=filterUnseen(items);
+    items=sortByMood(seenFiltered,mood);
+    const dedupe=[]; const keys=new Set();
+    for(const it of items){const k=liveKeyOf(it); if(!keys.has(k)){keys.add(k); dedupe.push(it)}}
+    state.zap.items=dedupe.slice(0,18); state.zap.index=0; state.zap.last={q,mood,max,lang,source};
+    renderZap();
+    if(!state.zap.items.length && zap) zap.innerHTML=`<div class="moodFirstStart"><div><span class="moodFirstSelected">${esc(moodFirstLabel(mood))}</span><h2>Tu as déjà vu les propositions disponibles.</h2><p>Change de mood, attends de nouveaux lives, ou ouvre la recherche manuelle.</p><div class="moodFirstMiniGrid">${AMBIANCES.map(([id,label])=>`<button onclick="setDiscoverMood('${esc(id)}')">${esc(label)}</button>`).join('')}</div></div></div>`;
+  }catch(e){ if(zap) zap.innerHTML=`<div class="moodFirstStart"><div><h2>Recherche impossible.</h2><p>Le service de découverte ne répond pas pour le moment.</p></div></div>`; console.error(e); }
+}
+function renderSpotlightPreview(x){
+  if(!x){return `<article class="moodFirstStart"><div><span class="eyebrow"><i class="dot"></i>Découvrir</span><h2>Choisis ton mood. Oryon choisit le live.</h2><p>Un tap lance la recherche. Ensuite : droite j’aime, gauche pas ouf.</p><div class="moodFirstMiniGrid">${AMBIANCES.slice(0,4).map(([id,label])=>`<button onclick="setDiscoverMood('${esc(id)}')">${esc(label)}</button>`).join('')}</div></div></article>`;}
+  const id=liveIdentity(x), tags=signalTagsFor?.(x).slice(0,5)||discoverReasonFor(x).slice(0,4);
+  return `<article class="proCard" data-swipe-card="1"><div class="swipeStamp like">J'aime</div><div class="swipeStamp nope">Pas ouf</div><div class="proMedia">${id.img?`<img src="${esc(id.img)}" alt="" loading="eager">`:`<div class="proEmptyMedia">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}</div>
+    <div class="proBadgeTop"><span class="proPill">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span></div>
+    <div class="proOverlay"><div class="proReasons">${tags.map(r=>`<span class="proPill">${esc(r)}</span>`).join('')}</div><h2>${esc(id.title||'Live en cours')}</h2><p class="muted">${esc(id.name||id.login||'Streamer')}</p><div class="swipeHint">Droite : j’aime · gauche : pas ouf</div>
+      <div class="proActions"><button class="btn good" onclick="zapOpenCurrent()">Regarder</button><button class="btn secondary" onclick="proSwipeLeft()">Pas ouf</button><button class="btn secondary" onclick="proSwipeRight()">J'aime</button></div>
+    </div></article>`;
+}
+function proSwipeRight(){
+  const x=currentZapItem?.() || (state.zap.items||[])[state.zap.index];
+  if(!x) return findLive();
+  markLiveSeen(x,'like'); saveCurrentLive?.(); toast?.('J’aime — on ne te le reproposera plus');
+  setTimeout(()=>zapNext(),120);
+}
+function proSwipeLeft(){
+  const x=currentZapItem?.() || (state.zap.items||[])[state.zap.index];
+  if(!x) return findLive();
+  markLiveSeen(x,'nope'); clearSpotlightPlayer?.(); closeMini?.(); toast?.('Pas ouf — retiré de tes propositions');
+  setTimeout(()=>zapNext(),80);
+}
+function zapNext(){
+  const items=state.zap.items||[];
+  if(!items.length) return findLive();
+  let tries=0;
+  do{state.zap.index=(state.zap.index+1)%items.length; tries++;}while(tries<items.length && isLiveSeen(items[state.zap.index]));
+  if(tries>=items.length && isLiveSeen(items[state.zap.index])) return findLive();
+  state.currentTwitch=null; state.discoverPlayer=null; clearSpotlightPlayer?.(); closeMini?.(); renderZap();
+}
+function zapOpenCurrent(){
+  const x=currentZapItem?.() || (state.zap.items||[])[state.zap.index]; if(!x) return;
+  markLiveSeen(x,'open'); trackDiscovery?.(x);
+  const id=liveIdentity(x);
+  if(id.platform==='twitch'){ state.discoverPlayer={type:'twitch',login:id.login}; closeMini?.(); renderZap(); } else openOryon(id.login);
+}
+function bindProSwipe(){
+  const card=document.querySelector('.proCard[data-swipe-card="1"]'); if(!card || card.__oryonSwipeBoundFinal) return; card.__oryonSwipeBoundFinal=true;
+  let startX=0,startY=0,dx=0,dy=0,dragging=false;
+  const start=e=>{if(e.target.closest('button,a,input,select,textarea'))return; const p=e.touches?e.touches[0]:e; startX=p.clientX; startY=p.clientY; dx=0; dy=0; dragging=true; card.style.transition='none';};
+  const move=e=>{if(!dragging)return; const p=e.touches?e.touches[0]:e; dx=p.clientX-startX; dy=p.clientY-startY; if(Math.abs(dx)<8)return; if(Math.abs(dx)>Math.abs(dy)*1.12 && e.cancelable)e.preventDefault(); const rot=Math.max(-9,Math.min(9,dx/18)); card.style.transform=`translateX(${dx}px) rotate(${rot}deg)`; card.classList.toggle('swipe-like',dx>36); card.classList.toggle('swipe-nope',dx<-36);};
+  const end=()=>{if(!dragging)return; dragging=false; card.style.transition='transform .18s ease, opacity .18s ease'; const threshold=Math.min(120,Math.max(70,window.innerWidth*.18)); if(dx>threshold){card.classList.add('swipe-like'); card.style.transform='translateX(120vw) rotate(10deg)'; card.style.opacity='.2'; return setTimeout(proSwipeRight,130);} if(dx<-threshold){card.classList.add('swipe-nope'); card.style.transform='translateX(-120vw) rotate(-10deg)'; card.style.opacity='.2'; return setTimeout(proSwipeLeft,130);} card.style.transform=''; card.classList.remove('swipe-like','swipe-nope');};
+  card.addEventListener('touchstart',start,{passive:true}); card.addEventListener('touchmove',move,{passive:false}); card.addEventListener('touchend',end,{passive:true}); card.addEventListener('pointerdown',start); window.addEventListener('pointermove',move,{passive:false}); window.addEventListener('pointerup',end);
+}
+function viewerProfileCard(){
+  const p=viewerProfileV2(); const saved=savedLives?.()||[]; const liked=(p.likedChannels||[]).slice(0,4); const cats=(p.likedCategories||[]).slice(0,6); const moods=Object.entries(p.moodCounts||{}).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([m])=>moodFirstLabel?.(m)||m);
+  return `<div class="viewerProfilePanel"><div class="viewerProfileHead"><div><h2>Profil Viewer</h2><p class="small">Tes goûts Oryon + Twitch, tes pépites, tes chaînes aimées.</p></div><div class="themeControl"><span class="small">Couleur</span><input type="color" value="${esc(localStorage.getItem('oryon_viewer_accent')||'#8b5cf6')}" oninput="setViewerThemeColor(this.value)"></div></div><div class="viewerProfileGrid"><div class="viewerStat"><span>Aura</span><b>${Number(p.aura||0)}</b></div><div class="viewerStat"><span>Pépites vues</span><b>${(p.discoveries||[]).length}</b></div><div class="viewerStat"><span>Sauvées</span><b>${saved.length}</b></div><div class="viewerStat"><span>Chaînes aimées</span><b>${(p.likedChannels||[]).length}</b></div><div class="viewerStat"><span>Pas ouf retirés</span><b>${(p.rejectedChannels||[]).length}</b></div><div class="viewerStat"><span>Soutiens</span><b>${(p.supports||[]).length}</b></div></div><div class="viewerPrefs">${[...moods,...cats].slice(0,10).map(x=>`<span class="viewerPref">${esc(x)}</span>`).join('')||'<span class="viewerPref">À construire</span>'}</div>${liked.length?`<div class="viewerHistory">${liked.map(c=>`<div class="sparkCard"><b>${esc(c.name||c.login)}</b><br><span class="small">${esc(c.game||platformLabel(c.platform))}</span></div>`).join('')}</div>`:'<div class="followEmpty" style="margin-top:12px">Swipe à droite pour remplir ton profil viewer.</div>'}</div>`;
+}
+function viewerImpactCard(){return viewerProfileCard();}
+function viewerCapsuleHtml(){return viewerProfileCard();}
+function proProfileTab(){
+  const p=viewerProfileV2(); const liked=(p.likedChannels||[]).slice(0,4);
+  return `<div class="proProfileFull"><h2 style="margin:0">Profil Viewer</h2><div class="proMetricGrid"><div class="proMetric"><span>Aura</span><b>${Number(p.aura||0)}</b></div><div class="proMetric"><span>Pépites</span><b>${(p.discoveries||[]).length}</b></div><div class="proMetric"><span>Chaînes aimées</span><b>${(p.likedChannels||[]).length}</b></div><div class="proMetric"><span>Retirées</span><b>${(p.rejectedChannels||[]).length}</b></div></div><div class="signalTagCloud profileTags">${(p.likedCategories||[]).slice(0,6).map(c=>`<span class="signalTag">${esc(c)}</span>`).join('')||'<span class="signalTag">Préférences à apprendre</span>'}</div>${liked.length?`<div class="likedChannels">${liked.map(c=>`<div class="savedChip"><b>${esc(c.name||c.login)}</b><span>${esc(c.game||platformLabel(c.platform))}</span></div>`).join('')}</div>`:''}</div>`;
+}
+function followedThumb(x){return x.thumbnail_url?thumbT({...x,thumbnail_url:x.thumbnail_url}):(x.profile_image_url||x.avatar_url||x.box_art_url||'');}
+async function renderCompactFollowed(){
+  const box=$('#followedWrapCompact'); if(!box) return;
+  if(!state.session.twitch){box.innerHTML=`<div class="followEmpty">Connecte Twitch pour afficher uniquement tes suivis en ligne.</div>`;return;}
+  box.innerHTML='<div class="followEmpty">Chargement des suivis en live…</div>';
+  try{
+    let r=await api('/api/twitch/followed/status').catch(()=>null); if(!r || !r.success) r=await api('/api/twitch/followed/live').catch(()=>null); if(!r || !r.success) r=await api('/followed_streams').catch(()=>null);
+    let items=(r?.items||r?.streams||[]).filter(Boolean).filter(x=>!!(x.is_live||x.live||Number(x.viewer_count||x.viewers||0)>0));
+    if(!items.length){box.innerHTML='<div class="followEmpty">Aucun de tes suivis Twitch n’est en live actuellement.</div>';return;}
+    box.innerHTML=`<div class="proFollowLiveRail">${items.slice(0,20).map(x=>{const login=proLoginOf?.(x)||x.user_login||x.login||x.broadcaster_login||''; const name=proNameOf?.(x)||x.user_name||x.display_name||x.broadcaster_name||login; const viewers=proViewersOf?.(x)||x.viewer_count||x.viewers||0; const game=x.game_name||x.category||'Live'; const thumb=followedThumb(x); const avatar=x.profile_image_url||x.avatar_url||x.logo||thumb; return `<button class="followLiveBanner" onclick="openTwitch('${esc(login)}')">${thumb?`<img src="${esc(thumb)}" alt="" loading="lazy">`:''}<div class="followLiveTop"><img class="followAvatar" src="${esc(avatar||'')}" alt=""><span class="liveDot">● Live · ${Number(viewers)||0}</span></div><div class="followLiveBody"><b>${esc(name)}</b><span>${esc(game)}</span></div></button>`;}).join('')}</div>`;
+  }catch(e){box.innerHTML='<div class="followEmpty">Impossible de charger les suivis live.</div>';}
+}
+function homeRecommendationCard(x,i=0){
+  const id=liveIdentity(x); const action=id.platform==='twitch'?`state.discoverPlayer={type:'twitch',login:'${esc(id.login)}'};state.zap.items=[${JSON.stringify(x).replace(/</g,'\\u003c')}];state.zap.index=0;setView('discover')`:`openOryon('${esc(id.login)}')`;
+  const tags=(signalTagsFor?.(x)||[platformLabel(id.platform),id.game,`${id.viewers} viewers`]).slice(0,4);
+  return `<article class="homeSlideCard finalLive" onclick="${action}">${id.img?`<img src="${esc(id.img)}" alt="" loading="${i?'lazy':'eager'}">`:`<div class="proEmptyMedia">LIVE</div>`}<div class="homeSlideBody"><div class="homeTagCloud">${tags.map(t=>`<span class="homeTag">${esc(t)}</span>`).join('')}</div><h2>${esc(id.title||'Live vitrine')}</h2><p>${esc(id.name)} · ${id.viewers} viewers</p></div></article>`;
+}
+async function loadHomeRecommendations(){
+  const box=$('#homeShowcaseLives'); if(!box) return; box.innerHTML='<div class="followEmpty">Sélection de la vitrine live…</div>';
+  try{
+    const native=await api('/api/native/lives').catch(()=>({items:[]}));
+    let twitch=await api('/api/twitch/streams/small?lang=fr&min=30&max=100').catch(()=>({items:[]}));
+    if(!(twitch.items||[]).length) twitch=await api('/api/twitch/streams/small?lang=fr&min=15&max=120').catch(()=>({items:[]}));
+    let items=[...(native.items||[]).map(x=>({...x,platform:'oryon'})),...(twitch.items||[]).map(x=>({...x,platform:'twitch'}))];
+    items=items.filter(x=>{const v=Number(x.viewer_count??x.viewers??0)||0; return v>=15 && v<=120;});
+    items.sort((a,b)=>{const av=Number(a.viewer_count??a.viewers??0)||0,bv=Number(b.viewer_count??b.viewers??0)||0; const as=(av>=30&&av<=100?90:40)+Math.min(50,Number(a.chat_messages||0)); const bs=(bv>=30&&bv<=100?90:40)+Math.min(50,Number(b.chat_messages||0)); return bs-as;});
+    items=items.slice(0,5);
+    box.innerHTML=items.length?items.map(homeRecommendationCard).join(''):`<article class="homeSlideCard finalLive" onclick="autoProposeLive()"><div class="homeSlideBody"><div class="homeTagCloud"><span class="homeTag">Recherche directe</span><span class="homeTag">Live vitrine</span></div><h2>Pas de live vitrine maintenant.</h2><p>Oryon peut quand même te proposer un live.</p></div></article>`;
+  }catch(e){box.innerHTML='<div class="followEmpty">Impossible de charger la vitrine.</div>';}
+}
+async function renderHome(){
+  const el=$('#home'); if(!el) return;
+  el.innerHTML=`<section class="homeShowcase section"><div class="homeShowcaseInner finalReco"><div class="homeShowcaseCopy final"><div><span class="eyebrow"><i class="dot"></i>Vitrine Oryon</span><h1>Des lives à taille humaine.</h1><p>Un live vitrine entre 30 et 100 viewers, puis une découverte plus fine selon ton mood.</p><div class="homeMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div></div><div class="homeShowcaseActions finalReco"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Oryon')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="homeLiveCarousel finalReco"><div class="followEmpty">Chargement…</div></div></div></section><div class="homeTwoGrid section"><section>${viewerProfileCard()}</section><section class="homeFollowPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Tes suivis Twitch en ligne</h2><p class="small" style="margin:6px 0 0">Uniquement les chaînes live, avec miniature et logo.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact"></div></section></div>`;
+  await loadHomeRecommendations(); await renderCompactFollowed(); closeMini?.();
+}
+function setViewerThemeColor(color){
+  const c=color||'#8b5cf6'; localStorage.setItem('oryon_viewer_accent',c); document.documentElement.style.setProperty('--viewer-accent',c); document.documentElement.style.setProperty('--brand',c); document.documentElement.style.setProperty('--accent',c); document.querySelectorAll('input[type=color]').forEach(i=>{if(i.value!==c)i.value=c});
+}
+function applyViewerThemeColor(){setViewerThemeColor(localStorage.getItem('oryon_viewer_accent')||'#8b5cf6')}
+applyViewerThemeColor();
+(function wrapChannelCustomizer(){
+  if(window.__oryonChannelCustomizerWrapped) return; window.__oryonChannelCustomizerWrapped=true;
+  const original=renderChannel;
+  renderChannel=async function(){
+    await original.apply(this,arguments);
+    const page=document.querySelector('#channel .channelPage'); if(!page) return;
+    page.classList.add('viewerTint'); applyViewerThemeColor();
+    if(!page.querySelector('.channelCustomizer')){
+      const html=`<div class="channelCustomizer"><div><h3>Personnalisation viewer</h3><p>Change la couleur de toute la page selon ton goût.</p></div><div class="themeControl"><input type="color" value="${esc(localStorage.getItem('oryon_viewer_accent')||'#8b5cf6')}" oninput="setViewerThemeColor(this.value)"><button class="btn" onclick="setViewerThemeColor('#8b5cf6')">Violet</button><button class="btn secondary" onclick="setViewerThemeColor('#06b6d4')">Cyan</button><button class="btn secondary" onclick="setViewerThemeColor('#22c55e')">Vert</button></div></div>`;
+      const meta=page.querySelector('.channelMeta')||page.querySelector('.pageHead')||page.firstElementChild; meta?.insertAdjacentHTML('afterend',html);
+    }
+  };
+})();
