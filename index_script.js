@@ -4156,3 +4156,231 @@ async function renderChannel(){
   updateLiveUi?.(isLive);
   refreshEmoteShelf?.(targetLogin);
 }
+
+/* ===== Follow-up creator channel fixes ===== */
+(function(){
+  const st=document.createElement('style');
+  st.textContent=`
+  #channel .creatorRefine .channelIdentity .avatar{width:140px!important;height:140px!important;min-width:140px!important;border-radius:30px!important;}
+  #channel .creatorRefine .channelLiveLayout{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,26vw,380px);gap:16px;align-items:stretch;}
+  #channel .creatorRefine .channelLiveSidebar{display:flex;min-width:0;}
+  #channel .creatorRefine .channelLiveSidebar .chatPanel{width:100%;height:100%;min-height:100%;display:grid;grid-template-rows:auto 1fr auto auto;}
+  #channel .creatorRefine .channelBelowLive{grid-template-columns:minmax(0,1fr)!important;overflow:visible!important;}
+  #channel .creatorRefine .channelBelowMain>*{min-width:0;}
+  #channel .creatorRefine .channelBelowSide{display:none!important;}
+  #channel .creatorRefine .channelSubNav{display:flex;gap:10px;flex-wrap:wrap;overflow:auto;padding-bottom:4px;}
+  #channel .creatorRefine .channelSubNav button.active{background:linear-gradient(135deg,var(--viewer-accent,#8b5cf6),rgba(255,255,255,.14));border-color:color-mix(in srgb,var(--viewer-accent,#8b5cf6) 46%, rgba(255,255,255,.14));box-shadow:0 10px 30px color-mix(in srgb,var(--viewer-accent,#8b5cf6) 28%, transparent);}
+  #channel .creatorRefine .channelBelowMain{overflow:visible;}
+  #channel .creatorRefine .vignetteArea{padding:22px;display:grid;gap:16px;}
+  #channel .creatorRefine .vignetteHead{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+  #channel .creatorRefine .vignetteHead h2{margin:0;font-size:clamp(24px,1.6vw,32px);}
+  #channel .creatorRefine .vignetteHead p{margin:4px 0 0;color:#9fb0c7;font-size:13px;}
+  #channel .creatorRefine .vignetteGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+  #channel .creatorRefine .vignetteCard{position:relative;border:1px solid rgba(148,163,184,.22);border-radius:22px;overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.03));aspect-ratio:1/1;display:flex;align-items:flex-end;min-width:0;}
+  #channel .creatorRefine .vignetteCard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  #channel .creatorRefine .vignetteCard::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.04),rgba(2,6,23,.78));z-index:1;}
+  #channel .creatorRefine .vignetteBody{position:relative;z-index:2;padding:14px;display:grid;gap:4px;}
+  #channel .creatorRefine .vignetteBody b{font-size:15px;color:#fff;}
+  #channel .creatorRefine .vignetteBody span{font-size:12px;color:#bfd0e8;}
+  #channel .creatorRefine .vignetteEmpty{border-style:dashed;justify-content:center;align-items:center;text-align:center;padding:18px;}
+  #channel .creatorRefine .vignetteEmpty::after{display:none;}
+  #channel .creatorRefine .vignetteEmpty .vignetteBody{position:static;z-index:1;}
+  #channel .creatorRefine .identityCompact{padding:22px;}
+  #channel .creatorRefine .bioPremium,#channel .creatorRefine .identityCompact,#channel .creatorRefine .vignetteArea{scroll-margin-top:110px;}
+  @media(max-width:980px){
+    #channel .creatorRefine .channelLiveLayout{grid-template-columns:1fr;}
+    #channel .creatorRefine .channelIdentity .avatar{width:112px!important;height:112px!important;min-width:112px!important;}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+const ORYON_SESSION_BACKUP_KEY='oryon_local_backup_user';
+const ORYON_VIGNETTES_BACKUP_PREFIX='oryon_channel_vignettes_';
+function saveOryonLocalBackup(u){try{if(u)localStorage.setItem(ORYON_SESSION_BACKUP_KEY,JSON.stringify(u));}catch(_){}}
+function readOryonLocalBackup(){try{return JSON.parse(localStorage.getItem(ORYON_SESSION_BACKUP_KEY)||'null')}catch(_){return null}}
+function clearOryonLocalBackup(){try{localStorage.removeItem(ORYON_SESSION_BACKUP_KEY)}catch(_){}}
+
+const __oryonOrigLoadSession = loadSession;
+loadSession = async function(){
+  let s=null;
+  try{s=await api('/api/oryon/session')}catch(_){s=null}
+  if(s&&s.success){
+    state.session.local=s.local||readOryonLocalBackup()||null;
+    state.session.twitch=s.twitch||null;
+    if(state.session.local)saveOryonLocalBackup(state.session.local);
+  }else{
+    state.session.local=readOryonLocalBackup()||null;
+  }
+  renderNav();
+  renderUserMenu();
+};
+
+const __oryonOrigLogout = logoutOryon;
+logoutOryon = async function(){
+  clearOryonLocalBackup();
+  return __oryonOrigLogout();
+};
+
+const __oryonOrigBindSettingsForms = bindSettingsForms;
+bindSettingsForms = function(){
+  __oryonOrigBindSettingsForms();
+  const lf=$('#loginForm');
+  if(lf && lf.onsubmit && !lf.__oryonPersistWrapped){
+    const orig=lf.onsubmit;
+    lf.__oryonPersistWrapped=true;
+    lf.onsubmit=async function(e){
+      await orig.call(this,e);
+      if(state.session.local)saveOryonLocalBackup(state.session.local);
+    };
+  }
+  const rf=$('#registerForm');
+  if(rf && rf.onsubmit && !rf.__oryonPersistWrapped){
+    const orig=rf.onsubmit;
+    rf.__oryonPersistWrapped=true;
+    rf.onsubmit=async function(e){
+      await orig.call(this,e);
+      if(state.session.local)saveOryonLocalBackup(state.session.local);
+    };
+  }
+  const pf=$('#profileForm');
+  if(pf && pf.onsubmit && !pf.__oryonPersistWrapped){
+    const orig=pf.onsubmit;
+    pf.__oryonPersistWrapped=true;
+    pf.onsubmit=async function(e){
+      await orig.call(this,e);
+      if(state.session.local)saveOryonLocalBackup(state.session.local);
+    };
+  }
+};
+
+function oryonReadVignetteBackup(login){
+  if(!login)return [];
+  try{return JSON.parse(localStorage.getItem(ORYON_VIGNETTES_BACKUP_PREFIX+login.toLowerCase())||'[]')}catch(_){return []}
+}
+function oryonSaveVignetteBackup(login,items){
+  if(!login)return;
+  try{localStorage.setItem(ORYON_VIGNETTES_BACKUP_PREFIX+login.toLowerCase(),JSON.stringify(items||[]))}catch(_){ }
+}
+function oryonGetChannelVignettes(p){
+  const raw = Array.isArray(p.channel_vignettes) ? p.channel_vignettes : (Array.isArray(p.channel_panels) ? p.channel_panels : []);
+  const mapped = raw.filter(Boolean).map((item,i)=>({
+    image_url:item.image_url||item.image||'',
+    title:item.title||('Vignette '+(i+1)),
+    description:item.text||item.description||'Image de chaîne'
+  })).filter(v=>v.image_url).slice(0,6);
+  if(mapped.length)return mapped;
+  return oryonReadVignetteBackup(p.login).slice(0,6);
+}
+function compressImageMax(file,max=800){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(); const rd=new FileReader();
+    rd.onload=()=>{ img.onload=()=>{
+      let w=img.width,h=img.height;
+      const ratio=Math.min(1,max/Math.max(w,h));
+      w=Math.max(1,Math.round(w*ratio)); h=Math.max(1,Math.round(h*ratio));
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+      resolve(c.toDataURL('image/jpeg',0.82));
+    }; img.onerror=reject; img.src=rd.result;};
+    rd.onerror=reject; rd.readAsDataURL(file);
+  });
+}
+async function saveChannelVignettes(images){
+  const viewer=state.session.local; const p=state.channelProfile||viewer||{};
+  const login=(viewer?.login||p.login||'').toLowerCase();
+  if(!login){toast('Compte Oryon requis'); return}
+  const prev=await api('/api/oryon/profile/'+encodeURIComponent(login)).catch(()=>({}));
+  const cur=prev.user||p||viewer||{};
+  const panels=(images||[]).map((img,i)=>({image_url:img.image_url||img.image||img,title:img.title||('Vignette '+(i+1)),text:img.description||img.text||'Image de chaîne'}));
+  oryonSaveVignetteBackup(login,panels);
+  const body={
+    display_name:cur.display_name||viewer?.display_name||viewer?.login||login,
+    bio:cur.bio||'',
+    avatar_url:cur.avatar_url||'',
+    banner_url:cur.banner_url||'',
+    offline_image_url:cur.offline_image_url||'',
+    tags:Array.isArray(cur.tags)?cur.tags.join(', '):(cur.tags||''),
+    channel_badges:cur.channel_badges||[],
+    channel_panels:panels,
+    channel_vignettes:panels,
+    peertube_watch_url:cur.peertube_watch_url||'',
+    peertube_embed_url:cur.peertube_embed_url||'',
+    oryon_local_player_url:cur.oryon_local_player_url||'',
+    oryon_local_status_url:cur.oryon_local_status_url||''
+  };
+  const r=await api('/api/oryon/profile',{method:'POST',body:JSON.stringify(body)}).catch(()=>({success:false}));
+  if(r?.success){toast('Vignettes enregistrées'); await loadSession(); await renderChannel();}
+  else {toast(r?.error||'Vignettes gardées localement dans ce navigateur'); state.channelProfile={...cur,channel_panels:panels,channel_vignettes:panels}; await renderChannel();}
+}
+async function handleChannelVignettesUpload(files){
+  const current=oryonGetChannelVignettes(state.channelProfile||{});
+  const selected=[...(files||[])].slice(0,6);
+  if(!selected.length)return;
+  const items=[];
+  for(let i=0;i<selected.length;i++){
+    const file=selected[i];
+    const data=await compressImageMax(file,800);
+    items.push({image_url:data,title:file.name.replace(/\.[^.]+$/,''),description:'Image de chaîne'});
+  }
+  const merged=[...current,...items].slice(0,6);
+  await saveChannelVignettes(merged);
+}
+function openChannelVignettesEditor(){
+  const input=$('#channelVignetteInput');
+  if(input)input.click();
+}
+function removeChannelVignette(idx){
+  const items=oryonGetChannelVignettes(state.channelProfile||{}).filter((_,i)=>i!==idx);
+  saveChannelVignettes(items);
+}
+function oryonChannelPanelsHtml(p,isOwner){
+  const panels=oryonGetChannelVignettes(p);
+  return `<section id="channelVignettesSection" class="vignetteArea"><div class="vignetteHead"><div><h2>Vignettes de chaîne</h2><p>Ajoute jusqu'à 6 images. Chaque image est automatiquement limitée à 800×800 max.</p></div>${isOwner?`<div class="row"><button class="btn secondary" onclick="openChannelVignettesEditor()">Éditer vignettes</button><input id="channelVignetteInput" type="file" accept="image/*" multiple class="hidden"></div>`:''}</div><div class="vignetteGrid">${panels.length?panels.map((panel,i)=>`<article class="vignetteCard"><img src="${esc(panel.image_url)}" alt=""><div class="vignetteBody"><b>${esc(panel.title||('Vignette '+(i+1)))}</b><span>${esc(panel.description||'Image de chaîne')}</span>${isOwner?`<button class="btn secondary" style="margin-top:6px;width:max-content" onclick="removeChannelVignette(${i})">Retirer</button>`:''}</div></article>`).join(''):`<article class="vignetteCard vignetteEmpty"><div class="vignetteBody"><b>Aucune vignette pour l’instant</b><span>${isOwner?'Clique sur “Éditer vignettes” pour uploader des images.':'Le créateur n’a pas encore ajouté de vignettes.'}</span></div></article>`}</div></section>`;
+}
+function oryonChannelBelowLiveHtml(p,tags,channelBadges,isOwner){
+  const bio=esc(p.bio||"Cette chaîne n'a pas encore ajouté de bio.");
+  const tagHtml=(tags||[]).slice(0,14).map(t=>`<span class="tagChipCompact">${esc(t)}</span>`).join('') || '<span class="tagChipCompact">Oryon</span>';
+  const badgeHtml=(channelBadges||[]).slice(0,8).map(b=>`<span class="badgeChipCompact"><strong>${esc(b.icon)}</strong>${esc(b.label)}</span>`).join('');
+  return `<section class="channelBelowLive"><main class="channelBelowMain"><article id="channelBioSection" class="bioPremium"><h2>Bio</h2><p>${bio}</p></article>${oryonChannelPanelsHtml(p,isOwner)}<article id="channelIdentitySection" class="identityCompact"><h2>Identité de chaîne</h2><div class="identityRows"><div><span class="identityTitle">Tags</span><div class="tagCloudCompact">${tagHtml}</div></div><div><span class="identityTitle">Badges visibles</span><div class="badgeCloudCompact">${badgeHtml}</div></div></div></article></main></section>`;
+}
+function channelSubNav(btn,tab){
+  $$('.channelSubNav button').forEach(b=>b.classList.remove('active'));
+  btn?.classList.add('active');
+  const map={home:'#channelPlayerTop',about:'#channelBioSection',planning:'#channelVignettesSection',clips:'#channelIdentitySection'};
+  const target=document.querySelector(map[tab]||map.home);
+  if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+}
+renderChannel = async function(){
+  const viewer=state.session.local;
+  const targetLogin=(state.watchRoom || viewer?.login || '').toLowerCase();
+  if(!targetLogin){ $('#channel').innerHTML=authRequired(); return; }
+  state.lastChannelLogin=targetLogin;
+  const prof=await api('/api/oryon/profile/'+encodeURIComponent(targetLogin));
+  const p=prof.user || (viewer && viewer.login===targetLogin ? viewer : {login:targetLogin,display_name:targetLogin});
+  const support=await api('/api/oryon/supporters/'+encodeURIComponent(targetLogin)).catch(()=>({success:false,first_supporters:[]}));
+  state.channelSupport=support;
+  const isOwner=!!viewer && viewer.login===targetLogin;
+  const lives=await api('/api/native/lives').catch(()=>({items:[]}));
+  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
+  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  state.channelProfile=p; state.channelOwner=isOwner;
+  if(viewer)saveOryonLocalBackup(viewer);
+  const banner=p.banner_url||p.offline_image_url||'';
+  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
+  const channelBadges=channelBadgesFor(p,support,isOwner);
+  const ownerActions=isOwner?`<button class="btn" onclick="setView('manager')">Gestionnaire</button><button class="btn secondary" onclick="setView('settings')">Modifier profil</button>`:`<button class="btn" onclick="followOryon('${esc(targetLogin)}')">Suivre</button><button id="likeBtn" class="btn secondary" onclick="likeOryon('${esc(targetLogin)}')">Aimer</button>${supportButton(targetLogin,support)}<button class="btn ghost" onclick="quickGem()">Autre live</button>`;
+  const media=isLive ? fwLiveMediaHtml(p,isOwner,isLive,p.offline_image_url||p.banner_url||'') : oryonOfflinePremiumHtml(p,isOwner,tags);
+  const bannerBadges=oryonCreatorBannerBadgesHtml(channelBadges);
+  const belowLive=oryonChannelBelowLiveHtml(p,tags,channelBadges,isOwner);
+  $('#channel').innerHTML=`<div class="channelPage twitchLike viewerTint creatorRefine"><section class="channelTopHero">${banner?`<img src="${esc(banner)}" alt="">`:''}<div class="channelHeroContent"><div class="channelIdentity"><img class="avatar" src="${esc(p.avatar_url||'')}" alt=""><div class="channelTitleBlock"><h1>${esc(p.display_name||p.login)}</h1><p>${esc(p.bio||'Chaîne Oryon')}</p><div class="channelBadgesBar"><span id="channelLiveBadge" class="pill">${isLive?'🔴 En direct':'Hors ligne'}</span><span class="pill">@${esc(p.login)}</span><span class="pill">${Number(p.followers_count||0)} followers</span>${tags.slice(0,4).map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div>${bannerBadges}</div></div><div class="channelActionDock">${ownerActions}</div></div></section><nav class="channelSubNav"><button class="active" onclick="channelSubNav(this,'home')">Accueil</button><button onclick="channelSubNav(this,'about')">À propos</button><button onclick="channelSubNav(this,'planning')">Vignettes</button><button onclick="channelSubNav(this,'clips')">Identité</button></nav><section class="channelLiveLayout"><main class="channelMainPlayer" id="channelPlayerTop"><div class="player premiumPlayer oryonMainPlayer">${media}</div></main><aside class="channelLiveSidebar"><div class="chatPanel nativeFixedChat" data-chat="oryon"><div class="chatHeader"><span>Tchat Oryon · ${esc(p.display_name||p.login)}</span><button class="btn ghost" onclick="reportRoom()">Signaler</button></div><div id="nativeChatLog" class="chatLog"></div><div id="customEmoteShelf" class="emotePanel hidden"></div><div id="gifGrid" class="gifGrid hidden"></div><div class="chatAssist"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="chatQuick('react')">Réagir</button></div><div class="chatForm"><input id="chatInput" placeholder="Écrire sur Oryon…"><button class="btn secondary" onclick="toggleEmotes()">Emotes</button><button class="btn secondary" onclick="toggleGifs()">GIF</button><button class="btn" onclick="sendChat()">Envoyer</button></div></div></aside></section>${belowLive}</div>`;
+  const input=$('#channelVignetteInput');
+  if(input && !input.__oryonBound){ input.__oryonBound=true; input.addEventListener('change',e=>handleChannelVignettesUpload(e.target.files)); }
+  applyViewerThemeColor?.();
+  if(isLive) setMiniLive?.({type:'oryon',login:targetLogin,title:'Oryon · '+(p.display_name||p.login)});
+  setupSocket?.(); state.room=targetLogin; state.socket?.emit('native:chat:history',{room:state.room});
+  if(isOwner && state.stream){ attachCurrentStream?.(); }
+  else if(isLive){ state.socket?.emit('native:join',{room:targetLogin}); if(!p.oryon_local_player_url){ setTimeout(()=>requestOffer?.(),500); } }
+  updateLiveUi?.(isLive);
+  refreshEmoteShelf?.(targetLogin);
+};
