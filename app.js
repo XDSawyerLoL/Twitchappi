@@ -6750,3 +6750,75 @@ app.use((err, req, res, next) => {
   if(res.headersSent) return next(err);
   return res.status(500).json({ success:false, error:'internal_error', rid: req.__rid || null });
 });
+
+
+// Home vitrine final route — followed Twitch status with logos
+app.get('/api/twitch/followed/status', heavyLimiter, async (req, res) => {
+  try{
+    const tu = req.session?.twitchUser;
+    if(!tu || (tu.expiry && tu.expiry <= Date.now())) return res.status(401).json({ success:false, error:'Twitch non connecté.', items:[] });
+    let follows = [];
+    try{
+      const data = await twitchAPI(`channels/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
+      follows = (data.data || []).map(f => ({
+        user_id: String(f.broadcaster_id || ''),
+        login: String(f.broadcaster_login || ''),
+        display_name: String(f.broadcaster_name || f.broadcaster_login || ''),
+        followed_at: f.followed_at || null,
+        is_live: false,
+        viewer_count: 0
+      })).filter(x => x.user_id || x.login);
+    }catch(e){
+      follows = [];
+    }
+    if(!follows.length){
+      const live = await twitchAPI(`streams/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
+      follows = (live.data || []).map(s => ({
+        user_id:s.user_id, login:s.user_login, display_name:s.user_name,
+        title:s.title, game_name:s.game_name, viewer_count:s.viewer_count || 0,
+        started_at:s.started_at, thumbnail_url:String(s.thumbnail_url || '').replace('{width}','640').replace('{height}','360'),
+        is_live:true, platform:'twitch'
+      }));
+    }
+    const ids = follows.map(x => x.user_id).filter(Boolean).slice(0,100);
+    const loginsNoId = follows.filter(x => !x.user_id && x.login).map(x => x.login).slice(0,100);
+    let users = [];
+    if(ids.length){
+      const u = await twitchAPI('users?' + ids.map(id => 'id=' + encodeURIComponent(id)).join('&'), tu.access_token);
+      users = users.concat(u.data || []);
+    }
+    if(loginsNoId.length){
+      const u = await twitchAPI('users?' + loginsNoId.map(l => 'login=' + encodeURIComponent(l)).join('&'), tu.access_token);
+      users = users.concat(u.data || []);
+    }
+    const userById = new Map(users.map(u => [String(u.id), u]));
+    const userByLogin = new Map(users.map(u => [String(u.login).toLowerCase(), u]));
+    let streams=[];
+    if(ids.length){
+      const s = await twitchAPI('streams?' + ids.map(id => 'user_id=' + encodeURIComponent(id)).join('&'), tu.access_token);
+      streams = s.data || [];
+    }
+    const streamById = new Map(streams.map(s => [String(s.user_id), s]));
+    const items = follows.map(f => {
+      const u = userById.get(String(f.user_id)) || userByLogin.get(String(f.login || '').toLowerCase()) || {};
+      const s = streamById.get(String(f.user_id)) || null;
+      return {
+        user_id: f.user_id || u.id || '',
+        login: f.login || u.login || '',
+        display_name: f.display_name || u.display_name || f.login || '',
+        profile_image_url: u.profile_image_url || f.profile_image_url || '',
+        is_live: !!s || !!f.is_live,
+        viewer_count: s?.viewer_count || f.viewer_count || 0,
+        title: s?.title || f.title || '',
+        game_name: s?.game_name || f.game_name || '',
+        started_at: s?.started_at || f.started_at || null,
+        thumbnail_url: s?.thumbnail_url ? String(s.thumbnail_url).replace('{width}','640').replace('{height}','360') : (f.thumbnail_url || ''),
+        platform:'twitch'
+      };
+    }).sort((a,b)=>(Number(b.is_live)-Number(a.is_live)) || (Number(b.viewer_count||0)-Number(a.viewer_count||0)) || String(a.display_name).localeCompare(String(b.display_name)));
+    res.json({ success:true, items });
+  }catch(e){
+    console.warn('⚠️ /api/twitch/followed/status', e.message);
+    res.status(500).json({ success:false, error:e.message, items:[] });
+  }
+});

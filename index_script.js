@@ -2292,3 +2292,214 @@ async function renderDiscover(){
   renderCompactFollowed?.();
   closeMini?.();
 }
+
+
+/* Home vitrine final pass — recommendations, tags, followed status */
+(function injectHomeVitrineFinal(){
+  if(document.getElementById('oryonHomeVitrineFinal')) return;
+  const st=document.createElement('style');
+  st.id='oryonHomeVitrineFinal';
+  st.textContent=`
+  #home.view.active{width:100%;max-width:1380px;margin-inline:auto;overflow-x:hidden;}
+  .homeShowcase{position:relative;overflow:hidden;border:1px solid rgba(148,163,184,.18);border-radius:32px;background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(12,10,22,.94));box-shadow:0 30px 90px rgba(0,0,0,.36);}
+  .homeShowcase:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 12% 8%,rgba(139,92,246,.30),transparent 34%),radial-gradient(circle at 92% 18%,rgba(34,211,238,.20),transparent 34%);pointer-events:none;}
+  .homeShowcaseInner{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.35fr);gap:22px;padding:24px;align-items:stretch;}
+  .homeShowcaseCopy{display:flex;flex-direction:column;justify-content:space-between;gap:22px;padding:10px;}
+  .homeShowcaseCopy h1{font-size:clamp(42px,6.5vw,86px);line-height:.92;letter-spacing:-.075em;margin:10px 0 12px;}
+  .homeShowcaseCopy p{font-size:clamp(17px,2vw,22px);line-height:1.35;color:#cbd5e1;max-width:660px;margin:0;}
+  .homeShowcaseActions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .homeShowcaseActions .btn{min-height:52px;padding-inline:20px;font-size:15px;}
+  .homeLiveGrid{display:grid;grid-template-columns:1.25fr .85fr;grid-template-rows:1fr 1fr;gap:12px;min-height:500px;}
+  .homeRecCard{position:relative;overflow:hidden;border:1px solid rgba(148,163,184,.18);border-radius:26px;background:#050914;min-height:230px;cursor:pointer;isolation:isolate;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
+  .homeRecCard:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.72);box-shadow:0 22px 70px rgba(0,0,0,.34);}
+  .homeRecCard.primary{grid-row:1/3;min-height:500px;}
+  .homeRecCard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.02);filter:saturate(1.08) contrast(1.02);}
+  .homeRecCard:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.15) 38%,rgba(2,6,23,.92));z-index:1;}
+  .homeRecBody{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:18px;display:grid;gap:10px;}
+  .homeRecCard.primary .homeRecBody{padding:24px;gap:13px;}
+  .homeRecBody h2{margin:0;font-size:clamp(21px,2.2vw,34px);line-height:1.02;letter-spacing:-.04em;text-shadow:0 4px 20px rgba(0,0,0,.45);}
+  .homeRecBody p{margin:0;color:#cbd5e1;font-weight:800;}
+  .homeTagCloud,.signalTagCloud{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .homeTag,.signalTag{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.13);background:rgba(2,6,23,.54);backdrop-filter:blur(12px);color:#f8fafc;border-radius:999px;padding:8px 10px;font-size:12px;font-weight:950;line-height:1;}
+  .signalTagCloud{padding:2px 0 4px;}
+  .signalTag{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035));font-size:13px;padding:10px 12px;}
+  .signalTag.main{border-color:rgba(139,92,246,.58);background:linear-gradient(135deg,rgba(139,92,246,.28),rgba(34,211,238,.10));}
+  .signalExplain{margin-top:12px;color:#aab6ca;line-height:1.45;font-size:14px;}
+  .homeMoodStrip{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .homeMoodStrip button{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.055);color:white;border-radius:999px;padding:10px 13px;font-weight:950;}
+  .homeMoodStrip button:hover{background:rgba(139,92,246,.18);border-color:rgba(139,92,246,.55);}
+  .homeSectionHead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin:26px 0 12px;}
+  .homeSectionHead h2{font-size:clamp(24px,3vw,38px);letter-spacing:-.05em;margin:0;}
+  .homeSectionHead p{color:#aab6ca;margin:6px 0 0;}
+  .homeFollowPanel,.homeImpactPanel{border:1px solid rgba(148,163,184,.18);border-radius:26px;background:linear-gradient(180deg,rgba(15,23,42,.74),rgba(15,23,42,.36));padding:18px;}
+  .homeTwoGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  .proMetricGrid,.signalCards{display:none!important;}
+  .comfortRing{display:none!important;}
+  .proBadgeTop .proPill:nth-child(2){display:none!important;}
+  .proFollowGrid.status{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:12px;}
+  .proFollowCard.statusCard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;text-align:left;width:100%;min-height:74px;border:1px solid rgba(148,163,184,.18);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));border-radius:18px;padding:10px 12px;color:#e5edf8;}
+  .proFollowCard.statusCard:hover{border-color:rgba(139,92,246,.58);background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(255,255,255,.035));}
+  .proFollowStatus{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 9px;font-size:11px;font-weight:950;border:1px solid rgba(255,255,255,.12);}
+  .proFollowStatus.live{background:rgba(34,197,94,.12);color:#86efac;border-color:rgba(34,197,94,.35);}
+  .proFollowStatus.offline{background:rgba(148,163,184,.08);color:#cbd5e1;}
+  .proFollowText span{display:block;color:#94a3b8;font-size:12px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .proAvatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;}
+  .proAvatar{width:44px;height:44px;min-width:44px;border-radius:14px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,rgba(139,92,246,.5),rgba(34,211,238,.22));border:1px solid rgba(255,255,255,.14);}
+  .proAvatar i{font-style:normal;font-weight:1000;color:white;display:grid;place-items:center;width:100%;height:100%;}
+  @media(max-width:980px){
+    #home.view.active{max-width:none;}
+    .homeShowcase{border-radius:26px;margin-top:4px;}
+    .homeShowcaseInner{grid-template-columns:1fr;padding:16px;gap:16px;}
+    .homeShowcaseCopy{padding:4px;}
+    .homeShowcaseCopy h1{font-size:clamp(42px,14vw,72px);}
+    .homeShowcaseCopy p{font-size:17px;}
+    .homeShowcaseActions{display:grid;grid-template-columns:1fr;}
+    .homeShowcaseActions .btn{width:100%;min-height:58px;font-size:16px;}
+    .homeLiveGrid{grid-template-columns:1fr;grid-template-rows:auto;min-height:0;}
+    .homeRecCard,.homeRecCard.primary{grid-row:auto;min-height:280px;aspect-ratio:16/13;}
+    .homeRecCard.primary{min-height:420px;}
+    .homeRecBody{padding:16px;}
+    .homeTwoGrid{grid-template-columns:1fr;}
+    .homeSectionHead{align-items:flex-start;flex-direction:column;}
+    .proFollowGrid.status{grid-template-columns:1fr;}
+  }
+  @media(max-width:520px){
+    .homeRecCard,.homeRecCard.primary{min-height:320px;aspect-ratio:auto;}
+    .homeRecBody h2{font-size:24px;}
+    .homeTag,.signalTag{font-size:11px;padding:7px 9px;}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+function liveOpenAction(x){
+  const id=liveIdentity(x||{});
+  if(id.platform==='twitch' || x?.login || x?.user_login) return `openTwitch('${esc(id.login)}')`;
+  return `openOryon('${esc(id.login||x?.room||x?.host_login||'')}')`;
+}
+function liveStableTags(x){
+  const id=liveIdentity(x||{});
+  const tags=[];
+  tags.push(id.platform==='twitch'?'Twitch':'Oryon');
+  if(id.viewers>=15 && id.viewers<=30) tags.push('15–30 viewers');
+  else if(id.viewers<=50) tags.push('petit live');
+  if(Number(x?.chat_messages||0)>5) tags.push('chat actif');
+  else tags.push('chat lisible');
+  if(x?.started_at || x?.createdAt) tags.push('en direct');
+  if(id.game) tags.push(id.game);
+  return [...new Set(tags)].slice(0,5);
+}
+function signalTagsFor(cur){
+  if(!cur) return [];
+  const id=liveIdentity(cur);
+  const tags=[];
+  tags.push(id.platform==='twitch'?'Twitch intégré':'Oryon natif');
+  if(id.viewers<=20) tags.push('très petit live');
+  else if(id.viewers<=50) tags.push('petit live');
+  else tags.push('audience active');
+  tags.push(id.viewers<=50?'entrée facile':'entrée normale');
+  if(Number(cur.chat_messages||0)>5) tags.push('chat actif');
+  else tags.push('chat lisible');
+  if(id.game) tags.push(id.game);
+  const mood=state.moodFirstMood||$('#dMood')?.value;
+  if(mood) tags.push(moodFirstLabel(mood));
+  return [...new Set(tags)].slice(0,7);
+}
+function signalTagsHtml(cur){
+  const tags=signalTagsFor(cur);
+  if(!tags.length) return '<div class="proNotice">Lance une proposition pour voir les tags utiles.</div>';
+  return `<div class="signalTagCloud">${tags.map((t,i)=>`<span class="signalTag ${i===0?'main':''}">${esc(t)}</span>`).join('')}</div><div class="signalExplain">Signal résumé en tags : pas de score décoratif, juste les raisons de tenter ce live.</div>`;
+}
+function signalCardsHtml(cur){ return signalTagsHtml(cur); }
+function proSignalTab(cur){
+  if(!cur) return `<div class="proNotice">Lance une proposition pour voir les tags utiles.</div>`;
+  return `<h2 style="margin:0 0 12px">Signal</h2>${signalTagsHtml(cur)}`;
+}
+function renderSpotlightMeta(cur){
+  const tab=state.proTab||'signal';
+  const panel=tab==='actions'?proActionsTab(cur):(tab==='profile'?proProfileTab():proSignalTab(cur));
+  return `<aside class="proSide"><div class="proTabs">${proTabButton('signal','Signal')}${proTabButton('actions','Actions')}${proTabButton('profile','Profil')}</div><div class="proTabPanel">${panel}</div></aside>`;
+}
+function renderSpotlightPreview(x){
+  if(!x){
+    return `<article class="moodFirstStart"><div><span class="eyebrow"><i class="dot"></i>Découvrir</span><h2>Choisis ton mood. Oryon choisit le live.</h2><p>Propose-moi un live lance automatiquement une recommandation. Choisir une ambiance te laisse décider la vibe.</p><div class="moodFirstMiniGrid">${AMBIANCES.slice(0,4).map(([id,label])=>`<button onclick="setDiscoverMood('${esc(id)}')">${esc(label)}</button>`).join('')}</div></div></article>`;
+  }
+  const id=liveIdentity(x), tags=signalTagsFor(x).slice(0,5);
+  return `<article class="proCard" data-swipe-card="1"><div class="swipeStamp like">J'aime</div><div class="swipeStamp nope">Pas ouf</div><div class="proMedia">${id.img?`<img src="${esc(id.img)}" alt="" loading="eager">`:`<div class="proEmptyMedia">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}</div>
+    <div class="proBadgeTop"><span class="proPill">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span></div>
+    <div class="proOverlay"><div class="proReasons">${tags.map(r=>`<span class="proPill">${esc(r)}</span>`).join('')}</div><h2>${esc(id.title||'Live en cours')}</h2><p class="muted">${esc(id.name||id.login||'Streamer')}</p><div class="swipeHint">Swipe droite : j’aime · gauche : pas ouf</div>
+      <div class="proActions"><button class="btn good" onclick="zapOpenCurrent()">Regarder</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn secondary" onclick="saveCurrentLive()">Sauver</button></div>
+    </div></article>`;
+}
+async function autoProposeLive(){
+  state.moodFirstMood = state.moodFirstMood || 'petite-commu';
+  await setView('discover');
+  const source=$('#dSource'); if(source) source.value='both';
+  const max=$('#dMax'); if(max) max.value='30';
+  const lang=$('#dLang'); if(lang) lang.value='fr';
+  const mood=$('#dMood'); if(mood) mood.value=state.moodFirstMood;
+  await findLive();
+}
+async function quickGem(){ return autoProposeLive(); }
+function homeRecommendationCard(x,i){
+  const id=liveIdentity(x||{}), tags=liveStableTags(x), action=liveOpenAction(x);
+  return `<article class="homeRecCard ${i===0?'primary':''}" onclick="${action}">${id.img?`<img src="${esc(id.img)}" alt="" loading="${i?'lazy':'eager'}">`:`<div class="proEmptyMedia">LIVE</div>`}<div class="homeRecBody"><div class="homeTagCloud">${tags.slice(0,4).map(t=>`<span class="homeTag">${esc(t)}</span>`).join('')}</div><h2>${esc(id.title||'Live recommandé')}</h2><p>${esc(id.name)} · ${id.viewers} viewers</p></div></article>`;
+}
+async function loadHomeRecommendations(){
+  const box=$('#homeShowcaseLives'); if(!box) return;
+  box.innerHTML='<div class="proNotice">Sélection des lives recommandés…</div>';
+  try{
+    const native=await api('/api/native/lives').catch(()=>({items:[]}));
+    const twitch=await api('/api/twitch/streams/small?lang=fr&min=15&max=30').catch(()=>({items:[]}));
+    let items=[...(native.items||[]).map(x=>({...x,platform:'oryon'})),...(twitch.items||[]).map(x=>({...x,platform:'twitch'}))];
+    items=items.filter(x=>{const v=Number(x.viewer_count??x.viewers??0)||0; return v>=0 && v<=50;});
+    items.sort((a,b)=>{
+      const av=Number(a.viewer_count??a.viewers??0)||0, bv=Number(b.viewer_count??b.viewers??0)||0;
+      const as=(av>=15&&av<=30?50:0)+Math.min(25,Number(a.chat_messages||0));
+      const bs=(bv>=15&&bv<=30?50:0)+Math.min(25,Number(b.chat_messages||0));
+      return bs-as || Math.abs(av-22)-Math.abs(bv-22);
+    });
+    items=items.slice(0,3);
+    if(!items.length){
+      box.innerHTML=`<div class="proNotice">Aucun live 15–30 viewers pour le moment. Utilise “Propose-moi un live”.</div>`;
+      return;
+    }
+    box.innerHTML=items.map(homeRecommendationCard).join('');
+  }catch(e){
+    box.innerHTML='<div class="proNotice">Impossible de charger la vitrine pour le moment.</div>';
+  }
+}
+async function renderHome(){
+  const el=$('#home'); if(!el) return;
+  el.innerHTML=`<section class="homeShowcase section"><div class="homeShowcaseInner"><div class="homeShowcaseCopy"><div><span class="eyebrow"><i class="dot"></i>Vitrine Oryon</span><h1>Des lives à taille humaine.</h1><p>Recommandations en haut : petits lives, entrée facile, chat lisible. Tu ne configures rien, tu testes.</p><div class="homeMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div></div><div class="homeShowcaseActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button>${state.session.local?`<button class="btn ghost" onclick="setView('manager')">Streamer</button>`:`<button class="btn ghost" onclick="setView('settings')">Créer mon compte</button>`}</div></div><div id="homeShowcaseLives" class="homeLiveGrid"><div class="proNotice">Chargement des recommandations…</div></div></div></section>
+  <div class="homeSectionHead"><div><h2>Pourquoi ces lives ?</h2><p>Oryon privilégie les créateurs accessibles plutôt que les gros flux déjà saturés.</p></div><button class="btn secondary" onclick="autoProposeLive()">Surprends-moi</button></div>
+  <div class="homeTwoGrid"><section class="homeImpactPanel"><h2>Trace viewer</h2><div id="viewerImpactBox">${viewerImpactCard()}</div></section><section class="homeFollowPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Tes suivis Twitch</h2><p class="small" style="margin:6px 0 0">Logo de chaîne, statut live ou hors ligne.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact"></div></section></div>`;
+  await loadHomeRecommendations();
+  await renderCompactFollowed();
+  closeMini?.();
+}
+async function renderCompactFollowed(){
+  const box=$('#followedWrapCompact'); if(!box) return;
+  if(!state.session.twitch){ box.innerHTML=`<div class="proNotice">Connecte Twitch pour voir tes suivis avec leur statut.</div>`; return; }
+  box.innerHTML='<div class="proNotice">Chargement des suivis Twitch…</div>';
+  try{
+    let r=await api('/api/twitch/followed/status').catch(()=>null);
+    if(!r || !r.success) r=await api('/api/twitch/followed/live').catch(()=>null);
+    if(!r || !r.success) r=await api('/followed_streams').catch(()=>null);
+    const items=(r?.items||r?.streams||[]).filter(Boolean);
+    if(!items.length){ box.innerHTML='<div class="proNotice">Aucun suivi trouvé. Twitch peut aussi ne renvoyer que les chaînes live selon les autorisations.</div>'; return; }
+    box.innerHTML=`<div class="proFollowGrid status">${items.slice(0,12).map(x=>{
+      const login=proLoginOf(x), name=proNameOf(x), viewers=proViewersOf(x), live=!!(x.is_live||x.live||viewers>0);
+      const game=x.game_name||x.category||x.title||'Chaîne suivie';
+      return `<button class="proFollowCard statusCard" onclick="openTwitch('${esc(login)}')">${proAvatarHtml(x)}<span class="proFollowText"><b>${esc(name)}</b><span>${esc(game)}</span></span><span class="proFollowStatus ${live?'live':'offline'}">${live?'● Live':'Hors ligne'}${live&&viewers?` · ${viewers}`:''}</span></button>`;
+    }).join('')}</div>`;
+  }catch(e){ box.innerHTML='<div class="proNotice">Impossible de charger tes suivis Twitch.</div>'; }
+}
+async function searchTwitch(){
+  const q=$('#twSearch')?.value?.trim(); if(!q)return;
+  const box=$('#twResults'); if(box) box.innerHTML='<div class="proNotice">Recherche…</div>';
+  const r=await api('/api/twitch/channels/search?'+qs({q,live:false})).catch(()=>({items:[]}));
+  if(!box) return;
+  const items=r.items||[];
+  box.innerHTML=items.length?`<div class="proFollowGrid status">${items.map(x=>`<button class="proFollowCard statusCard" onclick="openTwitch('${esc(x.login)}')">${proAvatarHtml(x)}<span class="proFollowText"><b>${esc(x.display_name||x.login)}</b><span>${esc(x.title||x.game_name||'Chaîne Twitch')}</span></span><span class="proFollowStatus ${x.is_live?'live':'offline'}">${x.is_live?'● Live':'Hors ligne'}${x.viewer_count?` · ${x.viewer_count}`:''}</span></button>`).join('')}</div>`:'<div class="proNotice">Aucun résultat.</div>';
+}
