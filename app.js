@@ -712,6 +712,20 @@ app.get('/', (req, res) => {
 });
 
 // Pricing page (credits + premium)
+
+app.get('/c/:login', (req, res) => {
+  const rawCandidates = [
+    process.env.UI_FILE,
+    'index.html',
+    'NicheOptimizer.html',
+    'NicheOptimizer_v56.html'
+  ].filter(Boolean);
+  const candidates = rawCandidates.map(String).map(f => f.trim()).filter(f => /\.html?$/i.test(f));
+  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
+  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
+  return res.sendFile(path.join(__dirname, found));
+});
+
 app.get('/pricing', (req, res) => {
   const f = path.join(__dirname, 'pricing.html');
   if (!fs.existsSync(f)) return res.status(404).send('Pricing introuvable.');
@@ -2628,7 +2642,7 @@ function isOryonLiveSignalFresh(u){
 function publicOryonUser(u){
   if(!u) return null;
   const localLiveFresh = isOryonLiveSignalFresh(u);
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
 function sessionOryonUser(u){
   if(!u) return null;
@@ -2843,12 +2857,20 @@ app.post('/api/oryon/profile', (req, res) => {
     if(incomingPanels){
       const cleanPanels = incomingPanels.map((v, idx) => ({
         image_url: String(v?.image_url || v?.image || '').trim().slice(0,1200000),
-        title: String(v?.title || `Vignette ${idx+1}`).trim().slice(0,60),
+        title: String(v?.title || '').trim().slice(0,60),
         description: String(v?.description || v?.text || '').trim().slice(0,220),
         link_url: sanitizePanelUrl(v?.link_url || v?.url || v?.href || '')
       })).filter(v => v.image_url).slice(0,8);
       user.channel_vignettes = cleanPanels;
       user.channel_panels = cleanPanels;
+    }
+    if(Array.isArray(req.body?.channel_links)){
+      user.channel_links = req.body.channel_links.map((l, idx) => ({
+        label: String(l?.label || l?.title || '').trim().slice(0,40),
+        url: sanitizePanelUrl(l?.url || l?.href || l?.link || ''),
+        kind: String(l?.kind || l?.icon_hint || '').trim().slice(0,24),
+        order: Number.isFinite(Number(l?.order)) ? Number(l.order) : idx
+      })).filter(l => l.url).slice(0,8);
     }
     user.external_live_platform = user.oryon_local_player_url ? 'oryon-local' : (user.peertube_embed_url || user.peertube_watch_url ? 'peertube' : (user.external_live_platform||''));
     user.updatedAt = Date.now();
@@ -7270,10 +7292,17 @@ function publicRecoverUserPayload(input){
   const panelsRaw = Array.isArray(input?.channel_vignettes) ? input.channel_vignettes : (Array.isArray(input?.channel_panels) ? input.channel_panels : []);
   const panels = panelsRaw.map((v, idx) => ({
     image_url:String(v?.image_url || v?.image || '').trim().slice(0,1200000),
-    title:String(v?.title || `Vignette ${idx+1}`).trim().slice(0,60),
+    title:String(v?.title || '').trim().slice(0,60),
     description:String(v?.description || v?.text || '').trim().slice(0,220),
     link_url:sanitizePanelUrl(v?.link_url || v?.url || v?.href || '')
   })).filter(v=>v.image_url).slice(0,8);
+  const linksRaw = Array.isArray(input?.channel_links || input?.user?.channel_links) ? (input.channel_links || input.user.channel_links) : [];
+  const channel_links = linksRaw.map((l, idx) => ({
+    label:String(l?.label || l?.title || '').trim().slice(0,40),
+    url:sanitizePanelUrl(l?.url || l?.href || l?.link || ''),
+    kind:String(l?.kind || l?.icon_hint || '').trim().slice(0,24),
+    order:Number.isFinite(Number(l?.order)) ? Number(l.order) : idx
+  })).filter(l=>l.url).slice(0,8);
   return {
     login,
     display_name:String(input?.display_name || input?.user?.display_name || login).trim().slice(0,40) || login,
@@ -7285,7 +7314,8 @@ function publicRecoverUserPayload(input){
     tags:safeTags(input?.tags || input?.user?.tags || []),
     channel_badges:Array.isArray(input?.channel_badges || input?.user?.channel_badges) ? (input.channel_badges || input.user.channel_badges).map(b=>({icon:String(b?.icon||'').slice(0,4),label:String(b?.label||'').slice(0,28),note:String(b?.note||'').slice(0,70)})).filter(b=>b.icon&&b.label).slice(0,8) : [],
     channel_panels:panels,
-    channel_vignettes:panels
+    channel_vignettes:panels,
+    channel_links
   };
 }
 app.post('/api/oryon/client-recover', async (req, res) => {
