@@ -1645,30 +1645,120 @@ function renderZap(){
   renderViewerImpact?.();
 }
 
-
-/* Centering pass — discover/playback content centered and balanced */
-(function injectCenteringPass(){
-  if(document.getElementById('oryonCenteringPass')) return;
+/* Mobile/desktop reliability pass — real preview first, moods trigger search, watch opens main player */
+(function injectMobileDesktopReliability(){
+  if(document.getElementById('oryonMobileDesktopReliability')) return;
   const st=document.createElement('style');
-  st.id='oryonCenteringPass';
+  st.id='oryonMobileDesktopReliability';
   st.textContent=`
-  #discover.view.active{max-width:1360px;margin:0 auto}
-  .proDiscover{max-width:1360px;margin:0 auto}
-  .proHero,.proSearchPanel,.proTwitchPanel,#zapResult{width:100%;margin-left:auto;margin-right:auto}
-  .proStage,.proStage.proStageWatching{max-width:1360px;margin:0 auto}
-  .proMain{max-width:100%;margin:0 auto}
-  .proPlayer{max-width:1360px;margin:0 auto}
-  .proPlayerHead{max-width:1220px;margin:0 auto;width:100%}
-  .proPlayerGrid{max-width:1220px;margin:0 auto;grid-template-columns:minmax(0,1fr) 320px!important}
-  .proStage.proStageWatching .proPlayerGrid{max-width:1220px;margin:0 auto;grid-template-columns:minmax(0,1fr) 320px!important}
-  .proStage.proStageWatching .proTabWrap,.proStage.proStageWatching .proTabPanel,.proQueue{max-width:1220px;margin-left:auto;margin-right:auto}
-  .proQueue{justify-content:center}
-  .proPlayerGrid .player{justify-self:center;width:100%}
-  .proPlayerGrid .chatPanel{justify-self:stretch;width:100%;max-width:320px}
-  .proSearchLine{grid-template-columns:minmax(260px,1fr) 150px 160px 90px 74px auto auto}
-  @media(max-width:1400px){#discover.view.active,.proDiscover,.proStage,.proStage.proStageWatching{max-width:1280px}.proPlayerGrid,.proStage.proStageWatching .proPlayerGrid,.proPlayerHead,.proQueue{max-width:1180px}}
-  @media(max-width:1250px){#discover.view.active,.proDiscover,.proStage,.proStage.proStageWatching{max-width:none}.proPlayerGrid,.proStage.proStageWatching .proPlayerGrid,.proPlayerHead,.proQueue{max-width:none}}
-  @media(max-width:980px){.proPlayerGrid,.proStage.proStageWatching .proPlayerGrid{grid-template-columns:1fr!important}.proPlayerGrid .chatPanel{max-width:none}}
+  .proDiscover{width:100%;max-width:1360px;margin:0 auto;padding-bottom:96px}
+  .proHero{margin:14px auto 12px;min-height:auto}
+  .proHero h1{font-size:clamp(30px,4.4vw,64px);line-height:.92;margin:8px 0}
+  .proSearchPanel{margin:0 auto 14px}
+  .proMoodRow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+  .proMoodBtn{min-height:96px;touch-action:manipulation}
+  .proMoodBtn.active{border-color:rgba(139,92,246,.85);box-shadow:inset 0 0 0 1px rgba(139,92,246,.38),0 18px 46px rgba(139,92,246,.14);background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(34,211,238,.06))}
+  .proSearchLine{display:grid;grid-template-columns:minmax(220px,1fr) 150px 150px 80px 70px auto auto;gap:9px;align-items:center}
+  .proStage{margin-top:14px}
+  .proCard{min-height:clamp(420px,56vw,720px)}
+  .proMedia{min-height:100%}
+  .proMedia img{width:100%;height:100%;object-fit:cover;display:block}
+  .proEmptyMedia{min-height:420px;display:grid;place-items:center;background:radial-gradient(circle at 30% 10%,rgba(139,92,246,.35),transparent 34%),linear-gradient(135deg,#070b16,#111827);font-size:clamp(28px,4vw,54px);font-weight:1000;color:#dfe7ff;letter-spacing:-.05em;text-align:center;padding:24px}
+  .proStartCard{position:relative;overflow:hidden;border:1px solid rgba(139,92,246,.34);border-radius:28px;min-height:clamp(360px,46vw,620px);background:radial-gradient(circle at 30% 16%,rgba(139,92,246,.32),transparent 34%),radial-gradient(circle at 80% 10%,rgba(34,211,238,.20),transparent 36%),linear-gradient(135deg,#050813,#101827);display:grid;align-items:end;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.35)}
+  .proStartCard h2{font-size:clamp(34px,5vw,72px);line-height:.9;margin:8px 0;letter-spacing:-.06em;max-width:850px}
+  .proStartCard p{max-width:680px;color:#cbd5e1}
+  .proStartCard .btn{min-height:44px}
+  .proFallbackBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;color:#cbd5e1;font-size:12px}
+  .proPlayerNotice{position:absolute;left:14px;right:14px;bottom:14px;z-index:3;display:none;justify-content:space-between;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.14);background:rgba(5,8,19,.80);backdrop-filter:blur(14px);border-radius:16px;padding:10px 12px}
+  .premiumPlayer{position:relative;overflow:hidden}
+  .premiumPlayer:hover .proPlayerNotice,.premiumPlayer:focus-within .proPlayerNotice{display:flex}
+  .proStageWatching .proPlayerGrid{width:100%}
+  .proStageWatching .premiumPlayer iframe{width:100%;height:100%;border:0;display:block}
+  .proTwitchPanel{margin-top:18px}
+  @media(max-width:980px){
+    main.app,.app{padding-left:14px!important;padding-right:14px!important}
+    .proDiscover{max-width:none;padding-bottom:110px}
+    .proHero{border-radius:22px;padding:16px;margin-top:10px}
+    .proSearchPanel{border-radius:22px;padding:10px}
+    .proMoodRow{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:2px;scrollbar-width:none}
+    .proMoodRow::-webkit-scrollbar{display:none}
+    .proMoodBtn{min-width:104px;min-height:84px;padding:10px;scroll-snap-align:start;border-radius:16px}
+    .proMoodBtn i{font-size:20px}.proMoodBtn b{font-size:13px}.proMoodBtn span{font-size:10px;line-height:1.15}
+    .proSearchLine{grid-template-columns:1fr 1fr;gap:8px}
+    .proSearchLine input{grid-column:1/-1;min-height:42px}
+    .proSearchLine .btn{min-height:44px}
+    .proCard,.proStartCard{border-radius:22px;min-height:420px}
+    .proOverlay{padding:16px}.proOverlay h2{font-size:28px;line-height:.98}
+    .proActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.proActions .btn{padding:10px 8px;min-height:42px}
+    .proBadgeTop{left:10px;right:10px;top:10px;gap:6px}.proPill{font-size:10px;padding:6px 8px}
+    .proStage{display:block!important;margin-top:12px}.proMain{width:100%}.proSide{margin-top:12px}
+    .proTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.proTabBtn{min-width:0;font-size:12px;padding:10px 8px}
+    .proStageWatching .proPlayerHead{display:grid;gap:8px}.proStageWatching .proPlayerHead h2{font-size:28px}
+    .proStageWatching .proPlayerGrid{grid-template-columns:1fr!important;gap:10px}
+    .proStageWatching .proPlayerGrid .player{width:100%!important;height:auto!important;min-height:0!important;aspect-ratio:16/9;border-radius:18px!important}
+    .proStageWatching .proPlayerGrid .chatPanel{height:360px!important;min-height:360px!important;border-radius:18px!important}
+    .proQueue{display:flex;overflow-x:auto;gap:8px;scrollbar-width:none}.proQueue::-webkit-scrollbar{display:none}.proQueueItem{min-width:160px}
+    .proTwitchHead{display:grid!important;gap:10px}.proTwitchSearch{grid-template-columns:1fr auto!important}.proFollowGrid,.proResults{grid-template-columns:1fr!important}
+  }
+  @media(min-width:981px){
+    .proStage:not(.proStageWatching){display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:start}
+    .proStageWatching{display:block!important}.proStageWatching .proPlayerGrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px}
+  }
   `;
   document.head.appendChild(st);
 })();
+
+function proIsMobile(){ return window.matchMedia && window.matchMedia('(max-width: 980px)').matches; }
+function setDiscoverMood(id){
+  const mood=$('#dMood'); if(mood) mood.value=id||'';
+  $$('.proMoodBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.mood===id));
+  const max=$('#dMax'); if(max && id==='petite-commu') max.value='20';
+  state.currentTwitch=null;
+  clearSpotlightPlayer?.();
+  return findLive();
+}
+function proOpenExternalTwitch(login){
+  if(!login) return;
+  window.open(`https://www.twitch.tv/${encodeURIComponent(login)}`,'_blank','noopener,noreferrer');
+}
+function renderSpotlightPreview(x){
+  if(!x) return `<article class="proStartCard"><div><span class="eyebrow"><i class="dot"></i>Prêt à découvrir</span><h2>Choisis une ambiance, ou lance direct.</h2><p>Sur mobile comme sur PC, Oryon affiche d’abord une vraie scène de découverte. Pas de page vide, pas de bouton mort.</p><div class="proActions"><button class="btn good" onclick="findLive()">Zapper</button><button class="btn secondary" onclick="setDiscoverMood('discussion')">Discussion</button><button class="btn secondary" onclick="setDiscoverMood('chill')">Chill</button></div></div></article>`;
+  const id=liveIdentity(x), reasons=discoverReasonFor(x).slice(0,3), score=comfortScore(x);
+  return `<article class="proCard"><div class="proMedia">${id.img?`<img src="${esc(id.img)}" alt="" loading="eager">`:`<div class="proEmptyMedia">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}</div>
+    <div class="proBadgeTop"><span class="proPill">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span><span class="proPill">${score}% confort</span></div>
+    <div class="proOverlay"><div class="proReasons">${reasons.map(r=>`<span class="proPill">${esc(r)}</span>`).join('')}</div><h2>${esc(id.title||'Live en cours')}</h2><p class="muted">${esc(id.name||id.login||'Streamer')}</p>
+      <div class="proActions"><button class="btn good" onclick="zapOpenCurrent()">Regarder</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn secondary" onclick="saveCurrentLive()">Sauver</button></div>
+    </div></article>`;
+}
+function renderSpotlightPlayer(x){
+  const id=x?liveIdentity(x):null;
+  if(!x || !spotlightIsPlaying(x) || id.platform!=='twitch') return renderSpotlightPreview(x);
+  const parent=location.hostname;
+  const playerSrc=`https://player.twitch.tv/?channel=${encodeURIComponent(id.login)}&parent=${encodeURIComponent(parent)}&autoplay=true&muted=${proIsMobile()?'true':'false'}&playsinline=true`;
+  return `<div class="proPlayer"><div class="proPlayerHead"><div><span class="eyebrow"><i class="dot"></i>Lecture grand format</span><h2>${esc(id.name)}</h2><p class="muted">${esc(id.title||'Live Twitch')}</p></div><div class="row"><span class="proPill">${id.viewers} viewers</span><button class="btn secondary" onclick="clearSpotlightPlayer();closeMini?.();renderZap()">Carte</button><button class="btn secondary" onclick="zapNext()">Suivant</button></div></div>
+  <div class="proPlayerGrid"><div class="player premiumPlayer"><iframe allow="autoplay; fullscreen; picture-in-picture" allowfullscreen playsinline src="${playerSrc}"></iframe><div class="proPlayerNotice"><span>Si Twitch bloque la lecture sur mobile, ouvre le live directement.</span><button class="btn secondary" onclick="proOpenExternalTwitch('${esc(id.login)}')">Ouvrir Twitch</button></div></div><aside class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${encodeURIComponent(id.login)}/chat?parent=${encodeURIComponent(parent)}&darkpopout"></iframe></aside></div></div>`;
+}
+function renderZap(){
+  const box=$('#zapResult'); if(!box) return;
+  const items=state.zap.items||[];
+  const cur=items[state.zap.index]||null;
+  const watching=!!(cur&&spotlightIsPlaying(cur));
+  const queue=items.length>1?`<div class="section"><div class="proQueue">${items.slice(0,10).map((x,i)=>{const id=liveIdentity(x);return `<button class="proQueueItem ${i===state.zap.index?'active':''}" onclick="state.zap.index=${i};clearSpotlightPlayer();closeMini?.();renderZap()"><b>${esc(id.name)}</b><span class="small">${esc(id.game)} · ${id.viewers} viewers</span></button>`}).join('')}</div></div>`:'';
+  box.innerHTML=`<div class="proStage ${watching?'proStageWatching':''}"><main class="proMain">${renderSpotlightPlayer(cur)}${queue}</main>${renderSpotlightMeta(cur)}</div>`;
+  if(watching) proSuppressMiniWhileWatching?.();
+  renderViewerImpact?.();
+}
+async function renderDiscover(){
+  const el=$('#discover');
+  el.innerHTML=`<div class="proDiscover">
+    <section class="proHero"><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Un live, pas un bazar.</h1><p>Choisis une ambiance. Oryon propose. Tu regardes, tu sauves ou tu passes au suivant.</p></section>
+    <section class="proSearchPanel"><div class="proMoodRow">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="proMoodBtn" data-mood="${esc(id)}" onclick="setDiscoverMood('${esc(id)}')"><i>${icon}</i><b>${esc(label)}</b><span>${esc(desc)}</span></button>`).join('')}</div>
+      <div class="proSearchLine"><input id="dQuery" placeholder="jeu, pseudo, ambiance" onkeydown="if(event.key==='Enter')findLive()"><select id="dSource"><option value="both" selected>Oryon + Twitch</option><option value="oryon">Oryon</option><option value="twitch">Twitch</option></select><select id="dMood" onchange="setDiscoverMood(this.value)"><option value="">Ambiance</option>${AMBIANCES.map(([id,label])=>`<option value="${esc(id)}">${esc(label)}</option>`).join('')}</select><select id="dMax"><option value="20">≤20</option><option value="50" selected>≤50</option><option value="200">≤200</option><option value="300">≤300</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn good" onclick="findLive()">Zapper</button><button class="btn secondary" onclick="zapNext()">Suivant</button></div></section>
+    <section id="zapResult"></section>
+    <section class="proTwitchPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Accès Twitch</h2><p class="small" style="margin:6px 0 0">Suivis et recherche, sans vignettes cassées ni surcharge.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="proTwitchSearch"><input id="twSearch" placeholder="chercher un streamer Twitch" onkeydown="if(event.key==='Enter')searchTwitch()"><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="followedWrapCompact"></div><div id="twResults"></div></section>
+  </div>`;
+  state.proTab=state.proTab||'signal';
+  renderZap();
+  renderCompactFollowed();
+  closeMini?.();
+}
