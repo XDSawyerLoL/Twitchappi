@@ -3929,50 +3929,201 @@ async function hfFetchLivePool({mood='petite-commu', q='', min=0, max=200, lang=
 applyViewerThemeColor();
 
 /* =========================================================
-   CHANNEL CONTENT CLEANUP — no duplicate viewer personalization,
-   bio directly under live, vignette rail above bio, tags/badges below bio.
+   Creator channel refine — Twitch-like channel page only
+   - Badges on banner
+   - Bigger channel logo
+   - No creator tools / badge-emote link in public nav
+   - Bio directly below live
+   - Real channel panels area like Twitch
+   - No duplicate viewer customization / why enter / first support blocks
    ========================================================= */
-(function injectChannelContentCleanupStyle(){
-  const old=document.getElementById('oryonChannelContentCleanupStyle');
+(function injectCreatorChannelRefineStyle(){
+  const old=document.getElementById('oryonCreatorChannelRefineStyle');
   if(old) old.remove();
   const st=document.createElement('style');
-  st.id='oryonChannelContentCleanupStyle';
+  st.id='oryonCreatorChannelRefineStyle';
   st.textContent=`
-  .channelPage.cleanChannelLayout{padding-bottom:70px!important}
-  .channelPostLive{display:grid;grid-template-columns:minmax(0,1fr) clamp(310px,23vw,380px);gap:18px;align-items:start;width:100%}
-  .channelPostMain{display:grid;gap:18px;min-width:0}.channelPostSide{display:grid;gap:18px;min-width:0}
-  .channelVignetteRail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-  .channelVignette{position:relative;min-height:132px;border:1px solid rgba(148,163,184,.18);border-radius:22px;overflow:hidden;background:linear-gradient(135deg,rgba(15,23,42,.96),rgba(17,24,39,.72));box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-  .channelVignette img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.52;filter:saturate(1.05)}
-  .channelVignette:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.04),rgba(2,6,23,.88));z-index:1}
-  .channelVignetteBody{position:absolute;z-index:2;left:14px;right:14px;bottom:14px;display:grid;gap:3px}.channelVignetteBody b{font-size:15px}.channelVignetteBody span{font-size:12px;color:#b8c7dc}
-  .channelBioCard{border:1px solid rgba(148,163,184,.18);border-radius:26px;background:linear-gradient(180deg,rgba(15,23,42,.86),rgba(15,23,42,.42));padding:22px}.channelBioCard h2{margin:0 0 8px;font-size:28px}.channelBioCard p{margin:0;color:#dbe7fb;line-height:1.55;font-size:16px}
-  .channelMetaBlock{display:grid;gap:14px;border:1px solid rgba(148,163,184,.18);border-radius:26px;background:linear-gradient(180deg,rgba(15,23,42,.76),rgba(15,23,42,.36));padding:20px}.channelMetaBlock h3{margin:0}.channelMetaRows{display:grid;gap:14px}.channelMetaSection{display:grid;gap:9px}.channelMetaSectionTitle{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8ea0bb;font-weight:1000}.channelMetaChips{display:flex;gap:8px;flex-wrap:wrap}.channelMetaChip{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);border-radius:999px;padding:8px 11px;font-size:12px;font-weight:1000;color:#f8fbff}.channelBadgeInline{display:flex;gap:10px;overflow:auto;padding-bottom:2px;scrollbar-width:none}.channelBadgeInline::-webkit-scrollbar{display:none}.channelBadgeMini{min-width:148px;border:1px solid color-mix(in srgb,var(--viewer-accent,#22d3ee) 38%,rgba(255,255,255,.12));background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border-radius:18px;padding:14px;display:grid;gap:5px;text-align:center}.channelBadgeMini strong{font-size:25px}.channelBadgeMini b{font-size:13px}.channelBadgeMini span{font-size:11px;color:#a9b8cf}
-  .channelSideCard{border:1px solid rgba(148,163,184,.18);border-radius:24px;background:linear-gradient(180deg,rgba(15,23,42,.82),rgba(15,23,42,.36));padding:18px}.channelSideCard h3{margin:0 0 10px}.supportList{display:flex;gap:8px;flex-wrap:wrap}.supportChip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(245,158,11,.32);background:rgba(245,158,11,.08);border-radius:999px;padding:8px 10px;font-size:12px;font-weight:900}
-  .channelLiveLayout{margin-bottom:18px}.channelContentGrid{display:none!important}.channelInfoCard.channelCustomizer,.channelInfoCard:has(.themeControl){display:none!important}
-  @media(max-width:1180px){.channelPostLive{grid-template-columns:1fr}.channelVignetteRail{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:640px){.channelVignetteRail{grid-template-columns:1fr}.channelVignette{min-height:120px}.channelBioCard h2{font-size:24px}}
+  #channel .channelPage.creatorRefine{
+    width:100%;
+    max-width:none;
+    padding:0 var(--site-pad,clamp(20px,2.8vw,56px)) 64px;
+    display:grid;
+    gap:22px;
+  }
+  #channel .creatorRefine .channelTopHero{
+    min-height:clamp(360px,34vw,560px);
+    border-radius:0 0 34px 34px;
+    overflow:hidden;
+    position:relative;
+    background:
+      radial-gradient(circle at 18% 25%,color-mix(in srgb,var(--viewer-accent,#22d3ee) 30%,transparent),transparent 34%),
+      linear-gradient(135deg,#111827,#020617 68%);
+    border:1px solid rgba(148,163,184,.13);
+    border-top:0;
+    box-shadow:0 30px 90px rgba(0,0,0,.34);
+  }
+  #channel .creatorRefine .channelTopHero>img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.82;filter:saturate(1.04) contrast(1.02);
+  }
+  #channel .creatorRefine .channelTopHero:after{
+    content:"";position:absolute;inset:0;
+    background:
+      linear-gradient(180deg,rgba(2,6,23,.04),rgba(2,6,23,.25) 46%,rgba(2,6,23,.92)),
+      linear-gradient(90deg,rgba(2,6,23,.88),rgba(2,6,23,.32) 52%,rgba(2,6,23,.78));
+    z-index:1;
+  }
+  #channel .creatorRefine .channelHeroContent{
+    position:absolute;z-index:2;left:0;right:0;bottom:0;
+    padding:clamp(26px,3vw,48px) var(--site-pad,clamp(20px,2.8vw,56px));
+    display:flex;align-items:flex-end;justify-content:space-between;gap:28px;flex-wrap:wrap;
+  }
+  #channel .creatorRefine .channelIdentity{
+    display:flex!important;align-items:flex-end!important;gap:clamp(18px,2vw,30px)!important;min-width:0;
+  }
+  #channel .creatorRefine .channelIdentity .avatar{
+    width:clamp(150px,10vw,210px)!important;
+    height:clamp(150px,10vw,210px)!important;
+    min-width:clamp(150px,10vw,210px)!important;
+    border-radius:36px!important;
+    object-fit:cover!important;
+    object-position:center!important;
+    border:4px solid rgba(255,255,255,.20)!important;
+    background:linear-gradient(135deg,color-mix(in srgb,var(--viewer-accent,#22d3ee) 70%,#fff 10%),#7c3aed)!important;
+    box-shadow:0 30px 80px rgba(0,0,0,.48),0 0 0 1px rgba(255,255,255,.08) inset!important;
+    margin:0!important;position:relative!important;left:auto!important;top:auto!important;
+  }
+  #channel .creatorRefine .channelTitleBlock{display:grid;gap:12px;min-width:0;max-width:min(880px,62vw);padding:0!important;margin:0!important;}
+  #channel .creatorRefine .channelTitleBlock h1{
+    margin:0!important;font-size:clamp(54px,6vw,112px);line-height:.86;letter-spacing:-.06em;text-shadow:0 18px 56px rgba(0,0,0,.52);word-break:break-word;
+  }
+  #channel .creatorRefine .channelTitleBlock p{margin:0;color:#d8e4f8;font-size:clamp(15px,1vw,19px);line-height:1.45;max-width:70ch;text-shadow:0 8px 30px rgba(0,0,0,.52);}
+  #channel .creatorRefine .channelBadgesBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  #channel .creatorRefine .channelBadgesBar .pill{background:rgba(2,6,23,.62);border-color:rgba(255,255,255,.16);backdrop-filter:blur(14px);}
+  #channel .creatorRefine .bannerBadgeDock{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px;
+  }
+  #channel .creatorRefine .bannerBadge{
+    display:inline-flex;align-items:center;gap:8px;padding:10px 13px;border-radius:999px;
+    background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.045));
+    border:1px solid color-mix(in srgb,var(--viewer-accent,#22d3ee) 34%,rgba(255,255,255,.16));
+    box-shadow:0 14px 34px rgba(0,0,0,.25),0 0 26px color-mix(in srgb,var(--viewer-accent,#22d3ee) 20%,transparent);
+    backdrop-filter:blur(18px);font-weight:1000;font-size:13px;color:#fff;
+  }
+  #channel .creatorRefine .bannerBadge strong{font-size:18px;line-height:1;}
+  #channel .creatorRefine .channelActionDock{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  #channel .creatorRefine .channelActionDock .btn{min-height:50px;border-radius:17px;padding-inline:18px;}
+  #channel .creatorRefine .channelSubNav{display:flex;gap:12px;flex-wrap:wrap;border-bottom:1px solid rgba(148,163,184,.15);padding:0 0 2px;margin-top:2px;}
+  #channel .creatorRefine .channelSubNav button{min-height:46px;padding:0 18px;border-radius:14px 14px 0 0;background:transparent;border:0;color:#c7d3e6;font-weight:1000;cursor:pointer;}
+  #channel .creatorRefine .channelSubNav button.active{color:#fff;box-shadow:inset 0 -3px 0 var(--viewer-accent,#22d3ee);}
+  #channel .creatorRefine .channelLiveLayout{
+    display:grid!important;grid-template-columns:minmax(0,1fr) clamp(340px,25vw,450px)!important;gap:18px;align-items:stretch;margin:0;
+  }
+  #channel .creatorRefine .channelMainPlayer,.creatorRefine .channelLiveSidebar{min-width:0;}
+  #channel .creatorRefine .channelMainPlayer .player,
+  #channel .creatorRefine .channelLiveSidebar .chatPanel{
+    min-height:clamp(600px,68vh,940px)!important;height:100%!important;border-radius:28px!important;border:1px solid rgba(148,163,184,.17)!important;overflow:hidden;background:#030712;
+  }
+  #channel .creatorRefine .channelMainPlayer .player{box-shadow:0 28px 85px rgba(0,0,0,.36);}
+  #channel .creatorRefine .channelLiveSidebar .chatPanel{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto;background:linear-gradient(180deg,rgba(7,12,23,.98),rgba(3,7,18,.98));}
+  #channel .creatorRefine .chatHeader{padding:16px;border-bottom:1px solid rgba(255,255,255,.08);}
+  #channel .creatorRefine .chatLog{min-height:0;overflow:auto;padding:16px;}
+  #channel .creatorRefine .chatAssist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px;border-top:1px solid rgba(255,255,255,.08);}
+  #channel .creatorRefine .chatAssist button{min-height:42px;border-radius:14px;}
+  #channel .creatorRefine .chatForm{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px;padding:0 14px 16px;}
+  #channel .creatorRefine .offlinePremium{
+    position:relative;width:100%;height:100%;min-height:inherit;display:grid;place-items:center;overflow:hidden;background:#020617;color:#fff;
+  }
+  #channel .creatorRefine .offlinePremiumBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42;filter:blur(1px) saturate(1.05);transform:scale(1.015);}
+  #channel .creatorRefine .offlinePremium:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--viewer-accent,#22d3ee) 28%,transparent),transparent 36%),linear-gradient(180deg,rgba(2,6,23,.36),rgba(2,6,23,.92));z-index:1;}
+  #channel .creatorRefine .offlinePremiumContent{position:relative;z-index:2;text-align:center;max-width:720px;padding:40px;display:grid;gap:18px;justify-items:center;}
+  #channel .creatorRefine .offlinePremiumAvatar{width:116px;height:116px;border-radius:30px;object-fit:cover;border:3px solid rgba(255,255,255,.18);box-shadow:0 22px 60px rgba(0,0,0,.35);}
+  #channel .creatorRefine .offlinePremium h2{margin:0;font-size:clamp(36px,3.6vw,68px);letter-spacing:-.045em;line-height:.96;}
+  #channel .creatorRefine .offlinePremium p{margin:0;color:#c5d3e8;font-size:16px;line-height:1.5;}
+  #channel .creatorRefine .offlineTags{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+  #channel .creatorRefine .offlineTags span{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);border-radius:999px;padding:8px 11px;font-size:12px;font-weight:1000;}
+  #channel .creatorRefine .channelBelowLive{display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,24vw,420px);gap:18px;align-items:start;}
+  #channel .creatorRefine .channelBelowMain{display:grid;gap:18px;min-width:0;}
+  #channel .creatorRefine .bioPremium,
+  #channel .creatorRefine .channelPanelArea,
+  #channel .creatorRefine .identityCompact,
+  #channel .creatorRefine .sideCompactCard{
+    border:1px solid rgba(148,163,184,.17);border-radius:26px;background:linear-gradient(180deg,rgba(15,23,42,.84),rgba(15,23,42,.40));box-shadow:0 20px 56px rgba(0,0,0,.20);
+  }
+  #channel .creatorRefine .bioPremium{padding:26px;}
+  #channel .creatorRefine .bioPremium h2{margin:0 0 10px;font-size:clamp(28px,2vw,40px);letter-spacing:-.025em;}
+  #channel .creatorRefine .bioPremium p{margin:0;color:#dbe7fb;line-height:1.65;font-size:16px;max-width:95ch;}
+  #channel .creatorRefine .channelPanelArea{padding:22px;display:grid;gap:16px;}
+  #channel .creatorRefine .panelAreaHead{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+  #channel .creatorRefine .panelAreaHead h2{margin:0;font-size:clamp(24px,1.6vw,32px);}
+  #channel .creatorRefine .panelAreaHead p{margin:4px 0 0;color:#9fb0c7;font-size:13px;}
+  #channel .creatorRefine .channelPanelGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+  #channel .creatorRefine .channelPanel{min-height:154px;border:1px dashed rgba(148,163,184,.24);border-radius:22px;background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.025));overflow:hidden;position:relative;padding:16px;text-align:left;color:#dbe7fb;display:flex;align-items:flex-end;}
+  #channel .creatorRefine .channelPanel.hasImage{border-style:solid;padding:0;}
+  #channel .creatorRefine .channelPanel img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  #channel .creatorRefine .channelPanel:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.05),rgba(2,6,23,.78));z-index:1;}
+  #channel .creatorRefine .channelPanelBody{position:relative;z-index:2;display:grid;gap:4px;}
+  #channel .creatorRefine .channelPanelBody b{font-size:16px;color:#fff;}
+  #channel .creatorRefine .channelPanelBody span{font-size:13px;color:#bfccdf;}
+  #channel .creatorRefine .identityCompact{padding:20px;display:grid;gap:14px;}
+  #channel .creatorRefine .identityCompact h2{margin:0;font-size:24px;}
+  #channel .creatorRefine .identityRows{display:grid;gap:13px;}
+  #channel .creatorRefine .identityTitle{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.10em;color:#92a2bb;font-weight:1000;margin-bottom:8px;}
+  #channel .creatorRefine .tagCloudCompact,.badgeCloudCompact{display:flex;gap:8px;flex-wrap:wrap;}
+  #channel .creatorRefine .tagChipCompact,.badgeChipCompact{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:1000;}
+  #channel .creatorRefine .tagChipCompact{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);}
+  #channel .creatorRefine .badgeChipCompact{border:1px solid color-mix(in srgb,var(--viewer-accent,#22d3ee) 42%,rgba(255,255,255,.14));background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03));}
+  #channel .creatorRefine .channelBelowSide{display:grid;gap:18px;min-width:0;}
+  #channel .creatorRefine .sideCompactCard{padding:20px;}
+  #channel .creatorRefine .sideCompactCard h3{margin:0 0 10px;font-size:20px;}
+  #channel .creatorRefine .sideCompactCard p{margin:0;color:#b8c7dc;line-height:1.5;}
+  #channel .creatorRefine .channelContentGrid,.creatorRefine .channelCustomizer,.creatorRefine .channelInfoCard:has(.themeControl){display:none!important;}
+  @media(max-width:1160px){
+    #channel .creatorRefine .channelLiveLayout,#channel .creatorRefine .channelBelowLive{grid-template-columns:1fr!important;}
+    #channel .creatorRefine .channelTitleBlock{max-width:100%;}
+    #channel .creatorRefine .channelMainPlayer .player,#channel .creatorRefine .channelLiveSidebar .chatPanel{min-height:470px!important;}
+    #channel .creatorRefine .channelPanelGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  }
+  @media(max-width:760px){
+    #channel .creatorRefine{padding-inline:14px!important;}
+    #channel .creatorRefine .channelTopHero{min-height:390px;border-radius:0 0 24px 24px;}
+    #channel .creatorRefine .channelHeroContent{padding:20px 14px;align-items:flex-start;}
+    #channel .creatorRefine .channelIdentity{align-items:center!important;gap:14px!important;}
+    #channel .creatorRefine .channelIdentity .avatar{width:108px!important;height:108px!important;min-width:108px!important;border-radius:26px!important;}
+    #channel .creatorRefine .channelTitleBlock h1{font-size:clamp(36px,10vw,54px);}
+    #channel .creatorRefine .channelPanelGrid{grid-template-columns:1fr;}
+    #channel .creatorRefine .chatAssist{grid-template-columns:1fr;}
+    #channel .creatorRefine .chatForm{grid-template-columns:1fr 1fr;}
+    #channel .creatorRefine .chatForm input{grid-column:1/-1;}
+  }
   `;
   document.head.appendChild(st);
 })();
 
-function channelVignetteHtml({title,subtitle,img,onclick=''}){
-  return `<button class="channelVignette" ${onclick?`onclick="${onclick}"`:''}>${img?`<img src="${esc(img)}" alt="">`:''}<span class="channelVignetteBody"><b>${esc(title)}</b><span>${esc(subtitle)}</span></span></button>`;
+function oryonCreatorBannerBadgesHtml(channelBadges){
+  return `<div class="bannerBadgeDock">${(channelBadges||[]).slice(0,5).map(b=>`<span class="bannerBadge"><strong>${esc(b.icon)}</strong>${esc(b.label)}</span>`).join('')}</div>`;
 }
-function channelBioSectionHtml(p,tags,channelBadges,support){
-  const banner=p.banner_url||p.offline_image_url||'';
+
+function oryonOfflinePremiumHtml(p,isOwner,tags){
+  const bg=p.offline_image_url||p.banner_url||'';
   const avatar=p.avatar_url||'';
-  const offline=p.offline_image_url||banner||avatar||'';
-  const supportCount=Number(support?.count||0);
-  const tagChips=(tags||[]).slice(0,12).map(t=>`<span class="channelMetaChip">${esc(t)}</span>`).join('') || '<span class="channelMetaChip">Oryon</span>';
-  const badgeHtml=(channelBadges||[]).map(b=>`<div class="channelBadgeMini"><strong>${esc(b.icon)}</strong><b>${esc(b.label)}</b><span>${esc(b.note)}</span></div>`).join('');
-  const supportHtml=(support?.first_supporters||[]).length ? (support.first_supporters||[]).slice(0,10).map(s=>`<span class="supportChip">⭐ ${esc(s.display_name||s.login)}</span>`).join('') : '<p class="muted">Premiers soutiens à venir.</p>';
-  return `<section class="channelPostLive"><main class="channelPostMain"><div class="channelVignetteRail">
-    ${channelVignetteHtml({title:'Planning',subtitle:'Voir les prochains lives',img:banner,onclick:"chanTab(null,'planning')"})}
-    ${channelVignetteHtml({title:'Clips',subtitle:'Moments à revoir',img:offline,onclick:"chanTab(null,'clips')"})}
-    ${channelVignetteHtml({title:'Badges / emotes',subtitle:'Identité de chaîne',img:avatar,onclick:"setView('studio')"})}
-    ${channelVignetteHtml({title:'Premiers soutiens',subtitle:`${supportCount} soutien${supportCount>1?'s':''}`,img:banner})}
-  </div><article class="channelBioCard"><h2>Bio</h2><p>${esc(p.bio||"Cette chaîne n'a pas encore ajouté de bio.")}</p></article><article class="channelMetaBlock"><h3>Identité de chaîne</h3><div class="channelMetaRows"><div class="channelMetaSection"><span class="channelMetaSectionTitle">Tags</span><div class="channelMetaChips">${tagChips}</div></div><div class="channelMetaSection"><span class="channelMetaSectionTitle">Badges visibles</span><div class="channelBadgeInline">${badgeHtml}</div></div></div></article></main><aside class="channelPostSide"><article class="channelSideCard"><h3>Premiers soutiens</h3><div class="supportList">${supportHtml}</div></article></aside></section>`;
+  const tagHtml=(tags||[]).slice(0,5).map(t=>`<span>${esc(t)}</span>`).join('') || '<span>Oryon</span><span>Chaîne native</span>';
+  return `<div class="offlinePremium">${bg?`<img class="offlinePremiumBg" src="${esc(bg)}" alt="">`:''}<div class="offlinePremiumContent">${avatar?`<img class="offlinePremiumAvatar" src="${esc(avatar)}" alt="">`:''}<div class="offlineTags"><span>Hors ligne</span>${tagHtml}</div><h2>${esc(p.display_name||p.login||'Chaîne')} revient bientôt.</h2><p>La bannière, la bio et les infos de chaîne restent visibles. Le live prendra automatiquement cette place quand il sera lancé.</p>${isOwner?`<button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button>`:`<button class="btn" onclick="followOryon('${esc(p.login)}')">Suivre la chaîne</button>`}</div></div>`;
+}
+
+function oryonChannelPanelsHtml(p,isOwner){
+  const raw = Array.isArray(p.panels) ? p.panels : (Array.isArray(p.channel_panels) ? p.channel_panels : []);
+  const panels = raw.filter(Boolean).slice(0,6);
+  if(panels.length){
+    return `<section class="channelPanelArea"><div class="panelAreaHead"><div><h2>Panneaux de chaîne</h2><p>Bannières, liens, extensions et infos mises en avant.</p></div>${isOwner?`<button class="btn secondary" onclick="setView('settings')">Modifier</button>`:''}</div><div class="channelPanelGrid">${panels.map(panel=>`<article class="channelPanel ${panel.image_url||panel.image?'hasImage':''}">${panel.image_url||panel.image?`<img src="${esc(panel.image_url||panel.image)}" alt="">`:''}<div class="channelPanelBody"><b>${esc(panel.title||'Panneau')}</b><span>${esc(panel.text||panel.description||'Information de chaîne')}</span></div></article>`).join('')}</div></section>`;
+  }
+  return `<section class="channelPanelArea"><div class="panelAreaHead"><div><h2>Panneaux de chaîne</h2><p>Espace prévu pour tes futures bannières, liens et extensions.</p></div>${isOwner?`<button class="btn secondary" onclick="setView('settings')">Ajouter plus tard</button>`:''}</div><div class="channelPanelGrid"><article class="channelPanel"><div class="channelPanelBody"><b>Bannière libre</b><span>Image, lien ou annonce.</span></div></article><article class="channelPanel"><div class="channelPanelBody"><b>Extension future</b><span>Un module pourra s’intégrer ici.</span></div></article><article class="channelPanel"><div class="channelPanelBody"><b>Infos utiles</b><span>Discord, planning, règles ou sponsor.</span></div></article></div></section>`;
+}
+
+function oryonChannelBelowLiveHtml(p,tags,channelBadges,isOwner){
+  const bio=esc(p.bio||"Cette chaîne n'a pas encore ajouté de bio.");
+  const tagHtml=(tags||[]).slice(0,14).map(t=>`<span class="tagChipCompact">${esc(t)}</span>`).join('') || '<span class="tagChipCompact">Oryon</span>';
+  const badgeHtml=(channelBadges||[]).slice(0,8).map(b=>`<span class="badgeChipCompact"><strong>${esc(b.icon)}</strong>${esc(b.label)}</span>`).join('');
+  return `<section class="channelBelowLive"><main class="channelBelowMain"><article class="bioPremium"><h2>Bio</h2><p>${bio}</p></article>${oryonChannelPanelsHtml(p,isOwner)}<article class="identityCompact"><h2>Identité de chaîne</h2><div class="identityRows"><div><span class="identityTitle">Tags</span><div class="tagCloudCompact">${tagHtml}</div></div><div><span class="identityTitle">Badges visibles</span><div class="badgeCloudCompact">${badgeHtml}</div></div></div></article></main><aside class="channelBelowSide"><article class="sideCompactCard"><h3>À propos</h3><p>${esc(p.display_name||p.login)} diffuse sur Oryon. Les badges sont visibles sur la bannière pour donner une identité immédiate à la chaîne.</p></article></aside></section>`;
 }
 
 async function renderChannel(){
@@ -3990,17 +4141,15 @@ async function renderChannel(){
   const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
-  const offlineImg=p.offline_image_url||p.banner_url||'';
   const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
-  const supportCount=Number(support?.count||0);
   const channelBadges=channelBadgesFor(p,support,isOwner);
   const ownerActions=isOwner?`<button class="btn" onclick="setView('manager')">Gestionnaire</button><button class="btn secondary" onclick="setView('settings')">Modifier profil</button>`:`<button class="btn" onclick="followOryon('${esc(targetLogin)}')">Suivre</button><button id="likeBtn" class="btn secondary" onclick="likeOryon('${esc(targetLogin)}')">Aimer</button>${supportButton(targetLogin,support)}<button class="btn ghost" onclick="quickGem()">Autre live</button>`;
-  const media=fwLiveMediaHtml(p,isOwner,isLive,offlineImg);
-  const postLive=channelBioSectionHtml(p,tags,channelBadges,support);
-  $('#channel').innerHTML=`<div class="channelPage twitchLike viewerTint cleanChannelLayout"><section class="channelTopHero">${banner?`<img src="${esc(banner)}" alt="">`:''}<div class="channelHeroContent"><div class="channelIdentity"><img class="avatar" src="${esc(p.avatar_url||'')}" alt=""><div class="channelTitleBlock"><h1>${esc(p.display_name||p.login)}</h1><p>${esc(p.bio||'Chaîne Oryon')}</p><div class="channelBadgesBar"><span id="channelLiveBadge" class="pill">${isLive?'🔴 En direct':'Hors ligne'}</span><span class="pill">@${esc(p.login)}</span><span class="pill">${Number(p.followers_count||0)} followers</span><span class="pill">${supportCount} premiers soutiens</span>${tags.slice(0,4).map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div></div></div><div class="channelActionDock">${ownerActions}</div></div></section><nav class="channelSubNav"><button class="active" onclick="chanTab(this,'about')">Accueil</button><button onclick="chanTab(this,'about')">À propos</button><button onclick="chanTab(this,'planning')">Planning</button><button onclick="chanTab(this,'clips')">Clips</button><button onclick="setView('studio')">Badges / emotes</button></nav><section class="channelLiveLayout"><main class="channelMainPlayer"><div class="player premiumPlayer oryonMainPlayer">${media}</div></main><aside class="channelLiveSidebar"><div class="chatPanel nativeFixedChat" data-chat="oryon"><div class="chatHeader"><span>Tchat Oryon · ${esc(p.display_name||p.login)}</span><button class="btn ghost" onclick="reportRoom()">Signaler</button></div><div id="nativeChatLog" class="chatLog"></div><div id="customEmoteShelf" class="emotePanel hidden"></div><div id="gifGrid" class="gifGrid hidden"></div><div class="chatAssist"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="chatQuick('react')">Réagir</button></div><div class="chatForm"><input id="chatInput" placeholder="Écrire sur Oryon…"><button class="btn secondary" onclick="toggleEmotes()">Emotes</button><button class="btn secondary" onclick="toggleGifs()">GIF</button><button class="btn" onclick="sendChat()">Envoyer</button></div></div></aside></section>${postLive}</div>`;
+  const media=isLive ? fwLiveMediaHtml(p,isOwner,isLive,p.offline_image_url||p.banner_url||'') : oryonOfflinePremiumHtml(p,isOwner,tags);
+  const bannerBadges=oryonCreatorBannerBadgesHtml(channelBadges);
+  const belowLive=oryonChannelBelowLiveHtml(p,tags,channelBadges,isOwner);
+  $('#channel').innerHTML=`<div class="channelPage twitchLike viewerTint creatorRefine"><section class="channelTopHero">${banner?`<img src="${esc(banner)}" alt="">`:''}<div class="channelHeroContent"><div class="channelIdentity"><img class="avatar" src="${esc(p.avatar_url||'')}" alt=""><div class="channelTitleBlock"><h1>${esc(p.display_name||p.login)}</h1><p>${esc(p.bio||'Chaîne Oryon')}</p><div class="channelBadgesBar"><span id="channelLiveBadge" class="pill">${isLive?'🔴 En direct':'Hors ligne'}</span><span class="pill">@${esc(p.login)}</span><span class="pill">${Number(p.followers_count||0)} followers</span>${tags.slice(0,4).map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div>${bannerBadges}</div></div><div class="channelActionDock">${ownerActions}</div></div></section><nav class="channelSubNav"><button class="active" onclick="chanTab(this,'about')">Accueil</button><button onclick="chanTab(this,'about')">À propos</button><button onclick="chanTab(this,'planning')">Planning</button><button onclick="chanTab(this,'clips')">Clips</button></nav><section class="channelLiveLayout"><main class="channelMainPlayer"><div class="player premiumPlayer oryonMainPlayer">${media}</div></main><aside class="channelLiveSidebar"><div class="chatPanel nativeFixedChat" data-chat="oryon"><div class="chatHeader"><span>Tchat Oryon · ${esc(p.display_name||p.login)}</span><button class="btn ghost" onclick="reportRoom()">Signaler</button></div><div id="nativeChatLog" class="chatLog"></div><div id="customEmoteShelf" class="emotePanel hidden"></div><div id="gifGrid" class="gifGrid hidden"></div><div class="chatAssist"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="chatQuick('react')">Réagir</button></div><div class="chatForm"><input id="chatInput" placeholder="Écrire sur Oryon…"><button class="btn secondary" onclick="toggleEmotes()">Emotes</button><button class="btn secondary" onclick="toggleGifs()">GIF</button><button class="btn" onclick="sendChat()">Envoyer</button></div></div></aside></section>${belowLive}</div>`;
   applyViewerThemeColor?.();
   if(isLive) setMiniLive?.({type:'oryon',login:targetLogin,title:'Oryon · '+(p.display_name||p.login)});
-  chanTab?.(null,'about');
   setupSocket?.(); state.room=targetLogin; state.socket?.emit('native:chat:history',{room:state.room});
   if(isOwner && state.stream){ attachCurrentStream?.(); }
   else if(isLive){ state.socket?.emit('native:join',{room:targetLogin}); if(!p.oryon_local_player_url){ setTimeout(()=>requestOffer?.(),500); } }
