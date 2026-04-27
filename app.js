@@ -2529,8 +2529,51 @@ async function writeOryonUsersAndWait(data){
   return await persistOryonUsers(data);
 }
 const ORYON_USERS_READY = loadOryonUsersPersistent();
+
+// Generic durable state for teams/planning/progression/events/admin logs.
+// These were previously kept in files under __dirname, which disappears on Render redeploy.
+const ORYON_GENERIC_STATE_FILES = ['.oryon-teams.json','.oryon-planning.json','.oryon-progress.json','.oryon-events.json','.oryon-admin-log.json','.oryon-reports.json'];
+let __oryonGenericStateCache = Object.create(null);
+function oryonStateKeyFromFile(file){ return String(path.basename(file || '')).replace(/[^a-zA-Z0-9_-]/g, '_'); }
+function oryonFallbackPathForKey(key){ return path.join(ORYON_DATA_DIR, String(key || 'state.json').replace(/[^a-zA-Z0-9_.-]/g, '_')); }
+async function loadOryonGenericStatePersistent(){
+  for(const name of ORYON_GENERIC_STATE_FILES){
+    const key = oryonStateKeyFromFile(name);
+    let loaded = false;
+    if(firestoreOk && db && typeof db.collection === 'function'){
+      try{
+        const snap = await db.collection('oryon_state_files').doc(key).get();
+        if(snap.exists && snap.data()?.payload && typeof snap.data().payload === 'object'){
+          __oryonGenericStateCache[key] = snap.data().payload;
+          loaded = true;
+        }
+      }catch(e){ console.warn('[ORYON] generic Firestore load failed:', key, e.message); }
+    }
+    if(!loaded){
+      try{
+        const fp = oryonFallbackPathForKey(name);
+        if(fs.existsSync(fp)) __oryonGenericStateCache[key] = JSON.parse(fs.readFileSync(fp,'utf8') || '{}');
+      }catch(e){ console.warn('[ORYON] generic JSON load failed:', key, e.message); }
+    }
+  }
+}
+async function persistOryonGenericState(file, data){
+  const key = oryonStateKeyFromFile(file);
+  __oryonGenericStateCache[key] = data;
+  try{
+    if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true});
+    fs.writeFileSync(oryonFallbackPathForKey(key), JSON.stringify(data || {}, null, 2));
+  }catch(e){ console.warn('[ORYON] generic JSON write failed:', key, e.message); }
+  if(firestoreOk && db && typeof db.collection === 'function'){
+    try{
+      await db.collection('oryon_state_files').doc(key).set({payload:data || {}, updatedAt:Date.now(), source:'oryon-generic-state'}, {merge:true});
+    }catch(e){ console.warn('[ORYON] generic Firestore write failed:', key, e.message); }
+  }
+}
+const ORYON_STATE_READY = loadOryonGenericStatePersistent();
 app.use('/api/oryon', async (_req, _res, next) => {
   try { await ORYON_USERS_READY; } catch (_) {}
+  try { await ORYON_STATE_READY; } catch (_) {}
   next();
 });
 
@@ -2559,6 +2602,22 @@ function verifyOryonPassword(password, stored){
   const test = hashOryonPassword(password, salt).split(':')[1];
   try{ return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(test, 'hex')); }catch(_){ return false; }
 }
+function makeOryonRememberToken(){ return crypto.randomBytes(32).toString('hex'); }
+function hashOryonRememberToken(token){ return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
+function issueOryonRememberToken(user, data){
+  const token = makeOryonRememberToken();
+  user.remember_token_hash = hashOryonRememberToken(token);
+  user.remember_token_issued_at = Date.now();
+  if(data) writeOryonUsers(data);
+  return token;
+}
+function verifyOryonRememberToken(user, token){
+  if(!user?.remember_token_hash || !token) return false;
+  const a = Buffer.from(String(user.remember_token_hash), 'hex');
+  const b = Buffer.from(hashOryonRememberToken(token), 'hex');
+  if(a.length !== b.length) return false;
+  try { return crypto.timingSafeEqual(a,b); } catch(_) { return false; }
+}
 function oryonLiveSignalTimeoutMs(){ return Math.max(8000, Number(process.env.ORYON_LIVE_SIGNAL_TIMEOUT_MS || 25000)); }
 function isOryonLiveSignalFresh(u){
   if(!u || !u.oryon_local_player_url || !u.local_agent_live) return false;
@@ -2569,7 +2628,7 @@ function isOryonLiveSignalFresh(u){
 function publicOryonUser(u){
   if(!u) return null;
   const localLiveFresh = isOryonLiveSignalFresh(u);
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
 function sessionOryonUser(u){
   if(!u) return null;
@@ -2687,9 +2746,10 @@ app.post('/api/oryon/register', async (req, res) => {
     if(data.users.some(u => normalizeOryonEmail(u.email) === email)) return res.status(409).json({ success:false, error:'Cet email est déjà utilisé.' });
     const user = { id: crypto.randomBytes(12).toString('hex'), login, display_name: display, email, email_verified: true, email_verify_token: null, password_hash: hashOryonPassword(password), createdAt: Date.now() };
     data.users.push(user);
+    const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
-    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), emailVerificationRequired:false, persistence:persistResult||null }));
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, emailVerificationRequired:false, persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -2714,9 +2774,24 @@ app.post('/api/oryon/login', async (req, res) => {
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
     if(!user || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
+    const remember_token = issueOryonRememberToken(user, data);
     req.session.oryonUser = sessionOryonUser(user);
-    req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.post('/api/oryon/restore-session', async (req, res) => {
+  try{
+    try{ await loadOryonUsersPersistent(); }catch(_){}
+    const login = normalizeOryonLogin(req.body?.login);
+    const token = String(req.body?.remember_token || req.body?.token || '').trim();
+    if(!login || !token) return res.status(400).json({success:false,error:'Jeton de session manquant.'});
+    const data = readOryonUsers();
+    const user = data.users.find(u => u.login === login);
+    if(!user || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Session expirée. Reconnecte-toi une fois.'});
+    req.session.oryonUser = sessionOryonUser(user);
+    req.session.save(() => res.json({success:true,user:publicOryonUser(user)}));
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
 
 app.post('/api/oryon/logout', (req, res) => {
@@ -2763,6 +2838,16 @@ app.post('/api/oryon/profile', (req, res) => {
         label: String(b?.label || '').trim().slice(0,28),
         note: String(b?.note || '').trim().slice(0,70)
       })).filter(b => b.icon && b.label).slice(0,8);
+    }
+    const incomingPanels = Array.isArray(req.body?.channel_vignettes) ? req.body.channel_vignettes : (Array.isArray(req.body?.channel_panels) ? req.body.channel_panels : null);
+    if(incomingPanels){
+      const cleanPanels = incomingPanels.map((v, idx) => ({
+        image_url: String(v?.image_url || v?.image || '').trim().slice(0,1200000),
+        title: String(v?.title || `Vignette ${idx+1}`).trim().slice(0,60),
+        description: String(v?.description || v?.text || '').trim().slice(0,140)
+      })).filter(v => v.image_url).slice(0,8);
+      user.channel_vignettes = cleanPanels;
+      user.channel_panels = cleanPanels;
     }
     user.external_live_platform = user.oryon_local_player_url ? 'oryon-local' : (user.peertube_embed_url || user.peertube_watch_url ? 'peertube' : (user.external_live_platform||''));
     user.updatedAt = Date.now();
@@ -3435,13 +3520,24 @@ app.post('/api/oryon/notifications/read',(req,res)=>{ const cur=req.session?.ory
 // ORYON FOUNDATION — admin, teams, onboarding, planning, leveling, anti-farm
 // JSON local for MVP; ready to migrate to Supabase/PostgreSQL with DATABASE_URL.
 // =========================================================
-const ORYON_TEAMS_FILE = path.join(__dirname, '.oryon-teams.json');
-const ORYON_PLANNING_FILE = path.join(__dirname, '.oryon-planning.json');
-const ORYON_PROGRESS_FILE = path.join(__dirname, '.oryon-progress.json');
-const ORYON_EVENTS_FILE = path.join(__dirname, '.oryon-events.json');
-const ORYON_ADMIN_FILE = path.join(__dirname, '.oryon-admin-log.json');
-function oryonRead(file, fallback){ return readJsonSafe(file, fallback); }
-function oryonWrite(file, data){ return writeJsonSafe(file, data); }
+const ORYON_TEAMS_FILE = path.join(ORYON_DATA_DIR, '.oryon-teams.json');
+const ORYON_PLANNING_FILE = path.join(ORYON_DATA_DIR, '.oryon-planning.json');
+const ORYON_PROGRESS_FILE = path.join(ORYON_DATA_DIR, '.oryon-progress.json');
+const ORYON_EVENTS_FILE = path.join(ORYON_DATA_DIR, '.oryon-events.json');
+const ORYON_ADMIN_FILE = path.join(ORYON_DATA_DIR, '.oryon-admin-log.json');
+function oryonRead(file, fallback){
+  const key = oryonStateKeyFromFile(file);
+  if(__oryonGenericStateCache && Object.prototype.hasOwnProperty.call(__oryonGenericStateCache, key)) return __oryonGenericStateCache[key];
+  const data = readJsonSafe(file, fallback);
+  __oryonGenericStateCache[key] = data;
+  return data;
+}
+function oryonWrite(file, data){
+  const key = oryonStateKeyFromFile(file);
+  __oryonGenericStateCache[key] = data;
+  persistOryonGenericState(file, data).catch(e=>console.warn('[ORYON] generic async persist failed:', key, e.message));
+  return true;
+}
 function requireOryon(req,res){ const cur=req.session?.oryonUser; if(!cur?.id){ res.status(401).json({success:false,error:'Compte Oryon requis.'}); return null; } return cur; }
 function adminLogins(){ const raw = String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || 'sansahd'); return raw.split(',').map(normalizeOryonLogin).filter(Boolean); }
 function isOryonAdmin(req){ const cur=req.session?.oryonUser; return !!(cur?.login && adminLogins().includes(normalizeOryonLogin(cur.login))); }
