@@ -1762,3 +1762,128 @@ async function renderDiscover(){
   renderCompactFollowed();
   closeMini?.();
 }
+
+
+/* Final responsive centering pass — strict no horizontal overflow, true mobile layout */
+(function injectOryonFinalResponsiveCentering(){
+  if(document.getElementById('oryonFinalResponsiveCentering')) return;
+  const st=document.createElement('style');
+  st.id='oryonFinalResponsiveCentering';
+  st.textContent=`
+  html,body{width:100%!important;max-width:100%!important;overflow-x:hidden!important;}
+  body{position:relative!important;}
+  *,*::before,*::after{box-sizing:border-box;}
+  iframe,img,video,canvas{max-width:100%;}
+  .app,main.app{width:min(100%,1500px)!important;max-width:1500px!important;margin-inline:auto!important;left:auto!important;right:auto!important;transform:none!important;translate:none!important;overflow-x:clip!important;}
+  #discover.view.active{width:100%!important;max-width:1360px!important;margin-inline:auto!important;overflow-x:clip!important;}
+  .proDiscover{width:100%!important;max-width:1360px!important;margin-inline:auto!important;overflow-x:clip!important;transform:none!important;translate:none!important;}
+  .proHero,.proSearchPanel,#zapResult,.proTwitchPanel,.proStage,.proMain,.proSide,.proCard,.proStartCard,.proPlayer,.proPlayerGrid,.proQueue{max-width:100%!important;min-width:0!important;}
+  .proHero,.proSearchPanel,.proTwitchPanel{width:100%!important;margin-left:auto!important;margin-right:auto!important;}
+  .proStage{width:100%!important;margin-left:auto!important;margin-right:auto!important;}
+  .proMain{width:100%!important;}
+  .proPlayerGrid{width:100%!important;}
+  .proSearchLine>* , .proTwitchSearch>* , .proActionGrid>* , .proMetricGrid>*{min-width:0!important;}
+  .proMoodRow{max-width:100%!important;min-width:0!important;}
+  .proMoodBtn{min-width:0!important;}
+  .proOverlay{max-width:100%!important;overflow:hidden!important;}
+  .proOverlay h2,.proPlayerHead h2{max-width:100%;overflow-wrap:anywhere;word-break:normal;}
+  .proActions{max-width:100%!important;}
+  .proActions .btn{min-width:0!important;white-space:nowrap;}
+  .proQueue{max-width:100%!important;overflow-x:auto!important;overscroll-behavior-x:contain;}
+  .proQueueItem{min-width:180px;max-width:240px;}
+  .mobileNav{max-width:100vw!important;overflow:hidden!important;}
+  @media(min-width:981px){
+    .app,main.app{padding-left:24px!important;padding-right:24px!important;}
+    #discover.view.active,.proDiscover{max-width:1360px!important;}
+    .proHero,.proSearchPanel,.proTwitchPanel,#zapResult{max-width:1360px!important;}
+    .proStage:not(.proStageWatching){grid-template-columns:minmax(0,1fr) 310px!important;justify-content:center!important;}
+    .proStage.proStageWatching{display:block!important;}
+    .proStage.proStageWatching .proPlayerHead,.proStage.proStageWatching .proPlayerGrid,.proStage.proStageWatching .proQueue,.proStage.proStageWatching .proSide{max-width:1260px!important;margin-left:auto!important;margin-right:auto!important;}
+    .proStage.proStageWatching .proPlayerGrid{grid-template-columns:minmax(0,1fr) 340px!important;}
+    .proCard,.proStartCard{margin-left:auto!important;margin-right:auto!important;}
+  }
+  @media(max-width:980px){
+    html,body{min-width:0!important;touch-action:pan-y;}
+    .top,.topbar{max-width:100vw!important;overflow:hidden!important;}
+    .brand span{font-size:12px;}
+    .brandMark{width:28px!important;height:28px!important;border-radius:11px!important;}
+    .app,main.app{width:100%!important;max-width:none!important;margin:0!important;padding:10px 14px 112px!important;overflow-x:hidden!important;}
+    #discover.view.active,.proDiscover{width:100%!important;max-width:none!important;margin:0!important;padding:0 0 96px!important;overflow:hidden!important;}
+    .proHero{margin:8px 0 10px!important;padding:14px!important;border-radius:20px!important;}
+    .proHero h1{font-size:clamp(28px,7vw,38px)!important;line-height:.96!important;letter-spacing:-.055em!important;}
+    .proHero p{font-size:12px!important;line-height:1.35!important;margin-top:6px!important;}
+    .eyebrow{font-size:10px!important;padding:5px 8px!important;}
+    .proSearchPanel{margin:0 0 12px!important;padding:10px!important;border-radius:20px!important;}
+    .proMoodRow{display:flex!important;gap:8px!important;overflow-x:auto!important;overflow-y:hidden!important;width:100%!important;padding-bottom:4px!important;scroll-snap-type:x proximity;}
+    .proMoodBtn{flex:0 0 clamp(96px,28vw,128px)!important;width:clamp(96px,28vw,128px)!important;min-height:82px!important;padding:9px!important;border-radius:15px!important;scroll-snap-align:start;}
+    .proMoodBtn i{font-size:19px!important;}
+    .proMoodBtn b{font-size:12px!important;line-height:1.1!important;}
+    .proMoodBtn span{font-size:9px!important;line-height:1.15!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .proSearchLine{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;width:100%!important;}
+    .proSearchLine input{grid-column:1/-1!important;}
+    .proSearchLine input,.proSearchLine select,.proSearchLine button{width:100%!important;min-width:0!important;min-height:42px!important;font-size:13px!important;padding:10px 11px!important;border-radius:12px!important;}
+    .proSearchLine button.btn.good{grid-column:1/2!important;}
+    .proSearchLine button.btn.secondary{grid-column:2/3!important;}
+    #zapResult{width:100%!important;overflow:hidden!important;}
+    .proStage{display:block!important;width:100%!important;margin:10px 0 0!important;}
+    .proSide{width:100%!important;margin-top:12px!important;padding:10px!important;border-radius:20px!important;}
+    .proTabs{width:100%!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+    .proTabBtn{min-width:0!important;font-size:12px!important;white-space:nowrap!important;}
+    .proCard,.proStartCard{width:100%!important;min-height:0!important;border-radius:22px!important;overflow:hidden!important;}
+    .proCard .proMedia{aspect-ratio:16/11!important;min-height:0!important;height:auto!important;}
+    .proStartCard{min-height:330px!important;padding:16px!important;}
+    .proStartCard h2{font-size:clamp(28px,9vw,40px)!important;line-height:.94!important;}
+    .proStartCard p{font-size:13px!important;}
+    .proOverlay{padding:14px!important;gap:10px!important;}
+    .proOverlay h2{font-size:clamp(24px,7.2vw,32px)!important;line-height:1!important;letter-spacing:-.045em!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .proOverlay .muted{font-size:14px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .proBadgeTop{left:9px!important;right:9px!important;top:9px!important;}
+    .proPill{font-size:10px!important;padding:6px 8px!important;max-width:100%;}
+    .proReasons{gap:6px!important;overflow:hidden!important;max-height:36px!important;}
+    .proActions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;width:100%!important;}
+    .proActions .btn{width:100%!important;min-height:42px!important;padding:10px 8px!important;font-size:13px!important;}
+    .proActions .btn.good{grid-column:1/-1!important;font-size:15px!important;}
+    .proQueue{display:flex!important;width:100%!important;gap:8px!important;overflow-x:auto!important;padding-bottom:6px!important;}
+    .proQueueItem{flex:0 0 min(44vw,180px)!important;min-width:0!important;padding:10px!important;border-radius:15px!important;}
+    .proQueueItem b{font-size:13px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .proQueueItem span{font-size:11px!important;}
+    .proMetricGrid{grid-template-columns:1fr 1fr!important;gap:8px!important;}
+    .proMetric{padding:10px!important;border-radius:14px!important;}
+    .proStageWatching .proPlayerHead{display:grid!important;gap:8px!important;padding:0!important;}
+    .proStageWatching .proPlayerHead h2{font-size:clamp(24px,7vw,34px)!important;line-height:1!important;}
+    .proStageWatching .proPlayerHead .row{display:grid!important;grid-template-columns:1fr 1fr 1fr!important;gap:8px!important;}
+    .proStageWatching .proPlayerHead .row>*{width:100%!important;justify-content:center!important;text-align:center;}
+    .proStageWatching .proPlayerGrid{grid-template-columns:1fr!important;width:100%!important;gap:10px!important;}
+    .proStageWatching .proPlayerGrid .player{width:100%!important;height:auto!important;min-height:0!important;aspect-ratio:16/9!important;border-radius:18px!important;}
+    .proStageWatching .proPlayerGrid .chatPanel{width:100%!important;max-width:none!important;min-width:0!important;height:340px!important;min-height:340px!important;border-radius:18px!important;resize:none!important;}
+    .proPlayerNotice{display:flex!important;position:static!important;margin-top:8px!important;background:rgba(10,15,26,.86)!important;}
+    .proTwitchPanel{width:100%!important;margin-top:16px!important;padding:12px!important;border-radius:20px!important;}
+    .proTwitchHead{display:grid!important;grid-template-columns:1fr!important;}
+    .proTwitchSearch{grid-template-columns:1fr auto!important;gap:8px!important;}
+    .proTwitchSearch input{min-width:0!important;}
+    .proFollowGrid,.proResults{grid-template-columns:1fr!important;}
+    .proFollowCard{min-width:0!important;width:100%!important;}
+    .mobileNav{height:64px!important;padding:8px 6px calc(8px + env(safe-area-inset-bottom))!important;}
+    .mobileNav button{font-size:12px!important;padding:8px 10px!important;}
+  }
+  @media(max-width:420px){
+    .app,main.app{padding-left:10px!important;padding-right:10px!important;}
+    .proSearchLine{grid-template-columns:1fr!important;}
+    .proSearchLine button.btn.good,.proSearchLine button.btn.secondary{grid-column:auto!important;}
+    .proActions{grid-template-columns:1fr!important;}
+    .proMetricGrid{grid-template-columns:1fr!important;}
+    .proTwitchSearch{grid-template-columns:1fr!important;}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+(function lockHorizontalScroll(){
+  if(window.__oryonLockHorizontalScroll) return;
+  window.__oryonLockHorizontalScroll=true;
+  const reset=()=>{ if(window.scrollX) window.scrollTo(0, window.scrollY); };
+  window.addEventListener('load',reset,{passive:true});
+  window.addEventListener('resize',reset,{passive:true});
+  window.addEventListener('orientationchange',()=>setTimeout(reset,80),{passive:true});
+  window.addEventListener('scroll',reset,{passive:true});
+})();
