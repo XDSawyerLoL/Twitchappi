@@ -1981,3 +1981,145 @@ async function renderCategories(){
   state.catsCursor=null;
   await loadMoreCats(true);
 }
+
+
+/* Discover Tinder pass — bigger mobile controls, real mood launch, swipe right/left */
+(function injectDiscoverTinderPass(){
+  if(document.getElementById('oryonDiscoverTinderPass')) return;
+  const st=document.createElement('style');
+  st.id='oryonDiscoverTinderPass';
+  st.textContent=`
+  .proSearchLine .btn,.proActions .btn{font-weight:1000;letter-spacing:-.01em}
+  .proActions .btn{min-height:52px;padding:0 22px;font-size:15px;border-radius:16px}
+  .proActions .btn.good{font-size:16px;box-shadow:0 18px 52px rgba(168,85,247,.36)}
+  .proMoodBtn{min-height:112px;min-width:164px;padding:16px 18px;border-radius:22px;transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease}
+  .proMoodBtn i{font-size:28px}.proMoodBtn b{font-size:16px;line-height:1.1}.proMoodBtn span{font-size:12px;line-height:1.25}
+  .proMoodBtn.active{border-color:rgba(168,85,247,.95)!important;box-shadow:0 0 0 1px rgba(168,85,247,.5),0 20px 60px rgba(168,85,247,.20)!important;background:linear-gradient(135deg,rgba(139,92,246,.24),rgba(34,211,238,.08))!important}
+  .proCard[data-swipe-card="1"]{touch-action:pan-y;will-change:transform;transition:transform .18s ease,opacity .18s ease,border-color .18s ease;cursor:grab}
+  .proCard[data-swipe-card="1"]:active{cursor:grabbing}
+  .swipeStamp{position:absolute;top:24px;z-index:5;padding:10px 16px;border-radius:999px;border:2px solid currentColor;background:rgba(3,6,12,.58);backdrop-filter:blur(14px);font-size:20px;font-weight:1000;letter-spacing:.02em;text-transform:uppercase;opacity:0;transform:scale(.92);transition:opacity .12s ease,transform .12s ease;pointer-events:none}
+  .swipeStamp.like{right:22px;color:#34d399}.swipeStamp.nope{left:22px;color:#fb7185}
+  .proCard.swipe-like .swipeStamp.like,.proCard.swipe-nope .swipeStamp.nope{opacity:1;transform:scale(1) rotate(var(--r,0deg))}
+  .swipeHint{display:none;color:#cbd5e1;font-size:12px;font-weight:800;margin-top:2px}
+  @media(max-width:760px){
+    .proHero h1{font-size:clamp(28px,8.2vw,42px)!important}
+    .proHero p{font-size:13px!important;line-height:1.35!important}
+    .proMoodRow{gap:10px!important;scroll-padding:16px!important}
+    .proMoodBtn{flex:0 0 clamp(136px,39vw,176px)!important;width:clamp(136px,39vw,176px)!important;min-width:clamp(136px,39vw,176px)!important;min-height:112px!important;padding:14px!important;border-radius:20px!important}
+    .proMoodBtn i{font-size:27px!important;margin-bottom:3px!important}.proMoodBtn b{font-size:15px!important}.proMoodBtn span{font-size:11px!important;-webkit-line-clamp:2!important}
+    .proSearchLine{gap:10px!important}.proSearchLine input,.proSearchLine select{min-height:48px!important;font-size:14px!important;border-radius:14px!important}
+    .proSearchLine .btn{min-height:52px!important;font-size:15px!important;border-radius:15px!important}
+    .proSearchLine .btn.good{box-shadow:0 18px 46px rgba(168,85,247,.35)!important}
+    .proCard .proOverlay h2{font-size:clamp(24px,7.4vw,36px)!important;line-height:.98!important;max-height:2.05em;overflow:hidden}
+    .proCard .proOverlay p{font-size:16px!important}.proPill{font-size:12px!important;padding:8px 11px!important}
+    .proActions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;width:100%!important}.proActions .btn{min-height:56px!important;font-size:15px!important;border-radius:17px!important}.proActions .btn.good{grid-column:1/-1!important;font-size:17px!important}
+    .swipeHint{display:block}.swipeStamp{font-size:17px;top:18px;padding:9px 14px}.swipeStamp.like{right:16px}.swipeStamp.nope{left:16px}
+  }
+  @media(min-width:761px){
+    .proSearchLine .btn{min-height:46px}.proActions .btn:hover{transform:translateY(-1px)}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+function setDiscoverMood(id){
+  const mood=$('#dMood');
+  const normalized=id||'';
+  if(mood) mood.value=normalized;
+  $$('.proMoodBtn').forEach(btn=>btn.classList.toggle('active', btn.dataset.mood===normalized));
+  const max=$('#dMax');
+  if(max && normalized==='petite-commu') max.value='20';
+  const zap=$('#zapResult');
+  if(zap) zap.innerHTML='<div class="empty">Recherche dans cette ambiance…</div>';
+  state.currentTwitch=null;
+  clearSpotlightPlayer?.();
+  closeMini?.();
+  requestAnimationFrame(()=>document.getElementById('zapResult')?.scrollIntoView({block:'start',behavior:'smooth'}));
+  return findLive();
+}
+
+function renderSpotlightPreview(x){
+  if(!x) return `<article class="proStartCard"><div><span class="eyebrow"><i class="dot"></i>Prêt à découvrir</span><h2>Choisis une ambiance, Oryon lance vraiment la recherche.</h2><p>Sur mobile : swipe à droite pour aimer, à gauche pour passer.</p><div class="proActions"><button class="btn good" onclick="findLive()">Zapper</button><button class="btn secondary" onclick="setDiscoverMood('discussion')">Discussion</button><button class="btn secondary" onclick="setDiscoverMood('chill')">Chill</button></div></div></article>`;
+  const id=liveIdentity(x), reasons=discoverReasonFor(x).slice(0,3), score=comfortScore(x);
+  return `<article class="proCard" data-swipe-card="1"><div class="swipeStamp like">J'aime</div><div class="swipeStamp nope">Pas ouf</div><div class="proMedia">${id.img?`<img src="${esc(id.img)}" alt="" loading="eager">`:`<div class="proEmptyMedia">LIVE ${esc(platformLabel(id.platform)).toUpperCase()}</div>`}</div>
+    <div class="proBadgeTop"><span class="proPill">${esc(platformLabel(id.platform))} · ${id.viewers} viewers</span><span class="proPill">${score}% confort</span></div>
+    <div class="proOverlay"><div class="proReasons">${reasons.map(r=>`<span class="proPill">${esc(r)}</span>`).join('')}</div><h2>${esc(id.title||'Live en cours')}</h2><p class="muted">${esc(id.name||id.login||'Streamer')}</p><div class="swipeHint">Swipe droite : j’aime · gauche : pas ouf</div>
+      <div class="proActions"><button class="btn good" onclick="zapOpenCurrent()">Regarder</button><button class="btn secondary" onclick="zapNext()">Suivant</button><button class="btn secondary" onclick="saveCurrentLive()">Sauver</button></div>
+    </div></article>`;
+}
+
+function proSwipeRight(){
+  const x=currentZapItem?.();
+  if(!x) return findLive();
+  saveCurrentLive?.();
+  toast?.('Aimé — on garde cette vibe');
+  setTimeout(()=>zapNext(),120);
+}
+function proSwipeLeft(){
+  const items=state.zap.items||[];
+  if(!items.length) return findLive();
+  clearSpotlightPlayer?.();
+  closeMini?.();
+  toast?.('Pas ouf — suivant');
+  state.zap.index=(state.zap.index+1)%items.length;
+  renderZap();
+}
+function bindProSwipe(){
+  const card=document.querySelector('.proCard[data-swipe-card="1"]');
+  if(!card || card.__oryonSwipeBound) return;
+  card.__oryonSwipeBound=true;
+  let startX=0,startY=0,dx=0,dy=0,dragging=false;
+  const start=(e)=>{
+    if(e.target.closest('button,a,input,select,textarea')) return;
+    const p=e.touches?e.touches[0]:e;
+    startX=p.clientX; startY=p.clientY; dx=0; dy=0; dragging=true;
+    card.style.transition='none';
+  };
+  const move=(e)=>{
+    if(!dragging) return;
+    const p=e.touches?e.touches[0]:e;
+    dx=p.clientX-startX; dy=p.clientY-startY;
+    if(Math.abs(dx)<10) return;
+    if(Math.abs(dx)>Math.abs(dy)*1.15 && e.cancelable) e.preventDefault();
+    const rot=Math.max(-8,Math.min(8,dx/18));
+    card.style.transform=`translateX(${dx}px) rotate(${rot}deg)`;
+    card.classList.toggle('swipe-like',dx>38);
+    card.classList.toggle('swipe-nope',dx<-38);
+  };
+  const end=()=>{
+    if(!dragging) return;
+    dragging=false;
+    card.style.transition='transform .18s ease, opacity .18s ease';
+    const threshold=Math.min(120,Math.max(72,window.innerWidth*.18));
+    if(dx>threshold){
+      card.style.transform='translateX(120vw) rotate(10deg)';
+      card.style.opacity='.2';
+      return setTimeout(proSwipeRight,130);
+    }
+    if(dx<-threshold){
+      card.style.transform='translateX(-120vw) rotate(-10deg)';
+      card.style.opacity='.2';
+      return setTimeout(proSwipeLeft,130);
+    }
+    card.style.transform='';
+    card.classList.remove('swipe-like','swipe-nope');
+  };
+  card.addEventListener('touchstart',start,{passive:true});
+  card.addEventListener('touchmove',move,{passive:false});
+  card.addEventListener('touchend',end,{passive:true});
+  card.addEventListener('pointerdown',start);
+  window.addEventListener('pointermove',move,{passive:false});
+  window.addEventListener('pointerup',end);
+}
+
+function renderZap(){
+  const box=$('#zapResult'); if(!box) return;
+  const items=state.zap.items||[];
+  const cur=items[state.zap.index]||null;
+  const watching=!!(cur&&spotlightIsPlaying(cur));
+  const queue=items.length>1?`<div class="section"><div class="proQueue">${items.slice(0,10).map((x,i)=>{const id=liveIdentity(x);return `<button class="proQueueItem ${i===state.zap.index?'active':''}" onclick="state.zap.index=${i};clearSpotlightPlayer();closeMini?.();renderZap()"><b>${esc(id.name)}</b><span class="small">${esc(id.game)} · ${id.viewers} viewers</span></button>`}).join('')}</div></div>`:'';
+  box.innerHTML=`<div class="proStage ${watching?'proStageWatching':''}"><main class="proMain">${renderSpotlightPlayer(cur)}${queue}</main>${renderSpotlightMeta(cur)}</div>`;
+  if(watching) proSuppressMiniWhileWatching?.();
+  renderViewerImpact?.();
+  bindProSwipe();
+}
