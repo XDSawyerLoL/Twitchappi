@@ -1,51 +1,41 @@
 {
-  "name": "streamerhub",
-  "version": "1.0.1",
+  "name": "oryon-live",
+  "version": "1.0.2",
   "private": true,
-  "main": "electron-main.js",
+  "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "desktop": "electron .",
-    "dist:win": "electron-builder --win nsis",
-    "audit:fix": "npm audit fix",
-    "audit": "npm audit",
+    "verify:js": "node --check app.js && node --check index_script.js && node --check sidepanel-dock-fix.js && node --check preload.js && node --check electron-main.js && node --check assets/js/pricing.js",
     "audit:prod": "npm audit --omit=dev",
-    "prune:prod": "npm prune --omit=dev",
-    "verify:js": "node --check app.js && node --check electron-main.js && node --check preload.js && node --check index_script.js && node --check sidepanel-dock-fix.js && node --check assets/js/pricing.js",
-    "clean:dead": "node scripts/clean-dead.js",
-    "verify:all": "npm run verify:js && npm run audit:prod",
     "audit:fix:prod": "npm audit fix --omit=dev",
-    "dedupe": "npm dedupe"
+    "clean:dead": "node scripts/clean-dead.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "dependencies": {
     "@google/genai": "^1.25.0",
     "body-parser": "^1.20.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "express-rate-limit": "^7.4.1",
-    "express-session": "^1.18.1",
-    "firebase-admin": "^13.4.0",
+    "express-rate-limit": "^7.5.1",
+    "express-session": "^1.18.2",
+    "firebase-admin": "^13.5.0",
     "helmet": "^8.1.0",
     "memorystore": "^1.6.7",
     "node-fetch": "^2.7.0",
     "socket.io": "^4.8.1",
-    "stripe": "^18.4.0",
-    "openid": "^2.0.14"
-  },
-  "devDependencies": {
-    "electron": "^37.3.1",
-    "electron-builder": "^26.1.0"
+    "stripe": "^18.5.0",
+    "@google-cloud/firestore": "^8.5.0",
+    "@google-cloud/storage": "^7.19.0"
   },
   "overrides": {
     "semver": "^7.7.3",
     "ws": "^8.18.3",
     "tar": "^7.4.3",
-    "brace-expansion": "^4.0.1",
+    "brace-expansion": "^5.0.5",
     "form-data": "^4.0.4",
     "elliptic": "^6.6.1",
     "tmp": "^0.2.4",
@@ -63,6 +53,15 @@
     "debug": "^4.4.1",
     "yargs-parser": "^21.1.1",
     "path-to-regexp": "^0.1.12",
-    "send": "^0.19.0"
+    "send": "^0.19.0",
+    "http-cache-semantics": "^4.1.1",
+    "glob": "^10.4.5",
+    "uuid": "^14.0.0",
+    "@tootallnate/once": "^3.0.1",
+    "http-proxy-agent": "^7.0.2",
+    "teeny-request": "^10.1.1",
+    "retry-request": "^8.0.2",
+    "gaxios": "^7.1.2",
+    "google-gax": "^5.0.3"
   }
 }
