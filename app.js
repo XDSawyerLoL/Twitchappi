@@ -2426,6 +2426,26 @@ const ORYON_DATA_DIR = process.env.ORYON_DATA_DIR || __dirname;
 const ORYON_USERS_FILE = path.join(ORYON_DATA_DIR, '.oryon-users.json');
 let __oryonUsersCache = null;
 let __oryonUsersPersistence = 'json-local';
+
+function readOryonUsers(){
+  // Synchronous accessor used by auth/profile/live routes. The async loader
+  // populates __oryonUsersCache on startup; this fallback prevents route crashes
+  // during cold starts and keeps the JSON backup readable when Firestore is absent.
+  if(__oryonUsersCache && Array.isArray(__oryonUsersCache.users)) return __oryonUsersCache;
+  try{
+    if(fs.existsSync(ORYON_USERS_FILE)){
+      const raw = fs.readFileSync(ORYON_USERS_FILE, 'utf8');
+      const data = JSON.parse(raw || '{}');
+      __oryonUsersCache = { users: Array.isArray(data.users) ? data.users : [] };
+      __oryonUsersPersistence = process.env.ORYON_DATA_DIR ? 'render-disk-json' : 'ephemeral-json-local';
+      return __oryonUsersCache;
+    }
+  }catch(e){
+    console.warn('[ORYON] read users fallback failed:', e.message);
+  }
+  __oryonUsersCache = { users: [] };
+  return __oryonUsersCache;
+}
 async function loadOryonUsersPersistent(){
   // 1) Firestore source of truth: individual docs first, then compact state doc.
   if(firestoreOk && db && typeof db.collection === 'function'){
