@@ -3601,3 +3601,98 @@ async function renderDiscover(){
   await findLive();
   closeMini?.();
 }
+
+
+/* =========================================================
+   Oryon polish pass — settings/profile/channel layout fixes
+   ========================================================= */
+(function injectOryonPolishFixStyle(){
+  const old=document.getElementById('oryonPolishFixStyle');
+  if(old) old.remove();
+  const st=document.createElement('style');
+  st.id='oryonPolishFixStyle';
+  st.textContent=`
+  .settingsShell{width:100%;padding:26px var(--site-pad,clamp(18px,2.4vw,48px)) 54px;display:grid;gap:22px}
+  .settingsHero{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.settingsHero h1{margin:0;font-size:clamp(38px,3vw,60px);line-height:.95}.settingsHero p{margin:8px 0 0;color:#a9b8cf;max-width:860px}
+  .settingsGrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:18px}.settingsStack{display:grid;gap:18px}
+  .authCenterWrap{display:grid;place-items:center;min-height:calc(100vh - 180px);padding:16px 0}.authCenterGrid{width:min(1080px,100%);display:grid;grid-template-columns:repeat(2,minmax(320px,420px));justify-content:center;gap:22px}.authCard{padding:26px;border:1px solid rgba(148,163,184,.16);background:linear-gradient(180deg,rgba(17,24,39,.98),rgba(8,14,26,.98));border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.26)}.authCard h2{margin:0 0 8px}.authCard p{margin:0 0 16px;color:#9fb0c7;font-size:14px}.authCard .btn{margin-top:12px;min-height:48px}.authCard input,.authCard textarea,.authCard select{min-height:48px}
+  .viewerProfileInline{display:grid;gap:18px}
+  .channelPage.twitchLike.viewerTint{width:100%;max-width:none;padding:0 var(--site-pad,clamp(18px,2.4vw,48px)) 56px;display:grid;gap:20px}
+  .channelTopHero{min-height:340px;border-radius:0 0 30px 30px;overflow:hidden;position:relative}.channelTopHero img{width:100%;height:100%;object-fit:cover;display:block}.channelTopHero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,7,18,.12),rgba(3,7,18,.45) 55%,rgba(3,7,18,.88))}
+  .channelHeroContent{position:absolute;inset:auto 0 0 0;z-index:2;padding:34px var(--site-pad,clamp(18px,2.4vw,48px)) 24px;display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap}
+  .channelIdentity{display:flex !important;align-items:flex-end !important;gap:22px !important;min-width:0;max-width:min(100%,980px)}
+  .channelIdentity .avatar{width:112px !important;height:112px !important;min-width:112px;border-radius:28px;object-fit:cover;object-position:center center;background:linear-gradient(135deg,#52f36a,#36cfd7);border:3px solid rgba(255,255,255,.18);box-shadow:0 20px 50px rgba(0,0,0,.30);position:relative!important;left:auto!important;top:auto!important;margin:0!important}
+  .channelTitleBlock{display:grid;gap:10px;min-width:0;padding-left:0!important;margin-left:0!important}
+  .channelTitleBlock h1{margin:0 !important;font-size:clamp(40px,5.6vw,88px);line-height:.9;letter-spacing:-.05em;word-break:break-word;text-shadow:0 10px 40px rgba(0,0,0,.35)}
+  .channelTitleBlock p{margin:0;color:#c8d4ea;font-size:16px;max-width:78ch}
+  .channelActionDock{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.channelActionDock .btn{min-height:48px;border-radius:16px}
+  .channelSubNav{display:flex;gap:10px;flex-wrap:wrap;padding:0 0 2px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .channelLiveLayout{display:grid !important;grid-template-columns:minmax(0,1fr) clamp(320px,26vw,430px);gap:18px;align-items:stretch}
+  .channelMainPlayer,.channelLiveSidebar{min-width:0}.channelMainPlayer .player,.channelLiveSidebar .chatPanel{height:100%;min-height:clamp(560px,68vh,920px)}
+  .channelMainPlayer .player{border-radius:28px;overflow:hidden;border:1px solid rgba(148,163,184,.16);background:#020617}
+  .channelLiveSidebar{display:flex;min-height:0}.channelLiveSidebar .chatPanel{width:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto;overflow:hidden;border-radius:28px;border:1px solid rgba(148,163,184,.16);background:linear-gradient(180deg,rgba(8,12,22,.97),rgba(4,8,18,.97))}
+  .channelLiveSidebar .chatHeader,.channelLiveSidebar .chatAssist,.channelLiveSidebar .chatForm{padding-left:14px;padding-right:14px}.channelLiveSidebar .chatHeader{padding-top:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .channelLiveSidebar .chatLog{min-height:0;height:auto;padding:14px;overflow:auto}.channelLiveSidebar .chatAssist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding-top:12px}.channelLiveSidebar .chatAssist button{min-height:40px}.channelLiveSidebar .chatForm{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px;padding-top:12px;padding-bottom:14px;border-top:1px solid rgba(255,255,255,.08)}
+  .channelContentGrid{display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,24vw,360px);gap:18px;align-items:start}.channelInfoStack{display:grid;gap:18px}.channelInfoCard{border-radius:24px}
+  .viewerProfileCompact .impactGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  @media (max-width:1100px){.settingsGrid{grid-template-columns:1fr}.channelLiveLayout,.channelContentGrid{grid-template-columns:1fr}.channelMainPlayer .player,.channelLiveSidebar .chatPanel{min-height:460px}.channelHeroContent{align-items:flex-start}.channelLiveSidebar .chatForm{grid-template-columns:1fr 1fr}.channelLiveSidebar .chatForm input{grid-column:1/-1}.authCenterGrid{grid-template-columns:1fr}}
+  @media (max-width:760px){.channelTopHero{min-height:300px}.channelHeroContent{padding:22px 16px 18px}.channelIdentity{align-items:center !important;gap:14px !important}.channelIdentity .avatar{width:84px !important;height:84px !important;min-width:84px}.channelTitleBlock h1{font-size:clamp(30px,9vw,48px)}.channelLiveSidebar .chatAssist{grid-template-columns:1fr}.channelLiveSidebar .chatForm{grid-template-columns:1fr 1fr}.authCard{padding:20px}}
+  `;
+  document.head.appendChild(st);
+})();
+
+function authSettings(){
+  return `<div class="authCenterWrap"><div class="authCenterGrid"><form id="loginForm" class="authCard"><h2>Connexion Oryon</h2><p>Connecte-toi pour retrouver ta chaîne, ton profil viewer et ton menu stream.</p><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn">Se connecter</button></form><form id="registerForm" class="authCard"><h2>Créer un compte</h2><p>Crée ton compte Oryon dans un espace propre et centré.</p><input id="regName" placeholder="pseudo"><input id="regEmail" type="email" placeholder="email"><input id="regPass" type="password" placeholder="mot de passe"><button class="btn">Créer</button></form></div></div>`;
+}
+
+function viewerProfilePanel(){
+  return `<section class="panel viewerProfileCompact"><h2>Profil viewer</h2><p class="small">Visible aussi depuis ton profil Oryon quand tu es connecté.</p>${viewerProfileCard()}</section>`;
+}
+
+async function renderSettings(){
+  const root = $('#settings'); if(!root) return;
+  let u=state.session.local;
+  if(u?.login){ try{ const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login)); if(pr.success&&pr.user) u=pr.user; }catch(_){} }
+  const mode=getAppMode();
+  if(!u){
+    root.innerHTML=`<div class="settingsShell"><div class="settingsHero"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Crée ou connecte ton compte pour débloquer le menu stream et ta chaîne Oryon.':'Crée ou connecte ton compte pour conserver ton profil viewer, tes préférences et ta mémoire.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>${authSettings()}<section class="panel"><h2>Connexions externes</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour remonter tes suivis et nourrir les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div></div></section></div>`;
+    bindSettingsForms?.();
+    return;
+  }
+  root.innerHTML=`<div class="settingsShell"><div class="settingsHero"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Ton espace créateur, ton menu stream et aussi ton profil viewer dans la même page de profil.':'Ton profil viewer complet, ta mémoire et tes connexions Oryon / Twitch.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>${mode==='viewer'?`<div class="settingsStack">${viewerProfilePanel()}<section class="panel"><h2>Connexions</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour retrouver tes suivis et améliorer les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Mémoire viewer</b><p class="small">Conserve tes swipes, pépites vues, chaînes aimées et sauvegardes dans ce navigateur.</p><button class="btn secondary" onclick="toast('La mémoire viewer est bien conservée pour ton compte Oryon dans ce navigateur.')">Compris</button></div><div class="summaryItem"><b>Compte Oryon</b><p class="small">Connecté en tant que ${esc(u.display_name||u.login)}.</p><button class="btn secondary" onclick="logoutOryon()">Déconnecter Oryon</button></div></div></section></div>`:`<div class="settingsGrid"><div class="settingsStack"><section class="panel">${profileSettings(u)}</section>${viewerProfilePanel()}</div><div class="settingsStack"><section class="panel"><h2>Menu stream</h2><div class="summaryList"><div class="summaryItem"><b>Ma chaîne</b><p class="small">Page publique, lecteur géant et tchat adaptatif.</p><button class="btn" onclick="setView('channel')">Ouvrir ma chaîne</button></div><div class="summaryItem"><b>Gestionnaire</b><p class="small">Préparer, lancer et configurer ton live Oryon.</p><button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button></div><div class="summaryItem"><b>Outils créateur</b><p class="small">Studio, overlays et outils de chaîne.</p><button class="btn" onclick="setView('studio')">Ouvrir les outils</button></div><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour relier tes suivis et ton profil viewer.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Compte</b><p class="small">Déconnecte-toi si besoin.</p><button class="btn secondary" onclick="logoutOryon()">Déconnecter Oryon</button></div></div></section><section id="planningSettings" class="panel"></section></div></div>`}</div>`;
+  bindSettingsForms?.();
+  loadFoundation?.();
+  if(u && mode==='streamer') renderPlanning?.();
+}
+
+async function renderChannel(){
+  const viewer=state.session.local;
+  const targetLogin=(state.watchRoom || viewer?.login || '').toLowerCase();
+  if(!targetLogin){ $('#channel').innerHTML=authRequired(); return; }
+  state.lastChannelLogin=targetLogin;
+  const prof=await api('/api/oryon/profile/'+encodeURIComponent(targetLogin));
+  const p=prof.user || (viewer && viewer.login===targetLogin ? viewer : {login:targetLogin,display_name:targetLogin});
+  const support=await api('/api/oryon/supporters/'+encodeURIComponent(targetLogin)).catch(()=>({success:false,first_supporters:[]}));
+  state.channelSupport=support;
+  const isOwner=!!viewer && viewer.login===targetLogin;
+  const lives=await api('/api/native/lives').catch(()=>({items:[]}));
+  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
+  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  state.channelProfile=p; state.channelOwner=isOwner;
+  const banner=p.banner_url||p.offline_image_url||'';
+  const offlineImg=p.offline_image_url||p.banner_url||'';
+  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
+  const supportCount=Number(support?.count||0);
+  const channelBadges=channelBadgesFor(p,support,isOwner);
+  const ownerActions=isOwner?`<button class="btn" onclick="setView('manager')">Gestionnaire</button><button class="btn secondary" onclick="setView('settings')">Modifier profil</button>`:`<button class="btn" onclick="followOryon('${esc(targetLogin)}')">Suivre</button><button id="likeBtn" class="btn secondary" onclick="likeOryon('${esc(targetLogin)}')">Aimer</button>${supportButton(targetLogin,support)}<button class="btn ghost" onclick="quickGem()">Autre live</button>`;
+  const media=fwLiveMediaHtml(p,isOwner,isLive,offlineImg);
+  $('#channel').innerHTML=`<div class="channelPage twitchLike viewerTint"><section class="channelTopHero">${banner?`<img src="${esc(banner)}" alt="">`:''}<div class="channelHeroContent"><div class="channelIdentity"><img class="avatar" src="${esc(p.avatar_url||'') || ''}" alt=""><div class="channelTitleBlock"><h1>${esc(p.display_name||p.login)}</h1><p>${esc(p.bio||'Chaîne Oryon')}</p><div class="channelBadgesBar"><span id="channelLiveBadge" class="pill">${isLive?'🔴 En direct':'Hors ligne'}</span><span class="pill">@${esc(p.login)}</span><span class="pill">${Number(p.followers_count||0)} followers</span><span class="pill">${supportCount} premiers soutiens</span>${tags.slice(0,4).map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div></div></div><div class="channelActionDock">${ownerActions}</div></div></section><nav class="channelSubNav"><button class="active" onclick="chanTab(this,'about')">Accueil</button><button onclick="chanTab(this,'about')">À propos</button><button onclick="chanTab(this,'planning')">Planning</button><button onclick="chanTab(this,'clips')">Clips</button><button onclick="setView('studio')">Badges / emotes</button></nav><section class="channelLiveLayout"><main class="channelMainPlayer"><div class="player premiumPlayer oryonMainPlayer">${media}</div></main><aside class="channelLiveSidebar"><div class="chatPanel nativeFixedChat" data-chat="oryon"><div class="chatHeader"><span>Tchat Oryon · ${esc(p.display_name||p.login)}</span><button class="btn ghost" onclick="reportRoom()">Signaler</button></div><div id="nativeChatLog" class="chatLog"></div><div id="customEmoteShelf" class="emotePanel hidden"></div><div id="gifGrid" class="gifGrid hidden"></div><div class="chatAssist"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="chatQuick('react')">Réagir</button></div><div class="chatForm"><input id="chatInput" placeholder="Écrire sur Oryon…"><button class="btn secondary" onclick="toggleEmotes()">Emotes</button><button class="btn secondary" onclick="toggleGifs()">GIF</button><button class="btn" onclick="sendChat()">Envoyer</button></div></div></aside></section><section class="channelContentGrid"><div class="channelInfoStack"><div class="channelInfoCard channelCustomizer full"><div><h3>Personnalisation viewer</h3><p class="small">Change la couleur de la page selon ton goût.</p></div><div class="themeControl"><input type="color" value="${esc(localStorage.getItem('oryon_viewer_accent')||'#8b5cf6')}" oninput="setViewerThemeColor(this.value)"><button class="btn" onclick="setViewerThemeColor('#8b5cf6')">Violet</button><button class="btn secondary" onclick="setViewerThemeColor('#06b6d4')">Cyan</button><button class="btn secondary" onclick="setViewerThemeColor('#22c55e')">Vert</button></div></div><div class="channelInfoCard"><h2>Pourquoi entrer ici ?</h2><div class="channelBadgesBar"><span class="reasonChip">chat lisible</span><span class="reasonChip">nouveaux bienvenus</span><span class="reasonChip">réactions rapides</span>${channelBadges.slice(0,5).map(b=>`<span class="reasonChip">${esc(b.icon)} ${esc(b.label)}</span>`).join('')}</div></div><div id="channelTab" class="channelInfoCard"></div></div><aside class="channelInfoStack"><div class="channelInfoCard"><h3>Badges visibles</h3><div class="channelBadgeRail tight">${channelBadges.map(b=>`<div class="channelBadgeBig"><strong>${esc(b.icon)}</strong><b>${esc(b.label)}</b><span class="small">${esc(b.note)}</span></div>`).join('')}</div></div><div class="channelInfoCard"><h3>Premiers soutiens</h3>${(support.first_supporters||[]).length?(support.first_supporters||[]).slice(0,8).map(s=>`<span class="supportChip">⭐ ${esc(s.display_name||s.login)}</span>`).join(' '):'<p class="muted">Premiers soutiens à venir.</p>'}</div></aside></section></div>`;
+  applyViewerThemeColor?.();
+  if(isLive) setMiniLive?.({type:'oryon',login:targetLogin,title:'Oryon · '+(p.display_name||p.login)});
+  chanTab?.(null,'about');
+  setupSocket?.(); state.room=targetLogin; state.socket?.emit('native:chat:history',{room:state.room});
+  if(isOwner && state.stream){ attachCurrentStream?.(); }
+  else if(isLive){ state.socket?.emit('native:join',{room:targetLogin}); if(!p.oryon_local_player_url){ setTimeout(()=>requestOffer?.(),500); } }
+  updateLiveUi?.(isLive);
+  refreshEmoteShelf?.(targetLogin);
+}
