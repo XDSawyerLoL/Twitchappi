@@ -3403,3 +3403,201 @@ async function renderHome(){
   await renderCompactFollowed?.();
   closeMini?.();
 }
+
+
+/* =====================================================================
+   Oryon user-request final pass — home 3-up, viewer memory, viewer/streamer mode,
+   fixed discover mood, followed rail + 6 multiwatch slots
+   ===================================================================== */
+(function injectOryonUserRequestFinalPass(){
+  const old=document.getElementById('oryonUserRequestFinalPass');
+  if(old) old.remove();
+  const st=document.createElement('style');
+  st.id='oryonUserRequestFinalPass';
+  st.textContent=`
+  .owHeroTheater.userFixHero{grid-template-columns:minmax(340px,28vw) minmax(0,1fr)!important;min-height:calc(100vh - 72px)!important}
+  .owHeroCopy.userFixCopy p{display:none!important}
+  .owLiveTheater.userFix3{display:grid!important;grid-template-columns:1.35fr .92fr .92fr!important;gap:18px!important;align-items:stretch!important;overflow:visible!important;height:auto!important;min-height:calc(100vh - 72px)!important;padding:clamp(22px,2.6vw,48px) var(--platform-pad)!important}
+  .owLiveTheater.userFix3 .owShowCard{width:100%!important;min-width:0!important;max-width:none!important;flex:none!important;height:100%!important;min-height:min(70vh,780px)!important}
+  .owLiveTheater.userFix3 .owShowCard:first-child{min-height:min(76vh,860px)!important}
+  .owLiveTheater.userFix3 .owShowBody h2{font-size:clamp(36px,3.8vw,72px)!important}
+  .owLiveTheater.userFix3 .owShowCard:nth-child(n+2) .owShowBody h2{font-size:clamp(28px,2.8vw,46px)!important}
+  .owLiveTheater.userFix3 .owShowCard:nth-child(n+2) .owShowBody{padding:24px!important}
+  .owLiveTheater.userFix3 .owShowCard:nth-child(n+2) .owShowBody p{font-size:15px!important}
+  .modeSwitch{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.modeSwitch .btn{min-height:44px}.modeBadge{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(34,211,238,.32);background:rgba(34,211,238,.08);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000}
+  .followCardActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.followCardActions .btn{min-height:36px;padding:0 12px;border-radius:12px;font-size:12px}
+  .hfFollowMiniRail{display:flex;gap:12px;overflow:auto;padding:6px 0 14px}.hfFollowMiniCard{position:relative;min-width:250px;width:250px;aspect-ratio:16/9;border-radius:20px;overflow:hidden;border:1px solid rgba(148,163,184,.16);background:#020617;color:#fff;text-align:left}.hfFollowMiniCard img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.hfFollowMiniCard:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(2,6,23,.92));z-index:1}.hfFollowMiniCard .content{position:absolute;z-index:2;left:10px;right:10px;bottom:10px}.hfFollowMiniCard .content b{font-size:18px}.hfFollowMiniCard .avatar{width:36px;height:36px;border-radius:12px;object-fit:cover;border:2px solid rgba(255,255,255,.22);background:#111827}.hfFollowMiniCard .top{position:absolute;top:10px;left:10px;right:10px;z-index:2;display:flex;justify-content:space-between;gap:8px}.hfFollowMiniCard .pillLive{border-radius:999px;padding:6px 10px;background:rgba(16,185,129,.9);font-size:12px;font-weight:1000}
+  .multiWatchDock{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}.multiSlot{border:1px dashed rgba(148,163,184,.24);border-radius:18px;min-height:180px;background:rgba(255,255,255,.03);overflow:hidden;position:relative}.multiSlot.drag{border-color:rgba(34,211,238,.8);background:rgba(34,211,238,.08)}.multiSlot iframe{display:block;width:100%;height:120px;border:0;background:#000}.multiSlotHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}.multiSlotBody{padding:10px;display:grid;gap:8px}.multiSlotEmpty{height:100%;display:grid;place-items:center;text-align:center;color:#8ea0bb;padding:14px}.multiSlotActions{display:flex;gap:8px;flex-wrap:wrap}.multiSlotActions .btn{min-height:34px;padding:0 10px;border-radius:10px;font-size:12px}
+  .discoverAccessStack{display:grid;gap:14px}
+  @media(max-width:1180px){.owLiveTheater.userFix3{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important}.owLiveTheater.userFix3 .owShowCard{min-width:84vw!important;width:84vw!important;scroll-snap-align:center!important}.multiWatchDock{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:760px){.multiWatchDock{grid-template-columns:1fr}.hfFollowMiniCard{min-width:78vw;width:78vw}.owLiveTheater.userFix3 .owShowCard{min-width:88vw!important;width:88vw!important}}
+  `;
+  document.head.appendChild(st);
+})();
+
+function appModeKey(){return 'oryon_app_mode:'+String(state.session?.local?.login||state.session?.twitch?.login||'guest').toLowerCase()}
+function getAppMode(){try{return localStorage.getItem(appModeKey()) || (state.session?.local?'streamer':'viewer')}catch(_){return state.session?.local?'streamer':'viewer'}}
+function setAppMode(mode){ try{ localStorage.setItem(appModeKey(), mode); }catch(_){} state.appMode=mode; renderUserMenu?.(); toast?.(mode==='streamer'?'Mode streamer activé':'Mode viewer activé'); if(mode==='streamer'){ return setView(state.session?.local?'manager':'settings'); } return setView('settings'); }
+
+function viewerUserKey(){
+  const u = state.session?.local?.login || state.session?.twitch?.login || state.session?.local?.id || 'guest';
+  return 'oryon_viewer_profile_v3:'+String(u).toLowerCase();
+}
+function viewerSeenKey(){
+  const u = state.session?.local?.login || state.session?.twitch?.login || state.session?.local?.id || 'guest';
+  return 'oryon_seen_lives_v3:'+String(u).toLowerCase();
+}
+function viewerProfileV2(){
+  const old = loadViewerImpact?.() || {};
+  const guest = readJsonSafe('oryon_viewer_profile_v3:guest', null) || {};
+  const current = readJsonSafe(viewerUserKey(), null) || {};
+  const base = Object.keys(current).length ? current : guest;
+  const p = {...base};
+  p.aura = Number(p.aura ?? old.points ?? 0);
+  p.discoveries = Array.isArray(p.discoveries) ? p.discoveries : (old.discoveries || []);
+  p.saved = Array.isArray(p.saved) ? p.saved : (savedLives?.() || []);
+  p.supports = Array.isArray(p.supports) ? p.supports : (old.firstSupports || []);
+  p.badges = Array.isArray(p.badges) ? p.badges : (old.badges || ['Explorateur']);
+  p.likedChannels = Array.isArray(p.likedChannels) ? p.likedChannels : [];
+  p.rejectedChannels = Array.isArray(p.rejectedChannels) ? p.rejectedChannels : [];
+  p.likedCategories = Array.isArray(p.likedCategories) ? p.likedCategories : [];
+  p.moodCounts = p.moodCounts && typeof p.moodCounts === 'object' ? p.moodCounts : {};
+  return p;
+}
+function saveViewerProfileV2(p){ writeJsonSafe(viewerUserKey(), p); }
+
+function renderUserMenu(){
+  const u=state.session.local, t=state.session.twitch; $('#userAvatar').src=u?.avatar_url||t?.profile_image_url||''; $('#userLabel').textContent=u?.display_name||u?.login||t?.display_name||'Compte';
+  const mode=getAppMode();
+  const parts=[];
+  if(u||t){
+    parts.push(`<div class="small" style="padding:10px 12px">Compte actif<br><b>${esc(u?.display_name||u?.login||t?.display_name||t?.login||'Utilisateur')}</b><br><span class="modeBadge" style="margin-top:8px">${mode==='streamer'?'🎥 Mode streamer':'👁️ Mode viewer'}</span></div>`);
+    parts.push(`<div class="modeSwitch" style="padding:0 12px 8px"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div>`);
+    parts.push(`<div class="sep"></div>`);
+  }
+  if(u){ parts.push(`<button onclick="state.watchRoom=null;setView('channel')">Ma chaîne</button>`); parts.push(`<button onclick="setView('manager')">Gestionnaire de stream</button>`); parts.push(`<button onclick="setView('dashboard')">Tableau de bord créateur</button>`); parts.push(`<button onclick="setView('studio')">Outils créateur</button>`); parts.push(`<div class="sep"></div>`); }
+  parts.push(`<button onclick="setView('settings')">Profil, connexions, paramètres</button>`);
+  parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`);
+  if(u) parts.push(`<button onclick="logoutOryon()">Déconnecter Oryon</button>`);
+  if(isAdmin()) parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`);
+  $('#userMenu').innerHTML=parts.join('');
+}
+
+async function renderSettings(){
+  let u=state.session.local;
+  if(u?.login){ try{ const pr=await api('/api/oryon/profile/'+encodeURIComponent(u.login)); if(pr.success&&pr.user)u=pr.user; }catch(_){} }
+  const mode=getAppMode();
+  $('#settings').innerHTML=`<div class="pageHead"><div><h1>${mode==='streamer'?'Page streamer':'Page viewer'}</h1><p>${mode==='streamer'?'Ton espace créateur et ton menu stream.':'Ton profil viewer, tes goûts, ta mémoire et tes connexions.'}</p></div><div class="modeSwitch"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div></div>
+  <div class="two section"><div class="panel">${mode==='viewer'?viewerProfileCard():(u?profileSettings(u):authSettings())}</div><div class="panel">${mode==='streamer' ? (u ? `<h2>Menu stream</h2><div class="summaryList"><div class="summaryItem"><b>Ma chaîne</b><p class="small">Page publique, lecteur et chat.</p><button class="btn" onclick="setView('channel')">Ouvrir ma chaîne</button></div><div class="summaryItem"><b>Gestionnaire de stream</b><p class="small">Préparer, lancer et configurer ton live Oryon.</p><button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button></div><div class="summaryItem"><b>Outils créateur</b><p class="small">Studio, overlays et outils de chaîne.</p><button class="btn" onclick="setView('studio')">Ouvrir les outils</button></div></div>` : authSettings()) : `<h2>Connexions</h2><div class="summaryList"><div class="summaryItem"><b>Twitch</b><p class="small">${state.session.twitch?'Connecté : '+esc(state.session.twitch.display_name||state.session.twitch.login):'Non connecté. Connecte Twitch pour retrouver tes suivis et améliorer les recommandations.'}</p><div class="row">${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="summaryItem"><b>Mémoire viewer</b><p class="small">Conserve tes swipes, pépites vues et chaînes aimées même après navigation ou reconnexion.</p><button class="btn secondary" onclick="toast('La mémoire viewer est locale et persistante dans ce navigateur.')">Compris</button></div></div>`}</div></div>`;
+  bindSettingsForms?.();
+}
+
+function multiWatchKey(){ return 'oryon_multiwatch_v1:'+String(state.session?.local?.login||state.session?.twitch?.login||'guest').toLowerCase(); }
+function loadMultiWatch(){ const v=readJsonSafe(multiWatchKey(), null); return Array.isArray(v) && v.length===6 ? v : Array.from({length:6},()=>null); }
+function saveMultiWatch(v){ writeJsonSafe(multiWatchKey(), (v||[]).slice(0,6)); }
+function oryonDragLive(ev, payload){ try{ ev.dataTransfer.setData('text/oryon-live', payload); ev.dataTransfer.effectAllowed='copy'; }catch(_){} }
+function addLiveToMultiWatch(meta, preferredIndex){
+  if(!meta?.login) return;
+  const slots=loadMultiWatch();
+  let idx = Number.isInteger(preferredIndex) ? preferredIndex : slots.findIndex(x=>!x);
+  if(idx<0) idx=0;
+  slots[idx]={login:meta.login,name:meta.name||meta.login,game:meta.game||'',img:meta.img||'',viewers:Number(meta.viewers||0)};
+  saveMultiWatch(slots);
+  renderMultiWatchDock();
+  toast?.('Live ajouté dans la mosaïque');
+}
+function clearMultiWatchSlot(idx){ const slots=loadMultiWatch(); slots[idx]=null; saveMultiWatch(slots); renderMultiWatchDock(); }
+function multiWatchAllow(ev){ ev.preventDefault(); const slot=ev.currentTarget; if(slot) slot.classList.add('drag'); }
+function multiWatchLeave(ev){ const slot=ev.currentTarget; if(slot) slot.classList.remove('drag'); }
+function multiWatchDrop(ev, idx){ ev.preventDefault(); const slot=ev.currentTarget; if(slot) slot.classList.remove('drag'); let raw=''; try{ raw=ev.dataTransfer.getData('text/oryon-live')||''; }catch(_){} if(!raw) return; try{ addLiveToMultiWatch(JSON.parse(decodeURIComponent(raw)), idx); }catch(_){} }
+function renderMultiWatchDock(){
+  const box=$('#multiWatchDock'); if(!box) return;
+  const slots=loadMultiWatch();
+  box.innerHTML=slots.map((slot,idx)=> slot ? `<div class="multiSlot"><div class="multiSlotHead"><b>${esc(slot.name||slot.login)}</b><button class="btn secondary" onclick="clearMultiWatchSlot(${idx})">Vider</button></div><iframe allowfullscreen src="https://player.twitch.tv/?channel=${encodeURIComponent(slot.login)}&parent=${encodeURIComponent(location.hostname)}&autoplay=false&muted=true"></iframe><div class="multiSlotBody"><div class="small">${esc(slot.game||'Live Twitch')}</div><div class="multiSlotActions"><button class="btn" onclick="openTwitch('${esc(slot.login)}')">Grand format</button><button class="btn secondary" onclick="clearMultiWatchSlot(${idx})">Retirer</button></div></div></div>` : `<div class="multiSlot" ondragover="multiWatchAllow(event)" ondragleave="multiWatchLeave(event)" ondrop="multiWatchDrop(event,${idx})"><div class="multiSlotEmpty"><div><b>Case ${idx+1}</b><br>Glisse un live ici</div></div></div>`).join('');
+}
+
+function compactFollowCardHtml(x, withActions=true){
+  const id=hfLiveId({...x,platform:'twitch'});
+  const payload=encodeURIComponent(JSON.stringify({login:id.login,name:id.name,game:id.game,img:id.img,viewers:id.viewers,platform:'twitch'}));
+  return `<article class="hfFollowMiniCard" draggable="true" ondragstart="oryonDragLive(event,'${payload}')"><img class="bg" src="${esc(id.img)}" alt=""><div class="top"><span class="pillLive">Live · ${id.viewers}</span></div><div class="content"><img class="avatar" src="${esc(x.profile_image_url||'')}" alt=""><div style="margin-top:8px"><b>${esc(id.name)}</b><div class="small">${esc(id.game)}</div>${withActions?`<div class="followCardActions"><button class="btn" onclick="event.stopPropagation();openTwitch('${esc(id.login)}')">Ouvrir</button><button class="btn secondary" onclick="event.stopPropagation();addLiveToMultiWatch(${JSON.stringify({'__js__':'meta'})})">Ajouter</button></div>`.replace('addLiveToMultiWatch({"__js__":"meta"})',`addLiveToMultiWatch(JSON.parse(decodeURIComponent('${payload}')))`):''}</div></div></article>`;
+}
+
+async function renderCompactFollowed(){
+  const el=$('#followedWrapCompact'); if(!el) return;
+  if(!state.session.twitch){ el.innerHTML='<div class="followEmpty">Connecte Twitch pour afficher le fil de tes chaînes suivies en miniature.</div>'; renderMultiWatchDock?.(); return; }
+  let r=await api('/api/twitch/followed/status').catch(()=>({items:[]}));
+  let items=(r.items||[]).filter(x=>x.is_live || Number(x.viewer_count||0)>0);
+  if(!items.length){ r=await api('/api/twitch/followed/live').catch(()=>({items:[]})); items=(r.items||[]); }
+  el.innerHTML=items.length ? items.slice(0,18).map(x=>compactFollowCardHtml(x,true)).join('') : '<div class="followEmpty">Aucun suivi Twitch en ligne maintenant.</div>';
+  renderMultiWatchDock?.();
+}
+
+async function searchTwitch(){
+  const q=$('#twSearch')?.value?.trim(); if(!q) return;
+  const res=await api('/api/twitch/channels/search?'+qs({q,live:true})).catch(()=>({items:[]}));
+  const box=$('#twResults'); if(!box) return;
+  box.innerHTML=(res.items||[]).map(x=>{
+    const id=hfLiveId({...x,platform:'twitch'});
+    const payload=encodeURIComponent(JSON.stringify({login:id.login,name:id.name,game:id.game,img:id.img,viewers:id.viewers,platform:'twitch'}));
+    return `<article class="hfFollowMiniCard" draggable="true" ondragstart="oryonDragLive(event,'${payload}')"><img class="bg" src="${esc(id.img)}" alt=""><div class="top"><span class="pillLive">${x.is_live?'Live':'Résultat'}</span></div><div class="content"><img class="avatar" src="${esc(x.profile_image_url||'')}" alt=""><div style="margin-top:8px"><b>${esc(id.name)}</b><div class="small">${esc(id.game||x.game_name||'Twitch')}</div><div class="followCardActions"><button class="btn" onclick="event.stopPropagation();openTwitch('${esc(id.login)}')">Ouvrir</button><button class="btn secondary" onclick="event.stopPropagation();addLiveToMultiWatch(JSON.parse(decodeURIComponent('${payload}')))">Ajouter</button></div></div></div></article>`;
+  }).join('') || '<div class="followEmpty">Aucun résultat.</div>';
+}
+
+async function hfFetchLivePool({mood='petite-commu', q='', min=0, max=200, lang='fr'}={}){
+  const calls=[];
+  calls.push(api('/api/oryon/discover/find-live?'+qs({q, mood, max, lang, source:'both'})).catch(()=>({items:[]})));
+  calls.push(api(`/api/twitch/streams/small?lang=${encodeURIComponent(lang)}&min=${encodeURIComponent(min)}&max=${encodeURIComponent(max)}`).catch(()=>({items:[]})));
+  if(state.session?.twitch) calls.push(api('/api/twitch/followed/live').catch(()=>({items:[]})));
+  calls.push(api('/api/native/lives').catch(()=>({items:[]})));
+  const results=await Promise.all(calls);
+  const out=[]; const keys=new Set();
+  for(const r of results){
+    for(const item of (r.items||[])){
+      const x={...item, platform:item.platform || (item.host_login||item.room?'oryon':'twitch')};
+      const id=hfLiveId(x); if(!id.login) continue;
+      const v=id.viewers; if(v<min || v>Math.max(max, min)) continue;
+      const k=hfLiveKey(x); if(keys.has(k)) continue; keys.add(k); out.push(x);
+    }
+  }
+  return out.sort((a,b)=>hfMoodScore(b,mood)-hfMoodScore(a,mood));
+}
+
+function owLiveCardHtml(x,i=0){
+  const id=hfLiveId(x);
+  const tags=hfTags(x).slice(0,4);
+  const safe=encodeURIComponent(JSON.stringify(x));
+  return `<article class="owShowCard" data-live-json="${safe}" onclick="hfOpenLive(JSON.parse(decodeURIComponent(this.dataset.liveJson)))">${id.img?`<img src="${esc(id.img)}" alt="" loading="${i?'lazy':'eager'}">`:''}<div class="owShowBody"><div class="hfTagRow">${tags.map(t=>`<span class="hfTag">${esc(t)}</span>`).join('')}</div><h2>${esc(id.title||'Live vitrine')}</h2><p>${esc(id.name)} · ${esc(id.game)} · ${id.viewers} viewers</p></div></article>`;
+}
+
+async function loadHomeRecommendations(){
+  const box=$('#homeShowcaseLives'); if(!box) return;
+  box.innerHTML=`<div class="hfEmptyLive"><div><h2>Recherche des 3 lives recommandés…</h2></div></div>`;
+  try{
+    let items=await hfFetchLivePool({mood:'petite-commu',min:30,max:100,lang:'fr'});
+    if(!items.length) items=await hfFetchLivePool({mood:'petite-commu',min:15,max:180,lang:'fr'});
+    if(!items.length) items=await hfFetchLivePool({mood:'discussion',min:1,max:350,lang:'fr'});
+    box.innerHTML=items.length ? items.slice(0,3).map((x,i)=>owLiveCardHtml(x,i)).join('') : `<div class="hfEmptyLive"><div><h2>Aucun live récupéré.</h2><p>Vérifie les variables Twitch sur Render, ou lance un live Oryon natif.</p><button class="btn" onclick="autoProposeLive()">Relancer</button></div></div>`;
+  }catch(e){
+    console.error(e);
+    box.innerHTML=`<div class="hfEmptyLive"><div><h2>Recherche indisponible.</h2><p>Le serveur n’a pas pu récupérer les lives.</p><button class="btn" onclick="loadHomeRecommendations()">Réessayer</button></div></div>`;
+  }
+}
+
+async function renderHome(){
+  const el=$('#home'); if(!el) return;
+  el.innerHTML=`<div class="owHomeFull"><section class="owHeroTheater userFixHero"><div class="owHeroCopy userFixCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Oryon</span><h1>Des lives à taille humaine.</h1><div class="owMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Oryon')}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="owLiveTheater userFix3"></div></section><div class="owBelow"><section class="owPanel">${viewerProfileCard?.()||'<h2>Profil Viewer</h2>'}</section><section class="owPanel"><div class="proTwitchHead"><div><h2>Tes suivis Twitch en ligne</h2><p>Fil de chaînes suivies en miniature.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact" class="hfFollowMiniRail"></div></section></div></div>`;
+  await loadHomeRecommendations();
+  await renderCompactFollowed();
+  closeMini?.();
+}
+
+async function renderDiscover(){
+  const el=$('#discover'); if(!el) return;
+  const current=state.moodFirstMood||'petite-commu';
+  state.zap.items=[]; state.zap.index=0; state.discoverPlayer=null;
+  el.innerHTML=`<div class="hfDiscover"><section class="hfDiscoverHero"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Choisis ton mood.</h1><p>Un tap lance une vraie proposition. Ensuite tu swipes : droite si ça te parle, gauche si ce n’est pas ta vibe.</p></div><div class="hfDiscoverHint"><span>mood</span><span>live</span><span>swipe</span></div></section><section class="hfMoodPanel"><div class="hfMoodHead"><h2>Ambiance</h2><span class="moodFirstSelected">${esc(moodFirstLabel?.(current)||current)}</span></div><div class="hfMoodGrid">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="hfMoodCard ${id===current?'active':''}" onclick="setDiscoverMood('${esc(id)}')"><i>${icon}</i><b>${esc(label)}</b><span>${esc(desc)}</span></button>`).join('')}</div><details class="hfAdvanced"><summary>Options avancées</summary><div class="hfAdvancedBody"><input id="dQuery" placeholder="jeu, pseudo, ambiance" onkeydown="if(event.key==='Enter')findLive()"><select id="dMax"><option value="80">≤80</option><option value="150" selected>≤150</option><option value="300">≤300</option><option value="500">≤500</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn secondary" onclick="localStorage.removeItem(hfSeenKey());findLive()">Réinitialiser swipes</button><button class="btn" onclick="findLive()">Relancer</button></div></details></section><section id="zapResult"></section><section class="hfPanel"><div class="discoverAccessStack"><div class="proTwitchHead"><div><h2>Accès Twitch</h2><p>Fil des chaînes suivies en miniature, puis mosaïque 6 cases pour garder plusieurs lives sous la main.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact" class="hfFollowMiniRail"></div><div class="proTwitchSearch"><input id="twSearch" placeholder="chercher un streamer Twitch" onkeydown="if(event.key==='Enter')searchTwitch()"><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="multiWatchDock" class="multiWatchDock"></div><div id="twResults" class="hfFollowMiniRail"></div></div></section></div>`;
+  await renderCompactFollowed();
+  renderMultiWatchDock();
+  await findLive();
+  closeMini?.();
+}
