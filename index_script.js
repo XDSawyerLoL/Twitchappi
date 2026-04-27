@@ -2629,3 +2629,149 @@ async function loadHomeRecommendations(){
     box.innerHTML='<div class="proNotice">Impossible de charger la vitrine pour le moment.</div>';
   }
 }
+
+/* Home vitrine + mobile creator final pass */
+(function injectHomeOryonVitrinePass(){
+  if(document.getElementById('oryonHomeOryonVitrinePass')) return;
+  const st=document.createElement('style');
+  st.id='oryonHomeOryonVitrinePass';
+  st.textContent=`
+  .homeShowcase{margin-top:18px!important;padding:0!important;overflow:hidden!important}
+  .homeShowcaseInner.vitrineFinal{display:grid!important;grid-template-columns:1fr!important;gap:20px!important;padding:26px!important;align-items:stretch!important}
+  .homeVitrineTop{display:grid;grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);gap:24px;align-items:stretch}
+  .homeShowcaseCopy.final{padding:8px 2px;gap:18px;min-width:0}
+  .homeShowcaseCopy.final h1{font-size:clamp(44px,5.8vw,82px);line-height:.92;letter-spacing:-.075em;margin:10px 0 12px}
+  .homeShowcaseCopy.final p{font-size:clamp(16px,1.45vw,21px);line-height:1.38;color:#d8e2f5;max-width:640px}
+  .homeShowcaseActions.final{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .homeShowcaseActions.final .btn{min-height:58px;font-size:16px;border-radius:16px;display:flex;align-items:center;justify-content:center;text-align:center}
+  .homeShowcaseActions.final .btn.streamBtn{background:linear-gradient(135deg,var(--brand),#bd46ff)!important;border:0!important;box-shadow:0 18px 52px rgba(139,92,246,.24)}
+  .homeLiveCarousel{display:flex!important;gap:16px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;padding:2px 2px 14px!important;min-height:auto!important}
+  .homeLiveCarousel::-webkit-scrollbar,.oryonLiveBand::-webkit-scrollbar{height:7px}.homeLiveCarousel::-webkit-scrollbar-thumb,.oryonLiveBand::-webkit-scrollbar-thumb{background:rgba(148,163,184,.35);border-radius:999px}
+  .homeSlideCard{position:relative;overflow:hidden;border:1px solid rgba(148,163,184,.20);border-radius:28px;background:#050914;min-width:min(760px,72vw);width:min(760px,72vw);aspect-ratio:16/9;scroll-snap-align:center;cursor:pointer;isolation:isolate;box-shadow:0 24px 75px rgba(0,0,0,.34);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+  .homeSlideCard:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.72);box-shadow:0 28px 90px rgba(0,0,0,.44)}
+  .homeSlideCard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.02);filter:saturate(1.08) contrast(1.02)}
+  .homeSlideCard:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.12) 38%,rgba(2,6,23,.92));z-index:1}
+  .homeSlideBody{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:22px;display:grid;gap:12px}
+  .homeSlideBody h2{margin:0;font-size:clamp(24px,3vw,42px);line-height:1.02;letter-spacing:-.05em;text-shadow:0 5px 24px rgba(0,0,0,.5)}
+  .homeSlideBody p{margin:0;color:#cbd5e1;font-weight:900;font-size:15px}
+  .homeSlideCard.oryonPromo{background:radial-gradient(circle at 18% 12%,rgba(139,92,246,.48),transparent 38%),radial-gradient(circle at 88% 20%,rgba(34,211,238,.28),transparent 34%),linear-gradient(135deg,#111827,#060913)}
+  .homeSlideCard.oryonPromo:before{content:"ORYON LIVE";position:absolute;right:22px;top:18px;z-index:2;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 11px;background:rgba(2,6,23,.48);font-weight:1000;font-size:12px;letter-spacing:.04em}
+  .homeSlideCard.oryonPromo .homeSlideBody{top:0;justify-content:end;background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(2,6,23,.72))}
+  .homeSlideCard.oryonPromo h2{font-size:clamp(32px,4vw,56px)}
+  .oryonLiveBandWrap{border:1px solid rgba(148,163,184,.18);border-radius:28px;background:linear-gradient(180deg,rgba(15,23,42,.72),rgba(15,23,42,.34));padding:18px;overflow:hidden}
+  .oryonLiveBandHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .oryonLiveBandHead h2{margin:0;font-size:clamp(24px,2.6vw,36px);letter-spacing:-.045em}.oryonLiveBandHead p{margin:6px 0 0;color:#aab6ca}
+  .oryonLiveBand{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity}
+  .oryonMiniLive{min-width:260px;width:260px;aspect-ratio:16/9;border-radius:22px;overflow:hidden;border:1px solid rgba(148,163,184,.18);background:linear-gradient(135deg,rgba(139,92,246,.34),rgba(34,211,238,.13)),#090d17;position:relative;text-align:left;color:white;padding:0;scroll-snap-align:start}
+  .oryonMiniLive img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.oryonMiniLive:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(2,6,23,.86))}.oryonMiniBody{position:absolute;z-index:2;left:14px;right:14px;bottom:14px}.oryonMiniBody b{display:block;font-size:17px}.oryonMiniBody span{display:block;color:#cbd5e1;font-size:13px;margin-top:4px}.oryonMiniLive.create{display:grid;place-items:end start;padding:16px}.oryonMiniLive.create:after{display:none}.oryonMiniLive.create b{font-size:24px;line-height:1.05}.oryonMiniLive.create span{font-size:14px;color:#dbeafe;margin-top:8px}
+  .moodFirstPanelHead p{display:none!important}.moodFirstPanelHead h2{margin-bottom:0!important}.moodFirstHero p{max-width:760px}
+  .menu{top:calc(100% + 10px)!important;right:0!important;left:auto!important;z-index:240!important}.menu.open{display:block!important}.menu .sep{margin:8px 0!important}
+  .creatorLayout{max-width:1380px;margin-inline:auto}.creatorSide{z-index:30}.creatorSide p.small{display:none}
+  @media(max-width:1080px){
+    .homeVitrineTop{grid-template-columns:1fr!important}.homeShowcaseInner.vitrineFinal{padding:18px!important}.homeShowcaseCopy.final h1{font-size:clamp(40px,12vw,72px)}.homeShowcaseActions.final{grid-template-columns:1fr!important}.homeSlideCard{min-width:86vw;width:86vw;aspect-ratio:16/9;border-radius:24px}.homeSlideBody{padding:16px}.oryonLiveBandWrap{border-radius:24px;padding:14px}.oryonLiveBandHead{align-items:flex-start;flex-direction:column}.oryonMiniLive{min-width:78vw;width:78vw}.homeTwoGrid{grid-template-columns:1fr!important}.homeSectionHead{display:none!important}
+    .userArea{position:static!important}.menu{position:fixed!important;top:74px!important;left:12px!important;right:12px!important;width:auto!important;max-height:calc(100vh - 150px)!important;overflow:auto!important;border-radius:22px!important;padding:10px!important}.menu button{min-height:48px;font-size:15px!important}
+    .creatorLayout{display:grid!important;grid-template-columns:1fr!important;gap:14px!important}.creatorSide{position:sticky!important;top:70px!important;border-radius:0 0 20px 20px!important;margin:-16px -16px 12px!important;padding:10px 12px!important;display:flex!important;gap:8px!important;overflow-x:auto!important;background:rgba(8,11,18,.96)!important;backdrop-filter:blur(16px)!important;border-left:0!important;border-right:0!important}.creatorSide h3,.creatorSide .sep{display:none!important}.creatorSide button{min-width:max-content!important;width:auto!important;padding:11px 13px!important;border:1px solid rgba(148,163,184,.18)!important;background:rgba(255,255,255,.045)!important}.creatorSide button.active{background:rgba(139,92,246,.24)!important;border-color:rgba(139,92,246,.55)!important}
+    .managerGrid,.streamHero,.dashGrid,.plannerForm,.three,.two,.four{grid-template-columns:1fr!important}.pageHead{display:grid!important;gap:10px}.pageHead .row{display:grid!important;grid-template-columns:1fr!important}.pageHead .btn,.managerHero .btn{width:100%;min-height:52px}.panel{padding:16px!important}.app{padding-inline:14px!important}
+  }
+  @media(max-width:520px){.homeSlideCard{min-width:90vw;width:90vw}.homeSlideBody h2{font-size:24px}.homeTag,.signalTag{font-size:11px!important}.oryonMiniLive{min-width:84vw;width:84vw}.homeShowcaseCopy.final p{font-size:16px}.homeMoodStrip{gap:7px}.homeMoodStrip button{font-size:12px;padding:9px 10px}.moodFirstGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.moodFirstCard{min-height:126px!important}.moodFirstCard i{font-size:24px!important}.moodFirstCard b{font-size:15px!important}.moodFirstCard span{font-size:11px!important}}
+  `;
+  document.head.appendChild(st);
+})();
+
+function streamTargetView(){ return state.session.local ? 'manager' : 'settings'; }
+function streamTargetLabel(){ return state.session.local ? 'Streamer sur Oryon' : 'Créer ma chaîne Oryon'; }
+function homeStreamPromoCard(size='large'){
+  return `<article class="homeSlideCard oryonPromo" onclick="setView('${streamTargetView()}')"><div class="homeSlideBody"><div class="homeTagCloud"><span class="homeTag">Oryon Live</span><span class="homeTag">OBS ou navigateur</span><span class="homeTag">Twitch friendly</span></div><h2>À toi de live.</h2><p>Lance ton stream sur Oryon, garde Twitch à côté, et deviens découvrable sans être noyé.</p><button class="btn streamBtn" onclick="event.stopPropagation();setView('${streamTargetView()}')">${esc(streamTargetLabel())}</button></div></article>`;
+}
+function oryonMiniLiveCard(x){
+  const id=liveIdentity(x||{});
+  const img=id.img || x?.offline_image_url || x?.banner_url || '';
+  return `<button class="oryonMiniLive" onclick="openOryon('${esc(id.login||x?.room||x?.host_login||'')}')">${img?`<img src="${esc(img)}" alt="" loading="lazy">`:''}<div class="oryonMiniBody"><b>${esc(id.name||'Live Oryon')}</b><span>${esc(id.title||id.game||'En direct sur Oryon')}</span></div></button>`;
+}
+function oryonCreateMiniCard(){
+  return `<button class="oryonMiniLive create" onclick="setView('${streamTargetView()}')"><div><b>À toi de live</b><span>Crée ton live Oryon en navigateur ou avec OBS.</span></div></button>`;
+}
+function homeRecommendationCard(x,i){
+  const id=liveIdentity(x||{}), tags=liveStableTags(x), action=liveOpenAction(x);
+  return `<article class="homeSlideCard" onclick="${action}">${id.img?`<img src="${esc(id.img)}" alt="" loading="${i?'lazy':'eager'}">`:`<div class="proEmptyMedia">LIVE</div>`}<div class="homeSlideBody"><div class="homeTagCloud">${tags.slice(0,4).map(t=>`<span class="homeTag">${esc(t)}</span>`).join('')}</div><h2>${esc(id.title||'Live recommandé')}</h2><p>${esc(id.name)} · ${id.viewers} viewers</p></div></article>`;
+}
+async function loadHomeRecommendations(){
+  const box=$('#homeShowcaseLives'); if(!box) return;
+  box.innerHTML=homeStreamPromoCard()+`<div class="proNotice">Sélection des lives recommandés…</div>`;
+  try{
+    const native=await api('/api/native/lives').catch(()=>({items:[]}));
+    let twitch=await api('/api/twitch/streams/small?lang=fr&min=15&max=30').catch(()=>({items:[]}));
+    if(!(twitch.items||[]).length) twitch=await api('/api/twitch/streams/small?lang=fr&min=1&max=80').catch(()=>({items:[]}));
+    let nativeItems=(native.items||[]).map(x=>({...x,platform:'oryon'}));
+    let twitchItems=(twitch.items||[]).map(x=>({...x,platform:'twitch'}));
+    let items=[...nativeItems,...twitchItems].filter(x=>{const v=Number(x.viewer_count??x.viewers??0)||0; return v>=0 && v<=120;});
+    items.sort((a,b)=>{
+      const av=Number(a.viewer_count??a.viewers??0)||0, bv=Number(b.viewer_count??b.viewers??0)||0;
+      const ap=(a.platform==='oryon'?35:0), bp=(b.platform==='oryon'?35:0);
+      const as=ap+(av>=15&&av<=30?80:av>=1&&av<=50?48:0)+Math.min(30,Number(a.chat_messages||0));
+      const bs=bp+(bv>=15&&bv<=30?80:bv>=1&&bv<=50?48:0)+Math.min(30,Number(b.chat_messages||0));
+      return bs-as || Math.abs(av-22)-Math.abs(bv-22);
+    });
+    const picked=items.slice(0,5);
+    box.innerHTML=homeStreamPromoCard()+picked.map(homeRecommendationCard).join('')+(picked.length?'':`<article class="homeSlideCard" onclick="autoProposeLive()"><div class="homeSlideBody"><div class="homeTagCloud"><span class="homeTag">Recherche directe</span><span class="homeTag">petits lives</span></div><h2>Pas de vitrine live maintenant.</h2><p>Oryon peut quand même te proposer un live en un clic.</p><button class="btn" onclick="event.stopPropagation();autoProposeLive()">Propose-moi un live</button></div></article>`);
+    const band=$('#oryonLiveBand');
+    if(band){ band.innerHTML=oryonCreateMiniCard()+nativeItems.slice(0,8).map(oryonMiniLiveCard).join(''); }
+  }catch(e){
+    box.innerHTML=homeStreamPromoCard()+`<article class="homeSlideCard" onclick="autoProposeLive()"><div class="homeSlideBody"><h2>Vitrine indisponible.</h2><p>Tu peux lancer une recherche directe.</p><button class="btn" onclick="event.stopPropagation();autoProposeLive()">Propose-moi un live</button></div></article>`;
+  }
+}
+async function renderHome(){
+  const el=$('#home'); if(!el) return;
+  el.innerHTML=`<section class="homeShowcase section"><div class="homeShowcaseInner vitrineFinal"><div class="homeVitrineTop"><div class="homeShowcaseCopy final"><div><span class="eyebrow"><i class="dot"></i>Vitrine Oryon</span><h1>Des lives à taille humaine.</h1><p>Des recommandations visuelles, des petits créateurs, et une vraie place pour lancer ton propre live.</p><div class="homeMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive()">${esc(label)}</button>`).join('')}</div></div><div class="homeShowcaseActions final"><button class="btn" onclick="autoProposeLive()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView()}')">${esc(streamTargetLabel())}</button><button class="btn secondary" onclick="setView('discover')">Choisir mon ambiance</button></div></div><div id="homeShowcaseLives" class="homeLiveCarousel">${homeStreamPromoCard()}</div></div></div></section>
+  <section class="oryonLiveBandWrap section"><div class="oryonLiveBandHead"><div><h2>Live sur Oryon</h2><p>Oryon n’est pas seulement un lecteur Twitch : tu peux aussi streamer ici.</p></div><button class="btn streamBtn" onclick="setView('${streamTargetView()}')">${esc(streamTargetLabel())}</button></div><div id="oryonLiveBand" class="oryonLiveBand">${oryonCreateMiniCard()}</div></section>
+  <div class="homeTwoGrid section"><section class="homeImpactPanel"><h2>Trace viewer</h2><div id="viewerImpactBox">${viewerImpactCard()}</div></section><section class="homeFollowPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Tes suivis Twitch</h2><p class="small" style="margin:6px 0 0">Bandeau, miniature, logo et statut live.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div id="followedWrapCompact"></div></section></div>`;
+  await loadHomeRecommendations();
+  await renderCompactFollowed();
+  closeMini?.();
+}
+async function autoProposeLive(){
+  state.moodFirstMood = state.moodFirstMood || 'discussion';
+  await setView('discover');
+  const source=$('#dSource'); if(source) source.value='both';
+  const max=$('#dMax'); if(max) max.value='200';
+  const lang=$('#dLang'); if(lang) lang.value='fr';
+  const mood=$('#dMood'); if(mood) mood.value=state.moodFirstMood;
+  await findLive();
+}
+async function quickGem(){ return autoProposeLive(); }
+async function findLive(){
+  const mood=state.moodFirstMood || $('#dMood')?.value || 'discussion';
+  const q=$('#dQuery')?.value || '';
+  const source=$('#dSource')?.value || 'both';
+  const max=$('#dMax')?.value || moodFirstMaxFor(mood) || '200';
+  const lang=$('#dLang')?.value || 'fr';
+  const results=$('#discoverResults'); if(results) results.innerHTML='';
+  const zap=$('#zapResult');
+  if(zap) zap.innerHTML=`<div class="moodFirstStart"><div><span class="moodFirstSelected">${esc(moodFirstLabel(mood))}</span><h2>Recherche en cours…</h2><p>Oryon élargit si la catégorie est trop vide.</p></div></div>`;
+  state.currentTwitch=null; state.discoverPlayer=null; closeMini?.();
+  async function tryDiscover(params){
+    const r=await api('/api/oryon/discover/find-live?'+qs(params)).catch(()=>({items:[]}));
+    return (r.items||[]).filter(x=>(x.platform||'')!=='peertube');
+  }
+  try{
+    let items=await tryDiscover({q,mood,max,lang,source});
+    if(!items.length) items=await tryDiscover({q,mood,max:'300',lang,source:'both'});
+    if(!items.length) items=await tryDiscover({q:'',mood:'discussion',max:'300',lang,source:'both'});
+    if(!items.length){
+      const t=await api('/api/twitch/streams/small?lang=fr&min=0&max=300').catch(()=>({items:[]}));
+      items=(t.items||[]).map(x=>({...x,platform:'twitch'}));
+    }
+    state.zap.items=items; state.zap.index=0; state.zap.last={q,mood,max,lang,source}; renderZap();
+    if(results) results.innerHTML='';
+    if(!items.length && zap) zap.innerHTML=`<div class="moodFirstStart"><div><span class="moodFirstSelected">${esc(moodFirstLabel(mood))}</span><h2>Aucun live trouvé.</h2><p>Essaie un autre mood ou relance dans quelques minutes.</p><div class="moodFirstMiniGrid">${AMBIANCES.map(([id,label])=>`<button onclick="setDiscoverMood('${esc(id)}')">${esc(label)}</button>`).join('')}</div></div></div>`;
+  }catch(e){
+    if(zap) zap.innerHTML=`<div class="moodFirstStart"><div><h2>Recherche impossible.</h2><p>Le service de découverte ne répond pas pour le moment.</p></div></div>`;
+    console.error(e);
+  }
+}
+async function renderDiscover(){
+  const el=$('#discover'); if(!el) return;
+  const current=state.moodFirstMood || 'discussion';
+  el.innerHTML=`<div class="moodFirst"><section class="moodFirstHero"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Choisis ton mood.</h1><p>Un tap lance une vraie proposition. Ensuite tu swipes : droite si ça te parle, gauche si ce n’est pas ta vibe.</p></div><div class="moodFirstHint"><span>mood</span><span>live</span><span>swipe</span></div></section><section class="moodFirstPanel"><div class="moodFirstPanelHead"><div><h2>Ambiance</h2></div>${state.moodFirstMood?`<span class="moodFirstSelected">${esc(moodFirstLabel(state.moodFirstMood))}</span>`:''}</div><div class="moodFirstGrid">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="moodFirstCard ${id===current?'active':''}" data-mood="${esc(id)}" onclick="setDiscoverMood('${esc(id)}')"><i>${icon}</i><b>${esc(label)}</b><span>${esc(desc)}</span></button>`).join('')}</div><details class="moodFirstAdvanced"><summary>Options avancées</summary><div class="proSearchLine"><input id="dQuery" placeholder="jeu, pseudo, ambiance" onkeydown="if(event.key==='Enter')findLive()"><select id="dSource"><option value="both" selected>Oryon + Twitch</option><option value="oryon">Oryon</option><option value="twitch">Twitch</option></select><select id="dMood"><option value="${esc(current)}">${esc(moodFirstLabel(current))}</option>${AMBIANCES.map(([id,label])=>`<option value="${esc(id)}">${esc(label)}</option>`).join('')}</select><select id="dMax"><option value="50">≤50</option><option value="200" selected>≤200</option><option value="300">≤300</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn secondary" onclick="findLive()">Relancer</button></div></details></section><section id="zapResult"></section><section class="proTwitchPanel"><div class="proTwitchHead"><div><h2 style="margin:0">Accès Twitch</h2><p class="small" style="margin:6px 0 0">Recherche manuelle si tu sais déjà qui tu veux voir.</p></div><div>${state.session.twitch?`<button class="btn secondary" onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button class="btn" onclick="connectTwitch()">Connecter Twitch</button>`}</div></div><div class="proTwitchSearch"><input id="twSearch" placeholder="chercher un streamer Twitch" onkeydown="if(event.key==='Enter')searchTwitch()"><button class="btn" onclick="searchTwitch()">Chercher</button></div><div id="followedWrapCompact"></div><div id="twResults"></div></section></div>`;
+  const mood=$('#dMood'); if(mood) mood.value=current; const max=$('#dMax'); if(max) max.value='200'; state.proTab=state.proTab||'signal'; renderZap(); renderCompactFollowed?.(); closeMini?.();
+}
