@@ -3927,3 +3927,83 @@ async function hfFetchLivePool({mood='petite-commu', q='', min=0, max=200, lang=
 }
 
 applyViewerThemeColor();
+
+/* =========================================================
+   CHANNEL CONTENT CLEANUP — no duplicate viewer personalization,
+   bio directly under live, vignette rail above bio, tags/badges below bio.
+   ========================================================= */
+(function injectChannelContentCleanupStyle(){
+  const old=document.getElementById('oryonChannelContentCleanupStyle');
+  if(old) old.remove();
+  const st=document.createElement('style');
+  st.id='oryonChannelContentCleanupStyle';
+  st.textContent=`
+  .channelPage.cleanChannelLayout{padding-bottom:70px!important}
+  .channelPostLive{display:grid;grid-template-columns:minmax(0,1fr) clamp(310px,23vw,380px);gap:18px;align-items:start;width:100%}
+  .channelPostMain{display:grid;gap:18px;min-width:0}.channelPostSide{display:grid;gap:18px;min-width:0}
+  .channelVignetteRail{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .channelVignette{position:relative;min-height:132px;border:1px solid rgba(148,163,184,.18);border-radius:22px;overflow:hidden;background:linear-gradient(135deg,rgba(15,23,42,.96),rgba(17,24,39,.72));box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .channelVignette img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.52;filter:saturate(1.05)}
+  .channelVignette:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.04),rgba(2,6,23,.88));z-index:1}
+  .channelVignetteBody{position:absolute;z-index:2;left:14px;right:14px;bottom:14px;display:grid;gap:3px}.channelVignetteBody b{font-size:15px}.channelVignetteBody span{font-size:12px;color:#b8c7dc}
+  .channelBioCard{border:1px solid rgba(148,163,184,.18);border-radius:26px;background:linear-gradient(180deg,rgba(15,23,42,.86),rgba(15,23,42,.42));padding:22px}.channelBioCard h2{margin:0 0 8px;font-size:28px}.channelBioCard p{margin:0;color:#dbe7fb;line-height:1.55;font-size:16px}
+  .channelMetaBlock{display:grid;gap:14px;border:1px solid rgba(148,163,184,.18);border-radius:26px;background:linear-gradient(180deg,rgba(15,23,42,.76),rgba(15,23,42,.36));padding:20px}.channelMetaBlock h3{margin:0}.channelMetaRows{display:grid;gap:14px}.channelMetaSection{display:grid;gap:9px}.channelMetaSectionTitle{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8ea0bb;font-weight:1000}.channelMetaChips{display:flex;gap:8px;flex-wrap:wrap}.channelMetaChip{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);border-radius:999px;padding:8px 11px;font-size:12px;font-weight:1000;color:#f8fbff}.channelBadgeInline{display:flex;gap:10px;overflow:auto;padding-bottom:2px;scrollbar-width:none}.channelBadgeInline::-webkit-scrollbar{display:none}.channelBadgeMini{min-width:148px;border:1px solid color-mix(in srgb,var(--viewer-accent,#22d3ee) 38%,rgba(255,255,255,.12));background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border-radius:18px;padding:14px;display:grid;gap:5px;text-align:center}.channelBadgeMini strong{font-size:25px}.channelBadgeMini b{font-size:13px}.channelBadgeMini span{font-size:11px;color:#a9b8cf}
+  .channelSideCard{border:1px solid rgba(148,163,184,.18);border-radius:24px;background:linear-gradient(180deg,rgba(15,23,42,.82),rgba(15,23,42,.36));padding:18px}.channelSideCard h3{margin:0 0 10px}.supportList{display:flex;gap:8px;flex-wrap:wrap}.supportChip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(245,158,11,.32);background:rgba(245,158,11,.08);border-radius:999px;padding:8px 10px;font-size:12px;font-weight:900}
+  .channelLiveLayout{margin-bottom:18px}.channelContentGrid{display:none!important}.channelInfoCard.channelCustomizer,.channelInfoCard:has(.themeControl){display:none!important}
+  @media(max-width:1180px){.channelPostLive{grid-template-columns:1fr}.channelVignetteRail{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:640px){.channelVignetteRail{grid-template-columns:1fr}.channelVignette{min-height:120px}.channelBioCard h2{font-size:24px}}
+  `;
+  document.head.appendChild(st);
+})();
+
+function channelVignetteHtml({title,subtitle,img,onclick=''}){
+  return `<button class="channelVignette" ${onclick?`onclick="${onclick}"`:''}>${img?`<img src="${esc(img)}" alt="">`:''}<span class="channelVignetteBody"><b>${esc(title)}</b><span>${esc(subtitle)}</span></span></button>`;
+}
+function channelBioSectionHtml(p,tags,channelBadges,support){
+  const banner=p.banner_url||p.offline_image_url||'';
+  const avatar=p.avatar_url||'';
+  const offline=p.offline_image_url||banner||avatar||'';
+  const supportCount=Number(support?.count||0);
+  const tagChips=(tags||[]).slice(0,12).map(t=>`<span class="channelMetaChip">${esc(t)}</span>`).join('') || '<span class="channelMetaChip">Oryon</span>';
+  const badgeHtml=(channelBadges||[]).map(b=>`<div class="channelBadgeMini"><strong>${esc(b.icon)}</strong><b>${esc(b.label)}</b><span>${esc(b.note)}</span></div>`).join('');
+  const supportHtml=(support?.first_supporters||[]).length ? (support.first_supporters||[]).slice(0,10).map(s=>`<span class="supportChip">⭐ ${esc(s.display_name||s.login)}</span>`).join('') : '<p class="muted">Premiers soutiens à venir.</p>';
+  return `<section class="channelPostLive"><main class="channelPostMain"><div class="channelVignetteRail">
+    ${channelVignetteHtml({title:'Planning',subtitle:'Voir les prochains lives',img:banner,onclick:"chanTab(null,'planning')"})}
+    ${channelVignetteHtml({title:'Clips',subtitle:'Moments à revoir',img:offline,onclick:"chanTab(null,'clips')"})}
+    ${channelVignetteHtml({title:'Badges / emotes',subtitle:'Identité de chaîne',img:avatar,onclick:"setView('studio')"})}
+    ${channelVignetteHtml({title:'Premiers soutiens',subtitle:`${supportCount} soutien${supportCount>1?'s':''}`,img:banner})}
+  </div><article class="channelBioCard"><h2>Bio</h2><p>${esc(p.bio||"Cette chaîne n'a pas encore ajouté de bio.")}</p></article><article class="channelMetaBlock"><h3>Identité de chaîne</h3><div class="channelMetaRows"><div class="channelMetaSection"><span class="channelMetaSectionTitle">Tags</span><div class="channelMetaChips">${tagChips}</div></div><div class="channelMetaSection"><span class="channelMetaSectionTitle">Badges visibles</span><div class="channelBadgeInline">${badgeHtml}</div></div></div></article></main><aside class="channelPostSide"><article class="channelSideCard"><h3>Premiers soutiens</h3><div class="supportList">${supportHtml}</div></article></aside></section>`;
+}
+
+async function renderChannel(){
+  const viewer=state.session.local;
+  const targetLogin=(state.watchRoom || viewer?.login || '').toLowerCase();
+  if(!targetLogin){ $('#channel').innerHTML=authRequired(); return; }
+  state.lastChannelLogin=targetLogin;
+  const prof=await api('/api/oryon/profile/'+encodeURIComponent(targetLogin));
+  const p=prof.user || (viewer && viewer.login===targetLogin ? viewer : {login:targetLogin,display_name:targetLogin});
+  const support=await api('/api/oryon/supporters/'+encodeURIComponent(targetLogin)).catch(()=>({success:false,first_supporters:[]}));
+  state.channelSupport=support;
+  const isOwner=!!viewer && viewer.login===targetLogin;
+  const lives=await api('/api/native/lives').catch(()=>({items:[]}));
+  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
+  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  state.channelProfile=p; state.channelOwner=isOwner;
+  const banner=p.banner_url||p.offline_image_url||'';
+  const offlineImg=p.offline_image_url||p.banner_url||'';
+  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
+  const supportCount=Number(support?.count||0);
+  const channelBadges=channelBadgesFor(p,support,isOwner);
+  const ownerActions=isOwner?`<button class="btn" onclick="setView('manager')">Gestionnaire</button><button class="btn secondary" onclick="setView('settings')">Modifier profil</button>`:`<button class="btn" onclick="followOryon('${esc(targetLogin)}')">Suivre</button><button id="likeBtn" class="btn secondary" onclick="likeOryon('${esc(targetLogin)}')">Aimer</button>${supportButton(targetLogin,support)}<button class="btn ghost" onclick="quickGem()">Autre live</button>`;
+  const media=fwLiveMediaHtml(p,isOwner,isLive,offlineImg);
+  const postLive=channelBioSectionHtml(p,tags,channelBadges,support);
+  $('#channel').innerHTML=`<div class="channelPage twitchLike viewerTint cleanChannelLayout"><section class="channelTopHero">${banner?`<img src="${esc(banner)}" alt="">`:''}<div class="channelHeroContent"><div class="channelIdentity"><img class="avatar" src="${esc(p.avatar_url||'')}" alt=""><div class="channelTitleBlock"><h1>${esc(p.display_name||p.login)}</h1><p>${esc(p.bio||'Chaîne Oryon')}</p><div class="channelBadgesBar"><span id="channelLiveBadge" class="pill">${isLive?'🔴 En direct':'Hors ligne'}</span><span class="pill">@${esc(p.login)}</span><span class="pill">${Number(p.followers_count||0)} followers</span><span class="pill">${supportCount} premiers soutiens</span>${tags.slice(0,4).map(t=>`<span class="pill">${esc(t)}</span>`).join('')}</div></div></div><div class="channelActionDock">${ownerActions}</div></div></section><nav class="channelSubNav"><button class="active" onclick="chanTab(this,'about')">Accueil</button><button onclick="chanTab(this,'about')">À propos</button><button onclick="chanTab(this,'planning')">Planning</button><button onclick="chanTab(this,'clips')">Clips</button><button onclick="setView('studio')">Badges / emotes</button></nav><section class="channelLiveLayout"><main class="channelMainPlayer"><div class="player premiumPlayer oryonMainPlayer">${media}</div></main><aside class="channelLiveSidebar"><div class="chatPanel nativeFixedChat" data-chat="oryon"><div class="chatHeader"><span>Tchat Oryon · ${esc(p.display_name||p.login)}</span><button class="btn ghost" onclick="reportRoom()">Signaler</button></div><div id="nativeChatLog" class="chatLog"></div><div id="customEmoteShelf" class="emotePanel hidden"></div><div id="gifGrid" class="gifGrid hidden"></div><div class="chatAssist"><button onclick="chatQuick('question')">Question</button><button onclick="chatQuick('new')">Nouveau ici</button><button onclick="chatQuick('react')">Réagir</button></div><div class="chatForm"><input id="chatInput" placeholder="Écrire sur Oryon…"><button class="btn secondary" onclick="toggleEmotes()">Emotes</button><button class="btn secondary" onclick="toggleGifs()">GIF</button><button class="btn" onclick="sendChat()">Envoyer</button></div></div></aside></section>${postLive}</div>`;
+  applyViewerThemeColor?.();
+  if(isLive) setMiniLive?.({type:'oryon',login:targetLogin,title:'Oryon · '+(p.display_name||p.login)});
+  chanTab?.(null,'about');
+  setupSocket?.(); state.room=targetLogin; state.socket?.emit('native:chat:history',{room:state.room});
+  if(isOwner && state.stream){ attachCurrentStream?.(); }
+  else if(isLive){ state.socket?.emit('native:join',{room:targetLogin}); if(!p.oryon_local_player_url){ setTimeout(()=>requestOffer?.(),500); } }
+  updateLiveUi?.(isLive);
+  refreshEmoteShelf?.(targetLogin);
+}
