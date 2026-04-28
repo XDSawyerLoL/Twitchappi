@@ -5271,3 +5271,171 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   document.addEventListener('DOMContentLoaded',()=>setTimeout(run,120));
   setTimeout(run,120);
 })();
+
+/* =========================================================
+   Emergency cleanup pass — stop duplicated panels and repair mobile hierarchy
+   ========================================================= */
+(function(){
+  const st=document.createElement('style');
+  st.id='oryonEmergencyMobileCleanup';
+  st.textContent=`
+  /* Remove the duplicated explanatory cards that broke the channel hierarchy. */
+  #channel .softEntryCard,
+  #discover .softEntryCard{display:none!important;}
+
+  /* DeckLurker is useful, but must appear once, not twice, and not inside the live stage. */
+  #channel .deckLurkerWrap,
+  #discover .deckLurkerWrap{display:none!important;}
+  #home .deckLurkerWrap + .deckLurkerWrap,
+  #twitch .deckLurkerWrap + .deckLurkerWrap,
+  [data-deck-lurker-slot] + [data-deck-lurker-slot]{display:none!important;}
+
+  /* Pulse remains an overlay action; its big info dock is hidden on mobile. */
+  @media(max-width:760px){
+    #discover .pulseDock,
+    #channel .pulseDock{display:none!important;}
+    #discover .pulseButton,
+    #channel .pulseButton{display:inline-flex!important;}
+  }
+
+  /* Hard repair for Twitch mobile embeds: never allow portrait-tower players. */
+  @media(max-width:760px){
+    #discover .watchShell,
+    #discover .watchShell.twitchWatch,
+    #discover .proPlayerGrid,
+    #discover .proStage,
+    #discover .proMain,
+    #discover #zapResult,
+    #discover .hfLiveCard,
+    #discover .hfLiveShell{width:100%!important;max-width:calc(100vw - 20px)!important;margin-left:auto!important;margin-right:auto!important;overflow:hidden!important;}
+
+    #discover .watchShell.twitchWatch > .player,
+    #discover .proPlayerGrid > .player,
+    #discover .premiumPlayer,
+    #discover .player,
+    #discover .twitchPlayer,
+    #discover .hfLivePlayer,
+    #discover .livePlayer,
+    #discover .streamPlayer,
+    #discover div:has(> iframe[src*="player.twitch.tv"]){
+      width:100%!important;
+      height:clamp(198px,56.25vw,360px)!important;
+      min-height:198px!important;
+      max-height:360px!important;
+      aspect-ratio:16/9!important;
+      overflow:hidden!important;
+      border-radius:18px!important;
+      background:#000!important;
+      position:relative!important;
+    }
+
+    #discover iframe[src*="player.twitch.tv"],
+    #discover iframe[src*="twitch.tv/?channel"],
+    #discover .player iframe:not([src*="chat"]),
+    #discover .premiumPlayer iframe:not([src*="chat"]),
+    #discover .twitchPlayer iframe:not([src*="chat"]){
+      width:100%!important;
+      height:100%!important;
+      min-height:0!important;
+      max-height:360px!important;
+      aspect-ratio:16/9!important;
+      display:block!important;
+      border:0!important;
+      position:absolute!important;
+      inset:0!important;
+    }
+
+    /* Chat is a drawer, not a second full screen. */
+    #discover iframe[src*="chat"],
+    #discover .twitchChat,
+    #discover .chatPanel{display:none!important;}
+    body.oryonMobileChatOpen #discover .twitchChat,
+    body.oryonMobileChatOpen #discover .chatPanel,
+    body.oryonMobileChatOpen #discover div:has(> iframe[src*="chat"]){
+      display:block!important;
+      height:280px!important;
+      min-height:220px!important;
+      max-height:280px!important;
+      overflow:hidden!important;
+      border-radius:18px!important;
+    }
+    body.oryonMobileChatOpen #discover iframe[src*="chat"]{display:block!important;width:100%!important;height:100%!important;position:static!important;}
+
+    /* Channel creator page: player and chat stay readable, no stacked marketing panels. */
+    #channel .creatorRefine .channelLiveLayout{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;margin:10px!important;}
+    #channel .creatorRefine .channelMainPlayer,
+    #channel .creatorRefine .channelMainPlayer > .player,
+    #channel .creatorRefine .channelMainPlayer > .premiumPlayer,
+    #channel .creatorRefine .oryonMainPlayer,
+    #channel div:has(> iframe[src*="player.twitch.tv"]){
+      width:100%!important;height:clamp(198px,56.25vw,360px)!important;min-height:198px!important;max-height:360px!important;aspect-ratio:16/9!important;overflow:hidden!important;border-radius:18px!important;position:relative!important;
+    }
+    #channel .creatorRefine .channelMainPlayer iframe,
+    #channel iframe[src*="player.twitch.tv"]{width:100%!important;height:100%!important;max-height:360px!important;position:absolute!important;inset:0!important;border:0!important;}
+    #channel .creatorRefine .channelLiveSidebar .chatPanel,
+    #channel .nativeFixedChat{height:280px!important;min-height:220px!important;max-height:280px!important;border-radius:18px!important;}
+  }
+  `;
+  document.head.appendChild(st);
+
+  function cleanupOryonBazar(){
+    // Remove duplicated DeckLurker mounts. Keep at most one inside Twitch/Home; none inside Discover/Channel.
+    document.querySelectorAll('#discover .deckLurkerWrap,#channel .deckLurkerWrap').forEach(el=>el.remove());
+    ['#home','#twitch'].forEach(sel=>{
+      const decks=[...document.querySelectorAll(`${sel} .deckLurkerWrap`)];
+      decks.slice(1).forEach(el=>el.remove());
+      const mounts=[...document.querySelectorAll(`${sel} [data-deck-lurker-slot]`)];
+      mounts.slice(1).forEach(el=>el.remove());
+    });
+
+    // Remove all soft-entry cards; the idea is good but the visual integration was wrong.
+    document.querySelectorAll('.softEntryCard').forEach(el=>el.remove());
+
+    // If a mobile Twitch player has kept a bad inline height, override it at runtime too.
+    if(window.matchMedia && window.matchMedia('(max-width:760px)').matches){
+      document.querySelectorAll('#discover iframe[src*="player.twitch.tv"],#channel iframe[src*="player.twitch.tv"]').forEach(iframe=>{
+        iframe.style.setProperty('height','100%','important');
+        iframe.style.setProperty('max-height','360px','important');
+        iframe.style.setProperty('width','100%','important');
+      });
+      document.querySelectorAll('#discover .player,#discover .premiumPlayer,#discover .twitchPlayer,#channel .premiumPlayer,#channel .oryonMainPlayer').forEach(box=>{
+        box.style.setProperty('height','clamp(198px, 56.25vw, 360px)','important');
+        box.style.setProperty('max-height','360px','important');
+        box.style.setProperty('overflow','hidden','important');
+      });
+    }
+  }
+
+  const previousInsertSoftEntry = window.insertSoftEntry;
+  window.insertSoftEntry = function(){ cleanupOryonBazar(); return null; };
+
+  const previousInsertDeckLurker = window.insertDeckLurker;
+  window.insertDeckLurker = function(where){
+    if(!where) return null;
+    if(where.closest?.('#discover,#channel')){ cleanupOryonBazar(); return null; }
+    const root = where.closest?.('#home,#twitch') || where;
+    if(root.querySelector?.('.deckLurkerWrap')){ cleanupOryonBazar(); return null; }
+    const result = previousInsertDeckLurker ? previousInsertDeckLurker(where) : null;
+    cleanupOryonBazar();
+    return result;
+  };
+
+  const names=['renderHome','renderDiscover','renderTwitch','renderChannel','mountTwitchPlayer','zapOpenCurrent','hfWatchCurrent','renderZap'];
+  names.forEach(name=>{
+    const fn=window[name];
+    if(typeof fn==='function' && !fn.__oryonCleanWrapped){
+      const wrapped=function(){
+        const out=fn.apply(this,arguments);
+        Promise.resolve(out).finally(()=>setTimeout(cleanupOryonBazar,120));
+        return out;
+      };
+      wrapped.__oryonCleanWrapped=true;
+      window[name]=wrapped;
+    }
+  });
+
+  const mo=new MutationObserver(()=>cleanupOryonBazar());
+  mo.observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(cleanupOryonBazar,80));
+  setTimeout(cleanupOryonBazar,120);
+})();
