@@ -4849,3 +4849,425 @@ if(typeof renderHome==='function'){const __oryonPulseRenderHome=renderHome;rende
 if(typeof logoutTwitch==='function'){const __oryonPulseLogoutTwitch=logoutTwitch;logoutTwitch=async function(){await api('/twitch_logout',{method:'POST'}).catch(()=>null);state.session.twitch=null;try{state.followedTwitch=[]}catch(_){};const ids=['followedWrap','followedWrapCompact','twResults','twitchPlayerArea'];ids.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=''}) ;renderNav?.();renderUserMenu?.();if(state.view==='home')await renderHome?.();else if(state.view==='discover')await renderDiscover?.();else if(state.view==='settings')await renderSettings?.();toast('Twitch déconnecté')}}
 function initSharedChannelRoute(){const m=location.pathname.match(/^\/c\/([^/?#]+)/i);if(m){state.watchRoom=decodeURIComponent(m[1]).toLowerCase();if(state.view!=='channel')setTimeout(()=>setView('channel'),80)}}
 initSharedChannelRoute();document.addEventListener('DOMContentLoaded',()=>setTimeout(initSharedChannelRoute,50));
+
+/* =========================================================
+   ORYON EXPERIENCE PASS — AfterLive, DeckLurker, mobile live/chat sizing, soft entry
+   ========================================================= */
+(function installOryonExperiencePass(){
+  const old=document.getElementById('oryonExperiencePassStyle');
+  if(old) old.remove();
+  const st=document.createElement('style');
+  st.id='oryonExperiencePassStyle';
+  st.textContent=`
+  .softEntryCard{margin:12px 0 0;border:1px solid rgba(148,163,184,.18);background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(139,92,246,.08));border-radius:20px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .softEntryCard h3{margin:0;font-size:18px}.softEntryCard p{margin:4px 0 0;color:#b8c7de;font-size:13px}.softEntryTags{display:flex;gap:8px;flex-wrap:wrap}.softEntryTags span{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900}.softEntryActions{display:flex;gap:8px;flex-wrap:wrap}.softEntryActions .btn{min-height:36px;padding:0 12px}
+  .deckLurkerWrap{border:1px solid rgba(148,163,184,.18);background:linear-gradient(180deg,rgba(15,23,42,.96),rgba(8,13,26,.98));border-radius:26px;padding:18px;display:grid;gap:14px;margin-top:16px}.deckLurkerHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}.deckLurkerHead h2{margin:0;font-size:clamp(22px,1.7vw,32px)}.deckLurkerHead p{margin:4px 0 0;color:#9fb0c7}.deckStatus{display:flex;gap:8px;flex-wrap:wrap}.deckStatus button{min-height:36px;border-radius:999px;border:1px solid rgba(148,163,184,.18);background:rgba(255,255,255,.05);color:#fff;font-weight:900;padding:0 12px}.deckStatus button.active{background:linear-gradient(135deg,#22c55e,#22d3ee);color:#04111f}.deckActive{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,.34fr);gap:14px;align-items:stretch}.deckActivePlayer{aspect-ratio:16/9;border:1px solid rgba(148,163,184,.18);border-radius:22px;overflow:hidden;background:#020617;min-height:220px}.deckActivePlayer iframe{width:100%;height:100%;border:0}.deckActiveInfo{border:1px solid rgba(148,163,184,.14);border-radius:22px;background:rgba(255,255,255,.035);padding:16px;display:grid;gap:10px;align-content:center}.deckActiveInfo h3{margin:0;font-size:24px}.deckActiveInfo p{margin:0;color:#b8c7de}.deckSlots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.deckSlot{border:1px solid rgba(148,163,184,.17);background:rgba(255,255,255,.035);border-radius:18px;min-height:106px;overflow:hidden;position:relative;text-align:left;color:#fff}.deckSlot.active{border-color:rgba(34,211,238,.65);box-shadow:0 0 0 1px rgba(34,211,238,.24),0 14px 40px rgba(34,211,238,.12)}.deckSlot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.65}.deckSlot:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(2,6,23,.88));z-index:1}.deckSlotBody{position:relative;z-index:2;padding:10px;display:grid;gap:6px;align-content:end;height:100%}.deckSlot b{font-size:14px;line-height:1.12}.deckSlot span{font-size:11px;color:#cbd5e1}.deckSlotActions{display:flex;gap:6px;flex-wrap:wrap}.deckSlotActions button{min-height:28px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:#fff;font-size:11px;font-weight:900;padding:0 8px}.deckEmpty{display:grid;place-items:center;text-align:center;color:#9fb0c7;border-style:dashed}.afterLivePanel{border:1px solid rgba(148,163,184,.18);background:radial-gradient(circle at 20% 0%,rgba(255,61,119,.12),transparent 30%),linear-gradient(180deg,rgba(15,23,42,.98),rgba(7,13,25,.98));border-radius:26px;padding:20px;display:grid;gap:16px;margin-top:18px}.afterLiveTop{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.afterLiveTop h2{margin:0;font-size:clamp(24px,2vw,36px)}.afterLiveGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.afterStat{border:1px solid rgba(148,163,184,.15);background:rgba(255,255,255,.04);border-radius:18px;padding:14px}.afterStat span{display:block;color:#9fb0c7;font-size:12px}.afterStat b{font-size:28px}.momentList{display:grid;gap:8px}.momentItem{display:flex;justify-content:space-between;gap:10px;border:1px solid rgba(148,163,184,.14);background:rgba(255,255,255,.035);border-radius:14px;padding:10px}.momentItem b{font-size:13px}.momentItem span{font-size:12px;color:#9fb0c7}.afterActions{display:flex;gap:10px;flex-wrap:wrap}.lurkMiniBadge{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(34,211,238,.25);background:rgba(34,211,238,.08);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000;color:#dff7ff}
+  @media(max-width:900px){.deckActive{grid-template-columns:1fr}.deckSlots{grid-template-columns:repeat(2,minmax(0,1fr))}.afterLiveGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:760px){
+    body{overflow-x:hidden}.hfDiscover{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))!important}.hfDiscoverHero,.hfMoodPanel,.hfPanel{margin-inline:10px!important}.hfMoodGrid{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;gap:10px!important;padding-bottom:4px}.hfMoodCard{min-width:150px!important;min-height:92px!important;scroll-snap-align:start!important;padding:12px!important}.hfMoodCard i{font-size:22px!important}.hfMoodCard b{font-size:13px!important}.hfMoodCard span{font-size:10px!important;line-height:1.2!important}.hfAdvancedBody{grid-template-columns:1fr!important}.hfAdvancedBody input,.hfAdvancedBody select,.hfAdvancedBody button{min-height:46px!important}
+    #discover .premiumPlayer,#discover .player,#discover .oryonMainPlayer,#discover .hfLivePlayer,#discover .twitchPlayer,#channel .premiumPlayer,#channel .oryonMainPlayer{width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;aspect-ratio:16/9!important;border-radius:18px!important;overflow:hidden!important}.premiumPlayer iframe,.player iframe,.oryonMainPlayer iframe,.hfLivePlayer iframe,.twitchPlayer iframe{width:100%!important;height:100%!important;min-height:0!important;display:block!important}#discover .chatPanel,#discover .twitchChat,#channel .chatPanel,#channel .nativeFixedChat{height:min(42vh,390px)!important;min-height:260px!important;max-height:430px!important;border-radius:18px!important}.channelLiveLayout{grid-template-columns:1fr!important;gap:12px!important}.pulseDock{padding:10px!important;border-radius:16px!important;gap:8px!important}.pulseMeter{min-width:90px!important}.pulseActions{width:100%;justify-content:space-between}.pulseActions button{flex:1;min-height:34px!important}.pulseButton{right:10px!important;bottom:10px!important;min-height:38px!important;padding:0 12px!important;font-size:12px!important}.softEntryCard{margin:10px 0!important;padding:12px!important}.softEntryActions{width:100%}.softEntryActions .btn{flex:1}.deckLurkerWrap{margin:12px 10px 0!important;padding:14px!important;border-radius:20px!important}.deckActivePlayer{min-height:0!important}.deckSlots{grid-template-columns:repeat(2,minmax(0,1fr));}.deckSlot{min-height:94px}.afterLiveGrid{grid-template-columns:1fr}.momentItem{display:grid}.mobileChatToggle{display:inline-flex!important}.chatCollapsedMobile #discover .chatPanel,.chatCollapsedMobile #discover .twitchChat,.chatCollapsedMobile #channel .chatPanel{display:none!important}
+  }
+  `;
+  document.head.appendChild(st);
+})();
+
+function deckUserKey(){return 'oryon_decklurk_v2:'+String(state.session?.local?.login||state.session?.twitch?.login||'guest').toLowerCase()}
+function loadDeckLurker(){const d=readJsonSafe(deckUserKey(),null); if(d&&Array.isArray(d.slots))return {active:Number.isInteger(d.active)?d.active:0,status:d.status||'lurk',slots:[...d.slots,...Array(8).fill(null)].slice(0,8)}; return {active:0,status:'lurk',slots:Array(8).fill(null)}}
+function saveDeckLurker(d){writeJsonSafe(deckUserKey(),{active:Number(d.active||0),status:d.status||'lurk',slots:(d.slots||[]).slice(0,8)})}
+function normalizeDeckMeta(meta){meta=meta||{};return {source:meta.source||meta.platform||'twitch',login:meta.login||meta.user_login||meta.host_login||meta.room||'',name:meta.name||meta.user_name||meta.display_name||meta.login||'Live',game:meta.game||meta.game_name||meta.category||'',title:meta.title||'',img:meta.img||meta.thumbnail_url||meta.image_url||'',viewers:Number(meta.viewers||meta.viewer_count||0),addedAt:Date.now()}}
+function addLiveToMultiWatch(meta,preferredIndex){const d=loadDeckLurker();const m=normalizeDeckMeta(meta);if(!m.login)return toast('Live introuvable');let idx=Number.isInteger(preferredIndex)?preferredIndex:d.slots.findIndex(x=>!x);if(idx<0)idx=0;d.slots[idx]=m;d.active=idx;saveDeckLurker(d);renderMultiWatchDock();renderDeckLurkerPanels();toast('Ajouté au DeckLurker')}
+function clearMultiWatchSlot(idx){const d=loadDeckLurker();d.slots[idx]=null;if(d.active===idx)d.active=Math.max(0,d.slots.findIndex(Boolean));if(d.active<0)d.active=0;saveDeckLurker(d);renderMultiWatchDock();renderDeckLurkerPanels()}
+function setDeckActive(idx){const d=loadDeckLurker();if(!d.slots[idx])return;d.active=idx;saveDeckLurker(d);renderMultiWatchDock();renderDeckLurkerPanels()}
+function setDeckStatus(s){const d=loadDeckLurker();d.status=s;saveDeckLurker(d);renderDeckLurkerPanels();toast(s==='lurk'?'Mode lurk assumé':'Mode regard actif')}
+function deckTwitchIframe(slot,muted=true){if(!slot?.login)return '';return `https://player.twitch.tv/?channel=${encodeURIComponent(slot.login)}&parent=${encodeURIComponent(location.hostname)}&autoplay=false&muted=${muted?'true':'false'}`}
+function deckSlotHtml(slot,idx,active){return slot?`<button class="deckSlot ${active?'active':''}" onclick="setDeckActive(${idx})"><img src="${esc(slot.img||'')}" alt=""><div class="deckSlotBody"><b>${esc(slot.name||slot.login)}</b><span>${esc(slot.game||slot.source)}${slot.viewers?` · ${slot.viewers} viewers`:''}</span><div class="deckSlotActions"><button onclick="event.stopPropagation();setDeckActive(${idx})">Switch</button><button onclick="event.stopPropagation();clearMultiWatchSlot(${idx})">Vider</button></div></div></button>`:`<div class="deckSlot deckEmpty"><div><b>Case ${idx+1}</b><br><span>Ajoute un live</span></div></div>`}
+function deckPanelHtml(){const d=loadDeckLurker();const active=d.slots[d.active]||d.slots.find(Boolean);const activeIndex=active?d.slots.indexOf(active):-1;const count=d.slots.filter(Boolean).length;return `<section class="deckLurkerWrap" id="deckLurkerPanel"><div class="deckLurkerHead"><div><span class="lurkMiniBadge">👀 DeckLurker · ${count} live${count>1?'s':''}</span><h2>Ton salon de lurk</h2><p>Garde plusieurs lives, soutiens en silence et switch en un clic sans ouvrir dix onglets.</p></div><div class="deckStatus"><button class="${d.status==='watch'?'active':''}" onclick="setDeckStatus('watch')">Je regarde</button><button class="${d.status==='lurk'?'active':''}" onclick="setDeckStatus('lurk')">Je lurk</button><button class="${d.status==='work'?'active':''}" onclick="setDeckStatus('work')">Au calme</button></div></div>${active?`<div class="deckActive"><div class="deckActivePlayer"><iframe allowfullscreen src="${esc(deckTwitchIframe(active,true))}"></iframe></div><aside class="deckActiveInfo"><h3>${esc(active.name||active.login)}</h3><p>${esc(active.title||active.game||'Live gardé dans ton deck')}</p><div class="afterActions"><button class="btn" onclick="openTwitch('${esc(active.login)}')">Ouvrir grand</button><button class="btn secondary" onclick="clearMultiWatchSlot(${activeIndex})">Vider</button></div></aside></div>`:`<div class="deckActiveInfo"><h3>Aucun live dans ton deck</h3><p>Ajoute un live depuis Découvrir, Accès Twitch ou une page chaîne.</p></div>`}<div class="deckSlots">${d.slots.map((slot,i)=>deckSlotHtml(slot,i,i===activeIndex)).join('')}</div></section>`}
+function renderMultiWatchDock(){const box=$('#multiWatchDock'); if(!box)return; box.className='deckMount'; box.innerHTML=deckPanelHtml()}
+function renderDeckLurkerPanels(){document.querySelectorAll('[data-deck-lurker-slot]').forEach(el=>{el.innerHTML=deckPanelHtml()})}
+function insertDeckLurker(where){if(!where||where.querySelector?.('[data-deck-lurker-slot]'))return;const mount=document.createElement('div');mount.dataset.deckLurkerSlot='1';mount.innerHTML=deckPanelHtml();where.appendChild(mount)}
+function addCurrentLiveToDeck(){const p=state.channelProfile||{};const q=state.zap?.items?.[state.zap?.index]||{};const meta=normalizeDeckMeta({source:p.login?'oryon':(q.platform||'twitch'),login:p.login||q.user_login||q.login||q.host_login||q.room,name:p.display_name||q.user_name||q.display_name||q.login,game:q.game_name||q.category||p.tags?.[0]||'',title:q.title||p.bio||'',img:q.thumbnail_url||q.img||p.banner_url||p.offline_image_url||'',viewers:q.viewer_count||q.viewers||0});if(!meta.login)return toast('Aucun live actif à ajouter');addLiveToMultiWatch(meta)}
+
+function softEntryHtml(){return `<div class="softEntryCard"><div><h3>Pourquoi entrer ici ?</h3><p>Chat lisible, réaction possible sans parler, ajout au DeckLurker en un clic.</p><div class="softEntryTags"><span>👀 lurk accepté</span><span>❤️ Pulse Live</span><span>💬 entrée douce</span></div></div><div class="softEntryActions"><button class="btn" onclick="addCurrentLiveToDeck()">Ajouter au Deck</button><button class="btn secondary mobileChatToggle" onclick="document.body.classList.toggle('chatCollapsedMobile')">Afficher / cacher chat</button></div></div>`}
+function insertSoftEntry(){const player=document.querySelector('#channel .premiumPlayer,#discover .premiumPlayer,#discover .player,#discover .hfLivePlayer');if(!player||player.nextElementSibling?.classList?.contains('softEntryCard'))return;player.insertAdjacentHTML('afterend',softEntryHtml())}
+
+function reactionEmoji(type){return type==='fire'?'🔥':type==='wow'?'😮':type==='laugh'?'😂':type==='here'?'👀':'❤️'}
+async function afterLiveSummaryHtml(login){const key=pulseSafeKeyFront('oryon:'+login);const local=pulseRead(key);const server=await api('/api/afterlive/'+encodeURIComponent(login)).catch(()=>null);const s=server?.summary||{totalPulse:Number(local.total||0),moments:local.moments||[],hot30:0,hot120:0,topReaction:{type:'heart',count:0},score:Math.min(100,Number(local.total||0)*2),advice:['Lance un live puis laisse les viewers pulser les moments forts.']};const moments=(s.moments||[]).slice(-5).reverse();return `<section class="afterLivePanel"><div class="afterLiveTop"><div><span class="lurkMiniBadge">AfterLive</span><h2>Ce que ton live a produit</h2><p class="muted">Pulse, moments chauds et signaux silencieux réunis en résumé actionnable.</p></div><div class="afterActions"><button class="btn" onclick="setView('manager')">Préparer prochain live</button><button class="btn secondary" onclick="toast('Module clip prêt à connecter au moteur vidéo.')">Créer un clip</button></div></div><div class="afterLiveGrid"><div class="afterStat"><span>Pulse reçus</span><b>${Number(s.totalPulse||0)}</b></div><div class="afterStat"><span>Moments chauds</span><b>${moments.length}</b></div><div class="afterStat"><span>Réaction dominante</span><b>${reactionEmoji(s.topReaction?.type)}</b></div><div class="afterStat"><span>Score énergie</span><b>${Number(s.score||0)}%</b></div></div><div class="managerGrid"><div><h3>Moments Pulse</h3><div class="momentList">${moments.length?moments.map(m=>`<div class="momentItem"><div><b>${esc(m.label||'Moment Pulse')}</b><br><span>${m.t?new Date(m.t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'Moment récent'} · ${Number(m.count||0)} réactions</span></div><button class="btn secondary" onclick="toast('Moment marqué pour clip.')">Marquer</button></div>`).join(''):'<div class="momentItem"><span>Aucun moment chaud pour le moment. Ils apparaissent quand plusieurs réactions arrivent vite.</span></div>'}</div></div><div><h3>Conseils</h3>${(s.advice||[]).slice(0,4).map(a=>`<p>• ${esc(a)}</p>`).join('')}</div></div></section>`}
+async function injectAfterLiveDashboard(){const root=$('#dashboard'); if(!root||!state.session.local)return; if(root.querySelector('.afterLivePanel'))return; const html=await afterLiveSummaryHtml(state.session.local.login); const head=root.querySelector('.pageHead'); if(head)head.insertAdjacentHTML('afterend',html)}
+
+if(typeof renderDashboard==='function'){const __oryonAfterRenderDashboard=renderDashboard;renderDashboard=async function(){await __oryonAfterRenderDashboard.apply(this,arguments);await injectAfterLiveDashboard()}}
+if(typeof renderDiscover==='function'){const __oryonAfterRenderDiscover=renderDiscover;renderDiscover=async function(){await __oryonAfterRenderDiscover.apply(this,arguments);setTimeout(()=>{insertSoftEntry();renderMultiWatchDock();const zr=$('#zapResult');if(zr)insertDeckLurker(zr.parentElement)},90)}}
+if(typeof renderChannel==='function'){const __oryonAfterRenderChannel=renderChannel;renderChannel=async function(){await __oryonAfterRenderChannel.apply(this,arguments);setTimeout(()=>{insertSoftEntry();const page=$('#channel .creatorRefine')||$('#channel');insertDeckLurker(page)},90)}}
+if(typeof renderHome==='function'){const __oryonAfterRenderHome=renderHome;renderHome=async function(){await __oryonAfterRenderHome.apply(this,arguments);setTimeout(()=>{const home=$('#home .owHomeFull')||$('#home');insertDeckLurker(home)},100)}}
+
+// Mobile starts cleaner: chat is available but not allowed to eat the full screen.
+if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCollapsedMobile')}
+
+/* =========================================================
+   ORYON MOBILE SANITY PASS — sane live/chat proportions + Pulse placement
+   ========================================================= */
+(function installOryonMobileSanityPass(){
+  const old=document.getElementById('oryonMobileSanityPassStyle');
+  if(old) old.remove();
+  const st=document.createElement('style');
+  st.id='oryonMobileSanityPassStyle';
+  st.textContent=`
+  /* Desktop/tablet: lecteur + chat doivent rester dans une vraie grille. */
+  #discover .watchShell.twitchWatch,
+  #discover .proPlayerGrid{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) clamp(320px,27vw,410px)!important;
+    gap:16px!important;
+    align-items:stretch!important;
+  }
+  #discover .watchShell.twitchWatch>.player,
+  #discover .proPlayerGrid>.player,
+  #discover .premiumPlayer,
+  #discover .player{
+    min-width:0!important;
+  }
+  #discover .watchShell.twitchWatch>.player,
+  #discover .proPlayerGrid>.player,
+  #channel .channelMainPlayer .player,
+  #channel .channelMainPlayer .premiumPlayer{
+    aspect-ratio:16/9!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:76vh!important;
+    overflow:hidden!important;
+    border-radius:24px!important;
+    background:#020617!important;
+  }
+  #discover .watchShell.twitchWatch>.player iframe,
+  #discover .proPlayerGrid>.player iframe,
+  #channel .channelMainPlayer .player iframe,
+  #channel .channelMainPlayer .premiumPlayer iframe{
+    width:100%!important;
+    height:100%!important;
+    display:block!important;
+    border:0!important;
+  }
+  #discover .watchShell.twitchWatch>.chatPanel,
+  #discover .proPlayerGrid>.chatPanel{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+    border-radius:24px!important;
+  }
+  #discover .watchShell.twitchWatch>.chatPanel iframe,
+  #discover .proPlayerGrid>.chatPanel iframe{
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    border:0!important;
+  }
+  #channel .creatorRefine .channelLiveLayout{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) clamp(320px,26vw,430px)!important;
+    gap:18px!important;
+    align-items:start!important;
+  }
+  #channel .creatorRefine .channelMainPlayer{
+    display:block!important;
+    min-width:0!important;
+  }
+  #channel .creatorRefine .channelMainPlayer>.player,
+  #channel .creatorRefine .channelMainPlayer>.premiumPlayer{
+    width:100%!important;
+  }
+  #channel .creatorRefine .channelLiveSidebar{
+    min-width:0!important;
+    display:block!important;
+  }
+  #channel .creatorRefine .channelLiveSidebar .chatPanel{
+    width:100%!important;
+    min-height:380px!important;
+    height:clamp(380px,36vw,680px)!important;
+    max-height:calc(100vh - 170px)!important;
+    overflow:hidden!important;
+    border-radius:24px!important;
+  }
+  #channel .creatorRefine .pulseDock,
+  #discover .pulseDock{
+    width:100%!important;
+    max-width:100%!important;
+    margin:10px 0 0!important;
+    border-radius:18px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:10px!important;
+  }
+  #channel .creatorRefine .channelMainPlayer .pulseDock{
+    position:static!important;
+  }
+  .oryonMobileLiveBar{display:none;}
+
+  @media(max-width:760px){
+    body{overflow-x:hidden!important;}
+    .app,#discover,#channel{max-width:100vw!important;overflow-x:hidden!important;}
+
+    /* Découvrir : le mood ne doit plus manger l’écran. */
+    #discover .hfDiscoverHero,
+    #discover .proHero{
+      margin:10px 10px 12px!important;
+      padding:16px!important;
+      border-radius:22px!important;
+    }
+    #discover .hfDiscoverHero h1,
+    #discover .proHero h1{
+      font-size:clamp(30px,8vw,46px)!important;
+      line-height:.95!important;
+    }
+    #discover .hfDiscoverHero p,
+    #discover .proHero p{
+      font-size:13px!important;
+      line-height:1.35!important;
+    }
+    #discover .hfMoodPanel,
+    #discover .proSearchPanel{
+      margin:0 10px 12px!important;
+      padding:12px!important;
+      border-radius:22px!important;
+    }
+    #discover .hfMoodHead h2,
+    #discover .proSearchPanel h2{
+      font-size:22px!important;
+      margin:0 0 10px!important;
+    }
+    #discover .hfMoodGrid,
+    #discover .proMoodRow{
+      display:flex!important;
+      overflow-x:auto!important;
+      overflow-y:hidden!important;
+      gap:10px!important;
+      scroll-snap-type:x proximity!important;
+      padding-bottom:4px!important;
+      -webkit-overflow-scrolling:touch!important;
+    }
+    #discover .hfMoodCard,
+    #discover .proMoodBtn{
+      flex:0 0 132px!important;
+      min-width:132px!important;
+      max-width:132px!important;
+      min-height:88px!important;
+      height:88px!important;
+      padding:10px!important;
+      border-radius:16px!important;
+      scroll-snap-align:start!important;
+    }
+    #discover .hfMoodCard i,
+    #discover .proMoodBtn i{font-size:20px!important;}
+    #discover .hfMoodCard b,
+    #discover .proMoodBtn b{font-size:12px!important;line-height:1.15!important;}
+    #discover .hfMoodCard span,
+    #discover .proMoodBtn span{font-size:9.5px!important;line-height:1.12!important;}
+    #discover .hfAdvanced,
+    #discover .proSearchLine{
+      margin-top:10px!important;
+    }
+    #discover .hfAdvancedBody,
+    #discover .proSearchLine{
+      grid-template-columns:1fr 1fr!important;
+      gap:8px!important;
+    }
+    #discover .hfAdvancedBody input,
+    #discover .hfAdvancedBody select,
+    #discover .hfAdvancedBody button,
+    #discover .proSearchLine input,
+    #discover .proSearchLine select,
+    #discover .proSearchLine button{
+      min-height:40px!important;
+      font-size:13px!important;
+    }
+    #discover .hfAdvancedBody input,
+    #discover .proSearchLine input{grid-column:1/-1!important;}
+
+    /* Le live Twitch ne doit jamais devenir une tour verticale. */
+    #discover #zapResult,
+    #discover .proStage,
+    #discover .proMain{
+      margin:0 10px!important;
+      width:auto!important;
+      max-width:calc(100vw - 20px)!important;
+      overflow:hidden!important;
+    }
+    #discover .watchShell.twitchWatch,
+    #discover .proPlayerGrid{
+      display:grid!important;
+      grid-template-columns:1fr!important;
+      gap:10px!important;
+      width:100%!important;
+      max-width:100%!important;
+    }
+    #discover .proPlayerHead,
+    #discover .spotlightTop,
+    #discover .spotlightHeadClean{
+      display:none!important;
+    }
+    #discover .watchShell.twitchWatch>.player,
+    #discover .proPlayerGrid>.player,
+    #discover .premiumPlayer,
+    #discover .player,
+    #discover .twitchPlayer,
+    #discover .hfLivePlayer{
+      width:100%!important;
+      height:clamp(190px,56.25vw,355px)!important;
+      min-height:190px!important;
+      max-height:355px!important;
+      aspect-ratio:auto!important;
+      border-radius:18px!important;
+      overflow:hidden!important;
+      background:#000!important;
+    }
+    #discover .watchShell.twitchWatch>.player iframe,
+    #discover .proPlayerGrid>.player iframe,
+    #discover .premiumPlayer iframe,
+    #discover .player iframe,
+    #discover iframe[src*="player.twitch.tv"]{
+      width:100%!important;
+      height:100%!important;
+      min-height:0!important;
+      max-height:355px!important;
+      display:block!important;
+      border:0!important;
+    }
+
+    /* Le chat mobile devient un tiroir. Fermé par défaut, ouvert à la demande. */
+    #discover .watchShell.twitchWatch>.chatPanel,
+    #discover .proPlayerGrid>.chatPanel,
+    #discover .twitchChat{
+      display:none!important;
+      height:0!important;
+      min-height:0!important;
+      max-height:0!important;
+    }
+    body.oryonMobileChatOpen #discover .watchShell.twitchWatch>.chatPanel,
+    body.oryonMobileChatOpen #discover .proPlayerGrid>.chatPanel,
+    body.oryonMobileChatOpen #discover .twitchChat{
+      display:block!important;
+      height:min(34vh,290px)!important;
+      min-height:220px!important;
+      max-height:290px!important;
+      border-radius:18px!important;
+      overflow:hidden!important;
+    }
+    body.oryonMobileChatOpen #discover .twitchChat iframe,
+    body.oryonMobileChatOpen #discover iframe[src*="/chat"]{
+      width:100%!important;
+      height:100%!important;
+      border:0!important;
+    }
+    .oryonMobileLiveBar{
+      display:flex!important;
+      gap:8px!important;
+      margin:10px 0!important;
+      position:sticky!important;
+      top:8px!important;
+      z-index:30!important;
+    }
+    .oryonMobileLiveBar button{
+      flex:1!important;
+      min-height:42px!important;
+      border:1px solid rgba(255,255,255,.12)!important;
+      background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04))!important;
+      color:#fff!important;
+      border-radius:14px!important;
+      font-weight:1000!important;
+      box-shadow:0 8px 24px rgba(0,0,0,.20)!important;
+    }
+    .oryonMobileLiveBar button.primary{
+      background:linear-gradient(135deg,#a855f7,#ec4899)!important;
+    }
+
+    /* Pulse : overlay + barre compacte, pas un panneau géant. */
+    #discover .pulseDock,
+    #channel .pulseDock{
+      padding:9px!important;
+      border-radius:14px!important;
+      gap:6px!important;
+      margin:8px 0!important;
+    }
+    #discover .pulseDock strong,
+    #channel .pulseDock strong{font-size:12px!important;}
+    #discover .pulseDock small,
+    #channel .pulseDock small{font-size:11px!important;}
+    #discover .pulseMeter,
+    #channel .pulseMeter{display:none!important;}
+    #discover .pulseActions,
+    #channel .pulseActions{width:auto!important;display:flex!important;gap:4px!important;}
+    #discover .pulseActions button,
+    #channel .pulseActions button{min-width:32px!important;min-height:32px!important;padding:0!important;}
+    #discover .pulseButton,
+    #channel .pulseButton{right:8px!important;bottom:8px!important;min-height:36px!important;padding:0 12px!important;font-size:12px!important;}
+
+    /* Page chaîne mobile : lecteur propre, chat compact. */
+    #channel .creatorRefine .channelLiveLayout{
+      grid-template-columns:1fr!important;
+      margin:10px!important;
+      gap:10px!important;
+    }
+    #channel .creatorRefine .channelMainPlayer>.player,
+    #channel .creatorRefine .channelMainPlayer>.premiumPlayer,
+    #channel .creatorRefine .oryonMainPlayer{
+      height:clamp(190px,56.25vw,355px)!important;
+      min-height:190px!important;
+      max-height:355px!important;
+      aspect-ratio:auto!important;
+      border-radius:18px!important;
+    }
+    #channel .creatorRefine .channelMainPlayer iframe,
+    #channel .creatorRefine iframe[src*="player.twitch.tv"]{
+      width:100%!important;
+      height:100%!important;
+      min-height:0!important;
+      max-height:355px!important;
+    }
+    #channel .creatorRefine .channelLiveSidebar .chatPanel,
+    #channel .nativeFixedChat{
+      height:min(34vh,300px)!important;
+      min-height:230px!important;
+      max-height:300px!important;
+      border-radius:18px!important;
+    }
+
+    .softEntryCard{display:none!important;}
+    .deckLurkerWrap{margin:12px 10px 0!important;}
+  }
+  `;
+  document.head.appendChild(st);
+
+  function isMobile(){return window.matchMedia && window.matchMedia('(max-width:760px)').matches;}
+  function ensureMobileLiveBar(){
+    if(!isMobile()) return;
+    const host=document.querySelector('#discover .watchShell.twitchWatch, #discover .proPlayerGrid');
+    if(!host || host.querySelector('.oryonMobileLiveBar')) return;
+    const bar=document.createElement('div');
+    bar.className='oryonMobileLiveBar';
+    bar.innerHTML=`<button class="primary" type="button" onclick="addCurrentLiveToDeck?.()">+ Deck</button><button type="button" onclick="document.body.classList.toggle('oryonMobileChatOpen')">Chat</button><button type="button" onclick="zapNext?.()">Suivant</button>`;
+    const player=host.querySelector('.player,.premiumPlayer') || host.firstElementChild;
+    if(player) player.insertAdjacentElement('afterend',bar);
+  }
+  function closeMobileChatByDefault(){
+    if(isMobile()) document.body.classList.remove('oryonMobileChatOpen');
+  }
+  function run(){
+    closeMobileChatByDefault();
+    ensureMobileLiveBar();
+  }
+  const wrapNames=['renderZap','renderDiscover','hfWatchCurrent','zapOpenCurrent','mountTwitchPlayer','renderChannel'];
+  wrapNames.forEach(name=>{
+    const fn=window[name];
+    if(typeof fn==='function' && !fn.__oryonSaneWrapped){
+      const wrapped=function(){
+        const out=fn.apply(this,arguments);
+        Promise.resolve(out).finally(()=>setTimeout(run,80));
+        return out;
+      };
+      wrapped.__oryonSaneWrapped=true;
+      window[name]=wrapped;
+    }
+  });
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(run,120));
+  setTimeout(run,120);
+})();

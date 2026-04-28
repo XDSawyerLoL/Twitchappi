@@ -7459,3 +7459,48 @@ app.get('/api/pulse/live/:key', (req, res) => {
     res.json({ success:true, pulse:publicPulseLive(data.lives?.[key]) });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
+
+// =========================================================
+// ORYON AFTERLIVE — creator summary from Pulse moments
+// =========================================================
+app.get('/api/afterlive/:login', (req, res) => {
+  try{
+    const login = String(req.params.login || '').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,80);
+    if(!login) return res.status(400).json({success:false,error:'Pseudo manquant.'});
+    const key = pulseSafeKey('oryon:' + login);
+    const data = readPulseStore();
+    const entry = data.lives?.[key] || { total:0, reactions:{}, moments:[], recent:[] };
+    const pulse = publicPulseLive(entry);
+    const reactions = pulse.reactions || {};
+    const reactionTotal = Object.values(reactions).reduce((a,b)=>a+Number(b||0),0);
+    const topReaction = Object.entries(reactions).sort((a,b)=>Number(b[1])-Number(a[1]))[0] || ['heart',0];
+    const moments = (pulse.moments || []).slice(-8).map(m => ({
+      t:Number(m.t||0),
+      label:String(m.label || 'Moment Pulse').slice(0,60),
+      count:Number(m.count||0),
+      title:String(m.title || '').slice(0,90)
+    }));
+    const score = Math.min(100, Math.round((Number(pulse.total||0)*1.8) + (moments.length*12) + (Number(pulse.hot120||0)*3)));
+    const advice = [];
+    if(Number(pulse.total||0) < 10) advice.push('Invite les viewers à pulser quand un moment leur plaît.');
+    if(!moments.length) advice.push('Les moments chauds apparaîtront quand plusieurs réactions arrivent rapidement.');
+    if(moments.length) advice.push('Revois les moments Pulse : ce sont tes meilleurs candidats pour clips et shorts.');
+    if(Number(pulse.hot120||0) > 0) advice.push('Ton live reçoit encore des signaux récents : relance une question ou une action simple.');
+    res.json({
+      success:true,
+      login,
+      key,
+      summary:{
+        totalPulse:Number(pulse.total||0),
+        reactionTotal,
+        topReaction:{type:topReaction[0],count:Number(topReaction[1]||0)},
+        moments,
+        hot30:Number(pulse.hot30||0),
+        hot120:Number(pulse.hot120||0),
+        score,
+        updatedAt:pulse.updatedAt||null,
+        advice
+      }
+    });
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
