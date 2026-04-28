@@ -720,7 +720,10 @@ app.get('/c/:login', (req, res) => {
     'NicheOptimizer.html',
     'NicheOptimizer_v56.html'
   ].filter(Boolean);
-  const candidates = rawCandidates.map(String).map(f => f.trim()).filter(f => /\.html?$/i.test(f));
+  const candidates = rawCandidates
+    .map(String)
+    .map(f => f.trim())
+    .filter(f => /\.html?$/i.test(f));
   const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
   return res.sendFile(path.join(__dirname, found));
@@ -7296,13 +7299,6 @@ function publicRecoverUserPayload(input){
     description:String(v?.description || v?.text || '').trim().slice(0,220),
     link_url:sanitizePanelUrl(v?.link_url || v?.url || v?.href || '')
   })).filter(v=>v.image_url).slice(0,8);
-  const linksRaw = Array.isArray(input?.channel_links || input?.user?.channel_links) ? (input.channel_links || input.user.channel_links) : [];
-  const channel_links = linksRaw.map((l, idx) => ({
-    label:String(l?.label || l?.title || '').trim().slice(0,40),
-    url:sanitizePanelUrl(l?.url || l?.href || l?.link || ''),
-    kind:String(l?.kind || l?.icon_hint || '').trim().slice(0,24),
-    order:Number.isFinite(Number(l?.order)) ? Number(l.order) : idx
-  })).filter(l=>l.url).slice(0,8);
   return {
     login,
     display_name:String(input?.display_name || input?.user?.display_name || login).trim().slice(0,40) || login,
@@ -7314,8 +7310,7 @@ function publicRecoverUserPayload(input){
     tags:safeTags(input?.tags || input?.user?.tags || []),
     channel_badges:Array.isArray(input?.channel_badges || input?.user?.channel_badges) ? (input.channel_badges || input.user.channel_badges).map(b=>({icon:String(b?.icon||'').slice(0,4),label:String(b?.label||'').slice(0,28),note:String(b?.note||'').slice(0,70)})).filter(b=>b.icon&&b.label).slice(0,8) : [],
     channel_panels:panels,
-    channel_vignettes:panels,
-    channel_links
+    channel_vignettes:panels
   };
 }
 app.post('/api/oryon/client-recover', async (req, res) => {
@@ -7380,5 +7375,87 @@ app.post('/api/oryon/teams/recover', (req, res) => {
     }
     if(added) oryonWrite(ORYON_TEAMS_FILE,data);
     res.json({success:true,added,items:(data.teams||[]).map(publicTeam)});
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+
+
+// =========================================================
+// ORYON PULSE LIVE — silent reactions / streamer signal
+// =========================================================
+const ORYON_PULSE_FILE = path.join(ORYON_DATA_DIR || __dirname, 'oryon_pulse.json');
+
+function pulseSafeKey(v){
+  return String(v || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9:_-]/g, '')
+    .slice(0,90);
+}
+function readPulseStore(){
+  return oryonRead(ORYON_PULSE_FILE, { lives:{} });
+}
+function writePulseStore(data){
+  return oryonWrite(ORYON_PULSE_FILE, data);
+}
+function publicPulseLive(entry){
+  entry = entry || {};
+  const recent = Array.isArray(entry.recent) ? entry.recent : [];
+  const now = Date.now();
+  const hot30 = recent.filter(x => now - Number(x.t || 0) < 30000).length;
+  const hot120 = recent.filter(x => now - Number(x.t || 0) < 120000).length;
+  return {
+    total: Number(entry.total || 0),
+    hot30,
+    hot120,
+    moments: Array.isArray(entry.moments) ? entry.moments.slice(-12) : [],
+    reactions: entry.reactions || {},
+    updatedAt: entry.updatedAt || null
+  };
+}
+app.post('/api/pulse/live', (req, res) => {
+  try{
+    const key = pulseSafeKey(req.body?.key);
+    if(!key) return res.status(400).json({success:false,error:'Clé live manquante.'});
+    const reaction = String(req.body?.reaction || 'heart').replace(/[^a-z0-9_-]/gi,'').slice(0,24) || 'heart';
+    const meta = req.body?.meta && typeof req.body.meta === 'object' ? req.body.meta : {};
+    const data = readPulseStore();
+    data.lives = data.lives || {};
+    const entry = data.lives[key] || { total:0, reactions:{}, recent:[], moments:[] };
+    const now = Date.now();
+    entry.total = Number(entry.total || 0) + 1;
+    entry.reactions = entry.reactions || {};
+    entry.reactions[reaction] = Number(entry.reactions[reaction] || 0) + 1;
+    entry.recent = (Array.isArray(entry.recent) ? entry.recent : []).filter(x => now - Number(x.t || 0) < 180000);
+    entry.recent.push({ t:now, reaction });
+    const hot30 = entry.recent.filter(x => now - Number(x.t || 0) < 30000).length;
+    entry.moments = Array.isArray(entry.moments) ? entry.moments : [];
+    const lastMoment = entry.moments[entry.moments.length - 1];
+    if(hot30 >= 8 && (!lastMoment || now - Number(lastMoment.t || 0) > 45000)){
+      entry.moments.push({
+        t: now,
+        label: 'Moment Pulse',
+        count: hot30,
+        title: String(meta.title || meta.name || 'Live').slice(0,90)
+      });
+      entry.moments = entry.moments.slice(-20);
+    }
+    entry.meta = {
+      source: String(meta.source || '').slice(0,30),
+      login: String(meta.login || '').slice(0,80),
+      name: String(meta.name || '').slice(0,100),
+      game: String(meta.game || '').slice(0,100),
+      title: String(meta.title || '').slice(0,160)
+    };
+    entry.updatedAt = now;
+    data.lives[key] = entry;
+    writePulseStore(data);
+    res.json({ success:true, pulse:publicPulseLive(entry) });
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+app.get('/api/pulse/live/:key', (req, res) => {
+  try{
+    const key = pulseSafeKey(req.params.key);
+    const data = readPulseStore();
+    res.json({ success:true, pulse:publicPulseLive(data.lives?.[key]) });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
