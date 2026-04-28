@@ -5660,3 +5660,151 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   mo.observe(document.documentElement,{childList:true,subtree:true});
   setTimeout(()=>{finalClean(); if(['home','discover','studio'].includes(state.view)) setView(state.view);},80);
 })();
+
+
+/* =========================================================
+   Oryon hard repair — Discover restore + mobile discipline
+   ========================================================= */
+(function(){
+  const st=document.createElement('style');
+  st.id='oryonHardRepairStyle';
+  st.textContent=`
+  html,body{overflow-x:hidden!important;max-width:100%!important}
+  .view,.page,#home,#discover,#channel,#studio,#settings,#manager{max-width:100vw!important;overflow-x:hidden!important}
+  #home .deckLurkerWrap,#home .multiWatchDock,#home [data-deck-lurker-slot],
+  #home .deckLurkPanel,#home .deckLurkerPanel{display:none!important}
+
+  #discover{padding-inline:clamp(14px,3vw,42px)!important;padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important}
+  #discover .hfDiscover{width:min(1240px,100%)!important;margin:0 auto!important;display:grid!important;gap:18px!important}
+  #discover .hfDiscoverHero{min-height:unset!important;height:auto!important;padding:clamp(18px,3vw,36px)!important;border-radius:28px!important;display:flex!important;align-items:end!important;justify-content:space-between!important;gap:16px!important;overflow:hidden!important}
+  #discover .hfDiscoverHero h1{font-size:clamp(42px,7vw,82px)!important;line-height:.9!important;margin:8px 0 8px!important}
+  #discover .hfDiscoverHero p{font-size:clamp(14px,2.2vw,18px)!important;max-width:760px!important}
+  #discover .hfMoodPanel{padding:clamp(14px,2.5vw,24px)!important;border-radius:26px!important;min-height:0!important;height:auto!important;overflow:hidden!important}
+  #discover .hfMoodGrid{display:grid!important;grid-template-columns:repeat(6,minmax(130px,1fr))!important;gap:12px!important}
+  #discover .hfMoodCard{min-height:118px!important;height:auto!important;padding:14px!important;text-align:left!important;overflow:hidden!important}
+  #discover .hfMoodCard i{font-size:25px!important}
+  #discover .hfMoodCard b{font-size:15px!important}
+  #discover .hfMoodCard span{font-size:12px!important;line-height:1.25!important}
+  #discover .hfAdvanced{margin-top:12px!important}
+  #discover #zapResult{display:block!important;min-height:0!important;width:100%!important;max-width:100%!important;overflow:visible!important}
+  #discover #zapResult:empty{display:none!important}
+  #discover .discoverMobileActionBar{position:sticky;bottom:calc(68px + env(safe-area-inset-bottom,0px));z-index:20;display:none;gap:8px;padding:10px;margin-top:-8px;border:1px solid rgba(148,163,184,.16);border-radius:18px;background:rgba(6,10,22,.88);backdrop-filter:blur(18px)}
+  #discover .discoverMobileActionBar .btn{flex:1;min-height:42px;border-radius:14px}
+  #discover .mobileChatDrawer{max-height:46vh!important;overflow:hidden!important}
+  #discover .mobileChatDrawer.hidden{display:none!important}
+
+  .discoverFallbackCard{border:1px solid rgba(148,163,184,.18);border-radius:30px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(6,182,212,.10),rgba(15,23,42,.92));padding:clamp(22px,4vw,44px);min-height:360px;display:grid;place-items:center;text-align:center}
+  .discoverFallbackCard h2{font-size:clamp(34px,5vw,64px);line-height:.95;margin:0 0 12px}
+  .discoverFallbackCard p{color:#b8c6dd;margin:0 auto 20px;max-width:680px;font-size:16px}
+  .discoverFallbackCard .row{justify-content:center}
+
+  #channel .softEntryCard,#channel .pulsePanel.dupe,#channel .deckLurkerWrap,#channel .multiWatchDock{display:none!important}
+  #channel .pulseButton,.pulseButton{transform:scale(.82)!important;transform-origin:right bottom!important;padding:8px 12px!important;font-size:13px!important;border-radius:999px!important}
+  #channel .channelLiveLayout{max-width:100%!important;overflow:hidden!important}
+  #channel .channelLiveSidebar .chatAssist{display:flex!important;gap:8px!important;flex-wrap:wrap!important}
+  #channel .channelLiveSidebar .chatAssist button{flex:1 1 90px!important;min-height:38px!important;font-size:13px!important}
+  #channel .channelLiveSidebar .chatForm{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important}
+  #channel .channelLiveSidebar .chatForm .btn.secondary{font-size:12px!important;padding-inline:8px!important}
+  #channel .channelLiveSidebar .chatForm button:last-child{grid-column:auto!important}
+
+  @media(max-width:760px){
+    #discover{padding-inline:14px!important;padding-top:12px!important}
+    #discover .hfDiscover{gap:14px!important}
+    #discover .hfDiscoverHero{padding:18px!important;border-radius:24px!important;margin:0!important}
+    #discover .hfDiscoverHint{display:none!important}
+    #discover .hfDiscoverHero h1{font-size:42px!important;letter-spacing:-.055em!important}
+    #discover .hfDiscoverHero p{font-size:13px!important;line-height:1.35!important}
+    #discover .hfMoodHead h2{font-size:26px!important}
+    #discover .hfMoodGrid{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;padding-bottom:8px!important;gap:10px!important}
+    #discover .hfMoodCard{flex:0 0 164px!important;min-height:104px!important;scroll-snap-align:start!important;padding:12px!important}
+    #discover .hfMoodCard b{font-size:14px!important}
+    #discover .hfMoodCard span{font-size:11px!important}
+    #discover .hfAdvanced summary{min-height:44px!important;font-size:14px!important}
+    #discover .hfAdvancedBody{grid-template-columns:1fr!important}
+    #discover #zapResult{margin-top:4px!important}
+    #discover #zapResult .player,#discover iframe[src*="twitch"]{width:100%!important;max-width:100%!important;aspect-ratio:16/9!important;height:auto!important;min-height:0!important;max-height:52vh!important}
+    #discover .discoverMobileActionBar{display:flex!important}
+    #discover .discoverFallbackCard{min-height:280px!important;padding:22px!important;border-radius:24px!important}
+    #discover .discoverFallbackCard h2{font-size:34px!important}
+    #discover .discoverFallbackCard p{font-size:13px!important}
+
+    #channel .channelTopHero{min-height:270px!important}
+    #channel .channelHeroContent{padding:18px!important}
+    #channel .channelIdentity{align-items:center!important;gap:12px!important}
+    #channel .channelIdentity .avatar{width:96px!important;height:96px!important;min-width:96px!important;border-radius:24px!important}
+    #channel .channelTitleBlock h1{font-size:44px!important;line-height:.9!important}
+    #channel .channelSubNav{display:flex!important;overflow-x:auto!important;gap:10px!important;padding-inline:14px!important}
+    #channel .channelLiveLayout{display:grid!important;grid-template-columns:1fr!important;gap:12px!important;margin-inline:14px!important}
+    #channel .channelMainPlayer .player{aspect-ratio:16/9!important;height:auto!important;min-height:0!important;max-height:52vh!important}
+    #channel .channelLiveSidebar .chatPanel{min-height:0!important;height:auto!important;max-height:360px!important;overflow:hidden!important}
+    #channel .channelLiveSidebar .chatLog{max-height:130px!important;min-height:80px!important}
+    #channel .channelLiveSidebar .chatAssist button{min-height:38px!important;font-size:13px!important;padding:8px!important}
+    #channel .channelLiveSidebar .chatForm input{min-height:40px!important}
+    #channel .bioPremium,#channel .aboutComposite{margin-inline:14px!important;border-radius:22px!important;padding:18px!important}
+  }
+  `;
+  document.head.appendChild(st);
+
+  function removeBazar(){
+    document.querySelectorAll('#home .deckLurkerWrap,#home .multiWatchDock,#home [data-deck-lurker-slot],#home .deckLurkPanel,#home .deckLurkerPanel').forEach(el=>el.remove());
+    document.querySelectorAll('#channel .softEntryCard,#channel .deckLurkerWrap,#channel .multiWatchDock').forEach(el=>el.remove());
+    const channelEntries=[...document.querySelectorAll('#channel *')].filter(el=>/Pourquoi entrer ici/i.test(el.textContent||''));
+    channelEntries.forEach(el=>{ if(el.className && String(el.className).length<120) el.remove(); });
+  }
+  window.oryonHardClean=removeBazar;
+
+  window.renderHome = async function renderHomeRestored(){
+    const el=document.querySelector('#home'); if(!el) return;
+    const streamView=(typeof streamTargetView==='function'?streamTargetView():'manager');
+    const streamLabel=(typeof streamTargetLabel==='function'?streamTargetLabel():'Streamer sur Oryon');
+    const moods=(Array.isArray(window.AMBIANCES)?window.AMBIANCES:AMBIANCES).slice(0,6);
+    el.innerHTML=`<div class="owHomeFull homeClean"><section class="owHeroTheater homeCleanHero"><div class="owHeroCopy homeCleanCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Oryon</span><h1>Des lives à taille humaine.</h1><p>Découvre des lives publics, garde tes favoris ailleurs, et lance ton propre live Oryon.</p><div class="owMoodStrip">${moods.map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';setView('discover')">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive?.()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamView}')">${esc(streamLabel)}</button><button class="btn secondary" onclick="setView('discover')">Swap ton mood</button></div></div><div id="homeShowcaseLives" class="owLiveTheater homeCleanLives"></div></section><section class="homeStreamerStrip"><div><h2>Créer sur Oryon</h2><p>Ta chaîne, ton lecteur, ton chat, tes vignettes, tes emotes et ton AfterLive.</p></div><button class="btn streamBtn" onclick="setView('${streamView}')">${esc(streamLabel)}</button></section></div>`;
+    try{ await loadHomeRecommendations?.(); }catch(e){ console.warn(e); }
+    closeMini?.();
+    removeBazar();
+  };
+
+  window.renderDiscover = async function renderDiscoverRestored(){
+    const el=document.querySelector('#discover'); if(!el) return;
+    const current=state.moodFirstMood||'petite-commu';
+    if(state.zap){ state.zap.items=[]; state.zap.index=0; }
+    state.discoverPlayer=null;
+    const amb=Array.isArray(window.AMBIANCES)?window.AMBIANCES:AMBIANCES;
+    el.innerHTML=`<div class="hfDiscover"><section class="hfDiscoverHero"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Swap ton mood.</h1><p>Un tap lance une vraie proposition. Ensuite tu swipes, tu gardes, ou tu passes.</p></div><div class="hfDiscoverHint"><span>mood</span><span>live</span><span>swipe</span></div></section><section class="hfMoodPanel"><div class="hfMoodHead"><h2>Ambiance</h2><span class="moodFirstSelected">${esc(typeof moodFirstLabel==='function'?moodFirstLabel(current):current)}</span></div><div class="hfMoodGrid">${amb.map(([id,label,desc,icon])=>`<button class="hfMoodCard ${id===current?'active':''}" onclick="setDiscoverMood('${esc(id)}')"><i>${icon||''}</i><b>${esc(label)}</b><span>${esc(desc||'')}</span></button>`).join('')}</div><details class="hfAdvanced"><summary>Options avancées</summary><div class="hfAdvancedBody"><input id="dQuery" placeholder="jeu, pseudo, ambiance" onkeydown="if(event.key==='Enter')findLive?.()"><select id="dMax"><option value="80">≤80</option><option value="150" selected>≤150</option><option value="300">≤300</option><option value="500">≤500</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn secondary" onclick="localStorage.removeItem(hfSeenKey?.()||'oryon_seen');findLive?.()">Réinitialiser</button><button class="btn" onclick="findLive?.()">Relancer</button></div></details></section><section id="zapResult"><div class="discoverFallbackCard"><div><h2>Prêt à swiper.</h2><p>Choisis une ambiance ou lance une proposition. Oryon cherche un live qui correspond, pas une liste froide.</p><div class="row"><button class="btn" onclick="findLive?.()">Propose-moi un live</button><button class="btn secondary" onclick="setView('home')">Retour accueil</button></div></div></div></section><div class="discoverMobileActionBar"><button class="btn secondary" onclick="addCurrentToDeck?.()">+ Deck</button><button class="btn secondary" onclick="toggleDiscoverChat?.()">Chat</button><button class="btn" onclick="findLive?.()">Suivant</button></div></div>`;
+    applyViewerThemeColor?.();
+    closeMini?.();
+    removeBazar();
+    setTimeout(async()=>{ try{ await findLive?.(); }catch(e){ console.warn(e); } },120);
+    setTimeout(()=>{ 
+      const z=document.querySelector('#zapResult');
+      if(z && !z.querySelector('iframe,.discoverCard,.zapCard,.liveCard,.player') && !/Aucun live|Prêt à swiper/i.test(z.textContent||'')){
+        z.innerHTML=`<div class="discoverFallbackCard"><div><h2>On relance.</h2><p>Aucun live exploitable n’a été affiché. Essaie une autre ambiance ou relance la recherche.</p><button class="btn" onclick="findLive?.()">Relancer</button></div></div>`;
+      }
+      removeBazar();
+    },1600);
+  };
+
+  const oldSetMood=window.setDiscoverMood;
+  window.setDiscoverMood=function(id){
+    state.moodFirstMood=id;
+    const cards=document.querySelectorAll('#discover .hfMoodCard');
+    cards.forEach(c=>c.classList.remove('active'));
+    if(typeof oldSetMood==='function'){
+      try{ oldSetMood(id); return; }catch(e){ console.warn(e); }
+    }
+    renderDiscover?.();
+  };
+
+  const oldSetView=window.setView;
+  if(typeof oldSetView==='function' && !oldSetView.__hardRepairWrapped){
+    const wrapped=function(view,...args){
+      const r=oldSetView.call(this,view,...args);
+      setTimeout(removeBazar,60);
+      setTimeout(removeBazar,500);
+      return r;
+    };
+    wrapped.__hardRepairWrapped=true;
+    window.setView=wrapped;
+  }
+  setInterval(removeBazar,1400);
+})();
