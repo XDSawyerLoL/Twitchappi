@@ -5439,3 +5439,224 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   document.addEventListener('DOMContentLoaded',()=>setTimeout(cleanupOryonBazar,80));
   setTimeout(cleanupOryonBazar,120);
 })();
+
+/* =========================================================
+   FINAL APP-WIDE MOBILE + CREATOR TOOLS REPAIR
+   Scope: remove DeckLurker from home, fix Discover/channel mobile layout,
+   shrink Pulse, and make creator tools useful instead of empty.
+   ========================================================= */
+(function finalOryonGlobalAudit(){
+  const old=document.getElementById('oryonFinalGlobalAuditStyle');
+  if(old) old.remove();
+  const st=document.createElement('style');
+  st.id='oryonFinalGlobalAuditStyle';
+  st.textContent=`
+  html,body{width:100%;max-width:100%;overflow-x:hidden!important;}
+  *,*::before,*::after{box-sizing:border-box;}
+  .view{max-width:100%;overflow-x:hidden;}
+  img,video,iframe{max-width:100%;}
+
+  /* Accueil: jamais de DeckLurker dans la vitrine. */
+  #home .deckLurkerWrap,
+  #home [data-deck-lurker-slot],
+  #home #multiWatchDock{display:none!important;}
+
+  /* Pulse doit rester une action compacte, pas un panneau envahissant. */
+  .pulseButton{min-height:34px!important;padding:0 11px!important;border-radius:999px!important;font-size:12px!important;gap:5px!important;box-shadow:0 12px 26px rgba(236,72,153,.28)!important;}
+  .pulseDock{padding:10px!important;border-radius:18px!important;}
+  .pulseActions button{min-height:34px!important;width:38px!important;min-width:38px!important;padding:0!important;border-radius:999px!important;}
+
+  /* Discover: structure contenue et centrée sur PC. */
+  #discover .hfDiscover{width:min(1180px,100%);margin:0 auto;padding:22px 18px 120px;overflow:hidden;}
+  #discover .hfDiscoverHero,#discover .hfMoodPanel,#discover .hfPanel{width:100%;max-width:100%;overflow:hidden;}
+  #discover #zapResult{width:100%;max-width:100%;margin:16px auto 0;overflow:hidden;}
+  #discover .watchShell,#discover .proPlayerGrid,#discover .spotlightFusion,#discover .flowStage{width:100%;max-width:100%;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(280px,360px)!important;gap:14px!important;align-items:start!important;overflow:hidden!important;}
+  #discover .zapCard,#discover .flowLive,#discover .hfLiveCard,#discover .liveContext{max-width:100%;min-width:0;}
+  #discover .player,#discover .premiumPlayer,#discover .twitchPlayer,#discover .hfLivePlayer,#discover .flowLive{width:100%!important;max-width:100%!important;aspect-ratio:16/9!important;height:auto!important;min-height:0!important;max-height:min(72vh,720px)!important;overflow:hidden!important;background:#000!important;border-radius:24px!important;position:relative!important;}
+  #discover .player iframe:not([src*="chat"]),#discover .premiumPlayer iframe:not([src*="chat"]),#discover .twitchPlayer iframe:not([src*="chat"]),#discover .hfLivePlayer iframe:not([src*="chat"]){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0!important;}
+  #discover .twitchChat,#discover .chatPanel{height:clamp(320px,48vh,620px)!important;min-height:320px!important;max-height:620px!important;overflow:hidden!important;border-radius:24px!important;}
+
+  /* Channel creator desktop: propre, largeur contrôlée, pas de blocs parasites. */
+  #channel .softEntryCard,#channel .deckLurkerWrap,#channel [data-deck-lurker-slot]{display:none!important;}
+  #channel .channelPage.creatorRefine{width:100%;max-width:none;overflow:hidden;padding-bottom:96px;}
+  #channel .creatorRefine .channelLiveLayout{width:auto!important;max-width:none!important;margin:18px clamp(16px,2.5vw,46px) 0!important;display:grid!important;grid-template-columns:minmax(0,1fr) clamp(320px,25vw,420px)!important;gap:16px!important;align-items:stretch!important;overflow:visible!important;}
+  #channel .creatorRefine .channelMainPlayer{min-width:0!important;}
+  #channel .creatorRefine .channelMainPlayer>.player,#channel .creatorRefine .channelMainPlayer>.premiumPlayer,#channel .creatorRefine .oryonMainPlayer{width:100%!important;aspect-ratio:16/9!important;height:auto!important;min-height:0!important;max-height:min(75vh,820px)!important;overflow:hidden!important;border-radius:24px!important;position:relative!important;background:#000!important;}
+  #channel .creatorRefine .channelMainPlayer iframe:not([src*="chat"]){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0!important;}
+  #channel .creatorRefine .channelLiveSidebar{min-width:0!important;display:flex!important;}
+  #channel .creatorRefine .channelLiveSidebar .chatPanel{width:100%!important;height:auto!important;min-height:360px!important;max-height:min(75vh,820px)!important;display:grid!important;grid-template-rows:auto 1fr auto auto!important;overflow:hidden!important;border-radius:24px!important;}
+  #channel .creatorRefine .chatAssist{display:flex!important;gap:8px!important;padding:10px!important;}
+  #channel .creatorRefine .chatAssist button{flex:1!important;min-height:38px!important;padding:0 10px!important;border-radius:12px!important;font-size:13px!important;}
+  #channel .creatorRefine .chatForm{grid-template-columns:minmax(0,1fr) auto auto auto!important;gap:8px!important;padding:10px!important;}
+  #channel .creatorRefine .chatForm .btn,#channel .creatorRefine .chatForm button{min-height:38px!important;padding:0 10px!important;font-size:12px!important;}
+  #channel .creatorRefine .channelBelowLive{margin:18px clamp(16px,2.5vw,46px) 0!important;max-width:none!important;overflow:visible!important;}
+  #channel .creatorRefine .bioPremium,#channel .creatorRefine .aboutComposite{width:100%!important;max-width:100%!important;}
+
+  /* Outils créateur. */
+  .creatorToolsGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px;}
+  .creatorToolCard{border:1px solid rgba(148,163,184,.18);background:linear-gradient(180deg,rgba(15,23,42,.94),rgba(7,13,25,.96));border-radius:24px;padding:18px;display:grid;gap:10px;min-height:170px;align-content:start;}
+  .creatorToolCard h3{margin:0;font-size:22px;line-height:1.05;}
+  .creatorToolCard p{margin:0;color:#b8c7de;line-height:1.35;}
+  .creatorToolCard .row{margin-top:auto;}
+  .creatorQuickBar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+
+  @media(max-width:900px){
+    .creatorToolsGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+    #discover .watchShell,#discover .proPlayerGrid,#discover .spotlightFusion,#discover .flowStage{grid-template-columns:1fr!important;}
+    #channel .creatorRefine .channelLiveLayout{grid-template-columns:1fr!important;}
+  }
+
+  @media(max-width:760px){
+    body{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px));}
+    .app{padding-inline:0!important;overflow-x:hidden!important;}
+    .view.active{width:100%!important;max-width:100%!important;overflow:hidden!important;}
+
+    /* Home mobile: vitrine, pas deck. */
+    #home .owHomeFull,#home .homeClean{width:100%!important;max-width:100%!important;padding:0 14px 100px!important;overflow:hidden!important;}
+    #home .owHeroTheater,#home .homeCleanHero{display:grid!important;grid-template-columns:1fr!important;gap:14px!important;padding:18px!important;border-radius:24px!important;}
+    #home .owHeroCopy h1,#home .homeCleanCopy h1{font-size:clamp(40px,12vw,58px)!important;line-height:.9!important;}
+    #home .owLiveTheater,#home .homeCleanLives{display:flex!important;gap:12px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;padding-bottom:8px!important;min-height:auto!important;}
+    #home .owShowCard,#home .homeRecCard{min-width:82vw!important;width:82vw!important;height:58vh!important;max-height:520px!important;scroll-snap-align:center!important;}
+    #home .homeStreamerStrip{margin-top:14px!important;border-radius:22px!important;padding:16px!important;}
+
+    /* Discover mobile: pas de débordement horizontal, mood en rail, live sous les options. */
+    #discover .hfDiscover{width:100%!important;padding:14px 14px 110px!important;margin:0!important;overflow:hidden!important;}
+    #discover .hfDiscoverHero{padding:18px!important;border-radius:22px!important;min-height:0!important;}
+    #discover .hfDiscoverHero h1{font-size:clamp(38px,11vw,54px)!important;line-height:.92!important;}
+    #discover .hfDiscoverHero p{font-size:14px!important;line-height:1.35!important;}
+    #discover .hfMoodPanel{padding:14px!important;border-radius:22px!important;overflow:hidden!important;}
+    #discover .hfMoodHead h2{font-size:28px!important;}
+    #discover .hfMoodGrid{display:flex!important;gap:10px!important;overflow-x:auto!important;scroll-snap-type:x proximity!important;padding:4px 2px 8px!important;grid-template-columns:none!important;}
+    #discover .hfMoodCard{flex:0 0 168px!important;min-width:168px!important;max-width:168px!important;min-height:104px!important;padding:13px!important;border-radius:18px!important;scroll-snap-align:start!important;}
+    #discover .hfMoodCard i{font-size:26px!important;}
+    #discover .hfMoodCard b{font-size:16px!important;}
+    #discover .hfMoodCard span{font-size:11px!important;line-height:1.25!important;}
+    #discover .hfAdvanced{border-radius:18px!important;overflow:hidden!important;}
+    #discover .hfAdvanced summary{min-height:44px!important;font-size:15px!important;padding:0 14px!important;display:flex!important;align-items:center!important;}
+    #discover .hfAdvancedBody{display:grid!important;grid-template-columns:1fr!important;gap:9px!important;padding:12px!important;}
+    #discover #zapResult{margin:14px 0 0!important;width:100%!important;max-width:100%!important;overflow:hidden!important;}
+    #discover #zapResult>*{width:100%!important;max-width:100%!important;margin-left:0!important;margin-right:0!important;transform:none!important;left:auto!important;right:auto!important;}
+    #discover .watchShell,#discover .watchShell.twitchWatch,#discover .proPlayerGrid,#discover .spotlightFusion,#discover .flowStage,#discover .liveContext{display:grid!important;grid-template-columns:1fr!important;width:100%!important;max-width:100%!important;gap:10px!important;overflow:hidden!important;}
+    #discover .player,#discover .premiumPlayer,#discover .twitchPlayer,#discover .hfLivePlayer,#discover .flowLive,#discover div:has(> iframe[src*="player.twitch.tv"]){width:100%!important;height:clamp(190px,56.25vw,340px)!important;min-height:190px!important;max-height:340px!important;aspect-ratio:16/9!important;border-radius:18px!important;overflow:hidden!important;position:relative!important;background:#000!important;transform:none!important;}
+    #discover iframe[src*="player.twitch.tv"]:not([src*="chat"]),#discover .player iframe:not([src*="chat"]),#discover .premiumPlayer iframe:not([src*="chat"]),#discover .twitchPlayer iframe:not([src*="chat"]){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-height:340px!important;min-height:0!important;border:0!important;}
+    #discover .twitchChat,#discover .chatPanel,#discover iframe[src*="chat"]{display:none!important;}
+    body.oryonMobileChatOpen #discover .twitchChat,body.oryonMobileChatOpen #discover .chatPanel{display:block!important;height:260px!important;min-height:220px!important;max-height:260px!important;border-radius:18px!important;overflow:hidden!important;}
+    body.oryonMobileChatOpen #discover iframe[src*="chat"]{display:block!important;width:100%!important;height:100%!important;position:static!important;}
+    #discover .pulseButton{right:8px!important;bottom:8px!important;min-height:32px!important;font-size:11px!important;padding:0 9px!important;}
+
+    /* Channel mobile: header, player, chat, bio, à propos dans une colonne saine. */
+    #channel .channelPage.creatorRefine{padding:0 0 104px!important;overflow:hidden!important;}
+    #channel .creatorRefine .channelTopHero{min-height:330px!important;border-radius:0 0 24px 24px!important;overflow:hidden!important;}
+    #channel .creatorRefine .channelHeroContent{position:absolute!important;left:0!important;right:0!important;bottom:0!important;padding:18px 14px!important;display:grid!important;grid-template-columns:1fr!important;gap:12px!important;}
+    #channel .creatorRefine .channelIdentity{display:flex!important;align-items:flex-end!important;gap:12px!important;flex-direction:row!important;min-width:0!important;}
+    #channel .creatorRefine .channelIdentity .avatar{width:96px!important;height:96px!important;min-width:96px!important;border-radius:24px!important;}
+    #channel .creatorRefine .channelTitleBlock{min-width:0!important;max-width:calc(100vw - 136px)!important;gap:7px!important;}
+    #channel .creatorRefine .channelTitleBlock h1{font-size:clamp(38px,12vw,56px)!important;line-height:.9!important;white-space:normal!important;overflow-wrap:anywhere!important;}
+    #channel .creatorRefine .channelTitleBlock p{font-size:13px!important;line-height:1.25!important;}
+    #channel .creatorRefine .channelBadgesBar{display:flex!important;gap:6px!important;overflow-x:auto!important;flex-wrap:nowrap!important;padding-bottom:3px!important;}
+    #channel .creatorRefine .channelBadgesBar .pill{white-space:nowrap!important;font-size:11px!important;padding:6px 8px!important;}
+    #channel .creatorRefine .channelActionDock{display:flex!important;gap:8px!important;overflow-x:auto!important;padding-bottom:4px!important;}
+    #channel .creatorRefine .channelActionDock .btn{min-height:40px!important;padding:0 12px!important;font-size:13px!important;white-space:nowrap!important;}
+    #channel .creatorRefine .channelSubNav{margin:0!important;padding:0 14px!important;overflow-x:auto!important;display:flex!important;gap:8px!important;position:sticky!important;top:0!important;z-index:30!important;background:rgba(5,7,13,.96)!important;border-bottom:1px solid rgba(148,163,184,.14)!important;}
+    #channel .creatorRefine .channelSubNav button{min-width:max-content!important;padding:14px 12px!important;font-size:14px!important;}
+    #channel .creatorRefine .channelLiveLayout{margin:14px!important;display:grid!important;grid-template-columns:1fr!important;gap:10px!important;}
+    #channel .creatorRefine .channelMainPlayer>.player,#channel .creatorRefine .channelMainPlayer>.premiumPlayer,#channel .creatorRefine .oryonMainPlayer,#channel .creatorRefine div:has(> iframe[src*="player.twitch.tv"]){width:100%!important;height:clamp(190px,56.25vw,340px)!important;min-height:190px!important;max-height:340px!important;aspect-ratio:16/9!important;border-radius:18px!important;overflow:hidden!important;position:relative!important;background:#000!important;}
+    #channel .creatorRefine .channelMainPlayer iframe:not([src*="chat"]){position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:0!important;}
+    #channel .creatorRefine .channelLiveSidebar .chatPanel{height:260px!important;min-height:220px!important;max-height:260px!important;border-radius:18px!important;}
+    #channel .creatorRefine .chatHeader{min-height:44px!important;padding:8px 10px!important;}
+    #channel .creatorRefine .chatHeader .btn{min-height:36px!important;padding:0 10px!important;font-size:12px!important;}
+    #channel .creatorRefine .chatAssist{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:7px!important;padding:8px!important;}
+    #channel .creatorRefine .chatAssist button{min-height:36px!important;font-size:12px!important;padding:0 6px!important;}
+    #channel .creatorRefine .chatForm{grid-template-columns:minmax(0,1fr) auto auto auto!important;gap:6px!important;padding:8px!important;}
+    #channel .creatorRefine .chatForm input{min-width:0!important;height:36px!important;font-size:12px!important;}
+    #channel .creatorRefine .chatForm .btn,#channel .creatorRefine .chatForm button{height:36px!important;min-height:36px!important;padding:0 8px!important;font-size:11px!important;}
+    #channel .creatorRefine .pulseButton{right:8px!important;bottom:8px!important;min-height:32px!important;padding:0 9px!important;font-size:11px!important;}
+    #channel .creatorRefine .pulseDock{display:none!important;}
+    #channel .creatorRefine .channelBelowLive{margin:12px 14px 0!important;}
+    #channel .creatorRefine .bioPremium{padding:18px!important;border-radius:20px!important;margin-bottom:12px!important;}
+    #channel .creatorRefine .bioPremium h2{font-size:28px!important;}
+    #channel .creatorRefine .aboutComposite{padding:18px!important;border-radius:22px!important;display:grid!important;grid-template-columns:1fr!important;gap:14px!important;}
+    #channel .creatorRefine .vignetteGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;}
+    #channel .creatorRefine .vignetteHead h2{font-size:28px!important;}
+    #channel .creatorRefine .vignetteHint{font-size:12px!important;}
+    #channel .creatorRefine .shareLine input{min-width:0!important;width:100%!important;}
+    #channel .creatorRefine .linksSide{padding:14px!important;border-radius:18px!important;}
+
+    .creatorToolsGrid{grid-template-columns:1fr!important;}
+    .creatorToolCard{padding:16px!important;min-height:0!important;border-radius:20px!important;}
+    .creatorLayout{padding:0 14px 110px!important;}
+    .creatorSide{margin:0 -14px 12px!important;}
+  }
+  `;
+  document.head.appendChild(st);
+
+  function finalClean(){
+    document.querySelectorAll('#home .deckLurkerWrap,#home [data-deck-lurker-slot],#home #multiWatchDock').forEach(el=>el.remove());
+    document.querySelectorAll('#discover .deckLurkerWrap,#discover [data-deck-lurker-slot],#channel .deckLurkerWrap,#channel [data-deck-lurker-slot],.softEntryCard').forEach(el=>el.remove());
+    if(matchMedia('(max-width:760px)').matches){
+      document.querySelectorAll('#discover #zapResult > *').forEach(el=>{el.style.maxWidth='100%';el.style.transform='none';el.style.marginLeft='0';el.style.marginRight='0';});
+    }
+  }
+
+  window.renderHome = async function renderHomeFinal(){
+    const el=$('#home'); if(!el) return;
+    el.innerHTML=`<div class="owHomeFull homeClean"><section class="owHeroTheater homeCleanHero"><div class="owHeroCopy homeCleanCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Oryon</span><h1>Des lives à taille humaine.</h1><p>Accueil = vitrine. Pas de salon de lurk ici. Découvre des lives, ou lance ton propre live Oryon.</p><div class="owMoodStrip">${AMBIANCES.slice(0,6).map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';autoProposeLive?.()">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive?.()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Oryon')}</button><button class="btn secondary" onclick="setView('discover')">Swap ton mood</button></div></div><div id="homeShowcaseLives" class="owLiveTheater homeCleanLives"></div></section><div class="homeOnlyMain"><section class="homeStreamerStrip"><div><h2>Créer sur Oryon</h2><p>Page chaîne, chat, vignettes, emotes, planning et résumé AfterLive sont dans les outils créateur.</p></div><button class="btn streamBtn" onclick="setView('${streamTargetView?.()||'manager'}')">${esc(streamTargetLabel?.()||'Streamer sur Oryon')}</button></section></div></div>`;
+    await loadHomeRecommendations?.();
+    applyViewerThemeColor?.();
+    closeMini?.();
+    finalClean();
+  };
+
+  window.renderDiscover = async function renderDiscoverFinal(){
+    const el=$('#discover'); if(!el) return;
+    const current=state.moodFirstMood||'petite-commu';
+    el.innerHTML=`<div class="hfDiscover"><section class="hfDiscoverHero"><div><span class="eyebrow"><i class="dot"></i>Oryon Flow</span><h1>Swap ton mood.</h1><p>Choisis une ambiance. Oryon propose un live. Tu swipes, tu gardes, ou tu passes.</p></div><div class="hfDiscoverHint"><span>mood</span><span>live</span><span>swipe</span></div></section><section class="hfMoodPanel"><div class="hfMoodHead"><h2>Ambiance</h2><span class="moodFirstSelected">${esc(moodFirstLabel?.(current)||current)}</span></div><div class="hfMoodGrid">${AMBIANCES.map(([id,label,desc,icon])=>`<button class="hfMoodCard ${id===current?'active':''}" onclick="setDiscoverMood('${esc(id)}')"><i>${icon}</i><b>${esc(label)}</b><span>${esc(desc)}</span></button>`).join('')}</div><details class="hfAdvanced"><summary>Options avancées</summary><div class="hfAdvancedBody"><input id="dQuery" placeholder="jeu, pseudo, ambiance" onkeydown="if(event.key==='Enter')findLive?.()"><select id="dMax"><option value="80">≤80</option><option value="150" selected>≤150</option><option value="300">≤300</option><option value="500">≤500</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn secondary" onclick="localStorage.removeItem(hfSeenKey?.()||'');findLive?.()">Réinitialiser</button><button class="btn" onclick="findLive?.()">Relancer</button></div></details></section><section id="zapResult"></section></div>`;
+    applyViewerThemeColor?.();
+    finalClean();
+    if(!state.zap?.last && typeof findLive==='function') setTimeout(()=>findLive(),80);
+  };
+
+  window.renderStudio = function renderStudioFinal(){
+    if(!state.session.local){$('#studio').innerHTML=authRequired();return;}
+    const body=`<div class="pageHead"><div><h1>Outils créateur</h1><p>Un vrai centre de contrôle pour préparer ta chaîne, ton live et ton après-live.</p></div><div class="creatorQuickBar"><button class="btn" onclick="setView('manager')">Lancer un live</button><button class="btn secondary" onclick="state.watchRoom=null;setView('channel')">Voir ma chaîne</button></div></div><div class="creatorToolsGrid"><article class="creatorToolCard"><span class="pill">Chaîne</span><h3>Page publique</h3><p>Bannière, logo, bio, vignettes cliquables et liens rapides.</p><div class="row"><button class="btn" onclick="setView('settings')">Modifier profil</button><button class="btn secondary" onclick="state.watchRoom=null;setView('channel')">Prévisualiser</button></div></article><article class="creatorToolCard"><span class="pill">Live</span><h3>Gestionnaire</h3><p>Lancement navigateur, OBS avec Oryon Live, titre, catégorie et tags.</p><div class="row"><button class="btn" onclick="setView('manager')">Ouvrir</button></div></article><article class="creatorToolCard"><span class="pill">Tchat</span><h3>Emotes & badges</h3><p>Ajoute des emotes utilisables dans le tchat et des badges visibles sur la chaîne.</p><div class="row"><button class="btn" onclick="studioSec(null,'Émoticônes')">Émotes</button><button class="btn secondary" onclick="studioSec(null,'Badges de chaîne')">Badges</button></div></article><article class="creatorToolCard"><span class="pill">Planning</span><h3>Prochains lives</h3><p>Annonce tes horaires pour que les viewers sachent quand revenir.</p><div class="row"><button class="btn" onclick="setView('settings');setTimeout(()=>document.getElementById('planningSettings')?.scrollIntoView({behavior:'smooth'}),120)">Planifier</button></div></article><article class="creatorToolCard"><span class="pill">AfterLive</span><h3>Résumé après live</h3><p>Pulse, moments chauds, conseils et actions pour transformer chaque live en progression.</p><div class="row"><button class="btn" onclick="setView('dashboard')">Voir résumé</button></div></article><article class="creatorToolCard"><span class="pill">Modération</span><h3>Chat propre</h3><p>Prépare les règles, les réactions rapides et les outils pour rendre l’entrée plus facile.</p><div class="row"><button class="btn secondary" onclick="studioSec(null,'Modération')">Configurer</button></div></article></div><div class="sideLayout section"><aside class="side"><button class="active" onclick="studioSec(this,'Résumé du stream')">Résumé</button><button onclick="studioSec(this,'Émoticônes')">Émoticônes</button><button onclick="studioSec(this,'Badges de chaîne')">Badges</button><button onclick="studioSec(this,'Drops et récompenses')">Récompenses</button><button onclick="studioSec(this,'Modération')">Modération</button><button onclick="studioSec(this,'Portefeuille')">Portefeuille</button></aside><div id="studioBody" class="panel"></div></div>`;
+    $('#studio').innerHTML=creatorShell('studio',body);
+    studioSec(null,'Résumé du stream');
+  };
+
+  const previousStudioSec=window.studioSec;
+  window.studioSec=function studioSecFinal(btn,name){
+    $$('.side button').forEach(b=>b.classList.remove('active')); btn?.classList.add('active');
+    const box=$('#studioBody'); if(!box){return previousStudioSec?.(btn,name);}
+    const blocks={
+      'Résumé du stream':`<h2>Résumé créateur</h2><div class="summaryList"><div class="summaryItem"><b>Avant live</b><p>Titre clair, catégorie, mood, image hors live et vignettes à jour.</p></div><div class="summaryItem"><b>Pendant live</b><p>Pulse Live, chat assisté, réactions rapides et DeckLurker côté viewers.</p></div><div class="summaryItem"><b>Après live</b><p>AfterLive convertit les signaux en moments et actions concrètes.</p></div></div>`,
+      'Émoticônes': typeof emoteStudio==='function'?emoteStudio():`<h2>Émoticônes</h2><p>Ajout d’emotes avec accès libre, follow requis ou like requis.</p>`,
+      'Badges de chaîne':`<h2>Badges de chaîne</h2><div class="summaryList"><div class="summaryItem"><b>Badges visibles</b><p>Créateur, Oryon, Ambiance, Accueil et futurs premiers soutiens.</p><button class="btn" onclick="setView('settings')">Modifier depuis le profil</button></div><div class="summaryItem"><b>Objectif</b><p>Rendre l’identité de chaîne visible sans polluer le lecteur.</p></div></div>`,
+      'Drops et récompenses':`<h2>Récompenses</h2><div class="summaryList"><div class="summaryItem"><b>Pulse</b><p>Récompenser les viewers qui soutiennent en silence.</p></div><div class="summaryItem"><b>DeckLurker</b><p>Valoriser les viewers qui gardent la chaîne dans leur salon de lurk.</p></div><div class="summaryItem"><b>Premiers soutiens</b><p>À activer quand la persistance serveur est confirmée.</p></div></div>`,
+      'Modération':`<h2>Modération</h2><div class="summaryList"><div class="summaryItem"><b>Entrée douce</b><p>Boutons Question, Nouveau ici, Réagir pour aider les timides.</p></div><div class="summaryItem"><b>Signalement</b><p>Le bouton Signaler reste visible sur le tchat.</p></div><div class="summaryItem"><b>Règles rapides</b><p>Prochaine étape : mots bloqués, slow mode et modérateurs.</p></div></div>`,
+      'Portefeuille':`<h2>Portefeuille</h2><div class="summaryList"><div class="summaryItem"><b>Préparation monétisation</b><p>Zone prête pour pubs, dons, soutiens et revenus Oryon.</p></div><div class="summaryItem"><b>Important</b><p>À connecter uniquement après persistance compte fiable.</p></div></div>`
+    };
+    box.innerHTML=blocks[name]||`<h2>${esc(name||'Outil')}</h2><p class="muted">Module prêt à structurer.</p>`;
+    if(name==='Émoticônes') setTimeout(()=>loadCreatorEmotes?.(),60);
+  };
+
+  // Refuse future injections of DeckLurker on the home/discover/channel pages.
+  const previousInsertDeckLurker=window.insertDeckLurker;
+  window.insertDeckLurker=function(where){
+    if(!where) return null;
+    if(where.closest?.('#home,#discover,#channel')){finalClean();return null;}
+    return previousInsertDeckLurker?previousInsertDeckLurker(where):null;
+  };
+  window.insertSoftEntry=function(){finalClean();return null;};
+
+  const names=['renderHome','renderDiscover','renderStudio','renderChannel','renderTwitch','mountTwitchPlayer','renderZap','hfWatchCurrent','zapOpenCurrent'];
+  names.forEach(name=>{
+    const fn=window[name];
+    if(typeof fn==='function'&&!fn.__oryonFinalAuditWrapped){
+      const wrapped=function(){const out=fn.apply(this,arguments);Promise.resolve(out).finally(()=>setTimeout(finalClean,100));return out;};
+      wrapped.__oryonFinalAuditWrapped=true;window[name]=wrapped;
+    }
+  });
+  const mo=new MutationObserver(()=>finalClean());
+  mo.observe(document.documentElement,{childList:true,subtree:true});
+  setTimeout(()=>{finalClean(); if(['home','discover','studio'].includes(state.view)) setView(state.view);},80);
+})();
