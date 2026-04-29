@@ -6178,7 +6178,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   };
 
   document.addEventListener('DOMContentLoaded',()=>setTimeout(syncDiscoverMobileStack,100));
-  setInterval(()=>{ if((state.view||'')==='discover') syncDiscoverMobileStack(); },1200);
+  /* disabled duplicate discover mobile stack interval - final patch owns it */
 })();
 
 /* =========================================================
@@ -6326,7 +6326,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   };
 
   document.addEventListener('DOMContentLoaded',()=>setTimeout(rewriteDiscoverActionBar,120));
-  setInterval(()=>{ if((state.view||'')==='discover') rewriteDiscoverActionBar(); },1500);
+  /* disabled duplicate discover actionbar interval - final patch owns it */
 })();
 
 /* =========================================================
@@ -6636,4 +6636,173 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.syncDiscoverMobileStack=function(){ensureActionBar();bindSwipeFinal();ensureDiscoverDeckPlacement();};
   document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>window.syncDiscoverMobileStack(),160));
   setInterval(()=>{ if((state.view||'')==='discover') window.syncDiscoverMobileStack(); },1000);
+})();
+
+
+/* =========================================================
+   ABSOLUTE FINAL DISCOVER STATE PATCH
+   Fixes: no flicker, correct buttons, true proposal/player state,
+   restored swipe tilt, compact tags.
+   ========================================================= */
+(function(){
+  if(window.__ORYON_ABSOLUTE_FINAL_DISCOVER_STATE_PATCH__) return;
+  window.__ORYON_ABSOLUTE_FINAL_DISCOVER_STATE_PATCH__ = true;
+
+  const st=document.createElement('style');
+  st.id='oryonAbsoluteFinalDiscoverStatePatchStyle';
+  st.textContent=`
+    #discover .discoverMobileActionBar{position:static!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin:10px 0 12px!important;padding:8px!important;border:1px solid rgba(148,163,184,.18)!important;border-radius:18px!important;background:rgba(8,13,25,.94)!important;backdrop-filter:blur(14px)!important;box-sizing:border-box!important;transform:none!important;z-index:2!important;}
+    #discover .discoverMobileActionBar .btn,#discover .discoverMobileActionBar button{min-width:0!important;width:100%!important;height:50px!important;min-height:50px!important;border-radius:15px!important;font-size:15px!important;font-weight:1000!important;letter-spacing:-.02em!important;padding:0 8px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-transform:none!important;box-shadow:none!important;text-shadow:none!important;transform:none!important;line-height:1!important;}
+    #discover .discoverMobileActionBar .btn.primaryAction{background:linear-gradient(135deg,#a855f7,#d946ef)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 14px 36px rgba(168,85,247,.24)!important;}
+    #discover .discoverMobileActionBar .btn.positiveAction{background:linear-gradient(135deg,#22c55e,#22d3ee)!important;color:#03111f!important;border-color:transparent!important;}
+    #discover .discoverMobileActionBar + .discoverMobileActionBar{display:none!important;}
+    #discover .hfDiscoverActions{display:none!important;}
+    #discover .hfZap{overflow:visible!important;perspective:1200px!important;}
+    #discover .hfSwipeCard{position:relative!important;touch-action:pan-y!important;will-change:transform,opacity!important;transform-origin:center center!important;transition:transform .18s cubic-bezier(.2,.8,.2,1), opacity .18s ease!important;cursor:grab!important;overflow:hidden!important;}
+    #discover .hfSwipeCard:active{cursor:grabbing!important;}
+    #discover .hfSwipeStamp{position:absolute!important;left:50%!important;top:50%!important;right:auto!important;z-index:30!important;opacity:0!important;pointer-events:none!important;transform:translate(-50%,-50%) scale(.86) rotate(0deg)!important;border:4px solid currentColor!important;border-radius:24px!important;padding:14px 22px!important;background:rgba(2,6,23,.76)!important;backdrop-filter:blur(14px)!important;font-size:clamp(34px,11vw,78px)!important;line-height:1!important;font-weight:1000!important;letter-spacing:-.055em!important;text-transform:uppercase!important;box-shadow:0 24px 90px rgba(0,0,0,.50)!important;}
+    #discover .hfSwipeStamp.like{color:#22c55e!important;}
+    #discover .hfSwipeStamp.nope{color:#fb7185!important;}
+    #discover .hfSwipeCard.swipe-like .hfSwipeStamp.like,#discover .hfSwipeCard.swipe-nope .hfSwipeStamp.nope{opacity:1!important;transform:translate(-50%,-50%) scale(1) rotate(-3deg)!important;}
+    #discover .hfSwipeCard.swipe-like::before,#discover .hfSwipeCard.swipe-nope::before{content:""!important;position:absolute!important;inset:0!important;z-index:8!important;pointer-events:none!important;}
+    #discover .hfSwipeCard.swipe-like::before{background:radial-gradient(circle at center,rgba(34,197,94,.24),transparent 57%)!important;}
+    #discover .hfSwipeCard.swipe-nope::before{background:radial-gradient(circle at center,rgba(251,113,133,.24),transparent 57%)!important;}
+    #discover .hfTagRow{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:nowrap!important;max-height:32px!important;overflow:hidden!important;margin-bottom:8px!important;}
+    #discover .hfTag{font-size:10px!important;line-height:1!important;padding:5px 8px!important;border-radius:999px!important;max-width:128px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;background:rgba(2,6,23,.72)!important;backdrop-filter:blur(8px)!important;border:1px solid rgba(255,255,255,.13)!important;}
+    #discover .hfTagRow .hfTag:nth-child(n+4){display:none!important;}
+    #discover .hfLiveBody h2{font-size:clamp(23px,7vw,42px)!important;line-height:1.04!important;letter-spacing:-.045em!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;margin:0!important;}
+    #discover .hfLiveBody p{font-size:13px!important;line-height:1.25!important;display:-webkit-box!important;-webkit-line-clamp:1!important;-webkit-box-orient:vertical!important;overflow:hidden!important;margin:0!important;}
+    @media(min-width:761px){#discover .discoverMobileActionBar{display:none!important;}#discover .hfDiscoverActions{display:grid!important;}}
+  `;
+  document.head.appendChild(st);
+
+  window.__oryonDiscoverWatching = false;
+
+  function escLocal(v){ try{ return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }catch(_){ return String(v??''); } }
+
+  function item(){ return (state.zap?.items||[])[Number(state.zap?.index||0)] || null; }
+
+  function ident(x){
+    if(!x) return {platform:'twitch',login:'',name:'Live',title:'Live',game:'',viewers:0,img:''};
+    try{ if(typeof hfLiveId==='function') return hfLiveId(x); }catch(_){ }
+    try{ if(typeof liveIdentity==='function') return liveIdentity(x); }catch(_){ }
+    const login=x.login||x.user_login||x.host_login||x.room||'';
+    return {platform:x.platform||'twitch',login,name:x.display_name||x.user_name||x.host_name||login,title:x.title||'Live',game:x.game_name||x.category||x.game||'',viewers:Number(x.viewer_count||x.viewers||0),img:x.thumbnail_url||x.img||''};
+  }
+
+  function tagsFor(x,id){
+    let tags=[];
+    try{ if(typeof hfTags==='function') tags=hfTags(x)||[]; }catch(_){ }
+    if(!tags.length){
+      tags=[id.platform==='oryon'?'Oryon':'Twitch intégré', Number(id.viewers||0)>0?'audience active':'entrée normale', id.game||'live'];
+    }
+    return tags.filter(Boolean).slice(0,5);
+  }
+
+  function cardHtml(x){
+    const id=ident(x); const tags=tagsFor(x,id);
+    return `<section class="hfZap"><article class="hfLiveCard hfSwipeCard" data-login="${escLocal(id.login||'')}">
+      ${id.img?`<img src="${escLocal(id.img)}" alt="" loading="eager">`:''}
+      <div class="hfSwipeStamp like">J’aime</div><div class="hfSwipeStamp nope">Pas ouf</div>
+      <div class="hfLiveBody"><div class="hfTagRow">${tags.map(t=>`<span class="hfTag">${escLocal(t)}</span>`).join('')}</div><h2>${escLocal(id.title||'Live en cours')}</h2><p>${escLocal(id.name||id.login||'Streamer')} · ${escLocal(id.game||'Live')} · ${Number(id.viewers||0)} viewers</p></div>
+    </article></section>`;
+  }
+
+  function deckMeta(x){
+    const id=ident(x); const login=String(id.login||x?.login||x?.user_login||x?.host_login||x?.room||'').toLowerCase();
+    return {source:id.platform||x?.platform||'twitch',platform:id.platform||x?.platform||'twitch',login,name:id.name||x?.display_name||x?.user_name||login||'Live',title:id.title||x?.title||'Live gardé',game:id.game||x?.game_name||x?.category||'',thumbnail_url:id.img||x?.thumbnail_url||'',viewers:Number(id.viewers||x?.viewer_count||x?.viewers||0)};
+  }
+
+  function readDeck(){
+    let d=null; try{ d=typeof loadDeckLurker==='function'?loadDeckLurker():null; }catch(_){ }
+    if(!d||!Array.isArray(d.slots)){ try{ d=JSON.parse(localStorage.getItem('oryon_deck_fallback')||'null'); }catch(_){ } }
+    if(!d||!Array.isArray(d.slots)) d={active:0,status:'lurk',slots:Array(8).fill(null)};
+    d.slots=d.slots.slice(0,8); while(d.slots.length<8)d.slots.push(null); return d;
+  }
+
+  function writeDeck(d){ try{ if(typeof saveDeckLurker==='function') saveDeckLurker(d); else localStorage.setItem('oryon_deck_fallback',JSON.stringify(d)); }catch(_){ localStorage.setItem('oryon_deck_fallback',JSON.stringify(d)); } }
+
+  window.addCurrentToDiscoverDeck=function(){
+    const x=item() || (state.discoverPlayer?.login?{platform:'twitch',login:state.discoverPlayer.login}:null);
+    if(!x) return toast?.('Aucun live à ajouter');
+    const meta=deckMeta(x); if(!meta.login) return toast?.('Live introuvable');
+    const d=readDeck();
+    const same=s=>s&&String(s.login||'').toLowerCase()===meta.login&&String(s.source||s.platform||'twitch')===String(meta.source||meta.platform||'twitch');
+    const existing=d.slots.findIndex(same);
+    const idx=existing>=0?existing:(d.slots.findIndex(s=>!s)>=0?d.slots.findIndex(s=>!s):0);
+    d.slots[idx]=meta; d.active=idx; d.status=d.status||'lurk'; writeDeck(d);
+    window.renderDiscoverDeckOnly?.(); placeDeck(); toast?.(existing>=0?'Déjà dans le DeckLurker':'Ajouté au DeckLurker');
+  };
+
+  function actionBar(){
+    if((state.view||'')!=='discover') return;
+    const root=document.querySelector('#discover .hfDiscover')||document.querySelector('#discover'); if(!root) return;
+    document.querySelectorAll('#discover .discoverMobileActionBar').forEach((b,i)=>{ if(i>0) b.remove(); });
+    let bar=document.querySelector('#discover .discoverMobileActionBar');
+    if(!bar){ bar=document.createElement('div'); bar.className='discoverMobileActionBar'; }
+    bar.innerHTML = window.__oryonDiscoverWatching
+      ? `<button class="btn secondary" onclick="addCurrentToDiscoverDeck()">LURK</button><button class="btn secondary" onclick="toggleDiscoverChatFinal?.();toggleDiscoverChat?.()">CHAT</button><button class="btn primaryAction" onclick="zapNext()">SUIVANT</button>`
+      : `<button class="btn secondary" onclick="hfSwipeLeft()">Pas ouf</button><button class="btn primaryAction" onclick="hfWatchCurrent()">Voir</button><button class="btn secondary" onclick="hfSwipeRight()">J’aime</button>`;
+    const zap=document.querySelector('#discover #zapResult');
+    if(zap) zap.insertAdjacentElement('afterend',bar); else root.appendChild(bar);
+    placeDeck();
+  }
+
+  function placeDeck(){
+    if((state.view||'')!=='discover') return;
+    const root=document.querySelector('#discover .hfDiscover')||document.querySelector('#discover'); if(!root) return;
+    let mount=document.getElementById('discoverDeckOnlyMount');
+    if(!mount){ mount=document.createElement('section'); mount.id='discoverDeckOnlyMount'; }
+    const bar=document.querySelector('#discover .discoverMobileActionBar');
+    if(bar) bar.insertAdjacentElement('afterend',mount); else root.appendChild(mount);
+    try{ window.renderDiscoverDeckOnly?.(); }catch(_){ }
+  }
+
+  function bindSwipe(){
+    const card=document.querySelector('#discover .hfSwipeCard'); if(!card || card.__oryonAbsoluteSwipeBound) return;
+    card.__oryonAbsoluteSwipeBound=true;
+    let sx=0,sy=0,dx=0,dy=0,drag=false;
+    const start=e=>{ if(e.target.closest('button,a,input,select,textarea')) return; const p=e.touches?e.touches[0]:e; sx=p.clientX; sy=p.clientY; dx=0; dy=0; drag=true; card.style.setProperty('transition','none','important'); card.style.setProperty('opacity','1','important'); };
+    const move=e=>{ if(!drag)return; const p=e.touches?e.touches[0]:e; dx=p.clientX-sx; dy=p.clientY-sy; if(Math.abs(dx)>Math.abs(dy)*1.05 && e.cancelable) e.preventDefault(); const rot=Math.max(-16,Math.min(16,dx/13)); const y=Math.max(-10,Math.min(10,dy/7)); card.style.setProperty('transform',`translate3d(${dx}px,${y}px,0) rotate(${rot}deg)`,'important'); card.classList.toggle('swipe-like',dx>32); card.classList.toggle('swipe-nope',dx<-32); };
+    const end=()=>{ if(!drag)return; drag=false; const threshold=Math.min(145,Math.max(78,window.innerWidth*.18)); card.style.setProperty('transition','transform .20s cubic-bezier(.18,.85,.18,1), opacity .20s ease','important'); if(dx>threshold){ card.classList.add('swipe-like'); card.style.setProperty('transform','translate3d(118vw,0,0) rotate(16deg)','important'); card.style.setProperty('opacity','.18','important'); return setTimeout(()=>window.hfSwipeRight(),130); } if(dx<-threshold){ card.classList.add('swipe-nope'); card.style.setProperty('transform','translate3d(-118vw,0,0) rotate(-16deg)','important'); card.style.setProperty('opacity','.18','important'); return setTimeout(()=>window.hfSwipeLeft(),130); } card.style.removeProperty('transform'); card.classList.remove('swipe-like','swipe-nope'); };
+    card.addEventListener('touchstart',start,{passive:true}); card.addEventListener('touchmove',move,{passive:false}); card.addEventListener('touchend',end,{passive:true}); card.addEventListener('pointerdown',start); window.addEventListener('pointermove',move,{passive:false}); window.addEventListener('pointerup',end);
+  }
+
+  const oldRenderZap=window.renderZap;
+  window.renderZap=function(...args){
+    const zap=document.querySelector('#discover #zapResult');
+    if(!zap) return oldRenderZap?.apply(this,args);
+    const x=item();
+    if(window.__oryonDiscoverWatching){
+      const id=ident(x || {platform:'twitch',login:state.discoverPlayer?.login||''});
+      if(id.login){ state.discoverPlayer={type:id.platform||'twitch',login:id.login}; }
+      const login=encodeURIComponent(id.login||'');
+      zap.innerHTML=`<section class="watchShell twitchWatch"><div class="player premiumPlayer"><iframe allowfullscreen src="https://player.twitch.tv/?channel=${login}&parent=${encodeURIComponent(location.hostname)}&autoplay=true&muted=false"></iframe></div><div class="chatPanel twitchChat"><iframe src="https://www.twitch.tv/embed/${login}/chat?parent=${encodeURIComponent(location.hostname)}&darkpopout"></iframe></div></section>`;
+      document.body.classList.remove('oryonMobileChatOpen'); actionBar(); return;
+    }
+    state.discoverPlayer=null;
+    if(!x){ return oldRenderZap?.apply(this,args); }
+    zap.innerHTML=cardHtml(x); bindSwipe(); actionBar();
+  };
+
+  const oldWatch=window.hfWatchCurrent;
+  window.hfWatchCurrent=function(){ window.__oryonDiscoverWatching=true; const x=item(); if(!x && oldWatch) return oldWatch(); window.renderZap(); actionBar(); };
+  window.zapOpenCurrent=window.hfWatchCurrent;
+
+  const oldNext=window.zapNext;
+  window.zapNext=function(...args){ window.__oryonDiscoverWatching=false; document.body.classList.remove('oryonMobileChatOpen'); state.discoverPlayer=null; const r=oldNext?oldNext.apply(this,args):undefined; setTimeout(()=>{ window.__oryonDiscoverWatching=false; state.discoverPlayer=null; window.renderZap?.(); actionBar(); placeDeck(); },50); return r; };
+
+  window.hfSwipeRight=function(){ const x=item(); try{ if(x&&typeof hfMark==='function') hfMark(x,'like'); }catch(_){ } toast?.('J’aime — signal enregistré'); setTimeout(()=>window.zapNext(),90); };
+  window.hfSwipeLeft=function(){ const x=item(); try{ if(x&&typeof hfMark==='function') hfMark(x,'nope'); }catch(_){ } toast?.('Pas ouf — on passe'); setTimeout(()=>window.zapNext(),90); };
+  window.proSwipeRight=window.hfSwipeRight; window.proSwipeLeft=window.hfSwipeLeft;
+
+  const oldFind=window.findLive;
+  if(oldFind){ window.findLive=async function(...args){ window.__oryonDiscoverWatching=false; state.discoverPlayer=null; const r=await oldFind.apply(this,args); setTimeout(()=>{ window.__oryonDiscoverWatching=false; state.discoverPlayer=null; window.renderZap?.(); actionBar(); placeDeck(); },80); return r; }; }
+
+  const oldRenderDiscover=window.renderDiscover;
+  window.renderDiscover=async function(...args){ window.__oryonDiscoverWatching=false; state.discoverPlayer=null; const r=await oldRenderDiscover.apply(this,args); setTimeout(()=>{ window.__oryonDiscoverWatching=false; state.discoverPlayer=null; window.renderZap?.(); actionBar(); bindSwipe(); placeDeck(); },80); return r; };
+
+  window.syncDiscoverMobileStack=function(){ actionBar(); bindSwipe(); placeDeck(); };
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>window.syncDiscoverMobileStack(),150));
+  setInterval(()=>{ if((state.view||'')==='discover') window.syncDiscoverMobileStack(); },700);
 })();
