@@ -6180,3 +6180,151 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   document.addEventListener('DOMContentLoaded',()=>setTimeout(syncDiscoverMobileStack,100));
   setInterval(()=>{ if((state.view||'')==='discover') syncDiscoverMobileStack(); },1200);
 })();
+
+/* =========================================================
+   FINAL DISCOVER ACTION LOGIC FIX
+   - proposal: Lurk / Voir + / Suivant
+   - player open: Lurk / Chat / Suivant
+   - Lurk really adds current live to DeckLurker
+   - mobile tags are compact and readable
+   ========================================================= */
+(function(){
+  if(window.__ORYON_DISCOVER_ACTION_LOGIC_FIX__) return;
+  window.__ORYON_DISCOVER_ACTION_LOGIC_FIX__ = true;
+
+  const st=document.createElement('style');
+  st.id='oryonDiscoverActionLogicFixStyle';
+  st.textContent=`
+    #discover .hfTagRow{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;max-height:64px!important;overflow:hidden!important;}
+    #discover .hfTag{font-size:11px!important;line-height:1!important;padding:6px 9px!important;border-radius:999px!important;max-width:180px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;background:rgba(2,6,23,.70)!important;backdrop-filter:blur(8px)!important;}
+    #discover .discoverMobileActionBar{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:center!important;}
+    #discover .discoverMobileActionBar button{font-family:inherit!important;font-weight:1000!important;letter-spacing:-.02em!important;text-shadow:none!important;box-shadow:none!important;position:relative!important;isolation:isolate!important;}
+    #discover .discoverMobileActionBar button::before,#discover .discoverMobileActionBar button::after{content:none!important;display:none!important;}
+    #discover .discoverMobileActionBar .btn.good{background:linear-gradient(135deg,#22c55e,#22d3ee)!important;color:#03111f!important;border-color:transparent!important;}
+    @media(max-width:760px){
+      #discover .hfLiveBody{padding:12px!important;gap:8px!important;}
+      #discover .hfLiveBody h2{font-size:22px!important;line-height:1.02!important;letter-spacing:-.035em!important;max-width:100%!important;}
+      #discover .hfLiveBody p{font-size:12px!important;line-height:1.2!important;max-width:100%!important;}
+      #discover .hfTagRow{max-height:31px!important;flex-wrap:nowrap!important;overflow:hidden!important;}
+      #discover .hfTag{font-size:10px!important;padding:5px 7px!important;max-width:118px!important;}
+      #discover .hfTagRow .hfTag:nth-child(n+4){display:none!important;}
+      #discover .discoverMobileActionBar{display:grid!important;gap:8px!important;padding:8px!important;border-radius:18px!important;margin:10px 0 12px!important;}
+      #discover .discoverMobileActionBar button{height:48px!important;min-height:48px!important;border-radius:15px!important;font-size:15px!important;padding:0 8px!important;}
+    }
+  `;
+  document.head.appendChild(st);
+
+  function currentDiscoverLiveForLurk(){
+    const item=(state.zap?.items||[])[state.zap?.index||0];
+    if(item) return item;
+    if(state.discoverPlayer?.login) return {platform:'twitch',login:state.discoverPlayer.login,user_login:state.discoverPlayer.login,display_name:state.discoverPlayer.login,user_name:state.discoverPlayer.login,title:'Live Twitch'};
+    if(state.currentTwitch) return {platform:'twitch',login:state.currentTwitch,user_login:state.currentTwitch,display_name:state.currentTwitch,user_name:state.currentTwitch,title:'Live Twitch'};
+    return null;
+  }
+
+  function compactDeckMeta(x){
+    const id=typeof hfLiveId==='function'
+      ? hfLiveId(x)
+      : (typeof liveIdentity==='function' ? liveIdentity(x) : {});
+    const login=String(id.login||x?.login||x?.user_login||x?.host_login||x?.room||'').toLowerCase();
+    return {
+      source:id.platform||x?.platform||'twitch',
+      platform:id.platform||x?.platform||'twitch',
+      login,
+      name:id.name||x?.display_name||x?.user_name||x?.host_name||login||'Live',
+      title:id.title||x?.title||x?.game_name||x?.category||'Live gardé',
+      game:id.game||x?.game_name||x?.category||'',
+      thumbnail_url:id.img||((typeof thumbT==='function')?thumbT(x):'')||x?.thumbnail_url||x?.img||'',
+      viewers:Number(id.viewers||x?.viewer_count||x?.viewers||0)
+    };
+  }
+
+  window.addCurrentToDiscoverDeck=function(){
+    const x=currentDiscoverLiveForLurk();
+    if(!x) return toast?.('Aucun live à ajouter');
+    const meta=compactDeckMeta(x);
+    if(!meta.login) return toast?.('Live introuvable');
+    let d;
+    try{ d=typeof loadDeckLurker==='function'?loadDeckLurker():null; }catch(_){ d=null; }
+    if(!d || !Array.isArray(d.slots)){
+      try{ d=JSON.parse(localStorage.getItem('oryon_deck_fallback')||'null'); }catch(_){ d=null; }
+    }
+    if(!d || !Array.isArray(d.slots)) d={active:0,status:'lurk',slots:Array(8).fill(null)};
+    d.slots=d.slots.slice(0,8); while(d.slots.length<8) d.slots.push(null);
+    const existing=d.slots.findIndex(s=>s && String(s.login||'').toLowerCase()===meta.login && String(s.source||s.platform||'twitch')===String(meta.source||meta.platform||'twitch'));
+    const idx=existing>=0 ? existing : (d.slots.findIndex(s=>!s)>=0 ? d.slots.findIndex(s=>!s) : 0);
+    d.slots[idx]=meta; d.active=idx; d.status=d.status||'lurk';
+    try{ if(typeof saveDeckLurker==='function') saveDeckLurker(d); else localStorage.setItem('oryon_deck_fallback',JSON.stringify(d)); }catch(_){ localStorage.setItem('oryon_deck_fallback',JSON.stringify(d)); }
+    window.renderDiscoverDeckOnly?.();
+    toast?.(existing>=0?'Déjà dans le DeckLurker':'Ajouté au DeckLurker');
+  };
+
+  function isDiscoverPlayerOpen(){
+    if(state.discoverPlayer?.login || state.currentTwitch) return true;
+    return !!document.querySelector('#discover iframe[src*="player.twitch.tv"]:not([src*="chat"])');
+  }
+
+  function rewriteDiscoverActionBar(){
+    if((state.view||'')!=='discover') return;
+    const root=document.querySelector('#discover .hfDiscover')||document.querySelector('#discover');
+    if(!root) return;
+    let bar=document.querySelector('#discover .discoverMobileActionBar');
+    if(!bar){
+      bar=document.createElement('div');
+      bar.className='discoverMobileActionBar';
+      const zap=document.querySelector('#discover #zapResult');
+      (zap||root).insertAdjacentElement(zap?'afterend':'beforeend',bar);
+    }
+    document.querySelectorAll('#discover .discoverMobileActionBar').forEach((b,i)=>{ if(i>0) b.remove(); });
+    const open=isDiscoverPlayerOpen();
+    bar.innerHTML=open
+      ? `<button class="btn secondary" onclick="addCurrentToDiscoverDeck()">Lurk</button><button class="btn secondary" onclick="toggleDiscoverChat?.()">Chat</button><button class="btn" onclick="zapNext?.()">Suivant</button>`
+      : `<button class="btn secondary" onclick="addCurrentToDiscoverDeck()">Lurk</button><button class="btn good" onclick="hfWatchCurrent?.()">Voir +</button><button class="btn" onclick="zapNext?.()">Suivant</button>`;
+    const zap=document.querySelector('#discover #zapResult');
+    if(zap && bar.previousElementSibling!==zap) zap.insertAdjacentElement('afterend',bar);
+    let mount=document.getElementById('discoverDeckOnlyMount');
+    if(mount && mount.previousElementSibling!==bar) bar.insertAdjacentElement('afterend',mount);
+  }
+
+  const prevSync=window.syncDiscoverMobileStack;
+  window.syncDiscoverMobileStack=function(){
+    try{ prevSync?.(); }catch(_){ }
+    rewriteDiscoverActionBar();
+  };
+
+  const prevRenderDiscover=window.renderDiscover;
+  window.renderDiscover=async function(...args){
+    const r=await prevRenderDiscover.apply(this,args);
+    rewriteDiscoverActionBar();
+    setTimeout(rewriteDiscoverActionBar,80);
+    setTimeout(()=>window.renderDiscoverDeckOnly?.(),90);
+    return r;
+  };
+
+  const prevRenderZap=window.renderZap;
+  window.renderZap=function(...args){
+    const r=prevRenderZap?prevRenderZap.apply(this,args):undefined;
+    rewriteDiscoverActionBar();
+    setTimeout(rewriteDiscoverActionBar,60);
+    setTimeout(()=>window.renderDiscoverDeckOnly?.(),70);
+    return r;
+  };
+
+  const prevWatch=window.hfWatchCurrent;
+  window.hfWatchCurrent=function(...args){
+    const r=prevWatch?prevWatch.apply(this,args):undefined;
+    setTimeout(rewriteDiscoverActionBar,80);
+    return r;
+  };
+
+  const prevNext=window.zapNext;
+  window.zapNext=function(...args){
+    const r=prevNext?prevNext.apply(this,args):undefined;
+    setTimeout(rewriteDiscoverActionBar,80);
+    setTimeout(()=>window.renderDiscoverDeckOnly?.(),90);
+    return r;
+  };
+
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(rewriteDiscoverActionBar,120));
+  setInterval(()=>{ if((state.view||'')==='discover') rewriteDiscoverActionBar(); },1500);
+})();
