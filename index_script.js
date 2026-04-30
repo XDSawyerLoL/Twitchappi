@@ -7332,3 +7332,154 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   document.addEventListener('DOMContentLoaded',()=>setTimeout(normalizeLayoutClasses,50));
   setInterval(normalizeLayoutClasses,900);
 })();
+
+/* =========================================================
+   ORYON CATEGORY VISUAL RESTORE — keep category page as before
+   This patch is intentionally scoped to #categories only.
+   It restores the compact/normal/large category layout and keeps
+   the Discover fixes untouched.
+   ========================================================= */
+(function installOryonCategoryVisualRestore(){
+  const STYLE_ID='oryonCategoryVisualRestoreFinalCss';
+  document.getElementById(STYLE_ID)?.remove();
+  const css=document.createElement('style');
+  css.id=STYLE_ID;
+  css.textContent=`
+    body:not(.oryonDiscoverLayoutActive) #categories.view.active,
+    #categories.view.active{
+      width:100%!important;
+      max-width:1280px!important;
+      margin-left:auto!important;
+      margin-right:auto!important;
+      padding:26px 18px 110px!important;
+      box-sizing:border-box!important;
+      overflow-x:hidden!important;
+    }
+    #categories .catHead{
+      display:flex!important;
+      align-items:flex-start!important;
+      justify-content:space-between!important;
+      gap:16px!important;
+      margin:0 0 16px!important;
+    }
+    #categories .catHead h1{
+      margin:0!important;
+      font-size:clamp(30px,4vw,48px)!important;
+      line-height:.95!important;
+      letter-spacing:-.055em!important;
+      color:#fff!important;
+    }
+    #categories .catHead p{margin:7px 0 0!important;color:var(--muted)!important;max-width:720px!important;}
+    #categories .catTools{display:flex!important;gap:10px!important;align-items:center!important;flex-wrap:wrap!important;justify-content:flex-end!important;min-width:0!important;}
+    #categories .catSearch{display:grid!important;grid-template-columns:minmax(190px,270px) auto!important;gap:8px!important;align-items:center!important;min-width:0!important;}
+    #categories .catSearch input{width:100%!important;min-width:0!important;height:42px!important;border-radius:14px!important;}
+    #categories .catSearch .btn{height:42px!important;padding:0 14px!important;border-radius:14px!important;}
+    #categories .catSizeControl{display:flex!important;gap:4px!important;padding:4px!important;border:1px solid var(--line)!important;background:rgba(255,255,255,.045)!important;border-radius:999px!important;}
+    #categories .catSizeControl button{border:0!important;background:transparent!important;color:#dbe4f3!important;border-radius:999px!important;padding:8px 10px!important;font-weight:900!important;font-size:12px!important;cursor:pointer!important;}
+    #categories[data-cat-size="compact"] .catSizeControl button[data-size="compact"],
+    #categories[data-cat-size="normal"] .catSizeControl button[data-size="normal"],
+    #categories[data-cat-size="large"] .catSizeControl button[data-size="large"]{background:linear-gradient(135deg,rgba(139,92,246,.9),rgba(34,211,238,.45))!important;color:white!important;}
+    #catGrid.catGridResponsive{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(var(--cat-min,140px),1fr))!important;gap:12px!important;align-items:start!important;width:100%!important;max-width:100%!important;margin-top:14px!important;}
+    #categories[data-cat-size="compact"] #catGrid{--cat-min:122px!important;}
+    #categories[data-cat-size="normal"] #catGrid{--cat-min:165px!important;}
+    #categories[data-cat-size="large"] #catGrid{--cat-min:230px!important;}
+    #categories .categoryCard{width:100%!important;min-width:0!important;border-radius:18px!important;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.028))!important;box-shadow:none!important;transition:transform .18s ease,border-color .18s ease,background .18s ease!important;overflow:hidden!important;text-align:left!important;}
+    #categories .categoryCard:hover{transform:translateY(-2px)!important;border-color:rgba(139,92,246,.7)!important;background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(255,255,255,.032))!important;}
+    #categories .categoryCard img{width:100%!important;aspect-ratio:16/10!important;object-fit:cover!important;display:block!important;}
+    #categories .categoryCard b{display:block!important;padding:10px 11px 3px!important;font-size:14px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;color:#fff!important;}
+    #categories .categoryCard span{display:block!important;padding:0 11px 11px!important;font-size:12px!important;line-height:1.25!important;color:var(--muted)!important;}
+    #categories[data-cat-size="compact"] .categoryCard img{aspect-ratio:16/9!important;}
+    #categories[data-cat-size="compact"] .categoryCard b{font-size:13px!important;padding:8px 9px 2px!important;}
+    #categories[data-cat-size="compact"] .categoryCard span{font-size:11px!important;padding:0 9px 9px!important;}
+    #categories[data-cat-size="large"] .categoryCard img{aspect-ratio:3/4!important;}
+    #categories[data-cat-size="large"] .categoryCard b{font-size:17px!important;padding:12px 13px 4px!important;}
+    #categories[data-cat-size="large"] .categoryCard span{font-size:13px!important;padding:0 13px 13px!important;}
+    #categories #catPick{max-width:100%!important;overflow:hidden!important;}
+    @media(max-width:720px){
+      body:not(.oryonDiscoverLayoutActive) #categories.view.active,
+      #categories.view.active{max-width:none!important;margin:0!important;padding:12px 14px 96px!important;}
+      #categories .catHead{display:grid!important;grid-template-columns:1fr!important;gap:12px!important;margin:4px 0 12px!important;}
+      #categories .catTools{justify-content:stretch!important;width:100%!important;}
+      #categories .catSearch{grid-template-columns:1fr auto!important;width:100%!important;}
+      #categories .catSearch input{height:42px!important;font-size:14px!important;}
+      #categories .catSizeControl{width:100%!important;display:grid!important;grid-template-columns:repeat(3,1fr)!important;border-radius:16px!important;}
+      #categories .catSizeControl button{padding:10px 6px!important;border-radius:12px!important;}
+      #catGrid.catGridResponsive{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin-top:12px!important;}
+      #categories[data-cat-size="large"] #catGrid.catGridResponsive{grid-template-columns:1fr!important;}
+      #categories .categoryCard{border-radius:16px!important;}
+      #categories .categoryCard img{aspect-ratio:16/9!important;}
+      #categories .categoryCard b{font-size:13px!important;padding:8px 9px 2px!important;}
+      #categories .categoryCard span{font-size:11px!important;padding:0 9px 9px!important;}
+      #categories[data-cat-size="compact"] .categoryCard img{aspect-ratio:16/8!important;}
+      #categories[data-cat-size="compact"] .categoryCard b{font-size:12px!important;}
+      #categories[data-cat-size="compact"] .categoryCard span{display:none!important;}
+      #categories[data-cat-size="large"] .categoryCard img{aspect-ratio:16/9!important;}
+      #categories[data-cat-size="large"] .categoryCard b{font-size:18px!important;padding:12px 14px 4px!important;}
+      #categories[data-cat-size="large"] .categoryCard span{display:block!important;font-size:13px!important;padding:0 14px 14px!important;}
+    }
+  `;
+  document.head.appendChild(css);
+
+  function safeEsc(v){
+    if(typeof esc==='function') return esc(v);
+    return String(v??'').replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]));
+  }
+  function currentCatSize(){
+    let size='compact';
+    try{ size=localStorage.getItem('oryon_category_size')||'compact'; }catch{}
+    return ['compact','normal','large'].includes(size)?size:'compact';
+  }
+
+  window.setCategorySize=function setCategorySizeRestored(size){
+    if(!['compact','normal','large'].includes(size)) size='compact';
+    try{ localStorage.setItem('oryon_category_size',size); }catch{}
+    const el=document.getElementById('categories');
+    if(el) el.dataset.catSize=size;
+    document.querySelectorAll('#categories .catSizeControl button').forEach(b=>b.classList.toggle('active',b.dataset.size===size));
+  };
+  window.catSizeControls=function catSizeControlsRestored(){
+    const cur=currentCatSize();
+    return `<div class="catSizeControl" role="group" aria-label="Taille des vignettes"><button type="button" data-size="compact" onclick="setCategorySize('compact')" ${cur==='compact'?'class="active"':''}>Compact</button><button type="button" data-size="normal" onclick="setCategorySize('normal')" ${cur==='normal'?'class="active"':''}>Normal</button><button type="button" data-size="large" onclick="setCategorySize('large')" ${cur==='large'?'class="active"':''}>Grand</button></div>`;
+  };
+  try{
+    catCard=function catCardRestored(c){
+      const name=String(c?.name||'Catégorie');
+      const img=String(c?.box_art_url||c?.image_url||'').replace('{width}','420').replace('{height}','560');
+      return `<button class="categoryCard" onclick="pickCatEncoded('${encodeURIComponent(name)}','${encodeURIComponent(img)}')">${img?`<img src="${safeEsc(img)}" alt="">`:`<div style="aspect-ratio:16/9;display:grid;place-items:center;background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(34,211,238,.12));color:#cbd5e1">${safeEsc(name.slice(0,1))}</div>`}<b>${safeEsc(name)}</b><span class="small">Trouver un live</span></button>`;
+    };
+  }catch{}
+  window.pickCatEncoded=function pickCatEncodedRestored(name,img=''){
+    return pickCat(decodeURIComponent(name||''),decodeURIComponent(img||''));
+  };
+  try{
+    renderCategories=async function renderCategoriesRestored(){
+      const el=document.getElementById('categories');
+      if(!el) return;
+      document.body.classList.remove('oryonDiscoverLayoutActive','oryonDiscoverV4','oryonDiscoverV3','oryonDiscoverProduct','oryonDiscoverFinalActive','oryonCleanDiscoverActive');
+      const size=currentCatSize();
+      el.dataset.catSize=size;
+      el.innerHTML=`<div class="catHead"><div><span class="eyebrow"><i class="dot"></i>Catégories</span><h1>Choisis une ambiance.</h1><p>Vignettes réglables : compact sur mobile, grand si tu veux explorer visuellement.</p></div><div class="catTools">${window.catSizeControls()}<div class="catSearch"><input id="catSearch" placeholder="Rechercher"><button class="btn secondary" onclick="searchCats()">OK</button></div></div></div><div id="catPick" class="section"></div><div id="catGrid" class="catGridResponsive section"><div class="empty">Chargement…</div></div><div class="row section"><button class="btn secondary" onclick="loadMoreCats()">Charger plus</button></div>`;
+      const input=document.getElementById('catSearch');
+      if(input) input.addEventListener('keydown',e=>{if(e.key==='Enter') searchCats();});
+      if(window.state) state.catsCursor=null;
+      await loadMoreCats(true);
+    };
+    window.renderCategories=renderCategories;
+  }catch{}
+  const oldSetView=window.setView;
+  if(typeof oldSetView==='function'&&!oldSetView.__categoryRestoreWrapped){
+    const wrapped=function(view){
+      const r=oldSetView.apply(this,arguments);
+      Promise.resolve(r).finally(()=>{
+        if(view==='categories'){
+          document.body.classList.remove('oryonDiscoverLayoutActive','oryonDiscoverV4','oryonDiscoverV3','oryonDiscoverProduct','oryonDiscoverFinalActive','oryonCleanDiscoverActive');
+          const app=document.querySelector('.app');
+          if(app){app.style.maxWidth='1500px';app.style.marginLeft='auto';app.style.marginRight='auto';app.style.paddingLeft='22px';app.style.paddingRight='22px';app.style.width='100%';}
+        }
+      });
+      return r;
+    };
+    wrapped.__categoryRestoreWrapped=true;
+    window.setView=wrapped;
+  }
+})();
