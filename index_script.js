@@ -6173,7 +6173,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     .oryonStableLiveCard.swipe-nope .oryonStableStamp.nope{opacity:1!important;background:rgba(244,63,94,.92)!important;}
 
     .oryonStableActions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;width:100%!important;margin:0!important;padding:10px!important;border:1px solid rgba(148,163,184,.18)!important;border-radius:22px!important;background:linear-gradient(180deg,rgba(15,23,42,.92),rgba(6,10,20,.96))!important;box-shadow:0 18px 54px rgba(0,0,0,.24)!important;}
-    .oryonStableActions.watch{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+    .oryonStableActions.watch{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
     .oryonStableActions button{min-height:54px!important;border-radius:17px!important;font-size:clamp(14px,1.8vw,17px)!important;font-weight:1000!important;text-transform:none!important;letter-spacing:0!important;line-height:1!important;white-space:nowrap!important;animation:none!important;transition:transform .12s ease,opacity .12s ease!important;}
     .oryonStableActions .primaryAction{background:linear-gradient(135deg,#8b5cf6,#d946ef)!important;color:white!important;border-color:rgba(255,255,255,.16)!important;box-shadow:0 14px 38px rgba(168,85,247,.28)!important;}
     .oryonStableActions button:active{transform:scale(.985)!important;}
@@ -6240,7 +6240,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       .oryonStableTitle{font-size:clamp(24px,7.4vw,34px)!important;line-height:1!important;-webkit-line-clamp:2!important;}
       .oryonStableMeta{font-size:12px!important;}
       .oryonStableActions{gap:7px!important;padding:8px!important;border-radius:18px!important;position:relative!important;bottom:auto!important;}
-      .oryonStableActions.watch{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+      .oryonStableActions.watch{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
       .oryonStableActions button{min-height:48px!important;font-size:12px!important;border-radius:14px!important;padding:0 6px!important;}
       .oryonStableChat{height:360px!important;min-height:320px!important;max-height:46vh!important;}
       #oryonDeckLurkerMount{margin-top:6px!important;}
@@ -6285,7 +6285,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   function setMode(m){state.oryonDiscoverStableMode=m==='watch'?'watch':'preview'; if(m!=='watch') document.querySelector('#discover')?.classList.remove('oryonStableChatOpen');}
   function mode(){return state.oryonDiscoverStableMode||'preview';}
   function cardHtml(x){ const id=liveId(x); return `<div class="oryonStableCardWrap"><article class="oryonStableLiveCard" data-live-key="${safe(liveKey(x))}">${id.img?`<img src="${safe(id.img)}" alt="">`:''}<div class="oryonStableStamp nope">PAS OUF</div><div class="oryonStableStamp like">J’AIME</div><div class="oryonStableBody"><div class="oryonStableTags">${tagsFor(x).map(t=>`<span class="oryonStableTag">${safe(t)}</span>`).join('')}</div><h2 class="oryonStableTitle">${safe(id.title)}</h2><div class="oryonStableMeta">${safe(id.name)} · ${safe(id.game||'Live')} · ${id.viewers||0} viewers</div></div></article>${actionsHtml('preview')}</div>`; }
-  function actionsHtml(m){ return m==='watch'?`<div class="oryonStableActions watch"><button class="btn secondary" type="button" onclick="oryonAddCurrentToDeckV2()">LURK</button><button class="btn secondary" type="button" onclick="oryonToggleDiscoverChatV2()">CHAT</button><button class="btn secondary" type="button" onclick="oryonOpenCurrentUrlV2()">URL</button><button class="btn primaryAction" type="button" onclick="zapNext()">SUIVANT</button></div>`:`<div class="oryonStableActions preview"><button class="btn secondary" type="button" onclick="hfSwipeLeft()">Pas ouf</button><button class="btn primaryAction" type="button" onclick="hfWatchCurrent()">Voir</button><button class="btn secondary" type="button" onclick="hfSwipeRight()">J’aime</button></div>`; }
+  function actionsHtml(m){ return m==='watch'?`<div class="oryonStableActions watch"><button class="btn secondary" type="button" onclick="oryonAddCurrentToDeckV2()">LURK</button><button class="btn secondary" type="button" onclick="oryonToggleDiscoverChatV2()">CHAT</button><button class="btn primaryAction" type="button" onclick="zapNext()">SUIVANT</button></div>`:`<div class="oryonStableActions preview"><button class="btn secondary" type="button" onclick="hfSwipeLeft()">Pas ouf</button><button class="btn primaryAction" type="button" onclick="hfWatchCurrent()">Voir</button><button class="btn secondary" type="button" onclick="hfSwipeRight()">J’aime</button></div>`; }
   function watchHtml(x){ const id=liveId(x); const player=id.platform==='oryon'?`/embed/${enc(id.login)}`:`https://player.twitch.tv/?channel=${enc(id.login)}&parent=${parent()}&muted=false`; const chat=id.platform==='oryon'?`/chat/${enc(id.login)}`:`https://www.twitch.tv/embed/${enc(id.login)}/chat?parent=${parent()}&darkpopout`; return `<div class="oryonStableWatch"><div class="oryonStablePlayer"><iframe allowfullscreen src="${player}"></iframe></div>${actionsHtml('watch')}<div class="oryonStableChat"><iframe src="${chat}"></iframe></div></div>`; }
   function renderZapStable(){ const box=document.getElementById('zapResult'); if(!box)return; const x=currentRaw(); if(!x){ box.innerHTML=`<div class="discoverFallbackCard"><div><h2>Prêt à swiper.</h2><p>Choisis une ambiance. Oryon propose un live, sans liste froide.</p><button class="btn" onclick="findLive()">Propose-moi un live</button></div></div>`; renderDeck(); return; } box.innerHTML=mode()==='watch'?watchHtml(x):cardHtml(x); bindSwipe(); ensureDeckMount(); }
   window.renderZap=renderZapStable;
@@ -6526,3 +6526,421 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   obs.observe(document.documentElement,{childList:true,subtree:true});
   setTimeout(normalizeDiscoverV3,50);
 })();
+
+
+/* =========================================================
+   ORYON FINAL DISCOVER FULLWIDTH + NO URL HARD FIX
+   ========================================================= */
+(function installOryonDiscoverFullwidthNoUrlHardFix(){
+  const STYLE_ID='oryonDiscoverFullwidthNoUrlHardFixStyle';
+  document.getElementById(STYLE_ID)?.remove();
+  const st=document.createElement('style');
+  st.id=STYLE_ID;
+  st.textContent=`
+    body:has(#discover.view.active) .app{max-width:none!important;width:100%!important;margin:0!important;padding-left:22px!important;padding-right:22px!important;}
+    #discover.view.active{display:block!important;width:100%!important;max-width:none!important;}
+    #discover .hfDiscover{
+      width:100%!important;
+      max-width:none!important;
+      margin:0!important;
+      padding:clamp(16px,1.7vw,28px)!important;
+      gap:18px!important;
+    }
+    #discover #zapResult,#discover #oryonDeckLurkerMount{
+      width:100%!important;
+      max-width:none!important;
+      margin-left:0!important;
+      margin-right:0!important;
+    }
+    #discover .oryonStableCardWrap,#discover .oryonStableWatch{
+      width:100%!important;
+      max-width:none!important;
+    }
+    #discover .oryonStableLiveCard,#discover .oryonStablePlayer{
+      width:100%!important;
+      max-width:none!important;
+    }
+    #discover .oryonStableActions.watch{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+    #discover .oryonStableActions button{animation:none!important;text-transform:none!important;}
+    #discover button[data-oryon-url],
+    #discover .oryonUrlBtn,
+    #discover .oryonDeckUrlButton,
+    #discover button[onclick*="oryonOpenCurrentUrl"],
+    #discover button[onclick*="openCurrentUrl"],
+    #discover button[onclick*="window.open"],
+    #discover .oryonStableActions button:nth-child(4){display:none!important;}
+    #discover .oryonStableActions.watch button:nth-child(3){display:inline-flex!important;}
+    #discover .oryonDeckActions button,
+    #discover .oryonDeckSlotActions button{min-width:0!important;}
+    @media(max-width:760px){
+      #discover .hfDiscover{padding:12px 12px 104px!important;}
+    }
+  `;
+  document.head.appendChild(st);
+  function cleanUrlButtons(){
+    const root=document.getElementById('discover');
+    if(!root) return;
+    root.querySelectorAll('button').forEach(btn=>{
+      const txt=(btn.textContent||'').trim().toLowerCase();
+      const on=String(btn.getAttribute('onclick')||'').toLowerCase();
+      if(txt==='url' || txt==='ouvrir url' || on.includes('oryonopencurrenturl') || on.includes('opencurrenturl')) btn.remove();
+    });
+    root.querySelectorAll('.oryonStableActions.watch').forEach(bar=>{
+      const buttons=[...bar.querySelectorAll('button')];
+      const labels=buttons.map(b=>(b.textContent||'').trim().toUpperCase()).join('|');
+      if(labels.includes('URL')){
+        bar.innerHTML=`<button class="btn secondary" type="button" onclick="oryonAddCurrentToDeckV2?.(); oryonAddCurrentToDeck?.();">LURK</button><button class="btn secondary" type="button" onclick="oryonToggleDiscoverChatV3?.(); oryonToggleDiscoverChatV2?.();">CHAT</button><button class="btn primaryAction" type="button" onclick="zapNext?.()">SUIVANT</button>`;
+      }
+    });
+  }
+  window.oryonOpenCurrentUrlV2=function(){return false;};
+  window.oryonOpenCurrentUrl=function(){return false;};
+  ['renderDiscover','renderZap','hfWatchCurrent','zapOpenCurrent','zapNext','oryonToggleDiscoverChatV2','oryonToggleDiscoverChatV3'].forEach(name=>{
+    const old=window[name];
+    if(typeof old==='function' && !old.__oryonNoUrlFullWrapped){
+      const wrapped=function(){const out=old.apply(this,arguments); Promise.resolve(out).finally(()=>setTimeout(cleanUrlButtons,20)); return out;};
+      wrapped.__oryonNoUrlFullWrapped=true;
+      window[name]=wrapped;
+    }
+  });
+  const obs=new MutationObserver(()=>cleanUrlButtons());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  setTimeout(cleanUrlButtons,30);
+})();
+
+/* =========================================================
+   ORYON DEFINITIVE DISCOVER REPAIR — full width + no URL + stable buttons
+   ========================================================= */
+(function installOryonDefinitiveDiscoverRepair(){
+  const STYLE_ID='oryonDefinitiveDiscoverRepairStyle';
+  document.getElementById(STYLE_ID)?.remove();
+  const st=document.createElement('style');
+  st.id=STYLE_ID;
+  st.textContent=`
+    body.oryon-discover-active main.app,
+    body.oryon-discover-active .app{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}
+    body.oryon-discover-active #discover.view.active{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}
+    #discover .oryonFinalDiscover{width:100%!important;max-width:none!important;margin:0!important;padding:clamp(18px,2vw,34px) clamp(18px,2.8vw,54px) 92px!important;display:grid!important;gap:20px!important;}
+    #discover .oryonFinalHero{display:flex;justify-content:space-between;align-items:flex-start;gap:22px;flex-wrap:wrap;border:1px solid rgba(148,163,184,.16);border-radius:28px;background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(34,211,238,.06));padding:24px;}
+    #discover .oryonFinalHero h1{font-size:clamp(42px,4.4vw,82px);line-height:.88;margin:8px 0 8px;letter-spacing:-.075em;}
+    #discover .oryonFinalHero p{max-width:850px;margin:0;color:#b7c6dd;font-size:16px;line-height:1.45;}
+    #discover .oryonFinalMoodRail{display:flex;gap:10px;overflow:auto;padding:4px 2px 8px;}
+    #discover .oryonFinalMood{min-width:150px;border:1px solid rgba(148,163,184,.18);background:rgba(255,255,255,.055);border-radius:18px;color:#fff;padding:12px;text-align:left;font-weight:900;}
+    #discover .oryonFinalMood.active{border-color:rgba(139,92,246,.72);background:rgba(139,92,246,.20);box-shadow:0 12px 36px rgba(139,92,246,.18);}
+    #discover .oryonFinalMood i{display:block;font-style:normal;font-size:22px;margin-bottom:4px;}
+    #discover .oryonFinalMood span{display:block;font-size:12px;color:#a8b6cc;font-weight:700;margin-top:3px;}
+    #discover .oryonFinalOptions{border:1px solid rgba(148,163,184,.16);border-radius:22px;background:rgba(255,255,255,.035);padding:14px;}
+    #discover .oryonFinalOptions summary{font-weight:950;cursor:pointer;}
+    #discover .oryonFinalOptionsBody{display:grid;grid-template-columns:minmax(220px,1fr) 120px 100px auto auto;gap:10px;margin-top:12px;align-items:center;}
+    #discover .oryonFinalStage{width:100%;max-width:none;display:grid;gap:16px;}
+    #discover .oryonFinalCardWrap{perspective:1200px;width:100%;}
+    #discover .oryonFinalCard{position:relative;width:100%;min-height:min(72vh,760px);border-radius:32px;overflow:hidden;border:1px solid rgba(139,92,246,.36);background:#020617;box-shadow:0 35px 110px rgba(0,0,0,.42);touch-action:pan-y;isolation:isolate;}
+    #discover .oryonFinalCard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.08) contrast(1.04);}
+    #discover .oryonFinalCard::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.05),rgba(2,6,23,.18) 38%,rgba(2,6,23,.92));z-index:1;}
+    #discover .oryonFinalCardEmpty{position:absolute;inset:0;display:grid;place-items:center;color:#718096;background:linear-gradient(135deg,#030712,#111827);font-weight:950;}
+    #discover .oryonFinalTags{position:absolute;left:18px;right:18px;top:16px;z-index:3;display:flex;gap:8px;flex-wrap:wrap;}
+    #discover .oryonFinalTag{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.16);background:rgba(2,6,23,.64);backdrop-filter:blur(10px);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:950;color:#edf4ff;}
+    #discover .oryonFinalCardBody{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:clamp(18px,2.7vw,44px);display:grid;gap:12px;}
+    #discover .oryonFinalCardBody h2{font-size:clamp(34px,4.6vw,78px);line-height:.92;margin:0;letter-spacing:-.07em;max-width:1200px;text-shadow:0 12px 42px rgba(0,0,0,.62);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    #discover .oryonFinalMeta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:#d9e5f6;font-weight:900;}
+    #discover .oryonFinalActions{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:12px;width:min(720px,100%);}
+    #discover .oryonFinalActions .btn{min-height:54px;border-radius:18px;font-size:16px;text-transform:none!important;animation:none!important;}
+    #discover .oryonFinalActions .primaryAction{font-size:18px;box-shadow:0 15px 45px rgba(139,92,246,.28);}
+    #discover .oryonFinalStamp{position:absolute;top:50%;left:50%;z-index:4;transform:translate(-50%,-50%) scale(.88);opacity:0;pointer-events:none;border:4px solid currentColor;border-radius:24px;padding:14px 22px;font-size:clamp(34px,6vw,82px);font-weight:1000;letter-spacing:-.05em;text-transform:uppercase;background:rgba(2,6,23,.42);backdrop-filter:blur(8px);transition:opacity .08s ease,transform .08s ease;}
+    #discover .oryonFinalStamp.like{color:#22c55e}.oryonFinalCard.swipe-like .oryonFinalStamp.like{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}
+    #discover .oryonFinalStamp.nope{color:#fb7185}.oryonFinalCard.swipe-nope .oryonFinalStamp.nope{opacity:1;transform:translate(-50%,-50%) rotate(8deg) scale(1)}
+    #discover .oryonFinalWatch{width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,430px);gap:16px;align-items:stretch;}
+    #discover .oryonFinalPlayer,#discover .oryonFinalChat{border:1px solid rgba(148,163,184,.18);border-radius:28px;overflow:hidden;background:#020617;box-shadow:0 22px 70px rgba(0,0,0,.30);}
+    #discover .oryonFinalPlayer{min-height:calc(100vh - 250px);height:min(74vh,820px);}
+    #discover .oryonFinalPlayer iframe,#discover .oryonFinalChat iframe{width:100%;height:100%;border:0;display:block;background:#000;}
+    #discover .oryonFinalChat{display:none;min-height:calc(100vh - 250px);height:min(74vh,820px);}
+    #discover.oryon-final-chat-open .oryonFinalChat{display:block!important;}
+    #discover .oryonFinalWatch:not(.chatOpen){grid-template-columns:minmax(0,1fr);}
+    #discover.oryon-final-chat-open .oryonFinalWatch{grid-template-columns:minmax(0,1fr) minmax(360px,430px);}
+    #discover .oryonFinalWatchActions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;width:min(720px,100%);}
+    #discover .oryonFinalWatchActions .btn{min-height:52px;border-radius:18px;text-transform:uppercase!important;animation:none!important;}
+    #discover .oryonDeck{width:100%;max-width:none;border:1px solid rgba(148,163,184,.16);border-radius:28px;background:linear-gradient(180deg,rgba(15,23,42,.82),rgba(8,13,24,.72));padding:18px;display:grid;gap:14px;}
+    #discover .oryonDeckHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;}
+    #discover .oryonDeckHead h2{margin:4px 0 0;font-size:clamp(24px,2vw,34px);}
+    #discover .oryonDeckSlots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+    #discover .oryonDeckSlot{position:relative;min-height:150px;border:1px solid rgba(148,163,184,.16);border-radius:20px;background:rgba(255,255,255,.04);overflow:hidden;display:flex;align-items:flex-end;color:#fff;text-align:left;}
+    #discover .oryonDeckSlot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.78;}
+    #discover .oryonDeckSlot::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(2,6,23,.88));}
+    #discover .oryonDeckSlotBody{position:relative;z-index:2;padding:12px;min-width:0;width:100%;display:grid;gap:5px;}
+    #discover .oryonDeckSlotBody b,#discover .oryonDeckSlotBody span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    #discover .oryonDeckSlotActions{display:flex;gap:7px;flex-wrap:wrap;}
+    #discover .oryonDeckSlotActions button{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.10);color:#fff;border-radius:10px;padding:7px 9px;font-weight:900;}
+    #discover .oryonFollowQuick{border:1px solid rgba(148,163,184,.16);border-radius:24px;background:rgba(255,255,255,.035);padding:16px;display:grid;gap:12px;}
+    #discover .oryonFollowRail{display:flex;gap:10px;overflow:auto;padding-bottom:4px;}
+    #discover .oryonFollowMini{min-width:220px;border:1px solid rgba(148,163,184,.18);background:rgba(255,255,255,.045);color:#fff;border-radius:18px;padding:10px;display:flex;gap:10px;align-items:center;text-align:left;}
+    #discover .oryonFollowMini img{width:48px;height:48px;border-radius:14px;object-fit:cover;background:#111827;}
+    #discover .followEmpty,#discover .oryonFinalEmpty{border:1px dashed rgba(148,163,184,.22);border-radius:20px;padding:20px;color:#a9b7ce;background:rgba(255,255,255,.035);}
+    #discover button{animation:none!important;}
+    #discover button[data-oryon-url],#discover .oryonUrlBtn,#discover .oryonDeckUrlButton{display:none!important;}
+    @media(max-width:1100px){
+      #discover .oryonFinalOptionsBody{grid-template-columns:1fr 1fr;}
+      #discover .oryonFinalWatch,#discover.oryon-final-chat-open .oryonFinalWatch{grid-template-columns:1fr;}
+      #discover .oryonFinalPlayer{height:auto;min-height:0;aspect-ratio:16/9;}
+      #discover .oryonFinalChat{height:440px;min-height:360px;}
+      #discover .oryonDeckSlots{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
+    @media(max-width:700px){
+      #discover .oryonFinalDiscover{padding:12px 12px 104px!important;gap:14px!important;}
+      #discover .oryonFinalHero{padding:16px;border-radius:22px;}
+      #discover .oryonFinalHero h1{font-size:clamp(36px,12vw,56px);}
+      #discover .oryonFinalMood{min-width:124px;padding:10px;}
+      #discover .oryonFinalCard{min-height:auto;aspect-ratio:10/15;border-radius:26px;}
+      #discover .oryonFinalCardBody{padding:16px;}
+      #discover .oryonFinalCardBody h2{font-size:clamp(26px,8vw,40px);}
+      #discover .oryonFinalTags{left:12px;right:12px;top:12px;}
+      #discover .oryonFinalTag{font-size:11px;padding:5px 8px;}
+      #discover .oryonFinalActions,#discover .oryonFinalWatchActions{width:100%;gap:8px;}
+      #discover .oryonFinalActions .btn,#discover .oryonFinalWatchActions .btn{min-height:48px;font-size:14px;padding-left:8px;padding-right:8px;}
+      #discover .oryonDeckSlots{grid-template-columns:1fr;}
+      #discover .oryonDeckSlot{min-height:118px;}
+      #discover .oryonFinalChat{height:420px;min-height:360px;}
+    }
+  `;
+  document.head.appendChild(st);
+
+  const safe = (v)=>String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const enc = (v)=>encodeURIComponent(String(v ?? ''));
+  const getMood = ()=>window.state?.moodFirstMood || 'petite-commu';
+  const setBodyMode = ()=>document.body.classList.toggle('oryon-discover-active', window.state?.view === 'discover');
+  const parentHost = ()=>location.hostname || 'localhost';
+  const moodLabel = (id)=> (typeof moodFirstLabel==='function' ? moodFirstLabel(id) : id);
+  const moods = ()=> Array.isArray(window.AMBIANCES) ? window.AMBIANCES : [['chill','Chill','Détente','🌙'],['discussion','Discussion','Chat','💬'],['petite-commu','Petite commu','Accessible','✨'],['rp','RP','Roleplay','🎭'],['nuit-calme','Nuit calme','Calme','🌌'],['decouverte-jeu','Découverte jeu','Exploration','🎮']];
+  const liveId = (x={})=>{
+    const platform = x.platform || x.source || (x.host_login || x.room ? 'oryon' : 'twitch');
+    const login = String(x.login || x.user_login || x.broadcaster_login || x.host_login || x.room || '').toLowerCase();
+    const name = x.display_name || x.user_name || x.broadcaster_name || x.host_name || login || 'Live';
+    const img = (x.thumbnail_url ? String(x.thumbnail_url).replace('{width}','1280').replace('{height}','720') : (x.img || x.preview_url || x.profile_image_url || ''));
+    return {platform,login,name,img,title:x.title || `Live de ${name}`,game:x.game_name || x.category || x.game || 'Live',viewers:Number(x.viewer_count ?? x.viewers ?? 0)||0};
+  };
+  const keyOf = (x)=>{const id=liveId(x); return `${id.platform}:${id.login}`;};
+  const readJson = (k,fb)=>{try{return JSON.parse(localStorage.getItem(k)||'')}catch{return fb}};
+  const writeJson = (k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+  const seenKey = ()=>'oryon_final_seen_lives_v1';
+  const deckKey = ()=>'oryon_final_deck_lurker_v1';
+  const currentRaw = ()=> (window.state?.zap?.items || [])[window.state?.zap?.index || 0] || null;
+  const tagsFor = (x)=>{
+    const id=liveId(x); const arr=[];
+    arr.push(id.platform==='oryon'?'Oryon':'Twitch');
+    if(id.viewers) arr.push(`${id.viewers} viewers`);
+    if(id.game) arr.push(id.game);
+    if(id.viewers && id.viewers<=100) arr.push('taille humaine');
+    arr.push(moodLabel(getMood()));
+    return [...new Set(arr.filter(Boolean))].slice(0,6);
+  };
+
+  async function fetchLivePool({mood=getMood(), q='', max=200, lang='fr'}={}){
+    const calls = [];
+    if(typeof api==='function'){
+      calls.push(api('/api/oryon/discover/find-live?'+qs({q,mood,max,lang,source:'both'})).catch(()=>({items:[]})));
+      calls.push(api(`/api/twitch/streams/small?lang=${enc(lang)}&min=0&max=${enc(max)}`).catch(()=>({items:[]})));
+      calls.push(api('/api/native/lives').catch(()=>({items:[]})));
+    }
+    const results=await Promise.all(calls);
+    const out=[]; const keys=new Set();
+    for(const r of results){
+      for(const item of (r?.items||[])){
+        const x={...item, platform:item.platform || (item.host_login||item.room?'oryon':'twitch')};
+        const id=liveId(x); if(!id.login) continue;
+        if(Number(id.viewers)>Number(max||99999)) continue;
+        const k=keyOf(x); if(keys.has(k)) continue;
+        keys.add(k); out.push(x);
+      }
+    }
+    return out;
+  }
+
+  function updateDiscoverLayoutMode(){setBodyMode();}
+  const oldSetView = window.setView;
+  if(typeof oldSetView==='function' && !oldSetView.__oryonDefinitiveDiscoverWrapped){
+    const wrapped = function(v){ const out=oldSetView.apply(this,arguments); setTimeout(updateDiscoverLayoutMode,0); return out; };
+    wrapped.__oryonDefinitiveDiscoverWrapped=true;
+    window.setView=wrapped;
+  }
+
+  function cleanUrlButtons(){
+    const root=document.getElementById('discover'); if(!root) return;
+    root.querySelectorAll('button').forEach(btn=>{
+      const txt=(btn.textContent||'').trim().toLowerCase();
+      const on=String(btn.getAttribute('onclick')||'').toLowerCase();
+      if(txt==='url' || txt==='ouvrir url' || on.includes('deckurl') || on.includes('opencurrenturl') || on.includes('window.open')) btn.remove();
+    });
+  }
+
+  function renderDeck(){
+    const mount=document.getElementById('oryonFinalDeckMount'); if(!mount) return;
+    const deck=readJson(deckKey(),{slots:Array(8).fill(null),active:0,status:'lurk'});
+    if(!Array.isArray(deck.slots)) deck.slots=Array(8).fill(null);
+    while(deck.slots.length<8) deck.slots.push(null);
+    const filled=deck.slots.filter(Boolean).length;
+    mount.innerHTML=`<section class="oryonDeck"><div class="oryonDeckHead"><div><span class="eyebrow"><i class="dot"></i>DeckLurker · ${filled} live${filled>1?'s':''}</span><h2>Ton salon de lurk</h2><p class="small">Garde plusieurs lives sous la main et switch sans ouvrir dix onglets.</p></div><button class="btn secondary" type="button" onclick="oryonFinalClearDeck()">Vider le deck</button></div><div class="oryonDeckSlots">${deck.slots.slice(0,8).map((s,i)=>deckSlotHtml(s,i)).join('')}</div></section><section class="oryonFollowQuick"><div class="oryonDeckHead"><div><b>Suivis Twitch en ligne</b><p class="small">Séparé des recommandations. Disponible si Twitch est connecté.</p></div>${window.state?.session?.twitch?`<button class="btn secondary" type="button" onclick="oryonFinalLoadFollowed()">Actualiser</button>`:`<button class="btn" type="button" onclick="connectTwitch?.()">Connecter Twitch</button>`}</div><div id="oryonFinalFollowRail" class="oryonFollowRail"><div class="followEmpty">${window.state?.session?.twitch?'Chargement…':'Connecte Twitch pour voir tes suivis.'}</div></div></section>`;
+    if(window.state?.session?.twitch) setTimeout(window.oryonFinalLoadFollowed,30);
+    cleanUrlButtons();
+  }
+
+  function deckSlotHtml(s,i){
+    if(!s) return `<article class="oryonDeckSlot"><div class="oryonDeckSlotBody"><b>Case ${i+1}</b><span>Ajoute un live avec LURK</span></div></article>`;
+    const id=liveId(s);
+    return `<article class="oryonDeckSlot">${id.img?`<img src="${safe(id.img)}" alt="">`:''}<div class="oryonDeckSlotBody"><b>${safe(id.name||id.login)}</b><span>${safe(id.game)} · ${safe(id.platform)}</span><div class="oryonDeckSlotActions"><button type="button" onclick="oryonFinalOpenDeck(${i})">Voir</button><button type="button" onclick="oryonFinalRemoveDeck(${i})">Vider</button></div></div></article>`;
+  }
+
+  window.oryonFinalAddCurrentToDeck=function(){
+    const x=currentRaw(); if(!x) return;
+    const id=liveId(x); if(!id.login) return;
+    const deck=readJson(deckKey(),{slots:Array(8).fill(null),active:0,status:'lurk'});
+    if(!Array.isArray(deck.slots)) deck.slots=Array(8).fill(null);
+    while(deck.slots.length<8) deck.slots.push(null);
+    let index=deck.slots.findIndex(s=>s && liveId(s).platform===id.platform && liveId(s).login===id.login);
+    if(index<0) index=deck.slots.findIndex(s=>!s);
+    if(index<0) index=0;
+    deck.slots[index]={...x,platform:id.platform,login:id.login,user_login:id.login,display_name:id.name,user_name:id.name,title:id.title,game_name:id.game,thumbnail_url:id.img,img:id.img,viewer_count:id.viewers,added_at:Date.now()};
+    deck.active=index;
+    writeJson(deckKey(),deck);
+    renderDeck();
+    toast?.('Ajouté au DeckLurker');
+  };
+  window.oryonFinalOpenDeck=function(i){
+    const deck=readJson(deckKey(),{slots:[]}); const s=deck.slots?.[i]; if(!s) return;
+    const id=liveId(s);
+    window.state.zap.items=[s]; window.state.zap.index=0; window.state.discoverMode='watching'; window.state.discoverPlayer={platform:id.platform,login:id.login};
+    renderZapFinal();
+  };
+  window.oryonFinalRemoveDeck=function(i){const deck=readJson(deckKey(),{slots:Array(8).fill(null),active:0}); if(deck.slots) deck.slots[i]=null; writeJson(deckKey(),deck); renderDeck();};
+  window.oryonFinalClearDeck=function(){writeJson(deckKey(),{slots:Array(8).fill(null),active:0,status:'lurk'}); renderDeck();};
+  window.oryonFinalLoadFollowed=async function(){
+    const rail=document.getElementById('oryonFinalFollowRail'); if(!rail) return;
+    if(!window.state?.session?.twitch){rail.innerHTML='<div class="followEmpty">Connecte Twitch pour voir tes suivis.</div>';return;}
+    try{
+      let r=await api('/api/twitch/followed/live').catch(()=>null);
+      if(!r?.items?.length) r=await api('/api/twitch/followed/status').catch(()=>null);
+      const items=(r?.items||[]).filter(x=>x.is_live || Number(x.viewer_count||x.viewers||0)>0);
+      rail.innerHTML=items.length?items.slice(0,18).map(x=>{const id=liveId({...x,platform:'twitch'});return `<button class="oryonFollowMini" type="button" onclick="openTwitch?.('${safe(id.login)}')">${(id.img||x.profile_image_url)?`<img src="${safe(id.img||x.profile_image_url)}" alt="">`:''}<div><b>${safe(id.name)}</b><br><span class="small">${safe(id.game)} · ${id.viewers}</span></div></button>`}).join(''):'<div class="followEmpty">Aucun suivi Twitch en ligne actuellement.</div>';
+    }catch(e){rail.innerHTML='<div class="followEmpty">Impossible de charger les suivis Twitch.</div>';}
+  };
+
+  function markSeen(action){
+    const x=currentRaw(); if(!x) return;
+    const seen=readJson(seenKey(),{});
+    seen[keyOf(x)]={action,ts:Date.now(),live:liveId(x)};
+    writeJson(seenKey(),seen);
+  }
+
+  function previewHtml(x){
+    const id=liveId(x);
+    if(!x) return `<div class="oryonFinalEmpty"><h2>Prêt à swiper.</h2><p>Choisis une ambiance, puis Oryon propose un live.</p><button class="btn" type="button" onclick="findLive()">Proposer un live</button></div>`;
+    return `<div class="oryonFinalCardWrap"><article id="oryonFinalSwipeCard" class="oryonFinalCard">${id.img?`<img src="${safe(id.img)}" alt="">`:`<div class="oryonFinalCardEmpty">LIVE ${safe(id.platform).toUpperCase()}</div>`}<div class="oryonFinalStamp like">J'aime</div><div class="oryonFinalStamp nope">Pas ouf</div><div class="oryonFinalTags">${tagsFor(x).map(t=>`<span class="oryonFinalTag">${safe(t)}</span>`).join('')}</div><div class="oryonFinalCardBody"><h2>${safe(id.title)}</h2><div class="oryonFinalMeta"><span>${safe(id.name)}</span><span>·</span><span>${safe(id.game)}</span><span>·</span><span>${id.viewers} viewers</span></div><div class="oryonFinalActions"><button class="btn secondary" type="button" onclick="oryonFinalNope()">Pas ouf</button><button class="btn primaryAction" type="button" onclick="oryonFinalWatch()">Voir</button><button class="btn secondary" type="button" onclick="oryonFinalLike()">J'aime</button></div></div></article></div>`;
+  }
+
+  function watchHtml(x){
+    const id=liveId(x);
+    const src=id.platform==='oryon' ? `/watch/${enc(id.login)}` : `https://player.twitch.tv/?channel=${enc(id.login)}&parent=${enc(parentHost())}&autoplay=true`;
+    const chat=id.platform==='oryon' ? `/chat/${enc(id.login)}` : `https://www.twitch.tv/embed/${enc(id.login)}/chat?parent=${enc(parentHost())}&darkpopout`;
+    return `<section class="oryonFinalWatch"><div class="oryonFinalPlayer"><iframe allowfullscreen allow="autoplay; fullscreen; picture-in-picture" src="${safe(src)}"></iframe></div><aside class="oryonFinalChat"><iframe title="Chat ${safe(id.name)}" src="${safe(chat)}" loading="eager" referrerpolicy="origin"></iframe></aside><div class="oryonFinalWatchActions"><button class="btn secondary" type="button" onclick="oryonFinalAddCurrentToDeck()">LURK</button><button class="btn secondary" type="button" onclick="oryonFinalToggleChat()">CHAT</button><button class="btn primaryAction" type="button" onclick="zapNext()">SUIVANT</button></div></section>`;
+  }
+
+  function bindSwipe(){
+    const card=document.getElementById('oryonFinalSwipeCard'); if(!card || card.__oryonFinalSwipe) return; card.__oryonFinalSwipe=true;
+    let sx=0,sy=0,dx=0,dy=0,drag=false;
+    const start=e=>{if(e.target.closest('button,a,input,select,textarea'))return; const p=e.touches?e.touches[0]:e; sx=p.clientX; sy=p.clientY; dx=dy=0; drag=true; card.style.transition='none';};
+    const move=e=>{if(!drag)return; const p=e.touches?e.touches[0]:e; dx=p.clientX-sx; dy=p.clientY-sy; if(Math.abs(dx)>Math.abs(dy)*1.05 && e.cancelable)e.preventDefault(); const rot=Math.max(-12,Math.min(12,dx/16)); card.style.transform=`translateX(${dx}px) rotate(${rot}deg)`; card.classList.toggle('swipe-like',dx>36); card.classList.toggle('swipe-nope',dx<-36);};
+    const end=()=>{if(!drag)return; drag=false; const th=Math.min(150,Math.max(75,window.innerWidth*.16)); card.style.transition='transform .18s ease, opacity .18s ease'; if(dx>th){card.style.transform='translateX(120vw) rotate(12deg)';card.style.opacity='.18';return setTimeout(window.oryonFinalLike,120);} if(dx<-th){card.style.transform='translateX(-120vw) rotate(-12deg)';card.style.opacity='.18';return setTimeout(window.oryonFinalNope,120);} card.style.transform=''; card.classList.remove('swipe-like','swipe-nope');};
+    card.addEventListener('touchstart',start,{passive:true}); card.addEventListener('touchmove',move,{passive:false}); card.addEventListener('touchend',end,{passive:true});
+    card.addEventListener('pointerdown',start); window.addEventListener('pointermove',move,{passive:false}); window.addEventListener('pointerup',end);
+  }
+
+  function renderZapFinal(){
+    const zap=document.getElementById('zapResult'); if(!zap) return;
+    const x=currentRaw();
+    if(window.state.discoverMode==='watching' && x){zap.innerHTML=watchHtml(x);}
+    else {window.state.discoverMode='preview'; zap.innerHTML=`<section class="oryonFinalStage">${previewHtml(x)}</section>`; setTimeout(bindSwipe,0);}
+    document.getElementById('discover')?.classList.remove('oryon-final-chat-open');
+    renderDeck();
+    cleanUrlButtons();
+  }
+
+  window.oryonFinalLike=function(){markSeen('like'); toast?.('J’aime'); return window.zapNext();};
+  window.oryonFinalNope=function(){markSeen('nope'); toast?.('Pas ouf'); return window.zapNext();};
+  window.oryonFinalWatch=function(){markSeen('watch'); window.state.discoverMode='watching'; renderZapFinal();};
+  window.oryonFinalToggleChat=function(){
+    const root=document.getElementById('discover'); if(!root) return;
+    const open=!root.classList.contains('oryon-final-chat-open');
+    root.classList.toggle('oryon-final-chat-open',open);
+    const watch=root.querySelector('.oryonFinalWatch'); if(watch) watch.classList.toggle('chatOpen',open);
+    if(open){ setTimeout(()=>root.querySelector('.oryonFinalChat')?.scrollIntoView({behavior:'smooth',block:'nearest'}),30); }
+  };
+
+  window.renderZap=renderZapFinal;
+  window.zapOpenCurrent=window.oryonFinalWatch;
+  window.hfWatchCurrent=window.oryonFinalWatch;
+  window.zapNext=function(){
+    const items=window.state?.zap?.items||[];
+    if(!items.length) return window.findLive();
+    window.state.zap.index=(Number(window.state.zap.index)||0)+1;
+    if(window.state.zap.index>=items.length) window.state.zap.index=0;
+    window.state.discoverMode='preview';
+    window.state.discoverPlayer=null;
+    renderZapFinal();
+  };
+  window.proSwipeRight=window.oryonFinalLike;
+  window.proSwipeLeft=window.oryonFinalNope;
+
+  window.findLive=async function(){
+    const mood=getMood();
+    const q=(document.getElementById('dQuery')?.value || '').trim();
+    const max=Number(document.getElementById('dMax')?.value || (mood==='petite-commu'?150:300));
+    const lang=document.getElementById('dLang')?.value || 'fr';
+    const zap=document.getElementById('zapResult');
+    if(zap) zap.innerHTML='<div class="oryonFinalEmpty"><h2>Recherche en cours…</h2><p>Oryon trie les lives selon ton mood.</p></div>';
+    window.state.discoverMode='preview';
+    window.state.discoverPlayer=null;
+    let items=await fetchLivePool({mood,q,max,lang});
+    if(!items.length) items=await fetchLivePool({mood,q:'',max:500,lang});
+    const seen=readJson(seenKey(),{});
+    let fresh=items.filter(x=>!seen[keyOf(x)]);
+    if(!fresh.length && items.length) fresh=items;
+    window.state.zap.items=fresh.slice(0,24);
+    window.state.zap.index=0;
+    renderZapFinal();
+  };
+
+  window.setDiscoverMood=async function(id){
+    window.state.moodFirstMood=id||'petite-commu';
+    document.querySelectorAll('#discover .oryonFinalMood').forEach(b=>b.classList.toggle('active',b.dataset.mood===window.state.moodFirstMood));
+    await window.findLive();
+  };
+
+  window.renderDiscover=async function(){
+    setBodyMode();
+    const el=document.getElementById('discover'); if(!el) return;
+    const current=getMood();
+    window.state.discoverMode='preview';
+    window.state.discoverPlayer=null;
+    el.classList.remove('oryon-final-chat-open');
+    el.innerHTML=`<div class="oryonFinalDiscover"><section class="oryonFinalHero"><div><span class="eyebrow"><i class="dot"></i>Swap ton mood</span><h1>Choisis ton mood.</h1><p>Oryon te propose un live. Swipe à droite si tu aimes, à gauche si ce n’est pas ta vibe. Clique Voir pour entrer dans le live.</p></div><div class="oryonFinalMeta"><span class="oryonFinalTag">Découverte</span><span class="oryonFinalTag">DeckLurker</span><span class="oryonFinalTag">Swipe</span></div></section><section class="oryonFinalMoodRail">${moods().map(([id,label,desc,icon])=>`<button type="button" data-mood="${safe(id)}" class="oryonFinalMood ${id===current?'active':''}" onclick="setDiscoverMood('${safe(id)}')"><i>${safe(icon||'✨')}</i>${safe(label)}<span>${safe(desc||'')}</span></button>`).join('')}</section><details class="oryonFinalOptions"><summary>Options avancées</summary><div class="oryonFinalOptionsBody"><input id="dQuery" placeholder="jeu, pseudo, ambiance"><select id="dMax"><option value="80">≤80</option><option value="150" selected>≤150</option><option value="300">≤300</option><option value="500">≤500</option></select><select id="dLang"><option value="fr">FR</option><option value="en">EN</option></select><button class="btn secondary" type="button" onclick="localStorage.removeItem('${seenKey()}');findLive()">Réinitialiser</button><button class="btn" type="button" onclick="findLive()">Relancer</button></div></details><section id="zapResult"></section><div id="oryonFinalDeckMount"></div></div>`;
+    await window.findLive();
+    cleanUrlButtons();
+  };
+
+  const obs=new MutationObserver(()=>{
+    if(window.state?.view==='discover'){
+      setBodyMode();
+      cleanUrlButtons();
+    }
+  });
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  setTimeout(()=>{setBodyMode(); if(window.state?.view==='discover') window.renderDiscover();},60);
+})();
+
+/* Bind definitive discover functions to global function names used by setView */
+try{
+  if(window.renderDiscover) renderDiscover = window.renderDiscover;
+  if(window.renderZap) renderZap = window.renderZap;
+  if(window.findLive) findLive = window.findLive;
+  if(window.zapNext) zapNext = window.zapNext;
+  if(window.zapOpenCurrent) zapOpenCurrent = window.zapOpenCurrent;
+  if(window.setDiscoverMood) setDiscoverMood = window.setDiscoverMood;
+}catch(e){console.warn('Oryon definitive discover binding skipped', e)}
