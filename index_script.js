@@ -6316,3 +6316,213 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.oryonNextDeckSlotV2=function(){const d=readDeck();const filled=d.slots.map((s,i)=>s?i:-1).filter(i=>i>=0);if(!filled.length)return toast?.('Deck vide');const cur=filled.indexOf(d.active);window.oryonOpenDeckSlotV2(filled[(cur+1+filled.length)%filled.length]);};
   window.oryonLoadFollowedQuickV2=async function(){const rail=document.getElementById('oryonFollowQuickRail');if(!rail)return;if(!state.session?.twitch){rail.innerHTML='<div class="followEmpty">Connecte Twitch pour voir tes suivis en live.</div>';return;}try{let r=await api('/api/twitch/followed/live').catch(()=>null);if(!r||!r.success)r=await api('/followed_streams').catch(()=>null);const items=r?.items||r?.streams||[];if(!items.length){rail.innerHTML='<div class="followEmpty">Aucun suivi Twitch en live actuellement.</div>';return;}rail.innerHTML=items.slice(0,18).map(x=>{const id=liveId({...x,platform:'twitch'});const img=id.img||x.profile_image_url||x.avatar_url||'';return `<button class="oryonFollowMini" onclick="openTwitch('${safe(id.login)}')">${img?`<img src="${safe(img)}" alt="">`:''}<div><b>${safe(id.name)}</b><span>${safe(id.game||'Live')} · ${id.viewers}</span></div></button>`}).join('');}catch{rail.innerHTML='<div class="followEmpty">Impossible de charger les suivis Twitch.</div>';}};
 })();
+
+/* =========================================================
+   ORYON DISCOVER V3 — remove URL + reliable chat panel
+   Fixes: useless URL button, hidden/empty chat after Chat click,
+   and old CSS conflicts hiding chat iframe.
+   ========================================================= */
+(function installOryonDiscoverV3NoUrlReliableChat(){
+  window.__ORYON_DISCOVER_V3_NO_URL_CHAT__ = true;
+
+  const STYLE_ID = 'oryonDiscoverV3NoUrlChatStyle';
+  document.getElementById(STYLE_ID)?.remove();
+  const st = document.createElement('style');
+  st.id = STYLE_ID;
+  st.textContent = `
+    #discover .oryonStableActions.watch{
+      grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    }
+    #discover .oryonStableActions.watch button{
+      min-width:0!important;
+      text-transform:none!important;
+      letter-spacing:0!important;
+      animation:none!important;
+    }
+    #discover .oryonStableChat{
+      display:none!important;
+      width:100%!important;
+      min-height:360px!important;
+      height:min(52vh,560px)!important;
+      max-height:560px!important;
+      border-radius:22px!important;
+      overflow:hidden!important;
+      border:1px solid rgba(148,163,184,.24)!important;
+      background:#111318!important;
+      margin-top:0!important;
+    }
+    #discover.oryonStableChatOpen .oryonStableChat,
+    body.oryonMobileChatOpen #discover.oryonStableChatOpen .oryonStableChat{
+      display:block!important;
+      opacity:1!important;
+      visibility:visible!important;
+      position:relative!important;
+      transform:none!important;
+    }
+    #discover.oryonStableChatOpen .oryonStableChat iframe,
+    body.oryonMobileChatOpen #discover.oryonStableChatOpen .oryonStableChat iframe{
+      display:block!important;
+      width:100%!important;
+      height:100%!important;
+      min-height:360px!important;
+      opacity:1!important;
+      visibility:visible!important;
+      border:0!important;
+      position:static!important;
+      transform:none!important;
+      background:#111318!important;
+    }
+    #discover .oryonChatFallback{
+      display:none;
+      padding:14px;
+      color:#dbeafe;
+      font-weight:800;
+      border-top:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.035);
+    }
+    #discover.oryonStableChatOpen .oryonChatFallback{display:block;}
+    #discover .oryonDeckActions{
+      grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    }
+    #discover .oryonDeckActions .oryonUrlBtn,
+    #discover .oryonDeckActions button[data-oryon-url],
+    #discover .oryonDeckActions button.oryonDeckUrlButton{
+      display:none!important;
+    }
+    @media(max-width:760px){
+      #discover .oryonStableActions.watch{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+      #discover .oryonStableActions.watch button{min-height:50px!important;font-size:13px!important;}
+      #discover .oryonStableChat{height:420px!important;min-height:360px!important;max-height:54vh!important;}
+      #discover.oryonStableChatOpen .oryonStableChat iframe{min-height:360px!important;}
+    }
+  `;
+  document.head.appendChild(st);
+
+  const safe = (s)=>String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const enc = (s)=>encodeURIComponent(String(s || ''));
+  const parentHost = ()=>location.hostname || 'localhost';
+  const currentRaw = ()=> (window.state?.zap?.items || [])[window.state?.zap?.index || 0] || window.state?.zap?.last || null;
+  const liveId = (x)=>{
+    x=x||{};
+    const login=String(x.login||x.user_login||x.broadcaster_login||x.host_login||x.room||x.name||x.display_name||'').toLowerCase();
+    return {
+      platform:x.platform||x.source||(x.host_login||x.room?'oryon':'twitch'),
+      login,
+      name:x.name||x.user_name||x.display_name||x.broadcaster_name||login||'Live',
+      title:x.title||'Live en cours',
+      game:x.game||x.game_name||x.category||'',
+      viewers:Number(x.viewers||x.viewer_count||0)||0
+    };
+  };
+
+  function chatUrlFor(x){
+    const id=liveId(x);
+    if(!id.login) return '';
+    if(id.platform==='oryon') return `/chat/${enc(id.login)}`;
+    return `https://www.twitch.tv/embed/${enc(id.login)}/chat?parent=${enc(parentHost())}&darkpopout`;
+  }
+
+  function ensureChatPanel(){
+    const discover=document.getElementById('discover');
+    const watch=document.querySelector('#discover .oryonStableWatch');
+    if(!discover || !watch) return null;
+    let chat=watch.querySelector('.oryonStableChat');
+    if(!chat){
+      chat=document.createElement('div');
+      chat.className='oryonStableChat';
+      const actions=watch.querySelector('.oryonStableActions');
+      if(actions) actions.insertAdjacentElement('afterend',chat);
+      else watch.appendChild(chat);
+    }
+    const url=chatUrlFor(currentRaw());
+    let iframe=chat.querySelector('iframe');
+    if(url && (!iframe || iframe.getAttribute('src')!==url)){
+      chat.innerHTML=`<iframe title="Chat du live" src="${safe(url)}" loading="eager" referrerpolicy="origin"></iframe><div class="oryonChatFallback">Si le chat Twitch reste vide, le navigateur le bloque probablement. Le live reste lisible et tu peux réessayer en désactivant le blocage de scripts tiers.</div>`;
+      iframe=chat.querySelector('iframe');
+    }
+    return chat;
+  }
+
+  function normalizeWatchButtons(){
+    const bar=document.querySelector('#discover .oryonStableActions.watch');
+    if(!bar) return;
+    bar.innerHTML = `
+      <button class="btn secondary" type="button" onclick="oryonAddCurrentToDeckV2?.(); oryonAddCurrentToDeck?.();">LURK</button>
+      <button class="btn secondary" type="button" onclick="oryonToggleDiscoverChatV3()">CHAT</button>
+      <button class="btn primaryAction" type="button" onclick="zapNext?.()">SUIVANT</button>
+    `;
+  }
+
+  function normalizeDeckButtons(){
+    document.querySelectorAll('#discover .oryonDeckActions').forEach(actions=>{
+      const buttons=[...actions.querySelectorAll('button')];
+      buttons.forEach(btn=>{
+        const txt=(btn.textContent||'').trim().toLowerCase();
+        if(txt==='url') btn.remove();
+        if(txt.includes('suivant deck')) btn.textContent='Suivant';
+        if(txt.includes('voir ici')) btn.textContent='Voir';
+      });
+    });
+    document.querySelectorAll('#discover .oryonDeckSlotActions button').forEach(btn=>{
+      const txt=(btn.textContent||'').trim().toLowerCase();
+      if(txt==='url') btn.remove();
+    });
+  }
+
+  function normalizeDiscoverV3(){
+    if((window.state?.view || '') !== 'discover') return;
+    normalizeWatchButtons();
+    normalizeDeckButtons();
+    if(document.querySelector('#discover .oryonStableWatch')) ensureChatPanel();
+  }
+
+  window.oryonToggleDiscoverChatV3 = function(){
+    const discover=document.getElementById('discover');
+    if(!discover) return;
+    const chat=ensureChatPanel();
+    const open=!discover.classList.contains('oryonStableChatOpen');
+    discover.classList.toggle('oryonStableChatOpen', open);
+    document.body.classList.toggle('oryonMobileChatOpen', open);
+    if(open && chat){
+      // Force layout after old patches that hide chat iframes.
+      chat.style.setProperty('display','block','important');
+      const iframe=chat.querySelector('iframe');
+      if(iframe){
+        iframe.style.setProperty('display','block','important');
+        iframe.style.setProperty('height','100%','important');
+        const src=iframe.getAttribute('src');
+        // Refresh once if the iframe was created hidden and stayed blank.
+        if(src && !iframe.dataset.oryonLoadedVisible){
+          iframe.dataset.oryonLoadedVisible='1';
+          setTimeout(()=>{ try{ iframe.src=src; }catch{} },80);
+        }
+      }
+      setTimeout(()=>chat.scrollIntoView({behavior:'smooth',block:'nearest'}),30);
+    }
+  };
+
+  // Keep old names working but make them use the reliable V3 toggle.
+  window.oryonToggleDiscoverChatV2 = window.oryonToggleDiscoverChatV3;
+  window.oryonToggleDiscoverChat = window.oryonToggleDiscoverChatV3;
+  window.toggleDiscoverChatStable = window.oryonToggleDiscoverChatV3;
+  window.toggleDiscoverChat = window.oryonToggleDiscoverChatV3;
+
+  // Wrap renderers once. We normalize after every render because older patches rewrite the DOM.
+  function wrap(name){
+    const old=window[name];
+    if(typeof old!=='function' || old.__oryonV3Wrapped) return;
+    const wrapped=function(){
+      const out=old.apply(this,arguments);
+      Promise.resolve(out).finally(()=>setTimeout(normalizeDiscoverV3,30));
+      return out;
+    };
+    wrapped.__oryonV3Wrapped=true;
+    window[name]=wrapped;
+  }
+  ['renderZap','renderDiscover','hfWatchCurrent','zapOpenCurrent','zapNext','oryonOpenDeckSlotV2','oryonNextDeckSlotV2'].forEach(wrap);
+
+  // Mutation observer catches async rewrites and removes URL immediately.
+  const obs=new MutationObserver(()=>normalizeDiscoverV3());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  setTimeout(normalizeDiscoverV3,50);
+})();
