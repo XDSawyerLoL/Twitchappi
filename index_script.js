@@ -7185,3 +7185,150 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.pickCatEncoded=(name,img='')=>window.pickCat(decodeURIComponent(name||''),decodeURIComponent(img||''));
   const oldSetView=window.setView;if(typeof oldSetView==='function'&&!oldSetView.__v4Wrapped){const wrapped=function(v){document.body.classList.toggle('oryonDiscoverV4',v==='discover');if(v!=='discover')document.body.classList.remove('oryonDiscoverV4');return oldSetView.apply(this,arguments)};wrapped.__v4Wrapped=true;window.setView=wrapped;}
 })();
+
+/* =========================================================
+   ORYON HOTFIX — Twitch connect must not break layout
+   - fixes returnTo value
+   - clears Discover-only fullwidth classes outside Discover
+   - prevents followed Twitch rail from stretching the page
+   ========================================================= */
+(function installTwitchConnectLayoutHotfix(){
+  const DISCOVER_CLASSES = [
+    'oryonDiscoverFinalActive','oryonDiscoverV3','oryonDiscoverV4','oryonDiscoverProduct',
+    'oryonCleanDiscoverActive','oryonDiscoverStableActive','oryonDiscoverLayoutActive',
+    'oryonDiscoverV5','oryonDiscoverWide','oryonDiscoverFullscreen'
+  ];
+
+  const cssId='oryonTwitchConnectLayoutHotfixCss';
+  document.getElementById(cssId)?.remove();
+  const css=document.createElement('style');
+  css.id=cssId;
+  css.textContent=`
+    html,body{max-width:100%!important;overflow-x:hidden!important;}
+    body:not(.oryonDiscoverLayoutActive) .app{
+      width:100%!important;
+      max-width:1500px!important;
+      margin-left:auto!important;
+      margin-right:auto!important;
+      padding-left:22px!important;
+      padding-right:22px!important;
+      box-sizing:border-box!important;
+    }
+    body.oryonDiscoverLayoutActive .app{
+      width:100%!important;
+      max-width:none!important;
+      margin:0!important;
+      padding:0!important;
+      box-sizing:border-box!important;
+      overflow-x:hidden!important;
+    }
+    body.oryonDiscoverLayoutActive #discover.view.active{
+      display:block!important;
+      width:100%!important;
+      max-width:none!important;
+      margin:0!important;
+      padding:0!important;
+      overflow-x:hidden!important;
+    }
+    #discover .v4Page,#discover .dxPage,#discover .mxPage,#discover .sdPage,#discover .ocPage,#discover .hfDiscover,
+    #discover .v4Shell,#discover .dxShell,#discover .mxShell,#discover .sdShell,#discover .ocShell{
+      box-sizing:border-box!important;
+      max-width:100%!important;
+      overflow-x:hidden!important;
+    }
+    #discover .v4Shell,#discover .dxShell,#discover .mxShell,#discover .sdShell,#discover .ocShell{
+      width:min(100%,1760px)!important;
+      margin-left:auto!important;
+      margin-right:auto!important;
+    }
+    #discover .v4Follow,#discover .mxFollow,#discover .sdFollow,#discover .oryonFollowQuick,
+    #discover .v4FollowRail,#discover .mxFollowRail,#discover .sdFollowRail,#discover .oryonFollowRail,
+    #discover .v4Deck,#discover .mxDeck,#discover .sdDeck,#discover #oryonDeckLurkerMount{
+      max-width:100%!important;
+      min-width:0!important;
+      overflow-x:auto!important;
+      box-sizing:border-box!important;
+    }
+    #discover .v4FollowRail > *,#discover .mxFollowRail > *,#discover .sdFollowRail > *,#discover .oryonFollowRail > *{
+      flex:0 0 auto!important;
+    }
+    #twitch.view.active,#settings.view.active,#channel.view.active,#manager.view.active,#dashboard.view.active,#studio.view.active,#teams.view.active,#categories.view.active,#home.view.active{
+      width:100%!important;
+      max-width:1500px!important;
+      margin-left:auto!important;
+      margin-right:auto!important;
+      box-sizing:border-box!important;
+      overflow-x:hidden!important;
+    }
+    #twitch .marquee,#twitch .rail,#twitch #followedRail{
+      max-width:100%!important;
+      overflow-x:auto!important;
+      overflow-y:hidden!important;
+    }
+    #twitch .watchShell.twitchWatch{
+      width:100%!important;
+      max-width:100%!important;
+      grid-template-columns:minmax(0,1fr) minmax(320px,430px)!important;
+    }
+    @media(max-width:1080px){
+      body:not(.oryonDiscoverLayoutActive) .app{padding-left:14px!important;padding-right:14px!important;}
+      #twitch .watchShell.twitchWatch{grid-template-columns:1fr!important;}
+      #discover .v4Shell,#discover .dxShell,#discover .mxShell,#discover .sdShell,#discover .ocShell{width:100%!important;}
+    }
+  `;
+  document.head.appendChild(css);
+
+  function isDiscoverActive(){
+    const d=document.getElementById('discover');
+    return !!(d && d.classList.contains('active') && (state?.view==='discover' || location.hash==='#discover'));
+  }
+
+  function normalizeLayoutClasses(){
+    const active=isDiscoverActive();
+    document.body.classList.toggle('oryonDiscoverLayoutActive',active);
+    if(!active){
+      DISCOVER_CLASSES.forEach(c=>{ if(c!=='oryonDiscoverLayoutActive') document.body.classList.remove(c); });
+      const app=document.querySelector('.app');
+      if(app){
+        app.style.maxWidth='1500px';
+        app.style.marginLeft='auto';
+        app.style.marginRight='auto';
+        app.style.paddingLeft='22px';
+        app.style.paddingRight='22px';
+        app.style.width='100%';
+      }
+    }else{
+      const app=document.querySelector('.app');
+      if(app){
+        app.style.maxWidth='none';
+        app.style.margin='0';
+        app.style.padding='0';
+        app.style.width='100%';
+      }
+    }
+  }
+
+  const oldSetView=window.setView;
+  if(typeof oldSetView==='function' && !oldSetView.__twitchLayoutHotfix){
+    const wrapped=function(view){
+      const result=oldSetView.apply(this,arguments);
+      Promise.resolve(result).finally(()=>setTimeout(normalizeLayoutClasses,30));
+      return result;
+    };
+    wrapped.__twitchLayoutHotfix=true;
+    window.setView=wrapped;
+  }
+
+  window.connectTwitch=function connectTwitchLayoutSafe(){
+    const hash=(location.hash && location.hash.length>1) ? location.hash : ('#'+(state?.view||'discover'));
+    const returnTo='/'+hash;
+    try{ sessionStorage.setItem('oryon_twitch_return_hash',hash); }catch{}
+    DISCOVER_CLASSES.forEach(c=>document.body.classList.remove(c));
+    document.body.classList.remove('oryonDiscoverLayoutActive');
+    location.href='/twitch_auth_start?returnTo='+encodeURIComponent(returnTo);
+  };
+
+  window.addEventListener('hashchange',()=>setTimeout(normalizeLayoutClasses,30));
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(normalizeLayoutClasses,50));
+  setInterval(normalizeLayoutClasses,900);
+})();
