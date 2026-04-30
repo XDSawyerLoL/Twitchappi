@@ -6618,3 +6618,144 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     wrapped.__ocCleanWrapped=true; window.setView=wrapped;
   }
 })();
+
+/* =========================================================
+   ORYON DISCOVER UX REPAIR — not stretched, clearer desktop/mobile, category launches the chosen game
+   ========================================================= */
+(function installOryonDiscoverUxRepair(){
+  const STYLE_ID='oryonDiscoverUxRepairStyle';
+  document.getElementById(STYLE_ID)?.remove();
+  const st=document.createElement('style');
+  st.id=STYLE_ID;
+  st.textContent=`
+    body.oryonCleanDiscoverActive{overflow-x:hidden!important;}
+    body.oryonCleanDiscoverActive .app{max-width:none!important;width:100%!important;margin:0!important;padding:0!important;}
+    #discover.view.active{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}
+    #discover .ocPage{width:100%!important;max-width:none!important;padding:clamp(18px,2.2vw,34px) clamp(18px,3vw,56px) 110px!important;background:radial-gradient(circle at 9% 0%,rgba(139,92,246,.22),transparent 32%),radial-gradient(circle at 92% 6%,rgba(34,211,238,.13),transparent 32%),#05070d!important;}
+    #discover .ocHero{width:100%!important;max-width:1540px!important;margin:0 auto 18px!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:14px!important;align-items:start!important;}
+    #discover .ocHero h1{font-size:clamp(44px,5.1vw,86px)!important;line-height:.88!important;letter-spacing:-.075em!important;margin:8px 0 8px!important;}
+    #discover .ocHero p{max-width:780px!important;font-size:clamp(14px,1.05vw,17px)!important;line-height:1.42!important;}
+    #discover .ocTools{width:100%!important;max-width:1120px!important;margin-top:12px!important;border-radius:22px!important;padding:12px!important;}
+    #discover .ocMoodRail{gap:9px!important;}
+    #discover .ocMoodBtn{font-size:13px!important;padding:9px 13px!important;}
+    #discover .ocSearch{display:grid!important;grid-template-columns:minmax(260px,1fr) 150px 108px!important;gap:8px!important;}
+    #discover .ocLayout{display:block!important;width:100%!important;max-width:1540px!important;margin:0 auto!important;}
+    #discover .ocSide{display:none!important;}
+    #discover .ocMain{width:100%!important;max-width:1240px!important;margin:0 auto!important;}
+    #discover .ocCard{width:100%!important;min-height:0!important;height:auto!important;aspect-ratio:16/9!important;max-height:690px!important;border-radius:28px!important;}
+    #discover .ocCardImg{object-fit:cover!important;}
+    #discover .ocCardBody{left:22px!important;right:22px!important;bottom:20px!important;gap:12px!important;}
+    #discover .ocCardTitle{font-size:clamp(28px,3.15vw,48px)!important;line-height:.98!important;letter-spacing:-.052em!important;max-width:1120px!important;-webkit-line-clamp:2!important;}
+    #discover .ocMeta{font-size:clamp(13px,1.2vw,18px)!important;}
+    #discover .ocTopBadges{left:16px!important;right:16px!important;top:14px!important;gap:7px!important;}
+    #discover .ocTag{font-size:11px!important;padding:6px 9px!important;max-width:170px!important;}
+    #discover .ocActions{max-width:760px!important;grid-template-columns:1fr 1.25fr 1fr!important;gap:10px!important;}
+    #discover .ocActions .btn,#discover .ocWatchActions .btn{min-height:48px!important;border-radius:15px!important;font-size:14px!important;}
+    #discover .ocActions .primaryAction{font-size:16px!important;}
+    #discover .ocWatch{display:grid!important;grid-template-columns:minmax(0,1fr) clamp(330px,28vw,450px)!important;gap:14px!important;align-items:stretch!important;}
+    #discover .ocPlayerBox{aspect-ratio:16/9!important;min-height:0!important;}
+    #discover .ocChatCard{min-height:520px!important;}
+    #discover .ocChatFrame{min-height:462px!important;}
+    #discover #ocDeck,#discover #ocFollowed{width:100%!important;max-width:1540px!important;margin:18px auto 0!important;}
+    #discover .ocDeckSlots{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+    #discover .ocDeckSlot{min-height:118px!important;}
+    #discover .ocEmpty{min-height:360px!important;}
+    #discover .ocPanel{border-radius:22px!important;}
+    #discover .ocHero .eyebrow::after{content:' claire';}
+    @media(max-width:1180px){
+      #discover .ocPage{padding:16px 14px 104px!important;}
+      #discover .ocHero{max-width:100%!important;}
+      #discover .ocTools{max-width:100%!important;}
+      #discover .ocSearch{grid-template-columns:1fr!important;}
+      #discover .ocMain{max-width:100%!important;}
+      #discover .ocCard{aspect-ratio:16/10!important;max-height:none!important;border-radius:24px!important;}
+      #discover .ocWatch{grid-template-columns:1fr!important;}
+      #discover .ocChatCard{min-height:500px!important;}
+      #discover .ocChatFrame{min-height:440px!important;}
+      #discover .ocDeckSlots{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+    }
+    @media(max-width:620px){
+      #discover .ocHero h1{font-size:clamp(38px,11vw,54px)!important;}
+      #discover .ocHero p{font-size:13px!important;}
+      #discover .ocTools{padding:10px!important;border-radius:20px!important;}
+      #discover .ocCard{aspect-ratio:auto!important;min-height:440px!important;border-radius:22px!important;}
+      #discover .ocTopBadges{left:12px!important;right:12px!important;top:12px!important;}
+      #discover .ocTag{font-size:10px!important;padding:5px 8px!important;max-width:128px!important;}
+      #discover .ocCardBody{left:13px!important;right:13px!important;bottom:13px!important;gap:10px!important;}
+      #discover .ocCardTitle{font-size:clamp(25px,7.3vw,36px)!important;}
+      #discover .ocMeta{font-size:13px!important;}
+      #discover .ocActions,#discover .ocWatchActions{grid-template-columns:1fr 1fr 1fr!important;gap:8px!important;}
+      #discover .ocActions .btn,#discover .ocWatchActions .btn{min-height:46px!important;font-size:13px!important;padding:9px 7px!important;}
+      #discover .ocChatCard{min-height:470px!important;}
+      #discover .ocChatFrame{min-height:410px!important;}
+    }
+  `;
+  document.head.appendChild(st);
+
+  function applyDiscoverCopy(){
+    const root=document.getElementById('discover');
+    if(!root) return;
+    const h=root.querySelector('.ocHero h1');
+    if(h && h.textContent.trim()!=='Swap ton mood.') h.textContent='Swap ton mood.';
+    const p=root.querySelector('.ocHero p');
+    if(p) p.textContent='Choisis une ambiance, Oryon propose un live. Tu swipes, tu ouvres, tu lurk ou tu discutes.';
+    const actionText=root.querySelector('#ocSide .ocPanel:nth-child(2) p');
+    if(actionText) actionText.textContent='Avant lecture : Pas ouf / Voir / J’aime. Après Voir : Lurk / Chat / Suivant.';
+  }
+
+  const prevRenderDiscover=window.renderDiscover;
+  if(typeof prevRenderDiscover==='function' && !prevRenderDiscover.__uxRepairWrapped){
+    const wrapped=async function(){
+      const out=await prevRenderDiscover.apply(this,arguments);
+      applyDiscoverCopy();
+      return out;
+    };
+    wrapped.__uxRepairWrapped=true;
+    window.renderDiscover=renderDiscover=wrapped;
+  }
+
+  async function launchCategoryInDiscover(name){
+    const game=String(name||'').trim();
+    if(!game) return;
+    state.moodFirstMood='decouverte-jeu';
+    state.zap=state.zap||{};
+    state.zap.items=[];
+    state.zap.index=0;
+    state.zap.last=null;
+    await setView('discover');
+    await new Promise(r=>setTimeout(r,80));
+    const q=document.getElementById('ocQuery')||document.getElementById('dQuery');
+    if(q) q.value=game;
+    const max=document.getElementById('ocMax')||document.getElementById('dMax');
+    if(max) max.value=max.querySelector('option[value="150"]')?'150':(max.value||'200');
+    if(typeof window.ocSetMood==='function'){
+      // ocSetMood relance une recherche. On veut garder la catégorie dans le champ.
+      const btn=[...document.querySelectorAll('#discover .ocMoodBtn')].find(b=>/Découverte jeu|Découverte/i.test(b.textContent));
+      if(btn){document.querySelectorAll('#discover .ocMoodBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+    }
+    if(typeof window.ocFindLive==='function') await window.ocFindLive();
+    else if(typeof window.findLive==='function') await window.findLive();
+    // Depuis une catégorie, on lance réellement le live trouvé au lieu de déposer seulement une carte morte.
+    setTimeout(()=>{ if((state.zap?.items||[]).length && typeof window.ocWatch==='function') window.ocWatch(); },160);
+  }
+
+  window.pickCat=async function pickCatUxRepair(name,img=''){
+    return launchCategoryInDiscover(name);
+  };
+  window.pickCatEncoded=function pickCatEncodedUxRepair(name,img){
+    return launchCategoryInDiscover(decodeURIComponent(name||''));
+  };
+
+  const prevSetView=window.setView;
+  if(typeof prevSetView==='function' && !prevSetView.__uxRepairDiscoverCopy){
+    const wrapped=function(v){
+      const res=prevSetView.apply(this,arguments);
+      Promise.resolve(res).finally(()=>{ if(v==='discover') setTimeout(applyDiscoverCopy,40); });
+      return res;
+    };
+    wrapped.__uxRepairDiscoverCopy=true;
+    window.setView=wrapped;
+  }
+
+  setInterval(()=>{ if(state?.view==='discover') applyDiscoverCopy(); },900);
+})();
