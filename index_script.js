@@ -6806,3 +6806,253 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>window.syncDiscoverMobileStack(),150));
   setInterval(()=>{ if((state.view||'')==='discover') window.syncDiscoverMobileStack(); },700);
 })();
+
+/* =========================================================
+   ORYON FINAL DISCOVER UX REPAIR — stable buttons, chat toggle,
+   compact DeckLurker desktop/mobile, followed Twitch quick strip.
+   This pass deliberately ignores old iframe-based state detection.
+   ========================================================= */
+(function installOryonDiscoverStableUX(){
+  if(window.__ORYON_DISCOVER_STABLE_UX_V6__) return;
+  window.__ORYON_DISCOVER_STABLE_UX_V6__=true;
+
+  const st=document.createElement('style');
+  st.id='oryonDiscoverStableUXV6Style';
+  st.textContent=`
+    #discover{overflow-x:hidden!important;}
+    #discover .discoverMobileActionBar:not(#discoverActionBarFinal),
+    #discover .hfDiscoverActions,
+    #discover .proActions{display:none!important;}
+
+    #discoverActionBarFinal{
+      width:100%!important;max-width:100%!important;box-sizing:border-box!important;
+      display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px!important;
+      margin:12px 0 16px!important;padding:10px!important;border:1px solid rgba(148,163,184,.18)!important;
+      border-radius:24px!important;background:linear-gradient(180deg,rgba(15,23,42,.92),rgba(8,13,24,.96))!important;
+      box-shadow:0 18px 52px rgba(0,0,0,.22)!important;position:relative!important;z-index:4!important;
+    }
+    #discoverActionBarFinal[data-mode="watch"]{grid-template-columns:repeat(4,minmax(0,1fr));}
+    #discoverActionBarFinal button{
+      min-height:52px!important;border-radius:18px!important;text-transform:none!important;letter-spacing:0!important;
+      animation:none!important;white-space:nowrap!important;line-height:1!important;font-size:16px!important;font-weight:1000!important;
+      transform:none!important;filter:none!important;box-sizing:border-box!important;
+    }
+    #discoverActionBarFinal button.primaryAction,
+    #discoverActionBarFinal button[data-role="voir"],
+    #discoverActionBarFinal button[data-role="suivant"]{
+      background:linear-gradient(135deg,#8b5cf6,#d946ef)!important;color:#fff!important;border-color:rgba(255,255,255,.14)!important;
+      box-shadow:0 16px 40px rgba(168,85,247,.26)!important;
+    }
+    #discoverActionBarFinal button:active{transform:scale(.985)!important;}
+
+    #discover .hfLiveCard{will-change:transform;touch-action:pan-y!important;}
+    #discover .hfLiveCard .hfTagRow{display:flex!important;flex-wrap:wrap!important;gap:7px!important;align-items:flex-start!important;margin-bottom:8px!important;}
+    #discover .hfLiveCard .hfTag{font-size:12px!important;line-height:1!important;padding:7px 9px!important;border-radius:999px!important;background:rgba(4,8,18,.72)!important;backdrop-filter:blur(10px)!important;}
+    #discover .hfLiveCard .hfLiveBody h2{font-size:clamp(24px,4.6vw,48px)!important;line-height:1!important;letter-spacing:-.045em!important;max-width:92%!important;}
+    #discover .hfSwipeStamp{position:absolute!important;z-index:8!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%) scale(.92)!important;opacity:0!important;pointer-events:none!important;padding:14px 20px!important;border-radius:999px!important;font-size:24px!important;font-weight:1000!important;text-transform:uppercase!important;color:#fff!important;background:rgba(5,10,22,.74)!important;border:1px solid rgba(255,255,255,.22)!important;box-shadow:0 18px 50px rgba(0,0,0,.35)!important;}
+    #discover .hfLiveCard.swipe-like .hfSwipeStamp.like{opacity:1!important;transform:translate(-50%,-50%) scale(1)!important;background:rgba(34,197,94,.88)!important;}
+    #discover .hfLiveCard.swipe-nope .hfSwipeStamp.nope{opacity:1!important;transform:translate(-50%,-50%) scale(1)!important;background:rgba(244,63,94,.88)!important;}
+
+    #discover .discoverFinalWatch{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;width:100%!important;}
+    #discover .discoverFinalPlayer{width:100%!important;aspect-ratio:16/9!important;border-radius:24px!important;overflow:hidden!important;background:#000!important;border:1px solid rgba(34,211,238,.22)!important;}
+    #discover .discoverFinalPlayer iframe{width:100%!important;height:100%!important;border:0!important;display:block!important;}
+    #discover .discoverFinalChat{display:none!important;height:min(48vh,440px)!important;min-height:280px!important;border-radius:22px!important;overflow:hidden!important;background:#111318!important;border:1px solid rgba(148,163,184,.2)!important;}
+    #discover .discoverFinalChat iframe{width:100%!important;height:100%!important;border:0!important;display:block!important;}
+    #discover.oryonDiscoverChatOpen .discoverFinalChat{display:block!important;}
+
+    #discoverDeckOnlyMount{width:100%!important;max-width:100%!important;box-sizing:border-box!important;}
+    #discover .discoverDeckOnly.discoverDeckCompact{margin:0 0 96px!important;padding:16px!important;border-radius:26px!important;}
+    #discover .discoverDeckCompact .discoverDeckActive{display:grid!important;grid-template-columns:minmax(0,.92fr) minmax(240px,.38fr)!important;gap:12px!important;align-items:stretch!important;}
+    #discover .discoverDeckCompact .deckPreviewCard{position:relative;min-height:190px;border:1px solid rgba(34,211,238,.25);border-radius:22px;overflow:hidden;background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(34,211,238,.08));}
+    #discover .discoverDeckCompact .deckPreviewCard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.72;}
+    #discover .discoverDeckCompact .deckPreviewCard:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.08),rgba(2,6,23,.88));}
+    #discover .discoverDeckCompact .deckPreviewBody{position:absolute;z-index:2;left:16px;right:16px;bottom:16px;color:#fff;}
+    #discover .discoverDeckCompact .deckPreviewBody h3{margin:0;font-size:clamp(22px,2vw,34px);line-height:.98;letter-spacing:-.04em;}
+    #discover .discoverDeckCompact .deckPreviewBody p{margin:6px 0 0;color:#d7e3f7;}
+    #discover .discoverDeckCompact .discoverDeckInfo{align-content:center!important;}
+    #discover .deckActionsFinal{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+    #discover .deckActionsFinal button{min-height:38px;border-radius:12px;font-weight:950;}
+    #discover .discoverFollowedQuick{border:1px solid rgba(148,163,184,.16);border-radius:20px;background:rgba(255,255,255,.035);padding:12px;display:grid;gap:10px;}
+    #discover .discoverFollowedQuickHead{display:flex;justify-content:space-between;gap:10px;align-items:center;}
+    #discover .discoverFollowedRail{display:flex;gap:10px;overflow:auto;padding-bottom:4px;}
+    #discover .discoverFollowedMini{position:relative;flex:0 0 190px;min-height:92px;border:1px solid rgba(148,163,184,.18);border-radius:16px;overflow:hidden;background:#0b1220;text-align:left;color:#fff;}
+    #discover .discoverFollowedMini img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.65;}
+    #discover .discoverFollowedMini:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.05),rgba(2,6,23,.9));}
+    #discover .discoverFollowedMini div{position:absolute;z-index:2;left:10px;right:10px;bottom:10px;}
+    #discover .discoverFollowedMini b,#discover .discoverFollowedMini span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    #discover .discoverFollowedMini span{font-size:12px;color:#dbeafe;}
+
+    @media(min-width:761px){
+      #discover .discoverFinalWatch{grid-template-columns:minmax(0,1fr) minmax(320px,.34fr)!important;align-items:stretch!important;}
+      #discover .discoverFinalChat{height:auto!important;min-height:360px!important;}
+      #discover.oryonDiscoverChatOpen .discoverFinalChat{display:block!important;}
+    }
+    @media(max-width:760px){
+      #discoverActionBarFinal{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;padding:8px!important;border-radius:22px!important;}
+      #discoverActionBarFinal[data-mode="watch"]{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+      #discoverActionBarFinal button{min-height:48px!important;font-size:14px!important;border-radius:16px!important;padding:0 8px!important;}
+      #discover .hfLiveCard .hfTagRow{gap:5px!important;}
+      #discover .hfLiveCard .hfTag{font-size:10px!important;padding:6px 7px!important;}
+      #discover .hfLiveCard .hfLiveBody h2{font-size:25px!important;line-height:1.04!important;max-width:96%!important;}
+      #discover .discoverFinalChat{height:42vh!important;min-height:310px!important;}
+      #discover .discoverDeckCompact .discoverDeckActive{grid-template-columns:1fr!important;}
+      #discover .discoverDeckCompact .deckPreviewCard{min-height:130px!important;}
+      #discover .discoverDeckCompact .deckActionsFinal button{flex:1;}
+      #discover .discoverFollowedMini{flex-basis:150px;min-height:82px;}
+    }
+  `;
+  document.head.appendChild(st);
+
+  function E(s){try{return typeof esc==='function'?esc(s):String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}catch(_){return String(s??'')}}
+  function parentHost(){return encodeURIComponent(location.hostname||'localhost')}
+  function currentItem(){return (state?.zap?.items||[])[state?.zap?.index||0] || state?.zap?.last || state?.currentTwitch || null}
+  function liveId(x){
+    x=x||{};
+    const login=String(x.login||x.user_login||x.broadcaster_login||x.host_login||x.room||x.name||state?.discoverPlayer?.login||'').toLowerCase();
+    const img=(x.thumbnail_url||x.img||x.preview_url||'').replace?.('{width}','960').replace?.('{height}','540') || x.img || '';
+    return {platform:x.platform||x.source||'twitch',login,name:x.name||x.user_name||x.display_name||x.broadcaster_name||login||'Live',title:x.title||x.game_name||x.category||'Live en cours',game:x.game||x.game_name||x.category||'',viewers:Number(x.viewers||x.viewer_count||0),img};
+  }
+  function setMode(mode){window.__oryonDiscoverMode=mode==='watch'?'watch':'preview'; window.__oryonDiscoverWatching=(mode==='watch');}
+  function isDiscover(){return (state?.view||'')==='discover' && document.querySelector('#discover.view.active,#discover')}
+
+  function removeOldBars(){
+    document.querySelectorAll('#discover .discoverMobileActionBar,#discover .discoverActionBarOld').forEach(n=>n.remove());
+    document.querySelectorAll('#discoverActionBarFinal').forEach((n,i)=>{if(i>0)n.remove()});
+  }
+
+  function renderActionBar(){
+    if(!isDiscover())return;
+    removeOldBars();
+    const root=document.querySelector('#discover .hfDiscover')||document.querySelector('#discover');
+    const zap=document.querySelector('#discover #zapResult');
+    if(!root)return;
+    let bar=document.getElementById('discoverActionBarFinal');
+    if(!bar){bar=document.createElement('div');bar.id='discoverActionBarFinal';}
+    const watch=window.__oryonDiscoverMode==='watch';
+    bar.dataset.mode=watch?'watch':'preview';
+    if(watch){
+      bar.innerHTML=`<button class="btn secondary" type="button" onclick="addCurrentToDiscoverDeckFinal()">LURK</button><button class="btn secondary" type="button" onclick="toggleDiscoverChatStable()">CHAT</button><button class="btn secondary" type="button" onclick="openCurrentDiscoverUrl()">URL</button><button class="btn primaryAction" data-role="suivant" type="button" onclick="zapNext()">SUIVANT</button>`;
+    }else{
+      bar.innerHTML=`<button class="btn secondary" type="button" onclick="hfSwipeLeft()">Pas ouf</button><button class="btn primaryAction" data-role="voir" type="button" onclick="hfWatchCurrent()">Voir</button><button class="btn secondary" type="button" onclick="hfSwipeRight()">J’aime</button>`;
+    }
+    if(zap) zap.insertAdjacentElement('afterend',bar); else root.appendChild(bar);
+    placeDeckFinal();
+  }
+
+  function renderWatch(x){
+    if(!isDiscover())return;
+    x=x||currentItem();
+    const id=liveId(x);
+    if(!id.login){toast?.('Live introuvable');setMode('preview');renderActionBar();return;}
+    state.discoverPlayer={type:id.platform||'twitch',login:id.login};
+    const zap=document.querySelector('#discover #zapResult');
+    if(!zap)return;
+    const src=`https://player.twitch.tv/?channel=${encodeURIComponent(id.login)}&parent=${parentHost()}&autoplay=true&muted=false`;
+    const chat=`https://www.twitch.tv/embed/${encodeURIComponent(id.login)}/chat?parent=${parentHost()}&darkpopout`;
+    zap.innerHTML=`<section class="discoverFinalWatch"><div class="discoverFinalPlayer player premiumPlayer"><iframe allow="autoplay; fullscreen; picture-in-picture" allowfullscreen playsinline src="${src}"></iframe></div><aside class="discoverFinalChat chatPanel twitchChat"><iframe src="${chat}"></iframe></aside></section>`;
+    setMode('watch');
+    document.querySelector('#discover')?.classList.remove('oryonDiscoverChatOpen');
+    renderActionBar();
+  }
+
+  window.toggleDiscoverChatStable=function(){
+    if(window.__oryonDiscoverMode!=='watch') return;
+    const d=document.querySelector('#discover');
+    if(!d)return;
+    d.classList.toggle('oryonDiscoverChatOpen');
+  };
+  window.openCurrentDiscoverUrl=function(){
+    const id=liveId(currentItem()||{login:state?.discoverPlayer?.login});
+    if(!id.login)return toast?.('Aucun live à ouvrir');
+    if(typeof openTwitch==='function') openTwitch(id.login); else window.open('https://www.twitch.tv/'+encodeURIComponent(id.login),'_blank','noopener');
+  };
+
+  function readDeck(){
+    let d=null;try{d=typeof loadDeckLurker==='function'?loadDeckLurker():null}catch(_){d=null}
+    if(!d||!Array.isArray(d.slots)){try{d=JSON.parse(localStorage.getItem('oryon_deck_fallback')||'null')}catch(_){}}
+    if(!d||!Array.isArray(d.slots))d={active:0,status:'lurk',slots:Array(8).fill(null)};
+    d.slots=d.slots.slice(0,8);while(d.slots.length<8)d.slots.push(null);return d;
+  }
+  function writeDeck(d){try{if(typeof saveDeckLurker==='function')saveDeckLurker(d);else localStorage.setItem('oryon_deck_fallback',JSON.stringify(d))}catch(_){localStorage.setItem('oryon_deck_fallback',JSON.stringify(d))}}
+  function deckMeta(x){const id=liveId(x);return {source:id.platform,platform:id.platform,login:id.login,name:id.name,title:id.title,game:id.game,viewers:id.viewers,img:id.img,thumbnail_url:id.img,addedAt:Date.now()}}
+  window.addCurrentToDiscoverDeckFinal=function(){
+    const x=currentItem()||{platform:'twitch',login:state?.discoverPlayer?.login};
+    const m=deckMeta(x);if(!m.login)return toast?.('Aucun live à ajouter');
+    const d=readDeck();
+    const same=s=>s&&String(s.login||'').toLowerCase()===m.login;
+    let idx=d.slots.findIndex(same);if(idx<0)idx=d.slots.findIndex(s=>!s);if(idx<0)idx=0;
+    d.slots[idx]=m;d.active=idx;d.status=d.status||'lurk';writeDeck(d);renderDiscoverDeckOnlyFinal();toast?.('Ajouté au DeckLurker');
+  };
+  window.addCurrentToDiscoverDeck=window.addCurrentToDiscoverDeckFinal;
+
+  function deckSlot(s,i,active){
+    if(!s)return `<button class="discoverDeckSlot discoverDeckEmpty" type="button" onclick="findLive?.()"><div class="discoverDeckSlotBody"><b>Case ${i+1}</b><span>Ajoute un live</span></div></button>`;
+    const img=s.thumbnail_url||s.img||'';
+    return `<article class="discoverDeckSlot ${active?'active':''}">${img?`<img src="${E(img)}" alt="">`:''}<div class="discoverDeckSlotBody"><b>${E(s.name||s.login)}</b><span>${E(s.game||s.title||'Live')}</span><div class="discoverDeckSlotActions"><button type="button" onclick="event.stopPropagation();openDeckSlotInDiscover(${i})">Voir</button><button type="button" onclick="event.stopPropagation();clearDiscoverDeckSlotFinal(${i})">Vider</button></div></div></article>`;
+  }
+  window.renderDiscoverDeckOnlyFinal=function(){
+    const mount=document.getElementById('discoverDeckOnlyMount');if(!mount)return;
+    const d=readDeck();const slots=d.slots||[];const active=slots[d.active]||slots.find(Boolean);const activeIndex=active?slots.indexOf(active):-1;const count=slots.filter(Boolean).length;
+    const img=active?.thumbnail_url||active?.img||'';
+    mount.innerHTML=`<section class="discoverDeckOnly discoverDeckCompact"><div class="discoverDeckOnlyHead"><div><span class="discoverDeckBadge">👀 DeckLurker · ${count} live${count>1?'s':''}</span><h2>Ton salon de lurk</h2><p>Garde plusieurs propositions et switch sans ouvrir dix onglets. Le lecteur reste dans Découvrir.</p></div><div class="discoverDeckStatus"><button class="${d.status==='watch'?'active':''}" type="button" onclick="setDiscoverDeckStatusFinal('watch')">Je regarde</button><button class="${d.status==='lurk'?'active':''}" type="button" onclick="setDiscoverDeckStatusFinal('lurk')">Je lurk</button><button class="${d.status==='work'?'active':''}" type="button" onclick="setDiscoverDeckStatusFinal('work')">Au calme</button></div></div>${active?`<div class="discoverDeckActive"><div class="deckPreviewCard">${img?`<img src="${E(img)}" alt="">`:''}<div class="deckPreviewBody"><h3>${E(active.name||active.login)}</h3><p>${E(active.game||active.title||'Live gardé')}</p></div></div><aside class="discoverDeckInfo"><h3>${E(active.name||active.login)}</h3><p>${E(active.title||active.game||'Live gardé dans ton deck')}</p><div class="deckActionsFinal"><button class="btn" type="button" onclick="openDeckSlotInDiscover(${activeIndex})">Voir ici</button><button class="btn secondary" type="button" onclick="openDeckSlotUrl(${activeIndex})">URL</button><button class="btn secondary" type="button" onclick="openNextDeckSlot()">Suivant deck</button><button class="btn secondary" type="button" onclick="clearDiscoverDeckSlotFinal(${activeIndex})">Vider</button></div></aside></div>`:`<div class="discoverDeckInfo"><h3>Aucun live dans ton deck</h3><p>Ajoute un live depuis une proposition Découvrir.</p></div>`}<div class="discoverDeckSlots">${slots.map((s,i)=>deckSlot(s,i,i===activeIndex)).join('')}</div><section class="discoverFollowedQuick"><div class="discoverFollowedQuickHead"><div><b>Suivis Twitch en ligne</b><p>Accès rapide sans mélanger avec les recommandations.</p></div>${state?.session?.twitch?`<button class="btn secondary" type="button" onclick="loadDiscoverFollowedQuick()">Actualiser</button>`:`<button class="btn" type="button" onclick="connectTwitch?.()">Connecter Twitch</button>`}</div><div id="discoverFollowedQuickRail" class="discoverFollowedRail"><div class="followEmpty">${state?.session?.twitch?'Chargement…':'Connecte Twitch pour voir tes suivis.'}</div></div></section></section>`;
+    setTimeout(loadDiscoverFollowedQuick,20);
+  };
+  window.renderDiscoverDeckOnly=window.renderDiscoverDeckOnlyFinal;
+  window.setDiscoverDeckStatusFinal=function(status){const d=readDeck();d.status=status;writeDeck(d);renderDiscoverDeckOnlyFinal();};
+  window.setDiscoverDeckStatus=window.setDiscoverDeckStatusFinal;
+  window.clearDiscoverDeckSlotFinal=function(i){const d=readDeck();d.slots[i]=null;if(d.active===i){const n=d.slots.findIndex(Boolean);d.active=n>=0?n:0;}writeDeck(d);renderDiscoverDeckOnlyFinal();};
+  window.clearDiscoverDeckSlot=window.clearDiscoverDeckSlotFinal;
+  window.openDeckSlotInDiscover=function(i){const d=readDeck();const s=d.slots[i];if(!s)return;d.active=i;writeDeck(d);state.zap=state.zap||{};state.zap.last=s;renderDiscoverDeckOnlyFinal();renderWatch(s);};
+  window.openDeckSlotUrl=function(i){const d=readDeck();const s=d.slots[i];if(s?.login) window.openCurrentDiscoverUrl.call({},{login:s.login}); if(s?.login && typeof openTwitch==='function') openTwitch(s.login);};
+  window.openNextDeckSlot=function(){const d=readDeck();const filled=d.slots.map((s,i)=>s?i:-1).filter(i=>i>=0);if(!filled.length)return toast?.('Deck vide');const cur=filled.indexOf(d.active);const ni=filled[(cur+1+filled.length)%filled.length];window.openDeckSlotInDiscover(ni);};
+
+  window.loadDiscoverFollowedQuick=async function(){
+    const rail=document.getElementById('discoverFollowedQuickRail');if(!rail)return;
+    if(!state?.session?.twitch){rail.innerHTML='<div class="followEmpty">Connecte Twitch pour voir tes suivis en live.</div>';return;}
+    try{
+      let r=await api('/api/twitch/followed/live').catch(()=>null);if(!r||!r.success)r=await api('/followed_streams').catch(()=>null);
+      const items=r?.items||r?.streams||[];
+      if(!items.length){rail.innerHTML='<div class="followEmpty">Aucun suivi Twitch en live actuellement.</div>';return;}
+      rail.innerHTML=items.slice(0,18).map(x=>{const id=liveId(x);const img=id.img||x.profile_image_url||x.avatar_url||'';return `<button class="discoverFollowedMini" type="button" onclick="state.zap.last=${JSON.stringify(null).replace('null','null')};openTwitch('${E(id.login)}')">${img?`<img src="${E(img)}" alt="">`:''}<div><b>${E(id.name)}</b><span>${E(id.game||'Live')} · ${Number(id.viewers||0)}</span></div></button>`}).join('');
+    }catch(_){rail.innerHTML='<div class="followEmpty">Impossible de charger les suivis Twitch.</div>';}
+  };
+
+  function placeDeckFinal(){
+    if(!isDiscover())return;
+    const root=document.querySelector('#discover .hfDiscover')||document.querySelector('#discover');if(!root)return;
+    let mount=document.getElementById('discoverDeckOnlyMount');if(!mount){mount=document.createElement('section');mount.id='discoverDeckOnlyMount';}
+    const bar=document.getElementById('discoverActionBarFinal');
+    if(bar)bar.insertAdjacentElement('afterend',mount);else root.appendChild(mount);
+    renderDiscoverDeckOnlyFinal();
+  }
+
+  function bindTilt(){
+    const card=document.querySelector('#discover .hfLiveCard');if(!card||card.__oryonStableTilt)return;card.__oryonStableTilt=true;
+    let sx=0,sy=0,dx=0,dy=0,drag=false;
+    const start=e=>{if(window.__oryonDiscoverMode==='watch')return;if(e.target.closest('button,a,input,select,textarea'))return;const p=e.touches?e.touches[0]:e;sx=p.clientX;sy=p.clientY;dx=0;dy=0;drag=true;card.style.transition='none';};
+    const move=e=>{if(!drag)return;const p=e.touches?e.touches[0]:e;dx=p.clientX-sx;dy=p.clientY-sy;if(Math.abs(dx)>Math.abs(dy)*1.05&&e.cancelable)e.preventDefault();const rot=Math.max(-17,Math.min(17,dx/12));const ty=Math.max(-10,Math.min(10,dy/8));card.style.setProperty('transform',`translate3d(${dx}px,${ty}px,0) rotate(${rot}deg)`,'important');card.classList.toggle('swipe-like',dx>32);card.classList.toggle('swipe-nope',dx<-32);};
+    const end=()=>{if(!drag)return;drag=false;const th=Math.min(150,Math.max(82,innerWidth*.19));card.style.transition='transform .2s cubic-bezier(.18,.85,.18,1), opacity .18s ease';if(dx>th){card.style.transform='translate3d(118vw,0,0) rotate(17deg)';card.style.opacity='.18';return setTimeout(()=>hfSwipeRight(),120)}if(dx<-th){card.style.transform='translate3d(-118vw,0,0) rotate(-17deg)';card.style.opacity='.18';return setTimeout(()=>hfSwipeLeft(),120)}card.style.removeProperty('transform');card.classList.remove('swipe-like','swipe-nope');};
+    card.addEventListener('touchstart',start,{passive:true});card.addEventListener('touchmove',move,{passive:false});card.addEventListener('touchend',end,{passive:true});card.addEventListener('pointerdown',start);window.addEventListener('pointermove',move,{passive:false});window.addEventListener('pointerup',end);
+  }
+
+  const oldRenderZap=window.renderZap;
+  window.renderZap=function(...args){
+    if(window.__oryonDiscoverMode==='watch'){renderWatch(currentItem()||{login:state?.discoverPlayer?.login});return;}
+    const r=oldRenderZap?oldRenderZap.apply(this,args):undefined;
+    setTimeout(()=>{if(!isDiscover())return;setMode('preview');removeOldBars();renderActionBar();bindTilt();},30);
+    return r;
+  };
+  window.hfWatchCurrent=function(){renderWatch(currentItem());};
+  window.zapOpenCurrent=window.hfWatchCurrent;
+  const oldNext=window.zapNext;
+  window.zapNext=function(...args){setMode('preview');document.querySelector('#discover')?.classList.remove('oryonDiscoverChatOpen');state.discoverPlayer=null;const r=oldNext?oldNext.apply(this,args):undefined;setTimeout(()=>{setMode('preview');window.renderZap?.();renderActionBar();bindTilt();},110);return r;};
+  window.hfSwipeLeft=function(){const x=currentItem();try{if(x&&typeof hfMark==='function')hfMark(x,'nope')}catch(_){}toast?.('Pas ouf — on passe');setTimeout(()=>window.zapNext(),90);};
+  window.hfSwipeRight=function(){const x=currentItem();try{if(x&&typeof hfMark==='function')hfMark(x,'like')}catch(_){}toast?.('J’aime — signal enregistré');setTimeout(()=>window.zapNext(),90);};
+  window.proSwipeLeft=window.hfSwipeLeft;window.proSwipeRight=window.hfSwipeRight;
+  const oldFind=window.findLive;
+  if(oldFind) window.findLive=async function(...args){setMode('preview');document.querySelector('#discover')?.classList.remove('oryonDiscoverChatOpen');state.discoverPlayer=null;const r=await oldFind.apply(this,args);setTimeout(()=>{setMode('preview');window.renderZap?.();renderActionBar();bindTilt();},120);return r;};
+  const oldDiscover=window.renderDiscover;
+  if(oldDiscover) window.renderDiscover=async function(...args){setMode('preview');state.discoverPlayer=null;const r=await oldDiscover.apply(this,args);setTimeout(()=>{setMode('preview');removeOldBars();renderActionBar();bindTilt();placeDeckFinal();},120);return r;};
+
+  setInterval(()=>{if(isDiscover()){removeOldBars();renderActionBar();bindTilt();}},500);
+})();
