@@ -6389,3 +6389,232 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   obs.observe(document.documentElement,{childList:true,subtree:true});
   setTimeout(clean,30); setInterval(clean,1200);
 })();
+
+/* =========================================================
+   ORYON CLEAN DISCOVER PAGE — stable full page, no URL, real chat panel
+   This intentionally replaces every previous Discover patch at runtime.
+   ========================================================= */
+(function installOryonCleanDiscoverPage(){
+  const STYLE_ID='oryonCleanDiscoverPageStyle';
+  document.getElementById(STYLE_ID)?.remove();
+  const st=document.createElement('style');
+  st.id=STYLE_ID;
+  st.textContent=`
+    body.oryonCleanDiscoverActive .app{max-width:none!important;width:100%!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}
+    #discover.view.active{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}
+    #discover .ocPage{width:100%;min-height:calc(100vh - 68px);padding:clamp(18px,2.4vw,36px) clamp(18px,3vw,54px) 110px;background:radial-gradient(circle at 10% 0%,rgba(139,92,246,.20),transparent 34%),radial-gradient(circle at 90% 8%,rgba(34,211,238,.12),transparent 30%);}
+    #discover .ocHero{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,520px);gap:18px;align-items:end;margin-bottom:18px;}
+    #discover .ocHero h1{font-size:clamp(40px,4.8vw,86px);line-height:.88;letter-spacing:-.07em;margin:10px 0 8px;}
+    #discover .ocHero p{margin:0;color:#c7d2e8;max-width:900px;font-size:16px;line-height:1.45;}
+    #discover .ocTools{border:1px solid rgba(148,163,184,.18);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025));border-radius:24px;padding:14px;display:grid;gap:12px;}
+    #discover .ocMoodRail{display:flex;gap:8px;overflow:auto;padding-bottom:2px;scrollbar-width:thin;}
+    #discover .ocMoodBtn{border:1px solid rgba(148,163,184,.22);background:rgba(255,255,255,.05);color:#eef4ff;border-radius:999px;padding:10px 13px;font-weight:950;white-space:nowrap;}
+    #discover .ocMoodBtn.active{border-color:rgba(139,92,246,.7);background:linear-gradient(135deg,rgba(139,92,246,.42),rgba(34,211,238,.16));box-shadow:0 12px 34px rgba(139,92,246,.18);}
+    #discover .ocSearch{display:grid;grid-template-columns:minmax(0,1fr) 130px 110px;gap:8px;}
+    #discover .ocSearch .btn{width:100%;}
+    #discover .ocLayout{display:grid;grid-template-columns:minmax(0,1fr) clamp(310px,27vw,420px);gap:18px;align-items:start;}
+    #discover .ocMain{min-width:0;}
+    #discover .ocSide{display:grid;gap:14px;position:sticky;top:86px;}
+    #discover .ocPanel{border:1px solid rgba(148,163,184,.18);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));border-radius:24px;padding:16px;box-shadow:0 18px 54px rgba(0,0,0,.22);}
+    #discover .ocPanel h2,#discover .ocPanel h3{margin:0 0 10px;}
+    #discover .ocStage{min-height:clamp(520px,62vw,780px);display:grid;}
+    #discover .ocCard{position:relative;min-height:clamp(520px,62vw,780px);border:1px solid rgba(139,92,246,.38);border-radius:32px;overflow:hidden;background:#02050c;box-shadow:0 34px 110px rgba(0,0,0,.44);touch-action:pan-y;transform-origin:center bottom;transition:transform .18s ease,opacity .18s ease,border-color .18s ease;}
+    #discover .ocCardImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.06) contrast(1.06);}
+    #discover .ocCard::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,5,12,.03),rgba(3,5,12,.22) 42%,rgba(3,5,12,.91));z-index:1;pointer-events:none;}
+    #discover .ocTopBadges{position:absolute;z-index:3;left:18px;right:18px;top:16px;display:flex;gap:8px;flex-wrap:wrap;}
+    #discover .ocTag{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(255,255,255,.14);background:rgba(5,8,16,.74);backdrop-filter:blur(10px);border-radius:999px;padding:6px 9px;font-size:12px;font-weight:950;color:#eef5ff;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    #discover .ocCardBody{position:absolute;z-index:3;left:22px;right:22px;bottom:22px;display:grid;gap:14px;}
+    #discover .ocCardTitle{font-size:clamp(30px,4vw,64px);line-height:.96;letter-spacing:-.055em;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 12px 38px rgba(0,0,0,.56);}
+    #discover .ocMeta{display:flex;gap:9px;align-items:center;flex-wrap:wrap;color:#dbe8ff;font-weight:850;}
+    #discover .ocActions{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;max-width:760px;}
+    #discover .ocActions .btn{min-height:48px;font-size:15px;border-radius:16px;}
+    #discover .ocActions .btn.primaryAction{font-size:17px;box-shadow:0 16px 46px rgba(139,92,246,.32);}
+    #discover .ocSwipeLabel{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);opacity:0;pointer-events:none;border:4px solid currentColor;border-radius:22px;padding:14px 22px;font-size:clamp(36px,6vw,86px);font-weight:1000;letter-spacing:-.06em;text-shadow:0 12px 40px rgba(0,0,0,.5);transition:opacity .08s ease;}
+    #discover .ocSwipeLabel.like{color:#34d399;transform:translate(-50%,-50%) rotate(8deg);}
+    #discover .ocSwipeLabel.nope{color:#fb7185;}
+    #discover .ocCard.isLike .ocSwipeLabel.like,#discover .ocCard.isNope .ocSwipeLabel.nope{opacity:.94;}
+    #discover .ocWatch{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,430px);gap:14px;align-items:stretch;}
+    #discover .ocPlayerCard,#discover .ocChatCard{border:1px solid rgba(148,163,184,.22);border-radius:28px;background:#02050c;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.34);}
+    #discover .ocPlayerHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(148,163,184,.16);background:rgba(255,255,255,.035);}
+    #discover .ocPlayerHead b{display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70vw;}
+    #discover .ocPlayerBox{aspect-ratio:16/9;background:#000;position:relative;}
+    #discover .ocPlayerBox iframe,#discover .ocPlayerBox video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#000;}
+    #discover .ocWatchActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:14px;background:rgba(255,255,255,.025);border-top:1px solid rgba(148,163,184,.12);}
+    #discover .ocWatchActions .btn{min-height:47px;border-radius:16px;}
+    #discover .ocChatCard{display:none;min-height:620px;background:#080d18;}
+    #discover.ocChatOpen .ocChatCard{display:flex;flex-direction:column;}
+    #discover .ocChatTop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(148,163,184,.16);background:rgba(255,255,255,.04);font-weight:950;}
+    #discover .ocChatFrame{flex:1;min-height:560px;background:#111;position:relative;}
+    #discover .ocChatFrame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#111;pointer-events:auto;}
+    #discover .ocNativeChat{display:grid;grid-template-rows:1fr auto;height:100%;min-height:560px;}
+    #discover .ocNativeLog{padding:14px;overflow:auto;color:#cbd5e1;}
+    #discover .ocNativeForm{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px;border-top:1px solid rgba(148,163,184,.16);}
+    #discover .ocWhyList{display:grid;gap:8px;}
+    #discover .ocWhyList span{display:flex;justify-content:space-between;gap:12px;border:1px solid rgba(148,163,184,.15);background:rgba(255,255,255,.04);border-radius:14px;padding:10px;color:#e7efff;font-weight:850;}
+    #discover .ocWhyList em{font-style:normal;color:#9fb0c7;font-size:12px;font-weight:800;}
+    #discover .ocDeckSlots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+    #discover .ocDeckSlot{position:relative;border:1px solid rgba(148,163,184,.16);background:rgba(255,255,255,.04);border-radius:17px;overflow:hidden;min-height:126px;display:grid;align-items:end;color:#eef4ff;}
+    #discover .ocDeckSlot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.78;}
+    #discover .ocDeckSlot::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1),rgba(0,0,0,.82));}
+    #discover .ocDeckSlotBody{position:relative;z-index:2;padding:10px;display:grid;gap:6px;min-width:0;}
+    #discover .ocDeckSlotBody b,#discover .ocDeckSlotBody span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    #discover .ocDeckMiniActions{display:flex;gap:6px;}
+    #discover .ocDeckMiniActions button{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.1);color:#fff;border-radius:10px;padding:6px 8px;font-weight:950;font-size:12px;}
+    #discover .ocFollowRail{display:flex;gap:10px;overflow:auto;padding-bottom:3px;}
+    #discover .ocFollowCard{min-width:220px;border:1px solid rgba(148,163,184,.16);background:rgba(255,255,255,.04);border-radius:18px;overflow:hidden;color:#fff;text-align:left;padding:0;}
+    #discover .ocFollowCard img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#000;}
+    #discover .ocFollowCard div{padding:10px;}
+    #discover .ocFollowCard b,#discover .ocFollowCard span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    #discover .ocEmpty{border:1px dashed rgba(148,163,184,.22);background:rgba(255,255,255,.035);border-radius:24px;padding:28px;color:#b7c6de;display:grid;place-items:center;text-align:center;min-height:320px;}
+    @media(max-width:1160px){
+      #discover .ocHero,#discover .ocLayout,#discover .ocWatch{grid-template-columns:1fr;}
+      #discover .ocSide{position:static;grid-template-columns:1fr 1fr;}
+      #discover .ocStage,#discover .ocCard{min-height:auto;}
+      #discover .ocCard{aspect-ratio:16/9;}
+      #discover .ocChatCard{min-height:520px;}
+      #discover .ocChatFrame{min-height:470px;}
+    }
+    @media(max-width:760px){
+      #discover .ocPage{padding:12px 12px 110px;}
+      #discover .ocHero{gap:12px;margin-bottom:12px;}
+      #discover .ocHero h1{font-size:42px;}
+      #discover .ocTools{border-radius:20px;padding:10px;}
+      #discover .ocSearch{grid-template-columns:1fr;}
+      #discover .ocCard{aspect-ratio:auto;min-height:560px;border-radius:24px;}
+      #discover .ocTopBadges{left:12px;right:12px;top:12px;}
+      #discover .ocTag{font-size:11px;padding:5px 8px;max-width:145px;}
+      #discover .ocCardBody{left:14px;right:14px;bottom:14px;gap:10px;}
+      #discover .ocCardTitle{font-size:32px;}
+      #discover .ocActions,#discover .ocWatchActions{grid-template-columns:1fr 1fr 1fr;gap:8px;}
+      #discover .ocActions .btn,#discover .ocWatchActions .btn{min-height:46px;padding:10px 8px;font-size:13px;}
+      #discover .ocSide{grid-template-columns:1fr;}
+      #discover .ocPlayerHead{align-items:flex-start;}
+      #discover .ocChatCard{min-height:470px;border-radius:22px;}
+      #discover .ocChatFrame{min-height:420px;}
+      #discover .ocDeckSlots{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
+  `;
+  document.head.appendChild(st);
+
+  const MOODS=[['petite-commu','Petite commu'],['chill','Chill'],['discussion','Discussion'],['nuit-calme','Nuit calme'],['rp','RP'],['decouverte-jeu','Découverte jeu']];
+  const cleanState={mode:'preview',chat:false,mood:'petite-commu',loading:false};
+  const safe=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const enc=s=>encodeURIComponent(String(s??''));
+  const host=()=>location.hostname||'localhost';
+  const current=()=>{const z=state.zap||{};return (z.items||[])[Number(z.index||0)]||null};
+  const liveId=x=>{
+    const id=typeof hfLiveId==='function'?hfLiveId(x||{}):(typeof liveIdentity==='function'?liveIdentity(x||{}):{});
+    return {
+      platform:id.platform||x?.platform||((x?.host_login||x?.room)?'oryon':'twitch'),
+      login:String(id.login||x?.login||x?.user_login||x?.host_login||x?.room||'').toLowerCase(),
+      name:id.name||x?.display_name||x?.user_name||x?.host_name||x?.login||'Live',
+      title:id.title||x?.title||'Live en cours',
+      game:id.game||x?.game_name||x?.category||'Live',
+      viewers:Number(id.viewers??x?.viewer_count??x?.viewers??0)||0,
+      img:id.img||x?.thumbnail_url||''
+    };
+  };
+  const tags=x=>{const id=liveId(x);const arr=[];arr.push(id.platform==='oryon'?'Oryon':'Twitch'); if(id.viewers)arr.push(`${id.viewers} viewers`); if(id.game)arr.push(id.game); try{arr.push(...(signalTagsFor?.(x)||[]));}catch{} return [...new Set(arr.filter(Boolean))].slice(0,6);};
+  const moodLabel=m=>MOODS.find(x=>x[0]===m)?.[1]||'Petite commu';
+  function deckKey(){return 'oryon_clean_deck_'+String(state.session?.local?.login||state.session?.twitch?.login||'guest').toLowerCase();}
+  function readDeck(){let d;try{d=JSON.parse(localStorage.getItem(deckKey())||'null')}catch{} if(!Array.isArray(d))d=[]; return d.slice(0,8);}
+  function writeDeck(d){try{localStorage.setItem(deckKey(),JSON.stringify((d||[]).slice(0,8)))}catch{} try{localStorage.setItem('oryon_deck_lurker',JSON.stringify({active:0,status:'lurk',slots:[...(d||[]).slice(0,8),...Array(8).fill(null)].slice(0,8)}))}catch{}}
+  async function getPool(){
+    cleanState.loading=true; renderMainLoading();
+    const mood=cleanState.mood||'petite-commu';
+    const q=document.getElementById('ocQuery')?.value?.trim() || (typeof hfMoodQuery==='function'?hfMoodQuery(mood):'');
+    const max=Number(document.getElementById('ocMax')?.value||250);
+    const lang=document.getElementById('ocLang')?.value||'fr';
+    let items=[];
+    try{
+      if(typeof hfFetchLivePool==='function') items=await hfFetchLivePool({mood,q,max,lang});
+      if(!items?.length){const r=await api('/api/oryon/discover/find-live?'+new URLSearchParams({q,mood,max:String(max),lang,source:'both'})).catch(()=>({items:[]}));items=r.items||[];}
+      if(!items?.length){const r=await api(`/api/twitch/streams/small?lang=${enc(lang)}&min=0&max=${enc(max)}`).catch(()=>({items:[]}));items=r.items||[];}
+      if(!items?.length){const r=await api('/api/native/lives').catch(()=>({items:[]}));items=(r.items||[]).map(x=>({...x,platform:'oryon'}));}
+    }catch(e){console.warn('Discover pool error',e);}
+    const unique=[]; const seen=new Set();
+    for(const item of (items||[])){
+      const id=liveId(item); if(!id.login)continue; const key=id.platform+':'+id.login; if(seen.has(key))continue; seen.add(key); unique.push({...item,platform:id.platform});
+    }
+    state.zap=state.zap||{}; state.zap.items=unique.slice(0,30); state.zap.index=0; state.zap.last=unique[0]||null;
+    cleanState.mode='preview'; cleanState.chat=false; cleanState.loading=false;
+    renderAll();
+  }
+  function renderMainLoading(){const m=document.getElementById('ocMain'); if(m)m.innerHTML=`<div class="ocEmpty"><div><h2>Recherche…</h2><p>Oryon cherche un live ${safe(moodLabel(cleanState.mood))}.</p></div></div>`;}
+  function renderActions(){
+    if(cleanState.mode==='watch') return `<div class="ocWatchActions"><button class="btn secondary" type="button" onclick="ocLurk()">LURK</button><button class="btn secondary" type="button" onclick="ocToggleChat()">CHAT</button><button class="btn" type="button" onclick="ocNext()">SUIVANT</button></div>`;
+    return `<div class="ocActions"><button class="btn secondary" type="button" onclick="ocNope()">Pas ouf</button><button class="btn primaryAction" type="button" onclick="ocWatch()">Voir</button><button class="btn secondary" type="button" onclick="ocLike()">J’aime</button></div>`;
+  }
+  function renderPreview(){
+    const x=current(); if(!x)return `<div class="ocEmpty"><div><h2>Aucun live trouvé</h2><p>Relance la recherche ou change de mood. La page reste prête, sans écran noir.</p><button class="btn" onclick="ocFindLive()">Relancer</button></div></div>`;
+    const id=liveId(x); const img=id.img||'https://static-cdn.jtvnw.net/ttv-static/404_preview-640x360.jpg';
+    return `<article id="ocSwipeCard" class="ocCard" aria-label="Proposition live"><img class="ocCardImg" src="${safe(img)}" alt=""><div class="ocTopBadges">${tags(x).map(t=>`<span class="ocTag">${safe(t)}</span>`).join('')}</div><div class="ocSwipeLabel nope">PAS OUF</div><div class="ocSwipeLabel like">J’AIME</div><div class="ocCardBody"><h2 class="ocCardTitle">${safe(id.title)}</h2><div class="ocMeta"><span>${safe(id.name)}</span><span>·</span><span>${safe(id.game)}</span><span>·</span><span>${id.viewers} viewers</span></div>${renderActions()}</div></article>`;
+  }
+  function twitchPlayer(login){return `<iframe allowfullscreen allow="autoplay; fullscreen" src="https://player.twitch.tv/?channel=${enc(login)}&parent=${enc(host())}&autoplay=true&muted=false"></iframe>`;}
+  function twitchChat(login){return `<iframe src="https://www.twitch.tv/embed/${enc(login)}/chat?parent=${enc(host())}&darkpopout" title="Chat Twitch ${safe(login)}"></iframe>`;}
+  function nativePlayer(id){return `<div class="ocEmpty"><div><h2>${safe(id.name)}</h2><p>Live Oryon sélectionné. Ouvre la chaîne pour le lecteur natif complet.</p><button class="btn" onclick="openOryon?.('${safe(id.login)}')">Ouvrir la chaîne</button></div></div>`;}
+  function nativeChat(){return `<div class="ocNativeChat"><div class="ocNativeLog"><p>Chat Oryon disponible sur la page chaîne.</p></div><div class="ocNativeForm"><input placeholder="Écrire sur Oryon…"><button class="btn secondary" type="button">Envoyer</button></div></div>`;}
+  function renderWatch(){
+    const x=current(); if(!x)return renderPreview();
+    const id=liveId(x); const isTwitch=id.platform==='twitch';
+    return `<section class="ocWatch"><main class="ocPlayerCard"><div class="ocPlayerHead"><div><b>${safe(id.name)}</b><span class="small">${safe(id.game)} · ${id.viewers} viewers</span></div><span class="pill">${safe(id.platform)}</span></div><div class="ocPlayerBox">${isTwitch?twitchPlayer(id.login):nativePlayer(id)}</div>${renderActions()}</main><aside class="ocChatCard"><div class="ocChatTop"><span>Chat · ${safe(id.name)}</span><button class="btn ghost" type="button" onclick="ocToggleChat()">Fermer</button></div><div class="ocChatFrame">${isTwitch?twitchChat(id.login):nativeChat()}</div></aside></section>`;
+  }
+  function renderMain(){const m=document.getElementById('ocMain'); if(!m)return; m.innerHTML=cleanState.mode==='watch'?renderWatch():renderPreview(); bindSwipe(); syncChatClass();}
+  function renderSide(){
+    const side=document.getElementById('ocSide'); if(!side)return; const x=current(); const id=liveId(x||{});
+    side.innerHTML=`<section class="ocPanel"><h2>Pourquoi ce live ?</h2><div class="ocWhyList">${x?`<span><b>${safe(moodLabel(cleanState.mood))}</b><em>mood choisi</em></span><span><b>${id.viewers||'—'} viewers</b><em>taille humaine</em></span><span><b>${safe(id.game)}</b><em>catégorie</em></span><span><b>${safe(id.platform==='oryon'?'Oryon Live':'Twitch')}</b><em>source</em></span>`:'<span><b>En attente</b><em>relance une recherche</em></span>'}</div></section><section class="ocPanel"><h2>Actions</h2><p class="small">Avant lecture : Pas ouf / Voir / J’aime. Après Voir : Lurk / Chat / Suivant.</p><button class="btn secondary" type="button" onclick="ocFindLive()">Nouvelle recherche</button></section>`;
+  }
+  function renderDeck(){
+    const mount=document.getElementById('ocDeck'); if(!mount)return; const d=readDeck();
+    mount.innerHTML=`<section class="ocPanel"><div class="row" style="justify-content:space-between"><div><h2>DeckLurker</h2><p class="small">Garde tes lives sous la main sans ouvrir plusieurs onglets.</p></div><span class="pill">${d.length}/8</span></div><div class="ocDeckSlots">${Array.from({length:8},(_,i)=>{const s=d[i]; if(!s)return `<article class="ocDeckSlot"><div class="ocDeckSlotBody"><b>Case ${i+1}</b><span>Vide</span></div></article>`;return `<article class="ocDeckSlot">${s.img?`<img src="${safe(s.img)}" alt="">`:''}<div class="ocDeckSlotBody"><b>${safe(s.name||s.login)}</b><span>${safe(s.game||s.title||'Live')}</span><div class="ocDeckMiniActions"><button onclick="ocOpenDeck(${i})">Voir</button><button onclick="ocClearDeck(${i})">Vider</button></div></div></article>`;}).join('')}</div></section>`;
+  }
+  async function renderFollowed(){
+    const mount=document.getElementById('ocFollowed'); if(!mount)return;
+    if(!state.session?.twitch){mount.innerHTML=`<section class="ocPanel"><div class="row" style="justify-content:space-between"><div><h2>Suivis Twitch en ligne</h2><p class="small">Connexion Twitch nécessaire.</p></div><button class="btn" onclick="connectTwitch?.()">Connecter Twitch</button></div></section>`;return;}
+    mount.innerHTML=`<section class="ocPanel"><h2>Suivis Twitch en ligne</h2><div class="ocFollowRail"><div class="ocEmpty" style="min-height:160px;width:100%">Chargement…</div></div></section>`;
+    try{let r=await api('/api/twitch/followed/live').catch(()=>null); if(!r?.items?.length)r=await api('/followed_streams').catch(()=>null); const items=(r?.items||r?.streams||[]).slice(0,18); const rail=mount.querySelector('.ocFollowRail'); rail.innerHTML=items.length?items.map(x=>{const id=liveId({...x,platform:'twitch'});return `<button class="ocFollowCard" onclick='ocUseLive(${JSON.stringify(x).replace(/'/g,"&#39;")})'>${id.img?`<img src="${safe(id.img)}" alt="">`:''}<div><b>${safe(id.name)}</b><span>${safe(id.game)} · ${id.viewers}</span></div></button>`}).join(''):'<div class="ocEmpty" style="min-height:160px;width:100%">Aucun suivi Twitch en live.</div>'; }catch{mount.querySelector('.ocFollowRail').innerHTML='<div class="ocEmpty" style="min-height:160px;width:100%">Impossible de charger les suivis.</div>';}
+  }
+  function renderAll(){renderMain();renderSide();renderDeck();}
+  function syncChatClass(){const root=document.getElementById('discover'); if(root)root.classList.toggle('ocChatOpen',!!cleanState.chat&&cleanState.mode==='watch');}
+  function bindSwipe(){
+    const card=document.getElementById('ocSwipeCard'); if(!card||card.__ocSwipeBound)return; card.__ocSwipeBound=true;
+    let sx=0,sy=0,dx=0,dy=0,drag=false;
+    const start=e=>{if(e.target.closest('button,a,input,select,textarea'))return; const p=e.touches?e.touches[0]:e; sx=p.clientX; sy=p.clientY; dx=dy=0; drag=true; card.style.transition='none';};
+    const move=e=>{if(!drag)return; const p=e.touches?e.touches[0]:e; dx=p.clientX-sx; dy=p.clientY-sy; if(Math.abs(dx)<4)return; if(Math.abs(dx)>Math.abs(dy)*1.04 && e.cancelable)e.preventDefault(); const rot=Math.max(-14,Math.min(14,dx/16)); card.style.transform=`translateX(${dx}px) rotate(${rot}deg)`; card.classList.toggle('isLike',dx>34); card.classList.toggle('isNope',dx<-34);};
+    const end=()=>{if(!drag)return; drag=false; card.style.transition='transform .18s ease, opacity .18s ease'; const threshold=Math.min(130,Math.max(70,innerWidth*.18)); if(dx>threshold){card.style.transform='translateX(120vw) rotate(16deg)';card.style.opacity='.2';setTimeout(()=>window.ocLike(),140);return;} if(dx<-threshold){card.style.transform='translateX(-120vw) rotate(-16deg)';card.style.opacity='.2';setTimeout(()=>window.ocNope(),140);return;} card.style.transform=''; card.classList.remove('isLike','isNope');};
+    card.addEventListener('touchstart',start,{passive:true}); card.addEventListener('touchmove',move,{passive:false}); card.addEventListener('touchend',end,{passive:true}); card.addEventListener('pointerdown',start); window.addEventListener('pointermove',move,{passive:false}); window.addEventListener('pointerup',end);
+  }
+  function nextIndex(){const items=state.zap?.items||[]; if(!items.length)return getPool(); state.zap.index=(Number(state.zap.index||0)+1)%items.length; state.zap.last=items[state.zap.index]||null; cleanState.mode='preview'; cleanState.chat=false; renderAll();}
+  window.ocFindLive=getPool;
+  window.ocNext=nextIndex;
+  window.ocWatch=function(){const x=current(); if(!x)return; cleanState.mode='watch'; cleanState.chat=false; try{trackDiscovery?.(x)}catch{} renderAll(); setTimeout(()=>document.getElementById('ocMain')?.scrollIntoView({behavior:'smooth',block:'start'}),20);};
+  window.ocToggleChat=function(){if(cleanState.mode!=='watch')cleanState.mode='watch'; cleanState.chat=!cleanState.chat; renderAll(); if(cleanState.chat)setTimeout(()=>document.querySelector('#discover .ocChatCard')?.scrollIntoView({behavior:'smooth',block:'nearest'}),80);};
+  window.ocNope=function(){try{const x=current(); if(x&&typeof hfMark==='function')hfMark(x,'nope')}catch{} toast?.('Pas ouf — on passe'); nextIndex();};
+  window.ocLike=function(){try{const x=current(); if(x&&typeof hfMark==='function')hfMark(x,'like')}catch{} toast?.('J’aime — signal enregistré'); nextIndex();};
+  window.ocLurk=function(){const x=current(); if(!x)return; const id=liveId(x); const d=readDeck().filter(s=>!(s.platform===id.platform&&s.login===id.login)); d.unshift({platform:id.platform,login:id.login,name:id.name,title:id.title,game:id.game,viewers:id.viewers,img:id.img,addedAt:Date.now(),raw:x}); writeDeck(d.slice(0,8)); renderDeck(); toast?.('Ajouté au DeckLurker');};
+  window.ocOpenDeck=function(i){const s=readDeck()[i]; if(!s)return; state.zap=state.zap||{}; state.zap.items=[s.raw||s]; state.zap.index=0; state.zap.last=state.zap.items[0]; cleanState.mode='watch'; cleanState.chat=false; renderAll();};
+  window.ocClearDeck=function(i){const d=readDeck(); d.splice(i,1); writeDeck(d); renderDeck();};
+  window.ocUseLive=function(x){state.zap=state.zap||{}; state.zap.items=[{...x,platform:'twitch'}]; state.zap.index=0; state.zap.last=state.zap.items[0]; cleanState.mode='preview'; cleanState.chat=false; renderAll();};
+
+  // Neutralise les anciens noms qui pouvaient remettre URL / anciens rendus dans Découvrir.
+  window.oryonOpenCurrentUrl=()=>false; window.oryonOpenCurrentUrlV2=()=>false; window.oryonDeckUrl=()=>false; window.oryonDeckUrlV2=()=>false;
+  window.hfWatchCurrent=window.ocWatch; window.hfSwipeLeft=window.ocNope; window.hfSwipeRight=window.ocLike;
+  window.oryonAddCurrentToDeck=window.ocLurk; window.oryonAddCurrentToDeckV2=window.ocLurk;
+  window.oryonToggleDiscoverChat=window.ocToggleChat; window.oryonToggleDiscoverChatV2=window.ocToggleChat;
+  window.zapNext=window.ocNext;
+  window.findLive=window.ocFindLive;
+  window.renderDiscover=renderDiscover=async function(){
+    document.body.classList.add('oryonCleanDiscoverActive');
+    const root=document.getElementById('discover'); if(!root)return;
+    root.classList.remove('ocChatOpen');
+    root.innerHTML=`<div class="ocPage"><header class="ocHero"><div><span class="eyebrow"><i class="dot"></i>Swap ton mood</span><h1>Trouve le live qui colle.</h1><p>Pas de filtres compliqués. Choisis une ambiance, swipe, ouvre le live, lurk ou discute.</p></div><div class="ocTools"><div class="ocMoodRail">${MOODS.map(([id,label])=>`<button class="ocMoodBtn ${id===cleanState.mood?'active':''}" type="button" onclick="document.querySelectorAll('.ocMoodBtn').forEach(b=>b.classList.remove('active'));this.classList.add('active');window.ocSetMood('${id}')">${label}</button>`).join('')}</div><div class="ocSearch"><input id="ocQuery" placeholder="Jeu, créateur, ambiance"><select id="ocMax"><option value="80">≤80 viewers</option><option value="150" selected>≤150 viewers</option><option value="300">≤300 viewers</option></select><select id="ocLang"><option value="fr" selected>FR</option><option value="en">EN</option></select></div><button class="btn" type="button" onclick="ocFindLive()">Chercher un live</button></div></header><main class="ocLayout"><section class="ocMain" id="ocMain"></section><aside class="ocSide" id="ocSide"></aside></main><section id="ocDeck" class="section"></section><section id="ocFollowed" class="section"></section></div>`;
+    renderAll(); renderFollowed();
+    if(!(state.zap?.items||[]).length) await getPool();
+  };
+  window.ocSetMood=function(m){cleanState.mood=m; cleanState.mode='preview'; cleanState.chat=false; getPool();};
+  const oldSetView=window.setView;
+  if(typeof oldSetView==='function'&&!oldSetView.__ocCleanWrapped){
+    const wrapped=function(v){document.body.classList.toggle('oryonCleanDiscoverActive',v==='discover'); return oldSetView.apply(this,arguments);};
+    wrapped.__ocCleanWrapped=true; window.setView=wrapped;
+  }
+})();
