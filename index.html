@@ -44,6 +44,14 @@
 <style id="oryon-signal-polish-css">
 html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minmax(0,1fr) minmax(340px,400px)!important;max-width:100%;overflow:hidden}.publicChannel{max-width:100%;overflow:hidden}.oryonMainPlayer{min-height:640px!important;overflow:hidden}.oryonMainPlayer iframe{width:100%;height:100%;border:0;overflow:hidden;display:block}.nativeFixedChat{height:640px!important;min-height:640px!important;max-height:640px!important;min-width:0!important;max-width:400px!important;resize:none!important}.nativeFixedChat .chatForm{grid-template-columns:minmax(0,1fr) 58px 96px!important}.nativeFixedChat input{min-width:0}.nativeFixedChat .chatHeader{min-width:0}.nativeFixedChat .chatHeader span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.channelTabEditor .summaryItem textarea{min-height:130px}.managerPreview .offlineOverlay{pointer-events:none}.tabs .tabBtn:nth-child(4){display:none!important}@media(max-width:1080px){.watchShell.channelWatch{grid-template-columns:1fr!important}.oryonMainPlayer{min-height:auto!important;aspect-ratio:16/9}.nativeFixedChat{height:420px!important;min-height:420px!important;max-width:none!important}}
 </style>
+<style id="swapp-startup-visible-css">
+.app{max-width:none!important;width:100%!important;margin:0!important;padding:0!important}
+.swappStaticHome{min-height:calc(100svh - 68px);width:100%;display:grid;grid-template-columns:minmax(320px,.85fr) minmax(320px,1fr);gap:clamp(20px,4vw,60px);align-items:center;padding:clamp(28px,5vw,78px);background:radial-gradient(circle at 0 0,rgba(34,211,238,.18),transparent 32%),radial-gradient(circle at 78% 0,rgba(139,92,246,.18),transparent 36%),#05070d}
+.swappStaticHome h1{font-size:clamp(52px,7vw,112px);line-height:.86;letter-spacing:-.08em;margin:16px 0}
+.swappStaticHome p{font-size:clamp(16px,1.35vw,22px);line-height:1.45;color:#dbe7fb;max-width:680px}
+.swappStaticCard{min-height:420px;border:1px solid rgba(34,211,238,.24);border-radius:32px;background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(34,211,238,.08)),#080d18;box-shadow:0 30px 90px rgba(0,0,0,.36);display:grid;place-items:center;text-align:center;padding:28px}
+@media(max-width:900px){.swappStaticHome{grid-template-columns:1fr;padding:22px 16px 96px}.swappStaticCard{min-height:260px}}
+</style>
 </head>
 <body>
 <header class="top">
@@ -57,7 +65,7 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
   </div>
 </header>
 <main class="app">
-  <section id="home" class="view"></section>
+  <section id="home" class="view active"><div class="swappStaticHome"><div><span class="eyebrow"><i class="dot"></i>Swapp</span><h1>Des lives à taille humaine.</h1><p>Swapp démarre. Si cette page reste affichée, lance l’application avec <b>npm start</b> pour activer les lives, les comptes et Twitch.</p><div class="row"><button class="btn" onclick="window.setView&&window.setView('discover')">Découvrir</button><button class="btn secondary" onclick="window.setView&&window.setView('settings')">Connexion et créer un compte</button></div></div><div class="swappStaticCard"><h2>Accueil prêt</h2><p>La page ne reste plus blanche si une API met du temps à répondre.</p></div></div></section>
   <section id="discover" class="view"></section>
   <section id="twitch" class="view"></section>
   <section id="categories" class="view"></section>
