@@ -8581,3 +8581,257 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.addEventListener('hashchange',()=>setTimeout(applyHomeBlend,80));
   setTimeout(applyHomeBlend,120);
 })();
+
+/* ===========================
+   Swapp hotfix — thème catégories/équipes + rendu 125%
+   - Le choix de couleur pilote aussi Catégories et Équipes
+   - L’interface revient à une échelle visuelle proche d’un zoom navigateur 125%
+   - Ne modifie pas les APIs ni le HTML
+   =========================== */
+(function swappThemePagesAndZoom125(){
+  if(window.__swappThemePagesAndZoom125Applied) return;
+  window.__swappThemePagesAndZoom125Applied = true;
+
+  const ZOOM = 1.25;
+  const INV = 100 / ZOOM;
+  const STYLE_ID = 'swappThemePagesAndZoom125Style';
+  document.getElementById(STYLE_ID)?.remove();
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    :root{
+      --swapp-ui-zoom:${ZOOM};
+      --swapp-zoomed-vw:${INV}vw;
+      --viewer-accent:${localStorage.getItem('oryon_viewer_accent') || '#22d3ee'};
+      --brand:var(--viewer-accent);
+      --accent:var(--viewer-accent);
+      --swapp-accent-soft:color-mix(in srgb,var(--viewer-accent,#22d3ee) 18%,transparent);
+      --swapp-accent-mid:color-mix(in srgb,var(--viewer-accent,#22d3ee) 44%,transparent);
+      --swapp-accent-strong:color-mix(in srgb,var(--viewer-accent,#22d3ee) 78%,#ffffff 8%);
+    }
+
+    /* Zoom global 125% sans recréer de marge noire à droite. */
+    @supports (zoom:1.25){
+      body.swappUiZoom125{
+        zoom:${ZOOM}!important;
+        width:var(--swapp-zoomed-vw)!important;
+        max-width:var(--swapp-zoomed-vw)!important;
+        min-width:var(--swapp-zoomed-vw)!important;
+        overflow-x:hidden!important;
+        background:#05070d!important;
+      }
+      body.swappUiZoom125 main.app,
+      body.swappUiZoom125 .app,
+      body.swappUiZoom125 .view,
+      body.swappUiZoom125 .view.active,
+      body.swappUiZoom125 #home.view.active,
+      body.swappUiZoom125 #discover.view.active,
+      body.swappUiZoom125 #categories.view.active,
+      body.swappUiZoom125 #teams.view.active,
+      body.swappUiZoom125 #channel.view.active,
+      body.swappUiZoom125 #settings.view.active,
+      body.swappUiZoom125 #manager.view.active,
+      body.swappUiZoom125 #dashboard.view.active,
+      body.swappUiZoom125 #studio.view.active,
+      body.swappUiZoom125 #twitch.view.active,
+      body.swappUiZoom125 #admin.view.active,
+      body.swappUiZoom125 .topbar,
+      body.swappUiZoom125 .top,
+      body.swappUiZoom125 .channelSubNav,
+      body.swappUiZoom125 .channelPage,
+      body.swappUiZoom125 .channelTopHero,
+      body.swappUiZoom125 #home .owHomeFull,
+      body.swappUiZoom125 #home .homeClean,
+      body.swappUiZoom125 #home .owHeroTheater,
+      body.swappUiZoom125 #home .homeCleanHero,
+      body.swappUiZoom125 #home .homeStreamerStrip,
+      body.swappUiZoom125 #discover .hfDiscover,
+      body.swappUiZoom125 #discover .hfDiscoverHero{
+        width:var(--swapp-zoomed-vw)!important;
+        max-width:none!important;
+      }
+      body.swappUiZoom125 .miniPlayer{zoom:.8!important;}
+    }
+
+    @supports not (zoom:1.25){
+      body.swappUiZoom125 main.app,
+      body.swappUiZoom125 .app{
+        transform:scale(${ZOOM})!important;
+        transform-origin:top left!important;
+        width:var(--swapp-zoomed-vw)!important;
+        max-width:none!important;
+      }
+    }
+
+    body.swappUiZoom125{font-size:16px!important;}
+    body.swappUiZoom125 .topbar{min-height:68px!important;}
+    body.swappUiZoom125 .brand,
+    body.swappUiZoom125 .navGroup button,
+    body.swappUiZoom125 .userBtn,
+    body.swappUiZoom125 button,
+    body.swappUiZoom125 input,
+    body.swappUiZoom125 textarea,
+    body.swappUiZoom125 select{font-size:inherit;}
+
+    /* Couleur globale : elle doit être visible dans les zones où l’ancien CSS restait violet/cyan fixe. */
+    .brandMark,.logoMark,.topLogo,.teamLogo,#userBtn .avatarMini{
+      background:linear-gradient(135deg,var(--viewer-accent,#22d3ee),color-mix(in srgb,var(--viewer-accent,#22d3ee) 46%,#ffffff))!important;
+    }
+    .navGroup button.active,
+    #mobileNav button.active,
+    .topbar .active{
+      background:linear-gradient(135deg,color-mix(in srgb,var(--viewer-accent,#22d3ee) 32%,rgba(255,255,255,.12)),rgba(255,255,255,.08))!important;
+      box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--viewer-accent,#22d3ee) 36%,transparent)!important;
+    }
+    .btn:not(.secondary):not(.ghost),
+    button.btn:not(.secondary):not(.ghost),
+    .streamBtn{
+      background:linear-gradient(135deg,var(--viewer-accent,#22d3ee),#bd46ff)!important;
+      box-shadow:0 16px 46px color-mix(in srgb,var(--viewer-accent,#22d3ee) 28%,transparent)!important;
+    }
+    .btn.secondary:hover,.btn.ghost:hover,button.secondary:hover{
+      border-color:color-mix(in srgb,var(--viewer-accent,#22d3ee) 48%,rgba(255,255,255,.15))!important;
+    }
+
+    /* Catégories : fond, contrôles, cartes et recherche suivent la couleur choisie. */
+    #categories.view.active{
+      background:
+        radial-gradient(circle at 10% 0%,color-mix(in srgb,var(--viewer-accent,#22d3ee) 22%,transparent),transparent 30%),
+        radial-gradient(circle at 90% 18%,color-mix(in srgb,var(--viewer-accent,#22d3ee) 10%,transparent),transparent 34%),
+        #05070d!important;
+    }
+    #categories .eyebrow,
+    #categories .pill,
+    #categories .catSizeControl{
+      border-color:color-mix(in srgb,var(--viewer-accent,#22d3ee) 38%,rgba(255,255,255,.13))!important;
+      background:color-mix(in srgb,var(--viewer-accent,#22d3ee) 12%,rgba(255,255,255,.04))!important;
+    }
+    #categories .catSizeControl button:hover,
+    #categories[data-cat-size="compact"] .catSizeControl button[data-size="compact"],
+    #categories[data-cat-size="normal"] .catSizeControl button[data-size="normal"],
+    #categories[data-cat-size="large"] .catSizeControl button[data-size="large"]{
+      background:linear-gradient(135deg,var(--viewer-accent,#22d3ee),color-mix(in srgb,var(--viewer-accent,#22d3ee) 32%,#ffffff))!important;
+      color:#fff!important;
+      box-shadow:0 10px 24px color-mix(in srgb,var(--viewer-accent,#22d3ee) 22%,transparent)!important;
+    }
+    #categories input,
+    #categories .catSearch input{
+      border-color:rgba(255,255,255,.10)!important;
+      background:rgba(5,8,16,.78)!important;
+    }
+    #categories input:focus,
+    #categories .catSearch input:focus{
+      outline:0!important;
+      border-color:color-mix(in srgb,var(--viewer-accent,#22d3ee) 62%,rgba(255,255,255,.16))!important;
+      box-shadow:0 0 0 3px color-mix(in srgb,var(--viewer-accent,#22d3ee) 18%,transparent)!important;
+    }
+    #categories .categoryCard{
+      border:1px solid color-mix(in srgb,var(--viewer-accent,#22d3ee) 16%,rgba(255,255,255,.09))!important;
+      background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025))!important;
+    }
+    #categories .categoryCard:hover{
+      border-color:color-mix(in srgb,var(--viewer-accent,#22d3ee) 72%,rgba(255,255,255,.14))!important;
+      background:linear-gradient(180deg,color-mix(in srgb,var(--viewer-accent,#22d3ee) 16%,rgba(255,255,255,.04)),rgba(255,255,255,.03))!important;
+      box-shadow:0 22px 54px color-mix(in srgb,var(--viewer-accent,#22d3ee) 16%,transparent)!important;
+    }
+    #categories .categoryImageFallback{
+      background:radial-gradient(circle at 38% 20%,color-mix(in srgb,var(--viewer-accent,#22d3ee) 34%,transparent),transparent 32%),linear-gradient(135deg,color-mix(in srgb,var(--viewer-accent,#22d3ee) 24%,#111827),#030712)!important;
+    }
+
+    /* Équipes : même thème que le reste du site. */
+    #teams.view.active{
+      background:
+        radial-gradient(circle at 8% 0%,color-mix(in srgb,var(--viewer-accent,#22d3ee) 22%,transparent),transparent 30%),
+        radial-gradient(circle at 82% 18%,color-mix(in srgb,var(--viewer-accent,#22d3ee) 12%,transparent),transparent 36%),
+        #05070d!important;
+    }
+    #teams .teamsHero{
+      background:transparent!important;
+    }
+    #teams .teamsHero .eyebrow,
+    #teams .pill{
+      border-color:color-mix(in srgb,var(--viewer-accent,#22d3ee) 38%,rgba(255,255,255,.13))!important;
+      background:color-mix(in srgb,var(--viewer-accent,#22d3ee) 12%,rgba(255,255,255,.04))!important;
+    }
+    #teams .teamsHero h1,
+    #categories .catHead h1{
+      background:linear-gradient(90deg,#fff 0%,#eef5ff 52%,color-mix(in srgb,var(--viewer-accent,#22d3ee) 58%,#ffffff) 100%)!important;
+      -webkit-background-clip:text!important;
+      background-clip:text!important;
+      color:transparent!important;
+    }
+    #teams .teamCardFull,
+    #teams .card,
+    #teams .empty,
+    #teams #teamCreate{
+      border-color:color-mix(in srgb,var(--viewer-accent,#22d3ee) 18%,rgba(255,255,255,.12))!important;
+      background:linear-gradient(180deg,color-mix(in srgb,var(--viewer-accent,#22d3ee) 7%,rgba(15,23,42,.90)),rgba(5,8,16,.92))!important;
+    }
+    #teams .teamCardFull:hover,
+    #teams .card:hover{
+      border-color:color-mix(in srgb,var(--viewer-accent,#22d3ee) 62%,rgba(255,255,255,.12))!important;
+      box-shadow:0 24px 70px color-mix(in srgb,var(--viewer-accent,#22d3ee) 15%,transparent)!important;
+    }
+    #teams input:focus,
+    #teams textarea:focus{
+      outline:0!important;
+      border-color:color-mix(in srgb,var(--viewer-accent,#22d3ee) 62%,rgba(255,255,255,.16))!important;
+      box-shadow:0 0 0 3px color-mix(in srgb,var(--viewer-accent,#22d3ee) 18%,transparent)!important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  function currentAccent(){
+    return localStorage.getItem('oryon_viewer_accent') || getComputedStyle(document.documentElement).getPropertyValue('--viewer-accent').trim() || '#22d3ee';
+  }
+  function applyAccentToRuntime(c=currentAccent()){
+    document.documentElement.style.setProperty('--viewer-accent', c);
+    document.documentElement.style.setProperty('--brand', c);
+    document.documentElement.style.setProperty('--accent', c);
+    document.body?.classList.add('swappThemeAccentRuntime');
+    document.querySelectorAll('input[type="color"]').forEach(input=>{
+      try{ if(input.value.toLowerCase() !== String(c).toLowerCase()) input.value = c; }catch(_e){}
+    });
+  }
+  function applyZoom125(){
+    document.body?.classList.add('swappUiZoom125');
+    document.documentElement.style.setProperty('--swapp-ui-zoom', String(ZOOM));
+    document.documentElement.style.setProperty('--swapp-zoomed-vw', INV + 'vw');
+  }
+  window.swappApplyZoom125 = applyZoom125;
+  window.swappApplyAccentToRuntime = applyAccentToRuntime;
+
+  const previousSetViewerThemeColor = window.setViewerThemeColor || (typeof setViewerThemeColor === 'function' ? setViewerThemeColor : null);
+  window.setViewerThemeColor = function swappSetViewerThemeColorEverywhere(color){
+    const c = color || '#22d3ee';
+    try{ previousSetViewerThemeColor?.call(this, c); }catch(_e){}
+    try{ localStorage.setItem('oryon_viewer_accent', c); }catch(_e){}
+    applyAccentToRuntime(c);
+    requestAnimationFrame(()=>applyAccentToRuntime(c));
+    setTimeout(()=>applyAccentToRuntime(c),80);
+  };
+  try{ setViewerThemeColor = window.setViewerThemeColor; }catch(_e){}
+
+  const oldSetView = window.setView;
+  if(typeof oldSetView === 'function' && !oldSetView.__swappZoomColorWrapped){
+    const wrapped = function(){
+      const result = oldSetView.apply(this, arguments);
+      return Promise.resolve(result).finally(()=>{
+        applyZoom125();
+        applyAccentToRuntime();
+        requestAnimationFrame(()=>{applyZoom125();applyAccentToRuntime();});
+        setTimeout(()=>{applyZoom125();applyAccentToRuntime();},120);
+      });
+    };
+    wrapped.__swappZoomColorWrapped = true;
+    window.setView = wrapped;
+    try{ setView = wrapped; }catch(_e){}
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{applyZoom125();applyAccentToRuntime();});
+  window.addEventListener('load',()=>{applyZoom125();applyAccentToRuntime();});
+  window.addEventListener('hashchange',()=>setTimeout(()=>{applyZoom125();applyAccentToRuntime();},60));
+  applyZoom125();
+  applyAccentToRuntime();
+  setTimeout(()=>{applyZoom125();applyAccentToRuntime();},120);
+})();
