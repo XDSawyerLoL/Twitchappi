@@ -8137,3 +8137,125 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.addEventListener('hashchange',()=>setTimeout(applySwappReadyLayout,60));
   setTimeout(applySwappReadyLayout,80);
 })();
+
+/* =========================================================
+   SWAPP PREMIUM FINAL CLEANUP — settings-only history + full-width pages
+   ========================================================= */
+(function installSwappPremiumFinalCleanup(){
+  if(window.__SWAPP_PREMIUM_FINAL_CLEANUP_V3__) return;
+  window.__SWAPP_PREMIUM_FINAL_CLEANUP_V3__ = true;
+
+  const STYLE_ID='swappPremiumFinalCleanupCss';
+  document.getElementById(STYLE_ID)?.remove();
+  const style=document.createElement('style');
+  style.id=STYLE_ID;
+  style.textContent=String.raw`
+    :root{--swapp-page-pad:clamp(22px,4vw,82px);--swapp-soft-line:rgba(148,163,184,.15);--swapp-panel:linear-gradient(180deg,rgba(15,23,42,.86),rgba(6,11,22,.94));}
+    html,body{width:100%!important;max-width:100%!important;overflow-x:hidden!important;background:#05070d!important;}
+    body.swappPremiumFull main.app,body.swappPremiumFull .app{width:100vw!important;max-width:none!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}
+    body.swappPremiumFull .view,body.swappPremiumFull .view.active{width:100vw!important;max-width:none!important;margin:0!important;box-sizing:border-box!important;overflow-x:hidden!important;background:#05070d!important;}
+    body.swappPremiumFull #dashboard.view.active,body.swappPremiumFull #manager.view.active,body.swappPremiumFull #studio.view.active,body.swappPremiumFull #settings.view.active,body.swappPremiumFull #teams.view.active,body.swappPremiumFull #twitch.view.active,body.swappPremiumFull #admin.view.active,body.swappPremiumFull #categories.view.active{padding:clamp(24px,3vw,48px) var(--swapp-page-pad) 110px!important;max-width:none!important;}
+    body.swappPremiumFull #home.view.active,body.swappPremiumFull #channel.view.active,body.swappPremiumFull #discover.view.active{padding:0!important;}
+
+    #home #swappHistoryPrompt,#home #homeSwappChannels,#home .homeSwappChannels,#home .deckLurkerWrap,#home [data-deck-lurker-slot],#home #multiWatchDock,#home .deckMount{display:none!important;}
+    #home .owHomeFull,#home .homeClean{width:100vw!important;max-width:none!important;margin:0!important;padding:0!important;background:#05070d!important;}
+    #home .owHeroTheater,#home .homeCleanHero{width:100vw!important;max-width:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important;border:0!important;min-height:calc(100svh - 68px)!important;display:grid!important;grid-template-columns:minmax(360px,36vw) minmax(0,1fr)!important;gap:0!important;overflow:hidden!important;background:linear-gradient(90deg,rgba(139,92,246,.18),rgba(15,23,42,.42) 36%,rgba(5,7,13,1) 66%)!important;}
+    #home .owHeroCopy,#home .homeCleanCopy{min-width:0!important;display:flex!important;flex-direction:column!important;justify-content:center!important;padding:clamp(28px,4vw,72px) clamp(24px,4vw,70px) clamp(28px,4vw,72px) var(--swapp-page-pad)!important;background:radial-gradient(circle at 0 50%,color-mix(in srgb,var(--viewer-accent,#8b5cf6) 18%,transparent),transparent 44%)!important;}
+    #home .owHeroCopy h1,#home .homeCleanCopy h1{font-size:clamp(56px,6.5vw,118px)!important;line-height:.86!important;letter-spacing:-.08em!important;max-width:820px!important;}
+    #home .owHeroCopy p,#home .homeCleanCopy p{max-width:680px!important;color:#d7e2f3!important;}
+    #home .owMoodStrip{display:flex!important;flex-wrap:wrap!important;gap:10px!important;max-width:760px!important;}
+    #home .owMoodStrip button{border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.075)!important;color:#fff!important;border-radius:999px!important;padding:9px 13px!important;font-weight:1000!important;}
+    #home .owActions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;max-width:720px!important;}
+    #home .owActions .btn{min-height:60px!important;border-radius:18px!important;}
+    #home .owLiveTheater,#home .homeCleanLives{width:100%!important;min-width:0!important;max-width:none!important;margin:0!important;padding:clamp(24px,3vw,54px) var(--swapp-page-pad) clamp(24px,3vw,54px) clamp(20px,2vw,42px)!important;display:grid!important;grid-template-columns:1.18fr .9fr .9fr!important;gap:18px!important;align-items:stretch!important;overflow:hidden!important;min-height:calc(100svh - 68px)!important;}
+    #home .owShowCard,#home .homeSlideCard,#home .hfLiveCard{width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:clamp(540px,70vh,840px)!important;border-radius:32px!important;border:1px solid rgba(34,211,238,.22)!important;background:#020617!important;box-shadow:0 30px 90px rgba(0,0,0,.38)!important;}
+    #home .owShowCard img,#home .homeSlideCard img{width:100%!important;height:100%!important;object-fit:cover!important;}
+    #home .owShowBody h2,#home .homeSlideBody h2{font-size:clamp(30px,3.5vw,68px)!important;line-height:.96!important;letter-spacing:-.055em!important;text-wrap:balance!important;}
+    #home .homeStreamerStrip{width:100vw!important;max-width:none!important;margin:0!important;padding:24px var(--swapp-page-pad)!important;border-radius:0!important;border-top:1px solid var(--swapp-soft-line)!important;border-left:0!important;border-right:0!important;background:linear-gradient(90deg,rgba(15,23,42,.70),rgba(6,11,22,.96))!important;box-shadow:none!important;}
+
+    .swappSettingsHistoryBlock{width:100%!important;margin:0 0 18px!important;border:1px solid rgba(34,211,238,.22)!important;border-radius:28px!important;background:linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.07)),rgba(7,12,23,.92)!important;box-shadow:0 24px 70px rgba(0,0,0,.26)!important;padding:22px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:18px!important;align-items:center!important;}
+    .swappSettingsHistoryBlock h2{margin:0 0 6px!important;font-size:clamp(24px,2vw,36px)!important;letter-spacing:-.045em!important;}
+    .swappSettingsHistoryBlock p{margin:0!important;color:#c6d3e6!important;line-height:1.45!important;max-width:820px!important;}
+    .swappSettingsHistoryActions{display:flex!important;gap:10px!important;flex-wrap:wrap!important;justify-content:flex-end!important;}
+    .swappSettingsHistoryState{display:inline-flex!important;align-items:center!important;gap:7px!important;border:1px solid rgba(255,255,255,.14)!important;background:rgba(255,255,255,.06)!important;border-radius:999px!important;padding:7px 10px!important;font-size:12px!important;font-weight:1000!important;margin-bottom:10px!important;}
+
+    #teams .teamsHero,#teams .teamsGridFull,#teams #teamsList,#teams #teamCreate,#categories .catHead,#categories #catGrid,#categories #catPick,#manager .managerShell,#dashboard .dashGrid,#studio .sideLayout,#settings .settingsShell,#settings .sideLayout,#twitch .section,#admin .panel{width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important;}
+    #teams .teamsHero{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:24px!important;align-items:end!important;padding:clamp(34px,4.5vw,72px) 0 24px!important;}
+    #teams .teamsHero h1{font-size:clamp(64px,7vw,128px)!important;line-height:.84!important;letter-spacing:-.085em!important;margin:0!important;}
+    #teams .teamsHero p{max-width:920px!important;color:#c6d3e6!important;}
+    #teams .teamsGridFull{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))!important;gap:18px!important;}
+    #teams .teamCardFull,#teams .empty,#teams .card{border-radius:28px!important;background:var(--swapp-panel)!important;border:1px solid var(--swapp-soft-line)!important;box-shadow:0 24px 70px rgba(0,0,0,.22)!important;}
+
+    #channel .channelPage,#channel .channelPage.creatorRefine{width:100vw!important;max-width:none!important;margin:0!important;padding:0 0 110px!important;overflow:hidden!important;background:#05070d!important;}
+    #channel .creatorRefine .channelTopHero,#channel .channelTopHero{width:100vw!important;min-height:clamp(440px,38vw,680px)!important;border-radius:0!important;border-left:0!important;border-right:0!important;margin:0!important;background:radial-gradient(circle at 18% 18%,rgba(139,92,246,.20),transparent 34%),linear-gradient(135deg,#08111f,#020617)!important;}
+    #channel .creatorRefine .channelHeroContent,#channel .channelHeroContent{left:0!important;right:0!important;bottom:0!important;padding:clamp(28px,4vw,72px) var(--swapp-page-pad)!important;display:flex!important;justify-content:space-between!important;align-items:flex-end!important;gap:24px!important;}
+    #channel .creatorRefine .channelIdentity,#channel .channelIdentity{display:flex!important;align-items:flex-end!important;gap:22px!important;min-width:0!important;}
+    #channel .creatorRefine .channelIdentity .avatar,#channel .channelIdentity .avatar{width:clamp(128px,9vw,190px)!important;height:clamp(128px,9vw,190px)!important;min-width:clamp(128px,9vw,190px)!important;border-radius:38px!important;}
+    #channel .creatorRefine .channelTitleBlock h1,#channel .channelTitleBlock h1{font-size:clamp(64px,6vw,120px)!important;line-height:.84!important;letter-spacing:-.085em!important;margin:0!important;}
+    #channel .creatorRefine .channelSubNav,#channel .channelSubNav{position:sticky!important;top:68px!important;z-index:42!important;margin:0!important;padding:0 var(--swapp-page-pad)!important;border-top:1px solid rgba(255,255,255,.08)!important;border-bottom:1px solid rgba(255,255,255,.08)!important;background:rgba(5,7,13,.92)!important;backdrop-filter:blur(16px)!important;}
+    #channel .creatorRefine .channelLiveLayout,#channel .channelLiveLayout{width:100vw!important;max-width:none!important;margin:0!important;padding:24px var(--swapp-page-pad) 0!important;display:grid!important;grid-template-columns:minmax(0,1fr) clamp(340px,25vw,440px)!important;gap:20px!important;align-items:stretch!important;}
+    #channel .creatorRefine .channelMainPlayer>.player,#channel .creatorRefine .channelMainPlayer>.premiumPlayer,#channel .creatorRefine .oryonMainPlayer{border-radius:30px!important;border:1px solid rgba(34,211,238,.20)!important;box-shadow:0 30px 96px rgba(0,0,0,.38)!important;max-height:none!important;}
+    #channel .creatorRefine .channelLiveSidebar .chatPanel,#channel .channelLiveSidebar .chatPanel{border-radius:30px!important;background:linear-gradient(180deg,rgba(15,23,42,.94),rgba(6,11,22,.98))!important;border:1px solid rgba(148,163,184,.17)!important;}
+    #channel .creatorRefine .channelBelowLive,#channel .channelBelowLive{width:100vw!important;max-width:none!important;margin:0!important;padding:24px var(--swapp-page-pad) 0!important;box-sizing:border-box!important;}
+    #channel .creatorRefine .bioPremium,#channel .creatorRefine .aboutComposite,#channel .creatorRefine .vignetteArea{border-radius:30px!important;background:var(--swapp-panel)!important;border:1px solid var(--swapp-soft-line)!important;box-shadow:0 24px 70px rgba(0,0,0,.24)!important;}
+    #channel .swappShareBox{display:none!important;}
+
+    @media(max-width:1180px){#home .owHeroTheater,#home .homeCleanHero{grid-template-columns:1fr!important;min-height:auto!important;}#home .owLiveTheater,#home .homeCleanLives{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;min-height:auto!important;}#home .owShowCard,#home .homeSlideCard,#home .hfLiveCard{min-width:84vw!important;width:84vw!important;height:68vh!important;scroll-snap-align:center!important;}#channel .creatorRefine .channelLiveLayout,#channel .channelLiveLayout{grid-template-columns:1fr!important;}#channel .creatorRefine .channelHeroContent,#channel .channelHeroContent{align-items:flex-start!important;flex-direction:column!important;}.swappSettingsHistoryBlock{grid-template-columns:1fr!important;}.swappSettingsHistoryActions{justify-content:flex-start!important;}}
+    @media(max-width:760px){:root{--swapp-page-pad:14px;}body.swappPremiumFull #dashboard.view.active,body.swappPremiumFull #manager.view.active,body.swappPremiumFull #studio.view.active,body.swappPremiumFull #settings.view.active,body.swappPremiumFull #teams.view.active,body.swappPremiumFull #categories.view.active,body.swappPremiumFull #twitch.view.active,body.swappPremiumFull #admin.view.active{padding:16px 14px 100px!important;}#home .owHeroCopy h1,#home .homeCleanCopy h1{font-size:clamp(46px,14vw,74px)!important;}#home .owActions{grid-template-columns:1fr!important;}#home .owShowCard,#home .homeSlideCard,#home .hfLiveCard{min-width:88vw!important;width:88vw!important;height:60vh!important;border-radius:24px!important;}#teams .teamsHero{grid-template-columns:1fr!important;align-items:start!important;}#teams .teamsHero h1{font-size:clamp(48px,14vw,76px)!important;}#channel .creatorRefine .channelTopHero,#channel .channelTopHero{min-height:360px!important;}#channel .creatorRefine .channelIdentity,#channel .channelIdentity{align-items:flex-start!important;flex-direction:column!important;}#channel .creatorRefine .channelIdentity .avatar,#channel .channelIdentity .avatar{width:96px!important;height:96px!important;min-width:96px!important;border-radius:24px!important;}#channel .creatorRefine .channelTitleBlock h1,#channel .channelTitleBlock h1{font-size:clamp(42px,13vw,62px)!important;}#channel .creatorRefine .channelSubNav,#channel .channelSubNav{top:56px!important;overflow-x:auto!important;}#channel .creatorRefine .channelLiveLayout,#channel .channelLiveLayout{padding:14px 14px 0!important;}#channel .creatorRefine .channelBelowLive,#channel .channelBelowLive{padding:14px 14px 0!important;}}
+  `;
+  document.head.appendChild(style);
+
+  function activeView(){return document.querySelector('.view.active')?.id || (window.state && state.view) || '';}
+  function applyPremiumFullWidth(){
+    document.body.classList.add('swappPremiumFull');
+    const app=document.querySelector('main.app,.app');
+    if(app){app.style.setProperty('width','100vw','important');app.style.setProperty('max-width','none','important');app.style.setProperty('margin','0','important');app.style.setProperty('padding','0','important');app.style.setProperty('overflow-x','hidden','important');}
+    document.querySelectorAll('.view.active').forEach(v=>{v.style.setProperty('width','100vw','important');v.style.setProperty('max-width','none','important');v.style.setProperty('margin','0','important');v.style.setProperty('overflow-x','hidden','important');});
+  }
+  function removeHomeArtifacts(){
+    document.querySelectorAll('#home #swappHistoryPrompt,#home #homeSwappChannels,#home .homeSwappChannels,#home .deckLurkerWrap,#home [data-deck-lurker-slot],#home #multiWatchDock,#home .deckMount').forEach(el=>el.remove());
+    document.querySelectorAll('#home *').forEach(el=>{const txt=(el.textContent||'').trim();if(/^Chaînes Swapp publiques/i.test(txt)||/Chaque compte possède une chaîne persistante/i.test(txt)){(el.closest('section,article,.panel,.card,div[id]')||el).remove();}});
+  }
+  async function getHistoryState(){
+    if(!window.state?.session?.local) return {success:false,enabled:false,requires_account:true};
+    try{const r=await api('/api/oryon/viewer/history');if(r) state.swappHistory=r;return r||{success:false,enabled:false};}catch(_){return state.swappHistory||{success:false,enabled:false};}
+  }
+  function historyBlockHtml(status){
+    const logged=!!window.state?.session?.local; const enabled=!!status?.enabled;
+    if(!logged) return `<section class="swappSettingsHistoryBlock" data-swapp-history-settings><div><span class="swappSettingsHistoryState">Compte requis</span><h2>Les recommandations ne sont pas pertinentes ?</h2><p>Connecte-toi ou crée un compte Swapp pour conserver tes J’aime, tes swipes et ton historique viewer.</p></div><div class="swappSettingsHistoryActions"><button class="btn" onclick="setView('settings')">Connexion et créer un compte</button></div></section>`;
+    return `<section class="swappSettingsHistoryBlock" data-swapp-history-settings><div><span class="swappSettingsHistoryState">${enabled?'Historique activé':'Historique désactivé'}</span><h2>Les recommandations ne sont pas pertinentes ?</h2><p>En activant l’historique des vidéos regardées, vous obtiendrez des recommandations plus personnalisées.</p></div><div class="swappSettingsHistoryActions"><button class="btn secondary" onclick="swappSetRecommendationHistory(false);setTimeout(swappRefreshSettingsHistoryBlock,250)">Ne pas activer l’historique</button><button class="btn" onclick="swappSetRecommendationHistory(true);setTimeout(swappRefreshSettingsHistoryBlock,250)">${enabled?'Réactiver l’historique':'Activer l’historique'}</button></div></section>`;
+  }
+  async function installSettingsHistoryBlock(){
+    const root=document.getElementById('settings'); if(!root||!root.classList.contains('active')) return;
+    root.querySelectorAll('[data-swapp-history-settings]').forEach(el=>el.remove());
+    let mode='viewer'; try{mode=typeof getAppMode==='function'?getAppMode():'viewer';}catch(_){mode='viewer';}
+    if(mode!=='viewer') return;
+    const status=await getHistoryState(); const after=root.querySelector('.settingsHero')||root.querySelector('.pageHead'); const target=root.querySelector('.settingsShell')||root;
+    if(after) after.insertAdjacentHTML('afterend',historyBlockHtml(status)); else target.insertAdjacentHTML('afterbegin',historyBlockHtml(status));
+  }
+  window.swappRefreshSettingsHistoryBlock=installSettingsHistoryBlock;
+  function cleanAll(){applyPremiumFullWidth();removeHomeArtifacts();if(activeView()==='settings') installSettingsHistoryBlock();}
+
+  window.loadPublicChannelsIntoHome=function(){removeHomeArtifacts();};
+  try{loadPublicChannelsIntoHome=window.loadPublicChannelsIntoHome;}catch(_e){}
+
+  const observer=new MutationObserver(()=>{removeHomeArtifacts();});
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+
+  const oldRenderSettings=window.renderSettings || (typeof renderSettings==='function'?renderSettings:null);
+  if(typeof oldRenderSettings==='function'&&!oldRenderSettings.__swappPremiumSettingsWrapped){
+    const wrapped=async function(){const r=await oldRenderSettings.apply(this,arguments);applyPremiumFullWidth();await installSettingsHistoryBlock();return r;};
+    wrapped.__swappPremiumSettingsWrapped=true; window.renderSettings=wrapped; try{renderSettings=wrapped;}catch(_e){}
+  }
+  const oldRenderHome=window.renderHome || (typeof renderHome==='function'?renderHome:null);
+  if(typeof oldRenderHome==='function'&&!oldRenderHome.__swappPremiumHomeWrapped){
+    const wrapped=async function(){const r=await oldRenderHome.apply(this,arguments);applyPremiumFullWidth();removeHomeArtifacts();setTimeout(removeHomeArtifacts,90);setTimeout(removeHomeArtifacts,260);return r;};
+    wrapped.__swappPremiumHomeWrapped=true; window.renderHome=wrapped; try{renderHome=wrapped;}catch(_e){}
+  }
+  const oldSetView=window.setView;
+  if(typeof oldSetView==='function'&&!oldSetView.__swappPremiumFinalWrapped){
+    const wrapped=function(){const r=oldSetView.apply(this,arguments);return Promise.resolve(r).finally(()=>{cleanAll();requestAnimationFrame(cleanAll);setTimeout(cleanAll,80);setTimeout(cleanAll,300);});};
+    wrapped.__swappPremiumFinalWrapped=true; window.setView=wrapped; try{setView=wrapped;}catch(_e){}
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(cleanAll,40)); window.addEventListener('load',()=>setTimeout(cleanAll,60)); window.addEventListener('hashchange',()=>setTimeout(cleanAll,60)); setTimeout(cleanAll,120); setInterval(applyPremiumFullWidth,500); setInterval(removeHomeArtifacts,1000);
+})();
