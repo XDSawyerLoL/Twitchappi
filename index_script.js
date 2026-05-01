@@ -68,7 +68,7 @@ function markZapFeedback(kind){const map={quiet:'discussion',loud:'nuit',small:'
 function trackDiscovery(x){const id=liveIdentity(x); if(!id.login)return; const vp=loadViewerImpact(); const key=id.platform+':'+id.login; const exists=vp.discoveries.some(d=>d.key===key); if(!exists){vp.discoveries.unshift({key,platform:id.platform,login:id.login,name:id.name,title:id.title,game:id.game,ts:Date.now()}); vp.discoveries=vp.discoveries.slice(0,30); vp.points=Number(vp.points||0)+5; if(vp.discoveries.length>=3&&!vp.badges.includes('Chercheur de pépites'))vp.badges.push('Chercheur de pépites'); if(vp.discoveries.length>=10&&!vp.badges.includes('Radar humain'))vp.badges.push('Radar humain'); saveViewerImpact(); renderViewerImpact();}}
 function viewerImpactCard(){const vp=loadViewerImpact(); const last=(vp.discoveries||[]).slice(0,4); return `<div class="viewerImpact"><div class="viewerTrail"><div class="trailCard"><span class="small">Aura</span><b>${Number(vp.points||0)}</b></div><div class="trailCard"><span class="small">Pépites</span><b>${(vp.discoveries||[]).length}</b></div><div class="trailCard"><span class="small">Soutiens</span><b>${(vp.firstSupports||[]).length}</b></div></div><div class="badgeWall">${(vp.badges||['Explorateur']).map(b=>`<span class="badge">${b==='Premier soutien'?'⭐':'🏷️'} ${esc(b)}</span>`).join('')}</div>${last.length?`<div class="flowQueue">${last.map(d=>`<div class="sparkCard"><b>${esc(d.name)}</b><br><span class="small">${esc(d.game||platformLabel(d.platform))}</span></div>`).join('')}</div>`:'<div class="empty">Tes pépites apparaîtront ici.</div>'}</div>`}
 function renderViewerImpact(){const box=$('#viewerImpactBox'); if(box)box.innerHTML=viewerImpactCard()}
-function discoveryEventsHtml(){return `<div class="section"><div class="pageHead"><div><h1>Événements découverte</h1><p>Des rendez-vous pensés pour pousser les petits lives sans dépendre des gros raids.</p></div></div><div class="eventGrid"><article class="eventCard"><span class="pill">Bientôt</span><b>Soirée Pépites</b><p class="muted">Sélection de chaînes sous le radar, avec zapping guidé.</p><button class="btn secondary" onclick="discoverMood('petite-commu',50)">Préparer ma sélection</button></article><article class="eventCard"><span class="pill">Late</span><b>Nuit chill</b><p class="muted">Ambiances calmes, discussion posée, chat lisible.</p><button class="btn secondary" onclick="discoverMood('nuit',50)">Entrer en mode nuit</button></article><article class="eventCard"><span class="pill">Collectif</span><b>Raid inversé collectif</b><p class="muted">La commu part chercher un petit créateur à soutenir.</p><button class="btn secondary" onclick="discoverMood('petite-commu',20)">Trouver une cible</button></article></div></div>`}
+function discoveryEventsHtml(){return `<div class="section"><div class="pageHead"><div><h1>Événements découverte</h1><p>Des rendez-vous pensés pour pousser les petits lives sans dépendre des gros raids.</p></div></div><div class="eventGrid"><article class="eventCard"><span class="pill">Actif</span><b>Soirée Pépites</b><p class="muted">Sélection de chaînes sous le radar, avec zapping guidé.</p><button class="btn secondary" onclick="discoverMood('petite-commu',50)">Préparer ma sélection</button></article><article class="eventCard"><span class="pill">Late</span><b>Nuit chill</b><p class="muted">Ambiances calmes, discussion posée, chat lisible.</p><button class="btn secondary" onclick="discoverMood('nuit',50)">Entrer en mode nuit</button></article><article class="eventCard"><span class="pill">Collectif</span><b>Raid inversé collectif</b><p class="muted">La commu part chercher un petit créateur à soutenir.</p><button class="btn secondary" onclick="discoverMood('petite-commu',20)">Trouver une cible</button></article></div></div>`}
 function openActionFor(x){const id=liveIdentity(x); return id.platform==='twitch'?`openTwitch('${esc(id.login)}')`:`openOryon('${esc(id.login)}')`}
 function isSpotlightActive(x){const id=liveIdentity(x||{}); return !!(state.currentTwitch && id.platform==='twitch' && id.login===state.currentTwitch)}
 function spotlightMedia(x){
@@ -237,7 +237,7 @@ function chanTab(btn,tab){
    loadChannelPlanning(p.login); return;
  }
  if(tab==='clips'){
-   $('#channelTab').innerHTML=`<h2>Clips</h2><div class="empty">Les clips Swapp arrivent ensuite. En attendant, ajoute tes meilleurs moments dans ta description ou ton planning.</div>`; return;
+   $('#channelTab').innerHTML=`<h2>Clips</h2><div class="empty">Les meilleurs moments utilisent tes vignettes publiques configurées dans ton profil de chaîne.</div>`; return;
  }
  $('#channelTab').innerHTML='<div class="empty">Section indisponible.</div>';
 }
@@ -948,7 +948,7 @@ function chanTab(btn,tab){
    loadChannelPlanning(p.login); return;
  }
  if(tab==='clips'){
-   $('#channelTab').innerHTML=`<div class="empty">Les clips Swapp arrivent ensuite. En attendant, garde ici tes meilleurs moments.</div>`; return;
+   $('#channelTab').innerHTML=`<div class="empty">Tes meilleurs moments publics sont affichés ici dès que tu ajoutes des vignettes à ta chaîne.</div>`; return;
  }
  $('#channelTab').innerHTML='<div class="empty">Section indisponible.</div>';
 }
@@ -2955,7 +2955,7 @@ function bindProSwipe(){
 }
 function viewerProfileCard(){
   const p=viewerProfileV2(); const saved=savedLives?.()||[]; const liked=(p.likedChannels||[]).slice(0,4); const cats=(p.likedCategories||[]).slice(0,6); const moods=Object.entries(p.moodCounts||{}).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([m])=>moodFirstLabel?.(m)||m);
-  return `<div class="viewerProfilePanel"><div class="viewerProfileHead"><div><h2>Profil Viewer</h2><p class="small">Tes goûts Swapp + Twitch, tes pépites, tes chaînes aimées.</p></div><div class="themeControl"><span class="small">Couleur</span><input type="color" value="${esc(localStorage.getItem('oryon_viewer_accent')||'#8b5cf6')}" oninput="setViewerThemeColor(this.value)"></div></div><div class="viewerProfileGrid"><div class="viewerStat"><span>Aura</span><b>${Number(p.aura||0)}</b></div><div class="viewerStat"><span>Pépites vues</span><b>${(p.discoveries||[]).length}</b></div><div class="viewerStat"><span>Sauvées</span><b>${saved.length}</b></div><div class="viewerStat"><span>Chaînes aimées</span><b>${(p.likedChannels||[]).length}</b></div><div class="viewerStat"><span>Pas ouf retirés</span><b>${(p.rejectedChannels||[]).length}</b></div><div class="viewerStat"><span>Soutiens</span><b>${(p.supports||[]).length}</b></div></div><div class="viewerPrefs">${[...moods,...cats].slice(0,10).map(x=>`<span class="viewerPref">${esc(x)}</span>`).join('')||'<span class="viewerPref">À construire</span>'}</div>${liked.length?`<div class="viewerHistory">${liked.map(c=>`<div class="sparkCard"><b>${esc(c.name||c.login)}</b><br><span class="small">${esc(c.game||platformLabel(c.platform))}</span></div>`).join('')}</div>`:'<div class="followEmpty" style="margin-top:12px">Swipe à droite pour remplir ton profil viewer.</div>'}</div>`;
+  return `<div class="viewerProfilePanel"><div class="viewerProfileHead"><div><h2>Profil Viewer</h2><p class="small">Tes goûts Swapp + Twitch, tes pépites, tes chaînes aimées.</p></div><div class="themeControl"><span class="small">Couleur</span><input type="color" value="${esc(localStorage.getItem('oryon_viewer_accent')||'#8b5cf6')}" oninput="setViewerThemeColor(this.value)"></div></div><div class="viewerProfileGrid"><div class="viewerStat"><span>Aura</span><b>${Number(p.aura||0)}</b></div><div class="viewerStat"><span>Pépites vues</span><b>${(p.discoveries||[]).length}</b></div><div class="viewerStat"><span>Sauvées</span><b>${saved.length}</b></div><div class="viewerStat"><span>Chaînes aimées</span><b>${(p.likedChannels||[]).length}</b></div><div class="viewerStat"><span>Pas ouf retirés</span><b>${(p.rejectedChannels||[]).length}</b></div><div class="viewerStat"><span>Soutiens</span><b>${(p.supports||[]).length}</b></div></div><div class="viewerPrefs">${[...moods,...cats].slice(0,10).map(x=>`<span class="viewerPref">${esc(x)}</span>`).join('')||'<span class="viewerPref">Découverte prête</span><span class="viewerPref">Twitch + Swapp</span>'}</div>${liked.length?`<div class="viewerHistory">${liked.map(c=>`<div class="sparkCard"><b>${esc(c.name||c.login)}</b><br><span class="small">${esc(c.game||platformLabel(c.platform))}</span></div>`).join('')}</div>`:'<div class="followEmpty" style="margin-top:12px">Les swipes à droite et les J’aime remplissent automatiquement ton profil viewer.</div>'}</div>`;
 }
 function viewerImpactCard(){return viewerProfileCard();}
 function viewerCapsuleHtml(){return viewerProfileCard();}
@@ -7979,4 +7979,161 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   }
 
   setTimeout(()=>{ refreshHistoryStatus(); updateLikeButtons(); insertHistoryPrompt(); },300);
+})();
+
+/* =========================================================
+   SWAPP READY PATCH — full-width every page + completed viewer/channel actions
+   ========================================================= */
+(function installSwappReadyPatch(){
+  if(window.__SWAPP_READY_PATCH_V1__) return;
+  window.__SWAPP_READY_PATCH_V1__ = true;
+
+  const STYLE_ID='swappReadyPatchCss';
+  document.getElementById(STYLE_ID)?.remove();
+  const st=document.createElement('style');
+  st.id=STYLE_ID;
+  st.textContent=`
+    html,body{width:100%!important;max-width:none!important;overflow-x:hidden!important;background:#05070d!important;}
+    main.app,.app{width:100vw!important;max-width:none!important;margin:0!important;padding:0!important;overflow-x:hidden!important;}
+    .view{width:100vw!important;max-width:none!important;margin:0!important;box-sizing:border-box!important;}
+    .view.active{display:block!important;width:100vw!important;max-width:none!important;margin:0!important;padding:clamp(16px,2vw,34px) clamp(18px,3vw,64px) 96px!important;}
+    #home.view.active,#categories.view.active,#discover.view.active{padding:0 0 96px!important;}
+    #dashboard.view.active,#manager.view.active,#studio.view.active,#settings.view.active,#teams.view.active,#channel.view.active,#admin.view.active,#twitch.view.active{background:radial-gradient(circle at 14% 0%,rgba(34,211,238,.13),transparent 28%),#05070d!important;}
+    .view.active>.pageHead,.view.active>.panel,.view.active>.grid,.view.active>.section,.view.active>.sideLayout,.view.active>.dashGrid,.view.active>.hero,.view.active>.heroGrid,.view.active>.two,.view.active>.three,.view.active>.four,.view.active .sideLayout,.view.active .dashGrid,.view.active .panel,.view.active .grid,.view.active .section{max-width:none!important;}
+    #home .owHomeFull,#home .homeClean,#home .owHeroTheater,#home .homeCleanHero,#home .homeStreamerStrip,#home .homeSwappChannels,#discover .hfDiscover,#discover .hfDiscoverHero,#discover .hfMoodPanel,#discover #zapResult,#discover #oryonDeckLurkerMount,#categories .catHead,#categories #catPick,#categories #catGrid,#categories .row.section,#channel .channelPage,#manager .managerShell,#dashboard .dashGrid,#studio .sideLayout,#settings .sideLayout,#teams .grid,#twitch .section{width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important;}
+    #home .owHeroTheater,#home .homeCleanHero{border-radius:0!important;min-height:calc(100svh - 68px)!important;padding:clamp(28px,5vw,72px) clamp(22px,5vw,86px)!important;}
+    #home .homeStreamerStrip,#home .homeSwappChannels{margin:0!important;padding:clamp(20px,3vw,42px) clamp(22px,5vw,86px)!important;border-radius:0!important;}
+    #discover .hfDiscover{padding:clamp(18px,3vw,42px) clamp(18px,4vw,72px)!important;margin:0!important;}
+    #discover .hfDiscoverHero,#discover .hfMoodPanel,#discover .discoverFallbackCard,#discover .hfPanel{border-radius:28px!important;}
+    #categories.view.active{padding:clamp(18px,3vw,42px) clamp(18px,4vw,72px) 96px!important;}
+    #categories #catGrid.catGridResponsive{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(var(--cat-min,190px),1fr))!important;gap:16px!important;}
+    #channel .channelPage{padding:0!important;border-radius:0!important;background:transparent!important;}
+    #channel .channelBanner{height:clamp(280px,24vw,460px)!important;border-radius:30px!important;}
+    #channel .watchShell.channelWatch{grid-template-columns:minmax(0,1fr) minmax(360px,430px)!important;width:100%!important;max-width:none!important;}
+    #channel .oryonMainPlayer{width:100%!important;min-height:0!important;aspect-ratio:16/9!important;}
+    #channel .publicTools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;}
+    .swappShareBox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.55);border-radius:999px;padding:6px 8px 6px 12px;color:#dbeafe;font-size:13px;font-weight:850;}
+    .swappShareBox code{color:#fff;background:transparent;font-size:12px;max-width:min(420px,52vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .swappViewerReadyGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px;}
+    .swappViewerReadyCard{border:1px solid rgba(148,163,184,.18);background:rgba(255,255,255,.045);border-radius:18px;padding:14px;min-height:92px;color:#fff;text-align:left;}
+    .swappViewerReadyCard b{display:block;font-size:22px;margin-bottom:5px;}
+    .homeSwappChannels{background:#05070d;border-top:1px solid rgba(148,163,184,.12);}
+    .homeSwappChannelsHead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px;}
+    .homeSwappChannels h2{font-size:clamp(28px,3vw,48px);letter-spacing:-.045em;margin:0;}
+    .swappChannelRail{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+    .swappPublicChannelCard{position:relative;border:1px solid rgba(148,163,184,.18);border-radius:24px;overflow:hidden;background:linear-gradient(180deg,rgba(15,23,42,.96),rgba(8,13,24,.98));min-height:260px;text-align:left;color:white;box-shadow:0 22px 70px rgba(0,0,0,.22);}
+    .swappPublicChannelCard img{width:100%;height:150px;object-fit:cover;display:block;background:linear-gradient(135deg,var(--brand),var(--cyan));}
+    .swappPublicChannelBody{padding:14px;display:grid;gap:8px;}
+    .swappPublicChannelBody b{font-size:18px;line-height:1.12;}
+    .swappLiveDot{position:absolute;top:12px;left:12px;border:1px solid rgba(34,197,94,.4);background:rgba(6,78,59,.78);color:#dcfce7;border-radius:999px;padding:6px 9px;font-size:12px;font-weight:1000;backdrop-filter:blur(12px);}
+    .swappChannelOpen{position:absolute;right:12px;top:12px;border:1px solid rgba(255,255,255,.18);background:rgba(3,7,18,.68);border-radius:999px;padding:6px 9px;font-size:12px;font-weight:1000;}
+    .nativeFixedChat .chatAssist button,.chatForm button{pointer-events:auto!important;}
+    #channelTab .empty{border-style:solid!important;}
+    @media(max-width:1180px){#channel .watchShell.channelWatch{grid-template-columns:1fr!important;}#channel .nativeFixedChat{height:430px!important;max-width:none!important}.view.active{padding-inline:18px!important}#home.view.active,#discover.view.active,#categories.view.active{padding-inline:0!important}.sideLayout{grid-template-columns:1fr!important}}
+    @media(max-width:720px){.view.active{padding:14px 14px 96px!important}#home.view.active,#discover.view.active,#categories.view.active{padding:0 0 96px!important}#home .owHeroTheater,#home .homeCleanHero{min-height:auto!important;padding:22px 14px!important;grid-template-columns:1fr!important}#discover .hfDiscover{padding:14px!important}.homeSwappChannels,.homeStreamerStrip{padding:18px 14px!important}.swappChannelRail{grid-template-columns:1fr}.swappShareBox code{max-width:62vw}.publicTools{justify-content:flex-start!important}}
+  `;
+  document.head.appendChild(st);
+
+  function safe(v){return typeof esc==='function'?esc(v):String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+  function profileUrl(login){const l=String(login||'').toLowerCase();return location.origin+'/c/'+encodeURIComponent(l);}
+  function localViewerLikes(){try{const key='swapp_account_likes:'+String(state?.session?.local?.login||'guest').toLowerCase();return Object.values(JSON.parse(localStorage.getItem(key)||'{}')||{}).filter(Boolean);}catch(_){return [];}}
+  function historyLikes(){return Array.isArray(state?.swappHistory?.recent_likes)?state.swappHistory.recent_likes:[];}
+  function mergedLikes(){const map=new Map();[...historyLikes(),...localViewerLikes()].forEach(x=>{const k=`${String(x.platform||'').toLowerCase()}:${String(x.login||'').toLowerCase()}`;if(k!==':'&&!map.has(k))map.set(k,x);});return [...map.values()].slice(0,8);}
+
+  window.swappShareChannel=function swappShareChannel(login){const url=profileUrl(login || state?.channelProfile?.login || state?.session?.local?.login || '');if(navigator.share){navigator.share({title:'Chaîne Swapp',url}).catch(()=>{});return;}navigator.clipboard?.writeText(url).then(()=>toast?.('Lien de chaîne copié.')).catch(()=>prompt('Lien de chaîne',url));};
+
+  window.viewerProfileCard=function viewerProfileCardReady(){
+    const p=(typeof viewerProfileV2==='function'?viewerProfileV2():{})||{};
+    const likes=mergedLikes();
+    const saved=(typeof savedLives==='function'?savedLives():[])||[];
+    const cats=[...new Set([...(likes.map(x=>x.category||x.game_name).filter(Boolean)), ...Object.keys(p.moodCounts||{}), ...((p.likedCategories||[]).filter(Boolean))])].slice(0,8);
+    const accent=safe(localStorage.getItem('oryon_viewer_accent')||'#8b5cf6');
+    const enabled=!!state?.swappHistory?.enabled;
+    const likedCards=likes.length?likes.slice(0,4).map(x=>`<button class="swappViewerReadyCard" onclick="${String(x.platform).toLowerCase()==='oryon'?`openOryon('${safe(x.login)}')`:`openTwitch('${safe(x.login)}')`}"><b>${safe(x.name||x.login)}</b><span class="small">${safe(x.category||x.game_name||x.platform)}${x.viewers?` · ${Number(x.viewers)} viewers`:''}</span></button>`).join(''):`<button class="swappViewerReadyCard" onclick="setView('discover')"><b>Swipe</b><span class="small">À droite = J’aime, enregistré sur ton compte.</span></button><button class="swappViewerReadyCard" onclick="setView('discover')"><b>Feed</b><span class="small">Tes likes Swapp et Twitch remontent dans l’accueil.</span></button><button class="swappViewerReadyCard" onclick="swappSetRecommendationHistory?.(true)"><b>Historique</b><span class="small">Optionnel, activable pour affiner les propositions.</span></button><button class="swappViewerReadyCard" onclick="setView('categories')"><b>Catégories</b><span class="small">Explore puis ouvre un live public.</span></button>`;
+    return `<div class="viewerProfilePanel"><div class="viewerProfileHead"><div><h2>Profil Viewer</h2><p class="small">Alimenté par tes J’aime, tes swipes et ton historique si tu l’actives.</p></div><div class="themeControl"><span class="small">Couleur</span><input type="color" value="${accent}" oninput="setViewerThemeColor(this.value)"></div></div><div class="viewerProfileGrid"><div class="viewerStat"><span>J’aime</span><b>${likes.length}</b></div><div class="viewerStat"><span>Historique</span><b>${enabled?'ON':'OFF'}</b></div><div class="viewerStat"><span>Sauvées</span><b>${saved.length}</b></div><div class="viewerStat"><span>Aura</span><b>${Number(p.aura||0)}</b></div></div><div class="viewerPrefs">${cats.length?cats.map(x=>`<span class="viewerPref">${safe(x)}</span>`).join(''):'<span class="viewerPref">Découverte prête</span><span class="viewerPref">Twitch + Swapp</span><span class="viewerPref">Feed personnalisé</span>'}</div><div class="swappViewerReadyGrid">${likedCards}</div></div>`;
+  };
+  try{viewerProfileCard=window.viewerProfileCard;}catch(_e){}
+
+  async function loadPublicChannelsIntoHome(){
+    const mount=document.getElementById('homeSwappChannelsList');
+    if(!mount) return;
+    mount.innerHTML='<div class="empty">Chargement des chaînes Swapp…</div>';
+    try{
+      const r=await api('/api/oryon/channels?limit=24');
+      const items=(r.items||[]).filter(Boolean);
+      if(!items.length){mount.innerHTML='<div class="empty">Aucune chaîne publique pour le moment. Crée ton compte : ta chaîne sera automatiquement consultable et partageable.</div>';return;}
+      mount.innerHTML=items.map(ch=>{const cover=ch.banner_url||ch.offline_image_url||ch.avatar_url||'';return `<button class="swappPublicChannelCard" onclick="state.watchRoom='${safe(ch.login)}';setView('channel')">${ch.is_live?'<span class="swappLiveDot">● LIVE</span>':''}<span class="swappChannelOpen">Ouvrir</span>${cover?`<img src="${safe(cover)}" alt="">`:`<div style="height:150px;background:linear-gradient(135deg,var(--brand),var(--cyan))"></div>`}<div class="swappPublicChannelBody"><b>${safe(ch.display_name||ch.login)}</b><span class="small">@${safe(ch.login)} · ${Number(ch.followers_count||0)} followers</span><span class="small">${safe(ch.bio||ch.live_title||'Chaîne Swapp publique')}</span></div></button>`;}).join('');
+    }catch(e){mount.innerHTML='<div class="empty">Impossible de charger les chaînes pour le moment.</div>';}
+  }
+  window.loadPublicChannelsIntoHome=loadPublicChannelsIntoHome;
+
+  const oldRenderHome=window.renderHome || (typeof renderHome==='function'?renderHome:null);
+  if(typeof oldRenderHome==='function' && !oldRenderHome.__swappReadyWrapped){
+    const wrapped=async function renderHomeReady(){
+      await oldRenderHome.apply(this,arguments);
+      const root=document.querySelector('#home .owHomeFull')||document.querySelector('#home');
+      if(root && !document.getElementById('homeSwappChannels')){
+        root.insertAdjacentHTML('beforeend',`<section id="homeSwappChannels" class="homeSwappChannels"><div class="homeSwappChannelsHead"><div><h2>Chaînes Swapp publiques</h2><p class="small">Chaque compte possède une chaîne persistante avec URL partageable en /c/pseudo.</p></div><button class="btn secondary" onclick="loadPublicChannelsIntoHome()">Rafraîchir</button></div><div id="homeSwappChannelsList" class="swappChannelRail"></div></section>`);
+      }
+      setTimeout(loadPublicChannelsIntoHome,80);
+      if(typeof applySwappReadyLayout==='function') applySwappReadyLayout();
+    };
+    wrapped.__swappReadyWrapped=true;
+    window.renderHome=wrapped;
+    try{renderHome=wrapped;}catch(_e){}
+  }
+
+  const oldChanTab=window.chanTab || (typeof chanTab==='function'?chanTab:null);
+  window.chanTab=function chanTabReady(btn,tab){
+    if(tab!=='clips') return oldChanTab?.apply(this,arguments);
+    document.querySelectorAll('.tabBtn').forEach(b=>b.classList.remove('active'));
+    btn?.classList.add('active');
+    const p=state?.channelProfile||{};
+    const vignettes=Array.isArray(p.channel_vignettes)?p.channel_vignettes:(Array.isArray(p.channel_panels)?p.channel_panels:[]);
+    const box=document.getElementById('channelTab');
+    if(!box) return;
+    box.innerHTML=`<h2>Meilleurs moments</h2>${vignettes.length?`<div class="grid smallCards">${vignettes.map(v=>`<a class="card" href="${safe(v.link_url||'#')}" ${v.link_url?'target="_blank" rel="noopener"':''}>${v.image_url?`<img src="${safe(v.image_url)}" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;margin-bottom:10px">`:''}<b>${safe(v.title||'Moment de chaîne')}</b><p class="small">${safe(v.description||'Vignette publique')}</p></a>`).join('')}</div>`:`<div class="panel"><h3>Ajoute tes moments publics</h3><p class="muted">Va dans Compte → Apparence de chaîne, ajoute des vignettes avec image, titre, description et lien. Elles s’affichent ici pour tout le monde.</p>${state?.channelOwner?`<button class="btn" onclick="setView('settings')">Ajouter mes moments</button>`:''}</div>`}`;
+  };
+  try{chanTab=window.chanTab;}catch(_e){}
+
+  const oldRenderChannel=window.renderChannel || (typeof renderChannel==='function'?renderChannel:null);
+  if(typeof oldRenderChannel==='function' && !oldRenderChannel.__swappReadyChannelWrapped){
+    const wrapped=async function renderChannelReady(){
+      await oldRenderChannel.apply(this,arguments);
+      const p=state?.channelProfile||{};
+      const head=document.querySelector('#channel .pageHead');
+      if(head && p.login && !head.querySelector('.swappShareBox')){
+        const actions=head.querySelector('.row')||head;
+        actions.classList.add('publicTools');
+        actions.insertAdjacentHTML('beforeend',`<span class="swappShareBox"><span>URL publique</span><code>${safe(profileUrl(p.login))}</code><button class="btn secondary" onclick="swappShareChannel('${safe(p.login)}')">Partager</button></span>`);
+      }
+      if(typeof applySwappReadyLayout==='function') applySwappReadyLayout();
+    };
+    wrapped.__swappReadyChannelWrapped=true;
+    window.renderChannel=wrapped;
+    try{renderChannel=wrapped;}catch(_e){}
+  }
+
+  window.applySwappReadyLayout=function applySwappReadyLayout(){
+    document.body.classList.add('swappReadyFullWidth');
+    const app=document.querySelector('main.app,.app');
+    if(app){app.style.width='100vw';app.style.maxWidth='none';app.style.margin='0';app.style.padding='0';app.style.overflowX='hidden';}
+    document.querySelectorAll('.view.active').forEach(v=>{v.style.width='100vw';v.style.maxWidth='none';v.style.margin='0';});
+  };
+
+  const oldSetView=window.setView;
+  if(typeof oldSetView==='function' && !oldSetView.__swappReadyLayoutWrapped){
+    const wrapped=function(){
+      const r=oldSetView.apply(this,arguments);
+      return Promise.resolve(r).finally(()=>{applySwappReadyLayout();requestAnimationFrame(applySwappReadyLayout);setTimeout(applySwappReadyLayout,120);});
+    };
+    wrapped.__swappReadyLayoutWrapped=true;
+    window.setView=wrapped;
+    try{setView=wrapped;}catch(_e){}
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(applySwappReadyLayout,40));
+  window.addEventListener('load',()=>setTimeout(applySwappReadyLayout,40));
+  window.addEventListener('hashchange',()=>setTimeout(applySwappReadyLayout,60));
+  setTimeout(applySwappReadyLayout,80);
 })();

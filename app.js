@@ -3649,11 +3649,23 @@ app.get('/api/oryon/viewer/history', async (req,res)=>{
     if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true,enabled:false});
     const identity = viewerIdentityFromReq(req);
     const profile = await readViewerProfile(identity);
+    const recentLikes = (Array.isArray(ctx.user.swapp_likes) ? ctx.user.swapp_likes : []).slice(0, 60).map(x => ({
+      platform: String(x.platform || '').toLowerCase(),
+      login: String(x.login || '').toLowerCase(),
+      name: String(x.name || x.display_name || x.login || '').slice(0, 120),
+      title: String(x.title || '').slice(0, 240),
+      category: String(x.category || x.game_name || '').slice(0, 160),
+      game_name: String(x.game_name || x.category || '').slice(0, 160),
+      thumbnail_url: String(x.thumbnail_url || '').slice(0, 1200),
+      viewers: Number(x.viewers || x.viewer_count || 0) || 0,
+      likedAt: Number(x.likedAt || x.createdAt || 0) || 0
+    })).filter(x => x.platform && x.login);
     res.json({
       success:true,
       enabled: !!ctx.user.recommendation_history_enabled,
-      likes_count: Array.isArray(ctx.user.swapp_likes) ? ctx.user.swapp_likes.length : 0,
+      likes_count: recentLikes.length,
       liked_channels_count: Array.isArray(ctx.user.liked_channels) ? ctx.user.liked_channels.length : 0,
+      recent_likes: recentLikes,
       profile
     });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
@@ -7745,6 +7757,44 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
     });
     res.json({ success:true, items: out.slice(0,limit), source: out.length?'public-discovery':'empty', twitchConfigured:!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET), firestore:!!firestoreOk });
   }catch(e){ res.json({ success:false, error:e.message, items:[] }); }
+});
+
+
+
+// Public Swapp channel directory: every created account has a persistent public channel at /c/:login.
+app.get('/api/oryon/channels', async (req, res) => {
+  try{
+    const q = String(req.query.q || '').trim().toLowerCase().slice(0, 80);
+    const limit = Math.max(1, Math.min(120, parseInt(req.query.limit || '60', 10) || 60));
+    const liveOnly = String(req.query.live || '').toLowerCase() === 'true';
+    const lives = new Map();
+    try{
+      for(const [room, r] of nativeLiveRooms.entries()){
+        const login = String(r?.hostLogin || room || '').toLowerCase();
+        if(login) lives.set(login, oryonLiveCardFromRoom(room, r));
+      }
+    }catch(_e){}
+    const users = (readOryonUsers().users || [])
+      .filter(u => u && u.login)
+      .map(u => {
+        const pub = publicOryonUser(u);
+        const live = lives.get(String(pub.login || '').toLowerCase()) || null;
+        return {
+          ...pub,
+          public_url: `/c/${encodeURIComponent(pub.login)}`,
+          is_live: !!live || !!pub.local_agent_live,
+          live_title: live?.title || (pub.local_agent_live ? `Live de ${pub.display_name || pub.login}` : ''),
+          live_viewers: Number(live?.viewers || 0),
+          live_category: live?.category || '',
+          updatedAt: u.updatedAt || u.createdAt || 0
+        };
+      })
+      .filter(u => !q || [u.login,u.display_name,u.bio,(u.tags||[]).join(' ')].join(' ').toLowerCase().includes(q))
+      .filter(u => !liveOnly || u.is_live)
+      .sort((a,b) => Number(b.is_live)-Number(a.is_live) || Number(b.followers_count||0)-Number(a.followers_count||0) || Number(b.updatedAt||0)-Number(a.updatedAt||0))
+      .slice(0, limit);
+    res.json({success:true,items:users,count:users.length});
+  }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
 });
 
 server.listen(PORT, () => {
