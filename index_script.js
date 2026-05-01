@@ -7584,3 +7584,172 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     });
   }, 200);
 })();
+
+/* =========================================================
+   SWAPP EDGE-TO-EDGE FIX — accueil + catégories uniquement
+   Corrige le recentrage forcé de .app sans reconstruire le site.
+   ========================================================= */
+(function installSwappEdgeToEdgeFix(){
+  const STYLE_ID='swappEdgeToEdgeFix';
+  document.getElementById(STYLE_ID)?.remove();
+  const css=document.createElement('style');
+  css.id=STYLE_ID;
+  css.textContent=`
+    body.swappEdgeToEdgePage{
+      --swapp-edge-pad:clamp(18px,2.8vw,64px);
+      background:#05070d!important;
+      overflow-x:hidden!important;
+    }
+    body.swappEdgeToEdgePage main.app,
+    body.swappEdgeToEdgePage .app{
+      width:100vw!important;
+      max-width:none!important;
+      margin-left:0!important;
+      margin-right:0!important;
+      padding-left:0!important;
+      padding-right:0!important;
+      overflow-x:hidden!important;
+    }
+    body.swappEdgeToEdgePage #home.view.active,
+    body.swappEdgeToEdgePage #categories.view.active{
+      width:100vw!important;
+      max-width:none!important;
+      margin-left:0!important;
+      margin-right:0!important;
+      box-sizing:border-box!important;
+      overflow-x:hidden!important;
+    }
+
+    /* Accueil : la vitrine prend toute la largeur du navigateur. */
+    body.swappEdgeToEdgePage #home.view.active{
+      padding:0!important;
+      min-height:calc(100svh - 68px)!important;
+    }
+    body.swappEdgeToEdgePage #home .owHomeFull,
+    body.swappEdgeToEdgePage #home .homeClean,
+    body.swappEdgeToEdgePage #home .owHeroTheater,
+    body.swappEdgeToEdgePage #home .homeCleanHero{
+      width:100vw!important;
+      max-width:none!important;
+      margin:0!important;
+      border-radius:0!important;
+    }
+    body.swappEdgeToEdgePage #home .owHeroTheater,
+    body.swappEdgeToEdgePage #home .homeCleanHero{
+      min-height:calc(100svh - 68px)!important;
+      display:grid!important;
+      grid-template-columns:minmax(360px,36vw) minmax(0,1fr)!important;
+      gap:0!important;
+      overflow:hidden!important;
+      box-shadow:none!important;
+    }
+    body.swappEdgeToEdgePage #home .owHeroCopy,
+    body.swappEdgeToEdgePage #home .homeCleanCopy{
+      padding-left:var(--swapp-edge-pad)!important;
+      padding-right:clamp(24px,3vw,58px)!important;
+      min-width:0!important;
+    }
+    body.swappEdgeToEdgePage #home .owLiveTheater,
+    body.swappEdgeToEdgePage #home .homeCleanLives{
+      width:100%!important;
+      max-width:none!important;
+      min-width:0!important;
+      margin:0!important;
+      padding-right:var(--swapp-edge-pad)!important;
+      overflow:hidden!important;
+    }
+    body.swappEdgeToEdgePage #home .homeStreamerStrip,
+    body.swappEdgeToEdgePage #home .homeOnlyMain,
+    body.swappEdgeToEdgePage #home .owBelow{
+      width:100vw!important;
+      max-width:none!important;
+      margin:0!important;
+      padding-left:var(--swapp-edge-pad)!important;
+      padding-right:var(--swapp-edge-pad)!important;
+      box-sizing:border-box!important;
+    }
+
+    /* Catégories : aucune largeur bloquée à 1280/1500px. */
+    body.swappEdgeToEdgePage #categories.view.active{
+      max-width:none!important;
+      margin:0!important;
+      padding:30px var(--swapp-edge-pad) 96px!important;
+      min-height:calc(100svh - 68px)!important;
+      background:radial-gradient(circle at 0 0,rgba(34,211,238,.12),transparent 30%),#05070d!important;
+    }
+    body.swappEdgeToEdgePage #categories .catHead,
+    body.swappEdgeToEdgePage #categories #catPick,
+    body.swappEdgeToEdgePage #categories #catGrid,
+    body.swappEdgeToEdgePage #categories .row.section{
+      width:100%!important;
+      max-width:none!important;
+      margin-left:0!important;
+      margin-right:0!important;
+    }
+    body.swappEdgeToEdgePage #catGrid.catGridResponsive{
+      display:grid!important;
+      grid-template-columns:repeat(auto-fill,minmax(var(--cat-min,150px),1fr))!important;
+      gap:14px!important;
+    }
+    body.swappEdgeToEdgePage #categories[data-cat-size="compact"] #catGrid{--cat-min:135px!important;}
+    body.swappEdgeToEdgePage #categories[data-cat-size="normal"] #catGrid{--cat-min:180px!important;}
+    body.swappEdgeToEdgePage #categories[data-cat-size="large"] #catGrid{--cat-min:235px!important;}
+
+    @media(max-width:1180px){
+      body.swappEdgeToEdgePage #home .owHeroTheater,
+      body.swappEdgeToEdgePage #home .homeCleanHero{grid-template-columns:1fr!important;min-height:auto!important;}
+      body.swappEdgeToEdgePage #home .owLiveTheater,
+      body.swappEdgeToEdgePage #home .homeCleanLives{overflow-x:auto!important;padding-left:var(--swapp-edge-pad)!important;}
+    }
+    @media(max-width:720px){
+      body.swappEdgeToEdgePage{--swapp-edge-pad:14px;}
+      body.swappEdgeToEdgePage #categories.view.active{padding:14px var(--swapp-edge-pad) 96px!important;}
+      body.swappEdgeToEdgePage #catGrid.catGridResponsive{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;}
+      body.swappEdgeToEdgePage #categories[data-cat-size="large"] #catGrid.catGridResponsive{grid-template-columns:1fr!important;}
+    }
+  `;
+  document.head.appendChild(css);
+
+  function activeViewId(){
+    return document.querySelector('.view.active')?.id || (window.state && state.view) || '';
+  }
+  function applyEdgeToEdge(){
+    const id=activeViewId();
+    const shouldApply=id==='home' || id==='categories';
+    document.body.classList.toggle('swappEdgeToEdgePage',shouldApply);
+    const app=document.querySelector('main.app,.app');
+    if(!app) return;
+    if(shouldApply){
+      app.dataset.swappEdgeToEdge='1';
+      app.style.width='100vw';
+      app.style.maxWidth='none';
+      app.style.marginLeft='0';
+      app.style.marginRight='0';
+      app.style.paddingLeft='0';
+      app.style.paddingRight='0';
+      app.style.overflowX='hidden';
+    }else if(app.dataset.swappEdgeToEdge==='1'){
+      delete app.dataset.swappEdgeToEdge;
+      ['width','maxWidth','marginLeft','marginRight','paddingLeft','paddingRight','overflowX'].forEach(k=>{app.style[k]='';});
+    }
+  }
+
+  const previousSetView=window.setView;
+  if(typeof previousSetView==='function' && !previousSetView.__swappEdgeToEdgeWrapped){
+    const wrapped=function(){
+      const result=previousSetView.apply(this,arguments);
+      return Promise.resolve(result).finally(()=>{
+        applyEdgeToEdge();
+        requestAnimationFrame(applyEdgeToEdge);
+        setTimeout(applyEdgeToEdge,80);
+      });
+    };
+    wrapped.__swappEdgeToEdgeWrapped=true;
+    window.setView=wrapped;
+    try{ setView=wrapped; }catch(_e){}
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(applyEdgeToEdge,40));
+  window.addEventListener('load',()=>setTimeout(applyEdgeToEdge,40));
+  window.addEventListener('hashchange',()=>setTimeout(applyEdgeToEdge,80));
+  setTimeout(applyEdgeToEdge,80);
+})();
