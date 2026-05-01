@@ -3373,121 +3373,496 @@ async function searchPeerTubePublic({q='',max=200,lang='fr'}={}){
 app.get('/api/peertube/public/search', heavyLimiter, async (req,res)=>{ try{ const q=String(req.query.q||'').trim(); const max=Math.max(1,Math.min(1000,parseInt(req.query.max||'200',10)||200)); const lang=String(req.query.lang||'fr').slice(0,8)||'fr'; const items=await searchPeerTubePublic({q,max,lang}); res.json({success:true,items,instances:peertubeInstances()}); }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); } });
 
 
-function discoverNativeItemsFor(q='', max=200, source='both'){
+
+// =========================================================
+// DISCOVERY V2 — mood engine + Oryon native lives + persistent learning
+// =========================================================
+const ORYON_VIEWER_LEARNING_FILE = path.join(ORYON_DATA_DIR, '.oryon-viewer-learning.json');
+let __oryonViewerLearningCache = null;
+
+function readViewerLearningLocal(){
+  if(__oryonViewerLearningCache && typeof __oryonViewerLearningCache === 'object') return __oryonViewerLearningCache;
+  try{
+    if(fs.existsSync(ORYON_VIEWER_LEARNING_FILE)){
+      __oryonViewerLearningCache = JSON.parse(fs.readFileSync(ORYON_VIEWER_LEARNING_FILE, 'utf8') || '{}');
+      return __oryonViewerLearningCache;
+    }
+  }catch(e){ console.warn('[DISCOVERY] viewer learning local read failed:', e.message); }
+  __oryonViewerLearningCache = {};
+  return __oryonViewerLearningCache;
+}
+function writeViewerLearningLocal(data){
+  __oryonViewerLearningCache = data && typeof data === 'object' ? data : {};
+  try{
+    if(!fs.existsSync(ORYON_DATA_DIR)) fs.mkdirSync(ORYON_DATA_DIR,{recursive:true});
+    fs.writeFileSync(ORYON_VIEWER_LEARNING_FILE, JSON.stringify(__oryonViewerLearningCache, null, 2));
+  }catch(e){ console.warn('[DISCOVERY] viewer learning local write failed:', e.message); }
+}
+function discoverDocId(v){
+  return String(v || 'guest')
+    .toLowerCase()
+    .replace(/[^a-z0-9_.:-]/g, '_')
+    .replace(/_+/g, '_')
+    .slice(0, 140) || 'guest';
+}
+function viewerIdentityFromReq(req){
+  const local = req.session?.oryonUser;
+  if(local?.id || local?.login) return { id:'oryon:' + (local.id || local.login), type:'oryon', login: local.login || null };
+  const tw = req.session?.twitchUser;
+  if(tw?.id || tw?.login) return { id:'twitch:' + (tw.id || tw.login), type:'twitch', login: tw.login || tw.display_name || null };
+  const anon = String(req.headers['x-oryon-viewer-id'] || req.cookies?.oryon_viewer_id || '').trim().slice(0,80);
+  if(anon) return { id:'anon:' + anon, type:'anon', login:null };
+  return { id:'guest', type:'guest', login:null };
+}
+function emptyViewerProfile(identity){
+  return {
+    viewerId: identity?.id || 'guest',
+    type: identity?.type || 'guest',
+    login: identity?.login || null,
+    updatedAt: 0,
+    actions: {},
+    moods: {},
+    categories: {},
+    streamers: {},
+    liked: {},
+    rejected: {},
+    lurked: {},
+    opened: {},
+    chatted: {},
+    seen: {},
+    eventCount: 0
+  };
+}
+async function readViewerProfile(identity){
+  const id = discoverDocId(identity?.id || 'guest');
+  if(firestoreOk && db && typeof db.collection === 'function'){
+    try{
+      const snap = await db.collection('oryon_viewer_profiles').doc(id).get();
+      if(snap.exists) return { ...emptyViewerProfile(identity), ...snap.data(), viewerId: identity.id, type: identity.type, login: identity.login || snap.data()?.login || null };
+    }catch(e){ console.warn('[DISCOVERY] Firestore viewer profile read failed:', e.message); }
+  }
+  const data = readViewerLearningLocal();
+  return { ...emptyViewerProfile(identity), ...(data[id] || {}), viewerId: identity.id, type: identity.type, login: identity.login || data[id]?.login || null };
+}
+async function writeViewerProfile(identity, profile){
+  const id = discoverDocId(identity?.id || profile?.viewerId || 'guest');
+  const payload = { ...emptyViewerProfile(identity), ...(profile || {}), viewerId: identity?.id || profile?.viewerId || 'guest', type: identity?.type || profile?.type || 'guest', login: identity?.login || profile?.login || null, updatedAt: Date.now() };
+  const data = readViewerLearningLocal();
+  data[id] = payload;
+  writeViewerLearningLocal(data);
+  if(firestoreOk && db && typeof db.collection === 'function'){
+    try{
+      await db.collection('oryon_viewer_profiles').doc(id).set(payload, { merge:true });
+    }catch(e){ console.warn('[DISCOVERY] Firestore viewer profile write failed:', e.message); }
+  }
+  return payload;
+}
+function incMap(map, key, weight=1){
+  if(!key) return;
+  const k = String(key).toLowerCase().slice(0,120);
+  map[k] = Number(map[k] || 0) + weight;
+}
+function setRecent(map, key, value=true){
+  if(!key) return;
+  map[String(key).toLowerCase().slice(0,180)] = value === true ? Date.now() : value;
+}
+function cleanRecentMap(map, keep=800, ttlMs=1000*60*60*24*14){
+  const now=Date.now();
+  const entries=Object.entries(map||{}).filter(([,v])=>typeof v!=='number' || (now - v) <= ttlMs).sort((a,b)=>Number(b[1]||0)-Number(a[1]||0)).slice(0,keep);
+  return Object.fromEntries(entries);
+}
+function normalizeChoiceStream(raw){
+  raw = raw || {};
+  const platform = String(raw.platform || raw.source || (raw.host_login || raw.room ? 'oryon' : 'twitch')).toLowerCase();
+  const login = String(raw.login || raw.user_login || raw.host_login || raw.room || raw.display_name || raw.user_name || '').toLowerCase();
+  const category = String(raw.game || raw.game_name || raw.category || '').trim();
+  const title = String(raw.title || '').trim();
+  const id = String(raw.id || raw.stream_id || `${platform}:${login}`).toLowerCase();
+  return { platform, login, category, title, id, viewers:Number(raw.viewers ?? raw.viewer_count ?? 0)||0 };
+}
+async function saveViewerChoice(req, body){
+  const identity = viewerIdentityFromReq(req);
+  const profile = await readViewerProfile(identity);
+  const action = String(body?.action || 'view').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,32) || 'view';
+  const mood = String(body?.mood || body?.context?.mood || '').toLowerCase().slice(0,60);
+  const stream = normalizeChoiceStream(body?.stream || body?.live || body || {});
+  const weight =
+    action === 'like' ? 4 :
+    action === 'lurk' ? 3 :
+    action === 'chat' ? 5 :
+    action === 'watch' || action === 'view' ? 2 :
+    action === 'reject' || action === 'nope' ? -3 :
+    action === 'next' ? -1 : 1;
+
+  profile.actions = profile.actions || {};
+  profile.moods = profile.moods || {};
+  profile.categories = profile.categories || {};
+  profile.streamers = profile.streamers || {};
+  profile.liked = profile.liked || {};
+  profile.rejected = profile.rejected || {};
+  profile.lurked = profile.lurked || {};
+  profile.opened = profile.opened || {};
+  profile.chatted = profile.chatted || {};
+  profile.seen = profile.seen || {};
+
+  incMap(profile.actions, action, 1);
+  if(mood) incMap(profile.moods, mood, Math.max(1, Math.abs(weight)));
+  if(stream.category) incMap(profile.categories, stream.category, weight);
+  if(stream.login) incMap(profile.streamers, `${stream.platform}:${stream.login}`, weight);
+  setRecent(profile.seen, `${stream.platform}:${stream.login}:${stream.id || ''}`, Date.now());
+  if(action === 'like') setRecent(profile.liked, `${stream.platform}:${stream.login}`, Date.now());
+  if(action === 'lurk') setRecent(profile.lurked, `${stream.platform}:${stream.login}`, Date.now());
+  if(action === 'chat') setRecent(profile.chatted, `${stream.platform}:${stream.login}`, Date.now());
+  if(action === 'watch' || action === 'view') setRecent(profile.opened, `${stream.platform}:${stream.login}`, Date.now());
+  if(action === 'reject' || action === 'nope') setRecent(profile.rejected, `${stream.platform}:${stream.login}`, Date.now());
+
+  profile.seen = cleanRecentMap(profile.seen, 1000, 1000*60*60*24*7);
+  profile.rejected = cleanRecentMap(profile.rejected, 600, 1000*60*60*24*21);
+  profile.liked = cleanRecentMap(profile.liked, 600, 1000*60*60*24*90);
+  profile.lurked = cleanRecentMap(profile.lurked, 600, 1000*60*60*24*90);
+  profile.chatted = cleanRecentMap(profile.chatted, 600, 1000*60*60*24*90);
+  profile.opened = cleanRecentMap(profile.opened, 600, 1000*60*60*24*30);
+  profile.eventCount = Number(profile.eventCount||0) + 1;
+
+  const event = {
+    id: makeId(),
+    viewerId: identity.id,
+    viewerType: identity.type,
+    action, mood, stream,
+    createdAt: Date.now()
+  };
+  if(firestoreOk && db && typeof db.collection === 'function'){
+    try{ await db.collection('oryon_viewer_events').doc(event.id).set(event, { merge:true }); }catch(e){ console.warn('[DISCOVERY] Firestore viewer event write failed:', e.message); }
+  }
+  const saved = await writeViewerProfile(identity, profile);
+  return { profile:saved, event };
+}
+
+app.post('/api/oryon/viewer/choice', async (req,res)=>{
+  try{
+    const out = await saveViewerChoice(req, req.body || {});
+    res.json({ success:true, persistence: firestoreOk ? 'firestore' : 'local-json', profile: out.profile, event: out.event });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+app.get('/api/oryon/viewer/choice', async (req,res)=>{
+  try{
+    const identity = viewerIdentityFromReq(req);
+    const profile = await readViewerProfile(identity);
+    res.json({ success:true, persistence: firestoreOk ? 'firestore' : 'local-json', identity, profile });
+  }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+const DISCOVERY_MOOD_PROFILES = {
+  'petite-commu': {
+    label:'Petite commu',
+    ideal:[5,80], hardMax:150,
+    categories:['Just Chatting','Minecraft','VALORANT','Fortnite','League of Legends','Grand Theft Auto V','Dofus','World of Warcraft','Elden Ring','Art'],
+    keywords:['petite commu','commu','nouveau','venez','découverte','chill','discussion','fr','salut'],
+    negative:['subathon','drops','sponsor','giveaway','ranked grind']
+  },
+  chill: {
+    label:'Chill',
+    ideal:[5,120], hardMax:200,
+    categories:['Just Chatting','Minecraft','Stardew Valley','Animal Crossing: New Horizons','Dofus','Art','Music','No Man\'s Sky','Euro Truck Simulator 2'],
+    keywords:['chill','détente','detente','calme','tranquille','sans pression','cozy','relax','papote'],
+    negative:['rage','tryhard','ranked','speedrun','tournoi']
+  },
+  discussion: {
+    label:'Discussion',
+    ideal:[8,150], hardMax:250,
+    categories:['Just Chatting','Talk Shows & Podcasts','Special Events','Pools, Hot Tubs, and Beaches','Travel & Outdoors'],
+    keywords:['discussion','papote','talk','débat','debat','questions','chat','irl','on discute','blabla'],
+    negative:['ranked','scrim','drops']
+  },
+  nuit: {
+    label:'Nuit calme',
+    ideal:[3,90], hardMax:160,
+    categories:['ASMR','Music','Art','Just Chatting','Stardew Valley','Animal Crossing: New Horizons','Minecraft','Dofus','World of Warcraft','No Man\'s Sky','The Sims 4'],
+    keywords:['nuit','late','calme','chill','cozy','asmr','dodo','soft','tranquille','relax','lofi','musique','dessin'],
+    negative:['rage','hurle','ranked','tryhard','tournoi','drops']
+  },
+  rp: {
+    label:'RP / jeu de rôle',
+    ideal:[5,150], hardMax:300,
+    categories:['Grand Theft Auto V','Red Dead Redemption 2','VRChat','Garry\'s Mod','Minecraft','Arma 3','DayZ','Project Zomboid','NoPixel','Just Chatting'],
+    keywords:['rp','roleplay','role play','rôleplay','role-play','fivem','wl','whitelist','personnage','narration','histoire','serveur rp','gta rp','redm','drama','vocal'],
+    negative:['ranked','speedrun','compétitif','competitive']
+  },
+  'decouverte-jeu': {
+    label:'Découverte jeu',
+    ideal:[8,150], hardMax:300,
+    categories:['Minecraft','VALORANT','League of Legends','Dofus','World of Warcraft','Elden Ring','Baldur\'s Gate 3','Palworld','Dune: Awakening','The Elder Scrolls Online','Warframe'],
+    keywords:['découverte','decouverte','première fois','first time','blind','test','nouveau jeu','on découvre','exploration'],
+    negative:[]
+  }
+};
+
+function discoveryProfile(mood){
+  return DISCOVERY_MOOD_PROFILES[String(mood||'').toLowerCase()] || DISCOVERY_MOOD_PROFILES['petite-commu'];
+}
+function discoveryTextOf(x){
+  return String([
+    x.title, x.game_name, x.game, x.category, x.display_name, x.user_name, x.host_name, x.login, x.user_login, x.host_login,
+    Array.isArray(x.tags) ? x.tags.join(' ') : ''
+  ].filter(Boolean).join(' ')).toLowerCase();
+}
+function discoveryNormCandidate(x){
+  const platform = String(x.platform || x.source || (x.host_login || x.room ? 'oryon' : 'twitch')).toLowerCase();
+  const login = String(x.login || x.user_login || x.host_login || x.room || '').toLowerCase();
+  const display = x.display_name || x.user_name || x.host_name || login || 'Live';
+  const game = x.game_name || x.game || x.category || 'Live';
+  let thumb = x.thumbnail_url || x.image_url || x.img || '';
+  if(thumb && thumb.includes('{width}')) thumb = thumb.replace('{width}','1280').replace('{height}','720');
+  return {
+    platform, source:platform,
+    id: x.id || x.stream_id || `${platform}:${login}`,
+    login, user_login: login, host_login: platform === 'oryon' ? login : undefined,
+    display_name: display, user_name: display, host_name: display,
+    title: x.title || `Live de ${display}`,
+    game_name: game, category: game,
+    viewer_count: Number(x.viewer_count ?? x.viewers ?? 0) || 0,
+    viewers: Number(x.viewer_count ?? x.viewers ?? 0) || 0,
+    thumbnail_url: thumb,
+    avatar_url: x.avatar_url || '',
+    started_at: x.started_at || x.createdAt || null,
+    tags: Array.isArray(x.tags) ? x.tags : [],
+    chat_messages: Number(x.chat_messages || 0),
+    embed_url: x.embed_url || x.oryon_local_player_url || '',
+    watch_url: x.watch_url || x.peertube_watch_url || (platform === 'oryon' && login ? `/c/${encodeURIComponent(login)}` : ''),
+    local_agent: !!x.local_agent,
+    score: Number(x.score || x.oryon_score || 0) || 0
+  };
+}
+function scoreDiscoveryCandidate(raw, {profile, mood, query, viewerProfile, lang}){
+  const x = discoveryNormCandidate(raw);
+  const text = discoveryTextOf(x);
+  const viewers = Number(x.viewer_count || 0);
+  const idealMin = Number(profile.ideal?.[0] ?? 5);
+  const idealMax = Number(profile.ideal?.[1] ?? 150);
+  let score = 0;
+
+  if(x.platform === 'oryon') score += 34;
+  if(viewers >= idealMin && viewers <= idealMax) score += 34;
+  else if(viewers < idealMin) score += Math.max(8, 22 - ((idealMin - viewers) * 1.4));
+  else score += Math.max(0, 26 - ((viewers - idealMax) * 0.22));
+  if(viewers <= Number(profile.hardMax || 300)) score += 8;
+  if(String(raw.language || '').toLowerCase() === String(lang || '').toLowerCase()) score += 8;
+
+  const cat = String(x.game_name || '').toLowerCase();
+  const categories = (profile.categories || []).map(v=>String(v).toLowerCase());
+  if(categories.some(c => cat === c || cat.includes(c) || c.includes(cat))) score += 26;
+
+  for(const kw of (profile.keywords || [])){
+    const k = String(kw).toLowerCase();
+    if(k && text.includes(k)) score += k.length <= 3 ? 10 : 14;
+  }
+  for(const neg of (profile.negative || [])){
+    const n = String(neg).toLowerCase();
+    if(n && text.includes(n)) score -= 18;
+  }
+  const q = String(query || '').toLowerCase().trim();
+  if(q){
+    if(cat.includes(q) || q.includes(cat)) score += 35;
+    if(text.includes(q)) score += 24;
+  }
+
+  const skNoId = `${x.platform}:${x.login}`.toLowerCase();
+  const seenPrefix = `${x.platform}:${x.login}:`.toLowerCase();
+  const now = Date.now();
+  const seen = viewerProfile?.seen || {};
+  if(Object.keys(seen).some(k => k.startsWith(seenPrefix) && now - Number(seen[k] || 0) < 1000*60*60*10)) score -= 80;
+  if(viewerProfile?.rejected?.[skNoId]) score -= 110;
+  if(viewerProfile?.liked?.[skNoId]) score += 16;
+  if(viewerProfile?.lurked?.[skNoId]) score += 12;
+  if(viewerProfile?.chatted?.[skNoId]) score += 22;
+  const catPref = Number(viewerProfile?.categories?.[String(x.game_name||'').toLowerCase()] || 0);
+  score += Math.max(-22, Math.min(32, catPref * 2.3));
+  const moodPref = Number(viewerProfile?.moods?.[String(mood||'').toLowerCase()] || 0);
+  score += Math.min(20, moodPref * 0.8);
+
+  const salt = crypto.createHash('md5').update(`${Math.floor(Date.now()/(15*60*1000))}:${skNoId}:${x.id}`).digest()[0];
+  score += (salt % 17) / 3;
+
+  x.score = Math.round(score);
+  return x;
+}
+function uniqueDiscovery(items){
+  const seen = new Set();
+  const out = [];
+  for(const raw of items || []){
+    const x = discoveryNormCandidate(raw);
+    const key = `${x.platform}:${x.login}`.toLowerCase();
+    if(!x.login || seen.has(key)) continue;
+    seen.add(key);
+    out.push(x);
+  }
+  return out;
+}
+async function twitchCategoryIdByName(name){
+  if(!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !name) return null;
+  try{
+    const r = await twitchAPI(`search/categories?query=${encodeURIComponent(name)}&first=3`);
+    const data = r?.data || [];
+    const exact = data.find(g => String(g.name||'').toLowerCase() === String(name).toLowerCase());
+    return (exact || data[0])?.id || null;
+  }catch(e){ return null; }
+}
+async function twitchStreamsForGameName(name, {lang='fr', max=200, first=60}={}){
+  const gid = await twitchCategoryIdByName(name);
+  if(!gid) return [];
+  const out = [];
+  const urls = [
+    `streams?game_id=${encodeURIComponent(gid)}&first=${Math.min(100, first)}&language=${encodeURIComponent(lang)}`,
+    `streams?game_id=${encodeURIComponent(gid)}&first=${Math.min(100, first)}`
+  ];
+  for(const url of urls){
+    try{
+      const r = await twitchAPI(url);
+      for(const s of (r?.data || [])){
+        if(Number(s.viewer_count || 0) <= max) out.push({ ...s, platform:'twitch' });
+      }
+      if(out.length >= Math.min(18, first)) break;
+    }catch(e){}
+  }
+  return out;
+}
+async function twitchBroadStreams({lang='fr', max=200, first=100}={}){
+  if(!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) return [];
+  try{
+    const r = await twitchAPI(`streams?first=${Math.min(100, first)}&language=${encodeURIComponent(lang)}`);
+    return (r?.data || []).filter(s => Number(s.viewer_count || 0) <= max).map(s => ({...s, platform:'twitch'}));
+  }catch(e){ return []; }
+}
+function discoverNativeItemsFor(q='', max=200, source='both', profile=null){
   if(source==='twitch' || source==='peertube') return [];
   const query = String(q||'').toLowerCase();
-  const nativeItems = Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r));
+  const prof = profile || discoveryProfile('');
+  const moodWords = [...(prof.keywords || []), ...(prof.categories || [])].map(x=>String(x).toLowerCase());
+  const nativeRooms = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.entries) ? Array.from(nativeLiveRooms.entries()).map(([room,r])=>oryonLiveCardFromRoom(room,r)) : [];
   const users = readOryonUsers().users || [];
   const localAgentItems = users.filter(u => isOryonLiveSignalFresh(u)).map(u => ({
     room:u.login,
-    title:`Live Oryon de ${u.display_name || u.login}`,
+    login:u.login,
+    title:u.current_live_title || `Live Oryon de ${u.display_name || u.login}`,
     host_name:u.display_name || u.login,
+    display_name:u.display_name || u.login,
     host_login:u.login,
     host_user_id:u.id,
-    viewers:0,
-    peak_viewers:0,
-    chat_messages:0,
-    category:'Oryon Live / OBS',
+    viewers:Number(u.current_viewers || 0),
+    viewer_count:Number(u.current_viewers || 0),
+    peak_viewers:Number(u.peak_viewers || 0),
+    chat_messages:Number(u.chat_messages || 0),
+    category:u.current_category || u.category || 'Oryon Live',
+    game_name:u.current_category || u.category || 'Oryon Live',
     tags:Array.isArray(u.tags)?u.tags:[],
     createdAt:u.local_agent_last_seen || u.updatedAt || Date.now(),
-    oryon_score:88,
+    oryon_score:96,
     platform:'oryon',
     local_agent:true,
     thumbnail_url:u.offline_image_url || u.banner_url || u.avatar_url || '',
-    avatar_url:u.avatar_url || ''
+    avatar_url:u.avatar_url || '',
+    embed_url:u.oryon_local_player_url || '',
+    watch_url:`/c/${encodeURIComponent(u.login)}`
   }));
   const seen = new Set();
-  return [...nativeItems, ...localAgentItems]
+  return [...nativeRooms, ...localAgentItems]
     .filter(x => {
-      const login = x.host_login || x.room;
+      const login = x.host_login || x.login || x.room;
       if(!login || seen.has(login)) return false;
       seen.add(login);
       const viewers = Number(x.viewers || x.viewer_count || 0);
       if(viewers > max) return false;
       if(!query) return true;
-      return String((x.title||'')+' '+(x.category||'')+' '+((x.tags||[]).join(' '))+' '+(x.host_name||'')+' '+login).toLowerCase().includes(query);
+      const text = discoveryTextOf(x);
+      return text.includes(query) || moodWords.some(w => w && text.includes(w));
     })
-    .sort((a,b)=>(b.oryon_score-a.oryon_score)||(a.viewers-b.viewers));
+    .map(discoveryNormCandidate);
 }
 
 app.get('/api/oryon/discover/find-live', heavyLimiter, async (req,res)=>{
   try{
-    const q=String(req.query.q||'').trim();
-    const max=Math.max(1,Math.min(10000,parseInt(req.query.max||'200',10)||200));
-    const lang=String(req.query.lang||'fr').slice(0,8)||'fr';
-    const mood=String(req.query.mood||'').toLowerCase();
-    const source=String(req.query.source||'both').toLowerCase();
-    const items=[];
-    const seen=new Set();
-    function push(x){
-      if(!x) return;
-      const platform=x.platform||'twitch';
-      const login=String(x.login||x.user_login||x.host_login||x.room||x.display_name||x.user_name||'').toLowerCase();
-      const key=platform+':'+login+':'+String(x.id||'');
-      if(!login || seen.has(key)) return;
-      seen.add(key);
-      items.push(x);
+    const q = String(req.query.q || '').trim();
+    const max = Math.max(1, Math.min(10000, parseInt(req.query.max || '150', 10) || 150));
+    const lang = String(req.query.lang || 'fr').slice(0,8) || 'fr';
+    const mood = String(req.query.mood || 'petite-commu').toLowerCase();
+    const source = String(req.query.source || 'both').toLowerCase();
+    const profile = discoveryProfile(mood);
+    const identity = viewerIdentityFromReq(req);
+    const viewerProfile = await readViewerProfile(identity);
+    const items = [];
+    const queryTerms = [];
+    if(q) queryTerms.push(q);
+    for(const c of (profile.categories || [])) if(!queryTerms.includes(c)) queryTerms.push(c);
+    if(mood === 'rp'){
+      for(const c of ['GTA RP','FiveM','NoPixel','RedM','Roleplay FR']) queryTerms.push(c);
+    }
+    if(mood === 'nuit'){
+      for(const c of ['ASMR FR','chill fr','cozy','lofi']) queryTerms.push(c);
     }
 
-    discoverNativeItemsFor(q, max, source).forEach(x => push({...x, platform:'oryon'}));
+    function add(raw){
+      if(!raw) return;
+      const n = discoveryNormCandidate(raw);
+      if(!n.login) return;
+      items.push(n);
+    }
 
-    if(source!=='oryon' && source!=='peertube'){
-      // 1) Category-specific search when a query is supplied.
-      if(TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET){
-        try{
-          let url=`streams?first=100&language=${encodeURIComponent(lang)}`;
-          if(q){
-            const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`);
-            const gid=gr.data?.[0]?.id;
-            if(gid) url=`streams?game_id=${encodeURIComponent(gid)}&first=100&language=${encodeURIComponent(lang)}`;
-          }
-          let tr=await twitchAPI(url);
-          let data=tr.data||[];
-          // 2) If strict category/language is empty, broaden once before giving up.
-          if(!data.length && q){
-            const gr=await twitchAPI(`search/categories?query=${encodeURIComponent(q)}&first=1`);
-            const gid=gr.data?.[0]?.id;
-            if(gid){
-              tr=await twitchAPI(`streams?game_id=${encodeURIComponent(gid)}&first=100`);
-              data=tr.data||[];
-            }
-          }
-          if(!data.length){
-            tr=await twitchAPI(`streams?first=100&language=${encodeURIComponent(lang)}`);
-            data=tr.data||[];
-          }
-          data.filter(s=>Number(s.viewer_count||0)<=max).forEach(s=>push({
-            platform:'twitch',id:s.id,login:s.user_login,display_name:s.user_name,title:s.title,
-            game_name:s.game_name,viewer_count:s.viewer_count||0,
-            thumbnail_url:String(s.thumbnail_url||'').replace('{width}','640').replace('{height}','360'),
-            started_at:s.started_at,score:Math.max(1,100-Number(s.viewer_count||0))
-          }));
-        }catch(e){ console.warn('/api/oryon/discover/find-live public twitch fallback', e.message); }
+    for(const x of discoverNativeItemsFor(q, max, source, profile)) add(x);
+    if(!q){
+      for(const x of discoverNativeItemsFor('', max, source, profile)) add(x);
+    }
+
+    if(source !== 'oryon' && source !== 'peertube'){
+      const terms = Array.from(new Set(queryTerms.filter(Boolean))).slice(0, mood === 'rp' ? 14 : 11);
+      for(const term of terms){
+        const found = await twitchStreamsForGameName(term, { lang, max: Math.max(max, Number(profile.hardMax || max)), first: 80 });
+        found.forEach(add);
+        if(items.length >= 180) break;
       }
-
-      // 3) Connected Twitch fallback. Essential when app credentials are absent.
+      if(items.length < 35){
+        const broad = await twitchBroadStreams({ lang, max: Math.max(max, Number(profile.hardMax || max)), first:100 });
+        broad.forEach(add);
+      }
       const discoverOnly = String(req.query.discover || '').toLowerCase() === '1' || String(req.query.discover || '').toLowerCase() === 'true';
       const tu=req.session?.twitchUser;
-      if(!discoverOnly && items.length<6 && tu && (!tu.expiry || tu.expiry>Date.now())){
+      if(!discoverOnly && items.length < 8 && tu && (!tu.expiry || tu.expiry>Date.now())){
         try{
           const tr=await twitchAPI(`streams/followed?user_id=${encodeURIComponent(tu.id)}&first=100`, tu.access_token);
-          (tr.data||[]).filter(s=>Number(s.viewer_count||0)<=max).forEach(s=>push({
-            platform:'twitch',id:s.id,login:s.user_login,display_name:s.user_name,title:s.title,
-            game_name:s.game_name,viewer_count:s.viewer_count||0,
-            thumbnail_url:String(s.thumbnail_url||'').replace('{width}','640').replace('{height}','360'),
-            started_at:s.started_at,score:Math.max(1,100-Number(s.viewer_count||0))
-          }));
-        }catch(e){ console.warn('/api/oryon/discover/find-live followed fallback', e.message); }
+          (tr.data||[]).filter(s=>Number(s.viewer_count||0)<=max).forEach(s=>add({...s, platform:'twitch', followed_fallback:true}));
+        }catch(e){ console.warn('/api/oryon/discover/find-live followed emergency fallback', e.message); }
       }
     }
 
-    const normalized=items.sort((a,b)=>{
-      const av=Number(a.viewer_count??a.viewers??0)||0, bv=Number(b.viewer_count??b.viewers??0)||0;
-      return Math.abs(av-45)-Math.abs(bv-45) || bv-av;
-    }).slice(0,36);
+    if((source === 'both' || source === 'peertube') && items.length < 8){
+      try{
+        const pt = await searchPeerTubePublic({ q:q || (profile.keywords || [])[0] || '', max, lang });
+        pt.forEach(add);
+      }catch(e){}
+    }
 
-    res.json({success:true,items:normalized,query:q,max,lang,mood,source,source_detail:normalized.length?'live':'empty'});
-  }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
+    const unique = uniqueDiscovery(items);
+    const scored = unique.map(x => scoreDiscoveryCandidate(x, {profile, mood, query:q, viewerProfile, lang}))
+      .filter(x => Number(x.viewer_count || 0) <= Math.max(max, Number(profile.hardMax || max)))
+      .sort((a,b) => (Number(b.score || 0) - Number(a.score || 0)) || (Math.abs((a.viewer_count||0)-45)-Math.abs((b.viewer_count||0)-45)));
+
+    const top = scored.slice(0, 60);
+    res.json({
+      success:true,
+      items: top,
+      query:q,
+      max,
+      lang,
+      mood,
+      mood_label: profile.label,
+      source,
+      source_detail: top.length ? 'scored_pool' : 'empty',
+      pool_size: unique.length,
+      learning: { active: identity.type !== 'guest', viewerType: identity.type, firestore: !!firestoreOk }
+    });
+  }catch(e){
+    console.warn('/api/oryon/discover/find-live v2 failed:', e.message);
+    res.status(500).json({success:false,error:e.message,items:[]});
+  }
 });
 
 function getFirstSupportPayload(login, viewerLogin=''){

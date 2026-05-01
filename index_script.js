@@ -7153,7 +7153,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   function liveKey(x){const n=norm(x);return `${n.platform}:${n.login||n.name}`.toLowerCase()}
   function setItems(items){const seen=new Set();state.zap=state.zap||{items:[],index:0};state.zap.items=(items||[]).filter(Boolean).filter(x=>{const k=liveKey(x);if(!k||seen.has(k))return false;seen.add(k);return true}).slice(0,24);state.zap.index=0;state.zap.last=current()||null;}
   function tags(x){const n=norm(x);return [...new Set([n.platform==='twitch'?'Twitch intégré':'Oryon',n.viewers?`${n.viewers} viewers`:'taille humaine',n.game,'chat lisible'].filter(Boolean))].slice(0,5)}
-  function player(x){const n=norm(x);if(n.platform==='twitch'&&n.login)return `<iframe allowfullscreen="true" scrolling="no" src="https://player.twitch.tv/?channel=${E(n.login)}&parent=${E(host())}&muted=false&autoplay=true"></iframe>`;return `<div class="v4Empty"><div><h2>Live Oryon</h2><p>Le lecteur natif apparaît ici quand la chaîne est lancée.</p></div></div>`}
+  function player(x){const n=norm(x);if(n.platform==='twitch'&&n.login)return `<iframe allowfullscreen="true" scrolling="no" src="https://player.twitch.tv/?channel=${E(n.login)}&parent=${E(host())}&muted=false&autoplay=true"></iframe>`;const embed=x?.embed_url||x?.oryon_local_player_url||'';if(n.platform==='oryon'&&embed)return `<iframe allowfullscreen="true" scrolling="no" src="${E(embed)}"></iframe>`;return `<div class="v4Empty"><div><h2>Live Oryon</h2><p>${n.login?'La chaîne Oryon est détectée.':'Le lecteur natif apparaît ici quand la chaîne est lancée.'}</p>${n.login?`<button class="v4Btn primary" onclick="openOryon?.('${E(n.login)}')">Ouvrir la chaîne</button>`:''}</div></div>`}
   function chat(x){const n=norm(x);if(n.platform==='twitch'&&n.login)return `<iframe src="https://www.twitch.tv/embed/${E(n.login)}/chat?parent=${E(host())}&darkpopout"></iframe>`;return `<div class="v4Empty"><div><h2>Chat Oryon</h2><p>Disponible sur la page chaîne native.</p></div></div>`}
   function deckKey(){return 'oryon_v4_deck_'+String(state.session?.local?.login||state.session?.twitch?.login||'guest').toLowerCase()}
   function readDeck(){try{const d=JSON.parse(localStorage.getItem(deckKey())||'[]');return Array.isArray(d)?d.slice(0,8):[]}catch{return []}}
@@ -7482,4 +7482,105 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     wrapped.__categoryRestoreWrapped=true;
     window.setView=wrapped;
   }
+})();
+
+
+/* =========================================================
+   ORYON DISCOVERY LEARNING BRIDGE — persistent viewer memory
+   Records Swap choices to Firestore-backed /api/oryon/viewer/choice.
+   Does not alter the validated Category visuals.
+   ========================================================= */
+(function installOryonDiscoveryLearningBridge(){
+  if(window.__oryonDiscoveryLearningBridgeInstalled) return;
+  window.__oryonDiscoveryLearningBridgeInstalled = true;
+
+  function ensureAnonViewerId(){
+    try{
+      let id = localStorage.getItem('oryon_anon_viewer_id');
+      if(!id){
+        id = (crypto?.randomUUID?.() || ('anon-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10)));
+        localStorage.setItem('oryon_anon_viewer_id', id);
+      }
+      return id;
+    }catch(_){ return 'anon-' + Date.now().toString(36); }
+  }
+  function currentDiscoverLive(){
+    try{
+      const items = state?.zap?.items || [];
+      const idx = Number(state?.zap?.index || 0);
+      return items[idx] || null;
+    }catch(_){ return null; }
+  }
+  function normalizeChoiceLive(x){
+    x = x || currentDiscoverLive() || {};
+    let id = {};
+    try{ id = typeof liveIdentity === 'function' ? liveIdentity(x) : {}; }catch(_){}
+    let img = id.img || x.img || x.thumbnail_url || x.image_url || '';
+    if(img && img.includes('{width}')) img = img.replace('{width}','1280').replace('{height}','720');
+    const platform = String(id.platform || x.platform || x.source || (x.host_login || x.room ? 'oryon' : 'twitch')).toLowerCase();
+    const login = String(id.login || x.login || x.user_login || x.host_login || x.room || '').toLowerCase();
+    return {
+      platform,
+      login,
+      id: String(x.id || x.stream_id || `${platform}:${login}`),
+      title: id.title || x.title || '',
+      game: id.game || x.game_name || x.game || x.category || '',
+      category: id.game || x.game_name || x.game || x.category || '',
+      viewers: Number(id.viewers ?? x.viewer_count ?? x.viewers ?? 0) || 0,
+      thumbnail_url: img
+    };
+  }
+  window.oryonRecordViewerChoice = async function oryonRecordViewerChoice(action, live){
+    const stream = normalizeChoiceLive(live);
+    if(!stream.login) return null;
+    const mood = window.__oryonDiscoverV4?.mood || window.__oryonDiscoverFinalState?.mood || state?.moodFirstMood || '';
+    try{
+      const r = await fetch('/api/oryon/viewer/choice', {
+        method:'POST',
+        credentials:'include',
+        headers:{
+          'Content-Type':'application/json',
+          'X-Oryon-Viewer-Id': ensureAnonViewerId()
+        },
+        body: JSON.stringify({ action, mood, stream })
+      });
+      return await r.json().catch(()=>null);
+    }catch(e){
+      // Local fallback so UX never breaks if the server or Firestore is down.
+      try{
+        const key='oryon_choice_fallback';
+        const arr=JSON.parse(localStorage.getItem(key)||'[]');
+        arr.unshift({action,mood,stream,ts:Date.now()});
+        localStorage.setItem(key,JSON.stringify(arr.slice(0,300)));
+      }catch(_){}
+      return null;
+    }
+  };
+
+  function wrap(name, before){
+    const fn = window[name];
+    if(typeof fn !== 'function' || fn.__learningWrapped) return;
+    const wrapped = function(){
+      try{ before?.apply(this, arguments); }catch(_){}
+      return fn.apply(this, arguments);
+    };
+    wrapped.__learningWrapped = true;
+    window[name] = wrapped;
+  }
+
+  // v4 is the active Discover renderer in the current package.
+  setTimeout(function(){
+    wrap('v4Watch', () => window.oryonRecordViewerChoice('watch', currentDiscoverLive()));
+    wrap('v4Like', () => window.oryonRecordViewerChoice('like', currentDiscoverLive()));
+    wrap('v4Nope', () => window.oryonRecordViewerChoice('reject', currentDiscoverLive()));
+    wrap('v4Next', () => window.oryonRecordViewerChoice('next', currentDiscoverLive()));
+    wrap('v4Lurk', () => window.oryonRecordViewerChoice('lurk', currentDiscoverLive()));
+    wrap('v4ToggleChat', () => {
+      const open = !window.__oryonDiscoverV4?.chat;
+      if(open) window.oryonRecordViewerChoice('chat', currentDiscoverLive());
+    });
+    wrap('v4OpenDeck', (i) => {
+      try{ const d=JSON.parse(localStorage.getItem('oryon_v4_deck_'+String(state?.session?.local?.login||state?.session?.twitch?.login||'guest').toLowerCase())||'[]'); window.oryonRecordViewerChoice('deck_open', d?.[i]); }catch(_){}
+    });
+  }, 200);
 })();
