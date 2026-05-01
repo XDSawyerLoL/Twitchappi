@@ -8976,3 +8976,237 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   applyAccentToRuntime();
   setTimeout(()=>{applyAdaptiveDensity();applyAccentToRuntime();},120);
 })();
+
+/* ===========================
+   Swapp hotfix — couleur = lumière premium latérale uniquement
+   - Le sélecteur de couleur ne recolore plus les boutons / cartes / nav
+   - La couleur choisie pilote seulement les halos de background
+   - Les composants interactifs reviennent sur le thème Swapp premium violet/cyan
+   =========================== */
+(function swappSideLightOnlyAccent(){
+  if(window.__swappSideLightOnlyAccentApplied) return;
+  window.__swappSideLightOnlyAccentApplied = true;
+
+  const STYLE_ID = 'swappSideLightOnlyAccentStyle';
+  const DEFAULT_LIGHT = '#22d3ee';
+  const FIXED_BRAND = '#a855f7';
+  const FIXED_BRAND_2 = '#bd46ff';
+  const FIXED_CYAN = '#22d3ee';
+
+  function readLight(){
+    try{return localStorage.getItem('oryon_viewer_accent') || DEFAULT_LIGHT;}catch(_e){return DEFAULT_LIGHT;}
+  }
+  function writeLight(color){
+    const c = color || DEFAULT_LIGHT;
+    try{ localStorage.setItem('oryon_viewer_accent', c); }catch(_e){}
+    return c;
+  }
+  function syncColorInputs(color){
+    document.querySelectorAll('input[type="color"]').forEach(input=>{
+      try{ input.value = color; }catch(_e){}
+    });
+  }
+  function applySideLight(color=readLight()){
+    const c = color || DEFAULT_LIGHT;
+    const root = document.documentElement;
+
+    // Couleur utilisateur = lumière de fond uniquement.
+    root.style.setProperty('--swapp-light-accent', c);
+    root.style.setProperty('--swapp-side-light', c);
+
+    // UI Swapp fixe : les boutons, nav, cartes et logo ne prennent plus la couleur utilisateur.
+    root.style.setProperty('--viewer-accent', FIXED_CYAN);
+    root.style.setProperty('--brand', FIXED_BRAND);
+    root.style.setProperty('--accent', FIXED_BRAND);
+    root.style.setProperty('--cyan', FIXED_CYAN);
+
+    syncColorInputs(c);
+    document.body?.classList.add('swappSideLightOnly');
+  }
+
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  document.getElementById(STYLE_ID)?.remove();
+  style.textContent = `
+    :root{
+      --swapp-light-accent:${readLight()};
+      --swapp-side-light:var(--swapp-light-accent);
+      --brand:${FIXED_BRAND};
+      --accent:${FIXED_BRAND};
+      --cyan:${FIXED_CYAN};
+      --viewer-accent:${FIXED_CYAN};
+    }
+
+    /* La couleur choisie redevient une lumière premium latérale, pas une couleur de boutons. */
+    body.swappSideLightOnly{
+      background:
+        radial-gradient(ellipse at -8% 32%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 34%, transparent), transparent 43%),
+        radial-gradient(ellipse at 108% 12%, rgba(34,211,238,.07), transparent 38%),
+        linear-gradient(180deg,#05070d 0%,#03050a 100%)!important;
+    }
+    body.swappSideLightOnly::before{
+      content:"";
+      position:fixed;
+      z-index:0;
+      pointer-events:none;
+      left:-18vw;
+      top:64px;
+      width:min(58vw,860px);
+      height:calc(100vh - 64px);
+      background:
+        radial-gradient(ellipse at 36% 34%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 42%, transparent), transparent 48%),
+        linear-gradient(90deg,color-mix(in srgb,var(--swapp-side-light,#22d3ee) 13%, transparent),transparent 72%);
+      filter:blur(2px);
+      opacity:.92;
+    }
+    body.swappSideLightOnly .topbar,
+    body.swappSideLightOnly main.app,
+    body.swappSideLightOnly .app,
+    body.swappSideLightOnly .view{position:relative;z-index:1;}
+
+    /* Fonds de pages : la lumière latérale suit la couleur choisie. */
+    body.swappSideLightOnly #home.view.active,
+    body.swappSideLightOnly #discover.view.active,
+    body.swappSideLightOnly #categories.view.active,
+    body.swappSideLightOnly #teams.view.active,
+    body.swappSideLightOnly #channel.view.active,
+    body.swappSideLightOnly #settings.view.active,
+    body.swappSideLightOnly #manager.view.active,
+    body.swappSideLightOnly #dashboard.view.active,
+    body.swappSideLightOnly #studio.view.active,
+    body.swappSideLightOnly #twitch.view.active,
+    body.swappSideLightOnly #admin.view.active{
+      background:
+        radial-gradient(ellipse at -7% 28%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 28%, transparent), transparent 42%),
+        radial-gradient(ellipse at 82% 6%, rgba(34,211,238,.06), transparent 36%),
+        #05070d!important;
+    }
+
+    /* Accueil : on garde le fondu premium, avec la lumière sur le côté. */
+    body.swappSideLightOnly #home .owHomeFull,
+    body.swappSideLightOnly #home .homeClean,
+    body.swappSideLightOnly #home .owHeroTheater,
+    body.swappSideLightOnly #home .homeCleanHero{
+      background:
+        radial-gradient(ellipse at -8% 42%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 34%, transparent), transparent 48%),
+        radial-gradient(ellipse at 58% 10%, rgba(139,92,246,.13), transparent 38%),
+        linear-gradient(90deg,color-mix(in srgb,var(--swapp-side-light,#22d3ee) 9%,#120f25),#07101d 46%,#05070d 100%)!important;
+    }
+    body.swappSideLightOnly #home .owHeroCopy,
+    body.swappSideLightOnly #home .homeCleanCopy{
+      background:radial-gradient(ellipse at -8% 50%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 30%, transparent), transparent 52%)!important;
+    }
+
+    /* Composants fixes Swapp : pas pilotés par la couleur utilisateur. */
+    body.swappSideLightOnly .brandMark,
+    body.swappSideLightOnly .logoMark,
+    body.swappSideLightOnly .topLogo,
+    body.swappSideLightOnly .teamLogo,
+    body.swappSideLightOnly #userBtn .avatarMini{
+      background:linear-gradient(135deg,${FIXED_CYAN},#2ee59d)!important;
+      box-shadow:0 0 24px rgba(34,211,238,.18)!important;
+    }
+    body.swappSideLightOnly .btn:not(.secondary):not(.ghost),
+    body.swappSideLightOnly button.btn:not(.secondary):not(.ghost),
+    body.swappSideLightOnly .streamBtn,
+    body.swappSideLightOnly .cleanActionGrid button.primary,
+    body.swappSideLightOnly .homeShowcaseActions.final .btn.streamBtn,
+    body.swappSideLightOnly .homeShowcaseActions.finalReco .streamBtn{
+      background:linear-gradient(135deg,${FIXED_BRAND},${FIXED_BRAND_2})!important;
+      border-color:transparent!important;
+      box-shadow:0 16px 46px rgba(168,85,247,.24)!important;
+    }
+    body.swappSideLightOnly .navGroup button.active,
+    body.swappSideLightOnly #mobileNav button.active,
+    body.swappSideLightOnly .topbar .active{
+      background:rgba(255,255,255,.11)!important;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)!important;
+    }
+    body.swappSideLightOnly .btn.secondary:hover,
+    body.swappSideLightOnly .btn.ghost:hover,
+    body.swappSideLightOnly button.secondary:hover,
+    body.swappSideLightOnly #categories .categoryCard:hover,
+    body.swappSideLightOnly #teams .teamCardFull:hover,
+    body.swappSideLightOnly #teams .card:hover{
+      border-color:rgba(168,85,247,.52)!important;
+      box-shadow:0 24px 70px rgba(168,85,247,.13)!important;
+    }
+    body.swappSideLightOnly #categories .catSizeControl,
+    body.swappSideLightOnly #teams .teamsHero .eyebrow,
+    body.swappSideLightOnly #teams .pill,
+    body.swappSideLightOnly #categories .eyebrow,
+    body.swappSideLightOnly #categories .pill{
+      border-color:rgba(255,255,255,.13)!important;
+      background:rgba(255,255,255,.055)!important;
+    }
+    body.swappSideLightOnly #categories[data-cat-size="compact"] .catSizeControl button[data-size="compact"],
+    body.swappSideLightOnly #categories[data-cat-size="normal"] .catSizeControl button[data-size="normal"],
+    body.swappSideLightOnly #categories[data-cat-size="large"] .catSizeControl button[data-size="large"],
+    body.swappSideLightOnly .proMoodBtn.active{
+      background:linear-gradient(135deg,rgba(168,85,247,.88),rgba(34,211,238,.24))!important;
+      border-color:rgba(168,85,247,.55)!important;
+      box-shadow:0 18px 52px rgba(168,85,247,.16)!important;
+    }
+    body.swappSideLightOnly #categories input:focus,
+    body.swappSideLightOnly #teams input:focus,
+    body.swappSideLightOnly #teams textarea:focus,
+    body.swappSideLightOnly input:focus,
+    body.swappSideLightOnly textarea:focus,
+    body.swappSideLightOnly select:focus{
+      border-color:rgba(168,85,247,.54)!important;
+      box-shadow:0 0 0 3px rgba(168,85,247,.16)!important;
+    }
+
+    /* Titres : une légère touche de la lumière choisie seulement dans le dégradé texte. */
+    body.swappSideLightOnly #categories .catHead h1,
+    body.swappSideLightOnly #teams .teamsHero h1{
+      background:linear-gradient(90deg,#fff 0%,#eef5ff 58%,color-mix(in srgb,var(--swapp-side-light,#22d3ee) 42%,#ffffff) 100%)!important;
+      -webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  window.setViewerThemeColor = function swappSetSideLightColorOnly(color){
+    const c = writeLight(color || DEFAULT_LIGHT);
+    applySideLight(c);
+    requestAnimationFrame(()=>applySideLight(c));
+    setTimeout(()=>applySideLight(c),80);
+  };
+  try{ setViewerThemeColor = window.setViewerThemeColor; }catch(_e){}
+
+  document.addEventListener('input',(ev)=>{
+    const target = ev.target;
+    if(target && target.matches && target.matches('input[type="color"]')){
+      const c = writeLight(target.value || DEFAULT_LIGHT);
+      applySideLight(c);
+    }
+  },true);
+  document.addEventListener('change',(ev)=>{
+    const target = ev.target;
+    if(target && target.matches && target.matches('input[type="color"]')){
+      const c = writeLight(target.value || DEFAULT_LIGHT);
+      applySideLight(c);
+    }
+  },true);
+
+  const previousSetView = window.setView;
+  if(typeof previousSetView === 'function' && !previousSetView.__swappSideLightOnlyWrapped){
+    const wrapped = function(){
+      const result = previousSetView.apply(this, arguments);
+      return Promise.resolve(result).finally(()=>{
+        applySideLight();
+        requestAnimationFrame(()=>applySideLight());
+        setTimeout(()=>applySideLight(),120);
+      });
+    };
+    wrapped.__swappSideLightOnlyWrapped = true;
+    window.setView = wrapped;
+    try{ setView = wrapped; }catch(_e){}
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>applySideLight());
+  window.addEventListener('load',()=>applySideLight());
+  window.addEventListener('hashchange',()=>setTimeout(()=>applySideLight(),60));
+  applySideLight();
+  setTimeout(()=>applySideLight(),120);
+})();
