@@ -8,7 +8,7 @@ async function api(url,opt={}){const r=await fetch(url,{credentials:'include',he
 function toast(t){const el=$('#toast'); if(!el)return; el.textContent=t||''; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),3200)}
 function isAdmin(){return !!state.session?.local?.is_admin || (state.session?.local?.login||'').toLowerCase()==='sansahd'}
 function renderNav(){const nav=$('#nav'), mob=$('#mobileNav'); if(!nav||!mob)return; nav.innerHTML=''; mob.innerHTML=''; const items=[['home','Accueil'],['discover','Découvrir'],['categories','Catégories'],['teams','Équipes']]; const wrap=document.createElement('div'); wrap.className='navGroup'; items.forEach(([id,label])=>{const b=document.createElement('button'); b.textContent=label; b.className=state.view===id?'active':''; b.onclick=()=>setView(id); wrap.appendChild(b)}); nav.appendChild(wrap); [['home','Accueil'],['discover','Découvrir'],['categories','Catégories'],['settings','Compte']].forEach(([id,label])=>{const b=document.createElement('button'); b.textContent=label; b.className=state.view===id?'active':''; b.onclick=()=>setView(id); mob.appendChild(b)})}
-function renderUserMenu(){const u=state.session.local, t=state.session.twitch; $('#userAvatar').src=u?.avatar_url||t?.profile_image_url||''; $('#userLabel').textContent=u?.display_name||u?.login||t?.display_name||'Compte'; const parts=[]; if(u){parts.push(`<div class="small" style="padding:8px 12px">Compte Oryon<br><b>${esc(u.display_name||u.login)}</b></div>`); parts.push(`<button onclick="state.watchRoom=null;setView('channel')">Ma chaîne</button>`); parts.push(`<button onclick="setView('manager')">Gestionnaire de stream</button>`); parts.push(`<button onclick="setView('dashboard')">Tableau de bord créateur</button>`); parts.push(`<button onclick="setView('studio')">Outils créateur</button>`); parts.push(`<div class="sep"></div>`)} parts.push(`<button onclick="setView('settings')">Profil, connexions, paramètres</button>`); parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`); if(u)parts.push(`<button onclick="logoutOryon()">Déconnecter Oryon</button>`); if(isAdmin())parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`); $('#userMenu').innerHTML=parts.join('')}
+function renderUserMenu(){const u=state.session.local, t=state.session.twitch; $('#userAvatar').src=u?.avatar_url||t?.profile_image_url||''; $('#userLabel').textContent=u?.display_name||u?.login||t?.display_name||'Compte'; const parts=[]; if(u){parts.push(`<div class="small" style="padding:8px 12px">Compte Oryon<br><b>${esc(u.display_name||u.login)}</b></div>`); parts.push(`<button onclick="state.watchRoom=null;setView('channel')">Ma chaîne</button>`); parts.push(`<button onclick="setView('manager')">Gestionnaire de stream</button>`); parts.push(`<button onclick="setView('dashboard')">Tableau de bord créateur</button>`); parts.push(`<button onclick="setView('studio')">Outils créateur</button>`); parts.push(`<div class="sep"></div>`)} parts.push(`<button onclick="setView('settings')">Connexion et créer un compte</button>`); parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`); if(u)parts.push(`<button onclick="logoutOryon()">Déconnecter Oryon</button>`); if(isAdmin())parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`); $('#userMenu').innerHTML=parts.join('')}
 async function loadSession(){const s=await api('/api/oryon/session'); if(s.success){state.session.local=s.local||null; state.session.twitch=s.twitch||null} renderNav(); renderUserMenu()}
 function authRequired(){return `<div class="protectedHint panel"><h2>Compte Oryon requis</h2><p class="muted">Cette section concerne ta chaîne ou tes outils créateur. Connecte-toi d’abord.</p><div class="row" style="justify-content:center"><button class="btn" onclick="setView('settings')">Connexion / inscription</button><button class="btn secondary" onclick="setView('home')">Retour accueil</button></div></div>`}
 async function setView(id){
@@ -3476,7 +3476,7 @@ function renderUserMenu(){
     parts.push(`<div class="sep"></div>`);
   }
   if(u){ parts.push(`<button onclick="state.watchRoom=null;setView('channel')">Ma chaîne</button>`); parts.push(`<button onclick="setView('manager')">Gestionnaire de stream</button>`); parts.push(`<button onclick="setView('dashboard')">Tableau de bord créateur</button>`); parts.push(`<button onclick="setView('studio')">Outils créateur</button>`); parts.push(`<div class="sep"></div>`); }
-  parts.push(`<button onclick="setView('settings')">Profil, connexions, paramètres</button>`);
+  parts.push(`<button onclick="setView('settings')">Connexion et créer un compte</button>`);
   parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`);
   if(u) parts.push(`<button onclick="logoutOryon()">Déconnecter Oryon</button>`);
   if(isAdmin()) parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`);
@@ -3745,7 +3745,7 @@ function renderUserMenu(){
   }
   parts.push(themeMenuHtml());
   if(u){ parts.push(`<div class="sep"></div><button onclick="state.watchRoom=null;setView('channel')">Ma chaîne</button>`); parts.push(`<button onclick="setView('manager')">Gestionnaire de stream</button>`); parts.push(`<button onclick="setView('dashboard')">Tableau de bord créateur</button>`); parts.push(`<button onclick="setView('studio')">Outils créateur</button>`); }
-  parts.push(`<div class="sep"></div><button onclick="setView('settings')">Profil, connexions, paramètres</button>`);
+  parts.push(`<div class="sep"></div><button onclick="setView('settings')">Connexion et créer un compte</button>`);
   parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`);
   if(u) parts.push(`<button onclick="logoutOryon()">Déconnecter Oryon</button>`);
   if(isAdmin()) parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`);
@@ -3873,7 +3873,7 @@ function renderUserMenu(){
     parts.push(`<div class="modeSwitch" style="padding:0 12px 8px"><button class="btn ${mode==='viewer'?'':'secondary'}" onclick="setAppMode('viewer')">Page viewer</button><button class="btn ${mode==='streamer'?'':'secondary'}" onclick="setAppMode('streamer')">Page streamer</button></div><div class="sep"></div>`);
   }
   if(u){ parts.push(`<button onclick="state.watchRoom=null;setView('channel')">Ma chaîne</button><button onclick="setView('manager')">Gestionnaire de stream</button><button onclick="setView('dashboard')">Tableau de bord créateur</button><button onclick="setView('studio')">Outils créateur</button><div class="sep"></div>`); }
-  parts.push(`<button onclick="setView('settings')">Profil, connexions, paramètres</button>`);
+  parts.push(`<button onclick="setView('settings')">Connexion et créer un compte</button>`);
   parts.push(t?`<button onclick="logoutTwitch()">Déconnecter Twitch</button>`:`<button onclick="connectTwitch()">Connecter Twitch</button>`);
   if(u) parts.push(`<button onclick="logoutOryon()">Déconnecter Oryon</button>`);
   if(isAdmin?.()) parts.push(`<div class="sep"></div><button onclick="setView('admin')">Administration</button>`);
@@ -4106,7 +4106,7 @@ function oryonCreatorBannerBadgesHtml(channelBadges){
 function oryonOfflinePremiumHtml(p,isOwner,tags){
   const bg=p.offline_image_url||p.banner_url||'';
   const avatar=p.avatar_url||'';
-  const tagHtml=(tags||[]).slice(0,5).map(t=>`<span>${esc(t)}</span>`).join('') || '<span>Oryon</span><span>Chaîne native</span>';
+  const tagHtml=(tags||[]).slice(0,5).map(t=>`<span>${esc(t)}</span>`).join('') || '<span>Swapp</span><span>Chaîne native</span>';
   return `<div class="offlinePremium">${bg?`<img class="offlinePremiumBg" src="${esc(bg)}" alt="">`:''}<div class="offlinePremiumContent">${avatar?`<img class="offlinePremiumAvatar" src="${esc(avatar)}" alt="">`:''}<div class="offlineTags"><span>Hors ligne</span>${tagHtml}</div><h2>${esc(p.display_name||p.login||'Chaîne')} revient bientôt.</h2><p>La bannière, la bio et les infos de chaîne restent visibles. Le live prendra automatiquement cette place quand il sera lancé.</p>${isOwner?`<button class="btn" onclick="setView('manager')">Ouvrir le gestionnaire</button>`:`<button class="btn" onclick="followOryon('${esc(p.login)}')">Suivre la chaîne</button>`}</div></div>`;
 }
 
@@ -7583,4 +7583,200 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       try{ const d=JSON.parse(localStorage.getItem('oryon_v4_deck_'+String(state?.session?.local?.login||state?.session?.twitch?.login||'guest').toLowerCase())||'[]'); window.oryonRecordViewerChoice('deck_open', d?.[i]); }catch(_){}
     });
   }, 200);
+})();
+
+/* SWAPP_BRANDING_PATCH_V1 — visible wording only; internal /api/oryon routes stay unchanged. */
+(function swappBrandingPatch(){
+  const APP_NAME = 'Swapp';
+  const MENU_LABEL = 'Connexion et créer un compte';
+  const rxOryon = /\bOryon\b/g;
+  const rxORYON = /\bORYON\b/g;
+  const rxMenu = /Profil, connexions, paramètres/g;
+
+  function cleanText(value){
+    if(typeof value !== 'string' || !value) return value;
+    return value.replace(rxMenu, MENU_LABEL).replace(rxORYON, 'SWAPP').replace(rxOryon, APP_NAME);
+  }
+
+  function cleanAttributes(el){
+    if(!el || !el.getAttribute) return;
+    ['placeholder','title','alt','aria-label'].forEach(attr => {
+      const v = el.getAttribute(attr);
+      if(v){
+        const nv = cleanText(v);
+        if(nv !== v) el.setAttribute(attr, nv);
+      }
+    });
+  }
+
+  function cleanNode(root){
+    if(!root) return;
+    if(root.nodeType === Node.TEXT_NODE){
+      const nv = cleanText(root.nodeValue);
+      if(nv !== root.nodeValue) root.nodeValue = nv;
+      return;
+    }
+    if(root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root !== document) return;
+
+    if(root.nodeType === Node.ELEMENT_NODE){
+      cleanAttributes(root);
+    }
+
+    const tree = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+      acceptNode(node){
+        if(node.nodeType === Node.ELEMENT_NODE){
+          const tag = node.tagName;
+          if(tag === 'SCRIPT' || tag === 'STYLE') return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    let node;
+    while((node = tree.nextNode())){
+      if(node.nodeType === Node.TEXT_NODE){
+        const nv = cleanText(node.nodeValue);
+        if(nv !== node.nodeValue) node.nodeValue = nv;
+      } else {
+        cleanAttributes(node);
+      }
+    }
+  }
+
+  function applySwappBranding(){
+    document.title = cleanText(document.title || 'Swapp');
+    const brand = document.querySelector('.brand span');
+    if(brand) brand.textContent = APP_NAME;
+    cleanNode(document.body);
+  }
+  window.applySwappBranding = applySwappBranding;
+
+  const previousRenderUserMenu = window.renderUserMenu;
+  if(typeof previousRenderUserMenu === 'function'){
+    window.renderUserMenu = function(...args){
+      const result = previousRenderUserMenu.apply(this, args);
+      applySwappBranding();
+      return result;
+    };
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', applySwappBranding, {once:true});
+  } else {
+    applySwappBranding();
+  }
+
+  const observer = new MutationObserver(records => {
+    for(const record of records){
+      record.addedNodes && record.addedNodes.forEach(cleanNode);
+      if(record.type === 'characterData') cleanNode(record.target);
+      if(record.type === 'attributes') cleanAttributes(record.target);
+    }
+    const brand = document.querySelector('.brand span');
+    if(brand && brand.textContent !== APP_NAME) brand.textContent = APP_NAME;
+  });
+  if(document.body){
+    observer.observe(document.body, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['placeholder','title','alt','aria-label']});
+  }
+})();
+
+
+
+/* SWAPP_HOME_DISPLAY_FIX_V1 — stable homepage layout + direct Swapp wording. */
+(function swappHomeDisplayFix(){
+  if(window.__SWAPP_HOME_DISPLAY_FIX_V1__) return;
+  window.__SWAPP_HOME_DISPLAY_FIX_V1__ = true;
+
+  const STYLE_ID = 'swappHomeDisplayFixStyle';
+  document.getElementById(STYLE_ID)?.remove();
+  const st = document.createElement('style');
+  st.id = STYLE_ID;
+  st.textContent = `
+    #home.view.active{width:100%!important;max-width:none!important;margin-inline:0!important;overflow-x:hidden!important;}
+    #home .owHomeFull.homeClean{width:100%!important;max-width:100%!important;overflow-x:hidden!important;}
+    #home .owHeroTheater.homeCleanHero{box-sizing:border-box!important;width:100%!important;max-width:100%!important;}
+    #home .owHeroCopy.homeCleanCopy{min-width:0!important;}
+    #home .owLiveTheater.homeCleanLives{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+    #home .owLiveTheater.homeCleanLives .owShowCard{min-width:0!important;max-width:100%!important;}
+    #home .owLiveTheater.homeCleanLives .hfEmptyLive{grid-column:1/-1!important;width:100%!important;min-width:0!important;max-width:100%!important;align-self:stretch!important;}
+    #home .homeStreamerStrip{margin-top:18px!important;}
+    @media(max-width:1180px){
+      #home .owHeroTheater.homeCleanHero{grid-template-columns:1fr!important;min-height:auto!important;}
+      #home .owLiveTheater.homeCleanLives{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;}
+      #home .owLiveTheater.homeCleanLives .owShowCard,
+      #home .owLiveTheater.homeCleanLives .hfEmptyLive{flex:0 0 84vw!important;width:84vw!important;min-width:84vw!important;scroll-snap-align:center!important;}
+    }
+    @media(max-width:760px){
+      #home .owHeroTheater.homeCleanHero{padding:16px!important;border-radius:24px!important;}
+      #home .owHeroCopy.homeCleanCopy h1{font-size:clamp(42px,13vw,66px)!important;}
+      #home .owLiveTheater.homeCleanLives .owShowCard,
+      #home .owLiveTheater.homeCleanLives .hfEmptyLive{flex-basis:88vw!important;width:88vw!important;min-width:88vw!important;}
+      #home .homeStreamerStrip{margin-inline:0!important;}
+    }
+  `;
+  document.head.appendChild(st);
+
+  async function loadHomeRecommendationsSwapp(){
+    const box = document.querySelector('#homeShowcaseLives');
+    if(!box) return;
+    box.innerHTML = `<div class="hfEmptyLive"><div><h2>Recherche de lives publics…</h2><p>Swapp cherche des lives à découvrir, pas seulement tes suivis.</p></div></div>`;
+    try{
+      let r = await api('/api/discovery/home-lives?limit=3&lang=fr').catch(()=>({items:[]}));
+      let items = (r.items || []);
+      if(items.length < 3){
+        const r2 = await api('/api/twitch/streams/small?lang=fr&min=1&max=5000&first=100&discover=1').catch(()=>({items:[]}));
+        const keys = new Set(items.map(x => String((hfLiveId?.(x)||{}).platform)+':'+String((hfLiveId?.(x)||{}).login)));
+        for(const x of (r2.items || [])){
+          const id = hfLiveId?.(x) || {};
+          const k = String(id.platform)+':'+String(id.login);
+          if(!keys.has(k)){ keys.add(k); items.push(x); }
+          if(items.length >= 3) break;
+        }
+      }
+      if(items.length < 3){
+        const r3 = await api('/api/native/lives').catch(()=>({items:[]}));
+        const keys = new Set(items.map(x => String((hfLiveId?.(x)||{}).platform)+':'+String((hfLiveId?.(x)||{}).login)));
+        for(const x of (r3.items || [])){
+          const y = {...x, platform:'oryon'};
+          const id = hfLiveId?.(y) || {};
+          const k = String(id.platform)+':'+String(id.login);
+          if(!keys.has(k)){ keys.add(k); items.push(y); }
+          if(items.length >= 3) break;
+        }
+      }
+      box.innerHTML = items.length
+        ? items.slice(0,3).map((x,i)=>owLiveCardHtml(x,i)).join('')
+        : `<div class="hfEmptyLive"><div><h2>Aucun live public récupéré.</h2><p>La vitrine s’affichera dès que les variables Twitch serveur seront actives ou qu’un live Swapp natif sera lancé.</p><button class="btn" onclick="loadHomeRecommendations()">Réessayer</button></div></div>`;
+      window.applySwappBranding?.();
+    }catch(e){
+      console.error(e);
+      box.innerHTML = `<div class="hfEmptyLive"><div><h2>Recherche indisponible.</h2><p>Le bloc d’accueil reste stable ; vérifie ensuite les accès serveur Twitch.</p><button class="btn" onclick="loadHomeRecommendations()">Réessayer</button></div></div>`;
+      window.applySwappBranding?.();
+    }
+  }
+
+  async function renderHomeSwappDisplayFix(){
+    const el = document.querySelector('#home');
+    if(!el) return;
+    const streamView = (typeof streamTargetView === 'function' ? streamTargetView() : 'manager');
+    const streamLabel = (typeof streamTargetLabel === 'function' ? streamTargetLabel() : 'Streamer sur Swapp').replace(/\bOryon\b/g, 'Swapp');
+    const moods = (Array.isArray(window.AMBIANCES) ? window.AMBIANCES : AMBIANCES).slice(0,6);
+    el.innerHTML = `<div class="owHomeFull homeClean"><section class="owHeroTheater homeCleanHero"><div class="owHeroCopy homeCleanCopy"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Découvre des lives publics, trouve une ambiance, ou lance ton propre live Swapp.</p><div class="owMoodStrip">${moods.map(([id,label])=>`<button onclick="state.moodFirstMood='${esc(id)}';setView('discover')">${esc(label)}</button>`).join('')}</div><div class="owActions"><button class="btn" onclick="autoProposeLive?.()">Propose-moi un live</button><button class="btn streamBtn" onclick="setView('${streamView}')">${esc(streamLabel)}</button><button class="btn secondary" onclick="setView('discover')">Swap ton mood</button></div></div><div id="homeShowcaseLives" class="owLiveTheater homeCleanLives"></div></section><section class="homeStreamerStrip"><div><h2>Créer sur Swapp</h2><p>Ta chaîne, ton lecteur, ton chat, tes vignettes, tes emotes et ton AfterLive.</p></div><button class="btn streamBtn" onclick="setView('${streamView}')">${esc(streamLabel)}</button></section></div>`;
+    await loadHomeRecommendationsSwapp();
+    closeMini?.();
+    window.applySwappBranding?.();
+  }
+
+  window.loadHomeRecommendations = loadHomeRecommendationsSwapp;
+  window.renderHome = renderHomeSwappDisplayFix;
+  try{ loadHomeRecommendations = loadHomeRecommendationsSwapp; }catch(_){}
+  try{ renderHome = renderHomeSwappDisplayFix; }catch(_){}
+
+  if(document.readyState !== 'loading'){
+    setTimeout(() => { if((window.state?.view || state?.view) === 'home') renderHomeSwappDisplayFix(); }, 0);
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => { if((window.state?.view || state?.view) === 'home') renderHomeSwappDisplayFix(); }, 0);
+    }, {once:true});
+  }
 })();

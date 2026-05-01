@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ORYON Operator</title>
+  <title>SWAPP Operator</title>
   <style>
     :root { color-scheme: dark; }
     body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0b0f14; color:#e6edf3; }
@@ -34,7 +34,7 @@
 </head>
 <body>
 <header>
-  <div style="font-weight:700; letter-spacing:0.4px;">ORYON Operator</div>
+  <div style="font-weight:700; letter-spacing:0.4px;">SWAPP Operator</div>
   <div class="badge" id="health">offline</div>
   <div style="flex:1"></div>
   <div class="muted">Web chat + GitHub contrôle + supervision</div>

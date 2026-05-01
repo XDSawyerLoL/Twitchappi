@@ -2362,7 +2362,7 @@ app.get('/twitch_auth_callback', async (req, res) => {
       expiry: Date.now() + (Number(tokenData.expires_in || 0) * 1000)
     };
 
-    // Lie Twitch au compte Oryon connecté, pour retrouver la connexion après rechargement.
+    // Lie Twitch au compte Swapp connecté, pour retrouver la connexion après rechargement.
     try{
       const local = req.session?.oryonUser;
       if(local?.id){
@@ -2971,7 +2971,7 @@ app.get('/api/oryon/local-agent/browser-connect', (req, res) => {
       return res.status(400).send('Callback Oryon Local invalide. Lance la connexion depuis l’application Oryon Local.');
     }
     if (!cur?.id) {
-      return res.status(401).send('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Oryon Local</title><style>body{font-family:system-ui;background:#080b12;color:white;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:560px;border:1px solid #2a3446;background:#101622;border-radius:22px;padding:24px}a{color:white;background:#8b5cf6;padding:12px 14px;border-radius:12px;text-decoration:none;font-weight:800;display:inline-block}</style></head><body><div class="box"><h1>Connexion Oryon requise</h1><p>Connecte-toi d’abord à ton compte Oryon dans ce navigateur, puis relance la connexion depuis Oryon Local.</p><a href="/#settings">Ouvrir Oryon</a></div></body></html>');
+      return res.status(401).send('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Swapp Local</title><style>body{font-family:system-ui;background:#080b12;color:white;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:560px;border:1px solid #2a3446;background:#101622;border-radius:22px;padding:24px}a{color:white;background:#8b5cf6;padding:12px 14px;border-radius:12px;text-decoration:none;font-weight:800;display:inline-block}</style></head><body><div class="box"><h1>Connexion Swapp requise</h1><p>Connecte-toi d’abord à ton compte Swapp dans ce navigateur, puis relance la connexion depuis Swapp Local.</p><a href="/#settings">Ouvrir Swapp</a></div></body></html>');
     }
     const data = readOryonUsers();
     const user = (data.users || []).find(u => u.id === cur.id);

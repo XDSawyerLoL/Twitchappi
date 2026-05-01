@@ -57,7 +57,7 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     const reply = await llmRespond({
-      system: 'You are ORYON Operator. Answer concisely and propose concrete next actions when relevant.',
+      system: 'You are SWAPP Operator. Answer concisely and propose concrete next actions when relevant.',
       user: String(message),
       mode: mode === 'ensemble' ? 'ensemble' : 'single'
     });
@@ -142,7 +142,7 @@ app.post('/api/ops/apply', async (req, res) => {
         branch: branchName,
         filePath: ch.path,
         content: ch.content,
-        message: plan.commitMessage || `ORYON Operator update: ${ch.path}`
+        message: plan.commitMessage || `SWAPP Operator update: ${ch.path}`
       });
     }
 
@@ -151,7 +151,7 @@ app.post('/api/ops/apply', async (req, res) => {
       pr = await openPullRequest(octokit, {
         owner,
         repo: name,
-        title: plan.commitMessage || 'ORYON Operator changes',
+        title: plan.commitMessage || 'SWAPP Operator changes',
         body: plan.notes || '',
         head: branchName,
         base: baseBranch || 'main'
@@ -192,7 +192,7 @@ app.get('*', (_req, res) => {
 
 const PORT = process.env.PORT || 8787;
 const server = app.listen(PORT, () => {
-  console.log(`ORYON Operator listening on http://localhost:${PORT}`);
+  console.log(`SWAPP Operator listening on http://localhost:${PORT}`);
 });
 
 // WebSocket chat relay (simple)
@@ -213,7 +213,7 @@ wss.on('connection', (ws) => {
 
     try {
       const reply = await llmRespond({
-        system: 'You are ORYON Operator. Answer concisely and propose concrete next actions when relevant.',
+        system: 'You are SWAPP Operator. Answer concisely and propose concrete next actions when relevant.',
         user: String(message || ''),
         mode: mode === 'ensemble' ? 'ensemble' : 'single'
       });

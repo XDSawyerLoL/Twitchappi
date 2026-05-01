@@ -1,8 +1,8 @@
 {
-  "name": "oryon-live-app",
+  "name": "swapp-live-app",
   "version": "0.3.0",
   "private": true,
-  "description": "Application locale pour diffuser sur Oryon avec OBS",
+  "description": "Application locale pour diffuser sur Swapp avec OBS",
   "main": "main.js",
   "scripts": {
     "start": "node server.js",
@@ -22,8 +22,8 @@
     "electron": "^37.3.1"
   },
   "build": {
-    "appId": "fr.oryon.local",
-    "productName": "Oryon Local",
+    "appId": "fr.swapp.local",
+    "productName": "Swapp Local",
     "directories": {
       "output": "dist"
     },
@@ -51,14 +51,14 @@
           ]
         }
       ],
-      "artifactName": "Oryon-Local-${version}-${arch}.${ext}"
+      "artifactName": "Swapp-Local-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Oryon Local"
+      "shortcutName": "Swapp Local"
     },
     "mac": {
       "target": [
@@ -71,6 +71,6 @@
       ]
     }
   },
-  "author": "Oryon",
-  "productName": "Oryon Live"
+  "author": "Swapp",
+  "productName": "Swapp Live"
 }
