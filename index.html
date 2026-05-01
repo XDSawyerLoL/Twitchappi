@@ -44,16 +44,9 @@
 <style id="oryon-signal-polish-css">
 html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minmax(0,1fr) minmax(340px,400px)!important;max-width:100%;overflow:hidden}.publicChannel{max-width:100%;overflow:hidden}.oryonMainPlayer{min-height:640px!important;overflow:hidden}.oryonMainPlayer iframe{width:100%;height:100%;border:0;overflow:hidden;display:block}.nativeFixedChat{height:640px!important;min-height:640px!important;max-height:640px!important;min-width:0!important;max-width:400px!important;resize:none!important}.nativeFixedChat .chatForm{grid-template-columns:minmax(0,1fr) 58px 96px!important}.nativeFixedChat input{min-width:0}.nativeFixedChat .chatHeader{min-width:0}.nativeFixedChat .chatHeader span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.channelTabEditor .summaryItem textarea{min-height:130px}.managerPreview .offlineOverlay{pointer-events:none}.tabs .tabBtn:nth-child(4){display:none!important}@media(max-width:1080px){.watchShell.channelWatch{grid-template-columns:1fr!important}.oryonMainPlayer{min-height:auto!important;aspect-ratio:16/9}.nativeFixedChat{height:420px!important;min-height:420px!important;max-width:none!important}}
 </style>
-
-<style id="swapp-minimal-home-width-fix">
-/* Correctif ciblé : accueil pleine largeur, sans reconstruire le site. */
-body:has(#home.active) .app{max-width:none;width:100%;margin:0;padding:0}
-#home.active .section{margin-top:0}
-#home.active .homeShowcase{border-radius:0!important;border-left:0!important;border-right:0!important;min-height:calc(100svh - 68px);display:grid;align-items:center}
-#home.active .homeShowcaseInner{width:100%;padding-left:clamp(18px,4vw,72px)!important;padding-right:clamp(18px,4vw,72px)!important}
-#home.active .homeLiveCarousel{min-width:0;max-height:calc(100svh - 150px);align-self:center}
-#home.active .homeSlideCard,#home.active .finalLive{max-height:calc(100svh - 150px);min-height:0!important}
-@media(max-width:1080px){body:has(#home.active) .app{padding:0 0 84px}#home.active .homeShowcase{min-height:auto}#home.active .homeLiveCarousel{max-height:none}}
+<style id="swapp-boot-css">
+.swappBoot{min-height:calc(100svh - 68px);display:grid;place-items:center;background:#05070d;color:#dbe7fb;font-weight:900;letter-spacing:-.02em}
+.swappBootInner{display:flex;align-items:center;gap:12px;opacity:.86}.swappBoot .brandMark{width:32px;height:32px;border-radius:13px}
 </style>
 </head>
 <body>
@@ -68,7 +61,7 @@ body:has(#home.active) .app{max-width:none;width:100%;margin:0;padding:0}
   </div>
 </header>
 <main class="app">
-  <section id="home" class="view"></section>
+  <section id="home" class="view active"><div class="swappBoot"><div class="swappBootInner"><div class="brandMark"></div><span>Chargement de Swapp…</span></div></div></section>
   <section id="discover" class="view"></section>
   <section id="twitch" class="view"></section>
   <section id="categories" class="view"></section>

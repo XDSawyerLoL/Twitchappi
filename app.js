@@ -3430,6 +3430,7 @@ function emptyViewerProfile(identity){
     opened: {},
     chatted: {},
     seen: {},
+    history_enabled: false,
     eventCount: 0
   };
 }
@@ -3475,10 +3476,87 @@ function normalizeChoiceStream(raw){
   raw = raw || {};
   const platform = String(raw.platform || raw.source || (raw.host_login || raw.room ? 'oryon' : 'twitch')).toLowerCase();
   const login = String(raw.login || raw.user_login || raw.host_login || raw.room || raw.display_name || raw.user_name || '').toLowerCase();
-  const category = String(raw.game || raw.game_name || raw.category || '').trim();
-  const title = String(raw.title || '').trim();
-  const id = String(raw.id || raw.stream_id || `${platform}:${login}`).toLowerCase();
-  return { platform, login, category, title, id, viewers:Number(raw.viewers ?? raw.viewer_count ?? 0)||0 };
+  const displayName = String(raw.name || raw.display_name || raw.user_name || raw.host_name || login || '').trim().slice(0,120);
+  const category = String(raw.game || raw.game_name || raw.category || '').trim().slice(0,160);
+  const title = String(raw.title || '').trim().slice(0,300);
+  const id = String(raw.id || raw.stream_id || `${platform}:${login}`).toLowerCase().slice(0,180);
+  const thumb = String(raw.thumbnail_url || raw.img || raw.image_url || '').replace('{width}','640').replace('{height}','360').slice(0,1200);
+  return { platform, login, name:displayName, category, game_name:category, title, id, viewers:Number(raw.viewers ?? raw.viewer_count ?? 0)||0, viewer_count:Number(raw.viewers ?? raw.viewer_count ?? 0)||0, thumbnail_url:thumb };
+}
+
+function getLocalOryonUserForReq(req){
+  const cur = req.session?.oryonUser;
+  if(!cur?.id && !cur?.login) return null;
+  const data = readOryonUsers();
+  const user = (data.users || []).find(u => (cur.id && u.id === cur.id) || (cur.login && u.login === cur.login));
+  return user ? { data, user } : null;
+}
+function viewerHistoryEnabledForReq(req){
+  const ctx = getLocalOryonUserForReq(req);
+  return !!ctx?.user?.recommendation_history_enabled;
+}
+async function saveExplicitLikeToOryonAccount(req, stream){
+  const ctx = getLocalOryonUserForReq(req);
+  if(!ctx?.user || !stream?.login) return null;
+  const { data, user } = ctx;
+  const now = Date.now();
+  user.swapp_likes = Array.isArray(user.swapp_likes) ? user.swapp_likes : [];
+  const key = `${stream.platform}:${stream.login}`.toLowerCase();
+  user.swapp_likes = user.swapp_likes.filter(x => `${String(x.platform||'').toLowerCase()}:${String(x.login||'').toLowerCase()}` !== key);
+  user.swapp_likes.unshift({
+    key,
+    platform: stream.platform,
+    login: stream.login,
+    name: stream.name || stream.login,
+    title: stream.title || '',
+    category: stream.category || stream.game_name || '',
+    game_name: stream.category || stream.game_name || '',
+    thumbnail_url: stream.thumbnail_url || '',
+    viewers: Number(stream.viewers || stream.viewer_count || 0) || 0,
+    likedAt: now
+  });
+  user.swapp_likes = user.swapp_likes.slice(0, 500);
+  user.recommendation_likes_count = user.swapp_likes.length;
+  if(stream.platform === 'oryon'){
+    const target = normalizeOryonLogin(stream.login);
+    const creator = (data.users || []).find(u => u.login === target);
+    if(creator && creator.id !== user.id){
+      user.liked_channels = Array.isArray(user.liked_channels) ? user.liked_channels : [];
+      if(!user.liked_channels.includes(target)){
+        user.liked_channels.push(target);
+        creator.likes_count = Math.max(Number(creator.likes_count || 0), 0) + 1;
+      }
+    }
+  }
+  await writeOryonUsersAndWait(data);
+  return user.swapp_likes;
+}
+function accountLikeKeys(user){
+  const keys = new Set();
+  for(const x of Array.isArray(user?.swapp_likes) ? user.swapp_likes : []){
+    const platform = String(x.platform || '').toLowerCase();
+    const login = String(x.login || '').toLowerCase();
+    if(platform && login) keys.add(`${platform}:${login}`);
+  }
+  for(const login of Array.isArray(user?.liked_channels) ? user.liked_channels : []){
+    const v = normalizeOryonLogin(login);
+    if(v) keys.add(`oryon:${v}`);
+  }
+  return keys;
+}
+async function twitchStreamsForLogins(logins){
+  const clean = Array.from(new Set((logins || []).map(x => String(x || '').toLowerCase().replace(/[^a-z0-9_]/g,'')).filter(Boolean))).slice(0,100);
+  if(!clean.length || !TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) return [];
+  const out = [];
+  for(let i=0;i<clean.length;i+=80){
+    const chunk = clean.slice(i,i+80);
+    const query = 'streams?first=100&' + chunk.map(x => 'user_login=' + encodeURIComponent(x)).join('&');
+    try{
+      const r = await twitchAPI(query);
+      out.push(...(r?.data || []).map(s => ({...s, platform:'twitch'})));
+    }catch(e){ console.warn('[DISCOVERY] twitchStreamsForLogins failed:', e.message); }
+  }
+  return out;
 }
 async function saveViewerChoice(req, body){
   const identity = viewerIdentityFromReq(req);
@@ -3486,6 +3564,18 @@ async function saveViewerChoice(req, body){
   const action = String(body?.action || 'view').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,32) || 'view';
   const mood = String(body?.mood || body?.context?.mood || '').toLowerCase().slice(0,60);
   const stream = normalizeChoiceStream(body?.stream || body?.live || body || {});
+  const isExplicitLike = action === 'like';
+  const historyEnabled = viewerHistoryEnabledForReq(req);
+
+  // A like is an explicit user signal and is saved to the Swapp account.
+  // Passive history signals only train recommendations after the user enables history.
+  if(!isExplicitLike && identity.type === 'oryon' && !historyEnabled){
+    return { profile:{ ...profile, history_enabled:false }, event:null, skipped:true, reason:'history_disabled' };
+  }
+  if(isExplicitLike){
+    await saveExplicitLikeToOryonAccount(req, stream);
+  }
+
   const weight =
     action === 'like' ? 4 :
     action === 'lurk' ? 3 :
@@ -3504,6 +3594,7 @@ async function saveViewerChoice(req, body){
   profile.opened = profile.opened || {};
   profile.chatted = profile.chatted || {};
   profile.seen = profile.seen || {};
+  profile.history_enabled = historyEnabled;
 
   incMap(profile.actions, action, 1);
   if(mood) incMap(profile.moods, mood, Math.max(1, Math.abs(weight)));
@@ -3550,6 +3641,100 @@ app.get('/api/oryon/viewer/choice', async (req,res)=>{
     const profile = await readViewerProfile(identity);
     res.json({ success:true, persistence: firestoreOk ? 'firestore' : 'local-json', identity, profile });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/api/oryon/viewer/history', async (req,res)=>{
+  try{
+    const ctx = getLocalOryonUserForReq(req);
+    if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true,enabled:false});
+    const identity = viewerIdentityFromReq(req);
+    const profile = await readViewerProfile(identity);
+    res.json({
+      success:true,
+      enabled: !!ctx.user.recommendation_history_enabled,
+      likes_count: Array.isArray(ctx.user.swapp_likes) ? ctx.user.swapp_likes.length : 0,
+      liked_channels_count: Array.isArray(ctx.user.liked_channels) ? ctx.user.liked_channels.length : 0,
+      profile
+    });
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+app.post('/api/oryon/viewer/history', async (req,res)=>{
+  try{
+    const ctx = getLocalOryonUserForReq(req);
+    if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true});
+    const enabled = !!req.body?.enabled;
+    ctx.user.recommendation_history_enabled = enabled;
+    ctx.user.recommendation_history_updated_at = Date.now();
+    await writeOryonUsersAndWait(ctx.data);
+    const identity = viewerIdentityFromReq(req);
+    const profile = await readViewerProfile(identity);
+    profile.history_enabled = enabled;
+    await writeViewerProfile(identity, profile);
+    res.json({success:true,enabled});
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+app.get('/api/oryon/viewer/feed', heavyLimiter, async (req,res)=>{
+  try{
+    const ctx = getLocalOryonUserForReq(req);
+    if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true,items:[]});
+    const max = Math.max(1, Math.min(10000, parseInt(req.query.max || '500', 10) || 500));
+    const lang = String(req.query.lang || 'fr').slice(0,8) || 'fr';
+    const mood = String(req.query.mood || 'petite-commu').toLowerCase();
+    const profile = discoveryProfile(mood);
+    const identity = viewerIdentityFromReq(req);
+    const viewerProfile = await readViewerProfile(identity);
+    viewerProfile.history_enabled = !!ctx.user.recommendation_history_enabled;
+
+    const likeKeys = new Set([...accountLikeKeys(ctx.user), ...Object.keys(viewerProfile.liked || {})]);
+    const twitchLiked = [...likeKeys].filter(k => k.startsWith('twitch:')).map(k => k.split(':')[1]).filter(Boolean);
+    const oryonLiked = [...likeKeys].filter(k => k.startsWith('oryon:')).map(k => k.split(':')[1]).filter(Boolean);
+    const items = [];
+    const push = x => { if(x) items.push(discoveryNormCandidate(x)); };
+
+    // 1) Liked channels currently live.
+    (await twitchStreamsForLogins(twitchLiked)).forEach(push);
+    const native = discoverNativeItemsFor('', max, 'both', profile);
+    native.filter(x => oryonLiked.includes(String(x.login || x.host_login || x.room || '').toLowerCase())).forEach(push);
+
+    // 2) Categories learned from explicit likes and enabled history.
+    const categoryScores = Object.entries(viewerProfile.categories || {})
+      .filter(([,v]) => Number(v) > 0)
+      .sort((a,b) => Number(b[1])-Number(a[1]))
+      .slice(0, 5)
+      .map(([k]) => k);
+    for(const cat of categoryScores){
+      const found = await twitchStreamsForGameName(cat, {lang, max, first:50});
+      found.forEach(push);
+      if(items.length >= 80) break;
+    }
+
+    // 3) Fallback discovery when the account is new.
+    if(items.length < 12){
+      discoverNativeItemsFor('', max, 'both', profile).forEach(push);
+      const broad = await twitchBroadStreams({lang, max, first:100});
+      broad.forEach(push);
+    }
+
+    const seen = new Set();
+    const scored = items
+      .map(x => scoreDiscoveryCandidate(x, {profile, mood, query:'', viewerProfile, lang}))
+      .filter(x => Number(x.viewer_count || 0) <= max)
+      .filter(x => { const k=`${x.platform}:${x.login}`.toLowerCase(); if(!x.login || seen.has(k)) return false; seen.add(k); return true; })
+      .sort((a,b) => (Number(b.score || 0)-Number(a.score || 0)) || (Number(a.viewer_count||0)-Number(b.viewer_count||0)))
+      .slice(0, 60);
+
+    res.json({
+      success:true,
+      items:scored,
+      personalized: likeKeys.size > 0 || categoryScores.length > 0,
+      history_enabled: !!ctx.user.recommendation_history_enabled,
+      likes_count: likeKeys.size,
+      categories: categoryScores
+    });
+  }catch(e){
+    console.warn('/api/oryon/viewer/feed failed:', e.message);
+    res.status(500).json({success:false,error:e.message,items:[]});
+  }
 });
 
 const DISCOVERY_MOOD_PROFILES = {

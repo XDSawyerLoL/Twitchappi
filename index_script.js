@@ -7753,3 +7753,230 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.addEventListener('hashchange',()=>setTimeout(applyEdgeToEdge,80));
   setTimeout(applyEdgeToEdge,80);
 })();
+
+/* =========================================================
+   SWAPP ACCOUNT LIKES + HISTORY PROMPT
+   - neutral boot replaces old home flash in index.html
+   - explicit "J'aime" is saved to the Swapp account
+   - watch history only trains recommendations when enabled
+   ========================================================= */
+(function installSwappAccountLikesAndHistory(){
+  if(window.__SWAPP_ACCOUNT_LIKES_HISTORY_V1__) return;
+  window.__SWAPP_ACCOUNT_LIKES_HISTORY_V1__ = true;
+
+  const STYLE_ID='swappAccountLikesHistoryCss';
+  document.getElementById(STYLE_ID)?.remove();
+  const st=document.createElement('style');
+  st.id=STYLE_ID;
+  st.textContent=`
+    .swappLikeBtn{position:absolute!important;right:14px!important;top:14px!important;z-index:8!important;border:1px solid rgba(255,255,255,.22)!important;background:rgba(3,7,18,.68)!important;color:#fff!important;backdrop-filter:blur(14px)!important;border-radius:999px!important;min-height:38px!important;padding:0 13px!important;font-weight:1000!important;box-shadow:0 14px 34px rgba(0,0,0,.28)!important}
+    .swappLikeBtn:hover{transform:translateY(-1px)!important;background:rgba(139,92,246,.78)!important;border-color:rgba(255,255,255,.32)!important}
+    .swappLikeBtn.liked{background:linear-gradient(135deg,#22c55e,#8b5cf6)!important;border-color:rgba(255,255,255,.36)!important}
+    .swappHistoryPrompt{width:100vw;box-sizing:border-box;margin:0;padding:18px var(--swapp-edge-pad,clamp(18px,2.8vw,64px));background:#05070d}
+    .swappHistoryPromptInner{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;border:1px solid rgba(148,163,184,.18);border-radius:24px;background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(34,211,238,.06)),rgba(15,23,42,.62);padding:18px 20px;box-shadow:0 22px 70px rgba(0,0,0,.24)}
+    .swappHistoryPrompt h2{margin:0 0 6px;font-size:22px;letter-spacing:-.035em}.swappHistoryPrompt p{margin:0;color:#cbd5e1;line-height:1.42}.swappHistoryPromptActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.swappPersonalizedLabel{position:absolute;left:14px;top:14px;z-index:8;border:1px solid rgba(34,197,94,.36);background:rgba(34,197,94,.18);color:#eafff2;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:1000;backdrop-filter:blur(12px)}
+    @media(max-width:760px){.swappHistoryPrompt{padding:12px 14px}.swappHistoryPromptInner{grid-template-columns:1fr;padding:16px;border-radius:20px}.swappHistoryPromptActions{display:grid;grid-template-columns:1fr;width:100%}.swappLikeBtn{right:10px!important;top:10px!important;min-height:34px!important;padding:0 10px!important;font-size:12px!important}}
+  `;
+  document.head.appendChild(st);
+
+  function safe(v){ return typeof esc==='function' ? esc(v) : String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+  function readJson(key,fallback){ try{return JSON.parse(localStorage.getItem(key)||'')||fallback}catch{return fallback} }
+  function writeJson(key,value){ try{localStorage.setItem(key,JSON.stringify(value))}catch(_){} }
+  function viewerKey(){ return String(state?.session?.local?.login || 'guest').toLowerCase(); }
+  function likedLocalKey(){ return 'swapp_account_likes:'+viewerKey(); }
+  function normalizeLive(raw){
+    const x=raw||{};
+    const id=(typeof hfLiveId==='function' ? hfLiveId(x) : (typeof liveIdentity==='function' ? liveIdentity(x) : {})) || {};
+    let img=id.img || x.thumbnail_url || x.img || x.image_url || '';
+    if(img && img.includes('{width}')) img=img.replace('{width}','640').replace('{height}','360');
+    const platform=String(id.platform || x.platform || x.source || (x.host_login || x.room ? 'oryon' : 'twitch')).toLowerCase();
+    const login=String(id.login || x.login || x.user_login || x.host_login || x.room || '').toLowerCase();
+    return {
+      platform,
+      login,
+      name:String(id.name || x.display_name || x.user_name || x.host_name || login || 'Live'),
+      title:String(id.title || x.title || 'Live en cours'),
+      game:String(id.game || x.game_name || x.category || 'Live'),
+      category:String(id.game || x.game_name || x.category || 'Live'),
+      viewers:Number(id.viewers ?? x.viewer_count ?? x.viewers ?? 0) || 0,
+      thumbnail_url:img,
+      id:String(x.id || x.stream_id || `${platform}:${login}`).toLowerCase()
+    };
+  }
+  function liveKey(raw){ const n=normalizeLive(raw); return `${n.platform}:${n.login}`; }
+  function encodeLive(raw){ try{return encodeURIComponent(JSON.stringify(raw||{}))}catch(_){return ''} }
+  function decodeLive(encoded){ try{return JSON.parse(decodeURIComponent(encoded||''))}catch(_){return null} }
+  function likedMap(){ return readJson(likedLocalKey(),{}); }
+  function markLiked(raw){ const n=normalizeLive(raw); if(!n.login) return; const map=likedMap(); map[`${n.platform}:${n.login}`]={...n,likedAt:Date.now()}; writeJson(likedLocalKey(),map); updateLikeButtons(); }
+  function isLiked(raw){ const n=normalizeLive(raw); return !!likedMap()[`${n.platform}:${n.login}`]; }
+  function updateLikeButtons(){
+    const map=likedMap();
+    document.querySelectorAll('[data-swapp-like-key]').forEach(btn=>{
+      const liked=!!map[btn.getAttribute('data-swapp-like-key')];
+      btn.classList.toggle('liked',liked);
+      btn.textContent=liked?'Aimé':'J’aime';
+    });
+  }
+  function likeButton(raw){
+    const n=normalizeLive(raw); if(!n.login) return '';
+    const encoded=encodeLive(raw);
+    const key=`${n.platform}:${n.login}`;
+    return `<button class="swappLikeBtn ${isLiked(raw)?'liked':''}" data-swapp-like-key="${safe(key)}" data-live-json="${encoded}" onclick="event.stopPropagation();swappLikeLiveFromButton(this)">${isLiked(raw)?'Aimé':'J’aime'}</button>`;
+  }
+
+  window.swappLikeLiveFromButton = async function swappLikeLiveFromButton(btn){
+    const raw=decodeLive(btn?.dataset?.liveJson)||{};
+    return window.swappLikeLive(raw);
+  };
+
+  window.swappLikeLive = async function swappLikeLive(raw){
+    const n=normalizeLive(raw);
+    if(!n.login) return false;
+    if(!state?.session?.local){
+      toast?.('Compte Swapp requis pour enregistrer tes J’aime.');
+      setView?.('settings');
+      return false;
+    }
+    markLiked(n);
+    try{
+      const r=await api('/api/oryon/viewer/choice',{method:'POST',body:JSON.stringify({action:'like',stream:n,mood:state?.moodFirstMood||''})});
+      if(!r?.success) throw new Error(r?.error || 'Like non enregistré');
+      toast?.('J’aime enregistré dans ton feed Swapp.');
+      return true;
+    }catch(e){
+      toast?.('J’aime gardé localement, serveur indisponible.');
+      return true;
+    }finally{
+      updateLikeButtons();
+    }
+  };
+
+  async function refreshHistoryStatus(){
+    if(!state?.session?.local) return {success:false,enabled:false,requires_account:true};
+    try{
+      const r=await api('/api/oryon/viewer/history');
+      state.swappHistory=r||{};
+      return r||{};
+    }catch(_){ return {success:false,enabled:false}; }
+  }
+  function historyDismissed(){ return localStorage.getItem('swapp_history_prompt_dismissed:'+viewerKey())==='1'; }
+  function promptHtml(status){
+    if(!state?.session?.local || status?.enabled || historyDismissed()) return '';
+    return `<section id="swappHistoryPrompt" class="swappHistoryPrompt"><div class="swappHistoryPromptInner"><div><h2>Les recommandations ne sont pas pertinentes ?</h2><p>En activant l’historique des vidéos regardées, vous obtiendrez des recommandations plus personnalisées.</p></div><div class="swappHistoryPromptActions"><button class="btn secondary" onclick="swappDismissHistoryPrompt()">Ne pas activer l’historique</button><button class="btn" onclick="swappSetRecommendationHistory(true)">Activer l’historique</button></div></div></section>`;
+  }
+  async function insertHistoryPrompt(status){
+    document.getElementById('swappHistoryPrompt')?.remove();
+    const stt=status || await refreshHistoryStatus();
+    const html=promptHtml(stt);
+    if(!html) return;
+    const hero=document.querySelector('#home .owHeroTheater,#home .homeCleanHero,#home .hfHero');
+    if(hero) hero.insertAdjacentHTML('afterend',html);
+  }
+  window.swappDismissHistoryPrompt=function swappDismissHistoryPrompt(){ localStorage.setItem('swapp_history_prompt_dismissed:'+viewerKey(),'1'); document.getElementById('swappHistoryPrompt')?.remove(); };
+  window.swappSetRecommendationHistory=async function swappSetRecommendationHistory(enabled){
+    if(!state?.session?.local){ toast?.('Compte Swapp requis.'); return setView?.('settings'); }
+    try{
+      const r=await api('/api/oryon/viewer/history',{method:'POST',body:JSON.stringify({enabled:!!enabled})});
+      if(!r?.success) throw new Error(r?.error||'Erreur');
+      if(enabled) localStorage.removeItem('swapp_history_prompt_dismissed:'+viewerKey());
+      toast?.(enabled?'Historique activé. Ton feed va se personnaliser.':'Historique désactivé.');
+      document.getElementById('swappHistoryPrompt')?.remove();
+      if(state?.view==='home') loadHomeRecommendations?.();
+    }catch(e){ toast?.(e.message||'Impossible de modifier l’historique.'); }
+  };
+
+  async function recordWatch(raw){
+    if(!state?.session?.local) return;
+    const stt=state.swappHistory || await refreshHistoryStatus();
+    if(!stt?.enabled) return;
+    const n=normalizeLive(raw);
+    if(!n.login) return;
+    api('/api/oryon/viewer/choice',{method:'POST',body:JSON.stringify({action:'watch',stream:n,mood:state?.moodFirstMood||''})}).catch(()=>{});
+  }
+
+  // Replace the two active card renderers so every Swapp/Twitch live gets a like button.
+  try{
+    if(typeof owLiveCardHtml==='function'){
+      owLiveCardHtml=function swappOwLiveCardHtml(x,i=0){
+        const id=normalizeLive(x); const tags=(typeof hfTags==='function'?hfTags(x):[id.platform==='oryon'?'Swapp Live':'Twitch',id.game]).filter(Boolean).slice(0,5); const encoded=encodeLive(x);
+        return `<article class="owShowCard" data-live-json="${encoded}" onclick="recordSwappCardWatch(this);hfOpenLive(JSON.parse(decodeURIComponent(this.dataset.liveJson)))">${likeButton(x)}${id.img||id.thumbnail_url?`<img src="${safe(id.img||id.thumbnail_url)}" alt="" loading="${i?'lazy':'eager'}">`:''}<div class="owShowBody"><div class="hfTagRow">${tags.map(t=>`<span class="hfTag">${safe(t)}</span>`).join('')}</div><h2>${safe(id.title||'Live vitrine')}</h2><p>${safe(id.name)} · ${safe(id.game)} · ${id.viewers} viewers</p></div></article>`;
+      };
+    }
+    if(typeof hfLiveCardHtml==='function'){
+      hfLiveCardHtml=function swappHfLiveCardHtml(x,i=0,opts={}){
+        const id=normalizeLive(x); const tags=(typeof hfTags==='function'?hfTags(x):[id.platform==='oryon'?'Swapp Live':'Twitch',id.game]).filter(Boolean).slice(0,5); const encoded=encodeLive(x);
+        return `<article class="hfLiveCard ${opts.swipe?'hfSwipeCard':''}" data-live-json="${encoded}" onclick="${opts.click!==false?`recordSwappCardWatch(this);hfOpenLive(JSON.parse(decodeURIComponent(this.dataset.liveJson)))`:''}">${likeButton(x)}${id.thumbnail_url?`<img src="${safe(id.thumbnail_url)}" alt="" loading="${i?'lazy':'eager'}">`:''}${opts.swipe?`<div class="hfSwipeStamp like">J'aime</div><div class="hfSwipeStamp nope">Pas ouf</div><div class="hfSwipeHint">Swipe droite / gauche</div>`:''}<div class="hfLiveBody"><div class="hfTagRow">${tags.map(t=>`<span class="hfTag">${safe(t)}</span>`).join('')}</div><h2>${safe(id.title)}</h2><p>${safe(id.name)} · ${safe(id.game)} · ${id.viewers} viewers</p>${opts.actions?`<div class="hfDiscoverActions"><button class="btn good" onclick="event.stopPropagation();hfWatchCurrent()">Regarder</button><button class="btn secondary" onclick="event.stopPropagation();hfSwipeLeft()">Pas ouf</button><button class="btn secondary" onclick="event.stopPropagation();hfSwipeRight()">J'aime</button></div>`:''}</div></article>`;
+      };
+    }
+  }catch(e){ console.warn('[Swapp likes] card override failed', e); }
+
+  window.recordSwappCardWatch=function recordSwappCardWatch(el){ const raw=decodeLive(el?.dataset?.liveJson); if(raw) recordWatch(raw); };
+
+  try{
+    if(typeof hfOpenLive==='function' && !hfOpenLive.__swappWatchWrapped){
+      const old=hfOpenLive;
+      hfOpenLive=function swappHfOpenLive(x){ recordWatch(x); return old.apply(this,arguments); };
+      hfOpenLive.__swappWatchWrapped=true;
+    }
+    if(typeof openTwitch==='function' && !openTwitch.__swappWatchWrapped){
+      const old=openTwitch;
+      openTwitch=function swappOpenTwitch(login){ recordWatch({platform:'twitch',login}); return old.apply(this,arguments); };
+      openTwitch.__swappWatchWrapped=true;
+    }
+    if(typeof openOryon==='function' && !openOryon.__swappWatchWrapped){
+      const old=openOryon;
+      openOryon=function swappOpenOryon(login){ recordWatch({platform:'oryon',login}); return old.apply(this,arguments); };
+      openOryon.__swappWatchWrapped=true;
+    }
+  }catch(e){ console.warn('[Swapp likes] watch wrapper failed', e); }
+
+  try{
+    if(typeof hfSwipeRight==='function'){
+      hfSwipeRight=async function swappSwipeRight(){
+        const x=(state.zap?.items||[])[state.zap?.index||0];
+        if(!x) return;
+        const ok=await window.swappLikeLive(x);
+        if(ok){ try{ hfMark?.(x,'like'); }catch(_){} setTimeout(()=>hfNext?.(),90); }
+      };
+    }
+  }catch(e){ console.warn('[Swapp likes] swipe like wrapper failed', e); }
+
+  try{
+    const previousLoad = typeof loadHomeRecommendations==='function' ? loadHomeRecommendations : null;
+    loadHomeRecommendations=async function swappLoadHomeRecommendations(){
+      const box=document.querySelector('#homeShowcaseLives');
+      let usedPersonalized=false;
+      const stt=await refreshHistoryStatus();
+      if(box && state?.session?.local){
+        try{
+          const r=await api('/api/oryon/viewer/feed?'+qs({limit:12,lang:'fr',mood:state?.moodFirstMood||'petite-commu',max:500}));
+          const items=(r.items||[]);
+          if(items.length){
+            usedPersonalized=!!r.personalized;
+            box.innerHTML=items.slice(0,3).map((x,i)=>owLiveCardHtml(x,i)).join('');
+            if(usedPersonalized){ box.insertAdjacentHTML('afterbegin','<span class="swappPersonalizedLabel">Feed personnalisé</span>'); }
+          }else if(previousLoad){
+            await previousLoad.apply(this,arguments);
+          }
+        }catch(e){ if(previousLoad) await previousLoad.apply(this,arguments); }
+      }else if(previousLoad){
+        await previousLoad.apply(this,arguments);
+      }
+      await insertHistoryPrompt(stt);
+      updateLikeButtons();
+    };
+  }catch(e){ console.warn('[Swapp likes] home feed override failed', e); }
+
+  const oldSetView=window.setView;
+  if(typeof oldSetView==='function' && !oldSetView.__swappLikeHistoryWrapped){
+    const wrapped=function(){
+      const result=oldSetView.apply(this,arguments);
+      return Promise.resolve(result).finally(()=>{ setTimeout(()=>{ insertHistoryPrompt(); updateLikeButtons(); },100); });
+    };
+    wrapped.__swappLikeHistoryWrapped=true;
+    window.setView=wrapped;
+    try{ setView=wrapped; }catch(_e){}
+  }
+
+  setTimeout(()=>{ refreshHistoryStatus(); updateLikeButtons(); insertHistoryPrompt(); },300);
+})();
