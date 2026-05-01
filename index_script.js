@@ -8259,3 +8259,552 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   }
   document.addEventListener('DOMContentLoaded',()=>setTimeout(cleanAll,40)); window.addEventListener('load',()=>setTimeout(cleanAll,60)); window.addEventListener('hashchange',()=>setTimeout(cleanAll,60)); setTimeout(cleanAll,120); setInterval(applyPremiumFullWidth,500); setInterval(removeHomeArtifacts,1000);
 })();
+
+/* =========================================================
+   SWAPP SEXY FUSION HOTFIX — full-bleed premium pages
+   - removes hard page caps / centered blocks
+   - makes Discover blend edge to edge like the premium flow
+   - smooths Home / Channel / Teams layouts
+   ========================================================= */
+(function installSwappSexyFusionHotfix(){
+  if(window.__SWAPP_SEXY_FUSION_HOTFIX__) return;
+  window.__SWAPP_SEXY_FUSION_HOTFIX__=true;
+
+  const STYLE_ID='swappSexyFusionHotfixCss';
+  document.getElementById(STYLE_ID)?.remove();
+  const style=document.createElement('style');
+  style.id=STYLE_ID;
+  style.textContent=String.raw`
+    :root{--swapp-bleed-pad:clamp(16px,3.5vw,72px);--swapp-soft-panel:linear-gradient(180deg,rgba(11,18,32,.88),rgba(6,11,22,.74));}
+    html,body{overflow-x:hidden!important;background:
+      radial-gradient(circle at 0% 18%,rgba(139,92,246,.18),transparent 28%),
+      radial-gradient(circle at 100% 18%,rgba(34,211,238,.12),transparent 22%),
+      linear-gradient(180deg,#04070d,#03060c 38%,#02050a)!important;}
+    body.swappPremiumFull .app,body.swappReadyFullWidth .app,body .app{
+      width:100vw!important;max-width:none!important;margin:0!important;padding:0!important;overflow-x:hidden!important;
+    }
+    body.swappPremiumFull .view,body.swappPremiumFull .view.active,
+    body.swappReadyFullWidth .view,body.swappReadyFullWidth .view.active{
+      width:100vw!important;max-width:none!important;margin:0!important;overflow-x:hidden!important;
+    }
+
+    /* Discover must feel fused, not boxed */
+    body.oryonDiscoverV4 .app,body.oryonDiscoverProduct .app,body.oryonDiscoverV3 .app,
+    body.oryonDiscoverFinalActive .app,body.oryonDiscoverLayoutActive .app{
+      width:100vw!important;max-width:none!important;margin:0!important;padding:0!important;
+    }
+    #discover.view.active{padding:0!important;background:transparent!important;}
+    #discover .v4Page,#discover .dxPage,#discover .mxPage,#discover .sdPage{
+      width:100vw!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important;
+    }
+    #discover .v4Shell,#discover .dxShell,#discover .mxShell,#discover .sdShell{
+      width:100vw!important;max-width:none!important;margin:0!important;padding:clamp(18px,2.8vw,32px) var(--swapp-bleed-pad) 90px!important;box-sizing:border-box!important;
+      background:
+        radial-gradient(circle at 0% 14%,rgba(139,92,246,.16),transparent 24%),
+        radial-gradient(circle at 100% 18%,rgba(34,211,238,.10),transparent 20%),
+        linear-gradient(90deg,rgba(16,22,40,.86),rgba(5,9,18,.56) 40%,rgba(3,6,12,.28) 72%,rgba(2,5,10,0));
+    }
+    #discover .v4Hero,#discover .dxTop,#discover .mxHero,#discover .sdHero{
+      width:100%!important;max-width:none!important;margin:0 0 24px!important;padding:clamp(16px,1.6vw,20px) 0 0!important;border:0!important;border-radius:0!important;
+      background:transparent!important;box-shadow:none!important;display:grid!important;grid-template-columns:minmax(320px,.94fr) minmax(0,1.06fr)!important;gap:clamp(18px,2.2vw,34px)!important;align-items:end!important;
+    }
+    #discover .v4Controls,#discover .dxControls,#discover .mxControls,#discover .sdControls{
+      border:1px solid rgba(148,163,184,.16)!important;border-radius:30px!important;
+      background:linear-gradient(180deg,rgba(15,23,42,.58),rgba(15,23,42,.36))!important;
+      backdrop-filter:blur(16px)!important;box-shadow:0 18px 60px rgba(0,0,0,.18)!important;
+    }
+    #discover .v4Stage,#discover .dxStage,#discover .mxGrid,#discover .sdStageWrap{
+      width:100%!important;max-width:none!important;margin:0!important;
+    }
+    #discover .v4Deck,#discover .v4Follow,#discover .mxDeck,#discover .mxFollow,#discover .sdDeck,#discover .sdFollow{
+      background:rgba(15,23,42,.34)!important;border:1px solid rgba(148,163,184,.12)!important;border-radius:26px!important;
+      box-shadow:0 18px 50px rgba(0,0,0,.16)!important;
+    }
+
+    /* Home closer to Discover aesthetic */
+    #home.view.active{padding:0!important;background:transparent!important;}
+    #home .homeShowcase.fullBleed,#home .homeShowcase,#home .owHomeFull,#home .homeClean{
+      width:100vw!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important;
+    }
+    #home .homeFullInner,#home .owHeroTheater,#home .homeCleanHero{
+      width:100vw!important;max-width:none!important;margin:0!important;padding:clamp(16px,2.4vw,24px) var(--swapp-bleed-pad) 0!important;box-sizing:border-box!important;
+      display:grid!important;grid-template-columns:minmax(320px,.92fr) minmax(0,1.08fr)!important;gap:clamp(18px,2.2vw,34px)!important;align-items:stretch!important;
+      background:
+        radial-gradient(circle at 0% 22%,rgba(139,92,246,.18),transparent 26%),
+        radial-gradient(circle at 100% 18%,rgba(34,211,238,.10),transparent 22%),
+        linear-gradient(90deg,rgba(16,22,40,.72),rgba(5,9,18,.44) 42%,rgba(2,5,10,0));
+      min-height:calc(100svh - 68px)!important;
+    }
+    #home .homeFullCopy,#home .owHeroCopy,#home .homeCleanCopy{
+      padding:clamp(18px,2vw,28px) 0 clamp(18px,2vw,28px) 0!important;display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;background:transparent!important;
+    }
+    #home .homeVitrineStage,#home .owLiveTheater,#home .homeCleanLives{
+      padding:0!important;min-height:0!important;display:grid!important;grid-template-columns:1.18fr .92fr .92fr!important;gap:18px!important;align-items:stretch!important;
+      overflow:hidden!important;
+    }
+    #home .homeSlideCard.full,#home .owShowCard,#home .homeSlideCard,#home .hfLiveCard{
+      min-height:clamp(500px,68vh,840px)!important;border-radius:32px!important;
+    }
+
+    /* Channel & teams: no narrow centered island */
+    #channel.view.active,#teams.view.active,#categories.view.active,#settings.view.active,#manager.view.active,#dashboard.view.active,#studio.view.active,#twitch.view.active,#admin.view.active{
+      background:transparent!important;
+    }
+    #channel .channelPage,#teams .teamsHero,#teams #teamCreate,#teams #teamsList,
+    #categories .catHead,#categories #catPick,#categories #catGrid,
+    #settings .settingsShell,#manager .creatorLayout,#dashboard .dashGrid,#studio .sideLayout{
+      width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important;
+    }
+    #channel .channelPage{width:100vw!important;max-width:none!important;margin:0!important;padding:0 0 110px!important;background:transparent!important;}
+    #channel .channelTopHero{
+      width:100vw!important;max-width:none!important;margin:0!important;border-radius:0!important;
+      padding:clamp(26px,4.2vw,54px) var(--swapp-bleed-pad) clamp(24px,3.8vw,48px)!important;
+      background:
+        radial-gradient(circle at 0% 30%,rgba(139,92,246,.18),transparent 24%),
+        radial-gradient(circle at 100% 10%,rgba(34,211,238,.10),transparent 18%),
+        linear-gradient(180deg,rgba(9,14,26,.92),rgba(5,9,18,.82))!important;
+      box-shadow:none!important;border-bottom:1px solid rgba(148,163,184,.12)!important;
+    }
+    #channel .channelSubNav{
+      width:100vw!important;max-width:none!important;margin:0!important;padding:0 var(--swapp-bleed-pad)!important;background:rgba(3,7,14,.72)!important;backdrop-filter:blur(16px)!important;
+    }
+    #channel .channelLiveLayout,#channel .channelBelowLive,#channel .channelContentGrid{
+      width:100vw!important;max-width:none!important;margin:0!important;padding:22px var(--swapp-bleed-pad) 0!important;box-sizing:border-box!important;
+    }
+    #channel .channelInfoCard,#channel .bioPremium,#channel .aboutComposite,#channel .vignetteArea,#channel .chatPanel{
+      background:var(--swapp-soft-panel)!important;border:1px solid rgba(148,163,184,.14)!important;box-shadow:0 18px 50px rgba(0,0,0,.18)!important;
+    }
+
+    #teams.view.active{padding:0 var(--swapp-bleed-pad) 110px!important;background:transparent!important;}
+    #teams .teamsHero{
+      padding:clamp(28px,4vw,56px) 0 20px!important;
+      background:transparent!important;border:0!important;box-shadow:none!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:end!important;
+    }
+    #teams .teamCardFull,#teams .empty,#teams .card,#teams #teamCreate{
+      background:var(--swapp-soft-panel)!important;border:1px solid rgba(148,163,184,.14)!important;box-shadow:0 18px 50px rgba(0,0,0,.18)!important;
+    }
+
+    @media(max-width:1180px){
+      #discover .v4Hero,#discover .dxTop,#discover .mxHero,#discover .sdHero,
+      #home .homeFullInner,#home .owHeroTheater,#home .homeCleanHero{grid-template-columns:1fr!important;min-height:auto!important;}
+      #home .homeVitrineStage,#home .owLiveTheater,#home .homeCleanLives{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;}
+      #home .homeSlideCard.full,#home .owShowCard,#home .homeSlideCard,#home .hfLiveCard{min-width:84vw!important;width:84vw!important;scroll-snap-align:center!important;}
+      #channel .channelLiveLayout{grid-template-columns:1fr!important;}
+    }
+    @media(max-width:760px){
+      :root{--swapp-bleed-pad:14px;}
+      #discover .v4Shell,#discover .dxShell,#discover .mxShell,#discover .sdShell{padding:14px 14px 90px!important;}
+      #discover .v4Title,#discover .dxTitle,#discover .mxHero h1,#discover .sdHero h1{font-size:clamp(46px,15vw,74px)!important;line-height:.88!important;}
+      #discover .v4Search,#discover .dxSearch,#discover .mxSearch,#discover .sdSearch{grid-template-columns:1fr!important;}
+      #home .homeFullInner,#home .owHeroTheater,#home .homeCleanHero{padding:14px 14px 0!important;}
+      #home .homeFullCopy,#home .owHeroCopy,#home .homeCleanCopy{padding-top:8px!important;}
+      #home .homeFullCopy h1,#home .owHeroCopy h1,#home .homeCleanCopy h1{font-size:clamp(46px,16vw,72px)!important;}
+      #home .homeSlideCard.full,#home .owShowCard,#home .homeSlideCard,#home .hfLiveCard{min-width:88vw!important;width:88vw!important;min-height:60vh!important;border-radius:24px!important;}
+      #channel .channelTopHero{padding:18px 14px 24px!important;min-height:0!important;}
+      #channel .channelSubNav,#channel .channelLiveLayout,#channel .channelBelowLive,#channel .channelContentGrid{padding-left:14px!important;padding-right:14px!important;}
+      #teams.view.active{padding:0 14px 100px!important;}
+      #teams .teamsHero{grid-template-columns:1fr!important;align-items:start!important;}
+    }
+  `;
+  document.head.appendChild(style);
+
+  function apply(){
+    document.body.classList.add('swappPremiumFull');
+    const app=document.querySelector('main.app,.app');
+    if(app){
+      app.style.setProperty('width','100vw','important');
+      app.style.setProperty('max-width','none','important');
+      app.style.setProperty('margin','0','important');
+      app.style.setProperty('padding','0','important');
+      app.style.setProperty('overflow-x','hidden','important');
+    }
+    document.querySelectorAll('.view.active').forEach(v=>{
+      v.style.setProperty('width','100vw','important');
+      v.style.setProperty('max-width','none','important');
+      v.style.setProperty('margin','0','important');
+      v.style.setProperty('padding-left','0','important');
+      v.style.setProperty('padding-right','0','important');
+      v.style.setProperty('overflow-x','hidden','important');
+    });
+  }
+
+  const oldSetView=window.setView;
+  if(typeof oldSetView==='function' && !oldSetView.__swappSexyFusionWrapped){
+    const wrapped=function(){const r=oldSetView.apply(this,arguments);return Promise.resolve(r).finally(()=>{apply();requestAnimationFrame(apply);setTimeout(apply,80);});};
+    wrapped.__swappSexyFusionWrapped=true;
+    window.setView=wrapped;
+    try{setView=wrapped;}catch(_e){}
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(apply,40));
+  window.addEventListener('load',()=>setTimeout(apply,40));
+  window.addEventListener('resize',()=>setTimeout(apply,30));
+  setTimeout(apply,60);
+})();
+
+/* =========================================================
+   SWAPP DISCOVER BLEND PATCH — full-bleed premium mood page
+   Objectif: la page "Swap ton mood" doit se fondre dans le site,
+   sans bande limitée ni bloc visuel trop dur.
+   ========================================================= */
+(function installSwappDiscoverBlendPatch(){
+  if(window.__SWAPP_DISCOVER_BLEND_PATCH_V1__) return;
+  window.__SWAPP_DISCOVER_BLEND_PATCH_V1__ = true;
+
+  const STYLE_ID = 'swappDiscoverBlendPatchCss';
+  document.getElementById(STYLE_ID)?.remove();
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = String.raw`
+    :root{
+      --swapp-discover-pad:clamp(18px,3.2vw,72px);
+      --swapp-discover-glass:rgba(8,13,26,.46);
+      --swapp-discover-line:rgba(255,255,255,.105);
+    }
+
+    body.oryonDiscoverV4,
+    body.oryonDiscoverV3,
+    body.oryonDiscoverProduct,
+    body.oryonDiscoverFinalActive{
+      background:#05070d!important;
+      overflow-x:hidden!important;
+    }
+
+    body.oryonDiscoverV4::before,
+    body.oryonDiscoverV3::before,
+    body.oryonDiscoverProduct::before,
+    body.oryonDiscoverFinalActive::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      z-index:-2;
+      pointer-events:none;
+      background:
+        radial-gradient(circle at 9% 12%,rgba(168,85,247,.34),transparent 30%),
+        radial-gradient(circle at 88% 5%,rgba(34,211,238,.26),transparent 33%),
+        radial-gradient(circle at 44% 82%,rgba(244,63,94,.14),transparent 34%),
+        linear-gradient(115deg,#141029 0%,#07121d 48%,#03151a 100%);
+    }
+
+    body.oryonDiscoverV4 .top,
+    body.oryonDiscoverV3 .top,
+    body.oryonDiscoverProduct .top,
+    body.oryonDiscoverFinalActive .top{
+      background:linear-gradient(180deg,rgba(5,7,13,.78),rgba(5,7,13,.52))!important;
+      backdrop-filter:blur(18px) saturate(1.18)!important;
+      border-bottom:1px solid rgba(255,255,255,.075)!important;
+      box-shadow:0 18px 55px rgba(0,0,0,.18)!important;
+    }
+
+    body.oryonDiscoverV4 .app,
+    body.oryonDiscoverV3 .app,
+    body.oryonDiscoverProduct .app,
+    body.oryonDiscoverFinalActive .app{
+      width:100%!important;
+      max-width:none!important;
+      margin:0!important;
+      padding:0!important;
+      overflow-x:hidden!important;
+      background:transparent!important;
+    }
+
+    body.oryonDiscoverV4 #discover.view.active,
+    body.oryonDiscoverV3 #discover.view.active,
+    body.oryonDiscoverProduct #discover.view.active,
+    body.oryonDiscoverFinalActive #discover.view.active{
+      width:100%!important;
+      max-width:none!important;
+      margin:0!important;
+      padding:0!important;
+      overflow:hidden!important;
+      background:transparent!important;
+    }
+
+    #discover .v4Page,
+    #discover .mxPage,
+    #discover .sdPage,
+    #discover .hfDiscover{
+      position:relative!important;
+      isolation:isolate!important;
+      width:100vw!important;
+      max-width:none!important;
+      min-height:calc(100svh - 68px)!important;
+      margin-left:calc(50% - 50vw)!important;
+      margin-right:calc(50% - 50vw)!important;
+      padding:clamp(22px,2.8vw,54px) var(--swapp-discover-pad) 128px!important;
+      overflow:hidden!important;
+      background:transparent!important;
+      box-shadow:none!important;
+    }
+
+    #discover .v4Page::before,
+    #discover .mxPage::before,
+    #discover .sdPage::before,
+    #discover .hfDiscover::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-2;
+      pointer-events:none;
+      background:
+        radial-gradient(circle at 0% 2%,rgba(168,85,247,.42),transparent 32%),
+        radial-gradient(circle at 100% 3%,rgba(34,211,238,.32),transparent 36%),
+        radial-gradient(circle at 25% 100%,rgba(244,63,94,.16),transparent 36%),
+        linear-gradient(112deg,rgba(30,24,62,.98) 0%,rgba(9,17,34,.96) 42%,rgba(3,18,24,.98) 100%);
+    }
+
+    #discover .v4Page::after,
+    #discover .mxPage::after,
+    #discover .sdPage::after,
+    #discover .hfDiscover::after{
+      content:"";
+      position:absolute;
+      inset:-22% -18%;
+      z-index:-1;
+      pointer-events:none;
+      opacity:.58;
+      filter:blur(56px) saturate(1.22);
+      background:
+        conic-gradient(from 210deg at 18% 52%,transparent 0 14%,rgba(168,85,247,.34) 17%,transparent 28%,rgba(34,211,238,.22) 38%,transparent 52%,rgba(244,63,94,.16) 64%,transparent 78%),
+        radial-gradient(circle at 76% 44%,rgba(34,211,238,.16),transparent 33%);
+      transform:translateZ(0);
+    }
+
+    #discover .v4Shell,
+    #discover .mxShell,
+    #discover .sdShell,
+    #discover .hfDiscover > *{
+      width:100%!important;
+      max-width:none!important;
+      margin-left:0!important;
+      margin-right:0!important;
+      position:relative!important;
+      z-index:1!important;
+    }
+
+    #discover .v4Hero,
+    #discover .mxHero,
+    #discover .sdHero,
+    #discover .hfDiscoverHero{
+      width:100%!important;
+      max-width:none!important;
+      margin:0!important;
+      min-height:clamp(360px,43vh,560px)!important;
+      display:grid!important;
+      grid-template-columns:minmax(360px,34vw) minmax(0,1fr)!important;
+      gap:clamp(24px,4vw,88px)!important;
+      align-items:center!important;
+      background:transparent!important;
+      border:0!important;
+      border-radius:0!important;
+      box-shadow:none!important;
+      padding:0!important;
+    }
+
+    #discover .v4Hero > div:first-child,
+    #discover .mxHero > div:first-child,
+    #discover .sdHeroCopy,
+    #discover .hfDiscoverHero > div:first-child{
+      max-width:min(720px,100%)!important;
+    }
+
+    #discover .v4Title,
+    #discover .mxHero h1,
+    #discover .sdHero h1,
+    #discover .hfDiscoverHero h1{
+      font-size:clamp(64px,7.4vw,158px)!important;
+      line-height:.78!important;
+      letter-spacing:-.095em!important;
+      text-shadow:0 22px 60px rgba(0,0,0,.22)!important;
+      margin-bottom:clamp(10px,1.2vw,20px)!important;
+    }
+
+    #discover .v4Lead,
+    #discover .mxHero p,
+    #discover .sdHero p,
+    #discover .hfDiscoverHero p{
+      color:rgba(229,237,255,.88)!important;
+      font-size:clamp(15px,1.18vw,22px)!important;
+      max-width:780px!important;
+    }
+
+    #discover .v4Controls,
+    #discover .mxControls,
+    #discover .sdControls,
+    #discover .hfMoodPanel{
+      align-self:center!important;
+      width:100%!important;
+      min-width:0!important;
+      border:1px solid var(--swapp-discover-line)!important;
+      border-radius:34px!important;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.072),rgba(255,255,255,.026)),
+        rgba(5,9,18,.38)!important;
+      backdrop-filter:blur(24px) saturate(1.18)!important;
+      box-shadow:
+        0 34px 120px rgba(0,0,0,.26),
+        inset 0 1px 0 rgba(255,255,255,.08)!important;
+    }
+
+    #discover .v4MoodRail,
+    #discover .mxMoodRail,
+    #discover .sdMoodRail,
+    #discover .hfMoodGrid{
+      scrollbar-width:none!important;
+    }
+    #discover .v4MoodRail::-webkit-scrollbar,
+    #discover .mxMoodRail::-webkit-scrollbar,
+    #discover .sdMoodRail::-webkit-scrollbar,
+    #discover .hfMoodGrid::-webkit-scrollbar{display:none!important;}
+
+    #discover .v4Mood,
+    #discover .mxMoodBtn,
+    #discover .sdMoodBtn,
+    #discover .hfMoodCard{
+      border-color:rgba(255,255,255,.12)!important;
+      background:rgba(255,255,255,.065)!important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+    }
+    #discover .v4Mood.active,
+    #discover .v4Mood:hover,
+    #discover .mxMoodBtn.active,
+    #discover .mxMoodBtn:hover,
+    #discover .sdMoodBtn.active,
+    #discover .sdMoodBtn:hover,
+    #discover .hfMoodCard.active,
+    #discover .hfMoodCard:hover{
+      border-color:rgba(34,211,238,.84)!important;
+      background:linear-gradient(135deg,rgba(168,85,247,.34),rgba(34,211,238,.15))!important;
+      box-shadow:0 16px 50px rgba(34,211,238,.09),inset 0 1px 0 rgba(255,255,255,.10)!important;
+    }
+
+    #discover .v4Stage,
+    #discover .mxGrid,
+    #discover .sdStageWrap,
+    #discover .spotlightFusion{
+      width:100%!important;
+      max-width:none!important;
+      margin:0!important;
+    }
+
+    #discover .v4Card,
+    #discover .v4Player,
+    #discover .mxCard,
+    #discover .mxPlayer,
+    #discover .sdCard,
+    #discover .spotlightStage{
+      border-radius:38px!important;
+      border-color:rgba(34,211,238,.26)!important;
+      box-shadow:
+        0 40px 140px rgba(0,0,0,.38),
+        0 0 0 1px rgba(168,85,247,.09) inset!important;
+    }
+
+    #discover .v4Panel,
+    #discover .mxPanel,
+    #discover .sdDeck,
+    #discover .mxDeck,
+    #discover .v4Deck,
+    #discover .v4Follow,
+    #discover .mxFollow,
+    #discover .spotlightPanel{
+      background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.024)),rgba(5,9,18,.38)!important;
+      backdrop-filter:blur(20px) saturate(1.14)!important;
+      border-color:rgba(255,255,255,.10)!important;
+      box-shadow:0 26px 88px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.06)!important;
+    }
+
+    #discover .v4Deck,
+    #discover .v4Follow,
+    #discover .mxDeck,
+    #discover .mxFollow,
+    #discover .sdDeck,
+    #discover .sdFollow{
+      width:100%!important;
+      max-width:none!important;
+      margin-left:0!important;
+      margin-right:0!important;
+    }
+
+    @media(min-width:1500px){
+      #discover .v4Stage{grid-template-columns:minmax(0,1fr) clamp(420px,24vw,560px)!important;}
+      #discover .mxGrid{grid-template-columns:minmax(0,1fr) clamp(420px,24vw,560px)!important;}
+      #discover .v4Card,#discover .v4Player,#discover .mxCard,#discover .mxPlayer{min-height:clamp(600px,66vh,900px)!important;}
+    }
+
+    @media(max-width:1100px){
+      #discover .v4Hero,
+      #discover .mxHero,
+      #discover .sdHero,
+      #discover .hfDiscoverHero{
+        grid-template-columns:1fr!important;
+        min-height:auto!important;
+      }
+      #discover .v4Title,
+      #discover .mxHero h1,
+      #discover .sdHero h1,
+      #discover .hfDiscoverHero h1{
+        font-size:clamp(54px,12vw,104px)!important;
+      }
+    }
+
+    @media(max-width:760px){
+      :root{--swapp-discover-pad:14px;}
+      #discover .v4Page,
+      #discover .mxPage,
+      #discover .sdPage,
+      #discover .hfDiscover{
+        padding:16px var(--swapp-discover-pad) 106px!important;
+      }
+      #discover .v4Controls,
+      #discover .mxControls,
+      #discover .sdControls,
+      #discover .hfMoodPanel{
+        border-radius:24px!important;
+        padding:12px!important;
+      }
+      #discover .v4Card,
+      #discover .mxCard,
+      #discover .sdCard,
+      #discover .spotlightStage{
+        border-radius:26px!important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  function applyDiscoverBlend(){
+    const active = document.querySelector('#discover.view.active') || (window.state && state.view === 'discover');
+    document.body.classList.toggle('swappDiscoverBlend', !!active);
+    if(!active) return;
+    const app = document.querySelector('main.app,.app');
+    if(app){
+      app.style.setProperty('width','100%','important');
+      app.style.setProperty('max-width','none','important');
+      app.style.setProperty('margin','0','important');
+      app.style.setProperty('padding','0','important');
+      app.style.setProperty('overflow-x','hidden','important');
+    }
+  }
+
+  const oldSetView = window.setView;
+  if(typeof oldSetView === 'function' && !oldSetView.__swappDiscoverBlendWrapped){
+    const wrapped = function(){
+      const result = oldSetView.apply(this, arguments);
+      Promise.resolve(result).finally(()=>{
+        applyDiscoverBlend();
+        requestAnimationFrame(applyDiscoverBlend);
+        setTimeout(applyDiscoverBlend, 120);
+      });
+      return result;
+    };
+    wrapped.__swappDiscoverBlendWrapped = true;
+    window.setView = wrapped;
+    try{ setView = wrapped; }catch(_e){}
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(applyDiscoverBlend,40));
+  window.addEventListener('load',()=>setTimeout(applyDiscoverBlend,60));
+  window.addEventListener('hashchange',()=>setTimeout(applyDiscoverBlend,60));
+  setTimeout(applyDiscoverBlend,90);
+})();
