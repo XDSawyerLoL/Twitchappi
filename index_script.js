@@ -5,21 +5,50 @@ const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const qs=o=>new URLSearchParams(Object.entries(o).filter(([,v])=>v!==undefined&&v!==null&&v!==''));
 const state={session:{local:null,twitch:null},view:'home',socket:null,socketLogin:null,room:null,watchRoom:null,stream:null,peers:{},selectedGif:'',selectedEmote:null,channelEmotes:[],catsCursor:null,currentTwitch:null,lastChannelLogin:null,viewerProfile:null,zap:{items:[],index:0,last:null},discoverPlayer:null,mini:null,channelSupport:null};
 
-// Swapp password reset: preserve the token from the email link before routing can rewrite /compte.
-const SWAPP_INITIAL_RESET_SEARCH = (()=>{ try{return new URLSearchParams(location.search||'')}catch(_){return new URLSearchParams('')} })();
-const SWAPP_INITIAL_RESET_TOKEN = (SWAPP_INITIAL_RESET_SEARCH.get('reset_token') || SWAPP_INITIAL_RESET_SEARCH.get('token') || '').trim();
-const SWAPP_INITIAL_RESET_LOGIN = (SWAPP_INITIAL_RESET_SEARCH.get('reset_login') || '').trim();
+// Swapp password reset: preserve the token from the email link before routing can rewrite anything.
+function swappExtractPasswordResetTokenFromLocation(){
+ try{
+   const p=new URLSearchParams(location.search||'');
+   const q=(p.get('reset_token') || p.get('token') || '').trim();
+   if(q) return q;
+ }catch(_){}
+ try{
+   const m=decodeURIComponent(location.pathname||'').match(/^\/reset-password\/([^/?#]+)/i);
+   if(m && m[1]) return String(m[1]).trim();
+ }catch(_){}
+ try{
+   const h=String(location.hash||'');
+   const hp=new URLSearchParams(h.includes('?') ? h.slice(h.indexOf('?')+1) : h.replace(/^#/,''));
+   const ht=(hp.get('reset_token') || hp.get('token') || '').trim();
+   if(ht) return ht;
+ }catch(_){}
+ try{ return String(sessionStorage.getItem('swapp_password_reset_token') || '').trim(); }catch(_){}
+ return '';
+}
+function swappExtractPasswordResetLoginFromLocation(){
+ try{ const p=new URLSearchParams(location.search||''); return (p.get('reset_login') || p.get('login') || '').trim(); }catch(_){}
+ try{ return String(sessionStorage.getItem('swapp_password_reset_login') || '').trim(); }catch(_){}
+ return '';
+}
+const SWAPP_INITIAL_RESET_TOKEN = swappExtractPasswordResetTokenFromLocation();
+const SWAPP_INITIAL_RESET_LOGIN = swappExtractPasswordResetLoginFromLocation();
+try{ if(SWAPP_INITIAL_RESET_TOKEN) sessionStorage.setItem('swapp_password_reset_token', SWAPP_INITIAL_RESET_TOKEN); }catch(_){}
+try{ if(SWAPP_INITIAL_RESET_LOGIN) sessionStorage.setItem('swapp_password_reset_login', SWAPP_INITIAL_RESET_LOGIN); }catch(_){}
 function swappPasswordResetToken(){
- try{ const p=new URLSearchParams(location.search||''); return (p.get('reset_token') || p.get('token') || SWAPP_INITIAL_RESET_TOKEN || '').trim(); }catch(_){ return SWAPP_INITIAL_RESET_TOKEN || ''; }
+ const t = swappExtractPasswordResetTokenFromLocation() || SWAPP_INITIAL_RESET_TOKEN || '';
+ try{ if(t) sessionStorage.setItem('swapp_password_reset_token', t); }catch(_){}
+ return String(t||'').trim();
 }
 function swappPasswordResetLoginHint(){
- try{ const p=new URLSearchParams(location.search||''); return (p.get('reset_login') || SWAPP_INITIAL_RESET_LOGIN || '').trim(); }catch(_){ return SWAPP_INITIAL_RESET_LOGIN || ''; }
+ const l = swappExtractPasswordResetLoginFromLocation() || SWAPP_INITIAL_RESET_LOGIN || '';
+ try{ if(l) sessionStorage.setItem('swapp_password_reset_login', l); }catch(_){}
+ return String(l||'').trim();
 }
 function swappHasPasswordResetToken(){ return !!swappPasswordResetToken(); }
 
-const SWAPP_VIEW_PATHS={home:'/',discover:'/decouvrir',twitch:'/twitch',categories:'/categories',teams:'/equipes',settings:'/compte',manager:'/gestionnaire',dashboard:'/dashboard',studio:'/studio',admin:'/admin'};
-const SWAPP_PATH_VIEWS={'/':'home','/home':'home','/accueil':'home','/discover':'discover','/decouvrir':'discover','/twitch':'twitch','/categories':'categories','/category':'categories','/equipes':'teams','/teams':'teams','/compte':'settings','/connexion':'settings','/settings':'settings','/chaine':'channel','/channel':'channel','/gestionnaire':'manager','/manager':'manager','/dashboard':'dashboard','/studio':'studio','/admin':'admin'};
-const SWAPP_RESERVED_SLUGS=new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin']);
+const SWAPP_VIEW_PATHS={home:'/',discover:'/decouvrir',twitch:'/twitch',categories:'/categories',teams:'/equipes',settings:'/compte',manager:'/gestionnaire',dashboard:'/dashboard',studio:'/studio',admin:'/admin',resetPassword:'/reset-password'};
+const SWAPP_PATH_VIEWS={'/':'home','/home':'home','/accueil':'home','/discover':'discover','/decouvrir':'discover','/twitch':'twitch','/categories':'categories','/category':'categories','/equipes':'teams','/teams':'teams','/compte':'settings','/connexion':'settings','/settings':'settings','/chaine':'channel','/channel':'channel','/gestionnaire':'manager','/manager':'manager','/dashboard':'dashboard','/studio':'studio','/admin':'admin','/reset-password':'settings'};
+const SWAPP_RESERVED_SLUGS=new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
 function swappCleanLogin(login){return String(login||'').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_\-]/g,'').slice(0,40)}
 function swappChannelPath(login){const clean=swappCleanLogin(login);return clean?('/'+encodeURIComponent(clean)):'/compte'}
 function swappPathForView(id){if(id==='channel')return swappChannelPath(state.watchRoom||state.session?.local?.login||state.lastChannelLogin);return SWAPP_VIEW_PATHS[id]||'/'}
@@ -35,6 +64,7 @@ function swappCommitRouteForView(id){
  try{history[method]({view:id},'',path)}catch(_e){location.href=path}
 }
 function swappRouteFromLocation(){
+ if(swappHasPasswordResetToken()) return {view:'settings', replace:false};
  const hash=(location.hash||'').replace(/^#/,'').trim();
  if(hash){
    const parts=hash.split('/');
@@ -9593,7 +9623,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     connexion:'settings', settings:'settings', channel:'channel', chaine:'channel', manager:'manager',
     gestionnaire:'manager', dashboard:'dashboard', studio:'studio', admin:'admin'
   };
-  const RESERVED = new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin']);
+  const RESERVED = new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
   const safeText = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])));
   function cleanLogin(v){
     try{ return (typeof swappCleanLogin === 'function') ? swappCleanLogin(v) : String(v||'').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_-]/g,'').slice(0,40); }
@@ -9960,6 +9990,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
         const r = await api('/api/oryon/password/reset', { method:'POST', body:JSON.stringify({ token, password }) });
         if(r.success){
           try{ history.replaceState(null,'','/compte'); }catch(_e){}
+          try{ sessionStorage.removeItem('swapp_password_reset_token'); sessionStorage.removeItem('swapp_password_reset_login'); }catch(_e){}
           toast?.('Mot de passe réinitialisé.');
           if(window.state){ state.session.local = r.user || state.session.local; }
           await loadSession?.();
@@ -10026,6 +10057,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       const r = await api('/api/oryon/password/reset', { method:'POST', body:JSON.stringify({ token:t, password }) });
       if(r.success){
         try{ history.replaceState(null,'','/compte'); }catch(_e){}
+        try{ sessionStorage.removeItem('swapp_password_reset_token'); sessionStorage.removeItem('swapp_password_reset_login'); }catch(_e){}
         toast?.('Mot de passe réinitialisé.');
         if(window.state) state.session.local = r.user || state.session.local;
         await loadSession?.();
@@ -10068,4 +10100,90 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   document.addEventListener('DOMContentLoaded',()=>setTimeout(boot, 80));
   window.addEventListener('load',()=>setTimeout(boot, 120));
   setTimeout(boot, 180);
+})();
+
+
+/* =========================================================
+   SWAPP — password reset hard enforcer v3
+   Handles /reset-password/:token and stale internal account renders.
+   ========================================================= */
+(function swappPasswordResetHardEnforcer(){
+  if(window.__SWAPP_PASSWORD_RESET_HARD_ENFORCER_V3__) return;
+  window.__SWAPP_PASSWORD_RESET_HARD_ENFORCER_V3__ = true;
+  const safe = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])));
+  function currentToken(){ return (typeof swappPasswordResetToken === 'function' ? swappPasswordResetToken() : '').trim(); }
+  function currentLogin(){ return (typeof swappPasswordResetLoginHint === 'function' ? swappPasswordResetLoginHint() : '').trim(); }
+  function html(t){
+    return `<div class="settingsShell"><div class="settingsHero"><div><h1>Nouveau mot de passe</h1><p>Choisis un nouveau mot de passe pour ton compte Swapp${currentLogin()?` · ${safe(currentLogin())}`:''}.</p></div></div><div class="authCenterWrap"><div class="authCenterGrid"><form id="resetPasswordForm" class="authCard"><h2>Réinitialisation</h2><p>Le lien reçu par email est valide pendant 60 minutes.</p><input id="resetNewPassword" type="password" autocomplete="new-password" placeholder="nouveau mot de passe"><input id="resetNewPassword2" type="password" autocomplete="new-password" placeholder="confirmer le mot de passe"><input id="resetToken" type="hidden" value="${safe(t)}"><button class="btn">Réinitialiser</button><button type="button" class="btn secondary" id="cancelResetPassword">Annuler</button></form></div></div></div>`;
+  }
+  function bind(){
+    const form=document.getElementById('resetPasswordForm');
+    if(!form || form.__swappHardResetBound) return;
+    form.__swappHardResetBound=true;
+    const cancel=document.getElementById('cancelResetPassword');
+    if(cancel) cancel.onclick=()=>{ try{ sessionStorage.removeItem('swapp_password_reset_token'); sessionStorage.removeItem('swapp_password_reset_login'); history.replaceState(null,'','/compte'); }catch(_e){} setView?.('settings'); };
+    form.onsubmit=async e=>{
+      e.preventDefault();
+      const password=document.getElementById('resetNewPassword')?.value||'';
+      const confirm=document.getElementById('resetNewPassword2')?.value||'';
+      const token=document.getElementById('resetToken')?.value||currentToken();
+      if(password.length<6) return toast?.('Mot de passe trop court.');
+      if(password!==confirm) return toast?.('Les deux mots de passe ne correspondent pas.');
+      const r=await api('/api/oryon/password/reset',{method:'POST',body:JSON.stringify({token,password})});
+      if(r.success){
+        try{ sessionStorage.removeItem('swapp_password_reset_token'); sessionStorage.removeItem('swapp_password_reset_login'); history.replaceState(null,'','/compte'); }catch(_e){}
+        toast?.('Mot de passe réinitialisé.');
+        if(window.state) state.session.local=r.user||state.session.local;
+        await loadSession?.();
+        return setView?.('settings');
+      }
+      toast?.(r.error||'Lien invalide ou expiré.');
+    };
+  }
+  function show(){
+    const t=currentToken();
+    if(!t) return false;
+    const root=document.getElementById('settings');
+    if(!root) return false;
+    try{ if(window.state) state.view='settings'; }catch(_e){}
+    try{ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='settings')); }catch(_e){}
+    root.innerHTML=html(t);
+    try{ renderNav?.(); renderUserMenu?.(); }catch(_e){}
+    bind();
+    return true;
+  }
+  const oldSetView = window.setView || (typeof setView==='function' ? setView : null);
+  if(typeof oldSetView==='function' && !oldSetView.__swappHardResetWrapped){
+    const wrapped = async function(id){
+      if(currentToken() && (id==='settings' || id==='channel' || id==='home' || !id)){
+        await oldSetView.call(this,'settings');
+        show();
+        return;
+      }
+      return oldSetView.apply(this, arguments);
+    };
+    wrapped.__swappHardResetWrapped=true;
+    window.setView=wrapped;
+    try{ setView=wrapped; }catch(_e){}
+  }
+  const oldOpenRoute = window.swappOpenRoute || (typeof swappOpenRoute==='function' ? swappOpenRoute : null);
+  if(typeof oldOpenRoute==='function' && !oldOpenRoute.__swappHardResetWrapped){
+    const wrappedRoute = async function(opts={}){
+      if(currentToken()){
+        try{ if(window.state){ state.view='settings'; state.watchRoom=null; } }catch(_e){}
+        await setView?.('settings');
+        show();
+        return;
+      }
+      return oldOpenRoute.apply(this, arguments);
+    };
+    wrappedRoute.__swappHardResetWrapped=true;
+    window.swappOpenRoute=wrappedRoute;
+    try{ swappOpenRoute=wrappedRoute; }catch(_e){}
+  }
+  function boot(){ if(currentToken()) { setView?.('settings'); setTimeout(show,30); setTimeout(show,180); setTimeout(show,600); } }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,20));
+  window.addEventListener('load',()=>setTimeout(boot,50));
+  window.addEventListener('popstate',()=>setTimeout(boot,20));
+  setTimeout(boot,20);
 })();

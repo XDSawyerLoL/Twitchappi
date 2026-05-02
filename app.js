@@ -917,13 +917,19 @@ function sendSwappUi(res){
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
   return res.sendFile(path.join(__dirname, found));
 }
-const SWAPP_CLEAN_VIEW_PATHS = new Set(['/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin']);
-const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets']);
+const SWAPP_CLEAN_VIEW_PATHS = new Set(['/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
+const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','reset-password']);
 function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
   return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
 }
-app.get('/index_script.js', (_req,res)=>sendPublicFile(res, 'index_script.js', 'application/javascript'));
+app.get('/index_script.js', (_req,res)=>{
+  // Avoid browsers keeping an old SPA router after a password-reset fix.
+  res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma','no-cache');
+  res.setHeader('Expires','0');
+  return sendPublicFile(res, 'index_script.js', 'application/javascript');
+});
 app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-icon'));
 
 // Page principale (UI)
@@ -954,6 +960,9 @@ app.get('/c/:login', (req, res) => {
   const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   return res.redirect(301, '/' + encodeURIComponent(login) + query);
 });
+
+// Dedicated password reset URLs. Keep both /reset-password and /reset-password/:token working.
+app.get(['/reset-password', '/reset-password/:token'], (_req, res) => sendSwappUi(res));
 
 // Clean SPA URLs. /c/:login remains a compatibility alias, but public channel URLs are /pseudo.
 app.get(Array.from(SWAPP_CLEAN_VIEW_PATHS), (_req, res) => sendSwappUi(res));
@@ -3178,8 +3187,9 @@ function findOryonUserForPasswordRecovery(data, identity){
 }
 function buildSwappPasswordResetUrl(req, user, token){
   const base = (swappPublicBase(req) || safeOrigin(process.env.PUBLIC_BASE_URL) || safeOrigin(process.env.PUBLIC_APP_URL) || '').replace(/\/$/, '');
-  const qs = new URLSearchParams({ reset_token: token, reset_login: user?.login || '' });
-  return `${base || ''}/compte?${qs.toString()}`;
+  // Dedicated reset route: avoids the SPA account router stripping query params before the form renders.
+  const qs = new URLSearchParams({ login: user?.login || '', reset_login: user?.login || '' });
+  return `${base || ''}/reset-password/${encodeURIComponent(token)}?${qs.toString()}`;
 }
 async function sendSwappPasswordResetEmail(req, user, token){
   const to = normalizeOryonEmail(user?.email);
