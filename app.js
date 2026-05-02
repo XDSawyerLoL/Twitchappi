@@ -3156,8 +3156,16 @@ const SWAPP_PASSWORD_RESET_TTL_MS = Math.max(10 * 60 * 1000, Number(process.env.
 function swappEmailFrom(){
   return String(process.env.SWAPP_EMAIL_FROM || process.env.EMAIL_FROM || process.env.MAIL_FROM || '').trim();
 }
+function swappBoolEnv(name, fallback=false){
+  const raw = process.env[name];
+  if(raw == null || raw === '') return !!fallback;
+  return ['1','true','yes','on'].includes(String(raw).trim().toLowerCase());
+}
+function swappSmtpConfigured(){
+  return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && swappEmailFrom());
+}
 function swappPasswordResetEmailConfigured(){
-  return !!((process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY) && swappEmailFrom());
+  return !!(((process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY) || swappSmtpConfigured()) && swappEmailFrom());
 }
 function makeOryonPasswordResetToken(){ return crypto.randomBytes(32).toString('hex'); }
 function hashOryonPasswordResetToken(token){ return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
@@ -3206,6 +3214,25 @@ async function sendSwappPasswordResetEmail(req, user, token){
     if(rr.ok || rr.status === 202) return { sent:true, provider:'sendgrid' };
     const body = await rr.text().catch(()=>'');
     throw new Error(`SendGrid email failed: ${rr.status} ${body.slice(0,240)}`);
+  }
+  if(swappSmtpConfigured()){
+    let nodemailer;
+    try{ nodemailer = require('nodemailer'); }
+    catch(e){ throw new Error('SMTP email failed: dépendance nodemailer absente. Lance npm install après déploiement.'); }
+    const port = Number(process.env.SMTP_PORT || 465);
+    const secure = swappBoolEnv('SMTP_SECURE', port === 465);
+    const transporter = nodemailer.createTransport({
+      host:String(process.env.SMTP_HOST || '').trim(),
+      port,
+      secure,
+      auth:{
+        user:String(process.env.SMTP_USER || '').trim(),
+        pass:String(process.env.SMTP_PASS || '')
+      },
+      tls: swappBoolEnv('SMTP_TLS_REJECT_UNAUTHORIZED', true) ? undefined : { rejectUnauthorized:false }
+    });
+    await transporter.sendMail({ from, to, subject, text, html });
+    return { sent:true, provider:'smtp' };
   }
   if(!IS_PROD || String(process.env.SWAPP_PASSWORD_RESET_LOG_LINKS || '').toLowerCase() === 'true'){
     console.warn(`[SWAPP] Password reset link for ${user.login}: ${resetUrl}`);
@@ -3373,7 +3400,7 @@ app.post('/api/oryon/password/forgot', authLimiter, async (req, res) => {
     try{ await loadOryonUsersPersistent(); }catch(_){}
     if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY_BASE64 côté Hostinger.' });
     if(!swappPasswordResetEmailConfigured() && IS_PROD && String(process.env.SWAPP_PASSWORD_RESET_LOG_LINKS || '').toLowerCase() !== 'true'){
-      return res.status(503).json({ success:false, error:'Email de récupération non configuré. Ajoute RESEND_API_KEY ou SENDGRID_API_KEY + SWAPP_EMAIL_FROM.' });
+      return res.status(503).json({ success:false, error:'Email de récupération non configuré. Ajoute RESEND_API_KEY ou SENDGRID_API_KEY, ou SMTP_HOST/SMTP_USER/SMTP_PASS + SWAPP_EMAIL_FROM.' });
     }
     const identity = String(req.body?.identity || req.body?.email || req.body?.login || '').trim();
     if(identity.length < 3) return res.status(400).json({ success:false, error:'Indique ton email ou ton pseudo.' });
@@ -8865,7 +8892,7 @@ function buildSwappFeatureStatus(){
       swapp_likes:true,
       swapp_feed:true,
       password_recovery:swappPasswordResetEmailConfigured(),
-      password_recovery_provider:process.env.RESEND_API_KEY?'resend':(process.env.SENDGRID_API_KEY?'sendgrid':null),
+      password_recovery_provider:process.env.RESEND_API_KEY?'resend':(process.env.SENDGRID_API_KEY?'sendgrid':(swappSmtpConfigured()?'smtp':null)),
       obs_engine:getOryonVideoEngine().obs_ready,
       steam:!!STEAM_API_KEY,
       youtube:!!YOUTUBE_API_KEY,
