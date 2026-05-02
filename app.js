@@ -2945,10 +2945,42 @@ async function loadOryonUsersPersistent(){
   __oryonUsersCache = { users: [] };
 }
 
+
+async function firestoreOryonHasExistingUsers(){
+  if(!(firestoreOk && db && typeof db.collection === 'function')) return false;
+  try{
+    const one = await db.collection('oryon_users').limit(1).get();
+    if(one && !one.empty) return true;
+  }catch(e){ console.warn('[ORYON] Firestore guard collection check failed:', e.message); }
+  try{
+    const snap = await db.collection('oryon_state').doc('users').get();
+    const users = snap.exists ? snap.data()?.users : null;
+    if(Array.isArray(users) && users.length > 0) return true;
+  }catch(e){ console.warn('[ORYON] Firestore guard state check failed:', e.message); }
+  return false;
+}
+
+function oryonProductionRequiresDurableStorage(){
+  return String(process.env.NODE_ENV || '').toLowerCase() === 'production'
+    && String(process.env.ALLOW_EPHEMERAL_ACCOUNTS || '').toLowerCase() !== 'true'
+    && !(firestoreOk && db && typeof db.collection === 'function');
+}
+
 async function persistOryonUsers(data){
   const normalized = normalizeOryonUsersPayload(data, { ensureStreamKey:true });
   const payload = { users: normalized.users };
   if(normalized.login_conflicts?.length) console.warn('[ORYON] conflits de pseudos ignores:', normalized.login_conflicts.join(','));
+
+  // Hostinger/GitHub deploy protection:
+  // if a fresh deployment starts with an empty local JSON, it must NEVER overwrite
+  // existing Firestore accounts with an empty user list.
+  if(payload.users.length === 0 && await firestoreOryonHasExistingUsers()){
+    console.warn('[ORYON] Protection anti-effacement: sauvegarde vide ignorée car Firestore contient déjà des comptes.');
+    await loadOryonUsersPersistent();
+    __oryonUsersPersistence = `firestore:empty-write-blocked:${firestoreSource||'service-account'}`;
+    return { firestore:true, blocked_empty_write:true, persistence:__oryonUsersPersistence };
+  }
+
   __oryonUsersCache = payload;
 
   // Local copy is kept as backup/debug, but Firestore is the desired source of truth.
@@ -3049,7 +3081,8 @@ app.get('/api/oryon/persistence-status', async (_req, res) => {
     persistence: __oryonUsersPersistence,
     users: (__oryonUsersCache?.users||[]).length,
     requires_env: firestoreOk ? [] : ['FIREBASE_SERVICE_KEY or FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_KEY_BASE64'],
-    warning: firestoreOk ? null : 'Sans Firestore ou Render Disk, les comptes peuvent disparaître après redéploiement.'
+    github_deploy_safe: !!firestoreOk,
+    warning: firestoreOk ? null : 'Sans Firestore, une mise à jour GitHub/Hostinger peut effacer les comptes locaux.'
   });
 });
 function normalizeOryonLogin(v){
@@ -3214,6 +3247,8 @@ app.post('/api/oryon/register', async (req, res) => {
     if(login.length < 3) return res.status(400).json({ success:false, error:'Pseudo trop court.' });
     if(!isValidEmail(email)) return res.status(400).json({ success:false, error:'Email invalide.' });
     if(password.length < 6) return res.status(400).json({ success:false, error:'Mot de passe trop court.' });
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes non configurée. FIREBASE_SERVICE_KEY doit être chargé avant de créer des comptes en production.' });
+    try{ await ORYON_USERS_READY; }catch(_){}
     const data = readOryonUsers();
     if(data.users.some(u => u.login === login)) return res.status(409).json({ success:false, error:'Ce pseudo existe déjà.' });
     if(data.users.some(u => normalizeOryonEmail(u.email) === email)) return res.status(409).json({ success:false, error:'Cet email est déjà utilisé.' });
@@ -3245,14 +3280,16 @@ app.post('/api/oryon/login', async (req, res) => {
     try{ await loadOryonUsersPersistent(); }catch(_){}
     const login = normalizeOryonLogin(req.body?.login);
     const password = String(req.body?.password || '');
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY côté Hostinger.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
     if(!user || !verifyOryonPassword(password, user.password_hash)) return res.status(401).json({ success:false, error:'Identifiants invalides.' });
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const remember_token = issueOryonRememberToken(user, data);
+    const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
     setOryonRememberCookie(res, user, remember_token);
-    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token }));
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -3262,6 +3299,7 @@ app.post('/api/oryon/restore-session', async (req, res) => {
     const login = normalizeOryonLogin(req.body?.login);
     const token = String(req.body?.remember_token || req.body?.token || '').trim();
     if(!login || !token) return res.status(400).json({success:false,error:'Jeton de session manquant.'});
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY côté Hostinger.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.login === login);
     if(!user || !verifyOryonRememberToken(user, token)) return res.status(401).json({success:false,error:'Session expirée. Reconnecte-toi une fois.'});
