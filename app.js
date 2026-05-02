@@ -2829,7 +2829,7 @@ app.get('/api/oryon/profile/:login', (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/profile', (req, res) => {
+app.post('/api/oryon/profile', async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
@@ -2877,9 +2877,9 @@ app.post('/api/oryon/profile', (req, res) => {
     }
     user.external_live_platform = user.oryon_local_player_url ? 'oryon-local' : (user.peertube_embed_url || user.peertube_watch_url ? 'peertube' : (user.external_live_platform||''));
     user.updatedAt = Date.now();
-    writeOryonUsers(data);
+    const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
-    req.session.save(() => res.json({ success:true, user: publicOryonUser(user) }));
+    req.session.save(() => res.json({ success:true, user: publicOryonUser(user), persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -2921,14 +2921,14 @@ app.get('/api/oryon/video-engine/status', async (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.get('/api/oryon/stream-key', (req, res) => {
+app.get('/api/oryon/stream-key', async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.id === cur.id);
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
-    if(!user.stream_key){ user.stream_key = makeOryonStreamKey(); writeOryonUsers(data); }
+    if(!user.stream_key){ user.stream_key = makeOryonStreamKey(); user.updatedAt = Date.now(); await writeOryonUsersAndWait(data); }
     return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key, obs_ready: getOryonVideoEngine().obs_ready, video_engine:getOryonVideoEngine(), recommended:{ resolution:'1920x1080', fps:60, bitrate:'6000-8000 kbps', keyframe:'2s' } });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
@@ -2943,7 +2943,7 @@ function findOryonUserByAgentToken(data, token){
   if(!t) return null;
   return (data.users || []).find(u => String(u.local_agent_token || '') === t);
 }
-app.post('/api/oryon/local-agent/connect', (req, res) => {
+app.post('/api/oryon/local-agent/connect', async (req, res) => {
   try{
     const login = normalizeOryonLogin(req.body?.login);
     const password = String(req.body?.password || '');
@@ -2956,14 +2956,14 @@ app.post('/api/oryon/local-agent/connect', (req, res) => {
     user.local_agent_connected_at = Date.now();
     user.local_agent_name = String(req.body?.app || 'Oryon Local').slice(0,80);
     user.updatedAt = Date.now();
-    writeOryonUsers(data);
+    await writeOryonUsersAndWait(data);
     return res.json({ success:true, token:user.local_agent_token, stream_key:user.stream_key, user:publicOryonUser(user), message:'Oryon Local connecté au compte.' });
   }catch(e){ return res.status(500).json({ success:false, error:e.message }); }
 });
 
 // Connexion Oryon Local sans mot de passe : l'app ouvre le navigateur, le site utilise la session Oryon existante,
 // puis renvoie un jeton local à http://127\.0\.0\.1:8081.
-app.get('/api/oryon/local-agent/browser-connect', (req, res) => {
+app.get('/api/oryon/local-agent/browser-connect', async (req, res) => {
   try {
     const cur = req.session?.oryonUser;
     const callback = String(req.query.callback || '').trim();
@@ -2981,7 +2981,7 @@ app.get('/api/oryon/local-agent/browser-connect', (req, res) => {
     user.local_agent_connected_at = Date.now();
     user.local_agent_name = 'Oryon Local navigateur';
     user.updatedAt = Date.now();
-    writeOryonUsers(data);
+    await writeOryonUsersAndWait(data);
     const cb = new URL(callback);
     cb.searchParams.set('ok', '1');
     cb.searchParams.set('token', user.local_agent_token);
@@ -2995,7 +2995,7 @@ app.get('/api/oryon/local-agent/browser-connect', (req, res) => {
   }
 });
 
-app.get('/api/oryon/local-agent/config', (req, res) => {
+app.get('/api/oryon/local-agent/config', async (req, res) => {
   try {
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
@@ -3007,7 +3007,7 @@ app.get('/api/oryon/local-agent/config', (req, res) => {
     if(!user.stream_key){
       user.stream_key = makeOryonStreamKey();
       user.updatedAt = Date.now();
-      writeOryonUsers(data);
+      await writeOryonUsersAndWait(data);
     }
 
     const key = user.stream_key;
@@ -3032,7 +3032,7 @@ app.get('/api/oryon/local-agent/config', (req, res) => {
 });
 
 
-app.post('/api/oryon/local-agent/register-public-url', (req, res) => {
+app.post('/api/oryon/local-agent/register-public-url', async (req, res) => {
   try {
     const token = bearerToken(req);
     const streamKey = String(req.body?.stream_key || '').trim();
@@ -3067,12 +3067,12 @@ app.post('/api/oryon/local-agent/register-public-url', (req, res) => {
     user.local_agent_live = true;
     user.local_agent_last_seen = Date.now();
     user.updatedAt = Date.now();
-    writeOryonUsers(data);
+    await writeOryonUsersAndWait(data);
     res.json({ success:true, login:user.login, user:publicOryonUser(user), message:'Live Oryon Local publié sur la chaîne.' });
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/local-agent/heartbeat', (req, res) => {
+app.post('/api/oryon/local-agent/heartbeat', async (req, res) => {
   try {
     const token = bearerToken(req);
     const streamKey = String(req.body?.stream_key || '').trim();
@@ -3101,12 +3101,12 @@ app.post('/api/oryon/local-agent/heartbeat', (req, res) => {
       user.local_agent_last_seen = Date.now();
     }
     user.updatedAt = Date.now();
-    writeOryonUsers(data);
+    await writeOryonUsersAndWait(data);
     res.json({ success:true, live:user.local_agent_live, user:publicOryonUser(user) });
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/local-agent/stop', (req, res) => {
+app.post('/api/oryon/local-agent/stop', async (req, res) => {
   try {
     const token = bearerToken(req);
     const streamKey = String(req.body?.stream_key || '').trim();
@@ -3117,24 +3117,24 @@ app.post('/api/oryon/local-agent/stop', (req, res) => {
     user.local_agent_live = false;
     user.local_agent_last_seen = Date.now();
     user.updatedAt = Date.now();
-    writeOryonUsers(data);
+    await writeOryonUsersAndWait(data);
     res.json({ success:true, user:publicOryonUser(user) });
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/stream-key/regenerate', (req, res) => {
+app.post('/api/oryon/stream-key/regenerate', async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
     const data = readOryonUsers();
     const user = data.users.find(u => u.id === cur.id);
     if(!user) return res.status(404).json({ success:false, error:'Utilisateur introuvable.' });
-    user.stream_key = makeOryonStreamKey(); user.updatedAt = Date.now(); writeOryonUsers(data);
+    user.stream_key = makeOryonStreamKey(); user.updatedAt = Date.now(); await writeOryonUsersAndWait(data);
     return res.json({ success:true, rtmp_url:getOryonRtmpUrl(), stream_key:user.stream_key });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/follow/:login', (req, res) => {
+app.post('/api/oryon/follow/:login', async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
@@ -3150,12 +3150,12 @@ app.post('/api/oryon/follow/:login', (req, res) => {
       user.following.push(target);
       creator.followers_count = Math.max(Number(creator.followers_count || 0), 0) + 1;
     }
-    writeOryonUsers(data);
-    res.json({ success:true, following:user.following });
+    const persistResult = await writeOryonUsersAndWait(data);
+    res.json({ success:true, following:user.following, persistence:persistResult||null });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/like/:login', (req, res) => {
+app.post('/api/oryon/like/:login', async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
@@ -3171,8 +3171,8 @@ app.post('/api/oryon/like/:login', (req, res) => {
       user.liked_channels.push(target);
       creator.likes_count = Math.max(Number(creator.likes_count || 0), 0) + 1;
     }
-    writeOryonUsers(data);
-    res.json({ success:true, liked:true, likes_count:Number(creator.likes_count||0), liked_channels:user.liked_channels });
+    const persistResult = await writeOryonUsersAndWait(data);
+    res.json({ success:true, liked:true, likes_count:Number(creator.likes_count||0), liked_channels:user.liked_channels, persistence:persistResult||null });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -4177,12 +4177,12 @@ app.get('/api/oryon/onboarding', (req,res)=>{
   const data=readOryonUsers(); const user=data.users.find(u=>u.id===cur.id)||cur;
   res.json({success:true,onboarding:user.onboarding||null, completed:!!user.onboarding_completed, user:publicOryonUser(user)});
 });
-app.post('/api/oryon/onboarding', (req,res)=>{
+app.post('/api/oryon/onboarding', async (req,res)=>{
   const cur=requireOryon(req,res); if(!cur) return;
   const data=readOryonUsers(); const user=data.users.find(u=>u.id===cur.id); if(!user) return res.status(404).json({success:false,error:'Utilisateur introuvable.'});
   user.onboarding={intent:String(req.body?.intent||'both').slice(0,20), moods:safeTags(req.body?.moods), categories:safeTags(req.body?.categories), maxViewers:Math.max(20,Math.min(300,Number(req.body?.maxViewers||200)))};
   user.onboarding_completed=true; user.tags=Array.from(new Set([...(user.tags||[]),...user.onboarding.moods,...user.onboarding.categories])).slice(0,12); user.updatedAt=Date.now();
-  writeOryonUsers(data); req.session.oryonUser=sessionOryonUser(user); req.session.save(()=>res.json({success:true,user:publicOryonUser(user),onboarding:user.onboarding}));
+  const persistResult = await writeOryonUsersAndWait(data); req.session.oryonUser=sessionOryonUser(user); req.session.save(()=>res.json({success:true,user:publicOryonUser(user),onboarding:user.onboarding,persistence:persistResult||null}));
 });
 
 app.get('/api/oryon/teams', (req,res)=>{ const data=oryonRead(ORYON_TEAMS_FILE,{teams:[]}); res.json({success:true,items:(data.teams||[]).map(publicTeam)}); });
@@ -7795,6 +7795,126 @@ app.get('/api/oryon/channels', async (req, res) => {
       .slice(0, limit);
     res.json({success:true,items:users,count:users.length});
   }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
+});
+
+
+// =========================================================
+// SWAPP — diagnostic fonctionnel sans changement visuel
+// =========================================================
+function swappBoolOk(v){ return !!v; }
+function swappEnvMask(name){ return process.env[name] ? 'configured' : 'missing'; }
+function swappPublicBase(req){ return safeOrigin(process.env.PUBLIC_BASE_URL) || safeOrigin(process.env.PUBLIC_APP_URL) || safeOrigin(process.env.APP_BASE_URL) || safeOrigin(process.env.RENDER_EXTERNAL_URL) || safeOrigin(req.protocol + '://' + req.get('host')); }
+function swappExpectedTwitchRedirect(req){ const base = swappPublicBase(req); return base ? base.replace(/\/$/,'') + '/twitch_auth_callback' : null; }
+function swappCountNativeLives(){ try{ return nativeLiveRooms instanceof Map ? nativeLiveRooms.size : 0; }catch(_){ return 0; } }
+function swappCountLiveUsers(users){
+  const now = Date.now();
+  const timeout = Number(process.env.ORYON_LIVE_SIGNAL_TIMEOUT_MS || 45000);
+  return (users || []).filter(u => !!u?.local_agent_live && (!u.local_agent_last_seen || now - Number(u.local_agent_last_seen || 0) <= timeout)).length;
+}
+async function buildSwappDiagnostic(req){
+  try{ await ORYON_USERS_READY; }catch(_e){}
+  try{ await ORYON_STATE_READY; }catch(_e){}
+  const users = (readOryonUsers().users || []);
+  const teams = (oryonRead(ORYON_TEAMS_FILE,{teams:[]}).teams || []);
+  const viewerData = readViewerLearningLocal();
+  const pulse = oryonRead(ORYON_PULSE_FILE, { lives:{} });
+  const expectedRedirect = swappExpectedTwitchRedirect(req);
+  const configuredRedirect = REDIRECT_URI || null;
+  const redirectOk = !!(configuredRedirect && expectedRedirect && configuredRedirect.replace(/\/$/,'') === expectedRedirect.replace(/\/$/,''));
+  const streamerReady = users.filter(u => u?.login).map(u => ({
+    login:u.login,
+    public_url:'/c/' + encodeURIComponent(u.login),
+    has_stream_key:!!u.stream_key,
+    has_profile:!!(u.display_name || u.bio || u.avatar_url || u.banner_url || u.offline_image_url),
+    local_agent_live:!!u.local_agent_live,
+    local_agent_last_seen:u.local_agent_last_seen || null,
+    likes_count:Number(u.likes_count||0),
+    followers_count:Number(u.followers_count||0),
+    updatedAt:u.updatedAt || u.createdAt || null
+  })).sort((a,b)=>Number(b.local_agent_live)-Number(a.local_agent_live) || Number(b.updatedAt||0)-Number(a.updatedAt||0)).slice(0,80);
+  const checks = {
+    persistence: { ok: !!firestoreOk || !!process.env.ORYON_DATA_DIR, mode: __oryonUsersPersistence, firestore:!!firestoreOk, warning: firestoreOk ? null : 'Configure Firestore ou ORYON_DATA_DIR sur Render pour éviter les pertes au redeploiement.' },
+    sessions: { ok: !!configuredSessionSecret, secret: configuredSessionSecret ? 'configured' : 'temporary', warning: configuredSessionSecret ? null : 'SESSION_SECRET manquant: les connexions sautent au redemarrage.' },
+    twitch: { ok: !!(TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET && REDIRECT_URI), client_id:swappEnvMask('TWITCH_CLIENT_ID'), client_secret:swappEnvMask('TWITCH_CLIENT_SECRET'), redirect_uri:configuredRedirect, expected_redirect_uri:expectedRedirect, redirect_matches_public_base:redirectOk },
+    public_base_url: { ok: !!swappPublicBase(req), value: swappPublicBase(req) || null },
+    video: { ok: getOryonVideoEngine().obs_ready || getWebRtcConfigPayload().mode === 'p2p', engine:getOryonVideoEngine(), webrtc:getWebRtcConfigPayload() }
+  };
+  const required_env = [];
+  if(!checks.persistence.ok) required_env.push('FIREBASE_SERVICE_KEY ou FIREBASE_SERVICE_ACCOUNT ou ORYON_DATA_DIR');
+  if(!checks.sessions.ok) required_env.push('SESSION_SECRET');
+  if(!TWITCH_CLIENT_ID) required_env.push('TWITCH_CLIENT_ID');
+  if(!TWITCH_CLIENT_SECRET) required_env.push('TWITCH_CLIENT_SECRET');
+  if(!REDIRECT_URI) required_env.push('TWITCH_REDIRECT_URI=https://swapp.tv/twitch_auth_callback');
+  if(configuredRedirect && expectedRedirect && !redirectOk) required_env.push('TWITCH_REDIRECT_URI doit correspondre a ' + expectedRedirect);
+  return {
+    success:true,
+    generatedAt:new Date().toISOString(),
+    app:'Swapp',
+    ready: Object.values(checks).every(x => !!x.ok),
+    checks,
+    required_env,
+    counts:{
+      accounts:users.length,
+      public_channels:users.filter(u=>u?.login).length,
+      teams:teams.length,
+      native_live_rooms:swappCountNativeLives(),
+      local_agent_live_channels:swappCountLiveUsers(users),
+      viewer_profiles:Object.keys(viewerData || {}).length,
+      pulse_lives:Object.keys(pulse?.lives || {}).length,
+      likes:users.reduce((n,u)=>n+(Array.isArray(u.swapp_likes)?u.swapp_likes.length:0),0)
+    },
+    streamer_ready:streamerReady,
+    routes:{
+      viewer:['/api/oryon/viewer/choice','/api/oryon/viewer/history','/api/oryon/viewer/feed'],
+      streamer:['/api/oryon/profile','/api/oryon/stream-key','/api/oryon/local-agent/config','/c/:login'],
+      discovery:['/api/discovery/home-lives','/api/oryon/discover','/api/oryon/channels'],
+      diagnostics:['/api/swapp/diagnostic','/api/swapp/readiness','/api/oryon/channel/:login/readiness']
+    }
+  };
+}
+
+app.get('/api/swapp/diagnostic', async (req, res) => {
+  try{
+    const payload = await buildSwappDiagnostic(req);
+    res.setHeader('Cache-Control','no-store');
+    res.json(payload);
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+
+app.get('/api/swapp/readiness', async (req, res) => {
+  try{
+    const d = await buildSwappDiagnostic(req);
+    res.status(d.ready ? 200 : 503).json({
+      success:true,
+      ready:d.ready,
+      counts:d.counts,
+      required_env:d.required_env,
+      checks:d.checks
+    });
+  }catch(e){ res.status(500).json({success:false,ready:false,error:e.message}); }
+});
+
+app.get('/api/oryon/channel/:login/readiness', async (req, res) => {
+  try{
+    await ORYON_USERS_READY.catch(()=>{});
+    const login = normalizeOryonLogin(req.params.login);
+    const user = (readOryonUsers().users || []).find(u => u.login === login);
+    if(!user) return res.status(404).json({success:false,ready:false,error:'Chaîne introuvable.'});
+    const live = nativeLiveRooms.get(login) || null;
+    const localLiveFresh = !!(user.local_agent_live && (!user.local_agent_last_seen || Date.now() - Number(user.local_agent_last_seen || 0) <= oryonLiveSignalTimeoutMs()));
+    const publicUrl = '/c/' + encodeURIComponent(login);
+    res.json({
+      success:true,
+      ready:true,
+      login,
+      public_url:publicUrl,
+      public_abs_url:(swappPublicBase(req)||'').replace(/\/$/,'') + publicUrl,
+      has_stream_key:!!user.stream_key,
+      is_live:!!live || localLiveFresh,
+      live_source:live ? 'browser-webrtc' : (localLiveFresh ? 'local-agent' : 'offline'),
+      profile:publicOryonUser(user)
+    });
+  }catch(e){ res.status(500).json({success:false,ready:false,error:e.message}); }
 });
 
 server.listen(PORT, () => {
