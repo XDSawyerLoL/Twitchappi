@@ -2246,7 +2246,10 @@ app.get('/api/tracked_channels/list', async (req, res) => {
   }
 });
 
+let __channelMetaFirestoreDisabled = false;
 async function upsertChannelMetaFromStream(stream, nowMs) {
+  if (__channelMetaFirestoreDisabled) return;
+  if (!(firestoreOk && db && typeof db.collection === 'function')) return;
   const uid = safeDocId(stream.user_id ?? stream.userId);
   if (!uid) return;
   const ref = db.collection('channels').doc(uid);
@@ -2263,7 +2266,13 @@ async function upsertChannelMetaFromStream(stream, nowMs) {
     if (!snap.exists) payload.first_seen = admin.firestore.Timestamp.fromMillis(nowMs);
     await ref.set(payload, { merge: true });
   } catch (e) {
-    console.error("\u274C [FIRESTORE] upsertChannelMetaFromStream:", e.message);
+    const msg = String(e && e.message || e);
+    if (msg.includes('google-gax') && msg.includes('fallback')) {
+      __channelMetaFirestoreDisabled = true;
+      console.error('❌ [FIRESTORE] upsertChannelMetaFromStream désactivé: dépendances Google incompatibles. Corriger package.json puis réinstaller node_modules. Détail:', msg);
+      return;
+    }
+    console.error("❌ [FIRESTORE] upsertChannelMetaFromStream:", msg);
   }
 }
 

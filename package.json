@@ -28,7 +28,6 @@
     "node-fetch": "^2.7.0",
     "socket.io": "^4.8.1",
     "stripe": "^18.5.0",
-    "@google-cloud/firestore": "^8.5.0",
     "@google-cloud/storage": "^7.19.0"
   },
   "overrides": {
@@ -58,10 +57,6 @@
     "glob": "^10.4.5",
     "uuid": "^14.0.0",
     "@tootallnate/once": "^3.0.1",
-    "http-proxy-agent": "^7.0.2",
-    "teeny-request": "^10.1.1",
-    "retry-request": "^8.0.2",
-    "gaxios": "^7.1.2",
-    "google-gax": "^5.0.3"
+    "http-proxy-agent": "^7.0.2"
   }
 }
