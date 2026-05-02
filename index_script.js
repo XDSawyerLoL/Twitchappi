@@ -9097,6 +9097,62 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       background:radial-gradient(ellipse at -8% 50%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 30%, transparent), transparent 52%)!important;
     }
 
+    /* Découvrir V4 : son propre fond couvrait la lumière latérale. On garde le style premium, mais la couleur choisie revient dans le glow de fond uniquement. */
+    body.swappSideLightOnly.oryonDiscoverV4{
+      background:
+        radial-gradient(ellipse at -10% 30%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 38%, transparent), transparent 46%),
+        radial-gradient(ellipse at 108% 8%, rgba(34,211,238,.07), transparent 34%),
+        #05070d!important;
+    }
+    body.swappSideLightOnly.oryonDiscoverV4 #discover.view.active{
+      background:
+        radial-gradient(ellipse at -8% 30%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 32%, transparent), transparent 44%),
+        #05070d!important;
+    }
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .v4Page,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .dxPage,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .sdPage,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .mxPage,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .hfDiscover{
+      background:
+        radial-gradient(ellipse at -9% 34%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 40%, transparent), transparent 48%),
+        radial-gradient(ellipse at 70% 0%, rgba(139,92,246,.12), transparent 38%),
+        radial-gradient(ellipse at 112% 8%, rgba(34,211,238,.08), transparent 34%),
+        linear-gradient(180deg,#07131d 0%,#05070d 66%)!important;
+    }
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .v4Page::before,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .dxPage::before,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .sdPage::before,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .mxPage::before{
+      content:"";
+      position:fixed;
+      pointer-events:none;
+      z-index:0;
+      left:-16vw;
+      top:64px;
+      width:min(62vw,980px);
+      height:calc(100vh - 64px);
+      background:radial-gradient(ellipse at 38% 34%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 46%, transparent), transparent 52%);
+      filter:blur(2px);
+      opacity:.86;
+    }
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .v4Shell,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .dxShell,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .sdShell,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .mxShell{
+      position:relative;
+      z-index:1;
+    }
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .v4Title,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .dxTitle,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .sdHero h1,
+    body.swappSideLightOnly.oryonDiscoverV4 #discover .mxTitle{
+      background:linear-gradient(90deg,#fff 0%,#eef5ff 58%,color-mix(in srgb,var(--swapp-side-light,#22d3ee) 36%,#ffffff) 100%)!important;
+      -webkit-background-clip:text!important;
+      background-clip:text!important;
+      color:transparent!important;
+    }
+
     /* Composants fixes Swapp : pas pilotés par la couleur utilisateur. */
     body.swappSideLightOnly .brandMark,
     body.swappSideLightOnly .logoMark,
