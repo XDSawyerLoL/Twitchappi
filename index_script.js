@@ -5,6 +5,18 @@ const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const qs=o=>new URLSearchParams(Object.entries(o).filter(([,v])=>v!==undefined&&v!==null&&v!==''));
 const state={session:{local:null,twitch:null},view:'home',socket:null,socketLogin:null,room:null,watchRoom:null,stream:null,peers:{},selectedGif:'',selectedEmote:null,channelEmotes:[],catsCursor:null,currentTwitch:null,lastChannelLogin:null,viewerProfile:null,zap:{items:[],index:0,last:null},discoverPlayer:null,mini:null,channelSupport:null};
 
+// Swapp password reset: preserve the token from the email link before routing can rewrite /compte.
+const SWAPP_INITIAL_RESET_SEARCH = (()=>{ try{return new URLSearchParams(location.search||'')}catch(_){return new URLSearchParams('')} })();
+const SWAPP_INITIAL_RESET_TOKEN = (SWAPP_INITIAL_RESET_SEARCH.get('reset_token') || SWAPP_INITIAL_RESET_SEARCH.get('token') || '').trim();
+const SWAPP_INITIAL_RESET_LOGIN = (SWAPP_INITIAL_RESET_SEARCH.get('reset_login') || '').trim();
+function swappPasswordResetToken(){
+ try{ const p=new URLSearchParams(location.search||''); return (p.get('reset_token') || p.get('token') || SWAPP_INITIAL_RESET_TOKEN || '').trim(); }catch(_){ return SWAPP_INITIAL_RESET_TOKEN || ''; }
+}
+function swappPasswordResetLoginHint(){
+ try{ const p=new URLSearchParams(location.search||''); return (p.get('reset_login') || SWAPP_INITIAL_RESET_LOGIN || '').trim(); }catch(_){ return SWAPP_INITIAL_RESET_LOGIN || ''; }
+}
+function swappHasPasswordResetToken(){ return !!swappPasswordResetToken(); }
+
 const SWAPP_VIEW_PATHS={home:'/',discover:'/decouvrir',twitch:'/twitch',categories:'/categories',teams:'/equipes',settings:'/compte',manager:'/gestionnaire',dashboard:'/dashboard',studio:'/studio',admin:'/admin'};
 const SWAPP_PATH_VIEWS={'/':'home','/home':'home','/accueil':'home','/discover':'discover','/decouvrir':'discover','/twitch':'twitch','/categories':'categories','/category':'categories','/equipes':'teams','/teams':'teams','/compte':'settings','/connexion':'settings','/settings':'settings','/chaine':'channel','/channel':'channel','/gestionnaire':'manager','/manager':'manager','/dashboard':'dashboard','/studio':'studio','/admin':'admin'};
 const SWAPP_RESERVED_SLUGS=new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin']);
@@ -13,6 +25,8 @@ function swappChannelPath(login){const clean=swappCleanLogin(login);return clean
 function swappPathForView(id){if(id==='channel')return swappChannelPath(state.watchRoom||state.session?.local?.login||state.lastChannelLogin);return SWAPP_VIEW_PATHS[id]||'/'}
 function swappCommitRouteForView(id){
  if(state.__skipRouteCommit)return;
+ // Do not let SPA routing strip /compte?reset_token=... before the reset form renders.
+ if(id==='settings' && swappHasPasswordResetToken()) return;
  const path=swappPathForView(id);
  const current=location.pathname+location.search+location.hash;
  if(current===path)return;
@@ -9895,8 +9909,8 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   function resetParams(){
     try{ return new URLSearchParams(location.search || ''); }catch(_){ return new URLSearchParams(''); }
   }
-  function resetToken(){ return resetParams().get('reset_token') || resetParams().get('token') || ''; }
-  function resetLoginHint(){ return resetParams().get('reset_login') || ''; }
+  function resetToken(){ return (typeof swappPasswordResetToken === 'function' ? swappPasswordResetToken() : (resetParams().get('reset_token') || resetParams().get('token') || '')); }
+  function resetLoginHint(){ return (typeof swappPasswordResetLoginHint === 'function' ? swappPasswordResetLoginHint() : (resetParams().get('reset_login') || '')); }
   function forgotCardHtml(){
     return `<form id="forgotPasswordForm" class="authCard"><h2>Mot de passe oublié</h2><p>Entre ton email ou ton pseudo. Si le compte existe, un lien de récupération sera envoyé par email.</p><input id="forgotIdentity" placeholder="email ou pseudo"><button class="btn">Envoyer le lien</button><p class="small muted">Le lien expire automatiquement. Aucun mot de passe n’est envoyé par email.</p></form>`;
   }
@@ -9982,17 +9996,17 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
 })();
 
 /* =========================================================
-   SWAPP — password reset route fix
+   SWAPP — password reset route fix v2
    Functional only: always show reset form when reset_token is present,
    even if the user still has an active session.
    ========================================================= */
 (function swappPasswordResetRouteFix(){
-  if(window.__SWAPP_PASSWORD_RESET_ROUTE_FIX_V1__) return;
-  window.__SWAPP_PASSWORD_RESET_ROUTE_FIX_V1__ = true;
+  if(window.__SWAPP_PASSWORD_RESET_ROUTE_FIX_V2__) return;
+  window.__SWAPP_PASSWORD_RESET_ROUTE_FIX_V2__ = true;
   const safe = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])));
   function params(){ try{ return new URLSearchParams(location.search || ''); }catch(_){ return new URLSearchParams(''); } }
-  function token(){ return (params().get('reset_token') || params().get('token') || '').trim(); }
-  function loginHint(){ return (params().get('reset_login') || '').trim(); }
+  function token(){ return (typeof swappPasswordResetToken === 'function' ? swappPasswordResetToken() : (params().get('reset_token') || params().get('token') || '')).trim(); }
+  function loginHint(){ return (typeof swappPasswordResetLoginHint === 'function' ? swappPasswordResetLoginHint() : (params().get('reset_login') || '')).trim(); }
   function resetMarkup(t){
     return `<div class="settingsShell"><div class="settingsHero"><div><h1>Nouveau mot de passe</h1><p>Choisis un nouveau mot de passe pour ton compte Swapp${loginHint()?` · ${safe(loginHint())}`:''}.</p></div></div><div class="authCenterWrap"><div class="authCenterGrid"><form id="resetPasswordForm" class="authCard"><h2>Réinitialisation</h2><p>Le lien reçu par email est valide pendant 60 minutes.</p><input id="resetNewPassword" type="password" autocomplete="new-password" placeholder="nouveau mot de passe"><input id="resetNewPassword2" type="password" autocomplete="new-password" placeholder="confirmer le mot de passe"><input id="resetToken" type="hidden" value="${safe(t)}"><button class="btn">Réinitialiser</button><button type="button" class="btn secondary" id="cancelResetPassword">Annuler</button></form></div></div></div>`;
   }
