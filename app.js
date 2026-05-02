@@ -8708,7 +8708,7 @@ async function buildSwappDiagnostic(req){
       viewer:['/api/oryon/viewer/choice','/api/oryon/viewer/history','/api/oryon/viewer/feed','/api/swapp/feed','/api/swapp/likes','/api/swapp/like'],
       streamer:['/api/oryon/profile','/api/oryon/stream-key','/api/oryon/local-agent/config','/:login'],
       discovery:['/api/discovery/home-lives','/api/oryon/discover','/api/oryon/channels'],
-      diagnostics:['/api/swapp/diagnostic','/api/swapp/readiness','/api/oryon/channel/:login/readiness']
+      diagnostics:['/api/swapp/diagnostic','/api/swapp/readiness','/api/oryon/channel/:login/readiness'], admin_backup:['/api/swapp/admin/export','/api/swapp/admin/import']
     }
   };
 }
@@ -8735,6 +8735,160 @@ function buildSwappFeatureStatus(){
 app.get('/api/swapp/features', (req,res) => {
   res.setHeader('Cache-Control','no-store');
   res.json(buildSwappFeatureStatus());
+});
+
+
+
+// =========================================================
+// SWAPP — sauvegarde/restauration admin Firestore
+// =========================================================
+function swappCloneJson(value){
+  return JSON.parse(JSON.stringify(value ?? null));
+}
+function swappBackupVersion(){ return 1; }
+function swappStateFileMap(){
+  return {
+    teams: ORYON_TEAMS_FILE,
+    planning: ORYON_PLANNING_FILE,
+    progress: ORYON_PROGRESS_FILE,
+    events: ORYON_EVENTS_FILE,
+    admin_log: ORYON_ADMIN_FILE,
+    reports: path.join(ORYON_DATA_DIR, '.oryon-reports.json'),
+    pulse: ORYON_PULSE_FILE
+  };
+}
+async function buildSwappAdminExport(req){
+  try{ await ORYON_USERS_READY; }catch(_e){}
+  try{ await ORYON_STATE_READY; }catch(_e){}
+  const stateFiles = swappStateFileMap();
+  const generic = {};
+  for(const [name, file] of Object.entries(stateFiles)){
+    generic[name] = swappCloneJson(oryonRead(file, {}));
+  }
+  const usersPayload = normalizeOryonUsersPayload(readOryonUsers(), { ensureStreamKey:true });
+  return {
+    success:true,
+    app:'Swapp',
+    kind:'swapp_admin_backup',
+    version:swappBackupVersion(),
+    exportedAt:new Date().toISOString(),
+    exportedBy:req?.session?.oryonUser?.login || 'api-key',
+    sensitive:true,
+    note:'Contient comptes, hashes de mots de passe, stream keys, likes et données de chaînes. Ne pas partager publiquement.',
+    persistence:{ firestore:!!firestoreOk, source:firestoreSource || null, mode:__oryonUsersPersistence },
+    counts:{
+      users: usersPayload.users.length,
+      teams: Array.isArray(generic.teams?.teams) ? generic.teams.teams.length : 0,
+      viewer_profiles: Object.keys(readViewerLearningLocal() || {}).length
+    },
+    data:{
+      users: usersPayload.users,
+      login_conflicts: usersPayload.login_conflicts || [],
+      viewer_learning: swappCloneJson(readViewerLearningLocal() || {}),
+      generic
+    }
+  };
+}
+function swappMergeArraysByKey(current, incoming, keyFn, max = 5000){
+  const out = [];
+  const seen = new Set();
+  const push = (item) => {
+    if(!item || typeof item !== 'object') return;
+    const key = String(keyFn(item) || '').trim();
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(item);
+  };
+  (Array.isArray(incoming) ? incoming : []).forEach(push);
+  (Array.isArray(current) ? current : []).forEach(push);
+  return out.slice(0, max);
+}
+function swappMergePlainObjects(current, incoming){
+  if(!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return current || {};
+  if(!current || typeof current !== 'object' || Array.isArray(current)) return swappCloneJson(incoming);
+  return { ...current, ...incoming };
+}
+function swappMergeGenericState(name, current, incoming, mode){
+  const inc = incoming && typeof incoming === 'object' ? swappCloneJson(incoming) : {};
+  if(mode === 'replace') return inc;
+  const cur = current && typeof current === 'object' ? swappCloneJson(current) : {};
+  if(name === 'teams') return { ...cur, ...inc, teams: swappMergeArraysByKey(cur.teams, inc.teams, t => t.slug || t.id || t.name) };
+  if(name === 'planning') return { ...cur, ...inc, items: swappMergeArraysByKey(cur.items, inc.items, x => x.id || `${x.login}_${x.when}_${x.title}`) };
+  if(name === 'events') return { ...cur, ...inc, events: swappMergeArraysByKey(cur.events, inc.events, x => x.id || `${x.type}_${x.actor}_${x.ts}`) };
+  if(name === 'reports') return { ...cur, ...inc, reports: swappMergeArraysByKey(cur.reports, inc.reports, x => x.id || `${x.login}_${x.ts}_${x.reason}`) };
+  if(name === 'admin_log'){
+    const globalBans = Array.from(new Set([...(inc.globalBans || []), ...(cur.globalBans || [])].map(normalizeOryonLogin).filter(Boolean)));
+    return { ...cur, ...inc, globalBans };
+  }
+  if(name === 'progress') return { ...cur, ...inc, users: { ...(cur.users || {}), ...(inc.users || {}) } };
+  if(name === 'pulse') return { ...cur, ...inc, lives: { ...(cur.lives || {}), ...(inc.lives || {}) } };
+  return swappMergePlainObjects(cur, inc);
+}
+function swappValidateBackupPayload(raw){
+  const backup = raw?.backup && typeof raw.backup === 'object' ? raw.backup : raw;
+  const data = backup?.data && typeof backup.data === 'object' ? backup.data : backup;
+  const users = Array.isArray(data?.users) ? data.users : [];
+  const generic = data?.generic && typeof data.generic === 'object' ? data.generic : {};
+  const viewerLearning = data?.viewer_learning && typeof data.viewer_learning === 'object' ? data.viewer_learning : {};
+  return { backup, data, users, generic, viewerLearning };
+}
+async function importSwappAdminBackup(raw, options = {}){
+  const mode = options.mode === 'replace' ? 'replace' : 'merge';
+  const dryRun = !!options.dryRun;
+  const parsed = swappValidateBackupPayload(raw || {});
+  if(!Array.isArray(parsed.users)) throw new Error('backup_users_invalid');
+  const currentUsers = normalizeOryonUsersPayload(readOryonUsers(), { ensureStreamKey:true }).users;
+  const incomingUsers = normalizeOryonUsersPayload({ users: parsed.users }, { ensureStreamKey:true }).users;
+  const mergedUsers = mode === 'replace'
+    ? incomingUsers
+    : swappMergeArraysByKey(currentUsers, incomingUsers, u => u.id || u.login || u.email, 20000);
+  const normalized = normalizeOryonUsersPayload({ users: mergedUsers }, { ensureStreamKey:true });
+  const currentViewer = readViewerLearningLocal() || {};
+  const nextViewer = mode === 'replace' ? swappCloneJson(parsed.viewerLearning || {}) : { ...currentViewer, ...(parsed.viewerLearning || {}) };
+  const stateFiles = swappStateFileMap();
+  const nextGeneric = {};
+  for(const [name, file] of Object.entries(stateFiles)){
+    nextGeneric[name] = swappMergeGenericState(name, oryonRead(file, {}), parsed.generic?.[name] || {}, mode);
+  }
+  const counts = {
+    users: normalized.users.length,
+    viewer_profiles:Object.keys(nextViewer || {}).length,
+    teams:Array.isArray(nextGeneric.teams?.teams) ? nextGeneric.teams.teams.length : 0,
+    mode,
+    dry_run:dryRun
+  };
+  if(dryRun) return { success:true, imported:false, dry_run:true, counts, conflicts:normalized.login_conflicts || [] };
+  if(IS_PROD && !(firestoreOk && db && typeof db.collection === 'function')){
+    throw new Error('firestore_required_for_import_in_production');
+  }
+  await writeOryonUsersAndWait({ users: normalized.users });
+  __oryonViewerLearningCache = nextViewer || {};
+  writeViewerLearningLocal();
+  for(const [name, file] of Object.entries(stateFiles)){
+    await persistOryonGenericState(file, nextGeneric[name] || {});
+  }
+  return { success:true, imported:true, counts, conflicts:normalized.login_conflicts || [], persistence:__oryonUsersPersistence };
+}
+
+app.get('/api/swapp/admin/export', async (req,res) => {
+  try{
+    if(!requireSwappAdmin(req,res)) return;
+    const payload = await buildSwappAdminExport(req);
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Content-Disposition', `attachment; filename="swapp-backup-${new Date().toISOString().slice(0,10)}.json"`);
+    res.json(payload);
+  }catch(e){ recordSwappError('admin_export', req, e); res.status(500).json({ success:false, error:'Export indisponible.' }); }
+});
+
+app.post('/api/swapp/admin/import', async (req,res) => {
+  try{
+    if(!requireSwappAdmin(req,res)) return;
+    const mode = String(req.body?.mode || req.query?.mode || 'merge').toLowerCase() === 'replace' ? 'replace' : 'merge';
+    const dryRun = String(req.body?.dry_run ?? req.query?.dry_run ?? '').toLowerCase() === 'true' || req.body?.dry_run === true;
+    const result = await importSwappAdminBackup(req.body, { mode, dryRun });
+    res.setHeader('Cache-Control','no-store');
+    res.json(result);
+  }catch(e){ recordSwappError('admin_import', req, e); res.status(400).json({ success:false, error:'Import impossible.', detail:swappSanitizeErrorMessage(e) }); }
 });
 
 app.get('/api/swapp/diagnostic', async (req, res) => {
