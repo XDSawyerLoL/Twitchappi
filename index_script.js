@@ -9266,3 +9266,254 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   applySideLight();
   setTimeout(()=>applySideLight(),120);
 })();
+
+/* ===========================
+   Swapp hotfix — home background without side-panel seam
+   - Keeps the user color as the premium side light
+   - Removes the clipped background attached to the left copy column
+   - Keeps Discover/Categories/Teams unchanged
+   =========================== */
+(function swappHomeNoSidePanelSeam(){
+  if(window.__swappHomeNoSidePanelSeamApplied) return;
+  window.__swappHomeNoSidePanelSeamApplied = true;
+
+  const STYLE_ID = 'swappHomeNoSidePanelSeamStyle';
+  document.getElementById(STYLE_ID)?.remove();
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    body.swappSideLightOnly #home.view.active{
+      background:
+        radial-gradient(ellipse at -18% 36%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 42%, transparent), transparent 54%),
+        radial-gradient(ellipse at 26% 18%, rgba(168,85,247,.16), transparent 45%),
+        radial-gradient(ellipse at 82% 8%, rgba(34,211,238,.08), transparent 40%),
+        linear-gradient(112deg,color-mix(in srgb,var(--swapp-side-light,#22d3ee) 8%,#130f25) 0%,#0a1220 42%,#05070d 100%)!important;
+    }
+
+    body.swappSideLightOnly #home .owHomeFull,
+    body.swappSideLightOnly #home .homeClean,
+    body.swappSideLightOnly #home .owHeroTheater,
+    body.swappSideLightOnly #home .homeCleanHero{
+      background:transparent!important;
+      box-shadow:none!important;
+    }
+
+    body.swappSideLightOnly #home .owHeroTheater::before,
+    body.swappSideLightOnly #home .homeCleanHero::before,
+    body.swappSideLightOnly #home .owHeroTheater::after,
+    body.swappSideLightOnly #home .homeCleanHero::after{
+      background:none!important;
+      opacity:0!important;
+      display:none!important;
+    }
+
+    body.swappSideLightOnly #home .owHeroCopy,
+    body.swappSideLightOnly #home .homeCleanCopy,
+    body.swappSideLightOnly #home .owHeroCopy::before,
+    body.swappSideLightOnly #home .homeCleanCopy::before{
+      background:transparent!important;
+      box-shadow:none!important;
+      border-color:transparent!important;
+    }
+
+    body.swappSideLightOnly #home .owHeroCopy::before,
+    body.swappSideLightOnly #home .homeCleanCopy::before{
+      content:none!important;
+      display:none!important;
+    }
+
+    body.swappSideLightOnly #home .owHeroTheater,
+    body.swappSideLightOnly #home .homeCleanHero{
+      position:relative!important;
+    }
+
+    body.swappSideLightOnly #home .owHeroTheater > *,
+    body.swappSideLightOnly #home .homeCleanHero > *{
+      position:relative!important;
+      z-index:1!important;
+    }
+
+    body.swappSideLightOnly #home .owLiveTheater,
+    body.swappSideLightOnly #home .homeCleanLives{
+      background:transparent!important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* ===========================
+   Swapp hotfix — accueil background unifié sans démarcation
+   - La lumière de couleur est portée par un seul calque global sur #home
+   - Aucun background/mask ne reste sur la colonne texte ou la zone cartes
+   - Ne touche pas aux autres pages
+   =========================== */
+(function swappHomeUnifiedBackgroundNoSeam(){
+  if(window.__swappHomeUnifiedBackgroundNoSeamApplied) return;
+  window.__swappHomeUnifiedBackgroundNoSeamApplied = true;
+
+  const STYLE_ID = 'swappHomeUnifiedBackgroundNoSeamStyle';
+  document.getElementById(STYLE_ID)?.remove();
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    body.swappSideLightOnly #home.view.active,
+    body.swappHomeBlendPremium #home.view.active,
+    #home.view.active{
+      position:relative!important;
+      isolation:isolate!important;
+      overflow:hidden!important;
+      background:#05070d!important;
+      padding:0!important;
+    }
+
+    body.swappSideLightOnly #home.view.active::before,
+    body.swappHomeBlendPremium #home.view.active::before,
+    #home.view.active::before{
+      content:""!important;
+      position:absolute!important;
+      inset:0!important;
+      z-index:0!important;
+      pointer-events:none!important;
+      background:
+        radial-gradient(ellipse at -24% 36%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 46%, transparent), transparent 64%),
+        radial-gradient(ellipse at 18% 54%, color-mix(in srgb,var(--swapp-side-light,#22d3ee) 18%, transparent), transparent 70%),
+        radial-gradient(ellipse at 44% 8%, rgba(168,85,247,.16), transparent 56%),
+        radial-gradient(ellipse at 88% 10%, rgba(34,211,238,.08), transparent 44%),
+        linear-gradient(105deg,
+          color-mix(in srgb,var(--swapp-side-light,#22d3ee) 9%,#130f25) 0%,
+          #101829 34%,
+          #0a1320 58%,
+          #05070d 100%)!important;
+      transform:translateZ(0)!important;
+    }
+
+    body.swappSideLightOnly #home.view.active::after,
+    body.swappHomeBlendPremium #home.view.active::after,
+    #home.view.active::after{
+      content:""!important;
+      position:absolute!important;
+      inset:0!important;
+      z-index:0!important;
+      pointer-events:none!important;
+      background:
+        linear-gradient(90deg,
+          rgba(5,7,13,.04) 0%,
+          rgba(5,7,13,0) 30%,
+          rgba(5,7,13,.08) 58%,
+          rgba(5,7,13,.42) 100%),
+        linear-gradient(180deg,rgba(5,7,13,0) 0%,rgba(5,7,13,.18) 70%,rgba(5,7,13,.58) 100%)!important;
+    }
+
+    body.swappSideLightOnly #home.view.active > *,
+    body.swappHomeBlendPremium #home.view.active > *,
+    #home.view.active > *{
+      position:relative!important;
+      z-index:1!important;
+    }
+
+    body.swappSideLightOnly #home .owHomeFull,
+    body.swappSideLightOnly #home .homeClean,
+    body.swappSideLightOnly #home .owHeroTheater,
+    body.swappSideLightOnly #home .homeCleanHero,
+    body.swappSideLightOnly #home .owHeroCopy,
+    body.swappSideLightOnly #home .homeCleanCopy,
+    body.swappSideLightOnly #home .owLiveTheater,
+    body.swappSideLightOnly #home .homeCleanLives,
+    body.swappSideLightOnly #home .homeOnlyMain,
+    body.swappHomeBlendPremium #home .owHomeFull,
+    body.swappHomeBlendPremium #home .homeClean,
+    body.swappHomeBlendPremium #home .owHeroTheater,
+    body.swappHomeBlendPremium #home .homeCleanHero,
+    body.swappHomeBlendPremium #home .owHeroCopy,
+    body.swappHomeBlendPremium #home .homeCleanCopy,
+    body.swappHomeBlendPremium #home .owLiveTheater,
+    body.swappHomeBlendPremium #home .homeCleanLives,
+    body.swappHomeBlendPremium #home .homeOnlyMain,
+    #home .owHomeFull,
+    #home .homeClean,
+    #home .owHeroTheater,
+    #home .homeCleanHero,
+    #home .owHeroCopy,
+    #home .homeCleanCopy,
+    #home .owLiveTheater,
+    #home .homeCleanLives,
+    #home .homeOnlyMain{
+      background:transparent!important;
+      background-image:none!important;
+      box-shadow:none!important;
+      border-color:transparent!important;
+      isolation:auto!important;
+    }
+
+    body.swappSideLightOnly #home .owHeroTheater::before,
+    body.swappSideLightOnly #home .homeCleanHero::before,
+    body.swappSideLightOnly #home .owHeroTheater::after,
+    body.swappSideLightOnly #home .homeCleanHero::after,
+    body.swappSideLightOnly #home .owHeroCopy::before,
+    body.swappSideLightOnly #home .homeCleanCopy::before,
+    body.swappSideLightOnly #home .owHeroCopy::after,
+    body.swappSideLightOnly #home .homeCleanCopy::after,
+    body.swappHomeBlendPremium #home .owHeroTheater::before,
+    body.swappHomeBlendPremium #home .homeCleanHero::before,
+    body.swappHomeBlendPremium #home .owHeroTheater::after,
+    body.swappHomeBlendPremium #home .homeCleanHero::after,
+    body.swappHomeBlendPremium #home .owHeroCopy::before,
+    body.swappHomeBlendPremium #home .homeCleanCopy::before,
+    body.swappHomeBlendPremium #home .owHeroCopy::after,
+    body.swappHomeBlendPremium #home .homeCleanCopy::after,
+    #home .owHeroTheater::before,
+    #home .homeCleanHero::before,
+    #home .owHeroTheater::after,
+    #home .homeCleanHero::after,
+    #home .owHeroCopy::before,
+    #home .homeCleanCopy::before,
+    #home .owHeroCopy::after,
+    #home .homeCleanCopy::after{
+      content:none!important;
+      display:none!important;
+      background:none!important;
+      opacity:0!important;
+    }
+
+    body.swappSideLightOnly #home .owLiveTheater,
+    body.swappSideLightOnly #home .homeCleanLives,
+    body.swappHomeBlendPremium #home .owLiveTheater,
+    body.swappHomeBlendPremium #home .homeCleanLives,
+    #home .owLiveTheater,
+    #home .homeCleanLives{
+      mask-image:none!important;
+      -webkit-mask-image:none!important;
+      clip-path:none!important;
+    }
+
+    body.swappSideLightOnly #home .owHeroTheater,
+    body.swappSideLightOnly #home .homeCleanHero,
+    body.swappHomeBlendPremium #home .owHeroTheater,
+    body.swappHomeBlendPremium #home .homeCleanHero,
+    #home .owHeroTheater,
+    #home .homeCleanHero{
+      display:grid!important;
+      grid-template-columns:minmax(360px,36vw) minmax(0,1fr)!important;
+      gap:0!important;
+      min-height:calc(100svh - 68px)!important;
+      width:100vw!important;
+      max-width:none!important;
+      margin:0!important;
+      border-radius:0!important;
+      overflow:hidden!important;
+    }
+
+    @media(max-width:1180px){
+      body.swappSideLightOnly #home .owHeroTheater,
+      body.swappSideLightOnly #home .homeCleanHero,
+      body.swappHomeBlendPremium #home .owHeroTheater,
+      body.swappHomeBlendPremium #home .homeCleanHero,
+      #home .owHeroTheater,
+      #home .homeCleanHero{
+        grid-template-columns:1fr!important;
+        min-height:auto!important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
