@@ -9980,3 +9980,78 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     if(resetToken()) setTimeout(()=>{ try{ setView?.('settings'); }catch(_e){} }, 120);
   });
 })();
+
+/* =========================================================
+   SWAPP — password reset route fix
+   Functional only: always show reset form when reset_token is present,
+   even if the user still has an active session.
+   ========================================================= */
+(function swappPasswordResetRouteFix(){
+  if(window.__SWAPP_PASSWORD_RESET_ROUTE_FIX_V1__) return;
+  window.__SWAPP_PASSWORD_RESET_ROUTE_FIX_V1__ = true;
+  const safe = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])));
+  function params(){ try{ return new URLSearchParams(location.search || ''); }catch(_){ return new URLSearchParams(''); } }
+  function token(){ return (params().get('reset_token') || params().get('token') || '').trim(); }
+  function loginHint(){ return (params().get('reset_login') || '').trim(); }
+  function resetMarkup(t){
+    return `<div class="settingsShell"><div class="settingsHero"><div><h1>Nouveau mot de passe</h1><p>Choisis un nouveau mot de passe pour ton compte Swapp${loginHint()?` · ${safe(loginHint())}`:''}.</p></div></div><div class="authCenterWrap"><div class="authCenterGrid"><form id="resetPasswordForm" class="authCard"><h2>Réinitialisation</h2><p>Le lien reçu par email est valide pendant 60 minutes.</p><input id="resetNewPassword" type="password" autocomplete="new-password" placeholder="nouveau mot de passe"><input id="resetNewPassword2" type="password" autocomplete="new-password" placeholder="confirmer le mot de passe"><input id="resetToken" type="hidden" value="${safe(t)}"><button class="btn">Réinitialiser</button><button type="button" class="btn secondary" id="cancelResetPassword">Annuler</button></form></div></div></div>`;
+  }
+  function bindResetForm(){
+    const form = document.getElementById('resetPasswordForm');
+    if(!form || form.__swappResetRouteBound) return;
+    form.__swappResetRouteBound = true;
+    const cancel = document.getElementById('cancelResetPassword');
+    if(cancel) cancel.onclick = ()=>{ try{ history.replaceState(null,'','/compte'); }catch(_e){} setView?.('settings'); };
+    form.onsubmit = async (e)=>{
+      e.preventDefault();
+      const password = document.getElementById('resetNewPassword')?.value || '';
+      const confirm = document.getElementById('resetNewPassword2')?.value || '';
+      const t = document.getElementById('resetToken')?.value || token();
+      if(password.length < 6) return toast?.('Mot de passe trop court.');
+      if(password !== confirm) return toast?.('Les deux mots de passe ne correspondent pas.');
+      const r = await api('/api/oryon/password/reset', { method:'POST', body:JSON.stringify({ token:t, password }) });
+      if(r.success){
+        try{ history.replaceState(null,'','/compte'); }catch(_e){}
+        toast?.('Mot de passe réinitialisé.');
+        if(window.state) state.session.local = r.user || state.session.local;
+        await loadSession?.();
+        return setView?.('settings');
+      }
+      toast?.(r.error || 'Lien invalide ou expiré.');
+    };
+  }
+  function showResetPage(){
+    const t = token();
+    if(!t) return false;
+    const root = document.getElementById('settings');
+    if(!root) return false;
+    try{ if(window.state) state.view = 'settings'; }catch(_e){}
+    try{ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id === 'settings')); }catch(_e){}
+    try{ renderNav?.(); renderUserMenu?.(); }catch(_e){}
+    root.innerHTML = resetMarkup(t);
+    bindResetForm();
+    return true;
+  }
+
+  const previousRenderSettings = window.renderSettings || (typeof renderSettings === 'function' ? renderSettings : null);
+  if(typeof previousRenderSettings === 'function' && !previousRenderSettings.__swappResetRouteFixWrapped){
+    const wrapped = async function(){
+      if(token()) return showResetPage();
+      return previousRenderSettings.apply(this, arguments);
+    };
+    wrapped.__swappResetRouteFixWrapped = true;
+    window.renderSettings = wrapped;
+    try{ renderSettings = wrapped; }catch(_e){}
+  }
+
+  function boot(){
+    if(!token()) return;
+    try{
+      if(typeof setView === 'function') setView('settings');
+      else showResetPage();
+    }catch(_e){ showResetPage(); }
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(boot, 80));
+  window.addEventListener('load',()=>setTimeout(boot, 120));
+  setTimeout(boot, 180);
+})();
