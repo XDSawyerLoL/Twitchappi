@@ -3544,6 +3544,56 @@ function accountLikeKeys(user){
   }
   return keys;
 }
+
+function publicSwappLikeItem(x){
+  x = x || {};
+  return {
+    key: String(x.key || `${String(x.platform||'').toLowerCase()}:${String(x.login||'').toLowerCase()}`).slice(0,180),
+    platform: String(x.platform || '').toLowerCase().slice(0,30),
+    login: String(x.login || '').toLowerCase().slice(0,80),
+    name: String(x.name || x.display_name || x.login || '').slice(0,120),
+    title: String(x.title || '').slice(0,240),
+    category: String(x.category || x.game_name || '').slice(0,160),
+    game_name: String(x.game_name || x.category || '').slice(0,160),
+    thumbnail_url: String(x.thumbnail_url || '').slice(0,1200),
+    viewers: Number(x.viewers || x.viewer_count || 0) || 0,
+    likedAt: Number(x.likedAt || x.createdAt || 0) || 0
+  };
+}
+function getSwappLikesForUser(user, limit=200){
+  return (Array.isArray(user?.swapp_likes) ? user.swapp_likes : [])
+    .map(publicSwappLikeItem)
+    .filter(x => x.platform && x.login)
+    .sort((a,b) => Number(b.likedAt||0) - Number(a.likedAt||0))
+    .slice(0, Math.max(1, Math.min(500, Number(limit)||200)));
+}
+async function removeExplicitLikeFromOryonAccount(req, rawStream){
+  const ctx = getLocalOryonUserForReq(req);
+  const stream = normalizeChoiceStream(rawStream || {});
+  if(!ctx?.user || !stream?.login) return { removed:false, likes:[], persistence:null };
+  const { data, user } = ctx;
+  const key = `${stream.platform}:${stream.login}`.toLowerCase();
+  const before = Array.isArray(user.swapp_likes) ? user.swapp_likes.length : 0;
+  user.swapp_likes = (Array.isArray(user.swapp_likes) ? user.swapp_likes : [])
+    .filter(x => `${String(x.platform||'').toLowerCase()}:${String(x.login||'').toLowerCase()}` !== key);
+  user.recommendation_likes_count = user.swapp_likes.length;
+  if(stream.platform === 'oryon'){
+    const target = normalizeOryonLogin(stream.login);
+    user.liked_channels = (Array.isArray(user.liked_channels) ? user.liked_channels : []).filter(x => normalizeOryonLogin(x) !== target);
+    const creator = (data.users || []).find(u => u.login === target);
+    if(creator && creator.id !== user.id && before !== user.swapp_likes.length){
+      creator.likes_count = Math.max(0, Number(creator.likes_count || 0) - 1);
+    }
+  }
+  const persistence = await writeOryonUsersAndWait(data);
+  try{
+    const identity = viewerIdentityFromReq(req);
+    const profile = await readViewerProfile(identity);
+    if(profile?.liked) delete profile.liked[key];
+    await writeViewerProfile(identity, profile);
+  }catch(e){ console.warn('[SWAPP] unlike viewer profile cleanup failed:', e.message); }
+  return { removed: before !== user.swapp_likes.length, likes:getSwappLikesForUser(user), persistence:persistence||null };
+}
 async function twitchStreamsForLogins(logins){
   const clean = Array.from(new Set((logins || []).map(x => String(x || '').toLowerCase().replace(/[^a-z0-9_]/g,'')).filter(Boolean))).slice(0,100);
   if(!clean.length || !TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) return [];
@@ -3683,6 +3733,53 @@ app.post('/api/oryon/viewer/history', async (req,res)=>{
     profile.history_enabled = enabled;
     await writeViewerProfile(identity, profile);
     res.json({success:true,enabled});
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+
+
+// Universal Swapp likes API: one stable endpoint for Twitch + Swapp/native lives.
+// Visual layer can call this without knowing whether the live comes from Twitch or Swapp.
+app.get('/api/swapp/likes', async (req,res)=>{
+  try{
+    const ctx = getLocalOryonUserForReq(req);
+    if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true,items:[]});
+    const limit = Math.max(1, Math.min(500, parseInt(req.query.limit || '200', 10) || 200));
+    res.setHeader('Cache-Control','no-store');
+    res.json({
+      success:true,
+      items:getSwappLikesForUser(ctx.user, limit),
+      count:getSwappLikesForUser(ctx.user, limit).length,
+      history_enabled:!!ctx.user.recommendation_history_enabled
+    });
+  }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
+});
+app.post('/api/swapp/like', async (req,res)=>{
+  try{
+    const ctx = getLocalOryonUserForReq(req);
+    if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true});
+    const raw = req.body?.stream || req.body?.live || req.body || {};
+    const stream = normalizeChoiceStream(raw);
+    if(!stream.login) return res.status(400).json({success:false,error:'Live ou chaîne invalide.'});
+    const action = String(req.body?.action || '').toLowerCase();
+    const shouldUnlike = action === 'unlike' || action === 'remove' || req.body?.liked === false;
+    if(shouldUnlike){
+      const out = await removeExplicitLikeFromOryonAccount(req, stream);
+      return res.json({success:true,liked:false,removed:out.removed,items:out.likes,count:out.likes.length,persistence:out.persistence});
+    }
+    await saveViewerChoice(req, { action:'like', mood:req.body?.mood || '', stream });
+    const fresh = getLocalOryonUserForReq(req);
+    const items = getSwappLikesForUser(fresh?.user || ctx.user);
+    res.json({success:true,liked:true,items,count:items.length,persistence:firestoreOk ? 'firestore' : 'local-json'});
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+});
+app.delete('/api/swapp/like', async (req,res)=>{
+  try{
+    const ctx = getLocalOryonUserForReq(req);
+    if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true});
+    const stream = normalizeChoiceStream(req.body?.stream || req.body?.live || req.body || {});
+    if(!stream.login) return res.status(400).json({success:false,error:'Live ou chaîne invalide.'});
+    const out = await removeExplicitLikeFromOryonAccount(req, stream);
+    res.json({success:true,liked:false,removed:out.removed,items:out.likes,count:out.likes.length,persistence:out.persistence});
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
 app.get('/api/oryon/viewer/feed', heavyLimiter, async (req,res)=>{
@@ -7865,7 +7962,7 @@ async function buildSwappDiagnostic(req){
     },
     streamer_ready:streamerReady,
     routes:{
-      viewer:['/api/oryon/viewer/choice','/api/oryon/viewer/history','/api/oryon/viewer/feed'],
+      viewer:['/api/oryon/viewer/choice','/api/oryon/viewer/history','/api/oryon/viewer/feed','/api/swapp/likes','/api/swapp/like'],
       streamer:['/api/oryon/profile','/api/oryon/stream-key','/api/oryon/local-agent/config','/c/:login'],
       discovery:['/api/discovery/home-lives','/api/oryon/discover','/api/oryon/channels'],
       diagnostics:['/api/swapp/diagnostic','/api/swapp/readiness','/api/oryon/channel/:login/readiness']
