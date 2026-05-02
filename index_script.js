@@ -7,6 +7,7 @@ const state={session:{local:null,twitch:null},view:'home',socket:null,socketLogi
 
 // Swapp password reset: preserve the token from the email link before routing can rewrite anything.
 function swappExtractPasswordResetTokenFromLocation(){
+ try{ if(globalThis.__SWAPP_PASSWORD_RESET_CONSUMED__) return ''; }catch(_e){}
  try{
    const p=new URLSearchParams(location.search||'');
    const q=(p.get('reset_token') || p.get('token') || '').trim();
@@ -35,6 +36,7 @@ const SWAPP_INITIAL_RESET_LOGIN = swappExtractPasswordResetLoginFromLocation();
 try{ if(SWAPP_INITIAL_RESET_TOKEN) sessionStorage.setItem('swapp_password_reset_token', SWAPP_INITIAL_RESET_TOKEN); }catch(_){}
 try{ if(SWAPP_INITIAL_RESET_LOGIN) sessionStorage.setItem('swapp_password_reset_login', SWAPP_INITIAL_RESET_LOGIN); }catch(_){}
 function swappPasswordResetToken(){
+ try{ if(globalThis.__SWAPP_PASSWORD_RESET_CONSUMED__) return ''; }catch(_e){}
  const t = swappExtractPasswordResetTokenFromLocation() || SWAPP_INITIAL_RESET_TOKEN || '';
  try{ if(t) sessionStorage.setItem('swapp_password_reset_token', t); }catch(_){}
  return String(t||'').trim();
@@ -45,6 +47,24 @@ function swappPasswordResetLoginHint(){
  return String(l||'').trim();
 }
 function swappHasPasswordResetToken(){ return !!swappPasswordResetToken(); }
+function swappClearPasswordResetMode(){
+ try{ globalThis.__SWAPP_PASSWORD_RESET_CONSUMED__ = true; }catch(_e){}
+ try{ sessionStorage.removeItem('swapp_password_reset_token'); sessionStorage.removeItem('swapp_password_reset_login'); }catch(_e){}
+}
+async function swappFinishPasswordReset(user){
+ swappClearPasswordResetMode();
+ if(window.state) state.session.local = user || state.session.local;
+ try{ await loadSession?.(); }catch(_e){}
+ const login = swappCleanLogin(user?.login || state.session?.local?.login || '');
+ if(login){
+   state.watchRoom = login;
+   try{ history.replaceState(null,'',swappChannelPath(login)); }catch(_e){}
+   try{ await setView?.('channel'); }catch(_e){}
+   return;
+ }
+ try{ history.replaceState(null,'','/compte'); }catch(_e){}
+ try{ await setView?.('settings'); }catch(_e){}
+}
 
 const SWAPP_VIEW_PATHS={home:'/',discover:'/decouvrir',twitch:'/twitch',categories:'/categories',teams:'/equipes',settings:'/compte',manager:'/gestionnaire',dashboard:'/dashboard',studio:'/studio',admin:'/admin',resetPassword:'/reset-password'};
 const SWAPP_PATH_VIEWS={'/':'home','/home':'home','/accueil':'home','/discover':'discover','/decouvrir':'discover','/twitch':'twitch','/categories':'categories','/category':'categories','/equipes':'teams','/teams':'teams','/compte':'settings','/connexion':'settings','/settings':'settings','/chaine':'channel','/channel':'channel','/gestionnaire':'manager','/manager':'manager','/dashboard':'dashboard','/studio':'studio','/admin':'admin','/reset-password':'settings'};
@@ -9989,12 +10009,8 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
         if(password !== confirm) return toast?.('Les deux mots de passe ne correspondent pas.');
         const r = await api('/api/oryon/password/reset', { method:'POST', body:JSON.stringify({ token, password }) });
         if(r.success){
-          try{ history.replaceState(null,'','/compte'); }catch(_e){}
-          try{ sessionStorage.removeItem('swapp_password_reset_token'); sessionStorage.removeItem('swapp_password_reset_login'); }catch(_e){}
           toast?.('Mot de passe réinitialisé.');
-          if(window.state){ state.session.local = r.user || state.session.local; }
-          await loadSession?.();
-          setView?.('settings');
+          await swappFinishPasswordReset(r.user);
         }else{
           toast?.(r.error || 'Lien invalide ou expiré.');
         }
@@ -10056,12 +10072,9 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       if(password !== confirm) return toast?.('Les deux mots de passe ne correspondent pas.');
       const r = await api('/api/oryon/password/reset', { method:'POST', body:JSON.stringify({ token:t, password }) });
       if(r.success){
-        try{ history.replaceState(null,'','/compte'); }catch(_e){}
-        try{ sessionStorage.removeItem('swapp_password_reset_token'); sessionStorage.removeItem('swapp_password_reset_login'); }catch(_e){}
         toast?.('Mot de passe réinitialisé.');
-        if(window.state) state.session.local = r.user || state.session.local;
-        await loadSession?.();
-        return setView?.('settings');
+        await swappFinishPasswordReset(r.user);
+        return;
       }
       toast?.(r.error || 'Lien invalide ou expiré.');
     };
@@ -10131,11 +10144,9 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       if(password!==confirm) return toast?.('Les deux mots de passe ne correspondent pas.');
       const r=await api('/api/oryon/password/reset',{method:'POST',body:JSON.stringify({token,password})});
       if(r.success){
-        try{ sessionStorage.removeItem('swapp_password_reset_token'); sessionStorage.removeItem('swapp_password_reset_login'); history.replaceState(null,'','/compte'); }catch(_e){}
         toast?.('Mot de passe réinitialisé.');
-        if(window.state) state.session.local=r.user||state.session.local;
-        await loadSession?.();
-        return setView?.('settings');
+        await swappFinishPasswordReset(r.user);
+        return;
       }
       toast?.(r.error||'Lien invalide ou expiré.');
     };
