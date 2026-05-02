@@ -793,6 +793,28 @@ function sendPublicFile(res, file, type){
   if(type) res.type(type);
   return res.sendFile(full);
 }
+
+function sendSwappUi(res){
+  const rawCandidates = [
+    process.env.UI_FILE,
+    'index.html',
+    'NicheOptimizer.html',
+    'NicheOptimizer_v56.html'
+  ].filter(Boolean);
+  const candidates = rawCandidates
+    .map(String)
+    .map(f => f.trim())
+    .filter(f => /\.html?$/i.test(f));
+  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
+  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
+  return res.sendFile(path.join(__dirname, found));
+}
+const SWAPP_CLEAN_VIEW_PATHS = new Set(['/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin']);
+const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets']);
+function isSwappCleanChannelSlug(slug){
+  const clean = String(slug || '').trim().toLowerCase();
+  return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
+}
 app.get('/index_script.js', (_req,res)=>sendPublicFile(res, 'index_script.js', 'application/javascript'));
 app.get('/favicon.ico', (_req,res)=>sendPublicFile(res, 'favicon.ico', 'image/x-icon'));
 
@@ -832,6 +854,14 @@ app.get('/c/:login', (req, res) => {
   const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
   return res.sendFile(path.join(__dirname, found));
+});
+
+// Clean SPA URLs. /c/:login remains a compatibility alias, but public channel URLs are /pseudo.
+app.get(Array.from(SWAPP_CLEAN_VIEW_PATHS), (_req, res) => sendSwappUi(res));
+app.get(/^\/([a-zA-Z0-9_][a-zA-Z0-9_-]{1,39})$/, (req, res, next) => {
+  const slug = String(req.params[0] || '').toLowerCase();
+  if(!isSwappCleanChannelSlug(slug)) return next();
+  return sendSwappUi(res);
 });
 
 app.get('/pricing', (req, res) => {
@@ -2620,7 +2650,7 @@ let __oryonUsersPersistence = 'json-local';
 const SWAPP_CHANNEL_SCHEMA_VERSION = 3;
 function swappChannelPathForLogin(login){
   const clean = normalizeOryonLogin(login);
-  return clean ? '/c/' + encodeURIComponent(clean) : '';
+  return clean ? '/' + encodeURIComponent(clean) : '';
 }
 function normalizeArrayUnique(values, normalizer = x => String(x || '').trim(), limit = 80){
   const out = [];
@@ -2686,7 +2716,7 @@ function normalizeOryonUsersPayload(data, options = { ensureStreamKey:true }){
       loginConflicts.push(u.login);
       u.channel_conflict = true;
       // Keep the first owner of the public URL. Duplicate accounts must be resolved manually,
-      // not silently renamed, because /c/pseudo is a public identity.
+      // not silently renamed, because /pseudo is a public identity.
       continue;
     }
     seenIds.add(idKey);
@@ -4430,7 +4460,7 @@ function discoveryNormCandidate(x){
     tags: Array.isArray(x.tags) ? x.tags : [],
     chat_messages: Number(x.chat_messages || 0),
     embed_url: x.embed_url || x.oryon_local_player_url || '',
-    watch_url: x.watch_url || x.peertube_watch_url || (platform === 'oryon' && login ? `/c/${encodeURIComponent(login)}` : ''),
+    watch_url: x.watch_url || x.peertube_watch_url || (platform === 'oryon' && login ? swappChannelPathForLogin(login) : ''),
     local_agent: !!x.local_agent,
     score: Number(x.score || x.oryon_score || 0) || 0
   };
@@ -4564,7 +4594,7 @@ function discoverNativeItemsFor(q='', max=200, source='both', profile=null){
     thumbnail_url:u.offline_image_url || u.banner_url || u.avatar_url || '',
     avatar_url:u.avatar_url || '',
     embed_url:u.oryon_local_player_url || '',
-    watch_url:`/c/${encodeURIComponent(u.login)}`
+    watch_url: swappChannelPathForLogin(u.login)
   }));
   const seen = new Set();
   return [...nativeRooms, ...localAgentItems]
@@ -8382,7 +8412,7 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
 
 
 
-// Public Swapp channel directory: every created account has a persistent public channel at /c/:login.
+// Public Swapp channel directory: every created account has a persistent public channel at /:login. /c/:login is kept as a legacy alias.
 app.get('/api/oryon/channels', async (req, res) => {
   try{
     const q = String(req.query.q || '').trim().toLowerCase().slice(0, 80);
@@ -8402,7 +8432,7 @@ app.get('/api/oryon/channels', async (req, res) => {
         const live = lives.get(String(pub.login || '').toLowerCase()) || null;
         return {
           ...pub,
-          public_url: `/c/${encodeURIComponent(pub.login)}`,
+          public_url: swappChannelPathForLogin(pub.login),
           live_status: (!!live || !!pub.local_agent_live) ? 'live' : (pub.live_status || 'offline'),
           is_live: !!live || !!pub.local_agent_live,
           live_title: live?.title || (pub.local_agent_live ? `Live de ${pub.display_name || pub.login}` : ''),
@@ -8491,7 +8521,7 @@ async function buildSwappDiagnostic(req){
   const redirectOk = !!(configuredRedirect && expectedRedirect && configuredRedirect.replace(/\/$/,'') === expectedRedirect.replace(/\/$/,''));
   const streamerReady = users.filter(u => u?.login).map(u => ({
     login:u.login,
-    public_url:'/c/' + encodeURIComponent(u.login),
+    public_url: swappChannelPathForLogin(u.login),
     has_stream_key:!!u.stream_key,
     has_profile:!!(u.display_name || u.bio || u.avatar_url || u.banner_url || u.offline_image_url),
     local_agent_live:!!u.local_agent_live,
@@ -8534,7 +8564,7 @@ async function buildSwappDiagnostic(req){
     streamer_ready:streamerReady,
     routes:{
       viewer:['/api/oryon/viewer/choice','/api/oryon/viewer/history','/api/oryon/viewer/feed','/api/swapp/feed','/api/swapp/likes','/api/swapp/like'],
-      streamer:['/api/oryon/profile','/api/oryon/stream-key','/api/oryon/local-agent/config','/c/:login'],
+      streamer:['/api/oryon/profile','/api/oryon/stream-key','/api/oryon/local-agent/config','/:login'],
       discovery:['/api/discovery/home-lives','/api/oryon/discover','/api/oryon/channels'],
       diagnostics:['/api/swapp/diagnostic','/api/swapp/readiness','/api/oryon/channel/:login/readiness']
     }
@@ -8617,7 +8647,7 @@ app.get('/api/oryon/channel/:login/readiness', async (req, res) => {
     if(!user) return res.status(404).json({success:false,ready:false,error:'Chaîne introuvable.'});
     const live = nativeLiveRooms.get(login) || null;
     const localLiveFresh = !!(user.local_agent_live && (!user.local_agent_last_seen || Date.now() - Number(user.local_agent_last_seen || 0) <= oryonLiveSignalTimeoutMs()));
-    const publicUrl = '/c/' + encodeURIComponent(login);
+    const publicUrl = swappChannelPathForLogin(login);
     res.json({
       success:true,
       ready:true,
