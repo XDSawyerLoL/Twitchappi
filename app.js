@@ -478,6 +478,114 @@ const sessionMiddleware = session({
 
 app.use(sessionMiddleware);
 
+
+// =========================================================
+// SWAPP — session persistante compte local
+// =========================================================
+const SWAPP_REMEMBER_COOKIE = 'swapp.remember';
+const SWAPP_REMEMBER_MAX_AGE_MS = Math.max(24 * 60 * 60 * 1000, Number(process.env.SWAPP_REMEMBER_MAX_AGE_MS || 180 * 24 * 60 * 60 * 1000));
+function swappRememberSecret(){
+  return String(process.env.SWAPP_ACCOUNT_RECOVERY_SECRET || configuredSessionSecret || process.env.SWAPP_ADMIN_KEY || generatedSessionSecret || DEV_SESSION_SECRET || 'swapp-dev-secret');
+}
+function swappBase64Url(input){
+  return Buffer.from(String(input)).toString('base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function swappBase64UrlDecode(input){
+  const s = String(input || '').replace(/-/g,'+').replace(/_/g,'/');
+  return Buffer.from(s + '='.repeat((4 - s.length % 4) % 4), 'base64').toString('utf8');
+}
+function swappSignRememberPayload(payload){
+  const body = swappBase64Url(JSON.stringify(payload || {}));
+  const sig = crypto.createHmac('sha256', swappRememberSecret()).update(body).digest('base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  return `${body}.${sig}`;
+}
+function swappReadRememberPayload(raw){
+  try{
+    const [body, sig] = String(raw || '').split('.');
+    if(!body || !sig) return null;
+    const expected = crypto.createHmac('sha256', swappRememberSecret()).update(body).digest('base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expected);
+    if(a.length !== b.length || !crypto.timingSafeEqual(a,b)) return null;
+    const payload = JSON.parse(swappBase64UrlDecode(body));
+    if(!payload || Number(payload.exp || 0) < Date.now()) return null;
+    return payload;
+  }catch(_){ return null; }
+}
+function swappRememberUserSnapshot(user){
+  const login = normalizeOryonLogin(user?.login || user?.username || '');
+  if(!login) return null;
+  return {
+    login,
+    display_name: String(user?.display_name || user?.name || login).trim().slice(0,40) || login,
+    email: normalizeOryonEmail(user?.email || ''),
+    bio: String(user?.bio || '').trim().slice(0,500),
+    tags: Array.isArray(user?.tags) ? user.tags.map(x => String(x).trim()).filter(Boolean).slice(0,8) : [],
+    language: String(user?.language || 'fr').trim().slice(0,12) || 'fr',
+    content_rating: String(user?.content_rating || 'general').trim().slice(0,24) || 'general',
+    channel_createdAt: Number(user?.channel_createdAt || user?.createdAt || Date.now()),
+    public_path: swappChannelPathForLogin(login),
+    public_url: swappChannelPathForLogin(login)
+  };
+}
+function setOryonRememberCookie(res, user, token){
+  try{
+    if(!res || !user?.login || !token) return;
+    const snapshot = swappRememberUserSnapshot(user);
+    if(!snapshot) return;
+    const now = Date.now();
+    const payload = { v:1, login:snapshot.login, remember_token:String(token), user:snapshot, iat:now, exp:now + SWAPP_REMEMBER_MAX_AGE_MS };
+    res.cookie(SWAPP_REMEMBER_COOKIE, swappSignRememberPayload(payload), {
+      httpOnly:true,
+      sameSite:'lax',
+      secure:IS_PROD,
+      path:'/',
+      maxAge:SWAPP_REMEMBER_MAX_AGE_MS
+    });
+  }catch(e){ console.warn('[SWAPP] remember cookie non écrit:', e.message); }
+}
+function clearOryonRememberCookie(res){
+  try{ res.clearCookie(SWAPP_REMEMBER_COOKIE, { path:'/', sameSite:'lax', secure:IS_PROD }); }catch(_){ }
+}
+async function restoreOryonSessionFromRememberCookie(req, res){
+  try{
+    if(req.session?.oryonUser?.id) return req.session.oryonUser;
+    const payload = swappReadRememberPayload(req.cookies?.[SWAPP_REMEMBER_COOKIE]);
+    if(!payload?.login || !payload?.remember_token) return null;
+    const login = normalizeOryonLogin(payload.login);
+    if(!login) return null;
+    try{ await loadOryonUsersPersistent(); }catch(_){ }
+    const data = readOryonUsers();
+    let user = (data.users || []).find(u => normalizeOryonLogin(u.login) === login);
+    if(user){
+      if(!verifyOryonRememberToken(user, payload.remember_token)) return null;
+      ensureOryonUserShape(user, { ensureStreamKey:true });
+    }else{
+      const backup = publicRecoverUserPayload(payload.user || {});
+      if(!backup || normalizeOryonLogin(backup.login) !== login) return null;
+      if(!oryonLoginAvailable(data, login)) return null;
+      user = ensureOryonUserShape({
+        id: crypto.randomBytes(12).toString('hex'),
+        ...backup,
+        email_verified:true,
+        password_hash: hashOryonPassword(crypto.randomBytes(18).toString('hex')),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        recovered_from_cookie:true
+      }, { ensureStreamKey:true });
+      data.users.push(user);
+    }
+    const remember_token = issueOryonRememberToken(user, data);
+    await writeOryonUsersAndWait(data);
+    req.session.oryonUser = sessionOryonUser(user);
+    setOryonRememberCookie(res, user, remember_token);
+    return req.session.oryonUser;
+  }catch(e){
+    try{ recordSwappError('remember_restore', req, e); }catch(_){ }
+    return null;
+  }
+}
+
 // =========================================================
 // SWAPP — garde-fous prod, sessions, admin et erreurs
 // =========================================================
@@ -3085,6 +3193,7 @@ app.get('/api/webrtc/config', (req, res) => {
 
 app.get('/api/oryon/session', async (req, res) => {
   try{
+    await restoreOryonSessionFromRememberCookie(req, res);
     const local = req.session?.oryonUser;
     if(local?.id && !req.session.twitchUser){
       const ud = readOryonUsers();
@@ -3113,6 +3222,7 @@ app.post('/api/oryon/register', async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, emailVerificationRequired:false, persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
@@ -3141,6 +3251,7 @@ app.post('/api/oryon/login', async (req, res) => {
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const remember_token = issueOryonRememberToken(user, data);
     req.session.oryonUser = sessionOryonUser(user);
+    setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
@@ -3157,12 +3268,14 @@ app.post('/api/oryon/restore-session', async (req, res) => {
     ensureOryonUserShape(user, { ensureStreamKey:true });
     await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
-    req.session.save(() => res.json({success:true,user:publicOryonUser(user)}));
+    setOryonRememberCookie(res, user, token);
+    req.session.save(() => res.json({success:true,user:publicOryonUser(user),remember_token:token}));
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
 
 app.post('/api/oryon/logout', (req, res) => {
   req.session.oryonUser = null;
+  clearOryonRememberCookie(res);
   req.session.save(() => res.json({ success:true }));
 });
 
@@ -8815,6 +8928,7 @@ app.post('/api/oryon/client-recover', async (req, res) => {
     const remember_token = issueOryonRememberToken(user, data);
     const persistResult = await writeOryonUsersAndWait(data);
     req.session.oryonUser = sessionOryonUser(user);
+    setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({success:true,user:publicOryonUser(user),remember_token,persistence:persistResult||null,recovered:true}));
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
