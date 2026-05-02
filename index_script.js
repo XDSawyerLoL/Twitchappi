@@ -9883,3 +9883,100 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.addEventListener('load',()=>setTimeout(()=>{canonicalizeLegacyChannelPath();canonicalizeHashUrl();cleanLegacyLinks(document);swappRefreshLikes();},120));
   setTimeout(()=>{canonicalizeLegacyChannelPath();canonicalizeHashUrl();cleanLegacyLinks(document);swappRefreshLikes();},180);
 })();
+
+/* =========================================================
+   SWAPP — password recovery + account readiness hooks
+   Functional only: no global visual/theme/layout rewrite.
+   ========================================================= */
+(function swappPasswordRecoveryAndReadiness(){
+  if(window.__SWAPP_PASSWORD_RECOVERY_V1__) return;
+  window.__SWAPP_PASSWORD_RECOVERY_V1__ = true;
+  const safe = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])));
+  function resetParams(){
+    try{ return new URLSearchParams(location.search || ''); }catch(_){ return new URLSearchParams(''); }
+  }
+  function resetToken(){ return resetParams().get('reset_token') || resetParams().get('token') || ''; }
+  function resetLoginHint(){ return resetParams().get('reset_login') || ''; }
+  function forgotCardHtml(){
+    return `<form id="forgotPasswordForm" class="authCard"><h2>Mot de passe oublié</h2><p>Entre ton email ou ton pseudo. Si le compte existe, un lien de récupération sera envoyé par email.</p><input id="forgotIdentity" placeholder="email ou pseudo"><button class="btn">Envoyer le lien</button><p class="small muted">Le lien expire automatiquement. Aucun mot de passe n’est envoyé par email.</p></form>`;
+  }
+  function resetCardHtml(token){
+    return `<form id="resetPasswordForm" class="authCard"><h2>Nouveau mot de passe</h2><p>Choisis un nouveau mot de passe pour ton compte Swapp${resetLoginHint()?` · ${safe(resetLoginHint())}`:''}.</p><input id="resetNewPassword" type="password" placeholder="nouveau mot de passe"><input id="resetNewPassword2" type="password" placeholder="confirmer le mot de passe"><input id="resetToken" type="hidden" value="${safe(token)}"><button class="btn">Réinitialiser</button><button type="button" class="btn secondary" onclick="history.replaceState(null,'','/compte'); setView('settings')">Annuler</button></form>`;
+  }
+  const previousAuthSettings = window.authSettings || (typeof authSettings === 'function' ? authSettings : null);
+  const recoveryAuthSettings = function authSettingsWithPasswordRecovery(){
+    const token = resetToken();
+    if(token){
+      return `<div class="authCenterWrap"><div class="authCenterGrid">${resetCardHtml(token)}<form id="loginForm" class="authCard"><h2>Connexion Swapp</h2><p>Tu peux aussi te reconnecter si tu connais ton mot de passe.</p><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn">Se connecter</button></form></div></div>`;
+    }
+    return `<div class="authCenterWrap"><div class="authCenterGrid"><form id="loginForm" class="authCard"><h2>Connexion Swapp</h2><p>Connecte-toi pour retrouver ta chaîne, ton profil viewer et ton menu stream.</p><input id="loginName" placeholder="pseudo"><input id="loginPass" type="password" placeholder="mot de passe"><button class="btn">Se connecter</button><button type="button" class="btn secondary" onclick="document.getElementById('forgotIdentity')?.focus()">Mot de passe oublié</button></form><form id="registerForm" class="authCard"><h2>Créer un compte</h2><p>Crée ton compte Swapp dans un espace propre et centré.</p><input id="regName" placeholder="pseudo"><input id="regEmail" type="email" placeholder="email"><input id="regPass" type="password" placeholder="mot de passe"><button class="btn">Créer</button></form>${forgotCardHtml()}</div></div>`;
+  };
+  window.authSettings = recoveryAuthSettings;
+  try{ authSettings = recoveryAuthSettings; }catch(_e){}
+
+  const previousBindSettingsForms = window.bindSettingsForms || (typeof bindSettingsForms === 'function' ? bindSettingsForms : null);
+  const recoveryBindSettingsForms = function bindSettingsFormsWithPasswordRecovery(){
+    if(typeof previousBindSettingsForms === 'function') previousBindSettingsForms.apply(this, arguments);
+    const forgot = document.getElementById('forgotPasswordForm');
+    if(forgot && !forgot.__swappBound){
+      forgot.__swappBound = true;
+      forgot.onsubmit = async (e)=>{
+        e.preventDefault();
+        const identity = (document.getElementById('forgotIdentity')?.value || '').trim();
+        if(identity.length < 3) return toast?.('Indique ton email ou ton pseudo.');
+        const r = await api('/api/oryon/password/forgot', { method:'POST', body:JSON.stringify({ identity }) });
+        if(r.success){
+          toast?.(r.message || 'Lien envoyé si le compte existe.');
+          if(r.reset_url) console.info('[Swapp] reset_url debug:', r.reset_url);
+        }else{
+          toast?.(r.error || 'Récupération indisponible.');
+        }
+      };
+    }
+    const reset = document.getElementById('resetPasswordForm');
+    if(reset && !reset.__swappBound){
+      reset.__swappBound = true;
+      reset.onsubmit = async (e)=>{
+        e.preventDefault();
+        const password = document.getElementById('resetNewPassword')?.value || '';
+        const confirm = document.getElementById('resetNewPassword2')?.value || '';
+        const token = document.getElementById('resetToken')?.value || resetToken();
+        if(password.length < 6) return toast?.('Mot de passe trop court.');
+        if(password !== confirm) return toast?.('Les deux mots de passe ne correspondent pas.');
+        const r = await api('/api/oryon/password/reset', { method:'POST', body:JSON.stringify({ token, password }) });
+        if(r.success){
+          try{ history.replaceState(null,'','/compte'); }catch(_e){}
+          toast?.('Mot de passe réinitialisé.');
+          if(window.state){ state.session.local = r.user || state.session.local; }
+          await loadSession?.();
+          setView?.('settings');
+        }else{
+          toast?.(r.error || 'Lien invalide ou expiré.');
+        }
+      };
+    }
+  };
+  window.bindSettingsForms = recoveryBindSettingsForms;
+  try{ bindSettingsForms = recoveryBindSettingsForms; }catch(_e){}
+
+  const previousLoadFoundation = window.loadFoundation || (typeof loadFoundation === 'function' ? loadFoundation : null);
+  const recoveryLoadFoundation = async function loadFoundationHostingerReady(){
+    const box = document.getElementById('foundationStatus');
+    if(!box){ if(typeof previousLoadFoundation === 'function') return previousLoadFoundation.apply(this, arguments); return; }
+    try{
+      const p = await api('/api/oryon/persistence-status').catch(()=>null);
+      const f = await api('/api/swapp/features').catch(()=>null);
+      if(p?.success){
+        box.innerHTML = `Persistance : <b>${p.firestore?'Firestore':'local'}</b><br>Source : <b>${safe(p.firestore_source || p.persistence || 'non configurée')}</b><br>Mises à jour GitHub : <b>${p.github_deploy_safe?'sécurisées':'risque de perte'}</b><br>Récupération mot de passe : <b>${f?.features?.password_recovery?'active':'email à configurer'}</b>`;
+        return;
+      }
+    }catch(_e){}
+    if(typeof previousLoadFoundation === 'function') return previousLoadFoundation.apply(this, arguments);
+  };
+  window.loadFoundation = recoveryLoadFoundation;
+  try{ loadFoundation = recoveryLoadFoundation; }catch(_e){}
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    if(resetToken()) setTimeout(()=>{ try{ setView?.('settings'); }catch(_e){} }, 120);
+  });
+})();

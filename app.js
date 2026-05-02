@@ -3141,6 +3141,71 @@ function normalizeOryonEmail(v){ return String(v || '').trim().toLowerCase().sli
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '')); }
 
 
+// Swapp — récupération de mot de passe par email.
+// Fonctionne avec RESEND_API_KEY ou SENDGRID_API_KEY. Aucun secret n'est exposé au front.
+const SWAPP_PASSWORD_RESET_TTL_MS = Math.max(10 * 60 * 1000, Number(process.env.SWAPP_PASSWORD_RESET_TTL_MS || 60 * 60 * 1000));
+function swappEmailFrom(){
+  return String(process.env.SWAPP_EMAIL_FROM || process.env.EMAIL_FROM || process.env.MAIL_FROM || '').trim();
+}
+function swappPasswordResetEmailConfigured(){
+  return !!((process.env.RESEND_API_KEY || process.env.SENDGRID_API_KEY) && swappEmailFrom());
+}
+function makeOryonPasswordResetToken(){ return crypto.randomBytes(32).toString('hex'); }
+function hashOryonPasswordResetToken(token){ return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
+function findOryonUserForPasswordRecovery(data, identity){
+  const raw = String(identity || '').trim();
+  const email = normalizeOryonEmail(raw);
+  const login = normalizeOryonLogin(raw);
+  const users = Array.isArray(data?.users) ? data.users : [];
+  return users.find(u => (email && normalizeOryonEmail(u.email) === email) || (login && normalizeOryonLogin(u.login) === login)) || null;
+}
+function buildSwappPasswordResetUrl(req, user, token){
+  const base = (swappPublicBase(req) || safeOrigin(process.env.PUBLIC_BASE_URL) || safeOrigin(process.env.PUBLIC_APP_URL) || '').replace(/\/$/, '');
+  const qs = new URLSearchParams({ reset_token: token, reset_login: user?.login || '' });
+  return `${base || ''}/compte?${qs.toString()}`;
+}
+async function sendSwappPasswordResetEmail(req, user, token){
+  const to = normalizeOryonEmail(user?.email);
+  if(!to) return { sent:false, provider:null, reason:'no_email' };
+  const from = swappEmailFrom();
+  if(!from) return { sent:false, provider:null, reason:'missing_from' };
+  const resetUrl = buildSwappPasswordResetUrl(req, user, token);
+  const subject = 'Réinitialisation de ton mot de passe Swapp';
+  const text = `Bonjour ${user.display_name || user.login || ''},\n\nTu as demandé la réinitialisation de ton mot de passe Swapp.\n\nOuvre ce lien pour choisir un nouveau mot de passe :\n${resetUrl}\n\nCe lien expire dans ${Math.round(SWAPP_PASSWORD_RESET_TTL_MS / 60000)} minutes. Si tu n'es pas à l'origine de cette demande, ignore cet email.\n`;
+  const html = `<p>Bonjour ${String(user.display_name || user.login || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))},</p><p>Tu as demandé la réinitialisation de ton mot de passe Swapp.</p><p><a href="${resetUrl}">Choisir un nouveau mot de passe</a></p><p>Ce lien expire dans ${Math.round(SWAPP_PASSWORD_RESET_TTL_MS / 60000)} minutes.</p><p>Si tu n'es pas à l'origine de cette demande, ignore cet email.</p>`;
+  if(process.env.RESEND_API_KEY){
+    const rr = await fetch('https://api.resend.com/emails', {
+      method:'POST',
+      headers:{ 'Authorization':`Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type':'application/json' },
+      body:JSON.stringify({ from, to:[to], subject, text, html })
+    });
+    if(rr.ok) return { sent:true, provider:'resend' };
+    const body = await rr.text().catch(()=>'');
+    throw new Error(`Resend email failed: ${rr.status} ${body.slice(0,240)}`);
+  }
+  if(process.env.SENDGRID_API_KEY){
+    const rr = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method:'POST',
+      headers:{ 'Authorization':`Bearer ${process.env.SENDGRID_API_KEY}`, 'Content-Type':'application/json' },
+      body:JSON.stringify({
+        personalizations:[{ to:[{ email:to }] }],
+        from:{ email:from },
+        subject,
+        content:[{ type:'text/plain', value:text }, { type:'text/html', value:html }]
+      })
+    });
+    if(rr.ok || rr.status === 202) return { sent:true, provider:'sendgrid' };
+    const body = await rr.text().catch(()=>'');
+    throw new Error(`SendGrid email failed: ${rr.status} ${body.slice(0,240)}`);
+  }
+  if(!IS_PROD || String(process.env.SWAPP_PASSWORD_RESET_LOG_LINKS || '').toLowerCase() === 'true'){
+    console.warn(`[SWAPP] Password reset link for ${user.login}: ${resetUrl}`);
+    return { sent:false, provider:'debug-log', reason:'email_provider_missing', reset_url:resetUrl };
+  }
+  return { sent:false, provider:null, reason:'email_provider_missing' };
+}
+
+
 // Vérification email désactivée pour accélérer les tests produit.
 // Les comptes sont utilisables immédiatement. La validation email pourra être réactivée plus tard.
 function getOryonSocketUser(socket){
@@ -3291,6 +3356,74 @@ app.post('/api/oryon/login', async (req, res) => {
     setOryonRememberCookie(res, user, remember_token);
     req.session.save(() => res.json({ success:true, user: publicOryonUser(user), remember_token, persistence:persistResult||null }));
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+
+app.post('/api/oryon/password/forgot', authLimiter, async (req, res) => {
+  try{
+    try{ await loadOryonUsersPersistent(); }catch(_){}
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY_BASE64 côté Hostinger.' });
+    if(!swappPasswordResetEmailConfigured() && IS_PROD && String(process.env.SWAPP_PASSWORD_RESET_LOG_LINKS || '').toLowerCase() !== 'true'){
+      return res.status(503).json({ success:false, error:'Email de récupération non configuré. Ajoute RESEND_API_KEY ou SENDGRID_API_KEY + SWAPP_EMAIL_FROM.' });
+    }
+    const identity = String(req.body?.identity || req.body?.email || req.body?.login || '').trim();
+    if(identity.length < 3) return res.status(400).json({ success:false, error:'Indique ton email ou ton pseudo.' });
+    const data = readOryonUsers();
+    const user = findOryonUserForPasswordRecovery(data, identity);
+    if(user?.email){
+      const token = makeOryonPasswordResetToken();
+      user.password_reset_token_hash = hashOryonPasswordResetToken(token);
+      user.password_reset_expires_at = Date.now() + SWAPP_PASSWORD_RESET_TTL_MS;
+      user.password_reset_requested_at = Date.now();
+      user.password_reset_request_ip_hash = crypto.createHash('sha256').update(String(req.ip || '')).digest('hex');
+      await writeOryonUsersAndWait(data);
+      try{
+        const delivery = await sendSwappPasswordResetEmail(req, user, token);
+        const payload = { success:true, message:'Si un compte existe avec ces informations, un lien de récupération vient d’être envoyé.', email_configured:swappPasswordResetEmailConfigured() };
+        if((!IS_PROD || String(process.env.SWAPP_PASSWORD_RESET_LOG_LINKS || '').toLowerCase() === 'true') && delivery?.reset_url) payload.reset_url = delivery.reset_url;
+        return res.json(payload);
+      }catch(e){
+        recordSwappError('password_reset_email', req, e);
+        return res.status(502).json({ success:false, error:'Impossible d’envoyer l’email de récupération pour le moment.' });
+      }
+    }
+    // Réponse neutre pour ne pas révéler si un email/pseudo existe.
+    return res.json({ success:true, message:'Si un compte existe avec ces informations, un lien de récupération vient d’être envoyé.', email_configured:swappPasswordResetEmailConfigured() });
+  }catch(e){
+    recordSwappError('password_reset_request', req, e);
+    return res.status(500).json({ success:false, error:e.message });
+  }
+});
+
+app.post('/api/oryon/password/reset', authLimiter, async (req, res) => {
+  try{
+    try{ await loadOryonUsersPersistent(); }catch(_){}
+    if(oryonProductionRequiresDurableStorage()) return res.status(503).json({ success:false, error:'Persistance comptes indisponible. Vérifie FIREBASE_SERVICE_KEY_BASE64 côté Hostinger.' });
+    const token = String(req.body?.token || '').trim();
+    const password = String(req.body?.password || '');
+    if(token.length < 32) return res.status(400).json({ success:false, error:'Lien de récupération invalide.' });
+    if(password.length < 6) return res.status(400).json({ success:false, error:'Mot de passe trop court.' });
+    const data = readOryonUsers();
+    const tokenHash = hashOryonPasswordResetToken(token);
+    const now = Date.now();
+    const user = (data.users || []).find(u => String(u.password_reset_token_hash || '') === tokenHash && Number(u.password_reset_expires_at || 0) > now);
+    if(!user) return res.status(400).json({ success:false, error:'Lien invalide ou expiré. Demande un nouveau lien.' });
+    user.password_hash = hashOryonPassword(password);
+    user.password_changed_at = now;
+    user.password_reset_token_hash = null;
+    user.password_reset_expires_at = null;
+    user.password_reset_requested_at = null;
+    user.password_reset_request_ip_hash = null;
+    ensureOryonUserShape(user, { ensureStreamKey:true });
+    const remember_token = issueOryonRememberToken(user, data);
+    const persistResult = await writeOryonUsersAndWait(data);
+    req.session.oryonUser = sessionOryonUser(user);
+    setOryonRememberCookie(res, user, remember_token);
+    req.session.save(() => res.json({ success:true, user:publicOryonUser(user), remember_token, persistence:persistResult || null }));
+  }catch(e){
+    recordSwappError('password_reset_apply', req, e);
+    return res.status(500).json({ success:false, error:e.message });
+  }
 });
 
 app.post('/api/oryon/restore-session', async (req, res) => {
@@ -8722,6 +8855,8 @@ function buildSwappFeatureStatus(){
       swapp_channels:true,
       swapp_likes:true,
       swapp_feed:true,
+      password_recovery:swappPasswordResetEmailConfigured(),
+      password_recovery_provider:process.env.RESEND_API_KEY?'resend':(process.env.SENDGRID_API_KEY?'sendgrid':null),
       obs_engine:getOryonVideoEngine().obs_ready,
       steam:!!STEAM_API_KEY,
       youtube:!!YOUTUBE_API_KEY,
