@@ -8,7 +8,8 @@
     "verify:js": "node --check app.js && node --check index_script.js && node --check sidepanel-dock-fix.js && node --check preload.js && node --check electron-main.js && node --check assets/js/pricing.js",
     "audit:prod": "npm audit --omit=dev",
     "audit:fix:prod": "npm audit fix --omit=dev",
-    "clean:dead": "node scripts/clean-dead.js"
+    "clean:dead": "node scripts/clean-dead.js",
+    "build": "node --check app.js && node --check index_script.js"
   },
   "engines": {
     "node": "20.x"
