@@ -3993,6 +3993,182 @@ app.get('/api/oryon/viewer/feed', heavyLimiter, async (req,res)=>{
   }
 });
 
+
+// Stable Swapp feed API: backend-only personalized feed, built from explicit likes,
+// follows, Swapp live channels and Twitch live discovery. This does not change any UI.
+function swappFeedMergeScoreMap(target, key, weight){
+  if(!target || !key) return;
+  const k = String(key).trim().toLowerCase().slice(0,160);
+  if(!k) return;
+  target[k] = Number(target[k] || 0) + Number(weight || 0);
+}
+function swappFeedSignalsForUser(user, viewerProfile, historyEnabled){
+  const explicitLikes = getSwappLikesForUser(user, 500);
+  const likedKeys = new Set([...accountLikeKeys(user)]);
+  const categoryScores = {};
+  const streamerScores = {};
+  const twitchLiked = [];
+  const oryonLiked = [];
+
+  for(const like of explicitLikes){
+    const platform = String(like.platform || '').toLowerCase();
+    const login = String(like.login || '').toLowerCase();
+    if(platform && login){
+      likedKeys.add(`${platform}:${login}`);
+      swappFeedMergeScoreMap(streamerScores, `${platform}:${login}`, 12);
+      if(platform === 'twitch') twitchLiked.push(login);
+      if(platform === 'oryon') oryonLiked.push(login);
+    }
+    const cat = like.category || like.game_name;
+    if(cat) swappFeedMergeScoreMap(categoryScores, cat, 8);
+  }
+
+  for(const login of Array.isArray(user?.following) ? user.following : []){
+    const v = normalizeOryonLogin(login);
+    if(v){
+      likedKeys.add(`oryon:${v}`);
+      oryonLiked.push(v);
+      swappFeedMergeScoreMap(streamerScores, `oryon:${v}`, 6);
+    }
+  }
+
+  // Passive history is optional. Explicit likes above always count.
+  if(historyEnabled && viewerProfile){
+    for(const [cat, val] of Object.entries(viewerProfile.categories || {})){
+      if(Number(val) > 0) swappFeedMergeScoreMap(categoryScores, cat, Math.min(12, Number(val)));
+    }
+    for(const [streamer, val] of Object.entries(viewerProfile.streamers || {})){
+      if(Number(val) > 0) swappFeedMergeScoreMap(streamerScores, streamer, Math.min(10, Number(val)));
+    }
+    for(const key of Object.keys(viewerProfile.liked || {})){
+      likedKeys.add(String(key).toLowerCase());
+    }
+  }
+
+  return {
+    explicitLikes,
+    likedKeys,
+    twitchLiked:Array.from(new Set(twitchLiked)).slice(0,100),
+    oryonLiked:Array.from(new Set(oryonLiked)).slice(0,100),
+    categoryScores,
+    streamerScores,
+    topCategories:Object.entries(categoryScores)
+      .filter(([,v]) => Number(v) > 0)
+      .sort((a,b) => Number(b[1])-Number(a[1]))
+      .slice(0, 7)
+      .map(([k]) => k),
+  };
+}
+function swappFeedReasonsForItem(item, signals, historyEnabled){
+  const reasons = [];
+  const key = `${item.platform}:${item.login}`.toLowerCase();
+  const cat = String(item.game_name || item.category || '').toLowerCase();
+  if(signals.likedKeys.has(key)) reasons.push('liked_streamer');
+  if(signals.streamerScores[key]) reasons.push('streamer_affinity');
+  if(cat && signals.categoryScores[cat]) reasons.push('liked_category');
+  if(item.platform === 'oryon') reasons.push('swapp_live');
+  if(historyEnabled && reasons.length < 3) reasons.push('history_match');
+  if(!reasons.length) reasons.push('discovery_fallback');
+  return Array.from(new Set(reasons)).slice(0,4);
+}
+async function buildSwappFeedForReq(req){
+  const ctx = getLocalOryonUserForReq(req);
+  if(!ctx?.user) return { status:401, body:{success:false,error:'Compte Swapp requis.',requires_account:true,items:[]} };
+
+  const max = Math.max(1, Math.min(10000, parseInt(req.query.max || '500', 10) || 500));
+  const limit = Math.max(1, Math.min(120, parseInt(req.query.limit || req.query.first || '60', 10) || 60));
+  const lang = String(req.query.lang || ctx.user.language || 'fr').slice(0,8) || 'fr';
+  const mood = String(req.query.mood || 'petite-commu').toLowerCase();
+  const profile = discoveryProfile(mood);
+  const identity = viewerIdentityFromReq(req);
+  const viewerProfile = await readViewerProfile(identity);
+  const historyEnabled = !!ctx.user.recommendation_history_enabled;
+  viewerProfile.history_enabled = historyEnabled;
+  const signals = swappFeedSignalsForUser(ctx.user, viewerProfile, historyEnabled);
+  const ownLogin = normalizeOryonLogin(ctx.user.login || '');
+
+  const rawItems = [];
+  const push = x => { if(x) rawItems.push(discoveryNormCandidate(x)); };
+
+  // 1) Strongest signal: liked/followed streamers currently live.
+  (await twitchStreamsForLogins(signals.twitchLiked)).forEach(push);
+  const nativeAll = discoverNativeItemsFor('', max, 'both', profile);
+  nativeAll
+    .filter(x => signals.oryonLiked.includes(String(x.login || x.host_login || x.room || '').toLowerCase()))
+    .forEach(push);
+
+  // 2) Categories learned from explicit likes, then optional history.
+  for(const cat of signals.topCategories){
+    const found = await twitchStreamsForGameName(cat, { lang, max, first:60 });
+    found.forEach(push);
+    nativeAll
+      .filter(x => String(x.game_name || x.category || '').toLowerCase() === String(cat).toLowerCase())
+      .forEach(push);
+    if(rawItems.length >= Math.max(90, limit * 2)) break;
+  }
+
+  // 3) Swapp-native live discovery should stay present even for new accounts.
+  if(rawItems.length < limit){
+    nativeAll.forEach(push);
+  }
+
+  // 4) Twitch fallback keeps the feed alive when Swapp-native live supply is low.
+  if(rawItems.length < limit){
+    (await twitchBroadStreams({ lang, max, first:100 })).forEach(push);
+  }
+
+  const bestByKey = new Map();
+  for(const raw of rawItems){
+    let x = scoreDiscoveryCandidate(raw, { profile, mood, query:'', viewerProfile, lang });
+    if(!x.login) continue;
+    if(x.platform === 'oryon' && ownLogin && x.login === ownLogin) continue;
+    if(Number(x.viewer_count || 0) > max) continue;
+    const key = `${x.platform}:${x.login}`.toLowerCase();
+    const cat = String(x.game_name || x.category || '').toLowerCase();
+    let bonus = 0;
+    if(signals.likedKeys.has(key)) bonus += 60;
+    if(signals.streamerScores[key]) bonus += Math.min(40, Number(signals.streamerScores[key]) * 2);
+    if(cat && signals.categoryScores[cat]) bonus += Math.min(35, Number(signals.categoryScores[cat]) * 1.8);
+    if(x.platform === 'oryon') bonus += 18;
+    x.score = Math.round(Number(x.score || 0) + bonus);
+    x.liked = signals.likedKeys.has(key);
+    x.reasons = swappFeedReasonsForItem(x, signals, historyEnabled);
+    x.recommendation_reason = x.reasons[0];
+    const prev = bestByKey.get(key);
+    if(!prev || Number(x.score || 0) > Number(prev.score || 0)) bestByKey.set(key, x);
+  }
+
+  const items = Array.from(bestByKey.values())
+    .sort((a,b) => (Number(b.score || 0)-Number(a.score || 0)) || (Number(a.viewer_count || 0)-Number(b.viewer_count || 0)))
+    .slice(0, limit);
+
+  return {
+    status:200,
+    body:{
+      success:true,
+      items,
+      count:items.length,
+      personalized: signals.likedKeys.size > 0 || signals.topCategories.length > 0,
+      history_enabled: historyEnabled,
+      likes_count: signals.explicitLikes.length,
+      liked_streamers_count: signals.likedKeys.size,
+      categories: signals.topCategories,
+      source:'swapp-feed-v1',
+      generated_at: new Date().toISOString()
+    }
+  };
+}
+app.get('/api/swapp/feed', heavyLimiter, async (req, res) => {
+  try{
+    res.setHeader('Cache-Control','no-store');
+    const out = await buildSwappFeedForReq(req);
+    res.status(out.status).json(out.body);
+  }catch(e){
+    console.warn('/api/swapp/feed failed:', e.message);
+    res.status(500).json({success:false,error:e.message,items:[]});
+  }
+});
+
 const DISCOVERY_MOOD_PROFILES = {
   'petite-commu': {
     label:'Petite commu',
@@ -8162,7 +8338,7 @@ async function buildSwappDiagnostic(req){
     },
     streamer_ready:streamerReady,
     routes:{
-      viewer:['/api/oryon/viewer/choice','/api/oryon/viewer/history','/api/oryon/viewer/feed','/api/swapp/likes','/api/swapp/like'],
+      viewer:['/api/oryon/viewer/choice','/api/oryon/viewer/history','/api/oryon/viewer/feed','/api/swapp/feed','/api/swapp/likes','/api/swapp/like'],
       streamer:['/api/oryon/profile','/api/oryon/stream-key','/api/oryon/local-agent/config','/c/:login'],
       discovery:['/api/discovery/home-lives','/api/oryon/discover','/api/oryon/channels'],
       diagnostics:['/api/swapp/diagnostic','/api/swapp/readiness','/api/oryon/channel/:login/readiness']
