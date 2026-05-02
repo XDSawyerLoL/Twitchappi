@@ -526,7 +526,7 @@ function recordSwappError(scope, req, err, extra = {}){
   if(process.env.SWAPP_SILENT_ERRORS !== 'true') console.warn(`[SWAPP:${entry.scope}]`, entry.message);
   return entry;
 }
-function safeNextRedirect(next, fallback = '/#discover'){
+function safeNextRedirect(next, fallback = '/decouvrir'){
   const s = String(next || '').trim().slice(0, 180);
   if(!s || !s.startsWith('/') || s.startsWith('//') || /^https?:/i.test(s)) return fallback;
   return s;
@@ -841,19 +841,10 @@ app.get('/', (req, res) => {
 // Pricing page (credits + premium)
 
 app.get('/c/:login', (req, res) => {
-  const rawCandidates = [
-    process.env.UI_FILE,
-    'index.html',
-    'NicheOptimizer.html',
-    'NicheOptimizer_v56.html'
-  ].filter(Boolean);
-  const candidates = rawCandidates
-    .map(String)
-    .map(f => f.trim())
-    .filter(f => /\.html?$/i.test(f));
-  const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
-  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
-  return res.sendFile(path.join(__dirname, found));
+  const login = String(req.params.login || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+  if(!login) return sendSwappUi(res);
+  const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  return res.redirect(301, '/' + encodeURIComponent(login) + query);
 });
 
 // Clean SPA URLs. /c/:login remains a compatibility alias, but public channel URLs are /pseudo.
@@ -2495,7 +2486,7 @@ app.get('/twitch_auth_start', authLimiter, (req, res) => {
 
   // Stockage du state en session (anti-CSRF) \u2014 pas en variable globale
   req.session.twitch_oauth_state = state;
-  req.session.twitch_return_to = safeNextRedirect(req.query.returnTo, '/#discover');
+  req.session.twitch_return_to = safeNextRedirect(req.query.returnTo, '/decouvrir');
 
   const url =
     `https://id.twitch.tv/oauth2/authorize` +
@@ -2591,7 +2582,7 @@ app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
     }catch(_){ }
 
     // Retour normal sur le site, sans popup fragile.
-    const returnTo = safeNextRedirect(req.session.twitch_return_to, '/#discover');
+    const returnTo = safeNextRedirect(req.session.twitch_return_to, '/decouvrir');
     req.session.twitch_return_to = null;
     req.session.save(() => {
       res.redirect(returnTo);
@@ -4781,7 +4772,7 @@ function requireOryonOwner(req,res, login){
   }
   return cur;
 }
-function adminLogins(){ const raw = String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || 'sansahd'); return raw.split(',').map(normalizeOryonLogin).filter(Boolean); }
+function adminLogins(){ const raw = String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || ''); return raw.split(',').map(normalizeOryonLogin).filter(Boolean); }
 function isOryonAdmin(req){ const cur=req.session?.oryonUser; return !!(cur?.login && adminLogins().includes(normalizeOryonLogin(cur.login))); }
 function slugifyOryon(v){ return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48) || crypto.randomBytes(4).toString('hex'); }
 function safeTags(v){ if(Array.isArray(v)) return v.map(x=>String(x).trim().toLowerCase()).filter(Boolean).slice(0,12); return String(v||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).slice(0,12); }
@@ -7941,7 +7932,7 @@ app.get('/api/fantasy/leaderboard', async (req,res)=>{
 });
 
 
-const ADMIN_TWITCH_LOGINS = new Set(['sansahd']);
+const ADMIN_TWITCH_LOGINS = new Set(String(process.env.ADMIN_TWITCH_LOGINS || '').split(',').map(s => String(s || '').trim().toLowerCase()).filter(Boolean));
 function getAdminTwitchIds(){
   return String(process.env.ADMIN_TWITCH_IDS || '')
     .split(',')
