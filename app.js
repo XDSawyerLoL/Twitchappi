@@ -404,6 +404,20 @@ const heavyLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Limites dédiées aux endpoints d'auth et aux actions utilisateur sensibles.
+const authLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+const mutationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 
 const PORT = process.env.PORT || 10000;
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || process.env.TWITCH_CLIENTID || process.env.TWITCH_CLIENT || process.env.CLIENT_ID || process.env.TWITCH_API_CLIENT_ID;
@@ -463,6 +477,97 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+
+// =========================================================
+// SWAPP — garde-fous prod, sessions, admin et erreurs
+// =========================================================
+const SWAPP_ERROR_LOG_LIMIT = Math.max(20, Math.min(500, Number(process.env.SWAPP_ERROR_LOG_LIMIT || 120)));
+const swappRecentErrors = [];
+function swappTimingSafeCompare(a, b){
+  const aa = Buffer.from(String(a || ''));
+  const bb = Buffer.from(String(b || ''));
+  if(!aa.length || !bb.length || aa.length !== bb.length) return false;
+  try{ return crypto.timingSafeEqual(aa, bb); }catch(_){ return false; }
+}
+function swappSanitizeErrorMessage(err){
+  const raw = err?.message || err?.error_description || err?.error || err || 'Erreur inconnue';
+  const secret = String(TWITCH_CLIENT_SECRET || '');
+  let msg = String(raw)
+    .replace(/(access_token|refresh_token|client_secret)=([^&\s]+)/ig, '$1=[redacted]');
+  if(secret) msg = msg.split(secret).join('[secret]');
+  return msg.slice(0, 500);
+}
+function swappRequestMeta(req){
+  return {
+    method: req?.method || '',
+    route: req?.originalUrl || req?.url || '',
+    ip: req?.ip || req?.headers?.['x-forwarded-for'] || '',
+    user: req?.session?.oryonUser?.login || req?.session?.twitchUser?.login || null
+  };
+}
+function recordSwappError(scope, req, err, extra = {}){
+  const entry = {
+    id: crypto.randomBytes(6).toString('hex'),
+    ts: Date.now(),
+    iso: new Date().toISOString(),
+    scope: String(scope || 'server').slice(0, 80),
+    message: swappSanitizeErrorMessage(err),
+    ...swappRequestMeta(req),
+    extra: Object.fromEntries(Object.entries(extra || {}).map(([k,v]) => [k, typeof v === 'string' ? v.slice(0, 300) : v]))
+  };
+  swappRecentErrors.unshift(entry);
+  swappRecentErrors.splice(SWAPP_ERROR_LOG_LIMIT);
+  try{
+    const base = process.env.ORYON_DATA_DIR || __dirname;
+    const file = path.join(base, '.swapp-errors.json');
+    if(!fs.existsSync(base)) fs.mkdirSync(base, { recursive:true });
+    fs.writeFileSync(file, JSON.stringify({ errors: swappRecentErrors }, null, 2));
+  }catch(_e){}
+  if(process.env.SWAPP_SILENT_ERRORS !== 'true') console.warn(`[SWAPP:${entry.scope}]`, entry.message);
+  return entry;
+}
+function safeNextRedirect(next, fallback = '/#discover'){
+  const s = String(next || '').trim().slice(0, 180);
+  if(!s || !s.startsWith('/') || s.startsWith('//') || /^https?:/i.test(s)) return fallback;
+  return s;
+}
+function validateTwitchOAuthConfig(req){
+  const expected = typeof swappExpectedTwitchRedirect === 'function' ? swappExpectedTwitchRedirect(req) : null;
+  const configured = REDIRECT_URI || null;
+  const redirectMatches = !!(expected && configured && expected.replace(/\/$/,'') === configured.replace(/\/$/,''));
+  const ok = !!(TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET && configured) && (!IS_PROD || redirectMatches);
+  return {
+    ok, expected, configured, redirectMatches,
+    publicError: !TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET
+      ? 'Configuration Twitch manquante : TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET.'
+      : (!configured ? 'Configuration Twitch manquante : TWITCH_REDIRECT_URI.' : (!redirectMatches && IS_PROD ? `TWITCH_REDIRECT_URI doit être exactement ${expected}` : null))
+  };
+}
+function getSwappAdminKey(){
+  return String(process.env.SWAPP_ADMIN_KEY || process.env.ADMIN_API_KEY || process.env.DIAGNOSTIC_ADMIN_KEY || '').trim();
+}
+function isSwappAdminRequest(req){
+  try{ if(typeof isOryonAdmin === 'function' && isOryonAdmin(req)) return true; }catch(_e){}
+  const configured = getSwappAdminKey();
+  if(!configured) return false;
+  const provided = String(req.headers['x-swapp-admin-key'] || req.headers['x-admin-key'] || req.query?.admin_key || '').trim();
+  return swappTimingSafeCompare(provided, configured);
+}
+function requireSwappAdmin(req, res){
+  if(isSwappAdminRequest(req)) return true;
+  recordSwappError('admin_denied', req, 'Accès diagnostic admin refusé');
+  res.status(403).json({ success:false, error:'Admin requis.' });
+  return false;
+}
+function clearExpiredAuthSession(req){
+  if(req.session?.twitchUser?.expiry && req.session.twitchUser.expiry <= Date.now()){
+    req.session.twitchUser = null;
+  }
+}
+app.use((req, _res, next) => {
+  try{ clearExpiredAuthSession(req); }catch(e){ recordSwappError('session_cleanup', req, e); }
+  next();
+});
 
 // =========================================================
 // 1B. STEAM OPENID (no manual SteamID64)
@@ -838,7 +943,54 @@ async function twitchAPI(endpoint, token = null) {
     throw new Error(`Token expir\u00E9.`);
   }
 
+  if(!res.ok){
+    const txt = await res.text().catch(() => '');
+    throw new Error(`Twitch API ${res.status}: ${txt.slice(0,180)}`);
+  }
+
   return res.json();
+}
+async function refreshTwitchUserSession(req){
+  const u = req.session?.twitchUser;
+  if(!u) return null;
+  if(!u.expiry || u.expiry > Date.now() + 60000) return u;
+  if(!u.refresh_token || !TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) return null;
+  try{
+    const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+      body:new URLSearchParams({
+        grant_type:'refresh_token',
+        refresh_token:u.refresh_token,
+        client_id:TWITCH_CLIENT_ID,
+        client_secret:TWITCH_CLIENT_SECRET
+      })
+    });
+    const tokenData = await tokenRes.json().catch(() => ({}));
+    if(!tokenRes.ok || !tokenData?.access_token) throw new Error(tokenData?.message || tokenData?.error || `refresh ${tokenRes.status}`);
+    u.access_token = tokenData.access_token;
+    u.refresh_token = tokenData.refresh_token || u.refresh_token;
+    u.expiry = Date.now() + (Number(tokenData.expires_in || 0) * 1000);
+    req.session.twitchUser = u;
+    try{
+      const local = req.session?.oryonUser;
+      if(local?.id){
+        const ud = readOryonUsers();
+        const ou = (ud.users||[]).find(x => x.id === local.id);
+        if(ou?.twitch_link){
+          ou.twitch_link.access_token = u.access_token;
+          ou.twitch_link.refresh_token = u.refresh_token;
+          ou.twitch_link.expiry = u.expiry;
+          await writeOryonUsersAndWait(ud);
+        }
+      }
+    }catch(e){ recordSwappError('twitch_refresh_persist', req, e); }
+    return u;
+  }catch(e){
+    recordSwappError('twitch_refresh_failed', req, e);
+    req.session.twitchUser = null;
+    return null;
+  }
 }
 // =========================================================
 // DISCOVERY \u2014 VODs by title (FR streamers 20-200 viewers)
@@ -2303,13 +2455,17 @@ if (ENABLE_TRACKED_CRON) {
 // =========================================================
 // 3. AUTH (MULTI-USER SAFE)
 // =========================================================
-app.get('/twitch_auth_start', (req, res) => {
-  if(!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET || !REDIRECT_URI) return res.status(500).send('Configuration Twitch manquante sur Render : TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, TWITCH_REDIRECT_URI ou RENDER_EXTERNAL_URL.');
+app.get('/twitch_auth_start', authLimiter, (req, res) => {
+  const cfg = validateTwitchOAuthConfig(req);
+  if(!cfg.ok){
+    recordSwappError('twitch_oauth_config', req, cfg.publicError || 'Configuration Twitch invalide', { expected:cfg.expected, configured:cfg.configured ? 'configured' : 'missing' });
+    return res.status(500).send(cfg.publicError || 'Configuration Twitch invalide.');
+  }
   const state = crypto.randomBytes(16).toString('hex');
 
   // Stockage du state en session (anti-CSRF) \u2014 pas en variable globale
   req.session.twitch_oauth_state = state;
-  req.session.twitch_return_to = String(req.query.returnTo || '/#discover').slice(0, 160);
+  req.session.twitch_return_to = safeNextRedirect(req.query.returnTo, '/#discover');
 
   const url =
     `https://id.twitch.tv/oauth2/authorize` +
@@ -2322,10 +2478,19 @@ app.get('/twitch_auth_start', (req, res) => {
   res.redirect(url);
 });
 
-app.get('/twitch_auth_callback', async (req, res) => {
+app.get('/twitch_auth_callback', authLimiter, async (req, res) => {
   const { code, state } = req.query;
+  if(req.query?.error){
+    recordSwappError('twitch_oauth_denied', req, req.query.error_description || req.query.error);
+    return res.status(401).send('Connexion Twitch refusée ou annulée.');
+  }
+  if(!code){
+    recordSwappError('twitch_oauth_missing_code', req, 'Code OAuth Twitch manquant');
+    return res.status(400).send('Code Twitch manquant. Relance la connexion.');
+  }
 
   if (!state || !req.session.twitch_oauth_state || state !== req.session.twitch_oauth_state) {
+    recordSwappError('twitch_oauth_state', req, 'State OAuth Twitch invalide');
     return res.status(403).send('Erreur Auth (state).');
   }
   // one-time use
@@ -2344,12 +2509,18 @@ app.get('/twitch_auth_callback', async (req, res) => {
       })
     });
 
-    const tokenData = await tokenRes.json();
-    if (!tokenData?.access_token) return res.status(401).send('Erreur Token.');
+    const tokenData = await tokenRes.json().catch(() => ({}));
+    if (!tokenRes.ok || !tokenData?.access_token) {
+      recordSwappError('twitch_token_exchange', req, tokenData?.message || tokenData?.error_description || tokenData?.error || `Twitch token ${tokenRes.status}`, { status: tokenRes.status });
+      return res.status(401).send('Erreur Token Twitch. Vérifie TWITCH_REDIRECT_URI et relance la connexion.');
+    }
 
     const userRes = await twitchAPI('users', tokenData.access_token);
     const user = userRes?.data?.[0];
-    if (!user) return res.status(401).send('Erreur User.');
+    if (!user) {
+      recordSwappError('twitch_user_fetch', req, 'Twitch n’a pas renvoyé de profil utilisateur');
+      return res.status(401).send('Erreur utilisateur Twitch. Relance la connexion.');
+    }
 
     // \u2705 Stockage par utilisateur: SESSION (multi-user)
     req.session.twitchUser = {
@@ -2390,14 +2561,15 @@ app.get('/twitch_auth_callback', async (req, res) => {
     }catch(_){ }
 
     // Retour normal sur le site, sans popup fragile.
-    const returnTo = String(req.session.twitch_return_to || '/#discover');
+    const returnTo = safeNextRedirect(req.session.twitch_return_to, '/#discover');
     req.session.twitch_return_to = null;
     req.session.save(() => {
-      res.redirect(returnTo.startsWith('/#') ? returnTo : '/#discover');
+      res.redirect(returnTo);
     });
 
   } catch (e) {
-    res.status(500).send('Erreur Serveur.');
+    recordSwappError('twitch_oauth_callback', req, e);
+    res.status(500).send('Erreur Serveur Twitch. Consulte le diagnostic admin.');
   }
 });
 
@@ -2414,8 +2586,8 @@ app.post('/twitch_logout', (req, res) => {
   req.session.save(() => res.json({ success: true }));
 });
 
-app.get('/twitch_user_status', (req, res) => {
-  const u = req.session?.twitchUser;
+app.get('/twitch_user_status', async (req, res) => {
+  const u = await refreshTwitchUserSession(req);
 
   if (u && (!u.expiry || u.expiry > Date.now())) {
     return res.json({
@@ -2792,6 +2964,13 @@ function publicOryonUser(u){
   const localLiveFresh = isOryonLiveSignalFresh(u);
   return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:localLiveFresh?'live':(u.live_status||'offline'), is_live:localLiveFresh || String(u.live_status||'')==='live', live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
+function publicOryonChannelUser(u){
+  const pub = publicOryonUser(u);
+  if(!pub) return null;
+  delete pub.email;
+  delete pub.email_verified;
+  return pub;
+}
 function sessionOryonUser(u){
   if(!u) return null;
   return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, is_admin: !!u.is_admin, avatar_url: String(u.avatar_url||'').slice(0,200000), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[] };
@@ -2973,13 +3152,13 @@ app.get('/api/oryon/profile/:login', (req, res) => {
     const login = normalizeOryonLogin(req.params.login);
     const user = (readOryonUsers().users || []).find(u => u.login === login);
     if(!user) return res.status(404).json({ success:false, error:'Chaîne introuvable.' });
-    const pub = publicOryonUser(user);
+    const pub = publicOryonChannelUser(user);
     pub.tags = Array.isArray(user.tags) ? user.tags : [];
     res.json({ success:true, user: pub });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/profile', async (req, res) => {
+app.post('/api/oryon/profile', mutationLimiter, async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
@@ -3096,7 +3275,7 @@ function findOryonUserByAgentToken(data, token){
   if(!t) return null;
   return (data.users || []).find(u => String(u.local_agent_token || '') === t);
 }
-app.post('/api/oryon/local-agent/connect', async (req, res) => {
+app.post('/api/oryon/local-agent/connect', authLimiter, async (req, res) => {
   try{
     const login = normalizeOryonLogin(req.body?.login);
     const password = String(req.body?.password || '');
@@ -3188,7 +3367,7 @@ app.get('/api/oryon/local-agent/config', async (req, res) => {
 });
 
 
-app.post('/api/oryon/local-agent/register-public-url', async (req, res) => {
+app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (req, res) => {
   try {
     const token = bearerToken(req);
     const streamKey = String(req.body?.stream_key || '').trim();
@@ -3198,6 +3377,7 @@ app.post('/api/oryon/local-agent/register-public-url', async (req, res) => {
     if(!playerUrl || !/^https?:\/\//i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL publique invalide.' });
     if(/localhost|127\.0\.0\.1/i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL locale refusée : Oryon doit recevoir l’URL publique du tunnel, pas localhost.' });
 
+    if(!token && !streamKey) return res.status(401).json({ success:false, error:'Jeton local ou stream key requis.' });
     const data = readOryonUsers();
     let user = findOryonUserByAgentToken(data, token);
     if(!user && streamKey) user = (data.users || []).find(u => String(u.stream_key || '') === streamKey);
@@ -3225,13 +3405,14 @@ app.post('/api/oryon/local-agent/register-public-url', async (req, res) => {
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/local-agent/heartbeat', async (req, res) => {
+app.post('/api/oryon/local-agent/heartbeat', mutationLimiter, async (req, res) => {
   try {
     const token = bearerToken(req);
     const streamKey = String(req.body?.stream_key || '').trim();
     const liveActive = !!req.body?.live_active;
     const playerUrl = String(req.body?.player_url || '').trim().slice(0, 1000);
     const statusUrl = String(req.body?.status_url || '').trim().slice(0, 1000);
+    if(!token && !streamKey) return res.status(401).json({ success:false, error:'Jeton local ou stream key requis.' });
     const data = readOryonUsers();
     let user = findOryonUserByAgentToken(data, token);
     if(!user && streamKey) user = (data.users || []).find(u => String(u.stream_key || '') === streamKey);
@@ -3255,21 +3436,25 @@ app.post('/api/oryon/local-agent/heartbeat', async (req, res) => {
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/local-agent/stop', async (req, res) => {
+app.post('/api/oryon/local-agent/stop', mutationLimiter, async (req, res) => {
   try {
     const token = bearerToken(req);
     const streamKey = String(req.body?.stream_key || '').trim();
+    if(!token && !streamKey) return res.status(401).json({ success:false, error:'Jeton local ou stream key requis.' });
     const data = readOryonUsers();
     let user = findOryonUserByAgentToken(data, token);
     if(!user && streamKey) user = (data.users || []).find(u => String(u.stream_key || '') === streamKey);
     if(!user) return res.status(404).json({ success:false, error:'Compte Oryon introuvable.' });
+    if(streamKey && String(user.stream_key || '') && String(user.stream_key) !== streamKey) {
+      return res.status(403).json({ success:false, error:'Clé de stream incorrecte.' });
+    }
     markOryonLiveFields(user, false, { localAgent:true });
     await writeOryonUsersAndWait(data);
     res.json({ success:true, user:publicOryonUser(user) });
   } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/stream-key/regenerate', async (req, res) => {
+app.post('/api/oryon/stream-key/regenerate', mutationLimiter, async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
@@ -3281,7 +3466,7 @@ app.post('/api/oryon/stream-key/regenerate', async (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/follow/:login', async (req, res) => {
+app.post('/api/oryon/follow/:login', mutationLimiter, async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
@@ -3302,7 +3487,7 @@ app.post('/api/oryon/follow/:login', async (req, res) => {
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
 });
 
-app.post('/api/oryon/like/:login', async (req, res) => {
+app.post('/api/oryon/like/:login', mutationLimiter, async (req, res) => {
   try{
     const cur = req.session?.oryonUser;
     if(!cur?.id) return res.status(401).json({ success:false, error:'Compte Oryon requis.' });
@@ -3826,7 +4011,7 @@ async function saveViewerChoice(req, body){
   return { profile:saved, event };
 }
 
-app.post('/api/oryon/viewer/choice', async (req,res)=>{
+app.post('/api/oryon/viewer/choice', mutationLimiter, async (req,res)=>{
   try{
     const out = await saveViewerChoice(req, req.body || {});
     res.json({ success:true, persistence: firestoreOk ? 'firestore' : 'local-json', profile: out.profile, event: out.event });
@@ -3867,7 +4052,7 @@ app.get('/api/oryon/viewer/history', async (req,res)=>{
     });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
-app.post('/api/oryon/viewer/history', async (req,res)=>{
+app.post('/api/oryon/viewer/history', mutationLimiter, async (req,res)=>{
   try{
     const ctx = getLocalOryonUserForReq(req);
     if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true});
@@ -3900,7 +4085,7 @@ app.get('/api/swapp/likes', async (req,res)=>{
     });
   }catch(e){ res.status(500).json({success:false,error:e.message,items:[]}); }
 });
-app.post('/api/swapp/like', async (req,res)=>{
+app.post('/api/swapp/like', mutationLimiter, async (req,res)=>{
   try{
     const ctx = getLocalOryonUserForReq(req);
     if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true});
@@ -3919,7 +4104,7 @@ app.post('/api/swapp/like', async (req,res)=>{
     res.json({success:true,liked:true,items,count:items.length,persistence:firestoreOk ? 'firestore' : 'local-json'});
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
-app.delete('/api/swapp/like', async (req,res)=>{
+app.delete('/api/swapp/like', mutationLimiter, async (req,res)=>{
   try{
     const ctx = getLocalOryonUserForReq(req);
     if(!ctx?.user) return res.status(401).json({success:false,error:'Compte Swapp requis.',requires_account:true});
@@ -4164,7 +4349,7 @@ app.get('/api/swapp/feed', heavyLimiter, async (req, res) => {
     const out = await buildSwappFeedForReq(req);
     res.status(out.status).json(out.body);
   }catch(e){
-    console.warn('/api/swapp/feed failed:', e.message);
+    recordSwappError('swapp_feed', req, e);
     res.status(500).json({success:false,error:e.message,items:[]});
   }
 });
@@ -4557,6 +4742,15 @@ function oryonWrite(file, data){
   return true;
 }
 function requireOryon(req,res){ const cur=req.session?.oryonUser; if(!cur?.id){ res.status(401).json({success:false,error:'Compte Oryon requis.'}); return null; } return cur; }
+function requireOryonOwner(req,res, login){
+  const cur = requireOryon(req,res);
+  if(!cur) return null;
+  if(normalizeOryonLogin(cur.login) !== normalizeOryonLogin(login)){
+    res.status(403).json({success:false,error:'Propriétaire de la chaîne requis.'});
+    return null;
+  }
+  return cur;
+}
 function adminLogins(){ const raw = String(process.env.ORYON_ADMIN_LOGINS || process.env.ADMIN_LOGINS || 'sansahd'); return raw.split(',').map(normalizeOryonLogin).filter(Boolean); }
 function isOryonAdmin(req){ const cur=req.session?.oryonUser; return !!(cur?.login && adminLogins().includes(normalizeOryonLogin(cur.login))); }
 function slugifyOryon(v){ return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48) || crypto.randomBytes(4).toString('hex'); }
@@ -4628,10 +4822,11 @@ app.get('/firebase_status', (req, res) => {
     res.setHeader('Expires','0');
     res.setHeader('Surrogate-Control','no-store');
 
+    const adminView = isSwappAdminRequest(req);
     if (db && admin.apps.length > 0) {
-      return res.json({ connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount });
+      return res.json(adminView ? { connected: true, message: 'Firebase connected', hasServiceAccount: !!serviceAccount } : { connected:true });
     }
-    return res.json({ connected: false, message: 'Firebase not initialized' });
+    return res.json(adminView ? { connected: false, message: 'Firebase not initialized' } : { connected:false });
   } catch (error) {
     return res.json({ connected: false, error: error.message });
   }
@@ -8203,7 +8398,7 @@ app.get('/api/oryon/channels', async (req, res) => {
     const users = (readOryonUsers().users || [])
       .filter(u => u && u.login)
       .map(u => {
-        const pub = publicOryonUser(u);
+        const pub = publicOryonChannelUser(u);
         const live = lives.get(String(pub.login || '').toLowerCase()) || null;
         return {
           ...pub,
@@ -8240,7 +8435,7 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
     res.setHeader('Cache-Control','no-store');
     res.json({
       success:true,
-      channel:publicOryonUser(user),
+      channel:publicOryonChannelUser(user),
       public_url:publicPath,
       public_abs_url:(swappPublicBase(req)||'').replace(/\/$/,'') + publicPath,
       live:{
@@ -8259,11 +8454,11 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
 
-app.post('/api/oryon/channel/:login/sweep-live', async (req, res) => {
+app.post('/api/oryon/channel/:login/sweep-live', mutationLimiter, async (req, res) => {
   try{
-    const cur = req.session?.oryonUser;
     const login = normalizeOryonLogin(req.params.login);
-    if(!cur?.id || normalizeOryonLogin(cur.login) !== login) return res.status(403).json({success:false,error:'Propriétaire de la chaîne requis.'});
+    const cur = requireOryonOwner(req, res, login);
+    if(!cur) return;
     const result = await sweepStaleOryonLiveSignals();
     res.json(result);
   }catch(e){ res.status(500).json({success:false,error:e.message}); }
@@ -8346,25 +8541,71 @@ async function buildSwappDiagnostic(req){
   };
 }
 
+function buildSwappFeatureStatus(){
+  return {
+    success:true,
+    features:{
+      twitch:!!(TWITCH_CLIENT_ID && TWITCH_CLIENT_SECRET),
+      swapp_accounts:true,
+      swapp_channels:true,
+      swapp_likes:true,
+      swapp_feed:true,
+      obs_engine:getOryonVideoEngine().obs_ready,
+      steam:!!STEAM_API_KEY,
+      youtube:!!YOUTUBE_API_KEY,
+      ai:!!GEMINI_API_KEY,
+      billing:!!process.env.STRIPE_SECRET_KEY
+    },
+    hide_when_false:['steam','youtube','ai','billing'],
+    note:'Le front peut utiliser cet endpoint pour masquer les modules non configurés sans modifier le visuel global.'
+  };
+}
+app.get('/api/swapp/features', (req,res) => {
+  res.setHeader('Cache-Control','no-store');
+  res.json(buildSwappFeatureStatus());
+});
+
 app.get('/api/swapp/diagnostic', async (req, res) => {
   try{
+    if(!requireSwappAdmin(req,res)) return;
     const payload = await buildSwappDiagnostic(req);
+    payload.admin = { protected:true, by:req.session?.oryonUser?.login || 'api-key' };
+    payload.features = buildSwappFeatureStatus().features;
+    payload.recent_errors = swappRecentErrors.slice(0, 80);
     res.setHeader('Cache-Control','no-store');
     res.json(payload);
-  }catch(e){ res.status(500).json({success:false,error:e.message}); }
+  }catch(e){ recordSwappError('diagnostic', req, e); res.status(500).json({success:false,error:'Diagnostic indisponible.'}); }
+});
+
+app.get('/api/swapp/admin/errors', (req,res) => {
+  if(!requireSwappAdmin(req,res)) return;
+  res.setHeader('Cache-Control','no-store');
+  res.json({ success:true, count:swappRecentErrors.length, items:swappRecentErrors });
+});
+app.delete('/api/swapp/admin/errors', (req,res) => {
+  if(!requireSwappAdmin(req,res)) return;
+  swappRecentErrors.splice(0, swappRecentErrors.length);
+  res.json({ success:true, cleared:true });
 });
 
 app.get('/api/swapp/readiness', async (req, res) => {
   try{
     const d = await buildSwappDiagnostic(req);
+    const publicChecks = {
+      persistence:{ ok:!!d.checks.persistence.ok, mode:d.checks.persistence.mode },
+      sessions:{ ok:!!d.checks.sessions.ok },
+      twitch:{ ok:!!d.checks.twitch.ok, redirect_matches_public_base:!!d.checks.twitch.redirect_matches_public_base },
+      public_base_url:{ ok:!!d.checks.public_base_url.ok },
+      video:{ ok:!!d.checks.video.ok, mode:d.checks.video.engine?.mode || null }
+    };
     res.status(d.ready ? 200 : 503).json({
       success:true,
       ready:d.ready,
       counts:d.counts,
-      required_env:d.required_env,
-      checks:d.checks
+      checks:publicChecks,
+      features:buildSwappFeatureStatus().features
     });
-  }catch(e){ res.status(500).json({success:false,ready:false,error:e.message}); }
+  }catch(e){ recordSwappError('readiness', req, e); res.status(500).json({success:false,ready:false,error:'Readiness indisponible.'}); }
 });
 
 app.get('/api/oryon/channel/:login/readiness', async (req, res) => {
@@ -8386,9 +8627,17 @@ app.get('/api/oryon/channel/:login/readiness', async (req, res) => {
       has_stream_key:!!user.stream_key,
       is_live:!!live || localLiveFresh,
       live_source:live ? 'browser-webrtc' : (localLiveFresh ? 'local-agent' : 'offline'),
-      profile:publicOryonUser(user)
+      profile:publicOryonChannelUser(user)
     });
   }catch(e){ res.status(500).json({success:false,ready:false,error:e.message}); }
+});
+
+process.on('unhandledRejection', (reason) => {
+  recordSwappError('unhandled_rejection', null, reason);
+});
+process.on('uncaughtException', (err) => {
+  recordSwappError('uncaught_exception', null, err);
+  if(IS_PROD) setTimeout(() => process.exit(1), 250);
 });
 
 server.listen(PORT, () => {
