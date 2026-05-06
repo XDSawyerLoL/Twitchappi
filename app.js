@@ -2891,7 +2891,7 @@ async function sweepStaleOryonLiveSignals(){
     ensureOryonUserShape(u);
     const last = Number(u.local_agent_last_seen || 0);
     const staleLocal = !!u.local_agent_live && (!last || now - last > oryonLiveSignalTimeoutMs());
-    const staleGeneric = String(u.live_status || '') === 'live' && !u.local_agent_live && !nativeLiveRooms?.has?.(u.login) && Number(u.live_started_at || 0) && now - Number(u.channel_last_seen || u.live_started_at || 0) > oryonPersistedLiveTimeoutMs();
+    const staleGeneric = String(u.live_status || '') === 'live' && !u.local_agent_live && !nativeLiveRooms?.has?.(u.login) && Number(u.live_started_at || 0) && now - Number(u.live_started_at || 0) > Math.max(oryonLiveSignalTimeoutMs() * 2, 90000);
     if(staleLocal || staleGeneric){
       u.local_agent_live = false;
       u.live_status = 'offline';
@@ -3134,32 +3134,15 @@ function verifyOryonRememberToken(user, token){
 }
 function oryonLiveSignalTimeoutMs(){ return Math.max(8000, Number(process.env.ORYON_LIVE_SIGNAL_TIMEOUT_MS || 25000)); }
 function isOryonLiveSignalFresh(u){
-  if(!u || !u.local_agent_live) return false;
-  const last = Number(u.local_agent_last_seen || u.channel_last_seen || 0);
+  if(!u || !u.oryon_local_player_url || !u.local_agent_live) return false;
+  const last = Number(u.local_agent_last_seen || 0);
   if(!last) return false;
   return (Date.now() - last) <= oryonLiveSignalTimeoutMs();
-}
-function oryonPersistedLiveTimeoutMs(){
-  return Math.max(5 * 60 * 1000, Number(process.env.ORYON_PERSISTED_LIVE_TIMEOUT_MS || (30 * 60 * 1000)));
-}
-function isOryonPersistedLiveFresh(u){
-  if(!u) return false;
-  if(String(u.live_status || '').toLowerCase() !== 'live') return false;
-  if(Number(u.last_live_ended_at || 0)) return false;
-  const started = Number(u.live_started_at || 0);
-  if(!started) return false;
-  const last = Number(u.channel_last_seen || u.local_agent_last_seen || started);
-  return (Date.now() - last) <= oryonPersistedLiveTimeoutMs();
-}
-function isOryonChannelLive(u, room = null){
-  return !!room || isOryonLiveSignalFresh(u) || isOryonPersistedLiveFresh(u);
 }
 function publicOryonUser(u){
   if(!u) return null;
   const localLiveFresh = isOryonLiveSignalFresh(u);
-  const persistedLiveFresh = isOryonPersistedLiveFresh(u);
-  const liveFresh = localLiveFresh || persistedLiveFresh;
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:liveFresh?'live':(u.live_status||'offline'), is_live:liveFresh, live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs(), persisted_live_timeout_ms:oryonPersistedLiveTimeoutMs() };
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:localLiveFresh?'live':(u.live_status||'offline'), is_live:localLiveFresh || String(u.live_status||'')==='live', live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
 function publicOryonChannelUser(u){
   const pub = publicOryonUser(u);
@@ -3291,7 +3274,7 @@ function getOryonUserByLogin(login){
 }
 function isOryonLocalLiveRoom(room){
   const u = getOryonUserByLogin(room);
-  return isOryonChannelLive(u);
+  return isOryonLiveSignalFresh(u);
 }
 
 function getSessionIdentity(req){
@@ -3618,6 +3601,20 @@ app.get('/api/oryon/video-engine/status', async (req, res) => {
     }
     res.json({ success:true, engine, reachable, version });
   }catch(e){ res.status(500).json({ success:false, error:e.message }); }
+});
+
+app.get('/api/swapp/streaming/readiness', async (req, res) => {
+  try{
+    const engine = getOryonVideoEngine();
+    const localAgent = {
+      expected_http_port:Number(process.env.ORYON_LOCAL_AGENT_PORT || 8081),
+      expected_rtmp_port:Number(process.env.ORYON_LOCAL_RTMP_PORT || 1935),
+      reconnect_grace_ms:oryonNativeReconnectGraceMs ? oryonNativeReconnectGraceMs() : Number(process.env.ORYON_NATIVE_RECONNECT_GRACE_MS || 90000),
+      live_signal_timeout_ms:oryonLiveSignalTimeoutMs()
+    };
+    res.setHeader('Cache-Control','no-store');
+    res.json({ success:true, engine, local_agent:localAgent, browser_webrtc:{enabled:true, mode:process.env.WEBRTC_MODE || 'p2p'}, durable_accounts:{firestore:!!firestoreOk, persistence:__oryonUsersPersistence}, notes:['OBS stable passe par Swapp Local + tunnel public.', 'Live navigateur reste P2P et dépend de la reconnexion du streamer.'] });
+  }catch(e){ res.status(500).json({success:false,error:e.message}); }
 });
 
 app.get('/api/oryon/stream-key', async (req, res) => {
@@ -4052,7 +4049,7 @@ const oryonSupportFile = path.join(__dirname, '.oryon-first-supports.json');
 function readJsonSafe(file, fallback){ try{ if(fs.existsSync(file)) return JSON.parse(fs.readFileSync(file,'utf8')||JSON.stringify(fallback)); }catch(_){} return fallback; }
 function writeJsonSafe(file, data){ try{ fs.writeFileSync(file, JSON.stringify(data,null,2)); }catch(e){ console.warn('writeJsonSafe', e.message); } }
 function getModState(room){ const data=readJsonSafe(oryonModFile,{rooms:{}}); data.rooms=data.rooms||{}; if(!data.rooms[room]) data.rooms[room]={banned:[],muted:[],blocked_words:[]}; return {data,state:data.rooms[room]}; }
-function oryonLiveCardFromRoom(room, r){ const u=(readOryonUsers().users||[]).find(x=>x.login===(r.hostLogin||room)); return {room,title:r.title||`Live de ${room}`,host_name:r.hostName||room,host_login:r.hostLogin||room,viewers:r.viewers?r.viewers.size:0,peak_viewers:r.peakViewers||0,chat_messages:r.chatMessages||0,category:r.category||'',tags:Array.isArray(r.tags)?r.tags:[],createdAt:r.createdAt||Date.now(),oryon_score:computeNativeOryonScore(r),platform:'oryon',thumbnail_url:u?.offline_image_url||u?.banner_url||'',avatar_url:u?.avatar_url||''}; }
+function oryonLiveCardFromRoom(room, r){ const u=(readOryonUsers().users||[]).find(x=>x.login===(r.hostLogin||room)); return {room,title:r.title||`Live de ${room}`,host_name:r.hostName||room,host_login:r.hostLogin||room,viewers:r.viewers?r.viewers.size:0,peak_viewers:r.peakViewers||0,chat_messages:r.chatMessages||0,category:r.category||'',tags:Array.isArray(r.tags)?r.tags:[],createdAt:r.createdAt||Date.now(),oryon_score:computeNativeOryonScore(r),platform:'oryon',source:'browser-webrtc',status:r.reconnecting?'reconnecting':'live',reconnecting:!!r.reconnecting,thumbnail_url:u?.offline_image_url||u?.banner_url||'',avatar_url:u?.avatar_url||'',is_live:true}; }
 function syntheticHistory(seed=1){ const now=Date.now(); const out=[]; for(let i=13;i>=0;i--){ const base=(seed*7+i*5)%23; out.push({label:new Date(now-i*86400000).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),viewers:Math.max(0,base+Math.floor(Math.sin(i)*5)),chat:Math.max(0,base*2+(i%4)*7),follows:Math.max(0,Math.floor(base/3)+(i%3))}); } return out; }
 
 function peertubeInstances(){
@@ -7405,32 +7402,67 @@ app.get('/api/gifs/search', async (req, res) => {
 
 // Oryon native WebRTC rooms. The server only relays signaling messages; video stays peer-to-peer.
 const nativeLiveRooms = new Map();
-function oryonNativeReconnectGraceMs(){
-  return Math.max(15000, Number(process.env.ORYON_NATIVE_RECONNECT_GRACE_MS || 90000));
+const nativeReconnectTimers = new Map();
+function oryonNativeReconnectGraceMs(){ return Math.max(15000, Number(process.env.ORYON_NATIVE_RECONNECT_GRACE_MS || 90000)); }
+function clearNativeReconnectTimer(room){
+  const key = String(room || '').toLowerCase();
+  const timer = nativeReconnectTimers.get(key);
+  if(timer) clearTimeout(timer);
+  nativeReconnectTimers.delete(key);
 }
-function isNativeRoomWaitingForHost(r){
-  return !!(r && !r.host && Number(r.reconnectUntil || 0) > Date.now());
+function publicNativeLiveState(room, r){
+  if(!r) return null;
+  return {
+    room,
+    is_live: true,
+    status: r.reconnecting ? 'reconnecting' : 'live',
+    source: 'browser-webrtc',
+    reconnecting: !!r.reconnecting,
+    reconnect_until: r.reconnectUntil || null,
+    title: r.title || `Live de ${room}`,
+    category: r.category || '',
+    tags: Array.isArray(r.tags) ? r.tags : [],
+    started_at: r.createdAt || null,
+    last_seen: r.lastSeen || r.createdAt || null,
+    viewers: r.viewers ? r.viewers.size : 0,
+    peak_viewers: r.peakViewers || 0
+  };
 }
-function finalizeNativeRoomIfExpired(room){
-  const key = String(room || '').trim().toLowerCase();
+function stopNativeRoom(room, reason = 'stopped'){
+  const key = String(room || '').toLowerCase();
   const r = nativeLiveRooms.get(key);
-  if(!r || r.host || isNativeRoomWaitingForHost(r)) return false;
-  nativeLiveRooms.delete(key);
-  persistOryonLiveStateByLogin(key, false, { localAgent:false, platform:'browser-webrtc', reason:'host_reconnect_timeout' }).catch(()=>{});
-  io.to('native:' + key).emit('native:stopped', { room:key, reason:'host_reconnect_timeout' });
-  io.emit('native:lives:update');
-  return true;
-}
-function sweepNativeLiveRooms(){
-  let changed = 0;
-  for(const room of Array.from(nativeLiveRooms.keys())){
-    if(finalizeNativeRoomIfExpired(room)) changed++;
+  clearNativeReconnectTimer(key);
+  if(r){
+    for(const viewerId of r.viewers || []){
+      io.to(viewerId).emit('native:error', { message: reason === 'disconnect' ? 'Le streamer est déconnecté.' : 'Le streamer a arrêté le live.' });
+      io.to(viewerId).emit('native:stopped', { room:key, reason });
+    }
   }
-  return changed;
+  nativeLiveRooms.delete(key);
+  persistOryonLiveStateByLogin(key, false, { localAgent:false, platform:'browser-webrtc', reason }).catch(()=>{});
+  io.emit('native:lives:update');
+}
+function scheduleNativeHostReconnect(room){
+  const key = String(room || '').toLowerCase();
+  const r = nativeLiveRooms.get(key);
+  if(!r) return;
+  const grace = oryonNativeReconnectGraceMs();
+  r.host = null;
+  r.reconnecting = true;
+  r.reconnectUntil = Date.now() + grace;
+  r.lastSeen = Date.now();
+  clearNativeReconnectTimer(key);
+  io.to('native:' + key).emit('native:reconnecting', { room:key, timeout_ms:grace, until:r.reconnectUntil });
+  const timer = setTimeout(() => {
+    const current = nativeLiveRooms.get(key);
+    if(current && !current.host && current.reconnecting) stopNativeRoom(key, 'timeout');
+  }, grace);
+  if(timer && typeof timer.unref === 'function') timer.unref();
+  nativeReconnectTimers.set(key, timer);
+  io.emit('native:lives:update');
 }
 const swappLiveSweepTimer = setInterval(() => {
   sweepStaleOryonLiveSignals().catch(e => console.warn('[SWAPP] live sweep failed:', e.message));
-  try{ sweepNativeLiveRooms(); }catch(e){ console.warn('[SWAPP] native live sweep failed:', e.message); }
 }, Math.max(30000, oryonLiveSignalTimeoutMs() * 2));
 if(swappLiveSweepTimer && typeof swappLiveSweepTimer.unref === 'function') swappLiveSweepTimer.unref();
 const nativeChatHistory = new Map(); // room -> messages
@@ -7451,14 +7483,13 @@ function computeNativeOryonScore(r){
   return Math.max(0, Math.min(100, lowVisibilityBoost + interaction + regularity + 18));
 }
 function nativeStatsPayload(room, r){
+  const live = publicNativeLiveState(room, r) || { room, is_live:false, status:'offline' };
   return {
-    room,
+    ...live,
     viewers: r?.viewers ? r.viewers.size : 0,
     peak_viewers: r?.peakViewers || 0,
     chat_messages: r?.chatMessages || 0,
     oryon_score: computeNativeOryonScore(r),
-    reconnecting: isNativeRoomWaitingForHost(r),
-    reconnect_until: r?.reconnectUntil || null,
     mode: process.env.WEBRTC_MODE || 'p2p'
   };
 }
@@ -7471,7 +7502,7 @@ function emitNativeStats(room){
 function cleanNativeRoom(room){
   const r = nativeLiveRooms.get(room);
   if(!r) return;
-  if(!r.host && !isNativeRoomWaitingForHost(r)) nativeLiveRooms.delete(room);
+  if(!r.host && !r.reconnecting) nativeLiveRooms.delete(room);
 }
 
 io.on('connection', async (socket) => {
@@ -7487,44 +7518,36 @@ io.on('connection', async (socket) => {
   let lastMsgAt = 0;
 
   // ORYON NATIVE LIVE: WebRTC signaling only. No video is proxied by this server.
-  socket.on('native:create', async (payload) => {
+  socket.on('native:create', (payload) => {
     const user = getOryonSocketUser(socket);
-    if(!user) return socket.emit('native:error', { message: 'Compte Oryon requis pour lancer un live.' });
+    if(!user) return socket.emit('native:error', { message: 'Compte Swapp requis pour lancer un live.' });
     const room = user.login;
     const existing = nativeLiveRooms.get(room);
     if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Tu as déjà un live actif.' });
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
-    const title = String(payload?.title || existing?.title || `Live de ${hostName}`).trim().slice(0, 120);
-    const viewers = existing?.viewers instanceof Set ? existing.viewers : new Set();
-    const wasReconnecting = !!existing && !existing.host;
-    const roomState = {
-      ...(existing || {}),
+    const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
+    const baseRoom = existing || { viewers: new Set(), createdAt: Date.now(), peakViewers: 0, chatMessages: 0 };
+    clearNativeReconnectTimer(room);
+    const liveRoom = {
+      ...baseRoom,
       host: socket.id,
-      viewers,
-      createdAt: existing?.createdAt || Date.now(),
+      reconnecting: false,
+      reconnectUntil: null,
+      lastSeen: Date.now(),
       title,
       hostName,
-      hostLogin:user.login,
-      hostUserId:user.id,
-      category: String(payload?.category || existing?.category || '').trim().slice(0,60),
-      tags: Array.isArray(payload?.tags) ? payload.tags.slice(0,8) : String(payload?.tags || (Array.isArray(existing?.tags) ? existing.tags.join(',') : '') || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8),
-      peakViewers: Math.max(Number(existing?.peakViewers || 0), viewers.size),
-      chatMessages: Number(existing?.chatMessages || 0),
-      lastHostSeenAt: Date.now(),
-      hostDisconnectedAt: null,
-      reconnectUntil: null,
-      hostReconnects: Number(existing?.hostReconnects || 0) + (wasReconnecting ? 1 : 0)
+      hostLogin: user.login,
+      hostUserId: user.id,
+      category: String(payload?.category || baseRoom.category || '').trim().slice(0,60),
+      tags: String(payload?.tags || (Array.isArray(baseRoom.tags) ? baseRoom.tags.join(',') : '')).split(',').map(x=>x.trim()).filter(Boolean).slice(0,8)
     };
-    nativeLiveRooms.set(room, roomState);
-    try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category: roomState.category, tags: roomState.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0), Number(roomState.chatMessages||0)); await writeOryonUsersAndWait(ud); } pushOryonEvent(wasReconnecting ? 'live_resumed' : 'live_started', user.login, {room,title}); }catch(_e){ console.warn('[SWAPP] native live persist failed:', _e.message); }
+    nativeLiveRooms.set(room, liveRoom);
+    try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category: payload?.category, tags: payload?.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0),0); writeOryonUsers(ud); } pushOryonEvent(existing ? 'live_resumed' : 'live_started', user.login, {room,title}); }catch(_e){}
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
-    socket.emit('native:created', { room, title, host_name: hostName, resumed: wasReconnecting });
+    socket.emit('native:created', { room, title, host_name: hostName, resumed: !!existing });
     socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
-    if(wasReconnecting) io.to('native:' + room).emit('native:resumed', { room });
-    for(const viewerId of viewers){
-      if(viewerId && viewerId !== socket.id) io.to(socket.id).emit('native:viewer', { room, viewerId, viewers:viewers.size, resumed:wasReconnecting });
-    }
+    io.to('native:' + room).emit('native:resumed', { room, title, host_name: hostName });
     io.emit('native:lives:update');
     emitNativeStats(room);
   });
@@ -7533,39 +7556,38 @@ io.on('connection', async (socket) => {
     const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
     const localAgentLive = isOryonLocalLiveRoom(room);
-    const reconnecting = isNativeRoomWaitingForHost(r);
-    if(!room || (!r?.host && !localAgentLive && !reconnecting)) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
+    if(!room || (!r && !localAgentLive)) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
     const maxViewers = Number(process.env.MAX_NATIVE_VIEWERS || 300);
     if(r?.viewers && r.viewers.size >= maxViewers) return socket.emit('native:error', { message: 'Salon complet : limite ' + maxViewers + ' viewers atteinte.' });
     if(r?.viewers){
       r.viewers.add(socket.id);
       r.peakViewers = Math.max(Number(r.peakViewers || 0), r.viewers.size);
+      r.lastSeen = Date.now();
     }
     socket.data.nativeRoom = room; socket.data.nativeRole = 'viewer';
     socket.join('native:' + room);
     socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
-    if(reconnecting) socket.emit('native:reconnecting', { room, reconnect_until:r.reconnectUntil });
+    if(r?.reconnecting) socket.emit('native:reconnecting', { room, until:r.reconnectUntil || null, timeout_ms:Math.max(0, Number(r.reconnectUntil || 0) - Date.now()) });
     if(r?.host) io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
     io.emit('native:lives:update');
     if(r) emitNativeStats(room);
   });
 
-  socket.on('native:request-offer', (payload) => { const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40); const r = nativeLiveRooms.get(room); if(r?.host) io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id }); else if(isNativeRoomWaitingForHost(r)) socket.emit('native:reconnecting', { room, reconnect_until:r.reconnectUntil }); });
-  socket.on('native:heartbeat', async (payload) => {
+  socket.on('native:request-offer', (payload) => {
     const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40);
     const r = nativeLiveRooms.get(room);
-    if(!room || !r || r.host !== socket.id || socket.data.nativeRole !== 'host') return;
-    r.lastHostSeenAt = Date.now();
-    if(r.reconnectUntil) r.reconnectUntil = null;
-    const shouldPersist = !r.lastPersistedHeartbeatAt || Date.now() - Number(r.lastPersistedHeartbeatAt || 0) > 15000;
-    if(shouldPersist){
-      r.lastPersistedHeartbeatAt = Date.now();
-      try{
-        const ud=readOryonUsers();
-        const uu=(ud.users||[]).find(x=>x.login===room);
-        if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title:r.title, category:r.category, tags:r.tags }); await writeOryonUsersAndWait(ud); }
-      }catch(e){ console.warn('[SWAPP] native heartbeat persist failed:', e.message); }
-    }
+    if(r?.host) return io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id });
+    if(r?.reconnecting) return socket.emit('native:reconnecting', { room, until:r.reconnectUntil || null, timeout_ms:Math.max(0, Number(r.reconnectUntil || 0) - Date.now()) });
+    socket.emit('native:error', { message:'Le flux vidéo n’est pas prêt.' });
+  });
+  socket.on('native:heartbeat', () => {
+    const room = socket.data.nativeRoom;
+    const role = socket.data.nativeRole;
+    const r = nativeLiveRooms.get(room);
+    if(!r || role !== 'host') return;
+    r.lastSeen = Date.now();
+    if(r.reconnecting){ r.reconnecting = false; r.reconnectUntil = null; clearNativeReconnectTimer(room); io.to('native:' + room).emit('native:resumed', { room }); }
+    persistOryonLiveStateByLogin(room, true, { localAgent:false, platform:'browser-webrtc', title:r.title, category:r.category, tags:r.tags }).catch(()=>{});
     emitNativeStats(room);
   });
   socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
@@ -7618,10 +7640,7 @@ io.on('connection', async (socket) => {
     const room = socket.data.nativeRoom; const role = socket.data.nativeRole; const r = nativeLiveRooms.get(room);
     if(r){
       if(role === 'host'){
-        for(const viewerId of r.viewers){ io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' }); io.to(viewerId).emit('native:stopped', {room, reason:'manual_stop'}); }
-        nativeLiveRooms.delete(room);
-        persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc', reason:'manual_stop' }).catch(()=>{});
-        io.emit('native:lives:update');
+        stopNativeRoom(room, 'manual');
       }else{
         r.viewers.delete(socket.id);
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
@@ -7776,14 +7795,9 @@ io.on('connection', async (socket) => {
     const r = nativeLiveRooms.get(room);
     if(r){
       if(role === 'host'){
-        const now = Date.now();
-        r.host = null;
-        r.hostDisconnectedAt = now;
-        r.reconnectUntil = now + oryonNativeReconnectGraceMs();
-        io.to('native:' + room).emit('native:reconnecting', { room, reconnect_until:r.reconnectUntil });
-        io.emit('native:lives:update');
-        emitNativeStats(room);
-        setTimeout(() => finalizeNativeRoomIfExpired(room), oryonNativeReconnectGraceMs() + 1000).unref?.();
+        // Browser refresh/network blip: keep live alive for a short grace window.
+        for(const viewerId of r.viewers) io.to(viewerId).emit('native:reconnecting', { room, timeout_ms:oryonNativeReconnectGraceMs(), until:Date.now()+oryonNativeReconnectGraceMs() });
+        scheduleNativeHostReconnect(room);
       }else{
         r.viewers.delete(socket.id);
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
@@ -8841,15 +8855,14 @@ app.get('/api/oryon/channels', async (req, res) => {
       .map(u => {
         const pub = publicOryonChannelUser(u);
         const live = lives.get(String(pub.login || '').toLowerCase()) || null;
-        const isLive = isOryonChannelLive(u, live);
         return {
           ...pub,
           public_url: swappChannelPathForLogin(pub.login),
-          live_status: isLive ? 'live' : (pub.live_status || 'offline'),
-          is_live: isLive,
-          live_title: live?.title || (isLive ? (pub.current_live_title || `Live de ${pub.display_name || pub.login}`) : ''),
+          live_status: (!!live || !!pub.local_agent_live || String(pub.live_status||'')==='live') ? 'live' : 'offline',
+          is_live: !!live || !!pub.local_agent_live || String(pub.live_status||'')==='live',
+          live_title: live?.title || pub.current_live_title || ((pub.local_agent_live || String(pub.live_status||'')==='live') ? `Live de ${pub.display_name || pub.login}` : ''),
           live_viewers: Number(live?.viewers || 0),
-          live_category: live?.category || pub.current_live_category || '',
+          live_category: live?.category || '',
           updatedAt: u.updatedAt || u.createdAt || 0
         };
       })
@@ -8873,9 +8886,12 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const room = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.get) ? nativeLiveRooms.get(login) : null;
     const localLiveFresh = isOryonLiveSignalFresh(user);
-    const persistedLiveFresh = isOryonPersistedLiveFresh(user);
-    const channelLive = isOryonChannelLive(user, room);
+    const persistedLive = String(user.live_status || '').toLowerCase() === 'live';
+    const sourcePlayerUrl = (localLiveFresh || persistedLive) ? String(user.oryon_local_player_url || '') : '';
     const publicPath = swappChannelPathForLogin(login);
+    const nativeState = publicNativeLiveState(login, room);
+    const isLive = !!nativeState || localLiveFresh || persistedLive;
+    const source = nativeState ? 'browser-webrtc' : (sourcePlayerUrl ? 'local-agent' : (isLive ? 'starting' : 'offline'));
     res.setHeader('Cache-Control','no-store');
     res.json({
       success:true,
@@ -8883,19 +8899,24 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
       public_url:publicPath,
       public_abs_url:(swappPublicBase(req)||'').replace(/\/$/,'') + publicPath,
       live:{
-        is_live:channelLive,
-        source:room ? 'browser-webrtc' : (localLiveFresh ? 'local-agent' : (persistedLiveFresh ? 'persisted-live' : 'offline')),
-        status:channelLive ? 'live' : 'offline',
-        reconnecting: room ? isNativeRoomWaitingForHost(room) : false,
-        reconnect_until: room?.reconnectUntil || null,
-        started_at:room?.createdAt || user.live_started_at || null,
-        last_seen:user.channel_last_seen || user.local_agent_last_seen || null,
+        is_live:isLive,
+        source,
+        status:nativeState?.status || (isLive ? 'live' : 'offline'),
+        reconnecting:!!nativeState?.reconnecting,
+        reconnect_until:nativeState?.reconnect_until || null,
+        room:login,
+        player_url:sourcePlayerUrl,
+        embed_url:sourcePlayerUrl,
+        hls_url:sourcePlayerUrl ? sourcePlayerUrl.replace(/\/player\/([^/?#]+)/, '/hls/$1/index.m3u8') : '',
+        status_url:(localLiveFresh || persistedLive) ? String(user.oryon_local_status_url || '') : '',
+        started_at:nativeState?.started_at || user.live_started_at || null,
+        last_seen:nativeState?.last_seen || user.channel_last_seen || user.local_agent_last_seen || null,
         ended_at:user.last_live_ended_at || null,
-        title:room?.title || user.current_live_title || '',
-        category:room?.category || user.current_live_category || '',
-        player_url: localLiveFresh ? (user.oryon_local_player_url || '') : '',
-        viewers:room?.viewers ? room.viewers.size : 0,
-        peak_viewers:room?.peakViewers || 0
+        title:nativeState?.title || user.current_live_title || '',
+        category:nativeState?.category || user.current_live_category || '',
+        tags:nativeState?.tags || user.current_live_tags || [],
+        viewers:nativeState?.viewers || 0,
+        peak_viewers:nativeState?.peak_viewers || 0
       }
     });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }

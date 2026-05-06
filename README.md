@@ -155,3 +155,27 @@
 <script src="./app.js"></script>
 </body>
 </html>
+
+## Swapp streaming quick start
+
+```bash
+npm install
+npm run setup
+npm run build
+npm start
+```
+
+Pour OBS / Swapp Local :
+
+```bash
+npm --prefix local-agent install
+npm run stream:check
+npm run stream:local
+```
+
+Documentation :
+
+- `docs/STREAMING_QUICKSTART.md`
+- `docs/STREAMING_GUIDE.md`
+- `docs/STREAMING_TOOLKIT.md`
+
