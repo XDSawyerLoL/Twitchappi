@@ -421,9 +421,20 @@ function setupSocket(){
  if(state.socket)return;
  state.socketLogin=state.session.local?.login||'';
  state.socket=io({withCredentials:true,reconnection:true,reconnectionAttempts:8,reconnectionDelay:700});
- state.socket.on('connect',()=>{ if(state.view==='channel' && state.watchRoom && !state.stream){ state.socket.emit('native:join',{room:state.watchRoom}); setTimeout(()=>requestOffer(),450); }});
- state.socket.on('native:created',d=>{state.room=d.room;toast('Live lancé'); state.socket.emit('native:chat:history',{room:d.room}); if($('#offlinePanel'))$('#offlinePanel').style.display='none'; updateLiveUi(true)});
+ state.socket.on('connect',()=>{
+   if(state.stream && state.session.local?.login){
+     state.room=state.session.local.login;
+     const q=$('#liveQuality')?.value||state.liveMeta?.quality||'1080';
+     state.socket.emit('native:create',{title:$('#liveTitle')?.value||state.liveMeta?.title||`Live de ${state.session.local.login}`,category:$('#liveCategory')?.value||state.liveMeta?.category||'',tags:$('#liveTags')?.value||state.liveMeta?.tags||'',quality:q,resume:true});
+     startNativeHeartbeat();
+     return;
+   }
+   if(state.view==='channel' && state.watchRoom && !state.stream){ state.socket.emit('native:join',{room:state.watchRoom}); setTimeout(()=>requestOffer(),450); }
+ });
+ state.socket.on('native:created',d=>{state.room=d.room;toast(d.resumed?'Live repris':'Live lancé'); state.socket.emit('native:chat:history',{room:d.room}); if($('#offlinePanel'))$('#offlinePanel').style.display='none'; updateLiveUi(true); startNativeHeartbeat();});
  state.socket.on('native:error',e=>toast(e.message||'Erreur live'));
+ state.socket.on('native:reconnecting',()=>{const off=$('#offlinePanel'); if(off) off.style.display='grid'; toast('Le streamer se reconnecte…');});
+ state.socket.on('native:resumed',()=>{if(state.watchRoom){toast('Live reconnecté'); setTimeout(()=>requestOffer(),300);}});
  state.socket.on('native:stopped',()=>{toast('Le live est terminé'); updateLiveUi(false); const off=$('#offlinePanel'); if(off) off.style.display='grid';});
  state.socket.on('native:viewer',async d=>{if(!state.stream)return; await sendOfferToViewer(d.viewerId,d.room)});
  state.socket.on('native:request-offer',async d=>{if(!state.stream)return; await sendOfferToViewer(d.viewerId,d.room)});
@@ -440,6 +451,15 @@ async function sendOfferToViewer(viewerId,room){
  await pc.setLocalDescription(offer);
  state.socket.emit('native:offer',{to:viewerId,room:room||state.room,offer});
 }
+function startNativeHeartbeat(){
+ if(state.nativeHeartbeatTimer) clearInterval(state.nativeHeartbeatTimer);
+ state.nativeHeartbeatTimer=setInterval(()=>{
+   if(state.socket && state.stream && state.room){
+     state.socket.emit('native:heartbeat',{room:state.room,title:state.liveMeta?.title||$('#liveTitle')?.value||'',category:state.liveMeta?.category||$('#liveCategory')?.value||'',tags:state.liveMeta?.tags||$('#liveTags')?.value||''});
+   }
+ },8000);
+}
+function stopNativeHeartbeat(){ if(state.nativeHeartbeatTimer){clearInterval(state.nativeHeartbeatTimer); state.nativeHeartbeatTimer=null;} }
 function requestOffer(){ if(state.socket && state.room){ state.socket.emit('native:request-offer',{room:state.room}); }}
 function retryWatch(){ if(!state.watchRoom&&!state.room)return; state.room=state.watchRoom||state.room; Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; setupSocket(); state.socket.emit('native:join',{room:state.room}); setTimeout(()=>requestOffer(),450); toast('Reconnexion au live…'); }
 async function peer(id){const cfg=await api('/api/webrtc/config'); const pc=new RTCPeerConnection({iceServers:cfg.iceServers||[{urls:'stun:stun.l.google.com:19302'}]}); state.peers[id]=pc; pc.onicecandidate=e=>{if(e.candidate)state.socket.emit('native:ice',{to:id,room:state.room,candidate:e.candidate})}; pc.onconnectionstatechange=()=>{if(['failed','disconnected'].includes(pc.connectionState)&&state.watchRoom)setTimeout(()=>retryWatch(),900)}; pc.ontrack=e=>{const v=$('#remoteVideo'); if(v){v.srcObject=e.streams[0]; v.classList.remove('hidden'); v.style.display='block'; v.play?.().catch(()=>{}); $('#localVideo')?.classList.add('hidden'); const off=$('#offlinePanel'); if(off) off.style.display='none';}}; return pc}
@@ -463,9 +483,11 @@ async function startLive(){
  catch(e){toast('Impossible de capturer la source vidéo. Vérifie les permissions.');return}
  attachCurrentStream(); $('#localVideo')?.play?.().catch(()=>{}); state.stream.getTracks().forEach(t=>t.onended=()=>stopLive(false)); updateLiveUi(true);
  state.room=state.session.local.login;
- state.socket.emit('native:create',{title:$('#liveTitle')?.value||`Live de ${state.session.local.login}`,category:$('#liveCategory')?.value||'',tags:$('#liveTags')?.value||'',quality:q})
+ state.liveMeta={title:$('#liveTitle')?.value||`Live de ${state.session.local.login}`,category:$('#liveCategory')?.value||'',tags:$('#liveTags')?.value||'',quality:q};
+ state.socket.emit('native:create',state.liveMeta);
+ startNativeHeartbeat();
 }
-function stopLive(stopTracks=true){if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); $('#managerPreviewEmpty')?.classList.remove('hidden'); toast('Live arrêté')}
+function stopLive(stopTracks=true){stopNativeHeartbeat(); if(stopTracks){ state.stream?._oryonSources?.forEach(src=>src.getTracks().forEach(t=>t.stop())); state.stream?.getTracks().forEach(t=>t.stop()); } state.stream=null; state.liveMeta=null; if(state.socket) state.socket.emit('native:leave'); Object.values(state.peers||{}).forEach(pc=>{try{pc.close()}catch{}}); state.peers={}; updateLiveUi(false); const v=$('#localVideo'); if(v) v.srcObject=null; $('#offlinePanel')&&( $('#offlinePanel').style.display='block'); $('#managerPreviewEmpty')?.classList.remove('hidden'); toast('Live arrêté')}
 function openOryon(room){state.watchRoom=String(room||'').toLowerCase(); const item=(state.zap.items||[]).find(x=>(x.host_login||x.room)===state.watchRoom)||{platform:'oryon',host_login:state.watchRoom,host_name:state.watchRoom}; trackDiscovery(item); state.room=state.watchRoom; setMiniLive({type:'oryon',login:state.watchRoom,title:'Swapp · '+state.watchRoom}); setView('channel')}
 function sendChat(){if(!state.room)return toast('Aucun salon Swapp actif'); if(!state.socket)setupSocket(); if(!state.session.local)return toast('Connecte-toi à Swapp pour écrire dans le tchat natif.'); state.socket.emit('native:chat',{room:state.room,text:$('#chatInput').value,gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null}); $('#chatInput').value=''; state.selectedGif=''; state.selectedEmote=null; $('#gifGrid')?.classList.add('hidden')}
 function msgHtml(m){return `<div class="msg"><b>${esc(m.user_display||m.user)}</b> <span class="small">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><div>${esc(m.text||'')}</div>${m.emote?`<img src="${esc(m.emote.image_url)}" title=":${esc(m.emote.code)}:">`:''}${m.gif?`<img src="${esc(m.gif)}">`:''}</div>`}

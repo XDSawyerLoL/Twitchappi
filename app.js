@@ -7405,8 +7405,32 @@ app.get('/api/gifs/search', async (req, res) => {
 
 // Oryon native WebRTC rooms. The server only relays signaling messages; video stays peer-to-peer.
 const nativeLiveRooms = new Map();
+function oryonNativeReconnectGraceMs(){
+  return Math.max(15000, Number(process.env.ORYON_NATIVE_RECONNECT_GRACE_MS || 90000));
+}
+function isNativeRoomWaitingForHost(r){
+  return !!(r && !r.host && Number(r.reconnectUntil || 0) > Date.now());
+}
+function finalizeNativeRoomIfExpired(room){
+  const key = String(room || '').trim().toLowerCase();
+  const r = nativeLiveRooms.get(key);
+  if(!r || r.host || isNativeRoomWaitingForHost(r)) return false;
+  nativeLiveRooms.delete(key);
+  persistOryonLiveStateByLogin(key, false, { localAgent:false, platform:'browser-webrtc', reason:'host_reconnect_timeout' }).catch(()=>{});
+  io.to('native:' + key).emit('native:stopped', { room:key, reason:'host_reconnect_timeout' });
+  io.emit('native:lives:update');
+  return true;
+}
+function sweepNativeLiveRooms(){
+  let changed = 0;
+  for(const room of Array.from(nativeLiveRooms.keys())){
+    if(finalizeNativeRoomIfExpired(room)) changed++;
+  }
+  return changed;
+}
 const swappLiveSweepTimer = setInterval(() => {
   sweepStaleOryonLiveSignals().catch(e => console.warn('[SWAPP] live sweep failed:', e.message));
+  try{ sweepNativeLiveRooms(); }catch(e){ console.warn('[SWAPP] native live sweep failed:', e.message); }
 }, Math.max(30000, oryonLiveSignalTimeoutMs() * 2));
 if(swappLiveSweepTimer && typeof swappLiveSweepTimer.unref === 'function') swappLiveSweepTimer.unref();
 const nativeChatHistory = new Map(); // room -> messages
@@ -7433,6 +7457,8 @@ function nativeStatsPayload(room, r){
     peak_viewers: r?.peakViewers || 0,
     chat_messages: r?.chatMessages || 0,
     oryon_score: computeNativeOryonScore(r),
+    reconnecting: isNativeRoomWaitingForHost(r),
+    reconnect_until: r?.reconnectUntil || null,
     mode: process.env.WEBRTC_MODE || 'p2p'
   };
 }
@@ -7445,7 +7471,7 @@ function emitNativeStats(room){
 function cleanNativeRoom(room){
   const r = nativeLiveRooms.get(room);
   if(!r) return;
-  if(!r.host) nativeLiveRooms.delete(room);
+  if(!r.host && !isNativeRoomWaitingForHost(r)) nativeLiveRooms.delete(room);
 }
 
 io.on('connection', async (socket) => {
@@ -7468,13 +7494,37 @@ io.on('connection', async (socket) => {
     const existing = nativeLiveRooms.get(room);
     if(existing?.host && existing.host !== socket.id) return socket.emit('native:error', { message: 'Tu as déjà un live actif.' });
     const hostName = String(user.display_name || user.login).trim().slice(0, 40);
-    const title = String(payload?.title || `Live de ${hostName}`).trim().slice(0, 120);
-    nativeLiveRooms.set(room, { host: socket.id, viewers: new Set(), createdAt: Date.now(), title, hostName, hostLogin:user.login, hostUserId:user.id, category: String(payload?.category || '').trim().slice(0,60), tags: String(payload?.tags || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8), peakViewers: 0, chatMessages: 0 });
-    try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category: payload?.category, tags: payload?.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0),0); await writeOryonUsersAndWait(ud); } pushOryonEvent('live_started', user.login, {room,title}); }catch(_e){ console.warn('[SWAPP] native live persist failed:', _e.message); }
+    const title = String(payload?.title || existing?.title || `Live de ${hostName}`).trim().slice(0, 120);
+    const viewers = existing?.viewers instanceof Set ? existing.viewers : new Set();
+    const wasReconnecting = !!existing && !existing.host;
+    const roomState = {
+      ...(existing || {}),
+      host: socket.id,
+      viewers,
+      createdAt: existing?.createdAt || Date.now(),
+      title,
+      hostName,
+      hostLogin:user.login,
+      hostUserId:user.id,
+      category: String(payload?.category || existing?.category || '').trim().slice(0,60),
+      tags: Array.isArray(payload?.tags) ? payload.tags.slice(0,8) : String(payload?.tags || (Array.isArray(existing?.tags) ? existing.tags.join(',') : '') || '').split(',').map(x=>x.trim()).filter(Boolean).slice(0,8),
+      peakViewers: Math.max(Number(existing?.peakViewers || 0), viewers.size),
+      chatMessages: Number(existing?.chatMessages || 0),
+      lastHostSeenAt: Date.now(),
+      hostDisconnectedAt: null,
+      reconnectUntil: null,
+      hostReconnects: Number(existing?.hostReconnects || 0) + (wasReconnecting ? 1 : 0)
+    };
+    nativeLiveRooms.set(room, roomState);
+    try{ const ud=readOryonUsers(); const uu=ud.users.find(x=>x.id===user.id); if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title, category: roomState.category, tags: roomState.tags }); uu.best_chat_messages=Math.max(Number(uu.best_chat_messages||0), Number(roomState.chatMessages||0)); await writeOryonUsersAndWait(ud); } pushOryonEvent(wasReconnecting ? 'live_resumed' : 'live_started', user.login, {room,title}); }catch(_e){ console.warn('[SWAPP] native live persist failed:', _e.message); }
     socket.data.nativeRoom = room; socket.data.nativeRole = 'host';
     socket.join('native:' + room);
-    socket.emit('native:created', { room, title, host_name: hostName });
+    socket.emit('native:created', { room, title, host_name: hostName, resumed: wasReconnecting });
     socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
+    if(wasReconnecting) io.to('native:' + room).emit('native:resumed', { room });
+    for(const viewerId of viewers){
+      if(viewerId && viewerId !== socket.id) io.to(socket.id).emit('native:viewer', { room, viewerId, viewers:viewers.size, resumed:wasReconnecting });
+    }
     io.emit('native:lives:update');
     emitNativeStats(room);
   });
@@ -7483,7 +7533,8 @@ io.on('connection', async (socket) => {
     const room = String(payload?.room || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
     const r = nativeLiveRooms.get(room);
     const localAgentLive = isOryonLocalLiveRoom(room);
-    if(!room || (!r?.host && !localAgentLive)) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
+    const reconnecting = isNativeRoomWaitingForHost(r);
+    if(!room || (!r?.host && !localAgentLive && !reconnecting)) return socket.emit('native:error', { message: 'Aucun live actif dans ce salon.' });
     const maxViewers = Number(process.env.MAX_NATIVE_VIEWERS || 300);
     if(r?.viewers && r.viewers.size >= maxViewers) return socket.emit('native:error', { message: 'Salon complet : limite ' + maxViewers + ' viewers atteinte.' });
     if(r?.viewers){
@@ -7493,12 +7544,30 @@ io.on('connection', async (socket) => {
     socket.data.nativeRoom = room; socket.data.nativeRole = 'viewer';
     socket.join('native:' + room);
     socket.emit('native:chat:history', { room, messages: getNativeChat(room).slice(-80) });
+    if(reconnecting) socket.emit('native:reconnecting', { room, reconnect_until:r.reconnectUntil });
     if(r?.host) io.to(r.host).emit('native:viewer', { room, viewerId: socket.id, viewers: r.viewers.size });
     io.emit('native:lives:update');
     if(r) emitNativeStats(room);
   });
 
-  socket.on('native:request-offer', (payload) => { const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40); const r = nativeLiveRooms.get(room); if(r?.host) io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id }); });
+  socket.on('native:request-offer', (payload) => { const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40); const r = nativeLiveRooms.get(room); if(r?.host) io.to(r.host).emit('native:request-offer', { room, viewerId: socket.id }); else if(isNativeRoomWaitingForHost(r)) socket.emit('native:reconnecting', { room, reconnect_until:r.reconnectUntil }); });
+  socket.on('native:heartbeat', async (payload) => {
+    const room = String(payload?.room || socket.data.nativeRoom || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0,40);
+    const r = nativeLiveRooms.get(room);
+    if(!room || !r || r.host !== socket.id || socket.data.nativeRole !== 'host') return;
+    r.lastHostSeenAt = Date.now();
+    if(r.reconnectUntil) r.reconnectUntil = null;
+    const shouldPersist = !r.lastPersistedHeartbeatAt || Date.now() - Number(r.lastPersistedHeartbeatAt || 0) > 15000;
+    if(shouldPersist){
+      r.lastPersistedHeartbeatAt = Date.now();
+      try{
+        const ud=readOryonUsers();
+        const uu=(ud.users||[]).find(x=>x.login===room);
+        if(uu){ markOryonLiveFields(uu, true, { localAgent:false, platform:'browser-webrtc', title:r.title, category:r.category, tags:r.tags }); await writeOryonUsersAndWait(ud); }
+      }catch(e){ console.warn('[SWAPP] native heartbeat persist failed:', e.message); }
+    }
+    emitNativeStats(room);
+  });
   socket.on('native:offer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:offer', { from: socket.id, room: payload?.room, offer: payload?.offer }); });
   socket.on('native:answer', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:answer', { from: socket.id, room: payload?.room, answer: payload?.answer }); });
   socket.on('native:ice', (payload) => { const to = String(payload?.to || ''); if(to) io.to(to).emit('native:ice', { from: socket.id, room: payload?.room, candidate: payload?.candidate }); });
@@ -7549,9 +7618,9 @@ io.on('connection', async (socket) => {
     const room = socket.data.nativeRoom; const role = socket.data.nativeRole; const r = nativeLiveRooms.get(room);
     if(r){
       if(role === 'host'){
-        for(const viewerId of r.viewers){ io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' }); io.to(viewerId).emit('native:stopped', {room}); }
+        for(const viewerId of r.viewers){ io.to(viewerId).emit('native:error', { message: 'Le streamer a arrêté le live.' }); io.to(viewerId).emit('native:stopped', {room, reason:'manual_stop'}); }
         nativeLiveRooms.delete(room);
-        persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc' }).catch(()=>{});
+        persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc', reason:'manual_stop' }).catch(()=>{});
         io.emit('native:lives:update');
       }else{
         r.viewers.delete(socket.id);
@@ -7707,10 +7776,14 @@ io.on('connection', async (socket) => {
     const r = nativeLiveRooms.get(room);
     if(r){
       if(role === 'host'){
-        for(const viewerId of r.viewers) io.to(viewerId).emit('native:error', { message: 'Le streamer a quitté le live.' });
-        nativeLiveRooms.delete(room);
-        persistOryonLiveStateByLogin(room, false, { localAgent:false, platform:'browser-webrtc' }).catch(()=>{});
+        const now = Date.now();
+        r.host = null;
+        r.hostDisconnectedAt = now;
+        r.reconnectUntil = now + oryonNativeReconnectGraceMs();
+        io.to('native:' + room).emit('native:reconnecting', { room, reconnect_until:r.reconnectUntil });
         io.emit('native:lives:update');
+        emitNativeStats(room);
+        setTimeout(() => finalizeNativeRoomIfExpired(room), oryonNativeReconnectGraceMs() + 1000).unref?.();
       }else{
         r.viewers.delete(socket.id);
         if(r.host) io.to(r.host).emit('native:viewer-left', { room, viewerId: socket.id, viewers: r.viewers.size });
@@ -8813,6 +8886,8 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
         is_live:channelLive,
         source:room ? 'browser-webrtc' : (localLiveFresh ? 'local-agent' : (persistedLiveFresh ? 'persisted-live' : 'offline')),
         status:channelLive ? 'live' : 'offline',
+        reconnecting: room ? isNativeRoomWaitingForHost(room) : false,
+        reconnect_until: room?.reconnectUntil || null,
         started_at:room?.createdAt || user.live_started_at || null,
         last_seen:user.channel_last_seen || user.local_agent_last_seen || null,
         ended_at:user.last_live_ended_at || null,
