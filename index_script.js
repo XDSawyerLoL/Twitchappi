@@ -308,7 +308,7 @@ async function renderChannel(){
  const isOwner=!!viewer && viewer.login===targetLogin;
  const lives=await api('/api/native/lives');
  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
- const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+ const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
  state.channelProfile=p; state.channelOwner=isOwner;
  const offlineImg=p.offline_image_url||p.banner_url||'';
  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -889,7 +889,7 @@ async function renderChannel(){
  const isOwner=!!viewer && viewer.login===targetLogin;
  const lives=await api('/api/native/lives');
  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
- const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+ const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
  state.channelProfile=p; state.channelOwner=isOwner;
  const offlineImg=p.offline_image_url||p.banner_url||'';
  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -1020,7 +1020,7 @@ async function renderChannel(){
  const isOwner=!!viewer && viewer.login===targetLogin;
  const lives=await api('/api/native/lives');
  const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
- const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+ const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
  state.channelProfile=p; state.channelOwner=isOwner;
  const offlineImg=p.offline_image_url||p.banner_url||'';
  const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -3176,7 +3176,7 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const offlineImg=p.offline_image_url||p.banner_url||'';
@@ -3781,7 +3781,7 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const offlineImg=p.offline_image_url||p.banner_url||'';
@@ -3917,7 +3917,7 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const offlineImg=p.offline_image_url||p.banner_url||'';
@@ -4242,7 +4242,7 @@ async function renderChannel(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
   state.channelProfile=p; state.channelOwner=isOwner;
   const banner=p.banner_url||p.offline_image_url||'';
   const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -4467,7 +4467,7 @@ renderChannel = async function(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
   state.channelProfile=p; state.channelOwner=isOwner;
   if(viewer)saveOryonLocalBackup(viewer);
   const banner=p.banner_url||p.offline_image_url||'';
@@ -4654,7 +4654,7 @@ renderChannel = async function(){
   const isOwner=!!viewer && viewer.login===targetLogin;
   const lives=await api('/api/native/lives').catch(()=>({items:[]}));
   const liveRoom=(lives.items||[]).find(x=>(x.host_login||x.room)===targetLogin);
-  const isLive=!!liveRoom || !!(p.local_agent_live && p.oryon_local_player_url) || (isOwner && !!state.stream);
+  const isLive=!!liveRoom || !!(p.is_live || String(p.live_status||'').toLowerCase()==='live' || (p.local_agent_live && p.oryon_local_player_url)) || (isOwner && !!state.stream);
   state.channelProfile=p; state.channelOwner=isOwner; if(viewer)oryonSaveBackupUser(viewer);
   const banner=p.banner_url||p.offline_image_url||'';
   const tags=Array.isArray(p.tags)?p.tags:(String(p.tags||'').split(',').map(x=>x.trim()).filter(Boolean));
@@ -10197,4 +10197,70 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.addEventListener('load',()=>setTimeout(boot,50));
   window.addEventListener('popstate',()=>setTimeout(boot,20));
   setTimeout(boot,20);
+})();
+
+
+/* =========================================================
+   Swapp live share fix — shared /pseudo must reflect active live
+   Functional only: uses backend status before/after channel render.
+   ========================================================= */
+(function swappLiveShareStatusFix(){
+  if(window.__swappLiveShareStatusFix) return;
+  window.__swappLiveShareStatusFix = true;
+  const clean = v => String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+  const baseRender = window.renderChannel || (typeof renderChannel === 'function' ? renderChannel : null);
+  async function fetchLiveStatus(login){
+    try{
+      if(!login || typeof api !== 'function') return null;
+      const r = await api('/api/oryon/channel/'+encodeURIComponent(login)+'/status?ts='+Date.now());
+      return r && r.success ? r : null;
+    }catch(_e){ return null; }
+  }
+  function mergeLiveStatus(r){
+    if(!r || !r.channel) return false;
+    const prev = state.channelProfile || {};
+    const live = r.live || {};
+    state.channelStatus = live;
+    state.channelProfile = {
+      ...prev,
+      ...r.channel,
+      is_live: !!live.is_live || !!r.channel.is_live,
+      live_status: (live.is_live || r.channel.is_live) ? 'live' : (r.channel.live_status || live.status || 'offline'),
+      current_live_title: live.title || r.channel.current_live_title || prev.current_live_title || '',
+      current_live_category: live.category || r.channel.current_live_category || prev.current_live_category || '',
+      oryon_local_player_url: live.player_url || r.channel.oryon_local_player_url || prev.oryon_local_player_url || ''
+    };
+    return !!(live.is_live || r.channel.is_live);
+  }
+  if(typeof baseRender === 'function'){
+    const wrapped = async function renderChannelLiveShareAware(){
+      const viewer = state?.session?.local;
+      const login = clean(state?.watchRoom || state?.channelProfile?.login || viewer?.login || '');
+      const pre = login ? await fetchLiveStatus(login) : null;
+      const preLive = mergeLiveStatus(pre);
+      const out = await baseRender.apply(this, arguments);
+      const post = login ? await fetchLiveStatus(login) : null;
+      const postLive = mergeLiveStatus(post);
+      const badge = document.getElementById('channelLiveBadge');
+      if(badge) badge.textContent = postLive ? '🔴 En direct' : 'Hors ligne';
+      if(postLive){
+        try{ updateLiveUi?.(true); }catch(_e){}
+        const player = document.querySelector('#channel .oryonMainPlayer');
+        const p = state.channelProfile || {};
+        const stillOffline = player && player.querySelector('.offlinePremium,.emptyStatePlayer');
+        if(stillOffline){
+          if(p.oryon_local_player_url){
+            player.innerHTML = `<iframe allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="${esc(p.oryon_local_player_url)}"></iframe>`;
+          }else if(typeof fwLiveMediaHtml === 'function'){
+            player.innerHTML = fwLiveMediaHtml(p, !!(viewer && clean(viewer.login) === login), true, p.offline_image_url || p.banner_url || '');
+            try{ setupSocket?.(); state.room = login; state.socket?.emit('native:join',{room:login}); setTimeout(()=>requestOffer?.(),500); }catch(_e){}
+          }
+        }
+      }
+      return out;
+    };
+    wrapped.__swappLiveShareStatusFix = true;
+    window.renderChannel = wrapped;
+    try{ renderChannel = wrapped; }catch(_e){}
+  }
 })();
