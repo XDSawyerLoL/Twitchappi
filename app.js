@@ -3133,8 +3133,31 @@ function verifyOryonRememberToken(user, token){
   try { return crypto.timingSafeEqual(a,b); } catch(_) { return false; }
 }
 function oryonLiveSignalTimeoutMs(){ return Math.max(8000, Number(process.env.ORYON_LIVE_SIGNAL_TIMEOUT_MS || 25000)); }
+function isBlockedOryonLocalPlayerUrl(value){
+  try{
+    const u = new URL(String(value || '').trim());
+    const h = u.hostname.toLowerCase();
+    return h === 'loca.lt' || h.endsWith('.loca.lt') || h.endsWith('.localtunnel.me');
+  }catch(_){ return true; }
+}
+function normalizeOryonLocalPublicUrl(value, login = ''){
+  const raw = String(value || '').trim().slice(0,1000);
+  if(!raw || !/^https?:\/\//i.test(raw)) return '';
+  if(/localhost|127\.0\.0\.1/i.test(raw)) return '';
+  if(isBlockedOryonLocalPlayerUrl(raw)) return '';
+  let out = raw;
+  try{
+    const pu = new URL(raw);
+    if(login && /\/player\/(channel|stream|live)(\/)?$/i.test(pu.pathname)){
+      pu.pathname = pu.pathname.replace(/\/player\/(channel|stream|live)(\/)?$/i, '/player/' + encodeURIComponent(login));
+      out = pu.toString();
+    }
+  }catch(_){}
+  return out;
+}
 function isOryonLiveSignalFresh(u){
   if(!u || !u.oryon_local_player_url || !u.local_agent_live) return false;
+  if(isBlockedOryonLocalPlayerUrl(u.oryon_local_player_url)) return false;
   const last = Number(u.local_agent_last_seen || 0);
   if(!last) return false;
   return (Date.now() - last) <= oryonLiveSignalTimeoutMs();
@@ -3142,7 +3165,9 @@ function isOryonLiveSignalFresh(u){
 function publicOryonUser(u){
   if(!u) return null;
   const localLiveFresh = isOryonLiveSignalFresh(u);
-  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:localLiveFresh?'live':(u.live_status||'offline'), is_live:localLiveFresh || String(u.live_status||'')==='live', live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:localLiveFresh?(u.oryon_local_player_url||''):'', oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
+  const persistedNonLocalLive = String(u.live_status || '') === 'live' && !u.local_agent_live;
+  const publicPlayerUrl = localLiveFresh ? normalizeOryonLocalPublicUrl(u.oryon_local_player_url, u.login) : '';
+  return { id:u.id, login:u.login, display_name:u.display_name || u.login, email:u.email || null, email_verified: !!u.email_verified, createdAt:u.createdAt || null, channel_id:u.channel_id || u.id, channel_public:u.channel_public !== false, public_path:u.public_path || swappChannelPathForLogin(u.login), public_url:u.public_url || swappChannelPathForLogin(u.login), channel_createdAt:u.channel_createdAt || u.createdAt || null, channel_updatedAt:u.channel_updatedAt || u.updatedAt || null, bio:u.bio||'', avatar_url:u.avatar_url||'', banner_url:u.banner_url||'', offline_image_url:u.offline_image_url||'', tags:Array.isArray(u.tags)?u.tags:[], language:u.language||'fr', content_rating:u.content_rating||'general', followers_count:Number(u.followers_count||0), likes_count:Number(u.likes_count||0), channel_badges:Array.isArray(u.channel_badges)?u.channel_badges.slice(0,8):[], channel_panels:Array.isArray(u.channel_panels)?u.channel_panels.slice(0,8):[], channel_vignettes:Array.isArray(u.channel_vignettes)?u.channel_vignettes.slice(0,8):[], channel_links:Array.isArray(u.channel_links)?u.channel_links.slice(0,8):[], peertube_embed_url:u.peertube_embed_url||'', peertube_watch_url:u.peertube_watch_url||'', external_live_platform:u.external_live_platform||'', live_status:(localLiveFresh||persistedNonLocalLive)?'live':'offline', is_live:localLiveFresh || persistedNonLocalLive, live_started_at:u.live_started_at||null, last_live_ended_at:u.last_live_ended_at||null, channel_last_seen:u.channel_last_seen||u.local_agent_last_seen||null, current_live_title:u.current_live_title||'', current_live_category:u.current_live_category||'', current_live_tags:Array.isArray(u.current_live_tags)?u.current_live_tags:[], oryon_local_player_url:publicPlayerUrl, oryon_local_status_url:localLiveFresh?(u.oryon_local_status_url||''):'', local_agent_live:localLiveFresh, local_agent_last_seen:u.local_agent_last_seen||null, live_signal_timeout_ms:oryonLiveSignalTimeoutMs() };
 }
 function publicOryonChannelUser(u){
   const pub = publicOryonUser(u);
@@ -3726,8 +3751,8 @@ app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (r
     const statusUrl = String(req.body?.status_url || '').trim().slice(0, 1000);
     const publicBaseUrl = String(req.body?.public_base_url || '').trim().slice(0, 1000);
     if(!playerUrl || !/^https?:\/\//i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL publique invalide.' });
-    if(/localhost|127\.0\.0\.1/i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL locale refusée : Swapp doit recevoir une URL publique, pas localhost.' });
-    if(/loca\.lt|localtunnel/i.test(playerUrl + ' ' + publicBaseUrl)) return res.status(400).json({ success:false, error:'localtunnel/loca.lt refusé : ce service injecte une page de sécurité et casse le lecteur. Utilise Cloudflare Tunnel ou un serveur RTMP Swapp.' });
+    if(/localhost|127\.0\.0\.1/i.test(playerUrl)) return res.status(400).json({ success:false, error:'URL locale refusée : Swapp doit recevoir l’URL publique du tunnel, pas localhost.' });
+    if(isBlockedOryonLocalPlayerUrl(playerUrl)) return res.status(400).json({ success:false, error:'URL loca.lt/localtunnel refusée : ce service affiche une page de sécurité et casse le lecteur public. Utilise Swapp Local corrigé avec Cloudflare Tunnel.' });
 
     if(!token && !streamKey) return res.status(401).json({ success:false, error:'Jeton local ou stream key requis.' });
     const data = readOryonUsers();
@@ -3739,14 +3764,8 @@ app.post('/api/oryon/local-agent/register-public-url', mutationLimiter, async (r
       return res.status(403).json({ success:false, error:'Cette clé de stream ne correspond pas au compte connecté.' });
     }
     if(!user.stream_key) user.stream_key = streamKey || makeOryonStreamKey();
-    let normalizedPlayerUrl = playerUrl;
-    try{
-      const pu = new URL(playerUrl);
-      if(/\/player\/(channel|stream|live)(\/)?$/i.test(pu.pathname)){
-        pu.pathname = pu.pathname.replace(/\/player\/(channel|stream|live)(\/)?$/i, '/player/' + encodeURIComponent(user.login));
-        normalizedPlayerUrl = pu.toString();
-      }
-    }catch(_){}
+    const normalizedPlayerUrl = normalizeOryonLocalPublicUrl(playerUrl, user.login);
+    if(!normalizedPlayerUrl) return res.status(400).json({ success:false, error:'URL publique invalide ou non lisible par Swapp.' });
     user.oryon_local_player_url = normalizedPlayerUrl;
     user.oryon_local_status_url = statusUrl;
     user.oryon_local_public_base_url = publicBaseUrl;
@@ -3773,15 +3792,12 @@ app.post('/api/oryon/local-agent/heartbeat', mutationLimiter, async (req, res) =
       return res.status(403).json({ success:false, error:'Clé de stream incorrecte.' });
     }
     if(liveActive){
-      if(playerUrl && /loca\.lt|localtunnel/i.test(playerUrl + ' ' + statusUrl)){
-        return res.status(400).json({ success:false, error:'localtunnel/loca.lt refusé : URL non lisible dans le lecteur Swapp.' });
-      }
       if(playerUrl && /^https?:\/\//i.test(playerUrl) && !/localhost|127\.0\.0\.1/i.test(playerUrl)){
-        let normalizedPlayerUrl = playerUrl;
-        try{ const pu=new URL(playerUrl); if(/\/player\/(channel|stream|live)(\/)?$/i.test(pu.pathname)){ pu.pathname=pu.pathname.replace(/\/player\/(channel|stream|live)(\/)?$/i, '/player/' + encodeURIComponent(user.login)); normalizedPlayerUrl=pu.toString(); } }catch(_){}
+        const normalizedPlayerUrl = normalizeOryonLocalPublicUrl(playerUrl, user.login);
+        if(!normalizedPlayerUrl) return res.status(400).json({ success:false, error:'URL publique locale/tunnel refusée. Relance Swapp Local corrigé pour recréer un tunnel valide.' });
         user.oryon_local_player_url = normalizedPlayerUrl;
       }
-      if(statusUrl && /^https?:\/\//i.test(statusUrl)) user.oryon_local_status_url = statusUrl;
+      if(statusUrl && /^https?:\/\//i.test(statusUrl) && !isBlockedOryonLocalPlayerUrl(statusUrl)) user.oryon_local_status_url = statusUrl;
       markOryonLiveFields(user, true, { localAgent:true, platform:'oryon-live', title:req.body?.title || req.body?.live_title, category:req.body?.category, tags:req.body?.tags });
     } else {
       markOryonLiveFields(user, false, { localAgent:true });
@@ -8804,12 +8820,10 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
         category:room?.category || user.current_live_category || '',
         viewers:room?.viewers ? room.viewers.size : 0,
         peak_viewers:room?.peakViewers || 0,
-        player_url: room ? '' : (localLiveFresh ? (user.oryon_local_player_url || '') : ''),
-        embed_url: room ? '' : (localLiveFresh ? (user.oryon_local_player_url || '') : ''),
-        hls_url: room ? '' : (localLiveFresh ? (user.oryon_local_hls_url || '') : ''),
-        status_url: room ? '' : (localLiveFresh ? (user.oryon_local_status_url || '') : ''),
-        public_base_url: room ? '' : (localLiveFresh ? (user.oryon_local_public_base_url || '') : ''),
-        provider: room ? 'browser-webrtc' : (localLiveFresh ? (user.oryon_local_provider || 'local-agent') : 'offline')
+        player_url:localLiveFresh ? normalizeOryonLocalPublicUrl(user.oryon_local_player_url, login) : '',
+        embed_url:localLiveFresh ? normalizeOryonLocalPublicUrl(user.oryon_local_player_url, login) : '',
+        status_url:localLiveFresh ? (user.oryon_local_status_url || '') : '',
+        provider:localLiveFresh ? (user.oryon_local_provider || 'local-agent') : ''
       }
     });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }

@@ -1,14 +1,64 @@
 {
-  "name": "swapp-live-connector",
-  "version": "0.5.0",
+  "name": "swapp-live",
+  "version": "1.0.2",
   "private": true,
-  "description": "Connecteur local OBS vers Swapp avec Cloudflare Tunnel automatique",
-  "main": "main.js",
-  "dependencies": {
-    "express": "^4.21.2",
-    "node-media-server": "^2.7.0",
-    "ffmpeg-static": "^5.2.0"
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "verify:js": "node --check app.js && node --check index_script.js && node --check sidepanel-dock-fix.js && node --check preload.js && node --check electron-main.js && node --check assets/js/pricing.js",
+    "audit:prod": "npm audit --omit=dev",
+    "audit:fix:prod": "npm audit fix --omit=dev",
+    "clean:dead": "node scripts/clean-dead.js",
+    "build": "node --check app.js && node --check index_script.js"
   },
-  "author": "Swapp",
-  "productName": "Swapp Live Connector"
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
+    "@google/genai": "^1.25.0",
+    "body-parser": "^1.20.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.1",
+    "express-session": "^1.18.2",
+    "firebase-admin": "^13.5.0",
+    "helmet": "^8.1.0",
+    "memorystore": "^1.6.7",
+    "node-fetch": "^2.7.0",
+    "nodemailer": "^6.10.1",
+    "socket.io": "^4.8.1",
+    "stripe": "^18.5.0"
+  },
+  "overrides": {
+    "semver": "^7.7.3",
+    "ws": "^8.18.3",
+    "tar": "^7.4.3",
+    "brace-expansion": "^5.0.5",
+    "form-data": "^4.0.4",
+    "elliptic": "^6.6.1",
+    "tmp": "^0.2.4",
+    "lodash": "^4.17.21",
+    "cross-spawn": "^7.0.6",
+    "ansi-regex": "^6.2.2",
+    "serialize-javascript": "^6.0.2",
+    "nanoid": "^3.3.11",
+    "minimist": "^1.2.8",
+    "ip": "^2.0.1",
+    "ejs": "^3.1.10",
+    "undici": "^7.16.0",
+    "cookie": "^0.7.2",
+    "tough-cookie": "^4.1.4",
+    "debug": "^4.4.1",
+    "yargs-parser": "^21.1.1",
+    "path-to-regexp": "^0.1.12",
+    "send": "^0.19.0",
+    "http-cache-semantics": "^4.1.1",
+    "glob": "^10.4.5",
+    "uuid": "^14.0.0",
+    "@tootallnate/once": "^3.0.1",
+    "http-proxy-agent": "^7.0.2"
+  }
 }
