@@ -1,25 +1,14 @@
-const { app, BrowserWindow, shell } = require('electron');
-const path = require('path');
-
-process.env.ORYON_LOCAL_HTTP_PORT = process.env.ORYON_LOCAL_HTTP_PORT || '8081';
-process.env.ORYON_LOCAL_RTMP_PORT = process.env.ORYON_LOCAL_RTMP_PORT || '1935';
-
-require('./server');
-
-function createWindow(){
-  const win = new BrowserWindow({
-    width: 1180,
-    height: 820,
-    minWidth: 960,
-    minHeight: 640,
-    title: 'Swapp Local',
-    backgroundColor: '#070914',
-    webPreferences: { contextIsolation: true }
-  });
-  setTimeout(() => win.loadURL(`http://localhost:${process.env.ORYON_LOCAL_HTTP_PORT}`), 900);
-  win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+{
+  "name": "swapp-live-connector",
+  "version": "0.5.0",
+  "private": true,
+  "description": "Connecteur local OBS vers Swapp avec Cloudflare Tunnel automatique",
+  "main": "main.js",
+  "dependencies": {
+    "express": "^4.21.2",
+    "node-media-server": "^2.7.0",
+    "ffmpeg-static": "^5.2.0"
+  },
+  "author": "Swapp",
+  "productName": "Swapp Live Connector"
 }
-
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if(process.platform !== 'darwin') app.quit(); });
-app.on('activate', () => { if(BrowserWindow.getAllWindows().length === 0) createWindow(); });
