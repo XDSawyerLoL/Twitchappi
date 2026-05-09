@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: oryon-live
+    name: swapp-live
     env: node
     plan: free
     buildCommand: npm ci --omit=dev
@@ -10,3 +10,5 @@ services:
         value: production
       - key: SESSION_SECRET
         generateValue: true
+      - key: ORYON_LIVE_SIGNAL_TIMEOUT_MS
+        value: 120000

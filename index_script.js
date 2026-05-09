@@ -10210,3 +10210,128 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.addEventListener('popstate',()=>setTimeout(boot,20));
   setTimeout(boot,20);
 })();
+
+
+/* =========================================================
+   SWAPP PUBLIC CHANNEL FIX — pages /pseudo publiques + live local fiable
+   ========================================================= */
+(function installSwappPublicChannelFix(){
+  if(window.__SWAPP_PUBLIC_CHANNEL_FIX_V4__) return;
+  window.__SWAPP_PUBLIC_CHANNEL_FIX_V4__ = true;
+  const E = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])));
+  const cleanLogin = (v) => String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+  const RESERVED = new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
+  function safeLocalPlayer(url){
+    try{ if(typeof swappSafeLocalPlayerUrl === 'function') return swappSafeLocalPlayerUrl(url); }catch(_e){}
+    const raw=String(url||'').trim();
+    if(!/^https?:\/\//i.test(raw)) return '';
+    if(/localhost|127\.0\.0\.1/i.test(raw)) return '';
+    if(/loca\.lt|localtunnel/i.test(raw)) return '';
+    return raw;
+  }
+  function pathLogin(){
+    try{
+      const p=decodeURIComponent(location.pathname||'/').replace(/\/+$/,'')||'/';
+      if(/^\/c\//i.test(p)) return cleanLogin(p.split('/')[2]||'');
+      const bits=p.split('/').filter(Boolean);
+      if(bits.length===1){const slug=cleanLogin(bits[0]); if(slug && !RESERVED.has(slug)) return slug;}
+    }catch(_e){}
+    return '';
+  }
+  function pageBox(){ return document.querySelector('#channel .oryonMainPlayer,#channel .premiumPlayer,#channel .player'); }
+  function upsertPublicNotice(text, cls){
+    const root=document.querySelector('#channel .watchMain') || document.querySelector('#channel .channelPage') || document.getElementById('channel');
+    if(!root) return;
+    let n=document.getElementById('swappPublicChannelNotice');
+    if(!n){ n=document.createElement('div'); n.id='swappPublicChannelNotice'; n.className='panel'; n.style.marginTop='12px'; root.prepend(n); }
+    n.className='panel ' + (cls||'');
+    n.innerHTML='<b>Page publique</b><p class="muted">'+E(text)+'</p>';
+  }
+  function renderOfflineFromStatus(r){
+    const box=pageBox(); if(!box) return;
+    const p=r?.channel||state?.channelProfile||{};
+    const offlineImg=p.offline_image_url||p.banner_url||'';
+    if(box.querySelector('iframe') && box.dataset.swappPublicHydrated==='1') box.innerHTML='';
+    if(!box.innerHTML.trim() || box.dataset.swappPublicHydrated==='1'){
+      box.dataset.swappPublicHydrated='0';
+      box.innerHTML='<div class="emptyStatePlayer">'+(offlineImg?'<img class="offlinePoster" src="'+E(offlineImg)+'" alt="">':'')+'<div class="offlineOverlay"><div><h2>Chaîne hors ligne</h2><p class="muted">La page existe et reste accessible même sans connexion.</p></div></div></div>';
+    }
+  }
+  function injectPublicPlayer(url){
+    const clean=safeLocalPlayer(url); const box=pageBox();
+    if(!box || !clean) return false;
+    if(box.dataset.swappPublicSrc===clean && box.querySelector('iframe')) return true;
+    box.dataset.swappPublicHydrated='1';
+    box.dataset.swappPublicSrc=clean;
+    box.innerHTML='<iframe allow="autoplay; fullscreen" allowfullscreen sandbox="allow-same-origin allow-scripts allow-popups allow-forms" src="'+E(clean)+'"></iframe>';
+    return true;
+  }
+  async function hydratePublicChannel(){
+    const login=cleanLogin(state?.watchRoom || state?.channelProfile?.login || pathLogin());
+    if(!login || state?.view!=='channel') return;
+    try{
+      const r=await api('/api/oryon/channel/'+encodeURIComponent(login)+'/status?t='+Date.now());
+      if(!r?.success){ upsertPublicNotice(r?.error || 'Cette chaîne publique est introuvable.', ''); return; }
+      state.channelStatus=r.live||null;
+      if(r.channel) state.channelProfile={...(state.channelProfile||{}),...r.channel,oryon_local_player_url:r.live?.player_url||r.channel.oryon_local_player_url||''};
+      const badge=document.getElementById('channelLiveBadge');
+      if(badge) badge.textContent=r.live?.is_live?'🔴 En direct':'Hors ligne';
+      const head=document.querySelector('#channel .pageHead');
+      if(head && !head.querySelector('[data-public-url]')){
+        const publicUrl=r.public_abs_url || (location.origin + '/' + encodeURIComponent(login));
+        const dock=head.querySelector('.row') || head;
+        const wrap=document.createElement('span');
+        wrap.dataset.publicUrl='1';
+        wrap.innerHTML='<button class="btn secondary" type="button">Copier le lien public</button>';
+        wrap.querySelector('button').onclick=()=>navigator.clipboard?.writeText(publicUrl).then(()=>toast?.('Lien public copié')).catch(()=>toast?.(publicUrl));
+        dock.appendChild(wrap);
+      }
+      if(r.live?.is_live){
+        const ok=injectPublicPlayer(r.live.player_url || r.live.embed_url || r.channel?.oryon_local_player_url || '');
+        upsertPublicNotice(ok ? 'Cette page est visible sans compte. Le lecteur public est branché sur Swapp Local.' : 'Le site voit le live, mais aucune URL de lecteur public valide n’est encore remontée.', ok?'goodish':'');
+      }else{
+        renderOfflineFromStatus(r);
+        upsertPublicNotice('Cette page est visible sans compte. Elle affichera le live dès que Swapp Local publiera une URL publique.', '');
+      }
+    }catch(e){
+      upsertPublicNotice('Diagnostic public impossible : '+(e?.message||e), '');
+    }
+  }
+  async function forceRouteIfPublic(){
+    const login=pathLogin();
+    if(!login) return;
+    try{ if(window.state){ state.watchRoom=login; } }catch(_e){}
+    if(state?.view!=='channel' && typeof setView==='function') await setView('channel');
+    else await hydratePublicChannel();
+  }
+  const oldSetView = window.setView || (typeof setView==='function' ? setView : null);
+  if(typeof oldSetView==='function' && !oldSetView.__swappPublicChannelFixWrapped){
+    const wrapped = async function(view){
+      if(view==='channel' && !state.watchRoom){ const login=pathLogin(); if(login) state.watchRoom=login; }
+      const out = await oldSetView.apply(this, arguments);
+      if((view==='channel' || state?.view==='channel')) setTimeout(hydratePublicChannel,80);
+      return out;
+    };
+    wrapped.__swappPublicChannelFixWrapped=true;
+    window.setView=wrapped;
+    try{ setView=wrapped; }catch(_e){}
+  }
+  const oldRenderChannel = window.renderChannel || (typeof renderChannel==='function' ? renderChannel : null);
+  if(typeof oldRenderChannel==='function' && !oldRenderChannel.__swappPublicChannelFixWrapped){
+    const wrappedRender = async function(){
+      if(!state.watchRoom){ const login=pathLogin(); if(login) state.watchRoom=login; }
+      const out = await oldRenderChannel.apply(this, arguments);
+      setTimeout(hydratePublicChannel,80);
+      setTimeout(hydratePublicChannel,1200);
+      return out;
+    };
+    wrappedRender.__swappPublicChannelFixWrapped=true;
+    window.renderChannel=wrappedRender;
+    try{ renderChannel=wrappedRender; }catch(_e){}
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(forceRouteIfPublic,80));
+  window.addEventListener('load',()=>setTimeout(forceRouteIfPublic,120));
+  window.addEventListener('popstate',()=>setTimeout(forceRouteIfPublic,30));
+  setInterval(()=>{ if(state?.view==='channel') hydratePublicChannel(); }, 5000);
+  setTimeout(forceRouteIfPublic,160);
+})();
