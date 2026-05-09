@@ -1,8 +1,8 @@
 const { app, BrowserWindow, shell } = require('electron');
-const path = require('path');
 
-process.env.ORYON_LOCAL_HTTP_PORT = process.env.ORYON_LOCAL_HTTP_PORT || '8081';
-process.env.ORYON_LOCAL_RTMP_PORT = process.env.ORYON_LOCAL_RTMP_PORT || '1935';
+process.env.ORYON_LOCAL_HTTP_PORT = process.env.ORYON_LOCAL_HTTP_PORT || process.env.SWAPP_LOCAL_HTTP_PORT || '8081';
+process.env.ORYON_LOCAL_RTMP_PORT = process.env.ORYON_LOCAL_RTMP_PORT || process.env.SWAPP_LOCAL_RTMP_PORT || '1935';
+process.env.ORYON_SITE_URL = process.env.ORYON_SITE_URL || process.env.SWAPP_SITE_URL || 'https://swapp.tv';
 
 require('./server');
 
@@ -12,7 +12,7 @@ function createWindow(){
     height: 820,
     minWidth: 960,
     minHeight: 640,
-    title: 'Oryon Local',
+    title: 'Swapp Local',
     backgroundColor: '#070914',
     webPreferences: { contextIsolation: true }
   });

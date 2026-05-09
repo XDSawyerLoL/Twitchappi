@@ -1,44 +1,27 @@
-# Oryon Local
+# Swapp Local — patch tunnel stable
 
-Application locale pour streamer sur Oryon depuis OBS sans VPS.
+Ce patch désactive localtunnel/loca.lt parce que ce service affiche une page de sécurité dans les iframes. Cette page casse le lecteur public Swapp.
 
-## Démarrage Windows
-Double-clique sur `LANCER-ORYON-LOCAL-WINDOWS.bat`.
+Fonctionnement :
 
-## Démarrage macOS / Linux
-Lance `./lancer-oryon-local-mac-linux.sh`.
+- OBS envoie vers `rtmp://127.0.0.1:1935/live`
+- Swapp Local convertit en HLS local avec FFmpeg intégré
+- Swapp Local crée un Cloudflare Tunnel en arrière-plan
+- le tunnel est vérifié via DNS + `/health`
+- si le tunnel tombe ou ne répond pas, l'application le recrée automatiquement
+- l'URL publiée sur Swapp n'est plus une URL `loca.lt`
 
-## OBS
-- Service : Personnalisé
-- Serveur : `rtmp://localhost:1935/live`
-- Clé : ta clé Oryon affichée dans le Gestionnaire de stream.
+Vérification locale :
 
-## Rendre le live visible aux autres
-Sans tunnel, le player ne fonctionne que sur ton PC. Pour les viewers, expose `http://localhost:8081` avec Cloudflare Tunnel, ngrok ou Tailscale Funnel, puis colle l’URL publique du player dans ton profil Oryon.
-
-## Important
-FFmpeg doit être disponible sur le PC pour convertir le flux OBS en HLS. Si la preview reste noire, installe FFmpeg et relance l’application.
-
-## Créer une vraie application Windows (.exe)
-
-Cette version contient Electron Builder. Sur un PC Windows avec Node.js installé :
-
-1. Ouvre le dossier `local-agent`.
-2. Lance `BUILD-WINDOWS.bat`.
-3. Le `.exe` portable et l'installateur seront générés dans `local-agent/dist/`.
-
-Le package inclut `ffmpeg-static`, donc l'utilisateur final ne devrait plus avoir à installer FFmpeg séparément après build.
-
-Commandes manuelles :
-
-```bash
-npm install
-npm run dist:win
+```txt
+http://127.0.0.1:8081/api/setup/check
 ```
 
-OBS :
+Le mode idéal sans application serait un serveur RTMP public Swapp, par exemple :
 
-```text
-Serveur : rtmp://localhost:1935/live
-Clé : ta clé Oryon
+```txt
+Serveur OBS : rtmp://ingest.swapp.tv/live
+Clé OBS     : ta clé Swapp
 ```
+
+Mais cela demande un vrai serveur média public dédié, pas seulement l'hébergement web Hostinger.

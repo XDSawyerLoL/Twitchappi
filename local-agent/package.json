@@ -1,76 +1,14 @@
 {
-  "name": "swapp-live-app",
-  "version": "0.3.0",
+  "name": "swapp-local-app",
+  "version": "0.5.0",
   "private": true,
-  "description": "Application locale pour diffuser sur Swapp avec OBS",
+  "description": "Application locale plug-and-play pour diffuser sur Swapp avec OBS",
   "main": "main.js",
-  "scripts": {
-    "start": "node server.js",
-    "app": "electron .",
-    "dist": "electron-builder",
-    "dist:win": "electron-builder --win portable nsis",
-    "dist:dir": "electron-builder --dir"
-  },
   "dependencies": {
     "express": "^4.21.2",
     "node-media-server": "^2.7.0",
-    "ffmpeg-static": "^5.2.0",
-    "localtunnel": "^2.0.2"
-  },
-  "devDependencies": {
-    "electron-builder": "^26.0.12",
-    "electron": "^37.3.1"
-  },
-  "build": {
-    "appId": "fr.swapp.local",
-    "productName": "Swapp Local",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "main.js",
-      "server.js",
-      "package.json",
-      "README.md",
-      "assets/**/*",
-      "node_modules/**/*"
-    ],
-    "asar": false,
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "artifactName": "Swapp-Local-${version}-${arch}.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Swapp Local"
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ]
-    }
+    "ffmpeg-static": "^5.2.0"
   },
   "author": "Swapp",
-  "productName": "Swapp Live"
+  "productName": "Swapp Local"
 }

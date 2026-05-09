@@ -9,13 +9,7 @@
     "audit:prod": "npm audit --omit=dev",
     "audit:fix:prod": "npm audit fix --omit=dev",
     "clean:dead": "node scripts/clean-dead.js",
-    "build": "node --check app.js && node --check index_script.js",
-    "setup": "node setup-wizard.js",
-    "stream:check": "node stream-manager.js check",
-    "stream:demo": "node stream-manager.js demo",
-    "stream:local": "node stream-manager.js local",
-    "local-agent:install": "npm --prefix local-agent install",
-    "local-agent:start": "npm --prefix local-agent start"
+    "build": "node --check app.js && node --check index_script.js"
   },
   "engines": {
     "node": "20.x"

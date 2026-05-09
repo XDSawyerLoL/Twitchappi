@@ -1,25 +1,25 @@
-# Swapp Streaming Toolkit
+const { app, BrowserWindow, shell } = require('electron');
+const path = require('path');
 
-## Overlays simples à préparer
+process.env.ORYON_LOCAL_HTTP_PORT = process.env.ORYON_LOCAL_HTTP_PORT || '8081';
+process.env.ORYON_LOCAL_RTMP_PORT = process.env.ORYON_LOCAL_RTMP_PORT || '1935';
 
-- `overlay-start.html` : écran “live bientôt”.
-- `overlay-brb.html` : pause courte.
-- `overlay-end.html` : fin de stream + call-to-action suivre.
+require('./server');
 
-## Alerts à brancher ensuite
+function createWindow(){
+  const win = new BrowserWindow({
+    width: 1180,
+    height: 820,
+    minWidth: 960,
+    minHeight: 640,
+    title: 'Oryon Local',
+    backgroundColor: '#070914',
+    webPreferences: { contextIsolation: true }
+  });
+  setTimeout(() => win.loadURL(`http://localhost:${process.env.ORYON_LOCAL_HTTP_PORT}`), 900);
+  win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+}
 
-- Nouveau follow Swapp.
-- Premier soutien.
-- Like chaîne.
-- Message épinglé.
-- Raid inversé vers petit créateur.
-
-## Intégrations prévues
-
-- Discord : notification salon quand un membre passe live.
-- Slack : notification interne pour tests/prod.
-- Twitch : synchronisation catégorie et fallback découverte.
-
-## Règle produit
-
-Le toolkit doit rester optionnel. Le cœur doit déjà marcher : compte, chaîne, live, viewer, feed, likes.
+app.whenReady().then(createWindow);
+app.on('window-all-closed', () => { if(process.platform !== 'darwin') app.quit(); });
+app.on('activate', () => { if(BrowserWindow.getAllWindows().length === 0) createWindow(); });
