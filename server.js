@@ -419,7 +419,18 @@ const mutationLimiter = rateLimit({
 });
 
 
+// Hostinger/cPanel lance souvent Node via Phusion Passenger.
+// Avec Passenger, il faut laisser Passenger capter server.listen() au lieu de forcer un port fixe.
+// Render/Railway/Fly fournissent process.env.PORT : dans ce cas on l'utilise normalement.
+const IS_PASSENGER_HOSTING = Boolean(
+  process.env.PASSENGER_APP_ENV ||
+  process.env.PASSENGER_BASE_URI ||
+  process.env.PASSENGER_SPAWN_WORK_DIR ||
+  process.env.PASSENGER_NODE_ENV ||
+  process.env.HOSTINGER_NODEJS
+);
 const PORT = process.env.PORT || 10000;
+const LISTEN_PORT = process.env.PORT ? Number(process.env.PORT) : (IS_PASSENGER_HOSTING ? undefined : 10000);
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || process.env.TWITCH_CLIENTID || process.env.TWITCH_CLIENT || process.env.CLIENT_ID || process.env.TWITCH_API_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || process.env.TWITCH_SECRET || process.env.TWITCH_CLIENT_SECRET_KEY || process.env.CLIENT_SECRET || process.env.TWITCH_API_SECRET;
 const PUBLIC_ORIGIN = safeOrigin(process.env.TWITCH_REDIRECT_URI) || safeOrigin(process.env.PUBLIC_BASE_URL) || safeOrigin(process.env.PUBLIC_APP_URL) || safeOrigin(process.env.APP_BASE_URL) || safeOrigin(process.env.RENDER_EXTERNAL_URL);
@@ -9187,9 +9198,17 @@ process.on('uncaughtException', (err) => {
   if(IS_PROD) setTimeout(() => process.exit(1), 250);
 });
 
-server.listen(PORT, () => {
-  console.log(`\n\uD83D\uDE80 [SERVER] D\u00E9marr\u00E9 sur http://localhost:${PORT}`);
-  console.log("\u2705 Routes pr\u00EAtes");
+const listener = LISTEN_PORT === undefined ? server.listen() : server.listen(LISTEN_PORT);
+listener.on('listening', () => {
+  const addr = listener.address && listener.address();
+  const shown = typeof addr === 'object' && addr ? (addr.port || 'passenger') : (LISTEN_PORT || 'passenger');
+  console.log(`\n🚀 [SERVER] Démarré via ${IS_PASSENGER_HOSTING ? 'Passenger/Hostinger' : 'Node'} sur ${shown}`);
+  console.log('✅ Routes prêtes');
+});
+listener.on('error', (err) => {
+  console.error('❌ [SERVER] Erreur démarrage:', err && err.stack ? err.stack : err);
+  try { fs.writeFileSync(path.join(__dirname, 'startup-error.log'), String(err && err.stack ? err.stack : err)); } catch (_) {}
+  process.exit(1);
 });
 
 

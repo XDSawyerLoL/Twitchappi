@@ -1,0 +1,23 @@
+CORRECTIF 503 HOSTINGER / PASSENGER
+
+Les logs npm warn/deprecated ne bloquent pas le site : npm a bien installé les dépendances.
+Le 503 arrive généralement quand Passenger ne parvient pas à démarrer ou à joindre l'application Node.
+
+Paramètres Hostinger conseillés :
+- Application root : le dossier qui contient package.json, app.js et server.js
+- Application startup file : app.js
+- Node.js version : 20 ou 22
+- Application mode : production
+- NPM install : relancer après upload
+- Redémarrer l'application Node après installation
+
+Variables utiles :
+NODE_ENV=production
+SESSION_SECRET=une_valeur_longue_aleatoire
+ORYON_LIVE_SIGNAL_TIMEOUT_MS=120000
+
+Tests :
+/api/health
+/tonpseudo
+
+Si 503 persiste : ouvre le fichier startup-error.log s'il existe, ou les Runtime logs Hostinger.

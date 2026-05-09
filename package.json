@@ -1,12 +1,12 @@
 {
   "name": "swapp-live",
-  "version": "1.0.4-503-fix",
+  "version": "1.0.5-hostinger-passenger-fix",
   "private": true,
-  "description": "Swapp site avec package-lock corrigé pour éviter 503 Render",
-  "main": "server.js",
+  "description": "Swapp site - correctif Hostinger/Passenger 503",
+  "main": "app.js",
   "scripts": {
-    "start": "node server.js",
-    "check": "node --check server.js && node --check index_script.js"
+    "start": "node app.js",
+    "check": "node --check server.js && node --check index_script.js && node --check app.js"
   },
   "engines": {
     "node": ">=20"
