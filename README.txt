@@ -8797,6 +8797,9 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
     ensureOryonUserShape(user, { ensureStreamKey:true });
     const room = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.get) ? nativeLiveRooms.get(login) : null;
     const localLiveFresh = isOryonLiveSignalFresh(user);
+    const localPlayerUrl = localLiveFresh ? String(user.oryon_local_player_url || '') : '';
+    const localStatusUrl = localLiveFresh ? String(user.oryon_local_status_url || '') : '';
+    const localPublicBaseUrl = localLiveFresh ? String(user.oryon_local_public_base_url || '') : '';
     const publicPath = swappChannelPathForLogin(login);
     res.setHeader('Cache-Control','no-store');
     res.json({
@@ -8814,7 +8817,13 @@ app.get('/api/oryon/channel/:login/status', async (req, res) => {
         title:room?.title || user.current_live_title || '',
         category:room?.category || user.current_live_category || '',
         viewers:room?.viewers ? room.viewers.size : 0,
-        peak_viewers:room?.peakViewers || 0
+        peak_viewers:room?.peakViewers || 0,
+        player_url: room?.player_url || localPlayerUrl || '',
+        embed_url: room?.embed_url || localPlayerUrl || '',
+        hls_url: room?.hls_url || (/\.m3u8(\?|$)/i.test(localPlayerUrl) ? localPlayerUrl : ''),
+        status_url: localStatusUrl || '',
+        public_base_url: localPublicBaseUrl || '',
+        provider: room ? 'browser-webrtc' : (localLiveFresh ? (user.oryon_local_provider || 'local-agent') : 'offline')
       }
     });
   }catch(e){ res.status(500).json({success:false,error:e.message}); }

@@ -1,8 +1,8 @@
 {
   "name": "swapp-local-app",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
-  "description": "Application locale plug-and-play pour diffuser sur Swapp avec OBS",
+  "description": "Application locale plug-and-play Swapp avec OBS, HLS local et tunnel Cloudflare contrôlé",
   "main": "main.js",
   "dependencies": {
     "express": "^4.21.2",
