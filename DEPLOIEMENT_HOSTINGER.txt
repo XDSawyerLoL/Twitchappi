@@ -1,0 +1,16 @@
+SWAPP — Déploiement Hostinger
+
+Ce zip doit être déployé TEL QUEL à la racine du repository ou du dossier Node.
+Le fichier package.json doit être à la racine, pas dans un sous-dossier.
+
+Erreur corrigée : si npm affiche "Unexpected token #" dans package.json, cela veut dire que package.json contient du texte de type .env.example/Markdown. Il faut remplacer ce fichier par le package.json fourni ici.
+
+Commandes :
+- Installation : npm install --omit=dev
+- Démarrage : npm start
+
+Variables utiles :
+NODE_ENV=production
+SESSION_SECRET=une_valeur_longue_aleatoire
+ORYON_LIVE_SIGNAL_TIMEOUT_MS=120000
+PUBLIC_BASE_URL=https://swapp.tv
