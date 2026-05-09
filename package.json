@@ -1,8 +1,8 @@
 {
   "name": "swapp-live",
-  "version": "1.0.5-hostinger-passenger-fix",
+  "version": "1.0.6-public-route-lock",
   "private": true,
-  "description": "Swapp site - correctif Hostinger/Passenger 503",
+  "description": "Swapp site - correctif route publique /pseudo Hostinger",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

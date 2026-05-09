@@ -913,7 +913,7 @@ function sendPublicFile(res, file, type){
   return res.sendFile(full);
 }
 
-function sendSwappUi(res){
+function swappUiFilePath(){
   const rawCandidates = [
     process.env.UI_FILE,
     'index.html',
@@ -925,8 +925,29 @@ function sendSwappUi(res){
     .map(f => f.trim())
     .filter(f => /\.html?$/i.test(f));
   const found = candidates.find(f => fs.existsSync(path.join(__dirname, f)));
+  return found ? path.join(__dirname, found) : null;
+}
+function sendSwappUi(res){
+  const found = swappUiFilePath();
   if (!found) return res.status(500).send('UI introuvable sur le serveur.');
-  return res.sendFile(path.join(__dirname, found));
+  return res.sendFile(found);
+}
+function sendSwappPublicChannelUi(req, res, login){
+  const found = swappUiFilePath();
+  if (!found) return res.status(500).send('UI introuvable sur le serveur.');
+  try{
+    const clean = normalizeOryonLogin(login);
+    let html = fs.readFileSync(found, 'utf8');
+    const inject = `<script>window.__SWAPP_INITIAL_PUBLIC_CHANNEL__=${JSON.stringify(clean)};window.__SWAPP_PUBLIC_CHANNEL_URL_LOCK__='/${clean}';try{if(location.pathname!=='/${clean}')history.replaceState({swappPublicChannel:true},'',('/${clean}')+(location.search||'')+(location.hash||''));}catch(_){}</script>`;
+    if(html.includes('<script src="/index_script.js"></script>')) html = html.replace('<script src="/index_script.js"></script>', inject + '\n<script src="/index_script.js"></script>');
+    else html = html.replace('</body>', inject + '\n</body>');
+    res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.type('html');
+    return res.send(html);
+  }catch(e){
+    console.error('[PUBLIC_CHANNEL_UI]', e && e.stack ? e.stack : e);
+    return sendSwappUi(res);
+  }
 }
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
 const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','reset-password']);
@@ -980,7 +1001,7 @@ app.get(Array.from(SWAPP_CLEAN_VIEW_PATHS), (_req, res) => sendSwappUi(res));
 app.get(/^\/([a-zA-Z0-9_][a-zA-Z0-9_-]{1,39})$/, (req, res, next) => {
   const slug = String(req.params[0] || '').toLowerCase();
   if(!isSwappCleanChannelSlug(slug)) return next();
-  return sendSwappUi(res);
+  return sendSwappPublicChannelUi(req, res, slug);
 });
 
 app.get('/pricing', (req, res) => {

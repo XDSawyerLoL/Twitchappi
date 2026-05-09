@@ -10335,3 +10335,97 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   setInterval(()=>{ if(state?.view==='channel') hydratePublicChannel(); }, 5000);
   setTimeout(forceRouteIfPublic,160);
 })();
+
+
+/* =========================================================
+   SWAPP PUBLIC ROUTE LOCK — empêche /pseudo de revenir à / au chargement
+   ========================================================= */
+(function installSwappPublicRouteLock(){
+  if(window.__SWAPP_PUBLIC_ROUTE_LOCK_V1__) return;
+  window.__SWAPP_PUBLIC_ROUTE_LOCK_V1__ = true;
+  const RESERVED = new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
+  const clean = v => String(v || '').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_-]/g,'').slice(0,40);
+  function loginFromPath(){
+    try{
+      const p = decodeURIComponent(location.pathname || '/').replace(/\/+$/,'') || '/';
+      if(/^\/c\//i.test(p)) return clean(p.split('/')[2] || '');
+      const bits = p.split('/').filter(Boolean);
+      if(bits.length === 1){ const s = clean(bits[0]); if(s && !RESERVED.has(s)) return s; }
+    }catch(_e){}
+    return '';
+  }
+  const initial = clean(window.__SWAPP_INITIAL_PUBLIC_CHANNEL__ || loginFromPath());
+  if(!initial || RESERVED.has(initial)) return;
+  const lockedPath = '/' + encodeURIComponent(initial);
+  const bootUntil = Date.now() + 15000;
+  function active(){ return Date.now() < bootUntil; }
+  function shouldBlockUrl(url){
+    if(!active()) return false;
+    if(url === undefined || url === null) return false;
+    try{
+      const u = new URL(String(url), location.origin);
+      if(u.origin !== location.origin) return false;
+      const path = (u.pathname || '/').replace(/\/+$/,'') || '/';
+      return path === '/' || path === '/compte' || path === '/settings' || path === '/connexion' || path === '/chaine' || path === '/channel';
+    }catch(_e){ return String(url) === '/' || String(url).startsWith('/?') || String(url).startsWith('/#'); }
+  }
+  const originalReplaceState = history.replaceState.bind(history);
+  const originalPushState = history.pushState.bind(history);
+  history.replaceState = function(stateObj, title, url){
+    if(shouldBlockUrl(url)) url = lockedPath + (location.search || '') + (location.hash || '');
+    return originalReplaceState(stateObj, title, url);
+  };
+  history.pushState = function(stateObj, title, url){
+    if(shouldBlockUrl(url)) url = lockedPath + (location.search || '') + (location.hash || '');
+    return originalPushState(stateObj, title, url);
+  };
+  function applyState(){
+    try{ if(window.state){ state.watchRoom = initial; state.lastChannelLogin = initial; } }catch(_e){}
+    try{ if(location.pathname !== lockedPath && active()) originalReplaceState({swappPublicChannel:true},'',lockedPath + (location.search || '') + (location.hash || '')); }catch(_e){}
+  }
+  applyState();
+  const oldCommit = window.swappCommitRouteForView || (typeof swappCommitRouteForView === 'function' ? swappCommitRouteForView : null);
+  if(typeof oldCommit === 'function' && !oldCommit.__swappPublicRouteLockWrapped){
+    const wrappedCommit = function(id){
+      if(active() && (id === 'home' || id === 'settings' || id === 'channel')) applyState();
+      if(active() && (id === 'home' || id === 'settings')) return;
+      return oldCommit.apply(this, arguments);
+    };
+    wrappedCommit.__swappPublicRouteLockWrapped = true;
+    window.swappCommitRouteForView = wrappedCommit;
+    try{ swappCommitRouteForView = wrappedCommit; }catch(_e){}
+  }
+  const oldSetView = window.setView || (typeof setView === 'function' ? setView : null);
+  if(typeof oldSetView === 'function' && !oldSetView.__swappPublicRouteLockWrapped){
+    const wrappedSetView = async function(view){
+      if(active() && (view === 'home' || view === 'settings' || view === 'channel' || !view)){
+        applyState();
+        arguments[0] = 'channel';
+      }
+      if(arguments[0] === 'channel') applyState();
+      const out = await oldSetView.apply(this, arguments);
+      if(active()) applyState();
+      return out;
+    };
+    wrappedSetView.__swappPublicRouteLockWrapped = true;
+    window.setView = wrappedSetView;
+    try{ setView = wrappedSetView; }catch(_e){}
+  }
+  const oldOpenRoute = window.swappOpenRoute || (typeof swappOpenRoute === 'function' ? swappOpenRoute : null);
+  if(typeof oldOpenRoute === 'function' && !oldOpenRoute.__swappPublicRouteLockWrapped){
+    const wrappedOpenRoute = async function(opts={}){
+      if(active()){
+        applyState();
+        if(typeof setView === 'function') return setView('channel');
+      }
+      return oldOpenRoute.apply(this, arguments);
+    };
+    wrappedOpenRoute.__swappPublicRouteLockWrapped = true;
+    window.swappOpenRoute = wrappedOpenRoute;
+    try{ swappOpenRoute = wrappedOpenRoute; }catch(_e){}
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{ if(active()){ applyState(); setView?.('channel'); } }, 20));
+  window.addEventListener('load',()=>setTimeout(()=>{ if(active()){ applyState(); setView?.('channel'); } }, 30));
+  setTimeout(()=>{ if(active()){ applyState(); setView?.('channel'); } }, 60);
+  setTimeout(()=>{ if(active()){ applyState(); setView?.('channel'); } }, 500);
+})();
