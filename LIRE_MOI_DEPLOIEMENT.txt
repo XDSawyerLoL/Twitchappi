@@ -1,0 +1,14 @@
+SWAPP SITE 1.0.11
+
+Déploiement Hostinger :
+1. Remplacer les fichiers du projet par ceux du zip.
+2. Application startup file : app.js
+3. Lancer : npm install --omit=dev
+4. Redémarrer l'application Node.
+
+Tests :
+- /api/health
+- /api/native/lives
+- /sansahd
+
+Ce correctif supprime les gros blocs vides de l'accueil, force les lives Swapp en cartes compactes, ouvre Regarder vers /pseudo, et cale le tchat sur la hauteur du lecteur.

@@ -10957,3 +10957,297 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   setInterval(()=>{ if(state?.view==='channel') equalizeChannelLiveAndChat(); },1500);
   setInterval(()=>{ if(state?.view==='home') injectNativeStrip(); },10000);
 })();
+
+/* =========================================================
+   SWAPP FINAL FIX 1.0.11 — accueil propre + tchat/lecteur stables
+   Objectif : un seul comportement lisible, sans gros blocs vides.
+   ========================================================= */
+(function swappFinalHomeChatFix1011(){
+  if(window.__SWAPP_FINAL_HOME_CHAT_FIX_1011__) return;
+  window.__SWAPP_FINAL_HOME_CHAT_FIX_1011__ = true;
+
+  const $id = (id) => document.getElementById(id);
+  const safe = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const cleanLogin = (v) => String(v || '').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_-]/g,'').slice(0,48);
+  const clamp = (min, v, max) => Math.max(min, Math.min(max, v));
+
+  function nativeLogin(x){ return cleanLogin(x?.host_login || x?.login || x?.user_login || x?.room || x?.broadcaster_login || ''); }
+  function nativeName(x){ return x?.host_name || x?.display_name || x?.user_name || x?.name || nativeLogin(x) || 'Live Swapp'; }
+  function nativeTitle(x){ return x?.title || x?.live_title || `Live Swapp de ${nativeName(x)}`; }
+  function nativeThumb(x){
+    let img = x?.thumbnail_url || x?.preview_url || x?.offline_image_url || x?.banner_url || x?.avatar_url || '';
+    if(typeof img === 'string') img = img.replace('{width}','640').replace('{height}','360');
+    return img;
+  }
+
+  function installFinalStyle(){
+    document.getElementById('swappFinalHomeChatStyle1011')?.remove();
+    const st = document.createElement('style');
+    st.id = 'swappFinalHomeChatStyle1011';
+    st.textContent = `
+      /* Neutralise les anciens injecteurs trop grands. */
+      #swappHomeLiveStrip,
+      #swappHomeNativeStrip,
+      #homeSwappChannels{display:none!important;}
+
+      #home{min-height:100vh;background:linear-gradient(135deg,#071a24 0%,#101225 48%,#05070d 100%)!important;}
+      .swappHomeFinal{padding:18px clamp(14px,2.2vw,34px) 36px;display:grid;gap:16px;}
+      .swappHomeLiveCompact{border:1px solid rgba(45,212,191,.26);border-radius:22px;background:linear-gradient(135deg,rgba(20,184,166,.13),rgba(124,58,237,.10),rgba(2,6,23,.66));box-shadow:0 18px 48px rgba(0,0,0,.22);padding:14px;display:grid;gap:12px;}
+      .swappHomeLiveCompactHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+      .swappHomeLiveCompactHead h2{margin:0;font-size:clamp(19px,1.8vw,28px);letter-spacing:-.035em;}
+      .swappHomeLiveCompactHead p{margin:3px 0 0;color:#aab6ca;font-size:13px;line-height:1.35;}
+      .swappHomeNativeRail{display:flex;gap:12px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px;}
+      .swappHomeMiniLive{position:relative;flex:0 0 clamp(230px,24vw,340px);aspect-ratio:16/9;border:1px solid rgba(148,163,184,.18);border-radius:18px;overflow:hidden;background:#030711;cursor:pointer;text-align:left;color:#fff;box-shadow:0 12px 32px rgba(0,0,0,.24);}
+      .swappHomeMiniLive img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.78;transition:transform .18s ease, opacity .18s ease;}
+      .swappHomeMiniLive:hover img{transform:scale(1.035);opacity:.9;}
+      .swappHomeMiniLive::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.05),rgba(2,6,23,.90));z-index:1;}
+      .swappHomeMiniBadge{position:absolute;z-index:2;top:10px;left:10px;display:inline-flex;align-items:center;gap:6px;background:rgba(239,68,68,.92);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:5px 9px;font-size:11px;font-weight:1000;}
+      .swappHomeMiniBody{position:absolute;z-index:2;left:12px;right:12px;bottom:12px;display:grid;gap:6px;}
+      .swappHomeMiniBody b{font-size:17px;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .swappHomeMiniBody span{font-size:12px;color:#dbe7f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .swappHomeMiniBody .btn{width:max-content;min-height:32px!important;padding:7px 11px!important;border-radius:12px!important;font-size:12px!important;}
+      .swappHomeNoLive{padding:11px 13px;border:1px dashed rgba(148,163,184,.25);border-radius:16px;color:#aebbd0;background:rgba(255,255,255,.035);font-size:14px;}
+      .swappHomeHeroSimple{display:grid;grid-template-columns:minmax(260px,440px) minmax(0,1fr);gap:16px;align-items:stretch;}
+      .swappHomePitch,.swappHomePanel{border:1px solid rgba(148,163,184,.16);border-radius:24px;background:rgba(2,6,23,.52);box-shadow:0 20px 60px rgba(0,0,0,.22);padding:clamp(18px,2.4vw,30px);}
+      .swappHomePitch h1{margin:8px 0 10px;font-size:clamp(36px,4vw,68px);line-height:.92;letter-spacing:-.07em;}
+      .swappHomePitch p{color:#c2cada;line-height:1.45;margin:0 0 14px;max-width:560px;}
+      .swappHomeMoodStrip{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;}
+      .swappHomeMoodStrip button{border:1px solid rgba(148,163,184,.24);background:rgba(255,255,255,.06);color:#fff;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:800;cursor:pointer;}
+      .swappHomeActions{display:flex;gap:10px;flex-wrap:wrap;}
+      .swappHomePanelGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;}
+      .swappHomeMiniInfo{border:1px solid rgba(148,163,184,.14);border-radius:16px;background:rgba(255,255,255,.04);padding:13px;display:grid;gap:5px;}
+      .swappHomeMiniInfo b{font-size:14px}.swappHomeMiniInfo span{font-size:12px;color:#aebbd0;line-height:1.35;}
+
+      #channel .channelLiveLayout{display:grid!important;grid-template-columns:minmax(0,1fr) clamp(320px,25vw,430px)!important;gap:16px!important;align-items:start!important;margin-inline:clamp(12px,2.2vw,36px)!important;overflow:visible!important;}
+      #channel .channelMainPlayer,#channel .channelLiveSidebar{min-width:0!important;}
+      #channel .channelMainPlayer .player,#channel .channelMainPlayer .premiumPlayer,#channel .channelMainPlayer .oryonMainPlayer{width:100%!important;height:var(--swapp-final-player-h,560px)!important;min-height:0!important;max-height:none!important;aspect-ratio:auto!important;border-radius:24px!important;background:#000!important;overflow:hidden!important;}
+      #channel .channelMainPlayer iframe,#channel .channelMainPlayer video,#channel .channelMainPlayer .emptyStatePlayer{width:100%!important;height:100%!important;display:block!important;max-height:none!important;}
+      #channel .channelMainPlayer iframe{border:0!important;}
+      #channel .channelLiveSidebar .chatPanel,#channel .nativeFixedChat{width:100%!important;height:var(--swapp-final-player-h,560px)!important;min-height:0!important;max-height:none!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto auto!important;border-radius:24px!important;overflow:hidden!important;resize:none!important;}
+      #channel .chatLog{min-height:0!important;overflow:auto!important;}
+      #channel .chatAssist{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;padding:10px!important;}
+      #channel .chatAssist button{min-width:0!important;min-height:36px!important;font-size:12px!important;}
+      #channel .chatForm{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto auto!important;gap:8px!important;padding:10px!important;}
+      #channel .chatForm input{min-width:0!important;}
+      #channel .swappChatGate{height:100%;display:grid;place-items:center;text-align:center;padding:18px;color:#cbd5e1;}
+      #channel .swappChatGateBox{max-width:330px;display:grid;gap:10px;}
+      #channel .swappChatGateBox b{font-size:18px;color:#fff;}
+      #channel .swappChatGateBox p{margin:0;color:#9fb0c7;line-height:1.35;}
+      #channel .swappChatSystem{margin:8px 10px;padding:10px 12px;border:1px solid rgba(148,163,184,.22);border-radius:14px;background:rgba(15,23,42,.72);color:#cbd5e1;font-size:13px;}
+      #channel .swappChatPending{opacity:.72;}
+
+      @media(max-width:1100px){
+        .swappHomeHeroSimple{grid-template-columns:1fr;}.swappHomePanelGrid{grid-template-columns:1fr;}
+        #channel .channelLiveLayout{grid-template-columns:1fr!important;margin-inline:10px!important;}
+        #channel .channelMainPlayer .player,#channel .channelMainPlayer .premiumPlayer,#channel .channelMainPlayer .oryonMainPlayer{height:var(--swapp-final-player-h-mobile,calc((100vw - 20px) * .5625))!important;min-height:190px!important;max-height:430px!important;}
+        #channel .channelLiveSidebar .chatPanel,#channel .nativeFixedChat{height:var(--swapp-final-chat-h-mobile,340px)!important;min-height:280px!important;max-height:480px!important;}
+        #channel .chatForm{grid-template-columns:minmax(0,1fr) auto!important;}#channel .chatForm .btn.secondary:nth-of-type(2){display:none!important;}
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  window.swappGoPublicChannel = function swappGoPublicChannel(login){
+    const l = cleanLogin(login);
+    if(!l) return;
+    window.location.href = '/' + encodeURIComponent(l);
+  };
+
+  function miniCard(x){
+    const login = nativeLogin(x);
+    const name = nativeName(x);
+    const title = nativeTitle(x);
+    const viewers = Number(x?.viewer_count ?? x?.viewers ?? 0) || 0;
+    const img = nativeThumb(x);
+    return `<article class="swappHomeMiniLive" role="button" tabindex="0" onclick="swappGoPublicChannel('${safe(login)}')" onkeydown="if(event.key==='Enter')swappGoPublicChannel('${safe(login)}')">${img?`<img src="${safe(img)}" alt="">`:''}<span class="swappHomeMiniBadge">● LIVE</span><div class="swappHomeMiniBody"><b>${safe(title)}</b><span>${safe(name)}${viewers?` · ${viewers} viewer${viewers>1?'s':''}`:''}</span><button class="btn" type="button" onclick="event.stopPropagation();swappGoPublicChannel('${safe(login)}')">Regarder</button></div></article>`;
+  }
+
+  async function getNativeLives(){
+    try{
+      const r = await api('/api/native/lives?t=' + Date.now());
+      return (r.items || [])
+        .filter(x => nativeLogin(x))
+        .filter(x => x.local_agent || x.platform === 'oryon' || x.native || x.source === 'local-agent')
+        .sort((a,b) => Number(b.local_agent || 0) - Number(a.local_agent || 0) || Number(b.createdAt || 0) - Number(a.createdAt || 0));
+    }catch(_e){ return []; }
+  }
+
+  async function renderNativeRail(){
+    const rail = $id('swappHomeNativeRail');
+    const section = $id('swappHomeNativeCompact');
+    if(!rail || !section) return;
+    const items = await getNativeLives();
+    section.dataset.hasLive = items.length ? '1' : '0';
+    rail.innerHTML = items.length
+      ? items.slice(0, 8).map(miniCard).join('')
+      : '<div class="swappHomeNoLive">Aucun live Swapp en direct pour l’instant. Dès qu’un streamer lance Swapp Local, il apparaît ici.</div>';
+  }
+
+  window.loadHomeRecommendations = async function swappLoadHomeRecommendationsFinal1011(){
+    await renderNativeRail();
+  };
+  try{ loadHomeRecommendations = window.loadHomeRecommendations; }catch(_e){}
+
+  window.renderHome = async function renderHomeFinal1011(){
+    installFinalStyle();
+    const el = $id('home');
+    if(!el) return;
+    const moods = (Array.isArray(window.AMBIANCES) ? window.AMBIANCES : (typeof AMBIANCES !== 'undefined' ? AMBIANCES : []));
+    const moodButtons = moods.slice(0,6).map(([id,label]) => `<button type="button" onclick="state.moodFirstMood='${safe(id)}';setView('discover')">${safe(label)}</button>`).join('');
+    const streamView = (typeof streamTargetView === 'function' ? streamTargetView() : 'manager');
+    const streamLabel = (typeof streamTargetLabel === 'function' ? streamTargetLabel() : 'Streamer sur Swapp');
+    el.innerHTML = `<div class="swappHomeFinal">
+      <section id="swappHomeNativeCompact" class="swappHomeLiveCompact" aria-label="Lives Swapp en direct">
+        <div class="swappHomeLiveCompactHead"><div><h2>Lives Swapp en direct</h2><p>Les lives Swapp natifs passent en premier. Le bouton ouvre directement la page publique du streamer.</p></div><button class="btn secondary" type="button" onclick="setView('discover')">Découvrir plus</button></div>
+        <div id="swappHomeNativeRail" class="swappHomeNativeRail"><div class="swappHomeNoLive">Chargement…</div></div>
+      </section>
+      <section class="swappHomeHeroSimple">
+        <div class="swappHomePitch"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Découvre des créateurs publics, garde la navigation simple, et lance ton propre live Swapp sans usine à gaz.</p><div class="swappHomeMoodStrip">${moodButtons}</div><div class="swappHomeActions"><button class="btn" type="button" onclick="autoProposeLive?.()">Propose-moi un live</button><button class="btn streamBtn" type="button" onclick="setView('${safe(streamView)}')">${safe(streamLabel)}</button><button class="btn secondary" type="button" onclick="setView('discover')">Swap ton mood</button></div></div>
+        <div class="swappHomePanel"><h2 style="margin-top:0">Créer sur Swapp</h2><p class="muted">Ta page publique reste accessible en /pseudo. Le compte sert à gérer la chaîne, écrire dans les tchats et interagir.</p><div class="swappHomePanelGrid"><div class="swappHomeMiniInfo"><b>Page publique</b><span>Visible sans connexion.</span></div><div class="swappHomeMiniInfo"><b>Tchat cadré</b><span>Lecture publique, écriture avec compte.</span></div><div class="swappHomeMiniInfo"><b>Live natif</b><span>Mis en avant dès que Swapp Local publie.</span></div></div></div>
+      </section>
+    </div>`;
+    await renderNativeRail();
+    try{ renderMiniPlayer?.(); }catch(_e){}
+  };
+  try{ renderHome = window.renderHome; }catch(_e){}
+
+  function currentRoom(){
+    return cleanLogin(state?.watchRoom || state?.room || state?.lastChannelLogin || state?.channelProfile?.login || '');
+  }
+  function chatLog(){ return $id('nativeChatLog'); }
+  function addSystemChat(text){
+    const log = chatLog();
+    if(!log || !text) return;
+    const node = document.createElement('div');
+    node.className = 'swappChatSystem';
+    node.textContent = String(text);
+    log.appendChild(node);
+    log.scrollTop = log.scrollHeight;
+  }
+  function ensureChatRoom(){
+    const room = currentRoom();
+    if(!room) return '';
+    try{ if(!state.socket && typeof setupSocket === 'function') setupSocket(); }catch(_e){}
+    try{
+      state.room = room;
+      state.socket?.emit?.('native:join', { room });
+      state.socket?.emit?.('native:chat:history', { room });
+    }catch(_e){}
+    return room;
+  }
+  function applyChatAccess(){
+    const input = $id('chatInput');
+    const send = document.querySelector('#channel .chatForm .btn:last-child');
+    const log = chatLog();
+    const logged = !!state?.session?.local;
+    if(logged){
+      if(input){ input.disabled = false; input.placeholder = 'Écrire sur Swapp…'; input.onclick = null; }
+      if(send){ send.textContent = 'Envoyer'; send.onclick = () => window.sendChat?.(); }
+      if(log?.dataset.swappGuestOnly === '1'){ log.dataset.swappGuestOnly = '0'; log.innerHTML = ''; }
+      ensureChatRoom();
+      return;
+    }
+    if(input){ input.disabled = true; input.placeholder = 'Connecte-toi pour parler'; input.onclick = () => setView?.('settings'); }
+    if(send){ send.textContent = 'Connexion'; send.onclick = () => setView?.('settings'); }
+    if(log && !log.querySelector('.msg') && log.dataset.swappGuestOnly !== '1'){
+      log.dataset.swappGuestOnly = '1';
+      log.innerHTML = `<div class="swappChatGate"><div class="swappChatGateBox"><b>Connecte-toi pour parler</b><p>Le live reste public. Le compte est seulement requis pour écrire dans le tchat, suivre et réagir.</p><button class="btn" type="button" onclick="setView('settings')">Créer un compte / connexion</button></div></div>`;
+    }
+    ensureChatRoom();
+  }
+
+  const oldSendChat = window.sendChat || (typeof sendChat === 'function' ? sendChat : null);
+  window.sendChat = function swappSendChatFinal1011(){
+    if(!state?.session?.local){ applyChatAccess(); addSystemChat('Connexion requise pour écrire. Le live reste visible sans compte.'); return; }
+    const room = ensureChatRoom();
+    if(!room){ addSystemChat('Salon tchat introuvable. Recharge la page.'); return; }
+    const input = $id('chatInput');
+    const text = String(input?.value || '').trim();
+    const hasMedia = !!state.selectedGif || !!state.selectedEmote;
+    if(!text && !hasMedia) return;
+    const payload = { room, text, gif:state.selectedGif, emote:state.selectedEmote ? { code:state.selectedEmote.code, image_url:state.selectedEmote.image_url } : null };
+    try{
+      if(!state.socket && typeof setupSocket === 'function') setupSocket();
+      state.socket?.emit?.('native:chat', payload);
+      const log = chatLog();
+      const user = state.session.local;
+      if(log && typeof msgHtml === 'function'){
+        const wrap = document.createElement('div');
+        wrap.className = 'swappChatPending';
+        wrap.innerHTML = msgHtml({ ...payload, user:user.login, user_display:user.display_name || user.login, ts:Date.now() });
+        log.appendChild(wrap);
+        log.scrollTop = log.scrollHeight;
+        setTimeout(() => wrap.classList.remove('swappChatPending'), 1200);
+      }
+    }catch(e){
+      if(typeof oldSendChat === 'function') return oldSendChat.apply(this, arguments);
+      addSystemChat('Erreur tchat : ' + (e?.message || 'envoi impossible'));
+    }
+    if(input) input.value = '';
+    state.selectedGif = '';
+    state.selectedEmote = null;
+    $id('gifGrid')?.classList.add('hidden');
+  };
+  try{ sendChat = window.sendChat; }catch(_e){}
+
+  function syncPlayerAndChat(){
+    if(state?.view && state.view !== 'channel') return;
+    const layout = document.querySelector('#channel .channelLiveLayout');
+    const player = document.querySelector('#channel .channelMainPlayer .oryonMainPlayer, #channel .channelMainPlayer .premiumPlayer, #channel .channelMainPlayer .player');
+    const chat = document.querySelector('#channel .channelLiveSidebar .nativeFixedChat, #channel .channelLiveSidebar .chatPanel, #channel .nativeFixedChat');
+    if(!layout || !player || !chat) return;
+    const stacked = window.matchMedia('(max-width:1100px)').matches;
+    if(stacked){
+      const width = Math.max(280, player.getBoundingClientRect().width || window.innerWidth - 20);
+      const ph = clamp(190, Math.round(width * 9 / 16), 430);
+      const ch = clamp(280, Math.round(window.innerHeight * 0.42), 480);
+      layout.style.setProperty('--swapp-final-player-h-mobile', ph + 'px');
+      layout.style.setProperty('--swapp-final-chat-h-mobile', ch + 'px');
+      player.style.setProperty('height', ph + 'px', 'important');
+      chat.style.setProperty('height', ch + 'px', 'important');
+      chat.style.setProperty('min-height', ch + 'px', 'important');
+      chat.style.setProperty('max-height', ch + 'px', 'important');
+      applyChatAccess();
+      return;
+    }
+    const width = Math.max(520, player.getBoundingClientRect().width || 980);
+    const top = Math.max(74, layout.getBoundingClientRect().top || 120);
+    const available = Math.max(390, window.innerHeight - top - 24);
+    const natural = Math.round(width * 9 / 16);
+    const h = clamp(390, Math.min(natural, available), 780);
+    layout.style.setProperty('--swapp-final-player-h', h + 'px');
+    player.style.setProperty('height', h + 'px', 'important');
+    player.style.setProperty('min-height', '0px', 'important');
+    player.style.setProperty('max-height', 'none', 'important');
+    chat.style.setProperty('height', h + 'px', 'important');
+    chat.style.setProperty('min-height', h + 'px', 'important');
+    chat.style.setProperty('max-height', h + 'px', 'important');
+    applyChatAccess();
+  }
+  window.swappSyncPlayerAndChat = syncPlayerAndChat;
+
+  const previousRenderChannel = window.renderChannel || (typeof renderChannel === 'function' ? renderChannel : null);
+  if(typeof previousRenderChannel === 'function' && !previousRenderChannel.__swappFinal1011Wrapped){
+    const wrapped = async function renderChannelFinal1011(){
+      const out = await previousRenderChannel.apply(this, arguments);
+      installFinalStyle();
+      ensureChatRoom();
+      applyChatAccess();
+      [40, 180, 520, 1000, 1800].forEach(ms => setTimeout(syncPlayerAndChat, ms));
+      return out;
+    };
+    wrapped.__swappFinal1011Wrapped = true;
+    window.renderChannel = wrapped;
+    try{ renderChannel = wrapped; }catch(_e){}
+  }
+
+  installFinalStyle();
+  window.addEventListener('resize', () => requestAnimationFrame(syncPlayerAndChat));
+  window.addEventListener('orientationchange', () => setTimeout(syncPlayerAndChat, 180));
+  try{
+    new ResizeObserver(() => requestAnimationFrame(syncPlayerAndChat)).observe(document.body);
+  }catch(_e){}
+  document.addEventListener('DOMContentLoaded', () => { setTimeout(renderNativeRail, 250); setTimeout(syncPlayerAndChat, 300); });
+  window.addEventListener('load', () => { setTimeout(renderNativeRail, 300); setTimeout(syncPlayerAndChat, 350); });
+  setInterval(() => { if(state?.view === 'home') renderNativeRail(); if(state?.view === 'channel') syncPlayerAndChat(); }, 2500);
+})();

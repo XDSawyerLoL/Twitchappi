@@ -1,8 +1,8 @@
 {
   "name": "swapp-live",
-  "version": "1.0.10-home-chat-fit",
+  "version": "1.0.11-final-home-chat",
   "private": true,
-  "description": "Swapp site - accueil compact, routes publiques streamer et tchat ajusté au lecteur",
+  "description": "Swapp site - accueil stable compact, live Swapp en avant, tchat synchronisé au lecteur",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
