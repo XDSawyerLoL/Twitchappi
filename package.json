@@ -1,8 +1,8 @@
 {
   "name": "swapp-live",
-  "version": "1.0.6-public-route-lock",
+  "version": "1.0.10-home-chat-fit",
   "private": true,
-  "description": "Swapp site - correctif route publique /pseudo Hostinger",
+  "description": "Swapp site - accueil compact, routes publiques streamer et tchat ajusté au lecteur",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

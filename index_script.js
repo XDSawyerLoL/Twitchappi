@@ -10597,3 +10597,363 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.addEventListener('load',()=>{ setTimeout(hydratePublicPlayer,250); setTimeout(renderSwappHomeStrip,350); });
   setInterval(()=>{ if(state?.view==='channel') hydratePublicPlayer(); if(state?.view==='home') renderSwappHomeStrip(); },5000);
 })();
+
+
+/* =========================================================
+   SWAPP FIX 1.0.10 — accueil compact + route publique + tchat même hauteur
+   ========================================================= */
+(function installSwappHomeAndChatFitFix(){
+  if(window.__SWAPP_HOME_CHAT_FIT_FIX_1010__) return;
+  window.__SWAPP_HOME_CHAT_FIT_FIX_1010__ = true;
+  const E = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const cleanLogin = (v) => String(v || '').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_-]/g,'').slice(0,48);
+  const pickThumb = (x) => {
+    let img = x?.thumbnail_url || x?.img || x?.preview_url || x?.banner_url || x?.offline_image_url || '';
+    if(typeof img === 'string') img = img.replace('{width}','640').replace('{height}','360');
+    return img;
+  };
+  const loginOf = (x) => cleanLogin(x?.host_login || x?.room || x?.login || x?.user_login || x?.broadcaster_login || '');
+  const nameOf = (x) => x?.host_name || x?.display_name || x?.user_name || x?.name || loginOf(x) || 'Live Swapp';
+
+  function installStyle(){
+    document.getElementById('swappHomeAndChatFitFixStyle')?.remove();
+    const st=document.createElement('style');
+    st.id='swappHomeAndChatFitFixStyle';
+    st.textContent=`
+      /* Accueil : une mise en avant, pas un écran géant. */
+      #home .owHeroTheater.homeCleanHero,
+      #home .owHeroTheater,
+      #home .hfHero{
+        min-height:0!important;
+        height:auto!important;
+        grid-template-columns:minmax(240px,360px) minmax(0,1fr)!important;
+        gap:16px!important;
+        padding:18px var(--platform-pad,var(--site-pad,34px))!important;
+        align-items:stretch!important;
+      }
+      #home .owHeroCopy,
+      #home .hfHeroCopy{padding:18px!important;align-content:center!important;min-height:0!important;}
+      #home .owHeroCopy h1,
+      #home .hfHeroCopy h1{font-size:clamp(30px,3.1vw,50px)!important;line-height:.94!important;margin:8px 0!important;}
+      #home .owHeroCopy p,
+      #home .hfHeroCopy p{font-size:14px!important;line-height:1.35!important;}
+      #home .owMoodStrip,
+      #home .hfMoodStrip{gap:6px!important;max-height:82px!important;overflow:auto!important;}
+      #home .owMoodStrip button,
+      #home .hfMoodStrip button{padding:8px 10px!important;font-size:12px!important;}
+      #home .owActions,
+      #home .hfActions{gap:8px!important;grid-template-columns:1fr!important;}
+      #home .owActions .btn,
+      #home .hfActions .btn{min-height:40px!important;border-radius:13px!important;font-size:13px!important;padding:8px 10px!important;}
+      #home .owLiveTheater.homeCleanLives,
+      #home .owLiveTheater,
+      #home .hfLiveStage{
+        display:flex!important;
+        min-height:0!important;
+        height:auto!important;
+        max-height:none!important;
+        overflow-x:auto!important;
+        overflow-y:hidden!important;
+        gap:12px!important;
+        padding:0!important;
+        align-items:stretch!important;
+      }
+      #home .owShowCard,
+      #home .homeSlideCard,
+      #home .hfLiveCard{
+        flex:0 0 clamp(230px,22vw,340px)!important;
+        width:clamp(230px,22vw,340px)!important;
+        min-width:clamp(230px,22vw,340px)!important;
+        height:auto!important;
+        min-height:0!important;
+        aspect-ratio:16/9!important;
+        border-radius:18px!important;
+      }
+      #home .owShowBody,
+      #home .homeSlideBody,
+      #home .hfLiveBody{padding:12px!important;gap:6px!important;}
+      #home .owShowBody h2,
+      #home .homeSlideBody h2,
+      #home .hfLiveBody h2{font-size:clamp(16px,1.4vw,22px)!important;line-height:1.08!important;-webkit-line-clamp:2!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;overflow:hidden!important;}
+      #home .owShowBody p,
+      #home .homeSlideBody p,
+      #home .hfLiveBody p{font-size:12px!important;line-height:1.25!important;}
+      .swappHomeNativeStrip{margin:18px var(--platform-pad,var(--site-pad,34px)) 0!important;padding:16px!important;border:1px solid rgba(45,212,191,.32)!important;border-radius:24px!important;background:linear-gradient(135deg,rgba(20,184,166,.16),rgba(139,92,246,.10),rgba(15,23,42,.78))!important;box-shadow:0 18px 56px rgba(0,0,0,.23)!important;}
+      .swappHomeNativeHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px!important;}
+      .swappHomeNativeHead h2{margin:0!important;font-size:clamp(22px,2vw,34px)!important;letter-spacing:-.035em!important;}
+      .swappHomeNativeHead p{margin:4px 0 0!important;color:#aebbd0!important;font-size:13px!important;}
+      .swappHomeNativeGrid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important;gap:12px!important;}
+      .swappHomeNativeCard{position:relative;border:1px solid rgba(148,163,184,.18)!important;border-radius:18px!important;overflow:hidden!important;background:#040812!important;min-height:150px!important;aspect-ratio:16/9!important;box-shadow:0 12px 34px rgba(0,0,0,.22)!important;cursor:pointer!important;}
+      .swappHomeNativeCard img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.78!important;}
+      .swappHomeNativeCard:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,.06),rgba(2,6,23,.88));z-index:1;}
+      .swappHomeNativeBody{position:absolute;z-index:2;left:12px;right:12px;bottom:12px;display:grid;gap:8px;}
+      .swappHomeNativeBody b{font-size:18px;color:#fff;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .swappHomeNativeBody span{font-size:12px;color:#d7e2f2;}
+      .swappHomeLiveBadge{position:absolute;z-index:3;top:10px;left:10px;display:inline-flex;align-items:center;gap:6px;background:rgba(239,68,68,.92);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:1000;}
+      .swappHomeNativeCard .btn{width:max-content;min-height:34px!important;padding:7px 11px!important;border-radius:12px!important;font-size:12px!important;}
+      .swappHomeNativeEmpty{border:1px dashed rgba(148,163,184,.28);border-radius:18px;padding:16px;color:#aebbd0;background:rgba(255,255,255,.035);}
+
+      /* Page chaîne : tchat et lecteur ont la même hauteur. */
+      #channel .channelLiveLayout{display:grid!important;grid-template-columns:minmax(0,1fr) clamp(320px,25vw,430px)!important;gap:16px!important;align-items:start!important;overflow:visible!important;}
+      #channel .channelMainPlayer,#channel .channelLiveSidebar{min-width:0!important;display:block!important;}
+      #channel .channelMainPlayer .player,
+      #channel .channelMainPlayer .premiumPlayer,
+      #channel .channelMainPlayer .oryonMainPlayer{width:100%!important;height:var(--swapp-live-height,560px)!important;min-height:0!important;max-height:none!important;aspect-ratio:auto!important;border-radius:24px!important;overflow:hidden!important;background:#000!important;}
+      #channel .channelMainPlayer iframe,
+      #channel .channelMainPlayer video,
+      #channel .channelMainPlayer .emptyStatePlayer{width:100%!important;height:100%!important;max-height:none!important;position:relative!important;inset:auto!important;display:block;}
+      #channel .channelMainPlayer iframe{border:0!important;}
+      #channel .channelLiveSidebar .chatPanel,
+      #channel .nativeFixedChat{width:100%!important;height:var(--swapp-live-height,560px)!important;min-height:0!important;max-height:none!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto auto!important;border-radius:24px!important;overflow:hidden!important;resize:none!important;}
+      #channel .chatLog{min-height:0!important;overflow:auto!important;}
+      #channel .chatAssist{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;padding:10px!important;}
+      #channel .chatAssist button{min-width:0!important;min-height:36px!important;font-size:12px!important;}
+      #channel .chatForm{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto auto!important;gap:8px!important;padding:10px!important;}
+      #channel .chatForm input{min-width:0!important;}
+      #channel .swappChatGate{height:100%;display:grid;place-items:center;text-align:center;padding:18px;color:#cbd5e1;}
+      #channel .swappChatGateBox{max-width:330px;display:grid;gap:10px;}
+      #channel .swappChatGateBox b{font-size:18px;color:#fff;}
+      #channel .swappChatGateBox p{margin:0;color:#9fb0c7;line-height:1.35;}
+      #channel .swappChatSystem{margin:8px 10px;padding:10px 12px;border:1px solid rgba(148,163,184,.22);border-radius:14px;background:rgba(15,23,42,.72);color:#cbd5e1;font-size:13px;}
+      #channel .swappChatPending{opacity:.72;}
+      @media(max-width:1100px){
+        #home .owHeroTheater.homeCleanHero,#home .owHeroTheater,#home .hfHero{grid-template-columns:1fr!important;padding:14px!important;}
+        #channel .channelLiveLayout{grid-template-columns:1fr!important;margin-inline:12px!important;}
+        #channel .channelMainPlayer .player,#channel .channelMainPlayer .premiumPlayer,#channel .channelMainPlayer .oryonMainPlayer{height:var(--swapp-player-height-mobile,calc((100vw - 24px) * .5625))!important;min-height:190px!important;max-height:420px!important;}
+        #channel .channelLiveSidebar .chatPanel,#channel .nativeFixedChat{height:var(--swapp-chat-height-mobile,340px)!important;min-height:260px!important;max-height:430px!important;}
+        #channel .chatForm{grid-template-columns:1fr auto!important;}
+        #channel .chatForm .btn.secondary{font-size:11px!important;padding-inline:7px!important;}
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  window.swappOpenPublicChannel = function(login){
+    const l=cleanLogin(login);
+    if(!l) return;
+    try{ history.pushState({swappChannel:l},'', '/' + encodeURIComponent(l)); }catch(_e){}
+    try{ state.watchRoom=l; state.lastChannelLogin=l; state.room=l; }catch(_e){}
+    if(typeof setView==='function') setView('channel');
+    setTimeout(equalizeChannelLiveAndChat,80);
+    setTimeout(equalizeChannelLiveAndChat,350);
+  };
+
+  function swappNativeCard(x){
+    const login=loginOf(x);
+    const name=nameOf(x);
+    const title=x?.title || `Live de ${name}`;
+    const viewers=Number(x?.viewer_count ?? x?.viewers ?? 0)||0;
+    const img=pickThumb(x);
+    return `<article class="swappHomeNativeCard" onclick="swappOpenPublicChannel('${E(login)}')">${img?`<img src="${E(img)}" alt="">`:''}<span class="swappHomeLiveBadge">● LIVE</span><div class="swappHomeNativeBody"><b>${E(title)}</b><span>${E(name)}${viewers?` · ${viewers} viewer${viewers>1?'s':''}`:''}</span><button class="btn" type="button" onclick="event.stopPropagation();swappOpenPublicChannel('${E(login)}')">Regarder</button></div></article>`;
+  }
+
+  async function fetchNativeLives(){
+    try{
+      const r=await api('/api/native/lives?t='+Date.now());
+      return (r.items||[]).filter(x=>loginOf(x)).map(x=>({...x,platform:'oryon'}));
+    }catch(_e){ return []; }
+  }
+
+  async function injectNativeStrip(){
+    if(state?.view && state.view!=='home') return;
+    const home=document.getElementById('home');
+    if(!home) return;
+    let strip=document.getElementById('swappHomeNativeStrip');
+    if(!strip){
+      strip=document.createElement('section');
+      strip.id='swappHomeNativeStrip';
+      strip.className='swappHomeNativeStrip';
+      home.prepend(strip);
+    }
+    const items=await fetchNativeLives();
+    strip.innerHTML=`<div class="swappHomeNativeHead"><div><h2>Lives Swapp en direct</h2><p>Les chaînes Swapp actives passent en premier. Le bouton ouvre la page publique du streamer.</p></div><button class="btn secondary" type="button" onclick="setView('discover')">Découvrir plus</button></div>${items.length?`<div class="swappHomeNativeGrid">${items.slice(0,6).map(swappNativeCard).join('')}</div>`:`<div class="swappHomeNativeEmpty">Aucun live Swapp actif pour le moment. Dès qu’un streamer lance Swapp Local, il remonte ici.</div>`}`;
+  }
+
+  window.loadHomeRecommendations = async function swappLoadHomeRecommendationsCompact(){
+    const box=document.getElementById('homeShowcaseLives');
+    if(!box) return;
+    const items=await fetchNativeLives();
+    box.innerHTML = items.length
+      ? items.slice(0,6).map(swappNativeCard).join('')
+      : `<div class="swappHomeNativeEmpty"><b>Aucun live Swapp actif.</b><br><span>La vitrine reste compacte. Les lives Swapp apparaîtront ici dès que Swapp Local publie.</span></div>`;
+    setTimeout(injectNativeStrip,20);
+  };
+  try{ loadHomeRecommendations = window.loadHomeRecommendations; }catch(_e){}
+
+  function chatLog(){ return document.getElementById('nativeChatLog'); }
+  function chatSystem(text){
+    const log=chatLog();
+    if(!log || !text) return;
+    const el=document.createElement('div');
+    el.className='swappChatSystem';
+    el.textContent=String(text);
+    log.appendChild(el);
+    log.scrollTop=log.scrollHeight;
+  }
+  function currentRoom(){ return cleanLogin(state?.room || state?.watchRoom || state?.lastChannelLogin || state?.channelProfile?.login || ''); }
+  function ensureChatRoom(){
+    const room=currentRoom();
+    if(!room) return '';
+    try{ if(!state.socket && typeof setupSocket==='function') setupSocket(); }catch(_e){}
+    try{
+      state.room=room;
+      state.socket?.emit?.('native:join',{room});
+      state.socket?.emit?.('native:chat:history',{room});
+    }catch(_e){}
+    return room;
+  }
+  function applyChatGate(){
+    const input=document.getElementById('chatInput');
+    const send=document.querySelector('#channel .chatForm .btn:last-child');
+    const log=chatLog();
+    const logged=!!state?.session?.local;
+    if(logged){
+      if(input){ input.disabled=false; input.placeholder='Écrire sur Swapp…'; }
+      if(send){ send.textContent='Envoyer'; send.onclick=()=>window.sendChat?.(); }
+      if(log && log.dataset.swappGuestGate==='1'){
+        log.dataset.swappGuestGate='0';
+        log.innerHTML='';
+        ensureChatRoom();
+      }
+      return;
+    }
+    if(input){ input.disabled=true; input.placeholder='Connecte-toi pour parler'; input.onclick=()=>showGuestPrompt(); }
+    if(send){ send.textContent='Connexion'; send.onclick=()=>showGuestPrompt(); }
+    if(log && log.dataset.swappGuestGate!=='1'){
+      log.dataset.swappGuestGate='1';
+      log.innerHTML=`<div class="swappChatGate"><div class="swappChatGateBox"><b>Connecte-toi pour parler</b><p>Le live reste public. Le compte sert seulement à écrire dans le tchat, suivre et réagir.</p><button class="btn" type="button" onclick="setView('settings')">Créer un compte / connexion</button></div></div>`;
+    }
+  }
+  function showGuestPrompt(){
+    applyChatGate();
+    chatSystem('Connexion requise pour écrire. Le live reste visible sans compte.');
+  }
+
+  const oldSend = window.sendChat || (typeof sendChat === 'function' ? sendChat : null);
+  window.sendChat = function swappSendChatFixed(){
+    if(!state?.session?.local){ showGuestPrompt(); return; }
+    const room=ensureChatRoom();
+    if(!room){ chatSystem('Salon tchat introuvable. Recharge la page.'); return; }
+    const input=document.getElementById('chatInput');
+    const text=String(input?.value||'').trim();
+    const hasMedia=!!state.selectedGif || !!state.selectedEmote;
+    if(!text && !hasMedia) return;
+    const payload={room,text,gif:state.selectedGif,emote:state.selectedEmote?{code:state.selectedEmote.code,image_url:state.selectedEmote.image_url}:null};
+    if(!state.socket){ chatSystem('Tchat non connecté. Reconnexion…'); try{ setupSocket?.(); }catch(_e){} }
+    try{
+      state.socket?.emit?.('native:chat',payload);
+      // Affichage immédiat côté utilisateur : le tchat donne une réaction visible même si le socket met 1 seconde.
+      const user=state.session.local;
+      const log=chatLog();
+      if(log && typeof msgHtml==='function'){
+        const optimistic={...payload,user:user.login,user_display:user.display_name||user.login,ts:Date.now()};
+        const wrap=document.createElement('div');
+        wrap.className='swappChatPending';
+        wrap.innerHTML=msgHtml(optimistic);
+        log.appendChild(wrap);
+        log.scrollTop=log.scrollHeight;
+        setTimeout(()=>wrap.classList.remove('swappChatPending'),1200);
+      }
+    }catch(_e){
+      if(typeof oldSend==='function') return oldSend.apply(this,arguments);
+    }
+    if(input) input.value='';
+    state.selectedGif=''; state.selectedEmote=null;
+    document.getElementById('gifGrid')?.classList.add('hidden');
+  };
+  try{ sendChat=window.sendChat; }catch(_e){}
+
+  function equalizeChannelLiveAndChat(){
+    if(state?.view && state.view!=='channel') return;
+    const layout=document.querySelector('#channel .channelLiveLayout');
+    const player=document.querySelector('#channel .channelMainPlayer .player, #channel .channelMainPlayer .premiumPlayer, #channel .channelMainPlayer .oryonMainPlayer');
+    const chat=document.querySelector('#channel .channelLiveSidebar .chatPanel, #channel .nativeFixedChat');
+    if(!layout || !player || !chat) return;
+    const stacked=window.matchMedia('(max-width:1100px)').matches;
+    if(stacked){
+      const w=Math.max(280, player.getBoundingClientRect().width || (window.innerWidth-24));
+      const ph=Math.max(190, Math.min(420, Math.round(w*9/16)));
+      const ch=Math.max(260, Math.min(430, Math.round(window.innerHeight*0.38)));
+      layout.style.setProperty('--swapp-player-height-mobile', ph+'px');
+      layout.style.setProperty('--swapp-chat-height-mobile', ch+'px');
+      player.style.setProperty('height', ph+'px', 'important');
+      chat.style.setProperty('height', ch+'px', 'important');
+      chat.style.setProperty('min-height', ch+'px', 'important');
+      chat.style.setProperty('max-height', ch+'px', 'important');
+      applyChatGate();
+      return;
+    }
+    const w=Math.max(480, player.getBoundingClientRect().width || 900);
+    const top=Math.max(86, layout.getBoundingClientRect().top || 120);
+    const viewportRoom=Math.max(420, window.innerHeight - Math.min(top, 190) - 26);
+    const natural=Math.round(w*9/16);
+    const h=Math.max(420, Math.min(natural, viewportRoom, 860));
+    layout.style.setProperty('--swapp-live-height', h+'px');
+    player.style.setProperty('height', h+'px', 'important');
+    player.style.setProperty('min-height', '0px', 'important');
+    player.style.setProperty('max-height', 'none', 'important');
+    chat.style.setProperty('height', h+'px', 'important');
+    chat.style.setProperty('min-height', h+'px', 'important');
+    chat.style.setProperty('max-height', h+'px', 'important');
+    applyChatGate();
+  }
+  window.swappEqualizeLiveAndChat = equalizeChannelLiveAndChat;
+
+  const oldRenderHome = window.renderHome || (typeof renderHome === 'function' ? renderHome : null);
+  if(typeof oldRenderHome==='function' && !oldRenderHome.__swappHomeCompactWrapped1010){
+    const wrappedHome=async function(){
+      const out=await oldRenderHome.apply(this,arguments);
+      installStyle();
+      setTimeout(injectNativeStrip,40);
+      setTimeout(()=>window.loadHomeRecommendations?.(),80);
+      return out;
+    };
+    wrappedHome.__swappHomeCompactWrapped1010=true;
+    window.renderHome=wrappedHome;
+    try{ renderHome=wrappedHome; }catch(_e){}
+  }
+
+  const oldRenderChannel = window.renderChannel || (typeof renderChannel === 'function' ? renderChannel : null);
+  if(typeof oldRenderChannel==='function' && !oldRenderChannel.__swappChatFitWrapped1010){
+    const wrappedChannel=async function(){
+      const out=await oldRenderChannel.apply(this,arguments);
+      installStyle();
+      ensureChatRoom();
+      applyChatGate();
+      setTimeout(equalizeChannelLiveAndChat,50);
+      setTimeout(equalizeChannelLiveAndChat,250);
+      setTimeout(equalizeChannelLiveAndChat,900);
+      return out;
+    };
+    wrappedChannel.__swappChatFitWrapped1010=true;
+    window.renderChannel=wrappedChannel;
+    try{ renderChannel=wrappedChannel; }catch(_e){}
+  }
+
+  // Forcer les anciens boutons de cartes Swapp à ouvrir /pseudo, pas Découvrir.
+  document.addEventListener('click',function(ev){
+    const btn=ev.target.closest?.('button,a,article');
+    if(!btn || !document.getElementById('home')?.contains(btn)) return;
+    const raw=btn.getAttribute?.('data-live-json') || btn.closest?.('[data-live-json]')?.getAttribute('data-live-json') || '';
+    if(!raw) return;
+    try{
+      const item=JSON.parse(decodeURIComponent(raw));
+      const platform=item.platform || (item.host_login||item.room ? 'oryon' : '');
+      const login=loginOf(item);
+      if(platform==='oryon' && login){ ev.preventDefault(); ev.stopPropagation(); swappOpenPublicChannel(login); }
+    }catch(_e){}
+  },true);
+
+  installStyle();
+  if(state?.view==='home') setTimeout(injectNativeStrip,60);
+  if(state?.view==='channel') setTimeout(equalizeChannelLiveAndChat,60);
+  window.addEventListener('resize',()=>requestAnimationFrame(equalizeChannelLiveAndChat));
+  window.addEventListener('orientationchange',()=>setTimeout(equalizeChannelLiveAndChat,180));
+  const mo=new MutationObserver(()=>{
+    if(state?.view==='channel') requestAnimationFrame(equalizeChannelLiveAndChat);
+    if(state?.view==='home') setTimeout(injectNativeStrip,40);
+  });
+  try{ mo.observe(document.body,{childList:true,subtree:true}); }catch(_e){}
+  setInterval(()=>{ if(state?.view==='channel') equalizeChannelLiveAndChat(); },1500);
+  setInterval(()=>{ if(state?.view==='home') injectNativeStrip(); },10000);
+})();
