@@ -1,14 +1,14 @@
-Swapp site 1.0.13 stable
+SWAPP SITE 1.0.14
 
-But:
-- accueil: Swapp d'abord, Twitch si aucun live Swapp
-- pas de boucle de rafraîchissement agressive
-- bouton Regarder: Swapp -> /pseudo, Twitch -> lecteur intégré
-- tchat calé à la hauteur du lecteur
+Correctif accueil professionnel :
+- Swapp prioritaire sur la page d'accueil.
+- Twitch s'affiche automatiquement s'il n'y a aucun live Swapp.
+- Plus de grand bloc vide ni de scroll horizontal forcé.
+- Bouton Regarder : Swapp => /pseudo, Twitch => lecteur intégré Twitch.
+- Tchat page streamer recalé sur la hauteur du lecteur.
 
-Hostinger:
-- Application startup file: app.js
+Hostinger :
+- Application startup file : app.js
 - npm install --omit=dev
 - redémarrer l'application Node
-
-Si le navigateur affiche SSL_ERROR_INTERNAL_ERROR_ALERT, ce n'est pas une erreur JavaScript: vérifier SSL Hostinger et redémarrer l'app Node.
+- vider le cache navigateur ou tester en navigation privée

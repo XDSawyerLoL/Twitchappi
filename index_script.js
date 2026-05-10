@@ -10748,3 +10748,310 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   setInterval(() => { if(state?.view === 'home') renderHomeRail(false); }, 60000);
   setInterval(() => { if(state?.view === 'channel') fitChat(); }, 2500);
 })();
+
+
+/* =========================================================
+   SWAPP SITE FIX 1.0.14
+   Home professionnelle: Swapp prioritaire, Twitch fallback, aucune zone vide géante.
+   Tchat: hauteur synchronisée avec le lecteur sur la page streamer.
+   ========================================================= */
+(function swappProfessionalHome1014(){
+  if(window.__SWAPP_PRO_HOME_1014__) return;
+  window.__SWAPP_PRO_HOME_1014__ = true;
+
+  const $id = id => document.getElementById(id);
+  const safe = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const clean = v => String(v || '').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_-]/g,'').slice(0,64);
+  const clamp = (min, val, max) => Math.max(min, Math.min(max, val));
+  let homeStamp = 0;
+  let homeBusy = false;
+  let lastHomeMode = 'twitch';
+
+  function addStyle1014(){
+    if($id('swappProHomeStyle1014')) return;
+    const st = document.createElement('style');
+    st.id = 'swappProHomeStyle1014';
+    st.textContent = `
+      #swappPublicChannelNotice{display:none!important;}
+      #homeSwappChannels,#swappHomeLiveStrip,#swappHomeNativeStrip,.swappHomeClean1013{display:none!important;}
+      #home.view.active{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow-x:hidden!important;background:#070a12!important;}
+      .swappHome1014{width:min(1480px,calc(100vw - 32px));margin:0 auto;padding:22px 0 46px;display:grid;gap:22px;color:#f8fafc;}
+      .homeHero1014{position:relative;overflow:hidden;border:1px solid rgba(148,163,184,.16);border-radius:28px;background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(3,7,18,.96));box-shadow:0 24px 80px rgba(0,0,0,.30);}
+      .homeHero1014:before{content:"";position:absolute;inset:-1px;background:radial-gradient(circle at 9% 8%,rgba(34,211,238,.20),transparent 30%),radial-gradient(circle at 82% 20%,rgba(168,85,247,.20),transparent 32%);pointer-events:none;}
+      .homeHeroInner1014{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.8fr);gap:22px;align-items:stretch;padding:28px;}
+      .homeHeroCopy1014{display:flex;flex-direction:column;justify-content:center;gap:16px;min-height:250px;}
+      .homeHeroCopy1014 h1{font-size:clamp(36px,4.8vw,70px)!important;line-height:.95!important;letter-spacing:-.055em!important;margin:0!important;max-width:780px!important;}
+      .homeHeroCopy1014 p{font-size:clamp(15px,1.35vw,19px)!important;line-height:1.45!important;color:#b8c4d8!important;max-width:720px!important;margin:0!important;}
+      .homeActions1014{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
+      .homeActions1014 .btn{min-height:44px!important;padding:0 16px!important;font-size:14px!important;}
+      .homeHeroPanel1014{border:1px solid rgba(148,163,184,.14);border-radius:22px;background:rgba(2,6,23,.48);backdrop-filter:blur(16px);padding:18px;display:grid;gap:12px;align-content:center;}
+      .homeHeroPanel1014 h2{font-size:22px!important;margin:0!important;letter-spacing:-.03em!important;}
+      .homeHeroPanel1014 p{font-size:14px!important;color:#aab6ca!important;line-height:1.45!important;margin:0!important;}
+      .homeInfoGrid1014{display:grid;grid-template-columns:1fr;gap:9px;margin-top:4px;}
+      .homeInfo1014{border:1px solid rgba(148,163,184,.12);border-radius:16px;background:rgba(255,255,255,.035);padding:11px 12px;display:grid;gap:3px;}
+      .homeInfo1014 b{font-size:13px!important;}.homeInfo1014 span{font-size:12px!important;color:#9fb0c8!important;line-height:1.35!important;}
+      .homeLiveSection1014{border:1px solid rgba(148,163,184,.16);border-radius:26px;background:linear-gradient(180deg,rgba(15,23,42,.70),rgba(2,6,23,.64));padding:18px;box-shadow:0 18px 60px rgba(0,0,0,.20);}
+      .homeLiveHead1014{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:14px;}
+      .homeLiveHead1014 h2{font-size:clamp(22px,2.3vw,34px)!important;letter-spacing:-.04em!important;margin:0!important;}
+      .homeLiveHead1014 p{margin:5px 0 0!important;color:#aab6ca!important;font-size:14px!important;}
+      .homeLiveGrid1014{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(248px,1fr))!important;gap:14px!important;overflow:visible!important;min-height:0!important;}
+      .homeLiveCard1014{border:1px solid rgba(148,163,184,.14);border-radius:20px;background:#090d17;overflow:hidden;cursor:pointer;color:#fff;text-align:left;box-shadow:0 12px 32px rgba(0,0,0,.22);transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;}
+      .homeLiveCard1014:hover{transform:translateY(-2px);border-color:rgba(34,211,238,.42);box-shadow:0 18px 44px rgba(0,0,0,.30);}
+      .homeThumb1014{position:relative;aspect-ratio:16/9;background:#030711;overflow:hidden;}
+      .homeThumb1014 img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.06) contrast(1.03);}
+      .homeThumb1014:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,6,23,0) 35%,rgba(2,6,23,.64));}
+      .homeLiveBadge1014{position:absolute;left:10px;top:10px;z-index:2;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:1000;letter-spacing:.02em;color:white;box-shadow:0 8px 24px rgba(0,0,0,.26);}
+      .homeLiveBadge1014.swapp{background:linear-gradient(135deg,#ef4444,#f97316);}.homeLiveBadge1014.twitch{background:linear-gradient(135deg,#9146ff,#a855f7);}
+      .homeViewers1014{position:absolute;right:10px;top:10px;z-index:2;border:1px solid rgba(255,255,255,.22);background:rgba(2,6,23,.74);border-radius:999px;padding:6px 8px;font-size:11px;font-weight:900;color:#e2e8f0;}
+      .homeLiveBody1014{padding:13px;display:grid;gap:8px;}
+      .homeLiveBody1014 h3{font-size:15px!important;line-height:1.18!important;margin:0!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:36px;}
+      .homeMeta1014{font-size:12px!important;color:#9fb0c8!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .homeLiveBody1014 .btn{width:100%!important;min-height:36px!important;padding:0 12px!important;font-size:13px!important;}
+      .homeEmpty1014{border:1px dashed rgba(148,163,184,.22);border-radius:18px;background:rgba(15,23,42,.46);padding:18px;color:#aab6ca;grid-column:1/-1;}
+      .homeBottom1014{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+      .homeBottomCard1014{border:1px solid rgba(148,163,184,.13);border-radius:20px;background:rgba(15,23,42,.56);padding:16px;min-height:112px;display:grid;gap:8px;}
+      .homeBottomCard1014 h3{margin:0!important;font-size:16px!important;}.homeBottomCard1014 p{margin:0!important;color:#aab6ca!important;font-size:13px!important;line-height:1.45!important;}
+      #channel .creatorRefine .channelLiveLayout{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(320px,380px)!important;gap:16px!important;align-items:start!important;}
+      #channel .creatorRefine .channelMainPlayer,#channel .creatorRefine .channelLiveSidebar{min-width:0!important;}
+      #channel .creatorRefine .oryonMainPlayer,#channel .creatorRefine .premiumPlayer{width:100%!important;min-height:0!important;max-height:none!important;aspect-ratio:auto!important;border-radius:18px!important;overflow:hidden!important;}
+      #channel .creatorRefine .oryonMainPlayer iframe,#channel .creatorRefine .premiumPlayer iframe,#channel .creatorRefine .oryonMainPlayer video{width:100%!important;height:100%!important;display:block!important;}
+      #channel .creatorRefine .nativeFixedChat{display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto auto!important;width:100%!important;border-radius:18px!important;overflow:hidden!important;}
+      #channel .creatorRefine .nativeFixedChat .chatLog{min-height:0!important;overflow:auto!important;}
+      @media(max-width:980px){
+        .swappHome1014{width:min(100% - 20px,1480px);padding-top:14px;gap:16px;}
+        .homeHeroInner1014{grid-template-columns:1fr;padding:18px;}
+        .homeHeroCopy1014{min-height:0}.homeHeroCopy1014 h1{font-size:clamp(34px,10vw,54px)!important;}
+        .homeLiveHead1014{align-items:flex-start;flex-direction:column;}.homeBottom1014{grid-template-columns:1fr;}
+        #channel .creatorRefine .channelLiveLayout{grid-template-columns:1fr!important;gap:12px!important;}
+        #channel .creatorRefine .oryonMainPlayer,#channel .creatorRefine .premiumPlayer{height:auto!important;aspect-ratio:16/9!important;}
+        #channel .creatorRefine .nativeFixedChat{height:min(52vh,520px)!important;min-height:320px!important;max-height:520px!important;}
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  function normalise(raw){
+    const x = raw || {};
+    const rawPlatform = String(x.platform || x.type || x.source || '').toLowerCase();
+    const platform = rawPlatform.includes('twitch') || x.user_login || x.broadcaster_login ? 'twitch' : 'swapp';
+    const login = clean(platform === 'twitch' ? (x.login || x.user_login || x.broadcaster_login || x.user_name) : (x.host_login || x.login || x.room || x.channel || x.user_login));
+    const name = String(platform === 'twitch' ? (x.display_name || x.user_name || x.name || login) : (x.host_name || x.display_name || x.user_name || x.name || login));
+    let thumb = String(x.thumbnail_url || x.thumbnail || x.preview || x.offline_image_url || x.banner_url || '');
+    if(thumb.includes('{width}')) thumb = thumb.replace('{width}','640').replace('{height}','360');
+    const viewers = Number(x.viewer_count ?? x.viewers ?? x.live_viewers ?? 0) || 0;
+    const title = String(x.title || x.live_title || (platform === 'swapp' ? `Live Swapp de ${name}` : `Live Twitch de ${name}`));
+    const game = String(x.game_name || x.category || x.game || (platform === 'swapp' ? 'Swapp' : 'Twitch'));
+    return {raw:x, platform, login, name, thumb, viewers, title, game};
+  }
+
+  function encodePayload(x){
+    try{return encodeURIComponent(JSON.stringify(x || {}));}catch(_e){return '';}
+  }
+
+  window.swappOpenLive1014 = function(payload){
+    let raw = null;
+    try{ raw = JSON.parse(decodeURIComponent(payload || '')); }catch(_e){ raw = {}; }
+    const n = normalise(raw);
+    if(!n.login) return;
+    if(n.platform === 'swapp'){
+      window.location.href = '/' + encodeURIComponent(n.login);
+      return;
+    }
+    if(typeof setView === 'function' && typeof mountTwitchPlayer === 'function'){
+      setView('twitch').then(() => mountTwitchPlayer(n.login));
+      return;
+    }
+    if(typeof openTwitch === 'function') return openTwitch(n.login);
+    window.open('https://www.twitch.tv/' + encodeURIComponent(n.login), '_blank', 'noopener');
+  };
+
+  function card(raw){
+    const n = normalise(raw);
+    if(!n.login) return '';
+    const payload = encodePayload(raw);
+    const kind = n.platform === 'swapp' ? 'swapp' : 'twitch';
+    const badge = n.platform === 'swapp' ? 'LIVE SWAPP' : 'LIVE TWITCH';
+    return `<article class="homeLiveCard1014" onclick="swappOpenLive1014('${payload}')" tabindex="0" onkeydown="if(event.key==='Enter')swappOpenLive1014('${payload}')"><div class="homeThumb1014">${n.thumb?`<img src="${safe(n.thumb)}" alt="">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b;font-weight:900">LIVE</div>`}<span class="homeLiveBadge1014 ${kind}">● ${badge}</span><span class="homeViewers1014">${n.viewers || 0} viewers</span></div><div class="homeLiveBody1014"><h3>${safe(n.title)}</h3><div class="homeMeta1014">${safe(n.name)} · ${safe(n.game)}</div><button class="btn" type="button" onclick="event.stopPropagation();swappOpenLive1014('${payload}')">Regarder</button></div></article>`;
+  }
+
+  async function apiSafe(url){ try{ return await api(url); }catch(e){ console.warn('Swapp home API', url, e); return null; } }
+
+  async function getSwappLives(){
+    const r = await apiSafe('/api/native/lives?t=' + Date.now());
+    const seen = new Set();
+    return (r?.items || [])
+      .map(x => ({...x, platform:'swapp'}))
+      .filter(x => { const n = normalise(x); if(!n.login || seen.has(n.login)) return false; seen.add(n.login); return true; })
+      .slice(0,12);
+  }
+
+  async function getTwitchLives(){
+    const urls = [
+      '/api/discovery/home-lives?limit=12&lang=fr&t=' + Date.now(),
+      '/api/twitch/streams/small?lang=fr&min=0&max=10000&first=24&discover=1&t=' + Date.now(),
+      '/api/oryon/discover/find-live?' + new URLSearchParams({q:'', mood:'petite-commu', max:'5000', lang:'fr', source:'twitch', discover:'1', t:String(Date.now())}).toString()
+    ];
+    const out = [];
+    const seen = new Set();
+    for(const url of urls){
+      const r = await apiSafe(url);
+      const arr = r?.items || r?.streams || r?.results || [];
+      for(const item of arr){
+        const raw = {...item, platform:'twitch'};
+        const n = normalise(raw);
+        if(!n.login || seen.has(n.login)) continue;
+        seen.add(n.login);
+        out.push(raw);
+        if(out.length >= 12) break;
+      }
+      if(out.length >= 8) break;
+    }
+    return out;
+  }
+
+  async function loadLives(force=false){
+    if(state?.view !== 'home') return;
+    const now = Date.now();
+    if(!force && now - homeStamp < 45000) return;
+    if(homeBusy) return;
+    homeBusy = true;
+    homeStamp = now;
+    const grid = $id('homeLiveGrid1014');
+    const title = $id('homeLiveTitle1014');
+    const sub = $id('homeLiveSub1014');
+    const status = $id('homeHeroStatus1014');
+    if(!grid){ homeBusy = false; return; }
+    grid.innerHTML = `<div class="homeEmpty1014">Chargement des lives…</div>`;
+    try{
+      let items = await getSwappLives();
+      let mode = 'swapp';
+      if(!items.length){ items = await getTwitchLives(); mode = 'twitch'; }
+      lastHomeMode = mode;
+      if(mode === 'swapp'){
+        if(title) title.textContent = 'Lives Swapp en direct';
+        if(sub) sub.textContent = 'Les lives Swapp actifs passent en premier et ouvrent la page publique du streamer.';
+        if(status) status.textContent = 'Swapp actif';
+      }else{
+        if(title) title.textContent = 'Lives Twitch en direct';
+        if(sub) sub.textContent = 'Aucun live Swapp actif : l’accueil garde automatiquement des lives Twitch publics.';
+        if(status) status.textContent = 'Fallback Twitch';
+      }
+      grid.innerHTML = items.length ? items.slice(0,12).map(card).join('') : `<div class="homeEmpty1014">Aucun live à afficher pour le moment. Vérifie les clés Twitch si le fallback reste vide.</div>`;
+    }finally{
+      homeBusy = false;
+    }
+  }
+
+  window.renderHome = async function renderHome1014(){
+    addStyle1014();
+    const el = $id('home');
+    if(!el) return;
+    const streamView = (typeof streamTargetView === 'function') ? streamTargetView() : (state?.session?.local ? 'manager' : 'settings');
+    const streamLabel = (typeof streamTargetLabel === 'function') ? streamTargetLabel() : (state?.session?.local ? 'Lancer mon live' : 'Créer ma chaîne');
+    el.innerHTML = `<main class="swappHome1014">
+      <section class="homeHero1014">
+        <div class="homeHeroInner1014">
+          <div class="homeHeroCopy1014">
+            <span class="eyebrow"><i class="dot"></i><span id="homeHeroStatus1014">Accueil live</span></span>
+            <h1>Découvre les lives maintenant.</h1>
+            <p>Swapp met ses lives natifs en avant dès qu’ils sont actifs. Sinon, la page affiche des lives Twitch publics pour garder une vraie plateforme vivante.</p>
+            <div class="homeActions1014">
+              <button class="btn" type="button" onclick="setView('discover')">Trouver un live</button>
+              <button class="btn secondary" type="button" onclick="setView('${safe(streamView)}')">${safe(streamLabel)}</button>
+            </div>
+          </div>
+          <aside class="homeHeroPanel1014">
+            <h2>Règle d’accueil</h2>
+            <p>1. Swapp passe en priorité. 2. S’il n’y a aucun live Swapp, Twitch prend le relais. 3. Le clic ouvre directement le bon lecteur.</p>
+            <div class="homeInfoGrid1014">
+              <div class="homeInfo1014"><b>Pages publiques</b><span>/pseudo reste accessible sans connexion.</span></div>
+              <div class="homeInfo1014"><b>Tchat</b><span>Lecture publique, écriture avec compte.</span></div>
+              <div class="homeInfo1014"><b>Découverte</b><span>Pas de grand bloc vide ni de scroll horizontal forcé.</span></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+      <section class="homeLiveSection1014">
+        <div class="homeLiveHead1014">
+          <div><h2 id="homeLiveTitle1014">Lives en direct</h2><p id="homeLiveSub1014">Chargement des lives…</p></div>
+          <div class="homeActions1014"><button class="btn secondary" type="button" onclick="swappRefreshHome1014?.()">Actualiser</button><button class="btn secondary" type="button" onclick="setView('discover')">Découvrir</button></div>
+        </div>
+        <div id="homeLiveGrid1014" class="homeLiveGrid1014"><div class="homeEmpty1014">Chargement des lives…</div></div>
+      </section>
+      <section class="homeBottom1014">
+        <article class="homeBottomCard1014"><h3>Streamer sur Swapp</h3><p>Lance Swapp Local, publie ton flux, et ta page publique remonte automatiquement.</p></article>
+        <article class="homeBottomCard1014"><h3>Regarder sans compte</h3><p>Les lives restent publics. Le compte sert à parler, suivre et gérer sa chaîne.</p></article>
+        <article class="homeBottomCard1014"><h3>Découvrir vite</h3><p>Quand aucun live Swapp n’est actif, l’accueil ne se vide pas : Twitch prend le relais.</p></article>
+      </section>
+    </main>`;
+    await loadLives(true);
+    try{ closeMini?.(); }catch(_e){}
+  };
+  try{ renderHome = window.renderHome; }catch(_e){}
+
+  window.swappRefreshHome1014 = function(){ homeStamp = 0; loadLives(true); };
+  window.loadHomeRecommendations = async function(){ addStyle1014(); await loadLives(true); };
+  try{ loadHomeRecommendations = window.loadHomeRecommendations; }catch(_e){}
+
+  function fitChat1014(){
+    if(state?.view && state.view !== 'channel') return;
+    addStyle1014();
+    const layout = document.querySelector('#channel .creatorRefine .channelLiveLayout, #channel .channelLiveLayout, #channel .watchShell.channelWatch');
+    const player = document.querySelector('#channel .creatorRefine .oryonMainPlayer, #channel .channelMainPlayer .premiumPlayer, #channel .oryonMainPlayer, #channel .premiumPlayer');
+    const chat = document.querySelector('#channel .creatorRefine .nativeFixedChat, #channel .channelLiveSidebar .chatPanel, #channel .nativeFixedChat, #channel .chatPanel');
+    if(!layout || !player || !chat) return;
+    const mobile = window.matchMedia('(max-width:980px)').matches;
+    if(mobile){
+      player.style.setProperty('height','auto','important');
+      player.style.setProperty('aspect-ratio','16/9','important');
+      const ch = clamp(320, Math.round(window.innerHeight * 0.48), 520);
+      chat.style.setProperty('height', ch + 'px', 'important');
+      chat.style.setProperty('min-height', '320px', 'important');
+      chat.style.setProperty('max-height', '520px', 'important');
+      return;
+    }
+    const rect = player.getBoundingClientRect();
+    const top = Math.max(80, rect.top || layout.getBoundingClientRect().top || 100);
+    const available = Math.max(420, window.innerHeight - top - 24);
+    const natural = Math.round((rect.width || 900) * 9 / 16);
+    const h = clamp(420, Math.min(natural, available), 760);
+    player.style.setProperty('height', h + 'px', 'important');
+    player.style.setProperty('aspect-ratio', 'auto', 'important');
+    chat.style.setProperty('height', h + 'px', 'important');
+    chat.style.setProperty('min-height', h + 'px', 'important');
+    chat.style.setProperty('max-height', h + 'px', 'important');
+  }
+  window.swappFitChat1014 = fitChat1014;
+
+  const prevRenderChannel = window.renderChannel || (typeof renderChannel === 'function' ? renderChannel : null);
+  if(typeof prevRenderChannel === 'function' && !prevRenderChannel.__swappFit1014){
+    const wrapped = async function(){
+      const out = await prevRenderChannel.apply(this, arguments);
+      [40,180,500,1200].forEach(ms => setTimeout(fitChat1014, ms));
+      return out;
+    };
+    wrapped.__swappFit1014 = true;
+    window.renderChannel = wrapped;
+    try{ renderChannel = wrapped; }catch(_e){}
+  }
+
+  const prevSetView = window.setView || (typeof setView === 'function' ? setView : null);
+  if(typeof prevSetView === 'function' && !prevSetView.__swappHome1014){
+    const wrappedSetView = async function(view){
+      const out = await prevSetView.apply(this, arguments);
+      if(view === 'home') setTimeout(() => window.renderHome?.(), 20);
+      if(view === 'channel') [60,250,800].forEach(ms => setTimeout(fitChat1014, ms));
+      return out;
+    };
+    wrappedSetView.__swappHome1014 = true;
+    window.setView = wrappedSetView;
+    try{ setView = wrappedSetView; }catch(_e){}
+  }
+
+  addStyle1014();
+  window.addEventListener('resize', () => { if(state?.view === 'channel') requestAnimationFrame(fitChat1014); });
+  window.addEventListener('orientationchange', () => setTimeout(fitChat1014, 160));
+  document.addEventListener('DOMContentLoaded', () => { if(state?.view === 'home') setTimeout(() => window.renderHome?.(), 80); if(state?.view === 'channel') setTimeout(fitChat1014, 160); });
+  window.addEventListener('load', () => { if(state?.view === 'home') setTimeout(() => window.renderHome?.(), 80); if(state?.view === 'channel') setTimeout(fitChat1014, 160); });
+  setInterval(() => { if(state?.view === 'home') loadLives(false); }, 60000);
+})();
