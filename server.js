@@ -4032,88 +4032,49 @@ app.get('/api/twitch/random-small-live', async (req, res) => {
 });
 
 app.get('/api/native/lives', (req, res) => {
-  try{
-    const rooms = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.entries) ? nativeLiveRooms : new Map();
-    const nativeItems = Array.from(rooms.entries()).map(([room, r]) => ({
-      room,
-      title: r.title || `Live de ${room}`,
-      host_name: r.hostName || room,
-      host_login: r.hostLogin || room,
-      host_user_id: r.hostUserId || null,
-      viewers: r.viewers ? r.viewers.size : 0,
-      viewer_count: r.viewers ? r.viewers.size : 0,
-      limit: Number(process.env.MAX_NATIVE_VIEWERS || 300),
-      createdAt: r.createdAt || Date.now(),
-      category: r.category || '',
-      game_name: r.category || 'Swapp',
-      tags: Array.isArray(r.tags) ? r.tags : [],
-      peak_viewers: r.peakViewers || (r.viewers ? r.viewers.size : 0),
-      chat_messages: r.chatMessages || 0,
-      oryon_score: computeNativeOryonScore(r),
-      native: true,
-      platform: 'oryon',
-      source: 'swapp-native',
-      watch_url: swappChannelPathForLogin(r.hostLogin || room),
-      public_url: swappChannelPathForLogin(r.hostLogin || room)
-    }));
-
-    const now = Date.now();
-    const timeout = Math.max(oryonLiveSignalTimeoutMs(), 10 * 60 * 1000);
-    const users = readOryonUsers().users || [];
-    const localAgentItems = users
-      .filter(u => {
-        if(!u || !u.login) return false;
-        const last = Number(u.local_agent_last_seen || u.channel_last_seen || 0);
-        const fresh = !!last && (now - last <= timeout);
-        const hasPublicPlayer = !!String(u.oryon_local_player_url || '').trim();
-        return isOryonLiveSignalFresh(u) || (hasPublicPlayer && (fresh || String(u.live_status || '').toLowerCase() === 'live'));
-      })
-      .map(u => ({
-        room: u.login,
-        title: u.current_live_title || `Live Swapp de ${u.display_name || u.login}`,
-        host_name: u.display_name || u.login,
-        display_name: u.display_name || u.login,
-        host_login: u.login,
-        login: u.login,
-        user_login: u.login,
-        host_user_id: u.id,
-        viewers: Number(u.current_viewers || 0),
-        viewer_count: Number(u.current_viewers || 0),
-        limit: Number(process.env.MAX_NATIVE_VIEWERS || 300),
-        createdAt: u.local_agent_last_seen || u.updatedAt || Date.now(),
-        category: u.current_live_category || u.current_category || 'Swapp Live',
-        game_name: u.current_live_category || u.current_category || 'Swapp Live',
-        tags: Array.isArray(u.current_live_tags) && u.current_live_tags.length ? u.current_live_tags : (Array.isArray(u.tags) ? u.tags : []),
-        peak_viewers: Number(u.peak_viewers || 0),
-        chat_messages: Number(u.chat_messages || 0),
-        oryon_score: 96,
-        native: true,
-        platform: 'oryon',
-        source: 'local-agent',
-        local_agent: true,
-        player_url: u.oryon_local_player_url || '',
-        embed_url: u.oryon_local_player_url || '',
-        status_url: u.oryon_local_status_url || '',
-        public_url: swappChannelPathForLogin(u.login),
-        watch_url: swappChannelPathForLogin(u.login),
-        thumbnail_url: u.offline_image_url || u.banner_url || u.avatar_url || '',
-        avatar_url: u.avatar_url || ''
-      }));
-
-    const seen = new Set();
-    const items = [...localAgentItems, ...nativeItems]
-      .filter(x => {
-        const k = String(x.host_login || x.login || x.room || '').toLowerCase();
-        if(!k || seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      })
-      .sort((a,b) => Number(b.local_agent || 0) - Number(a.local_agent || 0) || (b.createdAt || 0) - (a.createdAt || 0));
-    res.setHeader('Cache-Control','no-store');
-    res.json({ success:true, items, count:items.length, timeout_ms:timeout });
-  }catch(e){
-    res.status(500).json({ success:false, error:e.message, items:[] });
-  }
+  const rooms = (typeof nativeLiveRooms !== 'undefined' && nativeLiveRooms?.entries) ? nativeLiveRooms : new Map();
+  const nativeItems = Array.from(rooms.entries()).map(([room, r]) => ({
+    room,
+    title: r.title || `Live de ${room}`,
+    host_name: r.hostName || room,
+    host_login: r.hostLogin || null,
+    host_user_id: r.hostUserId || null,
+    viewers: r.viewers ? r.viewers.size : 0,
+    limit: Number(process.env.MAX_NATIVE_VIEWERS || 300),
+    createdAt: r.createdAt || null,
+    category: r.category || '',
+    tags: Array.isArray(r.tags) ? r.tags : [],
+    peak_viewers: r.peakViewers || (r.viewers ? r.viewers.size : 0),
+    chat_messages: r.chatMessages || 0,
+    oryon_score: computeNativeOryonScore(r),
+    native: true
+  }));
+  const users = readOryonUsers().users || [];
+  const localAgentItems = users.filter(u => isOryonLiveSignalFresh(u)).map(u => ({
+    room: u.login,
+    title: `Live Oryon de ${u.display_name || u.login}`,
+    host_name: u.display_name || u.login,
+    host_login: u.login,
+    host_user_id: u.id,
+    viewers: 0,
+    limit: Number(process.env.MAX_NATIVE_VIEWERS || 300),
+    createdAt: u.local_agent_last_seen || u.updatedAt || Date.now(),
+    category: 'Oryon Live',
+    tags: Array.isArray(u.tags) ? u.tags : [],
+    peak_viewers: 0,
+    chat_messages: 0,
+    oryon_score: 88,
+    native: true,
+    local_agent: true,
+    player_url: u.oryon_local_player_url || '',
+    embed_url: u.oryon_local_player_url || '',
+    status_url: u.oryon_local_status_url || '',
+    public_url: swappChannelPathForLogin(u.login),
+    thumbnail_url: u.offline_image_url || u.banner_url || u.avatar_url || ''
+  }));
+  const seen = new Set();
+  const items = [...nativeItems, ...localAgentItems].filter(x => { const k=x.host_login||x.room; if(seen.has(k)) return false; seen.add(k); return true; }).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  res.json({ success:true, items });
 });
 
 app.get('/api/twitch/followed/live', heavyLimiter, async (req, res) => {
