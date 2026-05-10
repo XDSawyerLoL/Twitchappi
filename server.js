@@ -3166,7 +3166,10 @@ function verifyOryonRememberToken(user, token){
 }
 function oryonLiveSignalTimeoutMs(){ return Math.max(30000, Number(process.env.ORYON_LIVE_SIGNAL_TIMEOUT_MS || 120000)); }
 function isOryonLiveSignalFresh(u){
-  if(!u || !u.oryon_local_player_url || !u.local_agent_live) return false;
+  // Le signal de live ne doit pas dépendre du lecteur.
+  // Sinon la page publique, le tchat et l'accueil peuvent croire que le live est off
+  // alors que l'agent local est bien en train de battre le heartbeat.
+  if(!u || !u.local_agent_live) return false;
   const last = Number(u.local_agent_last_seen || 0);
   if(!last) return false;
   return (Date.now() - last) <= oryonLiveSignalTimeoutMs();
@@ -4063,6 +4066,10 @@ app.get('/api/native/lives', (req, res) => {
     oryon_score: 88,
     native: true,
     local_agent: true,
+    player_url: u.oryon_local_player_url || '',
+    embed_url: u.oryon_local_player_url || '',
+    status_url: u.oryon_local_status_url || '',
+    public_url: swappChannelPathForLogin(u.login),
     thumbnail_url: u.offline_image_url || u.banner_url || u.avatar_url || ''
   }));
   const seen = new Set();
