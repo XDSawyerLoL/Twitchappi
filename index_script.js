@@ -11251,3 +11251,278 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.addEventListener('load', () => { setTimeout(renderNativeRail, 300); setTimeout(syncPlayerAndChat, 350); });
   setInterval(() => { if(state?.view === 'home') renderNativeRail(); if(state?.view === 'channel') syncPlayerAndChat(); }, 2500);
 })();
+
+/* =========================================================
+   SWAPP FIX 1.0.12 — accueil Swapp puis Twitch + tchat exact
+   - Si aucun live Swapp : afficher des lives Twitch publics.
+   - Cartes compactes, pas de grand bloc vide.
+   - Regarder Swapp => /pseudo ; Regarder Twitch => lecteur Twitch.
+   - Tchat calé sur la hauteur réelle du lecteur.
+   ========================================================= */
+(function swappHomeTwitchFallbackChatFit1012(){
+  if(window.__SWAPP_HOME_TWITCH_FALLBACK_CHAT_FIT_1012__) return;
+  window.__SWAPP_HOME_TWITCH_FALLBACK_CHAT_FIT_1012__ = true;
+
+  const byId = (id) => document.getElementById(id);
+  const safe = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const clean = (v) => String(v || '').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_-]/g,'').slice(0,64);
+  const clamp = (min, val, max) => Math.max(min, Math.min(max, val));
+
+  function norm(x){
+    const platform = String(x?.platform || x?.source || '').toLowerCase().includes('oryon') || x?.local_agent || x?.native || x?.host_login || x?.room ? 'oryon' : 'twitch';
+    const login = clean(x?.login || x?.user_login || x?.host_login || x?.room || x?.broadcaster_login || '');
+    const display = x?.display_name || x?.user_name || x?.host_name || x?.name || login || 'Live';
+    let thumb = x?.thumbnail_url || x?.preview_url || x?.offline_image_url || x?.banner_url || x?.avatar_url || x?.profile_image_url || '';
+    if(typeof thumb === 'string') thumb = thumb.replace('{width}','640').replace('{height}','360');
+    return {
+      raw:x,
+      platform,
+      login,
+      display,
+      title: x?.title || x?.live_title || (platform === 'oryon' ? `Live Swapp de ${display}` : `Live Twitch de ${display}`),
+      game: x?.game_name || x?.category || x?.game || (platform === 'oryon' ? 'Swapp' : 'Twitch'),
+      viewers: Number(x?.viewer_count ?? x?.viewers ?? 0) || 0,
+      thumb
+    };
+  }
+
+  function installStyle(){
+    byId('swappHomeTwitchFallbackStyle1012')?.remove();
+    const st = document.createElement('style');
+    st.id = 'swappHomeTwitchFallbackStyle1012';
+    st.textContent = `
+      #swappHomeLiveStrip,#swappHomeNativeStrip,#homeSwappChannels{display:none!important;}
+      #home{min-height:100vh;background:linear-gradient(135deg,#071a24 0%,#101225 48%,#05070d 100%)!important;}
+      .swappHomeFinal{padding:16px clamp(12px,2vw,32px) 34px!important;display:grid!important;gap:16px!important;}
+      .swappHomeLiveCompact{border:1px solid rgba(45,212,191,.23)!important;border-radius:20px!important;background:linear-gradient(135deg,rgba(20,184,166,.12),rgba(124,58,237,.09),rgba(2,6,23,.66))!important;box-shadow:0 14px 38px rgba(0,0,0,.20)!important;padding:13px!important;display:grid!important;gap:11px!important;min-height:0!important;}
+      .swappHomeLiveCompactHead{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;}
+      .swappHomeLiveCompactHead h2{margin:0!important;font-size:clamp(18px,1.6vw,25px)!important;letter-spacing:-.035em!important;}
+      .swappHomeLiveCompactHead p{margin:3px 0 0!important;color:#aab6ca!important;font-size:13px!important;line-height:1.35!important;}
+      .swappHomeNativeRail{display:flex!important;gap:12px!important;overflow-x:auto!important;scrollbar-width:thin!important;padding:0 0 3px!important;min-height:0!important;}
+      .swappHomeMiniLive{position:relative!important;flex:0 0 clamp(220px,22vw,320px)!important;aspect-ratio:16/9!important;border:1px solid rgba(148,163,184,.18)!important;border-radius:18px!important;overflow:hidden!important;background:#030711!important;cursor:pointer!important;text-align:left!important;color:#fff!important;box-shadow:0 10px 26px rgba(0,0,0,.22)!important;min-height:0!important;}
+      .swappHomeMiniLive img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:cover!important;opacity:.76!important;transition:transform .18s ease,opacity .18s ease!important;}
+      .swappHomeMiniLive:hover img{transform:scale(1.035)!important;opacity:.9!important;}
+      .swappHomeMiniLive::after{content:""!important;position:absolute!important;inset:0!important;background:linear-gradient(180deg,rgba(2,6,23,.05),rgba(2,6,23,.90))!important;z-index:1!important;}
+      .swappHomeMiniBadge{position:absolute!important;z-index:2!important;top:10px!important;left:10px!important;display:inline-flex!important;align-items:center!important;gap:6px!important;color:#fff!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:999px!important;padding:5px 9px!important;font-size:11px!important;font-weight:1000!important;}
+      .swappHomeMiniBadge.swapp{background:rgba(239,68,68,.92)!important;}
+      .swappHomeMiniBadge.twitch{background:rgba(145,70,255,.92)!important;}
+      .swappHomeMiniBody{position:absolute!important;z-index:2!important;left:12px!important;right:12px!important;bottom:12px!important;display:grid!important;gap:6px!important;}
+      .swappHomeMiniBody b{font-size:16px!important;line-height:1.08!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+      .swappHomeMiniBody span{font-size:12px!important;color:#dbe7f5!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+      .swappHomeMiniBody .btn{width:max-content!important;min-height:31px!important;padding:7px 11px!important;border-radius:12px!important;font-size:12px!important;}
+      .swappHomeNoLive{padding:10px 12px!important;border:1px dashed rgba(148,163,184,.25)!important;border-radius:14px!important;color:#aebbd0!important;background:rgba(255,255,255,.035)!important;font-size:14px!important;width:100%!important;}
+      .swappHomeHeroSimple{display:grid!important;grid-template-columns:minmax(260px,430px) minmax(0,1fr)!important;gap:16px!important;align-items:stretch!important;}
+      .swappHomePitch,.swappHomePanel{border:1px solid rgba(148,163,184,.16)!important;border-radius:22px!important;background:rgba(2,6,23,.52)!important;box-shadow:0 16px 45px rgba(0,0,0,.20)!important;padding:clamp(18px,2.2vw,28px)!important;min-height:0!important;}
+      .swappHomePitch h1{margin:8px 0 10px!important;font-size:clamp(34px,3.4vw,58px)!important;line-height:.94!important;letter-spacing:-.07em!important;}
+      .swappHomePitch p{color:#c2cada!important;line-height:1.45!important;margin:0 0 14px!important;max-width:560px!important;}
+      .swappHomeMoodStrip{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin:14px 0!important;}
+      .swappHomeMoodStrip button{border:1px solid rgba(148,163,184,.24)!important;background:rgba(255,255,255,.06)!important;color:#fff!important;border-radius:999px!important;padding:8px 11px!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important;}
+      .swappHomeActions{display:flex!important;gap:10px!important;flex-wrap:wrap!important;}
+      .swappHomePanelGrid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;margin-top:12px!important;}
+      .swappHomeMiniInfo{border:1px solid rgba(148,163,184,.14)!important;border-radius:16px!important;background:rgba(255,255,255,.04)!important;padding:13px!important;display:grid!important;gap:5px!important;}
+      .swappHomeMiniInfo b{font-size:14px!important}.swappHomeMiniInfo span{font-size:12px!important;color:#aebbd0!important;line-height:1.35!important;}
+
+      #channel .channelLiveLayout{display:grid!important;grid-template-columns:minmax(0,1fr) clamp(310px,25vw,430px)!important;gap:16px!important;align-items:start!important;margin-inline:clamp(10px,2vw,34px)!important;overflow:visible!important;}
+      #channel .channelMainPlayer,#channel .channelLiveSidebar{min-width:0!important;align-self:start!important;}
+      #channel .channelMainPlayer .player,#channel .channelMainPlayer .premiumPlayer,#channel .channelMainPlayer .oryonMainPlayer{width:100%!important;height:var(--swapp-chat-fit-h,540px)!important;min-height:0!important;max-height:none!important;aspect-ratio:auto!important;border-radius:24px!important;background:#000!important;overflow:hidden!important;}
+      #channel .channelMainPlayer iframe,#channel .channelMainPlayer video,#channel .channelMainPlayer .emptyStatePlayer{width:100%!important;height:100%!important;max-height:none!important;display:block!important;}
+      #channel .channelLiveSidebar .chatPanel,#channel .channelLiveSidebar .nativeFixedChat,#channel .nativeFixedChat{width:100%!important;height:var(--swapp-chat-fit-h,540px)!important;min-height:0!important;max-height:none!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto auto!important;border-radius:24px!important;overflow:hidden!important;resize:none!important;}
+      #channel .chatLog{min-height:0!important;overflow:auto!important;}
+      @media(max-width:1100px){
+        .swappHomeHeroSimple{grid-template-columns:1fr!important;}.swappHomePanelGrid{grid-template-columns:1fr!important;}
+        #channel .channelLiveLayout{grid-template-columns:1fr!important;margin-inline:10px!important;}
+        #channel .channelMainPlayer .player,#channel .channelMainPlayer .premiumPlayer,#channel .channelMainPlayer .oryonMainPlayer{height:var(--swapp-mobile-player-h,calc((100vw - 20px) * .5625))!important;max-height:430px!important;}
+        #channel .channelLiveSidebar .chatPanel,#channel .channelLiveSidebar .nativeFixedChat,#channel .nativeFixedChat{height:var(--swapp-mobile-chat-h,380px)!important;max-height:520px!important;}
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  function openItem(x){
+    const n = norm(x);
+    if(!n.login) return;
+    if(n.platform === 'oryon'){
+      if(typeof swappGoPublicChannel === 'function') return swappGoPublicChannel(n.login);
+      location.href = '/' + encodeURIComponent(n.login);
+      return;
+    }
+    if(typeof openTwitch === 'function') return openTwitch(n.login);
+    window.open('https://www.twitch.tv/' + encodeURIComponent(n.login), '_blank', 'noopener');
+  }
+  window.swappHomeOpenLive1012 = function(encoded){
+    try{ openItem(JSON.parse(decodeURIComponent(encoded))); }catch(_e){}
+  };
+
+  function card(x){
+    const n = norm(x);
+    if(!n.login) return '';
+    const encoded = encodeURIComponent(JSON.stringify(x || {}));
+    const badge = n.platform === 'oryon' ? 'LIVE SWAPP' : 'LIVE TWITCH';
+    const cls = n.platform === 'oryon' ? 'swapp' : 'twitch';
+    const img = n.thumb || '';
+    return `<article class="swappHomeMiniLive" data-platform="${safe(n.platform)}" onclick="swappHomeOpenLive1012('${encoded}')" tabindex="0" onkeydown="if(event.key==='Enter')swappHomeOpenLive1012('${encoded}')">${img?`<img src="${safe(img)}" alt="">`:''}<span class="swappHomeMiniBadge ${cls}">● ${safe(badge)}</span><div class="swappHomeMiniBody"><b>${safe(n.title)}</b><span>${safe(n.display)}${n.game?` · ${safe(n.game)}`:''}${n.viewers?` · ${n.viewers} viewers`:''}</span><button class="btn" type="button" onclick="event.stopPropagation();swappHomeOpenLive1012('${encoded}')">Regarder</button></div></article>`;
+  }
+
+  async function getSwappLives(){
+    try{
+      const r = await api('/api/native/lives?t=' + Date.now());
+      return (r.items || [])
+        .map(x => ({...x, platform:'oryon'}))
+        .filter(x => norm(x).login)
+        .sort((a,b) => Number(b.local_agent || b.native || 0) - Number(a.local_agent || a.native || 0) || Number(b.createdAt || b.updatedAt || 0) - Number(a.createdAt || a.updatedAt || 0));
+    }catch(_e){ return []; }
+  }
+
+  async function getTwitchLives(){
+    const tries = [
+      '/api/discovery/home-lives?limit=10&lang=fr&t=' + Date.now(),
+      '/api/twitch/streams/small?lang=fr&min=0&max=10000&first=30&discover=1&t=' + Date.now(),
+      '/api/oryon/discover/find-live?' + new URLSearchParams({q:'',mood:'petite-commu',max:'5000',lang:'fr',source:'twitch',discover:'1',t:String(Date.now())}).toString()
+    ];
+    const seen = new Set();
+    const out = [];
+    for(const url of tries){
+      try{
+        const r = await api(url);
+        for(const raw of (r.items || r.streams || r.results || [])){
+          const n = norm(raw);
+          if(n.platform !== 'twitch' || !n.login || seen.has(n.login)) continue;
+          seen.add(n.login);
+          out.push({...raw, platform:'twitch'});
+          if(out.length >= 10) break;
+        }
+      }catch(_e){}
+      if(out.length >= 6) break;
+    }
+    return out;
+  }
+
+  async function renderLiveRail(){
+    const section = byId('swappHomeNativeCompact');
+    const rail = byId('swappHomeNativeRail');
+    if(!section || !rail) return;
+    rail.innerHTML = '<div class="swappHomeNoLive">Chargement des lives…</div>';
+    const swapp = await getSwappLives();
+    let items = swapp;
+    let mode = 'swapp';
+    if(!items.length){
+      items = await getTwitchLives();
+      mode = 'twitch';
+    }
+    section.dataset.liveMode = mode;
+    const title = byId('swappHomeRailTitle');
+    const sub = byId('swappHomeRailSub');
+    if(mode === 'swapp'){
+      if(title) title.textContent = 'Lives Swapp en direct';
+      if(sub) sub.textContent = 'Les lives Swapp passent en premier. Le bouton ouvre directement la page publique du streamer.';
+    }else{
+      if(title) title.textContent = 'Lives Twitch en direct';
+      if(sub) sub.textContent = 'Aucun live Swapp actif : l’accueil affiche donc des lives Twitch publics.';
+    }
+    rail.innerHTML = items.length
+      ? items.slice(0,8).map(card).join('')
+      : '<div class="swappHomeNoLive">Aucun live Swapp ou Twitch disponible. Vérifie les identifiants Twitch serveur si cette zone reste vide.</div>';
+  }
+
+  window.loadHomeRecommendations = async function swappLoadHomeRecommendations1012(){
+    installStyle();
+    await renderLiveRail();
+  };
+  try{ loadHomeRecommendations = window.loadHomeRecommendations; }catch(_e){}
+
+  window.renderHome = async function renderHome1012(){
+    installStyle();
+    const el = byId('home');
+    if(!el) return;
+    const moods = (Array.isArray(window.AMBIANCES) ? window.AMBIANCES : (typeof AMBIANCES !== 'undefined' ? AMBIANCES : []));
+    const moodButtons = moods.slice(0,6).map(([id,label]) => `<button type="button" onclick="state.moodFirstMood='${safe(id)}';setView('discover')">${safe(label)}</button>`).join('');
+    const streamView = (typeof streamTargetView === 'function' ? streamTargetView() : 'manager');
+    const streamLabel = (typeof streamTargetLabel === 'function' ? streamTargetLabel() : 'Streamer sur Swapp');
+    el.innerHTML = `<div class="swappHomeFinal">
+      <section id="swappHomeNativeCompact" class="swappHomeLiveCompact" aria-label="Lives en direct">
+        <div class="swappHomeLiveCompactHead"><div><h2 id="swappHomeRailTitle">Lives en direct</h2><p id="swappHomeRailSub">Swapp d’abord, Twitch ensuite si aucun live Swapp n’est actif.</p></div><button class="btn secondary" type="button" onclick="setView('discover')">Découvrir plus</button></div>
+        <div id="swappHomeNativeRail" class="swappHomeNativeRail"><div class="swappHomeNoLive">Chargement des lives…</div></div>
+      </section>
+      <section class="swappHomeHeroSimple">
+        <div class="swappHomePitch"><span class="eyebrow"><i class="dot"></i>Vitrine Swapp</span><h1>Des lives à taille humaine.</h1><p>Découvre les lives Swapp quand ils sont actifs. Sinon, l’accueil garde du contenu vivant avec des lives Twitch.</p><div class="swappHomeMoodStrip">${moodButtons}</div><div class="swappHomeActions"><button class="btn" type="button" onclick="autoProposeLive?.()">Propose-moi un live</button><button class="btn streamBtn" type="button" onclick="setView('${safe(streamView)}')">${safe(streamLabel)}</button><button class="btn secondary" type="button" onclick="setView('discover')">Swap ton mood</button></div></div>
+        <div class="swappHomePanel"><h2 style="margin-top:0">Créer sur Swapp</h2><p class="muted">Ta page publique reste accessible en /pseudo. Le compte sert à gérer ta chaîne, écrire dans les tchats et interagir.</p><div class="swappHomePanelGrid"><div class="swappHomeMiniInfo"><b>Swapp prioritaire</b><span>Un live Swapp actif remonte en premier.</span></div><div class="swappHomeMiniInfo"><b>Twitch fallback</b><span>S’il n’y a pas de live Swapp, la home affiche Twitch.</span></div><div class="swappHomeMiniInfo"><b>Tchat cadré</b><span>Lecture publique, écriture avec compte.</span></div></div></div>
+      </section>
+    </div>`;
+    await renderLiveRail();
+    try{ renderMiniPlayer?.(); }catch(_e){}
+  };
+  try{ renderHome = window.renderHome; }catch(_e){}
+
+  function fitChatToPlayer(){
+    if(state?.view && state.view !== 'channel') return;
+    const layout = document.querySelector('#channel .channelLiveLayout');
+    const player = document.querySelector('#channel .channelMainPlayer .oryonMainPlayer, #channel .channelMainPlayer .premiumPlayer, #channel .channelMainPlayer .player');
+    const chat = document.querySelector('#channel .channelLiveSidebar .nativeFixedChat, #channel .channelLiveSidebar .chatPanel, #channel .nativeFixedChat');
+    if(!layout || !player || !chat) return;
+    const stacked = window.matchMedia('(max-width:1100px)').matches;
+    if(stacked){
+      const width = Math.max(280, player.getBoundingClientRect().width || window.innerWidth - 20);
+      const ph = clamp(190, Math.round(width * 9 / 16), 430);
+      const ch = clamp(300, Math.round(window.innerHeight * 0.45), 520);
+      layout.style.setProperty('--swapp-mobile-player-h', ph + 'px');
+      layout.style.setProperty('--swapp-mobile-chat-h', ch + 'px');
+      player.style.setProperty('height', ph + 'px', 'important');
+      chat.style.setProperty('height', ch + 'px', 'important');
+      chat.style.setProperty('min-height', ch + 'px', 'important');
+      chat.style.setProperty('max-height', ch + 'px', 'important');
+      return;
+    }
+    const rect = player.getBoundingClientRect();
+    const top = Math.max(70, layout.getBoundingClientRect().top || rect.top || 110);
+    const available = Math.max(380, window.innerHeight - top - 22);
+    let h = Math.round(rect.height || 0);
+    if(!h || h < 260){
+      const w = Math.max(520, rect.width || layout.clientWidth - 430 || 900);
+      h = Math.round(w * 9 / 16);
+    }
+    h = clamp(390, Math.min(h, available), 780);
+    layout.style.setProperty('--swapp-chat-fit-h', h + 'px');
+    player.style.setProperty('height', h + 'px', 'important');
+    player.style.setProperty('min-height', '0px', 'important');
+    player.style.setProperty('max-height', 'none', 'important');
+    chat.style.setProperty('height', h + 'px', 'important');
+    chat.style.setProperty('min-height', '0px', 'important');
+    chat.style.setProperty('max-height', 'none', 'important');
+  }
+  window.swappFitChatToPlayer1012 = fitChatToPlayer;
+
+  const oldSetView = window.setView || (typeof setView === 'function' ? setView : null);
+  if(typeof oldSetView === 'function' && !oldSetView.__swapp1012Wrapped){
+    const wrapped = async function(view){
+      const r = await oldSetView.apply(this, arguments);
+      if(view === 'home') setTimeout(renderLiveRail, 60);
+      if(view === 'channel') [40,180,600,1200].forEach(ms => setTimeout(fitChatToPlayer, ms));
+      return r;
+    };
+    wrapped.__swapp1012Wrapped = true;
+    window.setView = wrapped;
+    try{ setView = wrapped; }catch(_e){}
+  }
+
+  installStyle();
+  if(state?.view === 'home') setTimeout(() => { installStyle(); renderLiveRail(); }, 40);
+  if(state?.view === 'channel') [40,180,600,1200].forEach(ms => setTimeout(fitChatToPlayer, ms));
+  window.addEventListener('resize', () => requestAnimationFrame(fitChatToPlayer));
+  window.addEventListener('orientationchange', () => setTimeout(fitChatToPlayer, 160));
+  try{
+    const ro = new ResizeObserver(() => requestAnimationFrame(fitChatToPlayer));
+    const startRO = () => {
+      const p = document.querySelector('#channel .channelMainPlayer .oryonMainPlayer, #channel .channelMainPlayer .premiumPlayer, #channel .channelMainPlayer .player');
+      if(p) ro.observe(p);
+    };
+    startRO();
+    setInterval(startRO, 2500);
+  }catch(_e){}
+  const mo = new MutationObserver(() => {
+    if(state?.view === 'home') setTimeout(renderLiveRail, 40);
+    if(state?.view === 'channel') requestAnimationFrame(fitChatToPlayer);
+  });
+  try{ mo.observe(document.body, {childList:true, subtree:true}); }catch(_e){}
+  setInterval(() => { if(state?.view === 'channel') fitChatToPlayer(); }, 1000);
+  setInterval(() => { if(state?.view === 'home') renderLiveRail(); }, 15000);
+})();

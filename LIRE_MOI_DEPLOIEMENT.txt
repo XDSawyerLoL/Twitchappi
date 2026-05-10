@@ -1,14 +1,12 @@
-SWAPP SITE 1.0.11
+Swapp site 1.0.12
 
-Déploiement Hostinger :
-1. Remplacer les fichiers du projet par ceux du zip.
-2. Application startup file : app.js
-3. Lancer : npm install --omit=dev
-4. Redémarrer l'application Node.
+Correction accueil :
+- Si des lives Swapp sont actifs : ils passent en premier.
+- Si aucun live Swapp n'est actif : l'accueil affiche des lives Twitch publics.
+- Les cartes restent compactes.
+- Le bouton Regarder ouvre le bon lecteur : /pseudo pour Swapp, lecteur Twitch pour Twitch.
 
-Tests :
-- /api/health
-- /api/native/lives
-- /sansahd
+Correction page live :
+- Le tchat est recalé sur la hauteur du lecteur et se réadapte au redimensionnement.
 
-Ce correctif supprime les gros blocs vides de l'accueil, force les lives Swapp en cartes compactes, ouvre Regarder vers /pseudo, et cale le tchat sur la hauteur du lecteur.
+Hostinger : Application startup file = app.js
