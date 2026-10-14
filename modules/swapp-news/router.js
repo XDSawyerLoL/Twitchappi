@@ -1,11 +1,12 @@
 'use strict';
 const crypto = require('node:crypto');
 const {assertArticle, renderArticle, renderListing, isLegacyJustPlayerUrl} = require('./article-core');
-const {js:studioJs,renderStudio}=require('./studio');
-const {getPublicArchives}=require('./archive');
+const {js:studioJs,renderStudio}=require('./editor-ui');
+const {renderNewsHome,renderNewsStory}=require('./native-pages');
+const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const catalog=require('../../data/justplayer-public-catalog.json');
 
-function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv'}) {
+function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
       typeof firestore?.runTransaction !== 'function' || typeof requireEditor !== 'function') {
     throw new Error('Express, Firestore et authentification éditoriale obligatoires');
@@ -43,7 +44,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     try {
       const list=await published();
       res.set('Cache-Control','public, max-age=60');
-      res.type('html').send(renderListing(list,{baseUrl,archives:getPublicArchives(catalog,list)}));
+      res.type('html').send(renderNewsHome(list,{baseUrl,category:req.query?.categorie,query:req.query?.q}));
     }catch(e){next(e);}
   });
   router.get('/actus/studio',...editor,(req,res)=>res.type('html').send(renderStudio()));
@@ -54,7 +55,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const snap=await articles.doc(req.params.slug).get();
       if(!snap.exists || snap.data().status !== 'published') return res.status(404).send('Article introuvable');
       res.set('Cache-Control','public, max-age=60');
-      return res.type('html').send(renderArticle(snap.data(),{baseUrl}));
+      return res.type('html').send(renderNewsStory(snap.data(),{baseUrl}));
     }catch(e){next(e);}
   });
   router.get('/api/editor/actus',...editor,async(req,res,next)=>{
@@ -62,6 +63,22 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const snap=await articles.limit(60).get();
       const list=snap.docs.map(d=>d.data()).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
       return res.json({articles:list});
+    }catch(e){next(e);}
+  });
+  // Explicit, authenticated, read-only scan of known Fourthwall public posts.
+  router.post('/api/editor/actus/scan-public',...editor,async(req,res,next)=>{
+    try {
+      if(typeof publicFetch !== 'function') return res.status(503).json({error:'public_fetch_unavailable'});
+      const all=(publicCatalog.items||[]).filter(item=>item.type==='post');
+      const offset=Math.max(0,Math.min(all.length,Number.parseInt(req.body?.offset,10)||0));
+      const asked=Number.parseInt(req.body?.limit,10)||2;
+      const limit=Math.min(3,Math.max(1,asked));
+      const scan=await collectPublicCatalog({items:all.slice(offset,offset+limit)},
+        {fetchImpl:publicFetch,timeoutMs:6000,maxBytes:1600000});
+      const nextOffset=Math.min(all.length,offset+limit);
+      return res.json({success:true,offset,nextOffset,done:nextOffset>=all.length,
+        total:all.length,checked:scan.postsChecked,articles:scan.articles,failures:scan.failures,
+        notice:'Extraction sans écriture : relire les textes avant import.'});
     }catch(e){next(e);}
   });
   router.post('/api/editor/actus',...editor,async(req,res,next)=>{
@@ -84,12 +101,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
         const ref=articles.doc(slug),snap=await tx.get(ref);
         if(!snap.exists) return {code:404,error:'Article introuvable'};
         const old=snap.data();
-        if(!['draft','review'].includes(old.status)) return {code:409,error:'Article déjà publié'};
+        if(!['draft','review','published'].includes(old.status)) return {code:409,error:'Statut incompatible'};
         const merged={...old,...req.body,slug};
-        const a=assertArticle(merged);
+        const a=assertArticle(merged,{publish:old.status==='published'});
         const revision=Number(old.revision||0)+1,updatedAt=new Date().toISOString();
-        tx.update(ref,{...a,revision,updatedAt,status:'draft'});
-        return {code:200,slug,status:'draft',revision};
+        tx.update(ref,{...a,revision,updatedAt,status:old.status,publishedAt:old.publishedAt||null});
+        return {code:200,slug,status:old.status,revision};
       });
       return res.status(result.code).json(result);
     }catch(e){if(isValidation(e)) return sendError(res,e);next(e);}
@@ -114,6 +131,21 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       });
       return res.status(result.code).json(result);
     }catch(e){if(isValidation(e)) return sendError(res,e);next(e);}
+  });
+  router.post('/api/editor/actus/:slug/unpublish',...editor,async(req,res,next)=>{
+    try{
+      const slug=String(req.params.slug||'');
+      if(!slugOk(slug))return res.status(404).json({error:'Article introuvable'});
+      const result=await firestore.runTransaction(async tx=>{
+        const ref=articles.doc(slug),snap=await tx.get(ref);
+        if(!snap.exists)return {code:404,error:'Article introuvable'};
+        if(snap.data().status!=='published')return {code:409,error:'Article non publié'};
+        const revision=Number(snap.data().revision||1)+1;
+        tx.update(ref,{status:'draft',revision,updatedAt:new Date().toISOString()});
+        return {code:200,slug,status:'draft',revision};
+      });
+      return res.status(result.code).json(result);
+    }catch(e){next(e);}
   });
   // One-time migration endpoint for a legitimate export of JUSTPLAYER owned content.
   // Always dry-run before actual migration. Existing posts are never overwritten.
