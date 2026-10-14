@@ -1,9 +1,10 @@
 'use strict';
 const {escapeHtml}=require('./article-core');
 function isTwitchLogin(v){return /^[a-z0-9_]{2,25}$/.test(String(v||''));}
-function renderTwitchWatch(login) {
+function renderTwitchWatch(login, {game=''}={}) {
   if(!isTwitchLogin(login))throw new Error('Twitch login invalide');
   const user=escapeHtml(login);
+  const cleanGame=String(game||'').trim().slice(0,90);
   const channel=encodeURIComponent(login);
   const parents='&parent=swapp.tv&parent=www.swapp.tv';
   const player='https://player.twitch.tv/?channel='+channel+parents+'&muted=false';
@@ -17,7 +18,8 @@ function renderTwitchWatch(login) {
     '<div class="swapp-watch-layout"><div class="swapp-watch-player">'+
     '<iframe title="Live Twitch de '+user+'" loading="eager" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" src="'+player+'"></iframe>'+
     '</div><div class="swapp-watch-chat"><iframe title="Chat de '+user+'" src="'+chat+'" loading="lazy"></iframe></div></div>'+
+    '<section class="swapp-media-section" data-articles-for-game="'+escapeHtml(cleanGame)+'"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">ACTUS × LIVE</span><h2>En ce moment dans l’actu</h2><p>Les articles liés au jeu diffusé, lorsqu’ils sont disponibles.</p></div><a class="swapp-media-button" href="/actus">Toutes les actualités →</a></div><div class="swapp-live-grid" data-related-results><p class="swapp-live-notice">Recherche des articles…</p></div></section>'+
     '<div class="swapp-media-buttons"><a class="swapp-media-button primary" href="/actus">Lire les actus gaming →</a>'+
-    '<a class="swapp-media-button" href="/decouvrir">Découvrir d’autres lives →</a></div></main></body></html>';
+    '<a class="swapp-media-button" href="/decouvrir">Découvrir d’autres lives →</a></div></main><script src="/assets/swapp-media-live.js" defer></script></body></html>';
 }
 module.exports={isTwitchLogin,renderTwitchWatch};
