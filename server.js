@@ -8742,7 +8742,7 @@ if(process.env.NODE_ENV !== 'production'){
 
 
 
-// Public discovery for home: never uses followed Twitch. It returns Oryon native + Twitch public streams.
+// Public institutional pages; registered before channel catch-all routes.\nrequire('./modules/swapp-news/legal-pages').register(app);\n\n// Public discovery for home: never uses followed Twitch. It returns Oryon native + Twitch public streams.
 app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
   try{
     const lang = String(req.query.lang || 'fr').trim().toLowerCase();
