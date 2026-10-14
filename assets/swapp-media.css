@@ -161,3 +161,13 @@ main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 /* Image failures stay visually intentional, never browser broken-image icons. */
 #home .swapp-home-image-fallback{background:linear-gradient(125deg,#183345,#251d3c 60%,#132638)}
 #home .swapp-home-match-image-missing .swapp-home-match-details{padding:5px 0}
+
+/* Stable first paint: editorial cards reserve their final positions before data arrives. */
+#home .swapp-home-story-skeleton{pointer-events:none;min-height:250px;border-color:#303a50;background:#121b2a;animation:none}
+#home .swapp-home-story-skeleton .swapp-home-story-image{background:linear-gradient(100deg,#1c2a3c 0%,#29384b 47%,#1c2a3c 100%);background-size:200% 100%;animation:swapp-home-shimmer 1.6s ease-in-out infinite}
+#home .swapp-home-story-skeleton .swapp-home-story-body{min-height:110px;background:linear-gradient(90deg,#172235,#202e42 50%,#172235)}
+#home .swapp-home-story-skeleton.swapp-home-story-featured{min-height:430px}
+#home .swapp-home-editorial[aria-busy="true"] .swapp-home-editorial-top .swapp-media-button{pointer-events:none}
+@keyframes swapp-home-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(max-width:650px){#home .swapp-home-story-skeleton.swapp-home-story-featured{min-height:270px}}
+@media(prefers-reduced-motion:reduce){#home .swapp-home-story-skeleton .swapp-home-story-image{animation:none}}
