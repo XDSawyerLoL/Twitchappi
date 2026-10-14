@@ -515,7 +515,7 @@ function setOryonRememberCookie(res, user, token){
 function clearOryonRememberCookie(res){
   try{ res.clearCookie(SWAPP_REMEMBER_COOKIE, { path:'/', sameSite:'lax', secure:IS_PROD }); }catch(_){ }
 }
-async function restoreOryonSessionFromRememberCookie(req, res){
+async function restoreOryonSessionFromRememberCookie(req, res, {allowUserRecovery=true}={}){
   try{
     if(req.session?.oryonUser?.id) return req.session.oryonUser;
     const payload = swappReadRememberPayload(req.cookies?.[SWAPP_REMEMBER_COOKIE]);
@@ -529,6 +529,7 @@ async function restoreOryonSessionFromRememberCookie(req, res){
       if(!verifyOryonRememberToken(user, payload.remember_token)) return null;
       ensureOryonUserShape(user, { ensureStreamKey:true });
     }else{
+      if(!allowUserRecovery)return null; // Editor access must never resurrect an account.
       const backup = publicRecoverUserPayload(payload.user || {});
       if(!backup || normalizeOryonLogin(backup.login) !== login) return null;
       if(!oryonLoginAvailable(data, login)) return null;
@@ -937,7 +938,7 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
     // Recover the existing trusted SWAPP remember-me session before editor authorization.
     // This never grants admin privileges: isOryonAdmin still checks ORYON_ADMIN_LOGINS.
     app.use(['/actus/studio','/api/editor/actus'], async (req, res, next) => {
-      try { await restoreOryonSessionFromRememberCookie(req, res); }
+      try { await restoreOryonSessionFromRememberCookie(req, res, {allowUserRecovery:false}); }
       catch (err) { console.warn('[SWAPP EDITOR] session restore failed:', err?.message); }
       next();
     });
