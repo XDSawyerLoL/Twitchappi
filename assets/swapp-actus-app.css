@@ -131,3 +131,20 @@
 .swapp-reader-live-more{justify-self:start;background:#2b2450;border:1px solid #816bb5;border-radius:999px;color:#f7edff;padding:11px 17px;font:inherit;font-size:13px;font-weight:750;cursor:pointer;margin-top:9px}
 .swapp-reader-live-more:hover{background:#403270;border-color:#b6a0fa}
 .swapp-reader-live-more:focus-visible{outline:3px solid #80ebf8;outline-offset:3px}
+
+/* Editorial hierarchy: typography first, imagery second, no extra navigation. */
+.swapp-reader-hero{max-width:1000px;margin:24px auto 0;text-align:center}
+.swapp-reader-kicker{display:flex;gap:9px;justify-content:center;align-items:center;flex-wrap:wrap;margin:0 0 20px}
+.swapp-reader-kicker-main,.swapp-reader-kicker-game{display:inline-block;border:1px solid #4b6078;background:#1a273c;border-radius:999px;padding:7px 13px;font-size:11px;font-weight:800;letter-spacing:.07em;color:#a9dfed}
+.swapp-reader-kicker-game{background:#2d2245;color:#e9c3fc;border-color:#72528d}
+.swapp-reader-hero h1{max-width:920px;margin:0 auto 22px;font-size:clamp(34px,5.4vw,74px);line-height:1.07;letter-spacing:-.055em;text-wrap:balance}
+.swapp-reader-hero .swapp-actus-summary{max-width:790px;margin:0 auto 18px;color:#cfdef0;font-size:clamp(17px,2vw,23px);line-height:1.55;text-wrap:pretty}
+.swapp-reader-hero .swapp-actus-author{margin:0 auto;color:#9bafc7;font-size:13px}
+.swapp-actus-article>.swapp-reader-hero-figure{margin:25px 0 0}
+.swapp-reader-hero-figure>.swapp-actus-cover{margin:0!important;aspect-ratio:16/8;max-height:560px;overflow:hidden}
+.swapp-reader-hero-figure figcaption{color:#91a5bb;font-size:11px;text-align:right;margin-top:9px}
+.swapp-reader-hero-figure img{object-position:center 42%}
+.swapp-actus-article .swapp-actus-body{margin-top:36px}
+.swapp-actus-recommend-grid .swapp-actus-cover{aspect-ratio:16/10}
+.swapp-actus-recommend-grid .swapp-actus-info p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+@media(max-width:630px){.swapp-reader-hero{margin-top:12px;text-align:left}.swapp-reader-kicker{justify-content:flex-start}.swapp-reader-hero h1{font-size:clamp(30px,8vw,46px)}.swapp-reader-hero .swapp-actus-summary{font-size:17px}.swapp-reader-hero-figure>.swapp-actus-cover{aspect-ratio:16/10}.swapp-reader-hero-figure figcaption{text-align:left}}
