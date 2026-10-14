@@ -259,3 +259,36 @@
 }
 @media(max-width:1080px){#home .swapp-home-hero-placeholder{min-height:360px}}
 @media(max-width:600px){#home .swapp-home-hero-placeholder{min-height:285px;border-radius:15px}}
+
+/* Editorial refinement — one lead story, four distinct supporting reads. */
+#home .swappHome1014>.swapp-home-editorial{border-top:none!important;padding-top:clamp(16px,2.6vw,34px)!important}
+#home .swappHome1014>.swapp-home-editorial .swapp-home-story-grid{grid-auto-flow:row!important}
+#home .swappHome1014>.swapp-home-editorial .swapp-home-story:not(.swapp-home-story-featured){
+ grid-column:auto!important;grid-row:auto!important
+}
+#home .swappHome1014>.swapp-home-editorial .swapp-home-story-body p{
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+ overflow:hidden;line-height:1.5!important
+}
+#home .swapp-home-hero-actions .swapp-home-watch-cta{
+ border:0!important;background:transparent!important;padding:9px 6px!important;
+ color:#98ece8!important;box-shadow:none!important
+}
+#home .swapp-home-hero-actions .swapp-home-watch-cta:hover{
+ background:transparent!important;color:#d8fffa!important;text-decoration:underline!important;transform:none!important
+}
+/* A live thumbnail and creator are the primary action: no repeated boxed controls. */
+#home .homeLiveBody1014 .btn{
+ justify-self:start!important;width:auto!important;min-height:33px!important;
+ padding:6px 0!important;background:transparent!important;border:0!important;
+ border-radius:0!important;box-shadow:none!important;color:#a0f1eb!important;
+ font-size:13px!important;font-weight:850!important
+}
+#home .homeLiveBody1014 .btn:hover{
+ color:#fff!important;background:transparent!important;text-decoration:underline!important
+}
+#home .homeLiveBody1014 .btn:focus-visible{outline:2px solid #93f1ec!important;outline-offset:3px!important}
+@media(max-width:600px){
+ #home .swappHome1014>.swapp-home-editorial{padding-top:10px!important}
+ #home .swapp-home-hero-actions .swapp-home-watch-cta{width:auto!important;flex:0 0 auto!important}
+}
