@@ -2,6 +2,8 @@
 const crypto = require('node:crypto');
 const {assertArticle, renderArticle, renderListing, isLegacyJustPlayerUrl} = require('./article-core');
 const {js:studioJs,renderStudio}=require('./studio');
+const {getPublicArchives}=require('./archive');
+const catalog=require('../../data/justplayer-public-catalog.json');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv'}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
@@ -41,7 +43,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     try {
       const list=await published();
       res.set('Cache-Control','public, max-age=60');
-      res.type('html').send(renderListing(list,{baseUrl}));
+      res.type('html').send(renderListing(list,{baseUrl,archives:getPublicArchives(catalog,list)}));
     }catch(e){next(e);}
   });
   router.get('/actus/studio',...editor,(req,res)=>res.type('html').send(renderStudio()));
