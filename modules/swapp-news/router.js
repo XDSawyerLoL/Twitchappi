@@ -5,6 +5,7 @@ const {js:studioJs,renderStudio}=require('./editor-ui');
 const {renderNewsHome,renderNewsStory,renderJustPlayerPreview}=require('./native-pages');
 const {renderTwitchWatch,isTwitchLogin}=require('./watch');
 const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
+const {makePublicCatalog}=require('./public-catalog');
 const catalog=require('../../data/justplayer-public-catalog.json');
 
 function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false}) {
@@ -17,17 +18,24 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   const articles=firestore.collection('swapp_news_articles');
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
+  const publicNews=makePublicCatalog({catalog:publicCatalog,fetchImpl:publicFetch});
   const slugOk = s => /^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(s||''));
   const available=(req,res,next)=>isReady() ? next() : res.status(503).json({error:'news_storage_unavailable'});
   const sendError=(res,e)=>res.status(400).json({error:e.message || 'Article invalide'});
   const isValidation=e=>/Article|Titre|Slug|source|URL|Résumé|Crédit|droits|Date|JustPlayer/.test(String(e?.message||''));
   const published=async()=>{
     const snap=await articles.where('status','==','published').limit(60).get();
-    return snap.docs.map(x=>x.data()).sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
+    const original=snap.docs.map(x=>x.data());
+    await publicNews.scanBatch(); // Only complete, verified Fourthwall articles enter the feed.
+    const oldUrls=new Set(original.map(x=>x.legacyUrl).filter(Boolean));
+    const oldTitles=new Set(original.map(x=>String(x.title||'').toLowerCase()));
+    const recovered=publicNews.articles().filter(x=>!oldUrls.has(x.legacyUrl)&&!oldTitles.has(String(x.title||'').toLowerCase()));
+    return [...original,...recovered].sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
   };
   const noStore=(_req,res,next)=>{res.set('Cache-Control','no-store');next();};
   const editor=[available,requireEditor,noStore];
 
+  router.get('/api/actus/recovery-status',(_req,res)=>res.json(publicNews.status()));
   router.get('/api/actus',available,async(req,res,next)=>{
     try {
       const list=await published();
@@ -37,6 +45,10 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   router.get('/api/actus/:slug',available,async(req,res,next)=>{
     try{
       if(!slugOk(req.params.slug)) return res.status(404).json({error:'Article introuvable'});
+      if(String(req.params.slug).startsWith('justplayer-')){
+        const found=await publicNews.get(req.params.slug);
+        return found?res.json(found):res.status(404).json({error:'Contenu complet indisponible'});
+      }
       const snap=await articles.doc(req.params.slug).get();
       if(!snap.exists || snap.data().status !== 'published') return res.status(404).json({error:'Article introuvable'});
       return res.json(snap.data());
@@ -74,7 +86,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
           justPlayerCache.set(key,{article,expires:Date.now()+(article?20:4)*60000});
         }
       }
-      return res.type('html').send(renderJustPlayerPreview(item,article));
+      return article && article.body?.length>=220 ? res.type('html').send(renderNewsStory({...article,slug:'justplayer-'+key,publishedAt:item.publishedAt},{baseUrl})) : res.type('html').send(renderJustPlayerPreview(item,null));
     }catch(e){
       // An unavailable Fourthwall page should not make the SWAPP article route fail.
       const key=String(req.params.key||'');
@@ -94,6 +106,11 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
   router.get('/actus/:slug',available,async(req,res,next)=>{
     try{
       if(!slugOk(req.params.slug)) return res.status(404).send('Article introuvable');
+      if(String(req.params.slug).startsWith('justplayer-')){
+        const found=await publicNews.get(req.params.slug);
+        return found?res.type('html').send(renderNewsStory(found,{baseUrl})):
+          res.status(404).send('Article complet non récupéré.');
+      }
       const snap=await articles.doc(req.params.slug).get();
       if(!snap.exists || snap.data().status !== 'published') return res.status(404).send('Article introuvable');
       res.set('Cache-Control','public, max-age=60');
