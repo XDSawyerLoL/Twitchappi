@@ -65,7 +65,7 @@
    title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
    const all=el('a','swapp-media-button primary','Voir toutes les actus →');all.href='/actus';
    all.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('actus');window.SwappActus?.home()};
-   const actions=el('div','swapp-home-hero-actions');const browseLive=el('a','swapp-media-button swapp-home-watch-cta','Explorer les lives →');browseLive.href='/decouvrir';browseLive.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('discover')};actions.append(all,browseLive);top.append(title,actions);section.append(top);
+   const actions=el('div','swapp-home-hero-actions');actions.append(all);top.append(title,actions);section.append(top);
    const grid=el('div','swapp-home-story-grid');
    for(let i=0;i<(modern?4:5);i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(!modern&&i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid);
    // Reserve the visual column before fetching articles to avoid a layout jump.
@@ -76,9 +76,9 @@
      hero.append(placeholder);hero.classList.add('swapp-hero-has-story');
    }
    // The editorial shelf belongs to the page's content flow, never ahead of
-   // the entire homepage hero. Maintain one instance across async renders.
+   // the entire homepage hero. Let streams follow the featured article before the news grid.
    const liveShelf=modern?.querySelector('.homeLiveSection1014');
-   if(liveShelf)modern.insertBefore(section,liveShelf);
+   if(liveShelf)modern.append(section);
    else if(legacy)legacy.insertBefore(section,legacy.firstChild);
    else base.append(section);
    news().then(async articles=>{
