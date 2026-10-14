@@ -908,7 +908,7 @@ function sendSwappPublicChannelUi(req, res, login){
   }
 }
 const SWAPP_CLEAN_VIEW_PATHS = new Set(['/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
-const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','reset-password']);
+const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
 function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
   return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
@@ -990,6 +990,8 @@ app.get('/c/:login', (req, res) => {
 app.get(['/reset-password', '/reset-password/:token'], (_req, res) => sendSwappUi(res));
 
 // Clean SPA URLs. /c/:login remains a compatibility alias, but public channel URLs are /pseudo.
+// Institutional documents must precede the /:creator catch-all.
+require('./modules/swapp-news/legal-pages').register(app);
 app.get(Array.from(SWAPP_CLEAN_VIEW_PATHS), (_req, res) => sendSwappUi(res));
 app.get(/^\/([a-zA-Z0-9_][a-zA-Z0-9_-]{1,39})$/, (req, res, next) => {
   const slug = String(req.params[0] || '').toLowerCase();
@@ -8742,7 +8744,6 @@ if(process.env.NODE_ENV !== 'production'){
 
 
 
-// Public institutional pages; registered before channel catch-all routes.\nrequire('./modules/swapp-news/legal-pages').register(app);\n\n// Public discovery for home: never uses followed Twitch. It returns Oryon native + Twitch public streams.
 app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
   try{
     const lang = String(req.query.lang || 'fr').trim().toLowerCase();
