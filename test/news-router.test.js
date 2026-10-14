@@ -16,7 +16,7 @@ function mockFirestore(){
  return {all,collection,async runTransaction(cb){const writes=[]; const tx={get:async r=>get(r), create:(r,val)=>writes.push(()=>{if(all.has(r.key)){const e=new Error('exists');e.code=6;throw e;}all.set(r.key,clone(val));}),update:(r,val)=>writes.push(()=>all.set(r.key,{...all.get(r.key),...clone(val)}))}; const out=await cb(tx); for(const write of writes)write();return out;}};
 }
 function mockExpress(){const routes=[];return {Router:()=>({routes,get:(p,...h)=>routes.push(['GET',p,h]),post:(p,...h)=>routes.push(['POST',p,h]),patch:(p,...h)=>routes.push(['PATCH',p,h])})};}
-function setup(){const firestore=mockFirestore(), express=mockExpress();const router=createNewsRouter({express,firestore,isReady:()=>true,requireEditor:(req,res,next)=>req.authorized?next():res.status(403).json({error:'forbidden'})});
+function setup(extra={}){const firestore=mockFirestore(), express=mockExpress();const router=createNewsRouter({express,firestore,isReady:()=>true,requireEditor:(req,res,next)=>req.authorized?next():res.status(403).json({error:'forbidden'}),...extra});
  async function request(method,path,{body={},params={},authorized=true}={}){
   const route=router.routes.find(([m,p])=>m===method&&p===path);assert.ok(route,`route ${method} ${path} introuvable`);
   const req={body,params,authorized},res={statusCode:200,headers:{},payload:null,
@@ -68,4 +68,12 @@ test('un article publié ne peut pas être modifié par PATCH',async()=>{
  const {request}=setup();await request('POST','/api/editor/actus',{body:input});const slug='un-grand-jeu-rejoint-la-redaction-swapp';await request('POST','/api/editor/actus/:slug/publish',{params:{slug}});
  const p=await request('PATCH','/api/editor/actus/:slug',{params:{slug},body:{title:'Titre modifié après publication'}});
  assert.equal(p.statusCode,409);
+});
+test('scan JustPlayer : accès admin requis, aucune écriture Firestore',async()=>{
+ const publicUrl='https://justplayer.fr/supporters/posts/266628';
+ const {request,firestore}=setup({publicCatalog:{items:[{type:'post',url:publicUrl,title:'007 First Light : James Bond réussit son retour',publishedAt:'2026-09-05'}]},
+ publicFetch:async(url)=>({ok:true,headers:{get:()=> 'text/html; charset=utf-8'},text:async()=> '<html><head><meta property="og:title" content="007 First Light : James Bond réussit son retour"></head><article><p>Une analyse complète et indépendante du jeu vidéo, publiée pour la communauté JustPlayer.</p><p>Le joueur découvre les missions et les gadgets avec une variété suffisante pour constituer un article.</p></article></html>'})});
+ const denied=await request('POST','/api/editor/actus/scan-public',{authorized:false,body:{offset:0}});assert.equal(denied.statusCode,403);
+ const ok=await request('POST','/api/editor/actus/scan-public',{body:{offset:0,limit:2}});
+ assert.equal(ok.statusCode,200);assert.equal(ok.payload.total,1);assert.equal(ok.payload.done,true);assert.equal(ok.payload.articles.length,1);assert.equal(firestore.all.size,0);
 });

@@ -4,8 +4,9 @@ const {assertArticle, renderArticle, renderListing, isLegacyJustPlayerUrl} = req
 const {js:studioJs,renderStudio}=require('./studio');
 const {getPublicArchives}=require('./archive');
 const catalog=require('../../data/justplayer-public-catalog.json');
+const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 
-function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv'}) {
+function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
       typeof firestore?.runTransaction !== 'function' || typeof requireEditor !== 'function') {
     throw new Error('Express, Firestore et authentification éditoriale obligatoires');
@@ -62,6 +63,22 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       const snap=await articles.limit(60).get();
       const list=snap.docs.map(d=>d.data()).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
       return res.json({articles:list});
+    }catch(e){next(e);}
+  });
+  // Explicit, authenticated, read-only scan. Import remains a separate deliberate operation.
+  router.post('/api/editor/actus/scan-public',...editor,async(req,res,next)=>{
+    try {
+      if(typeof publicFetch !== 'function') return res.status(503).json({error:'public_fetch_unavailable'});
+      const all=(publicCatalog.items||[]).filter(item=>item.type==='post');
+      const offset=Math.max(0,Math.min(all.length,Number.parseInt(req.body?.offset,10)||0));
+      const asked=Number.parseInt(req.body?.limit,10)||2;
+      const limit=Math.min(3,Math.max(1,asked));
+      const scan=await collectPublicCatalog({items:all.slice(offset,offset+limit)},
+        {fetchImpl:publicFetch,timeoutMs:6000,maxBytes:1600000});
+      const nextOffset=Math.min(all.length,offset+limit);
+      return res.json({success:true,offset,nextOffset,done:nextOffset>=all.length,
+        total:all.length,checked:scan.postsChecked,articles:scan.articles,
+        failures:scan.failures,notice:'Textes extraits des pages publiques, à relire avant import. Aucune écriture dans Firestore.'});
     }catch(e){next(e);}
   });
   router.post('/api/editor/actus',...editor,async(req,res,next)=>{
