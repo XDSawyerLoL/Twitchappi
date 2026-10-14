@@ -32,5 +32,5 @@ test('homepage discovery links preserve ACTUS and LIVE routes',()=>{
  assert.match(script,/browseLive\.href='\/decouvrir'/);
  assert.match(script,/window\.setView\('discover'\)/);
  assert.match(script,/\/api\/actus/);
- assert.match(script,/base=home\.querySelector\('\.homeOnlyMain'\)\|\|home/);
+ assert.match(script,/const modern=home\.querySelector\('\.swappHome1014'\)/);
 });
