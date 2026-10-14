@@ -37,7 +37,9 @@
    const hero=modern?.querySelector('.homeHeroInner1014');
    if(!hero||hero.querySelector('.swapp-home-hero-feature'))return;
    const feature=articles.find(item=>slugOk(item.slug)&&safeUrl(item.image?.url||item.imageUrl));
-   if(!feature)return;
+   const placeholder=hero.querySelector('.swapp-home-hero-placeholder');
+   if(!feature){placeholder?.remove();hero.classList.remove('swapp-hero-has-story');return;}
+   placeholder?.remove();
    const tile=el('a','swapp-home-hero-feature');tile.href='/actus/'+encodeURIComponent(feature.slug);
    tile.setAttribute('aria-label','Lire : '+feature.title);
    tile.addEventListener('click',event=>navigateArticle(event,feature.slug));
@@ -71,6 +73,13 @@
    const actions=el('div','swapp-home-hero-actions');const browseLive=el('a','swapp-media-button swapp-home-watch-cta','Explorer les lives →');browseLive.href='/decouvrir';browseLive.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('discover')};actions.append(all,browseLive);top.append(title,actions);section.append(top);
    const grid=el('div','swapp-home-story-grid'),related=el('div','swapp-home-match-zone');
    for(let i=0;i<5;i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid,related);const ticket=++requestId;
+   // Reserve the visual column before fetching articles to avoid a layout jump.
+   const hero=modern?.querySelector('.homeHeroInner1014');
+   if(hero&&!hero.querySelector('.swapp-home-hero-feature,.swapp-home-hero-placeholder')){
+     const placeholder=el('div','swapp-home-hero-placeholder');
+     placeholder.setAttribute('aria-hidden','true');
+     hero.append(placeholder);hero.classList.add('swapp-hero-has-story');
+   }
    // The editorial shelf belongs to the page's content flow, never ahead of
    // the entire homepage hero. Maintain one instance across async renders.
    const liveShelf=modern?.querySelector('.homeLiveSection1014');
@@ -83,6 +92,7 @@
      const valid=articles.filter(x=>slugOk(x.slug)&&String(x.title||'').trim()).slice(0,5);
      grid.replaceChildren();
      if(!valid.length){
+       decorateHero(modern,[]);
        const retryState=el('div','swapp-home-empty');
        retryState.append(el('p','','Les actualités sont momentanément indisponibles.'));
        const retry=el('button','swapp-home-retry','Réessayer');
