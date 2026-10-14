@@ -22,6 +22,15 @@
 #home .homeActions1014>.btn.secondary{background:#19243a!important;border:1px solid #40526a!important;color:#f5f8ff!important}
 #home .homeActions1014>.btn:focus-visible{outline:2px solid var(--swapp-interactive)!important;outline-offset:3px}
 
+/* Older homepage renderer: remove accidental full-width color divider slabs,
+   but retain the actual live player, thumbnail grid, and buttons. */
+#home .owHeroTheater,#home .homeCleanHero,#home .owLiveTheater,#home .homeCleanLives,
+#home .homeStreamerStrip{border-color:transparent!important;box-shadow:none!important;background-color:transparent!important;background-image:none!important}
+#home .homeStreamerStrip{border-top:1px solid var(--swapp-hairline)!important;border-radius:0!important}
+#home .owHeroTheater::before,#home .owHeroTheater::after,
+#home .homeCleanHero::before,#home .homeCleanHero::after{content:none!important;display:none!important}
+#home .homeOnlyMain{min-width:0;max-width:100%;box-sizing:border-box}
+
 /* 02 — Discovery flows as a section, without a framed full-width box. */
 #home .homeLiveSection1014{min-width:0;padding:clamp(18px,2.2vw,28px) 0 0!important;margin:0!important;border-top:1px solid var(--swapp-hairline)!important}
 #home .homeLiveHead1014{gap:16px!important;margin-bottom:22px!important}
@@ -43,7 +52,7 @@
 #home .homeEmpty1014{border:1px dashed #405065!important;background:#121b2b!important;border-radius:12px!important;color:#b3c7d6!important}
 
 /* 03 — The news shelf is real editorial content, not another colored panel. */
-#home .swapp-home-editorial{margin:0 auto clamp(24px,3vw,40px)!important;padding:clamp(22px,3vw,44px) 0 0!important;width:min(1460px,calc(100% - clamp(28px,5vw,96px)))!important;max-width:100%!important;overflow:visible!important}
+#home .swapp-home-editorial{margin:0 auto clamp(24px,3vw,40px)!important;padding:clamp(22px,3vw,44px) 0 0!important;width:min(1460px,calc(100% - clamp(28px,5vw,96px)))!important;max-width:100%!important;overflow:clip!important}
 #home .swapp-home-editorial-top{align-items:end!important;gap:18px!important;margin:0 0 22px!important}
 #home .swapp-home-editorial-top h2{font-size:clamp(29px,3.4vw,48px)!important;line-height:1.07!important;letter-spacing:-.06em!important;margin:7px 0 10px!important}
 #home .swapp-home-editorial-top p{color:#a9bed3!important;line-height:1.55!important;font-size:14px!important}
