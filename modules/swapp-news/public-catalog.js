@@ -5,7 +5,7 @@
  */
 const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {slugify}=require('./article-core');
-function makePublicCatalog({catalog,fetchImpl=global.fetch,clock=Date.now,ttl=30*60*1000,limit=3}={}){
+function makePublicCatalog({catalog,fetchImpl=globalThis.fetch,clock=Date.now,ttl=30*60*1000,limit=3}={}){
  const refs=(catalog?.items||[]).filter(x=>x.type==='post'&&typeof x.url==='string').slice(0,65);
  const cache=new Map(),inflight=new Map();
  const bySlug=new Map(refs.map(item=>[slugify('justplayer-'+String(item.id||item.url.split('/').at(-1))),item]));
@@ -56,7 +56,8 @@ function makePublicCatalog({catalog,fetchImpl=global.fetch,clock=Date.now,ttl=30
    return values.sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));
  }
  async function get(slug){const item=bySlug.get(slug);if(!item)return null;return load(item);}
- function status(){return {checked:cache.size,verified:articles().length,remaining:refs.length-cache.size};}
+ function status(){return {checked:cache.size,verified:articles().length,remaining:refs.length-cache.size,
+   errors:[...cache.entries()].filter(([,item])=>item.failure).slice(0,15).map(([key,item])=>({item:key,reason:item.failure}))};}
  return {get,articles,scanBatch,status,allKnown:refs.length};
 }
 module.exports={makePublicCatalog};
