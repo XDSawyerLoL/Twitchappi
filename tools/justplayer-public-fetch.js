@@ -29,7 +29,7 @@ function extractPublicPost(html,item) {
   if(body.length<220 || body.split(/\s+/).length<42) return {ok:false,reason:'full_article_body_not_detected',url:item.url};
   const title=decodeEntities(String(fromLd?.title||header||item.title||'').replace(/<[^>]*>/g,'')).trim();
   const publishedAt=fromLd?.publishedAt || attr(html,'property','article:published_time')||item.publishedAt;
-  const articleImage=String(rawBody||'').match(/<img\\b[^>]*(?:src|data-src)=["']([^"']+)["']/i)?.[1]||'';
+  const articleImage=String(rawBody||'').match(/<img\b[^>]*(?:src|data-src)=["']([^"']+)["']/i)?.[1]||'';
   const imageRaw=decodeEntities(articleImage||attr(html,'property','og:image')||attr(html,'name','twitter:image')||'');
   const imageUrl=(()=>{try{
     const u=new URL(imageRaw);
