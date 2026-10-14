@@ -25,7 +25,7 @@ test('home article cards and navigation remain wired up',()=>{
  assert.match(home,/grid\.append\(story\(item,i\)\)/);
  assert.match(home,/const base=modern\|\|legacy\|\|home/);
  assert.match(home,/window\.setView\('actus'\)/);
- assert.match(home,/window\.setView\('discover'\)/);
+ assert.match(read('index_script.js'),/setView\('discover'\)/);
  assert.match(article,/window\.SwappActus=Object\.freeze\(\{render,open,home\}\)/);
  assert.match(article,/history\.pushState\(\{view:'actus'\}/);
  assert.match(shell,/src="\/assets\/swapp-home-news\.js\?v=/);
