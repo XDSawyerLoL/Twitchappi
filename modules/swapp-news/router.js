@@ -2,17 +2,18 @@
 const crypto = require('node:crypto');
 const {assertArticle, renderArticle, renderListing, isLegacyJustPlayerUrl} = require('./article-core');
 const {js:studioJs,renderStudio}=require('./editor-ui');
-const {renderNewsHome,renderNewsStory}=require('./native-pages');
+const {renderNewsHome,renderNewsStory,renderJustPlayerPreview}=require('./native-pages');
 const {renderTwitchWatch,isTwitchLogin}=require('./watch');
 const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const catalog=require('../../data/justplayer-public-catalog.json');
 
-function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog}) {
+function createNewsRouter({express, firestore, requireEditor, isReady = () => true, baseUrl = 'https://swapp.tv', publicFetch = globalThis.fetch, publicCatalog = catalog, canEdit = () => false}) {
   if (typeof express?.Router !== 'function' || typeof firestore?.collection !== 'function' ||
       typeof firestore?.runTransaction !== 'function' || typeof requireEditor !== 'function') {
     throw new Error('Express, Firestore et authentification éditoriale obligatoires');
   }
   const router=express.Router();
+  const justPlayerCache = new Map();
   const articles=firestore.collection('swapp_news_articles');
   const outbox=firestore.collection('swapp_news_outbox');
   const importKeys=firestore.collection('swapp_news_import_keys');
@@ -47,6 +48,40 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       res.set('Cache-Control','public, max-age=60');
       res.type('html').send(renderNewsHome(list,{baseUrl,category:req.query?.categorie,query:req.query?.q}));
     }catch(e){next(e);}
+  });
+  router.get('/api/editor/actus/access',(req,res)=> {
+    res.set('Cache-Control','no-store');
+    return res.json({authenticated: Boolean(req.session?.oryonUser?.login),canEdit:Boolean(canEdit(req))});
+  });
+  router.get('/actus/justplayer/:key',available,async(req,res,next)=>{
+    try{
+      const key=String(req.params.key||'');
+      if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key) || key.length>150)return res.status(404).send('Publication introuvable');
+      const item=(publicCatalog.items||[]).find(x=>
+        ['post','video_embed'].includes(x?.type) &&
+        String(x.url||'').split('/').filter(Boolean).at(-1)===key);
+      if(!item)return res.status(404).send('Publication introuvable');
+      res.set('Cache-Control','public, max-age=90');
+      let article=null;
+      if(item.type==='post' && typeof publicFetch==='function'){
+        const cached=justPlayerCache.get(key);
+        if(cached && cached.expires>Date.now())article=cached.article;
+        else{
+          const scanned=await collectPublicCatalog({items:[item]},
+            {fetchImpl:publicFetch,timeoutMs:5500,maxBytes:1100000});
+          article=scanned.articles?.[0]||null;
+          if(justPlayerCache.size>40)justPlayerCache.clear();
+          justPlayerCache.set(key,{article,expires:Date.now()+(article?20:4)*60000});
+        }
+      }
+      return res.type('html').send(renderJustPlayerPreview(item,article));
+    }catch(e){
+      // An unavailable Fourthwall page should not make the SWAPP article route fail.
+      const key=String(req.params.key||'');
+      const item=(publicCatalog.items||[]).find(x=>String(x.url||'').split('/').filter(Boolean).at(-1)===key);
+      if(!item)return next(e);
+      return res.type('html').send(renderJustPlayerPreview(item,null));
+    }
   });
   router.get('/live/twitch/:login',(req,res)=>{
     const login=String(req.params.login||'').trim().toLowerCase();

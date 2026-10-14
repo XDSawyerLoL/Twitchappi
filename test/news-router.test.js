@@ -115,3 +115,24 @@ test('une chaîne Twitch reste lisible dans SWAPP sans URL arbitraire',async()=>
  const bad=await request('GET','/live/twitch/:login',{params:{login:'..'}});
  assert.equal(bad.statusCode,404);
 });
+
+
+test('les anciennes publications ont une fiche SWAPP sans redirection obligatoire',async()=>{
+  const entry={type:'post',id:'266628',title:'007 First Light : James Bond réussit son retour',
+    url:'https://justplayer.fr/supporters/posts/266628',publishedAt:'2026-09-05'};
+  const {request,firestore}=setup({publicCatalog:{items:[entry]},publicFetch:async()=>{throw Error('offline');}});
+  const result=await request('GET','/actus/justplayer/:key',{params:{key:'266628'}});
+  assert.equal(result.statusCode,200);
+  assert.match(result.payload,/Texte complet en cours d’intégration/);
+  assert.match(result.payload,/Retour à SWAPP Actualités/);
+  assert.equal(firestore.all.size,0);
+  const bad=await request('GET','/actus/justplayer/:key',{params:{key:'unknown'}});
+  assert.equal(bad.statusCode,404);
+});
+
+test('statut édition public ne révèle pas d’articles ou de secrets',async()=>{
+  const {request}=setup({canEdit:()=>false});
+  const status=await request('GET','/api/editor/actus/access');
+  assert.equal(status.statusCode,200);
+  assert.deepEqual(status.payload,{authenticated:false,canEdit:false});
+});

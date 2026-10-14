@@ -62,3 +62,18 @@ main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 @media(max-width:700px){.swapp-home-story-grid{grid-template-columns:1fr}.swapp-home-editorial{margin:12px 0 22px}}
 
 .site-account-link{padding:9px 13px;font-weight:800;font-size:13px;color:#d9e4f6;text-decoration:none;border:1px solid #6c78935e;border-radius:999px;white-space:nowrap}.site-account-link:hover{border-color:#63e2e2}
+
+/* SWAPP: editorial page uses compact, content-first proportions, not a second home page. */
+.site-header .hero-main,.hero-main{min-height:290px}
+.hero-layout{padding-block:24px 18px;gap:16px}
+.hero-main{padding:clamp(24px,3.2vw,42px)}
+.hero-main .headline{font-size:clamp(2.6rem,4.6vw,5rem);line-height:1.01}
+.hero-side{min-height:285px}
+.hero-side .decor{height:56px;font-size:42px;color:#64e4df;opacity:.78}
+.swapp-media-section{margin-top:22px}
+.swapp-media-section#justplayer{margin-top:24px}
+.swapp-media-section#justplayer .story-card{min-height:275px}
+.swapp-media-section#justplayer .story-fallback{height:115px;font-size:38px;background:radial-gradient(ellipse at 0 0,#196682,#18263f 58%,#392553)}
+.swapp-media-section#justplayer .story-card:nth-child(3n+2) .story-fallback{background:radial-gradient(ellipse at 70% 10%,#57428e,#15233d 70%)}
+.swapp-media-section#justplayer .story-card:nth-child(3n+3) .story-fallback{background:radial-gradient(ellipse at 35% 10%,#2e7b6d,#132439 70%)}
+@media(max-width:660px){.hero-layout{padding-top:12px}.hero-main .headline{font-size:clamp(2.7rem,11vw,4.3rem)}.hero-side{min-height:230px}}
