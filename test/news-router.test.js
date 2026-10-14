@@ -98,3 +98,20 @@ test('l’importateur JustPlayer exige un compte éditeur et ne modifie pas les 
  assert.equal(result.payload.total,1);
  assert.equal(firestore.all.size,0);
 });
+
+test('ACTUS affiche la découverte des lives même sans article publié',async()=>{
+ const {request}=setup();
+ const response=await request('GET','/actus');
+ assert.equal(response.statusCode,200);
+ assert.match(response.payload,/Lis l’actu/);
+ assert.match(response.payload,/data-swapp-live-shelf/);
+});
+test('une chaîne Twitch reste lisible dans SWAPP sans URL arbitraire',async()=>{
+ const {request}=setup();
+ const ok=await request('GET','/live/twitch/:login',{params:{login:'streamer_2026'}});
+ assert.equal(ok.statusCode,200);
+ assert.match(ok.payload,/player.twitch.tv/);
+ assert.match(ok.payload,/parent=swapp.tv/);
+ const bad=await request('GET','/live/twitch/:login',{params:{login:'..'}});
+ assert.equal(bad.statusCode,404);
+});
