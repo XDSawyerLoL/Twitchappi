@@ -1,0 +1,31 @@
+/* ACTUS is a real view inside the existing SWAPP application. */
+(()=>{'use strict';
+const el=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(text!=null)x.textContent=String(text);return x;};
+const url=v=>{try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
+const date=v=>{try{return new Date(v).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}catch{return ''}};
+const slugOk=s=>/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(s||'');
+const fetchJson=async route=>{const r=await fetch(route,{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('Contenu temporairement indisponible ('+r.status+').');return r.json();};
+let items=[];
+function cover(article){const p=el('div','swapp-actus-cover'),source=url(article.image?.url||article.imageUrl);if(source){const img=el('img');img.src=source;img.alt=article.title||'Visuel du jeu';img.loading='lazy';p.append(img)}else p.append(el('span','swapp-actus-cover-empty',article.game||article.category||'Jeux vidéo'));return p;}
+function makeCard(a){if(!slugOk(a.slug))return null;const link=el('a','swapp-actus-card');link.href='/actus/'+encodeURIComponent(a.slug);
+const info=el('div','swapp-actus-info');info.append(el('small','',a.game||a.category||'ACTUS'),el('h2','',a.title),el('p','',a.summary||''),el('span','',date(a.publishedAt||a.originalPublishedAt)+' · Lire l’article →'));
+link.append(cover(a),info);link.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();open(a.slug)};return link;}
+function paragraphContent(parent,raw){let list=null;for(const lineRaw of String(raw||'').split(/\r?\n/)){const line=lineRaw.trim();if(!line){list=null;continue;}let m;if((m=line.match(/^(#{2,3})\s+(.+)/))){parent.append(el('h'+m[1].length,'',m[2]));list=null;}else if((m=line.match(/^[-*]\s+(.+)/))){if(!list){list=el('ul');parent.append(list)}list.append(el('li','',m[1]));}else{list=null;parent.append(el('p','',line.replace(/\*\*(.*?)\*\*/g,'$1')));}}}
+async function showList(node){const headline=el('header','swapp-actus-head');headline.append(el('small','','SWAPP / ACTUS'),el('h1','','L’actualité du jeu vidéo'),el('p','','Des articles complets et des créateurs en direct, sans quitter SWAPP.'));node.append(headline);
+const tools=el('div','swapp-actus-tools'),search=el('input');search.type='search';search.placeholder='Rechercher un jeu ou une actualité';search.setAttribute('aria-label','Recherche ACTUS');const live=el('button','swapp-actus-go-live','Découvrir les lives →');live.onclick=()=>window.setView('discover');tools.append(search,live);node.append(tools);
+const feed=el('div','swapp-actus-grid');node.append(feed);
+const update=()=>{feed.replaceChildren();const query=search.value.toLocaleLowerCase('fr').trim();const available=items.filter(x=>[x.title,x.game,x.summary,x.category].join(' ').toLocaleLowerCase('fr').includes(query));if(!available.length){feed.append(el('p','swapp-actus-state',query?'Aucun résultat.':'Aucun article complet récupéré pour le moment.'));return;}available.forEach(a=>{const c=makeCard(a);if(c)feed.append(c)});};
+search.oninput=update;feed.append(el('p','swapp-actus-state','Chargement des articles…'));
+try{const data=await fetchJson('/api/actus');if(!node.isConnected)return;items=Array.isArray(data.articles)?data.articles:[];update()}catch(e){if(node.isConnected)feed.replaceChildren(el('p','swapp-actus-state',e.message))}}
+async function showArticle(node,slug){node.append(el('p','swapp-actus-state','Chargement de l’article…'));try{const a=await fetchJson('/api/actus/'+encodeURIComponent(slug));if(!node.isConnected)return;node.replaceChildren();
+const back=el('button','swapp-actus-go-back','← Toutes les actualités');back.onclick=home;node.append(back);
+const article=el('article','swapp-actus-article');article.append(el('small','',a.category||'ACTUS'),el('h1','',a.title),el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));if(a.summary)article.append(el('p','swapp-actus-summary',a.summary));
+if(url(a.image?.url)){article.append(cover(a));if(a.image.credit)article.append(el('small','',a.image.credit));}
+const body=el('div','swapp-actus-body');paragraphContent(body,a.body);article.append(body);
+if(a.sources?.length){const sources=el('aside','swapp-actus-sources');sources.append(el('h2','','Sources'));for(const source of a.sources){const address=url(source.url);if(!address)continue;const link=el('a','',source.label||'Source originale');link.href=address;link.target='_blank';link.rel='noopener noreferrer';sources.append(link)}article.append(sources);}
+if(a.game){const games=el('div','swapp-actus-related');games.append(el('h2','','Qui joue à '+a.game+' ?'));const go=el('button','swapp-actus-go-live','Voir les lives SWAPP →');go.onclick=()=>window.setView('discover');games.append(go);article.append(games);}node.append(article);}catch(e){node.replaceChildren(el('p','swapp-actus-state',e.message));}}
+function render(target){if(!target)return;target.replaceChildren();const node=el('div','swapp-actus-native');target.append(node);const parts=location.pathname.split('/').filter(Boolean);return parts.length===2&&parts[0]==='actus'&&slugOk(parts[1])?showArticle(node,parts[1]):showList(node);}
+function open(slug){if(!slugOk(slug))return;history.pushState({view:'actus'},'','/actus/'+encodeURIComponent(slug));render(document.getElementById('actus'));window.scrollTo(0,0);}
+function home(){history.pushState({view:'actus'},'','/actus');render(document.getElementById('actus'));window.scrollTo(0,0);}
+window.SwappActus=Object.freeze({render,open,home});
+})();
