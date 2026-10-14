@@ -18,6 +18,6 @@ function layout({title='ACTUS', description='Actualités jeux vidéo et streamin
  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b101b"><title>${escapeHtml(title)} · SWAPP</title><meta name="description" content="${escapeHtml(description)}">${metadata}<style>${STYLES}\n${extraCss}</style><link rel="stylesheet" href="/assets/swapp-media.css?v=20261014-linked-8"><link rel="stylesheet" href="/assets/swapp-unified-nav.css">${scripts}</head><body class="swapp-editorial-route">
  ${serverHeader(active)}
  ${content}
- <footer class="site-footer"><div class="container footer-inner"><span>SWAPP · Jeux vidéo, créateurs et communauté.</span><span><a href="/">SWAPP</a> · <a href="/actus">Actualités</a> · <a href="/decouvrir">Lives</a></span></div></footer>${serverMobile(active)}<script src="/assets/swapp-media-live.js?v=20261014-linked-8" defer></script><script src="/assets/swapp-editor-nav.js" defer></script><script src="/assets/swapp-nav-session.js" defer></script></body></html>`;
+ ${serverMobile(active)}<script src="/assets/swapp-media-live.js?v=20261014-linked-8" defer></script><script src="/assets/swapp-footer.js?v=20261014-footer-14" defer></script><script src="/assets/swapp-editor-nav.js" defer></script><script src="/assets/swapp-nav-session.js" defer></script></body></html>`;
 }
 module.exports={STYLES,layout};
