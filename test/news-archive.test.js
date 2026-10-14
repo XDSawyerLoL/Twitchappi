@@ -30,3 +30,13 @@ test('échappe HTML et ne présente pas le lien comme article hébergé sur SWAP
   assert.match(html,/target="\_blank" rel="noopener noreferrer"/);
 });
 test('sans archive le vrai état vide reste explicite',()=>assert.match(renderListing([],{archives:[]}),/Aucun article encore publié/));
+
+
+test('le catalogue connu comporte les nouveaux articles et un média sans doublons',()=>{
+  const catalog=require('../data/justplayer-public-catalog.json');
+  const entries=getPublicArchives(catalog);
+  assert.equal(entries.length,15);
+  assert.ok(entries.some(x=>x.url.includes('/posts/valor-mortis-est-sorti-')));
+  assert.ok(entries.some(x=>x.url.includes('/posts/planet-zoo-2-est-disponible-')));
+  assert.ok(entries.some(x=>x.type==='video_embed'));
+});
