@@ -11,10 +11,12 @@ test('le magazine n’affiche aucun lien Fourthwall et garde le menu principal',
  assert.match(html,/href="\/categories"/);assert.doesNotMatch(html,/Archives JustPlayer|Lire sur JustPlayer|supporters\/posts/);
  assert.doesNotMatch(html,/<script>alert\(1\)<\/script>/);
 });
-test('affiche une vraie présentation de démarrage sans carte de contenu inventé',()=>{
+test('affiche les véritables références JustPlayer sans inventer de contenu complet',()=>{
  const html=renderNewsHome([]);
- assert.match(html,/La rédaction prend forme/);assert.doesNotMatch(html,/Archive JustPlayer/);
- assert.match(html,/href="\/actus\/studio"/);
+ assert.match(html,/Les publications JustPlayer/);
+ assert.match(html,/href="\\/actus\\/justplayer\\/266628"/);
+ assert.doesNotMatch(html,/Lire sur JustPlayer|Archives JustPlayer/);
+ assert.match(html,/editor-only-nav/);
 });
 test('les catégories et la recherche sont filtrées, sans scripts dangereux',()=>{
  let html=renderNewsHome([article],{category:'Guides',query:'<script>'});
