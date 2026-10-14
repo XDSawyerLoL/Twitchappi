@@ -66,8 +66,8 @@ async function swappFinishPasswordReset(user){
  try{ await setView?.('settings'); }catch(_e){}
 }
 
-const SWAPP_VIEW_PATHS={home:'/',discover:'/decouvrir',twitch:'/twitch',categories:'/categories',teams:'/equipes',settings:'/compte',manager:'/gestionnaire',dashboard:'/dashboard',studio:'/studio',admin:'/admin',resetPassword:'/reset-password'};
-const SWAPP_PATH_VIEWS={'/':'home','/home':'home','/accueil':'home','/discover':'discover','/decouvrir':'discover','/twitch':'twitch','/categories':'categories','/category':'categories','/equipes':'teams','/teams':'teams','/compte':'settings','/connexion':'settings','/settings':'settings','/chaine':'channel','/channel':'channel','/gestionnaire':'manager','/manager':'manager','/dashboard':'dashboard','/studio':'studio','/admin':'admin','/reset-password':'settings'};
+const SWAPP_VIEW_PATHS={actus:'/actus',home:'/',discover:'/decouvrir',twitch:'/twitch',categories:'/categories',teams:'/equipes',settings:'/compte',manager:'/gestionnaire',dashboard:'/dashboard',studio:'/studio',admin:'/admin',resetPassword:'/reset-password'};
+const SWAPP_PATH_VIEWS={'/actus':'actus','/':'home','/home':'home','/accueil':'home','/discover':'discover','/decouvrir':'discover','/twitch':'twitch','/categories':'categories','/category':'categories','/equipes':'teams','/teams':'teams','/compte':'settings','/connexion':'settings','/settings':'settings','/chaine':'channel','/channel':'channel','/gestionnaire':'manager','/manager':'manager','/dashboard':'dashboard','/studio':'studio','/admin':'admin','/reset-password':'settings'};
 const SWAPP_RESERVED_SLUGS=new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
 function swappCleanLogin(login){return String(login||'').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_\-]/g,'').slice(0,40)}
 
@@ -106,6 +106,7 @@ function swappRouteFromLocation(){
  const rawPath=decodeURIComponent((location.pathname||'/').replace(/\/+$/,'')||'/');
  if(rawPath.startsWith('/c/'))return{view:'channel',watchRoom:swappCleanLogin(rawPath.split('/')[2]||''),replace:true};
  if(SWAPP_PATH_VIEWS[rawPath])return{view:SWAPP_PATH_VIEWS[rawPath]};
+ if(/^\/actus\/[a-z0-9-]+$/.test(rawPath))return {view:'actus'};
  const parts=rawPath.split('/').filter(Boolean);
  if(parts.length===1){const slug=swappCleanLogin(parts[0]); if(slug&&!SWAPP_RESERVED_SLUGS.has(slug))return{view:'channel',watchRoom:slug};}
  return{view:'home'};
@@ -134,14 +135,9 @@ function renderNav(){
   ];
   const account=contract?.account||{id:'settings',label:'Compte',href:'/compte'};
   const linkOrButton=(item)=>{
-    if(item.id==='actus'){
-      const a=document.createElement('a');
-      a.href=item.href;a.textContent=item.label;a.className='swappIntegratedNewsNav';
-      return a;
-    }
     const b=document.createElement('button');
     b.type='button';b.textContent=item.label;
-    b.className=state.view===item.id?'active':'';
+    b.className=(state.view===item.id?'active ':'')+(item.id==='actus'?'swappIntegratedNewsNav':'');
     if(state.view===item.id)b.setAttribute('aria-current','page');
     b.onclick=()=>setView(item.id);
     return b;
@@ -164,7 +160,7 @@ async function setView(id){
  $$(".view").forEach(v=>v.classList.toggle("active",v.id===id));
  renderNav(); renderUserMenu();
  swappCommitRouteForView(id);
- const map={home:renderHome,discover:renderDiscover,twitch:renderTwitch,categories:renderCategories,teams:renderTeams,channel:renderChannel,manager:renderManager,dashboard:renderDashboard,studio:renderStudio,settings:renderSettings,admin:renderAdmin};
+ const map={home:renderHome,discover:renderDiscover,twitch:renderTwitch,categories:renderCategories,teams:renderTeams,channel:renderChannel,manager:renderManager,dashboard:renderDashboard,studio:renderStudio,settings:renderSettings,actus:()=>window.SwappActus?.render($('#actus')),admin:renderAdmin};
  await map[id]?.();
  renderMiniPlayer();
 }

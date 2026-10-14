@@ -16,7 +16,7 @@ function mockFirestore(){
  return {all,collection,async runTransaction(cb){const writes=[]; const tx={get:async r=>get(r), create:(r,val)=>writes.push(()=>{if(all.has(r.key)){const e=new Error('exists');e.code=6;throw e;}all.set(r.key,clone(val));}),update:(r,val)=>writes.push(()=>all.set(r.key,{...all.get(r.key),...clone(val)}))}; const out=await cb(tx); for(const write of writes)write();return out;}};
 }
 function mockExpress(){const routes=[];return {Router:()=>({routes,get:(p,...h)=>routes.push(['GET',p,h]),post:(p,...h)=>routes.push(['POST',p,h]),patch:(p,...h)=>routes.push(['PATCH',p,h])})};}
-function setup(extra={}){const firestore=mockFirestore(), express=mockExpress();const router=createNewsRouter({express,firestore,isReady:()=>true,requireEditor:(req,res,next)=>req.authorized?next():res.status(403).json({error:'forbidden'}),...extra});
+function setup(extra={}){const firestore=mockFirestore(), express=mockExpress();const router=createNewsRouter({express,firestore,isReady:()=>true,requireEditor:(req,res,next)=>req.authorized?next():res.status(403).json({error:'forbidden'}),publicCatalog:{items:[]},...extra});
  async function request(method,path,{body={},params={},authorized=true}={}){
   const route=router.routes.find(([m,p])=>m===method&&p===path);assert.ok(route,`route ${method} ${path} introuvable`);
   const req={body,params,authorized},res={statusCode:200,headers:{},payload:null,
@@ -135,4 +135,24 @@ test('statut édition public ne révèle pas d’articles ou de secrets',async()
   const status=await request('GET','/api/editor/actus/access');
   assert.equal(status.statusCode,200);
   assert.deepEqual(status.payload,{authenticated:false,canEdit:false});
+});
+
+
+test('un véritable texte JustPlayer devient un article lisible avec son image dans les API SWAPP',async()=>{
+ const item={type:'post',id:'266628',title:'007 First Light : James Bond réussit son retour',
+ url:'https://justplayer.fr/supporters/posts/266628',publishedAt:'2026-09-05'};
+ const paragraph='<p>James Bond retrouve l’espionnage, les déplacements et les choix du joueur avec IO Interactive dans un cadre spectaculaire et ouvert.</p>';
+ const html='<html><head><meta property="og:title" content="'+item.title+'"><meta property="og:image" content="https://cdn.fourthwall.com/007-cover.jpg"></head><div class="post-content prose">'+paragraph.repeat(6)+'</div></html>';
+ const {request,firestore}=setup({publicCatalog:{items:[item]},publicFetch:async()=>({
+   ok:true,status:200,headers:{get:()=>null},text:async()=>html
+ })});
+ const list=await request('GET','/api/actus');
+ assert.equal(list.statusCode,200);
+ assert.equal(list.payload.articles.length,1);
+ assert.equal(list.payload.articles[0].slug,'justplayer-266628');
+ assert.equal(list.payload.articles[0].image.url,'https://cdn.fourthwall.com/007-cover.jpg');
+ const article=await request('GET','/api/actus/:slug',{params:{slug:'justplayer-266628'}});
+ assert.equal(article.statusCode,200);
+ assert.match(article.payload.body,/James Bond retrouve/);
+ assert.equal(firestore.all.size,0);
 });

@@ -13,8 +13,8 @@ test('le magazine n’affiche aucun lien Fourthwall et garde le menu principal',
 });
 test('affiche les véritables références JustPlayer sans inventer de contenu complet',()=>{
  const html=renderNewsHome([]);
- assert.match(html,/Les publications JustPlayer/);
- assert.ok(html.includes('href="/actus/justplayer/266628"'));
+ assert.doesNotMatch(html,/Les publications JustPlayer|En cours d’intégration|>JP</);
+ assert.match(html,/Seuls les articles intégralement récupérés/);
  assert.doesNotMatch(html,/Lire sur JustPlayer|Archives JustPlayer/);
  assert.ok(html.includes('id="userBtn" class="userBtn"'));
 });
