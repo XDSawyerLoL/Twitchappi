@@ -31,3 +31,14 @@ test('une collecte publique ne devine pas les articles manquants',async()=>{
   const r=await collectPublicCatalog(c,{fetchImpl:async()=>({ok:true,headers:{get:()=> 'text/html'},text:async()=>'<h1>Login</h1>'})});
   assert.equal(r.postsChecked,1);assert.equal(r.articles.length,0);assert.equal(r.failures.length,1);assert.equal(r.excluded.length,1);
 });
+test('rattache les textes des URL Fourthwall à slug à leur publication de catalogue',()=>{
+ const url='https://justplayer.fr/supporters/posts/planet-zoo-2-est-disponible-aquariums-volieres-et-reserves-naturelles';
+ const cat={items:[{id:'planet-zoo-2-est-disponible-aquariums-volieres-et-reserves-naturelles',
+ type:'post',url,title:'Planet Zoo 2',publishedAt:'2026-10-13'}]};
+ const record={title:'Planet Zoo 2',body:'Voici le texte original publié avec plusieurs paragraphes et des sources vérifiées.',
+ legacyUrl:url,originalPublishedAt:'2026-10-13'};
+ const merged=mergeMetadataAndContent(cat,[record]);
+ assert.equal(merged.combined.length,1);
+ assert.equal(merged.missing.length,0);
+ assert.equal(merged.combined[0].legacyUrl,url);
+});
