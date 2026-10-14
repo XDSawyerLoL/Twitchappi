@@ -44,6 +44,19 @@
 <style id="oryon-signal-polish-css">
 html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minmax(0,1fr) minmax(340px,400px)!important;max-width:100%;overflow:hidden}.publicChannel{max-width:100%;overflow:hidden}.oryonMainPlayer{min-height:640px!important;overflow:hidden}.oryonMainPlayer iframe{width:100%;height:100%;border:0;overflow:hidden;display:block}.nativeFixedChat{height:640px!important;min-height:640px!important;max-height:640px!important;min-width:0!important;max-width:400px!important;resize:none!important}.nativeFixedChat .chatForm{grid-template-columns:minmax(0,1fr) 58px 96px!important}.nativeFixedChat input{min-width:0}.nativeFixedChat .chatHeader{min-width:0}.nativeFixedChat .chatHeader span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.channelTabEditor .summaryItem textarea{min-height:130px}.managerPreview .offlineOverlay{pointer-events:none}.tabs .tabBtn:nth-child(4){display:none!important}@media(max-width:1080px){.watchShell.channelWatch{grid-template-columns:1fr!important}.oryonMainPlayer{min-height:auto!important;aspect-ratio:16/9}.nativeFixedChat{height:420px!important;min-height:420px!important;max-width:none!important}}
 </style>
+<style id="swapp-account-ux-fix">
+/* Account dropdown: compact, bounded and independent of the homepage layout. */
+.userArea{position:relative;flex:none;z-index:100}
+.userArea .userBtn{height:42px;max-width:190px;padding:6px 12px;gap:8px;font-size:13px;box-shadow:none}
+.userArea .avatarMini{width:27px;height:27px;flex:none;font-size:0;object-fit:cover}
+.userArea .menu{width:min(330px,calc(100vw - 28px));max-height:min(76svh,600px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;right:0;top:calc(100% + 9px);padding:15px;border-radius:17px;background:#111827;box-shadow:0 24px 70px #0009;z-index:150}
+.userArea .menu h2,.userArea .menu h3{font-size:14px;line-height:1.35;margin:8px 0 12px}
+.userArea .menu button{max-width:100%;font-size:13px;font-weight:700;padding:9px 11px}
+.userArea .menu input[type="color"]{display:inline-block!important;width:42px!important;min-width:42px!important;height:36px!important;padding:3px!important;border-radius:9px!important;vertical-align:middle}
+.userArea .menu [style*="background"]{max-width:100%;box-sizing:border-box}
+.userArea .menu :is(a,button,input):focus-visible{outline:2px solid #62e4ea;outline-offset:2px}
+@media(max-width:550px){.userArea .menu{position:fixed;top:75px;right:12px;left:12px;width:auto;max-height:calc(100svh - 110px)}}
+</style>
 <style id="swapp-boot-css">
 .swappBoot{min-height:calc(100svh - 68px);display:grid;place-items:center;background:#05070d;color:#dbe7fb;font-weight:900;letter-spacing:-.02em}
 .swappBootInner{display:flex;align-items:center;gap:12px;opacity:.86}.swappBoot .brandMark{width:32px;height:32px;border-radius:13px}
@@ -52,8 +65,8 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 
 
 <link rel="stylesheet" href="/assets/swapp-unified-nav.css">
-<link rel="stylesheet" href="/assets/swapp-media.css?v=20261014-legal-15">
-<link rel="stylesheet" href="/assets/swapp-actus-app.css?v=20261014-legal-15">
+<link rel="stylesheet" href="/assets/swapp-media.css?v=20261015-home-menu-16">
+<link rel="stylesheet" href="/assets/swapp-actus-app.css?v=20261015-home-menu-16">
 </head>
 <body>
 <header class="top">
@@ -83,11 +96,11 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 <nav id="mobileNav" class="mobileNav"></nav>
 <div id="toast" class="toast"></div>
 <script src="/assets/swapp-navigation.js"></script>
-<script src="/assets/swapp-actus-app.js?v=20261014-legal-15"></script>
-<script defer src="/assets/swapp-home-news.js?v=20261014-legal-15"></script>
-<script defer src="/assets/swapp-live-articles.js?v=20261014-legal-15"></script>
+<script src="/assets/swapp-actus-app.js?v=20261015-home-menu-16"></script>
+<script defer src="/assets/swapp-home-news.js?v=20261015-home-menu-16"></script>
+<script defer src="/assets/swapp-live-articles.js?v=20261015-home-menu-16"></script>
 <script src="/index_script.js?v=1.0.14"></script>
-<script defer src="/assets/swapp-footer.js?v=20261014-legal-15"></script>
+<script defer src="/assets/swapp-footer.js?v=20261015-home-menu-16"></script>
 <script defer src="/assets/swapp-editor-nav.js"></script>
 </body>
 </html>
