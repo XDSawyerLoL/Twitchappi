@@ -36,7 +36,7 @@ async function collectPublicCatalog(catalog,{fetchImpl=global.fetch,timeoutMs=90
   const articles=[],failures=[],excluded=[];
   for(const item of (catalog.items||[])){
     if(item.type!=='post'){excluded.push({url:item.url,reason:'video_requires_separate_adapter'});continue;}
-    if(!/^https:\/\/justplayer\.fr\/supporters\/posts\/\d+$/.test(item.url)){
+    if(!/^https:\/\/justplayer\.fr\/supporters\/posts\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.url)){
       failures.push({url:item.url,reason:'unexpected_url'});continue;
     }
     try{
