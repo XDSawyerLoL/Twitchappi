@@ -15,6 +15,6 @@ function renderTwitchWatch(login,{game=''}={}){
   '<div class="swapp-watch-chat"><iframe title="Chat de '+user+'" src="'+chat+'" loading="lazy"></iframe></div></div>'+
   '<section class="swapp-media-section" data-articles-for-game="'+escapeHtml(label)+'"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">SWAPP · Actualités</span><h2>Dans l’actualité du jeu</h2></div><a class="swapp-media-button" href="/actus">Toutes les actualités →</a></div><div class="swapp-live-grid" data-related-results><p class="swapp-live-notice">Recherche des articles…</p></div></section>'+
   '<div class="swapp-media-buttons"><a class="swapp-media-button primary" href="/actus">Actualités SWAPP →</a><a class="swapp-media-button" href="/decouvrir">Autres lives →</a></div></main>';
- return layout({title:'Live '+login,description:'Regarder '+login+' et découvrir les actualités du jeu sur SWAPP',content});
+ return layout({title:'Live '+login,description:'Regarder '+login+' et découvrir les actualités du jeu sur SWAPP',content,active:'discover'});
 }
 module.exports={isTwitchLogin,renderTwitchWatch};
