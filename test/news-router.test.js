@@ -136,3 +136,23 @@ test('statut édition public ne révèle pas d’articles ou de secrets',async()
   assert.equal(status.statusCode,200);
   assert.deepEqual(status.payload,{authenticated:false,canEdit:false});
 });
+
+
+test('un véritable texte JustPlayer devient un article lisible avec son image dans les API SWAPP',async()=>{
+ const item={type:'post',id:'266628',title:'007 First Light : James Bond réussit son retour',
+ url:'https://justplayer.fr/supporters/posts/266628',publishedAt:'2026-09-05'};
+ const paragraph='<p>James Bond retrouve l’espionnage, les déplacements et les choix du joueur avec IO Interactive dans un cadre spectaculaire et ouvert.</p>';
+ const html='<html><head><meta property="og:title" content="'+item.title+'"><meta property="og:image" content="https://cdn.fourthwall.com/007-cover.jpg"></head><div class="post-content prose">'+paragraph.repeat(6)+'</div></html>';
+ const {request,firestore}=setup({publicCatalog:{items:[item]},publicFetch:async()=>({
+   ok:true,status:200,headers:{get:()=>null},text:async()=>html
+ })});
+ const list=await request('GET','/api/actus');
+ assert.equal(list.statusCode,200);
+ assert.equal(list.payload.articles.length,1);
+ assert.equal(list.payload.articles[0].slug,'justplayer-266628');
+ assert.equal(list.payload.articles[0].image.url,'https://cdn.fourthwall.com/007-cover.jpg');
+ const article=await request('GET','/api/actus/:slug',{params:{slug:'justplayer-266628'}});
+ assert.equal(article.statusCode,200);
+ assert.match(article.payload.body,/James Bond retrouve/);
+ assert.equal(firestore.all.size,0);
+});
