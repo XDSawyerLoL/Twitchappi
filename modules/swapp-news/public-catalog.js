@@ -17,7 +17,7 @@ function makePublicCatalog({catalog,fetchImpl=globalThis.fetch,clock=Date.now,tt
    return {
       slug:key,title,body:article.body,summary:article.summary||article.body.slice(0,300),
       author:article.author||'Rédaction JustPlayer',category:'JustPlayer',
-      game:article.game||'',image,sources:article.sources||[{url:item.url,label:'JustPlayer'}],
+      game:article.game||item.game||'',image,sources:article.sources||[{url:item.url,label:'JustPlayer'}],
       legacyUrl:item.url,canonicalSourceUrl:article.canonicalSourceUrl||item.url,
       publishedAt:item.publishedAt,originalPublishedAt:item.publishedAt,
       provenance:'justplayer-public-verified',status:'published',contentSource:'JustPlayer'
