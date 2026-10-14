@@ -1,0 +1,118 @@
+/* SWAPP — editorial art direction, October 2026.
+   A continuous gaming/media experience, not stacked dashboard panels.
+   Scoped to the homepage and the existing ACTUS view. */
+:root{--swapp-ink:#080d16;--swapp-layer:#121b2a;--swapp-hairline:rgba(178,199,224,.13);--swapp-copy:#c3cfe0;--swapp-interactive:#92f2ec}
+
+/* 01 — No bright pseudo-panels or colored horizontal seams. */
+#home.view.active{--swapp-vertical-rhythm:clamp(34px,5vw,72px)}
+#home .swappHome1014{width:min(1460px,calc(100% - clamp(28px,5vw,96px)))!important;margin:0 auto!important;gap:var(--swapp-vertical-rhythm)!important;padding:clamp(18px,2.2vw,34px) 0 clamp(54px,7vw,104px)!important;background:transparent!important}
+#home .homeHero1014,#home .homeLiveSection1014,#home .swapp-home-editorial{
+ background:transparent!important;background-image:none!important;box-shadow:none!important;
+ border:0!important;border-radius:0!important;outline:0!important
+}
+#home .homeHero1014::before,#home .homeHero1014::after{content:none!important;display:none!important}
+#home .homeHeroInner1014{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0!important;padding:clamp(38px,5vw,84px) 0 clamp(20px,3vw,42px)!important}
+#home .homeHeroCopy1014{max-width:970px;min-height:0!important;gap:clamp(13px,1.8vw,24px)!important}
+#home .homeHeroCopy1014 h1{font-size:clamp(40px,6.4vw,94px)!important;font-weight:950!important;letter-spacing:-.075em!important;line-height:.99!important;text-wrap:balance}
+#home .homeHeroCopy1014 p{max-width:680px!important;color:var(--swapp-copy)!important;font-size:clamp(16px,1.6vw,21px)!important;line-height:1.56!important}
+#home .homeHeroCopy1014 .eyebrow{color:var(--swapp-interactive)!important;letter-spacing:.14em;font-size:11px!important;font-weight:850}
+#home .homeHeroPanel1014,#home .homeBottom1014{display:none!important}
+#home .homeActions1014{margin-top:14px!important;gap:11px!important}
+#home .homeActions1014>.btn{border-radius:12px!important;min-height:47px!important;box-shadow:none!important}
+#home .homeActions1014>.btn.secondary{background:#19243a!important;border:1px solid #40526a!important;color:#f5f8ff!important}
+#home .homeActions1014>.btn:focus-visible{outline:2px solid var(--swapp-interactive)!important;outline-offset:3px}
+
+/* 02 — Discovery flows as a section, without a framed full-width box. */
+#home .homeLiveSection1014{min-width:0;padding:clamp(18px,2.2vw,28px) 0 0!important;margin:0!important;border-top:1px solid var(--swapp-hairline)!important}
+#home .homeLiveHead1014{gap:16px!important;margin-bottom:22px!important}
+#home .homeLiveHead1014 h2{font-size:clamp(26px,3vw,42px)!important;letter-spacing:-.055em!important;line-height:1.06!important;text-wrap:balance}
+#home .homeLiveHead1014 p{max-width:690px;color:#a4b6cd!important;line-height:1.5!important}
+#home .homeLiveHead1014 .btn.secondary{border:1px solid #33445d!important;background:#131c2a!important;box-shadow:none!important;color:#e6eef8!important;border-radius:12px!important}
+#home .homeLiveGrid1014{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:clamp(13px,1.45vw,22px)!important}
+#home .homeLiveCard1014{position:relative;border:1px solid rgba(255,255,255,.065)!important;background:#101722!important;border-radius:14px!important;box-shadow:none!important;transform:none!important;isolation:isolate}
+#home .homeLiveCard1014:hover,#home .homeLiveCard1014:focus-visible{border-color:rgba(133,228,227,.62)!important;box-shadow:0 12px 32px rgba(0,0,0,.35)!important;transform:translateY(-3px)!important}
+#home .homeLiveCard1014:focus-visible{outline:2px solid var(--swapp-interactive);outline-offset:3px}
+#home .homeThumb1014{border-radius:12px 12px 0 0}
+#home .homeThumb1014 img{transition:transform .32s ease;filter:saturate(.96) contrast(1.03)}
+#home .homeLiveCard1014:hover .homeThumb1014 img{transform:scale(1.035)}
+#home .homeLiveBody1014{padding:15px 15px 17px!important;gap:9px!important}
+#home .homeLiveBody1014 h3{font-size:16px!important;line-height:1.34!important;font-weight:850!important;min-height:43px!important}
+#home .homeMeta1014{color:#a5b7cb!important}
+#home .homeLiveBody1014 .btn{background:#1a2938!important;border:1px solid #496274!important;border-radius:10px!important;box-shadow:none!important;color:#e8fbfd!important;min-height:39px!important}
+#home .homeLiveBody1014 .btn:hover{background:#224052!important;border-color:#7addde!important}
+#home .homeEmpty1014{border:1px dashed #405065!important;background:#121b2b!important;border-radius:12px!important;color:#b3c7d6!important}
+
+/* 03 — The news shelf is real editorial content, not another colored panel. */
+#home .swapp-home-editorial{margin:0 auto clamp(24px,3vw,40px)!important;padding:clamp(22px,3vw,44px) 0 0!important;width:min(1460px,calc(100% - clamp(28px,5vw,96px)))!important;max-width:100%!important;overflow:visible!important}
+#home .swapp-home-editorial-top{align-items:end!important;gap:18px!important;margin:0 0 22px!important}
+#home .swapp-home-editorial-top h2{font-size:clamp(29px,3.4vw,48px)!important;line-height:1.07!important;letter-spacing:-.06em!important;margin:7px 0 10px!important}
+#home .swapp-home-editorial-top p{color:#a9bed3!important;line-height:1.55!important;font-size:14px!important}
+#home .swapp-home-hero-actions{gap:10px!important}
+#home .swapp-home-hero-actions .swapp-media-button{border-radius:11px!important;min-height:41px!important;box-shadow:none!important}
+#home .swapp-home-hero-actions .swapp-media-button:not(.primary){background:#111c2b!important;border:1px solid #3d4f64!important}
+#home .swapp-home-story-grid{gap:clamp(14px,1.65vw,24px)!important;align-items:stretch}
+#home .swapp-home-story{border:1px solid rgba(255,255,255,.07)!important;background:#101725!important;border-radius:15px!important;box-shadow:none!important;overflow:hidden!important}
+#home .swapp-home-story:hover,#home .swapp-home-story:focus-visible{border-color:rgba(125,232,228,.5)!important;box-shadow:0 12px 30px rgba(0,0,0,.3)!important}
+#home .swapp-home-story-image{overflow:hidden!important;background:#192a3e}
+#home .swapp-home-story-image::after{background:linear-gradient(180deg,transparent 52%,rgba(5,8,16,.22))!important}
+#home .swapp-home-story-body{padding:clamp(14px,1.5vw,20px)!important;gap:10px!important}
+#home .swapp-home-story-body strong{line-height:1.24!important;letter-spacing:-.025em!important;text-wrap:pretty}
+#home .swapp-home-story-featured strong{font-size:clamp(23px,2.45vw,33px)!important}
+#home .swapp-home-story-body p{color:#a8bbd0!important;line-height:1.5!important}
+#home .swapp-home-story-cta{font-size:12px!important;letter-spacing:.01em}
+#home .swapp-home-match-zone:not(:empty){border-top:1px solid var(--swapp-hairline)!important;margin-top:clamp(24px,3.2vw,46px)!important;padding-top:24px!important}
+#home .swapp-home-match-heading h3{font-size:clamp(23px,2.5vw,33px)!important;letter-spacing:-.05em!important}
+#home .swapp-home-match-item{background:transparent!important;border:0!important;border-radius:0!important;padding:4px 0!important}
+#home .swapp-home-match-live{border-radius:11px!important;padding:7px!important;background:#142131}
+#home .swapp-home-match-live:hover{background:#1a3142}
+#home .swapp-home-match-item>small{font-size:12px;color:#a8bdcf}
+
+/* 04 — Editorial listing matches the same quiet visual language. */
+#actus .swapp-actus-head{padding:clamp(25px,4vw,58px) 0 clamp(18px,2vw,29px)}
+#actus .swapp-actus-head h1{letter-spacing:-.067em;text-wrap:balance}
+#actus .swapp-actus-tools{gap:10px}
+#actus .swapp-actus-tools :is(input,select){border-radius:11px;border:1px solid #33445b;background:#111b29}
+#actus .swapp-actus-tools :is(input,select):focus-visible{outline:2px solid var(--swapp-interactive);outline-offset:2px}
+#actus .swapp-actus-card{background:#121b2b;border:1px solid rgba(193,210,230,.12);border-radius:14px;box-shadow:none;overflow:hidden}
+#actus .swapp-actus-card:hover,#actus .swapp-actus-card:focus-visible{border-color:rgba(128,230,230,.6);box-shadow:0 14px 31px rgba(0,0,0,.3)}
+#actus .swapp-actus-info{padding:clamp(16px,1.8vw,23px)}
+#actus .swapp-actus-info h2{letter-spacing:-.028em;text-wrap:pretty}
+#actus .swapp-actus-sources{border-color:#253e50}
+#actus .swapp-actus-related{border-color:#3c4664}
+
+/* 05 — Footer and spacing remain understated, not giant widget panels. */
+.swapp-footer{border-top:1px solid var(--swapp-hairline)!important;background:#080d16!important;margin-top:clamp(24px,4vw,64px)!important}
+.swapp-footer-inner{padding-top:clamp(30px,4vw,58px)!important}
+.swapp-footer-col a{transition:color .16s ease}
+.swapp-footer-col a:hover{color:var(--swapp-interactive)!important}
+
+/* Responsive: no clipping, no horizontal scroll, no oversized separators. */
+@media(max-width:1200px){
+ #home .homeLiveGrid1014{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:880px){
+ #home .homeLiveGrid1014{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #home .homeHeroInner1014{padding-top:30px!important}
+ #home .swapp-home-story-featured{grid-row:auto!important}
+}
+@media(max-width:600px){
+ #home .swappHome1014,#home .swapp-home-editorial{width:calc(100% - 30px)!important}
+ #home .swappHome1014{gap:34px!important}
+ #home .homeLiveGrid1014{grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
+ #home .homeHeroCopy1014 h1{font-size:clamp(38px,10vw,58px)!important}
+ #home .homeLiveHead1014{flex-direction:column!important;align-items:stretch!important}
+ #home .homeLiveHead1014 .homeActions1014{gap:8px!important}
+ #home .homeLiveHead1014 .homeActions1014 .btn{flex:1}
+ #home .swapp-home-story-grid{grid-template-columns:minmax(0,1fr)!important}
+ #home .swapp-home-story-featured{grid-column:auto!important;grid-row:auto!important}
+ #home .swapp-home-editorial-top{align-items:start!important}
+ #home .swapp-home-hero-actions{width:100%}
+ #home .swapp-home-hero-actions .swapp-media-button{flex:1;min-width:0}
+}
+@media(hover:none){
+ #home .homeLiveCard1014:hover{transform:none!important;box-shadow:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #home .homeLiveCard1014,#home .homeThumb1014 img,#home .swapp-home-story,.swapp-footer-col a{animation:none!important;transition:none!important}
+ #home .homeLiveCard1014:hover{transform:none!important}
+}
