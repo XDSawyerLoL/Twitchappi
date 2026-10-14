@@ -24,12 +24,32 @@ liveStatus.textContent=found.length?found.length+' créateur'+(found.length>1?'s
 for(const item of found){const login=String(item.login).toLowerCase(),native=['swapp','oryon'].includes(String(item.platform||'').toLowerCase());const link=el('a','swapp-discover-stream');link.href=native?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(game);const image=el('div','swapp-discover-stream-cover'),src=url(item.thumbnail_url);if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();image.append(img)}image.append(el('span','swapp-discover-stream-badge','EN DIRECT'));const info=el('div','swapp-discover-stream-info');info.append(el('strong','',item.display_name||login),el('small','',item.title||'Regarder ce live'));link.append(image,info);liveCards.append(link)}
 }catch{if(ticket===liveTicket&&liveSection.isConnected)liveStatus.textContent='Lives temporairement indisponibles. Les articles restent accessibles.'}}
 liveSection.hidden=true;
-const gamesBar=el('div','swapp-actus-game-filters');gamesBar.setAttribute('aria-label','Explorer les jeux');node.append(gamesBar);let activeGame='';const count=el('p','swapp-actus-count');count.setAttribute('aria-live','polite');node.append(count);const feed=el('div','swapp-actus-grid');node.append(feed);
+const gamesBar=el('div','swapp-actus-game-filters');gamesBar.setAttribute('aria-label','Explorer les jeux');node.append(gamesBar);let activeGame='',gamesExpanded=false;const count=el('p','swapp-actus-count');count.setAttribute('aria-live','polite');node.append(count);const feed=el('div','swapp-actus-grid');node.append(feed);
 const update=()=>{feed.replaceChildren();const query=search.value.toLocaleLowerCase('fr').trim();const available=items.filter(x=>(!activeGame||String(x.game||'')===activeGame)&&(!category.value||(x.category||'')===category.value)&&[x.title,x.game,x.summary,x.category].join(' ').toLocaleLowerCase('fr').includes(query));count.textContent=available.length+' article'+(available.length>1?'s':'')+' à découvrir';if(!available.length){feed.append(el('p','swapp-actus-state',query?'Aucun résultat.':'Aucun article complet récupéré pour le moment.'));return;}available.forEach(a=>{const c=makeCard(a);if(c)feed.append(c)});};
 search.oninput=update;category.onchange=update;feed.append(el('p','swapp-actus-state','Chargement des articles…'));
 try{const data=await fetchJson('/api/actus');if(!node.isConnected)return;items=Array.isArray(data.articles)?data.articles:[];const categories=[...new Set(items.map(x=>x.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));for(const name of categories){const option=el('option','',name);option.value=name;category.append(option)}
 const games=[...new Set(items.map(x=>String(x.game||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr')).slice(0,16);
-if(games.length){const renderGames=()=>{gamesBar.replaceChildren();for(const game of ['',...games]){const b=el('button','swapp-actus-game-chip'+(activeGame===game?' active':''),game||'Tous les jeux');b.type='button';b.setAttribute('aria-pressed',String(activeGame===game));b.onclick=()=>{activeGame=game;renderGames();update();updateLives()};gamesBar.append(b)}};renderGames()}update()}catch(e){if(node.isConnected){const message=el('p','swapp-actus-state',e.message),retry=el('button','swapp-actus-go-live','Réessayer');retry.onclick=()=>{node.replaceChildren();showList(node)};feed.replaceChildren(message,retry)}}}
+if(games.length){
+ const renderGames=()=>{
+  gamesBar.replaceChildren();
+  const chips=el('div','swapp-actus-game-options'+(gamesExpanded?' is-expanded':''));
+  chips.id='swapp-actus-available-games';
+  for(const game of ['',...games]){
+   const b=el('button','swapp-actus-game-chip'+(activeGame===game?' active':''),game||'Tous les jeux');
+   b.type='button';b.setAttribute('aria-pressed',String(activeGame===game));
+   b.onclick=()=>{activeGame=game;renderGames();update();updateLives()};
+   chips.append(b);
+  }
+  gamesBar.append(chips);
+  if(games.length>4){
+   const toggle=el('button','swapp-actus-games-more',gamesExpanded?'Réduire':'Voir tous les jeux');
+   toggle.type='button';toggle.setAttribute('aria-controls',chips.id);toggle.setAttribute('aria-expanded',String(gamesExpanded));
+   toggle.onclick=()=>{gamesExpanded=!gamesExpanded;renderGames()};
+   gamesBar.append(toggle);
+  }
+ };
+ renderGames();
+}update()}catch(e){if(node.isConnected){const message=el('p','swapp-actus-state',e.message),retry=el('button','swapp-actus-go-live','Réessayer');retry.onclick=()=>{node.replaceChildren();showList(node)};feed.replaceChildren(message,retry)}}}
 async function showArticle(node,slug){node.append(el('p','swapp-actus-state','Chargement de l’article…'));try{const a=await fetchJson('/api/actus/'+encodeURIComponent(slug));if(!node.isConnected)return;node.replaceChildren();
 const back=el('button','swapp-actus-go-back','← Toutes les actualités');back.onclick=home;const nav=el('div','swapp-actus-reader-nav');const crumb=el('span','','SWAPP / ACTUS / ARTICLE');nav.append(back,crumb);node.append(nav);
 const article=el('article','swapp-actus-article');const heading=el('header','swapp-reader-hero');const kicker=el('div','swapp-reader-kicker');kicker.append(el('span','swapp-reader-kicker-main',a.category||'ACTUS'));if(a.game)kicker.append(el('span','swapp-reader-kicker-game',a.game));heading.append(kicker,el('h1','',a.title));if(a.summary)heading.append(el('p','swapp-actus-summary',a.summary));heading.append(el('p','swapp-actus-author',[a.author,date(a.publishedAt||a.originalPublishedAt)].filter(Boolean).join(' · ')));article.append(heading);
