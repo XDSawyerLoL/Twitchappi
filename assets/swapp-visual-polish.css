@@ -33,6 +33,8 @@ header.top .userBtn:not(:has(#userAvatar[src]:not([src=""])))::before{content:"S
 .swapp-home-hero-actions .swapp-media-button:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:3px}
 .swapp-home-watch-cta{background:#ffffff0a;border:1px solid #526b84;color:#deeff7}
 .swapp-home-watch-cta:hover{background:#27354a;border-color:#78ddd9}
+/* Discovery links remain usable while news thumbnails are loading. */
+#home .swapp-home-editorial[aria-busy="true"] .swapp-home-editorial-top .swapp-media-button{pointer-events:auto}
 @media(max-width:650px){.swapp-home-hero-actions{width:100%}.swapp-home-hero-actions .swapp-media-button{width:100%}}
 
 .swapp-home-story{position:relative;outline-offset:3px;box-shadow:0 5px 22px #00000015}
