@@ -9,14 +9,16 @@
       "type": "post",
       "publishedAt": "2026-10-14",
       "title": "Valor Mortis est sorti : le Soulslike napoléonien des créateurs de Ghostrunner débarque dans le Game Pass",
-      "url": "https://justplayer.fr/supporters/posts/valor-mortis-est-sorti-le-soulslike-napoleonien-des-createurs-de-ghostrunner"
+      "url": "https://justplayer.fr/supporters/posts/valor-mortis-est-sorti-le-soulslike-napoleonien-des-createurs-de-ghostrunner",
+      "game": "Valor Mortis"
     },
     {
       "id": "planet-zoo-2-est-disponible-aquariums-volieres-et-reserves-naturelles",
       "type": "post",
       "publishedAt": "2026-10-13",
       "title": "Planet Zoo 2 est disponible : aquariums, volières et réserves naturelles",
-      "url": "https://justplayer.fr/supporters/posts/planet-zoo-2-est-disponible-aquariums-volieres-et-reserves-naturelles"
+      "url": "https://justplayer.fr/supporters/posts/planet-zoo-2-est-disponible-aquariums-volieres-et-reserves-naturelles",
+      "game": "Planet Zoo 2"
     },
     {
       "id": "planet-zoo-2",
@@ -37,14 +39,16 @@
       "type": "post",
       "publishedAt": "2026-09-05",
       "title": "007 First Light : James Bond réussit son retour",
-      "url": "https://justplayer.fr/supporters/posts/266628"
+      "url": "https://justplayer.fr/supporters/posts/266628",
+      "game": "007 First Light"
     },
     {
       "id": "256637",
       "type": "post",
       "publishedAt": "2026-08-07",
       "title": "Un nouveau jeu Road 96 annoncé : un premier teaser dévoilé par THQ Nordic",
-      "url": "https://justplayer.fr/supporters/posts/256637"
+      "url": "https://justplayer.fr/supporters/posts/256637",
+      "game": "Road 96"
     },
     {
       "id": "249458",
@@ -58,7 +62,8 @@
       "type": "post",
       "publishedAt": "2026-07-12",
       "title": "Assassin’s Creed Black Flag Resynced : Ubisoft retrouve enfin le goût du large",
-      "url": "https://justplayer.fr/supporters/posts/249457"
+      "url": "https://justplayer.fr/supporters/posts/249457",
+      "game": "Assassin's Creed Black Flag"
     },
     {
       "id": "240253",
@@ -72,42 +77,48 @@
       "type": "post",
       "publishedAt": "2026-06-06",
       "title": "Final Fantasy VII: Revelation — la fin d’un mythe que Square Enix n’a plus le droit de rater",
-      "url": "https://justplayer.fr/supporters/posts/240248"
+      "url": "https://justplayer.fr/supporters/posts/240248",
+      "game": "Final Fantasy VII"
     },
     {
       "id": "230782",
       "type": "post",
       "publishedAt": "2026-05-04",
       "title": "MARVEL Tōkon: Fighting Souls dévoile Hulk et Black Panther",
-      "url": "https://justplayer.fr/supporters/posts/230782"
+      "url": "https://justplayer.fr/supporters/posts/230782",
+      "game": "MARVEL Tōkon: Fighting Souls"
     },
     {
       "id": "224266",
       "type": "post",
       "publishedAt": "2026-04-12",
       "title": "GTA 6 : les précommandes bientôt lancées ? Un détail commence sérieusement à intriguer les fans",
-      "url": "https://justplayer.fr/supporters/posts/224266"
+      "url": "https://justplayer.fr/supporters/posts/224266",
+      "game": "Grand Theft Auto VI"
     },
     {
       "id": "220115",
       "type": "post",
       "publishedAt": "2026-03-25",
       "title": "Epic Games licencie 1 000 employés : quand Fortnite n’est plus le roi incontesté du gaming!",
-      "url": "https://justplayer.fr/supporters/posts/220115"
+      "url": "https://justplayer.fr/supporters/posts/220115",
+      "game": "Fortnite"
     },
     {
       "id": "219575",
       "type": "post",
       "publishedAt": "2026-03-24",
       "title": "Digimon Up : Bandai Namco Entertainment parie sur le pixel-art",
-      "url": "https://justplayer.fr/supporters/posts/219575"
+      "url": "https://justplayer.fr/supporters/posts/219575",
+      "game": "Digimon Up"
     },
     {
       "id": "197372",
       "type": "post",
       "publishedAt": "2026-01-11",
       "title": "Divinity : Original Sin 3 officiellement annoncé – Larian Studios lève le voile sur la suite tant attendue",
-      "url": "https://justplayer.fr/supporters/posts/197372"
+      "url": "https://justplayer.fr/supporters/posts/197372",
+      "game": "Divinity: Original Sin 3"
     }
   ]
 }
