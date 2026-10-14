@@ -31,23 +31,28 @@
    body.append(el('small','swapp-home-story-cta','Lire l’article →'));
    a.append(image,body);return a;
  }
- function decorateHero(modern,articles){
+ function decorateHero(modern,articles,onImageError){
    const hero=modern?.querySelector('.homeHeroInner1014');
-   if(!hero||hero.querySelector('.swapp-home-hero-feature'))return;
+   if(!hero)return null;
+   const existing=hero.querySelector('.swapp-home-hero-feature');
+   if(existing)return existing.dataset.articleSlug||null;
    const feature=articles.find(item=>slugOk(item.slug)&&safeUrl(item.image?.url||item.imageUrl));
    const placeholder=hero.querySelector('.swapp-home-hero-placeholder');
-   if(!feature){placeholder?.remove();hero.classList.remove('swapp-hero-has-story');return;}
+   if(!feature){placeholder?.remove();hero.classList.remove('swapp-hero-has-story');return null;}
    placeholder?.remove();
    const tile=el('a','swapp-home-hero-feature');tile.href='/actus/'+encodeURIComponent(feature.slug);
+   tile.dataset.articleSlug=feature.slug;
    tile.setAttribute('aria-label','Lire : '+feature.title);
    tile.addEventListener('click',event=>navigateArticle(event,feature.slug));
    const image=el('img');image.src=safeUrl(feature.image?.url||feature.imageUrl);image.alt='';
-   image.decoding='async';image.loading='eager';image.onerror=()=>{tile.remove();hero.classList.remove('swapp-hero-has-story')};
+   image.decoding='async';image.loading='eager';
+   image.onerror=()=>{tile.remove();hero.classList.remove('swapp-hero-has-story');onImageError?.()};
    const overlay=el('span','swapp-home-hero-feature-overlay');
    overlay.append(el('span','swapp-home-hero-feature-label','À LIRE SUR SWAPP'),
      el('strong','',feature.title),el('span','swapp-home-hero-feature-link','Lire l’article →'));
    tile.append(image,overlay);hero.append(tile);
    hero.classList.add('swapp-hero-has-story');
+   return feature.slug;
  }
  function mount(){
    const home=document.getElementById('home');if(!home||home.querySelector('[data-swapp-home-editorial]'))return;
@@ -94,7 +99,15 @@
        };
        retryState.append(retry);grid.append(retryState);return;
      }
-     valid.forEach((item,i)=>grid.append(story(item,i)));decorateHero(modern,valid);
+     // The hero already links to its article; do not repeat the same story below.
+     // If its image fails, return the article to the grid instead of losing it.
+     const featuredSlug=decorateHero(modern,valid,()=>{
+       if(!section.isConnected)return;
+       grid.replaceChildren();
+       valid.forEach((item,i)=>grid.append(story(item,i)));
+     });
+     const visible=featuredSlug?valid.filter(item=>item.slug!==featuredSlug):valid;
+     visible.forEach((item,i)=>grid.append(story(item,featuredSlug?i+1:i)));
 
    });
  }
