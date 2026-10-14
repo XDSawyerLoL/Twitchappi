@@ -58,8 +58,10 @@
   }
   async function relatedNews(){
     if(!related)return;
-    const game=String(related.dataset.articlesForGame||'').slice(0,90);
+    let game=String(related.dataset.articlesForGame||'').slice(0,90);
     const target=related.querySelector('[data-related-results]');if(!target)return;
+    if(!game){try{const login=location.pathname.match(/^\/live\/twitch\/([a-z0-9_]+)\/?$/i)?.[1];if(login){const liveRes=await fetch('/api/discovery/home-lives?limit=40&lang=fr',{credentials:'same-origin'});if(liveRes.ok){const liveData=await liveRes.json();const match=(liveData.items||[]).find(x=>String(x.login||'').toLowerCase()===login.toLowerCase());game=String(match?.game_name||match?.game||'').slice(0,90)}}}catch{}}
+    if(!game){message(related,'Jeu du live non identifié : impossible de garantir une actualité pertinente.');return;}
     try{
       const res=await fetch('/api/actus',{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(9000)});
       if(!res.ok)throw Error('unavailable');
