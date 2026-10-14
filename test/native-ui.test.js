@@ -16,7 +16,7 @@ test('affiche les véritables références JustPlayer sans inventer de contenu c
  assert.match(html,/Les publications JustPlayer/);
  assert.ok(html.includes('href="/actus/justplayer/266628"'));
  assert.doesNotMatch(html,/Lire sur JustPlayer|Archives JustPlayer/);
- assert.match(html,/editor-only-nav/);
+ assert.ok(html.includes('id="userBtn" class="userBtn"'));
 });
 test('les catégories et la recherche sont filtrées, sans scripts dangereux',()=>{
  let html=renderNewsHome([article],{category:'Guides',query:'<script>'});
