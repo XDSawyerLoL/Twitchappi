@@ -31,7 +31,7 @@
     el.append(cover,body);return el;
   }
   function message(shelf,message){
-    const target=shelf.querySelector('[data-live-results]');if(!target)return;
+    const target=shelf.querySelector('[data-live-results], [data-related-results]');if(!target)return;
     target.replaceChildren();
     const p=document.createElement('p');p.className='swapp-live-notice';text(p,message);target.appendChild(p);
   }
@@ -50,7 +50,7 @@
         }).slice(0,game?3:6).map(card).filter(Boolean);
         const target=shelf.querySelector('[data-live-results]');if(!target)continue;
         if(cards.length){target.replaceChildren(...cards);}
-        else message(shelf,game?'Aucun live identifié actuellement sur '+game+'. Explore les autres créateurs SWAPP.':'Aucun live public disponible pour le moment. Reviens bientôt.');
+        else message(shelf,game?'Aucun live correspondant parmi les suggestions actuelles pour '+game+'. Explore les autres créateurs SWAPP.':'Aucun live public disponible pour le moment. Reviens bientôt.');
       }
     }catch{
       for(const shelf of sheets) message(shelf,'Impossible de charger les lives actuellement. La lecture des articles reste disponible.');
