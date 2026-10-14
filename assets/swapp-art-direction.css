@@ -214,3 +214,46 @@
 @media(prefers-reduced-motion:reduce){
  #actus .swapp-actus-game-chip{transition:none!important}
 }
+
+/* 10 — Human editorial hero: real game artwork instead of another text-only panel.
+   The feature appears only if the article has a valid image and stays clickable. */
+#home .homeHeroInner1014.swapp-hero-has-story{
+ grid-template-columns:minmax(0,1.08fr) minmax(310px,.92fr)!important;
+ align-items:center!important;gap:clamp(28px,4.6vw,76px)!important
+}
+#home .swapp-home-hero-feature{
+ position:relative;display:block;align-self:stretch;min-width:0;min-height:clamp(300px,31vw,465px);
+ border-radius:19px;overflow:hidden;text-decoration:none;color:#fff;background:#17263a;
+ border:1px solid rgba(255,255,255,.13);isolation:isolate;box-shadow:0 22px 66px rgba(0,0,0,.3);
+ transform:none;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease
+}
+#home .swapp-home-hero-feature img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;transition:transform .6s ease}
+#home .swapp-home-hero-feature::after{
+ content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+ background:linear-gradient(to bottom,rgba(3,8,18,.01) 15%,rgba(3,8,18,.28) 55%,rgba(3,8,18,.94) 100%)
+}
+#home .swapp-home-hero-feature-overlay{
+ position:absolute;bottom:0;left:0;right:0;z-index:2;
+ display:flex;flex-direction:column;align-items:flex-start;gap:11px;
+ padding:clamp(20px,2.5vw,36px)
+}
+#home .swapp-home-hero-feature-label{font-size:10px;font-weight:900;letter-spacing:.16em;color:#98eee9}
+#home .swapp-home-hero-feature strong{font-size:clamp(22px,2.45vw,35px);line-height:1.13;letter-spacing:-.044em;font-weight:900;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#home .swapp-home-hero-feature-link{color:#b7f5f2;font-weight:800;font-size:13px}
+#home .swapp-home-hero-feature:hover{transform:translateY(-4px);border-color:#78d9dc;box-shadow:0 26px 70px rgba(0,0,0,.45)}
+#home .swapp-home-hero-feature:hover img{transform:scale(1.035)}
+#home .swapp-home-hero-feature:focus-visible{outline:3px solid #9af4f0;outline-offset:4px}
+@media(max-width:1080px){
+ #home .homeHeroInner1014.swapp-hero-has-story{grid-template-columns:minmax(0,1fr)!important;gap:28px!important}
+ #home .swapp-home-hero-feature{min-height:360px}
+}
+@media(max-width:600px){
+ #home .swapp-home-hero-feature{min-height:285px;border-radius:15px}
+ #home .swapp-home-hero-feature strong{font-size:clamp(20px,6.5vw,28px)}
+ #home .swapp-home-hero-feature-overlay{padding:22px}
+}
+@media(hover:none){#home .swapp-home-hero-feature:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){
+ #home .swapp-home-hero-feature,#home .swapp-home-hero-feature img{transition:none!important}
+ #home .swapp-home-hero-feature:hover,#home .swapp-home-hero-feature:hover img{transform:none!important}
+}
