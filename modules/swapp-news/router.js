@@ -52,7 +52,7 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
     const login=String(req.params.login||'').trim().toLowerCase();
     if(!isTwitchLogin(login))return res.status(404).send('Live introuvable');
     res.set('Cache-Control','no-store');
-    return res.type('html').send(renderTwitchWatch(login));
+    return res.type('html').send(renderTwitchWatch(login,{game:req.query?.game}));
   });
   router.get('/actus/studio',...editor,(req,res)=>res.type('html').send(renderStudio()));
   router.get('/actus/studio.js',...editor,(req,res)=>res.type('application/javascript').send(studioJs));
