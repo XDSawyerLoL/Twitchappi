@@ -16,3 +16,18 @@ test('identifie les publications de catalogue non encore exportées',()=>{const 
 test('n’envoie aucun contenu sans HTTPS et clé d’admin',async()=>{await assert.rejects(()=>sendBatches([{articles:[post()]}],{baseUrl:'http://swapp.tv',key:'abc'}),/HTTPS/);});
 test('envoie un dry-run au serveur par défaut',async()=>{let called;const result=await sendBatches([{articles:[post()],dryRun:true,publish:false}],{baseUrl:'https://swapp.tv',key:'secret',fetchImpl:async(u,init)=>{called={u,init};return {ok:true,status:200,json:async()=>({dryRun:true})};}});assert.equal(JSON.parse(called.init.body).dryRun,true);assert.equal(result.length,1);assert.equal(JSON.parse(called.init.body).publish,false);});
 test('--commit exige une intention explicite et n’autorise pas la publication sociale',()=>{assert.equal(parseFlags(['--input','posts.json','--send','--commit']).commit,true);});
+const {extractPublicPost,collectPublicCatalog}=require('../tools/justplayer-public-fetch');
+test('extrait un article structuré public sans confondre navigation et texte',()=>{
+  const html='<html><head><meta property="og:title" content="Article démonstration JustPlayer"></head><body><script type="application/ld+json">'+JSON.stringify({'@type':'BlogPosting',headline:'Article démonstration JustPlayer',articleBody:'Un long texte original consacré au secteur des jeux vidéo, avec plusieurs phrases vérifiables et une présentation détaillée.',datePublished:'2026-01-11'})+'</script></body></html>';
+  const r=extractPublicPost(html,{url:'https://justplayer.fr/supporters/posts/197372',publishedAt:'2026-01-11'});
+  assert.equal(r.ok,true);assert.match(r.article.body,/plusieurs phrases/);
+});
+test('une page sans article complet n’entre pas dans le CMS',()=>{
+  const r=extractPublicPost('<html><h1>Connexion requise</h1><p>Connectez-vous</p></html>',{url:post().legacyUrl,title:'titre'});
+  assert.equal(r.ok,false);assert.equal(r.reason,'full_article_body_not_detected');
+});
+test('une collecte publique ne devine pas les articles manquants',async()=>{
+  const c={items:[{type:'post',url:post().legacyUrl,publishedAt:'2026-09-05'}, {type:'video_embed',url:'https://justplayer.fr/supporters/video_embeds/2'}]};
+  const r=await collectPublicCatalog(c,{fetchImpl:async()=>({ok:true,headers:{get:()=> 'text/html'},text:async()=>'<h1>Login</h1>'})});
+  assert.equal(r.postsChecked,1);assert.equal(r.articles.length,0);assert.equal(r.failures.length,1);assert.equal(r.excluded.length,1);
+});
