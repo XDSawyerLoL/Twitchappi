@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const {assertArticle, renderArticle, renderListing, isLegacyJustPlayerUrl} = require('./article-core');
 const {js:studioJs,renderStudio}=require('./editor-ui');
 const {renderNewsHome,renderNewsStory}=require('./native-pages');
+const {renderTwitchWatch,isTwitchLogin}=require('./watch');
 const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const catalog=require('../../data/justplayer-public-catalog.json');
 
@@ -46,6 +47,12 @@ function createNewsRouter({express, firestore, requireEditor, isReady = () => tr
       res.set('Cache-Control','public, max-age=60');
       res.type('html').send(renderNewsHome(list,{baseUrl,category:req.query?.categorie,query:req.query?.q}));
     }catch(e){next(e);}
+  });
+  router.get('/live/twitch/:login',(req,res)=>{
+    const login=String(req.params.login||'').trim().toLowerCase();
+    if(!isTwitchLogin(login))return res.status(404).send('Live introuvable');
+    res.set('Cache-Control','no-store');
+    return res.type('html').send(renderTwitchWatch(login));
   });
   router.get('/actus/studio',...editor,(req,res)=>res.type('html').send(renderStudio()));
   router.get('/actus/studio.js',...editor,(req,res)=>res.type('application/javascript').send(studioJs));
