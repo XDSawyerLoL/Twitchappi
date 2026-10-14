@@ -8796,6 +8796,43 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
 
 
 
+// Exact game discovery for ACTUS: unlike homepage recommendations, this searches Twitch by game ID.
+app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
+  const game=String(req.query.game||'').trim().slice(0,90);
+  if(game.length<2) return res.status(400).json({success:false,error:'Jeu requis',items:[]});
+  const norm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const same=(a,b)=>{a=norm(a);b=norm(b);return !!(a&&b&&(a===b||(a.length>=7&&b.includes(a))||(b.length>=7&&a.includes(b))))};
+  const limit=Math.max(1,Math.min(24,Number(req.query.limit)||12));
+  try{
+    const items=[],seen=new Set();
+    const add=(x,platform)=>{
+      const login=String(x.login||x.user_login||x.host_login||x.room||'').trim().toLowerCase();
+      const key=platform+':'+login;
+      if(!/^[a-z0-9_]{2,25}$/.test(login)||seen.has(key)||!same(game,x.game_name||x.category||x.game))return;
+      seen.add(key);
+      items.push({...x,login,platform,display_name:x.display_name||x.user_name||login,
+        game_name:x.game_name||x.category||x.game,viewer_count:Number(x.viewer_count??x.viewers??0)||0,
+        thumbnail_url:String(x.thumbnail_url||x.img||'').replace('{width}','1280').replace('{height}','720')});
+    };
+    try{for(const x of discoverNativeItemsFor('',100000,'both'))add(x,'oryon')}catch(e){console.warn('[GAME DISCOVERY] native:',e.message)}
+    let twitchAvailable=!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET),twitchError=false;
+    if(twitchAvailable){
+      try{
+        const games=await twitchAPI('games?name='+encodeURIComponent(game));
+        const matches=(games.data||[]).filter(g=>same(game,g.name)).slice(0,3);
+        for(const g of matches){
+          const streams=await twitchAPI('streams?first=100&game_id='+encodeURIComponent(g.id));
+          for(const item of streams.data||[])add(item,'twitch');
+        }
+      }catch(e){twitchError=true;console.warn('[GAME DISCOVERY] Twitch lookup:',e.message)}
+    }
+    items.sort((a,b)=>Number(['oryon','swapp'].includes(b.platform))-Number(['oryon','swapp'].includes(a.platform))||b.viewer_count-a.viewer_count);
+    res.set('Cache-Control','public, max-age=25');
+    return res.json({success:true,game,items:items.slice(0,limit),totalCandidates:items.length,
+      coverage:twitchAvailable?(twitchError?'partial':'game-search'):'native-only'});
+  }catch(e){return res.status(503).json({success:false,error:'Recherche de lives indisponible',items:[]})}
+});
+
 // Public Swapp channel directory: every created account has a persistent public channel at /:login. /c/:login is kept as a legacy alias.
 app.get('/api/oryon/channels', async (req, res) => {
   try{
