@@ -60,8 +60,8 @@ test('large hero and article grid contain five unique stories, without duplicate
  assert.equal(view.feature.href,'/actus/game-release-0');
  assert.equal(view.gridLinks().length,4);
  assert.equal(new Set([view.feature.href,...view.gridLinks()]).size,5);
- assert.equal(view.main.children[1],view.shelf,'news shelf follows the hero');
- assert.equal(view.main.children[2],view.live,'lives remain immediately after the stories');
+ assert.equal(view.main.children[1],view.live,'live discovery follows the featured article');
+ assert.equal(view.main.children[2],view.shelf,'supporting news follows live discovery');
  assert.equal(view.calls.filter(x=>x==='/api/actus').length,1);
  assert.equal(view.calls.some(x=>x.includes('game-lives')),false);
 });
