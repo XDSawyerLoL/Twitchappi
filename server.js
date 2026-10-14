@@ -8800,8 +8800,7 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
 app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
   const game=String(req.query.game||'').trim().slice(0,90);
   if(game.length<2) return res.status(400).json({success:false,error:'Jeu requis',items:[]});
-  const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-  const same=(a,b)=>{a=norm(a);b=norm(b);return !!(a&&b&&(a===b||(a.length>=7&&b.includes(a))||(b.length>=7&&a.includes(b))))};
+  const {equivalent:same,searchNames}=require('./modules/swapp-news/game-identity');
   const limit=Math.max(1,Math.min(24,Number(req.query.limit)||12));
   try{
     const items=[],seen=new Set();
@@ -8818,8 +8817,13 @@ app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
     let twitchAvailable=!!(TWITCH_CLIENT_ID&&TWITCH_CLIENT_SECRET),twitchError=false;
     if(twitchAvailable){
       try{
-        const games=await twitchAPI('games?name='+encodeURIComponent(game));
-        const matches=(games.data||[]).filter(g=>same(game,g.name)).slice(0,3);
+        const possibleGames=new Map();
+        for(const name of searchNames(game)){
+          const response=await twitchAPI('games?name='+encodeURIComponent(name));
+          for(const candidate of response.data||[]){if(same(game,candidate.name))possibleGames.set(String(candidate.id),candidate)}
+          if(possibleGames.size>=3)break;
+        }
+        const matches=[...possibleGames.values()].slice(0,3);
         for(const g of matches){
           let cursor='',pages=0;
           do{
