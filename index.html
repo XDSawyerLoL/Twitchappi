@@ -48,12 +48,18 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 .swappBoot{min-height:calc(100svh - 68px);display:grid;place-items:center;background:#05070d;color:#dbe7fb;font-weight:900;letter-spacing:-.02em}
 .swappBootInner{display:flex;align-items:center;gap:12px;opacity:.86}.swappBoot .brandMark{width:32px;height:32px;border-radius:13px}
 </style>
+<style id="swapp-news-entry-css">
+.swappNewsLink{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap;color:#fff;background:linear-gradient(135deg,#7c3aed,#9333ea);border:1px solid rgba(216,180,254,.35);font-size:12px;font-weight:950;letter-spacing:.06em;border-radius:999px;padding:10px 15px;box-shadow:0 9px 25px rgba(109,40,217,.2)}
+.swappNewsLink:hover{background:linear-gradient(135deg,#a855f7,#7c3aed)}
+@media(max-width:620px){.swappNewsLink{padding:9px 12px;font-size:11px;letter-spacing:.02em}}
+</style>
 </head>
 <body>
 <header class="top">
   <div class="topbar">
     <div class="brand"><div class="brandMark"></div><span>Swapp</span></div>
     <nav id="nav" class="mainNav"></nav>
+    <a class="swappNewsLink" href="/actus" aria-label="Actualités gaming SWAPP">ACTUS</a>
     <div class="userArea">
       <button id="userBtn" class="userBtn"><img id="userAvatar" class="avatarMini" alt=""><span id="userLabel">Compte</span></button>
       <div id="userMenu" class="menu"></div>
