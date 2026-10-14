@@ -125,3 +125,55 @@
  #home .homeLiveCard1014,#home .homeThumb1014 img,#home .swapp-home-story,.swapp-footer-col a{animation:none!important;transition:none!important}
  #home .homeLiveCard1014:hover{transform:none!important}
 }
+
+/* 06 — The ACTUS shelf now belongs to the same centered main column.
+   Avoid a second inset/margin when it sits inside .swappHome1014. */
+#home .swappHome1014 > .swapp-home-editorial{
+ width:100%!important;max-width:100%!important;margin:0!important;
+ padding:clamp(24px,3.3vw,46px) 0 clamp(10px,2vw,26px)!important;
+ border-top:1px solid var(--swapp-hairline)!important;
+}
+#home .swappHome1014 > .swapp-home-editorial .swapp-home-story-grid{width:100%}
+#home .swappHome1014 > .homeLiveSection1014{margin-top:0!important}
+#home .swapp-home-editorial :is(a,button){touch-action:manipulation}
+#home .swapp-home-story:focus-visible{outline:2px solid var(--swapp-interactive);outline-offset:3px}
+#home .swapp-home-editorial .swapp-home-empty{
+ padding:22px 0!important;background:transparent!important;border:0!important;
+ color:#bdcfe0!important;line-height:1.6!important
+}
+#home .swapp-home-editorial .swapp-home-retry{
+ display:inline-flex;align-items:center;justify-content:center;min-height:41px;
+ margin:13px 0 0;padding:9px 16px;border-radius:11px;background:#162c39;
+ border:1px solid #4a7882;color:#d9f8f7;font-size:13px;font-weight:800;cursor:pointer
+}
+#home .swapp-home-editorial .swapp-home-retry:hover{background:#1c404b;border-color:#7fe5e1}
+#home .swapp-home-editorial .swapp-home-retry:focus-visible{outline:2px solid var(--swapp-interactive);outline-offset:3px}
+
+/* 07 — An editorial lead when there are several actual live broadcasts.
+   Never enlarge a single stream into an oversized empty feature. */
+@media(min-width:1201px){
+ #home .homeLiveGrid1014:has(>.homeLiveCard1014:nth-child(6))>.homeLiveCard1014:first-child{
+  grid-column:span 2;grid-row:span 2
+ }
+ #home .homeLiveGrid1014:has(>.homeLiveCard1014:nth-child(6))>.homeLiveCard1014:first-child .homeLiveBody1014{padding:20px 23px!important}
+ #home .homeLiveGrid1014:has(>.homeLiveCard1014:nth-child(6))>.homeLiveCard1014:first-child .homeLiveBody1014 h3{font-size:clamp(19px,2vw,28px)!important}
+ #home .homeLiveGrid1014:has(>.homeLiveCard1014:nth-child(6))>.homeLiveCard1014:first-child .homeThumb1014{aspect-ratio:16/8.5}
+}
+
+/* 08 — Stream and article imagery should read as content, not UI chrome. */
+#home .homeLiveBadge1014{font-weight:850!important;letter-spacing:.035em!important;box-shadow:0 3px 12px #0007!important}
+#home .homeViewers1014{backdrop-filter:blur(7px);box-shadow:none!important}
+#home .swapp-home-story-featured .swapp-home-story-eyebrow{color:#9aeee9!important}
+#home .swapp-home-story-cta{transition:color .18s ease}
+#home .swapp-home-story:hover .swapp-home-story-cta{color:#c7fffc!important}
+#home .swapp-home-match-live:focus-visible{outline:2px solid var(--swapp-interactive);outline-offset:3px}
+@media(max-width:600px){
+ #home .swappHome1014>.swapp-home-editorial{width:100%!important;padding:24px 0 10px!important}
+ #home .swapp-home-story-body{padding:17px!important}
+ #home .homeHeroCopy1014{gap:16px!important}
+ #home .homeActions1014{width:100%}
+ #home .homeActions1014>.btn{flex:1;min-width:0}
+}
+@media(prefers-reduced-motion:reduce){
+ #home .swapp-home-story-cta{transition:none}
+}
