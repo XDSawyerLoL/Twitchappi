@@ -5,7 +5,7 @@
  */
 const {collectPublicCatalog}=require('../../tools/justplayer-public-fetch');
 const {slugify}=require('./article-core');
-function makePublicCatalog({catalog,fetchImpl=globalThis.fetch,clock=Date.now,ttl=30*60*1000,limit=3}={}){
+function makePublicCatalog({catalog,fetchImpl=globalThis.fetch,clock=Date.now,ttl=30*60*1000}={}){
  const refs=(catalog?.items||[]).filter(x=>x.type==='post'&&typeof x.url==='string').slice(0,65);
  const cache=new Map(),inflight=new Map();
  const bySlug=new Map(refs.map(item=>[slugify('justplayer-'+String(item.id||item.url.split('/').at(-1))),item]));
