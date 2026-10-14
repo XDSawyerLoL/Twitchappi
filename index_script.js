@@ -68,7 +68,7 @@ async function swappFinishPasswordReset(user){
 
 const SWAPP_VIEW_PATHS={actus:'/actus',home:'/',discover:'/decouvrir',twitch:'/twitch',categories:'/categories',teams:'/equipes',settings:'/compte',manager:'/gestionnaire',dashboard:'/dashboard',studio:'/studio',admin:'/admin',resetPassword:'/reset-password'};
 const SWAPP_PATH_VIEWS={'/actus':'actus','/':'home','/home':'home','/accueil':'home','/discover':'discover','/decouvrir':'discover','/twitch':'twitch','/categories':'categories','/category':'categories','/equipes':'teams','/teams':'teams','/compte':'settings','/connexion':'settings','/settings':'settings','/chaine':'channel','/channel':'channel','/gestionnaire':'manager','/manager':'manager','/dashboard':'dashboard','/studio':'studio','/admin':'admin','/reset-password':'settings'};
-const SWAPP_RESERVED_SLUGS=new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
+const SWAPP_RESERVED_SLUGS=new Set(['api','actus','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
 function swappCleanLogin(login){return String(login||'').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_\-]/g,'').slice(0,40)}
 
 function swappIsBlockedTunnelUrl(url){
@@ -9681,7 +9681,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     connexion:'settings', settings:'settings', channel:'channel', chaine:'channel', manager:'manager',
     gestionnaire:'manager', dashboard:'dashboard', studio:'studio', admin:'admin'
   };
-  const RESERVED = new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
+  const RESERVED = new Set(['api','actus','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
   const safeText = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])));
   function cleanLogin(v){
     try{ return (typeof swappCleanLogin === 'function') ? swappCleanLogin(v) : String(v||'').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_-]/g,'').slice(0,40); }
@@ -10246,7 +10246,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
   window.__SWAPP_PUBLIC_CHANNEL_FIX_V4__ = true;
   const E = (typeof esc === 'function') ? esc : (v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])));
   const cleanLogin = (v) => String(v || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
-  const RESERVED = new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
+  const RESERVED = new Set(['api','actus','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
   function safeLocalPlayer(url){
     try{ if(typeof swappSafeLocalPlayerUrl === 'function') return swappSafeLocalPlayerUrl(url); }catch(_e){}
     const raw=String(url||'').trim();
@@ -10369,7 +10369,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
 (function installSwappPublicRouteLock(){
   if(window.__SWAPP_PUBLIC_ROUTE_LOCK_V1__) return;
   window.__SWAPP_PUBLIC_ROUTE_LOCK_V1__ = true;
-  const RESERVED = new Set(['api','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
+  const RESERVED = new Set(['api','actus','assets','index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','home','accueil','discover','decouvrir','twitch','categories','category','equipes','teams','compte','connexion','settings','chaine','channel','gestionnaire','manager','dashboard','studio','admin','reset-password']);
   const clean = v => String(v || '').trim().toLowerCase().replace(/^@/,'').replace(/[^a-z0-9_-]/g,'').slice(0,40);
   function loginFromPath(){
     try{
