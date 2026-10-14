@@ -37,7 +37,7 @@
  }
  function mount(){
    const home=document.getElementById('home');if(!home||home.querySelector('[data-swapp-home-editorial]'))return;
-   const base=home.querySelector('.homeOnlyMain');if(!base||!base.children.length)return;
+   const base=home.querySelector('.homeOnlyMain')||home;if(!base.children.length)return;
    const section=el('section','swapp-home-editorial');section.dataset.swappHomeEditorial='1';
    const top=el('div','swapp-home-editorial-top'),title=el('div');
    title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
@@ -48,7 +48,7 @@
    for(let i=0;i<5;i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid,related);const ticket=++requestId;
    base.insertBefore(section,base.firstChild);
    news().then(async articles=>{
-     if(!section.isConnected||ticket!==requestId)return;
+     if(!section.isConnected)return;
      section.setAttribute('aria-busy','false');
      const valid=articles.filter(x=>slugOk(x.slug)&&String(x.title||'').trim()).slice(0,5);
      grid.replaceChildren();
@@ -71,6 +71,6 @@
    });
  }
  function queue(){if(queued)return;queued=true;setTimeout(()=>{queued=false;mount()},160)}
- const home=document.getElementById('home');if(home){new MutationObserver(queue).observe(home,{childList:true,subtree:true});queue()}
+ const home=document.getElementById('home');if(home){new MutationObserver(queue).observe(home,{childList:true,subtree:false});queue()}
  window.addEventListener('pageshow',queue);
 })();
