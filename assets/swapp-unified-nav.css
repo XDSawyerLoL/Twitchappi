@@ -14,6 +14,12 @@ header.top .userBtn{border:1px solid #2a3446;background:#101622;color:#fff;borde
 header.top .avatarMini{width:28px;height:28px;display:inline-block;flex:none;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#22ede5,#36cbb8)}
 header.top .editor-only-nav[hidden]{display:none!important}
 header.top .editor-only-nav:not([hidden]){display:inline-flex;color:#dce7f7;font-size:12px;font-weight:800;white-space:nowrap}
+header.top .menu{display:none;position:absolute;right:0;top:49px;z-index:120;width:min(320px,calc(100vw - 24px));background:#101622;border:1px solid #34425b;border-radius:18px;box-shadow:0 18px 36px #02050aaa;padding:10px}
+header.top .menu.open{display:block}
+header.top .menu a,header.top .menu button{display:block;width:100%;padding:11px 12px;border:0;border-radius:12px;color:#f5f7ff;background:transparent;text-align:left;text-decoration:none;font-size:14px;font-weight:800}
+header.top .menu a:hover,header.top .menu button:hover{background:#ffffff18}
+header.top button.userBtn{cursor:pointer}
+header.top .userBtn:focus-visible,header.top .menu a:focus-visible{outline:2px solid #64eae5;outline-offset:2px}
 #mobileNav{display:none}
 @media(max-width:1080px){
   header.top .topbar{padding:0 12px}
