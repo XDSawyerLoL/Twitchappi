@@ -1,0 +1,43 @@
+/* SWAPP 2026 — one wordmark, consistent affordances and restrained motion.
+ * Shared by SPA and server-rendered media views; no second navigation.
+ */
+:root{--swapp-brand-dot:#66e5e4;--swapp-focus:#85f2f0}
+header.top{box-shadow:0 10px 24px rgba(0,0,0,.16)}
+header.top .topbar{gap:clamp(10px,1.35vw,20px)}
+header.top a.brand.swapp-wordmark{position:relative;display:inline-flex;align-items:center;gap:0;flex:0 0 auto;min-height:48px;padding:5px 2px 6px 0;background:transparent;color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:clamp(23px,2.35vw,31px);font-weight:950;letter-spacing:-.078em;line-height:1;text-decoration:none;text-transform:uppercase;text-shadow:none;white-space:nowrap}
+header.top .brand .brandMark{display:none!important}
+header.top .brand .swapp-wordmark-text{display:inline-block}
+header.top .brand .swapp-wordmark-dot,.swapp-boot-wordmark .swapp-wordmark-dot{color:var(--swapp-brand-dot);text-shadow:0 0 12px #66e5e440}
+header.top a.brand.swapp-wordmark::after{content:"";position:absolute;bottom:5px;left:0;width:100%;height:2px;border-radius:2px;background:var(--swapp-brand-dot);transform:scaleX(0);transform-origin:left;opacity:.85;transition:transform .22s ease}
+header.top a.brand.swapp-wordmark:hover::after,header.top a.brand.swapp-wordmark:focus-visible::after{transform:scaleX(1)}
+header.top .brand:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:4px;border-radius:5px}
+.swapp-boot-wordmark{font:950 24px/1 Inter,system-ui,sans-serif;letter-spacing:-.075em;color:#fff}
+.swapp-footer-brand>a{font-weight:950;letter-spacing:-.075em}
+.swapp-footer-brand-dot{color:var(--swapp-brand-dot)}
+header.top .mainNav :is(a,button){position:relative;transition:background-color .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
+header.top .mainNav :is(a,button):focus-visible,#mobileNav :is(a,button):focus-visible{outline:2px solid var(--swapp-focus);outline-offset:2px}
+header.top .mainNav :is(a,button):not(.swappIntegratedNewsNav):hover{background:#243146;color:#fff}
+header.top .mainNav :is(a,button).active:not(.swappIntegratedNewsNav),header.top .mainNav :is(a,button)[aria-current="page"]:not(.swappIntegratedNewsNav){background:linear-gradient(120deg,#29344a,#2b2547);color:#fff;box-shadow:inset 0 0 0 1px #7784b855}
+header.top .userBtn{min-height:40px;transition:border-color .18s ease,background-color .18s ease}
+header.top .userBtn:hover,header.top .userBtn[aria-expanded="true"]{background:#202b40;border-color:#648094}
+header.top .userBtn:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:2px}
+.swapp-home-editorial{background:linear-gradient(135deg,#172438,#101725 64%,#22182c);border-color:#414a60;box-shadow:0 20px 50px #03071333}
+.swapp-home-editorial-top h2{letter-spacing:-.05em;text-wrap:balance}
+.swapp-home-story{position:relative;outline-offset:3px;box-shadow:0 5px 22px #00000015}
+.swapp-home-story-image{isolation:isolate}
+.swapp-home-story-image::after{content:"";pointer-events:none;position:absolute;inset:0;background:linear-gradient(to bottom,transparent 55%,#05091344);z-index:0}
+.swapp-home-story-category{z-index:1}
+.swapp-home-story:hover,.swapp-home-story:focus-visible{border-color:#83e6e3;box-shadow:0 20px 38px #0008,0 0 0 1px #70e9e544}
+.swapp-home-story:focus-visible,.swapp-home-match-live:focus-visible,.swapp-home-read-related:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:3px}
+.swapp-home-story-cta{display:inline-flex;align-items:center;gap:6px;font-weight:800}
+.swapp-home-match-item{transition:background .18s ease,border-color .18s ease}
+.swapp-home-match-item:hover{background:#223047;border-color:#60839a}
+.swapp-actus-card{transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.swapp-actus-card:hover,.swapp-actus-card:focus-visible{transform:translateY(-3px);border-color:#6bd6de;box-shadow:0 18px 34px #0006}
+.swapp-actus-card:focus-visible,.swapp-reader-live-card:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:3px}
+.swapp-reader-live-card:hover{box-shadow:0 18px 34px #0007}
+.swapp-footer a:focus-visible{outline:2px solid var(--swapp-focus);outline-offset:3px}
+@media(max-width:1080px){header.top a.brand.swapp-wordmark{font-size:25px;min-height:42px}}
+@media(max-width:490px){header.top a.brand.swapp-wordmark{font-size:24px}header.top .topbar{gap:8px}}
+@media(hover:none){.swapp-home-story:hover,.swapp-actus-card:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){header.top a.brand.swapp-wordmark::after,header.top .mainNav :is(a,button),header.top .userBtn,.swapp-home-match-item,.swapp-actus-card{transition:none!important}}
