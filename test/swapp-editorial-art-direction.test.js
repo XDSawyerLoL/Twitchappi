@@ -8,7 +8,7 @@ const read=relative=>fs.readFileSync(path.join(ROOT,relative),'utf8');
 
 test('one new editorial stylesheet applies consistently to SPA and public media routes',()=>{
   const main=read('index.html'),publicPage=read('modules/swapp-news/site-shell.js');
-  const stylesheet='/assets/swapp-art-direction.css?v=20261015-editorial-28';
+  const stylesheet='/assets/swapp-art-direction.css?v=20261015-balanced-29';
   for(const page of [main,publicPage]){
     assert.ok(page.includes(stylesheet));
     assert.ok(page.indexOf(stylesheet)>page.indexOf('/assets/swapp-visual-polish.css'));
@@ -31,7 +31,7 @@ test('no changes remove editorial shelf, cards or user-facing actions',()=>{
   const app=read('assets/swapp-home-news.js'),css=read('assets/swapp-art-direction.css');
   assert.match(app,/fetchItems\('\/api\/actus'/);
   assert.match(app,/grid\.append\(story\(item,i\)\)/);
-  assert.match(app,/browseLive\.href='\/decouvrir'/);
+  assert.doesNotMatch(app,/browseLive\.href='\/decouvrir'/);
   assert.match(css,/#home \.swapp-home-story/);
   assert.match(css,/#home \.homeLiveCard1014/);
   assert.match(css,/#actus \.swapp-actus-card/);
