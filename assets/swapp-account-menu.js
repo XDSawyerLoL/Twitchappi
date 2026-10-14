@@ -34,7 +34,24 @@
  const observer=new MutationObserver(()=>{if(scheduled)return;scheduled=true;queueMicrotask(enhance)});
  observer.observe(menu,{childList:true});
  enhance();
- trigger.addEventListener('click',()=>{queueMicrotask(enhance)});
+ trigger.addEventListener('click',()=>{
+  queueMicrotask(()=>{
+   enhance();
+   trigger.setAttribute('aria-expanded',String(menu.classList.contains('open')));
+  });
+ });
+ // Existing inline handlers execute before bubbling: close after selecting an action.
+ menu.addEventListener('click',event=>{
+  const action=event.target.closest('button,a');
+  if(!action||action.closest('.topThemeColors,.themeMenuRow'))return;
+  menu.classList.remove('open');
+  trigger.setAttribute('aria-expanded','false');
+ });
+ document.addEventListener('click',event=>{
+  if(!event.target.closest('.userArea')&&!menu.classList.contains('open')){
+   trigger.setAttribute('aria-expanded','false');
+  }
+ });
  document.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&menu.classList.contains('open')){
    menu.classList.remove('open');
