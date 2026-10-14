@@ -8,11 +8,11 @@ const {slugify}=require('./article-core');
 function makePublicCatalog({catalog,fetchImpl=global.fetch,clock=Date.now,ttl=30*60*1000,limit=3}={}){
  const refs=(catalog?.items||[]).filter(x=>x.type==='post'&&typeof x.url==='string').slice(0,65);
  const cache=new Map(),inflight=new Map();
- const bySlug=new Map(refs.map(item=>['justplayer-'+String(item.id||item.url.split('/').at(-1)),item]));
+ const bySlug=new Map(refs.map(item=>[slugify('justplayer-'+String(item.id||item.url.split('/').at(-1))),item]));
  function convert(item,article){
    if(!article||typeof article.body!=='string'||article.body.length<220||article.body.split(/\s+/).length<42)return null;
    const title=String(article.title||item.title||'').slice(0,180);
-   const key='justplayer-'+String(item.id||item.url.split('/').at(-1));
+   const key=slugify('justplayer-'+String(item.id||item.url.split('/').at(-1)));
    const image=article.image?.url?{url:article.image.url,credit:article.image.credit||'',rights:article.image.rights||''}:null;
    return {
       slug:key,title,body:article.body,summary:article.summary||article.body.slice(0,300),
