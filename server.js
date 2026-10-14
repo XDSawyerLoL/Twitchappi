@@ -39,55 +39,8 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const DEV_SESSION_SECRET = 'dev_secret_change_me';
 const STRIPE_EVENTS = 'stripe_events';
 
-function safeOrigin(value){
-  try{
-    if(!value) return null;
-    return new URL(String(value)).origin;
-  }catch(_){ return null; }
-}
-
-function getAllowedCorsOrigins(){
-  const explicit = String(process.env.CORS_ORIGINS || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
-  if(explicit.length) return Array.from(new Set(explicit));
-
-  const derived = [
-    safeOrigin(process.env.APP_BASE_URL),
-    safeOrigin(process.env.PUBLIC_APP_URL),
-    safeOrigin(process.env.BILLING_SUCCESS_URL),
-    safeOrigin(process.env.BILLING_CANCEL_URL),
-    safeOrigin(process.env.RENDER_EXTERNAL_URL),
-    safeOrigin(process.env.API_BASE_URL),
-  ].filter(Boolean);
-
-  if(derived.length) return Array.from(new Set(derived));
-  if(IS_PROD) return [];
-  return [
-    'http://localhost:10000',
-    'http://127\.0\.0\.1:10000',
-    'http://localhost:3000',
-    'http://127\.0\.0\.1:3000'
-  ];
-}
-
-const ALLOWED_CORS_ORIGINS = getAllowedCorsOrigins();
-
-function isOriginAllowed(origin){
-  if(!origin) return true;
-  if(ALLOWED_CORS_ORIGINS.includes(origin)) return true;
-  if(!IS_PROD) return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  return false;
-}
-
-function corsOriginHandler(origin, cb){
-  if(isOriginAllowed(origin)) return cb(null, true);
-  return cb(new Error('Origine refusée par CORS'));
-}
-
-
-
+const {safeOrigin,createCorsPolicy} = require('./lib/cors-policy');
+const {allowedOrigins: ALLOWED_CORS_ORIGINS,corsOriginHandler} = createCorsPolicy({env:process.env,isProd:IS_PROD});
 
 // --- Helpers (server) ---
 function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
@@ -456,6 +409,10 @@ app.use(cors({
   origin: corsOriginHandler,
   credentials: true
 }));
+app.use((err,req,res,next)=>{
+  if(err && err.code==='CORS_ORIGIN_DENIED')return res.status(403).json({success:false,error:'cors_origin_denied'});
+  next(err);
+});
 app.use(bodyParser.json({
   limit: '12mb',
   verify: function(req, _res, buf){
