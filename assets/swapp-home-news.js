@@ -7,7 +7,7 @@
  const safeUrl=s=>{try{const u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
  const el=(tag,cls,content)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(content!=null)n.textContent=String(content);return n};
  const fetchItems=async(path,timeout)=>{const r=await fetch(path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(timeout)});if(!r.ok)throw Error('HTTP '+r.status);return r.json()};
- let newsPromise=null,livesPromise=null,queued=false;
+ let newsPromise=null,livesPromise=null,queued=false,requestId=0;
  const news=()=>newsPromise||(newsPromise=fetchItems('/api/actus',10000).then(x=>Array.isArray(x.articles)?x.articles:[]).catch(()=>{newsPromise=null;return []}));
  const lives=()=>livesPromise||(livesPromise=fetchItems('/api/discovery/home-lives?limit=40&lang=fr',12000).then(x=>x.success&&Array.isArray(x.items)?x.items:[]).catch(()=>{livesPromise=null;return []}));
  function navigateArticle(event,slug){
@@ -45,15 +45,16 @@
    all.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('actus');window.SwappActus?.home()};
    top.append(title,all);section.append(top);
    const grid=el('div','swapp-home-story-grid'),related=el('div','swapp-home-match-zone');
-   grid.append(el('p','swapp-home-empty','Chargement des articles…'));section.append(grid,related);
+   for(let i=0;i<5;i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid,related);const ticket=++requestId;
    base.insertBefore(section,base.firstChild);
    news().then(async articles=>{
-     if(!section.isConnected)return;
+     if(!section.isConnected||ticket!==requestId)return;
+     section.setAttribute('aria-busy','false');
      const valid=articles.filter(x=>slugOk(x.slug)&&String(x.title||'').trim()).slice(0,5);
      grid.replaceChildren();
-     if(!valid.length){grid.append(el('p','swapp-home-empty','Aucun article complet disponible actuellement. Les lives restent accessibles depuis Découvrir.'));return}
+     if(!valid.length){section.remove();return}
      valid.forEach((item,i)=>grid.append(story(item,i)));
-     const liveItems=await lives();if(!section.isConnected)return;
+     const liveItems=await lives();if(!section.isConnected||ticket!==requestId)return;
      const seen=new Set(),pairs=[];
      for(const article of valid){if(!article.game)continue;const stream=liveItems.filter(l=>match(article.game,l.game_name||l.game||l.category)&&/^[a-z0-9_]{2,25}$/.test(String(l.login||'').toLowerCase())&&!seen.has(String(l.platform)+':'+String(l.login))).sort((a,b)=>Number(['swapp','oryon'].includes(String(b.platform||'').toLowerCase()))-Number(['swapp','oryon'].includes(String(a.platform||'').toLowerCase()))||Number(b.viewer_count||0)-Number(a.viewer_count||0))[0];if(stream){seen.add(String(stream.platform)+':'+String(stream.login));pairs.push({article,stream})}if(pairs.length>=3)break}
      related.replaceChildren();
