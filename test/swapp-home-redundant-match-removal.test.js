@@ -8,7 +8,7 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 test('homepage only shows editorial stories and existing live section, no redundant ACTUS × LIVE panel',()=>{
  const code=read('assets/swapp-home-news.js');
  assert.match(code,/valid\.forEach\(\(item,i\)=>grid\.append\(story\(item,i\)\)\)/);
- assert.match(code,/decorateHero\(modern,valid\)/);
+ assert.match(code,/decorateHero\(modern,valid,/);
  assert.match(code,/const liveShelf=modern\?\.querySelector\('\.homeLiveSection1014'\)/);
  assert.doesNotMatch(code,/ACTUS × LIVE|swapp-home-match-zone|swapp-home-match-item/);
  assert.doesNotMatch(code,/\/api\/discovery\/game-lives/);
@@ -27,7 +27,7 @@ test('orphan home match styles are removed, while design and caches remain',()=>
  const main=read('index.html'),publicPage=read('modules/swapp-news/site-shell.js');
  for(const html of [main,publicPage]){
   assert.match(html,/swapp-art-direction\.css\?v=20261015-editorial-28/);
-  assert.match(html,/swapp-media\.css\?v=20261015-editorial-28/);
+  assert.match(html,/swapp-media\.css\?v=20261015-home-clean-27/);
  }
  assert.match(main,/swapp-home-news\.js\?v=20261015-editorial-28/);
 });
