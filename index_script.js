@@ -96,6 +96,8 @@ function swappCommitRouteForView(id){
 }
 function swappRouteFromLocation(){
  if(swappHasPasswordResetToken()) return {view:'settings', replace:false};
+ // Reserved editorial route takes precedence over stale hash-based channel navigation.
+ if((location.pathname||'').replace(/\/+$/,'')==='/actus')return {view:'actus'};
  const hash=(location.hash||'').replace(/^#/,'').trim();
  if(hash){
    const parts=hash.split('/');
