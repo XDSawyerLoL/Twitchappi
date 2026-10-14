@@ -19,11 +19,11 @@ async function mount(){
  try{
   const live=await json('/api/discovery/home-lives?limit=40&lang=fr');if(ticket!==request||!shelf.isConnected)return;
   const streamer=(live.items||[]).find(x=>String(x.login||'').toLowerCase()===login&&['swapp','oryon'].includes(String(x.platform||'').toLowerCase()));
-  const game=String(streamer?.game_name||streamer?.game||'').trim();if(!game){status.textContent='Aucun jeu vérifiable pour ce live actuellement.';return}
+  const game=String(streamer?.game_name||streamer?.game||streamer?.category||'').trim();if(!game){status.textContent='Le jeu de ce live n’est pas disponible dans les suggestions reçues.';return}
   shelf.querySelector('h2').textContent='À lire sur '+game;status.textContent='Recherche des articles liés…';
   const data=await json('/api/actus');if(ticket!==request||!shelf.isConnected)return;
   const articles=(data.articles||[]).filter(a=>gameMatch(game,a.game)&&/^[a-z0-9][a-z0-9-]{2,109}[a-z0-9]$/.test(String(a.slug||''))).slice(0,3);
-  grid.replaceChildren();status.textContent=articles.length?'Articles SWAPP consacrés à ce jeu':'Aucun article associé à ce jeu pour le moment.';
+  grid.replaceChildren();status.textContent=articles.length?'Articles SWAPP consacrés à ce jeu':'Aucun article correspondant parmi les publications actuellement accessibles.';
   for(const a of articles){const link=node('a','swapp-live-article-card');link.href='/actus/'+encodeURIComponent(a.slug);const image=a.image?.url||a.imageUrl;if(image){try{const u=new URL(image);if(u.protocol==='https:'){const img=node('img');img.src=u.href;img.alt='';img.loading='lazy';img.onerror=()=>img.remove();link.append(img)}}catch{}}const info=node('span');info.append(node('strong','',a.title),node('small','',a.summary||'Lire sur SWAPP'));link.append(info);grid.append(link)}
  }catch{if(ticket===request&&shelf.isConnected)status.textContent='Actualités temporairement indisponibles.'}
 }
