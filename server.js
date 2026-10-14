@@ -8800,7 +8800,7 @@ app.get('/api/discovery/home-lives', heavyLimiter, async (req,res)=>{
 app.get('/api/discovery/game-lives', heavyLimiter, async (req,res)=>{
   const game=String(req.query.game||'').trim().slice(0,90);
   if(game.length<2) return res.status(400).json({success:false,error:'Jeu requis',items:[]});
-  const norm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const same=(a,b)=>{a=norm(a);b=norm(b);return !!(a&&b&&(a===b||(a.length>=7&&b.includes(a))||(b.length>=7&&a.includes(b))))};
   const limit=Math.max(1,Math.min(24,Number(req.query.limit)||12));
   try{
