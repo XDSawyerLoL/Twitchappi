@@ -6,6 +6,20 @@ Le catalogue `data/justplayer-public-catalog.json` contient **12 publications re
 
 La liste actuelle, incomplète, a été constituée depuis https://justplayer.fr/supporters et des URLs individuelles publiques. Les articles d'avant janvier 2026, les pages non indexées, les éléments réservés aux abonnés, les vidéos et les images originales ne sont pas tous couverts. Ne pas supprimer JustPlayer/Fourthwall avant une réconciliation du nombre exact de posts dans son tableau de bord.
 
+## Méthode sans export Fourthwall (prioritaire)
+
+Aucun export du compte n'est nécessaire pour **préparer** les articles publics :
+
+```bash
+node tools/justplayer-public-migrate.js --catalog data/justplayer-public-catalog.json --out justplayer-public-migration
+```
+
+Ce programme lit en HTTP(S) les pages publiques numériques du catalogue. Il produit un `report.json`, un `extracted-public-articles.json` et des `batch-001.json` de brouillons. **Par défaut, aucune donnée SWAPP/Firestore n'est modifiée.** Les pages privées, incomplètes ou bloquées sont signalées et exclues : aucun texte n'est inventé.
+
+Après déploiement du CMS sur un environnement isolé, l'option `--send` envoie uniquement une simulation distante ; `--send --commit` nécessite en plus `SWAPP_BASE_URL` et `SWAPP_ADMIN_KEY` dans l'environnement et ne crée que des brouillons, sans publication sociale.
+
+**Limite de couverture :** le catalogue connu contient seulement 12 références et n'est pas exhaustif. La page publique indique davantage de contenus via ses tags ; un inventaire paginé et la réconciliation des publications doivent précéder toute suppression du site d'origine. Le script ne garantit pas de pouvoir interpréter tous les gabarits HTML Fourthwall.
+
 ## Fonctionnement du convertisseur
 
 1. Obtenir, depuis Fourthwall en tant que propriétaire, **un export contenant le texte intégral** de chaque publication. Si aucun export de posts n'est offert par l'interface, établir une extraction autorisée depuis l'accès propriétaire plutôt que d'inventer les textes manquants.
