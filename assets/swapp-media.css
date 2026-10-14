@@ -47,3 +47,16 @@ main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 .swapp-watch-chat{border-radius:20px;overflow:hidden;border:1px solid #44546b;min-height:360px;background:#0c111d}
 @media(max-width:1000px){.swapp-media-hero,.swapp-watch-layout{grid-template-columns:1fr}.swapp-live-grid,.swapp-media-stories{grid-template-columns:repeat(2,minmax(0,1fr))}.swapp-watch-chat{height:440px}}
 @media(max-width:660px){header{padding:10px 15px!important}header nav a{padding:8px 10px!important;font-size:12px!important}.swapp-media-hero,.swapp-live-grid,.swapp-media-stories{grid-template-columns:1fr}.swapp-media-stage,.swapp-media-feature{min-height:unset}.swapp-media-stage h1{font-size:44px}main.swapp-media-main{padding:25px 15px 65px}.swapp-watch-chat{display:none}}
+
+/* SWAPP home: a native editorial lane within the existing live dashboard. */
+.swapp-home-editorial{margin:18px 0 28px;padding:clamp(20px,3vw,30px);border:1px solid #54607c;border-radius:22px;background:radial-gradient(ellipse at 0 0,#206e8661,transparent 58%),linear-gradient(110deg,#16263e,#231935);box-shadow:0 20px 40px #040a142c;color:#fff}
+.swapp-home-editorial-top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.swapp-home-editorial-top small{font-size:12px;font-weight:900;color:#60ece8;letter-spacing:.1em}
+.swapp-home-editorial-top h2{font-size:clamp(23px,3vw,35px);letter-spacing:-.05em;line-height:1.14;margin:8px 0}
+.swapp-home-editorial-top p{font-size:14px;color:#c8d6e7;max-width:750px;margin:0}
+.swapp-home-story-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:19px}
+.swapp-home-story{display:flex;flex-direction:column;gap:10px;min-width:0;border-radius:13px;padding:17px;background:#ffffff0d;border:1px solid #6f7d9c69;color:white;text-decoration:none}
+.swapp-home-story:hover{border-color:#58e8e7}.swapp-home-story span{font-size:11px;color:#a5eeff;font-weight:800}
+.swapp-home-story strong{font-size:16px;line-height:1.34}.swapp-home-story small{color:#c8d5e8}
+.swapp-home-empty{grid-column:1/-1;color:#c8d8e9;margin:0;font-size:14px}
+@media(max-width:700px){.swapp-home-story-grid{grid-template-columns:1fr}.swapp-home-editorial{margin:12px 0 22px}}
