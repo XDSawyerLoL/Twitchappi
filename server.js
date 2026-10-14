@@ -927,8 +927,9 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
     const {makeNewsEditorGuard} = require('./modules/swapp-news/editor-auth');
     const allowedNewsOrigins = ['https://swapp.tv','https://www.swapp.tv',
       safeOrigin(process.env.APP_BASE_URL), safeOrigin(process.env.PUBLIC_APP_URL)].filter(Boolean);
+    const isNewsEditor = req => isOryonAdmin(req) || isAdminTwitchUser(req.session?.twitchUser);
     const requireNewsEditor = makeNewsEditorGuard({
-      isSessionAdmin: isOryonAdmin,
+      isSessionAdmin: isNewsEditor,
       adminKey: getSwappAdminKey(),
       isProduction: IS_PROD,
       allowedOrigins: allowedNewsOrigins
@@ -942,7 +943,7 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
     });
     app.use(createNewsRouter({
       express, firestore: db, requireEditor: requireNewsEditor,
-      canEdit: isOryonAdmin,
+      canEdit: isNewsEditor,
       isReady: () => firestoreOk,
       baseUrl: 'https://swapp.tv'
     }));
