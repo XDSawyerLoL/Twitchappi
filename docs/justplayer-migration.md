@@ -36,3 +36,9 @@ La liste actuelle, incomplète, a été constituée depuis https://justplayer.fr
 ## Limites connues
 
 Le convertisseur transforme une description HTML simple en texte lisible avec titres/listes de base ; les images, légendes, embeds, vidéos et mise en page complexes demandent une passe média. L'extraction publique par URL seule n'est pas déclarée fiable ou exhaustive. Les brouillons peuvent avoir besoin d'un contrôle éditorial des sources avant publication.
+
+## Collecte directe des articles publics (option supplémentaire)
+
+`node tools/justplayer-import.js --fetch-public --catalog data/justplayer-public-catalog.json --out migration-publique`
+
+L'outil tente de lire la page HTML de chaque URL vérifiée, mais n'extrait un article que lorsque le corps complet apparaît dans un bloc `article` ou dans un objet JSON-LD Article/BlogPosting. Il refuse les pages de connexion, les contenus incomplets et les formats qu'il ne sait pas interpréter. Le rapport recense chaque échec et les vidéos exclues. Ce mode **n'assure pas l'exhaustivité**, notamment si Fourthwall change le HTML, charge le texte en JavaScript ou impose un accès privé. Il ne contourne aucune restriction.
