@@ -10968,14 +10968,15 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       const more=$id('homeLiveMore1014');
       if(more){
         const cards=Array.from(grid.querySelectorAll('.homeLiveCard1014'));
-        cards.forEach((el,i)=>{el.hidden=i>=8});
-        const extras=Math.max(0,cards.length-8);
+        const initiallyVisible=4;
+        cards.forEach((el,i)=>{el.hidden=i>=initiallyVisible});
+        const extras=Math.max(0,cards.length-initiallyVisible);
         more.hidden=!extras;
         more.setAttribute('aria-expanded','false');
         more.textContent='Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':'');
         more.onclick=()=>{
           const expanded=more.getAttribute('aria-expanded')==='true';
-          cards.forEach((el,i)=>{el.hidden=expanded&&i>=8});
+          cards.forEach((el,i)=>{el.hidden=expanded&&i>=initiallyVisible});
           more.setAttribute('aria-expanded',String(!expanded));
           more.textContent=expanded?'Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':''):'Voir moins de lives';
         };
