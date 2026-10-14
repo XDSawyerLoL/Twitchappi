@@ -415,3 +415,87 @@
 @media(prefers-reduced-motion:reduce){
  #actus .swapp-actus-native.swapp-actus-reading .swapp-actus-go-back{transition:none!important}
 }
+
+/* 13 — ACTUS shares the user's SWAPP colour choice.
+   The account menu updates --brand on :root; keep all reading/listing surfaces
+   on that same token rather than freezing cyan or magenta into the page. */
+#actus{
+ --swapp-news-accent:var(--brand,#22d3ee);
+ --swapp-news-bright:color-mix(in srgb,var(--swapp-news-accent) 57%,white);
+ --swapp-news-edge:color-mix(in srgb,var(--swapp-news-accent) 60%,#415168);
+ --swapp-news-tint:color-mix(in srgb,var(--swapp-news-accent) 18%,#142135);
+ --swapp-news-button:color-mix(in srgb,var(--swapp-news-accent) 64%,white);
+}
+body:has(#actus.view.active){
+ background:radial-gradient(ellipse at 83% 3%,color-mix(in srgb,var(--brand,#22d3ee) 17%,transparent),transparent 40%),radial-gradient(ellipse at 6% 28%,color-mix(in srgb,var(--brand,#22d3ee) 8%,transparent),transparent 38%),var(--bg,#080b12)!important;
+}
+#actus :is(.swapp-actus-head small,.swapp-actus-article>small,.swapp-actus-info small,.swapp-reader-kicker-main,.swapp-reader-kicker-game,.swapp-actus-cover-empty){
+ color:var(--swapp-news-bright)!important;
+}
+#actus .swapp-actus-head h1::selection,#actus .swapp-actus-article h1::selection{
+ background:var(--swapp-news-tint);
+}
+#actus .swapp-actus-go-live{
+ background:var(--swapp-news-button)!important;color:#091322!important;border:1px solid transparent!important;
+}
+#actus .swapp-actus-go-live:hover{filter:brightness(1.07)}
+#actus .swapp-actus-tools :is(input,select):focus-visible{
+ outline:2px solid var(--swapp-news-bright)!important;
+ border-color:var(--swapp-news-edge)!important;
+}
+#actus .swapp-actus-game-chip.active{
+ background:var(--swapp-news-tint)!important;
+ border-color:var(--swapp-news-accent)!important;
+ color:var(--swapp-news-bright)!important;
+ box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--swapp-news-accent) 22%,transparent)!important;
+}
+#actus .swapp-actus-game-chip:hover{
+ background:var(--swapp-news-tint)!important;
+ border-color:var(--swapp-news-edge)!important;
+}
+#actus .swapp-actus-games-more{color:var(--swapp-news-bright)!important}
+#actus .swapp-actus-games-more:hover{border-color:var(--swapp-news-edge)!important;background:var(--swapp-news-tint)!important}
+#actus :is(.swapp-actus-card,.swapp-discover-stream,.swapp-reader-live-card):hover,
+#actus :is(.swapp-actus-card,.swapp-discover-stream,.swapp-reader-live-card):focus-visible{
+ border-color:var(--swapp-news-edge)!important;
+}
+#actus .swapp-actus-cover-empty{
+ background:linear-gradient(125deg,var(--swapp-news-tint),transparent);
+}
+#actus .swapp-reading-progress span{
+ background:linear-gradient(90deg,var(--swapp-news-accent),var(--swapp-news-bright))!important;
+}
+#actus .swapp-actus-body blockquote{border-left-color:var(--swapp-news-accent)!important}
+#actus .swapp-actus-sources a,
+#actus .swapp-reader-toc a:hover,
+#actus .swapp-reader-source-link{
+ color:var(--swapp-news-bright)!important;
+}
+#actus .swapp-reader-source-icon{
+ color:var(--swapp-news-bright)!important;
+ background:var(--swapp-news-tint)!important;
+ border-color:var(--swapp-news-edge)!important;
+}
+#actus .swapp-actus-article .swapp-reader-source-panel{
+ border-color:color-mix(in srgb,var(--swapp-news-accent) 34%,#32435c)!important;
+}
+#actus .swapp-reader-source-link{
+ border-color:var(--swapp-news-edge)!important;
+}
+#actus .swapp-reader-source-link:hover,
+#actus .swapp-reader-share:hover{
+ background:var(--swapp-news-tint)!important;border-color:var(--swapp-news-edge)!important;
+}
+#actus .swapp-reader-live-more{
+ background:var(--swapp-news-tint)!important;
+ border-color:var(--swapp-news-edge)!important;
+ color:var(--swapp-news-bright)!important;
+}
+#actus .swapp-reader-live-more:hover{filter:brightness(1.16)}
+#actus .swapp-actus-native.swapp-actus-reading .swapp-actus-go-back:hover{
+ color:var(--swapp-news-bright)!important;
+ border-bottom-color:var(--swapp-news-edge)!important;
+}
+#actus :is(.swapp-actus-card,.swapp-actus-go-back,.swapp-actus-game-chip,.swapp-actus-games-more,.swapp-reader-live-card,.swapp-reader-live-more,.swapp-reader-source-link,.swapp-reader-share):focus-visible{
+ outline:2px solid var(--swapp-news-bright)!important;outline-offset:3px!important;
+}
