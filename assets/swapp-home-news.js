@@ -33,6 +33,22 @@
    body.append(el('small','swapp-home-story-cta','Lire l’article →'));
    a.append(image,body);return a;
  }
+ function decorateHero(modern,articles){
+   const hero=modern?.querySelector('.homeHeroInner1014');
+   if(!hero||hero.querySelector('.swapp-home-hero-feature'))return;
+   const feature=articles.find(item=>slugOk(item.slug)&&safeUrl(item.image?.url||item.imageUrl));
+   if(!feature)return;
+   const tile=el('a','swapp-home-hero-feature');tile.href='/actus/'+encodeURIComponent(feature.slug);
+   tile.setAttribute('aria-label','Lire : '+feature.title);
+   tile.addEventListener('click',event=>navigateArticle(event,feature.slug));
+   const image=el('img');image.src=safeUrl(feature.image?.url||feature.imageUrl);image.alt='';
+   image.decoding='async';image.loading='eager';image.onerror=()=>{tile.remove();hero.classList.remove('swapp-hero-has-story')};
+   const overlay=el('span','swapp-home-hero-feature-overlay');
+   overlay.append(el('span','swapp-home-hero-feature-label','À LIRE SUR SWAPP'),
+     el('strong','',feature.title),el('span','swapp-home-hero-feature-link','Lire l’article →'));
+   tile.append(image,overlay);hero.append(tile);
+   hero.classList.add('swapp-hero-has-story');
+ }
  function liveCard(item){
    const login=String(item.login||'').toLowerCase(),platform=String(item.platform||'').toLowerCase();
    if(!/^[a-z0-9_]{2,25}$/.test(login))return null;
@@ -78,7 +94,7 @@
        };
        retryState.append(retry);grid.append(retryState);return;
      }
-     valid.forEach((item,i)=>grid.append(story(item,i)));
+     valid.forEach((item,i)=>grid.append(story(item,i)));decorateHero(modern,valid);
      const featuredGames=[...new Set(valid.map(a=>String(a.game||'').trim()).filter(Boolean))].slice(0,3);
      const gameResults=await Promise.allSettled(featuredGames.map(game=>fetchItems('/api/discovery/game-lives?limit=8&game='+encodeURIComponent(game),9000)));
      if(!section.isConnected||ticket!==requestId)return;
