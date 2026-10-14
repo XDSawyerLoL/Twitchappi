@@ -1,0 +1,22 @@
+/* One footer for every SWAPP view, without a second navigation menu. */
+(()=>{'use strict';
+function mount(){
+ if(document.querySelector('[data-swapp-footer]'))return;
+ const old=document.querySelector('footer.site-footer');
+ if(old)old.remove();
+ const footer=document.createElement('footer');footer.className='swapp-footer';footer.dataset.swappFooter='1';
+ footer.setAttribute('aria-label','Informations sur SWAPP');
+ footer.innerHTML=`<div class="swapp-footer-inner">
+  <div class="swapp-footer-top">
+   <div class="swapp-footer-brand"><a href="/" aria-label="SWAPP, accueil">SWAPP<span class="swapp-footer-brand-dot">.</span></a><p>Jeux vidéo, créateurs et communauté.<br>Une seule plateforme pour découvrir, lire et regarder.</p></div>
+   <div class="swapp-footer-col"><h2>Explorer</h2><a href="/">Accueil</a><a href="/actus">Actualités</a><a href="/decouvrir">Lives et créateurs</a></div>
+   <div class="swapp-footer-col"><h2>Communauté</h2><a href="https://github.com/XDSawyerLoL/Twitchappi/issues/new" target="_blank" rel="noopener noreferrer">Signaler un problème <span aria-hidden="true">↗</span></a><a href="https://github.com/XDSawyerLoL/Twitchappi" target="_blank" rel="noopener noreferrer">Projet SWAPP <span aria-hidden="true">↗</span></a></div>
+   <div class="swapp-footer-col"><h2>Transparence</h2><p class="swapp-footer-pending">Informations légales, CGU et politique de confidentialité : publication à finaliser.</p></div>
+  </div>
+  <div class="swapp-footer-bottom"><span>© ${new Date().getFullYear()} SWAPP. Tous droits réservés.</span><span>SWAPP reste SWAPP — ACTUS et LIVE réunis.</span></div>
+ </div>`;
+ const nav=document.getElementById('mobileNav');
+ (nav?.parentNode||document.body).insertBefore(footer,nav||null);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
+})();
