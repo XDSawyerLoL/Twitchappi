@@ -1,6 +1,8 @@
 'use strict';
 const {escapeHtml}=require('./article-core');
 const {layout}=require('./site-shell');
+const {getPublicArchives}=require('./archive');
+const catalog=require('../../data/justplayer-public-catalog.json');
 function dateLabel(input){
  if(!input)return '';
  const d=new Date(input);
@@ -22,9 +24,26 @@ function renderNewsHome(articles,{baseUrl='https://swapp.tv',category='',query='
  const featured=feature?`<div class="hero-side"><div><span class="eyebrow">À la une · ${escapeHtml(feature.category||'Actualités')}</span>${feature.image?.url?`<img src="${escapeHtml(feature.image.url)}" alt="" style="width:100%;max-height:200px;object-fit:cover;border-radius:14px;margin:16px 0 4px">`:'<div class="decor">✦</div>'}<h2 class="side-title">${escapeHtml(feature.title)}</h2><p class="subtext">${escapeHtml(plainSummary(feature))}</p></div><a class="button-link primary" href="/actus/${encodeURIComponent(feature.slug)}">Lire cet article ↗</a></div>`:`<div class="hero-side"><div><span class="eyebrow">L’univers SWAPP</span><div class="decor">✦</div><h2 class="side-title">Le gaming, ses histoires et ceux qui le font vivre.</h2><p class="subtext">Un même endroit pour l’actualité, les jeux et les créateurs.</p></div><a class="button-link primary" href="/decouvrir">Découvrir les lives →</a></div>`;
  const pills=['<a href="/actus"'+(!safeCategory?' aria-current="page"':'')+'>Tout voir</a>',...categories.map(c=>`<a href="/actus?categorie=${encodeURIComponent(c)}"${safeCategory===c?' aria-current="page"':''}>${escapeHtml(c)}</a>`)].join('');
  const empty=filtered.length===0?`<section class="empty-news"><span class="eyebrow">SWAPP · Magazine</span><h3>${safeCategory||safeQuery?'Aucun article pour cette recherche.':'La rédaction prend forme.'}</h3><p>${safeCategory||safeQuery?'Change de catégorie ou reviens à toutes les publications.':'La rubrique est désormais native à SWAPP. Les articles validés paraîtront ici, avec leurs images et leurs textes complets.'}</p><div class="story-actions"><a class="button-link primary" href="/actus/studio">Accéder à la rédaction</a><a class="button-link" href="/decouvrir">Explorer les lives</a></div></section>`:'';
+ const previews=getPublicArchives(catalog,articles).slice(0,24);
+ const previewCards=previews.map(a=>{
+   const id=String(a.url||'').split('/').filter(Boolean).at(-1);
+   const isVideo=a.type==='video_embed';
+   if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id))return '';
+   return '<a class="story-card" href="/actus/justplayer/'+encodeURIComponent(id)+'">'+
+     '<div class="story-fallback" aria-hidden="true">'+(isVideo?'▶':'JP')+'</div>'+
+     '<div class="story-info"><span class="tag">'+(isVideo?'Vidéo JustPlayer':'JustPlayer · En cours d’intégration')+'</span>'+
+     '<h3>'+escapeHtml(a.title)+'</h3><p>'+escapeHtml(dateLabel(a.publishedAt))+
+     ' · Découvrir cette publication dans SWAPP.</p>'+
+     '<div class="story-meta"><span>JustPlayer</span><span>Voir la fiche →</span></div></div></a>';
+ }).join('');
+ const migrationSection=previewCards?
+   '<section class="swapp-media-section" id="justplayer"><div class="section-title"><div>'+
+     '<span class="eyebrow">JustPlayer rejoint SWAPP</span><h2>Les publications JustPlayer</h2>'+
+     '<p>Ces titres restent disponibles ici pendant la récupération de leurs contenus complets. Les fiches s’ouvrent dans SWAPP, sans redirection imposée.</p>'+
+     '</div></div><div class="story-grid">'+previewCards+'</div></section>':'';
  const tiles=latest.map(card).join('');
  const liveSection=`<section class="swapp-media-section" id="en-direct" data-swapp-live-shelf><div class="swapp-media-heading"><div><span class="swapp-media-kicker">SWAPP · EN DIRECT</span><h2>Regarde ceux qui jouent maintenant.</h2><p>Les lives SWAPP d’abord, puis les créateurs Twitch. Sans quitter le média.</p></div><a class="swapp-media-button" href="/decouvrir">Explorer tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives actuellement disponibles…</p></div></section>`;
- const content=`<main class="container"><section class="hero-layout"><div class="hero-main"><span class="eyebrow">SWAPP · ACTUS × LIVE</span><h1 class="headline">Lis l’actu.<br>Vis le jeu.</h1><p>Un jeu fait parler de lui ? Découvre l’actualité, puis retrouve les créateurs qui y jouent. L’info et le live se répondent, au même endroit.</p><div class="story-actions"><a class="button-link primary" href="#publications">Explorer les articles ↓</a><a class="button-link" href="#en-direct">Voir les lives →</a></div></div>${featured}</section>${liveSection}<section id="publications" class="swapp-media-section"><div class="section-title"><div><span class="eyebrow">ACTUS · La rédaction</span><h2>L’actualité qui se regarde.</h2><p>Les articles complets, directement ici. Pas de site intermédiaire.</p></div></div><form class="searchbar" action="/actus" method="get" role="search"><input type="search" name="q" maxlength="100" placeholder="Rechercher un jeu, une actualité..." value="${escapeHtml(safeQuery)}" aria-label="Rechercher les actualités"><button class="btn" type="submit">Rechercher</button></form><div class="category-list">${pills}</div>${empty}${tiles?`<div class="story-grid">${tiles}</div>`:''}${feature&&filtered.length===1?`<p class="subtext">Retrouve l'article à la une ci-dessus.</p>`:''}</section></main>`;
+ const content=`<main class="container"><section class="hero-layout"><div class="hero-main"><span class="eyebrow">SWAPP · ACTUS × LIVE</span><h1 class="headline">Lis l’actu.<br>Vis le jeu.</h1><p>Un jeu fait parler de lui ? Découvre l’actualité, puis retrouve les créateurs qui y jouent. L’info et le live se répondent, au même endroit.</p><div class="story-actions"><a class="button-link primary" href="#publications">Explorer les articles ↓</a><a class="button-link" href="#en-direct">Voir les lives →</a></div></div>${featured}</section>${liveSection}<section id="publications" class="swapp-media-section"><div class="section-title"><div><span class="eyebrow">ACTUS · La rédaction</span><h2>L’actualité qui se regarde.</h2><p>Les articles complets, directement ici. Pas de site intermédiaire.</p></div></div><form class="searchbar" action="/actus" method="get" role="search"><input type="search" name="q" maxlength="100" placeholder="Rechercher un jeu, une actualité..." value="${escapeHtml(safeQuery)}" aria-label="Rechercher les actualités"><button class="btn" type="submit">Rechercher</button></form><div class="category-list">${pills}</div>${empty}${tiles?`<div class="story-grid">${tiles}</div>`:''}${feature&&filtered.length===1?`<p class="subtext">Retrouve l'article à la une ci-dessus.</p>`:''}</section>${migrationSection}</main>`;
  return layout({title:'ACTUS · Le média gaming',description:'Actualités jeux vidéo, analyses, découvertes et streaming sur SWAPP',content,metadata:meta});
 }
 function markdown(body){
@@ -54,4 +73,20 @@ function renderNewsStory(article,{baseUrl='https://swapp.tv'}={}){
  const content=`<main class="article-wrap"><p class="breadcrumb"><a href="/actus">SWAPP ACTUS</a> / ${escapeHtml(article.category||'Actualités')}</p><span class="eyebrow">${escapeHtml(article.category||'Actualités')} ${article.game?'· '+escapeHtml(article.game):''}</span><h1 class="article-title">${escapeHtml(article.title)}</h1><p class="article-deck">${escapeHtml(summary)}</p><div class="article-byline"><span>Par <strong>${escapeHtml(article.author||'Rédaction SWAPP')}</strong></span><span>·</span><time datetime="${escapeHtml(published||'')}">${escapeHtml(dateLabel(published))}</time></div>${cover}<div class="article-body">${markdown(article.body)}</div>${sources?`<aside class="sources-panel"><h2>Sources et références</h2><ul>${sources}</ul></aside>`:''}<div class="story-actions"><a class="button-link primary" href="/actus">← Toutes les actualités</a><a class="button-link" href="/decouvrir">Découvrir les lives</a></div>${liveSection}</main>`;
  return layout({title:article.title,description:summary,metadata,content});
 }
-module.exports={renderNewsHome,renderNewsStory,markdown,dateLabel};
+
+function renderJustPlayerPreview(item, article=null) {
+ const title=String(item.title||'Publication JustPlayer').slice(0,180);
+ const url=String(item.url||'');
+ const date=dateLabel(item.publishedAt);
+ const full=Boolean(article?.body && String(article.body).length>=80);
+ const content='<main class="article-wrap"><p class="breadcrumb"><a href="/actus">SWAPP · Actualités</a> / JustPlayer</p>'+
+   '<span class="eyebrow">JustPlayer rejoint SWAPP</span><h1 class="article-title">'+escapeHtml(title)+'</h1>'+
+   '<div class="article-byline">'+escapeHtml(date)+'</div>'+
+   (full ? '<p class="article-deck">Publication d’origine récupérée depuis JustPlayer ; la mise en forme et les médias sont en cours de vérification.</p><article class="article-body">'+markdown(article.body)+'</article>' :
+     '<div class="empty-news"><h2>Texte complet en cours d’intégration</h2><p>La publication est bien répertoriée. Son contenu intégral n’a pas pu être récupéré de façon fiable. Aucun article n’est inventé.</p></div>')+
+   '<div class="story-actions"><a class="button-link primary" href="/actus">← Retour à SWAPP Actualités</a>'+
+   '<a class="button-link" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(url)+'">Source originale JustPlayer ↗</a></div></main>';
+ return layout({title,description:'Publication JustPlayer en cours d’intégration dans SWAPP',metadata:'<meta name="robots" content="noindex,follow">',content});
+}
+
+module.exports={renderNewsHome,renderNewsStory,renderJustPlayerPreview,markdown,dateLabel};
