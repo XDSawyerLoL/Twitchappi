@@ -7,9 +7,15 @@
  const safeUrl=s=>{try{const u=new URL(s);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
  const el=(tag,cls,content)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(content!=null)n.textContent=String(content);return n};
  const fetchItems=async(path,timeout)=>{const r=await fetch(path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:AbortSignal.timeout(timeout)});if(!r.ok)throw Error('HTTP '+r.status);return r.json()};
- let newsPromise=null,livesPromise=null,queued=false,requestId=0;
- const news=()=>newsPromise||(newsPromise=fetchItems('/api/actus',10000).then(x=>Array.isArray(x.articles)?x.articles:[]).catch(()=>{newsPromise=null;return []}));
- const lives=()=>livesPromise||(livesPromise=fetchItems('/api/discovery/home-lives?limit=40&lang=fr',12000).then(x=>x.success&&Array.isArray(x.items)?x.items:[]).catch(()=>{livesPromise=null;return []}));
+ let newsPromise=null,queued=false,requestId=0,newsFetchedAt=0;
+ const news=()=>{
+   if(newsPromise&&Date.now()-newsFetchedAt<90000)return newsPromise;
+   newsFetchedAt=Date.now();
+   newsPromise=fetchItems('/api/actus',14000).then(x=>Array.isArray(x.articles)?x.articles:[])
+     .catch(()=>{newsPromise=null;return []});
+   return newsPromise;
+ };
+ 
  function navigateArticle(event,slug){
    if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
    if(typeof window.setView!=='function'||!window.SwappActus)return;
@@ -37,7 +43,10 @@
  }
  function mount(){
    const home=document.getElementById('home');if(!home||home.querySelector('[data-swapp-home-editorial]'))return;
-   const base=home.querySelector('.homeOnlyMain')||home;if(!base.children.length||home.querySelector('.swappBoot'))return;
+   const modern=home.querySelector('.swappHome1014');
+   const legacy=home.querySelector('.homeOnlyMain');
+   const base=modern||legacy||home;
+   if(!base.children.length||home.querySelector('.swappBoot'))return;
    const section=el('section','swapp-home-editorial');section.dataset.swappHomeEditorial='1';
    const top=el('div','swapp-home-editorial-top'),title=el('div');
    title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
@@ -46,7 +55,12 @@
    const actions=el('div','swapp-home-hero-actions');const browseLive=el('a','swapp-media-button swapp-home-watch-cta','Explorer les lives →');browseLive.href='/decouvrir';browseLive.onclick=e=>{if(e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||typeof window.setView!=='function')return;e.preventDefault();window.setView('discover')};actions.append(all,browseLive);top.append(title,actions);section.append(top);
    const grid=el('div','swapp-home-story-grid'),related=el('div','swapp-home-match-zone');
    for(let i=0;i<5;i++){const skeleton=el('div','swapp-home-story swapp-home-story-skeleton'+(i===0?' swapp-home-story-featured':''));skeleton.setAttribute('aria-hidden','true');skeleton.append(el('div','swapp-home-story-image'),el('div','swapp-home-story-body'));grid.append(skeleton)}section.setAttribute('aria-busy','true');section.append(grid,related);const ticket=++requestId;
-   base.insertBefore(section,base.firstChild);
+   // The editorial shelf belongs to the page's content flow, never ahead of
+   // the entire homepage hero. Maintain one instance across async renders.
+   const liveShelf=modern?.querySelector('.homeLiveSection1014');
+   if(liveShelf)modern.insertBefore(section,liveShelf);
+   else if(legacy)legacy.insertBefore(section,legacy.firstChild);
+   else base.append(section);
    news().then(async articles=>{
      if(!section.isConnected)return;
      section.setAttribute('aria-busy','false');
