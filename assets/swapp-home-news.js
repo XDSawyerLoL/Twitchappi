@@ -54,15 +54,19 @@
      grid.replaceChildren();
      if(!valid.length){section.remove();return}
      valid.forEach((item,i)=>grid.append(story(item,i)));
-     const liveItems=await lives();if(!section.isConnected||ticket!==requestId)return;
+     const featuredGames=[...new Set(valid.map(a=>String(a.game||'').trim()).filter(Boolean))].slice(0,3);
+     const gameResults=await Promise.allSettled(featuredGames.map(game=>fetchItems('/api/discovery/game-lives?limit=8&game='+encodeURIComponent(game),9000)));
+     if(!section.isConnected||ticket!==requestId)return;
+     const liveItems=gameResults.flatMap((result,i)=>result.status==='fulfilled'&&Array.isArray(result.value.items)?result.value.items.map(stream=>({...stream,_swappArticleGame:featuredGames[i]})):[]);
+
      const seen=new Set(),pairs=[];
-     for(const article of valid){if(!article.game)continue;const stream=liveItems.filter(l=>match(article.game,l.game_name||l.game||l.category)&&/^[a-z0-9_]{2,25}$/.test(String(l.login||'').toLowerCase())&&!seen.has(String(l.platform)+':'+String(l.login))).sort((a,b)=>Number(['swapp','oryon'].includes(String(b.platform||'').toLowerCase()))-Number(['swapp','oryon'].includes(String(a.platform||'').toLowerCase()))||Number(b.viewer_count||0)-Number(a.viewer_count||0))[0];if(stream){seen.add(String(stream.platform)+':'+String(stream.login));pairs.push({article,stream})}if(pairs.length>=3)break}
+     for(const article of valid){if(!article.game)continue;const stream=liveItems.filter(l=>normal(article.game)===normal(l._swappArticleGame)&&/^[a-z0-9_]{2,25}$/.test(String(l.login||'').toLowerCase())&&!seen.has(String(l.platform)+':'+String(l.login))).sort((a,b)=>Number(['swapp','oryon'].includes(String(b.platform||'').toLowerCase()))-Number(['swapp','oryon'].includes(String(a.platform||'').toLowerCase()))||Number(b.viewer_count||0)-Number(a.viewer_count||0))[0];if(stream){seen.add(String(stream.platform)+':'+String(stream.login));pairs.push({article,stream})}if(pairs.length>=3)break}
      related.replaceChildren();
      if(!pairs.length)return;
-     const heading=el('div','swapp-home-match-heading');heading.append(el('span','','ACTUS × LIVE'),el('h3','','L’actualité prend vie'));
+     const heading=el('div','swapp-home-match-heading');heading.append(el('span','','ACTUS × LIVE'),el('h3','','Regardez les jeux dont on parle'));
      related.append(heading);
      const row=el('div','swapp-home-match-grid');
-     for(const pair of pairs){const cell=el('div','swapp-home-match-item');cell.append(el('small','',pair.article.game+' · À retrouver en live'));const card=liveCard(pair.stream);if(card)cell.append(card);row.append(cell)}
+     for(const pair of pairs){const cell=el('div','swapp-home-match-item');cell.append(el('small','',pair.article.game+' · À retrouver en live'));const card=liveCard(pair.stream);if(card)cell.append(card);const read=el('a','swapp-home-read-related','Lire l’article →');read.href='/actus/'+encodeURIComponent(pair.article.slug);read.addEventListener('click',e=>navigateArticle(e,pair.article.slug));cell.append(read);row.append(cell)}
      related.append(row);
    });
  }
