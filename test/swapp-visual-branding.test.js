@@ -29,8 +29,8 @@ test('branding CSS loaded after navigation styles in both page types',()=>{
 test('homepage discovery links preserve ACTUS and LIVE routes',()=>{
  const script=read('assets/swapp-home-news.js');
  assert.match(script,/all\.href='\/actus'/);
- assert.match(script,/browseLive\.href='\/decouvrir'/);
- assert.match(script,/window\.setView\('discover'\)/);
+ assert.doesNotMatch(script,/browseLive\.href='\/decouvrir'/);
+ assert.match(read('index_script.js'),/setView\('discover'\)/);
  assert.match(script,/\/api\/actus/);
  assert.match(script,/const modern=home\.querySelector\('\.swappHome1014'\)/);
 });
