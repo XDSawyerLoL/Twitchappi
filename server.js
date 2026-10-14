@@ -907,8 +907,8 @@ function sendSwappPublicChannelUi(req, res, login){
     return sendSwappUi(res);
   }
 }
-const SWAPP_CLEAN_VIEW_PATHS = new Set(['/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
-const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
+const SWAPP_CLEAN_VIEW_PATHS = new Set(['/actus','/decouvrir','/discover','/categories','/equipes','/teams','/compte','/connexion','/settings','/chaine','/channel','/gestionnaire','/manager','/dashboard','/studio','/admin','/reset-password']);
+const SWAPP_RESERVED_ROOT_PATHS = new Set(['index_script.js','favicon.ico','pricing','twitch_auth_start','twitch_auth_callback','twitch_user_status','twitch_logout','firebase_status','followed_streams','get_default_stream','boost_queue','stream_info','cycle_stream','stream_boost','scan_target','critique_ia','start_raid','analyze_schedule','api','assets','actus','reset-password','contact','moderation','mentions-legales','confidentialite','cgu','cookies']);
 function isSwappCleanChannelSlug(slug){
   const clean = String(slug || '').trim().toLowerCase();
   return /^[a-z0-9_][a-z0-9_-]{1,39}$/.test(clean) && !SWAPP_RESERVED_ROOT_PATHS.has(clean);
@@ -952,7 +952,8 @@ if (String(process.env.SWAPP_NEWS_ENABLED || 'true').toLowerCase() === 'true') {
     console.log('[SWAPP NEWS] Rédaction activée, diffusion sociale désactivée.');
   } else {
     console.warn('[SWAPP NEWS] Firestore indisponible : module non activé.');
-    app.get('/actus', (_req,res) => res.status(503).send('SWAPP Actualités : stockage temporairement indisponible.'));
+    // The ACTUS shell must remain reachable even while its API/storage is offline.
+    app.get('/actus', (_req,res) => { res.set('Cache-Control','no-store'); return sendSwappUi(res); });
   }
 }
 
