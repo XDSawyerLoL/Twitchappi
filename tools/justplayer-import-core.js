@@ -77,18 +77,30 @@ function prepareBatches(raw, {batchSize=20}={}) {
   for(let i=0;i<articles.length;i+=batchSize) batches.push({articles:articles.slice(i,i+batchSize),dryRun:true,publish:false});
   return {total:rawRecords.length,accepted:articles.length,duplicates,rejected,warnings,batches};
 }
+function recordNumericId(record) {
+  try {
+    const url = new URL(record.url || record.legacyUrl || record.permalink);
+    if (!['justplayer.fr','www.justplayer.fr'].includes(url.hostname.toLowerCase())) return '';
+    return url.pathname.match(/\/(\d+)\/?$/)?.[1] || '';
+  } catch (_) { return ''; }
+}
 function mergeMetadataAndContent(catalog, exportData) {
   const records=recordsFromExport(exportData);
-  const details= new Map(records.map(r=>[String(new URL(r.url||r.legacyUrl||r.permalink).pathname.match(/\d+\/?$/)?.[0]||'').replace('/',''),r]).filter(([key])=>key));
+  const details=new Map(records.map(r=>[recordNumericId(r),r]).filter(([key])=>key));
   const combined=[],missing=[];
-  for(const item of catalog.items||[]) {
-    if(item.type !== 'post') {missing.push({...item,reason:'requires_video_import_adapter'});continue;}
-    const r=details.get(String(item.id));
-    if(!r) {missing.push({...item,reason:'content_not_exported'});continue;}
-    combined.push({...r,title:r.title||item.title,url:item.url,originalPublishedAt:r.originalPublishedAt||r.publishedAt||item.publishedAt});
+  for (const item of catalog.items || []) {
+    if (item.type !== 'post') {missing.push({...item,reason:'requires_video_import_adapter'});continue;}
+    const record=details.get(String(item.id));
+    if (!record) {missing.push({...item,reason:'content_not_exported'});continue;}
+    combined.push({...record,title:record.title || item.title,
+      url:item.url,legacyUrl:item.url,
+      originalPublishedAt:record.originalPublishedAt || record.publishedAt || item.publishedAt});
   }
-  const knownIds=new Set((catalog.items||[]).map(x=>String(x.id)));
-  for(const r of records){const id=String((r.url||r.legacyUrl||r.permalink||'').match(/\d+\/?$/)?.[0]||'').replace('/','');if(!knownIds.has(id))combined.push(r);}
+  const knownIds=new Set((catalog.items || []).map(x=>String(x.id)));
+  for (const record of records) {
+    const id=recordNumericId(record);
+    if (!knownIds.has(id)) combined.push(record);
+  }
   return {combined,missing};
 }
 module.exports={decodeEntities,contentToPlainText,recordsFromExport,normalizeRecord,prepareBatches,mergeMetadataAndContent};
