@@ -19,7 +19,7 @@
    const a=el('a','swapp-home-story'+(index===0?' swapp-home-story-featured':''));a.href='/actus/'+encodeURIComponent(item.slug);
    a.addEventListener('click',e=>navigateArticle(e,item.slug));
    const image=el('div','swapp-home-story-image'),src=safeUrl(item.image?.url||item.imageUrl);
-   if(src){const img=el('img');img.src=src;img.alt=item.title||'Image de jeu';img.loading=index===0?'eager':'lazy';img.decoding='async';img.onerror=()=>{img.remove();image.classList.add('swapp-home-image-fallback')};image.append(img)}
+   if(src){const img=el('img');img.src=src;img.alt='';img.loading=index===0?'eager':'lazy';img.decoding='async';img.onerror=()=>{img.remove();image.classList.add('swapp-home-image-fallback')};image.append(img)}else{image.classList.add('swapp-home-image-fallback')}
    image.append(el('span','swapp-home-story-category',item.game||item.category||'ACTUS'));
    const body=el('div','swapp-home-story-body');
    body.append(el('span','swapp-home-story-eyebrow',index===0?'À LA UNE':'ACTUALITÉ'),el('strong','',item.title||'Article SWAPP'));
@@ -32,7 +32,7 @@
    if(!/^[a-z0-9_]{2,25}$/.test(login))return null;
    const a=el('a','swapp-home-match-live');a.href=['oryon','swapp'].includes(platform)?'/'+encodeURIComponent(login):'/live/twitch/'+encodeURIComponent(login)+'?game='+encodeURIComponent(String(item.game_name||'').slice(0,90));
    const src=safeUrl(item.thumbnail_url);
-   if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.decoding='async';img.onerror=()=>img.remove();a.append(img)}
+   if(src){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.decoding='async';img.onerror=()=>{img.remove();a.classList.add('swapp-home-match-image-missing')};a.append(img)}
    const body=el('span','swapp-home-match-details');body.append(el('b','',item.display_name||login),el('small','',item.game_name||''));a.append(body,el('span','swapp-home-live-pill','EN DIRECT'));return a;
  }
  function mount(){
