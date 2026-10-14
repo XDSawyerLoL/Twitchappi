@@ -10957,14 +10957,29 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       lastHomeMode = mode;
       if(mode === 'swapp'){
         if(title) title.textContent = 'Lives Swapp en direct';
-        if(sub) sub.textContent = 'Les lives Swapp actifs passent en premier et ouvrent la page publique du streamer.';
-        if(status) status.textContent = 'Swapp actif';
+        if(sub) sub.textContent = 'Découvrez les créateurs qui diffusent en ce moment sur SWAPP.';
+        if(status) status.textContent = 'SWAPP en direct';
       }else{
         if(title) title.textContent = 'Lives Twitch en direct';
-        if(sub) sub.textContent = 'Découvre des créateurs en direct sur Twitch pendant que les chaînes SWAPP préparent leur prochain live.';
-        if(status) status.textContent = 'Fallback Twitch';
+        if(sub) sub.textContent = 'Des créateurs en direct, sélectionnés pour prolonger votre découverte.';
+        if(status) status.textContent = 'Twitch en direct';
       }
       grid.innerHTML = items.length ? items.slice(0,12).map(card).join('') : `<div class="homeEmpty1014">Aucun live disponible pour le moment. Essaie à nouveau dans quelques instants.</div>`;
+      const more=$id('homeLiveMore1014');
+      if(more){
+        const cards=Array.from(grid.querySelectorAll('.homeLiveCard1014'));
+        cards.forEach((el,i)=>{el.hidden=i>=8});
+        const extras=Math.max(0,cards.length-8);
+        more.hidden=!extras;
+        more.setAttribute('aria-expanded','false');
+        more.textContent='Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':'');
+        more.onclick=()=>{
+          const expanded=more.getAttribute('aria-expanded')==='true';
+          cards.forEach((el,i)=>{el.hidden=expanded&&i>=8});
+          more.setAttribute('aria-expanded',String(!expanded));
+          more.textContent=expanded?'Afficher '+extras+' autre'+(extras>1?'s':'')+' live'+(extras>1?'s':''):'Voir moins de lives';
+        };
+      }
     }finally{
       homeBusy = false;
     }
@@ -10994,9 +11009,10 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
       <section class="homeLiveSection1014">
         <div class="homeLiveHead1014">
           <div><h2 id="homeLiveTitle1014">Lives en direct</h2><p id="homeLiveSub1014">Chargement des lives…</p></div>
-          <div class="homeActions1014"><button class="btn secondary" type="button" onclick="swappRefreshHome1014?.()">Actualiser</button><button class="btn secondary" type="button" onclick="setView('discover')">Découvrir</button></div>
+          <div class="homeActions1014"><button class="btn secondary" type="button" onclick="setView('discover')">Tous les lives →</button></div>
         </div>
         <div id="homeLiveGrid1014" class="homeLiveGrid1014"><div class="homeEmpty1014">Chargement des lives…</div></div>
+        <button id="homeLiveMore1014" class="homeLiveMore1014" type="button" aria-controls="homeLiveGrid1014" aria-expanded="false" hidden>Voir plus de lives</button>
       </section>
 
     </main>`;
