@@ -62,10 +62,10 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 }
 function newsLayout(title, description, inner, metadata = '') {
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080b12"><title>${escapeHtml(title)} | SWAPP</title><meta name="description" content="${escapeHtml(description)}">${metadata}<style>
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080b12"><title>${escapeHtml(title)} | SWAPP</title><meta name="description" content="${escapeHtml(description)}">${metadata}<link rel="stylesheet" href="/assets/swapp-media.css"><style>
   :root{color-scheme:dark;--bg:#080b12;--panel:#151d2c;--line:#303a50;--muted:#aab4c6;--text:#f5f7ff;--violet:#a78bfa}
   *{box-sizing:border-box}body{margin:0;color:var(--text);background:radial-gradient(ellipse at 5% 0%,#271a47 0%,transparent 45%),var(--bg);font-family:Inter,system-ui,Segoe UI,sans-serif;line-height:1.65}a{color:#c4b5fd}header{padding:18px max(20px,calc((100vw - 1100px)/2));min-width:0;border-bottom:1px solid var(--line);background:#080b12dd;display:flex;justify-content:space-between;gap:16px;align-items:center;position:sticky;top:0;backdrop-filter:blur(14px)}header a{text-decoration:none;font-weight:700}header strong{font-size:23px;color:#fff;letter-spacing:-.05em}nav{display:flex;flex-wrap:wrap;gap:18px}nav a{font-size:14px;color:#cbd5e1}main{max-width:1100px;margin:0 auto;padding:44px 20px 80px}h1{font-size:clamp(2.2rem,4vw,3.8rem);letter-spacing:-.065em;line-height:1.08;margin:18px 0}h2{line-height:1.25}.lead{font-size:clamp(1.1rem,2vw,1.35rem);color:#d4d8e5;max-width:780px}.eyebrow{color:#c4b5fd;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.muted{color:var(--muted)}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;margin-top:34px}.card{display:flex;flex-direction:column;text-decoration:none;border:1px solid var(--line);border-radius:21px;overflow:hidden;background:#151d2ca9;transition:transform .15s,border-color .15s}.card:hover{transform:translateY(-3px);border-color:var(--violet)}.card img{width:100%;height:190px;object-fit:cover}.card-content{padding:22px}.card h2{font-size:22px;color:white;margin:8px 0}.card p{color:#cad1df;margin:0 0 10px}.pill{border:1px solid #7c64a8;border-radius:999px;color:#d9c9ff;padding:3px 9px;font-size:12px;display:inline-block}.article{max-width:760px;margin:auto}.article p{font-size:18px;white-space:pre-line;overflow-wrap:anywhere}.article figure{margin:30px 0}.article img{width:100%;border-radius:20px}.article figcaption{font-size:13px;color:var(--muted)}.article footer{border-top:1px solid var(--line);margin-top:50px;padding-top:28px}.article ul{padding-left:20px}footer a{overflow-wrap:anywhere}@media(max-width:600px){header{padding:14px 18px}main{padding:30px 18px 80px}nav{gap:10px}nav a{font-size:12px}}
-  </style></head><body><header><a href="/"><strong>SWAPP</strong></a><nav><a href="/actus">ACTUS</a><a href="/decouvrir">LIVES</a><a href="/">COMMUNAUTÉ</a></nav></header>${inner}</body></html>`;
+  </style></head><body><header><a href="/"><strong>SWAPP</strong></a><nav><a href="/">Accueil</a><a href="/decouvrir">Découvrir</a><a href="/categories">Catégories</a><a href="/equipes">Équipes</a><a href="/actus">ACTUS × LIVE</a><a href="/compte">Compte</a></nav></header>${inner}<script src="/assets/swapp-media-live.js" defer></script></body></html>`;
 }
 function renderArticle(article, {baseUrl = 'https://swapp.tv'} = {}) {
   const canonical = `${baseUrl}/actus/${encodeURIComponent(article.slug)}`;
@@ -79,14 +79,47 @@ function renderArticle(article, {baseUrl = 'https://swapp.tv'} = {}) {
   const sources=(article.sources||[]).map(s=>`<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer nofollow">${escapeHtml(s.label||s.url)}</a></li>`).join('');
   const image=article.image ? `<figure><img src="${escapeHtml(article.image.url)}" alt="" loading="lazy"><figcaption>${escapeHtml(article.image.credit)}</figcaption></figure>` : '';
   const legacy=article.legacyUrl ? `<p class="muted">Publié initialement sur <a href="${escapeHtml(article.legacyUrl)}" rel="noopener noreferrer">JustPlayer</a>.</p>` : '';
-  return newsLayout(article.title,desc,`<main><div class="article"><span class="eyebrow">${escapeHtml(article.category)} · JustPlayer × SWAPP</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(desc)}</p><p class="muted">${escapeHtml(article.author)} · ${escapeHtml((article.originalPublishedAt||article.publishedAt||'').slice(0,10))}</p>${image}<article>${paras}</article><footer>${legacy}<h2>Sources</h2><ul>${sources}</ul><a href="/actus">← Toutes les actualités</a></footer></div></main>`,meta);
+  return newsLayout(article.title,desc,`<main><div class="article"><span class="eyebrow">${escapeHtml(article.category)} · JustPlayer × SWAPP</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(desc)}</p><p class="muted">${escapeHtml(article.author)} · ${escapeHtml((article.originalPublishedAt||article.publishedAt||'').slice(0,10))}</p>${image}<article>${paras}</article><footer>${legacy}<h2>Sources</h2><ul>${sources}</ul><a href="/actus">← Toutes les actualités</a></footer><aside class="swapp-article-related" data-swapp-live-shelf data-game="${escapeHtml(article.game||'')}"><div class="swapp-media-heading"><div><span class="swapp-media-kicker">ACTUS × LIVE</span><h2>${article.game ? `Qui joue à ${escapeHtml(article.game)} en direct ?` : 'Les créateurs en direct'}</h2></div><a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div><div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives en cours…</p></div></aside></div></main>`,meta);
 }
-function renderListing(articles, {baseUrl='https://swapp.tv', archives=[]} = {}) {
-  const cards=articles.map(a=>`<a class="card" href="/actus/${encodeURIComponent(a.slug)}">${a.image ? `<img src="${escapeHtml(a.image.url)}" alt="" loading="lazy">` : ''}<div class="card-content"><span class="pill">${escapeHtml(a.category)}</span><h2>${escapeHtml(a.title)}</h2><p>${escapeHtml(a.summary || a.body?.slice(0,160)||'')}</p><small class="muted">${escapeHtml((a.originalPublishedAt||a.publishedAt||'').slice(0,10))}</small></div></a>`).join('');
-  const archivedCards = archives.map(a=>`<a class="card" href="${escapeHtml(a.url)}" target="_blank" rel="noopener noreferrer"><div class="card-content"><span class="pill">${a.type === 'video_embed' ? 'Vidéo · Archive' : 'Archive JustPlayer'}</span><h2>${escapeHtml(a.title)}</h2><p class="muted">${escapeHtml(a.publishedAt)} · Article d’origine conservé sur JustPlayer</p><small class="muted">Lire sur JustPlayer ↗</small></div></a>`).join('');
-  const archivesSection = archivedCards ? `<section class="section" aria-label="Archives JustPlayer"><h2>Archives JustPlayer</h2><p class="muted">Ces publications sont encore hébergées sur JustPlayer. La migration vers SWAPP est en préparation.</p><div class="cards">${archivedCards}</div><p><a href="https://justplayer.fr/supporters" target="_blank" rel="noopener noreferrer">Voir toutes les publications JustPlayer ↗</a></p></section>` : '';
-  const publishedSection = cards ? `<section class="section" aria-label="Articles SWAPP"><h2>Dernières publications</h2><div class="cards">${cards}</div></section>` : '';
-  const empty = !cards && !archivedCards ? '<p class="muted">Aucun article encore publié. Les lives restent disponibles sur SWAPP.</p>' : '';
-  return newsLayout('Actualités gaming','Toute l’actualité jeux vidéo, culture et streaming de JustPlayer et SWAPP.',`<main><span class="eyebrow">La rédaction · JustPlayer × SWAPP</span><h1>Les jeux font l’actualité.<br>Les créateurs les font vivre.</h1><p class="lead">Analyses, actualités, dossiers et découvertes en lien avec les lives de la communauté SWAPP.</p>${publishedSection}${archivesSection}${empty}</main>`,`<link rel="canonical" href="${escapeHtml(baseUrl)}/actus">`);
+function renderListing(articles, {baseUrl='https://swapp.tv'} = {}) {
+  const [featured,...latest]=articles;
+  function item(a) {
+    const picture=a.image?.url ? '<img src="'+escapeHtml(a.image.url)+'" alt="" loading="lazy">' : '';
+    return '<a class="card" href="/actus/'+encodeURIComponent(a.slug)+'">'+picture+
+      '<div class="card-content"><span class="pill">'+escapeHtml(a.category||'ACTUS')+'</span><h2>'+escapeHtml(a.title)+
+      '</h2><p>'+escapeHtml(a.summary||a.body?.slice(0,160)||'')+'</p><small class="muted">'+
+      escapeHtml((a.originalPublishedAt||a.publishedAt||'').slice(0,10))+' · Lire sur SWAPP →</small></div></a>';
+  }
+  const heroFeature=featured?
+    '<span class="swapp-media-kicker">À la une · '+escapeHtml(featured.category||'ACTUS')+'</span>'+
+    (featured.image?.url?'<img src="'+escapeHtml(featured.image.url)+'" alt="" loading="lazy">':'')+
+    '<h2>'+escapeHtml(featured.title)+'</h2><p>'+escapeHtml(featured.summary||'')+'</p>'+
+    '<a class="swapp-media-button primary" href="/actus/'+encodeURIComponent(featured.slug)+'">Lire cet article →</a>':
+    '<span class="swapp-media-kicker">La rédaction prend forme</span><h2>Le gaming, ses histoires et ceux qui les vivent.</h2>'+
+    '<p>Les prochains articles seront disponibles ici, directement sur SWAPP, avec les lives des créateurs.</p>'+
+    '<a class="swapp-media-button" href="/actus/studio">Espace rédaction →</a>';
+  const articlesHtml=articles.length?
+    '<div class="swapp-media-stories">'+(featured?item(featured):'')+latest.map(item).join('')+'</div>':
+    '<div class="swapp-media-empty">Les premiers articles natifs seront publiés ici. En attendant, découvre les créateurs en direct ci-dessus.</div>';
+  const content='<main class="swapp-media-main">'+
+    '<div class="swapp-media-hero">'+
+    '<section class="swapp-media-stage"><span class="swapp-media-kicker">SWAPP · ACTUS × LIVE</span>'+
+    '<h1>Lis l’actu.<br>Vis le jeu.</h1>'+
+    '<p class="lead">Une information, un jeu, des créateurs : lis ce qui se passe, puis retrouve ceux qui le vivent en direct. Tout dans SWAPP.</p>'+
+    '<div class="swapp-media-buttons"><a class="swapp-media-button primary" href="#articles">Explorer les actualités ↓</a>'+
+    '<a class="swapp-media-button" href="#en-direct">Regarder les lives →</a></div></section>'+
+    '<aside class="swapp-media-feature">'+heroFeature+'</aside></div>'+
+    '<section class="swapp-media-section" id="en-direct" data-swapp-live-shelf>'+
+    '<div class="swapp-media-heading"><div><span class="swapp-media-kicker">Les créateurs · Maintenant</span>'+
+    '<h2>Ça se joue en direct.</h2><p>Lives SWAPP prioritaires, puis découverte Twitch : regarde directement ici.</p></div>'+
+    '<a class="swapp-media-button" href="/decouvrir">Tous les lives →</a></div>'+
+    '<div class="swapp-live-grid" data-live-results><p class="swapp-live-notice">Recherche des lives en cours…</p></div></section>'+
+    '<section class="swapp-media-section" id="articles"><div class="swapp-media-heading"><div>'+
+    '<span class="swapp-media-kicker">La rédaction · ACTUS</span><h2>À lire. À découvrir. À vivre.</h2>'+
+    '<p>Des articles complets publiés sur SWAPP — sans renvoi vers un autre site.</p></div>'+
+    '<a class="swapp-media-button" href="/actus/studio">Espace rédaction →</a></div>'+
+    articlesHtml+'</section></main>';
+  return newsLayout('ACTUS × LIVE — Le média gaming','Toute l’actualité des jeux vidéo et les créateurs en direct, au même endroit : SWAPP.',content,
+    '<link rel="canonical" href="'+escapeHtml(baseUrl)+'/actus"><meta property="og:title" content="SWAPP · ACTUS × LIVE">');
 }
 module.exports={slugify,isHttpUrl,isLegacyJustPlayerUrl,assertArticle,escapeHtml,renderArticle,renderListing};
