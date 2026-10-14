@@ -171,3 +171,15 @@ main.swapp-media-main{max-width:1390px;padding:36px 20px 90px}
 @keyframes swapp-home-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @media(max-width:650px){#home .swapp-home-story-skeleton.swapp-home-story-featured{min-height:270px}}
 @media(prefers-reduced-motion:reduce){#home .swapp-home-story-skeleton .swapp-home-story-image{animation:none}}
+
+/* Direct article/live journey: short, readable actions without additional menus. */
+.swapp-home-read-related{display:inline-flex;margin-top:10px;color:#7de7e9;text-decoration:none;font-size:12px;font-weight:800;min-height:32px;align-items:center;padding:4px 2px}
+.swapp-home-read-related:hover{text-decoration:underline}
+.swapp-home-read-related:focus-visible{outline:2px solid #7de7e9;outline-offset:3px}
+.swapp-home-match-item{display:flex;flex-direction:column}
+.swapp-home-match-item .swapp-home-match-live{flex:1}
+.swapp-reader-live-jump{display:inline-flex;justify-content:center;align-items:center;min-height:38px;padding:8px 14px;border:1px solid #8267a7;border-radius:999px;color:#f1d8ff;text-decoration:none;font-size:13px;font-weight:800;background:#312342}
+.swapp-reader-live-jump:hover{background:#453159;border-color:#c6a1ef}
+.swapp-reader-live-jump:focus-visible{outline:3px solid #7de7e9;outline-offset:3px}
+#swapp-article-lives{scroll-margin-top:90px}
+@media(max-width:600px){.swapp-home-match-item .swapp-home-match-live{min-height:58px}.swapp-reader-live-jump{width:100%}}
