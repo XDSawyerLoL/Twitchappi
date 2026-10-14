@@ -56,6 +56,16 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 .userArea .menu [style*="background"]{max-width:100%;box-sizing:border-box}
 .userArea .menu :is(a,button,input):focus-visible{outline:2px solid #62e4ea;outline-offset:2px}
 @media(max-width:550px){.userArea .menu{position:fixed;top:75px;right:12px;left:12px;width:auto;max-height:calc(100svh - 110px)}}
+/* Palette compacte : un nuancier, pas six bandes de 300 px. */
+.userArea .menu.swapp-account-enhanced{width:min(350px,calc(100vw - 24px));padding:17px 18px}
+.userArea .menu .swapp-account-palette{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;align-items:center;margin:9px 0 18px}
+.userArea .menu .swapp-account-palette button.swapp-account-swatch{display:block!important;width:100%!important;min-width:0!important;height:39px!important;min-height:39px!important;max-height:39px!important;aspect-ratio:1/1;border-radius:12px!important;border:2px solid #ffffff35!important;padding:0!important;margin:0!important;box-shadow:inset 0 0 0 1px #0002;overflow:hidden;font-size:0!important;flex:none!important}
+.userArea .menu .swapp-account-palette button.swapp-account-swatch:hover{transform:translateY(-2px);border-color:#ffffffbd!important}
+.userArea .menu .swapp-account-palette button.swapp-account-swatch:focus-visible{outline:2px solid #7fe8ee;outline-offset:2px}
+.userArea .menu.swapp-account-enhanced .sep{margin:14px 0}
+.userArea .menu.swapp-account-enhanced h2,.userArea .menu.swapp-account-enhanced h3{font-size:13px;margin:5px 0 10px}
+@media(max-width:380px){.userArea .menu .swapp-account-palette{gap:5px}.userArea .menu .swapp-account-palette button.swapp-account-swatch{height:34px!important}}
+@media(prefers-reduced-motion:reduce){.userArea .menu .swapp-account-palette button.swapp-account-swatch:hover{transform:none}}
 </style>
 <style id="swapp-boot-css">
 .swappBoot{min-height:calc(100svh - 68px);display:grid;place-items:center;background:#05070d;color:#dbe7fb;font-weight:900;letter-spacing:-.02em}
@@ -102,6 +112,7 @@ html,body{overflow-x:hidden}.watchShell.channelWatch{grid-template-columns:minma
 <script src="/index_script.js?v=1.0.14"></script>
 <script defer src="/assets/swapp-footer.js?v=20261015-home-restore-19"></script>
 <script defer src="/assets/swapp-editor-nav.js"></script>
+<script defer src="/assets/swapp-account-menu.js?v=20261015-account-palette-20"></script>
 </body>
 </html>
 <style>
