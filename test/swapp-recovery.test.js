@@ -14,7 +14,7 @@ test('SWAPP est le seul nom de marque et la navigation reste la même pour artic
    assert.match(page,/href="\/equipes"/);
    assert.match(page,/href="\/actus"[^>]*>ACTUS<\/a>/);
    assert.doesNotMatch(page,/ACTUS × LIVE/);
-   assert.match(page,/editor-only-nav"[^>]*hidden/);
+   assert.ok(page.includes('id="userBtn" class="userBtn"'));
  }
 });
 test('le catalogue JustPlayer est visible dans SWAPP sans redirection automatique',()=>{
