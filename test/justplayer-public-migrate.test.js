@@ -12,7 +12,7 @@ function fetchPublic(html){return async (url,init)=>{
   assert.equal(url,p.url);assert.equal(init.method,'GET');
   return {ok:true,headers:{get:()=> 'text/html; charset=utf-8'},text:async()=>html};
 };}
-const body='<p>IO Interactive présente une nouvelle vision de James Bond avec espionnage et infiltrations.</p><p>De nombreux joueurs suivent les séquences d’action et les missions du jeu avec intérêt.</p>';
+const body=('<p>IO Interactive présente une nouvelle vision de James Bond avec espionnage et infiltrations.</p><p>De nombreux joueurs suivent les séquences d’action et les missions du jeu avec intérêt.</p>').repeat(5);
 function page(){return `<html><head><meta property="og:title" content="007 First Light : James Bond réussit son retour" /><meta property="article:published_time" content="2026-09-05" /></head><article>${body}</article></html>`;}
 
 test('analyse les paramètres et empêche un commit implicite',()=>{
