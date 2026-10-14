@@ -37,7 +37,7 @@
  }
  function mount(){
    const home=document.getElementById('home');if(!home||home.querySelector('[data-swapp-home-editorial]'))return;
-   const base=home.querySelector('.homeOnlyMain')||home;if(!base.children.length)return;
+   const base=home.querySelector('.homeOnlyMain');if(!base||!base.children.length||home.querySelector('.swappBoot'))return;
    const section=el('section','swapp-home-editorial');section.dataset.swappHomeEditorial='1';
    const top=el('div','swapp-home-editorial-top'),title=el('div');
    title.append(el('small','','SWAPP · LE GAMING EN DIRECT'),el('h2','','À la une sur SWAPP'),el('p','','L’actualité des jeux et les créateurs qui y jouent, au même endroit.'));
