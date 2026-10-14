@@ -10899,7 +10899,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
     const payload = encodePayload(raw);
     const kind = n.platform === 'swapp' ? 'swapp' : 'twitch';
     const badge = n.platform === 'swapp' ? 'LIVE SWAPP' : 'LIVE TWITCH';
-    return `<article class="homeLiveCard1014" onclick="swappOpenLive1014('${payload}')" tabindex="0" onkeydown="if(event.key==='Enter')swappOpenLive1014('${payload}')"><div class="homeThumb1014">${n.thumb?`<img src="${safe(n.thumb)}" alt="">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b;font-weight:900">LIVE</div>`}<span class="homeLiveBadge1014 ${kind}">● ${badge}</span><span class="homeViewers1014">${n.viewers || 0} viewers</span></div><div class="homeLiveBody1014"><h3>${safe(n.title)}</h3><div class="homeMeta1014">${safe(n.name)} · ${safe(n.game)}</div><button class="btn" type="button" onclick="event.stopPropagation();swappOpenLive1014('${payload}')">Regarder</button></div></article>`;
+    return `<article class="homeLiveCard1014" onclick="swappOpenLive1014('${payload}')" tabindex="0" onkeydown="if(event.key==='Enter')swappOpenLive1014('${payload}')"><div class="homeThumb1014">${n.thumb?`<img src="${safe(n.thumb)}" alt="">`:`<div style="height:100%;display:grid;place-items:center;color:#64748b;font-weight:900">LIVE</div>`}<span class="homeLiveBadge1014 ${kind}">● ${badge}</span><span class="homeViewers1014">${n.viewers || 0} spectateurs</span></div><div class="homeLiveBody1014"><h3>${safe(n.title)}</h3><div class="homeMeta1014">${safe(n.name)} · ${safe(n.game)}</div><button class="btn" type="button" onclick="event.stopPropagation();swappOpenLive1014('${payload}')">Regarder</button></div></article>`;
   }
 
   async function apiSafe(url){ try{ return await api(url); }catch(e){ console.warn('Swapp home API', url, e); return null; } }
@@ -10961,10 +10961,10 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
         if(status) status.textContent = 'Swapp actif';
       }else{
         if(title) title.textContent = 'Lives Twitch en direct';
-        if(sub) sub.textContent = 'Aucun live Swapp actif : l’accueil garde automatiquement des lives Twitch publics.';
+        if(sub) sub.textContent = 'Découvre des créateurs en direct sur Twitch pendant que les chaînes SWAPP préparent leur prochain live.';
         if(status) status.textContent = 'Fallback Twitch';
       }
-      grid.innerHTML = items.length ? items.slice(0,12).map(card).join('') : `<div class="homeEmpty1014">Aucun live à afficher pour le moment. Vérifie les clés Twitch si le fallback reste vide.</div>`;
+      grid.innerHTML = items.length ? items.slice(0,12).map(card).join('') : `<div class="homeEmpty1014">Aucun live disponible pour le moment. Essaie à nouveau dans quelques instants.</div>`;
     }finally{
       homeBusy = false;
     }
@@ -10981,22 +10981,14 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
         <div class="homeHeroInner1014">
           <div class="homeHeroCopy1014">
             <span class="eyebrow"><i class="dot"></i><span id="homeHeroStatus1014">Accueil live</span></span>
-            <h1>Découvre les lives maintenant.</h1>
-            <p>Swapp met ses lives natifs en avant dès qu’ils sont actifs. Sinon, la page affiche des lives Twitch publics pour garder une vraie plateforme vivante.</p>
+            <h1>Les bons lives se trouvent ici.</h1>
+            <p>Des créateurs à découvrir en direct. SWAPP met ses propres lives en avant et te permet aussi d'explorer ceux de Twitch.</p>
             <div class="homeActions1014">
               <button class="btn" type="button" onclick="setView('discover')">Trouver un live</button>
               <button class="btn secondary" type="button" onclick="setView('${safe(streamView)}')">${safe(streamLabel)}</button>
             </div>
           </div>
-          <aside class="homeHeroPanel1014">
-            <h2>Règle d’accueil</h2>
-            <p>1. Swapp passe en priorité. 2. S’il n’y a aucun live Swapp, Twitch prend le relais. 3. Le clic ouvre directement le bon lecteur.</p>
-            <div class="homeInfoGrid1014">
-              <div class="homeInfo1014"><b>Pages publiques</b><span>/pseudo reste accessible sans connexion.</span></div>
-              <div class="homeInfo1014"><b>Tchat</b><span>Lecture publique, écriture avec compte.</span></div>
-              <div class="homeInfo1014"><b>Découverte</b><span>Pas de grand bloc vide ni de scroll horizontal forcé.</span></div>
-            </div>
-          </aside>
+
         </div>
       </section>
       <section class="homeLiveSection1014">
@@ -11006,11 +10998,7 @@ if(matchMedia('(max-width: 760px)').matches){document.body.classList.add('chatCo
         </div>
         <div id="homeLiveGrid1014" class="homeLiveGrid1014"><div class="homeEmpty1014">Chargement des lives…</div></div>
       </section>
-      <section class="homeBottom1014">
-        <article class="homeBottomCard1014"><h3>Streamer sur Swapp</h3><p>Lance Swapp Local, publie ton flux, et ta page publique remonte automatiquement.</p></article>
-        <article class="homeBottomCard1014"><h3>Regarder sans compte</h3><p>Les lives restent publics. Le compte sert à parler, suivre et gérer sa chaîne.</p></article>
-        <article class="homeBottomCard1014"><h3>Découvrir vite</h3><p>Quand aucun live Swapp n’est actif, l’accueil ne se vide pas : Twitch prend le relais.</p></article>
-      </section>
+
     </main>`;
     await loadLives(true);
     try{ closeMini?.(); }catch(_e){}
